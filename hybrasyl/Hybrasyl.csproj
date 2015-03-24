@@ -1,0 +1,297 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{1A74ADC1-7BDB-450F-8D7C-22ECA21AB47A}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Hybrasyl</RootNamespace>
+    <AssemblyName>Hybrasyl</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <NuGetPackageImportStamp>65c31f8d</NuGetPackageImportStamp>
+    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">.\</SolutionDir>
+    <RestorePackages>true</RestorePackages>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+    <UseVSHostingProcess>true</UseVSHostingProcess>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>x64</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>hybrasyl.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="BCrypt.Net">
+      <HintPath>packages\BCrypt-Official.0.1.109\lib\BCrypt.Net.dll</HintPath>
+    </Reference>
+    <Reference Include="EntityFramework">
+      <HintPath>packages\EntityFramework.6.1.1\lib\net45\EntityFramework.dll</HintPath>
+    </Reference>
+    <Reference Include="EntityFramework.SqlServer">
+      <HintPath>packages\EntityFramework.6.1.1\lib\net45\EntityFramework.SqlServer.dll</HintPath>
+    </Reference>
+    <Reference Include="FastMember">
+      <HintPath>packages\FastMember.1.0.0.11\lib\net40\FastMember.dll</HintPath>
+    </Reference>
+    <Reference Include="IronPython">
+      <HintPath>packages\IronPython.2.7.4\lib\Net45\IronPython.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="IronPython.Modules">
+      <HintPath>packages\IronPython.2.7.4\lib\Net45\IronPython.Modules.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="IronPython.SQLite">
+      <HintPath>packages\IronPython.2.7.4\lib\Net45\IronPython.SQLite.dll</HintPath>
+    </Reference>
+    <Reference Include="IronPython.Wpf">
+      <HintPath>packages\IronPython.2.7.4\lib\Net45\IronPython.Wpf.dll</HintPath>
+    </Reference>
+    <Reference Include="log4net">
+      <HintPath>packages\log4net.2.0.3\lib\net40-full\log4net.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Dynamic">
+      <HintPath>packages\IronPython.2.7.4\lib\Net45\Microsoft.Dynamic.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Microsoft.Scripting">
+      <HintPath>packages\IronPython.2.7.4\lib\Net45\Microsoft.Scripting.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="MySql.Data, Version=6.8.3.0, Culture=neutral, PublicKeyToken=c5687fc88969c44d, processorArchitecture=MSIL">
+      <Private>True</Private>
+      <HintPath>packages\MySql.ConnectorNET.Data.6.8.3.2\lib\net45\MySql.Data.dll</HintPath>
+    </Reference>
+    <Reference Include="MySql.Data.Entity.EF6, Version=6.8.3.0, Culture=neutral, PublicKeyToken=c5687fc88969c44d, processorArchitecture=MSIL">
+      <Private>True</Private>
+      <HintPath>packages\MySql.ConnectorNET.Entity.6.8.3.2\lib\net45\MySql.Data.Entity.EF6.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>packages\Newtonsoft.Json.6.0.4\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Security" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+    <Reference Include="zlib.net">
+      <HintPath>packages\zlib.net.1.0.4.0\lib\zlib.net.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Client.cs" />
+    <Compile Include="Connection.cs" />
+    <Compile Include="Dialogs.cs" />
+    <Compile Include="Enums.cs" />
+    <Compile Include="Game.cs" />
+    <Compile Include="Inventory.cs" />
+    <Compile Include="Objects\Item.cs" />
+    <Compile Include="Jobs.cs" />
+    <Compile Include="Lobby.cs" />
+    <Compile Include="Login.cs" />
+    <Compile Include="Map.cs" />
+    <Compile Include="Objects\Merchant.cs" />
+    <Compile Include="Metafile.cs" />
+    <Compile Include="Packet.cs" />
+    <Compile Include="Properties\account.cs">
+      <DependentUpon>Hybrasyl.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\active_admin_comments.cs">
+      <DependentUpon>Hybrasyl.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\api_keys.cs">
+      <DependentUpon>Hybrasyl.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\board.cs">
+      <DependentUpon>Hybrasyl.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\board_messages.cs">
+      <DependentUpon>Hybrasyl.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\drop.cs">
+      <DependentUpon>Hybrasyl.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\drop_sets.cs">
+      <DependentUpon>Hybrasyl.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\flag.cs">
+      <DependentUpon>Hybrasyl.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\Hybrasyl.Context.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Hybrasyl.Context.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\Hybrasyl.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Hybrasyl.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\Hybrasyl.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Hybrasyl.edmx</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Properties\item.cs">
+      <DependentUpon>Hybrasyl.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\item_variant.cs">
+      <DependentUpon>Hybrasyl.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\legend_marks.cs">
+      <DependentUpon>Hybrasyl.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\map.cs">
+      <DependentUpon>Hybrasyl.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\message.cs">
+      <DependentUpon>Hybrasyl.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\mob.cs">
+      <DependentUpon>Hybrasyl.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\nation.cs">
+      <DependentUpon>Hybrasyl.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\news_posts.cs">
+      <DependentUpon>Hybrasyl.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\npc.cs">
+      <DependentUpon>Hybrasyl.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\player.cs">
+      <DependentUpon>Hybrasyl.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\reactor.cs">
+      <DependentUpon>Hybrasyl.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\signpost.cs">
+      <DependentUpon>Hybrasyl.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\skill.cs">
+      <DependentUpon>Hybrasyl.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\spawn.cs">
+      <DependentUpon>Hybrasyl.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\spawn_points.cs">
+      <DependentUpon>Hybrasyl.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\spell.cs">
+      <DependentUpon>Hybrasyl.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\warp.cs">
+      <DependentUpon>Hybrasyl.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\worldmap.cs">
+      <DependentUpon>Hybrasyl.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\worldmap_points.cs">
+      <DependentUpon>Hybrasyl.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\worldwarp.cs">
+      <DependentUpon>Hybrasyl.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Pursuit.cs" />
+    <Compile Include="QuadTree.cs" />
+    <Compile Include="Scripting.cs" />
+    <Compile Include="Server.cs" />
+    <Compile Include="Template.cs" />
+    <Compile Include="Objects\User.cs" />
+    <Compile Include="Utility.cs" />
+    <Compile Include="World.cs" />
+    <Compile Include="Objects\WorldObject.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config">
+      <SubType>Designer</SubType>
+    </None>
+    <EntityDeploy Include="Properties\Hybrasyl.edmx">
+      <Generator>EntityModelCodeGenerator</Generator>
+      <LastGenOutput>Hybrasyl.Designer.cs</LastGenOutput>
+    </EntityDeploy>
+    <None Include="LICENSE" />
+    <None Include="Log4Net.config" />
+    <None Include="Properties\Hybrasyl.Context.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Hybrasyl.Context.cs</LastGenOutput>
+      <DependentUpon>Hybrasyl.edmx</DependentUpon>
+    </None>
+    <None Include="Properties\Hybrasyl.edmx.diagram">
+      <DependentUpon>Hybrasyl.edmx</DependentUpon>
+    </None>
+    <None Include="packages.config" />
+    <None Include="Properties\Hybrasyl.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Hybrasyl.cs</LastGenOutput>
+      <DependentUpon>Hybrasyl.edmx</DependentUpon>
+    </None>
+    <None Include="Resources\sotp.dat" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="FodyWeavers.xml" />
+    <Content Include="hybrasyl.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>copy "$(ProjectDir)Log4Net.config" "$(ProjectDir)$(OutDir)"</PostBuildEvent>
+  </PropertyGroup>
+  <Import Project="packages\Fody.1.25.0\build\Fody.targets" Condition="Exists('packages\Fody.1.25.0\build\Fody.targets')" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('packages\Fody.1.25.0\build\Fody.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Fody.1.25.0\build\Fody.targets'))" />
+    <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
+  </Target>
+  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
