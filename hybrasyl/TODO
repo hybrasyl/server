@@ -1,0 +1,86 @@
+* Scripting
+  * Item scripting
+    * Items should have clones of scripts attached to them
+    * Handle equip/unequip/use events
+    * Add callback support to item use / equip packet handlers
+
+  * Multiple Script instance support
+    * Need a generic mechanism for updating all instances of a script
+      * preferably not with serial reloading
+      * copy the newly compiled source, maybe with a new ScriptScope
+        and definitely with a new instance of Scriptable
+
+  * Reactors
+    * Need schema update to support placement (same as warp + script name)
+    * Should support onEntry, onLeave, onDrop, onPickup, onListen
+
+* Shops support
+  * Buy / sell
+  * Schema needs extension to support shops
+
+* Damage / Death Handling
+  * Handled by accessors on Creature
+  * Accessors should trigger visual updates (life bars, etc)
+  * Also handle death here
+    * Creature death: support callbacks via onDeath in scriptable
+    * Player death: onDeath?
+
+* Timed event / queue support
+  * Generic support for timed events
+    * HP/MP refresh
+    * Buff/debuff ticks
+    * Skulling
+  * TimedEvent object? with associated storage (ConcurrentDictionary?)
+    * start_time, duration, callback (Delegate or dynamic python function)
+    * AddEvent(TimedEvent): add to queue
+    * Maximum 1s resolution
+    * Dictionary of lists
+    * Ideally every event would run in a separate thread (so they all run
+      simultaneously) but they can't do that in current thread model
+
+* Skill / Spell support
+  * Learn / Forget dialog support
+  * Skills, Spells database support
+  * Metafiles stuff
+  * Mine info from DA for all skills, spells (requirements, blah)
+
+* Combat
+  * Monster spawning
+  * Monster combat AI (onEntry/onAttack/onLeave/onDeath/onSpawn)
+  * Combat AI should also support "combat loop" (inCombat?), where
+    the creature basically attacks until dead or quiesced (prahm/etc)
+
+* Editor API support (REST/JSON)
+  * Webservice embedded in Hybrasyl listening on port 8080
+  * All requests will send Authorization: Token token= .... header
+  * GET/HEAD /api/<object>/(<id>|all) - get object or object headers
+    * No access to objects: 403
+    * Object doesn't exist: 404
+    * All other cases: 200
+  * POST/DELETE /api/<object>/<id> - create or delete object
+    * Can't delete because of lock: 409 with json lock info
+    * Validation error: 400 + json error info
+    * No permissions: 403
+  * PUT /api/<object><id> - update object
+    * Lock held by someone else: 423 + json lock info
+    * Validation error: 400 + json error info
+    * No permissions: 403
+  * GET /api/<object>/<id>/lock
+    * Return information on whether a lock exists
+  * GET /api/<object>/<id>/lock/(create|remove|steal)
+    * If a lock is requested on an already locked object, 409 
+    * If successful, 200
+    * If a lock is requested on an object we already have locked, 400 + lock info
+    * Locks expire automatically after 30 minutes of inactivity
+  * Examples:
+    * GET /api/item/1337 - returns JSON representation of item
+    * GET /api/item/all - returns JSON representation of list of items
+    * DELETE /api/npc/1337 - delete NPC 1337
+    * HEAD /api/npc/1337 - return just headers (including Last-Modified)
+    * PUT /api/npc/1337 - update NPC 1337
+    * etc
+  * Headers
+    * Included in all GET/HEAD requests:
+       Last-Modified (last time object was updated)
+    * Included in some requests:
+       X-Hybrasyl-Locked-By: if the object is locked, who holds the lock
