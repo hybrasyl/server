@@ -1025,13 +1025,8 @@ namespace Hybrasyl
                         if (user.Id == mapobj.Id)
                             continue;
 
-                        var aisling = FindUser(mapobj.Name);
-
-                        if (aisling != null)
-                        {
-                            aisling.SendSound(0x0001);
-                            aisling.SendMotion(user.Id, 0x01, 0x14);
-                        }
+                        (mapobj as User).SendSound(0x0001);
+                        (mapobj as User).SendMotion(user.Id, 0x01, 0x14);
                     }
                 }
                 user.Attack();
