@@ -623,6 +623,7 @@ namespace Hybrasyl
             PacketHandlers[0x0E] = PacketHandler_0x0E_Talk;
             PacketHandlers[0x10] = PacketHandler_0x10_ClientJoin;
             PacketHandlers[0x11] = PacketHandler_0x11_Turn;
+            PacketHandlers[0x13] = PacketHandler_0x13_Assail;
             PacketHandlers[0x18] = PacketHandler_0x18_ShowPlayerList;
             PacketHandlers[0x19] = PacketHandler_0x19_Whisper;
             PacketHandlers[0x1C] = PacketHandler_0x1C_UseItem;
@@ -647,8 +648,6 @@ namespace Hybrasyl
             PacketHandlers[0x79] = PacketHandler_0x79_Status;
             PacketHandlers[0x7B] = PacketHandler_0x7B_RequestMetafile;
         }
-
- 
 
         public void SetMerchantMenuHandlers()
         {
@@ -827,8 +826,6 @@ namespace Hybrasyl
         #endregion
 
 
-        #region Packet Handlers
-
         private void PacketHandler_0x05_RequestMap(Object obj, ClientPacket packet)
         {
             var user = (User) obj;
@@ -1003,6 +1000,43 @@ namespace Hybrasyl
             var direction = packet.ReadByte();
             if (direction > 3) return;
             user.Turn((Direction) direction);
+        }
+
+        //Default Spacebar Assail Handler
+        private void PacketHandler_0x13_Assail(object obj, ClientPacket packet)
+        {
+            var user = (User)obj;
+            if (user == null)
+                return;
+
+            if ((DateTime.Now - user.LastAssail).TotalMilliseconds > 750)
+            {
+                //send to self
+                user.SendMotion(user.Id, 0x01, 0x14);
+                user.SendSound(0x0001);
+
+                //send to nearby players
+                foreach (var mapobj in user.Map.EntityTree.GetObjects(user.Map.GetViewport(user.X, user.Y)))
+                {
+                    if (mapobj is User)
+                    {
+                        if (mapobj == null)
+                            continue;
+                        if (user.Id == mapobj.Id)
+                            continue;
+
+                        var aisling = FindUser(mapobj.Name);
+
+                        if (aisling != null)
+                        {
+                            aisling.SendSound(0x0001);
+                            aisling.SendMotion(user.Id, 0x01, 0x14);
+                        }
+                    }
+                }
+                user.Attack();
+                user.LastAssail = DateTime.Now;
+            }
         }
 
         private void ProcessSlashCommands(Client client, ClientPacket packet)
@@ -2357,12 +2391,14 @@ namespace Hybrasyl
             var user = (User) obj;
             var clickType = packet.ReadByte();
             Rectangle commonViewport = user.GetViewport();
+
             // User has clicked an X,Y point
             if (clickType == 3)
             {
                 var x = (byte) packet.ReadUInt16();
                 var y = (byte) packet.ReadUInt16();
                 var coords = new Tuple<byte, byte>(x, y);
+                
                 Logger.DebugFormat("coordinates were {0}, {1}", x, y);
 
                 if (user.Map.Doors.ContainsKey(coords))
@@ -2459,6 +2495,7 @@ namespace Hybrasyl
             }
         }
 
+        //Added System Messages.
         private void PacketHandler_0x47_StatPoint(Object obj, ClientPacket packet)
         {
             var user = (User) obj;
@@ -2468,18 +2505,23 @@ namespace Hybrasyl
                 {
                     case 0x01:
                         user.BaseStr++;
+                        user.SendSystemMessage("Your muscles harden.");
                         break;
                     case 0x04:
                         user.BaseInt++;
+                        user.SendSystemMessage("You understand more.");
                         break;
                     case 0x08:
                         user.BaseWis++;
+                        user.SendSystemMessage("You feel more in touch.");
                         break;
                     case 0x10:
                         user.BaseCon++;
+                        user.SendSystemMessage("Energy flows into you.");
                         break;
                     case 0x02:
                         user.BaseDex++;
+                        user.SendSystemMessage("You feel more nimble.");
                         break;
                     default:
                         return;
@@ -2488,6 +2530,11 @@ namespace Hybrasyl
                 user.LevelPoints--;
                 user.UpdateAttributes(StatUpdateFlags.Primary);
             }
+            else
+            {
+                user.SendSystemMessage("You can't do that.");
+            }
+            
 
         }
 
@@ -2648,8 +2695,6 @@ namespace Hybrasyl
                 }
             }
         }
-
-        #endregion
 
         #region Merchant Menu Item Handlers
 

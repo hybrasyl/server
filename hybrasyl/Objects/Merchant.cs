@@ -71,6 +71,10 @@ namespace Hybrasyl.Objects
             }
         }
 
+        public override void Attack()
+        {
+        }
+
         public override void OnClick(User invoker)
         {
             if (!Ready)

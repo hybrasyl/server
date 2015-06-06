@@ -29,6 +29,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -37,7 +38,7 @@ namespace Hybrasyl.Objects
 {
     public class User : Creature
     {
-        public new static readonly ILog Logger =
+        public static readonly ILog Logger =
                LogManager.GetLogger(
                System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
@@ -200,6 +201,35 @@ namespace Hybrasyl.Objects
             removePacket.TransmitDelay = transmitDelay;
             removePacket.WriteUInt32(obj.Id);
             Enqueue(removePacket);
+        }
+
+        public override void Attack()
+        {
+            var target = Map.GetInfront(this, 1);
+
+#warning TODO: implement assail damage formula
+            var damage = (this.Hit + this.Dmg) + (this.Level + this.Dex * 0.2) * this.Str * 2;
+
+            if (target != null)
+            {
+                if (target is Creature || target is Merchant)
+                {
+                    //damage the target
+                    (target as Creature).Damage(damage, this.OffensiveElement, DamageType.Physical);
+                    (target as Creature).UpdateAttributes(StatUpdateFlags.Current);
+
+                    //show me this targets hp bar.
+                    (target as Creature).ShowHealthBar();
+
+                    //show the targets hp bar to nearby users.
+                    foreach (var mapobj in Map.EntityTree.OfType<User>())
+                        if (mapobj != null)
+                            (target as User).ShowHealthBar();
+
+                }
+            }
+
+
         }
 
         public Dictionary<string, bool> Flags { get; private set; }
@@ -1839,5 +1869,7 @@ namespace Hybrasyl.Objects
         {
             Client.SendMessage(p, 3);
         }
+
+        public DateTime LastAssail { get; set; }
     }
 }

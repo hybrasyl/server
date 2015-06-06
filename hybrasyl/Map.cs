@@ -29,6 +29,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Text;
+using System.Linq;
 
 namespace Hybrasyl.Properties
 {
@@ -76,6 +77,24 @@ namespace Hybrasyl
 
             Logger.DebugFormat("{0}, {1}, {2}, {3}, {4}, mappoint ID is {5}", XQuadrant, XOffset, YQuadrant,
                 YOffset, Name.Length, Id);
+
+            /*
+            var idBuffer = BitConverter.GetBytes(Id);
+            using (var ms = new MemoryStream())
+            {
+                ms.WriteByte((byte)XQuadrant);
+                ms.WriteByte((byte)XOffset);
+                ms.WriteByte((byte)YQuadrant);
+                ms.WriteByte((byte)YOffset);
+                ms.WriteByte((byte)Name.Length);
+                ms.Write(buffer, (int)ms.Position, buffer.Length);
+                ms.Write(idBuffer, (int)ms.Position, idBuffer.Length);
+
+                return ms.ToArray();
+            }
+            */
+
+
 
             bytes.Add((byte)XQuadrant);
             bytes.Add((byte)XOffset);
@@ -173,6 +192,44 @@ namespace Hybrasyl
             Reactors = new Dictionary<Tuple<byte, byte>, Reactor>();
         }
 
+        public WorldObject GetInfront(User player, int tileCount = 1)
+        {
+            for (int i = 1; i <= tileCount; i++)
+            {
+                switch (player.Direction)
+                {
+                    case Enums.Direction.North:
+                        return GetWorldObjectAt(player.X, player.Y - i);
+                    case Enums.Direction.East: 
+                        return GetWorldObjectAt(player.X + i, player.Y);
+                    case Enums.Direction.South:
+                        return GetWorldObjectAt(player.X, player.Y + i);
+                    case Enums.Direction.West:
+                        return GetWorldObjectAt(player.X - i, player.Y);
+                }
+            }
+
+            return null;
+        }
+
+        public WorldObject GetWorldObjectAt(int x, int y)
+        {
+            WorldObject obj = null;
+
+            foreach (var mapobj in this.EntityTree.Except(this.EntityTree.OfType<Reactor>()))
+            {
+                if (mapobj != null
+                    && mapobj.X == x && mapobj.Y == y)
+                {
+                    obj = mapobj;
+                    goto returnResult;
+                }
+            }
+        returnResult:
+            return obj;
+        }
+
+
         public List<VisibleObject> GetTileContents(int x, int y)
         {
             return EntityTree.GetObjects(new Rectangle(x, y, 1, 1));
@@ -226,7 +283,7 @@ namespace Hybrasyl
                 {
                     for (int x = 0; x < X; ++x)
                     {
-                        var bg = RawData[index++] | RawData[index++] << 8;
+                        var bg  = RawData[index++] | RawData[index++] << 8;
                         var lfg = RawData[index++] | RawData[index++] << 8;
                         var rfg = RawData[index++] | RawData[index++] << 8;
 

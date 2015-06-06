@@ -657,6 +657,22 @@ namespace Hybrasyl.Objects
             }
         }
 
+        //Added this propertly for spellbar related stuff.
+        public int HealthPercent
+        {
+            get
+            {
+                var percent = (int)(Hp * 100 / MaximumHp);
+                if (percent > 100)
+                    percent = 100;
+                if (percent < 0)
+                    percent = 0;
+
+                return percent;
+            }
+        }
+
+
         private uint _mLastHitter;
         public Creature LastHitter
         {
@@ -679,6 +695,48 @@ namespace Hybrasyl.Objects
         }
 
         public virtual void UpdateAttributes(StatUpdateFlags flags) { }
+
+        //Used to Show HealthBar
+        public virtual void ShowHealthBar()
+        {
+            //Send Health Bar to All nearby players
+            foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
+            {
+                if (obj != null)
+                {
+                    if (obj is User)
+                    {
+                        var user = obj as User;
+
+                        var x13 = new ServerPacket(0x13);
+                        x13.WriteUInt32(this.Id);
+                        x13.WriteByte(0);
+                        x13.WriteByte((byte)HealthPercent);
+                        x13.WriteByte(0x01);
+                        user.Enqueue(x13);
+                    }
+                }
+            }
+        }
+
+        public bool WithinRangeOf(WorldObject user)
+        {
+            return WithinRangeOf(user.X, user.Y);
+        }
+
+        public bool WithinRangeOf(int x, int y)
+        {
+            var xDist = Math.Abs(this.X - x);
+            var yDist = Math.Abs(this.Y - y);
+
+            if (xDist > 13.0 ||
+                yDist > 13.0)
+                return false;
+
+            return Math.Sqrt((xDist * xDist) + (yDist * yDist)) <= 13.0;
+        }
+
+
         public virtual bool Walk(Direction direction) { return false; }
         public virtual bool Turn(Direction direction)
         {
@@ -746,6 +804,8 @@ namespace Hybrasyl.Objects
                 normalized = Hp;
 
             Hp -= normalized;
+
+
         }
 
         public virtual void Refresh() { }

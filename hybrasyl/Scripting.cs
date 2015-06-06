@@ -338,6 +338,7 @@ __builtins__.raw_input = None
         {
             Engine = Python.CreateEngine();
             var paths = Engine.GetSearchPaths();
+#warning TODO - Wren - Check Script Path
             // FIXME: obvious
             paths.Add(@"C:\Program Files (x86)\IronPython 2.7\Lib");
             Engine.SetSearchPaths(paths);
