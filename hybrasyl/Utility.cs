@@ -13,8 +13,7 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2013 Project Hybrasyl (info@hybrasyl.com)
  *
  * Authors:   Justin Baugh  <baughj@hybrasyl.com>
  *            Kyle Speck    <kojasou@hybrasyl.com>
@@ -29,7 +28,8 @@ using System.Text.RegularExpressions;
 
 namespace Hybrasyl
 {
-    class DescendingComparer<T> : IComparer<T> where T : IComparable<T>
+    internal class DescendingComparer<T> : IComparer<T>
+        where T: IComparable<T>
     {
         public int Compare(T x, T y)
         {
@@ -37,7 +37,6 @@ namespace Hybrasyl
         }
     }
 
-    // Generic container for throttling info
     public class Throttle
     {
         public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
@@ -70,11 +69,9 @@ namespace Hybrasyl
         public int TotalThrottled { get; set; }
         public int SquelchCount { get; set; }
 
-        // N.B. SquelchedObjects is in *reverse* order, meaning oldest squelches are first
         private SortedDictionary<long, object> SquelchedObjects { get; set; }
 
-        private Dictionary<object, Tuple<int, long>> SeenObjects { get; set; } 
-        
+        private Dictionary<object, Tuple<int, long>> SeenObjects { get; set; }
         public Throttle Throttle { get; private set; }
 
         private void ClearExpiredSquelches()
@@ -91,7 +88,7 @@ namespace Hybrasyl
                 {
                     Logger.InfoFormat("Removing squelched entry");
                     SquelchedObjects.Remove(when);
-                }   
+                }
                 else
                 {
                     break;
@@ -102,22 +99,25 @@ namespace Hybrasyl
         public bool IsThrottled
         {
             get
-            {                
+            {
                 var elapsed = new TimeSpan(LastReceived - PreviousReceived);
                 if (Throttled && elapsed.TotalMilliseconds > Throttle.Time)
                 {
                     Logger.DebugFormat("Unthrottled: difference since last throttle is {0}ms", elapsed.TotalMilliseconds);
                     Throttled = false;
                 }
-                else if (elapsed.TotalMilliseconds < Throttle.Time)
-                {
-                    Logger.DebugFormat("Throttled: difference is {0}ms", elapsed.TotalMilliseconds);
-                    TotalThrottled++;
-                    Throttled = true;
-                }
                 else
                 {
-                    Logger.DebugFormat("Not throttled: difference is {0}ms", elapsed.TotalMilliseconds);
+                    if (elapsed.TotalMilliseconds < Throttle.Time)
+                    {
+                        Logger.DebugFormat("Throttled: difference is {0}ms", elapsed.TotalMilliseconds);
+                        TotalThrottled++;
+                        Throttled = true;
+                    }
+                    else
+                    {
+                        Logger.DebugFormat("Not throttled: difference is {0}ms", elapsed.TotalMilliseconds);
+                    }
                 }
                 return Throttled;
             }
@@ -129,15 +129,16 @@ namespace Hybrasyl
             ClearExpiredSquelches();
 
             if (obj == null)
+            {
                 obj = String.Empty;
-
+            }
             if (SquelchedObjects.ContainsValue(obj))
+            {
                 return true;
-                
+            }
             Tuple<int, long> seen;
             if (SeenObjects.TryGetValue(obj, out seen))
             {
-                // Item1 = count, Item2 = last seen
                 var elapsed = new TimeSpan(now - seen.Item2);
                 if (elapsed.TotalMilliseconds > Throttle.SquelchWithin)
                 {
@@ -148,7 +149,6 @@ namespace Hybrasyl
                 {
                     if (seen.Item1 + 1 >= Throttle.SquelchCount)
                     {
-                        // Squelched
                         Logger.Info("Squelched");
                         SquelchedObjects[now] = obj;
                         return true;
@@ -166,8 +166,6 @@ namespace Hybrasyl
             return false;
         }
 
-        
-
         public ThrottleInfo(byte opcode)
         {
             if (Constants.PACKET_THROTTLES.ContainsKey(opcode))
@@ -180,7 +178,6 @@ namespace Hybrasyl
                 SquelchedObjects = new SortedDictionary<long, object>(new DescendingComparer<long>());
                 SeenObjects = new Dictionary<object, Tuple<int, long>>();
                 Throttled = false;
-
             }
             else
             {
@@ -198,10 +195,9 @@ namespace Hybrasyl
             LastReceived = DateTime.Now.Ticks;
             TotalReceived++;
         }
-
     }
 
-    static class ControlOpcodes
+    internal static class ControlOpcodes
     {
         public const int CleanupUser = 0;
         public const int SaveUser = 1;
@@ -211,17 +207,15 @@ namespace Hybrasyl
         public const int LogoffUser = 5;
     }
 
-    static class ServerTypes
+    internal static class ServerTypes
     {
         public const int Lobby = 0;
         public const int Login = 1;
         public const int World = 2;
     }
 
-    static class Constants
+    internal static class Constants
     {
-        // Eventually most of these should be moved into a config file. For right now they're here.
-
         public static Regex PercentageRegex = new Regex(@"(\+|\-){0,1}(\d{0,4})%", RegexOptions.Compiled);
         public const int VIEWPORT_SIZE = 24;
         public const byte MAXIMUM_INVENTORY = 59;
@@ -237,149 +231,87 @@ namespace Hybrasyl
         public static string DataDirectory;
         public static string ConnectionString;
 
-        // This should be an ID of a map that will be used to store players in the event of lag / worldmap disconnects
         public const ushort LAG_MAP = 1001;
 
-        // If a player logs in again before this time, they will be returned to their
-        // last known location as opposed to their nation's spawn point. This is in
-        // seconds.
-
-        public const int NATION_SPAWN_TIMEOUT = 10800; // 3 hours
-
-        // Heartbeat controls
-        // Every BYTE_HEARTBEAT_INTERVAL and TICK_HEARTBEAT_INTERVAL seconds, Hybrasyl sends 0x3B and 0x68 
-        // heartbeat packets to clients.
-        // The client expects to receive these and responds in kind (otherwise it will disconnect after a 
-        // certain period of time).
-        // Hybrasyl provides several jobs to handle these; two jobs to transmit the packets to clients, and
-        // a "Reaper Job" to disconnect clients that haven't responded to either of the heartbeats within REAP_HEARTBEAT_INTERVAL.
-        // The reaper job will run every REAP_HEARTBEAT_INTERVAL seconds to ensure that no connections are missed.
+        public const int NATION_SPAWN_TIMEOUT = 10800;
 
         public const int BYTE_HEARTBEAT_INTERVAL = 60;
         public const int TICK_HEARTBEAT_INTERVAL = 60;
         public const int REAP_HEARTBEAT_INTERVAL = 5;
 
 
-        // These times control various throttling of packet receipts. 
-        // The thresholds are in milliseconds.
-        // Generally:
-        // *_THROTTLE_TIME = Upper limit on intervals between opcode receipt
-        // *_REPEAT_TIMES = Number of times an opcode / object combination (e.g. a say message) can
-        // be repeated within REPEAT_WITHIN time. 0 disables.
-        // *_SQUELCH_DURATION = Once REPEAT_TIME within REPEAT_WITHIN is reached, stop listening to similar
-        // opcode or opcode+object combos for SQUELCH_DURATION milliseconds. 0 disables.
-        // *_DISCONNECT_TRIGGER = Number of total times a throttle or a squelch must be hit before the client is just 
-        // disconnected altogether. 0 disables.
-
-        // Throttling for refresh opcode (F5)
         public const int REFRESH_THROTTLE_TIME = 1000;
         public const int REFRESH_REPEAT_TIMES = 2;
         public const int REFRESH_REPEAT_WITHIN = 1000;
         public const int REFRESH_SQUELCH_DURATION = 1000;
         public const int REFRESH_DISCONNECT_TRIGGER = 500;
 
-        // Number of times you're allowed to say exactly the same thing
         public const int SPEAK_THROTTLE_TIME = 250;
         public const int SPEAK_REPEAT_TIMES = 3;
         public const int SPEAK_REPEAT_WITHIN = 10000;
         public const int SPEAK_SQUELCH_DURATION = 10000;
         public const int SPEAK_DISCONNECT_TRIGGER = 200;
 
-        // Number of times you're allowed to whisper exactly the same thing
-        // Not currently enforced.
         public const int WHISPER_THROTTLE_TIME = 250;
         public const int WHISPER_REPEAT_TIMES = 6;
         public const int WHISPER_REPEAT_WITHIN = 2000;
         public const int WHISPER_SQUELCH_DURATION = 4000;
         public const int WHISPER_DISCONNECT_TRIGGER = 200;
 
-        // Throttling for skills/spells. Not currently implemented because, well, skills aren't.
         public const int USE_THROTTLE_TIME = 250;
 
-        // Throttling for movement opcode
-        // USDA seems to allow a total of 7 movements in a one second cycle; we decrease that
-        // to ~3.33 in one second, or every 300ms.
-        // N.B. this doesn't limit turning, just movement
         public const int MOVEMENT_THROTTLE_TIME = 300;
         public const int MOVEMENT_REPEAT_TIMES = 0;
         public const int MOVEMENT_REPEAT_WITHIN = 0;
         public const int MOVEMENT_SQUELCH_DURATION = 0;
         public const int MOVEMENT_DISCONNECT_TRIGGER = 200;
 
-        // Throttling for generic opcodes
-        // This currently covers things like opening an NPC or using a dialog 
         public const int GENERIC_THROTTLE_TIME = 300;
         public const int GENERIC_REPEAT_TIMES = 0;
         public const int GENERIC_REPEAT_WITHIN = 0;
         public const int GENERIC_SQUELCH_DURATION = 0;
         public const int GENERIC_DISCONNECT_TRIGGER = 200;
 
-        // This consolidates all the above information into a static dictionary of the following:
-        // opcode, throttle time, number of consecutive packets that trigger a squelch, and squelch time.
-        // Opcodes not on this list are not throttled, or squelched.
-        // A squelch refers to Hybrasyl outright ignoring packets sent over a certain threshold (_REPEAT_TIMES) for the amount specified
-        // by the squelch time (_SQUELCH_TIME). A value of 0 for the repeat time disables squelching for the given opcode.
-        // e.g. 3, 250 = A player can send 3 packets of the same opcode / object in a row before being squelched for 250ms.
         public static Dictionary<byte, Throttle> PACKET_THROTTLES = new Dictionary<byte, Throttle> {
-            {0x06, new Throttle(MOVEMENT_THROTTLE_TIME, MOVEMENT_REPEAT_TIMES, MOVEMENT_REPEAT_WITHIN, MOVEMENT_SQUELCH_DURATION, MOVEMENT_DISCONNECT_TRIGGER)}, // movement
-            {0x0e, new Throttle(SPEAK_THROTTLE_TIME, SPEAK_REPEAT_TIMES, SPEAK_REPEAT_WITHIN, SPEAK_SQUELCH_DURATION, SPEAK_DISCONNECT_TRIGGER)},  // say / shout 
-            {0x3a, new Throttle(GENERIC_THROTTLE_TIME, GENERIC_REPEAT_TIMES, GENERIC_REPEAT_WITHIN, GENERIC_SQUELCH_DURATION, GENERIC_DISCONNECT_TRIGGER)},  // NPC use dialog
-            {0x38, new Throttle(REFRESH_THROTTLE_TIME, REFRESH_REPEAT_TIMES, REFRESH_REPEAT_WITHIN, REFRESH_SQUELCH_DURATION, REFRESH_DISCONNECT_TRIGGER)},  // refresh (F5)
-            {0x39, new Throttle(GENERIC_THROTTLE_TIME, GENERIC_REPEAT_TIMES, GENERIC_REPEAT_WITHIN, GENERIC_SQUELCH_DURATION, GENERIC_DISCONNECT_TRIGGER)},  // NPC main menu
-        };
-
-        // Idle settings
-        // A client counts as idle after IDLE_TIME seconds without any packet receipt (except for heartbeat opcodes)
-        // The idle check job will run every IDLE_CHECK seconds
+            { 0x06, new Throttle(MOVEMENT_THROTTLE_TIME, MOVEMENT_REPEAT_TIMES, MOVEMENT_REPEAT_WITHIN, MOVEMENT_SQUELCH_DURATION, MOVEMENT_DISCONNECT_TRIGGER) }, { 0x0e, new Throttle(SPEAK_THROTTLE_TIME, SPEAK_REPEAT_TIMES, SPEAK_REPEAT_WITHIN, SPEAK_SQUELCH_DURATION, SPEAK_DISCONNECT_TRIGGER) }, { 0x3a, new Throttle(GENERIC_THROTTLE_TIME, GENERIC_REPEAT_TIMES, GENERIC_REPEAT_WITHIN, GENERIC_SQUELCH_DURATION, GENERIC_DISCONNECT_TRIGGER) }, { 0x38, new Throttle(REFRESH_THROTTLE_TIME, REFRESH_REPEAT_TIMES, REFRESH_REPEAT_WITHIN, REFRESH_SQUELCH_DURATION, REFRESH_DISCONNECT_TRIGGER) }, { 0x39, new Throttle(GENERIC_THROTTLE_TIME, GENERIC_REPEAT_TIMES, GENERIC_REPEAT_WITHIN, GENERIC_SQUELCH_DURATION, GENERIC_DISCONNECT_TRIGGER) } };
 
         public const int IDLE_TIME = 60;
         public const int IDLE_CHECK = 10;
 
-        // Shutdown password
-        // This is a dirty hack until we have better role / auth support
-
         public const string ShutdownPassword = "batterystaple8!";
 
-        // Dialog settings
-        // Dialog sequence IDs between 1 and DIALOG_SEQUENCE_SHARED are processed as 
-        // "shared" (globally available) sequences; sequence IDs between DIALOG_SEQUENCE_SHARED
-        // and DIALOG_SEQUENCE_PURSUITS are pursuits (main menu options); IDs above 
-        // DIALOG_SEQUENCE_PURSUITS are local to the object in question.
         public const int DIALOG_SEQUENCE_SHARED = 5000;
         public const int DIALOG_SEQUENCE_PURSUITS = 5100;
         public const int DIALOG_SEQUENCE_HARDCODED = 65280;
 
-        // Default citizenship
-
         public const string DEFAULT_CITIZENSHIP = "Mileth";
 
         public static Dictionary<string, int> CLASSES = new Dictionary<string, int> {
-        {"Peasant", 0},
-        {"Warrior", 1},
-        {"Rogue", 2},
-        {"Wizard", 3},
-        {"Priest", 4},
-        {"Monk", 5}
+        { "Peasant", 0 },
+        { "Warrior", 1 },
+        { "Rogue", 2 },
+        { "Wizard", 3 },
+        { "Priest", 4 },
+        { "Monk", 5 }
         };
 
         public static Dictionary<int, string> REVERSE_CLASSES = new Dictionary<int, string> {
-                  {0, "Peasant"},
-                  {1, "Warrior"},
-                  {2, "Rogue"},
-                  {3, "Wizard"},
-                  {4, "Priest"},
-                  {5, "Monk"}
+                  { 0, "Peasant" },
+                  { 1, "Warrior" },
+                  { 2, "Rogue" },
+                  { 3, "Wizard" },
+                  { 4, "Priest" },
+                  { 5, "Monk" }
 
         };
 
-        public static string[] BONUS_ATTRS = { "hp", "mp", "str", "int", "wis", "con", "dex", "hit", 
+        public static string[] BONUS_ATTRS = { "hp", "mp", "str", "int", "wis", "con", "dex", "hit",
                                                 "dmg", "ac", "mr", "regen" };
 
         public static string[] SCRIPT_DIRECTORIES = { "npc", "startup", "item", "reactor" };
-
     }
 
-    static class DialogTypes
+    internal static class DialogTypes
     {
         public const int FUNCTION_DIALOG = -1;
         public const int SIMPLE_DIALOG = 0;
@@ -387,7 +319,7 @@ namespace Hybrasyl
         public const int INPUT_DIALOG = 4;
     }
 
-    static class MessageTypes
+    internal static class MessageTypes
     {
         public const int WHISPER = 0;
         public const int SYSTEM = 1;
@@ -399,7 +331,7 @@ namespace Hybrasyl
         public const int OVERHEAD = 18;
     }
 
-    static class LogLevels
+    internal static class LogLevels
     {
         public const int CRIT = 2;
         public const int ERROR = 3;
@@ -425,7 +357,9 @@ namespace Hybrasyl
             public AssemblyInfo(Assembly assembly)
             {
                 if (assembly == null)
+                {
                     throw new ArgumentNullException("assembly");
+                }
                 Assembly = assembly;
             }
 
@@ -434,27 +368,36 @@ namespace Hybrasyl
             {
                 get
                 {
-                    string result = string.Empty;
-                    Version version = Assembly.GetName().Version;
+                    var version = Assembly.GetName().Version;
                     if (version != null)
+                    {
                         return version.ToString();
+                    }
                     return "1.3.3.7";
                 }
             }
 
             public string Copyright
             {
-                get { return GetAttributeValue<AssemblyCopyrightAttribute>(a => a.Copyright); }
+                get
+                {
+                    return GetAttributeValue<AssemblyCopyrightAttribute>(a => a.Copyright);
+                }
             }
 
             protected string GetAttributeValue<TAttr>(Func<TAttr,
-                string> resolveFunc, string defaultResult = null) where TAttr : Attribute
+                string> resolveFunc, string defaultResult = null)
+                where TAttr: Attribute
             {
-                object[] attributes = Assembly.GetCustomAttributes(typeof(TAttr), false);
+                var attributes = Assembly.GetCustomAttributes(typeof(TAttr), false);
                 if (attributes.Length > 0)
+                {
                     return resolveFunc((TAttr)attributes[0]);
+                }
                 else
+                {
                     return defaultResult;
+                }
             }
         }
 
@@ -476,8 +419,8 @@ namespace Hybrasyl
                 {
                     foreach (PropertyDescriptor descriptor in TypeDescriptor.GetProperties(obj))
                     {
-                        string name = descriptor.Name;
-                        object value = descriptor.GetValue(obj);
+                        var name = descriptor.Name;
+                        var value = descriptor.GetValue(obj);
                         Logger.DebugFormat("{0} = {1}", name, value);
                     }
                 }
@@ -514,8 +457,6 @@ namespace Hybrasyl
                 return value is sbyte || value is byte || value is short || value is ushort || value is int || value is uint ||
                 value is long || value is ulong;
             }
-        } // end TypeExtensions
-
-    } // end Namespace:Utility
-
-}// end Namespace: Hybrasyl
+        }
+    }
+}

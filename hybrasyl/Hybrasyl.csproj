@@ -43,28 +43,11 @@
     <Reference Include="BCrypt.Net">
       <HintPath>packages\BCrypt-Official.0.1.109\lib\BCrypt.Net.dll</HintPath>
     </Reference>
-    <Reference Include="EntityFramework">
-      <HintPath>packages\EntityFramework.6.1.1\lib\net45\EntityFramework.dll</HintPath>
-    </Reference>
-    <Reference Include="EntityFramework.SqlServer">
-      <HintPath>packages\EntityFramework.6.1.1\lib\net45\EntityFramework.SqlServer.dll</HintPath>
+    <Reference Include="EnvDTE, Version=8.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+      <EmbedInteropTypes>True</EmbedInteropTypes>
     </Reference>
     <Reference Include="FastMember">
       <HintPath>packages\FastMember.1.0.0.11\lib\net40\FastMember.dll</HintPath>
-    </Reference>
-    <Reference Include="IronPython">
-      <HintPath>packages\IronPython.2.7.4\lib\Net45\IronPython.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="IronPython.Modules">
-      <HintPath>packages\IronPython.2.7.4\lib\Net45\IronPython.Modules.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="IronPython.SQLite">
-      <HintPath>packages\IronPython.2.7.4\lib\Net45\IronPython.SQLite.dll</HintPath>
-    </Reference>
-    <Reference Include="IronPython.Wpf">
-      <HintPath>packages\IronPython.2.7.4\lib\Net45\IronPython.Wpf.dll</HintPath>
     </Reference>
     <Reference Include="log4net">
       <HintPath>packages\log4net.2.0.3\lib\net40-full\log4net.dll</HintPath>
@@ -77,14 +60,6 @@
       <HintPath>packages\IronPython.2.7.4\lib\Net45\Microsoft.Scripting.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="MySql.Data, Version=6.8.3.0, Culture=neutral, PublicKeyToken=c5687fc88969c44d, processorArchitecture=MSIL">
-      <Private>True</Private>
-      <HintPath>packages\MySql.ConnectorNET.Data.6.8.3.2\lib\net45\MySql.Data.dll</HintPath>
-    </Reference>
-    <Reference Include="MySql.Data.Entity.EF6, Version=6.8.3.0, Culture=neutral, PublicKeyToken=c5687fc88969c44d, processorArchitecture=MSIL">
-      <Private>True</Private>
-      <HintPath>packages\MySql.ConnectorNET.Entity.6.8.3.2\lib\net45\MySql.Data.Entity.EF6.dll</HintPath>
-    </Reference>
     <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>packages\Newtonsoft.Json.6.0.4\lib\net45\Newtonsoft.Json.dll</HintPath>
@@ -92,6 +67,8 @@
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Data.Linq" />
+    <Reference Include="System.Design" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Security" />
@@ -101,17 +78,31 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
+    <Reference Include="Telerik.OpenAccess, Version=2015.1.225.1, Culture=neutral, PublicKeyToken=7ce17eeaf1d59342, processorArchitecture=MSIL" />
+    <Reference Include="Telerik.OpenAccess.35.Extensions, Version=2015.1.225.1, Culture=neutral, PublicKeyToken=7ce17eeaf1d59342, processorArchitecture=MSIL" />
     <Reference Include="zlib.net">
       <HintPath>packages\zlib.net.1.0.4.0\lib\zlib.net.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Client.cs" />
-    <Compile Include="Connection.cs" />
+    <Compile Include="Components\GameServerComponent.cs" />
+    <Compile Include="Components\GameServerTimer.cs" />
+    <Compile Include="Components\MessageComponent.cs" />
+    <Compile Include="Components\ShadeComponent.cs" />
+    <Compile Include="DB.cs" />
+    <Compile Include="GlobalConnectionManifest.cs" />
     <Compile Include="Dialogs.cs" />
     <Compile Include="Enums.cs" />
     <Compile Include="Game.cs" />
+    <Compile Include="HybrasylClientMessage.cs" />
+    <Compile Include="HybrasylControlMessage.cs" />
+    <Compile Include="HybrasylMessage.cs" />
     <Compile Include="Inventory.cs" />
+    <Compile Include="MapPoint.cs" />
+    <Compile Include="Objects\Creature.cs" />
+    <Compile Include="Objects\Door.cs" />
+    <Compile Include="Objects\Gold.cs" />
     <Compile Include="Objects\Item.cs" />
     <Compile Include="Jobs.cs" />
     <Compile Include="Lobby.cs" />
@@ -119,146 +110,72 @@
     <Compile Include="Map.cs" />
     <Compile Include="Objects\Merchant.cs" />
     <Compile Include="Metafile.cs" />
+    <Compile Include="Objects\Monster.cs" />
+    <Compile Include="Objects\Signpost.cs" />
+    <Compile Include="Objects\VisibleObject.cs" />
     <Compile Include="Packet.cs" />
-    <Compile Include="Properties\account.cs">
-      <DependentUpon>Hybrasyl.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\active_admin_comments.cs">
-      <DependentUpon>Hybrasyl.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\api_keys.cs">
-      <DependentUpon>Hybrasyl.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\board.cs">
-      <DependentUpon>Hybrasyl.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\board_messages.cs">
-      <DependentUpon>Hybrasyl.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\drop.cs">
-      <DependentUpon>Hybrasyl.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\drop_sets.cs">
-      <DependentUpon>Hybrasyl.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\flag.cs">
-      <DependentUpon>Hybrasyl.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\Hybrasyl.Context.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Hybrasyl.Context.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\Hybrasyl.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Hybrasyl.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\Hybrasyl.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Hybrasyl.edmx</DependentUpon>
-    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Properties\item.cs">
-      <DependentUpon>Hybrasyl.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\item_variant.cs">
-      <DependentUpon>Hybrasyl.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\legend_marks.cs">
-      <DependentUpon>Hybrasyl.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\map.cs">
-      <DependentUpon>Hybrasyl.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\message.cs">
-      <DependentUpon>Hybrasyl.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\mob.cs">
-      <DependentUpon>Hybrasyl.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\nation.cs">
-      <DependentUpon>Hybrasyl.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\news_posts.cs">
-      <DependentUpon>Hybrasyl.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\npc.cs">
-      <DependentUpon>Hybrasyl.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\player.cs">
-      <DependentUpon>Hybrasyl.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\reactor.cs">
-      <DependentUpon>Hybrasyl.tt</DependentUpon>
-    </Compile>
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Include="Properties\signpost.cs">
-      <DependentUpon>Hybrasyl.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\skill.cs">
-      <DependentUpon>Hybrasyl.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\spawn.cs">
-      <DependentUpon>Hybrasyl.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\spawn_points.cs">
-      <DependentUpon>Hybrasyl.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\spell.cs">
-      <DependentUpon>Hybrasyl.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\warp.cs">
-      <DependentUpon>Hybrasyl.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\worldmap.cs">
-      <DependentUpon>Hybrasyl.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\worldmap_points.cs">
-      <DependentUpon>Hybrasyl.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\worldwarp.cs">
-      <DependentUpon>Hybrasyl.tt</DependentUpon>
-    </Compile>
     <Compile Include="Pursuit.cs" />
     <Compile Include="QuadTree.cs" />
-    <Compile Include="Scripting.cs" />
     <Compile Include="Server.cs" />
     <Compile Include="Template.cs" />
     <Compile Include="Objects\User.cs" />
+    <Compile Include="Types\accounts.cs" />
+    <Compile Include="Types\active_admin_comments.cs" />
+    <Compile Include="Types\api_keys.cs" />
+    <Compile Include="Types\boards.cs" />
+    <Compile Include="Types\board_messages.cs" />
+    <Compile Include="Types\DBMetadataSource.cs" />
+    <Compile Include="Types\drops.cs" />
+    <Compile Include="Types\drops_item_variants.cs" />
+    <Compile Include="Types\drops_mobs.cs" />
+    <Compile Include="Types\drop_sets.cs" />
+    <Compile Include="Types\drop_sets_drops.cs" />
+    <Compile Include="Types\drop_sets_mobs.cs" />
+    <Compile Include="Types\flags.cs" />
+    <Compile Include="Types\flags_players.cs" />
+    <Compile Include="Types\items.cs" />
+    <Compile Include="Types\item_variants.cs" />
+    <Compile Include="Types\item_variants_items.cs" />
+    <Compile Include="Types\legend_marks.cs" />
+    <Compile Include="Types\maps.cs" />
+    <Compile Include="Types\messages.cs" />
+    <Compile Include="Types\mobs.cs" />
+    <Compile Include="Types\nations.cs" />
+    <Compile Include="Types\news_posts.cs" />
+    <Compile Include="Types\npcs.cs" />
+    <Compile Include="Types\players.cs" />
+    <Compile Include="Types\reactors.cs" />
+    <Compile Include="Types\schema_migrations.cs" />
+    <Compile Include="Types\signposts.cs" />
+    <Compile Include="Types\skills.cs" />
+    <Compile Include="Types\spawns.cs" />
+    <Compile Include="Types\spawn_points.cs" />
+    <Compile Include="Types\spells.cs" />
+    <Compile Include="Types\taggings.cs" />
+    <Compile Include="Types\tags.cs" />
+    <Compile Include="Types\warps.cs" />
+    <Compile Include="Types\worldmaps.cs" />
+    <Compile Include="Types\worldmap_points.cs" />
+    <Compile Include="Types\worldwarps.cs" />
     <Compile Include="Utility.cs" />
+    <Compile Include="Util\NumberGenerator.cs" />
     <Compile Include="World.cs" />
     <Compile Include="Objects\WorldObject.cs" />
+    <Compile Include="WorldMap.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config">
       <SubType>Designer</SubType>
     </None>
-    <EntityDeploy Include="Properties\Hybrasyl.edmx">
-      <Generator>EntityModelCodeGenerator</Generator>
-      <LastGenOutput>Hybrasyl.Designer.cs</LastGenOutput>
-    </EntityDeploy>
     <None Include="LICENSE" />
     <None Include="Log4Net.config" />
-    <None Include="Properties\Hybrasyl.Context.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>Hybrasyl.Context.cs</LastGenOutput>
-      <DependentUpon>Hybrasyl.edmx</DependentUpon>
-    </None>
-    <None Include="Properties\Hybrasyl.edmx.diagram">
-      <DependentUpon>Hybrasyl.edmx</DependentUpon>
-    </None>
     <None Include="packages.config" />
-    <None Include="Properties\Hybrasyl.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>Hybrasyl.cs</LastGenOutput>
-      <DependentUpon>Hybrasyl.edmx</DependentUpon>
-    </None>
     <None Include="Resources\sotp.dat" />
   </ItemGroup>
   <ItemGroup>
@@ -266,6 +183,7 @@
     <Content Include="hybrasyl.ico" />
   </ItemGroup>
   <ItemGroup>
+    <Service Include="{3259AA49-8AA1-44D3-9025-A0B520596A8C}" />
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
   </ItemGroup>
   <ItemGroup>
@@ -294,4 +212,5 @@
   <Target Name="AfterBuild">
   </Target>
   -->
+  <Import Condition="Exists('$(MSBuildExtensionsPath)\OpenAccess.targets')" Project="$(MSBuildExtensionsPath)\OpenAccess.targets" />
 </Project>

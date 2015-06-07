@@ -13,21 +13,15 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2013 Project Hybrasyl (info@hybrasyl.com)
  *
  * Authors:   Justin Baugh  <baughj@hybrasyl.com>
  *            Kyle Speck    <kojasou@hybrasyl.com>
  */
 
-using FastMember;
 using Hybrasyl.Enums;
-using Hybrasyl.Properties;
-using log4net;
 using System;
 using System.Collections.Generic;
-using System.Reflection;
-using System.Text.RegularExpressions;
 
 namespace Hybrasyl.Objects
 {
@@ -45,30 +39,26 @@ namespace Hybrasyl.Objects
         /// <returns></returns>
         public bool CheckRequirements(User userobj, out String message)
         {
-            // We check a variety of conditions and return the first failure.
-
             message = String.Empty;
-
-            // Check class
 
             if (userobj.Class != Class && Class != Class.Peasant)
             {
                 if (userobj.Class == Class.Peasant)
+                {
                     message = "Perhaps one day you'll know how to use such things.";
+                }
                 else
+                {
                     message = "Your path has forbidden itself from using such vulgar implements.";
+                }
                 return false;
             }
-
-            // Check level / AB
 
             if (userobj.Level < Level || (Ability != 0 && userobj.Ability < Ability))
             {
                 message = "You can't even lift it above your head, let alone wield it!";
                 return false;
             }
-
-            // Check gender
 
             if (Sex != 0 && (Sex != userobj.Sex))
             {
@@ -79,219 +69,327 @@ namespace Hybrasyl.Objects
             return true;
         }
 
-        private item Template
+        private items Template
         {
-            get { return World.Items[TemplateId]; }
+            get
+            {
+                return World.Items[TemplateId];
+            }
         }
 
-        new public string Name
+        public new string Name
         {
-            get { return Template.name; }
+            get
+            {
+                return Template.Name;
+            }
         }
 
-        new public ushort Sprite
+        public new ushort Sprite
         {
-            get { return (ushort)Template.sprite; }
+            get
+            {
+                return (ushort)Template.Sprite;
+            }
         }
 
         public ushort EquipSprite
         {
             get
             {
-                if (Template.equip_sprite == -1)
-                    return (ushort)Template.sprite;
-                return (ushort)Template.equip_sprite;
+                if (Template.Equip_sprite == -1)
+                {
+                    return (ushort)Template.Sprite;
+                }
+                return (ushort)Template.Equip_sprite;
             }
         }
 
         public ItemType ItemType
         {
-            get { return (ItemType)Template.item_type; }
+            get
+            {
+                return (ItemType)Template.Item_type;
+            }
         }
         public WeaponType WeaponType
         {
-            get { return (WeaponType)Template.weapon_type; }
+            get
+            {
+                return (WeaponType)Template.Weapon_type;
+            }
         }
         public byte EquipmentSlot
         {
-            get { return (byte)Template.equip_slot; }
+            get
+            {
+                return (byte)Template.Equip_slot;
+            }
         }
         public ushort Weight
         {
-            get { return (ushort)Template.weight; }
+            get
+            {
+                return (ushort)Template.Weight;
+            }
         }
         public int MaximumStack
         {
-            get { return Template.max_stack; }
+            get
+            {
+                return Template.Max_stack;
+            }
         }
         public bool Stackable
         {
-            get { return MaximumStack > 1; }
+            get
+            {
+                return MaximumStack > 1;
+            }
         }
 
         public uint MaximumDurability
         {
-            get { return (uint)Template.max_durability; }
+            get
+            {
+                return (uint)Template.Max_durability;
+            }
         }
 
         public string ScriptName
         {
-            get { return Template.script_name; }
+            get
+            {
+                return Template.Script_name;
+            }
         }
 
         public byte Level
         {
-            get { return (byte)Template.level; }
+            get
+            {
+                return (byte)Template.Level;
+            }
         }
         public byte Ability
         {
-            get { return (byte)Template.ab; }
+            get
+            {
+                return (byte)Template.Ab;
+            }
         }
         public Class Class
         {
-            get { return (Class)Template.class_type; }
+            get
+            {
+                return (Class)Template.Class_type;
+            }
         }
         public Sex Sex
         {
-            get { return (Sex)Template.sex; }
+            get
+            {
+                return (Sex)Template.Sex;
+            }
         }
 
         public int BonusHp
         {
-            get { return (int)Template.hp; }
+            get
+            {
+                return (int)Template.Hp;
+            }
         }
         public int BonusMp
         {
-            get { return (int)Template.mp; }
+            get
+            {
+                return (int)Template.Mp;
+            }
         }
         public sbyte BonusStr
         {
-            get { return (sbyte)Template.str; }
+            get
+            {
+                return (sbyte)Template.Str;
+            }
         }
         public sbyte BonusInt
         {
-            get { return (sbyte)Template.@int; }
+            get
+            {
+                return (sbyte)Template.Int;
+            }
         }
         public sbyte BonusWis
         {
-            get { return (sbyte)Template.wis; }
+            get
+            {
+                return (sbyte)Template.Wis;
+            }
         }
         public sbyte BonusCon
         {
-            get { return (sbyte)Template.con; }
+            get
+            {
+                return (sbyte)Template.Con;
+            }
         }
         public sbyte BonusDex
         {
-            get { return (sbyte)Template.dex; }
+            get
+            {
+                return (sbyte)Template.Dex;
+            }
         }
         public sbyte BonusDmg
         {
-            get { return (sbyte)Template.dmg; }
+            get
+            {
+                return (sbyte)Template.Dmg;
+            }
         }
         public sbyte BonusHit
         {
-            get { return (sbyte)Template.hit; }
+            get
+            {
+                return (sbyte)Template.Hit;
+            }
         }
         public sbyte BonusAc
         {
-            get { return (sbyte)Template.ac; }
+            get
+            {
+                return (sbyte)Template.Ac;
+            }
         }
         public sbyte BonusMr
         {
-            get { return (sbyte)Template.mr; }
+            get
+            {
+                return (sbyte)Template.Mr;
+            }
         }
         public sbyte BonusRegen
         {
-            get { return (sbyte)Template.regen; }
+            get
+            {
+                return (sbyte)Template.Regen;
+            }
         }
         public byte Color
         {
-            get { return (byte)Template.color; }
+            get
+            {
+                return (byte)Template.Color;
+            }
         }
 
         public byte BodyStyle
         {
-            get { return (byte)Template.bodystyle; }
+            get
+            {
+                return (byte)Template.Bodystyle;
+            }
         }
 
         public Element Element
         {
-            get { return (Element)Template.element; }
+            get
+            {
+                return (Element)Template.Element;
+            }
         }
         public ushort MinLDamage
         {
-            get { return (ushort)Template.min_l_dmg; }
+            get
+            {
+                return (ushort)Template.Min_l_dmg;
+            }
         }
         public ushort MaxLDamage
         {
-            get { return (ushort)Template.max_l_dmg; }
+            get
+            {
+                return (ushort)Template.Max_l_dmg;
+            }
         }
         public ushort MinSDamage
         {
-            get { return (ushort)Template.min_s_dmg; }
+            get
+            {
+                return (ushort)Template.Min_s_dmg;
+            }
         }
         public ushort MaxSDamage
         {
-            get { return (ushort)Template.max_s_dmg; }
+            get
+            {
+                return (ushort)Template.Max_s_dmg;
+            }
         }
         public ushort DisplaySprite
         {
-            get { return (ushort)Template.display_sprite; }
+            get
+            {
+                return (ushort)Template.Display_sprite;
+            }
         }
 
         public uint Value
         {
-            get { return (uint)Template.value; }
+            get
+            {
+                return (uint)Template.Value;
+            }
         }
 
         public sbyte Regen
         {
-            get { return (sbyte)Template.regen; }
+            get
+            {
+                return (sbyte)Template.Regen;
+            }
         }
 
         public bool Enchantable
         {
-            get { return Template.enchantable; }
+            get
+            {
+                return Convert.ToBoolean(Template.Enchantable);
+            }
         }
 
         public bool Consecratable
         {
-            get { return Template.consecratable; }
+            get
+            {
+                return Convert.ToBoolean(Template.Consecratable);
+            }
         }
 
         public bool Tailorable
         {
-            get { return Template.tailorable; }
+            get
+            {
+                return Convert.ToBoolean(Template.Tailorable);
+            }
         }
 
         public bool Smithable
         {
-            get { return Template.smithable; }
+            get
+            {
+                return Convert.ToBoolean(Template.Smithable);
+            }
         }
 
         public bool Exchangeable
         {
-            get { return Template.exchangeable; }
-        }
-
-        public bool IsVariant
-        {
-            get { return Template.IsVariant; }
-        }
-
-        public item ParentItem
-        {
-            get { return Template.ParentItem; }
-        }
-
-        public item_variant CurrentVariant
-        {
-            get { return Template.CurrentVariant; }
-        }
-
-        public item GetVariant(int variantId)
-        {
-            return Template.Variants[variantId];
+            get
+            {
+                return Convert.ToBoolean(Template.Exchangeable);
+            }
         }
 
         public int Count { get; set; }
@@ -300,14 +398,6 @@ namespace Hybrasyl.Objects
 
         public void Invoke(User trigger)
         {
-            try
-            {
-                World.ScriptMethod(ScriptName, this, trigger);
-            }
-            catch
-            {
-                trigger.SendMessage("It doesn't work.", 3);
-            }
         }
 
         public Item(int id, World world)
@@ -318,8 +408,6 @@ namespace Hybrasyl.Objects
             Count = 1;
         }
 
-        // Simple copy constructor for an item, mostly used when we split a stack and it results
-        // in the creation of a new item.
         public Item(Item previousItem)
         {
             World = previousItem.World;
@@ -335,160 +423,6 @@ namespace Hybrasyl.Objects
                 var user = obj as User;
                 user.SendVisibleItem(this);
             }
-        }
-    }
-}
-
-// Extend the item EF class with a marker noting whether or not it's a variant
-// This is all pretty ugly and uh, it probably needs to be redone later
-
-namespace Hybrasyl.Properties
-{
-    public partial class item
-    {
-        public bool IsVariant { get; set; }
-        public item ParentItem { get; set; }
-
-        public bool Stackable
-        {
-            get { return max_stack > 1; }
-        }
-
-        public item_variant CurrentVariant { get; set; }
-
-        public Dictionary<int, item> Variants { get; set; }
-
-        public void Copy(item source)
-        {
-            FieldInfo[] fields = GetType().GetFields(
-                BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
-
-            foreach (FieldInfo field in fields)
-            {
-                field.SetValue(this, field.GetValue(source));
-            }
-        }
-    }
-
-    public partial class item_variant
-    {
-        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
-        public static readonly List<String> VariantPropertyResolutions = new List<String>
-        {
-            // These values MUST be numeric!
-            "weight",
-            "max_stack",
-            "max_durability",
-            "hp",
-            "mp",
-            "str",
-            "int",
-            "wis",
-            "con",
-            "dex",
-            "hit",
-            "ac",
-            "dmg",
-            "mr",
-            "max_s_dmg",
-            "min_s_dmg",
-            "max_l_dmg",
-            "min_l_dmg",
-            "value",
-            "regen"
-        };
-
-        public static readonly List<String> VariantPropertyReplacements = new List<String>
-        {
-            "level",
-            "ab",
-            "element",
-            "bodystyle",
-            "color",
-            "enchantable",
-            "depositable",
-            "bound",
-            "vendorable",
-            "tailorable",
-            "smithable",
-            "consecratable",
-            "perishable",
-            "exchangeable"
-        };
-
-        public int ResolvePercentage(int basevalue, string percentage)
-        {
-            Match match = Constants.PercentageRegex.Match(percentage);
-
-            int pct = Convert.ToInt32(match.Groups[2].Value);
-
-            if (match.Groups[1].Value == "-")
-            {
-                if (pct > 99)
-                {
-                    return basevalue;
-                }
-            }
-
-            return Convert.ToInt32(basevalue * (pct / 100));
-        }
-
-        public item ResolveVariant(item baseitem)
-        {
-            // Given a base item, return a new variant item with all our
-            // modifications applied. We resolve the properties in VariantPropertyResolution
-            // by modifying as appropriate (given inputs of percentages or simple ints), and
-            // we replace values for properties in VariantPropertyReplacements (if they exist).
-
-            // Make a shallow copy of the item first, so we get all the goodies
-            item newitem = new item();
-            newitem.Copy(baseitem);
-
-            Logger.DebugFormat("Resolving variant {0} for item {1}", modifier, baseitem.name);
-
-            var itemAccessor = TypeAccessor.Create(typeof(item));
-            var variantAccessor = TypeAccessor.Create(typeof(item_variant));
-
-            foreach (var property in VariantPropertyResolutions)
-            {
-                //var variant_value = GetType().GetProperty(property).GetValue(this, null);
-                //var cur_val = (int)baseitem.GetType().GetProperty(property).GetValue(baseitem, null);
-
-                var variantValue = variantAccessor[this, property];
-                var curVal = itemAccessor[baseitem, property];
-
-                // Is the variant a number or a percentage? Otherwise, do nothing.
-                int number = 0;
-                bool isInt = int.TryParse((string)variantValue, out number);
-                if (isInt)
-                {
-                    itemAccessor[newitem, property] = ((int)curVal + number);
-                    //newitem.GetType().GetProperty(property).SetValue(newitem, (cur_val + number));
-                }
-                else if (Constants.PercentageRegex.IsMatch((string)variantValue))
-                {
-                    itemAccessor[newitem, property] = ResolvePercentage((int)curVal, (string)variantValue);
-                    //newitem.GetType().GetProperty(property).SetValue(newitem,
-                    //  ResolvePercentage(cur_val, (string)variant_value));
-                }
-            }
-
-            foreach (var property in VariantPropertyReplacements)
-            {
-                var value = GetType().GetProperty(property).GetValue(this, null);
-                if (value != null)
-                {
-                    newitem.GetType().GetProperty(property).SetValue(newitem, value);
-                }
-            }
-
-            newitem.ParentItem = baseitem;
-            newitem.IsVariant = true;
-            newitem.name = String.Format("{0} {1}", modifier, baseitem.name);
-            newitem.CurrentVariant = this;
-
-            return newitem;
         }
     }
 }

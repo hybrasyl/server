@@ -13,8 +13,7 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2013 Project Hybrasyl (info@hybrasyl.com)
  *
  * Authors:   Justin Baugh  <baughj@hybrasyl.com>
  *            Kyle Speck    <kojasou@hybrasyl.com>
@@ -22,7 +21,6 @@
 
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
-using Hybrasyl.Properties;
 using log4net;
 using System;
 using System.Collections;
@@ -31,7 +29,6 @@ using System.Linq;
 
 namespace Hybrasyl
 {
-
     public class Exchange
     {
         public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
@@ -70,7 +67,6 @@ namespace Hybrasyl
                    target.IsInViewport(source) &&
                    source.Status == PlayerStatus.Alive &&
                    target.Status == PlayerStatus.Alive && target.Distance(source) <= Constants.EXCHANGE_DISTANCE;
-
         }
 
         public bool ConditionsValid
@@ -88,36 +84,27 @@ namespace Hybrasyl
         public bool AddItem(User giver, byte slot, byte quantity = 1)
         {
             Item toAdd;
-            // Some sanity checks
 
-            // Check if our "exchange" is full
             if (_sourceItems.IsFull || _targetItems.IsFull)
             {
                 _source.SendMessage("Maximum exchange size reached. No more items can be added.", MessageTypes.SYSTEM);
                 _target.SendMessage("Maximum exchange size reached. No more items can be added.", MessageTypes.SYSTEM);
                 return false;
             }
-            // Check if either participant's inventory would be full as a result of confirmation
             if (_sourceItems.Count == _sourceSize || _targetItems.Count == _targetSize)
             {
                 _source.SendMessage("Inventory full.", MessageTypes.SYSTEM);
-                _target.SendMessage("Inventory full.", MessageTypes.SYSTEM); 
+                _target.SendMessage("Inventory full.", MessageTypes.SYSTEM);
                 return false;
             }
 
-            // OK - we have room, now what?
             var theItem = giver.Inventory[slot];
-
-            // Further checks!
-            // Is the item exchangeable?
 
             if (!theItem.Exchangeable)
             {
                 giver.SendMessage("You can't trade this.", MessageTypes.SYSTEM);
                 return false;
             }
-
-            // Weight check
 
             if (giver == _source && _targetWeight + theItem.Weight > _target.MaximumWeight)
             {
@@ -133,13 +120,10 @@ namespace Hybrasyl
                 return false;
             }
 
-            // Is the item stackable?
-
             if (theItem.Stackable)
             {
                 var targetItem = giver == _target ? _source.Inventory.Find(theItem.Name) : _target.Inventory.Find(theItem.Name);
 
-                // Check to see that giver has sufficient number of whatever, and also that the quantity is a positive number
                 if (quantity <= 0)
                 {
                     giver.SendSystemMessage("You can't give zero of something, chief.");
@@ -151,9 +135,6 @@ namespace Hybrasyl
                     giver.SendSystemMessage(String.Format("You don't have that many {0} to give!", theItem.Name));
                     return false;
                 }
-
-                // Check if the recipient already has this item - if they do, ensure the quantity proposed for trade
-                // wouldn't put them over maxcount for the item in question
 
                 if (targetItem != null && targetItem.Count + quantity > theItem.MaximumStack)
                 {
@@ -174,22 +155,21 @@ namespace Hybrasyl
                 toAdd = new Item(theItem);
                 toAdd.Count = quantity;
             }
-            else if (!theItem.Stackable)
-            {
-                // Item isn't stackable
-                // Remove the item entirely from giver
-                toAdd = theItem;
-                giver.RemoveItem(slot);
-            }
             else
             {
-                Logger.WarnFormat("exchange: Hijinx occuring: participants are {0} and {1}",
+                if (!theItem.Stackable)
+                {
+                    toAdd = theItem;
+                    giver.RemoveItem(slot);
+                }
+                else
+                {
+                    Logger.WarnFormat("exchange: Hijinx occuring: participants are {0} and {1}",
                     _source.Name, _target.Name);
-                _active = false;
-                return false;
+                    _active = false;
+                    return false;
+                }
             }
-
-            // Now add the item to the active exchange and make sure we update weight
             if (giver == _source)
             {
                 var exchangeSlot = (byte)_sourceItems.Count;
@@ -200,12 +180,11 @@ namespace Hybrasyl
             }
             if (giver == _target)
             {
-                var exchangeSlot = (byte) _targetItems.Count;
+                var exchangeSlot = (byte)_targetItems.Count;
                 _targetItems.AddItem(toAdd);
                 _target.SendExchangeUpdate(toAdd, exchangeSlot);
                 _source.SendExchangeUpdate(toAdd, exchangeSlot, false);
                 _sourceWeight += toAdd.Weight;
-
             }
 
             return true;
@@ -230,26 +209,28 @@ namespace Hybrasyl
                 _target.SendExchangeUpdate(amount, false);
                 _source.Gold -= amount;
                 _source.UpdateAttributes(StatUpdateFlags.Experience);
-
-            }
-            else if (giver == _target)
-            {
-                if (amount > uint.MaxValue - _targetGold)
-                {
-                    _target.SendMessage("No more gold can be added to this exchange.", MessageTypes.SYSTEM);
-                    return false;
-                }
-                _targetGold += amount;
-                _target.SendExchangeUpdate(amount);
-                _source.SendExchangeUpdate(amount, false);
-                _target.Gold -= amount;
-                _target.UpdateAttributes(StatUpdateFlags.Experience);
             }
             else
-                return false;
-
+            {
+                if (giver == _target)
+                {
+                    if (amount > uint.MaxValue - _targetGold)
+                    {
+                        _target.SendMessage("No more gold can be added to this exchange.", MessageTypes.SYSTEM);
+                        return false;
+                    }
+                    _targetGold += amount;
+                    _target.SendExchangeUpdate(amount);
+                    _source.SendExchangeUpdate(amount, false);
+                    _target.Gold -= amount;
+                    _target.UpdateAttributes(StatUpdateFlags.Experience);
+                }
+                else
+                {
+                    return false;
+                }
+            }
             return true;
-
         }
 
         public bool StartExchange()
@@ -260,7 +241,6 @@ namespace Hybrasyl
             _target.Status |= PlayerStatus.InExchange;
             _source.ActiveExchange = this;
             _target.ActiveExchange = this;
-            // Send "open window" packet to both clients
             _target.SendExchangeInitiation(_source);
             _source.SendExchangeInitiation(_target);
             return true;
@@ -354,106 +334,163 @@ namespace Hybrasyl
         public int Count { get; private set; }
         public ushort Weight { get; private set; }
 
-        #region Equipment Properties
-
         public Item Weapon
         {
-            get { return _items[ServerItemSlots.Weapon]; }
+            get
+            {
+                return _items[ServerItemSlots.Weapon];
+            }
         }
 
         public Item Armor
         {
-            get { return _items[ServerItemSlots.Armor]; }
+            get
+            {
+                return _items[ServerItemSlots.Armor];
+            }
         }
 
         public Item Shield
         {
-            get { return _items[ServerItemSlots.Shield]; }
+            get
+            {
+                return _items[ServerItemSlots.Shield];
+            }
         }
 
         public Item Helmet
         {
-            get { return _items[ServerItemSlots.Helmet]; }
+            get
+            {
+                return _items[ServerItemSlots.Helmet];
+            }
         }
 
         public Item Earring
         {
-            get { return _items[ServerItemSlots.Earring]; }
+            get
+            {
+                return _items[ServerItemSlots.Earring];
+            }
         }
 
         public Item Necklace
         {
-            get { return _items[ServerItemSlots.Necklace]; }
+            get
+            {
+                return _items[ServerItemSlots.Necklace];
+            }
         }
 
         public Item LRing
         {
-            get { return _items[ServerItemSlots.LHand]; }
+            get
+            {
+                return _items[ServerItemSlots.LHand];
+            }
         }
 
         public Item RRing
         {
-            get { return _items[ServerItemSlots.RHand]; }
+            get
+            {
+                return _items[ServerItemSlots.RHand];
+            }
         }
 
         public Item LGauntlet
         {
-            get { return _items[ServerItemSlots.LArm]; }
+            get
+            {
+                return _items[ServerItemSlots.LArm];
+            }
         }
 
         public Item RGauntlet
         {
-            get { return _items[ServerItemSlots.RArm]; }
+            get
+            {
+                return _items[ServerItemSlots.RArm];
+            }
         }
 
         public Item Belt
         {
-            get { return _items[ServerItemSlots.Waist]; }
+            get
+            {
+                return _items[ServerItemSlots.Waist];
+            }
         }
 
         public Item Greaves
         {
-            get { return _items[ServerItemSlots.Leg]; }
+            get
+            {
+                return _items[ServerItemSlots.Leg];
+            }
         }
 
         public Item Boots
         {
-            get { return _items[ServerItemSlots.Foot]; }
+            get
+            {
+                return _items[ServerItemSlots.Foot];
+            }
         }
 
         public Item FirstAcc
         {
-            get { return _items[ServerItemSlots.FirstAcc]; }
+            get
+            {
+                return _items[ServerItemSlots.FirstAcc];
+            }
         }
 
         public Item Overcoat
         {
-            get { return _items[ServerItemSlots.Trousers]; }
+            get
+            {
+                return _items[ServerItemSlots.Trousers];
+            }
         }
 
         public Item DisplayHelm
         {
-            get { return _items[ServerItemSlots.Coat]; }
+            get
+            {
+                return _items[ServerItemSlots.Coat];
+            }
         }
 
         public Item SecondAcc
         {
-            get { return _items[ServerItemSlots.SecondAcc]; }
+            get
+            {
+                return _items[ServerItemSlots.SecondAcc];
+            }
         }
 
         public Item ThirdAcc
         {
-            get { return _items[ServerItemSlots.ThirdAcc]; }
+            get
+            {
+                return _items[ServerItemSlots.ThirdAcc];
+            }
         }
-        #endregion Equipment Properties
 
         public bool IsFull
         {
-            get { return Count == Size; }
+            get
+            {
+                return Count == Size;
+            }
         }
         public int EmptySlots
         {
-            get { return Size - Count; }
+            get
+            {
+                return Size - Count;
+            }
         }
 
         public Item this[byte slot]
@@ -462,21 +499,28 @@ namespace Hybrasyl
             {
                 var index = slot - 1;
                 if (index < 0 || index >= Size)
+                {
                     return null;
+                }
                 return _items[index];
             }
             internal set
             {
-                int index = slot - 1;
+                var index = slot - 1;
                 if (index < 0 || index >= Size)
+                {
                     return;
+                }
                 if (value == null)
+                {
                     _RemoveFromIndex(_items[index]);
+                }
                 else
+                {
                     _AddToIndex(value);
+                }
                 _items[index] = value;
-                
-            }   
+            }
         }
 
         private void _AddToIndex(Item item)
@@ -486,8 +530,10 @@ namespace Hybrasyl
             {
                 itemList.Add(item);
             }
-            else 
-                _inventoryIndex[item.TemplateId] = new List<Item> {item};
+            else
+            {
+                _inventoryIndex[item.TemplateId] = new List<Item> { item };
+            }
         }
 
         private void _RemoveFromIndex(Item item)
@@ -497,7 +543,9 @@ namespace Hybrasyl
             {
                 _inventoryIndex[item.TemplateId] = itemList.Where(x => x.Id != item.Id).ToList();
                 if (_inventoryIndex[item.TemplateId].Count == 0)
+                {
                     _inventoryIndex.Remove(item.TemplateId);
+                }
             }
         }
 
@@ -505,9 +553,12 @@ namespace Hybrasyl
         {
             item = null;
             List<Item> itemList;
-            item theItem;
+            items theItem;
             if (!Game.World.TryGetItemTemplate(name, out theItem) ||
-                !_inventoryIndex.TryGetValue(theItem.id, out itemList)) return false;
+                !_inventoryIndex.TryGetValue(theItem.Id, out itemList))
+            {
+                return false;
+            }
             item = itemList.First();
             return true;
         }
@@ -516,10 +567,12 @@ namespace Hybrasyl
         {
             item = null;
             List<Item> itemList;
-            if (!_inventoryIndex.TryGetValue(templateId, out itemList)) return false;
+            if (!_inventoryIndex.TryGetValue(templateId, out itemList))
+            {
+                return false;
+            }
             item = itemList.First();
             return true;
-
         }
 
         public Inventory(int size)
@@ -536,8 +589,8 @@ namespace Hybrasyl
 
         public bool Contains(string name)
         {
-            item theItem;
-            return Game.World.TryGetItemTemplate(name, out theItem) && _inventoryIndex.ContainsKey(theItem.id);
+            items theItem;
+            return Game.World.TryGetItemTemplate(name, out theItem) && _inventoryIndex.ContainsKey(theItem.Id);
         }
 
         public int FindEmptyIndex()
@@ -545,7 +598,9 @@ namespace Hybrasyl
             for (var i = 0; i < Size; ++i)
             {
                 if (_items[i] == null)
+                {
                     return i;
+                }
             }
             return -1;
         }
@@ -559,7 +614,9 @@ namespace Hybrasyl
             for (var i = 0; i < Size; ++i)
             {
                 if (_items[i] != null && _items[i].TemplateId == id)
+                {
                     return i;
+                }
             }
             return -1;
         }
@@ -568,7 +625,9 @@ namespace Hybrasyl
             for (var i = 0; i < Size; ++i)
             {
                 if (_items[i] != null && _items[i].Name == name)
+                {
                     return i;
+                }
             }
             return -1;
         }
@@ -589,15 +648,18 @@ namespace Hybrasyl
 
         public Item Find(string name)
         {
-            item theItem;
-            return Game.World.TryGetItemTemplate(name, out theItem) && _inventoryIndex.ContainsKey(theItem.id)
-                ? _inventoryIndex[theItem.id].First()
+            items theItem;
+            return Game.World.TryGetItemTemplate(name, out theItem) && _inventoryIndex.ContainsKey(theItem.Id)
+                ? _inventoryIndex[theItem.Id].First()
                 : null;
         }
 
         public bool AddItem(Item item)
         {
-            if (IsFull) return false;
+            if (IsFull)
+            {
+                return false;
+            }
             var slot = FindEmptySlot();
             return Insert(slot, item);
         }
@@ -606,7 +668,9 @@ namespace Hybrasyl
         {
             var index = slot - 1;
             if (index < 0 || index >= Size || _items[index] != null)
+            {
                 return false;
+            }
             _items[index] = item;
             Count += 1;
             Weight += item.Weight;
@@ -618,7 +682,9 @@ namespace Hybrasyl
         {
             var index = slot - 1;
             if (index < 0 || index >= Size || _items[index] == null)
+            {
                 return false;
+            }
             var item = _items[index];
             _items[index] = null;
             Count -= 1;
@@ -629,9 +695,12 @@ namespace Hybrasyl
 
         public bool Swap(byte slot1, byte slot2)
         {
-            int index1 = slot1 - 1, index2 = slot2 - 1;
+            var index1 = slot1 - 1;
+            var index2 = slot2 - 1;
             if (index1 < 0 || index1 >= Size || index2 < 0 || index2 >= Size)
+            {
                 return false;
+            }
             var item = _items[index1];
             _items[index1] = _items[index2];
             _items[index2] = item;
@@ -641,7 +710,9 @@ namespace Hybrasyl
         public void Clear()
         {
             for (var i = 0; i < Size; ++i)
+            {
                 _items[i] = null;
+            }
             Count = 0;
             Weight = 0;
             _inventoryIndex.Clear();
@@ -651,10 +722,14 @@ namespace Hybrasyl
         {
             var index = slot - 1;
             if (index < 0 || index >= Size || _items[index] == null)
+            {
                 return false;
+            }
             var item = _items[index];
             if (item.Count + amount > item.MaximumStack)
+            {
                 return false;
+            }
             item.Count += amount;
             return true;
         }
@@ -663,12 +738,19 @@ namespace Hybrasyl
         {
             var index = slot - 1;
             if (index < 0 || index >= Size || _items[index] == null)
+            {
                 return false;
+            }
             var item = _items[index];
             if (item.Count < amount)
+            {
                 return false;
+            }
             item.Count -= amount;
-            if (item.Count != 0) return true;
+            if (item.Count != 0)
+            {
+                return true;
+            }
             _items[index] = null;
             Count -= 1;
             Weight -= item.Weight;
@@ -680,7 +762,9 @@ namespace Hybrasyl
             for (var i = 0; i < Size; ++i)
             {
                 if (_items[i] != null)
+                {
                     yield return _items[i];
+                }
             }
         }
         IEnumerator IEnumerable.GetEnumerator()
@@ -688,26 +772,33 @@ namespace Hybrasyl
             return GetEnumerator();
         }
 
-        public List<Tuple<ushort,byte>> GetEquipmentDisplayList()
+        public List<Tuple<ushort, byte>> GetEquipmentDisplayList()
         {
             var returnList = new List<Tuple<ushort, byte>>();
 
             for (var x = 0; x < 18; ++x)
             {
-                // This is fucking bullshit. Why would you even do this? HEY I KNOW KOREAN INTERN DESIGNING
-                // THIS PROTOCOL, LET'S RANDOMLY SWAP ITEM SLOTS FOR NO REASON!!11`1`
                 if (x == ServerItemSlots.Foot)
+                {
                     returnList.Add(_items[ServerItemSlots.FirstAcc] == null
                         ? new Tuple<ushort, byte>(0, 0)
                         : new Tuple<ushort, byte>((ushort)(0x8000 + _items[ServerItemSlots.FirstAcc].EquipSprite), _items[ServerItemSlots.FirstAcc].Color));
-                else if (x == ServerItemSlots.FirstAcc)
-                    returnList.Add(_items[ServerItemSlots.Foot] == null
+                }
+                else
+                {
+                    if (x == ServerItemSlots.FirstAcc)
+                    {
+                        returnList.Add(_items[ServerItemSlots.Foot] == null
                         ? new Tuple<ushort, byte>(0, 0)
                         : new Tuple<ushort, byte>((ushort)(0x8000 + _items[ServerItemSlots.Foot].EquipSprite), _items[ServerItemSlots.Foot].Color));
-                else
-                    returnList.Add(_items[x] == null
+                    }
+                    else
+                    {
+                        returnList.Add(_items[x] == null
                         ? new Tuple<ushort, byte>(0, 0)
-                        : new Tuple<ushort, byte>((ushort) (0x8000 + _items[x].EquipSprite), _items[x].Color));
+                        : new Tuple<ushort, byte>((ushort)(0x8000 + _items[x].EquipSprite), _items[x].Color));
+                    }
+                }
             }
 
             return returnList;

@@ -13,15 +13,13 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2013 Project Hybrasyl (info@hybrasyl.com)
  *
  * Authors:   Justin Baugh  <baughj@hybrasyl.com>
  *            Kyle Speck    <kojasou@hybrasyl.com>
  */
 
 using Hybrasyl.Enums;
-using Hybrasyl.Properties;
 using System;
 using System.Collections.Generic;
 
@@ -30,45 +28,31 @@ namespace Hybrasyl.Objects
     public class Merchant : Monster
     {
         public bool Ready;
-        public npc Data;
+        public npcs Data;
         public MerchantJob Jobs { get; set; }
-        public Dictionary<string, item> Inventory { get; private set; }
+        public Dictionary<string, items> Inventory { get; private set; }
 
         public Merchant()
             : base()
-        { }
+        {
+        }
 
-        public Merchant(npc data)
+        public Merchant(npcs data)
         {
             Data = data;
-            X = (byte)data.map_x;
-            Y = (byte)data.map_y;
-            Sprite = (ushort)data.sprite;
-            Direction = (Direction)data.direction;
-            Name = data.name;
-            DisplayText = data.display_text;
+            X = (byte)data.Map_x;
+            Y = (byte)data.Map_y;
+            Sprite = (ushort)data.Sprite;
+            Direction = (Direction)data.Direction;
+            Name = data.Name;
+            DisplayText = data.Display_text;
             Ready = false;
-            Jobs = (MerchantJob)data.jobs;
-            Inventory = new Dictionary<string, item>();
-            //foreach (var item in data.inventory)
-            //{
-            //   Inventory.Add(item.name, item);
-            //}
+            Jobs = (MerchantJob)data.Jobs;
+            Inventory = new Dictionary<string, items>();
         }
 
         public void OnSpawn()
         {
-            // Do we have a script? 
-            Script = World.ScriptProcessor.GetScript(Name);
-            if (Script != null)
-            {
-                Script.AssociateScriptWithObject(this);
-                if (Script.InstantiateScriptable())
-                {
-                    Script.ExecuteScriptableFunction("OnSpawn");
-                    Ready = true;
-                }
-            }
         }
 
         public override void Attack()
@@ -78,29 +62,20 @@ namespace Hybrasyl.Objects
         public override void OnClick(User invoker)
         {
             if (!Ready)
-                OnSpawn();
-
-            if (Script != null)
             {
-                Script.ExecuteScriptableFunction("OnClick", new HybrasylUser(invoker));
+                OnSpawn();
             }
         }
 
         public override void AoiEntry(VisibleObject obj)
         {
-            if (Script != null)
-            {
-                Script.ExecuteScriptableFunction("OnEntry", new HybrasylWorldObject(obj));
-            }
         }
 
         public override void AoiDeparture(VisibleObject obj)
         {
-            if (Script != null)
-            {
-                Script.ExecuteScriptableFunction("OnLeave", new HybrasylWorldObject(obj));
-            }
         }
+
+        
 
         public override void ShowTo(VisibleObject obj)
         {
@@ -108,7 +83,7 @@ namespace Hybrasyl.Objects
             {
                 var user = obj as User;
                 var npcPacket = new ServerPacket(0x07);
-                npcPacket.WriteUInt16(0x01); // Number of mobs in this packet
+                npcPacket.WriteUInt16(0x01);
                 npcPacket.WriteUInt16(X);
                 npcPacket.WriteUInt16(Y);
                 npcPacket.WriteUInt32(Id);
@@ -120,7 +95,7 @@ namespace Hybrasyl.Objects
                 npcPacket.WriteByte((byte)Direction);
                 npcPacket.WriteByte(0);
 
-                npcPacket.WriteByte(2); // Dot color. 0 = monster, 1 = nonsolid monster, 2=NPC
+                npcPacket.WriteByte(2);
                 npcPacket.WriteString8(Name);
                 user.Enqueue(npcPacket);
             }
@@ -130,65 +105,55 @@ namespace Hybrasyl.Objects
     [Flags]
     public enum MerchantJob
     {
-        Vendor = 0x01,
         Banker = 0x02,
-        Trainer = 0x04,
+        Postman = 0x10,
         Repairer = 0x08,
-        Postman = 0x10
+        Trainer = 0x04,
+        Vendor = 0x01
     }
 
     public enum MerchantMenuItem : ushort
     {
-        MainMenu = 0xFF00,
-
-        BuyItemMenu = 0xFF01,
-        SellItemMenu = 0xFF02,
-
-        WithdrawItemMenu = 0xFF03,
-        WithdrawGoldMenu = 0xFF04,
-        DepositItemMenu = 0xFF05,
-        DepositGoldMenu = 0xFF06,
-
-        LearnSkillMenu = 0xFF07,
-        LearnSpellMenu = 0xFF08,
-        ForgetSkillMenu = 0xFF09,
-        ForgetSpellMenu = 0xFF0A,
-
-        RepairItemMenu = 0xFF0B,
-        RepairAllItems = 0xFF0C,
-
-        SendParcelMenu = 0xFF0D,
-        SendLetterMenu = 0xFF0E,
-        ReceiveParcel = 0xFF0F,
-
         BuyItem = 0xFF10,
+        BuyItemMenu = 0xFF01,
         BuyItemQuantity = 0xFF11,
-        SellItem = 0xFF12,
-        SellItemQuantity = 0xFF13,
-        SellItemAccept = 0xFF14,
-
-        WithdrawItem = 0xFF20,
-        WithdrawItemQuantity = 0xFF21,
+        DepositGoldMenu = 0xFF06,
         DepositItem = 0xFF22,
+        DepositItemMenu = 0xFF05,
         DepositItemQuantity = 0xFF23,
-
-        LearnSkill = 0xFF30,
-        LearnSkillAccept = 0xFF31,
-        LearnSpell = 0xFF32,
-        LearnSpellAccept = 0xFF33,
         ForgetSkill = 0xFF34,
         ForgetSkillAccept = 0xFF35,
+        ForgetSkillMenu = 0xFF09,
         ForgetSpell = 0xFF36,
         ForgetSpellAccept = 0xFF37,
-
+        ForgetSpellMenu = 0xFF0A,
+        LearnSkill = 0xFF30,
+        LearnSkillAccept = 0xFF31,
+        LearnSkillMenu = 0xFF07,
+        LearnSpell = 0xFF32,
+        LearnSpellAccept = 0xFF33,
+        LearnSpellMenu = 0xFF08,
+        MainMenu = 0xFF00,
+        ReceiveParcel = 0xFF0F,
+        RepairAllItems = 0xFF0C,
+        RepairAllItemsAccept = 0xFF43,
         RepairItem = 0xFF40,
         RepairItemAccept = 0xFF41,
-        RepairAllItemsAccept = 0xFF43,
-
-        SendParcel = 0xFF50,
-        SendParcelRecipient = 0xFF51,
+        RepairItemMenu = 0xFF0B,
+        SellItem = 0xFF12,
+        SellItemAccept = 0xFF14,
+        SellItemMenu = 0xFF02,
+        SellItemQuantity = 0xFF13,
         SendLetter = 0xFF52,
-        SendLetterRecipient = 0xFF53
+        SendLetterMenu = 0xFF0E,
+        SendLetterRecipient = 0xFF53,
+        SendParcel = 0xFF50,
+        SendParcelMenu = 0xFF0D,
+        SendParcelRecipient = 0xFF51,
+        WithdrawGoldMenu = 0xFF04,
+        WithdrawItem = 0xFF20,
+        WithdrawItemMenu = 0xFF03,
+        WithdrawItemQuantity = 0xFF21
     }
 
     public delegate void MerchantMenuHandlerDelegate(User user, Merchant merchant, ClientPacket packet);

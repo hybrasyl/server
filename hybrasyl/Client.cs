@@ -13,8 +13,7 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2013 Project Hybrasyl (info@hybrasyl.com)
  *
  * Authors:   Justin Baugh  <baughj@hybrasyl.com>
  *            Kyle Speck    <kojasou@hybrasyl.com>
@@ -54,13 +53,10 @@ namespace Hybrasyl
         public long ConnectionId { get; private set; }
 
         private long LastReceived = 0;
-        private long LastSent = 0;
         private long Idle = 0;
-        
         private ConcurrentQueue<ServerPacket> SendQueue = new ConcurrentQueue<ServerPacket>();
 
         private byte serverOrdinal = 0x00;
-        //private byte clientOrdinal = 0x00;
 
         public byte EncryptionSeed { get; set; }
         public byte[] EncryptionKey { get; set; }
@@ -77,7 +73,7 @@ namespace Hybrasyl
         private long _byteHeartbeatReceived = 0;
         private long _tickHeartbeatReceived = 0;
 
-        private int _localTickCount = 0;  // Make this int32 because it's what the client expects
+        private int _localTickCount = 0;
         private int _clientTickCount = 0;
 
         public long ConnectedSince = 0;
@@ -114,7 +110,9 @@ namespace Hybrasyl
         {
             var aliveSince = new TimeSpan(DateTime.Now.Ticks - ConnectedSince);
             if (aliveSince.TotalSeconds < Constants.BYTE_HEARTBEAT_INTERVAL)
+            {
                 return;
+            }
             var rnd = new Random();
             var byteHeartbeat = new ServerPacket(0x3b);
             var a = rnd.Next(254);
@@ -154,9 +152,10 @@ namespace Hybrasyl
         {
             var aliveSince = new TimeSpan(DateTime.Now.Ticks - ConnectedSince);
             if (aliveSince.TotalSeconds < Constants.BYTE_HEARTBEAT_INTERVAL)
+            {
                 return;
+            }
             var tickHeartbeat = new ServerPacket(0x68);
-            // We never really want to deal with negative values
             var tickCount = Environment.TickCount & Int32.MaxValue;
             Interlocked.Exchange(ref _localTickCount, tickCount);
             tickHeartbeat.WriteInt32(tickCount);
@@ -175,7 +174,7 @@ namespace Hybrasyl
             if (a == _heartbeatA && b == _heartbeatB)
             {
                 Interlocked.Exchange(ref _byteHeartbeatReceived, DateTime.Now.Ticks);
-                return true;    
+                return true;
             }
             return false;
         }
@@ -205,10 +204,10 @@ namespace Hybrasyl
         /// <returns>True or false, indicating expiration.</returns>
         public bool IsHeartbeatExpired()
         {
-            // If we have no record of sending a heartbeat, obviously it hasn't expired
             if (_tickHeartbeatSent == 0 && _byteHeartbeatSent == 0)
+            {
                 return false;
-
+            }
             var tickSpan = new TimeSpan(_tickHeartbeatReceived - _tickHeartbeatSent);
             var byteSpan = new TimeSpan(_byteHeartbeatReceived - _byteHeartbeatSent);
 
@@ -218,7 +217,6 @@ namespace Hybrasyl
             if (tickSpan.TotalSeconds > Constants.REAP_HEARTBEAT_INTERVAL ||
                 byteSpan.TotalSeconds > Constants.REAP_HEARTBEAT_INTERVAL)
             {
-                // DON'T FEAR THE REAPER
                 Logger.InfoFormat("cid {0}: heartbeat expired");
                 return true;
             }
@@ -233,7 +231,9 @@ namespace Hybrasyl
         {
             Interlocked.Exchange(ref LastReceived, DateTime.Now.Ticks);
             if (updateIdle)
+            {
                 Interlocked.Exchange(ref Idle, 0);
+            }
             Logger.DebugFormat("cid {0}: lastReceived now {1}", ConnectionId, LastReceived);
         }
 
@@ -282,8 +282,10 @@ namespace Hybrasyl
 
         public void Begin()
         {
-            if (Thread.IsAlive) return;
-
+            if (Thread.IsAlive)
+            {
+                return;
+            }
             Thread.Start();
         }
 
@@ -314,7 +316,6 @@ namespace Hybrasyl
                         Logger.ErrorFormat("SendQueue TryDequeue failed?");
                         continue;
                     }
-                    
                     if (packet.ShouldEncrypt)
                     {
                         ++serverOrdinal;
@@ -327,7 +328,7 @@ namespace Hybrasyl
                     {
                         Thread.Sleep(packet.TransmitDelay);
                     }
-                    fullSendBuffer.AddRange((byte[]) packet);
+                    fullSendBuffer.AddRange((byte[])packet);
                 }
 
                 if (sending == false && fullSendBuffer.Count > 0)
@@ -378,9 +379,9 @@ namespace Hybrasyl
 
             try
             {
-                int count = socket.EndReceive(ar);
+                var count = socket.EndReceive(ar);
 
-                for (int i = 0; i < count; ++i)
+                for (var i = 0; i < count; ++i)
                 {
                     client.fullRecvBuffer.Add(client.recvBuffer[i]);
                 }
@@ -395,11 +396,12 @@ namespace Hybrasyl
                 while (client.fullRecvBuffer.Count > 3)
                 {
                     Logger.Debug("in fullRecvBuffer loop");
-                    int length = client.fullRecvBuffer[1]*256 + client.fullRecvBuffer[2] + 3;
+                    var length = client.fullRecvBuffer[1] * 256 + client.fullRecvBuffer[2] + 3;
 
                     if (length > client.fullRecvBuffer.Count)
+                    {
                         break;
-
+                    }
                     var range = client.fullRecvBuffer.GetRange(0, length);
                     var buffer = range.ToArray();
 
@@ -408,11 +410,13 @@ namespace Hybrasyl
                     var packet = new ClientPacket(buffer);
 
                     if (packet.ShouldEncrypt)
+                    {
                         packet.Decrypt(client);
-
+                    }
                     if (packet.Opcode == 0x39 || packet.Opcode == 0x3A)
+                    {
                         packet.DecryptDialog();
-
+                    }
                     if (client.Connected)
                     {
                         if (Constants.PACKET_THROTTLES.ContainsKey(packet.Opcode))
@@ -439,18 +443,12 @@ namespace Hybrasyl
                             }
                             else
                             {
-                                // We've never seen this packet before on this client. And obviously, as a result,
-                                // we can be neither squelched nor throttled.
                                 Logger.DebugFormat("cid {0}: creating throttle for opcode 0x{0:X2}", client.ConnectionId,
                                     packet.Opcode);
                                 client.Throttle[packet.Opcode] = new ThrottleInfo(packet.Opcode);
                             }
                         }
                         Logger.Debug("Proceeding to packet processing");
-                        // For Lobby and Login, we simply process the packet as we can do so in a 
-                        // thread safe manner.
-                        // For World, which involves game logic, we queue the packet for processing by
-                        // the world consumer thread.
 
                         try
                         {
@@ -461,23 +459,24 @@ namespace Hybrasyl
                                 handler.Invoke(client, packet);
                                 client.UpdateLastReceived();
                             }
-                            else if (client.Server is Login)
-                            {
-                                var handler = (client.Server as Login).PacketHandlers[packet.Opcode];
-                                handler.Invoke(client, packet);
-                                Logger.DebugFormat("Login: 0x{0:X2}", packet.Opcode);
-                                client.UpdateLastReceived();
-                            }
                             else
                             {
-                                if (packet.Opcode != 0x45 && packet.Opcode != 0x75)
+                                if (client.Server is Login)
                                 {
-                                    // Heartbeats don't effect our idle calcuations
-                                    client.UpdateLastReceived((packet.Opcode != 0x45 && packet.Opcode != 0x75));
+                                    var handler = (client.Server as Login).PacketHandlers[packet.Opcode];
+                                    handler.Invoke(client, packet);
+                                    Logger.DebugFormat("Login: 0x{0:X2}", packet.Opcode);
+                                    client.UpdateLastReceived();
                                 }
-                                Logger.DebugFormat("Queuing: 0x{0:X2}", packet.Opcode);
-                                World.MessageQueue.Add(new HybrasylClientMessage(packet, client.ConnectionId));
-
+                                else
+                                {
+                                    if (packet.Opcode != 0x45 && packet.Opcode != 0x75)
+                                    {
+                                        client.UpdateLastReceived((packet.Opcode != 0x45 && packet.Opcode != 0x75));
+                                    }
+                                    Logger.DebugFormat("Queuing: 0x{0:X2}", packet.Opcode);
+                                    World.MessageQueue.Add(new HybrasylClientMessage(packet, client.ConnectionId));
+                                }
                             }
                         }
                         catch (Exception e)
@@ -509,7 +508,7 @@ namespace Hybrasyl
 
         public void GenerateKeyTable(string seed)
         {
-            string table = Crypto.HashString(seed, "MD5");
+            var table = Crypto.HashString(seed, "MD5");
             table = Crypto.HashString(table, "MD5");
             for (var i = 0; i < 31; i++)
             {
@@ -534,7 +533,7 @@ namespace Hybrasyl
 
             var endPoint = Socket.RemoteEndPoint as IPEndPoint;
 
-            byte[] addressBytes = IPAddress.IsLoopback(endPoint.Address) ? IPAddress.Loopback.GetAddressBytes() : Game.IpAddress.GetAddressBytes();
+            var addressBytes = IPAddress.IsLoopback(endPoint.Address) ? IPAddress.Loopback.GetAddressBytes() : Game.IpAddress.GetAddressBytes();
 
             Array.Reverse(addressBytes);
 
@@ -565,6 +564,5 @@ namespace Hybrasyl
             x0A.WriteString16(message);
             Enqueue(x0A);
         }
-
     }
 }
