@@ -13,26 +13,26 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2013 Project Hybrasyl (info@hybrasyl.com)
  *
  * Authors:   Justin Baugh  <baughj@hybrasyl.com>
  *            Kyle Speck    <kojasou@hybrasyl.com>
  */
 
 using Hybrasyl.Enums;
-using Hybrasyl.Properties;
 using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace Hybrasyl
 {
-
     public class Login : Server
     {
         public new LoginPacketHandler[] PacketHandlers { get; private set; }
+        string assetsDir = Path.Combine(Hybrasyl.Constants.DataDirectory, "assets\\players");
 
         public Login(int port)
             : base(port)
@@ -41,9 +41,10 @@ namespace Hybrasyl
 
             PacketHandlers = new LoginPacketHandler[256];
 
-            for (int i = 0; i < 256; ++i)
+            for (var i = 0; i < 256; ++i)
+            {
                 PacketHandlers[i] = (c, p) => Logger.WarnFormat("Login: Unhandled opcode 0x{0:X2}", p.Opcode);
-
+            }
             PacketHandlers[0x02] = PacketHandler_0x02_CreateA;
             PacketHandlers[0x03] = PacketHandler_0x03_Login;
             PacketHandlers[0x04] = PacketHandler_0x04_CreateB;
@@ -58,37 +59,48 @@ namespace Hybrasyl
         {
             var name = packet.ReadString8();
             var password = packet.ReadString8();
-            var email = packet.ReadString8();
+            packet.ReadString8();
 
             if (Game.World.PlayerExists(name))
             {
                 client.LoginMessage("That name is unavailable.", 3);
             }
-            else if (name.Length < 4 || name.Length > 12)
-            {
-                client.LoginMessage("Names must be between 4 to 12 characters long.", 3);
-            }
-            else if (password.Length < 4 || password.Length > 8)
-            {
-                client.LoginMessage("Passwords must be between 4 and 8 characters long.", 3);
-            }
-            else if (name == password)
-            {
-                client.LoginMessage("Your password may not be the same as your username.", 3);
-            }
-            else if (Regex.IsMatch(name, "^[A-Za-z]{4,12}$"))
-            {
-                client.NewCharacterName = name;
-                client.NewCharacterPassword = BCrypt.Net.BCrypt.HashPassword(password,
-                    BCrypt.Net.BCrypt.GenerateSalt(12));
-                client.LoginMessage("\0", 0);
-            }
             else
             {
-                client.LoginMessage("Names may only contain letters.", 3);
+                if (name.Length < 4 || name.Length > 12)
+                {
+                    client.LoginMessage("Names must be between 4 to 12 characters long.", 3);
+                }
+                else
+                {
+                    if (password.Length < 4 || password.Length > 8)
+                    {
+                        client.LoginMessage("Passwords must be between 4 and 8 characters long.", 3);
+                    }
+                    else
+                    {
+                        if (name == password)
+                        {
+                            client.LoginMessage("Your password may not be the same as your username.", 3);
+                        }
+                        else
+                        {
+                            if (Regex.IsMatch(name, "^[A-Za-z]{4,12}$"))
+                            {
+                                client.NewCharacterName = name;
+                                client.NewCharacterPassword = BCrypt.Net.BCrypt.HashPassword(password,
+                                BCrypt.Net.BCrypt.GenerateSalt(12));
+                                client.LoginMessage("\0", 0);
+                            }
+                            else
+                            {
+                                client.LoginMessage("Names may only contain letters.", 3);
+                            }
+                        }
+                    }
+                }
             }
         }
-
 
         private void PacketHandler_0x03_Login(Client client, ClientPacket packet)
         {
@@ -96,49 +108,50 @@ namespace Hybrasyl
             var password = packet.ReadString8();
             Logger.DebugFormat("cid {0}: Login request for {1}", client.ConnectionId, name);
 
-            using (var ctx = new hybrasylEntities(Constants.ConnectionString))
+            players result = null;
+
+
+            using (var db = new DB())
             {
+                result = db.players.FirstOrDefault(i => i.Name.ToLower().Equals(name.ToLower()));
+            }
 
-                var result = ctx.players.Where(player => player.name == name).SingleOrDefault();
-
-                if (result == null)
+            if (result == null)
+            {
+                client.LoginMessage("That character does not exist", 3);
+                Logger.InfoFormat("cid {0}: attempt to login as nonexistent character {1}", client.ConnectionId, name);
+            }
+            else
+            {
+                if (BCrypt.Net.BCrypt.Verify(password, result.Password_hash))
                 {
-                    client.LoginMessage("That character does not exist", 3);
-                    Logger.InfoFormat("cid {0}: attempt to login as nonexistent character {1}", client.ConnectionId, name);
+                    Logger.DebugFormat("cid {0}: password verified for {1}", client.ConnectionId, name);
+
+                    if (Game.World.ActiveUsersByName.ContainsKey(name))
+                    {
+                        Logger.InfoFormat("cid {0}: {1} logging on again, disconnecting previous connection",
+                            client.ConnectionId, name);
+                        World.MessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.LogoffUser, name));
+                    }
+
+                    Logger.DebugFormat("cid {0} ({1}): logging in", client.ConnectionId, name);
+                    client.LoginMessage("\0", 0);
+                    client.SendMessage("Welcome to Hybrasyl!", 3);
+                    Logger.DebugFormat("cid {0} ({1}): sending redirect to world", client.ConnectionId, name);
+
+                    var redirect = new Redirect(client, this, Game.World, name, client.EncryptionSeed,
+                        client.EncryptionKey);
+                    Logger.InfoFormat("cid {0} ({1}): login successful, redirecting to world server",
+                        client.ConnectionId, name);
+                    client.Redirect(redirect);
                 }
                 else
                 {
-                    if (BCrypt.Net.BCrypt.Verify(password, result.password_hash))
-                    {
-                        Logger.DebugFormat("cid {0}: password verified for {1}", client.ConnectionId, name);
-
-                        if (Game.World.ActiveUsersByName.ContainsKey(name))
-                        {
-                            Logger.InfoFormat("cid {0}: {1} logging on again, disconnecting previous connection",
-                                client.ConnectionId, name);
-                            World.MessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.LogoffUser, name));
-                        }
-
-                        Logger.DebugFormat("cid {0} ({1}): logging in", client.ConnectionId, name);
-                        client.LoginMessage("\0", 0);
-                        client.SendMessage("Welcome to Hybrasyl!", 3);
-                        Logger.DebugFormat("cid {0} ({1}): sending redirect to world", client.ConnectionId, name);
-
-                        var redirect = new Redirect(client, this, Game.World, name, client.EncryptionSeed,
-                            client.EncryptionKey);
-                        Logger.InfoFormat("cid {0} ({1}): login successful, redirecting to world server",
-                            client.ConnectionId, name);
-                        client.Redirect(redirect);
-                    }
-                    else
-                    {
-                        Logger.WarnFormat("cid {0} ({1}): password incorrect", client.ConnectionId, name);
-                        client.LoginMessage("Incorrect password", 3);
-                    }
+                    Logger.WarnFormat("cid {0} ({1}): password incorrect", client.ConnectionId, name);
+                    client.LoginMessage("Incorrect password", 3);
                 }
             }
         }
-
 
 
         private void PacketHandler_0x04_CreateB(Client client, ClientPacket packet)
@@ -167,54 +180,50 @@ namespace Hybrasyl
 
             if (!Game.World.PlayerExists(client.NewCharacterName))
             {
-                using (var ctx = new hybrasylEntities(Constants.ConnectionString))
+                var player = new players
                 {
-                    player newplayer = new player
-                    {
-                        name = client.NewCharacterName,
-                        password_hash = client.NewCharacterPassword,
-                        sex = (Sex) sex,
-                        hairstyle = hairStyle,
-                        haircolor = hairColor,
-                        map_id = 136,
-                        map_x = 10,
-                        map_y = 10,
-                        direction = 1,
-                        class_type = 0,
-                        level = 1,
-                        exp = 0,
-                        ab = 0,
-                        gold = 0,
-                        ab_exp = 0,
-                        max_hp = 50,
-                        max_mp = 50,
-                        cur_hp = 50,
-                        cur_mp = 35,
-                        str = 3,
-                        @int = 3,
-                        wis = 3,
-                        con = 3,
-                        dex = 3,
-                        inventory = "[]",
-                        equipment = "[]",
-                        created_at = DateTime.Now
-                    };
-                    try
-                    {
-                        ctx.players.Add(newplayer);
-                        ctx.SaveChanges();
-                    }
-                    catch (Exception e)
-                    {
-                        Logger.ErrorFormat("Error saving new player!");
-                        Logger.ErrorFormat(e.ToString());
-                        client.LoginMessage("Unknown error. Contact admin@hybrasyl.com", 3);
-                    }
-                    client.LoginMessage("\0", 0);
+                    Name = client.NewCharacterName,
+                    Password_hash = client.NewCharacterPassword,
+                    Sex = (int)sex,
+                    Hairstyle = hairStyle,
+                    Haircolor = hairColor,
+                    Map_id = 136,
+                    Map_x = 10,
+                    Map_y = 10,
+                    Direction = 1,
+                    Class_type = 0,
+                    Level = 1,
+                    Exp = 0,
+                    Ab = 0,
+                    Gold = 0,
+                    Ab_exp = 0,
+                    Max_hp = 50,
+                    Max_mp = 50,
+                    Cur_hp = 50,
+                    Cur_mp = 35,
+                    Str = 3,
+                    Int = 3,
+                    Wis = 3,
+                    Con = 3,
+                    Dex = 3,
+                    Inventory = "[]",
+                    Equipment = "[]",
+                    Created_at = DateTime.Now
+                };
+
+                using (var db = new DB())
+                {
+                    db.Add(player);
+                    db.SaveChanges();
+
+                    Telerik.OpenAccess.ContextChanges contextChanges = db.GetChanges();
+                    List<players> inserts = contextChanges.GetInserts<players>().ToList();
                 }
+
+                client.LoginMessage("\0", 0);
             }
- 
         }
+
         private void PacketHandler_0x10_ClientJoin(Client client, ClientPacket packet)
         {
             var seed = packet.ReadByte();
@@ -239,7 +248,6 @@ namespace Hybrasyl
                     client.Enqueue(x60);
                 }
             }
-
         }
         private void PacketHandler_0x4B_RequestNotification(Client client, ClientPacket packet)
         {

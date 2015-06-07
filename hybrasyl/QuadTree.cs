@@ -13,25 +13,10 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) C3 (https://bitbucket.org/C3)
+ * (C) 2013 Project Hybrasyl (info@hybrasyl.com)
  *
- * This file, AND THIS FILE ONLY, is licensed under the zlib license
- * http://www.zlib.net/zlib_license.html
- *
- */
-
-
-/* NOTES:
- * ------
- * This quad tree was developed as a generically typed quad tree for use with
- * the Microsoft XNA framework. To that end, it references
- * Microsoft.Xna.Framework.Rectangle to supply the functionality for defining a
- * rectangle as well as providing the Contains and Intersects methods used for
- * determining what is in a quad or not.
- * 
- * This code can quite easily be modified to remove the dependence on the XNA
- * framework by removing the reference and updating anywhere that the rectangle
- * is used. The rest should function as is.
+ * Authors:   Justin Baugh  <baughj@hybrasyl.com>
+ *            Kyle Speck    <kojasou@hybrasyl.com>
  */
 
 using System.Collections;
@@ -60,25 +45,20 @@ namespace C3
     /// Used internally to attach an Owner to each object stored in the QuadTree
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    internal class QuadTreeObject<T> where T : IQuadStorable //, IComparable<QuadTreeObject<T>>
+    internal class QuadTreeObject<T>
+        where T: IQuadStorable
     {
         /// <summary>
         /// The wrapped data value
         /// </summary>
-        public T Data
-        {
-            get;
-            private set;
-        }
+        public T Data { get;
+            private set; }
 
         /// <summary>
         /// The QuadTreeNode that owns this object
         /// </summary>
-        internal QuadTreeNode<T> Owner
-        {
-            get;
-            set;
-        }
+        internal QuadTreeNode<T> Owner { get;
+            set; }
 
         /// <summary>
         /// Wraps the data value
@@ -88,34 +68,18 @@ namespace C3
         {
             Data = data;
         }
-
-
-        //public int CompareTo(QuadTreeObject<T> other)
-        //{
-        //    return (int)(Data.Rect.Y + Data.Rect.Height) - (int)(other.Data.Rect.Y + other.Data.Rect.Height);
-        //}
     }
 
     /// <summary>
     /// A QuadTree Object that provides fast and efficient storage of objects in a world space.
     /// </summary>
     /// <typeparam name="T">Any object implementing IQuadStorable.</typeparam>
-    public class QuadTree<T> : ICollection<T> where T : IQuadStorable
+    public class QuadTree<T> : ICollection<T>
+        where T: IQuadStorable
     {
-        #region Private Members
-
         private readonly Dictionary<T, QuadTreeObject<T>> wrappedDictionary = new Dictionary<T, QuadTreeObject<T>>();
 
-        // Alternate method, use Parallel arrays
-        //private List<T> m_rawObjects = new List<T>();       // The unwrapped objects in this QuadTree
-        //private List<QuadTreeObject<T>> m_wrappedObjects = new List<QuadTreeObject<T>>();       // The wrapped objects in this QuadTree
-
-        // The root of this quad tree
         private readonly QuadTreeNode<T> quadTreeRoot;
-
-        #endregion
-
-        #region Constructor
 
         /// <summary>
         /// Creates a QuadTree for the specified area.
@@ -139,16 +103,15 @@ namespace C3
             quadTreeRoot = new QuadTreeNode<T>(new Rectangle(x, y, width, height));
         }
 
-        #endregion
-
-        #region Public Methods
-
         /// <summary>
         /// Gets the rectangle that bounds this QuadTree
         /// </summary>
         public Rectangle QuadRect
         {
-            get { return quadTreeRoot.QuadRect; }
+            get
+            {
+                return quadTreeRoot.QuadRect;
+            }
         }
 
         /// <summary>
@@ -178,7 +141,6 @@ namespace C3
         public List<T> GetAllObjects()
         {
             return new List<T>(wrappedDictionary.Keys);
-            //quadTreeRoot.GetAllObjects(ref results);
         }
 
 
@@ -199,29 +161,23 @@ namespace C3
             }
         }
 
-        #endregion
-
-        #region ICollection<T> Members
-
-        ///<summary>
-        ///Adds an item to the <see cref="T:System.Collections.Generic.ICollection`1" />.
-        ///</summary>
-        ///
-        ///<param name="item">The object to add to the <see cref="T:System.Collections.Generic.ICollection`1" />.</param>
-        ///<exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.Generic.ICollection`1" /> is read-only.</exception>
+        /// <summary>
+        /// Adds an item to the <see cref="T:System.Collections.Generic.ICollection`1"/>.
+        /// </summary>
+        /// <param name="item">The object to add to the <see cref="T:System.Collections.Generic.ICollection`1"/>.</param>
+        /// <exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.Generic.ICollection`1"/> is read-only.</exception>
         public void Add(T item)
         {
-            QuadTreeObject<T> wrappedObject = new QuadTreeObject<T>(item);
+            var wrappedObject = new QuadTreeObject<T>(item);
             wrappedDictionary.Add(item, wrappedObject);
             quadTreeRoot.Insert(wrappedObject);
         }
 
 
-        ///<summary>
-        ///Removes all items from the <see cref="T:System.Collections.Generic.ICollection`1" />.
-        ///</summary>
-        ///
-        ///<exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.Generic.ICollection`1" /> is read-only. </exception>
+        /// <summary>
+        /// Removes all items from the <see cref="T:System.Collections.Generic.ICollection`1"/>.
+        /// </summary>
+        /// <exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.Generic.ICollection`1"/> is read-only. </exception>
         public void Clear()
         {
             wrappedDictionary.Clear();
@@ -229,69 +185,68 @@ namespace C3
         }
 
 
-        ///<summary>
-        ///Determines whether the <see cref="T:System.Collections.Generic.ICollection`1" /> contains a specific value.
-        ///</summary>
-        ///
-        ///<returns>
-        ///true if <paramref name="item" /> is found in the <see cref="T:System.Collections.Generic.ICollection`1" />; otherwise, false.
-        ///</returns>
-        ///
-        ///<param name="item">The object to locate in the <see cref="T:System.Collections.Generic.ICollection`1" />.</param>
+        /// <summary>
+        /// Determines whether the <see cref="T:System.Collections.Generic.ICollection`1"/> contains a specific value.
+        /// </summary>
+        /// <returns>
+        /// true if <paramref name="item"/> is found in the <see cref="T:System.Collections.Generic.ICollection`1"/>; otherwise, false.
+        /// </returns>
+        /// <param name="item">The object to locate in the <see cref="T:System.Collections.Generic.ICollection`1"/>.</param>
         public bool Contains(T item)
         {
             return wrappedDictionary.ContainsKey(item);
         }
 
 
-        ///<summary>
-        ///Copies the elements of the <see cref="T:System.Collections.Generic.ICollection`1" /> to an <see cref="T:System.Array" />, starting at a particular <see cref="T:System.Array" /> index.
-        ///</summary>
-        ///
-        ///<param name="array">The one-dimensional <see cref="T:System.Array" /> that is the destination of the elements copied from <see cref="T:System.Collections.Generic.ICollection`1" />. The <see cref="T:System.Array" /> must have zero-based indexing.</param>
-        ///<param name="arrayIndex">The zero-based index in <paramref name="array" /> at which copying begins.</param>
-        ///<exception cref="T:System.ArgumentNullException"><paramref name="array" /> is null.</exception>
-        ///<exception cref="T:System.ArgumentOutOfRangeException"><paramref name="arrayIndex" /> is less than 0.</exception>
-        ///<exception cref="T:System.ArgumentException"><paramref name="array" /> is multidimensional.-or-<paramref name="arrayIndex" /> is equal to or greater than the length of <paramref name="array" />.-or-The number of elements in the source <see cref="T:System.Collections.Generic.ICollection`1" /> is greater than the available space from <paramref name="arrayIndex" /> to the end of the destination <paramref name="array" />.-or-Type <paramref name="T" /> cannot be cast automatically to the type of the destination <paramref name="array" />.</exception>
+        /// <summary>
+        /// Copies the elements of the <see cref="T:System.Collections.Generic.ICollection`1"/> to an <see cref="T:System.Array"/>, starting at a particular <see cref="T:System.Array"/> index.
+        /// </summary>
+        /// <param name="array">The one-dimensional <see cref="T:System.Array"/> that is the destination of the elements copied from <see cref="T:System.Collections.Generic.ICollection`1"/>. The <see cref="T:System.Array"/> must have zero-based indexing.</param>
+        /// <param name="arrayIndex">The zero-based index in <paramref name="array"/> at which copying begins.</param>
+        /// <exception cref="T:System.ArgumentNullException"><paramref name="array"/> is null.</exception>
+        /// <exception cref="T:System.ArgumentOutOfRangeException"><paramref name="arrayIndex"/> is less than 0.</exception>
+        /// <exception cref="T:System.ArgumentException"><paramref name="array"/> is multidimensional.-or-<paramref name="arrayIndex"/> is equal to or greater than the length of <paramref name="array"/>.-or-The number of elements in the source <see cref="T:System.Collections.Generic.ICollection`1"/> is greater than the available space from <paramref name="arrayIndex"/> to the end of the destination <paramref name="array"/>.-or-Type <paramref name="T"/> cannot be cast automatically to the type of the destination <paramref name="array"/>.</exception>
         public void CopyTo(T[] array, int arrayIndex)
         {
             wrappedDictionary.Keys.CopyTo(array, arrayIndex);
         }
 
-        ///<summary>
-        ///Gets the number of elements contained in the <see cref="T:System.Collections.Generic.ICollection`1" />.
-        ///</summary>
-        ///<returns>
-        ///The number of elements contained in the <see cref="T:System.Collections.Generic.ICollection`1" />.
-        ///</returns>
+        /// <summary>
+        /// Gets the number of elements contained in the <see cref="T:System.Collections.Generic.ICollection`1"/>.
+        /// </summary>
+        /// <returns>
+        /// The number of elements contained in the <see cref="T:System.Collections.Generic.ICollection`1"/>.
+        /// </returns>
         public int Count
         {
-            get { return wrappedDictionary.Count; }
+            get
+            {
+                return wrappedDictionary.Count;
+            }
         }
 
-        ///<summary>
-        ///Gets a value indicating whether the <see cref="T:System.Collections.Generic.ICollection`1" /> is read-only.
-        ///</summary>
-        ///
-        ///<returns>
-        ///true if the <see cref="T:System.Collections.Generic.ICollection`1" /> is read-only; otherwise, false.
-        ///</returns>
-        ///
+        /// <summary>
+        /// Gets a value indicating whether the <see cref="T:System.Collections.Generic.ICollection`1"/> is read-only.
+        /// </summary>
+        /// <returns>
+        /// true if the <see cref="T:System.Collections.Generic.ICollection`1"/> is read-only; otherwise, false.
+        /// </returns>
         public bool IsReadOnly
         {
-            get { return false; }
+            get
+            {
+                return false;
+            }
         }
 
-        ///<summary>
-        ///Removes the first occurrence of a specific object from the <see cref="T:System.Collections.Generic.ICollection`1" />.
-        ///</summary>
-        ///
-        ///<returns>
-        ///true if <paramref name="item" /> was successfully removed from the <see cref="T:System.Collections.Generic.ICollection`1" />; otherwise, false. This method also returns false if <paramref name="item" /> is not found in the original <see cref="T:System.Collections.Generic.ICollection`1" />.
-        ///</returns>
-        ///
-        ///<param name="item">The object to remove from the <see cref="T:System.Collections.Generic.ICollection`1" />.</param>
-        ///<exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.Generic.ICollection`1" /> is read-only.</exception>
+        /// <summary>
+        /// Removes the first occurrence of a specific object from the <see cref="T:System.Collections.Generic.ICollection`1"/>.
+        /// </summary>
+        /// <returns>
+        /// true if <paramref name="item"/> was successfully removed from the <see cref="T:System.Collections.Generic.ICollection`1"/>; otherwise, false. This method also returns false if <paramref name="item"/> is not found in the original <see cref="T:System.Collections.Generic.ICollection`1"/>.
+        /// </returns>
+        /// <param name="item">The object to remove from the <see cref="T:System.Collections.Generic.ICollection`1"/>.</param>
+        /// <exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.Generic.ICollection`1"/> is read-only.</exception>
         public bool Remove(T item)
         {
             if (Contains(item))
@@ -306,38 +261,30 @@ namespace C3
             }
         }
 
-        #endregion
-
-        #region IEnumerable<T> and IEnumerable Members
-
-        ///<summary>
-        ///Returns an enumerator that iterates through the collection.
-        ///</summary>
-        ///
-        ///<returns>
-        ///A <see cref="T:System.Collections.Generic.IEnumerator`1" /> that can be used to iterate through the collection.
-        ///</returns>
-        ///<filterpriority>1</filterpriority>
+        /// <summary>
+        /// Returns an enumerator that iterates through the collection.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="T:System.Collections.Generic.IEnumerator`1"/> that can be used to iterate through the collection.
+        /// </returns>
+        /// <filterpriority>1</filterpriority>
         public IEnumerator<T> GetEnumerator()
         {
             return wrappedDictionary.Keys.GetEnumerator();
         }
 
 
-        ///<summary>
-        ///Returns an enumerator that iterates through a collection.
-        ///</summary>
-        ///
-        ///<returns>
-        ///An <see cref="T:System.Collections.IEnumerator" /> object that can be used to iterate through the collection.
-        ///</returns>
-        ///<filterpriority>2</filterpriority>
+        /// <summary>
+        /// Returns an enumerator that iterates through a collection.
+        /// </summary>
+        /// <returns>
+        /// An <see cref="T:System.Collections.IEnumerator"/> object that can be used to iterate through the collection.
+        /// </returns>
+        /// <filterpriority>2</filterpriority>
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
         }
-
-        #endregion
 
 
         /// <summary>
@@ -345,7 +292,10 @@ namespace C3
         /// </summary>
         public QuadTreeNode<T> RootQuad
         {
-            get { return quadTreeRoot; }
+            get
+            {
+                return quadTreeRoot;
+            }
         }
     }
 
@@ -353,38 +303,30 @@ namespace C3
     /// A QuadTree Object that provides fast and efficient storage of objects in a world space.
     /// </summary>
     /// <typeparam name="T">Any object implementing IQuadStorable.</typeparam>
-    public class QuadTreeNode<T> where T : IQuadStorable
+    public class QuadTreeNode<T>
+        where T: IQuadStorable
     {
-        #region Constants
-
-        // How many objects can exist in a QuadTree before it sub divides itself
         private const int MaxObjectsPerNode = 2;
 
-        #endregion
-
-        #region Private Members
-
-        //private List<T> m_objects = null;       // The objects in this QuadTree
         private List<QuadTreeObject<T>> objects = null;
-        private Rectangle rect; // The area this QuadTree represents
+        private Rectangle rect;
 
-        private QuadTreeNode<T> parent = null; // The parent of this quad
+        private QuadTreeNode<T> parent = null;
 
-        private QuadTreeNode<T> childTL = null; // Top Left Child
-        private QuadTreeNode<T> childTR = null; // Top Right Child
-        private QuadTreeNode<T> childBL = null; // Bottom Left Child
-        private QuadTreeNode<T> childBR = null; // Bottom Right Child
-
-        #endregion
-
-        #region Public Properties
+        private QuadTreeNode<T> childTL = null;
+        private QuadTreeNode<T> childTR = null;
+        private QuadTreeNode<T> childBL = null;
+        private QuadTreeNode<T> childBR = null;
 
         /// <summary>
         /// The area this QuadTree represents.
         /// </summary>
         public Rectangle QuadRect
         {
-            get { return rect; }
+            get
+            {
+                return rect;
+            }
         }
 
         /// <summary>
@@ -392,7 +334,10 @@ namespace C3
         /// </summary>
         public QuadTreeNode<T> TopLeftChild
         {
-            get { return childTL; }
+            get
+            {
+                return childTL;
+            }
         }
 
         /// <summary>
@@ -400,7 +345,10 @@ namespace C3
         /// </summary>
         public QuadTreeNode<T> TopRightChild
         {
-            get { return childTR; }
+            get
+            {
+                return childTR;
+            }
         }
 
         /// <summary>
@@ -408,7 +356,10 @@ namespace C3
         /// </summary>
         public QuadTreeNode<T> BottomLeftChild
         {
-            get { return childBL; }
+            get
+            {
+                return childBL;
+            }
         }
 
         /// <summary>
@@ -416,7 +367,10 @@ namespace C3
         /// </summary>
         public QuadTreeNode<T> BottomRightChild
         {
-            get { return childBR; }
+            get
+            {
+                return childBR;
+            }
         }
 
         /// <summary>
@@ -424,16 +378,21 @@ namespace C3
         /// </summary>
         public QuadTreeNode<T> Parent
         {
-            get { return parent; }
+            get
+            {
+                return parent;
+            }
         }
 
         /// <summary>
         /// The objects contained in this QuadTree at it's level (ie, excludes children)
         /// </summary>
-        //public List<T> Objects { get { return m_objects; } }
         internal List<QuadTreeObject<T>> Objects
         {
-            get { return objects; }
+            get
+            {
+                return objects;
+            }
         }
 
         /// <summary>
@@ -441,7 +400,10 @@ namespace C3
         /// </summary>
         public int Count
         {
-            get { return ObjectCount(); }
+            get
+            {
+                return ObjectCount();
+            }
         }
 
         /// <summary>
@@ -449,12 +411,11 @@ namespace C3
         /// </summary>
         public bool IsEmptyLeaf
         {
-            get { return Count == 0 && childTL == null; }
+            get
+            {
+                return Count == 0 && childTL == null;
+            }
         }
-
-        #endregion
-
-        #region Constructor
 
         /// <summary>
         /// Creates a QuadTree for the specified area.
@@ -485,10 +446,6 @@ namespace C3
             this.parent = parent;
         }
 
-        #endregion
-
-        #region Private Members
-
         /// <summary>
         /// Add an item to the object list.
         /// </summary>
@@ -497,7 +454,6 @@ namespace C3
         {
             if (objects == null)
             {
-                //m_objects = new List<T>();
                 objects = new List<QuadTreeObject<T>>();
             }
 
@@ -514,7 +470,7 @@ namespace C3
         {
             if (objects != null)
             {
-                int removeIndex = objects.IndexOf(item);
+                var removeIndex = objects.IndexOf(item);
                 if (removeIndex >= 0)
                 {
                     objects[removeIndex] = objects[objects.Count - 1];
@@ -530,15 +486,13 @@ namespace C3
         /// <returns>The number of objects contained within this QuadTree and its children.</returns>
         private int ObjectCount()
         {
-            int count = 0;
+            var count = 0;
 
-            // Add the objects at this level
             if (objects != null)
             {
                 count += objects.Count;
             }
 
-            // Add the objects that are contained in the children
             if (childTL != null)
             {
                 count += childTL.ObjectCount();
@@ -556,23 +510,20 @@ namespace C3
         /// </summary>
         private void Subdivide()
         {
-            // We've reached capacity, subdivide...
-            Point size = new Point(rect.Width / 2, rect.Height / 2);
-            Point mid = new Point(rect.X + size.X, rect.Y + size.Y);
+            var size = new Point(rect.Width / 2, rect.Height / 2);
+            var mid = new Point(rect.X + size.X, rect.Y + size.Y);
 
             childTL = new QuadTreeNode<T>(this, new Rectangle(rect.Left, rect.Top, size.X, size.Y));
             childTR = new QuadTreeNode<T>(this, new Rectangle(mid.X, rect.Top, size.X, size.Y));
             childBL = new QuadTreeNode<T>(this, new Rectangle(rect.Left, mid.Y, size.X, size.Y));
             childBR = new QuadTreeNode<T>(this, new Rectangle(mid.X, mid.Y, size.X, size.Y));
 
-            // If they're completely contained by the quad, bump objects down
-            for (int i = 0; i < objects.Count; i++)
+            for (var i = 0; i < objects.Count; i++)
             {
-                QuadTreeNode<T> destTree = GetDestinationTree(objects[i]);
+                var destTree = GetDestinationTree(objects[i]);
 
                 if (destTree != this)
                 {
-                    // Insert to the appropriate tree, remove the object, and back up one in the loop
                     destTree.Insert(objects[i]);
                     Remove(objects[i]);
                     i--;
@@ -588,55 +539,56 @@ namespace C3
         /// <returns></returns>
         private QuadTreeNode<T> GetDestinationTree(QuadTreeObject<T> item)
         {
-            // If a child can't contain an object, it will live in this Quad
-            QuadTreeNode<T> destTree = this;
+            var destTree = this;
 
             if (childTL.QuadRect.Contains(item.Data.Rect))
             {
                 destTree = childTL;
             }
-            else if (childTR.QuadRect.Contains(item.Data.Rect))
+            else
             {
-                destTree = childTR;
+                if (childTR.QuadRect.Contains(item.Data.Rect))
+                {
+                    destTree = childTR;
+                }
+                else
+                {
+                    if (childBL.QuadRect.Contains(item.Data.Rect))
+                    {
+                        destTree = childBL;
+                    }
+                    else
+                    {
+                        if (childBR.QuadRect.Contains(item.Data.Rect))
+                        {
+                            destTree = childBR;
+                        }
+                    }
+                }
             }
-            else if (childBL.QuadRect.Contains(item.Data.Rect))
-            {
-                destTree = childBL;
-            }
-            else if (childBR.QuadRect.Contains(item.Data.Rect))
-            {
-                destTree = childBR;
-            }
-
             return destTree;
         }
 
 
         private void Relocate(QuadTreeObject<T> item)
         {
-            // Are we still inside our parent?
             if (QuadRect.Contains(item.Data.Rect))
             {
-                // Good, have we moved inside any of our children?
                 if (childTL != null)
                 {
-                    QuadTreeNode<T> dest = GetDestinationTree(item);
+                    var dest = GetDestinationTree(item);
                     if (item.Owner != dest)
                     {
-                        // Delete the item from this quad and add it to our child
-                        // Note: Do NOT clean during this call, it can potentially delete our destination quad
-                        QuadTreeNode<T> formerOwner = item.Owner;
+                        var formerOwner = item.Owner;
                         Delete(item, false);
                         dest.Insert(item);
 
-                        // Clean up ourselves
                         formerOwner.CleanUpwards();
                     }
                 }
             }
             else
             {
-                // We don't fit here anymore, move up, if we can
                 if (parent != null)
                 {
                     parent.Relocate(item);
@@ -649,7 +601,6 @@ namespace C3
         {
             if (childTL != null)
             {
-                // If all the children are empty leaves, delete all the children
                 if (childTL.IsEmptyLeaf &&
                     childTR.IsEmptyLeaf &&
                     childBL.IsEmptyLeaf &&
@@ -668,7 +619,6 @@ namespace C3
             }
             else
             {
-                // I could be one of 4 empty leaves, tell my parent to clean up
                 if (parent != null && Count == 0)
                 {
                     parent.CleanUpwards();
@@ -676,16 +626,11 @@ namespace C3
             }
         }
 
-        #endregion
-
-        #region Internal Methods
-
         /// <summary>
         /// Clears the QuadTree of all objects, including any objects living in its children.
         /// </summary>
         internal void Clear()
         {
-            // Clear out the children, if we have any
             if (childTL != null)
             {
                 childTL.Clear();
@@ -694,14 +639,12 @@ namespace C3
                 childBR.Clear();
             }
 
-            // Clear any objects at this level
             if (objects != null)
             {
                 objects.Clear();
                 objects = null;
             }
 
-            // Set the children to null
             childTL = null;
             childTR = null;
             childBL = null;
@@ -741,13 +684,11 @@ namespace C3
         /// <param name="item">The item to insert.</param>
         internal void Insert(QuadTreeObject<T> item)
         {
-            // If this quad doesn't contain the items rectangle, do nothing, unless we are the root
             if (!rect.Contains(item.Data.Rect))
             {
                 System.Diagnostics.Debug.Assert(parent == null, "We are not the root, and this object doesn't fit here. How did we get here?");
                 if (parent == null)
                 {
-                    // This object is outside of the QuadTree bounds, we should add it at the root level
                     Add(item);
                 }
                 else
@@ -759,19 +700,16 @@ namespace C3
             if (objects == null ||
                 (childTL == null && objects.Count + 1 <= MaxObjectsPerNode))
             {
-                // If there's room to add the object, just add it
                 Add(item);
             }
             else
             {
-                // No quads, create them and bump objects down where appropriate
                 if (childTL == null)
                 {
                     Subdivide();
                 }
 
-                // Find out which tree this object should go in and add it there
-                QuadTreeNode<T> destTree = GetDestinationTree(item);
+                var destTree = GetDestinationTree(item);
                 if (destTree == this)
                 {
                     Add(item);
@@ -790,7 +728,7 @@ namespace C3
         /// <param name="searchRect">The rectangle to find objects in.</param>
         internal List<T> GetObjects(Rectangle searchRect)
         {
-            List<T> results = new List<T>();
+            var results = new List<T>();
             GetObjects(searchRect, ref results);
             return results;
         }
@@ -803,35 +741,34 @@ namespace C3
         /// <param name="results">A reference to a list that will be populated with the results.</param>
         internal void GetObjects(Rectangle searchRect, ref List<T> results)
         {
-            // We can't do anything if the results list doesn't exist
             if (results != null)
             {
                 if (searchRect.Contains(rect))
                 {
-                    // If the search area completely contains this quad, just get every object this quad and all it's children have
                     GetAllObjects(ref results);
                 }
-                else if (searchRect.IntersectsWith(rect))
+                else
                 {
-                    // Otherwise, if the quad isn't fully contained, only add objects that intersect with the search rectangle
-                    if (objects != null)
+                    if (searchRect.IntersectsWith(rect))
                     {
-                        for (int i = 0; i < objects.Count; i++)
+                        if (objects != null)
                         {
-                            if (searchRect.IntersectsWith(objects[i].Data.Rect))
+                            for (var i = 0; i < objects.Count; i++)
                             {
-                                results.Add(objects[i].Data);
+                                if (searchRect.IntersectsWith(objects[i].Data.Rect))
+                                {
+                                    results.Add(objects[i].Data);
+                                }
                             }
                         }
-                    }
 
-                    // Get the objects for the search rectangle from the children
-                    if (childTL != null)
-                    {
-                        childTL.GetObjects(searchRect, ref results);
-                        childTR.GetObjects(searchRect, ref results);
-                        childBL.GetObjects(searchRect, ref results);
-                        childBR.GetObjects(searchRect, ref results);
+                        if (childTL != null)
+                        {
+                            childTL.GetObjects(searchRect, ref results);
+                            childTR.GetObjects(searchRect, ref results);
+                            childBL.GetObjects(searchRect, ref results);
+                            childBR.GetObjects(searchRect, ref results);
+                        }
                     }
                 }
             }
@@ -844,7 +781,6 @@ namespace C3
         /// <param name="results">A reference to a list in which to store the objects.</param>
         internal void GetAllObjects(ref List<T> results)
         {
-            // If this Quad has objects, add them
             if (objects != null)
             {
                 foreach (QuadTreeObject<T> qto in objects)
@@ -853,7 +789,6 @@ namespace C3
                 }
             }
 
-            // If we have children, get their objects too
             if (childTL != null)
             {
                 childTL.GetAllObjects(ref results);
@@ -879,7 +814,5 @@ namespace C3
                 Relocate(item);
             }
         }
-
-        #endregion
     }
 }

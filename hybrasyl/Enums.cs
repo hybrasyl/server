@@ -13,8 +13,7 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2013 Project Hybrasyl (info@hybrasyl.com)
  *
  * Authors:   Justin Baugh  <baughj@hybrasyl.com>
  *            Kyle Speck    <kojasou@hybrasyl.com>
@@ -28,13 +27,13 @@ namespace Hybrasyl
     {
         public enum PrivateMessageType : int
         {
-            Whisper = 0,
-            ServerMessage = 1,
-            GlobalMessage = 3,
             ClearMessage = 5,
-            PopupWithScroll = 8,
+            GlobalMessage = 3,
             PopupOkCancel = 11,
-            UpperRight = 12
+            PopupWithScroll = 8,
+            ServerMessage = 1,
+            UpperRight = 12,
+            Whisper = 0
         }
 
         public enum PublicMessageType : int
@@ -47,54 +46,54 @@ namespace Hybrasyl
         public enum UserStatus : byte
         {
             Awake = 0,
-            DoNotDisturb = 1,
             DayDreaming = 2,
-            NeedGroup = 3,
+            DoNotDisturb = 1,
             Grouped = 4,
-            LoneHunter = 5,
             GroupHunter = 6,
+            LoneHunter = 5,
+            NeedGroup = 3,
             NeedHelp = 7
         }
 
         public enum TextColor : int
         {
-            Red = 62,
-            Yellow = 63,
-            DarkBlue = 66,
-            DarkGrey = 67,
-            MediumGrey = 68,
-            LightGrey = 69,
-            DarkPurple = 70,
-            BrightGreen = 71,
-            DarkGreen = 72,
-            Orange = 73,
-            DarkOrange = 74,
-            White = 75,
             Blue = 76,
+            BrightGreen = 71,
+            DarkBlue = 66,
+            DarkGreen = 72,
+            DarkGrey = 67,
+            DarkOrange = 74,
+            DarkPurple = 70,
+            LightGrey = 69,
+            MediumGrey = 68,
+            Orange = 73,
+            Pink = 77,
+            Red = 62,
             WhisperBlue = 76,
-            Pink = 77
+            White = 75,
+            Yellow = 63
         }
 
         public enum NameStyle : int
         {
-            Normal = 0,
-            RedAlwaysOn = 1,
             GreenHover = 2,
-            GreyAlwaysOn = 3
+            GreyAlwaysOn = 3,
+            Normal = 0,
+            RedAlwaysOn = 1
         }
 
         public enum SkinColor : int
         {
-            Flesh = 0,
-            White = 1,
             Cocoa = 2,
+            Flesh = 0,
             Green = 3,
-            Yellow = 4,
-            Tan = 5,
             Grey = 6,
             LightBlue = 7,
             Orange = 8,
-            Purple = 9
+            Purple = 9,
+            Tan = 5,
+            White = 1,
+            Yellow = 4
         }
 
         public static class ServerItemSlots
@@ -117,7 +116,6 @@ namespace Hybrasyl
             public const int Coat = 15;
             public const int SecondAcc = 16;
             public const int ThirdAcc = 17;
-            // These are special edge cases; the slots don't actually exist
             public const int Gauntlet = 19;
             public const int Ring = 20;
         }
@@ -143,27 +141,25 @@ namespace Hybrasyl
             public const int Coat = 16;
             public const int SecondAcc = 17;
             public const int ThirdAcc = 18;
-            // These are special edge cases; the slots don't actually exist
             public const int Gauntlet = 19;
             public const int Ring = 20;
-
         }
 
         public enum ItemType
         {
-            CanUse,
             CannotUse,
+            CanUse,
             Equipment
         }
 
         public enum WeaponType
         {
-            None,
             Basic,
-            TwoHanded,
+            Claw,
             Dagger,
+            None,
             Staff,
-            Claw
+            TwoHanded
         }
 
         [Flags]
@@ -178,6 +174,7 @@ namespace Hybrasyl
             InDialog = 0x40,
             InComa = 0x80,
             AliveExchange = (Alive | InExchange)
+            ,
         }
 
         [Flags]
@@ -252,7 +249,6 @@ namespace Hybrasyl
             Waist = 11,
             Leg = 12,
             Foot = 13,
-            // The rest are all "vanity" slots
             FirstAcc = 14,
             Trousers = 15,
             Coat = 16,
@@ -267,5 +263,4 @@ namespace Hybrasyl
             Magical
         }
     }
-
 }

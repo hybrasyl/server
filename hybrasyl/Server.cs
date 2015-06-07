@@ -13,8 +13,7 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2013 Project Hybrasyl (info@hybrasyl.com)
  *
  * Authors:   Justin Baugh  <baughj@hybrasyl.com>
  *            Kyle Speck    <kojasou@hybrasyl.com>
@@ -48,15 +47,15 @@ namespace Hybrasyl
 
         public Server(int port)
         {
-            
             Port = port;
             PacketHandlers = new WorldPacketHandler[256];
             ControlMessageHandlers = new ControlMessageHandler[64];
             ExpectedConnections = new ConcurrentDictionary<uint, Redirect>();
 
-            for (int i = 0; i < 256; ++i)
+            for (var i = 0; i < 256; ++i)
+            {
                 PacketHandlers[i] = (c, p) => Logger.WarnFormat("World: Unhandled opcode 0x{0:X2}", p.Opcode);
-
+            }
             TcpListener = new TcpListener(IPAddress.Any, port);
             Logger.InfoFormat("Starting TcpListener: {0}:{1}", IPAddress.Any.ToString(), port);
             TcpListener.Start();
@@ -65,7 +64,7 @@ namespace Hybrasyl
         public virtual void AcceptConnection()
         {
             if (TcpListener.Pending())
-            {             
+            {
                 var socket = TcpListener.AcceptSocket();
                 var client = new Client(socket, this);
                 client.Begin();
@@ -74,11 +73,9 @@ namespace Hybrasyl
 
         public virtual void Shutdown()
         {
-            Logger.WarnFormat("{0}: shutting down", this.GetType().ToString());
+            Logger.WarnFormat("{0}: shutting down", GetType().ToString());
             TcpListener.Stop();
-            Logger.WarnFormat("{0}: shutdown complete", this.GetType().ToString());
-
-            
+            Logger.WarnFormat("{0}: shutdown complete", GetType().ToString());
         }
     }
 
@@ -109,12 +106,15 @@ namespace Hybrasyl
         public bool Matches(string name, byte[] key, byte seed)
         {
             if (key.Length != EncryptionKey.Length || name != Name || seed != EncryptionSeed)
+            {
                 return false;
-
-            for (int i = 0; i < key.Length; ++i)
+            }
+            for (var i = 0; i < key.Length; ++i)
             {
                 if (key[i] != EncryptionKey[i])
+                {
                     return false;
+                }
             }
 
             return true;

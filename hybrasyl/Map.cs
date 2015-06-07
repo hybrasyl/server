@@ -13,8 +13,7 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2013 Project Hybrasyl (info@hybrasyl.com)
  *
  * Authors:   Justin Baugh  <baughj@hybrasyl.com>
  *            Kyle Speck    <kojasou@hybrasyl.com>
@@ -22,13 +21,15 @@
 
 using C3;
 using Hybrasyl.Objects;
-using Hybrasyl.Properties;
 using log4net;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Text;
+using System.Linq;
+using hybrasyl.Util;
+using Hybrasyl.Enums;
 
 namespace Hybrasyl.Properties
 {
@@ -40,102 +41,9 @@ namespace Hybrasyl.Properties
 
 namespace Hybrasyl
 {
-
-
-    public class MapPoint
-    {
-        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
-        public Int64 Id { get; set; }
-        public string Pointname { get; set; }
-        public WorldMap Parent { get; set; }
-        public int X { get; set; }
-        public int Y { get; set; }
-        public string Name { get; set; }
-        public ushort DestinationMap { get; set; }
-        public byte DestinationX { get; set; }
-        public byte DestinationY { get; set; }
-
-        public int XOffset { get; set; }
-        public int YOffset { get; set; }
-        public int XQuadrant { get; set; }
-        public int YQuadrant { get; set; }
-
-        public MapPoint()
-        {
-            return;
-        }
-
-        public byte[] GetBytes()
-        {
-            var buffer = Encoding.GetEncoding(949).GetBytes(Name);
-            Logger.DebugFormat("buffer is {0} and Name is {1}", BitConverter.ToString(buffer), Name);
-
-            // X quadrant, offset, Y quadrant, offset, length of the name, the name, plus a 64-bit(?!) ID
-            List<Byte> bytes = new List<Byte>();
-
-            Logger.DebugFormat("{0}, {1}, {2}, {3}, {4}, mappoint ID is {5}", XQuadrant, XOffset, YQuadrant,
-                YOffset, Name.Length, Id);
-
-            bytes.Add((byte)XQuadrant);
-            bytes.Add((byte)XOffset);
-            bytes.Add((byte)YQuadrant);
-            bytes.Add((byte)YOffset);
-            bytes.Add((byte)Name.Length);
-            bytes.AddRange(buffer);
-            bytes.AddRange(BitConverter.GetBytes(Id));
-
-            return bytes.ToArray();
-
-        }
-
-
-    }
-
-    public class WorldMap
-    {
-        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
-        public int Id { get; set; }
-        public string Name { get; set; }
-        public string ClientMap { get; set; }
-        public List<MapPoint> Points { get; set; }
-        public World World { get; set; }
-
-        public WorldMap()
-        {
-            Points = new List<MapPoint>();
-        }
-
-        public byte[] GetBytes()
-        {
-            // Returns the representation of the worldmap as an array of bytes, 
-            // suitable to passing to a map packet.
-
-            var buffer = Encoding.GetEncoding(949).GetBytes(ClientMap);
-            List<Byte> bytes = new List<Byte>();
-
-            bytes.Add((byte)ClientMap.Length);
-            bytes.AddRange(buffer);
-            bytes.Add((byte)Points.Count);
-            bytes.Add(0x00);
-
-            foreach (var mappoint in Points)
-            {
-                bytes.AddRange(mappoint.GetBytes());
-            }
-
-            Logger.DebugFormat("I am sending the following map packet:");
-            Logger.DebugFormat("{0}", BitConverter.ToString(bytes.ToArray()));
-
-            return bytes.ToArray();
-        }
-    }
-
     public class Map
     {
         public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-        
         public ushort Id { get; set; }
         public byte X { get; set; }
         public byte Y { get; set; }
@@ -158,7 +66,8 @@ namespace Hybrasyl
         public Dictionary<Tuple<byte, byte>, WorldWarp> WorldWarps { get; set; }
         public Dictionary<Tuple<byte, byte>, Objects.Door> Doors { get; set; }
         public Dictionary<Tuple<byte, byte>, Signpost> Signposts { get; set; }
-        public Dictionary<Tuple<byte, byte>, Reactor> Reactors { get; set; }
+        public List<spawns> Spawns { get; set; }
+        public Dictionary<int, List<Monster>> Monsters { get; set; }
 
         public Map()
         {
@@ -170,33 +79,63 @@ namespace Hybrasyl
             EntityTree = new QuadTree<VisibleObject>(1, 1, X, Y);
             Doors = new Dictionary<Tuple<byte, byte>, Objects.Door>();
             Signposts = new Dictionary<Tuple<byte, byte>, Signpost>();
-            Reactors = new Dictionary<Tuple<byte, byte>, Reactor>();
+            Spawns = new List<spawns>();
+            Monsters = new Dictionary<int, List<Monster>>();
         }
+
+        public WorldObject GetInfront(User player, int tileCount = 1)
+        {
+            for (var i = 1; i <= tileCount; i++)
+            {
+                switch (player.Direction)
+                {
+                    case Enums.Direction.North:
+                        return GetWorldObjectAt(player.X, player.Y - i);
+                    case Enums.Direction.East:
+                        return GetWorldObjectAt(player.X + i, player.Y);
+                    case Enums.Direction.South:
+                        return GetWorldObjectAt(player.X, player.Y + i);
+                    case Enums.Direction.West:
+                        return GetWorldObjectAt(player.X - i, player.Y);
+                }
+            }
+
+            return null;
+        }
+
+        public WorldObject GetWorldObjectAt(int x, int y)
+        {
+            WorldObject obj = null;
+
+            foreach (var mapobj in EntityTree)
+            {
+                if (mapobj != null
+                    && mapobj.X == x && mapobj.Y == y)
+                {
+                    obj = mapobj;
+                    goto returnResult;
+                }
+            }
+            returnResult:
+            return obj;
+        }
+
 
         public List<VisibleObject> GetTileContents(int x, int y)
         {
             return EntityTree.GetObjects(new Rectangle(x, y, 1, 1));
         }
 
-        public void InsertNpc(npc toinsert)
+        public void InsertNpc(npcs toinsert)
         {
             var merchant = new Merchant(toinsert);
             World.Insert(merchant);
             Insert(merchant, merchant.X, merchant.Y);
             merchant.OnSpawn();
         }
-        
-        public void InsertReactor(reactor toinsert)
-        {
-            var reactor = new Reactor(toinsert);
-            World.Insert(reactor);
-            Insert(reactor, reactor.X, reactor.Y);
-            reactor.OnSpawn();
-        }
 
-        public void InsertSignpost(signpost toinsert)
+        public void InsertSignpost(signposts toinsert)
         {
-            Logger.InfoFormat("Inserting signpost {0}@{1},{2}", toinsert.map.name, toinsert.map_x, toinsert.map_y);
             var post = new Signpost(toinsert);
             World.Insert(post);
             Insert(post, post.X, post.Y);
@@ -221,12 +160,11 @@ namespace Hybrasyl
                 RawData = File.ReadAllBytes(filename);
                 Checksum = Crc16.Calculate(RawData);
 
-                int index = 0;
-                for (int y = 0; y < Y; ++y)
+                var index = 0;
+                for (var y = 0; y < Y; ++y)
                 {
-                    for (int x = 0; x < X; ++x)
+                    for (var x = 0; x < X; ++x)
                     {
-                        var bg = RawData[index++] | RawData[index++] << 8;
                         var lfg = RawData[index++] | RawData[index++] << 8;
                         var rfg = RawData[index++] | RawData[index++] << 8;
 
@@ -240,27 +178,27 @@ namespace Hybrasyl
                             IsWall[x, y] = true;
                         }
 
-                        ushort lfgu = (ushort)lfg;
-                        ushort rfgu = (ushort)rfg;
+                        var lfgu = (ushort)lfg;
+                        var rfgu = (ushort)rfg;
 
                         if (Game.DoorSprites.ContainsKey(lfgu))
                         {
-                            // This is a left-right door
                             Logger.DebugFormat("Inserting LR door at {0}@{1},{2}: Collision: {3}",
                                 Name, x, y, IsWall[x, y]);
 
                             InsertDoor((byte)x, (byte)y, IsWall[x, y], true,
                             Game.IsDoorCollision(lfgu));
                         }
-                        else if (Game.DoorSprites.ContainsKey(rfgu))
+                        else
                         {
-                            Logger.DebugFormat("Inserting UD door at {0}@{1},{2}: Collision: {3}",
+                            if (Game.DoorSprites.ContainsKey(rfgu))
+                            {
+                                Logger.DebugFormat("Inserting UD door at {0}@{1},{2}: Collision: {3}",
                                 Name, x, y, IsWall[x, y]);
-                            // THis is an up-down door 
-                            InsertDoor((byte)x, (byte)y, IsWall[x, y], false,
+                                InsertDoor((byte)x, (byte)y, IsWall[x, y], false,
                                 Game.IsDoorCollision(rfgu));
+                            }
                         }
-
                     }
                 }
 
@@ -291,13 +229,6 @@ namespace Hybrasyl
                     }
                     Users.Add(user.Name, user);
                 }
-
-                var value = obj as Reactor;
-                if (value != null)
-                {
-                    Reactors.Add(new Tuple<byte, byte>((byte)x,(byte)y), value);
-                }
-
                 var affectedObjects = EntityTree.GetObjects(obj.GetViewport());
 
                 foreach (var target in affectedObjects)
@@ -305,7 +236,6 @@ namespace Hybrasyl
                     target.AoiEntry(obj);
                     obj.AoiEntry(target);
                 }
-
             }
         }
 
@@ -325,9 +255,6 @@ namespace Hybrasyl
 
             Doors[coords].Closed = !Doors[coords].Closed;
 
-            // There are several examples of doors in Temuair that trigger graphic
-            // changes but do not trigger collision updates (e.g. 3-panel doors in
-            // Piet & Undine).
             if (Doors[coords].UpdateCollision)
             {
                 Logger.DebugFormat("Door {0}@{1},{2}: updateCollision is set, collisions are now {3}",
@@ -366,15 +293,10 @@ namespace Hybrasyl
             var coords = new Tuple<byte, byte>(x, y);
             var door = Doors[coords];
 
-            // First, toggle the actual door itself
-
             ToggleDoor(x, y);
-
-            // Now, toggle any potentially adjacent "doors"
 
             if (door.IsLeftRight)
             {
-                // Look for a door at x-1, x+1, and open if they're present
                 Objects.Door nextdoor;
                 var door1Coords = new Tuple<byte, byte>((byte)(x - 1), (byte)(y));
                 var door2Coords = new Tuple<byte, byte>((byte)(x + 1), (byte)(y));
@@ -386,11 +308,9 @@ namespace Hybrasyl
                 {
                     ToggleDoor((byte)(x + 1), (byte)(y));
                 }
-
             }
             else
             {
-                // Look for a door at y-1, y+1 and open if they're present
                 Objects.Door nextdoor;
                 var door1Coords = new Tuple<byte, byte>((byte)(x), (byte)(y - 1));
                 var door2Coords = new Tuple<byte, byte>((byte)(x), (byte)(y + 1));
@@ -431,20 +351,23 @@ namespace Hybrasyl
                     var user = obj as User;
                     Users.Remove(user.Name);
                     if (user.ActiveExchange != null)
+                    {
                         user.ActiveExchange.CancelExchange(user);
+                    }
                 }
 
                 var affectedObjects = EntityTree.GetObjects(obj.GetViewport());
 
                 foreach (var target in affectedObjects)
                 {
-                    // If the target of a Remove is a player, we insert a 250ms delay to allow the animation
-                    // frame to complete.
                     if (target is User)
+                    {
                         ((User)target).AoiDeparture(obj, 250);
+                    }
                     else
+                    {
                         target.AoiDeparture(obj);
-
+                    }
                     obj.AoiDeparture(target);
                 }
 
@@ -463,7 +386,6 @@ namespace Hybrasyl
                 Logger.DebugFormat("Item is null, aborting");
                 return;
             }
-            // Add the gold to the world at the given location.
             gold.X = (byte)x;
             gold.Y = (byte)y;
             gold.Map = this;
@@ -480,8 +402,7 @@ namespace Hybrasyl
             {
                 Logger.DebugFormat("Item is null, aborting");
                 return;
-            }            
-            // Add the item to the world at the given location.
+            }
             item.X = (byte)x;
             item.Y = (byte)y;
             item.Map = this;
@@ -492,7 +413,6 @@ namespace Hybrasyl
 
         public void RemoveGold(Gold gold)
         {
-            // Remove the gold from the world at the specified location.
             Logger.DebugFormat("Removing {0} qty {1} id {2}", gold.Name, gold.Amount, gold.Id);
             NotifyNearbyAoiDeparture(gold);
             EntityTree.Remove(gold);
@@ -501,7 +421,6 @@ namespace Hybrasyl
 
         public void RemoveItem(Item item)
         {
-            // Remove the item from the world at the specified location.
             Logger.DebugFormat("Removing {0} qty {1} id {2}", item.Name, item.Count, item.Id);
             NotifyNearbyAoiDeparture(item);
             EntityTree.Remove(item);
@@ -533,7 +452,6 @@ namespace Hybrasyl
                     user.AoiDeparture(objectToRemove);
                 }
             }
-
         }
 
         public bool IsValidPoint(short x, short y)
@@ -541,10 +459,51 @@ namespace Hybrasyl
             return x >= 0 && x < X && y >= 0 && y < Y;
         }
 
+        internal void Update(TimeSpan delta)
+        {
+            foreach (var spawn in Spawns)
+            {
+                if (Monsters[spawn.Id].Count < spawn.Quantity)
+                {
+                    var template = World.Monsters[spawn.Id];
+                    var monster = new Monster();
+                    monster.BashTimer = new GameServerTimer(TimeSpan.FromSeconds(template.Speed));
+                    monster.CastTimer = new GameServerTimer(TimeSpan.FromSeconds(template.Speed));
+                    monster.WalkTimer = new GameServerTimer(TimeSpan.FromSeconds(template.Speed));
+                    monster.Template = template;
+                    monster.Id = (uint)Generator.GenerateNumber();
+                    monster.Sprite = template.Sprite;
+                    monster.OffensiveElement = template.OffensiveElement;
+                    monster.DefensiveElement = template.DefensiveElement;
 
+                    do
+                    {
+#warning Add MapXY to mobs Template
 
+                        monster.X = (byte)Generator.Random.Next(1, (int)100);
+                        monster.Y = (byte)Generator.Random.Next(1, (int)100);
+                    }
+                    while (IsWall[monster.X, monster.Y]);
 
- 
+                    monster.Direction = (Direction)Generator.Random.Next(0, 4);
+
+                    foreach (var mapobj in EntityTree.GetObjects(monster.GetViewport()))
+                    {
+                        if (mapobj is User)
+                        {
+                            if (mapobj == null)
+                            {
+                                continue;
+                            }
+
+                            if ((mapobj as User).WithinRangeOf(monster))
+                                Insert(monster, monster.X, monster.Y, true);
+                        }
+                    }
+
+                }
+            }
+        }
     }
 
     public struct Warp

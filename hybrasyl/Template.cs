@@ -13,55 +13,15 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2013 Project Hybrasyl (info@hybrasyl.com)
  *
  * Authors:   Justin Baugh  <baughj@hybrasyl.com>
  *            Kyle Speck    <kojasou@hybrasyl.com>
  */
 
+using Hybrasyl.Objects;
 namespace Hybrasyl
 {
-    /*
-    public class ItemTemplate
-    {
-
-        public int ID { get; set; }
-        public string Name { get; set; }
-        public ushort Sprite { get; set; }
-        public ushort EquipSprite { get; set; }
-        public ushort DisplaySprite { get; set; }
-        public byte Color { get; set; }
-        public ItemType ItemType { get; set; }
-        public WeaponType WeaponType { get; set; }
-        public byte EquipmentSlot { get; set; }
-        public ushort Weight { get; set; }
-        public byte MaximumStack { get; set; }
-        public uint MaximumDurability { get; set; }
-        public string InvokeName { get; set; }
-        public byte BodyStyle { get; set; }
-
-        public byte Level { get; set; }
-        public byte Ability { get; set; }
-        public Class Class { get; set; }
-        public Sex Sex { get; set; }
-
-        public int BonusHP { get; set; }
-        public int BonusMP { get; set; }
-        public sbyte BonusStr { get; set; }
-        public sbyte BonusInt { get; set; }
-        public sbyte BonusWis { get; set; }
-        public sbyte BonusCon { get; set; }
-        public sbyte BonusDex { get; set; }
-        public sbyte BonusHit { get; set; }
-        public sbyte BonusDmg { get; set; }
-        public sbyte BonusAc { get; set; }
-        public sbyte BonusMR { get; set; }
-        public Element Element { get; set; }
-        public ushort MinimumDamage { get; set; }
-        public ushort MaximumDamage { get; set; }
-    }
-    */
     public class SkillTemplate
     {
         public int Id { get; set; }
@@ -76,11 +36,13 @@ namespace Hybrasyl
         public ushort Sprite { get; set; }
     }
 
-    public class MonsterTemplate
+    public class MonsterTemplate : Monster
     {
         public int Id { get; set; }
         public string Name { get; set; }
         public ushort Sprite { get; set; }
+
+        public double Speed { get; set; }
     }
 
     public class MerchantTemplate
@@ -95,6 +57,4 @@ namespace Hybrasyl
         public int Id { get; set; }
         public string Name { get; set; }
     }
-
-
 }

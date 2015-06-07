@@ -13,11 +13,10 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2013 Project Hybrasyl (info@hybrasyl.com)
  *
- * Authors:   Kyle Speck    <kojasou@hybrasyl.com>
- *
+ * Authors:   Justin Baugh  <baughj@hybrasyl.com>
+ *            Kyle Speck    <kojasou@hybrasyl.com>
  */
 
 using System.Threading;
@@ -34,11 +33,12 @@ namespace Hybrasyl
             Logger.InfoFormat("LobbyConstructor: port is {0}", port);
 
             PacketHandlers = new LobbyPacketHandler[256];
-            for (int i = 0; i < 256; ++i)
+            for (var i = 0; i < 256; ++i)
+            {
                 PacketHandlers[i] = (c, p) => Logger.WarnFormat("Lobby: Unhandled opcode 0x{0:X2}", p.Opcode);
+            }
             PacketHandlers[0x00] = PacketHandler_0x00_ClientVersion;
             PacketHandlers[0x57] = PacketHandler_0x57_ServerTable;
-
         }
 
         public override void AcceptConnection()
@@ -81,7 +81,7 @@ namespace Hybrasyl
             }
             else
             {
-                var server = packet.ReadByte();
+                packet.ReadByte();
                 var redirect = new Redirect(client, this, Game.Login, "socket", client.EncryptionSeed, client.EncryptionKey);
                 client.Redirect(redirect);
             }

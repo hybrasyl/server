@@ -13,31 +13,27 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2013 Project Hybrasyl (info@hybrasyl.com)
  *
  * Authors:   Justin Baugh  <baughj@hybrasyl.com>
  *            Kyle Speck    <kojasou@hybrasyl.com>
  */
 
 using C3;
+using Hybrasyl.Components;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
-using Hybrasyl.Properties;
+using Hybraysl;
 using log4net;
-using log4net.Core;
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
-using System.IO;
 using System.Linq;
-using System.Net;
 using System.Reflection;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Timers;
 
@@ -52,48 +48,44 @@ namespace Hybrasyl
                 System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         public Dictionary<uint, WorldObject> Objects { get; set; }
-
         public Dictionary<ushort, Map> Maps { get; set; }
         public Dictionary<int, WorldMap> WorldMaps { get; set; }
-        public Dictionary<int, item> Items { get; set; }
+        public Dictionary<int, items> Items { get; set; }
         public Dictionary<int, SkillTemplate> Skills { get; set; }
         public Dictionary<int, SpellTemplate> Spells { get; set; }
         public Dictionary<int, MonsterTemplate> Monsters { get; set; }
         public Dictionary<int, MerchantTemplate> Merchants { get; set; }
         public Dictionary<int, ReactorTemplate> Reactors { get; set; }
-        public Dictionary<string, string> Portraits { get; set; } 
+        public Dictionary<string, string> Portraits { get; set; }
         public Dictionary<string, MethodInfo> Methods { get; set; }
         public Dictionary<string, User> Users { get; set; }
         public Dictionary<Int64, MapPoint> MapPoints { get; set; }
         public Dictionary<string, CompiledMetafile> Metafiles { get; set; }
-        public Dictionary<string, nation> Nations { get; set; }
-
+        public Dictionary<string, nations> Nations { get; set; }
         public List<DialogSequence> GlobalSequences { get; set; }
         public Dictionary<String, DialogSequence> GlobalSequencesCatalog { get; set; }
+
         private Dictionary<MerchantMenuItem, MerchantMenuHandler> merchantMenuHandlers;
-
-        public Dictionary<Tuple<Sex, String>, item> ItemCatalog { get; set; }
+        public Dictionary<Tuple<Sex, String>, items> ItemCatalog { get; set; }
         public Dictionary<String, Map> MapCatalog { get; set; }
-
-        public HybrasylScriptProcessor ScriptProcessor { get; set; }
 
         public static BlockingCollection<HybrasylMessage> MessageQueue;
         public static ConcurrentDictionary<Int64, User> ActiveUsers { get; private set; }
         public ConcurrentDictionary<string, long> ActiveUsersByName { get; set; }
 
         private Thread ConsumerThread { get; set; }
-
-        // Timers
-        //public static ConcurrentBag<Timer> Timers;
+        public static ConcurrentBag<System.Threading.Timer> Timers { get; set; }
 
         public Login Login { get; private set; }
+
+        public static Thread UpdateThread { get; private set; }
 
         public World(int port)
             : base(port)
         {
             Maps = new Dictionary<ushort, Map>();
             WorldMaps = new Dictionary<int, WorldMap>();
-            Items = new Dictionary<int, item>();
+            Items = new Dictionary<int, items>();
             Skills = new Dictionary<int, SkillTemplate>();
             Spells = new Dictionary<int, SpellTemplate>();
             Monsters = new Dictionary<int, MonsterTemplate>();
@@ -103,53 +95,61 @@ namespace Hybrasyl
             Users = new Dictionary<string, User>(StringComparer.CurrentCultureIgnoreCase);
             MapPoints = new Dictionary<Int64, MapPoint>();
             Metafiles = new Dictionary<string, CompiledMetafile>();
-            Nations = new Dictionary<string, nation>();
+            Nations = new Dictionary<string, nations>();
             Portraits = new Dictionary<string, string>();
             GlobalSequences = new List<DialogSequence>();
-
             GlobalSequencesCatalog = new Dictionary<String, DialogSequence>();
-            ItemCatalog = new Dictionary<Tuple<Sex, String>, item>();
+            ItemCatalog = new Dictionary<Tuple<Sex, String>, items>();
             MapCatalog = new Dictionary<String, Map>();
-
-            ScriptProcessor = new HybrasylScriptProcessor(this);
             MessageQueue = new BlockingCollection<HybrasylMessage>(new ConcurrentQueue<HybrasylMessage>());
             ActiveUsers = new ConcurrentDictionary<long, User>();
             ActiveUsersByName = new ConcurrentDictionary<String, long>();
-
-            // Timers = new ConcurrentBag<Timer>();
+            Components = new ConcurrentBag<GameServerComponent>();
         }
 
         public void InitWorld()
         {
             LoadData();
+            LoadComponents();
             CompileScripts();
             LoadMetafiles();
-            LoadReactors();
             SetPacketHandlers();
             SetControlMessageHandlers();
             SetMerchantMenuHandlers();
-            Logger.InfoFormat("Hybrasyl server ready");
+
+            isRunning = true;
+            Logger.InfoFormat("Hybrasyl server ready: {0}", isRunning);
         }
 
-        private void LoadReactors()
+        private void Update(TimeSpan delta)
         {
-            using (var ctx = new hybrasylEntities(Constants.ConnectionString))
-            {
-                foreach (var reactor in ctx.reactors)
-                {
-                    Map map;
-                    if (Maps.TryGetValue((ushort)reactor.map_id, out map))
-                    {
-                        map.InsertReactor(reactor);
-                    }
-                }
+            //Update Componends
+            foreach (var component in this.Components)
+                component.Update(delta);
 
+            //update maps
+            foreach (var map in this.Maps.Values)
+            {
+                map.Update(delta);
+            }
+        }
+
+        private void LoadComponents()
+        {
+            Components.Add(new ShadeComponent(this));
+            Components.Add(new MessageComponent(this));
+
+            UpdateSpan = TimeSpan.FromSeconds(1.0 / 60.0);
+            if (UpdateThread == null)
+            {
+                UpdateThread = new Thread(new ThreadStart(Update));
+                UpdateThread.Start();
             }
         }
 
         internal void RegisterGlobalSequence(DialogSequence sequence)
         {
-            sequence.Id = (uint) GlobalSequences.Count();
+            sequence.Id = (uint)GlobalSequences.Count();
             GlobalSequences.Add(sequence);
             GlobalSequencesCatalog.Add(sequence.Name, sequence);
         }
@@ -157,22 +157,22 @@ namespace Hybrasyl
         private void AddSingleWarp(int sourceId, int sourceX, int sourceY, int targetId, int targetX, int targetY,
             int maxLev = 99, int minLev = 0, int minAb = 0, bool mobUse = false)
         {
-            var warp = new Warp();
-            warp.X = (byte) sourceX;
-            warp.Y = (byte) sourceY;
-            warp.DestinationMap = (ushort) targetId;
-            warp.DestinationX = (byte) targetX;
-            warp.DestinationY = (byte) targetY;
-            warp.MinimumLevel = (byte) (minLev);
-            warp.MaximumLevel = (byte) (maxLev);
-            warp.MinimumAbility = (byte) (minAb);
-            warp.MobsCanUse = (bool) (mobUse);
-            Maps[(ushort) sourceId].Warps.Add(warp);
+            var warp = new Warp() {
+                X = (byte)sourceX,
+                Y = (byte)sourceY,
+                DestinationMap = (ushort)targetId,
+                DestinationX = (byte)targetX,
+                DestinationY = (byte)targetY,
+                MinimumLevel = (byte)(minLev),
+                MaximumLevel = (byte)(maxLev),
+                MinimumAbility = (byte)(minAb),
+                MobsCanUse = (bool)(mobUse) };
+            Maps[(ushort)sourceId].Warps.Add(warp);
 
-            Logger.DebugFormat("Added warp: {0} {1},{2}", Maps[(ushort) sourceId].Name, warp.X, warp.Y);
+            Logger.DebugFormat("Added warp: {0} {1},{2}", Maps[(ushort)sourceId].Name, warp.X, warp.Y);
         }
 
-        public void AddWarp(warp newWarp)
+        public void AddWarp(warps newWarp)
         {
             int[] sourceRangeX;
             int[] sourceRangeY;
@@ -181,110 +181,108 @@ namespace Hybrasyl
 
             try
             {
-                sourceRangeX = newWarp.source_x.Split('-').Select(s => Convert.ToInt32(s)).ToArray();
-                sourceRangeY = newWarp.source_y.Split('-').Select(s => Convert.ToInt32(s)).ToArray();
+                sourceRangeX = newWarp.Source_x.Split('-').Select(s => Convert.ToInt32(s)).ToArray();
+                sourceRangeY = newWarp.Source_y.Split('-').Select(s => Convert.ToInt32(s)).ToArray();
 
-                targetRangeX = newWarp.target_x.Split('-').Select(s => Convert.ToInt32(s)).ToArray();
-                targetRangeY = newWarp.target_y.Split('-').Select(s => Convert.ToInt32(s)).ToArray();
+                targetRangeX = newWarp.Target_x.Split('-').Select(s => Convert.ToInt32(s)).ToArray();
+                targetRangeY = newWarp.Target_y.Split('-').Select(s => Convert.ToInt32(s)).ToArray();
             }
             catch
             {
-                Logger.ErrorFormat("Unable to parse warp id {0}", newWarp.id);
                 return;
             }
 
-            var sourceCoords = sourceRangeX.Zip(sourceRangeY, (x, y) => new {X = x, Y = y});
-            var targetCoords = targetRangeX.Zip(targetRangeY, (x, y) => new {X = x, Y = y});
+            var sourceCoords = sourceRangeX.Zip(sourceRangeY, (x, y) => new
+            { X = x, Y = y });
+            var targetCoords = targetRangeX.Zip(targetRangeY, (x, y) => new
+            { X = x, Y = y });
 
             foreach (var source in sourceCoords)
             {
                 foreach (var target in targetCoords)
                 {
-                    AddSingleWarp(newWarp.source_id, source.X, source.Y, newWarp.target_id, target.X, target.Y,
-                        newWarp.max_lev, newWarp.min_lev,
-                        newWarp.min_ab, newWarp.mob_use);
+                    AddSingleWarp(newWarp.Source_id, source.X, source.Y, newWarp.Target_id, target.X, target.Y,
+                        newWarp.Max_lev, newWarp.Min_lev,
+                        newWarp.Min_ab, Convert.ToBoolean(newWarp.Mob_use));
                 }
             }
-
         }
 
         private void AddSingleWorldWarp(int sourceMapId, int sourceX, int sourceY, int targetWorldmapId, int maxLev = 99,
             int minLev = 0, int minAb = 0)
         {
             var worldwarp = new WorldWarp();
-            var worldwarpKey = new Tuple<byte, byte>((byte) sourceX, (byte) sourceY);
-            worldwarp.X = (byte) sourceX;
-            worldwarp.Y = (byte) sourceY;
+            var worldwarpKey = new Tuple<byte, byte>((byte)sourceX, (byte)sourceY);
+            worldwarp.X = (byte)sourceX;
+            worldwarp.Y = (byte)sourceY;
             worldwarp.DestinationWorldMap = WorldMaps[targetWorldmapId];
-            worldwarp.MinimumLevel = (byte) minLev;
-            worldwarp.MaximumLevel = (byte) maxLev;
-            worldwarp.MinimumAbility = (byte) minAb;
+            worldwarp.MinimumLevel = (byte)minLev;
+            worldwarp.MaximumLevel = (byte)maxLev;
+            worldwarp.MinimumAbility = (byte)minAb;
 
-            if (Maps[(ushort) sourceMapId].WorldWarps.ContainsKey(worldwarpKey))
+            if (Maps[(ushort)sourceMapId].WorldWarps.ContainsKey(worldwarpKey))
             {
                 Logger.WarnFormat("Duplicate warp detected (ignored): {0} {1},{2} to world map {3}",
-                    Maps[(ushort) sourceMapId].Name, worldwarp.X, worldwarp.Y, worldwarp.DestinationWorldMap.Name);
+                    Maps[(ushort)sourceMapId].Name, worldwarp.X, worldwarp.Y, worldwarp.DestinationWorldMap.Name);
                 return;
             }
 
-            Maps[(ushort) sourceMapId].WorldWarps.Add(worldwarpKey, worldwarp);
+            Maps[(ushort)sourceMapId].WorldWarps.Add(worldwarpKey, worldwarp);
 
             Logger.DebugFormat("Added world warp from {0} {1},{2} to world map {3} for level {4}-{5}, min AB: {6}",
-                Maps[(ushort) sourceMapId].Name, worldwarp.X, worldwarp.Y, worldwarp.DestinationWorldMap.Name,
+                Maps[(ushort)sourceMapId].Name, worldwarp.X, worldwarp.Y, worldwarp.DestinationWorldMap.Name,
                 worldwarp.MinimumLevel, worldwarp.MaximumLevel,
                 worldwarp.MinimumAbility);
         }
 
-        public void AddWorldWarp(worldwarp target)
+        public void AddWorldWarp(worldwarps target)
         {
             int[] sourceRangeX;
             int[] sourceRangeY;
 
             try
             {
-                sourceRangeX = target.source_x.Split('-').Select(s => Convert.ToInt32(s)).ToArray();
-                sourceRangeY = target.source_y.Split('-').Select(s => Convert.ToInt32(s)).ToArray();
+                sourceRangeX = target.Source_x.Split('-').Select(s => Convert.ToInt32(s)).ToArray();
+                sourceRangeY = target.Source_y.Split('-').Select(s => Convert.ToInt32(s)).ToArray();
             }
             catch
             {
-                Logger.ErrorFormat("Unable to parse world warp id {0}", target.id);
+                Logger.ErrorFormat("Unable to parse world warp id {0}", target.Id);
                 return;
             }
 
-            var sourceCoords = sourceRangeX.Zip(sourceRangeY, (x, y) => new {X = x, Y = y});
+            var sourceCoords = sourceRangeX.Zip(sourceRangeY, (x, y) => new
+            { X = x, Y = y });
 
             foreach (var sourceCoord in sourceCoords)
             {
-                AddSingleWorldWarp(target.source_map_id, sourceCoord.X, sourceCoord.Y, target.target_worldmap_id,
-                    target.max_lev, target.min_lev, target.min_ab);
+                AddSingleWorldWarp(target.Source_map_id, sourceCoord.X, sourceCoord.Y, target.Target_worldmap_id,
+                    target.Max_lev, target.Min_lev, target.Min_ab);
             }
         }
 
         public bool PlayerExists(string name)
         {
-            using (var ctx = new hybrasylEntities(Constants.ConnectionString))
+            using (var db = new DB())
             {
-                var count = ctx.players.Where(player => player.name == name).Count();
-                Logger.DebugFormat("count is {0}", count);
-                return count != 0;
-
+                return db.players.Count(i => i.Name.ToLower().Equals(name.ToLower())) > 0;
             }
         }
 
         private void LoadData()
         {
             var random = new Random();
-            var elements = Enum.GetValues(typeof(Element)); 
+            var elements = Enum.GetValues(typeof(Element));
             try
             {
-                using (var ctx = new hybrasylEntities(Constants.ConnectionString))
+                using (var ctx = new DB())
                 {
-                    var maps = ctx.maps.Include("warps").Include("worldwarps").Include("npcs").Include("spawns").ToList();
-
-                    var worldmaps = ctx.worldmaps.Include("worldmap_points").ToList();
+                    var maps = ctx.maps.ToList();
+                    var worldmaps = ctx.worldmaps.ToList();
                     var items = ctx.items.ToList();
-                    //var doors = ctx.doors.ToList();
                     var signposts = ctx.signposts.ToList();
+                    var monsters = ctx.mobs.ToList();
+
 
                     Logger.InfoFormat("Adding {0} worldmaps", ctx.worldmaps.Count());
 
@@ -292,26 +290,28 @@ namespace Hybrasyl
                     {
                         var worldmap = new WorldMap();
                         worldmap.World = this;
-                        worldmap.Id = wmap.id;
-                        worldmap.Name = wmap.name;
-                        worldmap.ClientMap = wmap.client_map;
+                        worldmap.Id = wmap.Id;
+                        worldmap.Name = wmap.Name;
+                        worldmap.ClientMap = wmap.Client_map;
                         WorldMaps.Add(worldmap.Id, worldmap);
 
-                        foreach (var mappoint in wmap.worldmap_points)
+                        var map_pts = ctx.worldmap_points.Where(i => i.Worldmap_id == worldmap.Id);
+
+                        foreach (var mappoint in map_pts)
                         {
                             var point = new MapPoint();
                             point.Parent = worldmap;
-                            point.Id = (Int64) mappoint.id;
-                            point.Name = (string) mappoint.name;
-                            point.DestinationMap = (ushort) mappoint.target_map_id;
-                            point.DestinationX = (byte) mappoint.target_x;
-                            point.DestinationY = (byte) mappoint.target_y;
-                            point.X = (int) mappoint.map_x;
-                            point.Y = (int) mappoint.map_y;
-                            point.XOffset = point.X%255;
-                            point.YOffset = point.Y%255;
-                            point.XQuadrant = (point.X - point.XOffset)/255;
-                            point.YQuadrant = (point.Y - point.YOffset)/255;
+                            point.Id = (Int64)mappoint.Id;
+                            point.Name = (string)mappoint.Name;
+                            point.DestinationMap = (ushort)mappoint.Target_map_id;
+                            point.DestinationX = (byte)mappoint.Target_x;
+                            point.DestinationY = (byte)mappoint.Target_y;
+                            point.X = (int)mappoint.Map_x;
+                            point.Y = (int)mappoint.Map_y;
+                            point.XOffset = point.X % 255;
+                            point.YOffset = point.Y % 255;
+                            point.XQuadrant = (point.X - point.XOffset) / 255;
+                            point.YQuadrant = (point.Y - point.YOffset) / 255;
                             worldmap.Points.Add(point);
                             MapPoints.Add(point.Id, point);
                         }
@@ -322,13 +322,19 @@ namespace Hybrasyl
                     {
                         var newmap = new Map();
                         newmap.World = this;
-                        newmap.Id = (ushort) map.id;
-                        newmap.X = (byte) map.size_x;
-                        newmap.Y = (byte) map.size_y;
-                        newmap.Name = (string) map.name;
-                        newmap.Flags = (byte) map.flags;
-                        newmap.Music = (byte) (map.music ?? 0);
-                        newmap.EntityTree = new QuadTree<VisibleObject>(0, 0, map.size_x, map.size_y);
+                        newmap.Id = (ushort)map.Id;
+                        newmap.X = (byte)map.Size_x;
+                        newmap.Y = (byte)map.Size_y;
+                        newmap.Name = (string)map.Name;
+                        newmap.Flags = (byte)map.Flags;
+                        newmap.Music = (byte)(map.Music ?? 0);
+                        newmap.EntityTree = new QuadTree<VisibleObject>(0, 0, map.Size_x, map.Size_y);
+
+#warning TODO - Check this
+                        var warps = ctx.warps.Where(i => i.Source_id == newmap.Id).ToList();
+                        var wwarps = ctx.worldwarps.Where(i => i.Source_map_id == newmap.Id).ToList();
+                        var npcs = ctx.npcs.Where(i => i.Map_id == newmap.Id).ToList();
+                        var spawns = ctx.spawns.Where(i => i.Map_id == newmap.Id).ToList();
 
                         if (newmap.Load())
                         {
@@ -343,134 +349,86 @@ namespace Hybrasyl
                                     newmap.Name, newmap.Id);
                             }
 
-                            foreach (var warp in map.warps)
+                            foreach (var warp in warps)
                             {
+                                Warp clone = new Warp();
+#warning TODO fix clones
                                 AddWarp(warp);
                             }
 
-                            foreach (var worldwarp in map.worldwarps)
+                            foreach (var worldwarp in wwarps)
                             {
                                 AddWorldWarp(worldwarp);
                             }
 
-                            foreach (var npc in map.npcs)
+
+
+                            foreach (var npc in npcs)
                             {
                                 newmap.InsertNpc(npc);
-                                if (npc.portrait != null)
+                                if (npc.Portrait != null)
                                 {
-                                    Portraits[npc.name] = npc.portrait;
+                                    Portraits[npc.Name] = npc.Portrait;
                                 }
                             }
 
-                            foreach (var spawn in map.spawns)
+                            foreach (var spawn in spawns)
                             {
                                 AddSpawn(spawn);
                             }
                         }
                     }
 
+
+                    foreach (var monster in monsters)
+                    {
+                        MonsterTemplate m = new MonsterTemplate();
+
+                        m.Experience = (uint)monster.Exp;
+                        m.DefensiveElement = Element.Dark;
+                        m.OffensiveElement = Element.Dark;
+                        m.Name = monster.Name;
+                        m.Sprite = (ushort)monster.Sprite;
+                        m.Hp = 19000000;
+                        m.Mp = 19000000;
+                        m.Id = monster.Id;
+
+                        Monsters.Add(m.Id, m);
+                    }
+
+             
+
                     // We have to handle signposts separately due to a bug in MySQL connector
                     foreach (var signpost in signposts)
                     {
                         Map postmap;
-                        if (Maps.TryGetValue((ushort) signpost.map_id, out postmap))
+                        if (Maps.TryGetValue((ushort)signpost.Map_id, out postmap))
                             postmap.InsertSignpost(signpost);
                         else
-                            Logger.ErrorFormat("Signpost {0}: {1},{2}: Map {0} is missing ", signpost.id,
-                                signpost.map_x, signpost.map_y, signpost.map_id);
+                            Logger.ErrorFormat("Signpost {0}: {1},{2}: Map {0} is missing ", signpost.Id,
+                                signpost.Map_x, signpost.Map_y, signpost.Map_id);
                     }
 
                     int variantId = Hybrasyl.Constants.VARIANT_ID_START;
 
                     Logger.InfoFormat("Adding {0} items", items.Count);
-                    var variants = ctx.item_variant.ToList();
+                    var variants = ctx.item_variants.ToList();
 
                     foreach (var item in items)
                     {
-                        Logger.DebugFormat("Adding item {0}", item.name);
-                        item.Variants = new Dictionary<int, item>();
+                        Logger.DebugFormat("Adding item {0}", item.Name);
 
-                        // Handle the case of item having random element, which is an optional bit of support
-                        // and not really intended for serious use
-                        if (item.element == Element.Random)
-                        {
-                            item.element = (Element)elements.GetValue(random.Next(elements.Length - 1 ));
-                        }
+                        Items.Add(item.Id, item);
 
-                        if (item.has_consecratable_variants)
-                        {
-                            foreach (var variant in variants.Where(variant => variant.consecratable_variant == true))
-                            {
-                                var newitem = variant.ResolveVariant(item);
-                                newitem.id = variantId;
-                                Items.Add(variantId, newitem);
-                                item.Variants[variant.id] = newitem;
-                                variantId++;
-                            }
-                        }
-
-                        if (item.has_elemental_variants)
-                        {
-                            foreach (var variant in variants.Where(variant => variant.elemental_variant == true))
-                            {
-                                var newitem = variant.ResolveVariant(item);
-                                newitem.id = variantId;
-                                Items.Add(variantId, newitem);
-                                item.Variants[variant.id] = newitem;
-                                variantId++;
-                            }
-                        }
-
-                        if (item.has_enchantable_variants)
-                        {
-                            foreach (var variant in variants.Where(variant => variant.enchantable_variant == true))
-                            {
-                                var newitem = variant.ResolveVariant(item);
-                                newitem.id = variantId;
-                                Items.Add(variantId, newitem);
-                                item.Variants[variant.id] = newitem;
-                                variantId++;
-                            }
-                        }
-
-                        if (item.has_smithable_variants)
-                        {
-                            foreach (var variant in variants.Where(variant => variant.smithable_variant == true))
-                            {
-                                var newitem = variant.ResolveVariant(item);
-                                newitem.id = variantId;
-                                Items.Add(variantId, newitem);
-                                item.Variants[variant.id] = newitem;
-                                variantId++;
-                            }
-                        }
-
-                        if (item.has_tailorable_variants)
-                        {
-                            foreach (var variant in variants.Where(variant => variant.tailorable_variant == true))
-                            {
-                                var newitem = variant.ResolveVariant(item);
-                                newitem.id = variantId;
-                                Items.Add(variantId, newitem);
-                                item.Variants[variant.id] = newitem;
-                                variantId++;
-                            }
-                        }
-                        Items.Add(item.id, item);
                         try
                         {
-                            ItemCatalog.Add(new Tuple<Sex, String>(item.sex, item.name), item);
+                            ItemCatalog.Add(new Tuple<Sex, String>((Sex)item.Sex, item.Name), item);
                         }
                         catch
                         {
-                            Logger.WarnFormat("probable duplicate item {0} not added to item catalog", item.name);
+                            Logger.WarnFormat("probable duplicate item {0} not added to item catalog", item.Name);
                         }
                     }
-                    Logger.InfoFormat("Added {0} item variants", variantId - Hybrasyl.Constants.VARIANT_ID_START);
-                    Logger.InfoFormat("{0} items (including variants) active", Items.Count);
-
-                    // Load national data
-                    Nations = ctx.nations.Include("spawn_points").ToDictionary(n => n.name, n => n);
                 }
             }
             catch (Exception e)
@@ -480,127 +438,80 @@ namespace Hybrasyl
             }
         }
 
-        private void AddSpawn(spawn spawn)
+        private void AddSpawn(spawns spawn)
         {
-            //throw new NotImplementedException();
+            if (Maps.ContainsKey((ushort)spawn.Map_id))
+            {
+                Maps[(ushort)spawn.Map_id].Spawns.Add(spawn);
+                if (!Maps[(ushort)spawn.Map_id].Monsters.ContainsKey(spawn.Id))
+                    Maps[(ushort)spawn.Map_id].Monsters.Add(spawn.Id, new List<Monster>());
+            }
+
+        }
+
+        public void BlackStongRing()
+        {
         }
 
         private void LoadMetafiles()
         {
-            // these might be better suited in LoadData as the database is being read, but only items are in database atm
-
-            #region ItemInfo
-
             var iteminfo0 = new Metafile("ItemInfo0");
-            // TODO: split items into multiple ItemInfo files (DA does ~700 each)
             foreach (var item in Items.Values)
             {
-                iteminfo0.Nodes.Add(new MetafileNode(item.name, item.level, (int) item.class_type, item.weight,
-                    string.Empty /* shop tab */, string.Empty /* shop description */));
+                iteminfo0.Nodes.Add(new MetafileNode(item.Name, item.Level, (int)item.Class_type, item.Weight,
+                    string.Empty , string.Empty ));
             }
             Metafiles.Add(iteminfo0.Name, iteminfo0.Compile());
 
-            #endregion
-
-            #region SClass
-
-            for (int i = 1; i <= 5; ++i)
+            for (var i = 1; i <= 5; ++i)
             {
                 var sclass = new Metafile("SClass" + i);
                 sclass.Nodes.Add("Skill");
                 foreach (var skill in Skills.Values)
-                    // placeholder; change to skills where class == i, are learnable from trainer, and sort by level
                 {
                     sclass.Nodes.Add(new MetafileNode(skill.Name,
-                        string.Format("{0}/{1}/{2}", 0, 0, 0), // req level, master (0/1), req ab
-                        string.Format("{0}/{1}/{2}", 0, 0, 0), // skill icon, x position (defunct), y position (defunct)
+                        string.Format("{0}/{1}/{2}", 0, 0, 0),
+                        string.Format("{0}/{1}/{2}", 0, 0, 0),
                         string.Format("{0}/{1}/{2}/{3}/{4}", 3, 3, 3, 3, 3),
-                        // str, dex, int, wis, con (not a typo, dex after str)
-                        string.Format("{0}/{1}", 0, 0), // req skill 1 (skill name or 0 for none), req skill 1 level
-                        string.Format("{0}/{1}", 0, 0) // req skill 2 (skill name or 0 for none), req skill 2 level
+                        string.Format("{0}/{1}", 0, 0),
+                        string.Format("{0}/{1}", 0, 0)
                         ));
                 }
                 sclass.Nodes.Add("Skill_End");
                 sclass.Nodes.Add("Spell");
                 foreach (var spell in Spells.Values)
-                    // placeholder; change to skills where class == i, are learnable from trainer, and sort by level
                 {
                     sclass.Nodes.Add(new MetafileNode(spell.Name,
-                        string.Format("{0}/{1}/{2}", 0, 0, 0), // req level, master (0/1), req ab
-                        string.Format("{0}/{1}/{2}", 0, 0, 0), // spell icon, x position (defunct), y position (defunct)
+                        string.Format("{0}/{1}/{2}", 0, 0, 0),
+                        string.Format("{0}/{1}/{2}", 0, 0, 0),
                         string.Format("{0}/{1}/{2}/{3}/{4}", 3, 3, 3, 3, 3),
-                        // str, dex, int, wis, con (not a typo, dex after str)
-                        string.Format("{0}/{1}", 0, 0), // req spell 1 (spell name or 0 for none), req spell 1 level
-                        string.Format("{0}/{1}", 0, 0) // req spell 2 (spell name or 0 for none), req spell 2 level
+                        string.Format("{0}/{1}", 0, 0),
+                        string.Format("{0}/{1}", 0, 0)
                         ));
                 }
                 sclass.Nodes.Add("Spell_End");
                 Metafiles.Add(sclass.Name, sclass.Compile());
             }
 
-            #endregion
-
-            #region NPCIllust
-
             var npcillust = new Metafile("NPCIllust");
-            foreach (var kvp in Portraits) // change to merchants that have a portrait rather than all
+            foreach (var kvp in Portraits)
             {
-                npcillust.Nodes.Add(new MetafileNode(kvp.Key, kvp.Value /* portrait filename */));
+                npcillust.Nodes.Add(new MetafileNode(kvp.Key, kvp.Value ));
             }
             Metafiles.Add(npcillust.Name, npcillust.Compile());
-
-            #endregion
-
-            #region NationDesc
 
             var nationdesc = new Metafile("NationDesc");
             foreach (var nation in Nations.Values)
             {
-                Logger.DebugFormat("Adding flag {0} for nation {1}", nation.flag, nation.name);
-                nationdesc.Nodes.Add(new MetafileNode("nation_" + nation.flag, nation.name));
+                Logger.DebugFormat("Adding flag {0} for nation {1}", nation.Flag, nation.Name);
+                nationdesc.Nodes.Add(new MetafileNode("nation_" + nation.Flag, nation.Name));
             }
             Metafiles.Add(nationdesc.Name, nationdesc.Compile());
-
-            #endregion
         }
 
         public void CompileScripts()
         {
-            // Scan each directory for *.py files
-            foreach (var dir in Constants.SCRIPT_DIRECTORIES)
-            {
-                Logger.InfoFormat("Scanning script directory: {0}", dir);
-                var directory = Path.Combine(Constants.DataDirectory, "scripts", dir);
-                if (!Directory.Exists(directory))
-                {
-                    Logger.ErrorFormat("Scripting directory {0} not found!", dir);
-                    continue;
-                }
-
-                var filelist = Directory.GetFiles(directory);
-                foreach (var file in filelist)
-                {
-                    try
-                    {
-                        if (Path.GetExtension(file) == ".py")
-                        {
-                            var scriptname = Path.GetFileName(file);
-                            Logger.InfoFormat("Loading script {0}\\{1}", dir, scriptname);
-                            var script = new Script(file, ScriptProcessor);
-                            ScriptProcessor.RegisterScript(script);
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        Logger.ErrorFormat("Script {0}\\{1}: Registration failed: {2}", dir, file, e.ToString());
-                    }
-                }
-            }
         }
-
-  
-
-        #region Set Handlers
 
         public void SetControlMessageHandlers()
         {
@@ -623,6 +534,7 @@ namespace Hybrasyl
             PacketHandlers[0x0E] = PacketHandler_0x0E_Talk;
             PacketHandlers[0x10] = PacketHandler_0x10_ClientJoin;
             PacketHandlers[0x11] = PacketHandler_0x11_Turn;
+            PacketHandlers[0x13] = PacketHandler_0x13_Assail;
             PacketHandlers[0x18] = PacketHandler_0x18_ShowPlayerList;
             PacketHandlers[0x19] = PacketHandler_0x19_Whisper;
             PacketHandlers[0x1C] = PacketHandler_0x1C_UseItem;
@@ -648,18 +560,16 @@ namespace Hybrasyl
             PacketHandlers[0x7B] = PacketHandler_0x7B_RequestMetafile;
         }
 
- 
-
         public void SetMerchantMenuHandlers()
         {
             merchantMenuHandlers = new Dictionary<MerchantMenuItem, MerchantMenuHandler>()
             {
-                {MerchantMenuItem.MainMenu, new MerchantMenuHandler(0, MerchantMenuHandler_MainMenu)},
+                { MerchantMenuItem.MainMenu, new MerchantMenuHandler(0, MerchantMenuHandler_MainMenu) },
                 {
                     MerchantMenuItem.BuyItemMenu,
                     new MerchantMenuHandler(MerchantJob.Vendor, MerchantMenuHandler_BuyItemMenu)
                 },
-                {MerchantMenuItem.BuyItem, new MerchantMenuHandler(MerchantJob.Vendor, MerchantMenuHandler_BuyItem)},
+                { MerchantMenuItem.BuyItem, new MerchantMenuHandler(MerchantJob.Vendor, MerchantMenuHandler_BuyItem) },
                 {
                     MerchantMenuItem.BuyItemQuantity,
                     new MerchantMenuHandler(MerchantJob.Vendor, MerchantMenuHandler_BuyItemWithQuantity)
@@ -668,7 +578,7 @@ namespace Hybrasyl
                     MerchantMenuItem.SellItemMenu,
                     new MerchantMenuHandler(MerchantJob.Vendor, MerchantMenuHandler_SellItemMenu)
                 },
-                {MerchantMenuItem.SellItem, new MerchantMenuHandler(MerchantJob.Vendor, MerchantMenuHandler_SellItem)},
+                { MerchantMenuItem.SellItem, new MerchantMenuHandler(MerchantJob.Vendor, MerchantMenuHandler_SellItem) },
                 {
                     MerchantMenuItem.SellItemQuantity,
                     new MerchantMenuHandler(MerchantJob.Vendor, MerchantMenuHandler_SellItemWithQuantity)
@@ -680,9 +590,6 @@ namespace Hybrasyl
             };
         }
 
-        #endregion
-
-        // FIXME: *User here should now use the ConcurrentDictionaries instead
         public void DeleteUser(string username)
         {
             Users.Remove(username);
@@ -695,7 +602,6 @@ namespace Hybrasyl
 
         public User FindUser(string username)
         {
-
             if (Users.ContainsKey(username))
             {
                 return Users[username];
@@ -720,19 +626,18 @@ namespace Hybrasyl
         }
 
 
-        #region Control Message Handlers
-
         private void ControlMessage_CleanupUser(HybrasylControlMessage message)
         {
-            // clean up after a broken connection
-            var connectionId = (long) message.Arguments[0];
+            var connectionId = (long)message.Arguments[0];
             User user;
             if (ActiveUsers.TryRemove(connectionId, out user))
             {
                 Logger.InfoFormat("cid {0}: closed, player {1} removed", connectionId, user.Name);
                 if (user.ActiveExchange != null)
+                {
                     user.ActiveExchange.CancelExchange(user);
-                ((IDictionary) ActiveUsersByName).Remove(user.Name);
+                }
+                                ((IDictionary) ActiveUsersByName).Remove(user.Name);
                 user.Save();
                 user.UpdateLogoffTime();
                 user.Map.Remove(user);
@@ -744,30 +649,24 @@ namespace Hybrasyl
 
         private void ControlMessage_RegenerateUser(HybrasylControlMessage message)
         {
-            // regenerate a user
-            // USDA Formula for HP: MAXHP * (0.1 + (CON - Lv) * 0.01) <20% MAXHP
-            // USDA Formula for MP: MAXMP * (0.1 + (WIS - Lv) * 0.01) <20% MAXMP
-            // Regen = regen * 0.0015 (so 100 regen = 15%)
             User user;
-            var connectionId = (long) message.Arguments[0];
+            var connectionId = (long)message.Arguments[0];
             if (ActiveUsers.TryGetValue(connectionId, out user))
             {
                 uint hpRegen = 0;
                 uint mpRegen = 0;
-                double fixedRegenBuff = Math.Min(user.Regen*0.0015, 0.15);
+                var fixedRegenBuff = Math.Min(user.Regen * 0.0015, 0.15);
                 if (user.Hp != user.MaximumHp)
                 {
-                    hpRegen = (uint) Math.Min(user.MaximumHp*(0.1*Math.Max(user.Con, (user.Con - user.Level))*0.01),
-                        user.MaximumHp*0.20);
-                    hpRegen = hpRegen + (uint) (fixedRegenBuff*user.MaximumHp);
-
+                    hpRegen = (uint)Math.Min(user.MaximumHp * (0.1 * Math.Max(user.Con, (user.Con - user.Level)) * 0.01),
+                        user.MaximumHp * 0.20);
+                    hpRegen = hpRegen + (uint) (fixedRegenBuff * user.MaximumHp);
                 }
                 if (user.Mp != user.MaximumMp)
                 {
-                    mpRegen = (uint) Math.Min(user.MaximumMp*(0.1*Math.Max(user.Int, (user.Int - user.Level))*0.01),
-                        user.MaximumMp*0.20);
-                    mpRegen = mpRegen + (uint) (fixedRegenBuff*user.MaximumMp);
-
+                    mpRegen = (uint)Math.Min(user.MaximumMp * (0.1 * Math.Max(user.Int, (user.Int - user.Level)) * 0.01),
+                        user.MaximumMp * 0.20);
+                    mpRegen = mpRegen + (uint) (fixedRegenBuff * user.MaximumMp);
                 }
                 Logger.DebugFormat("User {0}: regen HP {1}, MP {2}", user.Name,
                     hpRegen, mpRegen);
@@ -778,13 +677,11 @@ namespace Hybrasyl
         }
         private void ControlMessage_SaveUser(HybrasylControlMessage message)
         {
-            // save a user
             User user;
-            var connectionId = (long) message.Arguments[0];
+            var connectionId = (long)message.Arguments[0];
             if (ActiveUsers.TryGetValue(connectionId, out user))
             {
                 Logger.DebugFormat("Saving user {0}", user.Name);
-                user.SaveDataToEntityFramework();
             }
             else
             {
@@ -795,10 +692,8 @@ namespace Hybrasyl
 
         private void ControlMessage_ShutdownServer(HybrasylControlMessage message)
         {
-            // Initiate an orderly shutdown 
             var userName = (string) message.Arguments[0];
             Logger.WarnFormat("Server shutdown request initiated by {0}", userName);
-            // Chaos is Rising Up, yo.
             foreach (var connection in ActiveUsers)
             {
                 var user = connection.Value;
@@ -806,16 +701,15 @@ namespace Hybrasyl
                     Hybrasyl.MessageTypes.SYSTEM_WITH_OVERHEAD);
             }
 
-            // Actually shut down the server. This terminates the listener loop in Game.
             if (Game.IsActive())
+            {
                 Game.ToggleActive();
-
+            }
             Logger.WarnFormat("Server has begun shutdown");
         }
 
         private void ControlMessage_LogoffUser(HybrasylControlMessage message)
         {
-            // Log off the specified user
             var userName = (string)message.Arguments[0];
             Logger.WarnFormat("{0}: forcing logoff", userName);
             User user;
@@ -824,21 +718,18 @@ namespace Hybrasyl
                 user.Logoff();
             }
         }
-        #endregion
 
-
-        #region Packet Handlers
 
         private void PacketHandler_0x05_RequestMap(Object obj, ClientPacket packet)
         {
             var user = (User) obj;
-            int index = 0;
+            var index = 0;
 
-            for (ushort row = 0; row < user.Map.Y; ++row)
+            for (var row = 0; row < user.Map.Y; ++row)
             {
                 var x3C = new ServerPacket(0x3C);
-                x3C.WriteUInt16(row);
-                for (int col = 0; col < user.Map.X*6; col += 2)
+                x3C.WriteUInt16((ushort)row);
+                for (var col = 0; col < user.Map.X * 6; col += 2)
                 {
                     x3C.WriteByte(user.Map.RawData[index + 1]);
                     x3C.WriteByte(user.Map.RawData[index]);
@@ -852,7 +743,10 @@ namespace Hybrasyl
         {
             var user = (User) obj;
             var direction = packet.ReadByte();
-            if (direction > 3) return;
+            if (direction > 3)
+            {
+                return;
+            }
             user.Walk((Direction) direction);
         }
 
@@ -863,26 +757,20 @@ namespace Hybrasyl
             var x = packet.ReadInt16();
             var y = packet.ReadInt16();
 
-            //var user = client.User;
-            //var map = user.Map;
-
-            // Is the player within PICKUP_DISTANCE tiles of what they're trying to pick up?
             if (Math.Abs(x - user.X) > Constants.PICKUP_DISTANCE ||
                 Math.Abs(y - user.Y) > Constants.PICKUP_DISTANCE)
+            {
                 return;
-
-            // Check if inventory slot is valid and empty
+            }
             if (slot == 0 || slot > user.Inventory.Size || user.Inventory[slot] != null)
+            {
                 return;
-
-            // Find the items that are at the pickup area
+            }
 
             var tile = new Rectangle(x, y, 1, 1);
 
-            // We don't want to pick up people
             var pickupObject = user.Map.EntityTree.GetObjects(tile).FindLast(i => i is Gold || i is Item);
 
-            // If the add is successful, remove the item from the map quadtree
             if (pickupObject is Gold)
             {
                 var gold = (Gold) pickupObject;
@@ -893,38 +781,44 @@ namespace Hybrasyl
                     user.Map.RemoveGold(gold);
                 }
             }
-            else if (pickupObject is Item)
+            else
             {
-                var item = (Item) pickupObject;
-                if (item.Stackable && user.Inventory.Contains(item.TemplateId))
+                if (pickupObject is Item)
                 {
-                    byte existingSlot = user.Inventory.SlotOf(item.TemplateId);
-                    var existingItem = user.Inventory[existingSlot];
+                    var item = (Item) pickupObject;
+                    if (item.Stackable && user.Inventory.Contains(item.TemplateId))
+                    {
+                        var existingSlot = user.Inventory.SlotOf(item.TemplateId);
+                        var existingItem = user.Inventory[existingSlot];
 
-                    int maxCanGive = existingItem.MaximumStack - existingItem.Count;
-                    int quantity = Math.Min(item.Count, maxCanGive);
+                        var maxCanGive = existingItem.MaximumStack - existingItem.Count;
+                        var quantity = Math.Min(item.Count, maxCanGive);
 
-                    item.Count -= quantity;
-                    existingItem.Count += quantity;
+                        item.Count -= quantity;
+                        existingItem.Count += quantity;
 
-                    Logger.DebugFormat("Removing {0}, qty {1} from {2}@{3},{4}",
+                        Logger.DebugFormat("Removing {0}, qty {1} from {2}@{3},{4}",
                         item.Name, item.Count, user.Map.Name, x, y);
-                    user.Map.Remove(item);
-                    user.SendItemUpdate(existingItem, existingSlot);
+                        user.Map.Remove(item);
+                        user.SendItemUpdate(existingItem, existingSlot);
 
-                    if (item.Count == 0) Remove(item);
+                        if (item.Count == 0)
+                        {
+                            Remove(item);
+                        }
+                        else
+                        {
+                            user.Map.Insert(item, user.X, user.Y);
+                            user.SendMessage(string.Format("You can't carry any more {0}.", item.Name), 3);
+                        }
+                    }
                     else
                     {
-                        user.Map.Insert(item, user.X, user.Y);
-                        user.SendMessage(string.Format("You can't carry any more {0}.", item.Name), 3);
-                    }
-                }
-                else
-                {
-                    Logger.DebugFormat("Removing {0}, qty {1} from {2}@{3},{4}",
+                        Logger.DebugFormat("Removing {0}, qty {1} from {2}@{3},{4}",
                         item.Name, item.Count, user.Map.Name, x, y);
-                    user.Map.Remove(item);
-                    user.AddItem(item, slot);
+                        user.Map.Remove(item);
+                        user.AddItem(item, slot);
+                    }
                 }
             }
         }
@@ -939,10 +833,6 @@ namespace Hybrasyl
 
             Logger.DebugFormat("{0} {1} {2} {3}", slot, x, y, count);
 
-            // Do a few sanity checks
-            //
-            // Is the distance valid? (Can't drop things beyond
-            // MAXIMUM_DROP_DISTANCE tiles away)
             if (Math.Abs(x - user.X) > Constants.PICKUP_DISTANCE ||
                 Math.Abs(y - user.Y) > Constants.PICKUP_DISTANCE)
             {
@@ -951,16 +841,12 @@ namespace Hybrasyl
                 return;
             }
 
-            // Is this a valid slot?
             if ((slot == 0) || (slot > Hybrasyl.Constants.MAXIMUM_INVENTORY))
             {
                 Logger.ErrorFormat("Slot not valid. Aborting");
                 return;
             }
 
-            // Does the player actually have an item in the slot? Does the count in the packet exceed the 
-            // count in the player's inventory?  Are they trying to drop the item on something that 
-            // is impassable (i.e. a wall)?
             if ((user.Inventory[slot] == null) || (count > user.Inventory[slot].Count) ||
                 (user.Map.IsWall[x, y] == true) || !user.Map.IsValidPoint(x, y))
             {
@@ -970,7 +856,7 @@ namespace Hybrasyl
                 return;
             }
 
-            Item toDrop = user.Inventory[slot];
+            var toDrop = user.Inventory[slot];
 
             if (toDrop.Stackable && count < toDrop.Count)
             {
@@ -985,653 +871,76 @@ namespace Hybrasyl
             {
                 user.RemoveItem(slot);
             }
-
-            // Are we dropping an item onto a reactor?
-            Reactor reactor;
-            var coordinates = new Tuple<byte, byte>((byte) x, (byte) y);
-            if (user.Map.Reactors.TryGetValue(coordinates, out reactor))
-            {
-                reactor.OnDrop(user, toDrop);
-            }
-            else
-                user.Map.AddItem(x, y, toDrop);
+            user.Map.AddItem(x, y, toDrop);
         }
 
         private void PacketHandler_0x11_Turn(Object obj, ClientPacket packet)
         {
             var user = (User) obj;
             var direction = packet.ReadByte();
-            if (direction > 3) return;
+            if (direction > 3)
+            {
+                return;
+            }
             user.Turn((Direction) direction);
         }
 
-        private void ProcessSlashCommands(Client client, ClientPacket packet)
+        private void PacketHandler_0x13_Assail(object obj, ClientPacket packet)
         {
+            var user = (User)obj;
+            if (user == null)
+            {
+                return;
+            }
+            if ((DateTime.Now - user.LastAssail).TotalMilliseconds > 750)
+            {
+                user.SendMotion(user.Id, 0x01, 0x14);
+                user.SendSound(0x0001);
 
+                foreach (var mapobj in user.Map.EntityTree.GetObjects(user.Map.GetViewport(user.X, user.Y)))
+                {
+                    if (mapobj is User)
+                    {
+                        if (mapobj == null)
+                        {
+                            continue;
+                        }
+                        if (user.Id == mapobj.Id)
+                        {
+                            continue;
+                        }
+                        (mapobj as User).SendSound(0x0001);
+                        (mapobj as User).SendMotion(user.Id, 0x01, 0x14);
+                    }
+                }
+                user.Attack();
+                user.LastAssail = DateTime.Now;
+            }
         }
 
         private void PacketHandler_0x0E_Talk(Object obj, ClientPacket packet)
         {
-            var user = (User) obj;
+            var user = (User)obj;
             var isShout = packet.ReadByte();
             var message = packet.ReadString8();
 
-            if (message.StartsWith("/"))
+
+            if (user.CheckSquelch(0x0e, message))
             {
-                var args = message.Split(' ');
-                #region world's biggest switch statement
-                switch (args[0].ToLower())
-                {
-                    case "/gold":
-                    {
-                        uint amount;
+                Logger.DebugFormat("{1}: squelched (say/shout)", user.Name);
+                return;
+            }
 
-                        if (args.Length != 2 || !uint.TryParse(args[1], out amount))
-                            break;
-
-                        user.Gold = amount;
-                        user.UpdateAttributes(StatUpdateFlags.Experience);
-                    }
-                        break;
-                    case "/summon":
-                    {
-                        if (!user.IsPrivileged)
-                            return;
-
-                        if (args.Length == 2)
-                        {
-                            if (!Users.ContainsKey(args[1]))
-                            {
-                                user.SendMessage("User not logged in.", MessageTypes.SYSTEM);
-                                return;
-                            }
-                            var target = Users[args[1]];
-                            if (target.IsExempt)
-                                user.SendMessage("Access denied.", MessageTypes.SYSTEM);
-                            else
-                            {
-                                target.Teleport(user.Map.Id, user.MapX, user.MapY);
-                                Logger.InfoFormat("GM activity: {0} summoned {1}", user.Name, target.Name);
-                            }
-                        }
-                    }
-                        break;
-                    case "/kick":
-                    {
-                        if (!user.IsPrivileged)
-                            return;
-
-                        if (args.Length == 2)
-                        {
-                            if (!Users.ContainsKey(args[1]))
-                            {
-                                user.SendMessage("User not logged in.", MessageTypes.SYSTEM);
-                                return;
-                            }
-                            var target = Users[args[1]];
-                            if (target.IsExempt)
-                                user.SendMessage("Access denied.", MessageTypes.SYSTEM);
-                            else
-                                target.Logoff();
-                            Logger.InfoFormat("GM activity: {0} kicked {1}",
-                                user.Name, target.Name);
-                        }
-                    }
-                        break;
-                    case "/teleport":
-                    {
-                        ushort number = ushort.MaxValue;
-                        byte x = user.X, y = user.Y;
-
-                        if (args.Length == 2)
-                        {
-                            if (!ushort.TryParse(args[1], out number))
-                            {
-                                if (!Users.ContainsKey(args[1]))
-                                {
-                                    user.SendMessage("Invalid map number or user name", 3);
-                                    return;
-                                }
-                                else
-                                {
-                                    var target = Users[args[1]];
-                                    number = target.Map.Id;
-                                    x = target.X;
-                                    y = target.Y;
-                                }
-                            }
-                        }
-                        else if (args.Length == 4)
-                        {
-                            ushort.TryParse(args[1], out number);
-                            byte.TryParse(args[2], out x);
-                            byte.TryParse(args[3], out y);
-                        }
-
-                        if (Maps.ContainsKey(number))
-                        {
-                            var map = Maps[number];
-                            if (x < map.X && y < map.Y) user.Teleport(number, x, y);
-                            else user.SendMessage("Invalid x/y", 3);
-                        }
-                        else user.SendMessage("Invalid map number", 3);
-                    }
-                        break;
-                    case "/motion":
-                    {
-                        byte motion;
-                        short speed = 20;
-                        if (args.Length > 1 && byte.TryParse(args[1], out motion))
-                        {
-                            if (args.Length > 2) short.TryParse(args[2], out speed);
-                            user.Motion(motion, speed);
-                        }
-                    }
-                        break;
-                    case "/maplist":
-                    {
-                        // This is an extremely expensive slash command
-                        var searchString = "";
-                        if (args.Length == 1)
-                        {
-                            user.SendMessage("Usage:   /maplist <searchterm>\nExample: /maplist Mileth - show maps with Mileth in the title\n",
-                                MessageTypes.SLATE);
-                            return;
-                        }
-                        else if (args.Length == 2)
-                            searchString = args[1];
-                        else
-                            searchString = String.Join(" ", args, 1, args.Length - 1);
-
-                        Regex searchTerm;
-                        try
-                        {
-                            Logger.InfoFormat("Search term was {0}",searchString);
-                            searchTerm = new Regex(String.Format("{0}", searchString));
-                        }
-                        catch
-                        {
-                            user.SendMessage("Invalid search. Try again or send no options for help.",
-                                MessageTypes.SYSTEM);
-                            return;
-                        }
-
-                        var queryMaps = from amap in MapCatalog
-                            where searchTerm.IsMatch(amap.Key)
-                            select amap;
-                        var result = queryMaps.Aggregate("",
-                            (current, map) => current + String.Format("{0} - {1}\n", map.Value.Id, map.Value.Name));
-
-                        if (result.Length > 65400)
-                            result = String.Format("{0}\n(Results truncated)", result.Substring(0, 65400));
-
-                        user.SendMessage(String.Format("Search Results\n---------------\n\n{0}",
-                            result),
-                            MessageTypes.SLATE_WITH_SCROLLBAR);
-
-                    }
-                        break;
-                    case "/effect":
-                    {
-                        ushort effect;
-                        short speed = 100;
-                        if (args.Length > 1 && ushort.TryParse(args[1], out effect))
-                        {
-                            if (args.Length > 2) short.TryParse(args[2], out speed);
-                            user.Effect(effect, speed);
-                        }
-                    }
-                        break;
-                    case "/sound":
-                    {
-                        byte sound;
-                        if (args.Length > 1 && byte.TryParse(args[1], out sound))
-                        {
-                            user.SendSound(sound);
-                        }
-                    }
-                        break;
-                    case "/music":
-                    {
-                        byte track;
-                        if (args.Length > 1 && byte.TryParse(args[1], out track))
-                        {
-                            user.Map.Music = track;
-                            foreach (var mapuser in user.Map.Users.Values)
-                            {
-                                mapuser.SendMusic(track);
-                            }
-                        }
-                    }
-                        break;
-                    case "/mapmsg":
-                    {
-                        if (args.Length > 1)
-                        {
-                            var mapmsg = string.Join(" ", args, 1, args.Length - 1);
-                            user.Map.Message = mapmsg;
-                            foreach (var mapuser in user.Map.Users.Values)
-                            {
-                                mapuser.SendMessage(mapmsg, 18);
-                            }
-                        }
-                    }
-                        break;
-                    case "/worldmsg":
-                    {
-                        if (args.Length > 1)
-                        {
-                            var msg = string.Join(" ", args, 1, args.Length - 1);
-                            foreach (var connectedUser in ActiveUsers)
-                            {
-                                connectedUser.Value.SendWorldMessage(user.Name, msg);
-                            }
-
-                        }
-                    }
-                        break;
-                    case "/class":
-                    {
-                        var className = string.Join(" ", args, 1, args.Length - 1);
-                        int classValue;
-                        if (Hybrasyl.Constants.CLASSES.TryGetValue(className, out classValue))
-                        {
-                            user.Class = (Hybrasyl.Enums.Class) Hybrasyl.Constants.CLASSES[className];
-                            user.SendMessage(String.Format("Class set to {0}", className.ToLower()), 0x1);
-                        }
-                        else
-                        {
-                            user.SendMessage("I know nothing about that class. Try again.", 0x1);
-                        }
-                    }
-                        break;
-
-                    case "/level":
-                    {
-                        byte newLevel;
-                        var level = string.Join(" ", args, 1, args.Length - 1);
-                        if (!Byte.TryParse(level, out newLevel))
-                            user.SendMessage("That's not a valid level, champ.", 0x1);
-                        else
-                        {
-                            user.Level = newLevel;
-                            user.UpdateAttributes(StatUpdateFlags.Full);
-                            user.SendMessage(String.Format("Level changed to {0}", newLevel), 0x1);
-                        }
-                    }
-                        break;
-                    case "/attr":
-                    {
-                        if (args.Length != 3)
-                        {
-                            return;
-                        }
-                        byte newStat;
-                        if (!Byte.TryParse(args[2], out newStat))
-                        {
-                            user.SendSystemMessage("That's not a valid value for an attribute, chief.");
-                            return;
-                        }
-
-                        switch (args[1].ToLower())
-                        {
-                            case "str":
-                                user.BaseStr = newStat;
-                                break;
-                            case "con":
-                                user.BaseCon = newStat;
-                                break;
-                            case "dex":
-                                user.BaseDex = newStat;
-                                break;
-                            case "wis":
-                                user.BaseWis = newStat;
-                                break;
-                            case "int":
-                                user.BaseInt = newStat;
-                                break;
-                            default:
-                                user.SendSystemMessage("Invalid attribute, sport.");
-                                break;
-                        }
-                        user.UpdateAttributes(StatUpdateFlags.Stats);
-                    }
-                        break;
-
-                    case "/guild":
-                    {
-                        var guild = string.Join(" ", args, 1, args.Length - 1);
-                        user.Guild = guild;
-                        user.SendMessage(String.Format("Guild changed to {0}", guild), 0x1);
-                    }
-                        break;
-                    case "/guildrank":
-                    {
-                        var guildrank = string.Join(" ", args, 1, args.Length - 1);
-                        user.GuildRank = guildrank;
-                        user.SendMessage(String.Format("Guild rank changed to {0}", guildrank), 0x1);
-                    }
-                        break;
-                    case "/title":
-                    {
-                        var title = string.Join(" ", args, 1, args.Length - 1);
-                        user.Title = title;
-                        user.SendMessage(String.Format("Title changed to {0}", title), 0x1);
-                    }
-                        break;
-                    case "/debug":
-                    {
-                        if (!user.IsPrivileged)
-                            return;
-                        user.SendMessage("Debugging enabled", 3);
-                        ((log4net.Repository.Hierarchy.Hierarchy) LogManager.GetRepository()).Root.Level = Level.Debug;
-                        ((log4net.Repository.Hierarchy.Hierarchy) LogManager.GetRepository()).RaiseConfigurationChanged(
-                            EventArgs.Empty);
-                        Logger.InfoFormat("Debugging enabled by admin command");
-
-                    }
-                        break;
-                    case "/nodebug":
-                    {
-                        if (!user.IsPrivileged)
-                            return;
-                        user.SendMessage("Debugging disabled", 3);
-                        ((log4net.Repository.Hierarchy.Hierarchy) LogManager.GetRepository()).Root.Level = Level.Info;
-                        ((log4net.Repository.Hierarchy.Hierarchy) LogManager.GetRepository()).RaiseConfigurationChanged(
-                            EventArgs.Empty);
-                        Logger.InfoFormat("Debugging disabled by admin command");
-
-                    }
-                        break;
-                    case "/gcm":
-                    {
-                        if (!user.IsPrivileged)
-                            return;
-
-                        var gcmContents = "Contents of Global Connection Manifest\n";
-                        var userContents = "Contents of User Dictionary\n";
-                        var ActiveUserContents = "Contents of ActiveUsers Concurrent Dictionary\n";
-                        foreach (var pair in GlobalConnectionManifest.ConnectedClients)
-                        {
-                            var serverType = String.Empty;
-                            switch (pair.Value.ServerType)
-                            {
-                                case ServerTypes.Lobby:
-                                    serverType = "Lobby";
-                                    break;
-                                case ServerTypes.Login:
-                                    serverType = "Login";
-                                    break;
-                                default:
-                                    serverType = "World";
-                                    break;
-                            }
-                            try
-                            {
-
-                                gcmContents = gcmContents + String.Format("{0}:{1} - {2}:{3}\n", pair.Key,
-                                    ((IPEndPoint) pair.Value.Socket.RemoteEndPoint).Address.ToString(),
-                                    ((IPEndPoint) pair.Value.Socket.RemoteEndPoint).Port, serverType);
-                            }
-                            catch
-                            {
-                                gcmContents = gcmContents + String.Format("{0}:{1} disposed\n", pair.Key, serverType);
-                            }
-                        }
-                        foreach (var tehuser in Users)
-                        {
-                            userContents = userContents + tehuser.Value.Name + "\n";
-                        }
-                        foreach (var tehotheruser in ActiveUsersByName)
-                        {
-                            ActiveUserContents = ActiveUserContents +
-                                                 String.Format("{0}: {1}\n", tehotheruser.Value, tehotheruser.Key);
-                        }
-
-                        // Report to the end user
-                        user.SendMessage(
-                            String.Format("{0}\n\n{1}\n\n{2}", gcmContents, userContents, ActiveUserContents),
-                            MessageTypes.SLATE_WITH_SCROLLBAR);
-
-                    }
-                        break;
-                    case "/item":
-                    {
-                        int count;
-                        string itemName;
-
-                        Logger.DebugFormat("/item: Last argument is {0}", args.Last());
-                        Regex integer = new Regex(@"^\d+$");
-
-                        if (integer.IsMatch(args.Last()))
-                        {
-                            count = Convert.ToInt32(args.Last());
-                            itemName = string.Join(" ", args, 1, args.Length - 2);
-                            Logger.InfoFormat("Admin command: Creating item {0} with count {1}", itemName, count);
-                        }
-                        else
-                        {
-                            count = 1;
-                            itemName = string.Join(" ", args, 1, args.Length - 1);
-                        }
-
-                        // HURR O(N) IS MY FRIEND
-                        // change this to use itemcatalog pls
-                        foreach (var template in Items)
-                        {
-                            if (template.Value.name.Equals(itemName, StringComparison.CurrentCultureIgnoreCase))
-                            {
-                                var item = CreateItem(template.Key);
-                                if (count > item.MaximumStack)
-                                    item.Count = item.MaximumStack;
-                                else
-                                    item.Count = count;
-                                Insert(item);
-                                user.AddItem(item);
-                            }
-                        }
-                    }
-                        break;
-                    case "/mute":
-                    {
-                        if (!user.IsPrivileged)
-                            return;
-                        var charTarget = string.Join(" ", args, 1, args.Length - 1);
-                        var userObj = FindUser(charTarget);
-                        if (userObj != null)
-                        {
-                            userObj.IsMuted = true;
-                            userObj.Save();
-                            user.SendMessage(String.Format("{0} is now muted.", userObj.Name), 0x1);
-                        }
-                        else
-                        {
-                            user.SendMessage("That Aisling is not in Temuair.", 0x01);
-                        }
-                    }
-                        break;
-                    case "/unmute":
-                    {
-                        if (!user.IsPrivileged)
-                            return;
-                        var charTarget = string.Join(" ", args, 1, args.Length - 1);
-                        var userObj = FindUser(charTarget);
-                        if (userObj != null)
-                        {
-                            userObj.IsMuted = false;
-                            userObj.Save();
-                            user.SendMessage(String.Format("{0} is now unmuted.", userObj.Name), 0x1);
-                        }
-                        else
-                        {
-                            user.SendMessage("That Aisling is not in Temuair.", 0x01);
-                        }
-                    }
-                        break;
-                    case "/reload":
-                    {
-                        if (!user.IsPrivileged)
-                            return;
-                        // Do nothing here for now
-                        // This should reload warps, worldwarps, "item templates", worldmaps, and world map points.
-                        // This should obviously use the new ControlMessage stuff.
-                        user.SendMessage("This feature is not currently implemented.", 0x01);
-                    }
-                        break;
-                    case "/shutdown":
-                    {
-                        if (!user.IsPrivileged)
-                            return;
-                        var password = args[1];
-                        if (String.Equals(password, Constants.ShutdownPassword))
-                        {
-                            MessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.ShutdownServer, user.Name));
-                        }
-
-                    }
-                        break;
-                    case "/scripting":
-                    {
-                        if (!user.IsPrivileged)
-                            return;
-                        // Valid scripting commands
-                        // /scripting (reload|disable|enable|status) [scriptname] 
-
-                        if (args.Count() >= 3)
-                        {
-                            var script = ScriptProcessor.GetScript(args[2].Trim());
-                            if (script != null)
-                            {
-                                if (args[1].ToLower() == "reload")
-                                {
-                                    script.Disabled = true;
-                                    if (script.Load())
-                                    {
-                                        user.SendMessage(String.Format("Script {0}: reloaded", script.Name), 0x01);
-                                        if (script.InstantiateScriptable())
-                                            user.SendMessage(
-                                                String.Format("Script {0}: instances recreated", script.Name), 0x01);
-                                    }
-                                    else
-                                    {
-                                        user.SendMessage(
-                                            String.Format("Script {0}: load error, consult status", script.Name), 0x01);
-                                    }
-                                }
-                                else if (args[1].ToLower() == "enable")
-                                {
-                                    script.Disabled = false;
-                                    user.SendMessage(String.Format("Script {0}: enabled", script.Name), 0x01);
-                                }
-                                else if (args[1].ToLower() == "disable")
-                                {
-                                    script.Disabled = true;
-                                    user.SendMessage(String.Format("Script {0}: disabled", script.Name), 0x01);
-                                }
-                                else if (args[1].ToLower() == "status")
-                                {
-                                    var scriptStatus = String.Format("{0}:", script.Name);
-                                    String errorSummary = "--- Error Summary ---\n";
-
-                                    if (script.Instance == null)
-                                        scriptStatus = String.Format("{0} not instantiated,", scriptStatus);
-                                    else
-                                        scriptStatus = String.Format("{0} instantiated,", scriptStatus);
-                                    if (script.Disabled)
-                                        scriptStatus = String.Format("{0} disabled", scriptStatus);
-                                    else
-                                        scriptStatus = String.Format("{0} enabled", scriptStatus);
-
-                                    if (script.LastRuntimeError == String.Empty &&
-                                        script.CompilationError == String.Empty)
-                                        errorSummary = String.Format("{0} no errors", errorSummary);
-                                    else
-                                    {
-                                        if (script.CompilationError != String.Empty)
-                                            errorSummary = String.Format("{0} compilation error: {1}", errorSummary,
-                                                script.CompilationError);
-                                        if (script.LastRuntimeError != String.Empty)
-                                            errorSummary = String.Format("{0} runtime error: {1}", errorSummary,
-                                                script.LastRuntimeError);
-                                    }
-
-                                    // Report to the end user
-                                    user.SendMessage(String.Format("{0}\n\n{1}", scriptStatus, errorSummary),
-                                        MessageTypes.SLATE_WITH_SCROLLBAR);
-                                }
-                            }
-                            else
-                            {
-                                user.SendMessage(String.Format("Script {0} not found!", args[2]), 0x01);
-                            }
-                        }
-                        else if (args.Count() == 2)
-                        {
-                            if (args[1].ToLower() == "status")
-                            {
-                                // Display status information for all NPCs
-                                String statusReport = String.Empty;
-                                String errorSummary = "--- Error Summary ---\n";
-
-                                foreach (KeyValuePair<string, Script> entry in ScriptProcessor.Scripts)
-                                {
-                                    var scriptStatus = String.Format("{0}:", entry.Key);
-                                    var scriptErrors = String.Format("{0}:", entry.Key);
-                                    if (entry.Value.Instance == null)
-                                        scriptStatus = String.Format("{0} not instantiated,", scriptStatus);
-                                    else
-                                        scriptStatus = String.Format("{0} instantiated,", scriptStatus);
-                                    if (entry.Value.Disabled)
-                                        scriptStatus = String.Format("{0} disabled", scriptStatus);
-                                    else
-                                        scriptStatus = String.Format("{0} enabled", scriptStatus);
-
-                                    if (entry.Value.LastRuntimeError == String.Empty &&
-                                        entry.Value.CompilationError == String.Empty)
-                                        scriptErrors = String.Format("{0} no errors", scriptErrors);
-                                    else
-                                    {
-                                        if (entry.Value.CompilationError != String.Empty)
-                                            scriptErrors = String.Format("{0} compilation error: {1}", scriptErrors,
-                                                entry.Value.CompilationError);
-                                        if (entry.Value.LastRuntimeError != String.Empty)
-                                            scriptErrors = String.Format("{0} runtime error: {1}", scriptErrors,
-                                                entry.Value.LastRuntimeError);
-                                    }
-                                    statusReport = String.Format("{0}\n{1}", statusReport, scriptStatus);
-                                    errorSummary = String.Format("{0}\n{1}", errorSummary, scriptErrors);
-
-                                }
-                                // Report to the end user
-                                user.SendMessage(String.Format("{0}\n\n{1}", statusReport, errorSummary),
-                                    MessageTypes.SLATE_WITH_SCROLLBAR);
-                            }
-
-                        }
-                    }
-                        break;
-                #endregion world's biggest switch statement
-                }
+            if (isShout == 1)
+            {
+                user.Shout(message);
             }
             else
             {
-                if (user.CheckSquelch(0x0e, message))
-                {
-                    Logger.DebugFormat("{1}: squelched (say/shout)", user.Name);
-                    return;
-                }
-
-                if (isShout == 1)
-                {
-                    user.Shout(message);
-                }
-                else
-                {
-                    user.Say(message);
-                }
+                user.Say(message);
             }
         }
-        
+
         private void CheckCommandPrivileges()
         {
             throw new NotImplementedException();
@@ -1670,7 +979,7 @@ namespace Hybrasyl
 
         private void PacketHandler_0x10_ClientJoin(Object obj, ClientPacket packet)
         {
-            var connectionId = (long) obj;
+            var connectionId = (long)obj;
 
             var seed = packet.ReadByte();
             var keyLength = packet.ReadByte();
@@ -1688,30 +997,23 @@ namespace Hybrasyl
                 {
                     var user = new User(this, connectionId, name);
                     user.SetEncryptionParameters(key, seed, name);
-                    user.LoadDataFromEntityFramework(true);
+                    user.LoadFromDB(true);
                     user.UpdateLoginTime();
                     user.UpdateAttributes(StatUpdateFlags.Full);
-                    Logger.DebugFormat("Elapsed time since login: {0}", user.SinceLastLogin);
-                    if (user.Citizenship.spawn_points.Count != 0 &&
-                        user.SinceLastLogin > Hybrasyl.Constants.NATION_SPAWN_TIMEOUT)
-                    {
-                        Insert(user);
-                        var spawnpoint = user.Citizenship.spawn_points.First();
-                        user.Teleport((ushort) spawnpoint.map_id, (byte) spawnpoint.map_x, (byte) spawnpoint.map_y);
 
-                    }
-                    else if (user.MapId != null && Maps.ContainsKey(user.MapId))
+                    Logger.DebugFormat("Elapsed time since login: {0}", user.SinceLastLogin);
+
+                    if (user.Map != null && Maps.ContainsKey(user.MapId))
                     {
                         Insert(user);
-                        user.Teleport(user.MapId, (byte) user.MapX, (byte) user.MapY);
+                        user.Teleport(user.MapId, (byte)user.MapX, (byte)user.MapY);
                     }
                     else
                     {
-                        // Handle any weird cases where a map someone exited on was deleted, etc
-                        // This "default" of Mileth should be set somewhere else
                         Insert(user);
-                        user.Teleport((ushort) 500, (byte) 50, (byte) 50);
+                        user.Teleport((ushort)500, (byte)50, (byte)50);
                     }
+
                     Logger.DebugFormat("Adding {0} to hash", user.Name);
                     AddUser(user);
                     ActiveUsers[connectionId] = user;
@@ -1726,8 +1028,8 @@ namespace Hybrasyl
             var me = (User) obj;
 
             var list = from user in Users.Values
-                       orderby user.IsMaster descending, user.Level descending, user.BaseHp + user.BaseMp * 2 descending, user.Name ascending
-                       select user;
+                                             orderby user.IsMaster descending, user.Level descending, user.BaseHp + user.BaseMp * 2 descending, user.Name ascending
+                                             select user;
 
             var listPacket = new ServerPacket(0x36);
             listPacket.WriteUInt16((ushort)list.Count());
@@ -1735,14 +1037,24 @@ namespace Hybrasyl
 
             foreach (var user in list)
             {
-                int levelDifference = Math.Abs((int)user.Level - me.Level);
+                var levelDifference = Math.Abs((int)user.Level - me.Level);
 
                 listPacket.WriteByte((byte)user.Class);
-                
-                if (!string.IsNullOrEmpty(me.Guild) && user.Guild == me.Guild) listPacket.WriteByte(84);
-                else if (levelDifference <= 5) listPacket.WriteByte(151);
-                else listPacket.WriteByte(255);
-
+                if (!string.IsNullOrEmpty(me.Guild) && user.Guild == me.Guild)
+                {
+                    listPacket.WriteByte(84);
+                }
+                else
+                {
+                    if (levelDifference <= 5)
+                    {
+                        listPacket.WriteByte(151);
+                    }
+                    else
+                    {
+                        listPacket.WriteByte(255);
+                    }
+                }
                 listPacket.WriteByte((byte)user.GroupStatus);
                 listPacket.WriteString8(user.Title);
                 listPacket.WriteBoolean(user.IsMaster);
@@ -1760,7 +1072,6 @@ namespace Hybrasyl
             var message = Encoding.GetEncoding(949).GetString(packet.Read(msgsize));
 
             user.SendWhisper(target, message);
-
         }
 
         private void PacketHandler_0x1C_UseItem(Object obj, ClientPacket packet)
@@ -1770,12 +1081,15 @@ namespace Hybrasyl
 
             Logger.DebugFormat("Updating slot {0}", slot);
 
-            if (slot == 0 || slot > Constants.MAXIMUM_INVENTORY) return;
-
+            if (slot == 0 || slot > Constants.MAXIMUM_INVENTORY)
+            {
+                return;
+            }
             var item = user.Inventory[slot];
-            
-            if (item == null) return;
-
+            if (item == null)
+            {
+                return;
+            }
             switch (item.ItemType)
             {
                 case ItemType.CanUse:
@@ -1785,36 +1099,28 @@ namespace Hybrasyl
                     user.SendMessage("You can't use that.", 3);
                     break;
                 case ItemType.Equipment:
-                {
+                    item.Invoke(user);
 
-                    // Check item requirements here before we do anything rash
                     String message;
                     if (!item.CheckRequirements(user, out message))
                     {
-                        // If an item can't be equipped, CheckRequirements will return false
-                        // and also set the appropriate message for us via out
                         user.SendMessage(message, 3);
                         return;
                     }
                     Logger.DebugFormat("Equipping {0}", item.Name);
-                    // Remove the item from inventory, but we don't decrement its count, as it still exists.
                     user.RemoveItem(slot);
 
-                    // Handle gauntlet / ring special cases
                     if (item.EquipmentSlot == ClientItemSlots.Gauntlet)
                     {
                         Logger.DebugFormat("item is gauntlets");
-                        // First, is the left arm slot occupied?
                         if (user.Equipment[ClientItemSlots.LArm] != null)
                         {
                             if (user.Equipment[ClientItemSlots.RArm] == null)
                             {
-                                // Right arm slot is empty; use it
                                 user.AddEquipment(item, ClientItemSlots.RArm);
                             }
                             else
                             {
-                                // Right arm slot is in use; replace LArm with item
                                 var olditem = user.Equipment[ClientItemSlots.LArm];
                                 user.RemoveEquipment(ClientItemSlots.LArm);
                                 user.AddItem(olditem, slot);
@@ -1826,76 +1132,89 @@ namespace Hybrasyl
                             user.AddEquipment(item, ClientItemSlots.LArm);
                         }
                     }
-                    else if (item.EquipmentSlot == ClientItemSlots.Ring)
+                    else
                     {
-                        Logger.DebugFormat("item is ring");
-
-                        // First, is the left ring slot occupied?
-                        if (user.Equipment[ClientItemSlots.LHand] != null)
+                        if (item.EquipmentSlot == ClientItemSlots.Ring)
                         {
-                            if (user.Equipment[ClientItemSlots.RHand] == null)
+                            Logger.DebugFormat("item is ring");
+
+                            if (user.Equipment[ClientItemSlots.LHand] != null)
                             {
-                                // Right ring slot is empty; use it
-                                user.AddEquipment(item, ClientItemSlots.RHand);
+                                if (user.Equipment[ClientItemSlots.RHand] == null)
+                                {
+                                    user.AddEquipment(item, ClientItemSlots.RHand);
+                                }
+                                else
+                                {
+                                    var olditem = user.Equipment[ClientItemSlots.LHand];
+                                    user.RemoveEquipment(ClientItemSlots.LHand);
+                                    user.AddItem(olditem, slot);
+                                    user.AddEquipment(item, ClientItemSlots.LHand);
+                                }
                             }
                             else
                             {
-                                // Right ring slot is in use; replace LHand with item
-                                var olditem = user.Equipment[ClientItemSlots.LHand];
-                                user.RemoveEquipment(ClientItemSlots.LHand);
-                                user.AddItem(olditem, slot);
                                 user.AddEquipment(item, ClientItemSlots.LHand);
                             }
                         }
                         else
                         {
-                            user.AddEquipment(item, ClientItemSlots.LHand);
-                        }
-                    }
-                    else if (item.EquipmentSlot == ClientItemSlots.FirstAcc ||
+                            if (item.EquipmentSlot == ClientItemSlots.FirstAcc ||
                              item.EquipmentSlot == ClientItemSlots.SecondAcc ||
                              item.EquipmentSlot == ClientItemSlots.ThirdAcc)
-                    {
-                        if (user.Equipment.FirstAcc == null)
-                            user.AddEquipment(item, ClientItemSlots.FirstAcc);
-                        else if (user.Equipment.SecondAcc == null)
-                            user.AddEquipment(item, ClientItemSlots.SecondAcc);
-                        else if (user.Equipment.ThirdAcc == null)
-                            user.AddEquipment(item, ClientItemSlots.ThirdAcc);
-                        else
-                        {
-                            // Remove first accessory
-                            var oldItem = user.Equipment.FirstAcc;
-                            user.RemoveEquipment(ClientItemSlots.FirstAcc);
-                            user.AddEquipment(item, ClientItemSlots.FirstAcc);
-                            user.AddItem(oldItem, slot);
-                            user.Show();
-                        }
-                    }
-                    else
-                    {
-                        var equipSlot = item.EquipmentSlot;
-                        var oldItem = user.Equipment[equipSlot];
+                            {
+                                if (user.Equipment.FirstAcc == null)
+                                {
+                                    user.AddEquipment(item, ClientItemSlots.FirstAcc);
+                                }
+                                else
+                                {
+                                    if (user.Equipment.SecondAcc == null)
+                                    {
+                                        user.AddEquipment(item, ClientItemSlots.SecondAcc);
+                                    }
+                                    else
+                                    {
+                                        if (user.Equipment.ThirdAcc == null)
+                                        {
+                                            user.AddEquipment(item, ClientItemSlots.ThirdAcc);
+                                        }
+                                        else
+                                        {
+                                            var oldItem = user.Equipment.FirstAcc;
+                                            user.RemoveEquipment(ClientItemSlots.FirstAcc);
+                                            user.AddEquipment(item, ClientItemSlots.FirstAcc);
+                                            user.AddItem(oldItem, slot);
+                                            user.Show();
+                                        }
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                var equipSlot = item.EquipmentSlot;
+                                var oldItem = user.Equipment[equipSlot];
 
-                        if (oldItem != null)
-                        {
-                            Logger.DebugFormat(" Attemping to equip {0}", item.Name);
-                            Logger.DebugFormat("..which would unequip {0}", oldItem.Name);
-                            Logger.DebugFormat("Player weight is currently {0}", user.CurrentWeight);
-                            user.RemoveEquipment(equipSlot);
-                            user.AddItem(oldItem, slot);
-                            user.AddEquipment(item, equipSlot);
-                            user.Show();
-                            Logger.DebugFormat("Player weight is currently {0}", user.CurrentWeight);
-                        }
-                        else
-                        {
-                            Logger.DebugFormat("Attemping to equip {0}", item.Name);
-                            user.AddEquipment(item, equipSlot);
-                            user.Show();
+                                if (oldItem != null)
+                                {
+                                    Logger.DebugFormat(" Attemping to equip {0}", item.Name);
+                                    Logger.DebugFormat("..which would unequip {0}", oldItem.Name);
+                                    Logger.DebugFormat("Player weight is currently {0}", user.CurrentWeight);
+                                    user.RemoveEquipment(equipSlot);
+                                    user.AddItem(oldItem, slot);
+                                    user.AddEquipment(item, equipSlot);
+                                    user.Show();
+                                    Logger.DebugFormat("Player weight is currently {0}", user.CurrentWeight);
+                                }
+                                else
+                                {
+                                    Logger.DebugFormat("Attemping to equip {0}", item.Name);
+                                    user.AddEquipment(item, equipSlot);
+                                    user.Show();
+                                }
+                            }
                         }
                     }
-                }
                     break;
             }
         }
@@ -1919,10 +1238,7 @@ namespace Hybrasyl
             var y = packet.ReadInt16();
 
             Logger.DebugFormat("{0} {1} {2}", amount, x, y);
-            // Do a few sanity checks
 
-            // Is the distance valid? (Can't drop things beyond
-            // MAXIMUM_DROP_DISTANCE tiles away)
             if (Math.Abs(x - user.X) > Constants.PICKUP_DISTANCE ||
                 Math.Abs(y - user.Y) > Constants.PICKUP_DISTANCE)
             {
@@ -1931,9 +1247,6 @@ namespace Hybrasyl
                 return;
             }
 
-            // Does the amount in the packet exceed the 
-            // amount of gold the player has?  Are they trying to drop the item on something that 
-            // is impassable (i.e. a wall)?
             if ((amount > user.Gold) || (x >= user.Map.X) || (y >= user.Map.Y) ||
                 (x < 0) || (y < 0) || (user.Map.IsWall[x, y]))
             {
@@ -1947,15 +1260,8 @@ namespace Hybrasyl
 
             Insert(toDrop);
 
-            // Are we dropping an item onto a reactor?
-            Reactor reactor;
-            var coordinates = new Tuple<byte, byte>((byte)x, (byte)y);
-            if (user.Map.Reactors.TryGetValue(coordinates, out reactor))
-            {
-                reactor.OnDrop(user, toDrop);
-            }
-            else
-                user.Map.AddGold(x, y, toDrop);
+
+            user.Map.AddGold(x, y, toDrop);
         }
 
         private void PacketHandler_0x2D_PlayerInfo(Object obj, ClientPacket packet)
@@ -1970,22 +1276,19 @@ namespace Hybrasyl
             var targetId = packet.ReadUInt32();
 
             var user = (User) obj;
-            // If the object is a creature or an NPC, simply give them the item, otherwise,
-            // initiate an exchange
 
 
             WorldObject target;
             if (!user.World.Objects.TryGetValue(targetId, out target))
+            {
                 return;
-
+            }
             if (user.Map.Objects.Contains((VisibleObject)target))
             {
                 if (target is User)
                 {
-                    // Initiate exchange and put gold in it
                     var playerTarget = (User) target;
 
-                    // Pre-flight checks
                     if (!Exchange.StartConditionsValid(user, playerTarget))
                     {
                         user.SendSystemMessage("You can't do that.");
@@ -2000,25 +1303,25 @@ namespace Hybrasyl
                     {
                         user.SendMessage("You can't do that right now.", MessageTypes.SYSTEM);
                     }
-                    // Start exchange
                     var exchange = new Exchange(user, playerTarget);
                     exchange.StartExchange();
                     exchange.AddGold(user, goldAmount);
                 }
-                else if (target is Creature && user.IsInViewport((VisibleObject)target))
-                {
-                    // Give gold to Creature and go about our lives
-                    var creature = (Creature) target;
-                    creature.Gold += goldAmount;
-                    user.Gold -= goldAmount;
-                    user.UpdateAttributes(StatUpdateFlags.Stats);
-                }
                 else
                 {
-                    Logger.DebugFormat("user {0}: invalid drop target");
+                    if (target is Creature && user.IsInViewport((VisibleObject)target))
+                    {
+                        var creature = (Creature) target;
+                        creature.Gold += goldAmount;
+                        user.Gold -= goldAmount;
+                        user.UpdateAttributes(StatUpdateFlags.Stats);
+                    }
+                    else
+                    {
+                        Logger.DebugFormat("user {0}: invalid drop target");
+                    }
                 }
             }
-
         }
 
         private void PacketHandler_0x29_DropItemOnCreature(Object obj, ClientPacket packet)
@@ -2027,22 +1330,17 @@ namespace Hybrasyl
             var targetId = packet.ReadUInt32();
             var quantity = packet.ReadByte();
             var user = (User) obj;
-            
-            // If the object is a creature or an NPC, simply give them the item, otherwise,
-            // initiate an exchange
 
             WorldObject target;
             if (!user.World.Objects.TryGetValue(targetId, out target))
+            {
                 return;
-
+            }
             if (user.Map.Objects.Contains((VisibleObject)target))
             {
                 if (target is User)
                 {
-                    
                     var playerTarget = (User) target;
-
-                    // Pre-flight checks
 
                     if (!Exchange.StartConditionsValid(user, playerTarget))
                     {
@@ -2058,27 +1356,35 @@ namespace Hybrasyl
                     {
                         user.SendSystemMessage("You can't do that right now.");
                     }
-                    // Initiate exchange and put item in it
                     var exchange = new Exchange(user, playerTarget);
                     exchange.StartExchange();
                     if (user.Inventory[itemSlot] != null && user.Inventory[itemSlot].Count > 1)
-                        user.SendExchangeQuantityPrompt(itemSlot);
-                    else
-                        exchange.AddItem(user, itemSlot, quantity);
-                }
-                else if (target is Creature && user.IsInViewport((VisibleObject)target))
-                {
-                    var creature = (Creature) target;
-                    var item = user.Inventory[itemSlot];
-                    if (item != null)
                     {
-                        if (user.RemoveItem(itemSlot))
+                        user.SendExchangeQuantityPrompt(itemSlot);
+                    }
+                    else
+                    {
+                        exchange.AddItem(user, itemSlot, quantity);
+                    }
+                }
+                else
+                {
+                    if (target is Creature && user.IsInViewport((VisibleObject)target))
+                    {
+                        var creature = (Creature) target;
+                        var item = user.Inventory[itemSlot];
+                        if (item != null)
                         {
-                            creature.Inventory.AddItem(item);
+                            if (user.RemoveItem(itemSlot))
+                            {
+                                creature.Inventory.AddItem(item);
+                            }
+                            else
+                            {
+                                Logger.WarnFormat("0x29: Couldn't remove item from inventory...?");
+                            }
                         }
-                        else 
-                            Logger.WarnFormat("0x29: Couldn't remove item from inventory...?");
-                    }                    
+                    }
                 }
             }
         }
@@ -2092,17 +1398,18 @@ namespace Hybrasyl
 
             var inventory = user.Inventory;
 
-            // For right now we ignore the other cases (moving a skill or spell)
             if (window > 0)
+            {
                 return;
-
+            }
             Logger.DebugFormat("Moving {0} to {1}", oldSlot, newSlot);
 
-            // Is the slot invalid? Does at least one of the slots contain an item?
             if (oldSlot == 0 || oldSlot > Constants.MAXIMUM_INVENTORY ||
                 newSlot == 0 || newSlot > Constants.MAXIMUM_INVENTORY ||
-                (inventory[oldSlot] == null && inventory[newSlot] == null)) return;
-
+                (inventory[oldSlot] == null && inventory[newSlot] == null))
+            {
+                return;
+            }
             user.SwapItem(oldSlot, newSlot);
         }
 
@@ -2140,7 +1447,6 @@ namespace Hybrasyl
                 Logger.ErrorFormat(String.Format("{0}: sent us an 0x3F outside of a map screen!",
                     user.Name));
             }
-
         }
 
         private void PacketHandler_0x38_Refresh(Object obj, ClientPacket packet)
@@ -2164,9 +1470,7 @@ namespace Hybrasyl
                 return;
             }
 
-            // We just ignore the header, because, really, what exactly is a 16-bit encryption 
-            // key plus CRC really doing for you
-            var header = packet.ReadDialogHeader();
+            packet.ReadDialogHeader();
             var objectType = packet.ReadByte();
             var objectId = packet.ReadUInt32();
             var pursuitId = packet.ReadUInt16();
@@ -2174,18 +1478,15 @@ namespace Hybrasyl
             Logger.DebugFormat("main menu packet: ObjectType {0}, ID {1}, pursuitID {2}",
                 objectType, objectId, pursuitId);
 
-            // Sanity checks
             WorldObject wobj;
 
             if (Game.World.Objects.TryGetValue(objectId, out wobj))
             {
-                // Are we handling a global sequence?
                 DialogSequence pursuit;
-                VisibleObject clickTarget = wobj as VisibleObject;
+                var clickTarget = wobj as VisibleObject;
 
                 if (pursuitId < Constants.DIALOG_SEQUENCE_SHARED)
                 {
-                    // Does the sequence exist in the global catalog?
                     try
                     {
                         pursuit = Game.World.GlobalSequences[pursuitId];
@@ -2197,47 +1498,49 @@ namespace Hybrasyl
                         return;
                     }
                 }
-                else if (pursuitId >= Constants.DIALOG_SEQUENCE_HARDCODED)
-                {
-                    if (!(wobj is Merchant))
-                    {
-                        Logger.ErrorFormat("{0}: attempt to use hardcoded merchant menu item on non-merchant",
-                            wobj.Name, pursuitId);
-                        return;
-                    }
-
-                    var menuItem = (MerchantMenuItem) pursuitId;
-                    var merchant = (Merchant) wobj;
-                    MerchantMenuHandler handler;
-
-                    if (!merchantMenuHandlers.TryGetValue(menuItem, out handler))
-                    {
-                        Logger.ErrorFormat("{0}: merchant menu item {1} doesn't exist?",
-                            wobj.Name, menuItem);
-                        return;
-                    }
-
-                    if (!merchant.Jobs.HasFlag(handler.RequiredJob))
-                    {
-                        Logger.ErrorFormat("{0}: merchant does not have required job {1}",
-                            wobj.Name, handler.RequiredJob);
-                        return;
-                    }
-
-                    handler.Callback(user, merchant, packet);
-                    return;
-                }
                 else
                 {
-                    // This is a local pursuit
-                    try
+                    if (pursuitId >= Constants.DIALOG_SEQUENCE_HARDCODED)
                     {
-                        pursuit = clickTarget.Pursuits[pursuitId - Constants.DIALOG_SEQUENCE_SHARED];
-                    }
-                    catch
-                    {
-                        Logger.ErrorFormat("{0}: local pursuit {1} doesn't exist?", wobj.Name, pursuitId);
+                        if (!(wobj is Merchant))
+                        {
+                            Logger.ErrorFormat("{0}: attempt to use hardcoded merchant menu item on non-merchant",
+                            wobj.Name, pursuitId);
+                            return;
+                        }
+
+                        var menuItem = (MerchantMenuItem) pursuitId;
+                        var merchant = (Merchant) wobj;
+                        MerchantMenuHandler handler;
+
+                        if (!merchantMenuHandlers.TryGetValue(menuItem, out handler))
+                        {
+                            Logger.ErrorFormat("{0}: merchant menu item {1} doesn't exist?",
+                            wobj.Name, menuItem);
+                            return;
+                        }
+
+                        if (!merchant.Jobs.HasFlag(handler.RequiredJob))
+                        {
+                            Logger.ErrorFormat("{0}: merchant does not have required job {1}",
+                            wobj.Name, handler.RequiredJob);
+                            return;
+                        }
+
+                        handler.Callback(user, merchant, packet);
                         return;
+                    }
+                    else
+                    {
+                        try
+                        {
+                            pursuit = clickTarget.Pursuits[pursuitId - Constants.DIALOG_SEQUENCE_SHARED];
+                        }
+                        catch
+                        {
+                            Logger.ErrorFormat("{0}: local pursuit {1} doesn't exist?", wobj.Name, pursuitId);
+                            return;
+                        }
                     }
                 }
                 Logger.DebugFormat("{0}: showing initial dialog for Pursuit {1} ({2})",
@@ -2250,7 +1553,6 @@ namespace Hybrasyl
                 Logger.WarnFormat("specified object ID {0} doesn't exist?", objectId);
                 return;
             }
-
         }
 
 
@@ -2263,7 +1565,7 @@ namespace Hybrasyl
                 return;
             }
 
-            var header = packet.ReadDialogHeader();
+            packet.ReadDialogHeader();
             var objectType = packet.ReadByte();
             var objectID = packet.ReadUInt32();
             var pursuitID = packet.ReadUInt16();
@@ -2277,7 +1579,6 @@ namespace Hybrasyl
 
             if (pursuitID == user.DialogState.CurrentPursuitId && pursuitIndex == user.DialogState.CurrentPursuitIndex)
             {
-                // If we get a packet back with the same index and ID, the dialog has been closed.
                 Logger.DebugFormat("Dialog closed, resetting dialog state");
                 user.DialogState.EndDialog();
                 return;
@@ -2294,8 +1595,7 @@ namespace Hybrasyl
 
             if (user.World.Objects.TryGetValue(objectID, out wobj))
             {
-                VisibleObject clickTarget = wobj as VisibleObject;
-                // Was the previous button clicked? Handle that first
+                var clickTarget = wobj as VisibleObject;
                 if (pursuitIndex == user.DialogState.CurrentPursuitIndex - 1)
                 {
                     Logger.DebugFormat("Handling prev: client passed index {0}, current index is {1}",
@@ -2308,11 +1608,9 @@ namespace Hybrasyl
                     }
                 }
 
-                // Is the active dialog an input or options dialog?
-
                 if (user.DialogState.ActiveDialog is OptionsDialog)
                 {
-                    var paramsLength = packet.ReadByte();
+                    packet.ReadByte();
                     var option = packet.ReadByte();
                     var dialog = user.DialogState.ActiveDialog as OptionsDialog;
                     dialog.HandleResponse(user, option, clickTarget);
@@ -2320,13 +1618,11 @@ namespace Hybrasyl
 
                 if (user.DialogState.ActiveDialog is TextDialog)
                 {
-                    var paramsLength = packet.ReadByte();
+                    packet.ReadByte();
                     var response = packet.ReadString8();
                     var dialog = user.DialogState.ActiveDialog as TextDialog;
                     dialog.HandleResponse(user, response, clickTarget);
                 }
-
-                // Did the handling of a response result in our active dialog sequence changing? If so, exit.
 
                 if (user.DialogState.CurrentPursuitId != pursuitID)
                 {
@@ -2356,67 +1652,70 @@ namespace Hybrasyl
         {
             var user = (User) obj;
             var clickType = packet.ReadByte();
-            Rectangle commonViewport = user.GetViewport();
-            // User has clicked an X,Y point
+            user.GetViewport();
+
             if (clickType == 3)
             {
-                var x = (byte) packet.ReadUInt16();
-                var y = (byte) packet.ReadUInt16();
+                var x = (byte)packet.ReadUInt16();
+                var y = (byte)packet.ReadUInt16();
                 var coords = new Tuple<byte, byte>(x, y);
                 Logger.DebugFormat("coordinates were {0}, {1}", x, y);
 
                 if (user.Map.Doors.ContainsKey(coords))
                 {
                     if (user.Map.Doors[coords].Closed)
+                    {
                         user.SendMessage("It's open.", 0x1);
+                    }
                     else
+                    {
                         user.SendMessage("It's closed.", 0x1);
-
+                    }
                     user.Map.ToggleDoors(x, y);
-                }
-                else if (user.Map.Signposts.ContainsKey(coords))
-                {
-                    user.Map.Signposts[coords].OnClick(user);
                 }
                 else
                 {
-                    Logger.DebugFormat("User clicked {0}@{1},{2} but no door/signpost is present",
-                        user.Map.Name, x, y);
-                }
-            }
-
-                // User has clicked on another entity
-            else if (clickType == 1)
-            {
-                var entityId = packet.ReadUInt32();
-                Logger.DebugFormat("User {0} clicked ID {1}: ", user.Name, entityId);
-
-                WorldObject clickTarget = new WorldObject();
-
-                if (user.World.Objects.TryGetValue(entityId, out clickTarget))
-                {
-                    if (clickTarget is User || clickTarget is Merchant)
+                    if (user.Map.Signposts.ContainsKey(coords))
                     {
-                        Type type = clickTarget.GetType();
-                        MethodInfo methodInfo = type.GetMethod("OnClick");
-                        methodInfo.Invoke(clickTarget, new[] {user});
+                        user.Map.Signposts[coords].OnClick(user);
+                    }
+                    else
+                    {
+                        Logger.DebugFormat("User clicked {0}@{1},{2} but no door/signpost is present",
+                        user.Map.Name, x, y);
                     }
                 }
             }
+
             else
             {
-                Logger.DebugFormat("Unsupported clickType {0}", clickType);
-                Logger.DebugFormat("Packet follows:");
-                packet.DumpPacket();
+                if (clickType == 1)
+                {
+                    var entityId = packet.ReadUInt32();
+                    Logger.DebugFormat("User {0} clicked ID {1}: ", user.Name, entityId);
 
+                    var clickTarget = new WorldObject();
+
+                    if (user.World.Objects.TryGetValue(entityId, out clickTarget))
+                    {
+                        if (clickTarget is User || clickTarget is Merchant)
+                        {
+                            var type = clickTarget.GetType();
+                            var methodInfo = type.GetMethod("OnClick");
+                            methodInfo.Invoke(clickTarget, new [] { user });
+                        }
+                    }
+                }
+                else
+                {
+                    Logger.DebugFormat("Unsupported clickType {0}", clickType);
+                }
             }
-
         }
 
         private void PacketHandler_0x44_EquippedItemClick(Object obj, ClientPacket packet)
         {
             var user = (User) obj;
-            // This packet is received when a client unequips an item from the detail (a) screen.
 
             var slot = packet.ReadByte();
 
@@ -2426,7 +1725,6 @@ namespace Hybrasyl
             {
                 Logger.DebugFormat("actually removing item");
                 user.RemoveEquipment(slot);
-                // Add our removed item to our first empty inventory slot
                 Logger.DebugFormat("Player weight is currently {0}", user.CurrentWeight);
                 Logger.DebugFormat("Adding item {0}, count {1} to inventory", item.Name, item.Count);
                 user.AddItem(item);
@@ -2437,14 +1735,11 @@ namespace Hybrasyl
                 Logger.DebugFormat("Ignoring useless click on slot {0}", slot);
                 return;
             }
-
         }
- 
 
         private void PacketHandler_0x45_ByteHeartbeat(object obj, ClientPacket packet)
         {
             var user = (User) obj;
-            // Client sends 0x45 response in the reverse order of what the server sends...
             var byteB = packet.ReadByte();
             var byteA = packet.ReadByte();
 
@@ -2468,18 +1763,23 @@ namespace Hybrasyl
                 {
                     case 0x01:
                         user.BaseStr++;
+                        user.SendSystemMessage("Your muscles harden.");
                         break;
                     case 0x04:
                         user.BaseInt++;
+                        user.SendSystemMessage("You understand more.");
                         break;
                     case 0x08:
                         user.BaseWis++;
+                        user.SendSystemMessage("You feel more in touch.");
                         break;
                     case 0x10:
                         user.BaseCon++;
+                        user.SendSystemMessage("Energy flows into you.");
                         break;
                     case 0x02:
                         user.BaseDex++;
+                        user.SendSystemMessage("You feel more nimble.");
                         break;
                     default:
                         return;
@@ -2488,7 +1788,10 @@ namespace Hybrasyl
                 user.LevelPoints--;
                 user.UpdateAttributes(StatUpdateFlags.Primary);
             }
-
+            else
+            {
+                user.SendSystemMessage("You can't do that.");
+            }
         }
 
         private void PacketHandler_0x4A_Trade(object obj, ClientPacket packet)
@@ -2497,19 +1800,20 @@ namespace Hybrasyl
             var tradeStage = packet.ReadByte();
 
             if (tradeStage == 0 && user.ActiveExchange != null)
+            {
                 return;
-
+            }
             if (tradeStage != 0 && user.ActiveExchange == null)
+            {
                 return;
-
+            }
             if (user.ActiveExchange != null && !user.ActiveExchange.ConditionsValid)
+            {
                 return;
-
+            }
             switch (tradeStage)
             {
                 case 0x00:
-                {
-                    // Starting trade
                     var x0PlayerId = packet.ReadInt32();
 
                     WorldObject target;
@@ -2524,61 +1828,52 @@ namespace Hybrasyl
                                 user.SendMessage("That can't be done right now.", MessageTypes.SYSTEM);
                                 return;
                             }
-                            // Initiate exchange
                             var exchange = new Exchange(user, playerTarget);
                             exchange.StartExchange();
                         }
                     }
-                }
                     break;
                 case 0x01:
-                    // Add item to trade
-                {
-                    // We ignore playerId because we only allow one exchange at a time and we 
-                    // keep track of the participants on both sides
-                    var x1playerId = packet.ReadInt32();
+                    packet.ReadInt32();
+                    packet.ReadInt32();
                     var x1ItemSlot = packet.ReadByte();
                     if (user.Inventory[x1ItemSlot] != null && user.Inventory[x1ItemSlot].Count > 1)
                     {
-                        // Send quantity request
                         user.SendExchangeQuantityPrompt(x1ItemSlot);
                     }
-                    else 
+                    else
+                    {
                         user.ActiveExchange.AddItem(user, x1ItemSlot);
-                }
+                    }
                     break;
                 case 0x02:
-                    // Add item with quantity
-                    var x2PlayerId = packet.ReadInt32();
+                    packet.ReadInt32();
                     var x2ItemSlot = packet.ReadByte();
                     var x2ItemQuantity = packet.ReadByte();
                     user.ActiveExchange.AddItem(user, x2ItemSlot, x2ItemQuantity);
                     break;
                 case 0x03:
-                    // Add gold to trade
-                    var x3PlayerId = packet.ReadInt32();
+                    packet.ReadInt32();
                     var x3GoldQuantity = packet.ReadUInt32();
                     user.ActiveExchange.AddGold(user, x3GoldQuantity);
                     break;
                 case 0x04:
-                    // Cancel trade
                     Logger.Debug("Cancelling trade");
                     user.ActiveExchange.CancelExchange(user);
                     break;
                 case 0x05:
-                    // Confirm trade
                     Logger.Debug("Confirming trade");
                     user.ActiveExchange.ConfirmExchange(user);
                     break;
                 default:
                     return;
-            }   
+            }
         }
 
         private void PacketHandler_0x4F_ProfileTextPortrait(Object obj, ClientPacket packet)
         {
             var user = (User) obj;
-            var totalLength = packet.ReadUInt16();
+            packet.ReadUInt16();
             var portraitLength = packet.ReadUInt16();
             var portraitData = packet.Read(portraitLength);
             var profileText = packet.ReadString16();
@@ -2591,7 +1886,7 @@ namespace Hybrasyl
         {
             var user = (User) obj;
             var serverTick = packet.ReadInt32();
-            var clientTick = packet.ReadInt32(); // Dunno what to do with this right now, so we just store it
+            var clientTick = packet.ReadInt32();
 
             if (!user.IsHeartbeatValid(serverTick, clientTick))
             {
@@ -2623,7 +1918,7 @@ namespace Hybrasyl
             {
                 var x6F = new ServerPacket(0x6F);
                 x6F.WriteBoolean(all);
-                x6F.WriteUInt16((ushort) Metafiles.Count);
+                x6F.WriteUInt16((ushort)Metafiles.Count);
                 foreach (var metafile in Metafiles.Values)
                 {
                     x6F.WriteString8(metafile.Name);
@@ -2642,16 +1937,12 @@ namespace Hybrasyl
                     x6F.WriteBoolean(all);
                     x6F.WriteString8(file.Name);
                     x6F.WriteUInt32(file.Checksum);
-                    x6F.WriteUInt16((ushort) file.Data.Length);
+                    x6F.WriteUInt16((ushort)file.Data.Length);
                     x6F.Write(file.Data);
                     user.Enqueue(x6F);
                 }
             }
         }
-
-        #endregion
-
-        #region Merchant Menu Item Handlers
 
         private void MerchantMenuHandler_MainMenu(User user, Merchant merchant, ClientPacket packet)
         {
@@ -2670,7 +1961,7 @@ namespace Hybrasyl
 
         private void MerchantMenuHandler_BuyItem(User user, Merchant merchant, ClientPacket packet)
         {
-            string name = packet.ReadString8();
+            var name = packet.ReadString8();
 
             if (!merchant.Inventory.ContainsKey(name))
             {
@@ -2686,13 +1977,13 @@ namespace Hybrasyl
                 return;
             }
 
-            if (user.Gold < template.value)
+            if (user.Gold < template.Value)
             {
                 user.ShowMerchantGoBack(merchant, "You do not have enough gold.", MerchantMenuItem.BuyItemMenu);
                 return;
             }
 
-            if (user.CurrentWeight + template.weight > user.MaximumWeight)
+            if (user.CurrentWeight + template.Weight > user.MaximumWeight)
             {
                 user.ShowMerchantGoBack(merchant, "That item is too heavy for you to carry.",
                     MerchantMenuItem.BuyItemMenu);
@@ -2705,9 +1996,9 @@ namespace Hybrasyl
                 return;
             }
 
-            user.RemoveGold((uint) template.value);
+            user.RemoveGold((uint)template.Value);
 
-            var item = CreateItem(template.id);
+            var item = CreateItem(template.Id);
             Insert(item);
             user.AddItem(item);
 
@@ -2717,8 +2008,8 @@ namespace Hybrasyl
 
         private void MerchantMenuHandler_BuyItemWithQuantity(User user, Merchant merchant, ClientPacket packet)
         {
-            string name = packet.ReadString8();
-            string qStr = packet.ReadString8();
+            var name = packet.ReadString8();
+            var qStr = packet.ReadString8();
 
 
             if (!merchant.Inventory.ContainsKey(name))
@@ -2729,8 +2020,10 @@ namespace Hybrasyl
 
             var template = merchant.Inventory[name];
 
-            if (!template.Stackable) return;
-
+            if (!template.Stackable)
+            {
+                return;
+            }
             int quantity;
             if (!int.TryParse(qStr, out quantity) || quantity < 1)
             {
@@ -2738,7 +2031,7 @@ namespace Hybrasyl
                 return;
             }
 
-            uint cost = (uint) (template.value*quantity);
+            var cost = (uint)(template.Value * quantity);
 
             if (user.Gold < cost)
             {
@@ -2746,7 +2039,7 @@ namespace Hybrasyl
                 return;
             }
 
-            if (quantity > template.max_stack)
+            if (quantity > template.Max_stack)
             {
                 user.ShowMerchantGoBack(merchant, string.Format("You cannot hold that many {0}.", name),
                     MerchantMenuItem.BuyItemMenu);
@@ -2755,8 +2048,8 @@ namespace Hybrasyl
 
             if (user.Inventory.Contains(name))
             {
-                byte slot = user.Inventory.SlotOf(name);
-                if (user.Inventory[slot].Count + quantity > template.max_stack)
+                var slot = user.Inventory.SlotOf(name);
+                if (user.Inventory[slot].Count + quantity > template.Max_stack)
                 {
                     user.ShowMerchantGoBack(merchant, string.Format("You cannot hold that many {0}.", name),
                         MerchantMenuItem.BuyItemMenu);
@@ -2772,7 +2065,7 @@ namespace Hybrasyl
                     return;
                 }
 
-                var item = CreateItem(template.id, quantity);
+                var item = CreateItem(template.Id, quantity);
                 Insert(item);
                 user.AddItem(item);
             }
@@ -2784,11 +2077,13 @@ namespace Hybrasyl
 
         private void MerchantMenuHandler_SellItem(User user, Merchant merchant, ClientPacket packet)
         {
-            byte slot = packet.ReadByte();
+            var slot = packet.ReadByte();
 
             var item = user.Inventory[slot];
-            if (item == null) return;
-
+            if (item == null)
+            {
+                return;
+            }
             if (!merchant.Inventory.ContainsKey(item.Name))
             {
                 user.ShowMerchantGoBack(merchant, "I do not want that item.", MerchantMenuItem.SellItemMenu);
@@ -2807,8 +2102,8 @@ namespace Hybrasyl
         private void MerchantMenuHandler_SellItemWithQuantity(User user, Merchant merchant, ClientPacket packet)
         {
             packet.ReadByte();
-            byte slot = packet.ReadByte();
-            string qStr = packet.ReadString8();
+            var slot = packet.ReadByte();
+            var qStr = packet.ReadString8();
 
             int quantity;
             if (!int.TryParse(qStr, out quantity) || quantity < 1)
@@ -2818,8 +2113,10 @@ namespace Hybrasyl
             }
 
             var item = user.Inventory[slot];
-            if (item == null || !item.Stackable) return;
-
+            if (item == null || !item.Stackable)
+            {
+                return;
+            }
             if (!merchant.Inventory.ContainsKey(item.Name))
             {
                 user.ShowMerchantGoBack(merchant, "I do not want that item.", MerchantMenuItem.SellItemMenu);
@@ -2838,12 +2135,14 @@ namespace Hybrasyl
         private void MerchantMenuHandler_SellItemConfirmation(User user, Merchant merchant, ClientPacket packet)
         {
             packet.ReadByte();
-            byte slot = packet.ReadByte();
-            byte quantity = packet.ReadByte();
+            var slot = packet.ReadByte();
+            var quantity = packet.ReadByte();
 
             var item = user.Inventory[slot];
-            if (item == null) return;
-
+            if (item == null)
+            {
+                return;
+            }
             if (!merchant.Inventory.ContainsKey(item.Name))
             {
                 user.ShowMerchantGoBack(merchant, "I do not want that item.", MerchantMenuItem.SellItemMenu);
@@ -2856,18 +2155,20 @@ namespace Hybrasyl
                 return;
             }
 
-            uint profit = (uint) (Math.Round(item.Value*0.50)*quantity);
+            var profit = (uint)(Math.Round(item.Value * 0.50) * quantity);
 
             if (item.Stackable && quantity < item.Count)
+            {
                 user.DecreaseItem(slot, quantity);
-            else user.RemoveItem(slot);
-
+            }
+            else
+            {
+                user.RemoveItem(slot);
+            }
             user.AddGold(profit);
 
             merchant.DisplayPursuits(user);
         }
-
-        #endregion
 
         public void Insert(WorldObject obj)
         {
@@ -2883,12 +2184,6 @@ namespace Hybrasyl
 
             if (obj is Item)
             {
-                var itemscript = Game.World.ScriptProcessor.GetScript(obj.Name);
-                if (itemscript != null)
-                {
-                    var clone = itemscript.Clone();
-                    itemscript.AssociateScriptWithObject(obj);
-                }
             }
 
             Objects.Add(worldObjectID, obj);
@@ -2907,7 +2202,15 @@ namespace Hybrasyl
 
         public void Update()
         {
+            while (true)
+            {
+                var delta = (DateTime.Now - this.lastUpdate);
 
+                this.Update(delta);
+                this.lastUpdate = DateTime.Now;
+
+                Thread.Sleep(this.UpdateSpan);
+            }
         }
 
         public Item CreateItem(int id, int quantity = 1)
@@ -2916,7 +2219,9 @@ namespace Hybrasyl
             {
                 var item = new Item(id, this);
                 if (quantity > item.MaximumStack)
+                {
                     quantity = item.MaximumStack;
+                }
                 item.Count = Math.Max(quantity, 1);
                 return item;
             }
@@ -2926,40 +2231,25 @@ namespace Hybrasyl
             }
         }
 
-        public bool TryGetItemTemplate(string name, Sex itemSex, out item item)
+        public bool TryGetItemTemplate(string name, Sex itemSex, out items item)
         {
             var itemKey = new Tuple<Sex, String>(itemSex, name);
             return ItemCatalog.TryGetValue(itemKey, out item);
         }
 
-        public bool TryGetItemTemplate(string name, out item item)
+        public bool TryGetItemTemplate(string name, out items item)
         {
-            // This is kinda gross
             var neutralKey = new Tuple<Sex, String>(Sex.Neutral, name);
             var femaleKey = new Tuple<Sex, String>(Sex.Female, name);
             var maleKey = new Tuple<Sex, String>(Sex.Male, name);
-            
             return ItemCatalog.TryGetValue(neutralKey, out item) || ItemCatalog.TryGetValue(femaleKey, out item) || ItemCatalog.TryGetValue(maleKey, out item);
         }
 
-        public object ScriptMethod(string name, params object[] args)
-        {
-            object result = null;
-
-            if (Methods.ContainsKey(name))
-            {
-                var method = Methods[name];
-                result = method.Invoke(null, args);
-            }
-
-            return result;
-        }
 
         private void QueueConsumer()
         {
-            while (!MessageQueue.IsCompleted) 
+            while (!MessageQueue.IsCompleted)
             {
-                // Process messages.
                 HybrasylMessage message;
                 User user;
                 try
@@ -2979,28 +2269,29 @@ namespace Hybrasyl
                         var clientMessage = (HybrasylClientMessage) message;
                         var handler = PacketHandlers[clientMessage.Packet.Opcode];
                         try
-                        {                            
+                        {
                             if (ActiveUsers.TryGetValue(clientMessage.ConnectionId, out user))
                             {
-                                // If we are in an exchange, we should only receive exchange packets and the
-                                // occasional heartbeat. If we receive anything else, just kill the exchange.
                                 if (user.ActiveExchange != null && (clientMessage.Packet.Opcode != 0x4a &&
-                                    clientMessage.Packet.Opcode != 0x45 && clientMessage.Packet.Opcode != 0x75)) 
+                                    clientMessage.Packet.Opcode != 0x45 && clientMessage.Packet.Opcode != 0x75))
+                                {
                                     user.ActiveExchange.CancelExchange(user);
-
+                                }
                                 handler.Invoke(user, clientMessage.Packet);
-                            }
-                            else if (clientMessage.Packet.Opcode == 0x10) // Handle special case of join world
-                            {
-                                PacketHandlers[0x10].Invoke(clientMessage.ConnectionId, clientMessage.Packet);
                             }
                             else
                             {
-                                // We received a packet for a dead connection...?
-                                Logger.WarnFormat(
+                                if (clientMessage.Packet.Opcode == 0x10)
+                                {
+                                    PacketHandlers[0x10].Invoke(clientMessage.ConnectionId, clientMessage.Packet);
+                                }
+                                else
+                                {
+                                    Logger.WarnFormat(
                                     "Connection ID {0}: received packet, but seems to be dead connection?",
                                     clientMessage.ConnectionId);
-                                continue;
+                                    continue;
+                                }
                             }
                         }
                         catch (Exception e)
@@ -3008,18 +2299,13 @@ namespace Hybrasyl
                             Logger.Error("Exception encountered in packet handler!", e);
                         }
                     }
-                    else if (message is HybrasylControlMessage)
+                    else
                     {
-                        //   try
-                        // {
-
-                        var controlMessage = (HybrasylControlMessage) message;
-                        ControlMessageHandlers[controlMessage.Opcode].Invoke(controlMessage);
-                        //}
-                        //catch (Exception e)
-                        // {
-                        //   Logger.Error("Exception encountered in control message handler!", e);
-                        //}
+                        if (message is HybrasylControlMessage)
+                        {
+                            var controlMessage = (HybrasylControlMessage) message;
+                            ControlMessageHandlers[controlMessage.Opcode].Invoke(controlMessage);
+                        }
                     }
                 }
             }
@@ -3028,20 +2314,20 @@ namespace Hybrasyl
 
         public void StartQueueConsumer()
         {
-            // Start our consumer 
             ConsumerThread = new Thread(QueueConsumer);
-            if (ConsumerThread.IsAlive) return;
+            if (ConsumerThread.IsAlive)
+            {
+                return;
+            }
             ConsumerThread.Start();
             Logger.InfoFormat("Consumer thread: started");
         }
 
         public void StopQueueConsumer()
         {
-            // Mark the message queue as not accepting additions, which will result in thread termination
             MessageQueue.CompleteAdding();
         }
 
-  
         public void StartTimers()
         {
             var jobList =
@@ -3055,7 +2341,6 @@ namespace Hybrasyl
                     var aTimer = new System.Timers.Timer();
                     aTimer.Elapsed +=
                         (ElapsedEventHandler) Delegate.CreateDelegate(typeof (ElapsedEventHandler), executeMethod);
-                    // Interval is set to whatever is in the class
                     var interval = jobClass.GetField("Interval").GetValue(null);
 
                     if (interval == null)
@@ -3064,7 +2349,7 @@ namespace Hybrasyl
                         continue;
                     }
 
-                    aTimer.Interval = ((int) interval)*1000; // Interval is in ms; interval in Job classes is s
+                    aTimer.Interval = ((int) interval) * 1000;
 
                     Logger.InfoFormat("Hybrasyl: timer loaded for job {0}: interval {1}", jobClass.Name, aTimer.Interval);
                     aTimer.Enabled = true;
@@ -3076,5 +2361,13 @@ namespace Hybrasyl
                 }
             }
         }
+
+        public ConcurrentBag<GameServerComponent> Components { get; set; }
+
+        public TimeSpan UpdateSpan { get; set; }
+
+        public DateTime lastUpdate { get; set; }
+
+        public bool isRunning { get; set; }
     }
 }
