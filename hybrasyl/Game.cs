@@ -1,4 +1,6 @@
-﻿/*
+﻿//#define WINDOWS
+
+/*
  * This file is part of Project Hybrasyl.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -76,7 +78,7 @@ namespace Hybrasyl
         public static void Main(string[] args)
         {
             // Make our window nice and big
-            Console.SetWindowSize(140, 36);
+			Console.SetWindowSize(140, 36);
             LogLevel = Hybrasyl.Constants.DEFAULT_LOG_LEVEL;
             XDocument config;
             Assemblyinfo = new AssemblyInfo(Assembly.GetEntryAssembly());
@@ -181,8 +183,9 @@ namespace Hybrasyl
             }
 
             // Set console buffer, so we can scroll back a bunch
-            Console.BufferHeight = Int16.MaxValue - 1;
-
+#if WINDOWS
+			Console.BufferHeight = Int16.MaxValue - 1;
+#endif
             Logger.InfoFormat("Hybrasyl {0} starting.", Assemblyinfo.Version);
             Logger.InfoFormat("{0} - this program is licensed under the GNU AGPL, version 3.", Assemblyinfo.Copyright);
 
