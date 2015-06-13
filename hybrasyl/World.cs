@@ -133,9 +133,11 @@ namespace Hybrasyl
 
         private void LoadReactors()
         {
+
             using (var ctx = new hybrasylEntities(Constants.ConnectionString))
             {
-                foreach (var reactor in ctx.reactors)
+				Console.Write (Constants.ConnectionString);
+				foreach (var reactor in ctx.reactors)
                 {
                     Map map;
                     if (Maps.TryGetValue((ushort)reactor.map_id, out map))
