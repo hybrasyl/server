@@ -19,7 +19,7 @@ The **data server** maintains all game metadata and state, including registered 
 If you can connect to the **data server** from the **Hybrasyl server** and retrieve a list of [[something once content is in there]], your data server is in good shape.
 
 ## Hybrasyl server
-The **Hybrasyl server** is a bit more involved and requires compiling both Hybrasyl server and launcher code from scratch.
+The **Hybrasyl server** is a bit more involved and requires compiling both Hybrasyl server and (potentially) launcher code from scratch.
 
 1. Install [Microsoft Visual Studio](https://www.visualstudio.com/en-us/downloads/visual-studio-2015-downloads-vs.aspx). The Community Edition is free and capable of compiling both projects.
 2. Clone both the [launcher](https://github.com/hybrasyl/launcher) and [server](https://github.com/hybrasyl/server) repositories to your local machine using a [git client](https://git-scm.com/downloads/guis). Make sure you clone them into separate directories.
