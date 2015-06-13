@@ -12,8 +12,8 @@ This document will refer to the machine running the Hybrasyl server and launcher
 ## Data server
 The **data server** maintains all game metadata and state, including registered character names, mobs, towns, spawn points, and a bunch of other game-related data. The Hybrasyl server retrieves game data from the MySQL server at runtime; you can also use [Ealagad](https://github.com/hybrasyl/ealagad) as a Hybrasyl-specific administration interface once the base server is configured.
 
-1. Instructions should be readily available for installing the latest MySQL server on your operating system of choice ([Windows and Mac OS installer](https://dev.mysql.com/downloads/installer/), [Ubuntu](https://help.ubuntu.com/12.04/serverguide/mysql.html)). Install the server and ensure that you can connect to it from the **Hybrasyl server**; this may require you to grant access to additional hosts.
-2. Import the [schema](https://github.com/hybrasyl/server/blob/master/schema.sql) from this repository, which will establish two tables: dev_hybrasyl and hybrasyl.
+1. Instructions should be readily available for installing the latest MySQL server on your operating system of choice ([Windows and Mac OS installer](https://dev.mysql.com/downloads/installer/), [Ubuntu](https://help.ubuntu.com/12.04/serverguide/mysql.html)). Install the server and ensure that you can connect to it from the **Hybrasyl server**; this may require you to grant other hosts access to your MySQL server process.
+2. Import the [schema](https://github.com/hybrasyl/server/blob/master/schema.sql) from this repository, which will create two databases: dev_hybrasyl and hybrasyl.
 3. [[somehow get content in there - pending resolution of  [issue #1](https://github.com/hybrasyl/server/issues/1)]]
 
 If you can connect to the **data server** from the **Hybrasyl server** and retrieve a list of [[something once content is in there]], your data server is in good shape.
@@ -28,5 +28,7 @@ The **Hybrasyl server** is a bit more involved and requires compiling both Hybra
   - Note that you may get an error about an invalid ADO.NET MySQL connector. In my experience the build still completes without issues.
 5. Run Hybrasyl.exe either from within Visual Studio or as a standalone executable in the hybrasyl/bin/Debug folder of your git repository. This should launch the server and run you through a first-launch configuration wizard. Here's you'll need to point the **Hybrasyl server** to the **data server**; make sure you provide the right hostname and also use the *dev_hybrasyl* database (not *hybrasyl*, even though both will exist).
     - Note that you can change these settings later by editing *config.xml* in *My Documents/Hybrasyl/*.
-6. That completes Hybrasyl server setup. As far as I can tell, you should be able to use the [released version of the launcher](https://www.hybrasyl.com/releases) but I had trouble getting it to connect; feel free to try that and only use the next step if required.
-7. In order to set up the launcher, open *Hy-brasyl Launcher.sln* and build the project. Launch the executable and select *localhost* from server configuration. You should now be able to connect to your Hybrasyl server, create a new character, and log in!
+
+That completes Hybrasyl server setup. As far as I can tell, you should be able to use the [released version of the launcher](https://www.hybrasyl.com/releases) but I had trouble getting it to connect; feel free to try that and only use the next step if required. 
+
+In case you have trouble with the latest launcher, open *Hy-brasyl Launcher.sln* and build the project. Launch the executable and select *localhost* from server configuration. You should now be able to connect to your Hybrasyl server, create a new character, and log in!
