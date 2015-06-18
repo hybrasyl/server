@@ -1,6 +1,4 @@
-﻿//#define WINDOWS
-
-/*
+﻿/*
  * This file is part of Project Hybrasyl.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -183,9 +181,8 @@ namespace Hybrasyl
             }
 
             // Set console buffer, so we can scroll back a bunch
-#if WINDOWS
 			Console.BufferHeight = Int16.MaxValue - 1;
-#endif
+
             Logger.InfoFormat("Hybrasyl {0} starting.", Assemblyinfo.Version);
             Logger.InfoFormat("{0} - this program is licensed under the GNU AGPL, version 3.", Assemblyinfo.Copyright);
 

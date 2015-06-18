@@ -269,7 +269,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>cp "$(ProjectDir)Log4Net.config" "$(ProjectDir)$(OutDir)"</PostBuildEvent>
+    <PostBuildEvent>copy "$(ProjectDir)Log4Net.config" "$(ProjectDir)$(OutDir)"</PostBuildEvent>
   </PropertyGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
