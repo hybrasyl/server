@@ -76,7 +76,7 @@ namespace Hybrasyl
         public static void Main(string[] args)
         {
             // Make our window nice and big
-			Console.SetWindowSize(140, 36);
+            Console.SetWindowSize(140, 36);
             LogLevel = Hybrasyl.Constants.DEFAULT_LOG_LEVEL;
             XDocument config;
             Assemblyinfo = new AssemblyInfo(Assembly.GetEntryAssembly());
@@ -180,8 +180,8 @@ namespace Hybrasyl
                 config.Save(Path.Combine(Constants.DataDirectory, "config.xml"));
             }
 
-            // Set console buffer, so we can scroll back a bunch
-			Console.BufferHeight = Int16.MaxValue - 1;
+            // Set console buffer, so we can scroll back a bunch 
+            Console.BufferHeight = Int16.MaxValue - 1;
 
             Logger.InfoFormat("Hybrasyl {0} starting.", Assemblyinfo.Version);
             Logger.InfoFormat("{0} - this program is licensed under the GNU AGPL, version 3.", Assemblyinfo.Copyright);
