@@ -340,7 +340,6 @@ __builtins__.raw_input = None
             var paths = Engine.GetSearchPaths();
             // FIXME: obvious
             paths.Add(@"C:\Program Files (x86)\IronPython 2.7\Lib");
-			paths.Add(@"/usr/lib/python2.7");
             Engine.SetSearchPaths(paths);
             Engine.ImportModule("random");
 
