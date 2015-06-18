@@ -352,7 +352,8 @@ namespace Hybrasyl
 
         public int Size { get; private set; }
         public int Count { get; private set; }
-        public ushort Weight { get; private set; }
+        // Items can have negative weights (see https://hybrasyl.atlassian.net/browse/SERVER-69).
+        public int Weight { get; private set; }
 
         #region Equipment Properties
 
@@ -610,6 +611,7 @@ namespace Hybrasyl
             _items[index] = item;
             Count += 1;
             Weight += item.Weight;
+            
             _AddToIndex(item);
             return true;
         }
@@ -623,6 +625,7 @@ namespace Hybrasyl
             _items[index] = null;
             Count -= 1;
             Weight -= item.Weight;
+            
             _RemoveFromIndex(item);
             return true;
         }
