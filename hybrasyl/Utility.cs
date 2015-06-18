@@ -232,7 +232,7 @@ namespace Hybrasyl
         public const int VARIANT_ID_START = 100000;
         public const int DEFAULT_LOG_LEVEL = Hybrasyl.LogLevels.INFO;
         public const string EF_METADATA = "metadata=res://*/Properties.Hybrasyl.csdl|res://*/Properties.Hybrasyl.ssdl|res://*/Properties.Hybrasyl.msl;provider=MySql.Data.MySqlClient;";
-		public const string EF_CONNSTRING_TEMPLATE = @"provider connection string=""server={0};user id={1};password={2};convertzerodatetime=true;allowzerodatetime=true;persist security info=True;database={3}""";
+        public const string EF_CONNSTRING_TEMPLATE = @"provider connection string=""server={0};user id={1};password={2};convertzerodatetime=true;allowzerodatetime=true;persist security info=True;database={3}""";
 
         public static string DataDirectory;
         public static string ConnectionString;

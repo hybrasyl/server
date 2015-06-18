@@ -136,7 +136,6 @@ namespace Hybrasyl
 
             using (var ctx = new hybrasylEntities(Constants.ConnectionString))
             {
-				Console.Write (Constants.ConnectionString);
 				foreach (var reactor in ctx.reactors)
                 {
                     Map map;
