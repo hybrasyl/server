@@ -26,7 +26,7 @@ The **Hybrasyl server** is a bit more involved and requires compiling both Hybra
 1. Install [Microsoft Visual Studio](https://www.visualstudio.com/en-us/downloads/visual-studio-2015-downloads-vs.aspx). The Community Edition is free and capable of compiling both projects.
 2. Clone both the [launcher](https://github.com/hybrasyl/launcher) and [server](https://github.com/hybrasyl/server) repositories to your local machine using a [git client](https://git-scm.com/downloads/guis). Make sure you clone them into separate directories.
 3. Copy `lod136.map` and `lod500.map` from your Dark Ages directory (or an online archive) into `My Documents\Hybrasyl\Maps`. Create the directory if it doesn't exist.
-4. Open *Hybrasyl.sln* in Visual Studio and update all NuGet packages.
+4. Open `Hybrasyl.sln` in Visual Studio and update all NuGet packages.
 5. Build Hybrasyl. The default settings should be adequate for most system setups, assuming you've updated and installed all NuGet packages (which is supposed to happen automatically but sometimes has issues).
   - Note that you may get an error about an invalid ADO.NET MySQL connector. In my experience the build still completes without issues.
 6. Run Hybrasyl.exe either from within Visual Studio or as a standalone executable in the `hybrasyl\bin\Debug` folder of your git repository. This should launch the server and run you through a first-launch configuration wizard. Here's you'll need to point the **Hybrasyl server** to the **data server**; make sure you provide the right hostname and also use the `dev_hybrasyl` database (not `hybrasyl`, even though both will exist).
@@ -42,10 +42,10 @@ Create a character and log in the same way you would on a production server. You
 
 ## Testing tips and other notable resources
 
-* There are a number of admin flags that can be used for common tasks like creating items, teleporting, or changing level and class. Certain flags, including `/item` require that you be registered as a game master. The fastest way to configure this is to add a record in the `flags_players` table that contains the player ID (which you can find in the `players` table) and the flag ID (which should be `0` in the case of the game master flag).
+* There are a number of admin flags that can be used for common tasks like creating items, teleporting, or changing level and class. Certain flags require that you be registered as a game master. The fastest way to configure this is to add a record in the `flags_players` table that contains the player ID (which you can find in the `players` table) and the flag ID (which should be `0` in the case of the game master flag).
 
-* Some of them require admin-level access to the *Hybrasyl server*. Try typing `/item Shirt 1` when you log in to add a shirt to your inventory. You can add any item that's in the `item` table of your `dev_hybrasyl` database.
+* Some flags require admin-level access to the *Hybrasyl server*. Try typing `/item Shirt 1` when you log in to add a shirt to your inventory. You can add any item that's in the `item` table of your `dev_hybrasyl` database.
 
 * Warps are links between locations on the map. You can add or remove warps in the `warps` table.
 
-* You can also add new items by modifying the `items` table. There are a couple of sample items included in `seed.sql` that should provide good models to follow.
+* You can add new items by modifying the `items` table. There are a couple of sample items included in `seed.sql` that should provide good models to follow.
