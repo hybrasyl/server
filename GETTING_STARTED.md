@@ -47,3 +47,5 @@ Create a character and log in the same way you would on a production server. You
 * Some of them require admin-level access to the *Hybrasyl server*. Try typing `/item Shirt 1` when you log in to add a shirt to your inventory. You can add any item that's in the `item` table of your `dev_hybrasyl` database.
 
 * Warps are links between locations on the map. You can add or remove warps in the `warps` table.
+
+* You can also add new items by modifying the `items` table. There are a couple of sample items included in `seed.sql` that should provide good models to follow.
