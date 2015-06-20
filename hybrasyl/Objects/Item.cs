@@ -76,8 +76,6 @@ namespace Hybrasyl.Objects
                 return false;
             }
 
-            // TODO(luke-segars): Should check whether it weighs too much.
-
             return true;
         }
 
