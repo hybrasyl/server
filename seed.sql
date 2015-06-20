@@ -1,6 +1,6 @@
---
--- Seed the database with a few test maps, warps and items.
---
+-- Seed the database with a few test maps, warps and items. The content added here
+-- should be enough to allow a new user to log in and understand some of the basic
+-- functionality of Hybrasyl.
 
 INSERT INTO maps VALUES('500', '100', '100', 'Test Village', 0, NOW(), NOW(), NULL);
 INSERT INTO maps VALUES('136', '12', '12', 'Test Inn', '0', NOW(), NOW(), NULL);
@@ -46,3 +46,15 @@ INSERT INTO warps VALUES('8', '28', '43', '6', '10', '99', '1', '0', '0', '500',
 NOW(), NOW());
 INSERT INTO warps VALUES('9', '32', '38', '10', '2', '99', '1', '0', '0', '500', '136',
 NOW(), NOW());
+
+-- Add a nation named "Mileth", which is required as the default nationality of new Aislings. 
+INSERT INTO nations VALUES(NULL, '0', 'Mileth', 'Starting town', NOW(), NOW());
+
+-- Add a spawn point; this is where the user will appear when logging in for the first time.
+-- Dynamically pulls the ID of the starting nation since this SQL script may not be imported
+-- before anything else is added (can't assume it's ID will be 0).
+INSERT INTO spawn_points VALUES(NULL, '136', '5', '5', NOW(), NOW(), (SELECT id FROM nations where name = 'Mileth' LIMIT 1));
+
+-- Add a flag that can be attached to players to make them admins. This flag is recognized by
+-- the Hybrasyl binary.
+INSERT INTO flags VALUES(NULL, 'gamemaster', 'Admins', NOW(), NOW()); 
