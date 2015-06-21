@@ -180,7 +180,7 @@ namespace Hybrasyl
                 config.Save(Path.Combine(Constants.DataDirectory, "config.xml"));
             }
 
-            // Set console buffer, so we can scroll back a bunch 
+            // Set console buffer, so we can scroll back a bunch
             Console.BufferHeight = Int16.MaxValue - 1;
 
             Logger.InfoFormat("Hybrasyl {0} starting.", Assemblyinfo.Version);
