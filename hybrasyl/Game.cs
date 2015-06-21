@@ -1,6 +1,4 @@
-﻿//#define WINDOWS
-
-/*
+﻿/*
  * This file is part of Project Hybrasyl.
  *
  * This program is free software; you can redistribute it and/or modify
