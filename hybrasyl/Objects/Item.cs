@@ -116,9 +116,9 @@ namespace Hybrasyl.Objects
         {
             get { return (byte)Template.equip_slot; }
         }
-        public ushort Weight
+        public int Weight
         {
-            get { return (ushort)Template.weight; }
+            get { return Template.weight; }
         }
         public int MaximumStack
         {
