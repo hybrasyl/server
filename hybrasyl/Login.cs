@@ -259,7 +259,7 @@ namespace Hybrasyl
                 if (player == null)
                 {
                     // TODO(luke-segars): I'm not sure what the `type` param means. Dig into that.
-                    client.LoginMessage("No character with that name exists.", 3);
+                    client.LoginMessage("That character does not exist.", 3);
                 }
                 // If the player does exist, validate the current and new passwords before updating.
                 else
@@ -278,7 +278,8 @@ namespace Hybrasyl
                                 ctx.SaveChanges();
 
                                 // Let the user know the good news.
-                                client.LoginMessage("Password change successful!", 3);
+                                client.LoginMessage("Your password has been changed successfully.", 3);
+                                Logger.DebugFormat("Player {0} changed their password", name);
                             }
                             else
                             {
@@ -287,6 +288,8 @@ namespace Hybrasyl
                         }
                         else
                         {
+                            // An additional check that doesn't exist in the original servers ensures that you're
+                            // actually changing your password to something different than your current password.
                             client.LoginMessage("Your new password must be different than your old password.", 3);
                         }
                     }
@@ -295,12 +298,7 @@ namespace Hybrasyl
                     {
                         client.LoginMessage("Incorrect password.", 3);
                     }
-
-                    Logger.DebugFormat("Player {0} changing password", name);
                 }
-                // Check that `currentPass` is their current password.
-                // Check that `currentPass` and `newPass` aren't the same.
-                // Store `newPass`
             }
         }
         
