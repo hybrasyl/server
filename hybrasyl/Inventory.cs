@@ -352,7 +352,7 @@ namespace Hybrasyl
 
         public int Size { get; private set; }
         public int Count { get; private set; }
-        public ushort Weight { get; private set; }
+        public int Weight { get; private set; }
 
         #region Equipment Properties
 
@@ -611,6 +611,7 @@ namespace Hybrasyl
             Count += 1;
             Weight += item.Weight;
             _AddToIndex(item);
+
             return true;
         }
 
@@ -624,6 +625,7 @@ namespace Hybrasyl
             Count -= 1;
             Weight -= item.Weight;
             _RemoveFromIndex(item);
+
             return true;
         }
 
