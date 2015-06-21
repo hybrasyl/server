@@ -275,7 +275,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>cp "$(ProjectDir)Log4Net.config" "$(ProjectDir)$(OutDir)"</PostBuildEvent>
+    <PostBuildEvent>copy "$(ProjectDir)Log4Net.config" "$(ProjectDir)$(OutDir)"</PostBuildEvent>
   </PropertyGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
@@ -284,7 +284,7 @@
     <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
   </Target>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
-  <Import Project="packages\Fody.1.29.0-beta01\build\Fody.targets" Condition="Exists('packages\Fody.1.29.0-beta01\build\Fody.targets')" />
+  <Import Project="packages\Fody.1.25.0\build\Fody.targets" Condition="Exists('packages\Fody.1.25.0\build\Fody.targets')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
