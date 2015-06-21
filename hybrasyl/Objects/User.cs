@@ -219,9 +219,24 @@ namespace Hybrasyl.Objects
             }
         }
 
-        public ushort CurrentWeight
+        /**
+         * Returns the current weight as perceived by the client. The actual inventory or equipment
+         * weight may be less than zero, but this method will never return a negative value (negative
+         * values will appear as zero as the client expects).
+         */
+	public ushort VisibleWeight
+	{
+	    get { return (ushort)Math.Max(0, CurrentWeight); }
+	}
+
+        /**
+         * Returns the true weight of the user's inventory + equipment, which could be negative.
+         * Note that you should use VisibleWeight when communicating with the client since negative
+         * weights should be invisible to users.
+         */
+        public int CurrentWeight
         {
-            get { return (ushort) (Inventory.Weight + Equipment.Weight); }
+            get { return (Inventory.Weight + Equipment.Weight); }
         }
 
         public ushort MaximumWeight
@@ -955,7 +970,7 @@ namespace Hybrasyl.Objects
                     x08.WriteByte(0);
                 }
                 x08.WriteUInt16(MaximumWeight);
-                x08.WriteUInt16(CurrentWeight);
+                x08.WriteUInt16(VisibleWeight);
                 x08.WriteUInt32(uint.MinValue);
             }
             if (flags.HasFlag(StatUpdateFlags.Current))
