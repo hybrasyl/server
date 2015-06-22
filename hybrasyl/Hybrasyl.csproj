@@ -259,11 +259,21 @@
       <LastGenOutput>Hybrasyl.cs</LastGenOutput>
       <DependentUpon>Hybrasyl.edmx</DependentUpon>
     </None>
+    <None Include="Resources\hybrasylTypes.xsd">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="Resources\Map.xsd">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="Resources\sotp.dat" />
+    <None Include="Resources\Worldmap.xsd">
+      <SubType>Designer</SubType>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Content Include="FodyWeavers.xml" />
     <Content Include="hybrasyl.ico" />
+    <Content Include="Properties\NuGet.exe" />
   </ItemGroup>
   <ItemGroup>
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />

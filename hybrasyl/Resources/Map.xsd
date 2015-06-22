@@ -47,6 +47,12 @@
                 <xs:attribute name="max" type="hyb:Byte" default="255" />
               </xs:complexType>
             </xs:element>
+            <xs:element name="ab" minOccurs="0" maxOccurs="1">
+              <xs:complexType>
+                <xs:attribute name="min" type="hyb:Byte" default="0" />
+                <xs:attribute name="max" type="hyb:Byte" default="255" />
+              </xs:complexType>
+            </xs:element>
             <xs:element name="noMobUse" minOccurs="0" maxOccurs="1" />
           </xs:sequence>
           </xs:complexType>

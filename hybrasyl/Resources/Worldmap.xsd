@@ -1,0 +1,59 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<xs:schema xmlns:hyb="http://www.hybrasyl.com/XML/HybrasylCommon"
+           xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:wmaps="http://www.hybrasyl.com/XML/WMap"
+           targetNamespace="http://www.hybrasyl.com/XML/WMap"
+           elementFormDefault="unqualified">
+
+  <xs:annotation>
+    <xs:documentation xml:lang="en">
+      Hybrasyl Project - Hybrasyl XML Schema
+      This file is subject to the same licenses as Project Hybrasyl.
+      (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+    </xs:documentation>
+  </xs:annotation>
+
+  <xs:import schemaLocation="hybrasylTypes.xsd" namespace="http://www.hybrasyl.com/XML/HybrasylCommon" />
+
+  <!-- Worldmap point type-->
+  <xs:complexType name="WorldmapPointType">
+    <xs:sequence>
+      <xs:element name="point">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="comment" minOccurs="0" maxOccurs="1" type="hyb:String8" />
+            <xs:element name="name" minOccurs="1" maxOccurs="1" type="hyb:String8" />
+            <xs:element name="target" minOccurs="1" maxOccurs="1">
+              <xs:complexType>
+                <xs:simpleContent>
+                  <xs:extension base="hyb:String8">
+                    <xs:attribute name="x" type="hyb:Byte" use="required"/>
+                    <xs:attribute name="y" type="hyb:Byte" use="required"/>
+                  </xs:extension>
+                </xs:simpleContent>
+              </xs:complexType>
+            </xs:element>
+            <xs:element name="restrictions" minOccurs="1" maxOccurs="1" type="hyb:WarpRestrictionsType" />
+        </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>      
+  </xs:complexType>
+  
+  <!-- Worldmap points -->
+  <xs:complexType name="WorldmapPointsType">
+    <xs:sequence>
+      <xs:element name="npc" type="wmaps:WorldmapPointType" minOccurs="1" maxOccurs="unbounded" />
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="WorldmapType">
+    <xs:sequence>
+      <xs:element name="name" minOccurs="1" maxOccurs="1" type="hyb:String8"/>
+      <xs:element name="comment" type="hyb:String16" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="points" type="wmaps:WorldmapPointsType" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+    <xs:attribute name="clientmap" type="hyb:String8" use="required" />
+  </xs:complexType>
+</xs:schema>
