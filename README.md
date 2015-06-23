@@ -1,5 +1,5 @@
 =======
-# Hybrasyl server
+# Hybrasyl Server
 
 [![Build status](https://ci.appveyor.com/api/projects/status/qx1g0etqkhlt1qw3/branch/master?svg=true)](https://ci.appveyor.com/project/Hybrasyl/server/branch/master)
 
@@ -27,12 +27,13 @@ If you can connect to the **data server** from the **Hybrasyl server** and retri
 The **Hybrasyl server** is a bit more involved and requires compiling both Hybrasyl server and (potentially) launcher code from scratch.
 
 1. Install [Microsoft Visual Studio](https://www.visualstudio.com/en-us/downloads/visual-studio-2015-downloads-vs.aspx). The Community Edition is free and capable of compiling both projects.
-2. Clone both the [launcher](https://github.com/hybrasyl/launcher) and [server](https://github.com/hybrasyl/server) repositories to your local machine using a [git client](https://git-scm.com/downloads/guis). Make sure you clone them into separate directories.
-3. Copy `lod136.map` and `lod500.map` from your Dark Ages directory (or an online archive) into `My Documents\Hybrasyl\Maps`. Create the directory if it doesn't exist.
-4. Open `Hybrasyl.sln` in Visual Studio and update all NuGet packages.
-5. Build Hybrasyl. The default settings should be adequate for most system setups, assuming you've updated and installed all NuGet packages (which is supposed to happen automatically but sometimes has issues).
+2. Install [IronPython](http://ironpython.codeplex.com/downloads/get/970325). Hybrasyl currently uses Python for all of its scripting.
+3. Clone both the [launcher](https://github.com/hybrasyl/launcher) and [server](https://github.com/hybrasyl/server) repositories to your local machine using a [git client](https://git-scm.com/downloads/guis). Make sure you clone them into separate directories.
+4. Copy `lod136.map` and `lod500.map` from your Dark Ages directory (or an online archive) into `My Documents\Hybrasyl\Maps`. Create the directory if it doesn't exist.
+5. Open `Hybrasyl.sln` in Visual Studio and update all NuGet packages.
+6. Build Hybrasyl. The default settings should be adequate for most system setups, assuming you've updated and installed all NuGet packages (which is supposed to happen automatically but sometimes has issues).
   - Note that you may get an error about an invalid ADO.NET MySQL connector. In my experience the build still completes without issues.
-6. Run Hybrasyl.exe either from within Visual Studio or as a standalone executable in the `hybrasyl\bin\Debug` folder of your git repository. This should launch the server and run you through a first-launch configuration wizard. Here's you'll need to point the **Hybrasyl server** to the **data server**; make sure you provide the right hostname and also use the `dev_hybrasyl` database (not `hybrasyl`, even though both will exist).
+7. Run Hybrasyl.exe either from within Visual Studio or as a standalone executable in the `hybrasyl\bin\Debug` folder of your git repository. This should launch the server and run you through a first-launch configuration wizard. Here's you'll need to point the **Hybrasyl server** to the **data server**; make sure you provide the right hostname and also use the `dev_hybrasyl` database (not `hybrasyl`, even though both will exist).
     - Note that you can change these settings later by editing `config.xml` in `My Documents\Hybrasyl`.
 
 That completes Hybrasyl server setup. You should be able to use the [released version of the launcher](https://www.hybrasyl.com/releases) to connect to it. In case you have trouble with the latest launcher, open `Hy-brasyl Launcher.sln` and build the project. Launch the executable and select `localhost` from the server configuration dropdown. You should now be able to connect to your Hybrasyl server, create a new character, and log in!
