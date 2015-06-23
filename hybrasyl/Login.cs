@@ -258,7 +258,6 @@ namespace Hybrasyl
                 // Check that `name` exists. If not, return a message indicating that to the user.
                 if (player == null)
                 {
-                    // TODO(luke-segars): I'm not sure what the `type` param means. Dig into that.
                     client.LoginMessage("That character does not exist.", 3);
                 }
                 // If the player does exist, validate the current and new passwords before updating.
@@ -278,7 +277,7 @@ namespace Hybrasyl
                                 ctx.SaveChanges();
 
                                 // Let the user know the good news.
-                                client.LoginMessage("Your password has been changed successfully.", 3);
+                                client.LoginMessage("Your password has been changed successfully.", 0);
                                 Logger.DebugFormat("Player {0} changed their password", name);
                             }
                             else
