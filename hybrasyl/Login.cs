@@ -63,7 +63,7 @@ namespace Hybrasyl
 
             // This string will contain a client-ready message if the provided password
             // isn't valid.
-            string passwordErr = null;
+            byte passwordErr = 0x0;
 
             if (Game.World.PlayerExists(name))
             {
@@ -73,9 +73,9 @@ namespace Hybrasyl
             {
                 client.LoginMessage("Names must be between 4 to 12 characters long.", 3);
             }
-            else if (!ValidPassword(password, name, out passwordErr))
+            else if (!ValidPassword(password, out passwordErr))
             {
-                client.LoginMessage(passwordErr, 3);
+                client.LoginMessage(GetPasswordError(passwordErr), 3);
             }
             else if (Regex.IsMatch(name, "^[A-Za-z]{4,12}$"))
             {
@@ -241,7 +241,9 @@ namespace Hybrasyl
             }
 
         }
-        
+
+        // Chart for all error password-related error codes were provided by kojasou@ on
+        // https://github.com/hybrasyl/server/pull/11.
         private void PacketHandler_0x26_ChangePassword(Client client, ClientPacket packet)
         {
             var name = packet.ReadString8();
@@ -258,7 +260,8 @@ namespace Hybrasyl
                 // Check that `name` exists. If not, return a message indicating that to the user.
                 if (player == null)
                 {
-                    client.LoginMessage("That character does not exist.", 3);
+                    client.LoginMessage(GetPasswordError(0x0E), 0x0E);
+                    Logger.DebugFormat("Password change attempt on invalid player `{0}`", name);
                 }
                 // If the player does exist, validate the current and new passwords before updating.
                 else
@@ -267,35 +270,28 @@ namespace Hybrasyl
                     // than the current password.
                     if (VerifyPassword(currentPass, player))
                     {
-                        if (!VerifyPassword(newPass, player))
+                        // Check if the password is valid.
+                        byte err = 0x00;
+                        if (ValidPassword(newPass, out err))
                         {
-                            // Check if the password is valid.
-                            string err = null;
-                            if (ValidPassword(newPass, player.name, out err))
-                            {
-                                player.password_hash = HashPassword(newPass);
-                                ctx.SaveChanges();
+                            player.password_hash = HashPassword(newPass);
+                            ctx.SaveChanges();
 
-                                // Let the user know the good news.
-                                client.LoginMessage("Your password has been changed successfully.", 0);
-                                Logger.DebugFormat("Player {0} changed their password", name);
-                            }
-                            else
-                            {
-                                client.LoginMessage(err, 3);
-                            }
+                            // Let the user know the good news.
+                            client.LoginMessage("Your password has been changed successfully.", 0x0);
+                            Logger.InfoFormat("Password successfully changed for `{0}`", name);
                         }
                         else
                         {
-                            // An additional check that doesn't exist in the original servers ensures that you're
-                            // actually changing your password to something different than your current password.
-                            client.LoginMessage("Your new password must be different than your old password.", 3);
+                            client.LoginMessage(GetPasswordError(err), err);
+                            Logger.ErrorFormat("Invalid new password proposed during password change attempt for `{0}`", name);
                         }
                     }
                     // The current password is incorrect. Don't allow any changes to happen.
                     else
                     {
-                        client.LoginMessage("Incorrect password.", 3);
+                        client.LoginMessage(GetPasswordError(0x0F), 0x0F);
+                        Logger.ErrorFormat("Invalid current password during password change attempt for `{0}`", name);
                     }
                 }
             }
@@ -334,23 +330,70 @@ namespace Hybrasyl
 
         /**
          * Checks that a string is a valid password.
+         *
+         * TODO: can we modernize this policy to allow for better passwords?
          */
-        private bool ValidPassword(string password, string name, out string msg)
+        private bool ValidPassword(string password, out byte code)
         {
+            // Examples: aaa, ReallyLongPassword
             if (password.Length < 4 || password.Length > 8)
             {
-                msg = "Passwords must be between 4 and 8 characters long.";
+                code = 0x05;
                 return false;
             }
 
-            if (password == name)
+            // Examples: 12345, 84943
+            if (password.Length < 6 && password.All(Char.IsDigit))
             {
-                msg = "Your password may not be the same as your username.";
+                code = 0x07;
                 return false;
             }
 
-            msg = null;
+            // Examples: aaaaaa, 111111
+            if (password.Distinct().Count() < 3)
+            {
+                code = 0x08;
+                return false;
+            }
+
+            // Examples: party@11, temP.49
+            Regex r = new Regex("^[a-zA-Z0-9]*$");
+            if (!r.IsMatch(password))
+            {
+                code = 0x09;
+                return false;
+            }
+
+            // Currently not returning 0x0A; this doesn't seem to be particularly useful
+            // and would either need to be a hard-coded blacklist or very naive.
+
+            code = 0x00;
             return true;
+        }
+
+        private string GetPasswordError(byte code)
+        {
+            // If there was an error, find out what we should tell the user.
+            switch (code)
+            {
+                case 0x05:
+                    return "The password must be between 4 and 8 characters.";
+                case 0x07:
+                    return "That numeric password is too short.";
+                case 0x08:
+                    return "That password is too simple.";
+                case 0x09:
+                    return "That password has invalid characters.";
+                case 0x0A:
+                    return "That password is too easy to guess.";
+                case 0x0E:
+                    return "That name does not exist.";
+                case 0x0F:
+                    return "Incorrect password.";
+                    // This shouldn't happen but who knows.
+                default:
+                    return "Unknown error; please try changing to another password.";
+            }
         }
     }
 }
