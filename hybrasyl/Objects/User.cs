@@ -49,6 +49,7 @@ namespace Hybrasyl.Objects
         public byte HairColor { get; set; }
         public Class Class { get; set; }
         public bool IsMaster { get; set; }
+        public UserGroup Group { get; set; }
 
         public bool Dead { get; set; }
 
@@ -264,6 +265,7 @@ namespace Hybrasyl.Objects
             UserFlags = new Dictionary<String, String>();
             UserSessionFlags = new Dictionary<String, String>();
             Status = PlayerStatus.Alive;
+            Group = null;
 
             if (!string.IsNullOrEmpty(playername))
             {
@@ -273,6 +275,26 @@ namespace Hybrasyl.Objects
 
         }
 
+        /**
+         * Distributes experience to a group if the user is one, or to the
+         * user directly if the user is ungrouped.
+         */
+        public void ShareExperience(uint exp)
+        {
+            if (Group != null)
+            {
+                Group.ShareExperience(this, (int)exp);
+            }
+            else
+            {
+                GiveExperience(exp);
+            }
+        }
+
+        /**
+         * Provides experience directly to the user that will not be distributed to
+         * other members of the group (for example, for finishing a part of a quest).
+         */
         public void GiveExperience(uint exp)
         {
             var levelsGained = 0;
@@ -702,33 +724,71 @@ namespace Hybrasyl.Objects
 
         public void SendWhisper(String charname, String message)
         {
+            var target = World.FindUser(charname);
+            string err = String.Empty;
 
+            if (CanTalkTo(target, out err))
+            {
+                // To implement: ACLs (ignore list)
+                // To implement: loggging?
+                DisplayOutgoingWhisper(target.Name, message);
+                target.DisplayIncomingWhisper(Name, message);
+            }
+            else
+            {
+                Client.SendMessage(err, 0x0);
+            }
+        }
+
+        /**
+         * Send a whisper to all members of the group.
+         */
+        public void SendGroupWhisper(string message)
+        {
+            if (Group == null)
+            {
+                SendMessage("You must be in a group to group whisper.", MessageTypes.SYSTEM);
+            }
+            else
+            {
+                string err = String.Empty;
+                foreach (var member in Group.Members)
+                {
+                    if (CanTalkTo(member, out err))
+                    {
+                        member.Client.SendMessage(String.Format("[!{0}] {1}", Name, message), MessageTypes.GROUP);
+                    }
+                    else
+                    {
+                        Client.SendMessage(err, 0x0);
+                    }
+                }
+            }
+        }
+
+        public bool CanTalkTo(User target, out string msg)
+        {
             // First, maake sure a) we can send a message and b) the target is not ignoring whispers.
             if (IsMuted)
             {
-                Client.SendMessage("A strange voice says, \"Not for you.\"", 0x0);
-                return;
+                msg = "A strange voice says, \"Not for you.\"";
+                return false;
             }
-
-            var target = World.FindUser(charname);
 
             if (target == null)
             {
-                Client.SendMessage("That Aisling is not in Temuair.", 0x0);
-                return;
+                msg = "That Aisling is not in Temuair.";
+                return false;
             }
 
             if (target.IsIgnoringWhispers)
             {
-                Client.SendMessage("Sadly, that Aisling cannot hear whispers.", 0x0);
-                return;
+                msg = "Sadly, that Aisling cannot hear whispers.";
+                return false;
             }
 
-            // To implement: ACLs (ignore list)
-            // To implement: loggging?
-
-            DisplayOutgoingWhisper(target.Name, message);
-            target.DisplayIncomingWhisper(Name, message);
+            msg = String.Empty;
+            return true;
         }
 
         public override void ShowTo(VisibleObject obj)

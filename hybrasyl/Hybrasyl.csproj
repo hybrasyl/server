@@ -231,6 +231,7 @@
     <Compile Include="Server.cs" />
     <Compile Include="Template.cs" />
     <Compile Include="Objects\User.cs" />
+    <Compile Include="UserGroup.cs" />
     <Compile Include="Utility.cs" />
     <Compile Include="World.cs" />
     <Compile Include="Objects\WorldObject.cs" />

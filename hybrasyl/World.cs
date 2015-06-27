@@ -736,6 +736,12 @@ namespace Hybrasyl
                 user.Save();
                 user.UpdateLogoffTime();
                 user.Map.Remove(user);
+
+                if (user.Group != null)
+                {
+                    user.Group.Remove(user);
+                }
+
                 Remove(user);
                 Logger.DebugFormat("cid {0}: {1} cleaned up successfully", user.Name);
                 DeleteUser(user.Name);
@@ -1033,6 +1039,31 @@ namespace Hybrasyl
                         user.UpdateAttributes(StatUpdateFlags.Experience);
                     }
                         break;
+
+                    case "/group":
+                        User newMember = FindUser(args[1]);
+
+                        if (newMember == null)
+                        {
+                            user.SendMessage("Unknown user in group request.", MessageTypes.SYSTEM);
+                            break;
+                        }
+
+                        // If the user isn't in a group, create one.
+                        if (user.Group == null)
+                        {
+                            user.Group = new UserGroup(user);
+                        }
+                        user.Group.Add(newMember);
+                        break;
+
+                    case "/ungroup":
+                        if (user.Group != null)
+                        {
+                            user.Group.Remove(user);
+                        }
+                        break;
+
                     case "/summon":
                     {
                         if (!user.IsPrivileged)
@@ -1759,8 +1790,17 @@ namespace Hybrasyl
             var msgsize = packet.ReadByte();
             var message = Encoding.GetEncoding(949).GetString(packet.Read(msgsize));
 
-            user.SendWhisper(target, message);
-
+            // "!!" is the special character sequence for group whisper. If this is the
+            // target, the message should be sent as a group whisper instead of a standard
+            // whisper.
+            if (target == "!!")
+            {
+                user.SendGroupWhisper(message);
+            }
+            else
+            {
+                user.SendWhisper(target, message);
+            }
         }
 
         private void PacketHandler_0x1C_UseItem(Object obj, ClientPacket packet)
