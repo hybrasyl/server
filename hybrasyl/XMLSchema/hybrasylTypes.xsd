@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:hyb="http://www.hybrasyl.com/XML/HybrasylCommon"
+           targetNamespace="http://www.hybrasyl.com/XML/HybrasylCommon"
+           elementFormDefault="unqualified">
+
+  <xs:annotation>
+    <xs:documentation xml:lang="en">
+      Hybrasyl Project - Hybrasyl XML Schema
+      This file is subject to the same licenses as Project Hybrasyl.
+      (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+    </xs:documentation>
+  </xs:annotation>
+
+  <!-- Define common types and elements that we will reuse later -->
+
+  <xs:simpleType name="Byte">
+	  <xs:restriction base="xs:integer">
+		  <xs:minInclusive value="0"></xs:minInclusive>
+		  <xs:maxInclusive value="255"></xs:maxInclusive>
+	  </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="String8">
+	  <xs:restriction base="xs:string">
+		  <xs:minLength value="1" />
+		  <xs:maxLength value="255" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="String16">
+	  <xs:restriction base="xs:string">
+		  <xs:minLength value="1" />
+		  <xs:maxLength value="65534" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Various reusable types used by items & friends -->
+
+  <!-- Item flags -->
+  <xs:simpleType name="ItemFlags">
+    <xs:restriction>
+      <xs:simpleType>
+        <xs:list>
+          <xs:simpleType>
+            <xs:restriction base="xs:token">
+              <xs:enumeration value="depositable"/>
+              <xs:enumeration value="enchantable"/>
+              <xs:enumeration value="consecrateable"/>
+              <xs:enumeration value="tailorable"/>
+              <xs:enumeration value="smithable"/>
+              <xs:enumeration value="exchangeable"/>
+              <xs:enumeration value="depositable"/>
+              <xs:enumeration value="vendorable"/>
+            </xs:restriction>
+          </xs:simpleType>
+        </xs:list>
+      </xs:simpleType>
+      <xs:maxLength value="8" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Classes (for item restrictions) -->
+  <xs:simpleType name="Class" >
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="monk" />
+      <xs:enumeration value="peasant"/>
+      <xs:enumeration value="priest"/>
+      <xs:enumeration value="rogue"/>
+      <xs:enumeration value="warrior"/>
+      <xs:enumeration value="wizard"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!--  Gender (for item restrictions) -->
+  <xs:simpleType name="Gender" >
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="neutral" />
+      <xs:enumeration value="male"/>
+      <xs:enumeration value="female"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Elements -->
+  <xs:simpleType name="Element" >
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="none" />
+      <xs:enumeration value="fire"/>
+      <xs:enumeration value="water"/>
+      <xs:enumeration value="wind"/>
+      <xs:enumeration value="earth"/>
+      <xs:enumeration value="light"/>
+      <xs:enumeration value="dark"/>
+      <xs:enumeration value="wood"/>
+      <xs:enumeration value="metal"/>
+      <xs:enumeration value="undead"/>
+      <xs:enumeration value="random"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="EquipmentSlot" >
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="none" />
+      <xs:enumeration value="weapon"/>
+      <xs:enumeration value="armor"/>
+      <xs:enumeration value="shield"/>
+      <xs:enumeration value="helmet"/>
+      <xs:enumeration value="earring"/>
+      <xs:enumeration value="necklace"/>
+      <xs:enumeration value="lhand"/>
+      <xs:enumeration value="rhand"/>
+      <xs:enumeration value="larm"/>
+      <xs:enumeration value="rarm"/>
+      <xs:enumeration value="waist"/>
+      <xs:enumeration value="leg"/>
+      <xs:enumeration value="foot"/>
+      <xs:enumeration value="firstacc"/>
+      <xs:enumeration value="trousers"/>
+      <xs:enumeration value="coat"/>
+      <xs:enumeration value="secondacc"/>
+      <xs:enumeration value="thirdacc"/>
+      <xs:enumeration value="gauntlet"/>
+      <xs:enumeration value="ring"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Direction type -->
+  <xs:simpleType name="Direction">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="north"/>
+      <xs:enumeration value="south"/>
+      <xs:enumeration value="east"/>
+      <xs:enumeration value="west"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Map flags type -->
+  <xs:simpleType name="MapFlags">
+    <xs:restriction>
+      <xs:simpleType>
+        <xs:list>
+          <xs:simpleType>
+            <xs:restriction base="xs:token">
+              <xs:enumeration value="snow"/>
+              <xs:enumeration value="rain"/>
+              <xs:enumeration value="dark"/>
+              <xs:enumeration value="nomap"/>
+              <xs:enumeration value="winter"/>
+            </xs:restriction>
+          </xs:simpleType>
+        </xs:list>
+      </xs:simpleType>
+      <xs:maxLength value="5" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- NPC joblist type -->
+  <xs:simpleType name="NpcJobList">
+    <xs:restriction>
+      <xs:simpleType>
+        <xs:list>
+          <xs:simpleType>
+            <xs:restriction base="xs:token">
+              <xs:enumeration value="bank"/>
+              <xs:enumeration value="train"/>
+              <xs:enumeration value="vend"/>
+              <xs:enumeration value="repair"/>
+                <xs:enumeration value="post"/>
+            </xs:restriction>
+          </xs:simpleType>
+        </xs:list>
+      </xs:simpleType>
+      <xs:maxLength value="5" />
+    </xs:restriction>
+  </xs:simpleType>
+  
+  <!-- Map warp restrictions type (used by warps/worldwarps) -->
+  <xs:complexType name="WarpRestrictions">
+    <xs:sequence>
+      <xs:element name="level" minOccurs="0" maxOccurs="1">
+        <xs:complexType>
+          <xs:attribute name="min" type="hyb:Byte" default="0" />
+          <xs:attribute name="max" type="hyb:Byte" default="255" />
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="ab" minOccurs="0" maxOccurs="1">
+        <xs:complexType>
+          <xs:attribute name="min" type="hyb:Byte" default="0" />
+          <xs:attribute name="max" type="hyb:Byte" default="255" />
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="noMobUse" minOccurs="0" maxOccurs="1" />
+    </xs:sequence>
+  </xs:complexType>
+ 
+
+</xs:schema>

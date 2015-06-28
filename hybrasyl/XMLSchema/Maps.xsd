@@ -185,7 +185,7 @@
       <xs:element name="spawns" type="maps:Spawns" minOccurs="0" maxOccurs="1"/>
       <xs:element name="signposts" type="maps:Signposts" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
-    <xs:attribute name="id" type="hyb:Ushort" use="required" />
+    <xs:attribute name="id" type="xs:unsignedShort" use="required" />
 		<xs:attribute name="music" type="xs:unsignedByte" default="0"/>
 		<xs:attribute name="x" type="xs:unsignedByte" use="required" />
 		<xs:attribute name="y" type="xs:unsignedByte" use="required" />

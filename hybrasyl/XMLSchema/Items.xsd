@@ -43,7 +43,7 @@
       </xs:element>
       <xs:element name="equipment" minOccurs="0" maxOccurs="1">
         <xs:complexType>
-          <xs:attribute name="slot" use="required" type="hyb:EquipmentType"/>
+          <xs:attribute name="slot" use="required" type="hyb:EquipmentSlot"/>
           <xs:attribute name="unique" type="xs:boolean" default="false" />
         </xs:complexType>
       </xs:element>
@@ -79,7 +79,7 @@
           </xs:sequence>
         </xs:complexType>   
       </xs:element>
-      <xs:element name="flags" type="hyb:ItemFlagList" minOccurs="0" maxOccurs="1" />
+      <xs:element name="flags" type="hyb:ItemFlags" minOccurs="0" maxOccurs="1" />
       <xs:element name="variants" minOccurs="0" maxOccurs="1">
         <xs:complexType>
           <xs:sequence>
