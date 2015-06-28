@@ -259,14 +259,20 @@
       <LastGenOutput>Hybrasyl.cs</LastGenOutput>
       <DependentUpon>Hybrasyl.edmx</DependentUpon>
     </None>
-    <None Include="Resources\hybrasylTypes.xsd">
+    <EmbeddedResource Include="XMLSchema\hybrasylTypes.xsd">
       <SubType>Designer</SubType>
-    </None>
-    <None Include="Resources\Map.xsd">
+    </EmbeddedResource>
+    <EmbeddedResource Include="XMLSchema\Map.xsd">
       <SubType>Designer</SubType>
-    </None>
+    </EmbeddedResource>
     <None Include="Resources\sotp.dat" />
-    <None Include="Resources\Worldmap.xsd">
+    <EmbeddedResource Include="XMLSchema\Worldmap.xsd">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <None Include="XMLSchema\Item.xsd">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="XMLSchema\ItemVariant.xsd">
       <SubType>Designer</SubType>
     </None>
   </ItemGroup>
