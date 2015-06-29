@@ -631,6 +631,8 @@ namespace Hybrasyl
             PacketHandlers[0x29] = PacketHandler_0x29_DropItemOnCreature;
             PacketHandlers[0x2A] = PacketHandler_0x2A_DropGoldOnCreature;
             PacketHandlers[0x2D] = PacketHandler_0x2D_PlayerInfo;
+            PacketHandlers[0x2E] = PacketHandler_0x2E_GroupRequest;
+            PacketHandlers[0x2F] = PacketHandler_0x2F_GroupToggle;
             PacketHandlers[0x30] = PacketHandler_0x30_MoveUIElement;
             PacketHandlers[0x38] = PacketHandler_0x38_Refresh;
             PacketHandlers[0x39] = PacketHandler_0x39_NPCMainMenu;
@@ -1050,11 +1052,7 @@ namespace Hybrasyl
                         }
 
                         // If the user isn't in a group, create one.
-                        if (user.Group == null)
-                        {
-                            user.Group = new UserGroup(user);
-                        }
-                        user.Group.Add(newMember);
+                        user.InviteToGroup(newMember);
                         break;
 
                     case "/ungroup":
@@ -2002,6 +2000,78 @@ namespace Hybrasyl
         {
             var user = (User) obj;
             user.SendProfile();
+        }
+
+        private void PacketHandler_0x2F_GroupToggle(Object obj, ClientPacket packet)
+        {
+            var user = (User) obj;
+
+            // If the user is in a group, they must leave (in particular going from true to false,
+            // but in no case should you be able to hold a group across this transition).
+            if (user.Grouped)
+            {
+                user.Group.Remove(user);
+            }
+
+            user.Grouping = !user.Grouping;
+            user.Save();
+
+            // TODO: Is there any packet content that needs to be used on the server?
+        }
+
+        private void PacketHandler_0x2E_GroupRequest(Object obj, ClientPacket packet)
+        {
+            var user = (User) obj;
+            
+            byte unknown0 = packet.ReadByte(); // not sure what this is for just yet
+            User partner = FindUser(packet.ReadString8());
+
+            if (partner == null)
+            {
+                return;
+            }
+
+            Logger.InfoFormat("{0} invites {1} to join a group (mystery={2}).", user.Name, partner.Name, unknown0);
+
+            // TODO: find out more about what these are.
+            byte unknown1 = packet.ReadByte();
+            byte unknown2 = packet.ReadByte();
+            byte unknown3 = packet.ReadByte();
+            byte unknown4 = packet.ReadByte();
+            byte unknown5 = packet.ReadByte();
+
+            // Check to see if we should add the partner to the group, or potentially remove them
+            // if user and partner are already in the same group.
+            //   1. Check to see if the partner is open for grouping.
+            //   2. If the user's already grouped, they can't join this group.
+            //   3. Send them a dialog and have them explicitly accept.
+            //   4. If accepted, join group.
+            if (!partner.Grouping)
+            {
+                user.SendMessage(String.Format("{0} is not accepting group invitations.", partner.Name), MessageTypes.SYSTEM);
+                return;
+            }
+
+            // Remove the user from the group. Kinda logically weird beside all of this other stuff 
+            // so it may be worth restructuring but it should be accurate as-is.
+            if (partner.Grouped && user.Grouped && partner.Group == user.Group)
+            {
+                user.Group.Remove(partner);
+                return;
+            }
+
+            // Now we know that we're trying to add this person to the group, not remove them.
+            // Let's find out if they actually want to join and add them if so.
+            if (partner.Grouped)
+            {
+                user.SendMessage(String.Format("{0} is already in a group.", partner.Name), MessageTypes.SYSTEM);
+                return;
+            }
+
+            // TODO: Send partner a dialog.
+
+            // Note that this could still fail
+            user.InviteToGroup(partner);
         }
 
         private void PacketHandler_0x2A_DropGoldOnCreature(Object obj, ClientPacket packet)

@@ -143,6 +143,11 @@ namespace Hybrasyl.Objects
         public string LastSaid { get; set; }
         public int NumSaidRepeated { get; set; }
 
+        public bool Grouped
+        {
+            get { return Group != null; }
+        }
+
         // this is terrible and I hate it. It will go away soon.
         // HAHAHAHAHAHA LIES.
 
@@ -273,6 +278,20 @@ namespace Hybrasyl.Objects
                 LoadDataFromEntityFramework();
             }
 
+        }
+
+        /**
+         * Invites another user to this user's group. If this user isn't in a group,
+         * create a new one.
+         */
+        public bool InviteToGroup(User invitee)
+        {
+            if (!Grouped)
+            {
+                Group = new UserGroup(this);
+            }
+
+            return Group.Add(invitee);
         }
 
         /**
@@ -1453,6 +1472,8 @@ namespace Hybrasyl.Objects
                 profilePacket.WriteString8(mark.prefix);
                 profilePacket.WriteString8(mark.text);
             }
+
+            // TODO: should show list of group members here.
 
             Enqueue(profilePacket);
         }

@@ -28,6 +28,19 @@ using System.Text;
 using System.Threading.Tasks;
 using log4net;
 
+
+// TODO (testing): Join a group when starting from no group.
+// TODO (testing): Invite someone to a group when you're already in one.
+// TODO (testing): Leave a group.
+// TODO (testing): Ensure group is deleted when all users leave.
+// TODO (testing): Experience is being distributed.
+// TODO (testing): Group whispers work (both as sender and receiver).
+// TODO (testing): Players highlighted when they press "g".
+// TODO (testing): User leaves group when they disconnect.
+// TODO (testing): appropriate messaging comes through when you join / leave a group.
+// TODO (testing): Appropriate messaging comes through when someone else joins / leaves a group.
+// TODO (testing): Make sure a user can't be invited into a group if they're already in one.
+// TODO (testing): Group information appears in Group window.
 namespace Hybrasyl
 {
     /**
@@ -42,29 +55,59 @@ namespace Hybrasyl
         public List<User> Members { get; private set; }
         public DateTime CreatedOn { get; private set; }
         public Dictionary<Class, uint> ClassCount { get; private set; }
+        public uint MaxMembers = 0;
 
         private delegate Dictionary<uint, int> DistributionFunc(User source, int full);
         private DistributionFunc ExperienceDistributionFunc;
 
         public UserGroup(User founder)
         {
-            Logger.Debug("Creating new group.");
-            // Distribute full experience to everyone.
-            ExperienceDistributionFunc = Distribution_AllClassBonus;
-            Add(founder);
+            Members = new List<User>();
+            ClassCount = new Dictionary<Class, uint>();
+            foreach (var cl in Enum.GetValues(typeof(Class)).Cast<Class>())
+            {
+                ClassCount[cl] = 0;
+            }
 
+            Logger.InfoFormat("Creating new group with {0} as founder.", founder.Name);
+            // Distribute full experience to everyone with a bonus if a member of each
+            // class is present.
+            ExperienceDistributionFunc = Distribution_AllClassBonus;
+
+            Add(founder);
             CreatedOn = DateTime.Now;
         }
 
-        // TODO: remove this one i've confirmed that groups are actually being deleted.
+        // TODO: remove this when i've confirmed that groups are actually being deleted.
         ~UserGroup()
         {
             Logger.Debug("Cleaning up group.");
         }
 
         // Group-related functions and accessors
-        public void Add(User user)
+        public bool Add(User user)
         {
+            // You can only join a group if you're not already a member in another group.
+            // Check this condition and notify the invitee and existing group members if
+            // there's an issue.
+            if (user.Grouped)
+            {
+                user.SendMessage("You're already in a group.", MessageTypes.SYSTEM);
+
+                foreach (var member in Members)
+                {
+                    member.SendMessage(String.Format("{0} is in another group.", user.Name), MessageTypes.SYSTEM);
+                }
+
+                // If this fails when the group only contains one other person, the group should be abandoned.
+                if (Count == 1)
+                {
+                    Remove(Members[0]);
+                }
+
+                return false;
+            }
+
             // Send a message to notify everyone else that someone's joined.
             foreach (var member in Members)
             {
@@ -74,10 +117,12 @@ namespace Hybrasyl
             Members.Add(user);
             user.Group = this;
             ClassCount[user.Class]++;
+            MaxMembers = (uint)Math.Max(MaxMembers, Members.Count);
 
             // Send a special message to the new user. This is different than how USDA does it but
             // provides more flexibility.
             user.SendMessage("You've joined a group.", MessageTypes.SYSTEM);
+            return true;
         }
 
         public void Remove(User user)
@@ -86,11 +131,16 @@ namespace Hybrasyl
             user.Group = null;
             ClassCount[user.Class]--;
 
-            foreach (var member in Members)
+            // If this has ever been a true group from a user's perspective, talk about it. Otherwise
+            // don't send user-facing messages.
+            if (MaxMembers > 1)
             {
-                member.SendMessage(user.Name + " has left your group.", MessageTypes.SYSTEM);
+                foreach (var member in Members)
+                {
+                    member.SendMessage(user.Name + " has left your group.", MessageTypes.SYSTEM);
+                }
+                user.SendMessage("You've left a group.", MessageTypes.SYSTEM);
             }
-            user.SendMessage("You've left a group.", MessageTypes.SYSTEM);
 
             // If there's only one person left, disband the grounp.
             if (Count == 1)
