@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" ?>
 <xs:schema xmlns:hyb="http://www.hybrasyl.com/XML/HybrasylCommon"
            xmlns:xs="http://www.w3.org/2001/XMLSchema"
-           xmlns:item="http://www.hybrasyl.com/XML/Items"
+           xmlns:items="http://www.hybrasyl.com/XML/Items"
            targetNamespace="http://www.hybrasyl.com/XML/Items"
            elementFormDefault="unqualified">
 
@@ -179,7 +179,7 @@
     <xs:sequence>
       <xs:element name="name" minOccurs="1" maxOccurs="1" type="hyb:String8"/>
       <xs:element name="comment" minOccurs="0" maxOccurs="1" type="hyb:String16"/>
-      <xs:element name="properties" minOccurs="1" maxOccurs="1" type="item:PropertiesType"/>  
+      <xs:element name="properties" minOccurs="1" maxOccurs="1" type="items:PropertiesType"/>  
     </xs:sequence>    
   </xs:complexType>
 
@@ -188,7 +188,7 @@
       <xs:element name="name" minOccurs="1" maxOccurs="1" type="hyb:String8" />
       <xs:element name="modifier" minOccurs="1" maxOccurs="1" type="hyb:String8" />
       <xs:element name="comment" minOccurs="1" maxOccurs="1" type="hyb:String8" />      
-      <xs:element name="properties" minOccurs="1" maxOccurs="1" type="item:PropertiesType"/>
+      <xs:element name="properties" minOccurs="1" maxOccurs="1" type="items:PropertiesType"/>
     </xs:sequence>
   </xs:complexType>
    
@@ -209,8 +209,8 @@
   </xs:complexType>
 
   <!-- Actual elements for item, variantgroup, variant -->
-  <xs:element name="item" type="item:ItemType"/>
-  <xs:element name="variantgroup" type="item:VariantGroupType" />
-  <xs:element name="variant" type="item:VariantType"/>
+  <xs:element name="item" type="items:ItemType"/>
+  <xs:element name="variantgroup" type="items:VariantGroupType" />
+  <xs:element name="variant" type="items:VariantType"/>
 
 </xs:schema>

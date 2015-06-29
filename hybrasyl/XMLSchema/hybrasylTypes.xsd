@@ -14,13 +14,6 @@
 
   <!-- Define common types and elements that we will reuse later -->
 
-  <xs:simpleType name="Byte">
-	  <xs:restriction base="xs:integer">
-		  <xs:minInclusive value="0"></xs:minInclusive>
-		  <xs:maxInclusive value="255"></xs:maxInclusive>
-	  </xs:restriction>
-  </xs:simpleType>
-
   <xs:simpleType name="String8">
 	  <xs:restriction base="xs:string">
 		  <xs:minLength value="1" />
@@ -60,6 +53,27 @@
     </xs:restriction>
   </xs:simpleType>
 
+  <!-- Status effects -->
+ 
+  <xs:simpleType name="StatusEffectsList">
+    <xs:restriction>
+      <xs:simpleType>
+        <xs:list>
+          <xs:simpleType>
+            <xs:restriction base="xs:token">
+              <xs:enumeration value="frozen"/>
+              <xs:enumeration value="asleep"/>
+              <xs:enumeration value="paralyzed"/>
+              <xs:enumeration value="blinded"/>
+              <xs:enumeration value="skulled"/>
+            </xs:restriction>
+          </xs:simpleType>
+        </xs:list>
+      </xs:simpleType>
+      <xs:maxLength value="5" />
+    </xs:restriction>
+  </xs:simpleType>
+
   <!-- Classes (for item restrictions) -->
   <xs:simpleType name="Class" >
     <xs:restriction base="xs:token">
@@ -96,6 +110,24 @@
       <xs:enumeration value="undead"/>
       <xs:enumeration value="random"/>
     </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="WeaponType">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="onehand"/>
+      <xs:enumeration value="twohand"/>
+      <xs:enumeration value="dagger"/>
+      <xs:enumeration value="staff"/>
+      <xs:enumeration value="claw"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="DamageType">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="direct"/>
+      <xs:enumeration value="physical"/>
+      <xs:enumeration value="magical"/>
+    </xs:restriction>  
   </xs:simpleType>
 
   <xs:simpleType name="EquipmentSlot" >
@@ -179,14 +211,14 @@
     <xs:sequence>
       <xs:element name="level" minOccurs="0" maxOccurs="1">
         <xs:complexType>
-          <xs:attribute name="min" type="hyb:Byte" default="0" />
-          <xs:attribute name="max" type="hyb:Byte" default="255" />
+          <xs:attribute name="min" type="xs:unsignedByte" default="0" />
+          <xs:attribute name="max" type="xs:unsignedByte" default="255" />
         </xs:complexType>
       </xs:element>
       <xs:element name="ab" minOccurs="0" maxOccurs="1">
         <xs:complexType>
-          <xs:attribute name="min" type="hyb:Byte" default="0" />
-          <xs:attribute name="max" type="hyb:Byte" default="255" />
+          <xs:attribute name="min" type="xs:unsignedByte" default="0" />
+          <xs:attribute name="max" type="xs:unsignedByte" default="255" />
         </xs:complexType>
       </xs:element>
       <xs:element name="noMobUse" minOccurs="0" maxOccurs="1" />
