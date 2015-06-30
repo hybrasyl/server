@@ -14,7 +14,7 @@
   </xs:annotation>
 
   <xs:import schemaLocation="hybrasylTypes.xsd" namespace="http://www.hybrasyl.com/XML/HybrasylCommon" />
-
+  <!-- TODO: add effect script name to variants -->
   <xs:complexType name="PropertiesType">
     <xs:sequence>
       <xs:element name="appearance" minOccurs="1" maxOccurs="1" >
@@ -118,7 +118,7 @@
       <xs:element name="use">
         <xs:complexType>
           <xs:sequence>
-            <xs:element name="script" type="xs:string" minOccurs="0" maxOccurs="1"/>
+            <xs:element name="scriptname" type="xs:string" minOccurs="0" maxOccurs="1"/>
             <xs:element name="teleport" minOccurs="0" maxOccurs="1">
               <xs:complexType>
                 <xs:simpleContent>
@@ -198,7 +198,7 @@
       <xs:element name="variants" minOccurs="1" maxOccurs="1">
         <xs:complexType>
           <xs:sequence>
-            <xs:element name="variant" minOccurs="1" maxOccurs="unbounded" type="item:VariantType"/>
+            <xs:element name="variant" minOccurs="1" maxOccurs="unbounded" type="items:VariantType"/>
           </xs:sequence>
         </xs:complexType>
       </xs:element>

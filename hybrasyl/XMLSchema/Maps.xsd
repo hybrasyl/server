@@ -18,7 +18,7 @@
   <!-- Mapwarp / worldwarp subelements -->
   <xs:complexType name="Warp">
     <xs:sequence>
-      <xs:element name="comment" minOccurs="0" maxOccurs="1" type="hyb:String8"/>
+      <xs:element name="description" minOccurs="0" maxOccurs="1" type="hyb:String8"/>
       <xs:choice>
         <xs:element name="maptarget">
           <xs:complexType>
@@ -47,27 +47,14 @@
   <!-- Reactor subelements -->
   <xs:complexType name="Reactor">
     <xs:sequence>
-      <xs:element name="comment" type="hyb:String16" minOccurs="0" maxOccurs="1" />
-      <xs:element name="scriptName" type="hyb:String8" minOccurs="1" maxOccurs="1" />
+      <xs:element name="description" type="hyb:String16" minOccurs="0" maxOccurs="1" />
+      <xs:element name="scriptname" type="hyb:String8" minOccurs="1" maxOccurs="1" />
     </xs:sequence>
     <xs:attribute name="x" type="xs:unsignedByte" use="required" />
     <xs:attribute name="y" type="xs:unsignedByte" use="required" />
     <xs:attribute name="blocking" default="false" type="xs:boolean" />
   </xs:complexType>
 
-  <!-- NPC subelement -->
-  <xs:complexType name="Npc">
-    <xs:sequence>
-      <xs:element name="name" type="hyb:String8" minOccurs="1" maxOccurs="1" />
-      <xs:element name="comment" type="hyb:String16" minOccurs="0" maxOccurs="1" />
-      <xs:element name="portrait" type="hyb:String8" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="jobs" type="hyb:NpcJobList" minOccurs="0" maxOccurs="1"/>
-    </xs:sequence>
-    <xs:attribute name="x" type="xs:unsignedByte" use="required" />
-    <xs:attribute name="y" type="xs:unsignedByte" use="required" />
-    <xs:attribute name="direction" default="north" type="hyb:Direction"/>
-    <xs:attribute name="sprite" use="required" type="xs:unsignedShort"/>
-  </xs:complexType>
 
   <!-- SpawnModifiers subelement block -->
   <xs:complexType name="SpawnModifiers">
@@ -106,7 +93,7 @@
   <xs:complexType name="Spawn">
     <xs:sequence>
       <xs:element name="name" type="hyb:String8" minOccurs="1" maxOccurs="1" />
-      <xs:element name="comment" type="hyb:String16" minOccurs="0" maxOccurs="1" />
+      <xs:element name="description" type="hyb:String16" minOccurs="0" maxOccurs="1" />
       <xs:element name="strategy" type="hyb:String8" default="random" minOccurs="0" maxOccurs="1"/>
       <xs:element name="spawnModifiers" type="maps:SpawnModifiers" minOccurs="0" maxOccurs="1" />
     </xs:sequence>
@@ -177,7 +164,7 @@
   <xs:complexType name="Map">
     <xs:sequence>
       <xs:element name="name" type="hyb:String8" minOccurs="1" maxOccurs="1" />
-      <xs:element name="comment" type="hyb:String16" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="description" type="hyb:String16" minOccurs="0" maxOccurs="1"/>
       <xs:element name="flags" type="hyb:MapFlags" minOccurs="0" maxOccurs="1"/>
       <xs:element name="warps" type="maps:Warps" minOccurs="0" maxOccurs="1" />
       <xs:element name="reactors" type="maps:Reactors" minOccurs="0" maxOccurs="1"/>
@@ -197,7 +184,7 @@
       <xs:element name="point">
         <xs:complexType>
           <xs:sequence>
-            <xs:element name="comment" minOccurs="0" maxOccurs="1" type="hyb:String8" />
+            <xs:element name="description" minOccurs="0" maxOccurs="1" type="hyb:String8" />
             <xs:element name="name" minOccurs="1" maxOccurs="1" type="hyb:String8" />
             <xs:element name="target" minOccurs="1" maxOccurs="1">
               <xs:complexType>
@@ -227,7 +214,7 @@
   <xs:complexType name="WorldMap">
     <xs:sequence>
       <xs:element name="name" minOccurs="1" maxOccurs="1" type="hyb:String8"/>
-      <xs:element name="comment" type="hyb:String16" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="description" type="hyb:String16" minOccurs="0" maxOccurs="1"/>
       <xs:element name="points" type="maps:WorldMapPoints" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
     <xs:attribute name="clientmap" type="hyb:String8" use="required" />

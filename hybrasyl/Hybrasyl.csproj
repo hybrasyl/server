@@ -262,19 +262,22 @@
     <EmbeddedResource Include="XMLSchema\hybrasylTypes.xsd">
       <SubType>Designer</SubType>
     </EmbeddedResource>
-    <EmbeddedResource Include="XMLSchema\Map.xsd">
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
     <None Include="Resources\sotp.dat" />
-    <EmbeddedResource Include="XMLSchema\Worldmap.xsd">
+    <EmbeddedResource Include="XMLSchema\Actions.xsd">
       <SubType>Designer</SubType>
     </EmbeddedResource>
-    <None Include="XMLSchema\Item.xsd">
+    <EmbeddedResource Include="XMLSchema\Creatures.xsd">
       <SubType>Designer</SubType>
-    </None>
-    <None Include="XMLSchema\ItemVariant.xsd">
+    </EmbeddedResource>
+    <EmbeddedResource Include="XMLSchema\Items.xsd">
       <SubType>Designer</SubType>
-    </None>
+    </EmbeddedResource>
+    <EmbeddedResource Include="XMLSchema\Maps.xsd">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="XMLSchema\Nations.xsd">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <Content Include="FodyWeavers.xml" />
