@@ -24,27 +24,13 @@ using Hybrasyl.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using log4net;
 
-
-// TODO (testing): Join a group when starting from no group.
-// TODO (testing): Invite someone to a group when you're already in one.
-// TODO (testing): Leave a group.
-// TODO (testing): Ensure group is deleted when all users leave.
-// TODO (testing): Experience is being distributed.
-// TODO (testing): Group whispers work (both as sender and receiver).
-// TODO (testing): Players highlighted when they press "g".
-// TODO (testing): User leaves group when they disconnect.
-// TODO (testing): appropriate messaging comes through when you join / leave a group.
-// TODO (testing): Appropriate messaging comes through when someone else joins / leaves a group.
-// TODO (testing): Make sure a user can't be invited into a group if they're already in one.
-// TODO (testing): Group information appears in Group window.
 namespace Hybrasyl
 {
     /**
-     * This class defines a group of users.
+     * This class defines a group of users. Grouped users can whisper to the full group
+     * and will also split experience with nearby group members.
      */
     public class UserGroup
     {
@@ -76,12 +62,6 @@ namespace Hybrasyl
 
             Add(founder);
             CreatedOn = DateTime.Now;
-        }
-
-        // TODO: remove this when i've confirmed that groups are actually being deleted.
-        ~UserGroup()
-        {
-            Logger.Debug("Cleaning up group.");
         }
 
         // Group-related functions and accessors
@@ -119,8 +99,7 @@ namespace Hybrasyl
             ClassCount[user.Class]++;
             MaxMembers = (uint)Math.Max(MaxMembers, Members.Count);
 
-            // Send a special message to the new user. This is different than how USDA does it but
-            // provides more flexibility.
+            // Send a distinct message to the new user.
             user.SendMessage("You've joined a group.", MessageTypes.SYSTEM);
             return true;
         }
@@ -135,6 +114,7 @@ namespace Hybrasyl
             // don't send user-facing messages.
             if (MaxMembers > 1)
             {
+                // User has already been removed from Members so no need to exclude.
                 foreach (var member in Members)
                 {
                     member.SendMessage(user.Name + " has left your group.", MessageTypes.SYSTEM);
@@ -142,7 +122,7 @@ namespace Hybrasyl
                 user.SendMessage("You've left a group.", MessageTypes.SYSTEM);
             }
 
-            // If there's only one person left, disband the grounp.
+            // If there's only one person left, disband the group.
             if (Count == 1)
             {
                 Remove(Members[0]);
@@ -164,6 +144,24 @@ namespace Hybrasyl
         }
 
         /**
+         * Find out whether a given user is close enough to the action in order
+         * to receive a share. It's not OK to be (a) on a different map or
+         * (b) really far away on the same map.
+         */
+        private bool WithinRange(User user, User target)
+        {
+            if (user.Map.Id == target.Map.Id)
+            {
+                int xDelta = Math.Abs(user.Map.X - target.Map.X);
+                int yDelta = Math.Abs(user.Map.Y - target.Map.Y);
+
+                return (xDelta + yDelta < Constants.GROUP_SHARING_DISTANCE);
+            }
+
+            return false;
+        }
+
+        /**
          * Distribute a pool of experience across members of the group.
          */
         public void ShareExperience(User source, int experience)
@@ -179,7 +177,14 @@ namespace Hybrasyl
 
         /**
          * Distribution functions. Should be assigned to ExperienceDistributionFunc or a similar
-         * function to be put to use. See the constructor of UserGroup for an example.
+         * function to be put to use. See the constructor of UserGroup for an example. Note that
+         * these are intended to be generic and can apply to any numeric quantity (experience,
+         * gold, even #'s of items).
+         */
+
+        /**
+         * This distribution function gives the full quantity of a resource to each of the
+         * group members.
          */
         private Dictionary<uint, int> Distribution_Full(User source, int full)
         {
@@ -187,12 +192,16 @@ namespace Hybrasyl
 
             foreach (var member in Members)
             {
-                share[member.Id] = full;
+                share[member.Id] = WithinRange(member, source) ? full : 0;
             }
 
             return share;
         }
 
+        /**
+         * Give the full quantity of a resource to each of the group members, +10% bonus
+         * if there's at least one representative from each class.
+         */
         private Dictionary<uint, int> Distribution_AllClassBonus(User source, int full)
         {
             // Check to see if at least one representative from each class is in the group.

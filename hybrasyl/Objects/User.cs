@@ -31,6 +31,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Threading;
 
 namespace Hybrasyl.Objects
@@ -286,6 +287,10 @@ namespace Hybrasyl.Objects
          */
         public bool InviteToGroup(User invitee)
         {
+            // If you're inviting others to group, you must have grouping enabled.
+            // Enable it automatically if necessary.
+            Grouping = true;
+
             if (!Grouped)
             {
                 Group = new UserGroup(this);
@@ -295,7 +300,7 @@ namespace Hybrasyl.Objects
         }
 
         /**
-         * Distributes experience to a group if the user is one, or to the
+         * Distributes experience to a group if the user is in one, or to the
          * user directly if the user is ungrouped.
          */
         public void ShareExperience(uint exp)
@@ -1446,6 +1451,37 @@ namespace Hybrasyl.Objects
             SendItemUpdate(Inventory[newSlot], newSlot);
         }
 
+        private string GroupProfileSegment()
+        {
+            StringBuilder sb = new StringBuilder();
+
+            // Only build this string if the user's in a group. Otherwise an empty
+            // string should be sent.
+            if (Grouped)
+            {
+                sb.Append("Group members");
+                sb.Append((char)0x0A);
+
+                // The user's name should go first, and should not have an asterisk.
+                // In practice this will mean that the user's name appears first and
+                // is grayed out, while all other names are white.
+                sb.Append("  " + Name);
+                sb.Append((char)0x0A);
+
+                foreach (var member in Group.Members)
+                {
+                    if (member.Name != Name)
+                    {
+                        sb.Append("  " + member.Name);
+                        sb.Append((char)0x0A);
+                    }
+                }
+                sb.Append(String.Format("Total {0}", Group.Members.Count));
+            }
+
+            return sb.ToString();
+        }
+
         /// <summary>
         /// Send a player's profile to themselves (e.g. click on self or hit Y for group info)
         /// </summary>
@@ -1455,11 +1491,13 @@ namespace Hybrasyl.Objects
             profilePacket.WriteByte((byte)Citizenship.flag); // citizenship
             profilePacket.WriteString8(GuildRank);
             profilePacket.WriteString8(Title);
-            profilePacket.WriteString8(GroupText);
+            profilePacket.WriteString8(GroupProfileSegment());
+//            profilePacket.WriteString8(GroupText);
             profilePacket.WriteBoolean(Grouping);
             profilePacket.WriteByte(0); // ??
             profilePacket.WriteByte((byte)Class);
-            profilePacket.WriteByte(1); // ??
+            //            profilePacket.WriteByte(1); // ??
+            profilePacket.WriteByte(0);
             profilePacket.WriteByte(0); // ??
             profilePacket.WriteString8(Hybrasyl.Constants.REVERSE_CLASSES[(int)Class]);
             profilePacket.WriteString8(Guild);
@@ -1472,8 +1510,6 @@ namespace Hybrasyl.Objects
                 profilePacket.WriteString8(mark.prefix);
                 profilePacket.WriteString8(mark.text);
             }
-
-            // TODO: should show list of group members here.
 
             Enqueue(profilePacket);
         }

@@ -231,6 +231,9 @@ namespace Hybrasyl
         public const uint MAXIMUM_GOLD = 1000000000;
         public const int VARIANT_ID_START = 100000;
         public const int DEFAULT_LOG_LEVEL = Hybrasyl.LogLevels.INFO;
+        // Manhattan distance between the user performing an action (killing a monster, etc) and other
+        // users in the group in order to be eligible for sharing.
+        public const int GROUP_SHARING_DISTANCE = 20;
         public const string EF_METADATA = "metadata=res://*/Properties.Hybrasyl.csdl|res://*/Properties.Hybrasyl.ssdl|res://*/Properties.Hybrasyl.msl;provider=MySql.Data.MySqlClient;";
         public const string EF_CONNSTRING_TEMPLATE = @"provider connection string=""server={0};user id={1};password={2};convertzerodatetime=true;allowzerodatetime=true;persist security info=True;database={3}""";
 

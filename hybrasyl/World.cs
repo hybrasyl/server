@@ -1031,15 +1031,29 @@ namespace Hybrasyl
                 switch (args[0].ToLower())
                 {
                     case "/gold":
-                    {
-                        uint amount;
+                        {
+                            uint amount;
 
-                        if (args.Length != 2 || !uint.TryParse(args[1], out amount))
+                            if (args.Length != 2 || !uint.TryParse(args[1], out amount))
+                                break;
+
+                            user.Gold = amount;
+                            user.UpdateAttributes(StatUpdateFlags.Experience);
                             break;
-
-                        user.Gold = amount;
-                        user.UpdateAttributes(StatUpdateFlags.Experience);
-                    }
+                        }
+                    /**
+                     * Give the current user some amount of experience. This experience
+                     * will be distributed across a group if the user is in a group, or
+                     * passed directly to them if they're not in a group.
+                     */
+                    case "/exp":
+                        {
+                            uint amount = 0;
+                            if (args.Length == 2 && uint.TryParse(args[1], out amount))
+                            {
+                                user.ShareExperience(amount);
+                            }
+                        }
                         break;
 
                     case "/group":
@@ -1051,7 +1065,6 @@ namespace Hybrasyl
                             break;
                         }
 
-                        // If the user isn't in a group, create one.
                         user.InviteToGroup(newMember);
                         break;
 
@@ -1685,6 +1698,10 @@ namespace Hybrasyl
                 user.Save();
                 user.UpdateLogoffTime();
                 user.Map.Remove(user);
+                if (user.Grouped)
+                {
+                    user.Group.Remove(user);
+                }
                 Remove(user);
                 DeleteUser(user.Name);
                 user.SendRedirectAndLogoff(this, Game.Login, user.Name);
@@ -2001,10 +2018,98 @@ namespace Hybrasyl
             var user = (User) obj;
             user.SendProfile();
         }
+         
+        /**
+         * Handle user-initiated grouping requests. There are a number of mechanisms in the client
+         * that send this packet, but generally amount to one of three serverside actions:
+         *    1) Request that the user join my group (stage 0x02).
+         *    2) Leave the group I'm currently in (stage 0x02).
+         *    3) Confirm that I'd like to accept a group request (stage 0x03).
+         * The general flow here consists of the following steps:
+         * Check to see if we should add the partner to the group, or potentially remove them
+         *    1) if user and partner are already in the same group.
+         *    2) Check to see if the partner is open for grouping. If not, fail.
+         *    3) Sending a group request to the group you're already in == ungroup request in USDA.
+         *    4) If the user's already grouped, they can't join this group.
+         *    5) Send them a dialog and have them explicitly accept.
+         *    6) If accepted, join group (see stage 0x03).
+         */
+        private void PacketHandler_0x2E_GroupRequest(Object obj, ClientPacket packet)
+        {
+            var user = (User) obj;
+
+            // stage:
+            //   0x02 = user is sending initial request to invitee
+            //   0x03 = invitee responds with a "yes"
+            byte stage = packet.ReadByte();
+            User partner = FindUser(packet.ReadString8());
+
+            // TODO: currently leaving five bytes on the table here. There's probably some 
+            // additional work that needs to happen though I haven't been able to determine
+            // what those bytes represent yet...
+
+            if (partner == null)
+            {
+                return;
+            }
+
+            switch (stage)
+            {
+                // Stage 0x02 means that a user is sending an initial request to the invitee.
+                // That means we need to check whether the user is a valid candidate for
+                // grouping, and send the confirmation dialog if so.
+                case 0x02:
+                    Logger.InfoFormat("{0} invites {1} to join a group.", user.Name, partner.Name);
+                    
+                    // Remove the user from the group. Kinda logically weird beside all of this other stuff 
+                    // so it may be worth restructuring but it should be accurate as-is.
+                    if (partner.Grouped && user.Grouped && partner.Group == user.Group)
+                    {
+                        Logger.InfoFormat("{0} leaving group.", user.Name);
+                        user.Group.Remove(partner);
+                        return;
+                    }
+
+                    // Now we know that we're trying to add this person to the group, not remove them.
+                    // Let's find out if they're eligible and invite them if so.
+                    if (partner.Grouped)
+                    {
+                        user.SendMessage(String.Format("{0} is already in a group.", partner.Name), MessageTypes.SYSTEM);
+                        return;
+                    }
+
+                    if (!partner.Grouping)
+                    {
+                        user.SendMessage(String.Format("{0} is not accepting group invitations.", partner.Name), MessageTypes.SYSTEM);
+                        return;
+                    }
+
+                    // Send partner a dialog asking whether they want to group (opcode 0x63).
+                    ServerPacket response = new ServerPacket(0x63);
+                    response.WriteByte((byte)0x01);
+                    response.WriteString8(user.Name);
+                    response.WriteByte(0);
+                    response.WriteByte(0);
+
+                    partner.Enqueue(response);
+                    break;
+                // Stage 0x03 means that the invitee has responded with a "yes" to the grouping
+                // request. We need to add them to the original user's group. Note that in this
+                // case the partner sent the original invitation.
+                case 0x03:
+                    Logger.Info("Invitation accepted. Grouping.");
+                    partner.InviteToGroup(user);
+                    break;
+                // This shouldn't happen but we should log it and fix it if it does.
+                default:
+                    Logger.Info("Unknown GroupRequest stage. No action taken.");
+                    break;
+            }
+        }
 
         private void PacketHandler_0x2F_GroupToggle(Object obj, ClientPacket packet)
         {
-            var user = (User) obj;
+            var user = (User)obj;
 
             // If the user is in a group, they must leave (in particular going from true to false,
             // but in no case should you be able to hold a group across this transition).
@@ -2017,61 +2122,6 @@ namespace Hybrasyl
             user.Save();
 
             // TODO: Is there any packet content that needs to be used on the server?
-        }
-
-        private void PacketHandler_0x2E_GroupRequest(Object obj, ClientPacket packet)
-        {
-            var user = (User) obj;
-            
-            byte unknown0 = packet.ReadByte(); // not sure what this is for just yet
-            User partner = FindUser(packet.ReadString8());
-
-            if (partner == null)
-            {
-                return;
-            }
-
-            Logger.InfoFormat("{0} invites {1} to join a group (mystery={2}).", user.Name, partner.Name, unknown0);
-
-            // TODO: find out more about what these are.
-            byte unknown1 = packet.ReadByte();
-            byte unknown2 = packet.ReadByte();
-            byte unknown3 = packet.ReadByte();
-            byte unknown4 = packet.ReadByte();
-            byte unknown5 = packet.ReadByte();
-
-            // Check to see if we should add the partner to the group, or potentially remove them
-            // if user and partner are already in the same group.
-            //   1. Check to see if the partner is open for grouping.
-            //   2. If the user's already grouped, they can't join this group.
-            //   3. Send them a dialog and have them explicitly accept.
-            //   4. If accepted, join group.
-            if (!partner.Grouping)
-            {
-                user.SendMessage(String.Format("{0} is not accepting group invitations.", partner.Name), MessageTypes.SYSTEM);
-                return;
-            }
-
-            // Remove the user from the group. Kinda logically weird beside all of this other stuff 
-            // so it may be worth restructuring but it should be accurate as-is.
-            if (partner.Grouped && user.Grouped && partner.Group == user.Group)
-            {
-                user.Group.Remove(partner);
-                return;
-            }
-
-            // Now we know that we're trying to add this person to the group, not remove them.
-            // Let's find out if they actually want to join and add them if so.
-            if (partner.Grouped)
-            {
-                user.SendMessage(String.Format("{0} is already in a group.", partner.Name), MessageTypes.SYSTEM);
-                return;
-            }
-
-            // TODO: Send partner a dialog.
-
-            // Note that this could still fail
-            user.InviteToGroup(partner);
         }
 
         private void PacketHandler_0x2A_DropGoldOnCreature(Object obj, ClientPacket packet)
