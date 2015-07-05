@@ -53,7 +53,7 @@ INSERT INTO nations VALUES(NULL, '0', 'Mileth', 'Starting town', NOW(), NOW());
 -- Add a spawn point; this is where the user will appear when logging in for the first time.
 -- Dynamically pulls the ID of the starting nation since this SQL script may not be imported
 -- before anything else is added (can't assume it's ID will be 0).
-INSERT INTO spawn_points VALUES(NULL, '136', '5', '5', NOW(), NOW(), (SELECT id FROM nations where name = 'Mileth' LIMIT 1));
+INSERT INTO spawn_points VALUES(NULL, '136', '6', '6', NOW(), NOW(), (SELECT id FROM nations where name = 'Mileth' LIMIT 1));
 
 -- Add a flag that can be attached to players to make them admins. This flag is recognized by
 -- the Hybrasyl binary.
