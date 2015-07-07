@@ -178,6 +178,41 @@
 		<xs:attribute name="y" type="xs:unsignedByte" use="required" />
   </xs:complexType>
 
+  <xs:complexType name="Npc">
+    <xs:sequence>
+      <xs:element name="name" minOccurs="1" maxOccurs="1" type="hyb:String8"></xs:element>
+      <xs:element name="displayname" minOccurs="0" maxOccurs="1" type="hyb:String8"></xs:element>
+      <xs:element name="appearance" minOccurs="0" maxOccurs="1">
+        <xs:complexType>
+          <xs:attribute name="sprite" type="xs:unsignedShort" use="required"/>
+          <xs:attribute name="portrait" type="hyb:String8" use="optional"/>
+          <xs:attribute name="direction" type="xs:unsignedByte" use="required"/>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="jobs" type="hyb:NpcJobList" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="inventory" minOccurs="0" maxOccurs="1">
+        <xs:complexType>
+          <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="item">
+                <xs:complexType>
+                  <xs:simpleContent>
+                    <xs:extension base="hyb:String8">
+                      <xs:attribute name="quantity" type="xs:unsignedInt" use="optional" default="0"/>
+                      <xs:attribute name="refresh" type="xs:unsignedInt" use="optional" default="0"/>
+                    </xs:extension>
+                  </xs:simpleContent>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="gold" type="xs:unsignedByte"/>
+          </xs:choice>
+        </xs:complexType>
+        
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="x" type="xs:unsignedByte" use="required" />
+    <xs:attribute name="y" type="xs:unsignedByte" use="required" />
+  </xs:complexType>
+
   <!-- Worldmap point -->
   <xs:complexType name="WorldMapPoint">
     <xs:sequence>
@@ -198,6 +233,8 @@
             </xs:element>
             <xs:element name="restrictions" minOccurs="1" maxOccurs="1" type="hyb:WarpRestrictions" />
           </xs:sequence>
+          <xs:attribute name="x" type="xs:unsignedByte" use="required"/>
+          <xs:attribute name="y" type="xs:unsignedByte" use="required"/>
         </xs:complexType>
       </xs:element>
     </xs:sequence>
@@ -207,6 +244,7 @@
   <xs:complexType name="WorldMapPoints">
     <xs:sequence>
       <xs:element name="point" type="maps:WorldMapPoint" minOccurs="1" maxOccurs="unbounded" />
+      <xs:element name="restrictions" minOccurs="0" maxOccurs="1" type="hyb:WarpRestrictions"/>
     </xs:sequence>
   </xs:complexType>
 

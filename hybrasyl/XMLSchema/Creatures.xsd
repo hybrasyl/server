@@ -23,24 +23,6 @@
     </xs:sequence>  
   </xs:complexType>
 
-  <xs:complexType name="Npc">
-    <xs:sequence>
-      <xs:element name="name" type="hyb:String8" minOccurs="1" maxOccurs="1" />
-      <xs:element name="description" type="hyb:String16" minOccurs="0" maxOccurs="1" />
-      <xs:element name="portrait" type="hyb:String8" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="jobs" type="hyb:NpcJobList" minOccurs="0" maxOccurs="1"/>
-    </xs:sequence>
-    <xs:attribute name="direction" default="north" type="hyb:Direction"/>
-    <xs:attribute name="sprite" use="required" type="xs:unsignedShort"/>
-  </xs:complexType>
-
-  <xs:complexType name="Loot">
-    <xs:choice minOccurs="1" maxOccurs="unbounded">
-      <xs:element name="dropset" type="hyb:String8" />
-      <xs:element name="drops" type="creatures:Drop " />
-    </xs:choice> 
-  </xs:complexType>
-
   <xs:complexType name="Drop">
     <xs:choice minOccurs="1" maxOccurs="unbounded">
       <xs:element name="item">
@@ -99,7 +81,6 @@
     </xs:sequence>
   </xs:complexType>
   
-  <xs:element name="npc" type="creatures:Npc"/>
   <xs:element name="mob" type="creatures:Mob"/>
   <xs:element name="dropset" type="creatures:Dropset"/>
   

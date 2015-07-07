@@ -227,6 +227,12 @@
       <xs:element name="noMobUse" minOccurs="0" maxOccurs="1" />
     </xs:sequence>
   </xs:complexType>
- 
+  
+  <!-- Variant property type (string, must be numeric or contain a percent sign -->
+  <xs:simpleType name="VariantProperty">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="-{0,1}[0-9]*%{0,1}"/>
+    </xs:restriction>
+  </xs:simpleType>
 
 </xs:schema>
