@@ -2059,13 +2059,13 @@ namespace Hybrasyl
                 // That means we need to check whether the user is a valid candidate for
                 // grouping, and send the confirmation dialog if so.
                 case 0x02:
-                    Logger.InfoFormat("{0} invites {1} to join a group.", user.Name, partner.Name);
+                    Logger.DebugFormat("{0} invites {1} to join a group.", user.Name, partner.Name);
                     
                     // Remove the user from the group. Kinda logically weird beside all of this other stuff 
                     // so it may be worth restructuring but it should be accurate as-is.
                     if (partner.Grouped && user.Grouped && partner.Group == user.Group)
                     {
-                        Logger.InfoFormat("{0} leaving group.", user.Name);
+                        Logger.DebugFormat("{0} leaving group.", user.Name);
                         user.Group.Remove(partner);
                         return;
                     }
@@ -2097,12 +2097,12 @@ namespace Hybrasyl
                 // request. We need to add them to the original user's group. Note that in this
                 // case the partner sent the original invitation.
                 case 0x03:
-                    Logger.Info("Invitation accepted. Grouping.");
+                    Logger.Debug("Invitation accepted. Grouping.");
                     partner.InviteToGroup(user);
                     break;
                 // This shouldn't happen but we should log it and fix it if it does.
                 default:
-                    Logger.Info("Unknown GroupRequest stage. No action taken.");
+                    Logger.Error("Unknown GroupRequest stage. No action taken.");
                     break;
             }
         }
@@ -2121,7 +2121,8 @@ namespace Hybrasyl
             user.Grouping = !user.Grouping;
             user.Save();
 
-            // TODO: Is there any packet content that needs to be used on the server?
+            // TODO: Is there any packet content that needs to be used on the server? It appears there
+            // are extra bytes coming through but not sure what purpose they serve.
         }
 
         private void PacketHandler_0x2A_DropGoldOnCreature(Object obj, ClientPacket packet)
