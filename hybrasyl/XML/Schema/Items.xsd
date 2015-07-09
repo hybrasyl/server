@@ -293,10 +293,8 @@
   <xs:complexType name="VariantGroupType">
     <xs:sequence>
       <xs:element name="name" minOccurs="1" maxOccurs="1" type="hyb:String8" />
-    </xs:sequence>
-    <xs:choice minOccurs="1" maxOccurs="unbounded">
       <xs:element name="variant" minOccurs="1" maxOccurs="unbounded" type="items:VariantType"/>
-    </xs:choice>
+    </xs:sequence>
   </xs:complexType>
 
   <!-- Actual elements for item, variantgroup, variant -->
