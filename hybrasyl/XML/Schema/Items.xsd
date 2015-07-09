@@ -1,9 +1,9 @@
-﻿<?xml version="1.0" ?>
+<?xml version="1.0" ?>
 <xs:schema xmlns:hyb="http://www.hybrasyl.com/XML/HybrasylCommon"
            xmlns:xs="http://www.w3.org/2001/XMLSchema"
            xmlns:items="http://www.hybrasyl.com/XML/Items"
            targetNamespace="http://www.hybrasyl.com/XML/Items"
-           elementFormDefault="unqualified">
+           elementFormDefault="qualified">
 
   <xs:annotation>
     <xs:documentation xml:lang="en">
@@ -19,8 +19,8 @@
     <xs:choice minOccurs="0" maxOccurs="7">
       <xs:element name="appearance" minOccurs="0" maxOccurs="1" >
         <xs:complexType>
-          <xs:attribute name="bodystyle" type="xs:unsignedByte" />
-          <xs:attribute name="color" type="xs:unsignedByte" />
+          <xs:attribute name="bodystyle" type="hyb:ItemBodystyle" />
+          <xs:attribute name="color" type="hyb:ItemColor" />
         </xs:complexType>
       </xs:element>
       <xs:element name="damage" minOccurs="0" maxOccurs="1">
@@ -68,7 +68,7 @@
               </xs:complexType>
             </xs:element>
             <xs:element name="class" minOccurs="0" maxOccurs="1" type="hyb:Class"/>
-            <xs:element name="sex" type="hyb:Gender" minOccurs="0" maxOccurs="1" default="neutral"/>
+            <xs:element name="gender" type="hyb:Gender" minOccurs="0" maxOccurs="1" default="neutral"/>
           </xs:sequence>
         </xs:complexType>
       </xs:element>
@@ -120,8 +120,8 @@
           <xs:attribute name="sprite" use="required" type="xs:unsignedShort"/>
           <xs:attribute name="equipsprite" type="xs:unsignedShort"/>
           <xs:attribute name="displaysprite" type="xs:unsignedShort" />
-          <xs:attribute name="bodystyle" default="0" type="xs:unsignedByte" />
-          <xs:attribute name="color" default="0" type="xs:unsignedByte" />
+          <xs:attribute name="bodystyle" default="transparent" type="hyb:ItemBodystyle" />
+          <xs:attribute name="color" default="none" type="hyb:ItemColor" />
         </xs:complexType>
       </xs:element>
       <xs:element name="stackable" minOccurs="1" maxOccurs="1">
@@ -251,24 +251,24 @@
         </xs:complexType>
       </xs:element>
       <xs:element name="restrictions" minOccurs="0" maxOccurs="1">
-         <xs:complexType>
-           <xs:sequence>
-             <xs:element name="level" minOccurs="0" maxOccurs="1">
-               <xs:complexType>
-                 <xs:attribute name="min" type="xs:unsignedByte" default="0" />
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="level" minOccurs="0" maxOccurs="1">
+              <xs:complexType>
+                <xs:attribute name="min" type="xs:unsignedByte" default="0" />
+                <xs:attribute name="max" type="xs:unsignedByte" default="255" />
+              </xs:complexType>
+            </xs:element>
+            <xs:element name="ab" minOccurs="0" maxOccurs="1">
+              <xs:complexType>
+                <xs:attribute name="min" type="xs:unsignedByte" default="0" />
                  <xs:attribute name="max" type="xs:unsignedByte" default="255" />
-               </xs:complexType>
-             </xs:element>
-             <xs:element name="ab" minOccurs="0" maxOccurs="1">
-               <xs:complexType>
-                 <xs:attribute name="min" type="xs:unsignedByte" default="0" />
-                 <xs:attribute name="max" type="xs:unsignedByte" default="255" />
-               </xs:complexType>
-             </xs:element>       
-             <xs:element name="class" minOccurs="0" maxOccurs="1" type="hyb:Class"/>
-             <xs:element name="sex" type="hyb:Gender" minOccurs="0" maxOccurs="1" default="neutral"/>
-           </xs:sequence>
-         </xs:complexType>
+              </xs:complexType>
+            </xs:element>       
+            <xs:element name="class" minOccurs="0" maxOccurs="1" type="hyb:Class"/>
+            <xs:element name="gender" type="hyb:Gender" minOccurs="0" maxOccurs="1" default="neutral"/>
+          </xs:sequence>
+        </xs:complexType>
       </xs:element>
     </xs:sequence>
   </xs:complexType>
@@ -289,21 +289,14 @@
       <xs:element name="properties" minOccurs="1" maxOccurs="1" type="items:VariantProperties"/>
     </xs:sequence>
   </xs:complexType>
-   
+  
   <xs:complexType name="VariantGroupType">
     <xs:sequence>
       <xs:element name="name" minOccurs="1" maxOccurs="1" type="hyb:String8" />
-      <xs:element name="variants" minOccurs="1" maxOccurs="1">
-        <xs:complexType>
-          <xs:sequence>
-            <xs:element name="variant" minOccurs="1" maxOccurs="unbounded" type="items:VariantType"/>
-          </xs:sequence>
-        </xs:complexType>
-      </xs:element>
     </xs:sequence>
-  <xs:attribute name="name" type="hyb:String8">
-    
-  </xs:attribute>    
+    <xs:choice minOccurs="1" maxOccurs="unbounded">
+      <xs:element name="variant" minOccurs="1" maxOccurs="unbounded" type="items:VariantType"/>
+    </xs:choice>
   </xs:complexType>
 
   <!-- Actual elements for item, variantgroup, variant -->

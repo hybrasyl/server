@@ -30,6 +30,37 @@
 
   <!-- Various reusable types used by items & friends -->
 
+  <!-- Item colors -->
+  <xs:simpleType name="ItemColor" >
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="none" />
+      <xs:enumeration value="black" />
+      <xs:enumeration value="red"/>
+      <xs:enumeration value="orange"/>
+      <xs:enumeration value="yellow"/>
+      <xs:enumeration value="teal"/>
+      <xs:enumeration value="blue"/>
+      <xs:enumeration value="purple"/>
+      <xs:enumeration value="green"/>
+      <xs:enumeration value="lightorange"/>
+      <xs:enumeration value="brown"/>
+      <xs:enumeration value="grey"/>
+      <xs:enumeration value="darkblue"/>
+      <xs:enumeration value="tan"/>
+      <xs:enumeration value="white"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="ItemBodystyle" >
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="transparent" />
+      <xs:enumeration value="male"/>
+      <xs:enumeration value="maleblack"/>
+      <xs:enumeration value="malered"/>
+      <xs:enumeration value="female"/>
+    </xs:restriction>
+  </xs:simpleType>
+
   <!-- Item flags -->
   <xs:simpleType name="ItemFlags">
     <xs:restriction>
@@ -142,10 +173,10 @@
       <xs:enumeration value="helmet"/>
       <xs:enumeration value="earring"/>
       <xs:enumeration value="necklace"/>
-      <xs:enumeration value="lhand"/>
-      <xs:enumeration value="rhand"/>
-      <xs:enumeration value="larm"/>
-      <xs:enumeration value="rarm"/>
+      <xs:enumeration value="lefthand"/>
+      <xs:enumeration value="righthand"/>
+      <xs:enumeration value="leftarm"/>
+      <xs:enumeration value="rightarm"/>
       <xs:enumeration value="waist"/>
       <xs:enumeration value="leg"/>
       <xs:enumeration value="foot"/>

@@ -3,7 +3,7 @@
            xmlns:xs="http://www.w3.org/2001/XMLSchema"
            xmlns:maps="http://www.hybrasyl.com/XML/Maps"
            targetNamespace="http://www.hybrasyl.com/XML/Maps"
-           elementFormDefault="unqualified">
+           elementFormDefault="qualified">
 
   <xs:annotation>
     <xs:documentation xml:lang="en">
@@ -104,8 +104,8 @@
   <!-- Signpost subelements -->
   <xs:complexType name="Signpost">
     <xs:sequence>
-      <xs:element name="message" type="hyb:String8"/>
-      <xs:element name="scriptname" type="hyb:String8"/>
+      <xs:element name="message" type="hyb:String16" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="scriptname" type="hyb:String8" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
     <xs:attribute name="x" type="xs:unsignedByte" use="required" />
     <xs:attribute name="y" type="xs:unsignedByte" use="required" />
@@ -163,25 +163,25 @@
   <!-- Map -->
   <xs:complexType name="Map">
     <xs:sequence>
-      <xs:element name="name" type="hyb:String8" minOccurs="1" maxOccurs="1" />
+      <xs:element name="name" type="hyb:String8" minOccurs="1" maxOccurs="1"/>
       <xs:element name="description" type="hyb:String16" minOccurs="0" maxOccurs="1"/>
       <xs:element name="flags" type="hyb:MapFlags" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="warps" type="maps:Warps" minOccurs="0" maxOccurs="1" />
+      <xs:element name="warps" type="maps:Warps" minOccurs="0" maxOccurs="1"/>
       <xs:element name="reactors" type="maps:Reactors" minOccurs="0" maxOccurs="1"/>
       <xs:element name="npcs" type="maps:Npcs" minOccurs="0" maxOccurs="1"/>
       <xs:element name="spawns" type="maps:Spawns" minOccurs="0" maxOccurs="1"/>
       <xs:element name="signposts" type="maps:Signposts" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
     <xs:attribute name="id" type="xs:unsignedShort" use="required" />
-		<xs:attribute name="music" type="xs:unsignedByte" default="0"/>
-		<xs:attribute name="x" type="xs:unsignedByte" use="required" />
-		<xs:attribute name="y" type="xs:unsignedByte" use="required" />
+    <xs:attribute name="music" type="xs:unsignedByte" default="0"/>
+    <xs:attribute name="x" type="xs:unsignedByte" use="required"/>
+    <xs:attribute name="y" type="xs:unsignedByte" use="required"/>
   </xs:complexType>
 
   <xs:complexType name="Npc">
     <xs:sequence>
-      <xs:element name="name" minOccurs="1" maxOccurs="1" type="hyb:String8"></xs:element>
-      <xs:element name="displayname" minOccurs="0" maxOccurs="1" type="hyb:String8"></xs:element>
+      <xs:element name="name" minOccurs="1" maxOccurs="1" type="hyb:String8"/>
+      <xs:element name="displayname" minOccurs="0" maxOccurs="1" type="hyb:String8"/>
       <xs:element name="appearance" minOccurs="0" maxOccurs="1">
         <xs:complexType>
           <xs:attribute name="sprite" type="xs:unsignedShort" use="required"/>
@@ -215,9 +215,6 @@
 
   <!-- Worldmap point -->
   <xs:complexType name="WorldMapPoint">
-    <xs:sequence>
-      <xs:element name="point">
-        <xs:complexType>
           <xs:sequence>
             <xs:element name="description" minOccurs="0" maxOccurs="1" type="hyb:String8" />
             <xs:element name="name" minOccurs="1" maxOccurs="1" type="hyb:String8" />
@@ -231,14 +228,12 @@
                 </xs:simpleContent>
               </xs:complexType>
             </xs:element>
-            <xs:element name="restrictions" minOccurs="1" maxOccurs="1" type="hyb:WarpRestrictions" />
+            <xs:element name="restrictions" minOccurs="0" maxOccurs="1" type="hyb:WarpRestrictions" />
           </xs:sequence>
-          <xs:attribute name="x" type="xs:unsignedByte" use="required"/>
-          <xs:attribute name="y" type="xs:unsignedByte" use="required"/>
+          <xs:attribute name="x" type="xs:unsignedShort" use="required"/>
+          <xs:attribute name="y" type="xs:unsignedShort" use="required"/>
         </xs:complexType>
-      </xs:element>
-    </xs:sequence>
-  </xs:complexType>
+
 
   <!-- Worldmap points (collection of worldmap points) -->
   <xs:complexType name="WorldMapPoints">
