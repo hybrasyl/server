@@ -1,0 +1,8 @@
+<dropset xmlns="http://www.hybrasyl.com/XML/Creatures">
+  <name>Forest 1</name>
+  <drops>
+    <item minqty=0 maxqty=2 chance="0.45">Stick</item>
+    <item minqty=0 maxqty=2 chance="0.45" variant="elemental">Aosdic Geegaw</item>
+    <gold minqty="37000" maxqty="50000" chance="0.25"/>
+  </drops>
+</dropset>
