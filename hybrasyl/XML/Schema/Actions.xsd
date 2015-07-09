@@ -1,24 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
-<xs:schema xmlns:hyb="http://www.hybrasyl.com/XML/HybrasylCommon"
-           xmlns:xs="http://www.w3.org/2001/XMLSchema"
-           xmlns:actions="http://www.hybrasyl.com/XML/Actions"
-           targetNamespace="http://www.hybrasyl.com/XML/Actions"
-           elementFormDefault="qualified">
+<xs:schema xmlns:hyb="http://www.hybrasyl.com/XML/HybrasylCommon" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:actions="http://www.hybrasyl.com/XML/Actions" targetNamespace="http://www.hybrasyl.com/XML/Actions" elementFormDefault="qualified">
 
   <xs:annotation>
     <xs:documentation xml:lang="en">
       Hybrasyl Project - Hybrasyl XML Schema - Actions (Skills / Spells)
       This file is subject to the same licenses as Project Hybrasyl.
       (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+      Written by Justin Baugh (baughj@hybrasyl.com)
     </xs:documentation>
   </xs:annotation>
 
-  <xs:import schemaLocation="hybrasylTypes.xsd" namespace="http://www.hybrasyl.com/XML/HybrasylCommon" />
+  <xs:import schemaLocation="hybrasylTypes.xsd" namespace="http://www.hybrasyl.com/XML/HybrasylCommon"/>
 
   <!-- Skill/spell book location -->
-  <xs:simpleType name="BookLocation" >
+  <xs:simpleType name="BookLocation">
     <xs:restriction base="xs:token">
-      <xs:enumeration value="primaryskill" />
+      <xs:enumeration value="primaryskill"/>
       <xs:enumeration value="secondaryskill"/>
       <xs:enumeration value="utilityskill"/>
       <xs:enumeration value="primaryspell"/>
@@ -29,11 +26,11 @@
 
  <!-- Element properties (adds belt / necklace) -->
 
-  <xs:simpleType name="Element" >
+  <xs:simpleType name="Element">
     <xs:restriction base="xs:token">
-      <xs:enumeration value="none" />
-      <xs:enumeration value="belt" />
-      <xs:enumeration value="necklace" />
+      <xs:enumeration value="none"/>
+      <xs:enumeration value="belt"/>
+      <xs:enumeration value="necklace"/>
       <xs:enumeration value="fire"/>
       <xs:enumeration value="water"/>
       <xs:enumeration value="wind"/>
@@ -97,8 +94,8 @@
       <xs:element name="stat" minOccurs="0" maxOccurs="1">
         <xs:complexType>
           <!-- hp/mp can be expressed as percentages here -->
-          <xs:attribute name="hp" type="hyb:String8" default="0" />
-          <xs:attribute name="mp" type="hyb:String8" default="0" />
+          <xs:attribute name="hp" type="hyb:String8" default="0"/>
+          <xs:attribute name="mp" type="hyb:String8" default="0"/>
         </xs:complexType>
       </xs:element>
       <xs:element name="gold" type="xs:unsignedInt" minOccurs="0" maxOccurs="1"/>
@@ -119,13 +116,13 @@
       <xs:element name="gold" minOccurs="0" maxOccurs="1" type="xs:unsignedInt"/>
       <xs:element name="physical" minOccurs="0" maxOccurs="1">
         <xs:complexType>
-          <xs:attribute name="str" default="0" type="xs:unsignedByte" />
-          <xs:attribute name="int" default="0" type="xs:unsignedByte" />
-          <xs:attribute name="wis" default="0" type="xs:unsignedByte" />
-          <xs:attribute name="con" default="0" type="xs:unsignedByte" />
-          <xs:attribute name="dex" default="0" type="xs:unsignedByte" />
-          <xs:attribute name="hp" default="0" type="xs:integer" />
-          <xs:attribute name="mp" default="0" type="xs:integer" />
+          <xs:attribute name="str" default="0" type="xs:unsignedByte"/>
+          <xs:attribute name="int" default="0" type="xs:unsignedByte"/>
+          <xs:attribute name="wis" default="0" type="xs:unsignedByte"/>
+          <xs:attribute name="con" default="0" type="xs:unsignedByte"/>
+          <xs:attribute name="dex" default="0" type="xs:unsignedByte"/>
+          <xs:attribute name="hp" default="0" type="xs:integer"/>
+          <xs:attribute name="mp" default="0" type="xs:integer"/>
         </xs:complexType>
       </xs:element>
     </xs:choice>
@@ -137,7 +134,7 @@
       <xs:simpleType>
         <xs:list itemType="hyb:WeaponType"/>
       </xs:simpleType>
-      <xs:maxLength value="5" />
+      <xs:maxLength value="5"/>
     </xs:restriction>
   </xs:simpleType>
 
@@ -153,26 +150,26 @@
     <xs:choice minOccurs="1" maxOccurs="5">
       <xs:element name="level" minOccurs="0" maxOccurs="1">
         <xs:complexType>
-          <xs:attribute name="min" type="xs:unsignedByte" default="0" />
-          <xs:attribute name="max" type="xs:unsignedByte" default="255" />
-          <xs:attribute name="display" type="xs:unsignedByte" default="255" />
+          <xs:attribute name="min" type="xs:unsignedByte" default="0"/>
+          <xs:attribute name="max" type="xs:unsignedByte" default="255"/>
+          <xs:attribute name="display" type="xs:unsignedByte" default="255"/>
         </xs:complexType>
       </xs:element>
       <xs:element name="ab" minOccurs="0" maxOccurs="1">
         <xs:complexType>
-          <xs:attribute name="min" type="xs:unsignedByte" default="0" />
-          <xs:attribute name="max" type="xs:unsignedByte" default="255" />
+          <xs:attribute name="min" type="xs:unsignedByte" default="0"/>
+          <xs:attribute name="max" type="xs:unsignedByte" default="255"/>
         </xs:complexType>
       </xs:element>
       <xs:element name="class" minOccurs="0" maxOccurs="1" type="actions:ClassTypeList"/>
       <xs:element name="cost" minOccurs="0" maxOccurs="1" type="actions:LearnCost"/>
       <xs:element name="minstats" minOccurs="0" maxOccurs="1">
         <xs:complexType>
-          <xs:attribute name="str" default="0" type="xs:unsignedByte" />
-          <xs:attribute name="int" default="0" type="xs:unsignedByte" />
-          <xs:attribute name="wis" default="0" type="xs:unsignedByte" />
-          <xs:attribute name="con" default="0" type="xs:unsignedByte" />
-          <xs:attribute name="dex" default="0" type="xs:unsignedByte" />
+          <xs:attribute name="str" default="0" type="xs:unsignedByte"/>
+          <xs:attribute name="int" default="0" type="xs:unsignedByte"/>
+          <xs:attribute name="wis" default="0" type="xs:unsignedByte"/>
+          <xs:attribute name="con" default="0" type="xs:unsignedByte"/>
+          <xs:attribute name="dex" default="0" type="xs:unsignedByte"/>
         </xs:complexType>
       </xs:element>
     </xs:choice>
@@ -184,13 +181,13 @@
     <xs:choice minOccurs="1" maxOccurs="7">
       <xs:element name="effect" minOccurs="0" maxOccurs="1">
         <xs:complexType>
-          <xs:attribute name="id" type="xs:unsignedShort" use="required"></xs:attribute>
+          <xs:attribute name="id" type="xs:unsignedShort" use="required"/>
           <xs:attribute name="speed" type="xs:byte" default="100"/>
         </xs:complexType>
       </xs:element>
       <xs:element name="sound" minOccurs="0" maxOccurs="1">
         <xs:complexType>
-          <xs:attribute name="id" type="xs:byte" use="required" />
+          <xs:attribute name="id" type="xs:byte" use="required"/>
         </xs:complexType>
       </xs:element>
       <xs:element name="teleport" minOccurs="0" maxOccurs="1">
@@ -249,16 +246,16 @@
       </xs:element>
       <xs:element name="weapontype" type="actions:WeaponTypeList" minOccurs="0" maxOccurs="1"/>
       <xs:element name="maxlevel" type="actions:MaxLevel" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="requirements" minOccurs="0" maxOccurs="1" type="actions:LearnRequirements" />
-      <xs:element name="effects" minOccurs="0" maxOccurs="1" type="actions:Effects" />
+      <xs:element name="requirements" minOccurs="0" maxOccurs="1" type="actions:LearnRequirements"/>
+      <xs:element name="effects" minOccurs="0" maxOccurs="1" type="actions:Effects"/>
     </xs:sequence>
   </xs:complexType>
   
   <xs:complexType name="action">
     <xs:sequence>
-      <xs:element name="name" type="hyb:String8"  minOccurs="1" maxOccurs="1"/>
+      <xs:element name="name" type="hyb:String8" minOccurs="1" maxOccurs="1"/>
       <xs:element name="book" type="actions:BookLocation" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="description" type="hyb:String16" minOccurs="0" maxOccurs="1" />
+      <xs:element name="description" type="hyb:String16" minOccurs="0" maxOccurs="1"/>
       <xs:element name="properties" type="actions:Properties" minOccurs="1" maxOccurs="1"/>
     </xs:sequence>
     <xs:attribute name="type">
