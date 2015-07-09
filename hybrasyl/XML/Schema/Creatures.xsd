@@ -18,6 +18,7 @@
       <xs:element name="description" type="hyb:String8" minOccurs="0" maxOccurs="1"/>
       <xs:element name="properties" type="creatures:Properties" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>  
+    <xs:attribute name="sprite" use="required" type="xs:unsignedShort"/>
   </xs:complexType>
 
   <xs:complexType name="Drop">
