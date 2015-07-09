@@ -1,14 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
-           xmlns:hyb="http://www.hybrasyl.com/XML/HybrasylCommon"
-           targetNamespace="http://www.hybrasyl.com/XML/HybrasylCommon"
-           elementFormDefault="unqualified">
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:hyb="http://www.hybrasyl.com/XML/HybrasylCommon" targetNamespace="http://www.hybrasyl.com/XML/HybrasylCommon" elementFormDefault="unqualified">
 
   <xs:annotation>
     <xs:documentation xml:lang="en">
-      Hybrasyl Project - Hybrasyl XML Schema
+      Hybrasyl Project - Hybrasyl XML Schema - Common / Reused Types
       This file is subject to the same licenses as Project Hybrasyl.
       (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+      Written by Justin Baugh (baughj@hybrasyl.com)
     </xs:documentation>
   </xs:annotation>
 
@@ -16,25 +14,25 @@
 
   <xs:simpleType name="String8">
 	  <xs:restriction base="xs:string">
-		  <xs:minLength value="1" />
-		  <xs:maxLength value="255" />
+		  <xs:minLength value="1"/>
+		  <xs:maxLength value="255"/>
     </xs:restriction>
   </xs:simpleType>
 
   <xs:simpleType name="String16">
 	  <xs:restriction base="xs:string">
-		  <xs:minLength value="1" />
-		  <xs:maxLength value="65534" />
+		  <xs:minLength value="1"/>
+		  <xs:maxLength value="65534"/>
     </xs:restriction>
   </xs:simpleType>
 
   <!-- Various reusable types used by items & friends -->
 
   <!-- Item colors -->
-  <xs:simpleType name="ItemColor" >
+  <xs:simpleType name="ItemColor">
     <xs:restriction base="xs:token">
-      <xs:enumeration value="none" />
-      <xs:enumeration value="black" />
+      <xs:enumeration value="none"/>
+      <xs:enumeration value="black"/>
       <xs:enumeration value="red"/>
       <xs:enumeration value="orange"/>
       <xs:enumeration value="yellow"/>
@@ -51,9 +49,9 @@
     </xs:restriction>
   </xs:simpleType>
 
-  <xs:simpleType name="ItemBodystyle" >
+  <xs:simpleType name="ItemBodystyle">
     <xs:restriction base="xs:token">
-      <xs:enumeration value="transparent" />
+      <xs:enumeration value="transparent"/>
       <xs:enumeration value="male"/>
       <xs:enumeration value="maleblack"/>
       <xs:enumeration value="malered"/>
@@ -83,7 +81,7 @@
           </xs:simpleType>
         </xs:list>
       </xs:simpleType>
-      <xs:maxLength value="8" />
+      <xs:maxLength value="8"/>
     </xs:restriction>
   </xs:simpleType>
 
@@ -104,14 +102,14 @@
           </xs:simpleType>
         </xs:list>
       </xs:simpleType>
-      <xs:maxLength value="5" />
+      <xs:maxLength value="5"/>
     </xs:restriction>
   </xs:simpleType>
 
   <!-- Classes (for item restrictions) -->
-  <xs:simpleType name="Class" >
+  <xs:simpleType name="Class">
     <xs:restriction base="xs:token">
-      <xs:enumeration value="monk" />
+      <xs:enumeration value="monk"/>
       <xs:enumeration value="peasant"/>
       <xs:enumeration value="priest"/>
       <xs:enumeration value="rogue"/>
@@ -121,18 +119,18 @@
   </xs:simpleType>
 
   <!--  Gender (for item restrictions) -->
-  <xs:simpleType name="Gender" >
+  <xs:simpleType name="Gender">
     <xs:restriction base="xs:token">
-      <xs:enumeration value="neutral" />
+      <xs:enumeration value="neutral"/>
       <xs:enumeration value="male"/>
       <xs:enumeration value="female"/>
     </xs:restriction>
   </xs:simpleType>
 
   <!-- Elements -->
-  <xs:simpleType name="Element" >
+  <xs:simpleType name="Element">
     <xs:restriction base="xs:token">
-      <xs:enumeration value="none" />
+      <xs:enumeration value="none"/>
       <xs:enumeration value="fire"/>
       <xs:enumeration value="water"/>
       <xs:enumeration value="wind"/>
@@ -164,9 +162,9 @@
     </xs:restriction>  
   </xs:simpleType>
 
-  <xs:simpleType name="EquipmentSlot" >
+  <xs:simpleType name="EquipmentSlot">
     <xs:restriction base="xs:token">
-      <xs:enumeration value="none" />
+      <xs:enumeration value="none"/>
       <xs:enumeration value="weapon"/>
       <xs:enumeration value="armor"/>
       <xs:enumeration value="shield"/>
@@ -216,7 +214,7 @@
           </xs:simpleType>
         </xs:list>
       </xs:simpleType>
-      <xs:maxLength value="5" />
+      <xs:maxLength value="5"/>
     </xs:restriction>
   </xs:simpleType>
 
@@ -236,7 +234,7 @@
           </xs:simpleType>
         </xs:list>
       </xs:simpleType>
-      <xs:maxLength value="5" />
+      <xs:maxLength value="5"/>
     </xs:restriction>
   </xs:simpleType>
   
@@ -245,17 +243,17 @@
     <xs:sequence>
       <xs:element name="level" minOccurs="0" maxOccurs="1">
         <xs:complexType>
-          <xs:attribute name="min" type="xs:unsignedByte" default="0" />
-          <xs:attribute name="max" type="xs:unsignedByte" default="255" />
+          <xs:attribute name="min" type="xs:unsignedByte" default="0"/>
+          <xs:attribute name="max" type="xs:unsignedByte" default="255"/>
         </xs:complexType>
       </xs:element>
       <xs:element name="ab" minOccurs="0" maxOccurs="1">
         <xs:complexType>
-          <xs:attribute name="min" type="xs:unsignedByte" default="0" />
-          <xs:attribute name="max" type="xs:unsignedByte" default="255" />
+          <xs:attribute name="min" type="xs:unsignedByte" default="0"/>
+          <xs:attribute name="max" type="xs:unsignedByte" default="255"/>
         </xs:complexType>
       </xs:element>
-      <xs:element name="noMobUse" minOccurs="0" maxOccurs="1" />
+      <xs:element name="noMobUse" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
   </xs:complexType>
   

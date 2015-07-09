@@ -1,25 +1,22 @@
-<?xml version="1.0" ?>
-<xs:schema xmlns:hyb="http://www.hybrasyl.com/XML/HybrasylCommon"
-           xmlns:xs="http://www.w3.org/2001/XMLSchema"
-           xmlns:creatures="http://www.hybrasyl.com/XML/Creatures"
-           targetNamespace="http://www.hybrasyl.com/XML/Creatures"
-           elementFormDefault="qualified">
+<?xml version="1.0"?>
+<xs:schema xmlns:hyb="http://www.hybrasyl.com/XML/HybrasylCommon" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:creatures="http://www.hybrasyl.com/XML/Creatures" targetNamespace="http://www.hybrasyl.com/XML/Creatures" elementFormDefault="qualified">
 
 <xs:annotation>
   <xs:documentation xml:lang="en">
     Hybrasyl Project - Hybrasyl XML Schema - Creatures (NPCs/mobs/drops)
     This file is subject to the same licenses as Project Hybrasyl.
     (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+    Written by Justin Baugh (baughj@hybrasyl.com)
   </xs:documentation>
 </xs:annotation>
 
-<xs:import schemaLocation="hybrasylTypes.xsd" namespace="http://www.hybrasyl.com/XML/HybrasylCommon" />
+<xs:import schemaLocation="hybrasylTypes.xsd" namespace="http://www.hybrasyl.com/XML/HybrasylCommon"/>
 
   <xs:complexType name="Mob">
     <xs:sequence>
-      <xs:element name="name" type="hyb:String8" minOccurs="1" maxOccurs="1" />
-      <xs:element name="description" type="hyb:String8" minOccurs="0" maxOccurs="1" />
-      <xs:element name="properties" type="creatures:Properties" minOccurs="0" maxOccurs="1" />
+      <xs:element name="name" type="hyb:String8" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="description" type="hyb:String8" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="properties" type="creatures:Properties" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>  
     <xs:attribute name="sprite" use="required" type="xs:unsignedShort"/>
   </xs:complexType>
@@ -66,8 +63,8 @@
       </xs:element>
       <xs:element name="defense" minOccurs="0" maxOccurs="1">
         <xs:complexType>
-          <xs:attribute name="mr" type="xs:unsignedByte" default="1" />
-          <xs:attribute name="ac" type="xs:unsignedByte" use="required" />
+          <xs:attribute name="mr" type="xs:unsignedByte" default="1"/>
+          <xs:attribute name="ac" type="xs:unsignedByte" use="required"/>
           <xs:attribute name="element" type="hyb:Element" default="none"/>
         </xs:complexType>
       </xs:element>
@@ -96,4 +93,3 @@
   <xs:element name="dropset" type="creatures:Dropset"/>
   
 </xs:schema>
-
