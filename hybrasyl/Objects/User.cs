@@ -31,6 +31,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Threading;
 
 namespace Hybrasyl.Objects
@@ -49,6 +50,7 @@ namespace Hybrasyl.Objects
         public byte HairColor { get; set; }
         public Class Class { get; set; }
         public bool IsMaster { get; set; }
+        public UserGroup Group { get; set; }
 
         public bool Dead { get; set; }
 
@@ -141,6 +143,11 @@ namespace Hybrasyl.Objects
         public long LastSpoke { get; set; }
         public string LastSaid { get; set; }
         public int NumSaidRepeated { get; set; }
+
+        public bool Grouped
+        {
+            get { return Group != null; }
+        }
 
         // this is terrible and I hate it. It will go away soon.
         // HAHAHAHAHAHA LIES.
@@ -264,6 +271,7 @@ namespace Hybrasyl.Objects
             UserFlags = new Dictionary<String, String>();
             UserSessionFlags = new Dictionary<String, String>();
             Status = PlayerStatus.Alive;
+            Group = null;
 
             if (!string.IsNullOrEmpty(playername))
             {
@@ -273,6 +281,44 @@ namespace Hybrasyl.Objects
 
         }
 
+        /**
+         * Invites another user to this user's group. If this user isn't in a group,
+         * create a new one.
+         */
+        public bool InviteToGroup(User invitee)
+        {
+            // If you're inviting others to group, you must have grouping enabled.
+            // Enable it automatically if necessary.
+            Grouping = true;
+
+            if (!Grouped)
+            {
+                Group = new UserGroup(this);
+            }
+
+            return Group.Add(invitee);
+        }
+
+        /**
+         * Distributes experience to a group if the user is in one, or to the
+         * user directly if the user is ungrouped.
+         */
+        public void ShareExperience(uint exp)
+        {
+            if (Group != null)
+            {
+                Group.ShareExperience(this, (int)exp);
+            }
+            else
+            {
+                GiveExperience(exp);
+            }
+        }
+
+        /**
+         * Provides experience directly to the user that will not be distributed to
+         * other members of the group (for example, for finishing a part of a quest).
+         */
         public void GiveExperience(uint exp)
         {
             var levelsGained = 0;
@@ -702,33 +748,71 @@ namespace Hybrasyl.Objects
 
         public void SendWhisper(String charname, String message)
         {
+            var target = World.FindUser(charname);
+            string err = String.Empty;
 
+            if (CanTalkTo(target, out err))
+            {
+                // To implement: ACLs (ignore list)
+                // To implement: loggging?
+                DisplayOutgoingWhisper(target.Name, message);
+                target.DisplayIncomingWhisper(Name, message);
+            }
+            else
+            {
+                Client.SendMessage(err, 0x0);
+            }
+        }
+
+        /**
+         * Send a whisper to all members of the group.
+         */
+        public void SendGroupWhisper(string message)
+        {
+            if (Group == null)
+            {
+                SendMessage("You must be in a group to group whisper.", MessageTypes.SYSTEM);
+            }
+            else
+            {
+                string err = String.Empty;
+                foreach (var member in Group.Members)
+                {
+                    if (CanTalkTo(member, out err))
+                    {
+                        member.Client.SendMessage(String.Format("[!{0}] {1}", Name, message), MessageTypes.GROUP);
+                    }
+                    else
+                    {
+                        Client.SendMessage(err, 0x0);
+                    }
+                }
+            }
+        }
+
+        public bool CanTalkTo(User target, out string msg)
+        {
             // First, maake sure a) we can send a message and b) the target is not ignoring whispers.
             if (IsMuted)
             {
-                Client.SendMessage("A strange voice says, \"Not for you.\"", 0x0);
-                return;
+                msg = "A strange voice says, \"Not for you.\"";
+                return false;
             }
-
-            var target = World.FindUser(charname);
 
             if (target == null)
             {
-                Client.SendMessage("That Aisling is not in Temuair.", 0x0);
-                return;
+                msg = "That Aisling is not in Temuair.";
+                return false;
             }
 
             if (target.IsIgnoringWhispers)
             {
-                Client.SendMessage("Sadly, that Aisling cannot hear whispers.", 0x0);
-                return;
+                msg = "Sadly, that Aisling cannot hear whispers.";
+                return false;
             }
 
-            // To implement: ACLs (ignore list)
-            // To implement: loggging?
-
-            DisplayOutgoingWhisper(target.Name, message);
-            target.DisplayIncomingWhisper(Name, message);
+            msg = String.Empty;
+            return true;
         }
 
         public override void ShowTo(VisibleObject obj)
@@ -1367,6 +1451,37 @@ namespace Hybrasyl.Objects
             SendItemUpdate(Inventory[newSlot], newSlot);
         }
 
+        private string GroupProfileSegment()
+        {
+            StringBuilder sb = new StringBuilder();
+
+            // Only build this string if the user's in a group. Otherwise an empty
+            // string should be sent.
+            if (Grouped)
+            {
+                sb.Append("Group members");
+                sb.Append((char)0x0A);
+
+                // The user's name should go first, and should not have an asterisk.
+                // In practice this will mean that the user's name appears first and
+                // is grayed out, while all other names are white.
+                sb.Append("  " + Name);
+                sb.Append((char)0x0A);
+
+                foreach (var member in Group.Members)
+                {
+                    if (member.Name != Name)
+                    {
+                        sb.Append("  " + member.Name);
+                        sb.Append((char)0x0A);
+                    }
+                }
+                sb.Append(String.Format("Total {0}", Group.Members.Count));
+            }
+
+            return sb.ToString();
+        }
+
         /// <summary>
         /// Send a player's profile to themselves (e.g. click on self or hit Y for group info)
         /// </summary>
@@ -1376,11 +1491,13 @@ namespace Hybrasyl.Objects
             profilePacket.WriteByte((byte)Citizenship.flag); // citizenship
             profilePacket.WriteString8(GuildRank);
             profilePacket.WriteString8(Title);
-            profilePacket.WriteString8(GroupText);
+            profilePacket.WriteString8(GroupProfileSegment());
+//            profilePacket.WriteString8(GroupText);
             profilePacket.WriteBoolean(Grouping);
             profilePacket.WriteByte(0); // ??
             profilePacket.WriteByte((byte)Class);
-            profilePacket.WriteByte(1); // ??
+            //            profilePacket.WriteByte(1); // ??
+            profilePacket.WriteByte(0);
             profilePacket.WriteByte(0); // ??
             profilePacket.WriteString8(Hybrasyl.Constants.REVERSE_CLASSES[(int)Class]);
             profilePacket.WriteString8(Guild);

@@ -631,6 +631,8 @@ namespace Hybrasyl
             PacketHandlers[0x29] = PacketHandler_0x29_DropItemOnCreature;
             PacketHandlers[0x2A] = PacketHandler_0x2A_DropGoldOnCreature;
             PacketHandlers[0x2D] = PacketHandler_0x2D_PlayerInfo;
+            PacketHandlers[0x2E] = PacketHandler_0x2E_GroupRequest;
+            PacketHandlers[0x2F] = PacketHandler_0x2F_GroupToggle;
             PacketHandlers[0x30] = PacketHandler_0x30_MoveUIElement;
             PacketHandlers[0x38] = PacketHandler_0x38_Refresh;
             PacketHandlers[0x39] = PacketHandler_0x39_NPCMainMenu;
@@ -736,6 +738,12 @@ namespace Hybrasyl
                 user.Save();
                 user.UpdateLogoffTime();
                 user.Map.Remove(user);
+
+                if (user.Group != null)
+                {
+                    user.Group.Remove(user);
+                }
+
                 Remove(user);
                 Logger.DebugFormat("cid {0}: {1} cleaned up successfully", user.Name);
                 DeleteUser(user.Name);
@@ -1023,16 +1031,50 @@ namespace Hybrasyl
                 switch (args[0].ToLower())
                 {
                     case "/gold":
-                    {
-                        uint amount;
+                        {
+                            uint amount;
 
-                        if (args.Length != 2 || !uint.TryParse(args[1], out amount))
+                            if (args.Length != 2 || !uint.TryParse(args[1], out amount))
+                                break;
+
+                            user.Gold = amount;
+                            user.UpdateAttributes(StatUpdateFlags.Experience);
                             break;
-
-                        user.Gold = amount;
-                        user.UpdateAttributes(StatUpdateFlags.Experience);
-                    }
+                        }
+                    /**
+                     * Give the current user some amount of experience. This experience
+                     * will be distributed across a group if the user is in a group, or
+                     * passed directly to them if they're not in a group.
+                     */
+                    case "/exp":
+                        {
+                            uint amount = 0;
+                            if (args.Length == 2 && uint.TryParse(args[1], out amount))
+                            {
+                                user.ShareExperience(amount);
+                            }
+                        }
                         break;
+
+                    case "/group":
+                        User newMember = FindUser(args[1]);
+
+                        if (newMember == null)
+                        {
+                            user.SendMessage("Unknown user in group request.", MessageTypes.SYSTEM);
+                            break;
+                        }
+
+                        user.InviteToGroup(newMember);
+                        break;
+
+                    case "/ungroup":
+                        if (user.Group != null)
+                        {
+                            user.Group.Remove(user);
+                        }
+                        break;
+
                     case "/summon":
                     {
                         if (!user.IsPrivileged)
@@ -1656,6 +1698,10 @@ namespace Hybrasyl
                 user.Save();
                 user.UpdateLogoffTime();
                 user.Map.Remove(user);
+                if (user.Grouped)
+                {
+                    user.Group.Remove(user);
+                }
                 Remove(user);
                 DeleteUser(user.Name);
                 user.SendRedirectAndLogoff(this, Game.Login, user.Name);
@@ -1759,8 +1805,17 @@ namespace Hybrasyl
             var msgsize = packet.ReadByte();
             var message = Encoding.GetEncoding(949).GetString(packet.Read(msgsize));
 
-            user.SendWhisper(target, message);
-
+            // "!!" is the special character sequence for group whisper. If this is the
+            // target, the message should be sent as a group whisper instead of a standard
+            // whisper.
+            if (target == "!!")
+            {
+                user.SendGroupWhisper(message);
+            }
+            else
+            {
+                user.SendWhisper(target, message);
+            }
         }
 
         private void PacketHandler_0x1C_UseItem(Object obj, ClientPacket packet)
@@ -1962,6 +2017,112 @@ namespace Hybrasyl
         {
             var user = (User) obj;
             user.SendProfile();
+        }
+         
+        /**
+         * Handle user-initiated grouping requests. There are a number of mechanisms in the client
+         * that send this packet, but generally amount to one of three serverside actions:
+         *    1) Request that the user join my group (stage 0x02).
+         *    2) Leave the group I'm currently in (stage 0x02).
+         *    3) Confirm that I'd like to accept a group request (stage 0x03).
+         * The general flow here consists of the following steps:
+         * Check to see if we should add the partner to the group, or potentially remove them
+         *    1) if user and partner are already in the same group.
+         *    2) Check to see if the partner is open for grouping. If not, fail.
+         *    3) Sending a group request to the group you're already in == ungroup request in USDA.
+         *    4) If the user's already grouped, they can't join this group.
+         *    5) Send them a dialog and have them explicitly accept.
+         *    6) If accepted, join group (see stage 0x03).
+         */
+        private void PacketHandler_0x2E_GroupRequest(Object obj, ClientPacket packet)
+        {
+            var user = (User) obj;
+
+            // stage:
+            //   0x02 = user is sending initial request to invitee
+            //   0x03 = invitee responds with a "yes"
+            byte stage = packet.ReadByte();
+            User partner = FindUser(packet.ReadString8());
+
+            // TODO: currently leaving five bytes on the table here. There's probably some 
+            // additional work that needs to happen though I haven't been able to determine
+            // what those bytes represent yet...
+
+            if (partner == null)
+            {
+                return;
+            }
+
+            switch (stage)
+            {
+                // Stage 0x02 means that a user is sending an initial request to the invitee.
+                // That means we need to check whether the user is a valid candidate for
+                // grouping, and send the confirmation dialog if so.
+                case 0x02:
+                    Logger.DebugFormat("{0} invites {1} to join a group.", user.Name, partner.Name);
+                    
+                    // Remove the user from the group. Kinda logically weird beside all of this other stuff 
+                    // so it may be worth restructuring but it should be accurate as-is.
+                    if (partner.Grouped && user.Grouped && partner.Group == user.Group)
+                    {
+                        Logger.DebugFormat("{0} leaving group.", user.Name);
+                        user.Group.Remove(partner);
+                        return;
+                    }
+
+                    // Now we know that we're trying to add this person to the group, not remove them.
+                    // Let's find out if they're eligible and invite them if so.
+                    if (partner.Grouped)
+                    {
+                        user.SendMessage(String.Format("{0} is already in a group.", partner.Name), MessageTypes.SYSTEM);
+                        return;
+                    }
+
+                    if (!partner.Grouping)
+                    {
+                        user.SendMessage(String.Format("{0} is not accepting group invitations.", partner.Name), MessageTypes.SYSTEM);
+                        return;
+                    }
+
+                    // Send partner a dialog asking whether they want to group (opcode 0x63).
+                    ServerPacket response = new ServerPacket(0x63);
+                    response.WriteByte((byte)0x01);
+                    response.WriteString8(user.Name);
+                    response.WriteByte(0);
+                    response.WriteByte(0);
+
+                    partner.Enqueue(response);
+                    break;
+                // Stage 0x03 means that the invitee has responded with a "yes" to the grouping
+                // request. We need to add them to the original user's group. Note that in this
+                // case the partner sent the original invitation.
+                case 0x03:
+                    Logger.Debug("Invitation accepted. Grouping.");
+                    partner.InviteToGroup(user);
+                    break;
+                // This shouldn't happen but we should log it and fix it if it does.
+                default:
+                    Logger.Error("Unknown GroupRequest stage. No action taken.");
+                    break;
+            }
+        }
+
+        private void PacketHandler_0x2F_GroupToggle(Object obj, ClientPacket packet)
+        {
+            var user = (User)obj;
+
+            // If the user is in a group, they must leave (in particular going from true to false,
+            // but in no case should you be able to hold a group across this transition).
+            if (user.Grouped)
+            {
+                user.Group.Remove(user);
+            }
+
+            user.Grouping = !user.Grouping;
+            user.Save();
+
+            // TODO: Is there any packet content that needs to be used on the server? It appears there
+            // are extra bytes coming through but not sure what purpose they serve.
         }
 
         private void PacketHandler_0x2A_DropGoldOnCreature(Object obj, ClientPacket packet)
