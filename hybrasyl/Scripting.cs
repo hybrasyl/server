@@ -644,12 +644,12 @@ __builtins__.raw_input = None
         public bool GiveItem(String name)
         {
             // Does the item exist?
-            item theitem;
+            XML.Items.ItemType theitem;
             if (Game.World.ItemCatalog.TryGetValue(new Tuple<Sex, String>(User.Sex, name), out theitem) ||
                 Game.World.ItemCatalog.TryGetValue(new Tuple<Sex, String>(Sex.Neutral, name), out theitem))
             {
                 Logger.DebugFormat("giving item {0} to {1}", name, User.Name);
-                var itemobj = Game.World.CreateItem(theitem.id);
+                var itemobj = Game.World.CreateItem(theitem.Id);
                 Game.World.Insert(itemobj);
                 User.AddItem(itemobj);
                 return true;

@@ -20,6 +20,7 @@
  *            Kyle Speck    <kojasou@hybrasyl.com>
  */
 
+using System.Runtime.Serialization;
 using C3;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
@@ -29,10 +30,11 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using Newtonsoft.Json;
 
 namespace Hybrasyl.Objects
 {
-
+    [JsonObject(MemberSerialization.OptIn)]
     public class WorldObject : IQuadStorable
     {
         public static readonly ILog Logger =
@@ -51,12 +53,15 @@ namespace Hybrasyl.Objects
         }
 
         public bool HasMoved { get; set; }
+
         public byte X { get; set; }
         public byte Y { get; set; }
         public uint Id { get; set; }
-        public World World { get; set; }
+        [JsonProperty]
         public string Name { get; set; }
+
         public Script Script { get; set; }
+        public World World { get; set; }
 
         public WorldObject()
         {
@@ -181,6 +186,18 @@ namespace Hybrasyl.Objects
             }
         }
 
+        public virtual void Teleport(string name, byte x, byte y)
+        {
+            Map targetMap;
+            if (World.MapCatalog.TryGetValue(name, out targetMap))
+            {
+                if (Map != null)
+                    Map.Remove(this);
+                Logger.DebugFormat("Teleporting {0} to {1}.", Name, targetMap.Name);
+                targetMap.Insert(this, x, y);
+
+            }
+        }
         public virtual void SendMapInfo() { }
         public virtual void SendLocation() { }
 
@@ -303,7 +320,7 @@ namespace Hybrasyl.Objects
             if (this is Merchant)
             {
                 var merchant = (Merchant)this;
-                if (merchant.Jobs.HasFlag(MerchantJob.Vendor))
+                if (merchant.Jobs.HasFlag(MerchantJob.Vend))
                 {
                     menupacket.WriteString8("Buy");
                     menupacket.WriteUInt16((ushort)MerchantMenuItem.BuyItemMenu);
@@ -311,7 +328,7 @@ namespace Hybrasyl.Objects
                     menupacket.WriteUInt16((ushort)MerchantMenuItem.SellItemMenu);
                     pursuitCount += 2;
                 }
-                if (merchant.Jobs.HasFlag(MerchantJob.Banker))
+                if (merchant.Jobs.HasFlag(MerchantJob.Bank))
                 {
                     menupacket.WriteString8("Withdraw Item");
                     menupacket.WriteUInt16((ushort)MerchantMenuItem.WithdrawItemMenu);
@@ -323,7 +340,7 @@ namespace Hybrasyl.Objects
                     menupacket.WriteUInt16((ushort)MerchantMenuItem.DepositGoldMenu);
                     pursuitCount += 4;
                 }
-                if (merchant.Jobs.HasFlag(MerchantJob.Repairer))
+                if (merchant.Jobs.HasFlag(MerchantJob.Repair))
                 {
                     menupacket.WriteString8("Repair Item");
                     menupacket.WriteUInt16((ushort)MerchantMenuItem.RepairItemMenu);
@@ -331,7 +348,7 @@ namespace Hybrasyl.Objects
                     menupacket.WriteUInt16((ushort)MerchantMenuItem.RepairAllItems);
                     pursuitCount += 2;
                 }
-                if (merchant.Jobs.HasFlag(MerchantJob.Trainer))
+                if (merchant.Jobs.HasFlag(MerchantJob.Train))
                 {
                     /* if merchant has skills available to user:
                      *     menupacket.WriteString8("Learn Skill");
@@ -348,7 +365,7 @@ namespace Hybrasyl.Objects
                     menupacket.WriteUInt16((ushort)MerchantMenuItem.ForgetSpellMenu);
                     pursuitCount += 2;
                 }
-                if (merchant.Jobs.HasFlag(MerchantJob.Postman))
+                if (merchant.Jobs.HasFlag(MerchantJob.Post))
                 {
                     menupacket.WriteString8("Send Parcel");
                     menupacket.WriteUInt16((ushort)MerchantMenuItem.SendParcelMenu);
@@ -432,20 +449,32 @@ namespace Hybrasyl.Objects
                System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         public byte Level { get; set; }
+        [JsonProperty]
         public uint Experience { get; set; }
 
+        [JsonProperty]
         public byte Ability { get; set; }
+        [JsonProperty]
         public uint AbilityExp { get; set; }
 
+        [JsonProperty]
         public uint Hp { get; set; }
+        [JsonProperty]
         public uint Mp { get; set; }
 
+        [JsonProperty]
         public long BaseHp { get; set; }
+        [JsonProperty]
         public long BaseMp { get; set; }
+        [JsonProperty]
         public long BaseStr { get; set; }
+        [JsonProperty]
         public long BaseInt { get; set; }
+        [JsonProperty]
         public long BaseWis { get; set; }
+        [JsonProperty]
         public long BaseCon { get; set; }
+        [JsonProperty]
         public long BaseDex { get; set; }
 
         public long BonusHp { get; set; }
@@ -468,8 +497,11 @@ namespace Hybrasyl.Objects
         public byte MapX { get; protected set; }
         public byte MapY { get; protected set; }
 
+        [JsonProperty]
         public uint Gold { get; set; }
+        [JsonProperty]
         public Inventory Inventory { get; protected set; }
+        [JsonProperty]
         public Inventory Equipment { get; protected set; }
 
         public Creature()
@@ -798,20 +830,19 @@ namespace Hybrasyl.Objects
 
     public class Signpost : VisibleObject
     {
+        public string Message { get; set; }
+        public bool IsMessageboard { get; set; }
+        public string BoardName { get; set; }
 
-        private signpost Data { get; set; }
-        private string Message { get { return Data.message; } }
-        private bool IsMessageboard { get { return Data.is_messageboard; } }
-
-        public Signpost()
+        public Signpost(byte postX, byte postY, string message, bool messageboard = false,
+            string boardname = null)
             : base()
-        { }
-
-        public Signpost(signpost post)
         {
-            Data = post;
-            X = (byte)post.map_x;
-            Y = (byte)post.map_y;
+            X = postX;
+            Y = postY;
+            Message = message;
+            IsMessageboard = messageboard;
+            BoardName = boardname;
         }
 
         public override void OnClick(User invoker)
@@ -869,24 +900,26 @@ namespace Hybrasyl.Objects
 
     public class Reactor : VisibleObject
     {
-        private reactor _reactor;
+        //private reactor _reactor;
         private HybrasylWorldObject _world;
         public Boolean Ready;
 
-        public Reactor(reactor reactor)
+        public Reactor(/* reactor reactor*/)
         {
+            /*
             _reactor = reactor;
             _world = new HybrasylWorldObject(this);
             X = (byte)_reactor.map_x;
             Y = (byte)_reactor.map_y;
             Ready = false;
             Script = null;
+             */
         }
 
         public void OnSpawn()
         {
             // Do we have a script?
-
+/*
             Script thescript;
             if (_reactor.script_name == String.Empty)
                 Game.World.ScriptProcessor.TryGetScript(_reactor.name, out thescript);
@@ -911,6 +944,7 @@ namespace Hybrasyl.Objects
 
             Script.ExecuteScriptableFunction("OnSpawn");
             Ready = true;
+ */
         }
 
         public void OnEntry(WorldObject obj)
