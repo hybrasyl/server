@@ -28,7 +28,11 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Xml;
+using log4net.Appender;
 
 namespace Hybrasyl.Properties
 {
@@ -147,7 +151,7 @@ namespace Hybrasyl
         public ushort Checksum { get; set; }
         public bool[,] IsWall { get; set; }
 
-        public List<Warp> Warps { get; set; }
+        public Dictionary<Tuple<byte, byte>, Warp> Warps { get; set; }
         public string Message { get; set; }
 
         public QuadTree<VisibleObject> EntityTree { get; set; }
@@ -155,18 +159,126 @@ namespace Hybrasyl
         public HashSet<VisibleObject> Objects { get; private set; }
         public Dictionary<string, User> Users { get; private set; }
 
-        public Dictionary<Tuple<byte, byte>, WorldWarp> WorldWarps { get; set; }
         public Dictionary<Tuple<byte, byte>, Objects.Door> Doors { get; set; }
         public Dictionary<Tuple<byte, byte>, Signpost> Signposts { get; set; }
         public Dictionary<Tuple<byte, byte>, Reactor> Reactors { get; set; }
 
+        /// <summary>
+        /// Create a new Hybrasyl map from an XMLElement representing a map 
+        /// element in an XML file.
+        /// </summary>
+        /// <param name="mapElement"></param>
+        public Map(XmlElement mapElement, World theWorld)
+        {
+            Init();
+            World = theWorld;
+
+            Id = Convert.ToUInt16(mapElement.Attributes["id"].Value);
+            X = Convert.ToByte(mapElement.Attributes["x"].Value);
+            Y = Convert.ToByte(mapElement.Attributes["y"].Value);
+            Name = mapElement["name"].InnerText;
+            EntityTree = new QuadTree<VisibleObject>(0,0,X,Y);
+            Music = Convert.ToByte(mapElement.Attributes["music"].Value);
+
+            foreach (XmlElement warpElement in mapElement.GetElementsByTagName("warp"))
+            {
+                var warpX = Convert.ToByte(warpElement.Attributes["x"].Value);
+                var warpY = Convert.ToByte(warpElement.Attributes["y"].Value);
+                var targetElement = warpElement.GetElementsByTagName("maptarget").Item(0) ??
+                                    warpElement.GetElementsByTagName("worldmaptarget").Item(0);
+                var destinationMapName = targetElement.InnerText;
+
+                var warp = new Warp(this, destinationMapName, warpX, warpY);
+
+                if (targetElement.Name == "maptarget")
+                {
+                    warp.WarpType = WarpType.Map;
+                    warp.DestinationX = Convert.ToByte(targetElement.Attributes["x"].Value);
+                    warp.DestinationY = Convert.ToByte(targetElement.Attributes["y"].Value);
+                }
+                else if (targetElement.Name == "worldmaptarget")
+                {
+                    warp.WarpType = WarpType.WorldMap;
+                }
+
+                var restrictions = targetElement["restrictions"];
+                if (restrictions != null)
+                {
+                    var level = restrictions["level"];
+                    var ab = restrictions["ab"];
+                    var noMobUse = restrictions["noMobUse"];
+                    if (level != null)
+                    {
+                        warp.MinimumLevel = Convert.ToByte(level.Attributes["min"].Value);
+                        warp.MaximumLevel = Convert.ToByte(level.Attributes["min"].Value);
+                    }
+                    if (ab != null)
+                    {
+                        warp.MinimumAbility = Convert.ToByte(ab.Attributes["min"].Value);
+                        warp.MaximumAbility = Convert.ToByte(ab.Attributes["min"].Value);
+                    }
+                    if (noMobUse != null)
+                        warp.MobUse = false;
+                }
+                Warps[new Tuple<byte, byte>(warpX, warpY)] = warp;
+            }
+
+            foreach (XmlElement npcElement in mapElement.GetElementsByTagName("npc"))
+            {
+                var merchant = new Merchant();
+                merchant.X = Convert.ToByte(npcElement.Attributes["x"].Value);
+                merchant.Y = Convert.ToByte(npcElement.Attributes["y"].Value);
+                merchant.Name = npcElement["name"].InnerText;
+                merchant.Sprite = Convert.ToUInt16(npcElement["appearance"].Attributes["sprite"].Value);
+                merchant.Direction = (Hybrasyl.Enums.Direction)Convert.ToByte(npcElement["appearance"].Attributes["direction"].Value);
+                if (npcElement.Attributes["portrait"] != null)
+                    merchant.Portrait = npcElement.Attributes["portrait"].Value;
+                if (npcElement["jobs"] != null)
+                {
+                    var jobList = String.Join(",", npcElement["jobs"].InnerText.Trim().Split(' '));
+                    MerchantJob jobs;
+                    if (Enum.TryParse(jobList, out jobs))
+                        merchant.Jobs = jobs;
+                }
+
+                InsertNpc(merchant);
+            }
+
+            foreach (XmlElement reactorElement in mapElement.GetElementsByTagName("reactor"))
+            {
+                // TODO: implement me                
+            }
+
+            foreach (XmlElement signpostElement in mapElement.GetElementsByTagName("signpost"))
+            {
+                var postX = Convert.ToByte(signpostElement.Attributes["x"].Value);
+                var postY = Convert.ToByte(signpostElement.Attributes["y"].Value);
+                var message = signpostElement["message"].InnerText;
+                var signPost = new Signpost(postX, postY, message);
+                InsertSignpost(signPost);
+            }
+
+            foreach (XmlElement spawnElement in mapElement.GetElementsByTagName("spawns"))
+            {
+                // TODO: implement me
+            }
+
+            var npcs = mapElement.GetElementsByTagName("npcs");
+            Logger.InfoFormat("Added {0}: {1}x{2} {3}", Id, X, Y, Name);
+            Load();
+        }
+
         public Map()
+        {
+            Init();
+        }
+
+        public void Init()
         {
             RawData = new byte[0];
             Objects = new HashSet<VisibleObject>();
             Users = new Dictionary<string, User>();
-            Warps = new List<Warp>();
-            WorldWarps = new Dictionary<Tuple<byte, byte>, WorldWarp>();
+            Warps = new Dictionary<Tuple<byte, byte>, Warp>();
             EntityTree = new QuadTree<VisibleObject>(1, 1, X, Y);
             Doors = new Dictionary<Tuple<byte, byte>, Objects.Door>();
             Signposts = new Dictionary<Tuple<byte, byte>, Signpost>();
@@ -178,12 +290,11 @@ namespace Hybrasyl
             return EntityTree.GetObjects(new Rectangle(x, y, 1, 1));
         }
 
-        public void InsertNpc(npc toinsert)
+        public void InsertNpc(Merchant toInsert)
         {
-            var merchant = new Merchant(toinsert);
-            World.Insert(merchant);
-            Insert(merchant, merchant.X, merchant.Y);
-            merchant.OnSpawn();
+            World.Insert(toInsert);
+            Insert(toInsert, toInsert.X, toInsert.Y);
+            toInsert.OnSpawn();
         }
         
         public void InsertReactor(reactor toinsert)
@@ -194,13 +305,12 @@ namespace Hybrasyl
             reactor.OnSpawn();
         }
 
-        public void InsertSignpost(signpost toinsert)
+        public void InsertSignpost(Signpost post)
         {
-            Logger.InfoFormat("Inserting signpost {0}@{1},{2}", toinsert.map.name, toinsert.map_x, toinsert.map_y);
-            var post = new Signpost(toinsert);
             World.Insert(post);
             Insert(post, post.X, post.Y);
             Signposts[new Tuple<byte, byte>(post.X, post.Y)] = post;
+            Logger.InfoFormat("Inserted signpost {0}@{1},{2}", post.Map.Name, post.X, post.Y);
         }
 
         private void InsertDoor(byte x, byte y, bool open, bool isLeftRight, bool triggerCollision = true)
@@ -540,35 +650,77 @@ namespace Hybrasyl
         {
             return x >= 0 && x < X && y >= 0 && y < Y;
         }
-
-
-
-
  
     }
 
-    public struct Warp
+
+    public enum WarpType
     {
+        Map,
+        WorldMap
+    }
+
+    public class Warp
+    {
+        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
+        public Map SourceMap { get; set; }
         public byte X { get; set; }
         public byte Y { get; set; }
-        public ushort DestinationMap { get; set; }
+        public string DestinationMapName { get; set; }
+        public WarpType WarpType { get; set; }
         public byte DestinationX { get; set; }
         public byte DestinationY { get; set; }
         public byte MinimumLevel { get; set; }
         public byte MaximumLevel { get; set; }
         public byte MinimumAbility { get; set; }
-        public bool MobsCanUse { get; set; }
-    }
+        public byte MaximumAbility { get; set; }
+        public bool MobUse { get; set; }
 
-    public struct WorldWarp
-    {
-        public byte X { get; set; }
-        public byte Y { get; set; }
-        public byte WorldmapId { get; set; }
-        public byte MinimumLevel { get; set; }
-        public byte MaximumLevel { get; set; }
-        public byte MinimumAbility { get; set; }
-        public WorldMap DestinationWorldMap { get; set; }
+        public Warp(Map sourceMap, string destinationMap, byte sourceX, byte sourceY)
+        {
+            SourceMap = sourceMap;
+            DestinationMapName = destinationMap;
+            X = sourceX;
+            Y = sourceY;
+            MinimumLevel = 0;
+            MaximumLevel = 255;
+            MinimumAbility = 0;
+            MaximumAbility = 255;
+            MobUse = true;
+        }
+
+        public bool Use(User target)
+        {
+            Logger.DebugFormat("warp: {0} from {1} ({2},{3}) to {4} ({5}, {6}", target.Name, SourceMap.Name, X, Y,
+                DestinationMapName, DestinationX, DestinationY);
+            switch (WarpType)
+            {
+                case WarpType.Map:
+                    Map map;
+                    if (SourceMap.World.MapCatalog.TryGetValue(DestinationMapName, out map))
+                    {
+                        Thread.Sleep(250);
+                        target.Teleport(map.Id, DestinationX, DestinationY);
+                    }
+                    Logger.ErrorFormat("User {0} tried to warp to nonexistent map {1} from {2}: {3},{4}", target.Name,
+                        DestinationMapName, SourceMap.Name, X, Y);
+                    break;
+                case WarpType.WorldMap:
+                    WorldMap wmap;
+                    if (SourceMap.World.WorldMaps.TryGetValue(DestinationMapName, out wmap))
+                    {
+                        SourceMap.Remove(target);
+                        target.SendWorldMap(wmap);
+                        SourceMap.World.Maps[Hybrasyl.Constants.LAG_MAP].Insert(target, 5, 5, false);
+                    }
+                    Logger.ErrorFormat("User {0} tried to warp to nonexistent worldmap {1} from {2}: {3},{4}",
+                        target.Name,
+                        DestinationMapName, SourceMap.Name, X, Y);
+                    break;
+            }
+            return false;
+        }
     }
 
     public struct Point

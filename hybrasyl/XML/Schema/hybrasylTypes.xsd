@@ -61,27 +61,18 @@
 
   <!-- Item flags -->
   <xs:simpleType name="ItemFlags">
-    <xs:restriction>
-      <xs:simpleType>
-        <xs:list>
-          <xs:simpleType>
-            <xs:restriction base="xs:token">
-              <xs:enumeration value="bound"/>
-              <xs:enumeration value="depositable"/>
-              <xs:enumeration value="enchantable"/>
-              <xs:enumeration value="consecratable"/>
-              <xs:enumeration value="tailorable"/>
-              <xs:enumeration value="smithable"/>
-              <xs:enumeration value="exchangeable"/>
-              <xs:enumeration value="vendorable"/>
-              <xs:enumeration value="perishable"/>
-              <xs:enumeration value="unique"/>
-              <xs:enumeration value="master"/>
-            </xs:restriction>
-          </xs:simpleType>
-        </xs:list>
-      </xs:simpleType>
-      <xs:maxLength value="8"/>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="bound"/>
+      <xs:enumeration value="depositable"/>
+      <xs:enumeration value="enchantable"/>
+      <xs:enumeration value="consecratable"/>
+      <xs:enumeration value="tailorable"/>
+      <xs:enumeration value="smithable"/>
+      <xs:enumeration value="exchangeable"/>
+      <xs:enumeration value="vendorable"/>
+      <xs:enumeration value="perishable"/>
+      <xs:enumeration value="unique"/>
+      <xs:enumeration value="master"/>
     </xs:restriction>
   </xs:simpleType>
 

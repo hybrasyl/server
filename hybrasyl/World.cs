@@ -25,6 +25,7 @@ using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
 using Hybrasyl.Properties;
+using Hybrasyl.XML;
 using log4net;
 using log4net.Core;
 using System;
@@ -40,6 +41,10 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Timers;
+using System.Xml;
+using System.Xml.Schema;
+using Hybrasyl.XML.Items;
+using ItemType = Hybrasyl.Enums.ItemType;
 
 namespace Hybrasyl
 {
@@ -54,8 +59,10 @@ namespace Hybrasyl
         public Dictionary<uint, WorldObject> Objects { get; set; }
 
         public Dictionary<ushort, Map> Maps { get; set; }
-        public Dictionary<int, WorldMap> WorldMaps { get; set; }
+        public Dictionary<string, WorldMap> WorldMaps { get; set; }
         public Dictionary<int, item> Items { get; set; }
+        public Dictionary<string, XML.Items.ItemType> NewItems { get; set; }
+        public Dictionary<string, XML.Items.VariantGroupType> ItemVariants { get; set; } 
         public Dictionary<int, SkillTemplate> Skills { get; set; }
         public Dictionary<int, SpellTemplate> Spells { get; set; }
         public Dictionary<int, MonsterTemplate> Monsters { get; set; }
@@ -66,7 +73,9 @@ namespace Hybrasyl
         public Dictionary<string, User> Users { get; set; }
         public Dictionary<Int64, MapPoint> MapPoints { get; set; }
         public Dictionary<string, CompiledMetafile> Metafiles { get; set; }
-        public Dictionary<string, nation> Nations { get; set; }
+        public Dictionary<string, Nation> Nations { get; set; }
+
+        public string DefaultCitizenship { get; set; }
 
         public List<DialogSequence> GlobalSequences { get; set; }
         public Dictionary<String, DialogSequence> GlobalSequencesCatalog { get; set; }
@@ -83,16 +92,13 @@ namespace Hybrasyl
 
         private Thread ConsumerThread { get; set; }
 
-        // Timers
-        //public static ConcurrentBag<Timer> Timers;
-
         public Login Login { get; private set; }
 
         public World(int port)
             : base(port)
         {
             Maps = new Dictionary<ushort, Map>();
-            WorldMaps = new Dictionary<int, WorldMap>();
+            WorldMaps = new Dictionary<string, WorldMap>();
             Items = new Dictionary<int, item>();
             Skills = new Dictionary<int, SkillTemplate>();
             Spells = new Dictionary<int, SpellTemplate>();
@@ -103,9 +109,11 @@ namespace Hybrasyl
             Users = new Dictionary<string, User>(StringComparer.CurrentCultureIgnoreCase);
             MapPoints = new Dictionary<Int64, MapPoint>();
             Metafiles = new Dictionary<string, CompiledMetafile>();
-            Nations = new Dictionary<string, nation>();
+            Nations = new Dictionary<string, Nation>();
             Portraits = new Dictionary<string, string>();
             GlobalSequences = new List<DialogSequence>();
+            NewItems = new Dictionary<string, XML.Items.ItemType>();
+            ItemVariants = new Dictionary<string, VariantGroupType>();
 
             GlobalSequencesCatalog = new Dictionary<String, DialogSequence>();
             ItemCatalog = new Dictionary<Tuple<Sex, String>, item>();
@@ -115,8 +123,6 @@ namespace Hybrasyl
             MessageQueue = new BlockingCollection<HybrasylMessage>(new ConcurrentQueue<HybrasylMessage>());
             ActiveUsers = new ConcurrentDictionary<long, User>();
             ActiveUsersByName = new ConcurrentDictionary<String, long>();
-
-            // Timers = new ConcurrentBag<Timer>();
         }
 
         public void InitWorld()
@@ -124,7 +130,7 @@ namespace Hybrasyl
             LoadData();
             CompileScripts();
             LoadMetafiles();
-            LoadReactors();
+           // LoadReactors();
             SetPacketHandlers();
             SetControlMessageHandlers();
             SetMerchantMenuHandlers();
@@ -154,112 +160,6 @@ namespace Hybrasyl
             GlobalSequencesCatalog.Add(sequence.Name, sequence);
         }
 
-        private void AddSingleWarp(int sourceId, int sourceX, int sourceY, int targetId, int targetX, int targetY,
-            int maxLev = 99, int minLev = 0, int minAb = 0, bool mobUse = false)
-        {
-            var warp = new Warp();
-            warp.X = (byte) sourceX;
-            warp.Y = (byte) sourceY;
-            warp.DestinationMap = (ushort) targetId;
-            warp.DestinationX = (byte) targetX;
-            warp.DestinationY = (byte) targetY;
-            warp.MinimumLevel = (byte) (minLev);
-            warp.MaximumLevel = (byte) (maxLev);
-            warp.MinimumAbility = (byte) (minAb);
-            warp.MobsCanUse = (bool) (mobUse);
-            Maps[(ushort) sourceId].Warps.Add(warp);
-
-            Logger.DebugFormat("Added warp: {0} {1},{2}", Maps[(ushort) sourceId].Name, warp.X, warp.Y);
-        }
-
-        public void AddWarp(warp newWarp)
-        {
-            int[] sourceRangeX;
-            int[] sourceRangeY;
-            int[] targetRangeX;
-            int[] targetRangeY;
-
-            try
-            {
-                sourceRangeX = newWarp.source_x.Split('-').Select(s => Convert.ToInt32(s)).ToArray();
-                sourceRangeY = newWarp.source_y.Split('-').Select(s => Convert.ToInt32(s)).ToArray();
-
-                targetRangeX = newWarp.target_x.Split('-').Select(s => Convert.ToInt32(s)).ToArray();
-                targetRangeY = newWarp.target_y.Split('-').Select(s => Convert.ToInt32(s)).ToArray();
-            }
-            catch
-            {
-                Logger.ErrorFormat("Unable to parse warp id {0}", newWarp.id);
-                return;
-            }
-
-            var sourceCoords = sourceRangeX.Zip(sourceRangeY, (x, y) => new {X = x, Y = y});
-            var targetCoords = targetRangeX.Zip(targetRangeY, (x, y) => new {X = x, Y = y});
-
-            foreach (var source in sourceCoords)
-            {
-                foreach (var target in targetCoords)
-                {
-                    AddSingleWarp(newWarp.source_id, source.X, source.Y, newWarp.target_id, target.X, target.Y,
-                        newWarp.max_lev, newWarp.min_lev,
-                        newWarp.min_ab, newWarp.mob_use);
-                }
-            }
-
-        }
-
-        private void AddSingleWorldWarp(int sourceMapId, int sourceX, int sourceY, int targetWorldmapId, int maxLev = 99,
-            int minLev = 0, int minAb = 0)
-        {
-            var worldwarp = new WorldWarp();
-            var worldwarpKey = new Tuple<byte, byte>((byte) sourceX, (byte) sourceY);
-            worldwarp.X = (byte) sourceX;
-            worldwarp.Y = (byte) sourceY;
-            worldwarp.DestinationWorldMap = WorldMaps[targetWorldmapId];
-            worldwarp.MinimumLevel = (byte) minLev;
-            worldwarp.MaximumLevel = (byte) maxLev;
-            worldwarp.MinimumAbility = (byte) minAb;
-
-            if (Maps[(ushort) sourceMapId].WorldWarps.ContainsKey(worldwarpKey))
-            {
-                Logger.WarnFormat("Duplicate warp detected (ignored): {0} {1},{2} to world map {3}",
-                    Maps[(ushort) sourceMapId].Name, worldwarp.X, worldwarp.Y, worldwarp.DestinationWorldMap.Name);
-                return;
-            }
-
-            Maps[(ushort) sourceMapId].WorldWarps.Add(worldwarpKey, worldwarp);
-
-            Logger.DebugFormat("Added world warp from {0} {1},{2} to world map {3} for level {4}-{5}, min AB: {6}",
-                Maps[(ushort) sourceMapId].Name, worldwarp.X, worldwarp.Y, worldwarp.DestinationWorldMap.Name,
-                worldwarp.MinimumLevel, worldwarp.MaximumLevel,
-                worldwarp.MinimumAbility);
-        }
-
-        public void AddWorldWarp(worldwarp target)
-        {
-            int[] sourceRangeX;
-            int[] sourceRangeY;
-
-            try
-            {
-                sourceRangeX = target.source_x.Split('-').Select(s => Convert.ToInt32(s)).ToArray();
-                sourceRangeY = target.source_y.Split('-').Select(s => Convert.ToInt32(s)).ToArray();
-            }
-            catch
-            {
-                Logger.ErrorFormat("Unable to parse world warp id {0}", target.id);
-                return;
-            }
-
-            var sourceCoords = sourceRangeX.Zip(sourceRangeY, (x, y) => new {X = x, Y = y});
-
-            foreach (var sourceCoord in sourceCoords)
-            {
-                AddSingleWorldWarp(target.source_map_id, sourceCoord.X, sourceCoord.Y, target.target_worldmap_id,
-                    target.max_lev, target.min_lev, target.min_ab);
-            }
-        }
-
         public bool PlayerExists(string name)
         {
             using (var ctx = new hybrasylEntities(Constants.ConnectionString))
@@ -273,213 +173,147 @@ namespace Hybrasyl
 
         private void LoadData()
         {
-            var random = new Random();
-            var elements = Enum.GetValues(typeof(Element)); 
-            try
+            
+            var hybrasylAssembly = Assembly.GetExecutingAssembly();
+            var schemaArray = hybrasylAssembly.GetManifestResourceNames().Where(r => r.Contains("Hybrasyl.XML.Schema"));
+            var schemaSet = new XmlSchemaSet();
+
+            foreach (var schema in schemaArray)
             {
-                using (var ctx = new hybrasylEntities(Constants.ConnectionString))
+                using (Stream schemaStream = hybrasylAssembly.GetManifestResourceStream(schema))
                 {
-                    var maps = ctx.maps.Include("warps").Include("worldwarps").Include("npcs").Include("spawns").ToList();
-
-                    var worldmaps = ctx.worldmaps.Include("worldmap_points").ToList();
-                    var items = ctx.items.ToList();
-                    //var doors = ctx.doors.ToList();
-                    var signposts = ctx.signposts.ToList();
-
-                    Logger.InfoFormat("Adding {0} worldmaps", ctx.worldmaps.Count());
-
-                    foreach (var wmap in worldmaps)
+                    using (XmlReader schemaReader = XmlReader.Create(schemaStream))
                     {
-                        var worldmap = new WorldMap();
-                        worldmap.World = this;
-                        worldmap.Id = wmap.id;
-                        worldmap.Name = wmap.name;
-                        worldmap.ClientMap = wmap.client_map;
-                        WorldMaps.Add(worldmap.Id, worldmap);
-
-                        foreach (var mappoint in wmap.worldmap_points)
-                        {
-                            var point = new MapPoint();
-                            point.Parent = worldmap;
-                            point.Id = (Int64) mappoint.id;
-                            point.Name = (string) mappoint.name;
-                            point.DestinationMap = (ushort) mappoint.target_map_id;
-                            point.DestinationX = (byte) mappoint.target_x;
-                            point.DestinationY = (byte) mappoint.target_y;
-                            point.X = (int) mappoint.map_x;
-                            point.Y = (int) mappoint.map_y;
-                            point.XOffset = point.X%255;
-                            point.YOffset = point.Y%255;
-                            point.XQuadrant = (point.X - point.XOffset)/255;
-                            point.YQuadrant = (point.Y - point.YOffset)/255;
-                            worldmap.Points.Add(point);
-                            MapPoints.Add(point.Id, point);
-                        }
+                        schemaSet.Add(null, schemaReader);
                     }
-                    Logger.InfoFormat("Adding {0} maps", ctx.maps.Count());
+                }
+                Logger.InfoFormat("XML: Added embedded schema {0}", schema);
+            }
 
-                    foreach (var map in maps)
-                    {
-                        var newmap = new Map();
-                        newmap.World = this;
-                        newmap.Id = (ushort) map.id;
-                        newmap.X = (byte) map.size_x;
-                        newmap.Y = (byte) map.size_y;
-                        newmap.Name = (string) map.name;
-                        newmap.Flags = (byte) map.flags;
-                        newmap.Music = (byte) (map.music ?? 0);
-                        newmap.EntityTree = new QuadTree<VisibleObject>(0, 0, map.size_x, map.size_y);
+            var readerSettings = new XmlReaderSettings();
+            int mapsProcessed = 0;
+            readerSettings.Schemas = schemaSet;
+            readerSettings.ValidationType = ValidationType.Schema;
+            readerSettings.ValidationFlags |= XmlSchemaValidationFlags.ReportValidationWarnings;
+            readerSettings.ValidationEventHandler += new ValidationEventHandler(ValidationCallBack);
 
-                        if (newmap.Load())
-                        {
-                            Maps.Add(newmap.Id, newmap);
-                            try
-                            {
-                                MapCatalog.Add(newmap.Name, newmap);
-                            }
-                            catch
-                            {
-                                Logger.WarnFormat("map name {0}, id {1} ignored for map catalog",
-                                    newmap.Name, newmap.Id);
-                            }
+            Logger.InfoFormat("Begin maps processing");
 
-                            foreach (var warp in map.warps)
-                            {
-                                AddWarp(warp);
-                            }
-
-                            foreach (var worldwarp in map.worldwarps)
-                            {
-                                AddWorldWarp(worldwarp);
-                            }
-
-                            foreach (var npc in map.npcs)
-                            {
-                                newmap.InsertNpc(npc);
-                                if (npc.portrait != null)
-                                {
-                                    Portraits[npc.name] = npc.portrait;
-                                }
-                            }
-
-                            foreach (var spawn in map.spawns)
-                            {
-                                AddSpawn(spawn);
-                            }
-                        }
-                    }
-
-                    // We have to handle signposts separately due to a bug in MySQL connector
-                    foreach (var signpost in signposts)
-                    {
-                        Map postmap;
-                        if (Maps.TryGetValue((ushort) signpost.map_id, out postmap))
-                            postmap.InsertSignpost(signpost);
-                        else
-                            Logger.ErrorFormat("Signpost {0}: {1},{2}: Map {0} is missing ", signpost.id,
-                                signpost.map_x, signpost.map_y, signpost.map_id);
-                    }
-
-                    int variantId = Hybrasyl.Constants.VARIANT_ID_START;
-
-                    Logger.InfoFormat("Adding {0} items", items.Count);
-                    var variants = ctx.item_variant.ToList();
-
-                    foreach (var item in items)
-                    {
-                        Logger.DebugFormat("Adding item {0}", item.name);
-                        item.Variants = new Dictionary<int, item>();
-
-                        // Handle the case of item having random element, which is an optional bit of support
-                        // and not really intended for serious use
-                        if (item.element == Element.Random)
-                        {
-                            item.element = (Element)elements.GetValue(random.Next(elements.Length - 1 ));
-                        }
-
-                        if (item.has_consecratable_variants)
-                        {
-                            foreach (var variant in variants.Where(variant => variant.consecratable_variant == true))
-                            {
-                                var newitem = variant.ResolveVariant(item);
-                                newitem.id = variantId;
-                                Items.Add(variantId, newitem);
-                                item.Variants[variant.id] = newitem;
-                                variantId++;
-                            }
-                        }
-
-                        if (item.has_elemental_variants)
-                        {
-                            foreach (var variant in variants.Where(variant => variant.elemental_variant == true))
-                            {
-                                var newitem = variant.ResolveVariant(item);
-                                newitem.id = variantId;
-                                Items.Add(variantId, newitem);
-                                item.Variants[variant.id] = newitem;
-                                variantId++;
-                            }
-                        }
-
-                        if (item.has_enchantable_variants)
-                        {
-                            foreach (var variant in variants.Where(variant => variant.enchantable_variant == true))
-                            {
-                                var newitem = variant.ResolveVariant(item);
-                                newitem.id = variantId;
-                                Items.Add(variantId, newitem);
-                                item.Variants[variant.id] = newitem;
-                                variantId++;
-                            }
-                        }
-
-                        if (item.has_smithable_variants)
-                        {
-                            foreach (var variant in variants.Where(variant => variant.smithable_variant == true))
-                            {
-                                var newitem = variant.ResolveVariant(item);
-                                newitem.id = variantId;
-                                Items.Add(variantId, newitem);
-                                item.Variants[variant.id] = newitem;
-                                variantId++;
-                            }
-                        }
-
-                        if (item.has_tailorable_variants)
-                        {
-                            foreach (var variant in variants.Where(variant => variant.tailorable_variant == true))
-                            {
-                                var newitem = variant.ResolveVariant(item);
-                                newitem.id = variantId;
-                                Items.Add(variantId, newitem);
-                                item.Variants[variant.id] = newitem;
-                                variantId++;
-                            }
-                        }
-                        Items.Add(item.id, item);
-                        try
-                        {
-                            ItemCatalog.Add(new Tuple<Sex, String>(item.sex, item.name), item);
-                        }
-                        catch
-                        {
-                            Logger.WarnFormat("probable duplicate item {0} not added to item catalog", item.name);
-                        }
-                    }
-                    Logger.InfoFormat("Added {0} item variants", variantId - Hybrasyl.Constants.VARIANT_ID_START);
-                    Logger.InfoFormat("{0} items (including variants) active", Items.Count);
-
-                    // Load national data
-                    Nations = ctx.nations.Include("spawn_points").ToDictionary(n => n.name, n => n);
+            foreach (var file in Directory.GetFiles(Path.Combine(Constants.DataDirectory, "world", "xml", "maps")))
+            {
+                var reader = XmlReader.Create(file, readerSettings);
+                var mapDocument = new XmlDocument();
+                mapDocument.Load(reader);
+                mapDocument.Validate(ValidationCallBack);
+                foreach (XmlElement element in mapDocument.GetElementsByTagName("map"))
+                {
+                    var map = new Map(element, this) {World = this};
+                    mapsProcessed++;
+                    Maps.Add(map.Id, map);
+                    MapCatalog.Add(map.Name, map);
                 }
             }
-            catch (Exception e)
+
+            Logger.InfoFormat("End maps processing ({0} maps loaded)", mapsProcessed);
+
+            foreach (var file in Directory.GetFiles(Path.Combine(Constants.DataDirectory, "world", "xml", "nations")))
             {
-                Logger.ErrorFormat("Error initializing Hybrasyl data: {0} {1}", e, e.InnerException);
-                Logger.ErrorFormat("Beware, server is now likely inconsistent and should be shut down");
+                var reader = XmlReader.Create(file, readerSettings);
+                var mapDocument = new XmlDocument();
+                mapDocument.Load(reader);
+                mapDocument.Validate(ValidationCallBack);
+                foreach (XmlElement nationalElement in mapDocument.GetElementsByTagName("nation"))
+                {
+                    var flag = Convert.ToByte(nationalElement.Attributes["flag"].Value);
+                    var name = nationalElement["name"].InnerText;
+                    var nation = new Nation(name, flag);
+
+                    foreach (XmlElement spawnElement in nationalElement.GetElementsByTagName("spanwpoint"))
+                    {
+                        var mapX = Convert.ToByte(spawnElement.Attributes["x"]);
+                        var mapY = Convert.ToByte(spawnElement.Attributes["y"]);
+                        var mapName = spawnElement.InnerText;
+                        var spawnPoint = new Spawnpoint
+                        {
+                            X = mapX,
+                            Y = mapY,
+                            MapName = mapName
+                        };
+                        nation.SpawnPoints.Add(spawnPoint);
+                    }
+                    if (nationalElement["default"] != null)
+                        DefaultCitizenship = name;
+
+                    Nations[name] = nation;
+
+                }
+                   
             }
+   /*         
+            foreach (var file in Directory.GetFiles(Path.Combine(Constants.DataDirectory, "world", "xml", "worldmaps")))
+            {
+                var reader = XmlReader.Create(file, readerSettings);
+                var mapDocument = new XmlDocument();
+                mapDocument.Load(reader);
+                mapDocument.Validate(ValidationCallBack);
+                foreach (XmlElement element in mapDocument.GetElementsByTagName("map"))
+                {
+                    var map = new Map(element);
+                    mapsProcessed++;
+                    Maps[map.Id] = map;
+                }
+
+            }
+            */
+            foreach (
+                var file in Directory.GetFiles(Path.Combine(Constants.DataDirectory, "world", "xml", "itemvariants")))
+            {
+                var xml = File.ReadAllText(file);
+                XML.Items.VariantGroupType newGroup;
+                if (XML.Items.VariantGroupType.Deserialize(xml, out newGroup))
+                {
+                    Logger.InfoFormat("Item variants: loaded {0}", newGroup.name);
+                    ItemVariants.Add(newGroup.name, newGroup);
+                }
+            }
+
+            foreach (var file in Directory.GetFiles(Path.Combine(Constants.DataDirectory, "world", "xml", "items")))
+            {
+                var xml = File.ReadAllText(file);
+                XML.Items.ItemType newItem;
+                Exception parseException;
+                if (XML.Items.ItemType.Deserialize(xml, out newItem, out parseException))
+                {
+                    Logger.InfoFormat("Items: loaded {0}", newItem.name);
+                    NewItems.Add(newItem.name, newItem);
+                    foreach (var targetGroup in newItem.properties.variants.group)
+                    {
+                        foreach (var variant in ItemVariants[targetGroup].variant)
+                        {
+                            Logger.InfoFormat("Item {0}: variantgroup {1}, subvariant {2}", newItem.name, targetGroup, variant.name);
+                            variant.ResolveVariant(newItem);
+                            
+                        }
+                        
+                    }
+
+
+                }
+                else
+                {
+                    Logger.ErrorFormat("Error parsing {0}: {1}", file, parseException);
+                }
+            }
+
         }
 
+        private static void ValidationCallBack(object sender, ValidationEventArgs args)
+        {
+            if (args.Severity == XmlSeverityType.Warning)
+                Logger.WarnFormat("XML warning: {0}", args.Message);
+            else
+                Logger.ErrorFormat("XML ERROR: {0}", args.Message);
+        }
         private void AddSpawn(spawn spawn)
         {
             //throw new NotImplementedException();
@@ -556,8 +390,8 @@ namespace Hybrasyl
             var nationdesc = new Metafile("NationDesc");
             foreach (var nation in Nations.Values)
             {
-                Logger.DebugFormat("Adding flag {0} for nation {1}", nation.flag, nation.name);
-                nationdesc.Nodes.Add(new MetafileNode("nation_" + nation.flag, nation.name));
+                Logger.DebugFormat("Adding flag {0} for nation {1}", nation.Flag, nation.Name);
+                nationdesc.Nodes.Add(new MetafileNode("nation_" + nation.Flag, nation.Name));
             }
             Metafiles.Add(nationdesc.Name, nationdesc.Compile());
 
@@ -659,25 +493,25 @@ namespace Hybrasyl
                 {MerchantMenuItem.MainMenu, new MerchantMenuHandler(0, MerchantMenuHandler_MainMenu)},
                 {
                     MerchantMenuItem.BuyItemMenu,
-                    new MerchantMenuHandler(MerchantJob.Vendor, MerchantMenuHandler_BuyItemMenu)
+                    new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_BuyItemMenu)
                 },
-                {MerchantMenuItem.BuyItem, new MerchantMenuHandler(MerchantJob.Vendor, MerchantMenuHandler_BuyItem)},
+                {MerchantMenuItem.BuyItem, new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_BuyItem)},
                 {
                     MerchantMenuItem.BuyItemQuantity,
-                    new MerchantMenuHandler(MerchantJob.Vendor, MerchantMenuHandler_BuyItemWithQuantity)
+                    new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_BuyItemWithQuantity)
                 },
                 {
                     MerchantMenuItem.SellItemMenu,
-                    new MerchantMenuHandler(MerchantJob.Vendor, MerchantMenuHandler_SellItemMenu)
+                    new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_SellItemMenu)
                 },
-                {MerchantMenuItem.SellItem, new MerchantMenuHandler(MerchantJob.Vendor, MerchantMenuHandler_SellItem)},
+                {MerchantMenuItem.SellItem, new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_SellItem)},
                 {
                     MerchantMenuItem.SellItemQuantity,
-                    new MerchantMenuHandler(MerchantJob.Vendor, MerchantMenuHandler_SellItemWithQuantity)
+                    new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_SellItemWithQuantity)
                 },
                 {
                     MerchantMenuItem.SellItemAccept,
-                    new MerchantMenuHandler(MerchantJob.Vendor, MerchantMenuHandler_SellItemConfirmation)
+                    new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_SellItemConfirmation)
                 }
             };
         }
@@ -1738,12 +1572,12 @@ namespace Hybrasyl
                     user.UpdateLoginTime();
                     user.UpdateAttributes(StatUpdateFlags.Full);
                     Logger.DebugFormat("Elapsed time since login: {0}", user.SinceLastLogin);
-                    if (user.Citizenship.spawn_points.Count != 0 &&
+                    if (user.Citizenship.SpawnPoints.Count != 0 &&
                         user.SinceLastLogin > Hybrasyl.Constants.NATION_SPAWN_TIMEOUT)
                     {
                         Insert(user);
-                        var spawnpoint = user.Citizenship.spawn_points.First();
-                        user.Teleport((ushort) spawnpoint.map_id, (byte) spawnpoint.map_x, (byte) spawnpoint.map_y);
+                        var spawnpoint = user.Citizenship.SpawnPoints.First();
+                        user.Teleport(spawnpoint.MapName, spawnpoint.X, spawnpoint.Y);
 
                     }
                     else if (user.MapId != null && Maps.ContainsKey(user.MapId))

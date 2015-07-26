@@ -75,7 +75,7 @@ namespace Hybrasyl.Objects
         public string Guild { get; set; }
         public string GuildRank { get; set; }
 
-        public nation Citizenship { get; private set; }
+        public Nation Citizenship { get; private set; }
         public List<legend_marks> LegendMarks { get; private set; }
 
         public DateTime LoginTime { get; private set; }
@@ -489,7 +489,7 @@ namespace Hybrasyl.Objects
 
             profilePacket.WriteByte((byte)GroupStatus);
             profilePacket.WriteString8(Name);
-            profilePacket.WriteByte((byte)Citizenship.flag); // This should pull from town / nation
+            profilePacket.WriteByte((byte)Citizenship.Flag); // This should pull from town / nation
             profilePacket.WriteString8(Title);
             profilePacket.WriteByte((byte)(Grouping ? 1 : 0));
             profilePacket.WriteString8(GuildRank);
@@ -553,12 +553,13 @@ namespace Hybrasyl.Objects
 
                 Account = playerquery.account;
                 // Set our citizenship
-                nation citizenship;
+                Nation citizenship;
                 if (playerquery.nation != null && World.Nations.TryGetValue(playerquery.nation.name, out citizenship))
                     Citizenship = citizenship;
                 else
-                    Citizenship = World.Nations[Hybrasyl.Constants.DEFAULT_CITIZENSHIP];
-
+                {
+                    Citizenship = World.DefaultCitizenship != null ? World.Nations[World.DefaultCitizenship] : World.Nations.First().Value;
+                }
                 LogoffTime = playerquery.last_logoff ?? DateTime.Now;
 
                 // Legend marks
@@ -690,8 +691,8 @@ namespace Hybrasyl.Objects
                 ctx.Entry(playerquery).Property("map_x").CurrentValue = (int)X; ;
                 ctx.Entry(playerquery).Property("map_y").CurrentValue = (int)Y;
 
-                if (Citizenship != null)
-                    ctx.Entry(playerquery).Property("nation_id").CurrentValue = Citizenship.id;
+//                if (Citizenship != null)
+  //                  ctx.Entry(playerquery).Property("nation_id").CurrentValue = Citizenship.;
 
                 ctx.SaveChanges();
 
@@ -1093,6 +1094,8 @@ namespace Hybrasyl.Objects
             Rectangle departingViewport = Rectangle.Empty;
             Rectangle commonViewport = Rectangle.Empty;
             var halfViewport = Constants.VIEWPORT_SIZE / 2;
+            Warp targetWarp;
+            var isWarp = Map.Warps.TryGetValue(new Tuple<byte, byte>((byte) newX, (byte) newY), out targetWarp);
 
             switch (direction)
             {
@@ -1147,22 +1150,19 @@ namespace Hybrasyl.Objects
                     }
                 }
                 // Is this user entering a forbidden (by level or otherwise) warp?
-                foreach (var warp in Map.Warps)
+                if (isWarp)
                 {
-                    if (warp.X == newX && warp.Y == newY)
+                    if (targetWarp.MinimumLevel > Level)
                     {
-                        if (warp.MinimumLevel > Level)
-                        {
-                            Client.SendMessage("You're too afraid to even approach it!", 3);
-                            Refresh();
-                            return false;
-                        }
-                        else if (warp.MaximumLevel < Level)
-                        {
-                            Client.SendMessage("Your honor forbids you from entering.", 3);
-                            Refresh();
-                            return false;
-                        }
+                        Client.SendMessage("You're too afraid to even approach it!", 3);
+                        Refresh();
+                        return false;
+                    }
+                    else if (targetWarp.MaximumLevel < Level)
+                    {
+                        Client.SendMessage("Your honor forbids you from entering.", 3);
+                        Refresh();
+                        return false;
                     }
                 }
             }
@@ -1229,30 +1229,11 @@ namespace Hybrasyl.Objects
                 AoiDeparture(obj);
             }
 
-            foreach (var warp in Map.Warps)
+            if (isWarp)
             {
-                if (warp.X == newX && warp.Y == newY)
-                {
-                    // Spin a bit so the client actually animates into the frame as opposed
-                    // to flashing
-                    Thread.Sleep(250);
-                    Teleport(warp.DestinationMap, warp.DestinationX, warp.DestinationY);
-                    return false;
-                }
+                return targetWarp.Use(this);
             }
 
-            // how about we do it like this instead
-
-            var tupleKey = new Tuple<byte, byte>((byte)newX, (byte)newY);
-            WorldWarp wwarp;
-
-            if (Map.WorldWarps.TryGetValue(tupleKey, out wwarp))
-            {
-                Remove();
-                SendWorldMap(wwarp.DestinationWorldMap);
-                World.Maps[Hybrasyl.Constants.LAG_MAP].Insert(this, 5, 5, false);
-                return false;
-            }
             HasMoved = true;
             Map.EntityTree.Move(this);
             return true;
@@ -1488,7 +1469,7 @@ namespace Hybrasyl.Objects
         public void SendProfile()
         {
             var profilePacket = new ServerPacket(0x39);
-            profilePacket.WriteByte((byte)Citizenship.flag); // citizenship
+            profilePacket.WriteByte((byte)Citizenship.Flag); // citizenship
             profilePacket.WriteString8(GuildRank);
             profilePacket.WriteString8(Title);
             profilePacket.WriteString8(GroupProfileSegment());

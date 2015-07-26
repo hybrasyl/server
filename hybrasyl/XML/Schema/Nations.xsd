@@ -34,6 +34,8 @@
       <xs:sequence>
         <xs:element name="name" type="hyb:String8" minOccurs="1" maxOccurs="1"/>
         <xs:element name="description" type="hyb:String8" minOccurs="0" maxOccurs="1"/>
+        <xs:element name="default" minOccurs="0" maxOccurs="1"/>  
+        <xs:element name="spawnpoints" type="nations:SpawnPoints" minOccurs="0" maxOccurs="1"/>
       </xs:sequence>
       <xs:attribute name="flag" type="xs:unsignedByte" use="required"/>
     </xs:complexType>

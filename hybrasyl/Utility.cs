@@ -352,10 +352,6 @@ namespace Hybrasyl
         public const int DIALOG_SEQUENCE_PURSUITS = 5100;
         public const int DIALOG_SEQUENCE_HARDCODED = 65280;
 
-        // Default citizenship
-
-        public const string DEFAULT_CITIZENSHIP = "Mileth";
-
         public static Dictionary<string, int> CLASSES = new Dictionary<string, int> {
         {"Peasant", 0},
         {"Warrior", 1},

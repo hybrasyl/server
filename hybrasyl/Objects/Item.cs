@@ -25,6 +25,7 @@ using Hybrasyl.Enums;
 using Hybrasyl.Properties;
 using log4net;
 using System;
+using System.CodeDom;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -339,6 +340,61 @@ namespace Hybrasyl.Objects
     }
 }
 
+
+namespace Hybrasyl.XML.Items
+{
+    
+    public partial class ItemType
+    {
+        [System.Xml.Serialization.XmlIgnore]
+        public bool IsVariant { get; set; }
+
+        [System.Xml.Serialization.XmlIgnore]
+        public item ParentItem { get; set; }
+
+        [System.Xml.Serialization.XmlIgnore]
+        public bool Stackable
+        {
+            get { return properties.stackable != null; }
+        }
+
+        [System.Xml.Serialization.XmlIgnore]
+        public item_variant CurrentVariant { get; set; }
+
+        [System.Xml.Serialization.XmlIgnore]
+        public Dictionary<int, item> Variants { get; set; }        
+    }
+    public partial class VariantType
+    {
+               
+        //[System.Xml.Serialization.XmlIgnore]
+        public static ILog Logger =
+    LogManager.GetLogger(
+        System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
+        public void ResolveVariant(ItemType itemType)
+        {
+            Logger.DebugFormat("Logging some variant stuff.");
+            foreach (var variantObject in properties.GetType().GetProperties(BindingFlags.NonPublic | BindingFlags.Public |
+                                                                        BindingFlags.Instance))
+            {
+                Console.WriteLine("variantobject contains {0}", variantObject);
+            }
+        }
+
+        public void Copy(item source)
+        {
+            FieldInfo[] fields = GetType().GetFields(
+                BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
+
+            foreach (FieldInfo field in fields)
+            {
+                field.SetValue(this, field.GetValue(source));
+            }
+        }
+
+    }
+}
 // Extend the item EF class with a marker noting whether or not it's a variant
 // This is all pretty ugly and uh, it probably needs to be redone later
 
@@ -369,7 +425,7 @@ namespace Hybrasyl.Properties
             }
         }
     }
-
+   
     public partial class item_variant
     {
         public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);

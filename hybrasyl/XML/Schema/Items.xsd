@@ -13,7 +13,7 @@
   <xs:import schemaLocation="hybrasylTypes.xsd" namespace="http://www.hybrasyl.com/XML/HybrasylCommon"/>
   <!-- TODO: add effect script name to variants -->
   <xs:complexType name="VariantProperties">
-    <xs:choice minOccurs="0" maxOccurs="7">
+    <xs:sequence>
       <xs:element name="appearance" minOccurs="0" maxOccurs="1">
         <xs:complexType>
           <xs:attribute name="bodystyle" type="hyb:ItemBodystyle"/>
@@ -38,7 +38,11 @@
           </xs:sequence>
         </xs:complexType>
       </xs:element>
-      <xs:element name="flags" type="hyb:ItemFlags" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="flags" minOccurs="0" maxOccurs="1">
+        <xs:simpleType>
+          <xs:list itemType="hyb:ItemFlags"/>
+        </xs:simpleType>
+      </xs:element>
       <xs:element name="physical" minOccurs="0" maxOccurs="1">
         <xs:complexType>
           <xs:attribute name="value" default="0" type="hyb:VariantProperty"/>
@@ -107,7 +111,7 @@
           </xs:sequence>
         </xs:complexType>
       </xs:element>
-    </xs:choice>
+    </xs:sequence>
   </xs:complexType>
   
   <xs:complexType name="ItemProperties">
@@ -123,7 +127,7 @@
       </xs:element>
       <xs:element name="stackable" minOccurs="1" maxOccurs="1">
         <xs:complexType>
-          <xs:attribute name="max" use="required"/>
+          <xs:attribute name="max" use="required" type="xs:unsignedByte"/>
         </xs:complexType>
       </xs:element>
       <xs:element name="physical" minOccurs="1" maxOccurs="1">

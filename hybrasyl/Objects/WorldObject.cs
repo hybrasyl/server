@@ -181,6 +181,18 @@ namespace Hybrasyl.Objects
             }
         }
 
+        public virtual void Teleport(string name, byte x, byte y)
+        {
+            Map targetMap;
+            if (World.MapCatalog.TryGetValue(name, out targetMap))
+            {
+                if (Map != null)
+                    Map.Remove(this);
+                Logger.DebugFormat("Teleporting {0} to {1}.", Name, targetMap.Name);
+                targetMap.Insert(this, x, y);
+
+            }
+        }
         public virtual void SendMapInfo() { }
         public virtual void SendLocation() { }
 
@@ -303,7 +315,7 @@ namespace Hybrasyl.Objects
             if (this is Merchant)
             {
                 var merchant = (Merchant)this;
-                if (merchant.Jobs.HasFlag(MerchantJob.Vendor))
+                if (merchant.Jobs.HasFlag(MerchantJob.Vend))
                 {
                     menupacket.WriteString8("Buy");
                     menupacket.WriteUInt16((ushort)MerchantMenuItem.BuyItemMenu);
@@ -311,7 +323,7 @@ namespace Hybrasyl.Objects
                     menupacket.WriteUInt16((ushort)MerchantMenuItem.SellItemMenu);
                     pursuitCount += 2;
                 }
-                if (merchant.Jobs.HasFlag(MerchantJob.Banker))
+                if (merchant.Jobs.HasFlag(MerchantJob.Bank))
                 {
                     menupacket.WriteString8("Withdraw Item");
                     menupacket.WriteUInt16((ushort)MerchantMenuItem.WithdrawItemMenu);
@@ -323,7 +335,7 @@ namespace Hybrasyl.Objects
                     menupacket.WriteUInt16((ushort)MerchantMenuItem.DepositGoldMenu);
                     pursuitCount += 4;
                 }
-                if (merchant.Jobs.HasFlag(MerchantJob.Repairer))
+                if (merchant.Jobs.HasFlag(MerchantJob.Repair))
                 {
                     menupacket.WriteString8("Repair Item");
                     menupacket.WriteUInt16((ushort)MerchantMenuItem.RepairItemMenu);
@@ -331,7 +343,7 @@ namespace Hybrasyl.Objects
                     menupacket.WriteUInt16((ushort)MerchantMenuItem.RepairAllItems);
                     pursuitCount += 2;
                 }
-                if (merchant.Jobs.HasFlag(MerchantJob.Trainer))
+                if (merchant.Jobs.HasFlag(MerchantJob.Train))
                 {
                     /* if merchant has skills available to user:
                      *     menupacket.WriteString8("Learn Skill");
@@ -348,7 +360,7 @@ namespace Hybrasyl.Objects
                     menupacket.WriteUInt16((ushort)MerchantMenuItem.ForgetSpellMenu);
                     pursuitCount += 2;
                 }
-                if (merchant.Jobs.HasFlag(MerchantJob.Postman))
+                if (merchant.Jobs.HasFlag(MerchantJob.Post))
                 {
                     menupacket.WriteString8("Send Parcel");
                     menupacket.WriteUInt16((ushort)MerchantMenuItem.SendParcelMenu);
@@ -798,20 +810,19 @@ namespace Hybrasyl.Objects
 
     public class Signpost : VisibleObject
     {
+        public string Message { get; set; }
+        public bool IsMessageboard { get; set; }
+        public string BoardName { get; set; }
 
-        private signpost Data { get; set; }
-        private string Message { get { return Data.message; } }
-        private bool IsMessageboard { get { return Data.is_messageboard; } }
-
-        public Signpost()
+        public Signpost(byte postX, byte postY, string message, bool messageboard = false,
+            string boardname = null)
             : base()
-        { }
-
-        public Signpost(signpost post)
         {
-            Data = post;
-            X = (byte)post.map_x;
-            Y = (byte)post.map_y;
+            X = postX;
+            Y = postY;
+            Message = message;
+            IsMessageboard = messageboard;
+            BoardName = boardname;
         }
 
         public override void OnClick(User invoker)

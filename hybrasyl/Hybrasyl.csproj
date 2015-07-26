@@ -101,6 +101,10 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
+    <Reference Include="XmlSchemaClassGenerator, Version=0.2.5143.24328, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\XmlSchemaClassGenerator-beta.0.2.5143.24328\lib\net45\XmlSchemaClassGenerator.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="zlib.net">
       <HintPath>packages\zlib.net.1.0.4.0\lib\zlib.net.dll</HintPath>
     </Reference>
@@ -112,6 +116,7 @@
     <Compile Include="Enums.cs" />
     <Compile Include="Game.cs" />
     <Compile Include="Inventory.cs" />
+    <Compile Include="Objects\Nation.cs" />
     <Compile Include="Objects\Item.cs" />
     <Compile Include="Jobs.cs" />
     <Compile Include="Lobby.cs" />
@@ -235,6 +240,7 @@
     <Compile Include="Utility.cs" />
     <Compile Include="World.cs" />
     <Compile Include="Objects\WorldObject.cs" />
+    <Compile Include="XML\Schema\Items.designer.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config">
