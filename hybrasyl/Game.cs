@@ -19,7 +19,9 @@
  *            Kyle Speck    <kojasou@hybrasyl.com>
  */
 
+using System.Data.Odbc;
 using Hybrasyl.Properties;
+using Hybrasyl.XML.Config;
 using log4net;
 using System;
 using System.Collections.Generic;
@@ -55,6 +57,8 @@ namespace Hybrasyl
 
         public static AssemblyInfo Assemblyinfo  { get; set; }
         private static long Active = 0;
+
+        public static XML.Config.HybrasylConfig Config { get; private set; }
 
         public static void ToggleActive()
         {
@@ -100,12 +104,21 @@ namespace Hybrasyl
                     return;
                 }
             }
-
+            
             var hybconfig = Path.Combine(Constants.DataDirectory, "config.xml");
 
             if (File.Exists(hybconfig))
             {
-                config = XDocument.Load(hybconfig);
+                var xml = File.ReadAllText(hybconfig);
+                HybrasylConfig newConfig;
+                Exception parseException;
+                if (XML.Config.HybrasylConfig.Deserialize(xml, out newConfig, out parseException))
+                    Config = newConfig;
+                else
+                {
+                    Logger.ErrorFormat("Error parsing Hybrasyl configuration: {1}", hybconfig, parseException);
+                    Environment.Exit(0);
+                }
             }
             else
             {
@@ -143,41 +156,34 @@ namespace Hybrasyl
 
                 Logger.InfoFormat("Using {0}: {1}, {2}, {3}", serverIp, lobbyPort, loginPort, worldPort);
 
-                Console.Write("Now, we will configure the database:\n\n");
-                Console.Write("MySQL database IP or hostname: ");
-                var mysqlHost = Console.ReadLine();
+                Console.Write("Now, we will configure the Redis store.\n\n");
+                Console.Write("Redis IP or hostname (default is localhost): ");
+                var redisHost = Console.ReadLine();
 
-                Console.Write("MySQL username: ");
-                var mysqlUser = Console.ReadLine();
+                Console.Write("Redis authentication information (optional - if you don't have these, just hit enter)");
+                Console.Write("Username: ");
+                var redisUser = Console.ReadLine();
 
-                Console.Write("MySQL password: ");
-                var mysqlPass = Console.ReadLine();
+                Console.Write("Password: ");
+                var redisPass = Console.ReadLine();
 
-                Console.Write("MySQL database name: ");
-                var mysqlDbname = Console.ReadLine();
+                if (String.IsNullOrEmpty(redisHost))
+                    redisHost = "localhost";
 
-                var connectionString = String.Format(Constants.EF_CONNSTRING_TEMPLATE, mysqlHost, mysqlUser, mysqlPass, mysqlDbname);
+                Config = new HybrasylConfig {datastore = {host = redisHost}, network =
+                {
+                    lobby = new NetworkInfo { bindaddress = serverIp, port = Convert.ToUInt16(lobbyPort) },
+                    login = new NetworkInfo { bindaddress = serverIp, port = Convert.ToUInt16(loginPort) },
+                    world = new NetworkInfo { bindaddress = serverIp, port = Convert.ToUInt16(worldPort) }
+                }};
 
-                Logger.InfoFormat("Using connection string: {0}", connectionString);
- 
-                // FIXME: XAttribute can return null
-                
-                config = new XDocument(
-                    new XElement("hybrasyl",
-                        new XElement("datastore",
-                            new XAttribute("type", "mysql"),
-                            new XAttribute("database", mysqlDbname),
-                            new XAttribute("hostname", mysqlHost),
-                            new XAttribute("username", mysqlUser),
-                            new XAttribute("password", mysqlPass)),
-                        new XElement("server",
-                            new XAttribute("ip", serverIp),
-                            new XAttribute("lobby", lobbyPort),
-                            new XAttribute("login", loginPort),
-                            new XAttribute("world", worldPort))
-                            )
-                        );
-                config.Save(Path.Combine(Constants.DataDirectory, "config.xml"));
+                if (String.IsNullOrEmpty(redisUser))
+                    Config.datastore.username = redisUser;
+
+                if (String.IsNullOrEmpty(redisPass))
+                    Config.datastore.username = redisPass;
+
+                Config.SaveToFile(Path.Combine(Constants.DataDirectory, "config.xml"));
             }
 
             // Set console buffer, so we can scroll back a bunch
@@ -186,20 +192,14 @@ namespace Hybrasyl
             Logger.InfoFormat("Hybrasyl {0} starting.", Assemblyinfo.Version);
             Logger.InfoFormat("{0} - this program is licensed under the GNU AGPL, version 3.", Assemblyinfo.Copyright);
 
-            // Prepare our connection string
-            var dbvalues = config.Element("hybrasyl").Element("datastore");
-
-            Constants.ConnectionString = Constants.EF_METADATA + String.Format(Constants.EF_CONNSTRING_TEMPLATE, dbvalues.Attribute("hostname").Value,
-                dbvalues.Attribute("username").Value,
-                dbvalues.Attribute("password").Value,
-                dbvalues.Attribute("database").Value);
-
             LoadCollisions();
 
-            IpAddress = IPAddress.Parse(config.Element("hybrasyl").Element("server").Attribute("ip").Value);
-            Lobby = new Lobby((int)config.Element("hybrasyl").Element("server").Attribute("lobby"));
-            Login = new Login((int)config.Element("hybrasyl").Element("server").Attribute("login"));
-            World = new World((int)config.Element("hybrasyl").Element("server").Attribute("world"));
+            // For right now we don't support binding to different addresses; the support in the XML
+            // is for a distant future where that may be desirable.
+            IpAddress = IPAddress.Parse(Config.network.lobby.bindaddress); 
+            Lobby = new Lobby(Config.network.lobby.port);
+            Login = new Login(Config.network.login.port);
+            World = new World(Config.network.world.port, Config.datastore);
             World.InitWorld();
 
             byte[] addressBytes;
@@ -280,12 +280,6 @@ namespace Hybrasyl
             //    stream.Read(Collisions, 0, length);
             //}
         }
-
-        public static void Checkpoint()
-        {
-            return;
-        }
-
 
         /// <summary>
         /// Check to see if a sprite change should also trigger a collision change. Used to

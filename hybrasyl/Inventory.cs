@@ -505,9 +505,9 @@ namespace Hybrasyl
         {
             item = null;
             List<Item> itemList;
-            item theItem;
+            XML.Items.ItemType theItem;
             if (!Game.World.TryGetItemTemplate(name, out theItem) ||
-                !_inventoryIndex.TryGetValue(theItem.id, out itemList)) return false;
+                !_inventoryIndex.TryGetValue(theItem.Id, out itemList)) return false;
             item = itemList.First();
             return true;
         }
@@ -536,8 +536,8 @@ namespace Hybrasyl
 
         public bool Contains(string name)
         {
-            item theItem;
-            return Game.World.TryGetItemTemplate(name, out theItem) && _inventoryIndex.ContainsKey(theItem.id);
+            XML.Items.ItemType theItem;
+            return Game.World.TryGetItemTemplate(name, out theItem) && _inventoryIndex.ContainsKey(theItem.Id);
         }
 
         public int FindEmptyIndex()
@@ -589,9 +589,9 @@ namespace Hybrasyl
 
         public Item Find(string name)
         {
-            item theItem;
-            return Game.World.TryGetItemTemplate(name, out theItem) && _inventoryIndex.ContainsKey(theItem.id)
-                ? _inventoryIndex[theItem.id].First()
+            XML.Items.ItemType theItem;
+            return Game.World.TryGetItemTemplate(name, out theItem) && _inventoryIndex.ContainsKey(theItem.Id)
+                ? _inventoryIndex[theItem.Id].First()
                 : null;
         }
 

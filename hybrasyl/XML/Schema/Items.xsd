@@ -133,7 +133,7 @@
       <xs:element name="physical" minOccurs="1" maxOccurs="1">
         <xs:complexType>
           <xs:attribute name="value" default="0" type="xs:unsignedInt"/>
-          <xs:attribute name="weight" default="1" type="xs:integer"/>
+          <xs:attribute name="weight" default="1" type="xs:int"/>
           <xs:attribute name="durability" default="1" type="xs:unsignedInt"/>
           <xs:attribute name="perishable" type="xs:boolean" default="false"/>
           <xs:attribute name="vendorable" type="xs:boolean" default="true"/>
@@ -144,6 +144,7 @@
         <xs:complexType>
           <xs:attribute name="slot" use="required" type="hyb:EquipmentSlot"/>
           <xs:attribute name="unique" type="xs:boolean" default="false"/>
+          <xs:attribute name="weapontype" type="hyb:WeaponType"/>
         </xs:complexType>
       </xs:element>
       <xs:element name="stateffects" minOccurs="0" maxOccurs="1">
@@ -156,8 +157,8 @@
                 <xs:attribute name="wis" default="0" type="xs:byte"/>
                 <xs:attribute name="con" default="0" type="xs:byte"/>
                 <xs:attribute name="dex" default="0" type="xs:byte"/>
-                <xs:attribute name="hp" default="0" type="xs:integer"/>
-                <xs:attribute name="mp" default="0" type="xs:integer"/>
+                <xs:attribute name="hp" default="0" type="xs:int"/>
+                <xs:attribute name="mp" default="0" type="xs:int"/>
               </xs:complexType>              
             </xs:element>
             <xs:element name="combat" minOccurs="0" maxOccurs="1">
@@ -201,14 +202,14 @@
           <xs:sequence>
             <xs:element name="small">
               <xs:complexType>
-                <xs:attribute name="min" default="0" type="xs:integer"/>
-                <xs:attribute name="max" default="0" type="xs:integer"/>
+                <xs:attribute name="min" default="0" type="xs:unsignedShort"/>
+                <xs:attribute name="max" default="0" type="xs:unsignedShort"/>
               </xs:complexType>
             </xs:element>
             <xs:element name="large">
               <xs:complexType>
-                <xs:attribute name="min" default="0" type="xs:integer"/>
-                <xs:attribute name="max" default="0" type="xs:integer"/>
+                <xs:attribute name="min" default="0" type="xs:unsignedShort"/>
+                <xs:attribute name="max" default="0" type="xs:unsignedShort"/>
               </xs:complexType>
             </xs:element>
           </xs:sequence>
@@ -230,10 +231,10 @@
             </xs:element>
             <xs:element name="playerEffect" minOccurs="0" maxOccurs="1">
               <xs:complexType>
-                <xs:attribute name="gold" default="0" type="xs:integer"/>
-                <xs:attribute name="hp" default="0" type="xs:integer"/>
-                <xs:attribute name="mp" default="0" type="xs:integer"/>
-                <xs:attribute name="xp" default="0" type="xs:integer"/>
+                <xs:attribute name="gold" default="0" type="xs:int"/>
+                <xs:attribute name="hp" default="0" type="xs:int"/>
+                <xs:attribute name="mp" default="0" type="xs:int"/>
+                <xs:attribute name="xp" default="0" type="xs:int"/>
               </xs:complexType>
             </xs:element>
             <xs:element name="effect" minOccurs="0" maxOccurs="1">

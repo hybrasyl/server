@@ -20,12 +20,16 @@
  *            Kyle Speck    <kojasou@hybrasyl.com>
  */
 
+using System.Runtime.CompilerServices;
 using Hybrasyl.Enums;
+using Hybrasyl.Objects;
 using Hybrasyl.Properties;
 using System;
 using System.Collections;
 using System.Linq;
 using System.Text.RegularExpressions;
+using IronPython.Modules;
+using StackExchange.Redis;
 
 namespace Hybrasyl
 {
@@ -95,7 +99,9 @@ namespace Hybrasyl
             var name = packet.ReadString8();
             var password = packet.ReadString8();
             Logger.DebugFormat("cid {0}: Login request for {1}", client.ConnectionId, name);
+            // TODO: REDIS
 
+            /*
             using (var ctx = new hybrasylEntities(Constants.ConnectionString))
             {
 
@@ -136,7 +142,7 @@ namespace Hybrasyl
                         client.LoginMessage("Incorrect password", 3);
                     }
                 }
-            }
+            }*/
         }
 
 
@@ -167,54 +173,43 @@ namespace Hybrasyl
 
             if (!Game.World.PlayerExists(client.NewCharacterName))
             {
-                using (var ctx = new hybrasylEntities(Constants.ConnectionString))
+                var newPlayer = new User(client.NewCharacterName, sex, 136, 10, 10);
+                newPlayer.HairColor = hairColor;
+                newPlayer.HairStyle = hairStyle;
+                newPlayer.Direction = Direction.North;
+                newPlayer.Class = Class.Peasant;
+                newPlayer.Level = 1;
+                newPlayer.Experience = 0;
+                newPlayer.AbilityExp = 0;
+                newPlayer.Gold = 0;
+                newPlayer.Ability = 0;
+                newPlayer.Hp = 50;
+                newPlayer.Mp = 50;
+                newPlayer.BaseHp = 50;
+                newPlayer.BaseMp = 50;
+                newPlayer.BaseStr = 3;
+                newPlayer.BaseInt = 3;
+                newPlayer.BaseWis = 3;
+                newPlayer.BaseCon = 3;
+                newPlayer.BaseDex = 3;
+                newPlayer.CreationTime = DateTime.Now;
+                IDatabase cache = World.DatastoreConnection.GetDatabase();
+                try
                 {
-                    player newplayer = new player
-                    {
-                        name = client.NewCharacterName,
-                        password_hash = client.NewCharacterPassword,
-                        sex = (Sex) sex,
-                        hairstyle = hairStyle,
-                        haircolor = hairColor,
-                        map_id = 136,
-                        map_x = 10,
-                        map_y = 10,
-                        direction = 1,
-                        class_type = 0,
-                        level = 1,
-                        exp = 0,
-                        ab = 0,
-                        gold = 0,
-                        ab_exp = 0,
-                        max_hp = 50,
-                        max_mp = 50,
-                        cur_hp = 50,
-                        cur_mp = 35,
-                        str = 3,
-                        @int = 3,
-                        wis = 3,
-                        con = 3,
-                        dex = 3,
-                        inventory = "[]",
-                        equipment = "[]",
-                        created_at = DateTime.Now
-                    };
-                    try
-                    {
-                        ctx.players.Add(newplayer);
-                        ctx.SaveChanges();
-                    }
-                    catch (Exception e)
-                    {
-                        Logger.ErrorFormat("Error saving new player!");
-                        Logger.ErrorFormat(e.ToString());
-                        client.LoginMessage("Unknown error. Contact admin@hybrasyl.com", 3);
-                    }
-                    client.LoginMessage("\0", 0);
+                    cache.Set(String.Format("{0}:{1}", User.DatastorePrefix, newPlayer.Name), newPlayer);
                 }
+
+                catch (Exception e)
+                {
+                    Logger.ErrorFormat("Error saving new player!");
+                    Logger.ErrorFormat(e.ToString());
+                    client.LoginMessage("Unknown error. Contact admin@hybrasyl.com", 3);
+                }
+                client.LoginMessage("\0", 0);
             }
- 
         }
+ 
+        
         private void PacketHandler_0x10_ClientJoin(Client client, ClientPacket packet)
         {
             var seed = packet.ReadByte();
@@ -252,7 +247,9 @@ namespace Hybrasyl
             // password, and the new password is only sent to the server once. We can assume
             // that they matched if 0x26 request is sent from the client.
             var newPass = packet.ReadString8();
+            // TODO: REDIS
 
+            /*
             using (var ctx = new hybrasylEntities(Constants.ConnectionString))
             {
                 var player = ctx.players.Where(p => p.name == name).SingleOrDefault();
@@ -294,7 +291,7 @@ namespace Hybrasyl
                         Logger.ErrorFormat("Invalid current password during password change attempt for `{0}`", name);
                     }
                 }
-            }
+            }*/
         }
         
         private void PacketHandler_0x4B_RequestNotification(Client client, ClientPacket packet)
@@ -323,9 +320,10 @@ namespace Hybrasyl
             return BCrypt.Net.BCrypt.HashPassword(password, BCrypt.Net.BCrypt.GenerateSalt(12));
         }
 
-        private bool VerifyPassword(string password, player user)
+        private bool VerifyPassword(string password /*player user*/)
         {
-            return BCrypt.Net.BCrypt.Verify(password, user.password_hash);
+            return true;
+            //return BCrypt.Net.BCrypt.Verify(password, user.password_hash);
         }
 
         /**

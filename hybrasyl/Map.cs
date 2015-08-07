@@ -297,12 +297,14 @@ namespace Hybrasyl
             toInsert.OnSpawn();
         }
         
-        public void InsertReactor(reactor toinsert)
+        public void InsertReactor(/*reactor toinsert*/)
         {
+            /*
             var reactor = new Reactor(toinsert);
             World.Insert(reactor);
             Insert(reactor, reactor.X, reactor.Y);
             reactor.OnSpawn();
+             */
         }
 
         public void InsertSignpost(Signpost post)

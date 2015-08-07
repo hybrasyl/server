@@ -20,12 +20,12 @@
  *            Kyle Speck    <kojasou@hybrasyl.com>
  */
 
-using C3;
+using System.Runtime.Serialization.Formatters.Binary;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
-using Hybrasyl.Properties;
 using Hybrasyl.XML;
+using Hybrasyl.XML.Config;
 using log4net;
 using log4net.Core;
 using System;
@@ -44,10 +44,60 @@ using System.Timers;
 using System.Xml;
 using System.Xml.Schema;
 using Hybrasyl.XML.Items;
-using ItemType = Hybrasyl.Enums.ItemType;
+using StackExchange.Redis;
 
 namespace Hybrasyl
 {
+
+    public static class SampleStackExchangeRedisExtensions
+    {
+        public static T Get<T>(this IDatabase cache, string key)
+        {
+            return Deserialize<T>(cache.StringGet(key));
+        }
+
+        public static object Get(this IDatabase cache, string key)
+        {
+            return Deserialize<object>(cache.StringGet(key));
+        }
+
+        public static void Set(this IDatabase cache, string key, object value)
+        {
+            cache.StringSet(key, Serialize(value));
+        }
+
+        static byte[] Serialize(object o)
+        {
+            if (o == null)
+            {
+                return null;
+            }
+
+            BinaryFormatter binaryFormatter = new BinaryFormatter();
+            using (MemoryStream memoryStream = new MemoryStream())
+            {
+                binaryFormatter.Serialize(memoryStream, o);
+                byte[] objectDataAsStream = memoryStream.ToArray();
+                return objectDataAsStream;
+            }
+        }
+
+        static T Deserialize<T>(byte[] stream)
+        {
+            if (stream == null)
+            {
+                return default(T);
+            }
+
+            BinaryFormatter binaryFormatter = new BinaryFormatter();
+            using (MemoryStream memoryStream = new MemoryStream(stream))
+            {
+                T result = (T)binaryFormatter.Deserialize(memoryStream);
+                return result;
+            }
+        }
+    }
+
     public class World : Server
     {
         private static uint worldObjectID = 0;
@@ -60,8 +110,7 @@ namespace Hybrasyl
 
         public Dictionary<ushort, Map> Maps { get; set; }
         public Dictionary<string, WorldMap> WorldMaps { get; set; }
-        public Dictionary<int, item> Items { get; set; }
-        public Dictionary<string, XML.Items.ItemType> NewItems { get; set; }
+        public Dictionary<int, XML.Items.ItemType> Items { get; set; }
         public Dictionary<string, XML.Items.VariantGroupType> ItemVariants { get; set; } 
         public Dictionary<int, SkillTemplate> Skills { get; set; }
         public Dictionary<int, SpellTemplate> Spells { get; set; }
@@ -75,13 +124,15 @@ namespace Hybrasyl
         public Dictionary<string, CompiledMetafile> Metafiles { get; set; }
         public Dictionary<string, Nation> Nations { get; set; }
 
+        private ConnectionMultiplexer datastoreConnection { get; set; }
+
         public string DefaultCitizenship { get; set; }
 
         public List<DialogSequence> GlobalSequences { get; set; }
         public Dictionary<String, DialogSequence> GlobalSequencesCatalog { get; set; }
         private Dictionary<MerchantMenuItem, MerchantMenuHandler> merchantMenuHandlers;
 
-        public Dictionary<Tuple<Sex, String>, item> ItemCatalog { get; set; }
+        public Dictionary<Tuple<Sex, String>, XML.Items.ItemType> ItemCatalog { get; set; }
         public Dictionary<String, Map> MapCatalog { get; set; }
 
         public HybrasylScriptProcessor ScriptProcessor { get; set; }
@@ -94,12 +145,19 @@ namespace Hybrasyl
 
         public Login Login { get; private set; }
 
-        public World(int port)
+        private static Lazy<ConnectionMultiplexer> _lazyConnector;
+
+        public static ConnectionMultiplexer DatastoreConnection
+        {
+            get { return _lazyConnector.Value; }
+        }
+
+        public World(int port, XML.Config.DataStore store)
             : base(port)
         {
             Maps = new Dictionary<ushort, Map>();
             WorldMaps = new Dictionary<string, WorldMap>();
-            Items = new Dictionary<int, item>();
+            Items = new Dictionary<int, XML.Items.ItemType>();
             Skills = new Dictionary<int, SkillTemplate>();
             Spells = new Dictionary<int, SpellTemplate>();
             Monsters = new Dictionary<int, MonsterTemplate>();
@@ -112,17 +170,30 @@ namespace Hybrasyl
             Nations = new Dictionary<string, Nation>();
             Portraits = new Dictionary<string, string>();
             GlobalSequences = new List<DialogSequence>();
-            NewItems = new Dictionary<string, XML.Items.ItemType>();
             ItemVariants = new Dictionary<string, VariantGroupType>();
 
             GlobalSequencesCatalog = new Dictionary<String, DialogSequence>();
-            ItemCatalog = new Dictionary<Tuple<Sex, String>, item>();
+            ItemCatalog = new Dictionary<Tuple<Sex, String>, XML.Items.ItemType>();
             MapCatalog = new Dictionary<String, Map>();
 
             ScriptProcessor = new HybrasylScriptProcessor(this);
             MessageQueue = new BlockingCollection<HybrasylMessage>(new ConcurrentQueue<HybrasylMessage>());
             ActiveUsers = new ConcurrentDictionary<long, User>();
             ActiveUsersByName = new ConcurrentDictionary<String, long>();
+
+            var datastoreConfig = new ConfigurationOptions()
+            {
+                EndPoints =
+                {
+                    {store.host, store.port}
+                }
+            };
+
+            if (!String.IsNullOrEmpty(store.password))
+                datastoreConfig.Password = store.password;
+
+            _lazyConnector = new Lazy<ConnectionMultiplexer>(() => ConnectionMultiplexer.Connect(datastoreConfig));
+                    
         }
 
         public void InitWorld()
@@ -139,6 +210,7 @@ namespace Hybrasyl
 
         private void LoadReactors()
         {
+            /*
             using (var ctx = new hybrasylEntities(Constants.ConnectionString))
             {
                 foreach (var reactor in ctx.reactors)
@@ -151,6 +223,7 @@ namespace Hybrasyl
                 }
 
             }
+             */
         }
 
         internal void RegisterGlobalSequence(DialogSequence sequence)
@@ -162,13 +235,16 @@ namespace Hybrasyl
 
         public bool PlayerExists(string name)
         {
-            using (var ctx = new hybrasylEntities(Constants.ConnectionString))
+            return true;
+            // TODO: REDIS
+/*            using (var ctx = new hybrasylEntities(Constants.ConnectionString))
             {
                 var count = ctx.players.Where(player => player.name == name).Count();
                 Logger.DebugFormat("count is {0}", count);
                 return count != 0;
 
             }
+ */
         }
 
         private void LoadData()
@@ -284,8 +360,8 @@ namespace Hybrasyl
                 Exception parseException;
                 if (XML.Items.ItemType.Deserialize(xml, out newItem, out parseException))
                 {
-                    Logger.InfoFormat("Items: loaded {0}", newItem.name);
-                    NewItems.Add(newItem.name, newItem);
+                    Logger.InfoFormat("Items: loaded {0}, id {1}", newItem.name, newItem.Id);
+                    Items.Add(newItem.Id, newItem);
                     foreach (var targetGroup in newItem.properties.variants.group)
                     {
                         foreach (var variant in ItemVariants[targetGroup].variant)
@@ -314,11 +390,7 @@ namespace Hybrasyl
             else
                 Logger.ErrorFormat("XML ERROR: {0}", args.Message);
         }
-        private void AddSpawn(spawn spawn)
-        {
-            //throw new NotImplementedException();
-        }
-
+   
         private void LoadMetafiles()
         {
             // these might be better suited in LoadData as the database is being read, but only items are in database atm
@@ -329,8 +401,8 @@ namespace Hybrasyl
             // TODO: split items into multiple ItemInfo files (DA does ~700 each)
             foreach (var item in Items.Values)
             {
-                iteminfo0.Nodes.Add(new MetafileNode(item.name, item.level, (int) item.class_type, item.weight,
-                    string.Empty /* shop tab */, string.Empty /* shop description */));
+                iteminfo0.Nodes.Add(new MetafileNode(item.name, item.properties.restrictions.level.min, (int) item.properties.restrictions.@class, item.properties.physical.weight,
+                    item.properties.vendor.shoptab, item.properties.vendor.description));
             }
             Metafiles.Add(iteminfo0.Name, iteminfo0.Compile());
 
@@ -1177,21 +1249,24 @@ namespace Hybrasyl
                     case "/guild":
                     {
                         var guild = string.Join(" ", args, 1, args.Length - 1);
-                        user.Guild = guild;
+                        // TODO: GUILD SUPPORT
+                        //user.guild = guild;
                         user.SendMessage(String.Format("Guild changed to {0}", guild), 0x1);
                     }
                         break;
                     case "/guildrank":
                     {
                         var guildrank = string.Join(" ", args, 1, args.Length - 1);
-                        user.GuildRank = guildrank;
+                        // TODO: GUILD SUPPORT 
+                        //user.GuildRank = guildrank;
                         user.SendMessage(String.Format("Guild rank changed to {0}", guildrank), 0x1);
                     }
                         break;
                     case "/title":
                     {
                         var title = string.Join(" ", args, 1, args.Length - 1);
-                        user.Title = title;
+                        // TODO: TITLE SUPPORT
+                        //user.Title = title;
                         user.SendMessage(String.Format("Title changed to {0}", title), 0x1);
                     }
                         break;
@@ -1618,13 +1693,13 @@ namespace Hybrasyl
                 int levelDifference = Math.Abs((int)user.Level - me.Level);
 
                 listPacket.WriteByte((byte)user.Class);
-                
-                if (!string.IsNullOrEmpty(me.Guild) && user.Guild == me.Guild) listPacket.WriteByte(84);
-                else if (levelDifference <= 5) listPacket.WriteByte(151);
+                // TODO: GUILD SUPPORT
+                //if (!string.IsNullOrEmpty(me.Guild) && user.Guild == me.Guild) listPacket.WriteByte(84);
+                if (levelDifference <= 5) listPacket.WriteByte(151);
                 else listPacket.WriteByte(255);
 
                 listPacket.WriteByte((byte)user.GroupStatus);
-                listPacket.WriteString8(user.Title);
+                listPacket.WriteString8(""); //user.Title);
                 listPacket.WriteBoolean(user.IsMaster);
                 listPacket.WriteString8(user.Name);
             }
@@ -1667,13 +1742,13 @@ namespace Hybrasyl
 
             switch (item.ItemType)
             {
-                case ItemType.CanUse:
+                case Enums.ItemType.CanUse:
                     item.Invoke(user);
                     break;
-                case ItemType.CannotUse:
+                case Enums.ItemType.CannotUse:
                     user.SendMessage("You can't use that.", 3);
                     break;
-                case ItemType.Equipment:
+                case Enums.ItemType.Equipment:
                 {
 
                     // Check item requirements here before we do anything rash
@@ -2681,13 +2756,13 @@ namespace Hybrasyl
                 return;
             }
 
-            if (user.Gold < template.value)
+            if (user.Gold < template.properties.physical.value)
             {
                 user.ShowMerchantGoBack(merchant, "You do not have enough gold.", MerchantMenuItem.BuyItemMenu);
                 return;
             }
 
-            if (user.CurrentWeight + template.weight > user.MaximumWeight)
+            if (user.CurrentWeight + template.properties.physical.weight > user.MaximumWeight)
             {
                 user.ShowMerchantGoBack(merchant, "That item is too heavy for you to carry.",
                     MerchantMenuItem.BuyItemMenu);
@@ -2700,9 +2775,8 @@ namespace Hybrasyl
                 return;
             }
 
-            user.RemoveGold((uint) template.value);
-
-            var item = CreateItem(template.id);
+            user.RemoveGold(template.properties.physical.value);
+            var item = CreateItem(template.Id);
             Insert(item);
             user.AddItem(item);
 
@@ -2733,7 +2807,7 @@ namespace Hybrasyl
                 return;
             }
 
-            uint cost = (uint) (template.value*quantity);
+            uint cost = (uint) (template.properties.physical.value*quantity);
 
             if (user.Gold < cost)
             {
@@ -2741,7 +2815,7 @@ namespace Hybrasyl
                 return;
             }
 
-            if (quantity > template.max_stack)
+            if (quantity > template.properties.stackable.max)
             {
                 user.ShowMerchantGoBack(merchant, string.Format("You cannot hold that many {0}.", name),
                     MerchantMenuItem.BuyItemMenu);
@@ -2751,7 +2825,7 @@ namespace Hybrasyl
             if (user.Inventory.Contains(name))
             {
                 byte slot = user.Inventory.SlotOf(name);
-                if (user.Inventory[slot].Count + quantity > template.max_stack)
+                if (user.Inventory[slot].Count + quantity > template.properties.stackable.max)
                 {
                     user.ShowMerchantGoBack(merchant, string.Format("You cannot hold that many {0}.", name),
                         MerchantMenuItem.BuyItemMenu);
@@ -2767,7 +2841,7 @@ namespace Hybrasyl
                     return;
                 }
 
-                var item = CreateItem(template.id, quantity);
+                var item = CreateItem(template.Id, quantity);
                 Insert(item);
                 user.AddItem(item);
             }
@@ -2921,13 +2995,13 @@ namespace Hybrasyl
             }
         }
 
-        public bool TryGetItemTemplate(string name, Sex itemSex, out item item)
+        public bool TryGetItemTemplate(string name, Sex itemSex, out XML.Items.ItemType item)
         {
             var itemKey = new Tuple<Sex, String>(itemSex, name);
             return ItemCatalog.TryGetValue(itemKey, out item);
         }
 
-        public bool TryGetItemTemplate(string name, out item item)
+        public bool TryGetItemTemplate(string name, out XML.Items.ItemType item)
         {
             // This is kinda gross
             var neutralKey = new Tuple<Sex, String>(Sex.Neutral, name);

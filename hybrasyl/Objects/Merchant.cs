@@ -30,16 +30,16 @@ namespace Hybrasyl.Objects
     public class Merchant : Monster
     {
         public bool Ready;
-        public npc Data;
+        //public npc Data;
         public MerchantJob Jobs { get; set; }
-        public Dictionary<string, item> Inventory { get; private set; }
+        public Dictionary<string, XML.Items.ItemType> Inventory { get; private set; }
 
         public Merchant()
             : base()
         {
             Ready = false;
             //Jobs = (MerchantJob).jobs;
-            Inventory = new Dictionary<string, item>();
+            Inventory = new Dictionary<string, XML.Items.ItemType>();
             //foreach (var item in data.inventory)
             //{
             //   Inventory.Add(item.name, item);

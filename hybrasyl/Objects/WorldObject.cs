@@ -880,24 +880,26 @@ namespace Hybrasyl.Objects
 
     public class Reactor : VisibleObject
     {
-        private reactor _reactor;
+        //private reactor _reactor;
         private HybrasylWorldObject _world;
         public Boolean Ready;
 
-        public Reactor(reactor reactor)
+        public Reactor(/* reactor reactor*/)
         {
+            /*
             _reactor = reactor;
             _world = new HybrasylWorldObject(this);
             X = (byte)_reactor.map_x;
             Y = (byte)_reactor.map_y;
             Ready = false;
             Script = null;
+             */
         }
 
         public void OnSpawn()
         {
             // Do we have a script?
-
+/*
             Script thescript;
             if (_reactor.script_name == String.Empty)
                 Game.World.ScriptProcessor.TryGetScript(_reactor.name, out thescript);
@@ -922,6 +924,7 @@ namespace Hybrasyl.Objects
 
             Script.ExecuteScriptableFunction("OnSpawn");
             Ready = true;
+ */
         }
 
         public void OnEntry(WorldObject obj)

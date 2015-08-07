@@ -20,7 +20,7 @@ namespace Hybrasyl.XML.Items
     using System.Collections.Generic;
     
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -236,7 +236,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -502,7 +502,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -797,7 +797,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/HybrasylCommon")]
     public enum ItemBodystyle
@@ -819,7 +819,7 @@ namespace Hybrasyl.XML.Items
         female,
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/HybrasylCommon")]
     public enum ItemColor
@@ -871,7 +871,7 @@ namespace Hybrasyl.XML.Items
         white,
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -1078,7 +1078,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -1091,9 +1091,9 @@ namespace Hybrasyl.XML.Items
         [XmlAttribute]
         [DefaultValueAttribute(typeof(uint), "0")]
         public uint value { get; set; }
-        [XmlAttributeAttribute(DataType="integer")]
-        [DefaultValueAttribute("1")]
-        public string weight { get; set; }
+        [XmlAttribute]
+        [DefaultValueAttribute(1)]
+        public int weight { get; set; }
         [XmlAttribute]
         [DefaultValueAttribute(typeof(uint), "1")]
         public uint durability { get; set; }
@@ -1110,7 +1110,7 @@ namespace Hybrasyl.XML.Items
         public ItemPropertiesPhysical()
         {
             value = ((uint)(0));
-            weight = "1";
+            weight = 1;
             durability = ((uint)(1));
             perishable = false;
             vendorable = true;
@@ -1311,13 +1311,15 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
     [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Items")]
     public partial class ItemPropertiesEquipment
     {
+        
+        private System.Nullable<WeaponType> _weapontype;
         
         private static XmlSerializer serializer;
         
@@ -1330,6 +1332,42 @@ namespace Hybrasyl.XML.Items
         public ItemPropertiesEquipment()
         {
             unique = false;
+        }
+        
+        [XmlAttribute]
+        public WeaponType weapontype
+        {
+            get
+            {
+                if (_weapontype.HasValue)
+                {
+                    return _weapontype.Value;
+                }
+                else
+                {
+                    return default(WeaponType);
+                }
+            }
+            set
+            {
+                _weapontype = value;
+            }
+        }
+        
+        [XmlIgnore]
+        public bool weapontypeSpecified
+        {
+            get
+            {
+                return _weapontype.HasValue;
+            }
+            set
+            {
+                if (value==false)
+                {
+                    _weapontype = null;
+                }
+            }
         }
         
         private static XmlSerializer Serializer
@@ -1526,7 +1564,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/HybrasylCommon")]
     public enum EquipmentSlot
@@ -1596,7 +1634,29 @@ namespace Hybrasyl.XML.Items
         ring,
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+    [Serializable]
+    [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/HybrasylCommon")]
+    public enum WeaponType
+    {
+        
+        /// <remarks/>
+        onehand,
+        
+        /// <remarks/>
+        twohand,
+        
+        /// <remarks/>
+        dagger,
+        
+        /// <remarks/>
+        staff,
+        
+        /// <remarks/>
+        claw,
+    }
+    
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -1811,7 +1871,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -1836,12 +1896,12 @@ namespace Hybrasyl.XML.Items
         [XmlAttribute]
         [DefaultValueAttribute(typeof(sbyte), "0")]
         public sbyte dex { get; set; }
-        [XmlAttributeAttribute(DataType="integer")]
-        [DefaultValueAttribute("0")]
-        public string hp { get; set; }
-        [XmlAttributeAttribute(DataType="integer")]
-        [DefaultValueAttribute("0")]
-        public string mp { get; set; }
+        [XmlAttribute]
+        [DefaultValueAttribute(0)]
+        public int hp { get; set; }
+        [XmlAttribute]
+        [DefaultValueAttribute(0)]
+        public int mp { get; set; }
         
         public ItemPropertiesStateffectsBase()
         {
@@ -1850,8 +1910,8 @@ namespace Hybrasyl.XML.Items
             wis = ((sbyte)(0));
             con = ((sbyte)(0));
             dex = ((sbyte)(0));
-            hp = "0";
-            mp = "0";
+            hp = 0;
+            mp = 0;
         }
         
         private static XmlSerializer Serializer
@@ -2048,7 +2108,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -2277,7 +2337,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -2494,7 +2554,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/HybrasylCommon")]
     public enum Element
@@ -2534,7 +2594,7 @@ namespace Hybrasyl.XML.Items
         random,
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/HybrasylCommon")]
     public enum ItemFlags
@@ -2574,7 +2634,7 @@ namespace Hybrasyl.XML.Items
         master,
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -2783,7 +2843,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -2992,7 +3052,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -3205,7 +3265,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -3215,17 +3275,17 @@ namespace Hybrasyl.XML.Items
         
         private static XmlSerializer serializer;
         
-        [XmlAttributeAttribute(DataType="integer")]
-        [DefaultValueAttribute("0")]
-        public string min { get; set; }
-        [XmlAttributeAttribute(DataType="integer")]
-        [DefaultValueAttribute("0")]
-        public string max { get; set; }
+        [XmlAttribute]
+        [DefaultValueAttribute(typeof(ushort), "0")]
+        public ushort min { get; set; }
+        [XmlAttribute]
+        [DefaultValueAttribute(typeof(ushort), "0")]
+        public ushort max { get; set; }
         
         public ItemPropertiesDamageSmall()
         {
-            min = "0";
-            max = "0";
+            min = ((ushort)(0));
+            max = ((ushort)(0));
         }
         
         private static XmlSerializer Serializer
@@ -3422,7 +3482,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -3432,17 +3492,17 @@ namespace Hybrasyl.XML.Items
         
         private static XmlSerializer serializer;
         
-        [XmlAttributeAttribute(DataType="integer")]
-        [DefaultValueAttribute("0")]
-        public string min { get; set; }
-        [XmlAttributeAttribute(DataType="integer")]
-        [DefaultValueAttribute("0")]
-        public string max { get; set; }
+        [XmlAttribute]
+        [DefaultValueAttribute(typeof(ushort), "0")]
+        public ushort min { get; set; }
+        [XmlAttribute]
+        [DefaultValueAttribute(typeof(ushort), "0")]
+        public ushort max { get; set; }
         
         public ItemPropertiesDamageLarge()
         {
-            min = "0";
-            max = "0";
+            min = ((ushort)(0));
+            max = ((ushort)(0));
         }
         
         private static XmlSerializer Serializer
@@ -3639,7 +3699,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -3861,7 +3921,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -4072,7 +4132,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -4082,25 +4142,25 @@ namespace Hybrasyl.XML.Items
         
         private static XmlSerializer serializer;
         
-        [XmlAttributeAttribute(DataType="integer")]
-        [DefaultValueAttribute("0")]
-        public string gold { get; set; }
-        [XmlAttributeAttribute(DataType="integer")]
-        [DefaultValueAttribute("0")]
-        public string hp { get; set; }
-        [XmlAttributeAttribute(DataType="integer")]
-        [DefaultValueAttribute("0")]
-        public string mp { get; set; }
-        [XmlAttributeAttribute(DataType="integer")]
-        [DefaultValueAttribute("0")]
-        public string xp { get; set; }
+        [XmlAttribute]
+        [DefaultValueAttribute(0)]
+        public int gold { get; set; }
+        [XmlAttribute]
+        [DefaultValueAttribute(0)]
+        public int hp { get; set; }
+        [XmlAttribute]
+        [DefaultValueAttribute(0)]
+        public int mp { get; set; }
+        [XmlAttribute]
+        [DefaultValueAttribute(0)]
+        public int xp { get; set; }
         
         public ItemPropertiesUsePlayerEffect()
         {
-            gold = "0";
-            hp = "0";
-            mp = "0";
-            xp = "0";
+            gold = 0;
+            hp = 0;
+            mp = 0;
+            xp = 0;
         }
         
         private static XmlSerializer Serializer
@@ -4297,7 +4357,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -4512,7 +4572,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -4719,7 +4779,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -4972,7 +5032,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -5189,7 +5249,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -5406,7 +5466,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/HybrasylCommon")]
     public enum Class
@@ -5431,7 +5491,7 @@ namespace Hybrasyl.XML.Items
         wizard,
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/HybrasylCommon")]
     public enum Gender
@@ -5447,7 +5507,7 @@ namespace Hybrasyl.XML.Items
         female,
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -5662,7 +5722,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -5880,7 +5940,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -6104,7 +6164,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -6384,7 +6444,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -6597,7 +6657,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -6814,7 +6874,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -7031,7 +7091,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -7264,7 +7324,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -7517,7 +7577,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -7734,7 +7794,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -7951,7 +8011,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -8158,7 +8218,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -8373,7 +8433,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -8610,7 +8670,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
@@ -8839,7 +8899,7 @@ namespace Hybrasyl.XML.Items
         }
     }
     
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.0.30319.34234")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]

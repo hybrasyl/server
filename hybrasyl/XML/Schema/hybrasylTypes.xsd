@@ -254,5 +254,12 @@
       <xs:pattern value="-{0,1}[0-9]*%{0,1}"/>
     </xs:restriction>
   </xs:simpleType>
+  
+  <!-- IP address type (used for Hybrasyl config files), and yes, IPv4 only -->
+  <xs:simpleType name="IpAddress">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="((((25[0-5])|(2[0-4][0-9])|([01]?[0-9]?[0-9]))\.){3}((25[0-5])|(2[0-4][0-9])|([01]?[0-9]?[0-9])))(\-((((25[0-5])|(2[0-4][0-9])|([01]?[0-9]?[0-9]))\.){3}((25[0-5])|(2[0-4][0-9])|([01]?[0-9]?[0-9]))))?"/>
+    </xs:restriction>
+  </xs:simpleType>
 
 </xs:schema>
