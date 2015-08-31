@@ -20,8 +20,10 @@
  *            Kyle Speck    <kojasou@hybrasyl.com>
  */
 
+using System.Net;
 using System.Runtime.Serialization;
 using System.Security.Permissions;
+using BinarySerialization;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
 using Hybrasyl.Properties;
@@ -29,6 +31,7 @@ using Hybrasyl.Utility;
 using IronPython.Modules;
 using IronPython.SQLite;
 using log4net;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -42,84 +45,123 @@ using StackExchange.Redis;
 namespace Hybrasyl.Objects
 {
 
-
-    [Serializable]
-    public struct LegendMark
+    [JsonObject]
+    public class LegendMark
     {
-        public String Prefix;
-        public int Color;
-        public int Icon;
-        public String Text;
-        public bool Public;
-        public DateTime Created;
+        public String Prefix { get; set; }
+        public int Color { get; set; }
+        public int Icon { get; set; }
+        public String Text { get; set; }
+        public bool Public { get; set; }
+        public DateTime Created { get; set; }
     }
 
-    [Serializable]
-    public struct GuildMembership
+    [JsonObject]
+    public class GuildMembership
     {
-        public String Title;
-        public String Name;
-        public String Rank;
+        public String Title { get; set; }
+        public String Name { get; set; }
+        public String Rank { get; set; }
     }
 
-    [Serializable]
+    [JsonObject]
+    public class Location
+    {
+        public ushort MapId { get; set; }
+        public Direction Direction { get; set; }
+        public byte X { get; set; }
+        public byte Y { get; set; }
+        public bool WorldMap { get; set; }
+    }
+
+    [JsonObject]
+    public class PasswordInfo
+    {
+        public String PasswordHash { get; set; }
+        public DateTime LastChanged { get; set; }
+        public String LastChangedFrom { get; set; }
+    }
+
+    [JsonObject]
+    public class LoginInfo
+    {
+        public DateTime LastLogin { get; set; }
+        public DateTime LastLogoff { get; set; }
+        public DateTime LastLoginFailure { get; set; }
+        public String LastLoginFrom { get; set; }
+        public Int64 LoginFailureCount { get; set; }
+        public DateTime CreatedTime { get; set; }
+    }
+
+    [JsonObject(MemberSerialization.OptIn)]
     public class User : Creature
     {
-        
         public new static readonly ILog Logger =
                LogManager.GetLogger(
                System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        [IgnoreDataMember]        
         private Client Client { get; set; }
 
-        [IgnoreDataMember] public new static readonly String DatastorePrefix = "_user";
+        public new static readonly String DatastorePrefix = "_user";
 
+        [JsonProperty]
         public Sex Sex { get; set; }
         //private account Account { get; set; }
+        [JsonProperty]
         public byte HairStyle { get; set; }
+        [JsonProperty]
         public byte HairColor { get; set; }
+        [JsonProperty]
         public Class Class { get; set; }
+        [JsonProperty]
         public bool IsMaster { get; set; }
+<<<<<<< HEAD
         public UserGroup Group { get; set; }
 	public bool Dead { get; set; }
+=======
+ [JsonProperty]
+        public bool Dead { get; set; }
+>>>>>>> redis wip
 
+        // Some structs helping us to define various metadata 
+        [JsonProperty]
+        public Location Location { get; set; }
+        [JsonProperty]
+        public LoginInfo Login { get; set; }
+        [JsonProperty]
+        public PasswordInfo Password { get; set; }
+       
         //public Skill[] SkillBook { get; private set; }
         //public Spell[] SpellBook { get; private set; }
 
+        [JsonProperty]
         public bool Grouping { get; set; }
         public UserStatus GroupStatus { get; set; }
         public byte[] PortraitData { get; set; }
         public string ProfileText { get; set; }
 
+        [JsonProperty]
         public GuildMembership Guild { get; set; }
 
-        [IgnoreDataMember]
         public Nation Citizenship { get; set; }
 
+        [JsonProperty]
         public List<LegendMark> Legend { get; set; }
-        public DateTime LoginTime { get; private set; }
-        public DateTime LogoffTime { get; private set; }
-        public DateTime CreationTime { get; set; }
 
-        [IgnoreDataMember]
         public DialogState DialogState { get; set; }
 
+        [JsonProperty]
         private Dictionary<String, String> UserFlags { get; set; }
-        [IgnoreDataMember]
         private Dictionary<String, String> UserSessionFlags { get; set; }
 
-        [IgnoreDataMember]
         public Exchange ActiveExchange { get; set; }
         public PlayerStatus Status { get; set; }
 
-        [IgnoreDataMember]
         public bool IsAvailableForExchange
         {
             get { return Status == PlayerStatus.Alive; }
         }
 
-        [IgnoreDataMember]
         public uint ExpToLevel
         {
             get
@@ -130,12 +172,11 @@ namespace Hybrasyl.Objects
             }
         }
 
+        [JsonProperty]
         public uint LevelPoints = 0;
 
-        [IgnoreDataMember]
         public byte CurrentMusicTrack { get; set; }
 
-        [IgnoreDataMember]
         public bool IsPrivileged
         {
             get
@@ -144,7 +185,6 @@ namespace Hybrasyl.Objects
             }
         }
 
-        [IgnoreDataMember]
         public bool IsExempt
         {
             get
@@ -154,26 +194,19 @@ namespace Hybrasyl.Objects
             }
         }
 
-        [IgnoreDataMember]
         public double SinceLastLogin
         {
             get
             {
-                TimeSpan span = (LoginTime - LogoffTime);
-                if (span.TotalSeconds < 0)
-                    return 0;
-                else
-                    return span.TotalSeconds;
+                var span = (Login.LastLogin - Login.LastLogoff);
+                return span.TotalSeconds < 0 ? 0 : span.TotalSeconds;
             }
         }
 
         // Throttling checks for messaging
 
-        [IgnoreDataMember]
         public long LastSpoke { get; set; }
-        [IgnoreDataMember]
         public string LastSaid { get; set; }
-        [IgnoreDataMember]
         public int NumSaidRepeated { get; set; }
         public Dictionary<string, bool> Flags { get; private set; }
 
@@ -185,8 +218,12 @@ namespace Hybrasyl.Objects
 	public bool IsMuted { get; set; }
         public bool IsIgnoringWhispers { get; set; }
 
-        [IgnoreDataMember]
-        public bool IsAtWorldMap { get; set; }
+	[JsonProperty]
+        public bool IsMuted { get; set; }
+        [JsonProperty]
+        public bool IsIgnoringWhispers { get; set; }
+        [JsonProperty]
+	public bool IsAtWorldMap { get; set; }
 
         public void Enqueue(ServerPacket packet)
         {
@@ -254,6 +291,11 @@ namespace Hybrasyl.Objects
             get { return (ushort) (BaseStr + Level/4 + 48); }
         }
 
+        public bool VerifyPassword(String password)
+        {
+             return BCrypt.Net.BCrypt.Verify(password, Password.PasswordHash);
+        }
+
         private void _initializeUser(string playername = "")
         {
             Inventory = new Inventory(59);
@@ -261,6 +303,8 @@ namespace Hybrasyl.Objects
             //SkillBook = new Skill[90];
             //SpellBook = new Spell[90];
             IsAtWorldMap = false;
+            Login = new LoginInfo();
+            Password = new PasswordInfo();
 
             Legend = new List<LegendMark>();
             Guild = new GuildMembership();
@@ -367,6 +411,16 @@ namespace Hybrasyl.Objects
             World = world;
             Client = client;
             _initializeUser(playername);
+        }
+
+        //                var newPlayer = new User(client.NewCharacterName, sex, 136, 10, 10);
+
+        public User(string playername, Sex sex, ushort targetMap, byte targetX, byte targetY)
+        {
+            Name = playername;
+            Sex = sex;
+            Location = new Location {MapId = targetMap, WorldMap = false, X = targetX, Y = targetY};
+            _initializeUser();
         }
 
         /// <summary>
@@ -1506,7 +1560,7 @@ namespace Hybrasyl.Objects
         /// </summary>
         public void UpdateLoginTime()
         {
-            LoginTime = DateTime.Now;
+            Login.LastLogin = DateTime.Now;
             Save();
         }
 
@@ -1515,7 +1569,7 @@ namespace Hybrasyl.Objects
         /// </summary>
         public void UpdateLogoffTime()
         {
-            LogoffTime = DateTime.Now;
+            Login.LastLogoff = DateTime.Now;
             Save();
         }
 

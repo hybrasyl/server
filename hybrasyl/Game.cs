@@ -32,6 +32,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Xml.Linq;
+using log4net.Core;
 using zlib;
 using AssemblyInfo = Hybrasyl.Utility.AssemblyInfo;
 
@@ -185,7 +186,9 @@ namespace Hybrasyl
 
                 Config.SaveToFile(Path.Combine(Constants.DataDirectory, "config.xml"));
             }
-
+            ((log4net.Repository.Hierarchy.Hierarchy)LogManager.GetRepository()).Root.Level = Level.Debug;
+            ((log4net.Repository.Hierarchy.Hierarchy)LogManager.GetRepository()).RaiseConfigurationChanged(
+                EventArgs.Empty);
             // Set console buffer, so we can scroll back a bunch
             Console.BufferHeight = Int16.MaxValue - 1;
 

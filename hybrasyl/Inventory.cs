@@ -20,6 +20,7 @@
  *            Kyle Speck    <kojasou@hybrasyl.com>
  */
 
+using System.Runtime.Serialization;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
 using Hybrasyl.Properties;
@@ -28,6 +29,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json;
 
 namespace Hybrasyl
 {
@@ -343,6 +345,38 @@ namespace Hybrasyl
         }
     }
 
+    public class InventoryConverter : JsonConverter
+    {
+        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        {
+            var inventory = (Inventory) value;
+            var output = new object[inventory.Size];
+            var itemInfo = new Dictionary<String, object>();
+            for (byte i = 0; i < inventory.Size; i++)
+            {
+                if (inventory[i] != null)
+                {
+                    itemInfo["Name"] = inventory[i].Name;
+                    itemInfo["Count"] = inventory[i].Count;
+                    output[i] = itemInfo;
+                }               
+            }
+            serializer.Serialize(writer, output);
+
+        }
+
+        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        {
+            return null;
+        }
+
+        public override bool CanConvert(Type objectType)
+        {
+            return objectType == typeof (Inventory);
+        }
+    }
+
+    [JsonConverter(typeof(InventoryConverter))]
     public class Inventory : IEnumerable<Item>
     {
         private Item[] _items;
@@ -714,5 +748,6 @@ namespace Hybrasyl
 
             return returnList;
         }
+
     }
 }

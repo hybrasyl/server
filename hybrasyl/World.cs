@@ -124,8 +124,6 @@ namespace Hybrasyl
         public Dictionary<string, CompiledMetafile> Metafiles { get; set; }
         public Dictionary<string, Nation> Nations { get; set; }
 
-        private ConnectionMultiplexer datastoreConnection { get; set; }
-
         public string DefaultCitizenship { get; set; }
 
         public List<DialogSequence> GlobalSequences { get; set; }
@@ -235,16 +233,9 @@ namespace Hybrasyl
 
         public bool PlayerExists(string name)
         {
-            return true;
             // TODO: REDIS
-/*            using (var ctx = new hybrasylEntities(Constants.ConnectionString))
-            {
-                var count = ctx.players.Where(player => player.name == name).Count();
-                Logger.DebugFormat("count is {0}", count);
-                return count != 0;
-
-            }
- */
+            var redis = DatastoreConnection.GetDatabase();
+            return redis.KeyExists(String.Concat(User.DatastorePrefix, ":", name));
         }
 
         private void LoadData()
@@ -352,7 +343,7 @@ namespace Hybrasyl
                     ItemVariants.Add(newGroup.name, newGroup);
                 }
             }
-
+/*
             foreach (var file in Directory.GetFiles(Path.Combine(Constants.DataDirectory, "world", "xml", "items")))
             {
                 var xml = File.ReadAllText(file);
@@ -380,7 +371,7 @@ namespace Hybrasyl
                     Logger.ErrorFormat("Error parsing {0}: {1}", file, parseException);
                 }
             }
-
+*/
         }
 
         private static void ValidationCallBack(object sender, ValidationEventArgs args)

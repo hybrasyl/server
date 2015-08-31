@@ -20,6 +20,7 @@
  *            Kyle Speck    <kojasou@hybrasyl.com>
  */
 
+using System.Runtime.Serialization;
 using C3;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
@@ -29,6 +30,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using Newtonsoft.Json;
 
 namespace Hybrasyl.Objects
 {
@@ -437,27 +439,41 @@ namespace Hybrasyl.Objects
         }
     }
 
+    [JsonObject(MemberSerialization.OptIn)]
     public class Creature : VisibleObject
     {
         public new static readonly ILog Logger =
                LogManager.GetLogger(
                System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
+        [JsonProperty]
         public byte Level { get; set; }
+        [JsonProperty]
         public uint Experience { get; set; }
 
+        [JsonProperty]
         public byte Ability { get; set; }
+        [JsonProperty]
         public uint AbilityExp { get; set; }
 
+        [JsonProperty]
         public uint Hp { get; set; }
+        [JsonProperty]
         public uint Mp { get; set; }
 
+        [JsonProperty]
         public long BaseHp { get; set; }
+        [JsonProperty]
         public long BaseMp { get; set; }
+        [JsonProperty]
         public long BaseStr { get; set; }
+        [JsonProperty]
         public long BaseInt { get; set; }
+        [JsonProperty]
         public long BaseWis { get; set; }
+        [JsonProperty]
         public long BaseCon { get; set; }
+        [JsonProperty]
         public long BaseDex { get; set; }
 
         public long BonusHp { get; set; }
@@ -480,8 +496,11 @@ namespace Hybrasyl.Objects
         public byte MapX { get; protected set; }
         public byte MapY { get; protected set; }
 
+        [JsonProperty]
         public uint Gold { get; set; }
+        [JsonProperty]
         public Inventory Inventory { get; protected set; }
+        [JsonProperty]
         public Inventory Equipment { get; protected set; }
 
         public Creature()
