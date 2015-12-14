@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<nation xmlns="http://www.hybrasyl.com/XML/Nations" flag="4">
+  <name>Test Nation</name>
+  <spawnpoint x="5" y="8">Test Inn</spawnpoint>
+</nation>

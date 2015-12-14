@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<variantgroup xmlns="http://www.hybrasyl.com/XML/Items">
+  <name>enchantable</name>
+  <variant>
+    <name>Test</name>
+    <modifier>Testy</modifier>
+    <properties>
+      <flags>depositable exchangeable vendorable</flags>
+      <physical value="100%"/>
+      <restrictions>
+        <level min="2"/>
+        <ab min="0"/>
+      </restrictions>
+      <combat hit="10"/>
+    </properties>
+  </variant>
+</variantgroup>
