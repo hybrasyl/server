@@ -76,6 +76,22 @@ namespace Hybrasyl.Objects
                 return false;
             }
 
+            // Check if user is equipping a shield while holding a two-handed weapon
+
+            if (EquipmentSlot == ClientItemSlots.Shield && userobj.Equipment.Weapon != null && userobj.Equipment.Weapon.WeaponType == WeaponType.TwoHanded)
+            {
+                message = "You can't equip a shield with a two-handed weapon.";
+                return false;
+            }
+
+            // Check if user is equipping a two-handed weapon while holding a shield
+
+            if (EquipmentSlot == ClientItemSlots.Weapon && WeaponType == WeaponType.TwoHanded && userobj.Equipment.Shield != null)
+            {
+                message = "You can't equip a two-handed weapon with a shield.";
+                return false;
+            }
+
             return true;
         }
 
