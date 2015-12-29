@@ -101,7 +101,7 @@ namespace Hybrasyl.Objects
                 if (Level == 99)
                     return 0;
                 else
-                    return (uint) Math.Pow(Level, 3)*250;
+                    return (uint) (Math.Pow(Level, 3) * 250 - Experience);
             }
         }
 
@@ -321,27 +321,111 @@ namespace Hybrasyl.Objects
          */
         public void GiveExperience(uint exp)
         {
-            var levelsGained = 0;
-
-            while (exp + Experience >= ExpToLevel)
+            if (Level == 99 || exp < ExpToLevel)
             {
-
-                uint tolevel = ExpToLevel - Experience;
-                exp = exp - tolevel;
-                Experience = Experience + tolevel;
-                levelsGained++;
-                Level++;
-                LevelPoints = LevelPoints + 2;
+                Experience += exp;
             }
-        
-            Experience = Experience + exp;
-
-            if (levelsGained > 0)
+            else
             {
-                Client.SendMessage("A rush of insight fills you!", MessageTypes.SYSTEM);
-                Effect(50, 250);
-                UpdateAttributes(StatUpdateFlags.Full);
-            }
+                // Apply one Level at a time
+
+                var levelsGained = 0;
+
+                while (exp > 0)
+                {
+                    uint expChunk = Math.Min(exp, ExpToLevel);
+
+                    exp -= expChunk;
+                    Experience += expChunk;
+
+                    if (ExpToLevel == 0)
+                    {
+                        levelsGained++;
+                        Level++;
+                        LevelPoints = LevelPoints + 2;
+
+                        #region Add Hp and Mp for each level gained
+
+                        int classHpPerLevel = 0;
+                        int classMpPerLevel = 0;
+                        int classMaxBonusHpPerLevel = 0;
+                        int classMaxBonusMpPerLevel = 0;
+                        
+                        double levelCircleModifier;  // Users get more Hp and Mp per level at higher Level "circles"
+
+                        if (Level < 11)
+                            levelCircleModifier = 0;
+                        else if (Level < 41)
+                            levelCircleModifier = .25;
+                        else if (Level < 71)
+                            levelCircleModifier = .5;
+                        else if (Level < 90)
+                            levelCircleModifier = .75;
+                        else
+                            levelCircleModifier = 1.0;
+
+                        switch (Class)
+                        {
+                            case Enums.Class.Peasant:
+                                classHpPerLevel = 8;
+                                classMpPerLevel = 8;
+                                classMaxBonusHpPerLevel = 4;
+                                classMaxBonusMpPerLevel = 4;
+                                break;
+
+                            case Enums.Class.Warrior:
+                                classHpPerLevel = 71;
+                                classMpPerLevel = 8;
+                                classMaxBonusHpPerLevel = 9;
+                                classMaxBonusMpPerLevel = 4;
+                                break;
+
+                            case Enums.Class.Rogue:
+                                classHpPerLevel = 48;
+                                classMpPerLevel = 22;
+                                classMaxBonusHpPerLevel = 10;
+                                classMaxBonusMpPerLevel = 8;
+                                break;
+
+                            case Enums.Class.Monk:
+                                classHpPerLevel = 39;
+                                classMpPerLevel = 31;
+                                classMaxBonusHpPerLevel = 9;
+                                classMaxBonusMpPerLevel = 12;
+                                break;
+
+                            case Enums.Class.Priest:
+                                classHpPerLevel = 28;
+                                classMpPerLevel = 55;
+                                classMaxBonusHpPerLevel = 4;
+                                classMaxBonusMpPerLevel = 10;
+                                break;
+
+                            case Enums.Class.Wizard:
+                                classHpPerLevel = 18;
+                                classMpPerLevel = 68;
+                                classMaxBonusHpPerLevel = 4;
+                                classMaxBonusMpPerLevel = 4;
+                                break;
+                        }
+
+                        // example: BaseHp += (71 + 9) for a level 95 Warrior
+                        // or:      BaseHp += ( 8 + 0) for a level  2 Peasant
+
+                        BaseHp += (classHpPerLevel + (int)Math.Floor(levelCircleModifier * classMaxBonusHpPerLevel));
+                        BaseMp += (classMpPerLevel + (int)Math.Floor(levelCircleModifier * classMaxBonusMpPerLevel));
+
+                        #endregion
+                    }
+                }
+
+                if (levelsGained > 0)
+                {
+                    Client.SendMessage("A rush of insight fills you!", MessageTypes.SYSTEM);
+                    Effect(50, 250);
+                    UpdateAttributes(StatUpdateFlags.Full);
+                }
+            }        
 
             UpdateAttributes(StatUpdateFlags.Experience);
 
