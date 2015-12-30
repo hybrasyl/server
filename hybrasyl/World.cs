@@ -1652,6 +1652,49 @@ namespace Hybrasyl
                         }
                     }
                         break;
+
+                    case "/rollchar":
+                    {
+                        // /rollchar <class> <level>
+                        // Allows you to "roll a new character" of the desired Class and Level, to see his resulting HP and MP.
+
+                        string errorMessage = "Command format is: /rollchar <class> <level>";
+                        byte level = 1;
+
+                        if (args.Length != 3)
+                        {
+                            user.SendMessage(errorMessage, 0x1);
+                        }
+                        else if (!Enum.IsDefined(typeof(Class), args[1]))
+                        {
+                            user.SendMessage("Invalid class. " + errorMessage, 0x1);
+
+                        }
+                        else if (!byte.TryParse(args[2], out level) || level < 1 || level > 99)
+                        {
+                            user.SendMessage("Invalid level. " + errorMessage, 0x1);
+                        }
+                        else
+                        {
+                            // Create a fake User, and level him up to the desired level
+
+                            var testUser = new User(this, new Client());
+                            testUser.Map = new Map();
+                            testUser.BaseHp = 50;
+                            testUser.BaseMp = 50;
+                            testUser.Class = (Class)Enum.Parse(typeof(Class), args[1]);
+                            testUser.Level = 1;
+
+                            while (testUser.Level < level)
+                            {
+                                testUser.GiveExperience(testUser.ExpToLevel);
+                            }
+
+                            user.SendMessage(string.Format("{0}, Level {1}, Hp: {2}, Mp: {3}", testUser.Class, testUser.Level, testUser.BaseHp, testUser.BaseMp), 0x01);
+                        }
+                    }
+                    break;
+
                 #endregion world's biggest switch statement
                 }
             }

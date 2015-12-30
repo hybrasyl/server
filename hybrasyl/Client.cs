@@ -258,6 +258,11 @@ namespace Hybrasyl
             return (Idle == 1);
         }
 
+        public Client()
+        {
+
+        }
+
         public Client(Socket socket, Server server)
         {
             Socket = socket;

@@ -330,6 +330,7 @@ namespace Hybrasyl.Objects
                 // Apply one Level at a time
 
                 var levelsGained = 0;
+                Random random = new Random();
 
                 while (exp > 0)
                 {
@@ -346,10 +347,10 @@ namespace Hybrasyl.Objects
 
                         #region Add Hp and Mp for each level gained
 
-                        int classHpPerLevel = 0;
-                        int classMpPerLevel = 0;
-                        int classMaxBonusHpPerLevel = 0;
-                        int classMaxBonusMpPerLevel = 0;
+                        int hpGain = 0;
+                        int mpGain = 0;
+                        int bonusHp = 0;
+                        int bonusMp = 0;
                         
                         double levelCircleModifier;  // Users get more Hp and Mp per level at higher Level "circles"
 
@@ -367,53 +368,58 @@ namespace Hybrasyl.Objects
                         switch (Class)
                         {
                             case Enums.Class.Peasant:
-                                classHpPerLevel = 8;
-                                classMpPerLevel = 8;
-                                classMaxBonusHpPerLevel = 4;
-                                classMaxBonusMpPerLevel = 4;
+                                hpGain = 8;
+                                mpGain = 8;
+                                bonusHp = 4;
+                                bonusMp = 4;
                                 break;
 
                             case Enums.Class.Warrior:
-                                classHpPerLevel = 71;
-                                classMpPerLevel = 8;
-                                classMaxBonusHpPerLevel = 9;
-                                classMaxBonusMpPerLevel = 4;
+                                hpGain = 71;
+                                mpGain = 8;
+                                bonusHp = 9;
+                                bonusMp = 4;
                                 break;
 
                             case Enums.Class.Rogue:
-                                classHpPerLevel = 48;
-                                classMpPerLevel = 22;
-                                classMaxBonusHpPerLevel = 10;
-                                classMaxBonusMpPerLevel = 8;
+                                hpGain = 48;
+                                mpGain = 22;
+                                bonusHp = 10;
+                                bonusMp = 8;
                                 break;
 
                             case Enums.Class.Monk:
-                                classHpPerLevel = 39;
-                                classMpPerLevel = 31;
-                                classMaxBonusHpPerLevel = 9;
-                                classMaxBonusMpPerLevel = 12;
+                                hpGain = 39;
+                                mpGain = 31;
+                                bonusHp = 9;
+                                bonusMp = 12;
                                 break;
 
                             case Enums.Class.Priest:
-                                classHpPerLevel = 28;
-                                classMpPerLevel = 55;
-                                classMaxBonusHpPerLevel = 4;
-                                classMaxBonusMpPerLevel = 10;
+                                hpGain = 28;
+                                mpGain = 55;
+                                bonusHp = 4;
+                                bonusMp = 10;
                                 break;
 
                             case Enums.Class.Wizard:
-                                classHpPerLevel = 18;
-                                classMpPerLevel = 68;
-                                classMaxBonusHpPerLevel = 4;
-                                classMaxBonusMpPerLevel = 4;
+                                hpGain = 18;
+                                mpGain = 68;
+                                bonusHp = 4;
+                                bonusMp = 4;
                                 break;
                         }
 
-                        // example: BaseHp += (71 + 9) for a level 95 Warrior
-                        // or:      BaseHp += ( 8 + 0) for a level  2 Peasant
+                        // Each level, a user is guaranteed to increase his hp and mp by some base amount, per his Class.
+                        // His hp and mp will increase further by a "bonus amount" that is accounted for by:
+                        // - 50% Level circle
+                        // - 50% Randomness
+                        
+                        int bonusHpGain = (int)Math.Round(bonusHp * 0.5 * levelCircleModifier + bonusHp * 0.5 * random.NextDouble(), MidpointRounding.AwayFromZero);
+                        int bonusMpGain = (int)Math.Round(bonusMp * 0.5 * levelCircleModifier + bonusMp * 0.5 * random.NextDouble(), MidpointRounding.AwayFromZero);
 
-                        BaseHp += (classHpPerLevel + (int)Math.Floor(levelCircleModifier * classMaxBonusHpPerLevel));
-                        BaseMp += (classMpPerLevel + (int)Math.Floor(levelCircleModifier * classMaxBonusMpPerLevel));
+                        BaseHp += (hpGain + bonusHpGain);
+                        BaseMp += (mpGain + bonusMpGain);
 
                         #endregion
                     }
