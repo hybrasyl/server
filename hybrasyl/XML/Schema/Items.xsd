@@ -38,11 +38,7 @@
           </xs:sequence>
         </xs:complexType>
       </xs:element>
-      <xs:element name="flags" minOccurs="0" maxOccurs="1">
-        <xs:simpleType>
-          <xs:list itemType="hyb:ItemFlags"/>
-        </xs:simpleType>
-      </xs:element>
+      <xs:element name="flags" minOccurs="0" maxOccurs="1" type="hyb:ItemFlags"/>
       <xs:element name="physical" minOccurs="0" maxOccurs="1">
         <xs:complexType>
           <xs:attribute name="value" default="0" type="hyb:VariantProperty"/>
@@ -179,7 +175,7 @@
           </xs:sequence>
         </xs:complexType>   
       </xs:element>
-      <xs:element name="flags" type="hyb:ItemFlags" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="flags" minOccurs="0" maxOccurs="1" type="hyb:ItemFlags"/>
       <xs:element name="variants" minOccurs="0" maxOccurs="1">
         <xs:complexType>
           <xs:sequence>
@@ -192,7 +188,7 @@
       <xs:element name="vendor" minOccurs="0" maxOccurs="1">
         <xs:complexType>
           <xs:sequence>
-            <xs:element name="description" type="hyb:String8"/>
+            <xs:element name="description" type="hyb:String8" default="item"/>
           </xs:sequence>
           <xs:attribute name="shoptab" type="xs:byte" use="required"/>
         </xs:complexType>
