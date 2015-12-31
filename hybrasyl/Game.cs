@@ -83,7 +83,6 @@ namespace Hybrasyl
             // Make our window nice and big
             Console.SetWindowSize(140, 36);
             LogLevel = Hybrasyl.Constants.DEFAULT_LOG_LEVEL;
-            XDocument config;
             Assemblyinfo = new AssemblyInfo(Assembly.GetEntryAssembly());
 
             Constants.DataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Hybrasyl");
