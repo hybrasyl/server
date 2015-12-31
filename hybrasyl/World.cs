@@ -44,6 +44,7 @@ using System.Timers;
 using System.Xml;
 using System.Xml.Schema;
 using Hybrasyl.XML.Items;
+using Newtonsoft.Json;
 using StackExchange.Redis;
 
 namespace Hybrasyl
@@ -150,6 +151,19 @@ namespace Hybrasyl
             get { return _lazyConnector.Value; }
         }
 
+        public static bool TryGetUser(string name, out User userobj)
+        {
+            var jsonString = (string)DatastoreConnection.GetDatabase().Get(User.GetStorageKey(name));
+            if (jsonString == null)
+            {
+                userobj = null;
+                return false;
+            }
+            userobj = JsonConvert.DeserializeObject<User>(jsonString);
+            return true;
+
+        }
+
         public World(int port, XML.Config.DataStore store)
             : base(port)
         {
@@ -235,7 +249,7 @@ namespace Hybrasyl
         {
             // TODO: REDIS
             var redis = DatastoreConnection.GetDatabase();
-            return redis.KeyExists(String.Concat(User.DatastorePrefix, ":", name));
+            return redis.KeyExists(User.GetStorageKey(name));
         }
 
         private void LoadData()
@@ -295,10 +309,10 @@ namespace Hybrasyl
                     var name = nationalElement["name"].InnerText;
                     var nation = new Nation(name, flag);
 
-                    foreach (XmlElement spawnElement in nationalElement.GetElementsByTagName("spanwpoint"))
+                    foreach (XmlElement spawnElement in nationalElement.GetElementsByTagName("spawnpoint"))
                     {
-                        var mapX = Convert.ToByte(spawnElement.Attributes["x"]);
-                        var mapY = Convert.ToByte(spawnElement.Attributes["y"]);
+                        var mapX = Convert.ToByte(spawnElement.Attributes["x"].Value);
+                        var mapY = Convert.ToByte(spawnElement.Attributes["y"].Value);
                         var mapName = spawnElement.InnerText;
                         var spawnPoint = new Spawnpoint
                         {
@@ -316,8 +330,8 @@ namespace Hybrasyl
                 }
                    
             }
-   /*         
-            foreach (var file in Directory.GetFiles(Path.Combine(Constants.DataDirectory, "world", "xml", "worldmaps")))
+            
+          /*  foreach (var file in Directory.GetFiles(Path.Combine(Constants.DataDirectory, "world", "xml", "worldmaps")))
             {
                 var reader = XmlReader.Create(file, readerSettings);
                 var mapDocument = new XmlDocument();
@@ -325,25 +339,30 @@ namespace Hybrasyl
                 mapDocument.Validate(ValidationCallBack);
                 foreach (XmlElement element in mapDocument.GetElementsByTagName("map"))
                 {
-                    var map = new Map(element);
+                    var map = new WorldMap(element);
                     mapsProcessed++;
                     Maps[map.Id] = map;
                 }
 
-            }
-            */
+            }*/
+            
             foreach (
                 var file in Directory.GetFiles(Path.Combine(Constants.DataDirectory, "world", "xml", "itemvariants")))
             {
                 var xml = File.ReadAllText(file);
                 XML.Items.VariantGroupType newGroup;
-                if (XML.Items.VariantGroupType.Deserialize(xml, out newGroup))
+                Exception parseException;
+                if (XML.Items.VariantGroupType.Deserialize(xml, out newGroup, out parseException))
                 {
                     Logger.InfoFormat("Item variants: loaded {0}", newGroup.name);
                     ItemVariants.Add(newGroup.name, newGroup);
                 }
+                else
+                {
+                    Logger.ErrorFormat("Error parsing {0}: {1}", file, parseException);
+                }
             }
-/*
+            //int itemid = 0;
             foreach (var file in Directory.GetFiles(Path.Combine(Constants.DataDirectory, "world", "xml", "items")))
             {
                 var xml = File.ReadAllText(file);
@@ -363,15 +382,13 @@ namespace Hybrasyl
                         }
                         
                     }
-
-
                 }
                 else
                 {
                     Logger.ErrorFormat("Error parsing {0}: {1}", file, parseException);
                 }
             }
-*/
+
         }
 
         private static void ValidationCallBack(object sender, ValidationEventArgs args)
@@ -689,7 +706,7 @@ namespace Hybrasyl
             if (ActiveUsers.TryGetValue(connectionId, out user))
             {
                 Logger.DebugFormat("Saving user {0}", user.Name);
-                user.SaveDataToEntityFramework();
+                user.Save();
             }
             else
             {
@@ -1626,45 +1643,44 @@ namespace Hybrasyl
 
             var redirect = ExpectedConnections[id];
 
-            if (redirect.Matches(name, key, seed))
+            if (!redirect.Matches(name, key, seed)) return;
+
+            ((IDictionary) ExpectedConnections).Remove(id);
+
+            User loginUser;
+
+            if (!TryGetUser(name, out loginUser)) return;
+
+            loginUser.AssociateConnection(this, connectionId);
+            loginUser.SetEncryptionParameters(key, seed, name);
+            loginUser.UpdateLoginTime();
+            loginUser.UpdateAttributes(StatUpdateFlags.Full);
+            Logger.DebugFormat("Elapsed time since login: {0}", loginUser.SinceLastLogin);
+
+            if (loginUser.Citizenship != null && loginUser.Citizenship.SpawnPoints.Count != 0 &&
+                loginUser.SinceLastLogin > Hybrasyl.Constants.NATION_SPAWN_TIMEOUT)
             {
-                ((IDictionary) ExpectedConnections).Remove(id);
-
-                if (PlayerExists(name))
-                {
-                    var user = new User(this, connectionId, name);
-                    user.SetEncryptionParameters(key, seed, name);
-                    user.LoadDataFromEntityFramework(true);
-                    user.UpdateLoginTime();
-                    user.UpdateAttributes(StatUpdateFlags.Full);
-                    Logger.DebugFormat("Elapsed time since login: {0}", user.SinceLastLogin);
-                    if (user.Citizenship.SpawnPoints.Count != 0 &&
-                        user.SinceLastLogin > Hybrasyl.Constants.NATION_SPAWN_TIMEOUT)
-                    {
-                        Insert(user);
-                        var spawnpoint = user.Citizenship.SpawnPoints.First();
-                        user.Teleport(spawnpoint.MapName, spawnpoint.X, spawnpoint.Y);
-
-                    }
-                    else if (user.MapId != null && Maps.ContainsKey(user.MapId))
-                    {
-                        Insert(user);
-                        user.Teleport(user.MapId, (byte) user.MapX, (byte) user.MapY);
-                    }
-                    else
-                    {
-                        // Handle any weird cases where a map someone exited on was deleted, etc
-                        // This "default" of Mileth should be set somewhere else
-                        Insert(user);
-                        user.Teleport((ushort) 500, (byte) 50, (byte) 50);
-                    }
-                    Logger.DebugFormat("Adding {0} to hash", user.Name);
-                    AddUser(user);
-                    ActiveUsers[connectionId] = user;
-                    ActiveUsersByName[user.Name] = connectionId;
-                    Logger.InfoFormat("cid {0}: {1} entering world", connectionId, user.Name);
-                }
+                Insert(loginUser);
+                var spawnpoint = loginUser.Citizenship.SpawnPoints.First();
+                loginUser.Teleport(spawnpoint.MapName, spawnpoint.X, spawnpoint.Y);
             }
+            else if (loginUser.MapId != null && Maps.ContainsKey(loginUser.MapId))
+            {
+                Insert(loginUser);
+                loginUser.Teleport(loginUser.MapId, (byte) loginUser.MapX, (byte) loginUser.MapY);
+            }
+            else
+            {
+                // Handle any weird cases where a map someone exited on was deleted, etc
+                // This "default" of Mileth should be set somewhere else
+                Insert(loginUser);
+                loginUser.Teleport((ushort) 500, (byte) 50, (byte) 50);
+            }
+            Logger.DebugFormat("Adding {0} to hash", loginUser.Name);
+            AddUser(loginUser);
+            ActiveUsers[connectionId] = loginUser;
+            ActiveUsersByName[loginUser.Name] = connectionId;
+            Logger.InfoFormat("cid {0}: {1} entering world", connectionId, loginUser.Name);
         }
 
         private void PacketHandler_0x18_ShowPlayerList(Object obj, ClientPacket packet)
