@@ -384,8 +384,12 @@ namespace Hybrasyl.XML.Items
             {
                 unchecked
                 {
-                    return 31 * name.GetHashCode() * properties.restrictions.gender.GetHashCode() *
-                           properties.appearance.GetHashCode();                  
+                    if (properties.appearance.displayspriteSpecified && properties.appearance.displaysprite > 0)
+                    {
+                        return 31 * name.GetHashCode() * (properties.restrictions.gender.GetHashCode() + 1) *
+                        properties.appearance.displaysprite.GetHashCode();
+                    }
+                    return 31 * name.GetHashCode() * (properties.restrictions.gender.GetHashCode() + 1);
                 }
             }
         }
@@ -400,7 +404,9 @@ namespace Hybrasyl.XML.Items
 
         public void ResolveVariant(ItemType itemType)
         {
-            Logger.DebugFormat("Logging some variant stuff.");
+            //Logger.DebugFormat("Logging some variant stuff.");
+            if (properties != null)
+                Console.WriteLine("hi");
             foreach (var variantObject in properties.GetType().GetProperties(BindingFlags.NonPublic | BindingFlags.Public |
                                                                         BindingFlags.Instance))
             {
