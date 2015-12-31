@@ -23,6 +23,7 @@
   <xs:complexType name="SpawnPoint">
     <xs:simpleContent>
       <xs:extension base="hyb:String8">
+        <xs:attribute name="mapname" type="xs:string" use="required"/>
         <xs:attribute name="x" type="xs:unsignedByte" use="required"/>
         <xs:attribute name="y" type="xs:unsignedByte" use="required"/>
       </xs:extension>
