@@ -28,6 +28,7 @@ using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
 using Hybrasyl.Properties;
 using Hybrasyl.Utility;
+using Hybrasyl.XML;
 using IronPython.Modules;
 using IronPython.SQLite;
 using log4net;
@@ -111,7 +112,7 @@ namespace Hybrasyl.Objects
         }
         private Client Client { get; set; }
 
-        public new static readonly String DatastorePrefix = "_user";
+        public static readonly String DatastorePrefix = "_user";
 
         [JsonProperty]
         public Sex Sex { get; set; }
@@ -147,8 +148,14 @@ namespace Hybrasyl.Objects
 
         [JsonProperty]
         public GuildMembership Guild { get; set; }
-
+        
         public Nation Citizenship { get; set; }
+
+        [JsonProperty]
+        public string NationName
+        {
+            get { return Citizenship.Name; }
+        }
 
         [JsonProperty]
         public List<LegendMark> Legend { get; set; }
@@ -1367,29 +1374,29 @@ namespace Hybrasyl.Objects
         public void SendProfile()
         {
             var profilePacket = new ServerPacket(0x39);
-            profilePacket.WriteByte((byte)Citizenship.Flag); // citizenship
-	    profilePacket.WriteString8(Guild.Rank);
+            profilePacket.WriteByte((byte) Citizenship.Flag); // citizenship
+            profilePacket.WriteString8(Guild.Rank);
             profilePacket.WriteString8(Guild.Title);
             profilePacket.WriteString8(GroupText);
             profilePacket.WriteBoolean(Grouping);
             profilePacket.WriteByte(0); // ??
-            profilePacket.WriteByte((byte)Class);
+            profilePacket.WriteByte((byte) Class);
             //            profilePacket.WriteByte(1); // ??
             profilePacket.WriteByte(0);
             profilePacket.WriteByte(0); // ??
-            profilePacket.WriteString8(Hybrasyl.Constants.REVERSE_CLASSES[(int)Class]);
-            profilePacket.WriteString8(Guild.Name);           
-            profilePacket.WriteByte((byte)Legend.Count);
+            profilePacket.WriteString8(Hybrasyl.Constants.REVERSE_CLASSES[(int) Class]);
+            profilePacket.WriteString8(Guild.Name);
+            profilePacket.WriteByte((byte) Legend.Count);
             foreach (var mark in Legend)
             {
-                profilePacket.WriteByte((byte)mark.Icon);
-                profilePacket.WriteByte((byte)mark.Color);
+                profilePacket.WriteByte((byte) mark.Icon);
+                profilePacket.WriteByte((byte) mark.Color);
                 profilePacket.WriteString8(mark.Prefix);
                 profilePacket.WriteString8(mark.Text);
             }
 
             Enqueue(profilePacket);
-            
+
         }
 
         /// <summary>
