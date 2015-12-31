@@ -273,6 +273,7 @@ namespace Hybrasyl.XML.Items
             appearance = new ItemPropertiesAppearance();
         }
         
+        //[StringLengthAttribute(11, MinimumLength=0)]
         public ItemFlags flags
         {
             get
@@ -288,6 +289,9 @@ namespace Hybrasyl.XML.Items
             }
             set
             {
+                ValidationContext validatorPropContext = new ValidationContext(this, null, null);
+                validatorPropContext.MemberName = "flags";
+                Validator.ValidateProperty(value, validatorPropContext);
                 _flags = value;
             }
         }
@@ -2594,44 +2598,45 @@ namespace Hybrasyl.XML.Items
         random,
     }
     
+    [System.FlagsAttribute()]
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
     [Serializable]
-    [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/HybrasylCommon")]
+    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/HybrasylCommon")]
     public enum ItemFlags
     {
         
         /// <remarks/>
-        bound,
+        bound = 1,
         
         /// <remarks/>
-        depositable,
+        depositable = 2,
         
         /// <remarks/>
-        enchantable,
+        enchantable = 4,
         
         /// <remarks/>
-        consecratable,
+        consecratable = 8,
         
         /// <remarks/>
-        tailorable,
+        tailorable = 16,
         
         /// <remarks/>
-        smithable,
+        smithable = 32,
         
         /// <remarks/>
-        exchangeable,
+        exchangeable = 64,
         
         /// <remarks/>
-        vendorable,
+        vendorable = 128,
         
         /// <remarks/>
-        perishable,
+        perishable = 256,
         
         /// <remarks/>
-        unique,
+        unique = 512,
         
         /// <remarks/>
-        master,
+        master = 1024,
     }
     
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
@@ -2857,6 +2862,11 @@ namespace Hybrasyl.XML.Items
         public string description { get; set; }
         [XmlAttribute]
         public sbyte shoptab { get; set; }
+        
+        public ItemPropertiesVendor()
+        {
+            description = "item";
+        }
         
         private static XmlSerializer Serializer
         {
@@ -5948,11 +5958,12 @@ namespace Hybrasyl.XML.Items
     public partial class VariantProperties
     {
         
+        private System.Nullable<ItemFlags> _flags;
+        
         private static XmlSerializer serializer;
         
         public VariantPropertiesAppearance appearance { get; set; }
         public VariantPropertiesDamage damage { get; set; }
-        public string flags { get; set; }
         public VariantPropertiesPhysical physical { get; set; }
         public VariantPropertiesRestrictions restrictions { get; set; }
         [StringLengthAttribute(255, MinimumLength=1)]
@@ -5968,6 +5979,45 @@ namespace Hybrasyl.XML.Items
             physical = new VariantPropertiesPhysical();
             damage = new VariantPropertiesDamage();
             appearance = new VariantPropertiesAppearance();
+        }
+        
+        //[StringLengthAttribute(11, MinimumLength=0)]
+        public ItemFlags flags
+        {
+            get
+            {
+                if (_flags.HasValue)
+                {
+                    return _flags.Value;
+                }
+                else
+                {
+                    return default(ItemFlags);
+                }
+            }
+            set
+            {
+                ValidationContext validatorPropContext = new ValidationContext(this, null, null);
+                validatorPropContext.MemberName = "flags";
+                Validator.ValidateProperty(value, validatorPropContext);
+                _flags = value;
+            }
+        }
+        
+        [XmlIgnore]
+        public bool flagsSpecified
+        {
+            get
+            {
+                return _flags.HasValue;
+            }
+            set
+            {
+                if (value==false)
+                {
+                    _flags = null;
+                }
+            }
         }
         
         private static XmlSerializer Serializer
