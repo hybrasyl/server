@@ -21,6 +21,7 @@
  */
 
 using System.Runtime.Serialization.Formatters.Binary;
+using Community.CsharpSqlite;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
@@ -151,6 +152,36 @@ namespace Hybrasyl
             get { return _lazyConnector.Value; }
         }
 
+        public static string DataDirectory
+        {
+            get { return Constants.DataDirectory; }
+        }
+
+        public static string ItemDirectory
+        {
+            get { return Path.Combine(DataDirectory, "world", "xml", "items"); }
+        }
+
+        public static string NationDirectory
+        {
+            get { return Path.Combine(DataDirectory, "world", "xml", "nations"); }
+        }
+
+        public static string MapDirectory
+        {
+            get { return Path.Combine(DataDirectory, "world", "xml", "maps"); }
+        }
+
+        public static string WorldMapDirectory
+        {
+            get { return Path.Combine(DataDirectory, "world", "xml", "worldmaps"); }
+        }
+
+        public static string ItemVariantDirectory
+        {
+            get { return Path.Combine(DataDirectory, "world", "xml", "itemvariants"); }
+        }
+
         public static bool TryGetUser(string name, out User userobj)
         {
             var jsonString = (string)DatastoreConnection.GetDatabase().Get(User.GetStorageKey(name));
@@ -213,29 +244,10 @@ namespace Hybrasyl
             LoadData();
             CompileScripts();
             LoadMetafiles();
-           // LoadReactors();
             SetPacketHandlers();
             SetControlMessageHandlers();
             SetMerchantMenuHandlers();
             Logger.InfoFormat("Hybrasyl server ready");
-        }
-
-        private void LoadReactors()
-        {
-            /*
-            using (var ctx = new hybrasylEntities(Constants.ConnectionString))
-            {
-                foreach (var reactor in ctx.reactors)
-                {
-                    Map map;
-                    if (Maps.TryGetValue((ushort)reactor.map_id, out map))
-                    {
-                        map.InsertReactor(reactor);
-                    }
-                }
-
-            }
-             */
         }
 
         internal void RegisterGlobalSequence(DialogSequence sequence)
@@ -247,114 +259,83 @@ namespace Hybrasyl
 
         public bool PlayerExists(string name)
         {
-            // TODO: REDIS
             var redis = DatastoreConnection.GetDatabase();
             return redis.KeyExists(User.GetStorageKey(name));
         }
 
         private void LoadData()
-        {
-            
-            var hybrasylAssembly = Assembly.GetExecutingAssembly();
-            var schemaArray = hybrasylAssembly.GetManifestResourceNames().Where(r => r.Contains("Hybrasyl.XML.Schema"));
-            var schemaSet = new XmlSchemaSet();
+        {           
+          
+            // You'll notice some inconsistencies here in that we use both wrapper classes and 
+            // native XML classes for Hybrasyl objects. This is unfortunate and should be 
+            // refactored later, but it is way too much work to do now (e.g. maps, etc).
 
-            foreach (var schema in schemaArray)
+            // Load nations
+            foreach (var xml in Directory.GetFiles(NationDirectory).Select(File.ReadAllText))
             {
-                using (Stream schemaStream = hybrasylAssembly.GetManifestResourceStream(schema))
+                Nation newNation;
+                Exception parseException;
+                if (Nation.Deserialize(xml, out newNation, out parseException))
                 {
-                    using (XmlReader schemaReader = XmlReader.Create(schemaStream))
-                    {
-                        schemaSet.Add(null, schemaReader);
-                    }
+                    Logger.DebugFormat("Nations: Loaded {0}", newNation.Name);
+                    Nations.Add(newNation.Name, newNation);
                 }
-                Logger.InfoFormat("XML: Added embedded schema {0}", schema);
+                else
+                {
+                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, parseException);
+                }
             }
 
-            var readerSettings = new XmlReaderSettings();
-            int mapsProcessed = 0;
-            readerSettings.Schemas = schemaSet;
-            readerSettings.ValidationType = ValidationType.Schema;
-            readerSettings.ValidationFlags |= XmlSchemaValidationFlags.ReportValidationWarnings;
-            readerSettings.ValidationEventHandler += new ValidationEventHandler(ValidationCallBack);
+            Logger.InfoFormat("Nations: {0} nations loaded", Nations.Count);
 
-            Logger.InfoFormat("Begin maps processing");
-
-            foreach (var file in Directory.GetFiles(Path.Combine(Constants.DataDirectory, "world", "xml", "maps")))
+            // Load maps
+            foreach (var xml in Directory.GetFiles(MapDirectory).Select(File.ReadAllText))
             {
-                var reader = XmlReader.Create(file, readerSettings);
-                var mapDocument = new XmlDocument();
-                mapDocument.Load(reader);
-                mapDocument.Validate(ValidationCallBack);
-                foreach (XmlElement element in mapDocument.GetElementsByTagName("map"))
+                XmlMap newMap;
+                Exception parseException;
+                if (XmlMap.Deserialize(xml, out newMap, out parseException))
                 {
-                    var map = new Map(element, this) {World = this};
-                    mapsProcessed++;
+                    var map = new Map(newMap, this);
                     Maps.Add(map.Id, map);
                     MapCatalog.Add(map.Name, map);
+                    Logger.DebugFormat("Maps: Loaded {0}", map.Name);
+                }
+                else
+                {
+                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, parseException);
                 }
             }
 
-            Logger.InfoFormat("End maps processing ({0} maps loaded)", mapsProcessed);
+            Logger.InfoFormat("Maps: {0} maps loaded", Maps.Count);
 
-            foreach (var file in Directory.GetFiles(Path.Combine(Constants.DataDirectory, "world", "xml", "nations")))
+            // Load worldmaps
+            foreach (var xml in Directory.GetFiles(WorldMapDirectory).Select(File.ReadAllText))
             {
-                var reader = XmlReader.Create(file, readerSettings);
-                var mapDocument = new XmlDocument();
-                mapDocument.Load(reader);
-                mapDocument.Validate(ValidationCallBack);
-                foreach (XmlElement nationalElement in mapDocument.GetElementsByTagName("nation"))
+                XmlWorldMap newWorldMap;
+                Exception parseException;
+                if (XmlWorldMap.Deserialize(xml, out newWorldMap, out parseException))
                 {
-                    var flag = Convert.ToByte(nationalElement.Attributes["flag"].Value);
-                    var name = nationalElement["name"].InnerText;
-                    var nation = new Nation(name, flag);
-
-                    foreach (XmlElement spawnElement in nationalElement.GetElementsByTagName("spawnpoint"))
-                    {
-                        var mapX = Convert.ToByte(spawnElement.Attributes["x"].Value);
-                        var mapY = Convert.ToByte(spawnElement.Attributes["y"].Value);
-                        var mapName = spawnElement.InnerText;
-                        var spawnPoint = new Spawnpoint
-                        {
-                            X = mapX,
-                            Y = mapY,
-                            MapName = mapName
-                        };
-                        nation.SpawnPoints.Add(spawnPoint);
-                    }
-                    if (nationalElement["default"] != null)
-                        DefaultCitizenship = name;
-
-                    Nations[name] = nation;
-
+                    var worldmap = new WorldMap(newWorldMap);
+                    WorldMaps.Add(worldmap.Name, worldmap);
+                    Logger.DebugFormat("World Maps: Loaded {0}", worldmap.Name);                   
                 }
-                   
+                else
+                {
+                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, parseException);
+                }
             }
-            
-          /*  foreach (var file in Directory.GetFiles(Path.Combine(Constants.DataDirectory, "world", "xml", "worldmaps")))
-            {
-                var reader = XmlReader.Create(file, readerSettings);
-                var mapDocument = new XmlDocument();
-                mapDocument.Load(reader);
-                mapDocument.Validate(ValidationCallBack);
-                foreach (XmlElement element in mapDocument.GetElementsByTagName("map"))
-                {
-                    var map = new WorldMap(element);
-                    mapsProcessed++;
-                    Maps[map.Id] = map;
-                }
 
-            }*/
-            
-            foreach (
-                var file in Directory.GetFiles(Path.Combine(Constants.DataDirectory, "world", "xml", "itemvariants")))
+            Logger.InfoFormat("World Maps: {0} world maps loaded", WorldMaps.Count);
+
+            // Load item variants
+            foreach (var file in Directory.GetFiles(ItemVariantDirectory))
             {
                 var xml = File.ReadAllText(file);
-                XML.Items.VariantGroupType newGroup;
+                VariantGroupType newGroup;
                 Exception parseException;
                 if (XML.Items.VariantGroupType.Deserialize(xml, out newGroup, out parseException))
                 {
-                    Logger.InfoFormat("Item variants: loaded {0}", newGroup.name);
+                    Logger.DebugFormat("Item variants: loaded {0}", newGroup.name);
                     ItemVariants.Add(newGroup.name, newGroup);
                 }
                 else
@@ -362,23 +343,25 @@ namespace Hybrasyl
                     Logger.ErrorFormat("Error parsing {0}: {1}", file, parseException);
                 }
             }
-            //int itemid = 0;
-            foreach (var file in Directory.GetFiles(Path.Combine(Constants.DataDirectory, "world", "xml", "items")))
+
+            Logger.InfoFormat("Item variants: {0} variant sets loaded", ItemVariants.Count);
+
+            // Load items
+            foreach (var file in Directory.GetFiles(ItemDirectory)) 
             {
                 var xml = File.ReadAllText(file);
                 XML.Items.ItemType newItem;
                 Exception parseException;
                 if (XML.Items.ItemType.Deserialize(xml, out newItem, out parseException))
                 {
-                    Logger.InfoFormat("Items: loaded {0}, id {1}", newItem.name, newItem.Id);
+                    Logger.DebugFormat("Items: loaded {0}, id {1}", newItem.name, newItem.Id);
                     Items.Add(newItem.Id, newItem);
                     foreach (var targetGroup in newItem.properties.variants.group)
                     {
                         foreach (var variant in ItemVariants[targetGroup].variant)
                         {
-                            Logger.InfoFormat("Item {0}: variantgroup {1}, subvariant {2}", newItem.name, targetGroup, variant.name);
-                            variant.ResolveVariant(newItem);
-                            
+                            Logger.DebugFormat("Item {0}: variantgroup {1}, subvariant {2}", newItem.name, targetGroup, variant.name);
+                            variant.ResolveVariant(newItem);                           
                         }
                         
                     }
@@ -1657,14 +1640,14 @@ namespace Hybrasyl
             loginUser.UpdateAttributes(StatUpdateFlags.Full);
             Logger.DebugFormat("Elapsed time since login: {0}", loginUser.SinceLastLogin);
 
-            if (loginUser.Citizenship != null && loginUser.Citizenship.SpawnPoints.Count != 0 &&
+            if (loginUser.Citizenship != null && loginUser.Citizenship.Spawnpoints.Count != 0 &&
                 loginUser.SinceLastLogin > Hybrasyl.Constants.NATION_SPAWN_TIMEOUT)
             {
                 Insert(loginUser);
-                var spawnpoint = loginUser.Citizenship.SpawnPoints.First();
-                loginUser.Teleport(spawnpoint.MapName, spawnpoint.X, spawnpoint.Y);
+                var spawnpoint = loginUser.Citizenship.Spawnpoints.First();
+                loginUser.Teleport(spawnpoint.Mapname, spawnpoint.X, spawnpoint.Y);
             }
-            else if (loginUser.MapId != null && Maps.ContainsKey(loginUser.MapId))
+            else if (Maps.ContainsKey(loginUser.MapId))
             {
                 Insert(loginUser);
                 loginUser.Teleport(loginUser.MapId, (byte) loginUser.MapX, (byte) loginUser.MapY);
