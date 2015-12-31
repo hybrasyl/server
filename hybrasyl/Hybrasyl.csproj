@@ -75,12 +75,12 @@
       <HintPath>packages\IronPython.2.7.4\lib\Net45\Microsoft.Scripting.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>packages\Newtonsoft.Json.6.0.4\lib\net45\Newtonsoft.Json.dll</HintPath>
+    <Reference Include="Newtonsoft.Json, Version=8.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>packages\Newtonsoft.Json.8.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="StackExchange.Redis, Version=1.0.316.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\StackExchange.Redis.1.0.481\lib\net45\StackExchange.Redis.dll</HintPath>
+      <HintPath>packages\StackExchange.Redis.1.0.488\lib\net45\StackExchange.Redis.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
@@ -110,7 +110,6 @@
     <Compile Include="Enums.cs" />
     <Compile Include="Game.cs" />
     <Compile Include="Inventory.cs" />
-    <Compile Include="Objects\Nation.cs" />
     <Compile Include="Objects\Item.cs" />
     <Compile Include="Jobs.cs" />
     <Compile Include="Lobby.cs" />
@@ -137,6 +136,8 @@
     <Compile Include="Objects\WorldObject.cs" />
     <Compile Include="XML\Schema\hybrasylConfig.Designer.cs" />
     <Compile Include="XML\Schema\Items.designer.cs" />
+    <Compile Include="XML\Schema\Maps.Designer.cs" />
+    <Compile Include="XML\Schema\Nations.Designer.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config">
