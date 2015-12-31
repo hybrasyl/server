@@ -34,7 +34,7 @@ using Newtonsoft.Json;
 
 namespace Hybrasyl.Objects
 {
-
+    [JsonObject(MemberSerialization.OptIn)]
     public class WorldObject : IQuadStorable
     {
         public static readonly ILog Logger =
@@ -53,12 +53,15 @@ namespace Hybrasyl.Objects
         }
 
         public bool HasMoved { get; set; }
+
         public byte X { get; set; }
         public byte Y { get; set; }
         public uint Id { get; set; }
-        public World World { get; set; }
+        [JsonProperty]
         public string Name { get; set; }
+
         public Script Script { get; set; }
+        public World World { get; set; }
 
         public WorldObject()
         {
@@ -439,14 +442,12 @@ namespace Hybrasyl.Objects
         }
     }
 
-    [JsonObject(MemberSerialization.OptIn)]
     public class Creature : VisibleObject
     {
         public new static readonly ILog Logger =
                LogManager.GetLogger(
                System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        [JsonProperty]
         public byte Level { get; set; }
         [JsonProperty]
         public uint Experience { get; set; }
