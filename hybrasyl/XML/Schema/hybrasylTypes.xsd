@@ -80,8 +80,6 @@
           </xs:simpleType>
         </xs:list>
       </xs:simpleType>
-      <xs:minLength value="0"/>
-      <xs:maxLength value="11"/>     
     </xs:restriction>
   </xs:simpleType>
 
@@ -225,11 +223,11 @@
         <xs:list>
           <xs:simpleType>
             <xs:restriction base="xs:token">
+              <xs:enumeration value="vend"/>
               <xs:enumeration value="bank"/>
               <xs:enumeration value="train"/>
-              <xs:enumeration value="vend"/>
               <xs:enumeration value="repair"/>
-                <xs:enumeration value="post"/>
+              <xs:enumeration value="post"/>
             </xs:restriction>
           </xs:simpleType>
         </xs:list>
