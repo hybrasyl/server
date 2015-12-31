@@ -23,6 +23,7 @@
 using C3;
 using Hybrasyl.Objects;
 using Hybrasyl.Properties;
+using Hybrasyl.XML;
 using log4net;
 using System;
 using System.Collections.Generic;
@@ -50,24 +51,35 @@ namespace Hybrasyl
     {
         public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        public Int64 Id { get; set; }
+        public Int64 Id
+        {
+            get
+            {
+                unchecked
+                {
+                    return 31*Name.GetHashCode()*X*Y;
+                }
+            }
+        }
+
         public string Pointname { get; set; }
         public WorldMap Parent { get; set; }
         public int X { get; set; }
         public int Y { get; set; }
         public string Name { get; set; }
-        public ushort DestinationMap { get; set; }
+        public string DestinationMap { get; set; }
         public byte DestinationX { get; set; }
         public byte DestinationY { get; set; }
 
-        public int XOffset { get; set; }
-        public int YOffset { get; set; }
-        public int XQuadrant { get; set; }
-        public int YQuadrant { get; set; }
+        public int XOffset { get { return X%255; } }
+        public int YOffset { get { return Y%255; } }
+        public int XQuadrant { get { return (X - XOffset)/255; } }
+        public int YQuadrant { get { return (Y - YOffset) / 255; } }
 
-        public MapPoint()
+        public MapPoint(int x, int y)
         {
-            return;
+            X = x;
+            Y = y;
         }
 
         public byte[] GetBytes()
@@ -76,7 +88,7 @@ namespace Hybrasyl
             Logger.DebugFormat("buffer is {0} and Name is {1}", BitConverter.ToString(buffer), Name);
 
             // X quadrant, offset, Y quadrant, offset, length of the name, the name, plus a 64-bit(?!) ID
-            List<Byte> bytes = new List<Byte>();
+            var bytes = new List<Byte>();
 
             Logger.DebugFormat("{0}, {1}, {2}, {3}, {4}, mappoint ID is {5}", XQuadrant, XOffset, YQuadrant,
                 YOffset, Name.Length, Id);
@@ -100,26 +112,39 @@ namespace Hybrasyl
     {
         public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        public int Id { get; set; }
         public string Name { get; set; }
         public string ClientMap { get; set; }
         public List<MapPoint> Points { get; set; }
         public World World { get; set; }
 
-        public WorldMap()
+        public WorldMap(XmlWorldMap newWorldMap)
         {
             Points = new List<MapPoint>();
-        }
+            Name = newWorldMap.Name;
+            ClientMap = newWorldMap.Clientmap;
 
+            foreach (var point in newWorldMap.Points.Point)
+            {
+                var mapPoint = new MapPoint(point.Y, point.X)
+                {
+                    DestinationMap = point.Target.Value,
+                    DestinationX = point.Target.X,
+                    DestinationY = point.Target.Y,
+                    Pointname = point.Name
+                };
+                // We don't implement world map point restrictions yet, so we're done here
+                Points.Add(mapPoint);
+            }
+
+        }
         public byte[] GetBytes()
         {
             // Returns the representation of the worldmap as an array of bytes, 
             // suitable to passing to a map packet.
 
             var buffer = Encoding.GetEncoding(949).GetBytes(ClientMap);
-            List<Byte> bytes = new List<Byte>();
+            var bytes = new List<Byte> {(byte) ClientMap.Length};
 
-            bytes.Add((byte)ClientMap.Length);
             bytes.AddRange(buffer);
             bytes.Add((byte)Points.Count);
             bytes.Add(0x00);
@@ -164,107 +189,94 @@ namespace Hybrasyl
         public Dictionary<Tuple<byte, byte>, Reactor> Reactors { get; set; }
 
         /// <summary>
-        /// Create a new Hybrasyl map from an XMLElement representing a map 
-        /// element in an XML file.
+        /// Create a new Hybrasyl map from an XMLMap object.
         /// </summary>
         /// <param name="mapElement"></param>
-        public Map(XmlElement mapElement, World theWorld)
+        public Map(XmlMap newMap, World theWorld)
         {
             Init();
             World = theWorld;
 
-            Id = Convert.ToUInt16(mapElement.Attributes["id"].Value);
-            X = Convert.ToByte(mapElement.Attributes["x"].Value);
-            Y = Convert.ToByte(mapElement.Attributes["y"].Value);
-            Name = mapElement["name"].InnerText;
+            // TODO: refactor Map class to not do this, but be a partial which overlays
+            // TODO: XmlMap (which would then just be Map)
+            Id = newMap.Id;
+            X = newMap.X;
+            Y = newMap.Y;
+            Name = newMap.Name;
             EntityTree = new QuadTree<VisibleObject>(0,0,X,Y);
-            Music = Convert.ToByte(mapElement.Attributes["music"].Value);
+            Music = newMap.Music;
 
-            foreach (XmlElement warpElement in mapElement.GetElementsByTagName("warp"))
+            foreach (var warpElement in newMap.Warps)
             {
-                var warpX = Convert.ToByte(warpElement.Attributes["x"].Value);
-                var warpY = Convert.ToByte(warpElement.Attributes["y"].Value);
-                var targetElement = warpElement.GetElementsByTagName("maptarget").Item(0) ??
-                                    warpElement.GetElementsByTagName("worldmaptarget").Item(0);
-                var destinationMapName = targetElement.InnerText;
+                var warp = new Warp(this);
+                warp.X = warpElement.X;
+                warp.Y = warpElement.Y;
 
-                var warp = new Warp(this, destinationMapName, warpX, warpY);
-
-                if (targetElement.Name == "maptarget")
+                if (warpElement.Item is XmlWarpMaptarget)
                 {
+                    var maptarget = warpElement.Item as XmlWarpMaptarget;
+                    // map warp
+                    warp.DestinationMapName = maptarget.Value;
                     warp.WarpType = WarpType.Map;
-                    warp.DestinationX = Convert.ToByte(targetElement.Attributes["x"].Value);
-                    warp.DestinationY = Convert.ToByte(targetElement.Attributes["y"].Value);
+                    warp.DestinationX = maptarget.X;
+                    warp.DestinationY = maptarget.Y;
                 }
-                else if (targetElement.Name == "worldmaptarget")
+                else
                 {
+                    // worldmap warp
+                    warp.DestinationMapName = warpElement.Item as string;
                     warp.WarpType = WarpType.WorldMap;
                 }
 
-                var restrictions = targetElement["restrictions"];
-                if (restrictions != null)
-                {
-                    var level = restrictions["level"];
-                    var ab = restrictions["ab"];
-                    var noMobUse = restrictions["noMobUse"];
-                    if (level != null)
-                    {
-                        warp.MinimumLevel = Convert.ToByte(level.Attributes["min"].Value);
-                        warp.MaximumLevel = Convert.ToByte(level.Attributes["min"].Value);
-                    }
-                    if (ab != null)
-                    {
-                        warp.MinimumAbility = Convert.ToByte(ab.Attributes["min"].Value);
-                        warp.MaximumAbility = Convert.ToByte(ab.Attributes["min"].Value);
-                    }
-                    if (noMobUse != null)
-                        warp.MobUse = false;
-                }
-                Warps[new Tuple<byte, byte>(warpX, warpY)] = warp;
+                warp.MinimumLevel = warpElement.Restrictions.Level.Min;
+                warp.MaximumLevel = warpElement.Restrictions.Level.Max;
+                warp.MinimumAbility = warpElement.Restrictions.Ab.Min;
+                warp.MaximumAbility = warpElement.Restrictions.Ab.Max;
+                warp.MobUse = warpElement.Restrictions.NoMobUse == null;
+                Warps[new Tuple<byte, byte>(warp.X, warp.Y)] = warp;
             }
 
-            foreach (XmlElement npcElement in mapElement.GetElementsByTagName("npc"))
+            foreach (var npcElement in newMap.Npcs)
             {
-                var merchant = new Merchant();
-                merchant.X = Convert.ToByte(npcElement.Attributes["x"].Value);
-                merchant.Y = Convert.ToByte(npcElement.Attributes["y"].Value);
-                merchant.Name = npcElement["name"].InnerText;
-                merchant.Sprite = Convert.ToUInt16(npcElement["appearance"].Attributes["sprite"].Value);
-                merchant.Direction = (Hybrasyl.Enums.Direction)Convert.ToByte(npcElement["appearance"].Attributes["direction"].Value);
-                if (npcElement.Attributes["portrait"] != null)
-                    merchant.Portrait = npcElement.Attributes["portrait"].Value;
-                if (npcElement["jobs"] != null)
+                var merchant = new Merchant
                 {
-                    var jobList = String.Join(",", npcElement["jobs"].InnerText.Trim().Split(' '));
-                    MerchantJob jobs;
-                    if (Enum.TryParse(jobList, out jobs))
-                        merchant.Jobs = jobs;
-                }
-
+                    X = npcElement.X,
+                    Y = npcElement.Y,
+                    Name = npcElement.Name,
+                    Sprite = npcElement.Appearance.Sprite,
+                    Direction = (Enums.Direction) npcElement.Appearance.Direction,
+                    Portrait = npcElement.Appearance.Portrait,
+                    // Wow this is terrible
+                    Jobs = ((MerchantJob) (int) npcElement.Jobs)
+                };
                 InsertNpc(merchant);
             }
 
-            foreach (XmlElement reactorElement in mapElement.GetElementsByTagName("reactor"))
+            foreach (var reactorElement in newMap.Reactors)
             {
-                // TODO: implement me                
+                // TODO: implement reactor loading support
             }
 
-            foreach (XmlElement signpostElement in mapElement.GetElementsByTagName("signpost"))
+            foreach (var postElement in newMap.Signposts.Items)
             {
-                var postX = Convert.ToByte(signpostElement.Attributes["x"].Value);
-                var postY = Convert.ToByte(signpostElement.Attributes["y"].Value);
-                var message = signpostElement["message"].InnerText;
-                var signPost = new Signpost(postX, postY, message);
-                InsertSignpost(signPost);
+                if (postElement is XmlSignpost)
+                {
+                    var signpostElement = postElement as XmlSignpost;
+                    var signpost = new Signpost(signpostElement.X, signpostElement.Y, signpostElement.Message);
+                    InsertSignpost(signpost);
+                }
+                else
+                {
+                    // TODO: Messageboards
+                    Logger.InfoFormat("{0}: messageboard ignored", Name);                
+                }
             }
 
-            foreach (XmlElement spawnElement in mapElement.GetElementsByTagName("spawns"))
+            foreach (var spawnElement in newMap.Spawns)
             {
-                // TODO: implement me
+                // TODO: implement spawning
             }
 
-            var npcs = mapElement.GetElementsByTagName("npcs");
-            Logger.InfoFormat("Added {0}: {1}x{2} {3}", Id, X, Y, Name);
             Load();
         }
 
@@ -679,12 +691,23 @@ namespace Hybrasyl
         public byte MaximumAbility { get; set; }
         public bool MobUse { get; set; }
 
+        public Warp(Map sourceMap)
+        {
+            SourceMap = sourceMap;
+            _initializeWarp();
+        }
+
         public Warp(Map sourceMap, string destinationMap, byte sourceX, byte sourceY)
         {
             SourceMap = sourceMap;
             DestinationMapName = destinationMap;
             X = sourceX;
             Y = sourceY;
+            _initializeWarp();         
+        }
+
+        private void _initializeWarp()
+        {
             MinimumLevel = 0;
             MaximumLevel = 255;
             MinimumAbility = 0;
