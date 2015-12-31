@@ -77,7 +77,7 @@ namespace Hybrasyl.Objects
     [JsonObject]
     public class PasswordInfo
     {
-        public String PasswordHash { get; set; }
+        public String Hash { get; set; }
         public DateTime LastChanged { get; set; }
         public String LastChangedFrom { get; set; }
     }
@@ -100,6 +100,15 @@ namespace Hybrasyl.Objects
                LogManager.GetLogger(
                System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
+        public static string GetStorageKey(string name)
+        {
+            return String.Concat(DatastorePrefix, ':', name);
+        }
+
+        public string StorageKey
+        {
+            get { return String.Concat(DatastorePrefix, ':', Name); }
+        }
         private Client Client { get; set; }
 
         public new static readonly String DatastorePrefix = "_user";
@@ -115,13 +124,9 @@ namespace Hybrasyl.Objects
         public Class Class { get; set; }
         [JsonProperty]
         public bool IsMaster { get; set; }
-<<<<<<< HEAD
         public UserGroup Group { get; set; }
-	public bool Dead { get; set; }
-=======
- [JsonProperty]
+        [JsonProperty]
         public bool Dead { get; set; }
->>>>>>> redis wip
 
         // Some structs helping us to define various metadata 
         [JsonProperty]
@@ -210,20 +215,17 @@ namespace Hybrasyl.Objects
         public int NumSaidRepeated { get; set; }
         public Dictionary<string, bool> Flags { get; private set; }
 
-	public bool Grouped
+	    public bool Grouped
         {
             get { return Group != null; }
         }
 
-	public bool IsMuted { get; set; }
-        public bool IsIgnoringWhispers { get; set; }
-
-	[JsonProperty]
+    	[JsonProperty]
         public bool IsMuted { get; set; }
         [JsonProperty]
         public bool IsIgnoringWhispers { get; set; }
         [JsonProperty]
-	public bool IsAtWorldMap { get; set; }
+	    public bool IsAtWorldMap { get; set; }
 
         public void Enqueue(ServerPacket packet)
         {
@@ -293,7 +295,12 @@ namespace Hybrasyl.Objects
 
         public bool VerifyPassword(String password)
         {
-             return BCrypt.Net.BCrypt.Verify(password, Password.PasswordHash);
+             return BCrypt.Net.BCrypt.Verify(password, Password.Hash);
+        }
+
+        public User()
+        {
+            _initializeUser();
         }
 
         private void _initializeUser(string playername = "")
@@ -305,7 +312,7 @@ namespace Hybrasyl.Objects
             IsAtWorldMap = false;
             Login = new LoginInfo();
             Password = new PasswordInfo();
-
+            Location = new Location();
             Legend = new List<LegendMark>();
             Guild = new GuildMembership();
             LastSaid = String.Empty;
@@ -317,13 +324,14 @@ namespace Hybrasyl.Objects
             UserFlags = new Dictionary<String, String>();
             UserSessionFlags = new Dictionary<String, String>();
             Status = PlayerStatus.Alive;
-	    Group = null;
-
+            Group = null;
+            Flags = new Dictionary<string, bool>();
             if (!string.IsNullOrEmpty(playername))
             {
-		Name = playername;
+                Name = playername;
             }
 
+        }
         /**
          * Invites another user to this user's group. If this user isn't in a group,
          * create a new one.
@@ -395,6 +403,15 @@ namespace Hybrasyl.Objects
             
         }
 
+        public bool AssociateConnection(World world, long connectionId)
+        {
+            World = world;
+            Client client;
+            if (!GlobalConnectionManifest.ConnectedClients.TryGetValue(connectionId, out client)) return false;
+            Client = client;
+            return true;
+        }
+
         public User(World world, long connectionId, string playername = "")
         {
             World = world;
@@ -413,14 +430,12 @@ namespace Hybrasyl.Objects
             _initializeUser(playername);
         }
 
-        //                var newPlayer = new User(client.NewCharacterName, sex, 136, 10, 10);
-
         public User(string playername, Sex sex, ushort targetMap, byte targetX, byte targetY)
         {
             Name = playername;
             Sex = sex;
             Location = new Location {MapId = targetMap, WorldMap = false, X = targetX, Y = targetY};
-            _initializeUser();
+            _initializeUser(playername);
         }
 
         /// <summary>
@@ -583,188 +598,10 @@ namespace Hybrasyl.Objects
 
         }
 
-        public bool LoadDataFromEntityFramework(bool updateInventory = false)
-        {
-            // TODO: REDIS
-
-            /*
-            using (var ctx = new hybrasylEntities(Constants.ConnectionString))
-            {
-                var playerquery = ctx.players.Where(player => player.name == Name).SingleOrDefault();
-                if (playerquery == null)
-                {
-                    return false;
-                }
-
-                foreach (var property in GetType().GetProperties())
-                {
-                    string value;
-                    if (User.EntityFrameworkMapping.TryGetValue(property.Name, out value))
-                    {
-                        SetValue(property, this, ctx.Entry(playerquery).Property(User.EntityFrameworkMapping[property.Name]).CurrentValue);
-                    }
-                }
-
-                // Now load our attributes             
-                Flags = playerquery.flags.ToDictionary(v => v.name, v => true);
-
-                Account = playerquery.account;
-                // Set our citizenship
-                Nation citizenship;
-                if (playerquery.nation != null && World.Nations.TryGetValue(playerquery.nation.name, out citizenship))
-                    Citizenship = citizenship;
-                else
-                {
-                    Citizenship = World.DefaultCitizenship != null ? World.Nations[World.DefaultCitizenship] : World.Nations.First().Value;
-                }
-                LogoffTime = playerquery.last_logoff ?? DateTime.Now;
-
-                // Legend marks
-                LegendMarks = playerquery.legend_marks.ToList();
-
-                // Are we updating inventory & equipment?
-
-                if (updateInventory)
-                {
-                    var inventory = JArray.Parse((string)playerquery.inventory);
-                    var equipment = JArray.Parse((string)playerquery.equipment);
-
-                    foreach (var obj in inventory)
-                    {
-                        Logger.DebugFormat("Inventory found");
-                        PrettyPrinter.PrettyPrint(obj);
-                        var itemId = (int)obj["item_id"];
-                        int itemSlot = (int)obj["slot"];
-                        var variantId = obj.Value<int?>("variant_id") ?? -1;
-
-                        if (variantId > 0)
-                            itemId = Game.World.Items[itemId].Variants[variantId].id;
-
-                        var item = Game.World.CreateItem(itemId);
-                        item.Count = obj.Value<int?>("count") ?? 1;
-
-                        if (item != null)
-                        {
-                            Game.World.Insert(item);
-                            AddItem(item, (byte)itemSlot);
-                        }
-                        Logger.DebugFormat("Item is {0}", itemId);
-                    }
-
-                    foreach (var obj in equipment)
-                    {
-                        var itemId = (int)obj["item_id"];
-                        var itemSlot = (int)obj["slot"];
-                        var variantId = obj.Value<int?>("variant_id") ?? -1;
-
-                        if (variantId > 0)
-                            itemId = Game.World.Items[itemId].Variants[variantId].id;
-
-                        var item = Game.World.CreateItem(itemId);
-
-                        if (item != null)
-                        {
-                            Logger.DebugFormat("Adding equipment: {0} to {1}", item.Name, itemSlot);
-                            Game.World.Insert(item);
-                            AddEquipment(item, (byte)itemSlot, false);
-                        }
-                        Logger.DebugFormat("Equipment is {0}", itemId);
-                    }
-                }
-            }*/
-            return true;
-        }
-
-        public bool SaveDataToEntityFramework()
-        {
-
-            IDatabase cache = World.DatastoreConnection.GetDatabase();
-            // TODO: REDIS
-            /*
-                        using (var ctx = new hybrasylEntities(Constants.ConnectionString))
-                        {
-                            var playerquery = ctx.players.Where(player => player.name == Name).SingleOrDefault();
-
-                            if (playerquery == null)
-                            {
-                                return false;
-                            }
-
-                            var inventory = new JArray();
-                            var equipment = new JArray();
-
-                            for (byte i = 1; i <= Inventory.Size; ++i)
-                            {
-                                if (Inventory[i] == null) continue;
-                                var obj = new JObject();
-                                obj.Add("slot", (int)i);
-                                obj.Add("count", Inventory[i].Count);
-                                if (Inventory[i].IsVariant)
-                                {
-                                    obj.Add("item_id", Inventory[i].ParentItem.id);
-                                    obj.Add("variant_id", Inventory[i].CurrentVariant.id);
-                                }
-                                else
-                                {
-                                    obj.Add("item_id", Inventory[i].TemplateId);
-                                }
-                                inventory.Add(obj);
-                            }
-
-                            for (byte i = 1; i < Equipment.Size; ++i)
-                            {
-                                if (Equipment[i] == null) continue;
-                                var obj = new JObject();
-                                obj.Add("slot", (int)i);
-                                if (Equipment[i].IsVariant)
-                                {
-                                    obj.Add("item_id", Equipment[i].ParentItem.id);
-                                    obj.Add("variant_id", Equipment[i].CurrentVariant.id);
-                                }
-                                else
-                                {
-                                    obj.Add("item_id", Equipment[i].TemplateId);
-                                }
-                                equipment.Add(obj);
-                            }
-
-                            foreach (var property in GetType().GetProperties())
-                            {
-                                string value;
-                                if (User.EntityFrameworkMapping.TryGetValue(property.Name, out value))
-                                {
-                                    // Nullables on the DB side need special handling to cast correctly.
-                                    var curType = property.PropertyType;
-                                    var destType = Nullable.GetUnderlyingType(typeof(player).GetProperty(value).PropertyType) ??
-                                        typeof(player).GetProperty(value).PropertyType;
-                                    object safevalue = (value == null) ? null : Convert.ChangeType(property.GetValue(this), destType);
-
-                                    // BEWARE - this will break if passed Enums that aren't handled via EF 5's enum support!
-                                    ctx.Entry(playerquery).Property(value).CurrentValue = safevalue;
-                                }
-                            }
-
-                            ctx.Entry(playerquery).Property("inventory").CurrentValue = inventory.ToString();
-                            ctx.Entry(playerquery).Property("equipment").CurrentValue = equipment.ToString();
-
-                            // Save our current location 
-                            ctx.Entry(playerquery).Property("map_id").CurrentValue = (int)Map.Id;
-                            ctx.Entry(playerquery).Property("map_x").CurrentValue = (int)X; ;
-                            ctx.Entry(playerquery).Property("map_y").CurrentValue = (int)Y;
-
-            //                if (Citizenship != null)
-              //                  ctx.Entry(playerquery).Property("nation_id").CurrentValue = Citizenship.;
-
-                            ctx.SaveChanges();
-
-                        }
-                        */
-            return true;
-        }
-
         public void Save()
         {
-            SaveDataToEntityFramework();
+            var cache = World.DatastoreConnection.GetDatabase();
+            cache.Set(GetStorageKey(Name), JsonConvert.SerializeObject(this));
         }
 
         public override void SendMapInfo()
@@ -1156,7 +993,6 @@ namespace Hybrasyl.Objects
             Rectangle commonViewport = Rectangle.Empty;
             var halfViewport = Constants.VIEWPORT_SIZE / 2;
             Warp targetWarp;
-            var isWarp = Map.Warps.TryGetValue(new Tuple<byte, byte>((byte) newX, (byte) newY), out targetWarp);
 
             switch (direction)
             {
@@ -1188,6 +1024,7 @@ namespace Hybrasyl.Objects
                     departingViewport = new Rectangle(oldX - halfViewport, oldY - halfViewport, 1, Constants.VIEWPORT_SIZE);
                     break;
             }
+            var isWarp = Map.Warps.TryGetValue(new Tuple<byte, byte>((byte)newX, (byte)newY), out targetWarp);
 
             // Now that we know where we are going, perform some sanity checks.
             // Is the player trying to walk into a wall, or off the map?
@@ -1859,7 +1696,7 @@ namespace Hybrasyl.Objects
         public void Logoff()
         {
             UpdateLogoffTime();
-            SaveDataToEntityFramework();
+            Save();
             Client.Disconnect();
         }
 
