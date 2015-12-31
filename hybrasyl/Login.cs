@@ -21,6 +21,7 @@
  */
 
 using System.IO;
+using System.Net;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization.Formatters.Binary;
 using Hybrasyl.Enums;
@@ -102,51 +103,49 @@ namespace Hybrasyl
             var name = packet.ReadString8();
             var password = packet.ReadString8();
             Logger.DebugFormat("cid {0}: Login request for {1}", client.ConnectionId, name);
-            // TODO: REDIS
 
+            User loginUser;
 
-            if (!Game.World.PlayerExists(name))
+            if (!World.TryGetUser(name, out loginUser))
             {
                 client.LoginMessage("That character does not exist", 3);
                 Logger.InfoFormat("cid {0}: attempt to login as nonexistent character {1}", client.ConnectionId, name);
 
             }
+            else if (loginUser.VerifyPassword(password))
+            {
+                Logger.DebugFormat("cid {0}: password verified for {1}", client.ConnectionId, name);
+
+                if (Game.World.ActiveUsersByName.ContainsKey(name))
+                {
+                    Logger.InfoFormat("cid {0}: {1} logging on again, disconnecting previous connection",
+                        client.ConnectionId, name);
+                    World.MessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.LogoffUser, name));
+                }
+
+                Logger.DebugFormat("cid {0} ({1}): logging in", client.ConnectionId, name);
+                client.LoginMessage("\0", 0);
+                client.SendMessage("Welcome to Hybrasyl!", 3);
+                Logger.DebugFormat("cid {0} ({1}): sending redirect to world", client.ConnectionId, name);
+
+                var redirect = new Redirect(client, this, Game.World, name, client.EncryptionSeed,
+                    client.EncryptionKey);
+                Logger.InfoFormat("cid {0} ({1}): login successful, redirecting to world server",
+                    client.ConnectionId, name);
+                client.Redirect(redirect);
+                loginUser.Login.LastLogin = DateTime.Now;
+                loginUser.Login.LastLoginFrom = ((IPEndPoint) client.Socket.RemoteEndPoint).Address.ToString();
+                loginUser.Save();
+            }
             else
             {
-                var user = (User)World.DatastoreConnection.GetDatabase().Get(String.Concat(User.DatastorePrefix, ":", name));
-
-                if (true)
-                {
-                    Logger.DebugFormat("cid {0}: password verified for {1}", client.ConnectionId, name);
-
-                    if (Game.World.ActiveUsersByName.ContainsKey(name))
-                    {
-                        Logger.InfoFormat("cid {0}: {1} logging on again, disconnecting previous connection",
-                            client.ConnectionId, name);
-                        World.MessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.LogoffUser, name));
-                    }
-
-                    Logger.DebugFormat("cid {0} ({1}): logging in", client.ConnectionId, name);
-                    client.LoginMessage("\0", 0);
-                    client.SendMessage("Welcome to Hybrasyl!", 3);
-                    Logger.DebugFormat("cid {0} ({1}): sending redirect to world", client.ConnectionId, name);
-
-                    var redirect = new Redirect(client, this, Game.World, name, client.EncryptionSeed,
-                        client.EncryptionKey);
-                    Logger.InfoFormat("cid {0} ({1}): login successful, redirecting to world server",
-                        client.ConnectionId, name);
-                    client.Redirect(redirect);
-                }
-                else
-                {
-                    Logger.WarnFormat("cid {0} ({1}): password incorrect", client.ConnectionId, name);
-                    client.LoginMessage("Incorrect password", 3);
-                }
+                Logger.WarnFormat("cid {0} ({1}): password incorrect", client.ConnectionId, name);
+                client.LoginMessage("Incorrect password", 3);
+                loginUser.Login.LastLoginFailure = DateTime.Now;
+                loginUser.Login.LoginFailureCount++;
+                loginUser.Save();
             }
         }
-
-
-
 
         private void PacketHandler_0x04_CreateB(Client client, ClientPacket packet)
         {
@@ -174,11 +173,18 @@ namespace Hybrasyl
 
             if (!Game.World.PlayerExists(client.NewCharacterName))
             {
-                var newPlayer = new User(client.NewCharacterName, (Sex)sex, 136, 10, 10);
+                var newPlayer = new User();
+                newPlayer.Name = client.NewCharacterName;
+                newPlayer.Sex = (Sex) sex;
+                newPlayer.Location.Direction = Direction.South;
+                newPlayer.Location.MapId = 136;
+                newPlayer.Location.X = 10;
+                newPlayer.Location.Y = 10;
                 newPlayer.HairColor = hairColor;
                 newPlayer.HairStyle = hairStyle;
-                newPlayer.Direction = Direction.North;
                 newPlayer.Class = Class.Peasant;
+                newPlayer.Level = 1;
+                newPlayer.Experience = 1;
                 newPlayer.Level = 1;
                 newPlayer.Experience = 0;
                 newPlayer.AbilityExp = 0;
@@ -193,12 +199,11 @@ namespace Hybrasyl
                 newPlayer.BaseWis = 3;
                 newPlayer.BaseCon = 3;
                 newPlayer.BaseDex = 3;
-   
                 newPlayer.Login.CreatedTime = DateTime.Now;
-                newPlayer.Password.PasswordHash = client.NewCharacterPassword;
+                newPlayer.Password.Hash = client.NewCharacterPassword;
                 newPlayer.Password.LastChanged = DateTime.Now;
-                newPlayer.Password.LastChangedFrom = client.RemoteAddress;
-                              
+                newPlayer.Password.LastChangedFrom = ((IPEndPoint) client.Socket.RemoteEndPoint).Address.ToString();
+
                 IDatabase cache = World.DatastoreConnection.GetDatabase();
                 var myPerson = JsonConvert.SerializeObject(newPlayer);
                     cache.Set(String.Format("{0}:{1}", User.DatastorePrefix, newPlayer.Name), myPerson);
@@ -249,51 +254,47 @@ namespace Hybrasyl
             // password, and the new password is only sent to the server once. We can assume
             // that they matched if 0x26 request is sent from the client.
             var newPass = packet.ReadString8();
+
             // TODO: REDIS
 
-            /*
-            using (var ctx = new hybrasylEntities(Constants.ConnectionString))
-            {
-                var player = ctx.players.Where(p => p.name == name).SingleOrDefault();
+            IDatabase cache = World.DatastoreConnection.GetDatabase();
+            var myPerson = cache.Get(name);
 
-                // Check that `name` exists. If not, return a message indicating that to the user.
-                if (player == null)
+            if (myPerson == null)
+            {
+                client.LoginMessage(GetPasswordError(0x0E), 0x0E);
+                Logger.DebugFormat("Password change attempt on invalid player `{0}`", name);
+                
+            }
+
+            var player = JsonConvert.DeserializeObject(myPerson as String) as User;
+            if (player.VerifyPassword(currentPass))
+            {
+
+                // Check if the password is valid.
+                byte err = 0x00;
+                if (ValidPassword(newPass, out err))
                 {
-                    client.LoginMessage(GetPasswordError(0x0E), 0x0E);
-                    Logger.DebugFormat("Password change attempt on invalid player `{0}`", name);
+                    player.Password.Hash = HashPassword(newPass);
+                    player.Password.LastChanged = DateTime.Now;
+                    player.Password.LastChangedFrom = ((IPEndPoint) client.Socket.RemoteEndPoint).Address.ToString();
+                    player.Save();
+                    // Let the user know the good news.
+                    client.LoginMessage("Your password has been changed successfully.", 0x0);
+                    Logger.InfoFormat("Password successfully changed for `{0}`", name);
                 }
-                // If the player does exist, validate the current and new passwords before updating.
                 else
                 {
-                    // Check that the current password is correct and the new password is different
-                    // than the current password.
-                    if (VerifyPassword(currentPass, player))
-                    {
-                        // Check if the password is valid.
-                        byte err = 0x00;
-                        if (ValidPassword(newPass, out err))
-                        {
-                            player.password_hash = HashPassword(newPass);
-                            ctx.SaveChanges();
-
-                            // Let the user know the good news.
-                            client.LoginMessage("Your password has been changed successfully.", 0x0);
-                            Logger.InfoFormat("Password successfully changed for `{0}`", name);
-                        }
-                        else
-                        {
-                            client.LoginMessage(GetPasswordError(err), err);
-                            Logger.ErrorFormat("Invalid new password proposed during password change attempt for `{0}`", name);
-                        }
-                    }
-                    // The current password is incorrect. Don't allow any changes to happen.
-                    else
-                    {
-                        client.LoginMessage(GetPasswordError(0x0F), 0x0F);
-                        Logger.ErrorFormat("Invalid current password during password change attempt for `{0}`", name);
-                    }
+                    client.LoginMessage(GetPasswordError(err), err);
+                    Logger.ErrorFormat("Invalid new password proposed during password change attempt for `{0}`", name);
                 }
-            }*/
+            }
+                // The current password is incorrect. Don't allow any changes to happen.
+            else
+            {
+                client.LoginMessage(GetPasswordError(0x0F), 0x0F);
+                Logger.ErrorFormat("Invalid current password during password change attempt for `{0}`", name);
+            }
         }
         
         private void PacketHandler_0x4B_RequestNotification(Client client, ClientPacket packet)
