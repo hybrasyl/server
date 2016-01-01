@@ -1658,6 +1658,9 @@ namespace Hybrasyl
                         // /rollchar <class> <level>
                         // Allows you to "roll a new character" of the desired Class and Level, to see his resulting HP and MP.
 
+                        if (!user.IsPrivileged)
+                            return;
+
                         string errorMessage = "Command format is: /rollchar <class> <level>";
                         byte level = 1;
 

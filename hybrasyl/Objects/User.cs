@@ -354,59 +354,69 @@ namespace Hybrasyl.Objects
                         
                         double levelCircleModifier;  // Users get more Hp and Mp per level at higher Level "circles"
 
-                        if (Level < 11)
-                            levelCircleModifier = 0;
-                        else if (Level < 41)
-                            levelCircleModifier = .25;
-                        else if (Level < 71)
-                            levelCircleModifier = .5;
-                        else if (Level < 90)
-                            levelCircleModifier = .75;
+                        if (Level < LevelCircles.CIRCLE_1)
+                        {
+                            levelCircleModifier = StatGainConstants.LEVEL_CIRCLE_GAIN_MODIFIER_0;
+                        }
+                        else if (Level < LevelCircles.CIRCLE_2)
+                        {
+                            levelCircleModifier = StatGainConstants.LEVEL_CIRCLE_GAIN_MODIFIER_1;
+                        }
+                        else if (Level < LevelCircles.CIRCLE_3)
+                        {
+                            levelCircleModifier = StatGainConstants.LEVEL_CIRCLE_GAIN_MODIFIER_2;
+                        }
+                        else if (Level < LevelCircles.CIRCLE_4)
+                        {
+                            levelCircleModifier = StatGainConstants.LEVEL_CIRCLE_GAIN_MODIFIER_3;
+                        }
                         else
-                            levelCircleModifier = 1.0;
+                        {
+                            levelCircleModifier = StatGainConstants.LEVEL_CIRCLE_GAIN_MODIFIER_4;
+                        }
 
                         switch (Class)
                         {
                             case Enums.Class.Peasant:
-                                hpGain = 8;
-                                mpGain = 8;
-                                bonusHp = 4;
-                                bonusMp = 4;
+                                hpGain = StatGainConstants.PEASANT_BASE_HP_GAIN;
+                                mpGain = StatGainConstants.PEASANT_BASE_MP_GAIN;
+                                bonusHp = StatGainConstants.PEASANT_BONUS_HP_GAIN;
+                                bonusMp = StatGainConstants.PEASANT_BONUS_MP_GAIN;
                                 break;
 
                             case Enums.Class.Warrior:
-                                hpGain = 71;
-                                mpGain = 8;
-                                bonusHp = 9;
-                                bonusMp = 4;
+                                hpGain = StatGainConstants.WARRIOR_BASE_HP_GAIN;
+                                mpGain = StatGainConstants.WARRIOR_BASE_MP_GAIN;
+                                bonusHp = StatGainConstants.WARRIOR_BONUS_HP_GAIN;
+                                bonusMp = StatGainConstants.WARRIOR_BONUS_MP_GAIN;
                                 break;
 
                             case Enums.Class.Rogue:
-                                hpGain = 48;
-                                mpGain = 22;
-                                bonusHp = 10;
-                                bonusMp = 8;
+                                hpGain = StatGainConstants.ROGUE_BASE_HP_GAIN;
+                                mpGain = StatGainConstants.ROGUE_BASE_MP_GAIN;
+                                bonusHp = StatGainConstants.ROGUE_BONUS_HP_GAIN;
+                                bonusMp = StatGainConstants.ROGUE_BONUS_MP_GAIN;
                                 break;
 
                             case Enums.Class.Monk:
-                                hpGain = 39;
-                                mpGain = 31;
-                                bonusHp = 9;
-                                bonusMp = 12;
+                                hpGain = StatGainConstants.MONK_BASE_HP_GAIN;
+                                mpGain = StatGainConstants.MONK_BASE_MP_GAIN;
+                                bonusHp = StatGainConstants.MONK_BONUS_HP_GAIN;
+                                bonusMp = StatGainConstants.MONK_BONUS_MP_GAIN;
                                 break;
 
                             case Enums.Class.Priest:
-                                hpGain = 28;
-                                mpGain = 55;
-                                bonusHp = 4;
-                                bonusMp = 10;
+                                hpGain = StatGainConstants.PRIEST_BASE_HP_GAIN;
+                                mpGain = StatGainConstants.PRIEST_BASE_MP_GAIN;
+                                bonusHp = StatGainConstants.PRIEST_BONUS_HP_GAIN;
+                                bonusMp = StatGainConstants.PRIEST_BONUS_MP_GAIN;
                                 break;
 
                             case Enums.Class.Wizard:
-                                hpGain = 18;
-                                mpGain = 68;
-                                bonusHp = 4;
-                                bonusMp = 4;
+                                hpGain = StatGainConstants.WIZARD_BASE_HP_GAIN;
+                                mpGain = StatGainConstants.WIZARD_BASE_MP_GAIN;
+                                bonusHp = StatGainConstants.WIZARD_BONUS_HP_GAIN;
+                                bonusMp = StatGainConstants.WIZARD_BONUS_MP_GAIN;
                                 break;
                         }
 
