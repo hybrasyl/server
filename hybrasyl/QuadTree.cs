@@ -517,8 +517,14 @@ namespace C3
                 int removeIndex = objects.IndexOf(item);
                 if (removeIndex >= 0)
                 {
-                    objects[removeIndex] = objects[objects.Count - 1];
-                    objects.RemoveAt(objects.Count - 1);
+                    // We have to consider the case that a tile contains: User, Item1, Item2.  The user can Walk, which removes him from index 0.
+                    // We should use objects.Remove( index ) and let it "shift up" the remaining objects for us.
+
+                    //objects[removeIndex] = objects[objects.Count - 1]; 
+                    //objects.RemoveAt(objects.Count - 1);
+
+                    // We know the item, so just remove it by its index.
+                    objects.RemoveAt(removeIndex);
                 }
             }
         }

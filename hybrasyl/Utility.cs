@@ -380,6 +380,57 @@ namespace Hybrasyl
 
         public static string[] SCRIPT_DIRECTORIES = { "npc", "startup", "item", "reactor" };
 
+
+
+    }
+
+    public static class LevelCircles
+    {
+        public const int CIRCLE_1 = 11;
+        public const int CIRCLE_2 = 41;
+        public const int CIRCLE_3 = 71;
+        public const int CIRCLE_4 = 90;
+    }
+
+    static class StatGainConstants
+    {
+        public const int PEASANT_BASE_HP_GAIN = 8;
+        public const int PEASANT_BASE_MP_GAIN = 8;
+        public const int PEASANT_BONUS_HP_GAIN = 4;
+        public const int PEASANT_BONUS_MP_GAIN = 4;
+
+        public const int WARRIOR_BASE_HP_GAIN = 71;
+        public const int WARRIOR_BASE_MP_GAIN = 8;
+        public const int WARRIOR_BONUS_HP_GAIN = 9;
+        public const int WARRIOR_BONUS_MP_GAIN = 4;
+
+        public const int ROGUE_BASE_HP_GAIN = 48;
+        public const int ROGUE_BASE_MP_GAIN = 22;
+        public const int ROGUE_BONUS_HP_GAIN = 10;
+        public const int ROGUE_BONUS_MP_GAIN = 8;
+
+        public const int MONK_BASE_HP_GAIN = 39;
+        public const int MONK_BASE_MP_GAIN = 31;
+        public const int MONK_BONUS_HP_GAIN = 9;
+        public const int MONK_BONUS_MP_GAIN = 12;
+
+        public const int PRIEST_BASE_HP_GAIN = 28;
+        public const int PRIEST_BASE_MP_GAIN = 55;
+        public const int PRIEST_BONUS_HP_GAIN = 4;
+        public const int PRIEST_BONUS_MP_GAIN = 10;
+
+        public const int WIZARD_BASE_HP_GAIN = 18;
+        public const int WIZARD_BASE_MP_GAIN = 68;
+        public const int WIZARD_BONUS_HP_GAIN = 4;
+        public const int WIZARD_BONUS_MP_GAIN = 4;
+
+
+        // Modifiers for HP/MP gain upon leveling up, based on the user's Level Circle
+        public const double LEVEL_CIRCLE_GAIN_MODIFIER_0 = 0.0;
+        public const double LEVEL_CIRCLE_GAIN_MODIFIER_1 = 0.25;
+        public const double LEVEL_CIRCLE_GAIN_MODIFIER_2 = 0.5;
+        public const double LEVEL_CIRCLE_GAIN_MODIFIER_3 = 0.75;
+        public const double LEVEL_CIRCLE_GAIN_MODIFIER_4 = 1.0;
     }
 
     static class DialogTypes

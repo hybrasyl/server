@@ -101,7 +101,7 @@ namespace Hybrasyl.Objects
                 if (Level == 99)
                     return 0;
                 else
-                    return (uint) Math.Pow(Level, 3)*250;
+                    return (uint) (Math.Pow(Level, 3) * 250 - Experience);
             }
         }
 
@@ -321,27 +321,127 @@ namespace Hybrasyl.Objects
          */
         public void GiveExperience(uint exp)
         {
-            var levelsGained = 0;
-
-            while (exp + Experience >= ExpToLevel)
+            if (Level == 99 || exp < ExpToLevel)
             {
-
-                uint tolevel = ExpToLevel - Experience;
-                exp = exp - tolevel;
-                Experience = Experience + tolevel;
-                levelsGained++;
-                Level++;
-                LevelPoints = LevelPoints + 2;
+                Experience += exp;
             }
-        
-            Experience = Experience + exp;
-
-            if (levelsGained > 0)
+            else
             {
-                Client.SendMessage("A rush of insight fills you!", MessageTypes.SYSTEM);
-                Effect(50, 250);
-                UpdateAttributes(StatUpdateFlags.Full);
-            }
+                // Apply one Level at a time
+
+                var levelsGained = 0;
+                Random random = new Random();
+
+                while (exp > 0)
+                {
+                    uint expChunk = Math.Min(exp, ExpToLevel);
+
+                    exp -= expChunk;
+                    Experience += expChunk;
+
+                    if (ExpToLevel == 0)
+                    {
+                        levelsGained++;
+                        Level++;
+                        LevelPoints = LevelPoints + 2;
+
+                        #region Add Hp and Mp for each level gained
+
+                        int hpGain = 0;
+                        int mpGain = 0;
+                        int bonusHp = 0;
+                        int bonusMp = 0;
+                        
+                        double levelCircleModifier;  // Users get more Hp and Mp per level at higher Level "circles"
+
+                        if (Level < LevelCircles.CIRCLE_1)
+                        {
+                            levelCircleModifier = StatGainConstants.LEVEL_CIRCLE_GAIN_MODIFIER_0;
+                        }
+                        else if (Level < LevelCircles.CIRCLE_2)
+                        {
+                            levelCircleModifier = StatGainConstants.LEVEL_CIRCLE_GAIN_MODIFIER_1;
+                        }
+                        else if (Level < LevelCircles.CIRCLE_3)
+                        {
+                            levelCircleModifier = StatGainConstants.LEVEL_CIRCLE_GAIN_MODIFIER_2;
+                        }
+                        else if (Level < LevelCircles.CIRCLE_4)
+                        {
+                            levelCircleModifier = StatGainConstants.LEVEL_CIRCLE_GAIN_MODIFIER_3;
+                        }
+                        else
+                        {
+                            levelCircleModifier = StatGainConstants.LEVEL_CIRCLE_GAIN_MODIFIER_4;
+                        }
+
+                        switch (Class)
+                        {
+                            case Enums.Class.Peasant:
+                                hpGain = StatGainConstants.PEASANT_BASE_HP_GAIN;
+                                mpGain = StatGainConstants.PEASANT_BASE_MP_GAIN;
+                                bonusHp = StatGainConstants.PEASANT_BONUS_HP_GAIN;
+                                bonusMp = StatGainConstants.PEASANT_BONUS_MP_GAIN;
+                                break;
+
+                            case Enums.Class.Warrior:
+                                hpGain = StatGainConstants.WARRIOR_BASE_HP_GAIN;
+                                mpGain = StatGainConstants.WARRIOR_BASE_MP_GAIN;
+                                bonusHp = StatGainConstants.WARRIOR_BONUS_HP_GAIN;
+                                bonusMp = StatGainConstants.WARRIOR_BONUS_MP_GAIN;
+                                break;
+
+                            case Enums.Class.Rogue:
+                                hpGain = StatGainConstants.ROGUE_BASE_HP_GAIN;
+                                mpGain = StatGainConstants.ROGUE_BASE_MP_GAIN;
+                                bonusHp = StatGainConstants.ROGUE_BONUS_HP_GAIN;
+                                bonusMp = StatGainConstants.ROGUE_BONUS_MP_GAIN;
+                                break;
+
+                            case Enums.Class.Monk:
+                                hpGain = StatGainConstants.MONK_BASE_HP_GAIN;
+                                mpGain = StatGainConstants.MONK_BASE_MP_GAIN;
+                                bonusHp = StatGainConstants.MONK_BONUS_HP_GAIN;
+                                bonusMp = StatGainConstants.MONK_BONUS_MP_GAIN;
+                                break;
+
+                            case Enums.Class.Priest:
+                                hpGain = StatGainConstants.PRIEST_BASE_HP_GAIN;
+                                mpGain = StatGainConstants.PRIEST_BASE_MP_GAIN;
+                                bonusHp = StatGainConstants.PRIEST_BONUS_HP_GAIN;
+                                bonusMp = StatGainConstants.PRIEST_BONUS_MP_GAIN;
+                                break;
+
+                            case Enums.Class.Wizard:
+                                hpGain = StatGainConstants.WIZARD_BASE_HP_GAIN;
+                                mpGain = StatGainConstants.WIZARD_BASE_MP_GAIN;
+                                bonusHp = StatGainConstants.WIZARD_BONUS_HP_GAIN;
+                                bonusMp = StatGainConstants.WIZARD_BONUS_MP_GAIN;
+                                break;
+                        }
+
+                        // Each level, a user is guaranteed to increase his hp and mp by some base amount, per his Class.
+                        // His hp and mp will increase further by a "bonus amount" that is accounted for by:
+                        // - 50% Level circle
+                        // - 50% Randomness
+                        
+                        int bonusHpGain = (int)Math.Round(bonusHp * 0.5 * levelCircleModifier + bonusHp * 0.5 * random.NextDouble(), MidpointRounding.AwayFromZero);
+                        int bonusMpGain = (int)Math.Round(bonusMp * 0.5 * levelCircleModifier + bonusMp * 0.5 * random.NextDouble(), MidpointRounding.AwayFromZero);
+
+                        BaseHp += (hpGain + bonusHpGain);
+                        BaseMp += (mpGain + bonusMpGain);
+
+                        #endregion
+                    }
+                }
+
+                if (levelsGained > 0)
+                {
+                    Client.SendMessage("A rush of insight fills you!", MessageTypes.SYSTEM);
+                    Effect(50, 250);
+                    UpdateAttributes(StatUpdateFlags.Full);
+                }
+            }        
 
             UpdateAttributes(StatUpdateFlags.Experience);
 
