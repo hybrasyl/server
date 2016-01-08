@@ -1,6 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
 <xs:schema xmlns:hyb="http://www.hybrasyl.com/XML/HybrasylCommon" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:actions="http://www.hybrasyl.com/XML/Actions" targetNamespace="http://www.hybrasyl.com/XML/Actions" elementFormDefault="qualified">
-
+  <!--
+  <castable type= icon= book= element= lines= class= cooldown= isassail>
+  <castcost>
+    <items>
+      <item quantity=>Bag of Rocks</item>
+      <item quantity=>Bag of Kittens</item>
+    </items>
+    <gold>1337</gold>
+    <stat hp= mp=>
+  </castcost>
+  <intents>
+    <intent type= target=>
+  </intents>
+  <maxlevel monk= warrior= peasant= wizard= priest= rogue= >
+  <statuseffects>
+    <add>sleep paralyze</add>
+    <remove>poison</remove>
+  </statuseffects>
+  <requirements>
+    <items>
+      <item quantity=>Bag of Rocks</item>
+      <item quantity=>Bag of Kittens</item>
+    </items>
+    <gold>1337</gold>
+    <physical str= int= wis= dex= con= int= hp= mp=>      
+  </requirements>
+  <restrictions>
+    <weapontype>shield</weapontype>
+  </restrictions>
+  <effects>
+    <animation id= speed=>
+      <sound id=>
+      <teleport x= y=>Wang Village or %HOME% for home</teleport>
+      <scriptname>wang.py</scriptname>
+      <heal>
+        <simple min= max=>
+        <formula>some-templatable-format-that-outputs-numbers</formula>
+      </heal>
+    <damage>
+      <flags>scaled direct resistance threat</flags>
+      <simple min= max=>
+      <formula>%CASTERCON*2+6*%CASTABLELEVEL%+1337/%TARGETINT</formula>
+    </damage>
+  </effects>
+</castable>-->
+  
   <xs:annotation>
     <xs:documentation xml:lang="en">
       Hybrasyl Project - Hybrasyl XML Schema - Actions (Skills / Spells)
@@ -13,7 +58,7 @@
   <xs:import schemaLocation="hybrasylTypes.xsd" namespace="http://www.hybrasyl.com/XML/HybrasylCommon"/>
 
   <!-- Skill/spell book location -->
-  <xs:simpleType name="BookLocation">
+  <xs:simpleType name="Book">
     <xs:restriction base="xs:token">
       <xs:enumeration value="primaryskill"/>
       <xs:enumeration value="secondaryskill"/>
@@ -50,7 +95,6 @@
       <xs:enumeration value="infront"/>
       <xs:enumeration value="nearby"/>
       <xs:enumeration value="group"/>
-      <xs:enumeration value="type"/>
       <xs:enumeration value="playertarget"/>
     </xs:restriction>    
   </xs:simpleType>
@@ -59,19 +103,9 @@
     <xs:restriction base="xs:token">
       <xs:enumeration value="friendly"/>
       <xs:enumeration value="hostile"/>
+      <xs:enumeration value="player"/>                      
     </xs:restriction>
   </xs:simpleType>
-
-  <xs:complexType name="MaxLevel">
-    <xs:choice minOccurs="1" maxOccurs="6">
-      <xs:element name="monk" type="xs:unsignedByte" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="peasant" type="xs:unsignedByte" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="priest" type="xs:unsignedByte" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="rogue" type="xs:unsignedByte" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="warrior" type="xs:unsignedByte" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="wizard" type="xs:unsignedByte" minOccurs="0" maxOccurs="1"/>
-    </xs:choice>
-  </xs:complexType>
   
   <xs:complexType name="StatusEffects">
     <xs:sequence>
@@ -80,17 +114,23 @@
     </xs:sequence>
   </xs:complexType>
 
+  <xs:complexType name="ItemSpecification">
+    <xs:simpleContent>
+      <xs:extension base="hyb:String8">
+        <xs:attribute name="quantity" default="1" type="xs:unsignedByte"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:complexType name="ItemsSpecification">
+    <xs:sequence>
+      <xs:element name="item" type="actions:ItemSpecification" minOccurs="1" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+  
   <xs:complexType name="CastCost">
     <xs:choice minOccurs="1" maxOccurs="3">
-      <xs:element name="item" minOccurs="0" maxOccurs="1">
-        <xs:complexType>
-          <xs:simpleContent>
-            <xs:extension base="hyb:String8">
-              <xs:attribute name="quantity" default="1" type="xs:unsignedByte"/>
-            </xs:extension>
-          </xs:simpleContent>
-        </xs:complexType>
-      </xs:element>
+      <xs:element name="items" minOccurs="0" maxOccurs="1" type="actions:ItemsSpecification"/>
       <xs:element name="stat" minOccurs="0" maxOccurs="1">
         <xs:complexType>
           <!-- hp/mp can be expressed as percentages here -->
@@ -102,17 +142,29 @@
     </xs:choice>
   </xs:complexType>
 
-  <xs:complexType name="LearnCost">
+  <xs:complexType name="Intents">
+    <xs:sequence>
+      <xs:element name="intent" type="actions:Intent" minOccurs="1" maxOccurs="unbounded"/>
+    </xs:sequence>    
+  </xs:complexType>
+
+  <xs:complexType name="Intent">
+    <xs:attribute name="type" type="actions:IntentType" use="required"/>
+    <xs:attribute name="target" type="actions:IntentTarget" use="required"/>    
+  </xs:complexType>
+
+  <xs:complexType name="MaxLevel">
+    <xs:attribute name="monk" type="xs:unsignedByte" use="optional"/>
+    <xs:attribute name="warrior" type="xs:unsignedByte" use="optional"/>
+    <xs:attribute name="peasant" type="xs:unsignedByte" use="optional"/>
+    <xs:attribute name="wizard" type="xs:unsignedByte" use="optional"/>
+    <xs:attribute name="priest" type="xs:unsignedByte" use="optional"/>
+    <xs:attribute name="rogue" type="xs:unsignedByte" use="optional"/>
+  </xs:complexType>
+  
+  <xs:complexType name="Requirements">
     <xs:choice minOccurs="1" maxOccurs="3">
-      <xs:element name="item" minOccurs="0" maxOccurs="1">
-        <xs:complexType>
-          <xs:simpleContent>
-            <xs:extension base="hyb:String8">
-              <xs:attribute name="quantity" default="1" type="xs:unsignedByte"/>
-            </xs:extension>
-          </xs:simpleContent>
-        </xs:complexType>
-      </xs:element>
+      <xs:element name="items" minOccurs="0" maxOccurs="1" type="actions:ItemsSpecification"/>
       <xs:element name="gold" minOccurs="0" maxOccurs="1" type="xs:unsignedInt"/>
       <xs:element name="physical" minOccurs="0" maxOccurs="1">
         <xs:complexType>
@@ -121,8 +173,8 @@
           <xs:attribute name="wis" default="0" type="xs:unsignedByte"/>
           <xs:attribute name="con" default="0" type="xs:unsignedByte"/>
           <xs:attribute name="dex" default="0" type="xs:unsignedByte"/>
-          <xs:attribute name="hp" default="0" type="xs:integer"/>
-          <xs:attribute name="mp" default="0" type="xs:integer"/>
+          <xs:attribute name="hp" default="0" type="xs:unsignedInt"/>
+          <xs:attribute name="mp" default="0" type="xs:unsignedInt"/>
         </xs:complexType>
       </xs:element>
     </xs:choice>
@@ -175,9 +227,11 @@
     </xs:choice>
   </xs:complexType>
 
-  <xs:complexType name="Damage">
+  <xs:complexType name="DamageType">
+    
   </xs:complexType>
-  <xs:complexType name="Effects">
+
+  <xs:complexType name="EffectsType">
     <xs:choice minOccurs="1" maxOccurs="7">
       <xs:element name="effect" minOccurs="0" maxOccurs="1">
         <xs:complexType>
@@ -250,24 +304,59 @@
       <xs:element name="effects" minOccurs="0" maxOccurs="1" type="actions:Effects"/>
     </xs:sequence>
   </xs:complexType>
-  
-  <xs:complexType name="action">
+
+  <xs:complexType name="CastCostType">
+    
+  </xs:complexType>
+
+  <xs:complexType name="IntentsType">
+
+  </xs:complexType>
+
+  <xs:complexType name="MaxLevelType">
+
+  </xs:complexType>
+
+  <xs:complexType name="StatusEffectsType">
+
+  </xs:complexType>
+
+  <xs:complexType name="RequirementsType">
+
+  </xs:complexType>
+
+  <xs:complexType name="RestrictionsType">
+
+  </xs:complexType>
+
+  <xs:complexType name="CastableType">
     <xs:sequence>
-      <xs:element name="name" type="hyb:String8" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="book" type="actions:BookLocation" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="description" type="hyb:String16" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="properties" type="actions:Properties" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="castcost" type="actions:CastCostType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="intents" type="actions:IntentsType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="maxlevel" type="actions:MaxLevelType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="statuseffects" type="actions:StatusEffectsType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="requirements" type="actions:RequirementsType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="restrictions" type="actions:RestrictionsType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="effects" type="actions:EffectsType" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
-    <xs:attribute name="type">
+    <xs:attribute name="type" use="required"/>
+    <xs:attribute name="icon" type="xs:byte" use="required"/>
+    <xs:attribute name="book" type="actions:BookType" use="required"/>
+    <xs:attribute name="element" use="optional">
       <xs:simpleType>
-        <xs:restriction base="xs:token">
-          <xs:enumeration value="skill"/>
-          <xs:enumeration value="spell"/>
-        </xs:restriction>
+        <xs:list itemType="actions:Element"/>
       </xs:simpleType>
     </xs:attribute>
-    <xs:attribute name="icon" type="xs:unsignedByte"/>
-    <xs:attribute name="cooldown" type="xs:positiveInteger"/>
+    <xs:attribute name="lines" type="xs:byte" use="optional" default="0"/>
+    <xs:attribute name="class" use="optional">
+      <xs:simpleType>
+        <xs:list itemType="hyb:Class"/>
+      </xs:simpleType>
+    </xs:attribute>
+    <xs:attribute name="cooldown" use="optional" default="0" type="xs:int"/>
+    <xs:attribute name="isassail" use="optional" default="false"/>
   </xs:complexType>
+  
+  <xs:element name="castable" type="actions:CastableType"/>
 
 </xs:schema>

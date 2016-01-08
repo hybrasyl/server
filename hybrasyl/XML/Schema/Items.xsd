@@ -11,6 +11,23 @@
   </xs:annotation>
 
   <xs:import schemaLocation="hybrasylTypes.xsd" namespace="http://www.hybrasyl.com/XML/HybrasylCommon"/>
+
+  <xs:complexType name="CastModifiers">
+    <xs:sequence>
+      <xs:element name="lines" minOccurs="1" maxOccurs="unbounded">
+        <xs:complexType>
+          <xs:attribute name="offset" type="xs:byte" use="optional"/>
+          <xs:attribute name="number" type="xs:byte" use="optional"/>
+          <xs:attribute name="modifier" type="xs:byte" use="optional"/>
+          <xs:attribute name="global" type="xs:boolean" default="false" use="optional"/>
+          <xs:attribute name="spellgroup" type="xs:token" use="optional"/>
+          <xs:attribute name="min" type="xs:byte" use="optional"/>
+          <xs:attribute name="max" type="xs:byte" use="optional"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+    
   <!-- TODO: add effect script name to variants -->
   <xs:complexType name="VariantProperties">
     <xs:sequence>
@@ -121,6 +138,7 @@
           <xs:attribute name="color" default="none" type="hyb:ItemColor"/>
         </xs:complexType>
       </xs:element>
+      <xs:element name="castmodifiers" minOccurs="0" maxOccurs="1" type="items:CastModifiers"/>
       <xs:element name="stackable" minOccurs="1" maxOccurs="1">
         <xs:complexType>
           <xs:attribute name="max" use="required" type="xs:unsignedByte"/>
