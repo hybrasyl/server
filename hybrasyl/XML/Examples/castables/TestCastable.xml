@@ -1,0 +1,83 @@
+<?xml version="1.0"?>
+<castable xmlns="http://www.hybrasyl.com/XML/Actions" type="skill" icon="3" book="primaryskill" class="rogue monk" cooldown="30">
+  <name>Kitten Strike</name>
+  <castcost>
+    <items>
+      <item quantity="3">Bag of Rocks</item>
+      <item quantity="3">Bag of Kittens</item>
+    </items>
+    <gold>1337</gold>
+    <stat hp="600" mp="30"/>
+  </castcost>
+  <intents>
+    <intent isclick="1" radius="6" direction="front" target="friendly"/>
+  </intents>
+  <maxlevel rogue="100" monk="6"/>
+  <category unique="1">curse</category>
+  <requirements>
+    <level min="6" max="99"/>
+    <ab min="7" max="33"/>
+    <items>
+      <item quantity="3">Bag of Rocks</item>
+      <item quantity="3">Bag of Kittens</item>
+    </items>
+    <gold>1337</gold>
+    <physical str="3" int="3" wis="3" dex="3" con="3" hp="3" mp="3"/>
+    <prerequisites>
+      <prerequisite level="7">Summon Kitten</prerequisite>
+    </prerequisites>
+  </requirements>
+  <restrictions>
+    <weapontype>shield</weapontype>
+  </restrictions>
+  <effects duration="60">
+    <animations>
+      <oncast>
+        <player id="6" speed="100"/>
+        <spelleffect id="8" speed="100"/>
+        <target id="100" speed="100"/>
+      </oncast>
+      <duration>
+        <self id="1338" speed="100" every="5"/>
+        <target id="1337" speed="100" every="1"/>
+      </duration>
+      <end>
+        <self id="1338" speed="100" every="5"/>
+        <target id="1337" speed="100" every="1"/>
+      </end>
+    </animations>
+    <messaging>
+      <success>
+        <player>You cast Kitten Strike!</player>
+        <target>$PLAYERNAME attacked you with Kitten Strike!</target>
+      </success>
+      <failures>
+        <failure type="cast">It didn’t work.
+        <failure type="alreadyapplied">There is a more powerful spell already active!</failure>
+      <castfailure type="target">Something went wrong.</failure>
+      <applyfailure type="">HAHAHA. THIS GUY SUCKS AT KITTEN STRIKE!</failure>
+    </messaging>
+    <sound id="6"/>
+    <teleport x="6" y="6">Test Village</teleport>
+    <scriptname>kittenstrike.py</scriptname>
+    <heal type="duration">
+      <simple min="100" max="800"/>
+      <formula>$CASTERINT*6+1337</formula>
+    </heal>
+    <damage>
+      <flags>scaled direct resistance threat</flags>
+      <simple min="700" max="300000"/>
+      <formula>$CASTERCON*2+6*$CASTABLELEVEL%+1337/$TARGETINT</formula>
+    </damage>
+    <stateffects>
+      <stateffect int="1" str="1" dex="1" con="1" wis="1" mr="1" dmg="1" hit="1" regen="1" hp="1" mp="1" ac="1"/>
+    </stateffects>
+    <statuses>
+      <add modifier="1.6" damagetype="elemental">increasedamage</add>
+      <add modifier="0.8" damagetype="elemental">reducedamage</add>
+      <add modifier="1.25" damagetype="direct">poison</add>
+      <add target="cradh">prohibitusage</add>
+      <remove>sleep</remove>
+    </statuses>
+  </effects>
+</castable>
