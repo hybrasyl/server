@@ -62,16 +62,7 @@
      <xs:enumeration value="nearby"/>
    </xs:restriction>
   </xs:simpleType>
-
-  <!-- Status effects type (used to add or remove standard Hybrasyl effects:
-       poison, etc) -->
-  <xs:complexType name="StatusEffects">
-    <xs:sequence>
-      <xs:element name="add" type="hyb:StatusEffectsList" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="remove" type="hyb:StatusEffectsList" minOccurs="0" maxOccurs="1"/>
-    </xs:sequence>
-  </xs:complexType>
-
+  
   <!-- Item specification (used for requirements / cast cost) -->
   <xs:complexType name="ItemSpecification">
     <xs:simpleContent>
@@ -130,7 +121,7 @@
 
   <!-- Requirements: What does a player need to learn this spell? -->
   <xs:complexType name="Requirements">
-    <xs:choice minOccurs="1" maxOccurs="3">
+    <xs:choice minOccurs="1" maxOccurs="6">
       <!-- Player level -->
       <xs:element name="level" minOccurs="0" maxOccurs="1">
         <xs:complexType>
@@ -203,10 +194,9 @@
   <xs:complexType name="SimpleQuantity">
     <xs:attribute name="min" default="0" type="xs:nonNegativeInteger"/>
     <xs:attribute name="max" default="0" type="xs:nonNegativeInteger"/>
-    <xs:attribute name="type" default="direct" type="hyb:DamageType"/>
   </xs:complexType>
 
-  <xs:complexType name="DamageQuantity">
+  <xs:complexType name="HealthChange">
     <xs:choice>
       <xs:element name="simple" type="actions:SimpleQuantity"/>
       <xs:element name="formula" type="xs:string"/>
@@ -221,7 +211,6 @@
           <xs:simpleType>
             <xs:restriction base="xs:token">
               <xs:enumeration value="scaled"/>
-              <xs:enumeration value="direct"/>
               <xs:enumeration value="resistance"/>
               <xs:enumeration value="threat"/>
             </xs:restriction>
@@ -233,11 +222,15 @@
 
   <!-- Damage effects type -->
   <xs:complexType name="Damage">
-    <xs:choice>
+    <xs:choice minOccurs="0" maxOccurs="2">
       <xs:element name="flags" type="actions:DamageFlags"/>
-      <xs:element name="simple" type="actions:SimpleQuantity"/>
-      <xs:element name="formula" type="hyb:String16"/>
+      <xs:choice maxOccurs="1">
+        <xs:element name="simple" type="actions:SimpleQuantity"/>
+        <xs:element name="formula" type="hyb:String16"/>        
+      </xs:choice>
     </xs:choice>
+    <xs:attribute name="overtime" type="xs:boolean"/>
+    <xs:attribute name="type" type="hyb:DamageType"/>  
   </xs:complexType>
 
   <!-- Heal effects type -->
@@ -246,27 +239,52 @@
       <xs:element name="simple" type="actions:SimpleQuantity"/>
       <xs:element name="formula" type="hyb:String16"/>
     </xs:choice>
+    <xs:attribute name="overtime" type="xs:boolean"/>
   </xs:complexType>
 
   <!-- Animations container element -->
   <xs:complexType name="Animations">
-    <xs:sequence>
-      <xs:element name="cast" type="actions:Animation" minOccurs="0" maxOccurs="1"/>
+    <xs:choice minOccurs="0" maxOccurs="3">
+      <xs:element name="oncast" type="actions:AnimationGroup" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="duration" type="actions:AnimationDurationGroup" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="end" type="actions:AnimationGroup" minOccurs="0" maxOccurs="1"/>
+    </xs:choice>
+  </xs:complexType>
+  
+  <!-- Animation group -->
+  <xs:complexType name="AnimationGroup">
+    <xs:choice minOccurs="0" maxOccurs="3">
+      <xs:element name="player" type="actions:Animation" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="spelleffect" type="actions:Animation" minOccurs="0" maxOccurs="1"/>
       <xs:element name="target" type="actions:Animation" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="self" type="actions:Animation" minOccurs="0" maxOccurs="1"/>
-    </xs:sequence>
+    </xs:choice>
   </xs:complexType>
 
-  <!-- Individual animations -->
+  <!-- Animation group -->
+  <xs:complexType name="AnimationDurationGroup">
+    <xs:choice minOccurs="0" maxOccurs="3">
+      <xs:element name="player" type="actions:AnimationDuration" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="spelleffect" type="actions:AnimationDuration" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="target" type="actions:AnimationDuration" minOccurs="0" maxOccurs="1"/>
+    </xs:choice>
+  </xs:complexType>
 
+  <!-- Animation set -->
   <xs:complexType name="Animation">
     <xs:attribute name="id" type="xs:unsignedShort" use="required" />
     <xs:attribute name="speed" type="xs:unsignedShort" use="optional" default="100"/>
   </xs:complexType>
 
+  <!-- Animation set for duration -->
+  <xs:complexType name="AnimationDuration">
+    <xs:attribute name="id" type="xs:unsignedShort" use="required" />
+    <xs:attribute name="speed" type="xs:unsignedShort" use="optional" default="100"/>
+    <xs:attribute name="every" type="xs:unsignedInt"/>
+  </xs:complexType>
+
   <!-- Effects type -->
   <xs:complexType name="Effects">
-    <xs:choice minOccurs="1" maxOccurs="7">
+    <xs:choice minOccurs="1" maxOccurs="8">
       <xs:element name="animations" type="actions:Animations" minOccurs="0" maxOccurs="1"/>
       <xs:element name="sound" minOccurs="0" maxOccurs="1">
         <xs:complexType>
@@ -287,9 +305,43 @@
       <xs:element name="heal" minOccurs="0" maxOccurs="1" type="actions:Heal"/>
       <xs:element name="damage" minOccurs="0" maxOccurs="1" type="actions:Damage"/>
       <xs:element name="stateffects" minOccurs="0" maxOccurs="1" type="actions:StatEffects"/>
+      <xs:element name="statuses" minOccurs="0" maxOccurs="0" type="actions:Statuses"/>
+    </xs:choice>
+    <xs:attribute name="duration" type="xs:unsignedInt"/>
+  </xs:complexType>
+
+  <xs:complexType name="Statuses">
+    <xs:choice minOccurs="1" maxOccurs="unbounded">
+      <xs:element name="add" type="actions:AddStatus" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="remove" type="hyb:String8" minOccurs="0" maxOccurs="unbounded"/>                  
     </xs:choice>
   </xs:complexType>
 
+  <xs:complexType name="Categories">
+    <xs:sequence minOccurs="1" maxOccurs="unbounded">
+      <xs:element name="category">
+      </xs:element>      
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="Category">
+    <xs:simpleContent>
+      <xs:extension base="hyb:String8">
+        <xs:attribute name="unique" type="xs:boolean" default="false" use="optional"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>        
+
+  <xs:complexType name="AddStatus">
+     <xs:simpleContent>
+       <xs:extension base="hyb:StatusEffectsList">
+         <xs:attribute name="modifier" type="xs:float" use="optional"/>
+         <xs:attribute name="damagetype" type="hyb:DamageType" use="optional"/>
+         <xs:attribute name="target" type="xs:token" use="optional"/>       
+       </xs:extension>
+     </xs:simpleContent>
+  </xs:complexType>
+  
   <!-- Stat effects (buffs or debuffs) container element -->
   <xs:complexType name="StatEffects">
     <xs:sequence>
@@ -313,26 +365,27 @@
     <xs:attribute name="duration" default="0" type="xs:unsignedInt"/>
   </xs:complexType>
 
-  <!-- Restrictions (only used to prevent certain spells from being used with
-       certain weapons at the moment) -->
-  <xs:complexType name="Restrictions">
-    <xs:sequence>
-      <xs:element name="weapontype" type="actions:WeaponTypeList" maxOccurs="1" minOccurs="1"/>
-    </xs:sequence>
+  <!-- Restrictions on casting, such as types of equipment, or
+  existing spells -->
+    <xs:complexType name="Restrictions">
+    <xs:choice minOccurs="1" maxOccurs="3">
+      <xs:element name="weapontype" type="hyb:WeaponType" maxOccurs="1"/>
+      <xs:element name="equiptype" type="hyb:EquipmentSlot" maxOccurs="1"/>
+    </xs:choice>
   </xs:complexType>
 
   <!-- Castable type -->
   <xs:complexType name="CastableType">
-    <xs:sequence>
+    <xs:choice minOccurs="0" maxOccurs="8">
       <xs:element name="name" type="hyb:String8" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="categories" type="actions:Categories" minOccurs="0" maxOccurs="1"/>
       <xs:element name="castcost" type="actions:CastCost" minOccurs="0" maxOccurs="1"/>
       <xs:element name="intents" type="actions:Intents" minOccurs="0" maxOccurs="1"/>
       <xs:element name="maxlevel" type="actions:MaxLevel" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="statuseffects" type="actions:StatusEffects" minOccurs="0" maxOccurs="1"/>
       <xs:element name="requirements" type="actions:Requirements" minOccurs="0" maxOccurs="1"/>
       <xs:element name="restrictions" type="actions:Restrictions" minOccurs="0" maxOccurs="1"/>
       <xs:element name="effects" type="actions:Effects" minOccurs="0" maxOccurs="1"/>
-    </xs:sequence>
+    </xs:choice>
     <!-- Castable attributes -->
     <xs:attribute name="type" use="required"/>
     <xs:attribute name="icon" type="xs:byte" use="required"/>

@@ -171,6 +171,7 @@
       <xs:enumeration value="direct"/>
       <xs:enumeration value="physical"/>
       <xs:enumeration value="magical"/>
+      <xs:enumeration value="elemental"/>
     </xs:restriction>  
   </xs:simpleType>
 
