@@ -11,7 +11,8 @@
     <AssemblyName>Hybrasyl</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <NuGetPackageImportStamp>65c31f8d</NuGetPackageImportStamp>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">.\</SolutionDir>
     <RestorePackages>true</RestorePackages>
   </PropertyGroup>
@@ -43,36 +44,47 @@
     <Reference Include="BCrypt.Net">
       <HintPath>packages\BCrypt-Official.0.1.109\lib\BCrypt.Net.dll</HintPath>
     </Reference>
-    <Reference Include="BinarySerializer, Version=4.4.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\BinarySerializer.4.4\lib\portable-net40+sl50+win+wpa81+wp80+MonoAndroid10+xamarinios10+MonoTouch10\BinarySerializer.dll</HintPath>
+    <Reference Include="BinarySerializer, Version=4.6.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\BinarySerializer.4.6\lib\portable-net40+sl50+win+wpa81+wp80+MonoAndroid10+xamarinios10+MonoTouch10\BinarySerializer.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="FastMember">
       <HintPath>packages\FastMember.1.0.0.11\lib\net40\FastMember.dll</HintPath>
     </Reference>
-    <Reference Include="IronPython">
-      <HintPath>packages\IronPython.2.7.4\lib\Net45\IronPython.dll</HintPath>
+    <Reference Include="IronPython, Version=2.7.5.0, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
+      <HintPath>packages\IronPython.2.7.5\lib\Net45\IronPython.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="IronPython.Modules">
-      <HintPath>packages\IronPython.2.7.4\lib\Net45\IronPython.Modules.dll</HintPath>
+    <Reference Include="IronPython.Modules, Version=2.7.5.0, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
+      <HintPath>packages\IronPython.2.7.5\lib\Net45\IronPython.Modules.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="IronPython.SQLite">
-      <HintPath>packages\IronPython.2.7.4\lib\Net45\IronPython.SQLite.dll</HintPath>
-    </Reference>
-    <Reference Include="IronPython.Wpf">
-      <HintPath>packages\IronPython.2.7.4\lib\Net45\IronPython.Wpf.dll</HintPath>
-    </Reference>
-    <Reference Include="log4net">
-      <HintPath>packages\log4net.2.0.3\lib\net40-full\log4net.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Dynamic">
-      <HintPath>packages\IronPython.2.7.4\lib\Net45\Microsoft.Dynamic.dll</HintPath>
+    <Reference Include="IronPython.SQLite, Version=2.7.5.0, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
+      <HintPath>packages\IronPython.2.7.5\lib\Net45\IronPython.SQLite.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Microsoft.Scripting">
-      <HintPath>packages\IronPython.2.7.4\lib\Net45\Microsoft.Scripting.dll</HintPath>
+    <Reference Include="IronPython.Wpf, Version=2.7.5.0, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
+      <HintPath>packages\IronPython.2.7.5\lib\Net45\IronPython.Wpf.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="log4net, Version=1.2.15.0, Culture=neutral, PublicKeyToken=669e0ddf0bb1aa2a, processorArchitecture=MSIL">
+      <HintPath>packages\log4net.2.0.5\lib\net45-full\log4net.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Microsoft.Dynamic, Version=1.1.0.20, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
+      <HintPath>packages\IronPython.2.7.5\lib\Net45\Microsoft.Dynamic.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Microsoft.Scripting, Version=1.1.0.20, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
+      <HintPath>packages\IronPython.2.7.5\lib\Net45\Microsoft.Scripting.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Microsoft.Scripting.AspNet, Version=1.0.0.0, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
+      <HintPath>packages\IronPython.2.7.5\lib\Net45\Microsoft.Scripting.AspNet.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Microsoft.Scripting.Metadata, Version=1.1.0.20, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
+      <HintPath>packages\IronPython.2.7.5\lib\Net45\Microsoft.Scripting.Metadata.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=8.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
@@ -95,8 +107,8 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
-    <Reference Include="XmlSchemaClassGenerator, Version=0.2.5143.24328, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\XmlSchemaClassGenerator-beta.0.2.5143.24328\lib\net45\XmlSchemaClassGenerator.dll</HintPath>
+    <Reference Include="XmlSchemaClassGenerator, Version=1.0.20.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\XmlSchemaClassGenerator-beta.1.0.20\lib\net45\XmlSchemaClassGenerator.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="zlib.net">
@@ -187,15 +199,15 @@
   <PropertyGroup>
     <PostBuildEvent>copy "$(ProjectDir)Log4Net.config" "$(ProjectDir)$(OutDir)"</PostBuildEvent>
   </PropertyGroup>
-  <Import Project="packages\Fody.1.25.0\build\Fody.targets" Condition="Exists('packages\Fody.1.25.0\build\Fody.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('packages\Fody.1.25.0\build\Fody.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Fody.1.25.0\build\Fody.targets'))" />
     <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
+    <Error Condition="!Exists('packages\Fody.1.29.4\build\dotnet\Fody.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Fody.1.29.4\build\dotnet\Fody.targets'))" />
   </Target>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
+  <Import Project="packages\Fody.1.29.4\build\dotnet\Fody.targets" Condition="Exists('packages\Fody.1.29.4\build\dotnet\Fody.targets')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
