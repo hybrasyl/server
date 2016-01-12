@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <castable xmlns="http://www.hybrasyl.com/XML/Actions" type="skill" icon="3" book="primaryskill" class="rogue monk" cooldown="30">
   <name>Kitten Strike</name>
+  <description>Strike with the power of kitten</description>
   <categories>
     <category>kitten</category>
     <category>assail</category>
@@ -51,7 +52,6 @@
       </end>
     </animations>
     <sound id="6"/>
-    <teleport x="6" y="6">Test Village</teleport>
     <scriptname>kittenstrike.py</scriptname>
     <heal overtime="1">
       <simple min="100" max="800"/>

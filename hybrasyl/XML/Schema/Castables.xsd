@@ -254,7 +254,7 @@
   <!-- Animation group -->
   <xs:complexType name="AnimationGroup">
     <xs:choice minOccurs="0" maxOccurs="3">
-      <xs:element name="player" type="actions:Animation" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="motion" type="actions:Animation" minOccurs="0" maxOccurs="1"/>
       <xs:element name="spelleffect" type="actions:Animation" minOccurs="0" maxOccurs="1"/>
       <xs:element name="target" type="actions:Animation" minOccurs="0" maxOccurs="1"/>
     </xs:choice>
@@ -291,16 +291,6 @@
           <xs:attribute name="id" type="xs:byte" use="required"/>
         </xs:complexType>
       </xs:element>
-      <xs:element name="teleport" minOccurs="0" maxOccurs="1">
-        <xs:complexType>
-          <xs:simpleContent>
-            <xs:extension base="hyb:String8">
-              <xs:attribute name="x" type="xs:unsignedByte" use="required"/>
-              <xs:attribute name="y" type="xs:unsignedByte" use="required"/>
-            </xs:extension>
-          </xs:simpleContent>
-        </xs:complexType>
-      </xs:element>
       <xs:element name="scriptname" minOccurs="0" maxOccurs="1" type="hyb:String8"/>
       <xs:element name="heal" minOccurs="0" maxOccurs="1" type="actions:Heal"/>
       <xs:element name="damage" minOccurs="0" maxOccurs="1" type="actions:Damage"/>
@@ -313,14 +303,14 @@
   <xs:complexType name="Statuses">
     <xs:choice minOccurs="1" maxOccurs="unbounded">
       <xs:element name="add" type="actions:AddStatus" minOccurs="0" maxOccurs="unbounded"/>
-      <xs:element name="remove" type="hyb:String8" minOccurs="0" maxOccurs="unbounded"/>                  
+      <xs:element name="remove" type="hyb:String8" minOccurs="0" maxOccurs="unbounded"/>
     </xs:choice>
   </xs:complexType>
 
   <xs:complexType name="Categories">
     <xs:sequence minOccurs="1" maxOccurs="unbounded">
       <xs:element name="category">
-      </xs:element>      
+      </xs:element>
     </xs:sequence>
   </xs:complexType>
 
@@ -330,18 +320,18 @@
         <xs:attribute name="unique" type="xs:boolean" default="false" use="optional"/>
       </xs:extension>
     </xs:simpleContent>
-  </xs:complexType>        
+  </xs:complexType>
 
   <xs:complexType name="AddStatus">
      <xs:simpleContent>
        <xs:extension base="hyb:StatusEffectsList">
          <xs:attribute name="modifier" type="xs:float" use="optional"/>
          <xs:attribute name="damagetype" type="hyb:DamageType" use="optional"/>
-         <xs:attribute name="target" type="xs:token" use="optional"/>       
+         <xs:attribute name="target" type="xs:token" use="optional"/>
        </xs:extension>
      </xs:simpleContent>
   </xs:complexType>
-  
+
   <!-- Stat effects (buffs or debuffs) container element -->
   <xs:complexType name="StatEffects">
     <xs:sequence>
@@ -375,8 +365,9 @@
   </xs:complexType>
 
   <!-- Castable type -->
-  <xs:complexType name="CastableType">
+  <xs:complexType name="Castable">
     <xs:choice minOccurs="0" maxOccurs="8">
+      <xs:element name="description" type="hyb:String8" minOccurs="0" maxOccurs="1"/>
       <xs:element name="name" type="hyb:String8" minOccurs="1" maxOccurs="1"/>
       <xs:element name="categories" type="actions:Categories" minOccurs="0" maxOccurs="1"/>
       <xs:element name="castcost" type="actions:CastCost" minOccurs="0" maxOccurs="1"/>
@@ -406,6 +397,6 @@
   </xs:complexType>
 
   <!-- Bring it all together -->
-  <xs:element name="castable" type="actions:CastableType"/>
+  <xs:element name="castable" type="actions:Castable"/>
 
 </xs:schema>
