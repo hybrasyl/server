@@ -52,6 +52,16 @@
    </xs:restriction>
   </xs:simpleType>
 
+    <!-- Weapon type list (for casting restrictions) -->
+  <xs:simpleType name="IntentTargetList">
+    <xs:restriction>
+      <xs:simpleType>
+        <xs:list itemType="actions:IntentTarget"/>
+      </xs:simpleType>
+      <xs:maxLength value="4"/>
+    </xs:restriction>
+  </xs:simpleType>
+
   <!-- Intent direction type -->
  <xs:simpleType name="IntentDirection">
    <xs:restriction base="xs:token">
@@ -106,7 +116,8 @@
     <xs:attribute name="isclick" type="xs:boolean" default="false"/>
     <xs:attribute name="radius" type="xs:unsignedByte" default="0"/>
     <xs:attribute name="direction" type="actions:IntentDirection" default="front"/>
-    <xs:attribute name="target" type="actions:IntentTarget" use="required"/>
+    <xs:attribute name="target" type="actions:IntentTargetList" use="required"/>
+    <xs:attribute name="maxtargets" type="xs:unsignedByte" default="0"/>
   </xs:complexType>
 
   <!-- MaxLevel type: each class can have various maximum levels for a spell -->

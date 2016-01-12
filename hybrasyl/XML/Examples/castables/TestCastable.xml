@@ -16,6 +16,7 @@
   </castcost>
   <intents>
     <intent isclick="1" radius="6" direction="front" target="friendly"/>
+    <intent isclick="1" radius="6" maxtargets="1337" direction="front" target="pvp"/>
   </intents>
   <maxlevel rogue="100" monk="6"/>
   <requirements>
