@@ -20,6 +20,8 @@
  *            Kyle Speck    <kojasou@hybrasyl.com>
  */
 
+using System.Runtime.Serialization;
+using IronPython.Modules;
 using log4net;
 using System;
 using System.Collections.Concurrent;
@@ -61,6 +63,18 @@ namespace Hybrasyl
 
         private byte serverOrdinal = 0x00;
         //private byte clientOrdinal = 0x00;
+
+        public String RemoteAddress
+        {
+            get
+            {
+                if (Socket != null)
+                {
+                    return ((System.Net.IPEndPoint) Socket.RemoteEndPoint).Address.ToString();
+                }
+                return "nil";
+            }
+        }
 
         public byte EncryptionSeed { get; set; }
         public byte[] EncryptionKey { get; set; }

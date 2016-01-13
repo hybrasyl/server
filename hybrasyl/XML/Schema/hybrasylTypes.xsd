@@ -59,7 +59,6 @@
     </xs:restriction>
   </xs:simpleType>
 
-  <!-- Item flags -->
   <xs:simpleType name="ItemFlags">
     <xs:restriction>
       <xs:simpleType>
@@ -81,28 +80,41 @@
           </xs:simpleType>
         </xs:list>
       </xs:simpleType>
-      <xs:maxLength value="8"/>
     </xs:restriction>
   </xs:simpleType>
 
   <!-- Status effects -->
- 
+
   <xs:simpleType name="StatusEffectsList">
     <xs:restriction>
       <xs:simpleType>
         <xs:list>
           <xs:simpleType>
             <xs:restriction base="xs:token">
-              <xs:enumeration value="frozen"/>
-              <xs:enumeration value="asleep"/>
-              <xs:enumeration value="paralyzed"/>
-              <xs:enumeration value="blinded"/>
-              <xs:enumeration value="skulled"/>
+              <xs:enumeration value="freeze"/>
+              <xs:enumeration value="sleep"/>
+              <xs:enumeration value="paralyze"/>
+              <xs:enumeration value="blind"/>
+              <xs:enumeration value="skull"/>
+              <xs:enumeration value="poison"/>
+              <xs:enumeration value="mist"/>
+              <xs:enumeration value="regen"/>
+              <xs:enumeration value="sight"/>
+              <xs:enumeration value="invisible"/>
+              <xs:enumeration value="mute"/>
+              <xs:enumeration value="reflectphysical"/>
+              <xs:enumeration value="reflectmagical"/>
+              <xs:enumeration value="invulnerable"/>
+              <xs:enumeration value="charm"/>
+              <xs:enumeration value="increasedamage"/>
+              <xs:enumeration value="reducedamage"/>
+              <xs:enumeration value="prohibitusage"/>
+              <xs:enumeration value="absorbspell"/>
             </xs:restriction>
           </xs:simpleType>
         </xs:list>
       </xs:simpleType>
-      <xs:maxLength value="5"/>
+      <xs:maxLength value="19"/>
     </xs:restriction>
   </xs:simpleType>
 
@@ -159,6 +171,7 @@
       <xs:enumeration value="direct"/>
       <xs:enumeration value="physical"/>
       <xs:enumeration value="magical"/>
+      <xs:enumeration value="elemental"/>
     </xs:restriction>  
   </xs:simpleType>
 
@@ -225,11 +238,11 @@
         <xs:list>
           <xs:simpleType>
             <xs:restriction base="xs:token">
+              <xs:enumeration value="vend"/>
               <xs:enumeration value="bank"/>
               <xs:enumeration value="train"/>
-              <xs:enumeration value="vend"/>
               <xs:enumeration value="repair"/>
-                <xs:enumeration value="post"/>
+              <xs:enumeration value="post"/>
             </xs:restriction>
           </xs:simpleType>
         </xs:list>
@@ -261,6 +274,13 @@
   <xs:simpleType name="VariantProperty">
     <xs:restriction base="xs:string">
       <xs:pattern value="-{0,1}[0-9]*%{0,1}"/>
+    </xs:restriction>
+  </xs:simpleType>
+  
+  <!-- IP address type (used for Hybrasyl config files), and yes, IPv4 only -->
+  <xs:simpleType name="IpAddress">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="((((25[0-5])|(2[0-4][0-9])|([01]?[0-9]?[0-9]))\.){3}((25[0-5])|(2[0-4][0-9])|([01]?[0-9]?[0-9])))(\-((((25[0-5])|(2[0-4][0-9])|([01]?[0-9]?[0-9]))\.){3}((25[0-5])|(2[0-4][0-9])|([01]?[0-9]?[0-9]))))?"/>
     </xs:restriction>
   </xs:simpleType>
 

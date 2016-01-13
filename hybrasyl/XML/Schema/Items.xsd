@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="utf-8"?>
 <xs:schema xmlns:hyb="http://www.hybrasyl.com/XML/HybrasylCommon" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:items="http://www.hybrasyl.com/XML/Items" targetNamespace="http://www.hybrasyl.com/XML/Items" elementFormDefault="qualified">
 
   <xs:annotation>
@@ -11,9 +11,26 @@
   </xs:annotation>
 
   <xs:import schemaLocation="hybrasylTypes.xsd" namespace="http://www.hybrasyl.com/XML/HybrasylCommon"/>
+
+  <xs:complexType name="CastModifiers">
+    <xs:sequence>
+      <xs:element name="lines" minOccurs="1" maxOccurs="unbounded">
+        <xs:complexType>
+          <xs:attribute name="offset" type="xs:byte" use="optional"/>
+          <xs:attribute name="number" type="xs:byte" use="optional"/>
+          <xs:attribute name="modifier" type="xs:byte" use="optional"/>
+          <xs:attribute name="global" type="xs:boolean" default="false" use="optional"/>
+          <xs:attribute name="spellgroup" type="xs:token" use="optional"/>
+          <xs:attribute name="min" type="xs:byte" use="optional"/>
+          <xs:attribute name="max" type="xs:byte" use="optional"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
   <!-- TODO: add effect script name to variants -->
   <xs:complexType name="VariantProperties">
-    <xs:choice minOccurs="0" maxOccurs="7">
+    <xs:sequence>
       <xs:element name="appearance" minOccurs="0" maxOccurs="1">
         <xs:complexType>
           <xs:attribute name="bodystyle" type="hyb:ItemBodystyle"/>
@@ -38,7 +55,7 @@
           </xs:sequence>
         </xs:complexType>
       </xs:element>
-      <xs:element name="flags" type="hyb:ItemFlags" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="flags" minOccurs="0" maxOccurs="1" type="hyb:ItemFlags"/>
       <xs:element name="physical" minOccurs="0" maxOccurs="1">
         <xs:complexType>
           <xs:attribute name="value" default="0" type="hyb:VariantProperty"/>
@@ -107,13 +124,13 @@
           </xs:sequence>
         </xs:complexType>
       </xs:element>
-    </xs:choice>
+    </xs:sequence>
   </xs:complexType>
-  
+
   <xs:complexType name="ItemProperties">
     <xs:sequence>
       <xs:element name="appearance" minOccurs="1" maxOccurs="1">
-        <xs:complexType>        
+        <xs:complexType>
           <xs:attribute name="sprite" use="required" type="xs:unsignedShort"/>
           <xs:attribute name="equipsprite" type="xs:unsignedShort"/>
           <xs:attribute name="displaysprite" type="xs:unsignedShort"/>
@@ -121,15 +138,16 @@
           <xs:attribute name="color" default="none" type="hyb:ItemColor"/>
         </xs:complexType>
       </xs:element>
+      <xs:element name="castmodifiers" minOccurs="0" maxOccurs="1" type="items:CastModifiers"/>
       <xs:element name="stackable" minOccurs="1" maxOccurs="1">
         <xs:complexType>
-          <xs:attribute name="max" use="required"/>
+          <xs:attribute name="max" use="required" type="xs:unsignedByte"/>
         </xs:complexType>
       </xs:element>
       <xs:element name="physical" minOccurs="1" maxOccurs="1">
         <xs:complexType>
           <xs:attribute name="value" default="0" type="xs:unsignedInt"/>
-          <xs:attribute name="weight" default="1" type="xs:integer"/>
+          <xs:attribute name="weight" default="1" type="xs:int"/>
           <xs:attribute name="durability" default="1" type="xs:unsignedInt"/>
           <xs:attribute name="perishable" type="xs:boolean" default="false"/>
           <xs:attribute name="vendorable" type="xs:boolean" default="true"/>
@@ -140,6 +158,7 @@
         <xs:complexType>
           <xs:attribute name="slot" use="required" type="hyb:EquipmentSlot"/>
           <xs:attribute name="unique" type="xs:boolean" default="false"/>
+          <xs:attribute name="weapontype" type="hyb:WeaponType"/>
         </xs:complexType>
       </xs:element>
       <xs:element name="stateffects" minOccurs="0" maxOccurs="1">
@@ -152,9 +171,9 @@
                 <xs:attribute name="wis" default="0" type="xs:byte"/>
                 <xs:attribute name="con" default="0" type="xs:byte"/>
                 <xs:attribute name="dex" default="0" type="xs:byte"/>
-                <xs:attribute name="hp" default="0" type="xs:integer"/>
-                <xs:attribute name="mp" default="0" type="xs:integer"/>
-              </xs:complexType>              
+                <xs:attribute name="hp" default="0" type="xs:int"/>
+                <xs:attribute name="mp" default="0" type="xs:int"/>
+              </xs:complexType>
             </xs:element>
             <xs:element name="combat" minOccurs="0" maxOccurs="1">
               <xs:complexType>
@@ -172,9 +191,9 @@
               </xs:complexType>
             </xs:element>
           </xs:sequence>
-        </xs:complexType>   
+        </xs:complexType>
       </xs:element>
-      <xs:element name="flags" type="hyb:ItemFlags" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="flags" minOccurs="0" maxOccurs="1" type="hyb:ItemFlags"/>
       <xs:element name="variants" minOccurs="0" maxOccurs="1">
         <xs:complexType>
           <xs:sequence>
@@ -183,11 +202,11 @@
           </xs:sequence>
         </xs:complexType>
       </xs:element>
-      
+
       <xs:element name="vendor" minOccurs="0" maxOccurs="1">
         <xs:complexType>
           <xs:sequence>
-            <xs:element name="description" type="hyb:String8"/>
+            <xs:element name="description" type="hyb:String8" default="item"/>
           </xs:sequence>
           <xs:attribute name="shoptab" type="xs:byte" use="required"/>
         </xs:complexType>
@@ -197,14 +216,14 @@
           <xs:sequence>
             <xs:element name="small">
               <xs:complexType>
-                <xs:attribute name="min" default="0" type="xs:integer"/>
-                <xs:attribute name="max" default="0" type="xs:integer"/>
+                <xs:attribute name="min" default="0" type="xs:unsignedShort"/>
+                <xs:attribute name="max" default="0" type="xs:unsignedShort"/>
               </xs:complexType>
             </xs:element>
             <xs:element name="large">
               <xs:complexType>
-                <xs:attribute name="min" default="0" type="xs:integer"/>
-                <xs:attribute name="max" default="0" type="xs:integer"/>
+                <xs:attribute name="min" default="0" type="xs:unsignedShort"/>
+                <xs:attribute name="max" default="0" type="xs:unsignedShort"/>
               </xs:complexType>
             </xs:element>
           </xs:sequence>
@@ -226,10 +245,10 @@
             </xs:element>
             <xs:element name="playerEffect" minOccurs="0" maxOccurs="1">
               <xs:complexType>
-                <xs:attribute name="gold" default="0" type="xs:integer"/>
-                <xs:attribute name="hp" default="0" type="xs:integer"/>
-                <xs:attribute name="mp" default="0" type="xs:integer"/>
-                <xs:attribute name="xp" default="0" type="xs:integer"/>
+                <xs:attribute name="gold" default="0" type="xs:int"/>
+                <xs:attribute name="hp" default="0" type="xs:int"/>
+                <xs:attribute name="mp" default="0" type="xs:int"/>
+                <xs:attribute name="xp" default="0" type="xs:int"/>
               </xs:complexType>
             </xs:element>
             <xs:element name="effect" minOccurs="0" maxOccurs="1">
@@ -261,7 +280,7 @@
                 <xs:attribute name="min" type="xs:unsignedByte" default="0"/>
                  <xs:attribute name="max" type="xs:unsignedByte" default="255"/>
               </xs:complexType>
-            </xs:element>       
+            </xs:element>
             <xs:element name="class" minOccurs="0" maxOccurs="1" type="hyb:Class"/>
             <xs:element name="gender" type="hyb:Gender" minOccurs="0" maxOccurs="1" default="neutral"/>
           </xs:sequence>
@@ -269,24 +288,24 @@
       </xs:element>
     </xs:sequence>
   </xs:complexType>
-  
+
   <xs:complexType name="ItemType">
     <xs:sequence>
       <xs:element name="name" minOccurs="1" maxOccurs="1" type="hyb:String8"/>
       <xs:element name="comment" minOccurs="0" maxOccurs="1" type="hyb:String16"/>
-      <xs:element name="properties" minOccurs="1" maxOccurs="1" type="items:ItemProperties"/>  
-    </xs:sequence>    
+      <xs:element name="properties" minOccurs="1" maxOccurs="1" type="items:ItemProperties"/>
+    </xs:sequence>
   </xs:complexType>
 
   <xs:complexType name="VariantType">
     <xs:sequence>
       <xs:element name="name" minOccurs="1" maxOccurs="1" type="hyb:String8"/>
       <xs:element name="modifier" minOccurs="1" maxOccurs="1" type="hyb:String8"/>
-      <xs:element name="comment" minOccurs="0" maxOccurs="1" type="hyb:String8"/>      
+      <xs:element name="comment" minOccurs="0" maxOccurs="1" type="hyb:String8"/>
       <xs:element name="properties" minOccurs="1" maxOccurs="1" type="items:VariantProperties"/>
     </xs:sequence>
   </xs:complexType>
-  
+
   <xs:complexType name="VariantGroupType">
     <xs:sequence>
       <xs:element name="name" minOccurs="1" maxOccurs="1" type="hyb:String8"/>

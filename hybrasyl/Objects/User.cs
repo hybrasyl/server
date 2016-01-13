@@ -20,11 +20,19 @@
  *            Kyle Speck    <kojasou@hybrasyl.com>
  */
 
+using System.Net;
+using System.Runtime.Serialization;
+using System.Security.Permissions;
+using BinarySerialization;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
 using Hybrasyl.Properties;
 using Hybrasyl.Utility;
+using Hybrasyl.XML;
+using IronPython.Modules;
+using IronPython.SQLite;
 using log4net;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -33,56 +41,128 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
+using StackExchange.Redis;
 
 namespace Hybrasyl.Objects
 {
+
+    [JsonObject]
+    public class LegendMark
+    {
+        public String Prefix { get; set; }
+        public int Color { get; set; }
+        public int Icon { get; set; }
+        public String Text { get; set; }
+        public bool Public { get; set; }
+        public DateTime Created { get; set; }
+    }
+
+    [JsonObject]
+    public class GuildMembership
+    {
+        public String Title { get; set; }
+        public String Name { get; set; }
+        public String Rank { get; set; }
+    }
+
+    [JsonObject]
+    public class Location
+    {
+        public ushort MapId { get; set; }
+        public Direction Direction { get; set; }
+        public byte X { get; set; }
+        public byte Y { get; set; }
+        public bool WorldMap { get; set; }
+    }
+
+    [JsonObject]
+    public class PasswordInfo
+    {
+        public String Hash { get; set; }
+        public DateTime LastChanged { get; set; }
+        public String LastChangedFrom { get; set; }
+    }
+
+    [JsonObject]
+    public class LoginInfo
+    {
+        public DateTime LastLogin { get; set; }
+        public DateTime LastLogoff { get; set; }
+        public DateTime LastLoginFailure { get; set; }
+        public String LastLoginFrom { get; set; }
+        public Int64 LoginFailureCount { get; set; }
+        public DateTime CreatedTime { get; set; }
+    }
+
+    [JsonObject(MemberSerialization.OptIn)]
     public class User : Creature
     {
         public new static readonly ILog Logger =
                LogManager.GetLogger(
                System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        private Client Client { get; set; }
-        public Sex Sex { get; private set; }
-        private account Account { get; set; }
+        public static string GetStorageKey(string name)
+        {
+            return String.Concat(DatastorePrefix, ':', name);
+        }
 
+        public string StorageKey
+        {
+            get { return String.Concat(DatastorePrefix, ':', Name); }
+        }
+        private Client Client { get; set; }
+
+        public static readonly String DatastorePrefix = "_user";
+
+        [JsonProperty]
+        public Sex Sex { get; set; }
+        //private account Account { get; set; }
+        [JsonProperty]
         public byte HairStyle { get; set; }
+        [JsonProperty]
         public byte HairColor { get; set; }
+        [JsonProperty]
         public Class Class { get; set; }
+        [JsonProperty]
         public bool IsMaster { get; set; }
         public UserGroup Group { get; set; }
-
+        [JsonProperty]
         public bool Dead { get; set; }
 
+        // Some structs helping us to define various metadata 
+        [JsonProperty]
+        public Location Location { get; set; }
+        [JsonProperty]
+        public LoginInfo Login { get; set; }
+        [JsonProperty]
+        public PasswordInfo Password { get; set; }
+       
         //public Skill[] SkillBook { get; private set; }
         //public Spell[] SpellBook { get; private set; }
 
-
-        #region Equipment Pointers
-
-
-
-        #endregion
-
+        [JsonProperty]
         public bool Grouping { get; set; }
         public UserStatus GroupStatus { get; set; }
         public byte[] PortraitData { get; set; }
         public string ProfileText { get; set; }
 
-        // These should eventually be EF POCO objects?
+        [JsonProperty]
+        public GuildMembership Guild { get; set; }
+        
+        public Nation Citizenship { get; set; }
 
-        public string Title { get; set; }
-        public string Guild { get; set; }
-        public string GuildRank { get; set; }
+        [JsonProperty]
+        public string NationName
+        {
+            get { return Citizenship.Name; }
+        }
 
-        public nation Citizenship { get; private set; }
-        public List<legend_marks> LegendMarks { get; private set; }
-
-        public DateTime LoginTime { get; private set; }
-        public DateTime LogoffTime { get; private set; }
+        [JsonProperty]
+        public List<LegendMark> Legend { get; set; }
 
         public DialogState DialogState { get; set; }
 
+        [JsonProperty]
         private Dictionary<String, String> UserFlags { get; set; }
         private Dictionary<String, String> UserSessionFlags { get; set; }
 
@@ -105,6 +185,7 @@ namespace Hybrasyl.Objects
             }
         }
 
+        [JsonProperty]
         public uint LevelPoints = 0;
 
         public byte CurrentMusicTrack { get; set; }
@@ -122,7 +203,7 @@ namespace Hybrasyl.Objects
             get
             {
                 // This is hax, obvs, and so can you
-                return Name == "Kedian" || (Account != null && Account.email == "baughj@discordians.net");
+                return Name == "Kedian"; // ||(Account != null && Account.email == "baughj@discordians.net");
             }
         }
 
@@ -130,11 +211,8 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                TimeSpan span = (LoginTime - LogoffTime);
-                if (span.TotalSeconds < 0)
-                    return 0;
-                else
-                    return span.TotalSeconds;
+                var span = (Login.LastLogin - Login.LastLogoff);
+                return span.TotalSeconds < 0 ? 0 : span.TotalSeconds;
             }
         }
 
@@ -143,42 +221,19 @@ namespace Hybrasyl.Objects
         public long LastSpoke { get; set; }
         public string LastSaid { get; set; }
         public int NumSaidRepeated { get; set; }
+        public Dictionary<string, bool> Flags { get; private set; }
 
-        public bool Grouped
+	    public bool Grouped
         {
             get { return Group != null; }
         }
 
-        // this is terrible and I hate it. It will go away soon.
-        // HAHAHAHAHAHA LIES.
-
-        public static readonly Dictionary<String, String> EntityFrameworkMapping = new Dictionary<String, String>
-        {
-            {"Name", "name"},
-            {"Sex", "sex"},
-            {"HairStyle", "hairstyle"},
-            {"HairColor", "haircolor"},
-            {"Class", "class_type"},
-            {"Level", "level"},
-            {"LevelPoints", "level_points"},
-            {"Experience", "exp"},
-            {"Ability", "ab"},
-            {"MapId", "map_id"},
-            {"MaximumStack", "max_stack"},
-            {"MapX", "map_x"},
-            {"MapY", "map_y"},
-            {"AbilityExp", "ab_exp"},
-            {"BaseHp", "max_hp"},
-            {"BaseMp", "max_mp"},
-            {"Hp", "cur_hp"},
-            {"Mp", "cur_mp"},
-            {"BaseStr", "str"},
-            {"BaseInt", "int"},
-            {"BaseWis", "wis"},
-            {"BaseCon", "con"},
-            {"BaseDex", "dex"},
-            {"Gold", "gold"}
-        };
+    	[JsonProperty]
+        public bool IsMuted { get; set; }
+        [JsonProperty]
+        public bool IsIgnoringWhispers { get; set; }
+        [JsonProperty]
+	    public bool IsAtWorldMap { get; set; }
 
         public void Enqueue(ServerPacket packet)
         {
@@ -209,12 +264,6 @@ namespace Hybrasyl.Objects
             Enqueue(removePacket);
         }
 
-        public Dictionary<string, bool> Flags { get; private set; }
-
-        public bool IsMuted { get; set; }
-        public bool IsIgnoringWhispers { get; set; }
-        public bool IsAtWorldMap { get; set; }
-
         public string GroupText
         {
             get
@@ -231,10 +280,11 @@ namespace Hybrasyl.Objects
          * weight may be less than zero, but this method will never return a negative value (negative
          * values will appear as zero as the client expects).
          */
-	public ushort VisibleWeight
-	{
-	    get { return (ushort)Math.Max(0, CurrentWeight); }
-	}
+
+        public ushort VisibleWeight
+        {
+            get { return (ushort) Math.Max(0, CurrentWeight); }
+        }
 
         /**
          * Returns the true weight of the user's inventory + equipment, which could be negative.
@@ -251,6 +301,16 @@ namespace Hybrasyl.Objects
             get { return (ushort) (BaseStr + Level/4 + 48); }
         }
 
+        public bool VerifyPassword(String password)
+        {
+             return BCrypt.Net.BCrypt.Verify(password, Password.Hash);
+        }
+
+        public User()
+        {
+            _initializeUser();
+        }
+
         private void _initializeUser(string playername = "")
         {
             Inventory = new Inventory(59);
@@ -258,10 +318,11 @@ namespace Hybrasyl.Objects
             //SkillBook = new Skill[90];
             //SpellBook = new Spell[90];
             IsAtWorldMap = false;
-            Title = String.Empty;
-            Guild = String.Empty;
-            GuildRank = String.Empty;
-            LegendMarks = null;
+            Login = new LoginInfo();
+            Password = new PasswordInfo();
+            Location = new Location();
+            Legend = new List<LegendMark>();
+            Guild = new GuildMembership();
             LastSaid = String.Empty;
             LastSpoke = 0;
             NumSaidRepeated = 0;
@@ -272,15 +333,13 @@ namespace Hybrasyl.Objects
             UserSessionFlags = new Dictionary<String, String>();
             Status = PlayerStatus.Alive;
             Group = null;
-
+            Flags = new Dictionary<string, bool>();
             if (!string.IsNullOrEmpty(playername))
             {
                 Name = playername;
-                LoadDataFromEntityFramework();
             }
 
         }
-
         /**
          * Invites another user to this user's group. If this user isn't in a group,
          * create a new one.
@@ -452,6 +511,15 @@ namespace Hybrasyl.Objects
             
         }
 
+        public bool AssociateConnection(World world, long connectionId)
+        {
+            World = world;
+            Client client;
+            if (!GlobalConnectionManifest.ConnectedClients.TryGetValue(connectionId, out client)) return false;
+            Client = client;
+            return true;
+        }
+
         public User(World world, long connectionId, string playername = "")
         {
             World = world;
@@ -467,6 +535,14 @@ namespace Hybrasyl.Objects
         {
             World = world;
             Client = client;
+            _initializeUser(playername);
+        }
+
+        public User(string playername, Sex sex, ushort targetMap, byte targetX, byte targetY)
+        {
+            Name = playername;
+            Sex = sex;
+            Location = new Location {MapId = targetMap, WorldMap = false, X = targetX, Y = targetY};
             _initializeUser(playername);
         }
 
@@ -495,6 +571,7 @@ namespace Hybrasyl.Objects
             BonusAc += toApply.BonusAc;
             BonusMr += toApply.BonusMr;
             BonusRegen += toApply.BonusRegen;
+
             switch (toApply.EquipmentSlot)
             {
                 case (byte) ItemSlots.Necklace:
@@ -504,6 +581,7 @@ namespace Hybrasyl.Objects
                     DefensiveElement = toApply.Element;
                     break;
             }
+
             Logger.DebugFormat("Player {0}: stats now {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11}, {12}, {13}",
             BonusHp, BonusHp, BonusStr, BonusInt, BonusWis,
             BonusCon, BonusDex, BonusHit, BonusDmg, BonusAc,
@@ -589,20 +667,20 @@ namespace Hybrasyl.Objects
 
             profilePacket.WriteByte((byte)GroupStatus);
             profilePacket.WriteString8(Name);
-            profilePacket.WriteByte((byte)Citizenship.flag); // This should pull from town / nation
-            profilePacket.WriteString8(Title);
+            profilePacket.WriteByte((byte)Citizenship.Flag); // This should pull from town / nation
+            profilePacket.WriteString8(Guild.Title);
             profilePacket.WriteByte((byte)(Grouping ? 1 : 0));
-            profilePacket.WriteString8(GuildRank);
+            profilePacket.WriteString8(Guild.Rank);
             profilePacket.WriteString8(Hybrasyl.Constants.REVERSE_CLASSES[(int)Class]);
-            profilePacket.WriteString8(Guild);
-            profilePacket.WriteByte((byte)LegendMarks.Count);
-            foreach (var mark in LegendMarks)
+            profilePacket.WriteString8(Guild.Name);
+            //profilePacket.WriteByte((byte)LegendMarks.Count);
+            /*foreach (var mark in LegendMarks)
             {
                 profilePacket.WriteByte((byte)mark.icon);
                 profilePacket.WriteByte((byte)mark.color);
                 profilePacket.WriteString8(mark.prefix);
                 profilePacket.WriteString8(mark.text);
-            }
+            }*/
             profilePacket.WriteUInt16((ushort)(PortraitData.Length + ProfileText.Length + 4));
             profilePacket.WriteUInt16((ushort)PortraitData.Length);
             profilePacket.Write(PortraitData);
@@ -628,181 +706,10 @@ namespace Hybrasyl.Objects
 
         }
 
-        public bool LoadDataFromEntityFramework(bool updateInventory = false)
-        {
-
-            using (var ctx = new hybrasylEntities(Constants.ConnectionString))
-            {
-                var playerquery = ctx.players.Where(player => player.name == Name).SingleOrDefault();
-                if (playerquery == null)
-                {
-                    return false;
-                }
-
-                foreach (var property in GetType().GetProperties())
-                {
-                    string value;
-                    if (User.EntityFrameworkMapping.TryGetValue(property.Name, out value))
-                    {
-                        SetValue(property, this, ctx.Entry(playerquery).Property(User.EntityFrameworkMapping[property.Name]).CurrentValue);
-                    }
-                }
-
-                // Now load our attributes             
-                Flags = playerquery.flags.ToDictionary(v => v.name, v => true);
-
-                Account = playerquery.account;
-                // Set our citizenship
-                nation citizenship;
-                if (playerquery.nation != null && World.Nations.TryGetValue(playerquery.nation.name, out citizenship))
-                    Citizenship = citizenship;
-                else
-                    Citizenship = World.Nations[Hybrasyl.Constants.DEFAULT_CITIZENSHIP];
-
-                LogoffTime = playerquery.last_logoff ?? DateTime.Now;
-
-                // Legend marks
-                LegendMarks = playerquery.legend_marks.ToList();
-
-                // Are we updating inventory & equipment?
-
-                if (updateInventory)
-                {
-                    var inventory = JArray.Parse((string)playerquery.inventory);
-                    var equipment = JArray.Parse((string)playerquery.equipment);
-
-                    foreach (var obj in inventory)
-                    {
-                        Logger.DebugFormat("Inventory found");
-                        PrettyPrinter.PrettyPrint(obj);
-                        var itemId = (int)obj["item_id"];
-                        int itemSlot = (int)obj["slot"];
-                        var variantId = obj.Value<int?>("variant_id") ?? -1;
-
-                        if (variantId > 0)
-                            itemId = Game.World.Items[itemId].Variants[variantId].id;
-
-                        var item = Game.World.CreateItem(itemId);
-                        item.Count = obj.Value<int?>("count") ?? 1;
-
-                        if (item != null)
-                        {
-                            Game.World.Insert(item);
-                            AddItem(item, (byte)itemSlot);
-                        }
-                        Logger.DebugFormat("Item is {0}", itemId);
-                    }
-
-                    foreach (var obj in equipment)
-                    {
-                        var itemId = (int)obj["item_id"];
-                        var itemSlot = (int)obj["slot"];
-                        var variantId = obj.Value<int?>("variant_id") ?? -1;
-
-                        if (variantId > 0)
-                            itemId = Game.World.Items[itemId].Variants[variantId].id;
-
-                        var item = Game.World.CreateItem(itemId);
-
-                        if (item != null)
-                        {
-                            Logger.DebugFormat("Adding equipment: {0} to {1}", item.Name, itemSlot);
-                            Game.World.Insert(item);
-                            AddEquipment(item, (byte)itemSlot, false);
-                        }
-                        Logger.DebugFormat("Equipment is {0}", itemId);
-                    }
-                }
-            }
-            return true;
-        }
-
-        public bool SaveDataToEntityFramework()
-        {
-            using (var ctx = new hybrasylEntities(Constants.ConnectionString))
-            {
-                var playerquery = ctx.players.Where(player => player.name == Name).SingleOrDefault();
-
-                if (playerquery == null)
-                {
-                    return false;
-                }
-
-                var inventory = new JArray();
-                var equipment = new JArray();
-
-                for (byte i = 1; i <= Inventory.Size; ++i)
-                {
-                    if (Inventory[i] == null) continue;
-                    var obj = new JObject();
-                    obj.Add("slot", (int)i);
-                    obj.Add("count", Inventory[i].Count);
-                    if (Inventory[i].IsVariant)
-                    {
-                        obj.Add("item_id", Inventory[i].ParentItem.id);
-                        obj.Add("variant_id", Inventory[i].CurrentVariant.id);
-                    }
-                    else
-                    {
-                        obj.Add("item_id", Inventory[i].TemplateId);
-                    }
-                    inventory.Add(obj);
-                }
-
-                for (byte i = 1; i < Equipment.Size; ++i)
-                {
-                    if (Equipment[i] == null) continue;
-                    var obj = new JObject();
-                    obj.Add("slot", (int)i);
-                    if (Equipment[i].IsVariant)
-                    {
-                        obj.Add("item_id", Equipment[i].ParentItem.id);
-                        obj.Add("variant_id", Equipment[i].CurrentVariant.id);
-                    }
-                    else
-                    {
-                        obj.Add("item_id", Equipment[i].TemplateId);
-                    }
-                    equipment.Add(obj);
-                }
-
-                foreach (var property in GetType().GetProperties())
-                {
-                    string value;
-                    if (User.EntityFrameworkMapping.TryGetValue(property.Name, out value))
-                    {
-                        // Nullables on the DB side need special handling to cast correctly.
-                        var curType = property.PropertyType;
-                        var destType = Nullable.GetUnderlyingType(typeof(player).GetProperty(value).PropertyType) ??
-                            typeof(player).GetProperty(value).PropertyType;
-                        object safevalue = (value == null) ? null : Convert.ChangeType(property.GetValue(this), destType);
-
-                        // BEWARE - this will break if passed Enums that aren't handled via EF 5's enum support!
-                        ctx.Entry(playerquery).Property(value).CurrentValue = safevalue;
-                    }
-                }
-
-                ctx.Entry(playerquery).Property("inventory").CurrentValue = inventory.ToString();
-                ctx.Entry(playerquery).Property("equipment").CurrentValue = equipment.ToString();
-
-                // Save our current location 
-                ctx.Entry(playerquery).Property("map_id").CurrentValue = (int)Map.Id;
-                ctx.Entry(playerquery).Property("map_x").CurrentValue = (int)X; ;
-                ctx.Entry(playerquery).Property("map_y").CurrentValue = (int)Y;
-
-                if (Citizenship != null)
-                    ctx.Entry(playerquery).Property("nation_id").CurrentValue = Citizenship.id;
-
-                ctx.SaveChanges();
-
-            }
-
-            return true;
-        }
-
         public void Save()
         {
-            SaveDataToEntityFramework();
+            var cache = World.DatastoreConnection.GetDatabase();
+            cache.Set(GetStorageKey(Name), JsonConvert.SerializeObject(this));
         }
 
         public override void SendMapInfo()
@@ -1193,6 +1100,7 @@ namespace Hybrasyl.Objects
             Rectangle departingViewport = Rectangle.Empty;
             Rectangle commonViewport = Rectangle.Empty;
             var halfViewport = Constants.VIEWPORT_SIZE / 2;
+            Warp targetWarp;
 
             switch (direction)
             {
@@ -1224,6 +1132,7 @@ namespace Hybrasyl.Objects
                     departingViewport = new Rectangle(oldX - halfViewport, oldY - halfViewport, 1, Constants.VIEWPORT_SIZE);
                     break;
             }
+            var isWarp = Map.Warps.TryGetValue(new Tuple<byte, byte>((byte)newX, (byte)newY), out targetWarp);
 
             // Now that we know where we are going, perform some sanity checks.
             // Is the player trying to walk into a wall, or off the map?
@@ -1247,22 +1156,19 @@ namespace Hybrasyl.Objects
                     }
                 }
                 // Is this user entering a forbidden (by level or otherwise) warp?
-                foreach (var warp in Map.Warps)
+                if (isWarp)
                 {
-                    if (warp.X == newX && warp.Y == newY)
+                    if (targetWarp.MinimumLevel > Level)
                     {
-                        if (warp.MinimumLevel > Level)
-                        {
-                            Client.SendMessage("You're too afraid to even approach it!", 3);
-                            Refresh();
-                            return false;
-                        }
-                        else if (warp.MaximumLevel < Level)
-                        {
-                            Client.SendMessage("Your honor forbids you from entering.", 3);
-                            Refresh();
-                            return false;
-                        }
+                        Client.SendMessage("You're too afraid to even approach it!", 3);
+                        Refresh();
+                        return false;
+                    }
+                    else if (targetWarp.MaximumLevel < Level)
+                    {
+                        Client.SendMessage("Your honor forbids you from entering.", 3);
+                        Refresh();
+                        return false;
                     }
                 }
             }
@@ -1329,30 +1235,11 @@ namespace Hybrasyl.Objects
                 AoiDeparture(obj);
             }
 
-            foreach (var warp in Map.Warps)
+            if (isWarp)
             {
-                if (warp.X == newX && warp.Y == newY)
-                {
-                    // Spin a bit so the client actually animates into the frame as opposed
-                    // to flashing
-                    Thread.Sleep(250);
-                    Teleport(warp.DestinationMap, warp.DestinationX, warp.DestinationY);
-                    return false;
-                }
+                return targetWarp.Use(this);
             }
 
-            // how about we do it like this instead
-
-            var tupleKey = new Tuple<byte, byte>((byte)newX, (byte)newY);
-            WorldWarp wwarp;
-
-            if (Map.WorldWarps.TryGetValue(tupleKey, out wwarp))
-            {
-                Remove();
-                SendWorldMap(wwarp.DestinationWorldMap);
-                World.Maps[Hybrasyl.Constants.LAG_MAP].Insert(this, 5, 5, false);
-                return false;
-            }
             HasMoved = true;
             Map.EntityTree.Move(this);
             return true;
@@ -1588,30 +1475,29 @@ namespace Hybrasyl.Objects
         public void SendProfile()
         {
             var profilePacket = new ServerPacket(0x39);
-            profilePacket.WriteByte((byte)Citizenship.flag); // citizenship
-            profilePacket.WriteString8(GuildRank);
-            profilePacket.WriteString8(Title);
-            profilePacket.WriteString8(GroupProfileSegment());
-//            profilePacket.WriteString8(GroupText);
+            profilePacket.WriteByte((byte) Citizenship.Flag); // citizenship
+            profilePacket.WriteString8(Guild.Rank);
+            profilePacket.WriteString8(Guild.Title);
+            profilePacket.WriteString8(GroupText);
             profilePacket.WriteBoolean(Grouping);
             profilePacket.WriteByte(0); // ??
-            profilePacket.WriteByte((byte)Class);
+            profilePacket.WriteByte((byte) Class);
             //            profilePacket.WriteByte(1); // ??
             profilePacket.WriteByte(0);
             profilePacket.WriteByte(0); // ??
-            profilePacket.WriteString8(Hybrasyl.Constants.REVERSE_CLASSES[(int)Class]);
-            profilePacket.WriteString8(Guild);
-            // Legend foreach would go here
-            profilePacket.WriteByte((byte)LegendMarks.Count);
-            foreach (var mark in LegendMarks)
+            profilePacket.WriteString8(Hybrasyl.Constants.REVERSE_CLASSES[(int) Class]);
+            profilePacket.WriteString8(Guild.Name);
+            profilePacket.WriteByte((byte) Legend.Count);
+            foreach (var mark in Legend)
             {
-                profilePacket.WriteByte((byte)mark.icon);
-                profilePacket.WriteByte((byte)mark.color);
-                profilePacket.WriteString8(mark.prefix);
-                profilePacket.WriteString8(mark.text);
+                profilePacket.WriteByte((byte) mark.Icon);
+                profilePacket.WriteByte((byte) mark.Color);
+                profilePacket.WriteString8(mark.Prefix);
+                profilePacket.WriteString8(mark.Text);
             }
 
             Enqueue(profilePacket);
+
         }
 
         /// <summary>
@@ -1619,23 +1505,8 @@ namespace Hybrasyl.Objects
         /// </summary>
         public void UpdateLoginTime()
         {
-            using (var ctx = new hybrasylEntities(Constants.ConnectionString))
-            {
-                var playerquery = ctx.players.Where(player => player.name == Name).SingleOrDefault();
-                if (playerquery == null)
-                {
-                    // This means something very odd is happening; we might want to throw an exception
-                    // or do something else here
-                    return;
-                }
-                else
-                {
-                    var now = DateTime.Now;
-                    LoginTime = now;
-                    ctx.Entry(playerquery).Property("last_login").CurrentValue = now;
-                    ctx.SaveChanges();
-                }
-            }
+            Login.LastLogin = DateTime.Now;
+            Save();
         }
 
         /// <summary>
@@ -1643,23 +1514,8 @@ namespace Hybrasyl.Objects
         /// </summary>
         public void UpdateLogoffTime()
         {
-            using (var ctx = new hybrasylEntities(Constants.ConnectionString))
-            {
-                var playerquery = ctx.players.Where(player => player.name == Name).SingleOrDefault();
-                if (playerquery == null)
-                {
-                    // This means something very odd is happening; we might want to throw an exception
-                    // or do something else here
-                    return;
-                }
-                else
-                {
-                    var now = DateTime.Now;
-                    LoginTime = now;
-                    ctx.Entry(playerquery).Property("last_logoff").CurrentValue = now;
-                    ctx.SaveChanges();
-                }
-            }
+            Login.LastLogoff = DateTime.Now;
+            Save();
         }
 
         public void SendWorldMap(WorldMap map)
@@ -1763,9 +1619,9 @@ namespace Hybrasyl.Objects
             x2F.WriteUInt16((ushort)merchant.Inventory.Count);
             foreach (var item in merchant.Inventory.Values)
             {
-                x2F.WriteUInt16((ushort)(0x8000 + item.sprite));
-                x2F.WriteByte((byte)item.color);
-                x2F.WriteUInt32((uint)item.value);
+                x2F.WriteUInt16((ushort)(0x8000 + item.properties.appearance.sprite));
+                x2F.WriteByte((byte)item.properties.appearance.color);
+                x2F.WriteUInt32((uint)item.properties.physical.value);
                 x2F.WriteString8(item.name);
                 x2F.WriteString8(string.Empty); // defunct item description
             }
@@ -1948,7 +1804,7 @@ namespace Hybrasyl.Objects
         public void Logoff()
         {
             UpdateLogoffTime();
-            SaveDataToEntityFramework();
+            Save();
             Client.Disconnect();
         }
 
@@ -2071,5 +1927,50 @@ namespace Hybrasyl.Objects
         {
             Client.SendMessage(p, 3);
         }
+        /*
+        [SecurityPermission(SecurityAction.Demand, SerializationFormatter =true)]
+        public void GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            info.AddValue("SerializationVersion", "1");
+            info.AddValue("Name", Name);
+            info.AddValue("Sex", Sex);
+            info.AddValue("HairStyle", HairStyle);
+            info.AddValue("HairColor", HairColor);
+            info.AddValue("Class", Class);
+            info.AddValue("Level", Level);
+            info.AddValue("LevelPoints", LevelPoints);
+            info.AddValue("Experience", Experience);
+            info.AddValue("Ability", Ability);
+            info.AddValue("MapId", MapId);
+            info.AddValue("MapX", MapX);
+            info.AddValue("AbilityExp", AbilityExp);
+            info.AddValue("BaseHp", BaseHp);
+            info.AddValue("BaseMp", BaseMp);
+            info.AddValue("Hp", Hp);
+            info.AddValue("Mp", Mp);
+            info.AddValue("BaseStr", BaseStr);
+            info.AddValue("BaseInt", BaseStr);
+            info.AddValue("BaseWis", BaseStr);
+            info.AddValue("BaseDex", BaseStr);
+            info.AddValue("BaseCon", BaseStr);
+            info.AddValue("Gold", Gold);
+            info.AddValue("IsMaster", IsMaster);
+            info.AddValue("Dead", Dead);
+            info.AddValue("Grouping", Grouping);
+            info.AddValue("PortraitData", PortraitData);
+            info.AddValue("ProfileText", ProfileText);
+            info.AddValue("LoginTime", LoginTime);
+            info.AddValue("LogoffTime", LogoffTime);
+            info.AddValue("UserFlags", UserFlags);
+            info.AddValue("PlayerStatus", Status);
+                
+            info.AddValue("LegendMarks", Legend);
+            info.AddValue("Inventory", Inventory, typeof(Inventory));
+            info.AddValue("Equipment", Equipment, typeof(Inventory));
+
+
+
+
+        }*/
     }
 }

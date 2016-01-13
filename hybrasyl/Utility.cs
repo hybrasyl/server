@@ -20,6 +20,7 @@
  *            Kyle Speck    <kojasou@hybrasyl.com>
  */
 
+using System.IO;
 using log4net;
 using System;
 using System.Collections.Generic;
@@ -234,11 +235,8 @@ namespace Hybrasyl
         // Manhattan distance between the user performing an action (killing a monster, etc) and other
         // users in the group in order to be eligible for sharing.
         public const int GROUP_SHARING_DISTANCE = 20;
-        public const string EF_METADATA = "metadata=res://*/Properties.Hybrasyl.csdl|res://*/Properties.Hybrasyl.ssdl|res://*/Properties.Hybrasyl.msl;provider=MySql.Data.MySqlClient;";
-        public const string EF_CONNSTRING_TEMPLATE = @"provider connection string=""server={0};user id={1};password={2};convertzerodatetime=true;allowzerodatetime=true;persist security info=True;database={3}""";
 
         public static string DataDirectory;
-        public static string ConnectionString;
 
         // This should be an ID of a map that will be used to store players in the event of lag / worldmap disconnects
         public const ushort LAG_MAP = 1001;
@@ -351,10 +349,6 @@ namespace Hybrasyl
         public const int DIALOG_SEQUENCE_SHARED = 5000;
         public const int DIALOG_SEQUENCE_PURSUITS = 5100;
         public const int DIALOG_SEQUENCE_HARDCODED = 65280;
-
-        // Default citizenship
-
-        public const string DEFAULT_CITIZENSHIP = "Mileth";
 
         public static Dictionary<string, int> CLASSES = new Dictionary<string, int> {
         {"Peasant", 0},

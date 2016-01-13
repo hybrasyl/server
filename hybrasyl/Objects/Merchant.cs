@@ -30,31 +30,23 @@ namespace Hybrasyl.Objects
     public class Merchant : Monster
     {
         public bool Ready;
-        public npc Data;
+        //public npc Data;
         public MerchantJob Jobs { get; set; }
-        public Dictionary<string, item> Inventory { get; private set; }
+        public Dictionary<string, XML.Items.ItemType> Inventory { get; private set; }
 
         public Merchant()
             : base()
-        { }
-
-        public Merchant(npc data)
         {
-            Data = data;
-            X = (byte)data.map_x;
-            Y = (byte)data.map_y;
-            Sprite = (ushort)data.sprite;
-            Direction = (Direction)data.direction;
-            Name = data.name;
-            DisplayText = data.display_text;
             Ready = false;
-            Jobs = (MerchantJob)data.jobs;
-            Inventory = new Dictionary<string, item>();
+            //Jobs = (MerchantJob).jobs;
+            Inventory = new Dictionary<string, XML.Items.ItemType>();
             //foreach (var item in data.inventory)
             //{
             //   Inventory.Add(item.name, item);
             //}
         }
+        
+
 
         public void OnSpawn()
         {
@@ -126,11 +118,11 @@ namespace Hybrasyl.Objects
     [Flags]
     public enum MerchantJob
     {
-        Vendor = 0x01,
-        Banker = 0x02,
-        Trainer = 0x04,
-        Repairer = 0x08,
-        Postman = 0x10
+        Vend = 0x01,
+        Bank = 0x02,
+        Train = 0x04,
+        Repair = 0x08,
+        Post = 0x10
     }
 
     public enum MerchantMenuItem : ushort

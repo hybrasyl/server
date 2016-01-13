@@ -20,11 +20,13 @@
  *            Kyle Speck    <kojasou@hybrasyl.com>
  */
 
-using C3;
+using System.Runtime.Serialization.Formatters.Binary;
+using Community.CsharpSqlite;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
-using Hybrasyl.Properties;
+using Hybrasyl.XML;
+using Hybrasyl.XML.Config;
 using log4net;
 using log4net.Core;
 using System;
@@ -40,9 +42,64 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Timers;
+using System.Xml;
+using System.Xml.Schema;
+using Hybrasyl.XML.Items;
+using Newtonsoft.Json;
+using StackExchange.Redis;
 
 namespace Hybrasyl
 {
+
+    public static class SampleStackExchangeRedisExtensions
+    {
+        public static T Get<T>(this IDatabase cache, string key)
+        {
+            return Deserialize<T>(cache.StringGet(key));
+        }
+
+        public static object Get(this IDatabase cache, string key)
+        {
+            return Deserialize<object>(cache.StringGet(key));
+        }
+
+        public static void Set(this IDatabase cache, string key, object value)
+        {
+            cache.StringSet(key, Serialize(value));
+        }
+
+        static byte[] Serialize(object o)
+        {
+            if (o == null)
+            {
+                return null;
+            }
+
+            BinaryFormatter binaryFormatter = new BinaryFormatter();
+            using (MemoryStream memoryStream = new MemoryStream())
+            {
+                binaryFormatter.Serialize(memoryStream, o);
+                byte[] objectDataAsStream = memoryStream.ToArray();
+                return objectDataAsStream;
+            }
+        }
+
+        static T Deserialize<T>(byte[] stream)
+        {
+            if (stream == null)
+            {
+                return default(T);
+            }
+
+            BinaryFormatter binaryFormatter = new BinaryFormatter();
+            using (MemoryStream memoryStream = new MemoryStream(stream))
+            {
+                T result = (T)binaryFormatter.Deserialize(memoryStream);
+                return result;
+            }
+        }
+    }
+
     public class World : Server
     {
         private static uint worldObjectID = 0;
@@ -54,8 +111,9 @@ namespace Hybrasyl
         public Dictionary<uint, WorldObject> Objects { get; set; }
 
         public Dictionary<ushort, Map> Maps { get; set; }
-        public Dictionary<int, WorldMap> WorldMaps { get; set; }
-        public Dictionary<int, item> Items { get; set; }
+        public Dictionary<string, WorldMap> WorldMaps { get; set; }
+        public Dictionary<int, XML.Items.ItemType> Items { get; set; }
+        public Dictionary<string, XML.Items.VariantGroupType> ItemVariants { get; set; } 
         public Dictionary<int, SkillTemplate> Skills { get; set; }
         public Dictionary<int, SpellTemplate> Spells { get; set; }
         public Dictionary<int, MonsterTemplate> Monsters { get; set; }
@@ -66,13 +124,15 @@ namespace Hybrasyl
         public Dictionary<string, User> Users { get; set; }
         public Dictionary<Int64, MapPoint> MapPoints { get; set; }
         public Dictionary<string, CompiledMetafile> Metafiles { get; set; }
-        public Dictionary<string, nation> Nations { get; set; }
+        public Dictionary<string, Nation> Nations { get; set; }
+
+        public string DefaultCitizenship { get; set; }
 
         public List<DialogSequence> GlobalSequences { get; set; }
         public Dictionary<String, DialogSequence> GlobalSequencesCatalog { get; set; }
         private Dictionary<MerchantMenuItem, MerchantMenuHandler> merchantMenuHandlers;
 
-        public Dictionary<Tuple<Sex, String>, item> ItemCatalog { get; set; }
+        public Dictionary<Tuple<Sex, String>, XML.Items.ItemType> ItemCatalog { get; set; }
         public Dictionary<String, Map> MapCatalog { get; set; }
 
         public HybrasylScriptProcessor ScriptProcessor { get; set; }
@@ -83,17 +143,64 @@ namespace Hybrasyl
 
         private Thread ConsumerThread { get; set; }
 
-        // Timers
-        //public static ConcurrentBag<Timer> Timers;
-
         public Login Login { get; private set; }
 
-        public World(int port)
+        private static Lazy<ConnectionMultiplexer> _lazyConnector;
+
+        public static ConnectionMultiplexer DatastoreConnection
+        {
+            get { return _lazyConnector.Value; }
+        }
+
+        public static string DataDirectory
+        {
+            get { return Constants.DataDirectory; }
+        }
+
+        public static string ItemDirectory
+        {
+            get { return Path.Combine(DataDirectory, "world", "xml", "items"); }
+        }
+
+        public static string NationDirectory
+        {
+            get { return Path.Combine(DataDirectory, "world", "xml", "nations"); }
+        }
+
+        public static string MapDirectory
+        {
+            get { return Path.Combine(DataDirectory, "world", "xml", "maps"); }
+        }
+
+        public static string WorldMapDirectory
+        {
+            get { return Path.Combine(DataDirectory, "world", "xml", "worldmaps"); }
+        }
+
+        public static string ItemVariantDirectory
+        {
+            get { return Path.Combine(DataDirectory, "world", "xml", "itemvariants"); }
+        }
+
+        public static bool TryGetUser(string name, out User userobj)
+        {
+            var jsonString = (string)DatastoreConnection.GetDatabase().Get(User.GetStorageKey(name));
+            if (jsonString == null)
+            {
+                userobj = null;
+                return false;
+            }
+            userobj = JsonConvert.DeserializeObject<User>(jsonString);
+            return true;
+
+        }
+
+        public World(int port, XML.Config.DataStore store)
             : base(port)
         {
             Maps = new Dictionary<ushort, Map>();
-            WorldMaps = new Dictionary<int, WorldMap>();
-            Items = new Dictionary<int, item>();
+            WorldMaps = new Dictionary<string, WorldMap>();
+            Items = new Dictionary<int, XML.Items.ItemType>();
             Skills = new Dictionary<int, SkillTemplate>();
             Spells = new Dictionary<int, SpellTemplate>();
             Monsters = new Dictionary<int, MonsterTemplate>();
@@ -103,12 +210,13 @@ namespace Hybrasyl
             Users = new Dictionary<string, User>(StringComparer.CurrentCultureIgnoreCase);
             MapPoints = new Dictionary<Int64, MapPoint>();
             Metafiles = new Dictionary<string, CompiledMetafile>();
-            Nations = new Dictionary<string, nation>();
+            Nations = new Dictionary<string, Nation>();
             Portraits = new Dictionary<string, string>();
             GlobalSequences = new List<DialogSequence>();
+            ItemVariants = new Dictionary<string, VariantGroupType>();
 
             GlobalSequencesCatalog = new Dictionary<String, DialogSequence>();
-            ItemCatalog = new Dictionary<Tuple<Sex, String>, item>();
+            ItemCatalog = new Dictionary<Tuple<Sex, String>, XML.Items.ItemType>();
             MapCatalog = new Dictionary<String, Map>();
 
             ScriptProcessor = new HybrasylScriptProcessor(this);
@@ -116,7 +224,19 @@ namespace Hybrasyl
             ActiveUsers = new ConcurrentDictionary<long, User>();
             ActiveUsersByName = new ConcurrentDictionary<String, long>();
 
-            // Timers = new ConcurrentBag<Timer>();
+            var datastoreConfig = new ConfigurationOptions()
+            {
+                EndPoints =
+                {
+                    {store.host, store.port}
+                }
+            };
+
+            if (!String.IsNullOrEmpty(store.password))
+                datastoreConfig.Password = store.password;
+
+            _lazyConnector = new Lazy<ConnectionMultiplexer>(() => ConnectionMultiplexer.Connect(datastoreConfig));
+                    
         }
 
         public void InitWorld()
@@ -124,27 +244,10 @@ namespace Hybrasyl
             LoadData();
             CompileScripts();
             LoadMetafiles();
-            LoadReactors();
             SetPacketHandlers();
             SetControlMessageHandlers();
             SetMerchantMenuHandlers();
             Logger.InfoFormat("Hybrasyl server ready");
-        }
-
-        private void LoadReactors()
-        {
-            using (var ctx = new hybrasylEntities(Constants.ConnectionString))
-            {
-                foreach (var reactor in ctx.reactors)
-                {
-                    Map map;
-                    if (Maps.TryGetValue((ushort)reactor.map_id, out map))
-                    {
-                        map.InsertReactor(reactor);
-                    }
-                }
-
-            }
         }
 
         internal void RegisterGlobalSequence(DialogSequence sequence)
@@ -154,337 +257,131 @@ namespace Hybrasyl
             GlobalSequencesCatalog.Add(sequence.Name, sequence);
         }
 
-        private void AddSingleWarp(int sourceId, int sourceX, int sourceY, int targetId, int targetX, int targetY,
-            int maxLev = 99, int minLev = 0, int minAb = 0, bool mobUse = false)
-        {
-            var warp = new Warp();
-            warp.X = (byte) sourceX;
-            warp.Y = (byte) sourceY;
-            warp.DestinationMap = (ushort) targetId;
-            warp.DestinationX = (byte) targetX;
-            warp.DestinationY = (byte) targetY;
-            warp.MinimumLevel = (byte) (minLev);
-            warp.MaximumLevel = (byte) (maxLev);
-            warp.MinimumAbility = (byte) (minAb);
-            warp.MobsCanUse = (bool) (mobUse);
-            Maps[(ushort) sourceId].Warps.Add(warp);
-
-            Logger.DebugFormat("Added warp: {0} {1},{2}", Maps[(ushort) sourceId].Name, warp.X, warp.Y);
-        }
-
-        public void AddWarp(warp newWarp)
-        {
-            int[] sourceRangeX;
-            int[] sourceRangeY;
-            int[] targetRangeX;
-            int[] targetRangeY;
-
-            try
-            {
-                sourceRangeX = newWarp.source_x.Split('-').Select(s => Convert.ToInt32(s)).ToArray();
-                sourceRangeY = newWarp.source_y.Split('-').Select(s => Convert.ToInt32(s)).ToArray();
-
-                targetRangeX = newWarp.target_x.Split('-').Select(s => Convert.ToInt32(s)).ToArray();
-                targetRangeY = newWarp.target_y.Split('-').Select(s => Convert.ToInt32(s)).ToArray();
-            }
-            catch
-            {
-                Logger.ErrorFormat("Unable to parse warp id {0}", newWarp.id);
-                return;
-            }
-
-            var sourceCoords = sourceRangeX.Zip(sourceRangeY, (x, y) => new {X = x, Y = y});
-            var targetCoords = targetRangeX.Zip(targetRangeY, (x, y) => new {X = x, Y = y});
-
-            foreach (var source in sourceCoords)
-            {
-                foreach (var target in targetCoords)
-                {
-                    AddSingleWarp(newWarp.source_id, source.X, source.Y, newWarp.target_id, target.X, target.Y,
-                        newWarp.max_lev, newWarp.min_lev,
-                        newWarp.min_ab, newWarp.mob_use);
-                }
-            }
-
-        }
-
-        private void AddSingleWorldWarp(int sourceMapId, int sourceX, int sourceY, int targetWorldmapId, int maxLev = 99,
-            int minLev = 0, int minAb = 0)
-        {
-            var worldwarp = new WorldWarp();
-            var worldwarpKey = new Tuple<byte, byte>((byte) sourceX, (byte) sourceY);
-            worldwarp.X = (byte) sourceX;
-            worldwarp.Y = (byte) sourceY;
-            worldwarp.DestinationWorldMap = WorldMaps[targetWorldmapId];
-            worldwarp.MinimumLevel = (byte) minLev;
-            worldwarp.MaximumLevel = (byte) maxLev;
-            worldwarp.MinimumAbility = (byte) minAb;
-
-            if (Maps[(ushort) sourceMapId].WorldWarps.ContainsKey(worldwarpKey))
-            {
-                Logger.WarnFormat("Duplicate warp detected (ignored): {0} {1},{2} to world map {3}",
-                    Maps[(ushort) sourceMapId].Name, worldwarp.X, worldwarp.Y, worldwarp.DestinationWorldMap.Name);
-                return;
-            }
-
-            Maps[(ushort) sourceMapId].WorldWarps.Add(worldwarpKey, worldwarp);
-
-            Logger.DebugFormat("Added world warp from {0} {1},{2} to world map {3} for level {4}-{5}, min AB: {6}",
-                Maps[(ushort) sourceMapId].Name, worldwarp.X, worldwarp.Y, worldwarp.DestinationWorldMap.Name,
-                worldwarp.MinimumLevel, worldwarp.MaximumLevel,
-                worldwarp.MinimumAbility);
-        }
-
-        public void AddWorldWarp(worldwarp target)
-        {
-            int[] sourceRangeX;
-            int[] sourceRangeY;
-
-            try
-            {
-                sourceRangeX = target.source_x.Split('-').Select(s => Convert.ToInt32(s)).ToArray();
-                sourceRangeY = target.source_y.Split('-').Select(s => Convert.ToInt32(s)).ToArray();
-            }
-            catch
-            {
-                Logger.ErrorFormat("Unable to parse world warp id {0}", target.id);
-                return;
-            }
-
-            var sourceCoords = sourceRangeX.Zip(sourceRangeY, (x, y) => new {X = x, Y = y});
-
-            foreach (var sourceCoord in sourceCoords)
-            {
-                AddSingleWorldWarp(target.source_map_id, sourceCoord.X, sourceCoord.Y, target.target_worldmap_id,
-                    target.max_lev, target.min_lev, target.min_ab);
-            }
-        }
-
         public bool PlayerExists(string name)
         {
-            using (var ctx = new hybrasylEntities(Constants.ConnectionString))
-            {
-                var count = ctx.players.Where(player => player.name == name).Count();
-                Logger.DebugFormat("count is {0}", count);
-                return count != 0;
-
-            }
+            var redis = DatastoreConnection.GetDatabase();
+            return redis.KeyExists(User.GetStorageKey(name));
         }
 
         private void LoadData()
-        {
-            var random = new Random();
-            var elements = Enum.GetValues(typeof(Element)); 
-            try
+        {           
+          
+            // You'll notice some inconsistencies here in that we use both wrapper classes and 
+            // native XML classes for Hybrasyl objects. This is unfortunate and should be 
+            // refactored later, but it is way too much work to do now (e.g. maps, etc).
+
+            // Load nations
+            foreach (var xml in Directory.GetFiles(NationDirectory).Select(File.ReadAllText))
             {
-                using (var ctx = new hybrasylEntities(Constants.ConnectionString))
+                Nation newNation;
+                Exception parseException;
+                if (Nation.Deserialize(xml, out newNation, out parseException))
                 {
-                    var maps = ctx.maps.Include("warps").Include("worldwarps").Include("npcs").Include("spawns").ToList();
-
-                    var worldmaps = ctx.worldmaps.Include("worldmap_points").ToList();
-                    var items = ctx.items.ToList();
-                    //var doors = ctx.doors.ToList();
-                    var signposts = ctx.signposts.ToList();
-
-                    Logger.InfoFormat("Adding {0} worldmaps", ctx.worldmaps.Count());
-
-                    foreach (var wmap in worldmaps)
-                    {
-                        var worldmap = new WorldMap();
-                        worldmap.World = this;
-                        worldmap.Id = wmap.id;
-                        worldmap.Name = wmap.name;
-                        worldmap.ClientMap = wmap.client_map;
-                        WorldMaps.Add(worldmap.Id, worldmap);
-
-                        foreach (var mappoint in wmap.worldmap_points)
-                        {
-                            var point = new MapPoint();
-                            point.Parent = worldmap;
-                            point.Id = (Int64) mappoint.id;
-                            point.Name = (string) mappoint.name;
-                            point.DestinationMap = (ushort) mappoint.target_map_id;
-                            point.DestinationX = (byte) mappoint.target_x;
-                            point.DestinationY = (byte) mappoint.target_y;
-                            point.X = (int) mappoint.map_x;
-                            point.Y = (int) mappoint.map_y;
-                            point.XOffset = point.X%255;
-                            point.YOffset = point.Y%255;
-                            point.XQuadrant = (point.X - point.XOffset)/255;
-                            point.YQuadrant = (point.Y - point.YOffset)/255;
-                            worldmap.Points.Add(point);
-                            MapPoints.Add(point.Id, point);
-                        }
-                    }
-                    Logger.InfoFormat("Adding {0} maps", ctx.maps.Count());
-
-                    foreach (var map in maps)
-                    {
-                        var newmap = new Map();
-                        newmap.World = this;
-                        newmap.Id = (ushort) map.id;
-                        newmap.X = (byte) map.size_x;
-                        newmap.Y = (byte) map.size_y;
-                        newmap.Name = (string) map.name;
-                        newmap.Flags = (byte) map.flags;
-                        newmap.Music = (byte) (map.music ?? 0);
-                        newmap.EntityTree = new QuadTree<VisibleObject>(0, 0, map.size_x, map.size_y);
-
-                        if (newmap.Load())
-                        {
-                            Maps.Add(newmap.Id, newmap);
-                            try
-                            {
-                                MapCatalog.Add(newmap.Name, newmap);
-                            }
-                            catch
-                            {
-                                Logger.WarnFormat("map name {0}, id {1} ignored for map catalog",
-                                    newmap.Name, newmap.Id);
-                            }
-
-                            foreach (var warp in map.warps)
-                            {
-                                AddWarp(warp);
-                            }
-
-                            foreach (var worldwarp in map.worldwarps)
-                            {
-                                AddWorldWarp(worldwarp);
-                            }
-
-                            foreach (var npc in map.npcs)
-                            {
-                                newmap.InsertNpc(npc);
-                                if (npc.portrait != null)
-                                {
-                                    Portraits[npc.name] = npc.portrait;
-                                }
-                            }
-
-                            foreach (var spawn in map.spawns)
-                            {
-                                AddSpawn(spawn);
-                            }
-                        }
-                    }
-
-                    // We have to handle signposts separately due to a bug in MySQL connector
-                    foreach (var signpost in signposts)
-                    {
-                        Map postmap;
-                        if (Maps.TryGetValue((ushort) signpost.map_id, out postmap))
-                            postmap.InsertSignpost(signpost);
-                        else
-                            Logger.ErrorFormat("Signpost {0}: {1},{2}: Map {0} is missing ", signpost.id,
-                                signpost.map_x, signpost.map_y, signpost.map_id);
-                    }
-
-                    int variantId = Hybrasyl.Constants.VARIANT_ID_START;
-
-                    Logger.InfoFormat("Adding {0} items", items.Count);
-                    var variants = ctx.item_variant.ToList();
-
-                    foreach (var item in items)
-                    {
-                        Logger.DebugFormat("Adding item {0}", item.name);
-                        item.Variants = new Dictionary<int, item>();
-
-                        // Handle the case of item having random element, which is an optional bit of support
-                        // and not really intended for serious use
-                        if (item.element == Element.Random)
-                        {
-                            item.element = (Element)elements.GetValue(random.Next(elements.Length - 1 ));
-                        }
-
-                        if (item.has_consecratable_variants)
-                        {
-                            foreach (var variant in variants.Where(variant => variant.consecratable_variant == true))
-                            {
-                                var newitem = variant.ResolveVariant(item);
-                                newitem.id = variantId;
-                                Items.Add(variantId, newitem);
-                                item.Variants[variant.id] = newitem;
-                                variantId++;
-                            }
-                        }
-
-                        if (item.has_elemental_variants)
-                        {
-                            foreach (var variant in variants.Where(variant => variant.elemental_variant == true))
-                            {
-                                var newitem = variant.ResolveVariant(item);
-                                newitem.id = variantId;
-                                Items.Add(variantId, newitem);
-                                item.Variants[variant.id] = newitem;
-                                variantId++;
-                            }
-                        }
-
-                        if (item.has_enchantable_variants)
-                        {
-                            foreach (var variant in variants.Where(variant => variant.enchantable_variant == true))
-                            {
-                                var newitem = variant.ResolveVariant(item);
-                                newitem.id = variantId;
-                                Items.Add(variantId, newitem);
-                                item.Variants[variant.id] = newitem;
-                                variantId++;
-                            }
-                        }
-
-                        if (item.has_smithable_variants)
-                        {
-                            foreach (var variant in variants.Where(variant => variant.smithable_variant == true))
-                            {
-                                var newitem = variant.ResolveVariant(item);
-                                newitem.id = variantId;
-                                Items.Add(variantId, newitem);
-                                item.Variants[variant.id] = newitem;
-                                variantId++;
-                            }
-                        }
-
-                        if (item.has_tailorable_variants)
-                        {
-                            foreach (var variant in variants.Where(variant => variant.tailorable_variant == true))
-                            {
-                                var newitem = variant.ResolveVariant(item);
-                                newitem.id = variantId;
-                                Items.Add(variantId, newitem);
-                                item.Variants[variant.id] = newitem;
-                                variantId++;
-                            }
-                        }
-                        Items.Add(item.id, item);
-                        try
-                        {
-                            ItemCatalog.Add(new Tuple<Sex, String>(item.sex, item.name), item);
-                        }
-                        catch
-                        {
-                            Logger.WarnFormat("probable duplicate item {0} not added to item catalog", item.name);
-                        }
-                    }
-                    Logger.InfoFormat("Added {0} item variants", variantId - Hybrasyl.Constants.VARIANT_ID_START);
-                    Logger.InfoFormat("{0} items (including variants) active", Items.Count);
-
-                    // Load national data
-                    Nations = ctx.nations.Include("spawn_points").ToDictionary(n => n.name, n => n);
+                    Logger.DebugFormat("Nations: Loaded {0}", newNation.Name);
+                    Nations.Add(newNation.Name, newNation);
+                }
+                else
+                {
+                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, parseException);
                 }
             }
-            catch (Exception e)
+
+            Logger.InfoFormat("Nations: {0} nations loaded", Nations.Count);
+
+            // Load maps
+            foreach (var xml in Directory.GetFiles(MapDirectory).Select(File.ReadAllText))
             {
-                Logger.ErrorFormat("Error initializing Hybrasyl data: {0} {1}", e, e.InnerException);
-                Logger.ErrorFormat("Beware, server is now likely inconsistent and should be shut down");
+                XmlMap newMap;
+                Exception parseException;
+                if (XmlMap.Deserialize(xml, out newMap, out parseException))
+                {
+                    var map = new Map(newMap, this);
+                    Maps.Add(map.Id, map);
+                    MapCatalog.Add(map.Name, map);
+                    Logger.DebugFormat("Maps: Loaded {0}", map.Name);
+                }
+                else
+                {
+                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, parseException);
+                }
             }
+
+            Logger.InfoFormat("Maps: {0} maps loaded", Maps.Count);
+
+            // Load worldmaps
+            foreach (var xml in Directory.GetFiles(WorldMapDirectory).Select(File.ReadAllText))
+            {
+                XmlWorldMap newWorldMap;
+                Exception parseException;
+                if (XmlWorldMap.Deserialize(xml, out newWorldMap, out parseException))
+                {
+                    var worldmap = new WorldMap(newWorldMap);
+                    WorldMaps.Add(worldmap.Name, worldmap);
+                    Logger.DebugFormat("World Maps: Loaded {0}", worldmap.Name);                   
+                }
+                else
+                {
+                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, parseException);
+                }
+            }
+
+            Logger.InfoFormat("World Maps: {0} world maps loaded", WorldMaps.Count);
+
+            // Load item variants
+            foreach (var file in Directory.GetFiles(ItemVariantDirectory))
+            {
+                var xml = File.ReadAllText(file);
+                VariantGroupType newGroup;
+                Exception parseException;
+                if (XML.Items.VariantGroupType.Deserialize(xml, out newGroup, out parseException))
+                {
+                    Logger.DebugFormat("Item variants: loaded {0}", newGroup.name);
+                    ItemVariants.Add(newGroup.name, newGroup);
+                }
+                else
+                {
+                    Logger.ErrorFormat("Error parsing {0}: {1}", file, parseException);
+                }
+            }
+
+            Logger.InfoFormat("Item variants: {0} variant sets loaded", ItemVariants.Count);
+
+            // Load items
+            foreach (var file in Directory.GetFiles(ItemDirectory)) 
+            {
+                var xml = File.ReadAllText(file);
+                XML.Items.ItemType newItem;
+                Exception parseException;
+                if (XML.Items.ItemType.Deserialize(xml, out newItem, out parseException))
+                {
+                    Logger.DebugFormat("Items: loaded {0}, id {1}", newItem.name, newItem.Id);
+                    Items.Add(newItem.Id, newItem);
+                    foreach (var targetGroup in newItem.properties.variants.group)
+                    {
+                        foreach (var variant in ItemVariants[targetGroup].variant)
+                        {
+                            Logger.DebugFormat("Item {0}: variantgroup {1}, subvariant {2}", newItem.name, targetGroup, variant.name);
+                            variant.ResolveVariant(newItem);                           
+                        }
+                        
+                    }
+                }
+                else
+                {
+                    Logger.ErrorFormat("Error parsing {0}: {1}", file, parseException);
+                }
+            }
+
         }
 
-        private void AddSpawn(spawn spawn)
+        private static void ValidationCallBack(object sender, ValidationEventArgs args)
         {
-            //throw new NotImplementedException();
+            if (args.Severity == XmlSeverityType.Warning)
+                Logger.WarnFormat("XML warning: {0}", args.Message);
+            else
+                Logger.ErrorFormat("XML ERROR: {0}", args.Message);
         }
-
+   
         private void LoadMetafiles()
         {
             // these might be better suited in LoadData as the database is being read, but only items are in database atm
@@ -495,8 +392,8 @@ namespace Hybrasyl
             // TODO: split items into multiple ItemInfo files (DA does ~700 each)
             foreach (var item in Items.Values)
             {
-                iteminfo0.Nodes.Add(new MetafileNode(item.name, item.level, (int) item.class_type, item.weight,
-                    string.Empty /* shop tab */, string.Empty /* shop description */));
+                iteminfo0.Nodes.Add(new MetafileNode(item.name, item.properties.restrictions.level.min, (int) item.properties.restrictions.@class, item.properties.physical.weight,
+                    item.properties.vendor.shoptab, item.properties.vendor.description));
             }
             Metafiles.Add(iteminfo0.Name, iteminfo0.Compile());
 
@@ -556,8 +453,8 @@ namespace Hybrasyl
             var nationdesc = new Metafile("NationDesc");
             foreach (var nation in Nations.Values)
             {
-                Logger.DebugFormat("Adding flag {0} for nation {1}", nation.flag, nation.name);
-                nationdesc.Nodes.Add(new MetafileNode("nation_" + nation.flag, nation.name));
+                Logger.DebugFormat("Adding flag {0} for nation {1}", nation.Flag, nation.Name);
+                nationdesc.Nodes.Add(new MetafileNode("nation_" + nation.Flag, nation.Name));
             }
             Metafiles.Add(nationdesc.Name, nationdesc.Compile());
 
@@ -659,25 +556,25 @@ namespace Hybrasyl
                 {MerchantMenuItem.MainMenu, new MerchantMenuHandler(0, MerchantMenuHandler_MainMenu)},
                 {
                     MerchantMenuItem.BuyItemMenu,
-                    new MerchantMenuHandler(MerchantJob.Vendor, MerchantMenuHandler_BuyItemMenu)
+                    new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_BuyItemMenu)
                 },
-                {MerchantMenuItem.BuyItem, new MerchantMenuHandler(MerchantJob.Vendor, MerchantMenuHandler_BuyItem)},
+                {MerchantMenuItem.BuyItem, new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_BuyItem)},
                 {
                     MerchantMenuItem.BuyItemQuantity,
-                    new MerchantMenuHandler(MerchantJob.Vendor, MerchantMenuHandler_BuyItemWithQuantity)
+                    new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_BuyItemWithQuantity)
                 },
                 {
                     MerchantMenuItem.SellItemMenu,
-                    new MerchantMenuHandler(MerchantJob.Vendor, MerchantMenuHandler_SellItemMenu)
+                    new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_SellItemMenu)
                 },
-                {MerchantMenuItem.SellItem, new MerchantMenuHandler(MerchantJob.Vendor, MerchantMenuHandler_SellItem)},
+                {MerchantMenuItem.SellItem, new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_SellItem)},
                 {
                     MerchantMenuItem.SellItemQuantity,
-                    new MerchantMenuHandler(MerchantJob.Vendor, MerchantMenuHandler_SellItemWithQuantity)
+                    new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_SellItemWithQuantity)
                 },
                 {
                     MerchantMenuItem.SellItemAccept,
-                    new MerchantMenuHandler(MerchantJob.Vendor, MerchantMenuHandler_SellItemConfirmation)
+                    new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_SellItemConfirmation)
                 }
             };
         }
@@ -792,7 +689,7 @@ namespace Hybrasyl
             if (ActiveUsers.TryGetValue(connectionId, out user))
             {
                 Logger.DebugFormat("Saving user {0}", user.Name);
-                user.SaveDataToEntityFramework();
+                user.Save();
             }
             else
             {
@@ -1343,21 +1240,24 @@ namespace Hybrasyl
                     case "/guild":
                     {
                         var guild = string.Join(" ", args, 1, args.Length - 1);
-                        user.Guild = guild;
+                        // TODO: GUILD SUPPORT
+                        //user.guild = guild;
                         user.SendMessage(String.Format("Guild changed to {0}", guild), 0x1);
                     }
                         break;
                     case "/guildrank":
                     {
                         var guildrank = string.Join(" ", args, 1, args.Length - 1);
-                        user.GuildRank = guildrank;
+                        // TODO: GUILD SUPPORT 
+                        //user.GuildRank = guildrank;
                         user.SendMessage(String.Format("Guild rank changed to {0}", guildrank), 0x1);
                     }
                         break;
                     case "/title":
                     {
                         var title = string.Join(" ", args, 1, args.Length - 1);
-                        user.Title = title;
+                        // TODO: TITLE SUPPORT
+                        //user.Title = title;
                         user.SendMessage(String.Format("Title changed to {0}", title), 0x1);
                     }
                         break;
@@ -1772,45 +1672,44 @@ namespace Hybrasyl
 
             var redirect = ExpectedConnections[id];
 
-            if (redirect.Matches(name, key, seed))
+            if (!redirect.Matches(name, key, seed)) return;
+
+            ((IDictionary) ExpectedConnections).Remove(id);
+
+            User loginUser;
+
+            if (!TryGetUser(name, out loginUser)) return;
+
+            loginUser.AssociateConnection(this, connectionId);
+            loginUser.SetEncryptionParameters(key, seed, name);
+            loginUser.UpdateLoginTime();
+            loginUser.UpdateAttributes(StatUpdateFlags.Full);
+            Logger.DebugFormat("Elapsed time since login: {0}", loginUser.SinceLastLogin);
+
+            if (loginUser.Citizenship != null && loginUser.Citizenship.Spawnpoints.Count != 0 &&
+                loginUser.SinceLastLogin > Hybrasyl.Constants.NATION_SPAWN_TIMEOUT)
             {
-                ((IDictionary) ExpectedConnections).Remove(id);
-
-                if (PlayerExists(name))
-                {
-                    var user = new User(this, connectionId, name);
-                    user.SetEncryptionParameters(key, seed, name);
-                    user.LoadDataFromEntityFramework(true);
-                    user.UpdateLoginTime();
-                    user.UpdateAttributes(StatUpdateFlags.Full);
-                    Logger.DebugFormat("Elapsed time since login: {0}", user.SinceLastLogin);
-                    if (user.Citizenship.spawn_points.Count != 0 &&
-                        user.SinceLastLogin > Hybrasyl.Constants.NATION_SPAWN_TIMEOUT)
-                    {
-                        Insert(user);
-                        var spawnpoint = user.Citizenship.spawn_points.First();
-                        user.Teleport((ushort) spawnpoint.map_id, (byte) spawnpoint.map_x, (byte) spawnpoint.map_y);
-
-                    }
-                    else if (user.MapId != null && Maps.ContainsKey(user.MapId))
-                    {
-                        Insert(user);
-                        user.Teleport(user.MapId, (byte) user.MapX, (byte) user.MapY);
-                    }
-                    else
-                    {
-                        // Handle any weird cases where a map someone exited on was deleted, etc
-                        // This "default" of Mileth should be set somewhere else
-                        Insert(user);
-                        user.Teleport((ushort) 500, (byte) 50, (byte) 50);
-                    }
-                    Logger.DebugFormat("Adding {0} to hash", user.Name);
-                    AddUser(user);
-                    ActiveUsers[connectionId] = user;
-                    ActiveUsersByName[user.Name] = connectionId;
-                    Logger.InfoFormat("cid {0}: {1} entering world", connectionId, user.Name);
-                }
+                Insert(loginUser);
+                var spawnpoint = loginUser.Citizenship.Spawnpoints.First();
+                loginUser.Teleport(spawnpoint.Mapname, spawnpoint.X, spawnpoint.Y);
             }
+            else if (Maps.ContainsKey(loginUser.MapId))
+            {
+                Insert(loginUser);
+                loginUser.Teleport(loginUser.MapId, (byte) loginUser.MapX, (byte) loginUser.MapY);
+            }
+            else
+            {
+                // Handle any weird cases where a map someone exited on was deleted, etc
+                // This "default" of Mileth should be set somewhere else
+                Insert(loginUser);
+                loginUser.Teleport((ushort) 500, (byte) 50, (byte) 50);
+            }
+            Logger.DebugFormat("Adding {0} to hash", loginUser.Name);
+            AddUser(loginUser);
+            ActiveUsers[connectionId] = loginUser;
+            ActiveUsersByName[loginUser.Name] = connectionId;
+            Logger.InfoFormat("cid {0}: {1} entering world", connectionId, loginUser.Name);
         }
 
         private void PacketHandler_0x18_ShowPlayerList(Object obj, ClientPacket packet)
@@ -1830,13 +1729,13 @@ namespace Hybrasyl
                 int levelDifference = Math.Abs((int)user.Level - me.Level);
 
                 listPacket.WriteByte((byte)user.Class);
-                
-                if (!string.IsNullOrEmpty(me.Guild) && user.Guild == me.Guild) listPacket.WriteByte(84);
-                else if (levelDifference <= 5) listPacket.WriteByte(151);
+                // TODO: GUILD SUPPORT
+                //if (!string.IsNullOrEmpty(me.Guild) && user.Guild == me.Guild) listPacket.WriteByte(84);
+                if (levelDifference <= 5) listPacket.WriteByte(151);
                 else listPacket.WriteByte(255);
 
                 listPacket.WriteByte((byte)user.GroupStatus);
-                listPacket.WriteString8(user.Title);
+                listPacket.WriteString8(""); //user.Title);
                 listPacket.WriteBoolean(user.IsMaster);
                 listPacket.WriteString8(user.Name);
             }
@@ -1879,13 +1778,13 @@ namespace Hybrasyl
 
             switch (item.ItemType)
             {
-                case ItemType.CanUse:
+                case Enums.ItemType.CanUse:
                     item.Invoke(user);
                     break;
-                case ItemType.CannotUse:
+                case Enums.ItemType.CannotUse:
                     user.SendMessage("You can't use that.", 3);
                     break;
-                case ItemType.Equipment:
+                case Enums.ItemType.Equipment:
                 {
 
                     // Check item requirements here before we do anything rash
@@ -2893,13 +2792,13 @@ namespace Hybrasyl
                 return;
             }
 
-            if (user.Gold < template.value)
+            if (user.Gold < template.properties.physical.value)
             {
                 user.ShowMerchantGoBack(merchant, "You do not have enough gold.", MerchantMenuItem.BuyItemMenu);
                 return;
             }
 
-            if (user.CurrentWeight + template.weight > user.MaximumWeight)
+            if (user.CurrentWeight + template.properties.physical.weight > user.MaximumWeight)
             {
                 user.ShowMerchantGoBack(merchant, "That item is too heavy for you to carry.",
                     MerchantMenuItem.BuyItemMenu);
@@ -2912,9 +2811,8 @@ namespace Hybrasyl
                 return;
             }
 
-            user.RemoveGold((uint) template.value);
-
-            var item = CreateItem(template.id);
+            user.RemoveGold(template.properties.physical.value);
+            var item = CreateItem(template.Id);
             Insert(item);
             user.AddItem(item);
 
@@ -2945,7 +2843,7 @@ namespace Hybrasyl
                 return;
             }
 
-            uint cost = (uint) (template.value*quantity);
+            uint cost = (uint) (template.properties.physical.value*quantity);
 
             if (user.Gold < cost)
             {
@@ -2953,7 +2851,7 @@ namespace Hybrasyl
                 return;
             }
 
-            if (quantity > template.max_stack)
+            if (quantity > template.properties.stackable.max)
             {
                 user.ShowMerchantGoBack(merchant, string.Format("You cannot hold that many {0}.", name),
                     MerchantMenuItem.BuyItemMenu);
@@ -2963,7 +2861,7 @@ namespace Hybrasyl
             if (user.Inventory.Contains(name))
             {
                 byte slot = user.Inventory.SlotOf(name);
-                if (user.Inventory[slot].Count + quantity > template.max_stack)
+                if (user.Inventory[slot].Count + quantity > template.properties.stackable.max)
                 {
                     user.ShowMerchantGoBack(merchant, string.Format("You cannot hold that many {0}.", name),
                         MerchantMenuItem.BuyItemMenu);
@@ -2979,7 +2877,7 @@ namespace Hybrasyl
                     return;
                 }
 
-                var item = CreateItem(template.id, quantity);
+                var item = CreateItem(template.Id, quantity);
                 Insert(item);
                 user.AddItem(item);
             }
@@ -3133,13 +3031,13 @@ namespace Hybrasyl
             }
         }
 
-        public bool TryGetItemTemplate(string name, Sex itemSex, out item item)
+        public bool TryGetItemTemplate(string name, Sex itemSex, out XML.Items.ItemType item)
         {
             var itemKey = new Tuple<Sex, String>(itemSex, name);
             return ItemCatalog.TryGetValue(itemKey, out item);
         }
 
-        public bool TryGetItemTemplate(string name, out item item)
+        public bool TryGetItemTemplate(string name, out XML.Items.ItemType item)
         {
             // This is kinda gross
             var neutralKey = new Tuple<Sex, String>(Sex.Neutral, name);

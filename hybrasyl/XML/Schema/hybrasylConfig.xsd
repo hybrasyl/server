@@ -1,0 +1,58 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:hyb="http://www.hybrasyl.com/XML/HybrasylCommon" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:config="http://www.hybrasyl.com/XML/Config" targetNamespace="http://www.hybrasyl.com/XML/Config" elementFormDefault="qualified">
+
+  <xs:annotation>
+    <xs:documentation xml:lang="en">
+      Hybrasyl Project - Hybrasyl XML Schema - Configuration File
+      This file is subject to the same licenses as Project Hybrasyl.
+      (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+      Written by Justin Baugh (baughj@hybrasyl.com)
+
+    </xs:documentation>
+  </xs:annotation>
+  <xs:import schemaLocation="hybrasylTypes.xsd" namespace="http://www.hybrasyl.com/XML/HybrasylCommon"/>
+
+  <xs:complexType name="DataStore">
+    <xs:sequence>
+      <xs:element name="username" type="xs:token" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="password" type="xs:token" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+    <xs:attribute name="type" type="xs:token" default="redis"/>
+    <xs:attribute name="host" type="xs:token" default=""/>
+    <xs:attribute name="port" type="xs:unsignedShort" default="6379"/>
+  </xs:complexType>
+
+  <xs:complexType name="NetworkInfo">
+    <xs:attribute name="bindaddress" type="hyb:IpAddress" default="127.0.0.1"/>
+    <xs:attribute name="port" type="xs:unsignedShort" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="Network">
+    <xs:sequence>
+      <xs:element name="lobby" type="config:NetworkInfo"/>
+      <xs:element name="login" type="config:NetworkInfo"/>
+      <xs:element name="world" type="config:NetworkInfo"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="Access">
+    <xs:sequence>
+      <xs:element name="privileged" minOccurs="0" maxOccurs="1">
+        <xs:simpleType>
+          <xs:list itemType="xs:token" />
+        </xs:simpleType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="HybrasylConfig">
+    <xs:sequence>
+      <xs:element name="datastore" type="config:DataStore" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="network" type="config:Network" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="access" type="config:Access" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:element name="hybrasylconfig" type="config:HybrasylConfig"/>
+
+</xs:schema>
