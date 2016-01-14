@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
@@ -159,7 +159,7 @@
     <None Include="Log4Net.config" />
     <None Include="packages.config" />
     <None Include="Resources\sotp.dat" />
-    <EmbeddedResource Include="XML\Schema\Actions.xsd">
+    <EmbeddedResource Include="XML\Schema\Castables.xsd">
       <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="XML\Schema\Creatures.xsd">
@@ -177,6 +177,9 @@
     <EmbeddedResource Include="XML\Schema\Nations.xsd">
       <SubType>Designer</SubType>
     </EmbeddedResource>
+    <None Include="XML\Schema\Castables.xsd">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="XML\Schema\hybrasylConfig.xsd">
       <SubType>Designer</SubType>
     </None>
