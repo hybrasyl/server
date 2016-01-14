@@ -48,17 +48,13 @@ namespace Hybrasyl.Objects
         {
             // We check a variety of conditions and return the first failure.
 
-            message = String.Empty;
+            message = string.Empty;
 
             // Check class
 
             if (userobj.Class != Class && Class != Class.Peasant)
             {
-                if (userobj.Class == Class.Peasant)
-                    message = "Perhaps one day you'll know how to use such things.";
-                else
-                    message = "Your path has forbidden itself from using such vulgar implements.";
-                return false;
+                message = userobj.Class == Class.Peasant ? "Perhaps one day you'll know how to use such things." : "Your path has forbidden itself from using such vulgar implements.";
             }
 
             // Check level / AB
@@ -66,7 +62,6 @@ namespace Hybrasyl.Objects
             if (userobj.Level < Level || (Ability != 0 && userobj.Ability < Ability))
             {
                 message = "You can't even lift it above your head, let alone wield it!";
-                return false;
             }
 
             // Check gender
@@ -74,7 +69,6 @@ namespace Hybrasyl.Objects
             if (Sex != 0 && (Sex != userobj.Sex))
             {
                 message = "You conclude this garment would look much better on someone else.";
-                return false;
             }
 
             // Check if user is equipping a shield while holding a two-handed weapon
@@ -82,7 +76,6 @@ namespace Hybrasyl.Objects
             if (EquipmentSlot == ClientItemSlots.Shield && userobj.Equipment.Weapon != null && userobj.Equipment.Weapon.WeaponType == WeaponType.TwoHanded)
             {
                 message = "You can't equip a shield with a two-handed weapon.";
-                return false;
             }
 
             // Check if user is equipping a two-handed weapon while holding a shield
@@ -90,26 +83,28 @@ namespace Hybrasyl.Objects
             if (EquipmentSlot == ClientItemSlots.Weapon && WeaponType == WeaponType.TwoHanded && userobj.Equipment.Shield != null)
             {
                 message = "You can't equip a two-handed weapon with a shield.";
-                return false;
             }
 
-            return true;
+            // Check mastership
+
+            if (Master && !userobj.IsMaster)
+            {
+                message = "Perhaps one day you'll know how to use such things.";
+            }
+
+            if (UniqueEquipped && userobj.Equipment.Find(Name) != null)
+            {
+                message = "You can't equip more than one of these.";
+            }
+
+            return message == string.Empty; 
         }
 
-        private XML.Items.ItemType Template
-        {
-            get { return World.Items[TemplateId]; }
-        }
+        private XML.Items.ItemType Template => World.Items[TemplateId];
 
-        new public string Name
-        {
-            get { return Template.name; }
-        }
+        public new string Name => Template.name;
 
-        new public ushort Sprite
-        {
-            get { return Template.properties.appearance.sprite; }
-        }
+        public new ushort Sprite => Template.properties.appearance.sprite;
 
         public ushort EquipSprite
         {
@@ -140,102 +135,33 @@ namespace Hybrasyl.Objects
                 return WeaponType.None;
             }
         }
-        public byte EquipmentSlot
-        {
-            get { return Convert.ToByte(Template.properties.equipment.slot); }
-        }
-        public int Weight
-        {
-            get { return Template.properties.physical.weight; }
-        }
-        public int MaximumStack
-        {
-            get { return Template.properties.stackable.max; }
-        }
-        public bool Stackable
-        {
-            get { return Template.Stackable; }
-        }
+        public byte EquipmentSlot => Convert.ToByte(Template.properties.equipment.slot);
+        public int Weight => Template.properties.physical.weight;
+        public int MaximumStack => Template.properties.stackable.max;
+        public bool Stackable => Template.Stackable;
 
-        public uint MaximumDurability
-        {
-            get { return Template.properties.physical.durability; }
-        }
+        public uint MaximumDurability => Template.properties.physical.durability;
 
-        public byte Level
-        {
-            get { return Template.properties.restrictions.level.min; }
-        }
-        public byte Ability
-        {
-            get { return (byte)Template.properties.restrictions.ab.min; }
-        }
-        public Class Class
-        {
-            get { return (Class) Template.properties.restrictions.@class; }
-        }
-        public Sex Sex
-        {
-            get { return (Sex)Template.properties.restrictions.gender; }
-        }
+        public byte Level => Template.properties.restrictions.level.min;
+        public byte Ability => (byte)Template.properties.restrictions.ab.min;
+        public Class Class => (Class) Template.properties.restrictions.@class;
+        public Sex Sex => (Sex)Template.properties.restrictions.gender;
 
-        public int BonusHp
-        {
-            get { return Template.properties.stateffects.@base.hp; }
-        }
-        public int BonusMp
-        {
-            get { return Template.properties.stateffects.@base.mp; }
-        }
-        public sbyte BonusStr
-        {
-            get { return Template.properties.stateffects.@base.str; }
-        }
-        public sbyte BonusInt
-        {
-            get { return Template.properties.stateffects.@base.@int; }
-        }
-        public sbyte BonusWis
-        {
-            get { return Template.properties.stateffects.@base.wis; }
-        }
-        public sbyte BonusCon
-        {
-            get { return Template.properties.stateffects.@base.con; }
-        }
-        public sbyte BonusDex
-        {
-            get { return Template.properties.stateffects.@base.dex; }
-        }
-        public sbyte BonusDmg
-        {
-            get { return Template.properties.stateffects.combat.dmg; }
-        }
-        public sbyte BonusHit
-        {
-            get { return Template.properties.stateffects.combat.hit; }
-        }
-        public sbyte BonusAc
-        {
-            get { return Template.properties.stateffects.combat.ac; }
-        }
-        public sbyte BonusMr
-        {
-            get { return Template.properties.stateffects.combat.mr; }
-        }
-        public sbyte BonusRegen
-        {
-            get { return Template.properties.stateffects.combat.regen; }
-        }
-        public byte Color
-        {
-            get { return Convert.ToByte(Template.properties.appearance.color); }
-        }
+        public int BonusHp => Template.properties.stateffects.@base.hp;
+        public int BonusMp => Template.properties.stateffects.@base.mp;
+        public sbyte BonusStr => Template.properties.stateffects.@base.str;
+        public sbyte BonusInt => Template.properties.stateffects.@base.@int;
+        public sbyte BonusWis => Template.properties.stateffects.@base.wis;
+        public sbyte BonusCon => Template.properties.stateffects.@base.con;
+        public sbyte BonusDex => Template.properties.stateffects.@base.dex;
+        public sbyte BonusDmg => Template.properties.stateffects.combat.dmg;
+        public sbyte BonusHit => Template.properties.stateffects.combat.hit;
+        public sbyte BonusAc => Template.properties.stateffects.combat.ac;
+        public sbyte BonusMr => Template.properties.stateffects.combat.mr;
+        public sbyte BonusRegen => Template.properties.stateffects.combat.regen;
+        public byte Color => Convert.ToByte(Template.properties.appearance.color);
 
-        public byte BodyStyle
-        {
-            get { return Convert.ToByte(Template.properties.appearance.bodystyle); }
-        }
+        public byte BodyStyle => Convert.ToByte(Template.properties.appearance.bodystyle);
 
         public Element Element
         {
@@ -246,76 +172,37 @@ namespace Hybrasyl.Objects
                 return (Element) Template.properties.stateffects.element.offense;
             }
         }
-        public ushort MinLDamage
-        {
-            get { return Template.properties.damage.large.min; }
-        }
-        public ushort MaxLDamage
-        {
-            get { return Template.properties.damage.large.max; }
-        }
-        public ushort MinSDamage
-        {
-            get { return Template.properties.damage.small.min; }
-        }
-        public ushort MaxSDamage
-        {
-            get { return Template.properties.damage.small.max; }
-        }
-        public ushort DisplaySprite
-        {
-            get { return Template.properties.appearance.displaysprite; }
-        }
+        public ushort MinLDamage => Template.properties.damage.large.min;
+        public ushort MaxLDamage => Template.properties.damage.large.max;
+        public ushort MinSDamage => Template.properties.damage.small.min;
+        public ushort MaxSDamage => Template.properties.damage.small.max;
+        public ushort DisplaySprite => Template.properties.appearance.displaysprite;
 
-        public uint Value
-        {
-            get { return Template.properties.physical.value; }
-        }
+        public uint Value => Template.properties.physical.value;
 
-        public sbyte Regen
-        {
-            get { return Template.properties.stateffects.combat.regen; }
-        }
+        public sbyte Regen => Template.properties.stateffects.combat.regen;
 
-        public bool Enchantable
-        {
-            get { return Template.properties.flags.HasFlag(XML.Items.ItemFlags.enchantable); }
-        }
+        public bool Enchantable => Template.properties.flags.HasFlag(XML.Items.ItemFlags.enchantable);
 
-        public bool Consecratable
-        {
-            get { return Template.properties.flags.HasFlag(XML.Items.ItemFlags.consecratable); }
-        }
+        public bool Consecratable => Template.properties.flags.HasFlag(XML.Items.ItemFlags.consecratable);
 
-        public bool Tailorable
-        {
-            get { return Template.properties.flags.HasFlag(XML.Items.ItemFlags.tailorable);  }
-        }
+        public bool Tailorable => Template.properties.flags.HasFlag(XML.Items.ItemFlags.tailorable);
 
-        public bool Smithable
-        {
-            get { return Template.properties.flags.HasFlag(XML.Items.ItemFlags.smithable); }
-        }
+        public bool Smithable => Template.properties.flags.HasFlag(XML.Items.ItemFlags.smithable);
 
-        public bool Exchangeable
-        {
-            get { return Template.properties.flags.HasFlag(XML.Items.ItemFlags.exchangeable); }
-        }
+        public bool Exchangeable => Template.properties.flags.HasFlag(XML.Items.ItemFlags.exchangeable);
 
-        public bool IsVariant
-        {
-            get { return Template.IsVariant; }
-        }
+        public bool Master => Template.properties.flags.HasFlag(XML.Items.ItemFlags.master);
 
-        public XML.Items.ItemType ParentItem
-        {
-            get { return Template.ParentItem; }
-        }
+        public bool Unique => Template.properties.flags.HasFlag(XML.Items.ItemFlags.unique);
 
-        public XML.Items.VariantType CurrentVariant
-        {
-            get { return Template.CurrentVariant; }
-        }
+        public bool UniqueEquipped => Template.properties.flags.HasFlag(XML.Items.ItemFlags.uniqueequipped);
+
+        public bool IsVariant => Template.IsVariant;
+
+        public XML.Items.ItemType ParentItem => Template.ParentItem;
+
+        public XML.Items.VariantType CurrentVariant => Template.CurrentVariant;
 
         public XML.Items.ItemType GetVariant(int variantId)
         {

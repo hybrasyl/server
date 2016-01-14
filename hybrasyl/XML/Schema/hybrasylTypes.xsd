@@ -75,6 +75,7 @@
               <xs:enumeration value="vendorable"/>
               <xs:enumeration value="perishable"/>
               <xs:enumeration value="unique"/>
+              <xs:enumeration value="unique-equipped"/>
               <xs:enumeration value="master"/>
             </xs:restriction>
           </xs:simpleType>

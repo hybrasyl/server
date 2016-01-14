@@ -18,30 +18,30 @@ namespace Hybrasyl.XML.Items
     using System.ComponentModel.DataAnnotations;
     using System.Xml;
     using System.Collections.Generic;
-    
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Items")]
-    [XmlRootAttribute("item", Namespace="http://www.hybrasyl.com/XML/Items", IsNullable=false)]
+    [XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Items")]
+    [XmlRootAttribute("item", Namespace = "http://www.hybrasyl.com/XML/Items", IsNullable = false)]
     public partial class ItemType
     {
-        
+
         private static XmlSerializer serializer;
-        
-        [StringLengthAttribute(255, MinimumLength=1)]
+
+        [StringLengthAttribute(255, MinimumLength = 1)]
         public string name { get; set; }
-        [StringLengthAttribute(65534, MinimumLength=1)]
+        [StringLengthAttribute(65534, MinimumLength = 1)]
         public string comment { get; set; }
         public ItemProperties properties { get; set; }
-        
+
         public ItemType()
         {
             properties = new ItemProperties();
         }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -53,7 +53,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current ItemType object into an XML string
@@ -86,7 +86,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an ItemType object
         /// </summary>
@@ -109,13 +109,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out ItemType obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static ItemType Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -132,13 +132,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static ItemType Deserialize(Stream s)
         {
             return ((ItemType)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current ItemType object into file
         /// </summary>
@@ -159,7 +159,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -179,7 +179,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an ItemType object
         /// </summary>
@@ -202,13 +202,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out ItemType obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static ItemType LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -235,20 +235,22 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class ItemProperties
     {
-        
+
         private System.Nullable<ItemFlags> _flags;
-        
+
         private static XmlSerializer serializer;
-        
+
         public ItemPropertiesAppearance appearance { get; set; }
+        [XmlArrayItemAttribute("lines", IsNullable = false)]
+        public List<CastModifiersLines> castmodifiers { get; set; }
         public ItemPropertiesStackable stackable { get; set; }
         public ItemPropertiesPhysical physical { get; set; }
         public ItemPropertiesEquipment equipment { get; set; }
@@ -258,7 +260,7 @@ namespace Hybrasyl.XML.Items
         public ItemPropertiesDamage damage { get; set; }
         public ItemPropertiesUse use { get; set; }
         public ItemPropertiesRestrictions restrictions { get; set; }
-        
+
         public ItemProperties()
         {
             restrictions = new ItemPropertiesRestrictions();
@@ -270,10 +272,10 @@ namespace Hybrasyl.XML.Items
             equipment = new ItemPropertiesEquipment();
             physical = new ItemPropertiesPhysical();
             stackable = new ItemPropertiesStackable();
+            castmodifiers = new List<CastModifiersLines>();
             appearance = new ItemPropertiesAppearance();
         }
-        
-        //[StringLengthAttribute(11, MinimumLength=0)]
+
         public ItemFlags flags
         {
             get
@@ -289,13 +291,10 @@ namespace Hybrasyl.XML.Items
             }
             set
             {
-                ValidationContext validatorPropContext = new ValidationContext(this, null, null);
-                validatorPropContext.MemberName = "flags";
-                Validator.ValidateProperty(value, validatorPropContext);
                 _flags = value;
             }
         }
-        
+
         [XmlIgnore]
         public bool flagsSpecified
         {
@@ -305,13 +304,13 @@ namespace Hybrasyl.XML.Items
             }
             set
             {
-                if (value==false)
+                if (value == false)
                 {
                     _flags = null;
                 }
             }
         }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -323,7 +322,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current ItemProperties object into an XML string
@@ -356,7 +355,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an ItemProperties object
         /// </summary>
@@ -379,13 +378,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out ItemProperties obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static ItemProperties Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -402,13 +401,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static ItemProperties Deserialize(Stream s)
         {
             return ((ItemProperties)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current ItemProperties object into file
         /// </summary>
@@ -429,7 +428,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -449,7 +448,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an ItemProperties object
         /// </summary>
@@ -472,13 +471,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out ItemProperties obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static ItemProperties LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -505,21 +504,21 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class ItemPropertiesAppearance
     {
-        
+
         private System.Nullable<ushort> _equipsprite;
-        
+
         private System.Nullable<ushort> _displaysprite;
-        
+
         private static XmlSerializer serializer;
-        
+
         [XmlAttribute]
         public ushort sprite { get; set; }
         [XmlAttribute]
@@ -528,13 +527,13 @@ namespace Hybrasyl.XML.Items
         [XmlAttribute]
         [DefaultValueAttribute(ItemColor.none)]
         public ItemColor color { get; set; }
-        
+
         public ItemPropertiesAppearance()
         {
             bodystyle = ItemBodystyle.transparent;
             color = ItemColor.none;
         }
-        
+
         [XmlAttribute]
         public ushort equipsprite
         {
@@ -554,7 +553,7 @@ namespace Hybrasyl.XML.Items
                 _equipsprite = value;
             }
         }
-        
+
         [XmlIgnore]
         public bool equipspriteSpecified
         {
@@ -564,13 +563,13 @@ namespace Hybrasyl.XML.Items
             }
             set
             {
-                if (value==false)
+                if (value == false)
                 {
                     _equipsprite = null;
                 }
             }
         }
-        
+
         [XmlAttribute]
         public ushort displaysprite
         {
@@ -590,7 +589,7 @@ namespace Hybrasyl.XML.Items
                 _displaysprite = value;
             }
         }
-        
+
         [XmlIgnore]
         public bool displayspriteSpecified
         {
@@ -600,13 +599,13 @@ namespace Hybrasyl.XML.Items
             }
             set
             {
-                if (value==false)
+                if (value == false)
                 {
                     _displaysprite = null;
                 }
             }
         }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -618,7 +617,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current ItemPropertiesAppearance object into an XML string
@@ -651,7 +650,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an ItemPropertiesAppearance object
         /// </summary>
@@ -674,13 +673,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out ItemPropertiesAppearance obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static ItemPropertiesAppearance Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -697,13 +696,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static ItemPropertiesAppearance Deserialize(Stream s)
         {
             return ((ItemPropertiesAppearance)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current ItemPropertiesAppearance object into file
         /// </summary>
@@ -724,7 +723,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -744,7 +743,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an ItemPropertiesAppearance object
         /// </summary>
@@ -767,13 +766,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out ItemPropertiesAppearance obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static ItemPropertiesAppearance LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -800,94 +799,499 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
-    [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/HybrasylCommon")]
+    [XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/HybrasylCommon")]
     public enum ItemBodystyle
     {
-        
+
         /// <remarks/>
         transparent,
-        
+
         /// <remarks/>
         male,
-        
+
         /// <remarks/>
         maleblack,
-        
+
         /// <remarks/>
         malered,
-        
+
         /// <remarks/>
         female,
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
-    [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/HybrasylCommon")]
+    [XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/HybrasylCommon")]
     public enum ItemColor
     {
-        
+
         /// <remarks/>
         none,
-        
+
         /// <remarks/>
         black,
-        
+
         /// <remarks/>
         red,
-        
+
         /// <remarks/>
         orange,
-        
+
         /// <remarks/>
         yellow,
-        
+
         /// <remarks/>
         teal,
-        
+
         /// <remarks/>
         blue,
-        
+
         /// <remarks/>
         purple,
-        
+
         /// <remarks/>
         green,
-        
+
         /// <remarks/>
         lightorange,
-        
+
         /// <remarks/>
         brown,
-        
+
         /// <remarks/>
         grey,
-        
+
         /// <remarks/>
         darkblue,
-        
+
         /// <remarks/>
         tan,
-        
+
         /// <remarks/>
         white,
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Items")]
+    public partial class CastModifiersLines
+    {
+
+        private System.Nullable<sbyte> _offset;
+
+        private System.Nullable<sbyte> _number;
+
+        private System.Nullable<sbyte> _modifier;
+
+        private System.Nullable<sbyte> _min;
+
+        private System.Nullable<sbyte> _max;
+
+        private static XmlSerializer serializer;
+
+        [XmlAttribute]
+        [DefaultValueAttribute(false)]
+        public bool global { get; set; }
+        [XmlAttributeAttribute(DataType = "token")]
+        public string spellgroup { get; set; }
+
+        public CastModifiersLines()
+        {
+            global = false;
+        }
+
+        [XmlAttribute]
+        public sbyte offset
+        {
+            get
+            {
+                if (_offset.HasValue)
+                {
+                    return _offset.Value;
+                }
+                else
+                {
+                    return default(sbyte);
+                }
+            }
+            set
+            {
+                _offset = value;
+            }
+        }
+
+        [XmlIgnore]
+        public bool offsetSpecified
+        {
+            get
+            {
+                return _offset.HasValue;
+            }
+            set
+            {
+                if (value == false)
+                {
+                    _offset = null;
+                }
+            }
+        }
+
+        [XmlAttribute]
+        public sbyte number
+        {
+            get
+            {
+                if (_number.HasValue)
+                {
+                    return _number.Value;
+                }
+                else
+                {
+                    return default(sbyte);
+                }
+            }
+            set
+            {
+                _number = value;
+            }
+        }
+
+        [XmlIgnore]
+        public bool numberSpecified
+        {
+            get
+            {
+                return _number.HasValue;
+            }
+            set
+            {
+                if (value == false)
+                {
+                    _number = null;
+                }
+            }
+        }
+
+        [XmlAttribute]
+        public sbyte modifier
+        {
+            get
+            {
+                if (_modifier.HasValue)
+                {
+                    return _modifier.Value;
+                }
+                else
+                {
+                    return default(sbyte);
+                }
+            }
+            set
+            {
+                _modifier = value;
+            }
+        }
+
+        [XmlIgnore]
+        public bool modifierSpecified
+        {
+            get
+            {
+                return _modifier.HasValue;
+            }
+            set
+            {
+                if (value == false)
+                {
+                    _modifier = null;
+                }
+            }
+        }
+
+        [XmlAttribute]
+        public sbyte min
+        {
+            get
+            {
+                if (_min.HasValue)
+                {
+                    return _min.Value;
+                }
+                else
+                {
+                    return default(sbyte);
+                }
+            }
+            set
+            {
+                _min = value;
+            }
+        }
+
+        [XmlIgnore]
+        public bool minSpecified
+        {
+            get
+            {
+                return _min.HasValue;
+            }
+            set
+            {
+                if (value == false)
+                {
+                    _min = null;
+                }
+            }
+        }
+
+        [XmlAttribute]
+        public sbyte max
+        {
+            get
+            {
+                if (_max.HasValue)
+                {
+                    return _max.Value;
+                }
+                else
+                {
+                    return default(sbyte);
+                }
+            }
+            set
+            {
+                _max = value;
+            }
+        }
+
+        [XmlIgnore]
+        public bool maxSpecified
+        {
+            get
+            {
+                return _max.HasValue;
+            }
+            set
+            {
+                if (value == false)
+                {
+                    _max = null;
+                }
+            }
+        }
+
+        private static XmlSerializer Serializer
+        {
+            get
+            {
+                if ((serializer == null))
+                {
+                    serializer = new XmlSerializerFactory().CreateSerializer(typeof(CastModifiersLines));
+                }
+                return serializer;
+            }
+        }
+
+        #region Serialize/Deserialize
+        /// <summary>
+        /// Serializes current CastModifiersLines object into an XML string
+        /// </summary>
+        /// <returns>string XML value</returns>
+        public virtual string Serialize()
+        {
+            StreamReader streamReader = null;
+            MemoryStream memoryStream = null;
+            try
+            {
+                memoryStream = new MemoryStream();
+                System.Xml.XmlWriterSettings xmlWriterSettings = new System.Xml.XmlWriterSettings();
+                xmlWriterSettings.Indent = true;
+                System.Xml.XmlWriter xmlWriter = XmlWriter.Create(memoryStream, xmlWriterSettings);
+                Serializer.Serialize(xmlWriter, this);
+                memoryStream.Seek(0, SeekOrigin.Begin);
+                streamReader = new StreamReader(memoryStream);
+                return streamReader.ReadToEnd();
+            }
+            finally
+            {
+                if ((streamReader != null))
+                {
+                    streamReader.Dispose();
+                }
+                if ((memoryStream != null))
+                {
+                    memoryStream.Dispose();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Deserializes workflow markup into an CastModifiersLines object
+        /// </summary>
+        /// <param name="input">string workflow markup to deserialize</param>
+        /// <param name="obj">Output CastModifiersLines object</param>
+        /// <param name="exception">output Exception value if deserialize failed</param>
+        /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
+        public static bool Deserialize(string input, out CastModifiersLines obj, out Exception exception)
+        {
+            exception = null;
+            obj = default(CastModifiersLines);
+            try
+            {
+                obj = Deserialize(input);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                exception = ex;
+                return false;
+            }
+        }
+
+        public static bool Deserialize(string input, out CastModifiersLines obj)
+        {
+            Exception exception = null;
+            return Deserialize(input, out obj, out exception);
+        }
+
+        public static CastModifiersLines Deserialize(string input)
+        {
+            StringReader stringReader = null;
+            try
+            {
+                stringReader = new StringReader(input);
+                return ((CastModifiersLines)(Serializer.Deserialize(System.Xml.XmlReader.Create(stringReader))));
+            }
+            finally
+            {
+                if ((stringReader != null))
+                {
+                    stringReader.Dispose();
+                }
+            }
+        }
+
+        public static CastModifiersLines Deserialize(Stream s)
+        {
+            return ((CastModifiersLines)(Serializer.Deserialize(s)));
+        }
+        #endregion
+
+        /// <summary>
+        /// Serializes current CastModifiersLines object into file
+        /// </summary>
+        /// <param name="fileName">full path of outupt xml file</param>
+        /// <param name="exception">output Exception value if failed</param>
+        /// <returns>true if can serialize and save into file; otherwise, false</returns>
+        public virtual bool SaveToFile(string fileName, out Exception exception)
+        {
+            exception = null;
+            try
+            {
+                SaveToFile(fileName);
+                return true;
+            }
+            catch (Exception e)
+            {
+                exception = e;
+                return false;
+            }
+        }
+
+        public virtual void SaveToFile(string fileName)
+        {
+            StreamWriter streamWriter = null;
+            try
+            {
+                string xmlString = Serialize();
+                FileInfo xmlFile = new FileInfo(fileName);
+                streamWriter = xmlFile.CreateText();
+                streamWriter.WriteLine(xmlString);
+                streamWriter.Close();
+            }
+            finally
+            {
+                if ((streamWriter != null))
+                {
+                    streamWriter.Dispose();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Deserializes xml markup from file into an CastModifiersLines object
+        /// </summary>
+        /// <param name="fileName">string xml file to load and deserialize</param>
+        /// <param name="obj">Output CastModifiersLines object</param>
+        /// <param name="exception">output Exception value if deserialize failed</param>
+        /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
+        public static bool LoadFromFile(string fileName, out CastModifiersLines obj, out Exception exception)
+        {
+            exception = null;
+            obj = default(CastModifiersLines);
+            try
+            {
+                obj = LoadFromFile(fileName);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                exception = ex;
+                return false;
+            }
+        }
+
+        public static bool LoadFromFile(string fileName, out CastModifiersLines obj)
+        {
+            Exception exception = null;
+            return LoadFromFile(fileName, out obj, out exception);
+        }
+
+        public static CastModifiersLines LoadFromFile(string fileName)
+        {
+            FileStream file = null;
+            StreamReader sr = null;
+            try
+            {
+                file = new FileStream(fileName, FileMode.Open, FileAccess.Read);
+                sr = new StreamReader(file);
+                string xmlString = sr.ReadToEnd();
+                sr.Close();
+                file.Close();
+                return Deserialize(xmlString);
+            }
+            finally
+            {
+                if ((file != null))
+                {
+                    file.Dispose();
+                }
+                if ((sr != null))
+                {
+                    sr.Dispose();
+                }
+            }
+        }
+    }
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
+    [Serializable]
+    [DebuggerStepThrough]
+    [DesignerCategoryAttribute("code")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class ItemPropertiesStackable
     {
-        
+
         private static XmlSerializer serializer;
-        
+
         [XmlAttribute]
         public byte max { get; set; }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -899,7 +1303,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current ItemPropertiesStackable object into an XML string
@@ -932,7 +1336,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an ItemPropertiesStackable object
         /// </summary>
@@ -955,13 +1359,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out ItemPropertiesStackable obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static ItemPropertiesStackable Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -978,13 +1382,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static ItemPropertiesStackable Deserialize(Stream s)
         {
             return ((ItemPropertiesStackable)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current ItemPropertiesStackable object into file
         /// </summary>
@@ -1005,7 +1409,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -1025,7 +1429,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an ItemPropertiesStackable object
         /// </summary>
@@ -1048,13 +1452,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out ItemPropertiesStackable obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static ItemPropertiesStackable LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -1081,17 +1485,17 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class ItemPropertiesPhysical
     {
-        
+
         private static XmlSerializer serializer;
-        
+
         [XmlAttribute]
         [DefaultValueAttribute(typeof(uint), "0")]
         public uint value { get; set; }
@@ -1110,7 +1514,7 @@ namespace Hybrasyl.XML.Items
         [XmlAttribute]
         [DefaultValueAttribute(false)]
         public bool bound { get; set; }
-        
+
         public ItemPropertiesPhysical()
         {
             value = ((uint)(0));
@@ -1120,7 +1524,7 @@ namespace Hybrasyl.XML.Items
             vendorable = true;
             bound = false;
         }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -1132,7 +1536,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current ItemPropertiesPhysical object into an XML string
@@ -1165,7 +1569,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an ItemPropertiesPhysical object
         /// </summary>
@@ -1188,13 +1592,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out ItemPropertiesPhysical obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static ItemPropertiesPhysical Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -1211,13 +1615,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static ItemPropertiesPhysical Deserialize(Stream s)
         {
             return ((ItemPropertiesPhysical)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current ItemPropertiesPhysical object into file
         /// </summary>
@@ -1238,7 +1642,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -1258,7 +1662,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an ItemPropertiesPhysical object
         /// </summary>
@@ -1281,13 +1685,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out ItemPropertiesPhysical obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static ItemPropertiesPhysical LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -1314,30 +1718,30 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class ItemPropertiesEquipment
     {
-        
+
         private System.Nullable<WeaponType> _weapontype;
-        
+
         private static XmlSerializer serializer;
-        
+
         [XmlAttribute]
         public EquipmentSlot slot { get; set; }
         [XmlAttribute]
         [DefaultValueAttribute(false)]
         public bool unique { get; set; }
-        
+
         public ItemPropertiesEquipment()
         {
             unique = false;
         }
-        
+
         [XmlAttribute]
         public WeaponType weapontype
         {
@@ -1357,7 +1761,7 @@ namespace Hybrasyl.XML.Items
                 _weapontype = value;
             }
         }
-        
+
         [XmlIgnore]
         public bool weapontypeSpecified
         {
@@ -1367,13 +1771,13 @@ namespace Hybrasyl.XML.Items
             }
             set
             {
-                if (value==false)
+                if (value == false)
                 {
                     _weapontype = null;
                 }
             }
         }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -1385,7 +1789,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current ItemPropertiesEquipment object into an XML string
@@ -1418,7 +1822,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an ItemPropertiesEquipment object
         /// </summary>
@@ -1441,13 +1845,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out ItemPropertiesEquipment obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static ItemPropertiesEquipment Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -1464,13 +1868,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static ItemPropertiesEquipment Deserialize(Stream s)
         {
             return ((ItemPropertiesEquipment)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current ItemPropertiesEquipment object into file
         /// </summary>
@@ -1491,7 +1895,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -1511,7 +1915,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an ItemPropertiesEquipment object
         /// </summary>
@@ -1534,13 +1938,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out ItemPropertiesEquipment obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static ItemPropertiesEquipment LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -1567,120 +1971,120 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
-    [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/HybrasylCommon")]
+    [XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/HybrasylCommon")]
     public enum EquipmentSlot
     {
-        
+
         /// <remarks/>
         none,
-        
+
         /// <remarks/>
         weapon,
-        
+
         /// <remarks/>
         armor,
-        
+
         /// <remarks/>
         shield,
-        
+
         /// <remarks/>
         helmet,
-        
+
         /// <remarks/>
         earring,
-        
+
         /// <remarks/>
         necklace,
-        
+
         /// <remarks/>
         lefthand,
-        
+
         /// <remarks/>
         righthand,
-        
+
         /// <remarks/>
         leftarm,
-        
+
         /// <remarks/>
         rightarm,
-        
+
         /// <remarks/>
         waist,
-        
+
         /// <remarks/>
         leg,
-        
+
         /// <remarks/>
         foot,
-        
+
         /// <remarks/>
         firstacc,
-        
+
         /// <remarks/>
         trousers,
-        
+
         /// <remarks/>
         coat,
-        
+
         /// <remarks/>
         secondacc,
-        
+
         /// <remarks/>
         thirdacc,
-        
+
         /// <remarks/>
         gauntlet,
-        
+
         /// <remarks/>
         ring,
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
-    [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/HybrasylCommon")]
+    [XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/HybrasylCommon")]
     public enum WeaponType
     {
-        
+
         /// <remarks/>
         onehand,
-        
+
         /// <remarks/>
         twohand,
-        
+
         /// <remarks/>
         dagger,
-        
+
         /// <remarks/>
         staff,
-        
+
         /// <remarks/>
         claw,
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class ItemPropertiesStateffects
     {
-        
+
         private static XmlSerializer serializer;
-        
+
         public ItemPropertiesStateffectsBase @base { get; set; }
         public ItemPropertiesStateffectsCombat combat { get; set; }
         public ItemPropertiesStateffectsElement element { get; set; }
-        
+
         public ItemPropertiesStateffects()
         {
             element = new ItemPropertiesStateffectsElement();
             combat = new ItemPropertiesStateffectsCombat();
             @base = new ItemPropertiesStateffectsBase();
         }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -1692,7 +2096,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current ItemPropertiesStateffects object into an XML string
@@ -1725,7 +2129,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an ItemPropertiesStateffects object
         /// </summary>
@@ -1748,13 +2152,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out ItemPropertiesStateffects obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static ItemPropertiesStateffects Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -1771,13 +2175,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static ItemPropertiesStateffects Deserialize(Stream s)
         {
             return ((ItemPropertiesStateffects)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current ItemPropertiesStateffects object into file
         /// </summary>
@@ -1798,7 +2202,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -1818,7 +2222,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an ItemPropertiesStateffects object
         /// </summary>
@@ -1841,13 +2245,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out ItemPropertiesStateffects obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static ItemPropertiesStateffects LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -1874,17 +2278,17 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class ItemPropertiesStateffectsBase
     {
-        
+
         private static XmlSerializer serializer;
-        
+
         [XmlAttribute]
         [DefaultValueAttribute(typeof(sbyte), "0")]
         public sbyte str { get; set; }
@@ -1906,7 +2310,7 @@ namespace Hybrasyl.XML.Items
         [XmlAttribute]
         [DefaultValueAttribute(0)]
         public int mp { get; set; }
-        
+
         public ItemPropertiesStateffectsBase()
         {
             str = ((sbyte)(0));
@@ -1917,7 +2321,7 @@ namespace Hybrasyl.XML.Items
             hp = 0;
             mp = 0;
         }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -1929,7 +2333,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current ItemPropertiesStateffectsBase object into an XML string
@@ -1962,7 +2366,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an ItemPropertiesStateffectsBase object
         /// </summary>
@@ -1985,13 +2389,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out ItemPropertiesStateffectsBase obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static ItemPropertiesStateffectsBase Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -2008,13 +2412,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static ItemPropertiesStateffectsBase Deserialize(Stream s)
         {
             return ((ItemPropertiesStateffectsBase)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current ItemPropertiesStateffectsBase object into file
         /// </summary>
@@ -2035,7 +2439,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -2055,7 +2459,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an ItemPropertiesStateffectsBase object
         /// </summary>
@@ -2078,13 +2482,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out ItemPropertiesStateffectsBase obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static ItemPropertiesStateffectsBase LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -2111,17 +2515,17 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class ItemPropertiesStateffectsCombat
     {
-        
+
         private static XmlSerializer serializer;
-        
+
         [XmlAttribute]
         [DefaultValueAttribute(typeof(sbyte), "0")]
         public sbyte hit { get; set; }
@@ -2137,7 +2541,7 @@ namespace Hybrasyl.XML.Items
         [XmlAttribute]
         [DefaultValueAttribute(typeof(sbyte), "0")]
         public sbyte mr { get; set; }
-        
+
         public ItemPropertiesStateffectsCombat()
         {
             hit = ((sbyte)(0));
@@ -2146,7 +2550,7 @@ namespace Hybrasyl.XML.Items
             regen = ((sbyte)(0));
             mr = ((sbyte)(0));
         }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -2158,7 +2562,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current ItemPropertiesStateffectsCombat object into an XML string
@@ -2191,7 +2595,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an ItemPropertiesStateffectsCombat object
         /// </summary>
@@ -2214,13 +2618,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out ItemPropertiesStateffectsCombat obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static ItemPropertiesStateffectsCombat Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -2237,13 +2641,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static ItemPropertiesStateffectsCombat Deserialize(Stream s)
         {
             return ((ItemPropertiesStateffectsCombat)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current ItemPropertiesStateffectsCombat object into file
         /// </summary>
@@ -2264,7 +2668,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -2284,7 +2688,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an ItemPropertiesStateffectsCombat object
         /// </summary>
@@ -2307,13 +2711,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out ItemPropertiesStateffectsCombat obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static ItemPropertiesStateffectsCombat LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -2340,30 +2744,30 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class ItemPropertiesStateffectsElement
     {
-        
+
         private static XmlSerializer serializer;
-        
+
         [XmlAttribute]
         [DefaultValueAttribute(Element.none)]
         public Element offense { get; set; }
         [XmlAttribute]
         [DefaultValueAttribute(Element.none)]
         public Element defense { get; set; }
-        
+
         public ItemPropertiesStateffectsElement()
         {
             offense = Element.none;
             defense = Element.none;
         }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -2375,7 +2779,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current ItemPropertiesStateffectsElement object into an XML string
@@ -2408,7 +2812,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an ItemPropertiesStateffectsElement object
         /// </summary>
@@ -2431,13 +2835,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out ItemPropertiesStateffectsElement obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static ItemPropertiesStateffectsElement Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -2454,13 +2858,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static ItemPropertiesStateffectsElement Deserialize(Stream s)
         {
             return ((ItemPropertiesStateffectsElement)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current ItemPropertiesStateffectsElement object into file
         /// </summary>
@@ -2481,7 +2885,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -2501,7 +2905,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an ItemPropertiesStateffectsElement object
         /// </summary>
@@ -2524,13 +2928,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out ItemPropertiesStateffectsElement obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static ItemPropertiesStateffectsElement LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -2557,103 +2961,107 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
-    [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/HybrasylCommon")]
+    [XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/HybrasylCommon")]
     public enum Element
     {
-        
+
         /// <remarks/>
         none,
-        
+
         /// <remarks/>
         fire,
-        
+
         /// <remarks/>
         water,
-        
+
         /// <remarks/>
         wind,
-        
+
         /// <remarks/>
         earth,
-        
+
         /// <remarks/>
         light,
-        
+
         /// <remarks/>
         dark,
-        
+
         /// <remarks/>
         wood,
-        
+
         /// <remarks/>
         metal,
-        
+
         /// <remarks/>
         undead,
-        
+
         /// <remarks/>
         random,
     }
-    
+
     [System.FlagsAttribute()]
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
-    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/HybrasylCommon")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/HybrasylCommon")]
     public enum ItemFlags
     {
-        
+
         /// <remarks/>
         bound = 1,
-        
+
         /// <remarks/>
         depositable = 2,
-        
+
         /// <remarks/>
         enchantable = 4,
-        
+
         /// <remarks/>
         consecratable = 8,
-        
+
         /// <remarks/>
         tailorable = 16,
-        
+
         /// <remarks/>
         smithable = 32,
-        
+
         /// <remarks/>
         exchangeable = 64,
-        
+
         /// <remarks/>
         vendorable = 128,
-        
+
         /// <remarks/>
         perishable = 256,
-        
+
         /// <remarks/>
         unique = 512,
-        
+
         /// <remarks/>
-        master = 1024,
+        [XmlEnumAttribute("unique-equipped")]
+        uniqueequipped = 1024,
+
+        /// <remarks/>
+        master = 2048,
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class ItemPropertiesVariants
     {
-        
+
         private static XmlSerializer serializer;
-        
+
         [XmlElementAttribute("name")]
         public List<string> name { get; set; }
         [XmlElementAttribute("group")]
         public List<string> group { get; set; }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -2665,7 +3073,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current ItemPropertiesVariants object into an XML string
@@ -2698,7 +3106,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an ItemPropertiesVariants object
         /// </summary>
@@ -2721,13 +3129,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out ItemPropertiesVariants obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static ItemPropertiesVariants Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -2744,13 +3152,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static ItemPropertiesVariants Deserialize(Stream s)
         {
             return ((ItemPropertiesVariants)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current ItemPropertiesVariants object into file
         /// </summary>
@@ -2771,7 +3179,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -2791,7 +3199,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an ItemPropertiesVariants object
         /// </summary>
@@ -2814,13 +3222,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out ItemPropertiesVariants obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static ItemPropertiesVariants LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -2847,27 +3255,27 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class ItemPropertiesVendor
     {
-        
+
         private static XmlSerializer serializer;
-        
-        [StringLengthAttribute(255, MinimumLength=1)]
+
+        [StringLengthAttribute(255, MinimumLength = 1)]
         public string description { get; set; }
         [XmlAttribute]
         public sbyte shoptab { get; set; }
-        
+
         public ItemPropertiesVendor()
         {
             description = "item";
         }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -2879,7 +3287,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current ItemPropertiesVendor object into an XML string
@@ -2912,7 +3320,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an ItemPropertiesVendor object
         /// </summary>
@@ -2935,13 +3343,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out ItemPropertiesVendor obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static ItemPropertiesVendor Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -2958,13 +3366,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static ItemPropertiesVendor Deserialize(Stream s)
         {
             return ((ItemPropertiesVendor)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current ItemPropertiesVendor object into file
         /// </summary>
@@ -2985,7 +3393,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -3005,7 +3413,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an ItemPropertiesVendor object
         /// </summary>
@@ -3028,13 +3436,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out ItemPropertiesVendor obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static ItemPropertiesVendor LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -3061,26 +3469,26 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class ItemPropertiesDamage
     {
-        
+
         private static XmlSerializer serializer;
-        
+
         public ItemPropertiesDamageSmall small { get; set; }
         public ItemPropertiesDamageLarge large { get; set; }
-        
+
         public ItemPropertiesDamage()
         {
             large = new ItemPropertiesDamageLarge();
             small = new ItemPropertiesDamageSmall();
         }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -3092,7 +3500,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current ItemPropertiesDamage object into an XML string
@@ -3125,7 +3533,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an ItemPropertiesDamage object
         /// </summary>
@@ -3148,13 +3556,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out ItemPropertiesDamage obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static ItemPropertiesDamage Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -3171,13 +3579,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static ItemPropertiesDamage Deserialize(Stream s)
         {
             return ((ItemPropertiesDamage)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current ItemPropertiesDamage object into file
         /// </summary>
@@ -3198,7 +3606,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -3218,7 +3626,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an ItemPropertiesDamage object
         /// </summary>
@@ -3241,13 +3649,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out ItemPropertiesDamage obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static ItemPropertiesDamage LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -3274,30 +3682,30 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class ItemPropertiesDamageSmall
     {
-        
+
         private static XmlSerializer serializer;
-        
+
         [XmlAttribute]
         [DefaultValueAttribute(typeof(ushort), "0")]
         public ushort min { get; set; }
         [XmlAttribute]
         [DefaultValueAttribute(typeof(ushort), "0")]
         public ushort max { get; set; }
-        
+
         public ItemPropertiesDamageSmall()
         {
             min = ((ushort)(0));
             max = ((ushort)(0));
         }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -3309,7 +3717,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current ItemPropertiesDamageSmall object into an XML string
@@ -3342,7 +3750,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an ItemPropertiesDamageSmall object
         /// </summary>
@@ -3365,13 +3773,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out ItemPropertiesDamageSmall obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static ItemPropertiesDamageSmall Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -3388,13 +3796,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static ItemPropertiesDamageSmall Deserialize(Stream s)
         {
             return ((ItemPropertiesDamageSmall)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current ItemPropertiesDamageSmall object into file
         /// </summary>
@@ -3415,7 +3823,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -3435,7 +3843,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an ItemPropertiesDamageSmall object
         /// </summary>
@@ -3458,13 +3866,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out ItemPropertiesDamageSmall obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static ItemPropertiesDamageSmall LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -3491,30 +3899,30 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class ItemPropertiesDamageLarge
     {
-        
+
         private static XmlSerializer serializer;
-        
+
         [XmlAttribute]
         [DefaultValueAttribute(typeof(ushort), "0")]
         public ushort min { get; set; }
         [XmlAttribute]
         [DefaultValueAttribute(typeof(ushort), "0")]
         public ushort max { get; set; }
-        
+
         public ItemPropertiesDamageLarge()
         {
             min = ((ushort)(0));
             max = ((ushort)(0));
         }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -3526,7 +3934,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current ItemPropertiesDamageLarge object into an XML string
@@ -3559,7 +3967,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an ItemPropertiesDamageLarge object
         /// </summary>
@@ -3582,13 +3990,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out ItemPropertiesDamageLarge obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static ItemPropertiesDamageLarge Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -3605,13 +4013,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static ItemPropertiesDamageLarge Deserialize(Stream s)
         {
             return ((ItemPropertiesDamageLarge)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current ItemPropertiesDamageLarge object into file
         /// </summary>
@@ -3632,7 +4040,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -3652,7 +4060,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an ItemPropertiesDamageLarge object
         /// </summary>
@@ -3675,13 +4083,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out ItemPropertiesDamageLarge obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static ItemPropertiesDamageLarge LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -3708,17 +4116,17 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class ItemPropertiesUse
     {
-        
+
         private static XmlSerializer serializer;
-        
+
         public string scriptname { get; set; }
         public ItemPropertiesUseTeleport teleport { get; set; }
         public ItemPropertiesUsePlayerEffect playerEffect { get; set; }
@@ -3727,7 +4135,7 @@ namespace Hybrasyl.XML.Items
         [XmlAttribute]
         [DefaultValueAttribute(true)]
         public bool consumed { get; set; }
-        
+
         public ItemPropertiesUse()
         {
             sound = new ItemPropertiesUseSound();
@@ -3736,7 +4144,7 @@ namespace Hybrasyl.XML.Items
             teleport = new ItemPropertiesUseTeleport();
             consumed = true;
         }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -3748,7 +4156,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current ItemPropertiesUse object into an XML string
@@ -3781,7 +4189,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an ItemPropertiesUse object
         /// </summary>
@@ -3804,13 +4212,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out ItemPropertiesUse obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static ItemPropertiesUse Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -3827,13 +4235,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static ItemPropertiesUse Deserialize(Stream s)
         {
             return ((ItemPropertiesUse)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current ItemPropertiesUse object into file
         /// </summary>
@@ -3854,7 +4262,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -3874,7 +4282,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an ItemPropertiesUse object
         /// </summary>
@@ -3897,13 +4305,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out ItemPropertiesUse obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static ItemPropertiesUse LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -3930,24 +4338,24 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class ItemPropertiesUseTeleport
     {
-        
+
         private static XmlSerializer serializer;
-        
+
         [XmlAttribute]
         public byte x { get; set; }
         [XmlAttribute]
         public byte y { get; set; }
         [XmlTextAttribute]
         public string Value { get; set; }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -3959,7 +4367,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current ItemPropertiesUseTeleport object into an XML string
@@ -3992,7 +4400,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an ItemPropertiesUseTeleport object
         /// </summary>
@@ -4015,13 +4423,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out ItemPropertiesUseTeleport obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static ItemPropertiesUseTeleport Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -4038,13 +4446,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static ItemPropertiesUseTeleport Deserialize(Stream s)
         {
             return ((ItemPropertiesUseTeleport)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current ItemPropertiesUseTeleport object into file
         /// </summary>
@@ -4065,7 +4473,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -4085,7 +4493,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an ItemPropertiesUseTeleport object
         /// </summary>
@@ -4108,13 +4516,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out ItemPropertiesUseTeleport obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static ItemPropertiesUseTeleport LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -4141,17 +4549,17 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class ItemPropertiesUsePlayerEffect
     {
-        
+
         private static XmlSerializer serializer;
-        
+
         [XmlAttribute]
         [DefaultValueAttribute(0)]
         public int gold { get; set; }
@@ -4164,7 +4572,7 @@ namespace Hybrasyl.XML.Items
         [XmlAttribute]
         [DefaultValueAttribute(0)]
         public int xp { get; set; }
-        
+
         public ItemPropertiesUsePlayerEffect()
         {
             gold = 0;
@@ -4172,7 +4580,7 @@ namespace Hybrasyl.XML.Items
             mp = 0;
             xp = 0;
         }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -4184,7 +4592,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current ItemPropertiesUsePlayerEffect object into an XML string
@@ -4217,7 +4625,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an ItemPropertiesUsePlayerEffect object
         /// </summary>
@@ -4240,13 +4648,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out ItemPropertiesUsePlayerEffect obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static ItemPropertiesUsePlayerEffect Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -4263,13 +4671,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static ItemPropertiesUsePlayerEffect Deserialize(Stream s)
         {
             return ((ItemPropertiesUsePlayerEffect)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current ItemPropertiesUsePlayerEffect object into file
         /// </summary>
@@ -4290,7 +4698,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -4310,7 +4718,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an ItemPropertiesUsePlayerEffect object
         /// </summary>
@@ -4333,13 +4741,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out ItemPropertiesUsePlayerEffect obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static ItemPropertiesUsePlayerEffect LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -4366,28 +4774,28 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class ItemPropertiesUseEffect
     {
-        
+
         private static XmlSerializer serializer;
-        
+
         [XmlAttribute]
         public ushort id { get; set; }
         [XmlAttribute]
         [DefaultValueAttribute(typeof(sbyte), "100")]
         public sbyte speed { get; set; }
-        
+
         public ItemPropertiesUseEffect()
         {
             speed = ((sbyte)(100));
         }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -4399,7 +4807,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current ItemPropertiesUseEffect object into an XML string
@@ -4432,7 +4840,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an ItemPropertiesUseEffect object
         /// </summary>
@@ -4455,13 +4863,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out ItemPropertiesUseEffect obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static ItemPropertiesUseEffect Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -4478,13 +4886,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static ItemPropertiesUseEffect Deserialize(Stream s)
         {
             return ((ItemPropertiesUseEffect)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current ItemPropertiesUseEffect object into file
         /// </summary>
@@ -4505,7 +4913,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -4525,7 +4933,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an ItemPropertiesUseEffect object
         /// </summary>
@@ -4548,13 +4956,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out ItemPropertiesUseEffect obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static ItemPropertiesUseEffect LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -4581,20 +4989,20 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class ItemPropertiesUseSound
     {
-        
+
         private static XmlSerializer serializer;
-        
+
         [XmlAttribute]
         public sbyte id { get; set; }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -4606,7 +5014,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current ItemPropertiesUseSound object into an XML string
@@ -4639,7 +5047,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an ItemPropertiesUseSound object
         /// </summary>
@@ -4662,13 +5070,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out ItemPropertiesUseSound obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static ItemPropertiesUseSound Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -4685,13 +5093,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static ItemPropertiesUseSound Deserialize(Stream s)
         {
             return ((ItemPropertiesUseSound)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current ItemPropertiesUseSound object into file
         /// </summary>
@@ -4712,7 +5120,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -4732,7 +5140,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an ItemPropertiesUseSound object
         /// </summary>
@@ -4755,13 +5163,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out ItemPropertiesUseSound obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static ItemPropertiesUseSound LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -4788,31 +5196,31 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class ItemPropertiesRestrictions
     {
-        
+
         private System.Nullable<Class> _class;
-        
+
         private static XmlSerializer serializer;
-        
+
         public ItemPropertiesRestrictionsLevel level { get; set; }
         public ItemPropertiesRestrictionsAB ab { get; set; }
         [DefaultValueAttribute(Gender.neutral)]
         public Gender gender { get; set; }
-        
+
         public ItemPropertiesRestrictions()
         {
             ab = new ItemPropertiesRestrictionsAB();
             level = new ItemPropertiesRestrictionsLevel();
             gender = Gender.neutral;
         }
-        
+
         public Class @class
         {
             get
@@ -4831,7 +5239,7 @@ namespace Hybrasyl.XML.Items
                 _class = value;
             }
         }
-        
+
         [XmlIgnore]
         public bool classSpecified
         {
@@ -4841,13 +5249,13 @@ namespace Hybrasyl.XML.Items
             }
             set
             {
-                if (value==false)
+                if (value == false)
                 {
                     _class = null;
                 }
             }
         }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -4859,7 +5267,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current ItemPropertiesRestrictions object into an XML string
@@ -4892,7 +5300,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an ItemPropertiesRestrictions object
         /// </summary>
@@ -4915,13 +5323,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out ItemPropertiesRestrictions obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static ItemPropertiesRestrictions Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -4938,13 +5346,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static ItemPropertiesRestrictions Deserialize(Stream s)
         {
             return ((ItemPropertiesRestrictions)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current ItemPropertiesRestrictions object into file
         /// </summary>
@@ -4965,7 +5373,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -4985,7 +5393,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an ItemPropertiesRestrictions object
         /// </summary>
@@ -5008,13 +5416,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out ItemPropertiesRestrictions obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static ItemPropertiesRestrictions LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -5041,30 +5449,30 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class ItemPropertiesRestrictionsLevel
     {
-        
+
         private static XmlSerializer serializer;
-        
+
         [XmlAttribute]
         [DefaultValueAttribute(typeof(byte), "0")]
         public byte min { get; set; }
         [XmlAttribute]
         [DefaultValueAttribute(typeof(byte), "255")]
         public byte max { get; set; }
-        
+
         public ItemPropertiesRestrictionsLevel()
         {
             min = ((byte)(0));
             max = ((byte)(255));
         }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -5076,7 +5484,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current ItemPropertiesRestrictionsLevel object into an XML string
@@ -5109,7 +5517,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an ItemPropertiesRestrictionsLevel object
         /// </summary>
@@ -5132,13 +5540,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out ItemPropertiesRestrictionsLevel obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static ItemPropertiesRestrictionsLevel Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -5155,13 +5563,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static ItemPropertiesRestrictionsLevel Deserialize(Stream s)
         {
             return ((ItemPropertiesRestrictionsLevel)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current ItemPropertiesRestrictionsLevel object into file
         /// </summary>
@@ -5182,7 +5590,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -5202,7 +5610,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an ItemPropertiesRestrictionsLevel object
         /// </summary>
@@ -5225,13 +5633,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out ItemPropertiesRestrictionsLevel obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static ItemPropertiesRestrictionsLevel LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -5258,30 +5666,30 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class ItemPropertiesRestrictionsAB
     {
-        
+
         private static XmlSerializer serializer;
-        
+
         [XmlAttribute]
         [DefaultValueAttribute(typeof(byte), "0")]
         public byte min { get; set; }
         [XmlAttribute]
         [DefaultValueAttribute(typeof(byte), "255")]
         public byte max { get; set; }
-        
+
         public ItemPropertiesRestrictionsAB()
         {
             min = ((byte)(0));
             max = ((byte)(255));
         }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -5293,7 +5701,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current ItemPropertiesRestrictionsAB object into an XML string
@@ -5326,7 +5734,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an ItemPropertiesRestrictionsAB object
         /// </summary>
@@ -5349,13 +5757,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out ItemPropertiesRestrictionsAB obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static ItemPropertiesRestrictionsAB Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -5372,13 +5780,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static ItemPropertiesRestrictionsAB Deserialize(Stream s)
         {
             return ((ItemPropertiesRestrictionsAB)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current ItemPropertiesRestrictionsAB object into file
         /// </summary>
@@ -5399,7 +5807,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -5419,7 +5827,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an ItemPropertiesRestrictionsAB object
         /// </summary>
@@ -5442,13 +5850,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out ItemPropertiesRestrictionsAB obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static ItemPropertiesRestrictionsAB LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -5475,69 +5883,69 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
-    [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/HybrasylCommon")]
+    [XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/HybrasylCommon")]
     public enum Class
     {
-        
+
         /// <remarks/>
         monk,
-        
+
         /// <remarks/>
         peasant,
-        
+
         /// <remarks/>
         priest,
-        
+
         /// <remarks/>
         rogue,
-        
+
         /// <remarks/>
         warrior,
-        
+
         /// <remarks/>
         wizard,
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
-    [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/HybrasylCommon")]
+    [XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/HybrasylCommon")]
     public enum Gender
     {
-        
+
         /// <remarks/>
         neutral,
-        
+
         /// <remarks/>
         male,
-        
+
         /// <remarks/>
         female,
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Items")]
-    [XmlRootAttribute("variantgroup", Namespace="http://www.hybrasyl.com/XML/Items", IsNullable=false)]
+    [XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Items")]
+    [XmlRootAttribute("variantgroup", Namespace = "http://www.hybrasyl.com/XML/Items", IsNullable = false)]
     public partial class VariantGroupType
     {
-        
+
         private static XmlSerializer serializer;
-        
-        [StringLengthAttribute(255, MinimumLength=1)]
+
+        [StringLengthAttribute(255, MinimumLength = 1)]
         public string name { get; set; }
         [XmlElementAttribute("variant")]
         public List<VariantType> variant { get; set; }
-        
+
         public VariantGroupType()
         {
             variant = new List<VariantType>();
         }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -5549,7 +5957,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current VariantGroupType object into an XML string
@@ -5582,7 +5990,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an VariantGroupType object
         /// </summary>
@@ -5605,13 +6013,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out VariantGroupType obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static VariantGroupType Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -5628,13 +6036,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static VariantGroupType Deserialize(Stream s)
         {
             return ((VariantGroupType)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current VariantGroupType object into file
         /// </summary>
@@ -5655,7 +6063,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -5675,7 +6083,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an VariantGroupType object
         /// </summary>
@@ -5698,13 +6106,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out VariantGroupType obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static VariantGroupType LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -5731,31 +6139,31 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Items")]
-    [XmlRootAttribute("variant", Namespace="http://www.hybrasyl.com/XML/Items", IsNullable=false)]
+    [XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Items")]
+    [XmlRootAttribute("variant", Namespace = "http://www.hybrasyl.com/XML/Items", IsNullable = false)]
     public partial class VariantType
     {
-        
+
         private static XmlSerializer serializer;
-        
-        [StringLengthAttribute(255, MinimumLength=1)]
+
+        [StringLengthAttribute(255, MinimumLength = 1)]
         public string name { get; set; }
-        [StringLengthAttribute(255, MinimumLength=1)]
+        [StringLengthAttribute(255, MinimumLength = 1)]
         public string modifier { get; set; }
-        [StringLengthAttribute(255, MinimumLength=1)]
+        [StringLengthAttribute(255, MinimumLength = 1)]
         public string comment { get; set; }
         public VariantProperties properties { get; set; }
-        
+
         public VariantType()
         {
             properties = new VariantProperties();
         }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -5767,7 +6175,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current VariantType object into an XML string
@@ -5800,7 +6208,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an VariantType object
         /// </summary>
@@ -5823,13 +6231,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out VariantType obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static VariantType Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -5846,13 +6254,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static VariantType Deserialize(Stream s)
         {
             return ((VariantType)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current VariantType object into file
         /// </summary>
@@ -5873,7 +6281,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -5893,7 +6301,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an VariantType object
         /// </summary>
@@ -5916,13 +6324,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out VariantType obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static VariantType LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -5949,28 +6357,28 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class VariantProperties
     {
-        
+
         private System.Nullable<ItemFlags> _flags;
-        
+
         private static XmlSerializer serializer;
-        
+
         public VariantPropertiesAppearance appearance { get; set; }
         public VariantPropertiesDamage damage { get; set; }
         public VariantPropertiesPhysical physical { get; set; }
         public VariantPropertiesRestrictions restrictions { get; set; }
-        [StringLengthAttribute(255, MinimumLength=1)]
+        [StringLengthAttribute(255, MinimumLength = 1)]
         public string script { get; set; }
         public VariantPropertiesStackable stackable { get; set; }
         public VariantPropertiesStateffects stateffects { get; set; }
-        
+
         public VariantProperties()
         {
             stateffects = new VariantPropertiesStateffects();
@@ -5980,8 +6388,7 @@ namespace Hybrasyl.XML.Items
             damage = new VariantPropertiesDamage();
             appearance = new VariantPropertiesAppearance();
         }
-        
-        //[StringLengthAttribute(11, MinimumLength=0)]
+
         public ItemFlags flags
         {
             get
@@ -5997,13 +6404,10 @@ namespace Hybrasyl.XML.Items
             }
             set
             {
-                ValidationContext validatorPropContext = new ValidationContext(this, null, null);
-                validatorPropContext.MemberName = "flags";
-                Validator.ValidateProperty(value, validatorPropContext);
                 _flags = value;
             }
         }
-        
+
         [XmlIgnore]
         public bool flagsSpecified
         {
@@ -6013,13 +6417,13 @@ namespace Hybrasyl.XML.Items
             }
             set
             {
-                if (value==false)
+                if (value == false)
                 {
                     _flags = null;
                 }
             }
         }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -6031,7 +6435,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current VariantProperties object into an XML string
@@ -6064,7 +6468,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an VariantProperties object
         /// </summary>
@@ -6087,13 +6491,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out VariantProperties obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static VariantProperties Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -6110,13 +6514,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static VariantProperties Deserialize(Stream s)
         {
             return ((VariantProperties)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current VariantProperties object into file
         /// </summary>
@@ -6137,7 +6541,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -6157,7 +6561,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an VariantProperties object
         /// </summary>
@@ -6180,13 +6584,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out VariantProperties obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static VariantProperties LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -6213,21 +6617,21 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class VariantPropertiesAppearance
     {
-        
+
         private System.Nullable<ItemBodystyle> _bodystyle;
-        
+
         private System.Nullable<ItemColor> _color;
-        
+
         private static XmlSerializer serializer;
-        
+
         [XmlAttribute]
         public ItemBodystyle bodystyle
         {
@@ -6247,7 +6651,7 @@ namespace Hybrasyl.XML.Items
                 _bodystyle = value;
             }
         }
-        
+
         [XmlIgnore]
         public bool bodystyleSpecified
         {
@@ -6257,13 +6661,13 @@ namespace Hybrasyl.XML.Items
             }
             set
             {
-                if (value==false)
+                if (value == false)
                 {
                     _bodystyle = null;
                 }
             }
         }
-        
+
         [XmlAttribute]
         public ItemColor color
         {
@@ -6283,7 +6687,7 @@ namespace Hybrasyl.XML.Items
                 _color = value;
             }
         }
-        
+
         [XmlIgnore]
         public bool colorSpecified
         {
@@ -6293,13 +6697,13 @@ namespace Hybrasyl.XML.Items
             }
             set
             {
-                if (value==false)
+                if (value == false)
                 {
                     _color = null;
                 }
             }
         }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -6311,7 +6715,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current VariantPropertiesAppearance object into an XML string
@@ -6344,7 +6748,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an VariantPropertiesAppearance object
         /// </summary>
@@ -6367,13 +6771,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out VariantPropertiesAppearance obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static VariantPropertiesAppearance Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -6390,13 +6794,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static VariantPropertiesAppearance Deserialize(Stream s)
         {
             return ((VariantPropertiesAppearance)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current VariantPropertiesAppearance object into file
         /// </summary>
@@ -6417,7 +6821,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -6437,7 +6841,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an VariantPropertiesAppearance object
         /// </summary>
@@ -6460,13 +6864,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out VariantPropertiesAppearance obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static VariantPropertiesAppearance LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -6493,26 +6897,26 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class VariantPropertiesDamage
     {
-        
+
         private static XmlSerializer serializer;
-        
+
         public VariantPropertiesDamageSmall small { get; set; }
         public VariantPropertiesDamageLarge large { get; set; }
-        
+
         public VariantPropertiesDamage()
         {
             large = new VariantPropertiesDamageLarge();
             small = new VariantPropertiesDamageSmall();
         }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -6524,7 +6928,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current VariantPropertiesDamage object into an XML string
@@ -6557,7 +6961,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an VariantPropertiesDamage object
         /// </summary>
@@ -6580,13 +6984,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out VariantPropertiesDamage obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static VariantPropertiesDamage Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -6603,13 +7007,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static VariantPropertiesDamage Deserialize(Stream s)
         {
             return ((VariantPropertiesDamage)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current VariantPropertiesDamage object into file
         /// </summary>
@@ -6630,7 +7034,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -6650,7 +7054,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an VariantPropertiesDamage object
         /// </summary>
@@ -6673,13 +7077,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out VariantPropertiesDamage obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static VariantPropertiesDamage LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -6706,30 +7110,30 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class VariantPropertiesDamageSmall
     {
-        
+
         private static XmlSerializer serializer;
-        
+
         [XmlAttribute]
         [DefaultValueAttribute("0")]
         public string min { get; set; }
         [XmlAttribute]
         [DefaultValueAttribute("0")]
         public string max { get; set; }
-        
+
         public VariantPropertiesDamageSmall()
         {
             min = "0";
             max = "0";
         }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -6741,7 +7145,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current VariantPropertiesDamageSmall object into an XML string
@@ -6774,7 +7178,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an VariantPropertiesDamageSmall object
         /// </summary>
@@ -6797,13 +7201,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out VariantPropertiesDamageSmall obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static VariantPropertiesDamageSmall Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -6820,13 +7224,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static VariantPropertiesDamageSmall Deserialize(Stream s)
         {
             return ((VariantPropertiesDamageSmall)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current VariantPropertiesDamageSmall object into file
         /// </summary>
@@ -6847,7 +7251,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -6867,7 +7271,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an VariantPropertiesDamageSmall object
         /// </summary>
@@ -6890,13 +7294,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out VariantPropertiesDamageSmall obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static VariantPropertiesDamageSmall LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -6923,30 +7327,30 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class VariantPropertiesDamageLarge
     {
-        
+
         private static XmlSerializer serializer;
-        
+
         [XmlAttribute]
         [DefaultValueAttribute("0")]
         public string min { get; set; }
         [XmlAttribute]
         [DefaultValueAttribute("0")]
         public string max { get; set; }
-        
+
         public VariantPropertiesDamageLarge()
         {
             min = "0";
             max = "0";
         }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -6958,7 +7362,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current VariantPropertiesDamageLarge object into an XML string
@@ -6991,7 +7395,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an VariantPropertiesDamageLarge object
         /// </summary>
@@ -7014,13 +7418,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out VariantPropertiesDamageLarge obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static VariantPropertiesDamageLarge Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -7037,13 +7441,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static VariantPropertiesDamageLarge Deserialize(Stream s)
         {
             return ((VariantPropertiesDamageLarge)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current VariantPropertiesDamageLarge object into file
         /// </summary>
@@ -7064,7 +7468,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -7084,7 +7488,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an VariantPropertiesDamageLarge object
         /// </summary>
@@ -7107,13 +7511,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out VariantPropertiesDamageLarge obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static VariantPropertiesDamageLarge LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -7140,17 +7544,17 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class VariantPropertiesPhysical
     {
-        
+
         private static XmlSerializer serializer;
-        
+
         [XmlAttribute]
         [DefaultValueAttribute("0")]
         public string value { get; set; }
@@ -7169,7 +7573,7 @@ namespace Hybrasyl.XML.Items
         [XmlAttribute]
         [DefaultValueAttribute(false)]
         public bool bound { get; set; }
-        
+
         public VariantPropertiesPhysical()
         {
             value = "0";
@@ -7179,7 +7583,7 @@ namespace Hybrasyl.XML.Items
             vendorable = true;
             bound = false;
         }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -7191,7 +7595,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current VariantPropertiesPhysical object into an XML string
@@ -7224,7 +7628,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an VariantPropertiesPhysical object
         /// </summary>
@@ -7247,13 +7651,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out VariantPropertiesPhysical obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static VariantPropertiesPhysical Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -7270,13 +7674,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static VariantPropertiesPhysical Deserialize(Stream s)
         {
             return ((VariantPropertiesPhysical)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current VariantPropertiesPhysical object into file
         /// </summary>
@@ -7297,7 +7701,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -7317,7 +7721,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an VariantPropertiesPhysical object
         /// </summary>
@@ -7340,13 +7744,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out VariantPropertiesPhysical obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static VariantPropertiesPhysical LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -7373,31 +7777,31 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class VariantPropertiesRestrictions
     {
-        
+
         private System.Nullable<Class> _class;
-        
+
         private static XmlSerializer serializer;
-        
+
         public VariantPropertiesRestrictionsLevel level { get; set; }
         public VariantPropertiesRestrictionsAB ab { get; set; }
         [DefaultValueAttribute(Gender.neutral)]
         public Gender gender { get; set; }
-        
+
         public VariantPropertiesRestrictions()
         {
             ab = new VariantPropertiesRestrictionsAB();
             level = new VariantPropertiesRestrictionsLevel();
             gender = Gender.neutral;
         }
-        
+
         public Class @class
         {
             get
@@ -7416,7 +7820,7 @@ namespace Hybrasyl.XML.Items
                 _class = value;
             }
         }
-        
+
         [XmlIgnore]
         public bool classSpecified
         {
@@ -7426,13 +7830,13 @@ namespace Hybrasyl.XML.Items
             }
             set
             {
-                if (value==false)
+                if (value == false)
                 {
                     _class = null;
                 }
             }
         }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -7444,7 +7848,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current VariantPropertiesRestrictions object into an XML string
@@ -7477,7 +7881,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an VariantPropertiesRestrictions object
         /// </summary>
@@ -7500,13 +7904,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out VariantPropertiesRestrictions obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static VariantPropertiesRestrictions Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -7523,13 +7927,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static VariantPropertiesRestrictions Deserialize(Stream s)
         {
             return ((VariantPropertiesRestrictions)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current VariantPropertiesRestrictions object into file
         /// </summary>
@@ -7550,7 +7954,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -7570,7 +7974,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an VariantPropertiesRestrictions object
         /// </summary>
@@ -7593,13 +7997,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out VariantPropertiesRestrictions obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static VariantPropertiesRestrictions LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -7626,30 +8030,30 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class VariantPropertiesRestrictionsLevel
     {
-        
+
         private static XmlSerializer serializer;
-        
+
         [XmlAttribute]
         [DefaultValueAttribute("0")]
         public string min { get; set; }
         [XmlAttribute]
         [DefaultValueAttribute("255")]
         public string max { get; set; }
-        
+
         public VariantPropertiesRestrictionsLevel()
         {
             min = "0";
             max = "255";
         }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -7661,7 +8065,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current VariantPropertiesRestrictionsLevel object into an XML string
@@ -7694,7 +8098,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an VariantPropertiesRestrictionsLevel object
         /// </summary>
@@ -7717,13 +8121,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out VariantPropertiesRestrictionsLevel obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static VariantPropertiesRestrictionsLevel Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -7740,13 +8144,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static VariantPropertiesRestrictionsLevel Deserialize(Stream s)
         {
             return ((VariantPropertiesRestrictionsLevel)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current VariantPropertiesRestrictionsLevel object into file
         /// </summary>
@@ -7767,7 +8171,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -7787,7 +8191,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an VariantPropertiesRestrictionsLevel object
         /// </summary>
@@ -7810,13 +8214,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out VariantPropertiesRestrictionsLevel obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static VariantPropertiesRestrictionsLevel LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -7843,30 +8247,30 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class VariantPropertiesRestrictionsAB
     {
-        
+
         private static XmlSerializer serializer;
-        
+
         [XmlAttribute]
         [DefaultValueAttribute("0")]
         public string min { get; set; }
         [XmlAttribute]
         [DefaultValueAttribute("255")]
         public string max { get; set; }
-        
+
         public VariantPropertiesRestrictionsAB()
         {
             min = "0";
             max = "255";
         }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -7878,7 +8282,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current VariantPropertiesRestrictionsAB object into an XML string
@@ -7911,7 +8315,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an VariantPropertiesRestrictionsAB object
         /// </summary>
@@ -7934,13 +8338,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out VariantPropertiesRestrictionsAB obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static VariantPropertiesRestrictionsAB Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -7957,13 +8361,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static VariantPropertiesRestrictionsAB Deserialize(Stream s)
         {
             return ((VariantPropertiesRestrictionsAB)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current VariantPropertiesRestrictionsAB object into file
         /// </summary>
@@ -7984,7 +8388,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -8004,7 +8408,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an VariantPropertiesRestrictionsAB object
         /// </summary>
@@ -8027,13 +8431,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out VariantPropertiesRestrictionsAB obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static VariantPropertiesRestrictionsAB LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -8060,20 +8464,20 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class VariantPropertiesStackable
     {
-        
+
         private static XmlSerializer serializer;
-        
+
         [XmlAttribute]
         public string max { get; set; }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -8085,7 +8489,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current VariantPropertiesStackable object into an XML string
@@ -8118,7 +8522,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an VariantPropertiesStackable object
         /// </summary>
@@ -8141,13 +8545,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out VariantPropertiesStackable obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static VariantPropertiesStackable Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -8164,13 +8568,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static VariantPropertiesStackable Deserialize(Stream s)
         {
             return ((VariantPropertiesStackable)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current VariantPropertiesStackable object into file
         /// </summary>
@@ -8191,7 +8595,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -8211,7 +8615,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an VariantPropertiesStackable object
         /// </summary>
@@ -8234,13 +8638,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out VariantPropertiesStackable obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static VariantPropertiesStackable LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -8267,28 +8671,28 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class VariantPropertiesStateffects
     {
-        
+
         private static XmlSerializer serializer;
-        
+
         public VariantPropertiesStateffectsBase @base { get; set; }
         public VariantPropertiesStateffectsCombat combat { get; set; }
         public VariantPropertiesStateffectsElement element { get; set; }
-        
+
         public VariantPropertiesStateffects()
         {
             element = new VariantPropertiesStateffectsElement();
             combat = new VariantPropertiesStateffectsCombat();
             @base = new VariantPropertiesStateffectsBase();
         }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -8300,7 +8704,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current VariantPropertiesStateffects object into an XML string
@@ -8333,7 +8737,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an VariantPropertiesStateffects object
         /// </summary>
@@ -8356,13 +8760,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out VariantPropertiesStateffects obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static VariantPropertiesStateffects Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -8379,13 +8783,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static VariantPropertiesStateffects Deserialize(Stream s)
         {
             return ((VariantPropertiesStateffects)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current VariantPropertiesStateffects object into file
         /// </summary>
@@ -8406,7 +8810,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -8426,7 +8830,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an VariantPropertiesStateffects object
         /// </summary>
@@ -8449,13 +8853,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out VariantPropertiesStateffects obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static VariantPropertiesStateffects LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -8482,17 +8886,17 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class VariantPropertiesStateffectsBase
     {
-        
+
         private static XmlSerializer serializer;
-        
+
         [XmlAttribute]
         [DefaultValueAttribute("0")]
         public string str { get; set; }
@@ -8514,7 +8918,7 @@ namespace Hybrasyl.XML.Items
         [XmlAttribute]
         [DefaultValueAttribute("0")]
         public string mp { get; set; }
-        
+
         public VariantPropertiesStateffectsBase()
         {
             str = "0";
@@ -8525,7 +8929,7 @@ namespace Hybrasyl.XML.Items
             hp = "0";
             mp = "0";
         }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -8537,7 +8941,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current VariantPropertiesStateffectsBase object into an XML string
@@ -8570,7 +8974,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an VariantPropertiesStateffectsBase object
         /// </summary>
@@ -8593,13 +8997,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out VariantPropertiesStateffectsBase obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static VariantPropertiesStateffectsBase Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -8616,13 +9020,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static VariantPropertiesStateffectsBase Deserialize(Stream s)
         {
             return ((VariantPropertiesStateffectsBase)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current VariantPropertiesStateffectsBase object into file
         /// </summary>
@@ -8643,7 +9047,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -8663,7 +9067,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an VariantPropertiesStateffectsBase object
         /// </summary>
@@ -8686,13 +9090,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out VariantPropertiesStateffectsBase obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static VariantPropertiesStateffectsBase LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -8719,17 +9123,17 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class VariantPropertiesStateffectsCombat
     {
-        
+
         private static XmlSerializer serializer;
-        
+
         [XmlAttribute]
         [DefaultValueAttribute("0")]
         public string hit { get; set; }
@@ -8745,7 +9149,7 @@ namespace Hybrasyl.XML.Items
         [XmlAttribute]
         [DefaultValueAttribute("0")]
         public string mr { get; set; }
-        
+
         public VariantPropertiesStateffectsCombat()
         {
             hit = "0";
@@ -8754,7 +9158,7 @@ namespace Hybrasyl.XML.Items
             regen = "0";
             mr = "0";
         }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -8766,7 +9170,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current VariantPropertiesStateffectsCombat object into an XML string
@@ -8799,7 +9203,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an VariantPropertiesStateffectsCombat object
         /// </summary>
@@ -8822,13 +9226,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out VariantPropertiesStateffectsCombat obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static VariantPropertiesStateffectsCombat Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -8845,13 +9249,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static VariantPropertiesStateffectsCombat Deserialize(Stream s)
         {
             return ((VariantPropertiesStateffectsCombat)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current VariantPropertiesStateffectsCombat object into file
         /// </summary>
@@ -8872,7 +9276,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -8892,7 +9296,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an VariantPropertiesStateffectsCombat object
         /// </summary>
@@ -8915,13 +9319,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out VariantPropertiesStateffectsCombat obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static VariantPropertiesStateffectsCombat LoadFromFile(string fileName)
         {
             FileStream file = null;
@@ -8948,30 +9352,30 @@ namespace Hybrasyl.XML.Items
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.79.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.6.1038.0")]
     [Serializable]
     [DebuggerStepThrough]
     [DesignerCategoryAttribute("code")]
-    [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Items")]
+    [XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Items")]
     public partial class VariantPropertiesStateffectsElement
     {
-        
+
         private static XmlSerializer serializer;
-        
+
         [XmlAttribute]
         [DefaultValueAttribute(Element.none)]
         public Element offense { get; set; }
         [XmlAttribute]
         [DefaultValueAttribute(Element.none)]
         public Element defense { get; set; }
-        
+
         public VariantPropertiesStateffectsElement()
         {
             offense = Element.none;
             defense = Element.none;
         }
-        
+
         private static XmlSerializer Serializer
         {
             get
@@ -8983,7 +9387,7 @@ namespace Hybrasyl.XML.Items
                 return serializer;
             }
         }
-        
+
         #region Serialize/Deserialize
         /// <summary>
         /// Serializes current VariantPropertiesStateffectsElement object into an XML string
@@ -9016,7 +9420,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes workflow markup into an VariantPropertiesStateffectsElement object
         /// </summary>
@@ -9039,13 +9443,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool Deserialize(string input, out VariantPropertiesStateffectsElement obj)
         {
             Exception exception = null;
             return Deserialize(input, out obj, out exception);
         }
-        
+
         public static VariantPropertiesStateffectsElement Deserialize(string input)
         {
             StringReader stringReader = null;
@@ -9062,13 +9466,13 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         public static VariantPropertiesStateffectsElement Deserialize(Stream s)
         {
             return ((VariantPropertiesStateffectsElement)(Serializer.Deserialize(s)));
         }
         #endregion
-        
+
         /// <summary>
         /// Serializes current VariantPropertiesStateffectsElement object into file
         /// </summary>
@@ -9089,7 +9493,7 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public virtual void SaveToFile(string fileName)
         {
             StreamWriter streamWriter = null;
@@ -9109,7 +9513,7 @@ namespace Hybrasyl.XML.Items
                 }
             }
         }
-        
+
         /// <summary>
         /// Deserializes xml markup from file into an VariantPropertiesStateffectsElement object
         /// </summary>
@@ -9132,13 +9536,13 @@ namespace Hybrasyl.XML.Items
                 return false;
             }
         }
-        
+
         public static bool LoadFromFile(string fileName, out VariantPropertiesStateffectsElement obj)
         {
             Exception exception = null;
             return LoadFromFile(fileName, out obj, out exception);
         }
-        
+
         public static VariantPropertiesStateffectsElement LoadFromFile(string fileName)
         {
             FileStream file = null;

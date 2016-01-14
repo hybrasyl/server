@@ -801,6 +801,11 @@ namespace Hybrasyl
             else if (pickupObject is Item)
             {
                 var item = (Item) pickupObject;
+                if (item.Unique && user.Inventory.Contains(item.TemplateId))
+                {
+                    user.SendMessage(string.Format("You can't carry any more of those.", item.Name), 3);
+                    return;
+                }
                 if (item.Stackable && user.Inventory.Contains(item.TemplateId))
                 {
                     byte existingSlot = user.Inventory.SlotOf(item.TemplateId);
@@ -1374,6 +1379,15 @@ namespace Hybrasyl
                         }
                     }
                         break;
+                    case "/master":
+                    {
+                        if (!user.IsPrivileged)
+                            return;
+
+                        user.IsMaster = !user.IsMaster;
+                        user.SendMessage(user.IsMaster ? "Mastership granted" : "Mastership removed", 3);
+                    }
+                        break;
                     case "/mute":
                     {
                         if (!user.IsPrivileged)
@@ -1568,7 +1582,7 @@ namespace Hybrasyl
                         {
                             user.SendMessage(errorMessage, 0x1);
                         }
-                        else if (!Enum.IsDefined(typeof(Class), args[1]))
+                        else if (!Enum.IsDefined(typeof(Enums.Class), args[1]))
                         {
                             user.SendMessage("Invalid class. " + errorMessage, 0x1);
 
@@ -1585,7 +1599,7 @@ namespace Hybrasyl
                             testUser.Map = new Map();
                             testUser.BaseHp = 50;
                             testUser.BaseMp = 50;
-                            testUser.Class = (Class)Enum.Parse(typeof(Class), args[1]);
+                            testUser.Class = (Enums.Class)Enum.Parse(typeof(Enums.Class), args[1]);
                             testUser.Level = 1;
 
                             while (testUser.Level < level)
