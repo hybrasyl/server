@@ -27,6 +27,7 @@ using Hybrasyl.Enums;
 using Hybrasyl.Objects;
 using Hybrasyl.XML;
 using Hybrasyl.XML.Config;
+using Hybrasyl.XSD;
 using log4net;
 using log4net.Core;
 using System;
@@ -44,7 +45,6 @@ using System.Threading;
 using System.Timers;
 using System.Xml;
 using System.Xml.Schema;
-using Hybrasyl.XML.Items;
 using Newtonsoft.Json;
 using StackExchange.Redis;
 
@@ -112,8 +112,8 @@ namespace Hybrasyl
 
         public Dictionary<ushort, Map> Maps { get; set; }
         public Dictionary<string, WorldMap> WorldMaps { get; set; }
-        public Dictionary<int, XML.Items.ItemType> Items { get; set; }
-        public Dictionary<string, XML.Items.VariantGroupType> ItemVariants { get; set; } 
+        public Dictionary<int, XSD.ItemType> Items { get; set; }
+        public Dictionary<string, XSD.VariantGroupType> ItemVariants { get; set; } 
         public Dictionary<int, SkillTemplate> Skills { get; set; }
         public Dictionary<int, SpellTemplate> Spells { get; set; }
         public Dictionary<int, MonsterTemplate> Monsters { get; set; }
@@ -132,7 +132,7 @@ namespace Hybrasyl
         public Dictionary<String, DialogSequence> GlobalSequencesCatalog { get; set; }
         private Dictionary<MerchantMenuItem, MerchantMenuHandler> merchantMenuHandlers;
 
-        public Dictionary<Tuple<Sex, String>, XML.Items.ItemType> ItemCatalog { get; set; }
+        public Dictionary<Tuple<Sex, String>, XSD.ItemType> ItemCatalog { get; set; }
         public Dictionary<String, Map> MapCatalog { get; set; }
 
         public HybrasylScriptProcessor ScriptProcessor { get; set; }
@@ -200,7 +200,7 @@ namespace Hybrasyl
         {
             Maps = new Dictionary<ushort, Map>();
             WorldMaps = new Dictionary<string, WorldMap>();
-            Items = new Dictionary<int, XML.Items.ItemType>();
+            Items = new Dictionary<int, XSD.ItemType>();
             Skills = new Dictionary<int, SkillTemplate>();
             Spells = new Dictionary<int, SpellTemplate>();
             Monsters = new Dictionary<int, MonsterTemplate>();
@@ -216,7 +216,7 @@ namespace Hybrasyl
             ItemVariants = new Dictionary<string, VariantGroupType>();
 
             GlobalSequencesCatalog = new Dictionary<String, DialogSequence>();
-            ItemCatalog = new Dictionary<Tuple<Sex, String>, XML.Items.ItemType>();
+            ItemCatalog = new Dictionary<Tuple<Sex, String>, XSD.ItemType>();
             MapCatalog = new Dictionary<String, Map>();
 
             ScriptProcessor = new HybrasylScriptProcessor(this);
@@ -271,104 +271,98 @@ namespace Hybrasyl
             // refactored later, but it is way too much work to do now (e.g. maps, etc).
 
             // Load nations
-            foreach (var xml in Directory.GetFiles(NationDirectory).Select(File.ReadAllText))
+            foreach (var xml in Directory.GetFiles(NationDirectory))
             {
-                Nation newNation;
-                Exception parseException;
-                if (Nation.Deserialize(xml, out newNation, out parseException))
+                try
                 {
+                    Nation newNation = Serializer.Deserialize(XmlReader.Create(xml), new Nation());
                     Logger.DebugFormat("Nations: Loaded {0}", newNation.Name);
                     Nations.Add(newNation.Name, newNation);
                 }
-                else
+                catch (Exception e)
                 {
-                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, parseException);
+                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, e);
+
                 }
+
             }
 
             Logger.InfoFormat("Nations: {0} nations loaded", Nations.Count);
 
             // Load maps
-            foreach (var xml in Directory.GetFiles(MapDirectory).Select(File.ReadAllText))
+            foreach (var xml in Directory.GetFiles(MapDirectory))
             {
-                XmlMap newMap;
-                Exception parseException;
-                if (XmlMap.Deserialize(xml, out newMap, out parseException))
+                try
                 {
+                    XSD.Map newMap = Serializer.Deserialize(XmlReader.Create(xml), new XSD.Map());
                     var map = new Map(newMap, this);
                     Maps.Add(map.Id, map);
                     MapCatalog.Add(map.Name, map);
                     Logger.DebugFormat("Maps: Loaded {0}", map.Name);
                 }
-                else
+                catch (Exception e)
                 {
-                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, parseException);
+                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, e);
                 }
             }
 
             Logger.InfoFormat("Maps: {0} maps loaded", Maps.Count);
 
             // Load worldmaps
-            foreach (var xml in Directory.GetFiles(WorldMapDirectory).Select(File.ReadAllText))
+            foreach (var xml in Directory.GetFiles(WorldMapDirectory))
             {
-                XmlWorldMap newWorldMap;
-                Exception parseException;
-                if (XmlWorldMap.Deserialize(xml, out newWorldMap, out parseException))
+                try
                 {
+                    XSD.WorldMap newWorldMap = Serializer.Deserialize(XmlReader.Create(xml), new XSD.WorldMap());
                     var worldmap = new WorldMap(newWorldMap);
                     WorldMaps.Add(worldmap.Name, worldmap);
-                    Logger.DebugFormat("World Maps: Loaded {0}", worldmap.Name);                   
+                    Logger.DebugFormat("World Maps: Loaded {0}", worldmap.Name);
                 }
-                else
+                catch (Exception e)
                 {
-                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, parseException);
+                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, e);
                 }
             }
 
             Logger.InfoFormat("World Maps: {0} world maps loaded", WorldMaps.Count);
 
             // Load item variants
-            foreach (var file in Directory.GetFiles(ItemVariantDirectory))
+            foreach (var xml in Directory.GetFiles(ItemVariantDirectory))
             {
-                var xml = File.ReadAllText(file);
-                VariantGroupType newGroup;
-                Exception parseException;
-                if (XML.Items.VariantGroupType.Deserialize(xml, out newGroup, out parseException))
+                try
                 {
-                    Logger.DebugFormat("Item variants: loaded {0}", newGroup.name);
-                    ItemVariants.Add(newGroup.name, newGroup);
+                    VariantGroupType newGroup = Serializer.Deserialize(XmlReader.Create(xml), new VariantGroupType());
+                    Logger.DebugFormat("Item variants: loaded {0}", newGroup.Name);
+                    ItemVariants.Add(newGroup.Name, newGroup);
                 }
-                else
+                catch (Exception e)
                 {
-                    Logger.ErrorFormat("Error parsing {0}: {1}", file, parseException);
+                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, e);
                 }
             }
 
             Logger.InfoFormat("Item variants: {0} variant sets loaded", ItemVariants.Count);
 
             // Load items
-            foreach (var file in Directory.GetFiles(ItemDirectory)) 
+            foreach (var xml in Directory.GetFiles(ItemDirectory)) 
             {
-                var xml = File.ReadAllText(file);
-                XML.Items.ItemType newItem;
-                Exception parseException;
-                if (XML.Items.ItemType.Deserialize(xml, out newItem, out parseException))
+                try
                 {
-                    Logger.DebugFormat("Items: loaded {0}, id {1}", newItem.name, newItem.Id);
+                    XSD.ItemType newItem = Serializer.Deserialize(XmlReader.Create(xml), new XSD.ItemType());
+                    Logger.DebugFormat("Items: loaded {0}, id {1}", newItem.Name, newItem.Id);
                     Items.Add(newItem.Id, newItem);
-                    foreach (var targetGroup in newItem.properties.variants.group)
+                    foreach (var targetGroup in newItem.Properties.Variants.Group)
                     {
-                        foreach (var variant in ItemVariants[targetGroup].variant)
+                        foreach (var variant in ItemVariants[targetGroup].Variant)
                         {
-                            Logger.DebugFormat("Item {0}: variantgroup {1}, subvariant {2}", newItem.name, targetGroup, variant.name);
-                            variant.ResolveVariant(newItem);                           
+                            Logger.DebugFormat("Item {0}: variantgroup {1}, subvariant {2}", newItem.Name, targetGroup, variant.Name);
+                            variant.ResolveVariant(newItem);
                         }
-                        
                     }
                 }
-                else
+                catch (Exception e)
                 {
-                    Logger.ErrorFormat("Error parsing {0}: {1}", file, parseException);
+                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, e);
                 }
             }
 
@@ -392,8 +386,8 @@ namespace Hybrasyl
             // TODO: split items into multiple ItemInfo files (DA does ~700 each)
             foreach (var item in Items.Values)
             {
-                iteminfo0.Nodes.Add(new MetafileNode(item.name, item.properties.restrictions.level.min, (int) item.properties.restrictions.@class, item.properties.physical.weight,
-                    item.properties.vendor.shoptab, item.properties.vendor.description));
+                iteminfo0.Nodes.Add(new MetafileNode(item.Name, item.Properties.Restrictions.Level.Min, (int) item.Properties.Restrictions.@Class, item.Properties.Physical.Weight,
+                    item.Properties.Vendor.Shoptab, item.Properties.Vendor.Description));
             }
             Metafiles.Add(iteminfo0.Name, iteminfo0.Compile());
 
@@ -897,7 +891,7 @@ namespace Hybrasyl
             }
 
             // Are we dropping an item onto a reactor?
-            Reactor reactor;
+            Objects.Reactor reactor;
             var coordinates = new Tuple<byte, byte>((byte) x, (byte) y);
             if (user.Map.Reactors.TryGetValue(coordinates, out reactor))
             {
@@ -1366,7 +1360,7 @@ namespace Hybrasyl
                         // change this to use itemcatalog pls
                         foreach (var template in Items)
                         {
-                            if (template.Value.name.Equals(itemName, StringComparison.CurrentCultureIgnoreCase))
+                            if (template.Value.Name.Equals(itemName, StringComparison.CurrentCultureIgnoreCase))
                             {
                                 var item = CreateItem(template.Key);
                                 if (count > item.MaximumStack)
@@ -1962,7 +1956,7 @@ namespace Hybrasyl
             Insert(toDrop);
 
             // Are we dropping an item onto a reactor?
-            Reactor reactor;
+            Objects.Reactor reactor;
             var coordinates = new Tuple<byte, byte>((byte)x, (byte)y);
             if (user.Map.Reactors.TryGetValue(coordinates, out reactor))
             {
@@ -2806,13 +2800,13 @@ namespace Hybrasyl
                 return;
             }
 
-            if (user.Gold < template.properties.physical.value)
+            if (user.Gold < template.Properties.Physical.Value)
             {
                 user.ShowMerchantGoBack(merchant, "You do not have enough gold.", MerchantMenuItem.BuyItemMenu);
                 return;
             }
 
-            if (user.CurrentWeight + template.properties.physical.weight > user.MaximumWeight)
+            if (user.CurrentWeight + template.Properties.Physical.Weight > user.MaximumWeight)
             {
                 user.ShowMerchantGoBack(merchant, "That item is too heavy for you to carry.",
                     MerchantMenuItem.BuyItemMenu);
@@ -2825,7 +2819,7 @@ namespace Hybrasyl
                 return;
             }
 
-            user.RemoveGold(template.properties.physical.value);
+            user.RemoveGold(template.Properties.Physical.Value);
             var item = CreateItem(template.Id);
             Insert(item);
             user.AddItem(item);
@@ -2857,7 +2851,7 @@ namespace Hybrasyl
                 return;
             }
 
-            uint cost = (uint) (template.properties.physical.value*quantity);
+            uint cost = (uint) (template.Properties.Physical.Value*quantity);
 
             if (user.Gold < cost)
             {
@@ -2865,7 +2859,7 @@ namespace Hybrasyl
                 return;
             }
 
-            if (quantity > template.properties.stackable.max)
+            if (quantity > template.Properties.Stackable.Max)
             {
                 user.ShowMerchantGoBack(merchant, string.Format("You cannot hold that many {0}.", name),
                     MerchantMenuItem.BuyItemMenu);
@@ -2875,7 +2869,7 @@ namespace Hybrasyl
             if (user.Inventory.Contains(name))
             {
                 byte slot = user.Inventory.SlotOf(name);
-                if (user.Inventory[slot].Count + quantity > template.properties.stackable.max)
+                if (user.Inventory[slot].Count + quantity > template.Properties.Stackable.Max)
                 {
                     user.ShowMerchantGoBack(merchant, string.Format("You cannot hold that many {0}.", name),
                         MerchantMenuItem.BuyItemMenu);
@@ -3045,13 +3039,13 @@ namespace Hybrasyl
             }
         }
 
-        public bool TryGetItemTemplate(string name, Sex itemSex, out XML.Items.ItemType item)
+        public bool TryGetItemTemplate(string name, Sex itemSex, out XSD.ItemType item)
         {
             var itemKey = new Tuple<Sex, String>(itemSex, name);
             return ItemCatalog.TryGetValue(itemKey, out item);
         }
 
-        public bool TryGetItemTemplate(string name, out XML.Items.ItemType item)
+        public bool TryGetItemTemplate(string name, out XSD.ItemType item)
         {
             // This is kinda gross
             var neutralKey = new Tuple<Sex, String>(Sex.Neutral, name);

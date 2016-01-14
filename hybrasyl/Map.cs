@@ -34,6 +34,7 @@ using System.Text;
 using System.Threading;
 using System.Xml;
 using log4net.Appender;
+using Hybrasyl.XSD;
 
 namespace Hybrasyl.Properties
 {
@@ -117,7 +118,7 @@ namespace Hybrasyl
         public List<MapPoint> Points { get; set; }
         public World World { get; set; }
 
-        public WorldMap(XmlWorldMap newWorldMap)
+        public WorldMap(XSD.WorldMap newWorldMap)
         {
             Points = new List<MapPoint>();
             Name = newWorldMap.Name;
@@ -185,14 +186,14 @@ namespace Hybrasyl
         public Dictionary<string, User> Users { get; private set; }
 
         public Dictionary<Tuple<byte, byte>, Objects.Door> Doors { get; set; }
-        public Dictionary<Tuple<byte, byte>, Signpost> Signposts { get; set; }
-        public Dictionary<Tuple<byte, byte>, Reactor> Reactors { get; set; }
+        public Dictionary<Tuple<byte, byte>, Objects.Signpost> Signposts { get; set; }
+        public Dictionary<Tuple<byte, byte>, Objects.Reactor> Reactors { get; set; }
 
         /// <summary>
         /// Create a new Hybrasyl map from an XMLMap object.
         /// </summary>
         /// <param name="mapElement"></param>
-        public Map(XmlMap newMap, World theWorld)
+        public Map(XSD.Map newMap, World theWorld)
         {
             Init();
             World = theWorld;
@@ -212,9 +213,9 @@ namespace Hybrasyl
                 warp.X = warpElement.X;
                 warp.Y = warpElement.Y;
 
-                if (warpElement.Item is XmlWarpMaptarget)
+                if (warpElement.Item is XSD.WarpMaptarget)
                 {
-                    var maptarget = warpElement.Item as XmlWarpMaptarget;
+                    var maptarget = warpElement.Item as XSD.WarpMaptarget;
                     // map warp
                     warp.DestinationMapName = maptarget.Value;
                     warp.WarpType = WarpType.Map;
@@ -259,10 +260,10 @@ namespace Hybrasyl
 
             foreach (var postElement in newMap.Signposts.Items)
             {
-                if (postElement is XmlSignpost)
+                if (postElement is XSD.Signpost)
                 {
-                    var signpostElement = postElement as XmlSignpost;
-                    var signpost = new Signpost(signpostElement.X, signpostElement.Y, signpostElement.Message);
+                    var signpostElement = postElement as XSD.Signpost;
+                    var signpost = new Objects.Signpost(signpostElement.X, signpostElement.Y, signpostElement.Message);
                     InsertSignpost(signpost);
                 }
                 else
@@ -293,8 +294,8 @@ namespace Hybrasyl
             Warps = new Dictionary<Tuple<byte, byte>, Warp>();
             EntityTree = new QuadTree<VisibleObject>(1, 1, X, Y);
             Doors = new Dictionary<Tuple<byte, byte>, Objects.Door>();
-            Signposts = new Dictionary<Tuple<byte, byte>, Signpost>();
-            Reactors = new Dictionary<Tuple<byte, byte>, Reactor>();
+            Signposts = new Dictionary<Tuple<byte, byte>, Objects.Signpost>();
+            Reactors = new Dictionary<Tuple<byte, byte>, Objects.Reactor>();
         }
 
         public List<VisibleObject> GetTileContents(int x, int y)
@@ -319,7 +320,7 @@ namespace Hybrasyl
              */
         }
 
-        public void InsertSignpost(Signpost post)
+        public void InsertSignpost(Objects.Signpost post)
         {
             World.Insert(post);
             Insert(post, post.X, post.Y);
@@ -416,7 +417,7 @@ namespace Hybrasyl
                     Users.Add(user.Name, user);
                 }
 
-                var value = obj as Reactor;
+                var value = obj as Objects.Reactor;
                 if (value != null)
                 {
                     Reactors.Add(new Tuple<byte, byte>((byte)x,(byte)y), value);

@@ -539,7 +539,7 @@ namespace Hybrasyl
         {
             item = null;
             List<Item> itemList;
-            XML.Items.ItemType theItem;
+            XSD.ItemType theItem;
             if (!Game.World.TryGetItemTemplate(name, out theItem) ||
                 !_inventoryIndex.TryGetValue(theItem.Id, out itemList)) return false;
             item = itemList.First();
@@ -570,7 +570,7 @@ namespace Hybrasyl
 
         public bool Contains(string name)
         {
-            XML.Items.ItemType theItem;
+            XSD.ItemType theItem;
             return Game.World.TryGetItemTemplate(name, out theItem) && _inventoryIndex.ContainsKey(theItem.Id);
         }
 
@@ -623,7 +623,7 @@ namespace Hybrasyl
 
         public Item Find(string name)
         {
-            XML.Items.ItemType theItem;
+            XSD.ItemType theItem;
             return Game.World.TryGetItemTemplate(name, out theItem) && _inventoryIndex.ContainsKey(theItem.Id)
                 ? _inventoryIndex[theItem.Id].First()
                 : null;
