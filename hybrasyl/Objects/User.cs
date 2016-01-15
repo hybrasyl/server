@@ -151,11 +151,11 @@ namespace Hybrasyl.Objects
         public GuildMembership Guild { get; set; }
         
         public Nation Citizenship { get; set; }
-
+        /*THIS NEEDS FIXING*/
         [JsonProperty]
         public string NationName
         {
-            get { return Citizenship.Name; }
+            get { return "Mileth"; /*return Citizenship.Name;*/ }
         }
 
         [JsonProperty]

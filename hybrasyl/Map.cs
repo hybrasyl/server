@@ -213,9 +213,9 @@ namespace Hybrasyl
                 warp.X = warpElement.X;
                 warp.Y = warpElement.Y;
 
-                if (warpElement.Item is XSD.WarpMaptarget)
+                if (warpElement.MapTarget !=null)
                 {
-                    var maptarget = warpElement.Item as XSD.WarpMaptarget;
+                    var maptarget = warpElement.MapTarget as XSD.WarpMaptarget;
                     // map warp
                     warp.DestinationMapName = maptarget.Value;
                     warp.WarpType = WarpType.Map;
@@ -224,8 +224,9 @@ namespace Hybrasyl
                 }
                 else
                 {
+                    var worldmaptarget = warpElement.WorldMapTarget as XSD.WorldMapPointTarget;
                     // worldmap warp
-                    warp.DestinationMapName = warpElement.Item as string;
+                    warp.DestinationMapName = worldmaptarget.Value;
                     warp.WarpType = WarpType.WorldMap;
                 }
 
