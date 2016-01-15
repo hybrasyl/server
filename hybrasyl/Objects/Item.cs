@@ -22,6 +22,7 @@
 
 using FastMember;
 using Hybrasyl.Enums;
+using Hybrasyl.XSD;
 using Hybrasyl.Properties;
 using log4net;
 using System;
@@ -52,9 +53,9 @@ namespace Hybrasyl.Objects
 
             // Check class
 
-            if (userobj.Class != Class && Class != Class.Peasant)
+            if (userobj.Class != Class && Class != Enums.Class.Peasant)
             {
-                message = userobj.Class == Class.Peasant ? "Perhaps one day you'll know how to use such things." : "Your path has forbidden itself from using such vulgar implements.";
+                message = userobj.Class == Enums.Class.Peasant ? "Perhaps one day you'll know how to use such things." : "Your path has forbidden itself from using such vulgar implements.";
             }
 
             // Check level / AB
@@ -73,14 +74,14 @@ namespace Hybrasyl.Objects
 
             // Check if user is equipping a shield while holding a two-handed weapon
 
-            if (EquipmentSlot == ClientItemSlots.Shield && userobj.Equipment.Weapon != null && userobj.Equipment.Weapon.WeaponType == WeaponType.TwoHanded)
+            if (EquipmentSlot == ClientItemSlots.Shield && userobj.Equipment.Weapon != null && userobj.Equipment.Weapon.WeaponType == Enums.WeaponType.TwoHanded)
             {
                 message = "You can't equip a shield with a two-handed weapon.";
             }
 
             // Check if user is equipping a two-handed weapon while holding a shield
 
-            if (EquipmentSlot == ClientItemSlots.Weapon && WeaponType == WeaponType.TwoHanded && userobj.Equipment.Shield != null)
+            if (EquipmentSlot == ClientItemSlots.Weapon && WeaponType == Enums.WeaponType.TwoHanded && userobj.Equipment.Shield != null)
             {
                 message = "You can't equip a two-handed weapon with a shield.";
             }
@@ -100,111 +101,111 @@ namespace Hybrasyl.Objects
             return message == string.Empty; 
         }
 
-        private XML.Items.ItemType Template => World.Items[TemplateId];
+        private XSD.ItemType Template => World.Items[TemplateId];
 
-        public new string Name => Template.name;
+        public new string Name => Template.Name;
 
-        public new ushort Sprite => Template.properties.appearance.sprite;
+        public new ushort Sprite => Template.Properties.Appearance.Sprite;
 
         public ushort EquipSprite
         {
             get
             {
-                if (Template.properties.appearance.equipsprite == -1)
-                    return Template.properties.appearance.sprite;
-                return Template.properties.appearance.equipsprite;
+                if (Template.Properties.Appearance.Equipsprite == -1)
+                    return Template.Properties.Appearance.Sprite;
+                return Template.Properties.Appearance.Equipsprite;
             }
         }
 
-        public ItemType ItemType
+        public Enums.ItemType ItemType
         {
             get
             {
-                if (Template.properties.equipment != null)
-                    return ItemType.Equipment;
-                return Template.properties.use != null ? ItemType.CanUse : ItemType.CannotUse;
+                if (Template.Properties.Equipment != null)
+                    return Enums.ItemType.Equipment;
+                return Template.Properties.Use != null ? Enums.ItemType.CanUse : Enums.ItemType.CannotUse;
             }
         }
 
-        public WeaponType WeaponType
+        public Enums.WeaponType WeaponType
         {
             get
             {
-                if (Template.properties.equipment.weapontypeSpecified)
-                    return (WeaponType) Template.properties.equipment.weapontype;
-                return WeaponType.None;
+                if (Template.Properties.Equipment.WeapontypeSpecified)
+                    return (Enums.WeaponType) Template.Properties.Equipment.Weapontype;
+                return Enums.WeaponType.None;
             }
         }
-        public byte EquipmentSlot => Convert.ToByte(Template.properties.equipment.slot);
-        public int Weight => Template.properties.physical.weight;
-        public int MaximumStack => Template.properties.stackable.max;
+        public byte EquipmentSlot => Convert.ToByte(Template.Properties.Equipment.Slot);
+        public int Weight => Template.Properties.Physical.Weight;
+        public int MaximumStack => Template.Properties.Stackable.Max;
         public bool Stackable => Template.Stackable;
 
-        public uint MaximumDurability => Template.properties.physical.durability;
+        public uint MaximumDurability => Template.Properties.Physical.Durability;
 
-        public byte Level => Template.properties.restrictions.level.min;
-        public byte Ability => (byte)Template.properties.restrictions.ab.min;
-        public Class Class => (Class) Template.properties.restrictions.@class;
-        public Sex Sex => (Sex)Template.properties.restrictions.gender;
+        public byte Level => Template.Properties.Restrictions.Level.Min;
+        public byte Ability => (byte)Template.Properties.Restrictions.Ab.Min;
+        public Enums.Class Class => (Enums.Class) Template.Properties.Restrictions.@Class;
+        public Sex Sex => (Sex)Template.Properties.Restrictions.Gender;
 
-        public int BonusHp => Template.properties.stateffects.@base.hp;
-        public int BonusMp => Template.properties.stateffects.@base.mp;
-        public sbyte BonusStr => Template.properties.stateffects.@base.str;
-        public sbyte BonusInt => Template.properties.stateffects.@base.@int;
-        public sbyte BonusWis => Template.properties.stateffects.@base.wis;
-        public sbyte BonusCon => Template.properties.stateffects.@base.con;
-        public sbyte BonusDex => Template.properties.stateffects.@base.dex;
-        public sbyte BonusDmg => Template.properties.stateffects.combat.dmg;
-        public sbyte BonusHit => Template.properties.stateffects.combat.hit;
-        public sbyte BonusAc => Template.properties.stateffects.combat.ac;
-        public sbyte BonusMr => Template.properties.stateffects.combat.mr;
-        public sbyte BonusRegen => Template.properties.stateffects.combat.regen;
-        public byte Color => Convert.ToByte(Template.properties.appearance.color);
+        public int BonusHp => Template.Properties.Stateffects.@Base.Hp;
+        public int BonusMp => Template.Properties.Stateffects.@Base.Mp;
+        public sbyte BonusStr => Template.Properties.Stateffects.@Base.Str;
+        public sbyte BonusInt => Template.Properties.Stateffects.@Base.@Int;
+        public sbyte BonusWis => Template.Properties.Stateffects.@Base.Wis;
+        public sbyte BonusCon => Template.Properties.Stateffects.@Base.Con;
+        public sbyte BonusDex => Template.Properties.Stateffects.@Base.Dex;
+        public sbyte BonusDmg => Template.Properties.Stateffects.Combat.Dmg;
+        public sbyte BonusHit => Template.Properties.Stateffects.Combat.Hit;
+        public sbyte BonusAc => Template.Properties.Stateffects.Combat.Ac;
+        public sbyte BonusMr => Template.Properties.Stateffects.Combat.Mr;
+        public sbyte BonusRegen => Template.Properties.Stateffects.Combat.Regen;
+        public byte Color => Convert.ToByte(Template.Properties.Appearance.Color);
 
-        public byte BodyStyle => Convert.ToByte(Template.properties.appearance.bodystyle);
+        public byte BodyStyle => Convert.ToByte(Template.Properties.Appearance.Bodystyle);
 
-        public Element Element
+        public Enums.Element Element
         {
             get
             {
-                if (WeaponType == WeaponType.None)
-                    return (Element) Template.properties.stateffects.element.defense;
-                return (Element) Template.properties.stateffects.element.offense;
+                if (WeaponType == Enums.WeaponType.None)
+                    return (Enums.Element) Template.Properties.Stateffects.Element.Defense;
+                return (Enums.Element) Template.Properties.Stateffects.Element.Offense;
             }
         }
-        public ushort MinLDamage => Template.properties.damage.large.min;
-        public ushort MaxLDamage => Template.properties.damage.large.max;
-        public ushort MinSDamage => Template.properties.damage.small.min;
-        public ushort MaxSDamage => Template.properties.damage.small.max;
-        public ushort DisplaySprite => Template.properties.appearance.displaysprite;
+        public ushort MinLDamage => Template.Properties.Damage.Large.Min;
+        public ushort MaxLDamage => Template.Properties.Damage.Large.Max;
+        public ushort MinSDamage => Template.Properties.Damage.Small.Min;
+        public ushort MaxSDamage => Template.Properties.Damage.Small.Max;
+        public ushort DisplaySprite => Template.Properties.Appearance.Displaysprite;
 
-        public uint Value => Template.properties.physical.value;
+        public uint Value => Template.Properties.Physical.Value;
 
-        public sbyte Regen => Template.properties.stateffects.combat.regen;
+        public sbyte Regen => Template.Properties.Stateffects.Combat.Regen;
 
-        public bool Enchantable => Template.properties.flags.HasFlag(XML.Items.ItemFlags.enchantable);
+        public bool Enchantable => Template.Properties.Flags.HasFlag(XSD.ItemFlags.enchantable);
 
-        public bool Consecratable => Template.properties.flags.HasFlag(XML.Items.ItemFlags.consecratable);
+        public bool Consecratable => Template.Properties.Flags.HasFlag(XSD.ItemFlags.consecratable);
 
-        public bool Tailorable => Template.properties.flags.HasFlag(XML.Items.ItemFlags.tailorable);
+        public bool Tailorable => Template.Properties.Flags.HasFlag(XSD.ItemFlags.tailorable);
 
-        public bool Smithable => Template.properties.flags.HasFlag(XML.Items.ItemFlags.smithable);
+        public bool Smithable => Template.Properties.Flags.HasFlag(XSD.ItemFlags.smithable);
 
-        public bool Exchangeable => Template.properties.flags.HasFlag(XML.Items.ItemFlags.exchangeable);
+        public bool Exchangeable => Template.Properties.Flags.HasFlag(XSD.ItemFlags.exchangeable);
 
-        public bool Master => Template.properties.flags.HasFlag(XML.Items.ItemFlags.master);
+        public bool Master => Template.Properties.Flags.HasFlag(XSD.ItemFlags.master);
 
-        public bool Unique => Template.properties.flags.HasFlag(XML.Items.ItemFlags.unique);
+        public bool Unique => Template.Properties.Flags.HasFlag(XSD.ItemFlags.unique);
 
-        public bool UniqueEquipped => Template.properties.flags.HasFlag(XML.Items.ItemFlags.uniqueequipped);
+        public bool UniqueEquipped => Template.Properties.Flags.HasFlag(XSD.ItemFlags.uniqueequipped);
 
         public bool IsVariant => Template.IsVariant;
 
-        public XML.Items.ItemType ParentItem => Template.ParentItem;
+        public XSD.ItemType ParentItem => Template.ParentItem;
 
-        public XML.Items.VariantType CurrentVariant => Template.CurrentVariant;
+        public XSD.VariantType CurrentVariant => Template.CurrentVariant;
 
-        public XML.Items.ItemType GetVariant(int variantId)
+        public XSD.ItemType GetVariant(int variantId)
         {
             return Template.Variants[variantId];
         }
@@ -258,64 +259,7 @@ namespace Hybrasyl.Objects
 }
 
 
-namespace Hybrasyl.XML.Items
-{
+
     
-    public partial class ItemType
-    {
-        [System.Xml.Serialization.XmlIgnore]
-        public bool IsVariant { get; set; }
 
-        [System.Xml.Serialization.XmlIgnore]
-        public ItemType ParentItem { get; set; }
-
-        [System.Xml.Serialization.XmlIgnore]
-        public bool Stackable
-        {
-            get { return properties.stackable != null; }
-        }
-
-        [System.Xml.Serialization.XmlIgnore]
-        public VariantType CurrentVariant { get; set; }
-
-        [System.Xml.Serialization.XmlIgnore]
-        public Dictionary<int, ItemType> Variants { get; set; }
-
-        public int Id
-        {
-            get
-            {
-                unchecked
-                {
-                    if (properties.appearance.displayspriteSpecified && properties.appearance.displaysprite > 0)
-                    {
-                        return 31 * name.GetHashCode() * (properties.restrictions.gender.GetHashCode() + 1) *
-                        properties.appearance.displaysprite.GetHashCode();
-                    }
-                    return 31 * name.GetHashCode() * (properties.restrictions.gender.GetHashCode() + 1);
-                }
-            }
-        }
-    }
-    public partial class VariantType
-    {
-               
-        //[System.Xml.Serialization.XmlIgnore]
-        public static ILog Logger =
-    LogManager.GetLogger(
-        System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
-        public void ResolveVariant(ItemType itemType)
-        {
-            //Logger.DebugFormat("Logging some variant stuff.");
-            if (properties != null)
-                Console.WriteLine("hi");
-            foreach (var variantObject in properties.GetType().GetProperties(BindingFlags.NonPublic | BindingFlags.Public |
-                                                                        BindingFlags.Instance))
-            {
-                Console.WriteLine("variantobject contains {0}", variantObject);
-            }
-        }
-    }
-}
 

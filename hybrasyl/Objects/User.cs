@@ -42,6 +42,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using StackExchange.Redis;
+using Hybrasyl.XSD;
 
 namespace Hybrasyl.Objects
 {
@@ -122,7 +123,7 @@ namespace Hybrasyl.Objects
         [JsonProperty]
         public byte HairColor { get; set; }
         [JsonProperty]
-        public Class Class { get; set; }
+        public Enums.Class Class { get; set; }
         [JsonProperty]
         public bool IsMaster { get; set; }
         public UserGroup Group { get; set; }
@@ -150,11 +151,11 @@ namespace Hybrasyl.Objects
         public GuildMembership Guild { get; set; }
         
         public Nation Citizenship { get; set; }
-
+        /*THIS NEEDS FIXING*/
         [JsonProperty]
         public string NationName
         {
-            get { return Citizenship.Name; }
+            get { return "Mileth"; /*return Citizenship.Name;*/ }
         }
 
         [JsonProperty]
@@ -633,10 +634,10 @@ namespace Hybrasyl.Objects
             switch (toRemove.EquipmentSlot)
             {
                 case (byte) ItemSlots.Necklace:
-                    OffensiveElement = Element.None;
+                    OffensiveElement = Enums.Element.None;
                     break;
                 case (byte) ItemSlots.Waist:
-                    DefensiveElement = Element.None;
+                    DefensiveElement = Enums.Element.None;
                     break;
             }
 
@@ -1619,10 +1620,10 @@ namespace Hybrasyl.Objects
             x2F.WriteUInt16((ushort)merchant.Inventory.Count);
             foreach (var item in merchant.Inventory.Values)
             {
-                x2F.WriteUInt16((ushort)(0x8000 + item.properties.appearance.sprite));
-                x2F.WriteByte((byte)item.properties.appearance.color);
-                x2F.WriteUInt32((uint)item.properties.physical.value);
-                x2F.WriteString8(item.name);
+                x2F.WriteUInt16((ushort)(0x8000 + item.Properties.Appearance.Sprite));
+                x2F.WriteByte((byte)item.Properties.Appearance.Color);
+                x2F.WriteUInt32((uint)item.Properties.Physical.Value);
+                x2F.WriteString8(item.Name);
                 x2F.WriteString8(string.Empty); // defunct item description
             }
             Enqueue(x2F);
