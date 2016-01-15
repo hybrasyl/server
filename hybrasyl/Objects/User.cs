@@ -163,10 +163,15 @@ namespace Hybrasyl.Objects
 
         public DialogState DialogState { get; set; }
 
+
         [JsonProperty]
         private Dictionary<String, String> UserFlags { get; set; }
         private Dictionary<String, String> UserSessionFlags { get; set; }
-
+        [JsonProperty]
+        public new Inventory Inventory
+        {
+            get; set;
+        }
         public Exchange ActiveExchange { get; set; }
         public PlayerStatus Status { get; set; }
 
@@ -224,7 +229,9 @@ namespace Hybrasyl.Objects
         public int NumSaidRepeated { get; set; }
         public Dictionary<string, bool> Flags { get; private set; }
 
-	    public bool Grouped
+        public DateTime LastAttack { get; set; }
+
+        public bool Grouped
         {
             get { return Group != null; }
         }
