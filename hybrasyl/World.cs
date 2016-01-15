@@ -514,6 +514,7 @@ namespace Hybrasyl
             PacketHandlers[0x0E] = PacketHandler_0x0E_Talk;
             PacketHandlers[0x10] = PacketHandler_0x10_ClientJoin;
             PacketHandlers[0x11] = PacketHandler_0x11_Turn;
+            PacketHandlers[0x13] = PacketHandler_0x13_Attack;
             PacketHandlers[0x18] = PacketHandler_0x18_ShowPlayerList;
             PacketHandlers[0x19] = PacketHandler_0x19_Whisper;
             PacketHandlers[0x1C] = PacketHandler_0x1C_UseItem;
@@ -541,7 +542,11 @@ namespace Hybrasyl
             PacketHandlers[0x7B] = PacketHandler_0x7B_RequestMetafile;
         }
 
- 
+        private void PacketHandler_0x13_Attack(object obj, ClientPacket packet)
+        {
+            var user = (User)obj;
+            user.Attack(user.Direction);
+        }
 
         public void SetMerchantMenuHandlers()
         {

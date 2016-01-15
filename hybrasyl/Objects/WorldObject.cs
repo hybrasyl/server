@@ -706,8 +706,35 @@ namespace Hybrasyl.Objects
         public bool PhysicalImmortal { get; set; }
         public bool MagicalImmortal { get; set; }
 
-        public virtual void Attack()
+        public virtual void Attack(Direction direction)
         {
+            SendAnimation(0x01, 0x14, 0x01);
+        }
+
+        public void SendAnimation(byte animation, byte speed, byte sound)
+        {
+            foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
+            {
+                if (obj is User)
+                {
+                    var user = (User)obj;
+                    if (user.LastAttack == null || (DateTime.Now - user.LastAttack).Milliseconds > 500)
+                    {
+
+                        var x1A = new ServerPacket(0x1A);
+                        x1A.WriteUInt32(Id);
+                        x1A.WriteByte(animation);
+                        x1A.WriteByte(0x00);
+                        x1A.WriteByte(speed);
+                        x1A.WriteByte(0x01);
+                        x1A.WriteByte(0x00);
+
+                        user.LastAttack = DateTime.Now;
+                        user.Enqueue(x1A); //send animation
+                        PlaySound(sound);
+                    }
+                }
+            }
         }
 
         public virtual void UpdateAttributes(StatUpdateFlags flags) { }
