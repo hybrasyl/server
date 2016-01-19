@@ -112,7 +112,7 @@ namespace Hybrasyl
 
         public Dictionary<ushort, Map> Maps { get; set; }
         public Dictionary<string, WorldMap> WorldMaps { get; set; }
-        public Dictionary<int, XSD.ItemType> Items { get; set; }
+        public static Dictionary<int, XSD.ItemType> Items { get; set; }
         public Dictionary<string, XSD.VariantGroupType> ItemVariants { get; set; } 
         public Dictionary<int, SkillTemplate> Skills { get; set; }
         public Dictionary<int, SpellTemplate> Spells { get; set; }
@@ -1380,8 +1380,8 @@ namespace Hybrasyl
                         break;
                     case "/master":
                     {
-                        if (!user.IsPrivileged)
-                            return;
+                        //if (!user.IsPrivileged)
+                        //    return;
 
                         user.IsMaster = !user.IsMaster;
                         user.SendMessage(user.IsMaster ? "Mastership granted" : "Mastership removed", 3);
@@ -1654,7 +1654,7 @@ namespace Hybrasyl
             {
                 long connectionId;
 
-                user.Save();
+                //user.Save();
                 user.UpdateLogoffTime();
                 user.Map.Remove(user);
                 if (user.Grouped)

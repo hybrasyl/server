@@ -349,6 +349,7 @@ namespace Hybrasyl
     {
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
+
             var inventory = (Inventory) value;
             var output = new object[inventory.Size];
             var itemInfo = new Dictionary<String, object>();
@@ -361,24 +362,50 @@ namespace Hybrasyl
                     output[i] = itemInfo;
                 }               
             }
-            serializer.Serialize(writer, output);
+            Newtonsoft.Json.Linq.JArray ja = Newtonsoft.Json.Linq.JArray.FromObject(output);
+            //Newtonsoft.Json.Linq.JObject jo = Newtonsoft.Json.Linq.JObject.FromObject(output);
+            ja.WriteTo(writer);
+            //serializer.Serialize(writer, output);
 
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
-            return null;
+            Inventory inv = new Inventory(59);
+            Newtonsoft.Json.Linq.JArray inventory = (Newtonsoft.Json.Linq.JArray)serializer.Deserialize(reader);
+
+            for (byte i = 0; i < inventory.Count; i++)
+            {
+                Item itm;
+                Dictionary<string, object> item;
+                if (TryGetValue(inventory[i], out item))
+                {
+                    if (inv.TryGetValue(item.FirstOrDefault().Key, out itm)) inv[i] = itm;
+                }
+            }
+            return inv;
         }
 
         public override bool CanConvert(Type objectType)
         {
-            return objectType == typeof (Inventory);
+            return objectType == typeof(Inventory);
+        }
+
+        public bool TryGetValue(Newtonsoft.Json.Linq.JToken token, out Dictionary<string, object> item)
+        {
+            item = null;
+            if (!token.HasValues) return false;
+
+            item = token.ToObject<Dictionary<string, object>>();
+            return true;
         }
     }
 
     [JsonConverter(typeof(InventoryConverter))]
     public class Inventory : IEnumerable<Item>
     {
+        public DateTime LastSaved { get; set; }
+
         private Item[] _items;
         private Dictionary<int, List<Item>> _inventoryIndex;
 
