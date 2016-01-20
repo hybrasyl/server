@@ -351,6 +351,7 @@ namespace Hybrasyl
                     XSD.ItemType newItem = Serializer.Deserialize(XmlReader.Create(xml), new XSD.ItemType());
                     Logger.DebugFormat("Items: loaded {0}, id {1}", newItem.Name, newItem.Id);
                     Items.Add(newItem.Id, newItem);
+                    ItemCatalog.Add(new Tuple<Sex, string>(Sex.Neutral, newItem.Name), newItem);
                     foreach (var targetGroup in newItem.Properties.Variants.Group)
                     {
                         foreach (var variant in ItemVariants[targetGroup].Variant)
@@ -1697,6 +1698,9 @@ namespace Hybrasyl
             loginUser.SetEncryptionParameters(key, seed, name);
             loginUser.UpdateLoginTime();
             loginUser.UpdateAttributes(StatUpdateFlags.Full);
+            loginUser.SendInventory();
+            
+
             Logger.DebugFormat("Elapsed time since login: {0}", loginUser.SinceLastLogin);
 
             if (loginUser.Citizenship != null && loginUser.Citizenship.Spawnpoints.Count != 0 &&
@@ -3056,7 +3060,7 @@ namespace Hybrasyl
             var neutralKey = new Tuple<Sex, String>(Sex.Neutral, name);
             var femaleKey = new Tuple<Sex, String>(Sex.Female, name);
             var maleKey = new Tuple<Sex, String>(Sex.Male, name);
-            
+
             return ItemCatalog.TryGetValue(neutralKey, out item) || ItemCatalog.TryGetValue(femaleKey, out item) || ItemCatalog.TryGetValue(maleKey, out item);
         }
 

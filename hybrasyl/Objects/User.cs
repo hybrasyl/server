@@ -718,7 +718,7 @@ namespace Hybrasyl.Objects
             {
                 IsSaving = true;
                 var cache = World.DatastoreConnection.GetDatabase();
-                cache.Set(GetStorageKey(Name), JsonConvert.SerializeObject(this));
+                cache.Set(GetStorageKey(Name), JsonConvert.SerializeObject(this, new JsonSerializerSettings() { PreserveReferencesHandling = PreserveReferencesHandling.All }));
                 IsSaving = false;
             }
         }
@@ -1434,6 +1434,7 @@ namespace Hybrasyl.Objects
         {
             SendMapInfo();
             SendLocation();
+            SendInventory();
 
             foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
             {
@@ -1926,6 +1927,26 @@ namespace Hybrasyl.Objects
                 x42.WriteByte((byte)(source ? 0 : 1)); // Which "side" confirmed the transaction
                 x42.WriteString8("You exchanged.");
                 Enqueue(x42);
+            }
+        }
+
+        public void SendInventory()
+        {
+            for(byte i = 0; i<this.Inventory.Size; i++)
+            {
+                if(this.Inventory[i] != null)
+                {
+                    var x0F = new ServerPacket(0x0F);
+                    x0F.WriteByte(i);
+                    x0F.WriteUInt16((ushort)(Inventory[i].Sprite + 0x8000));
+                    x0F.WriteByte(Inventory[i].Color);
+                    x0F.WriteString8(this.Inventory[i].Name);
+                    x0F.WriteInt32(this.Inventory[i].Count);
+                    x0F.WriteBoolean(this.Inventory[i].Stackable);
+                    x0F.WriteUInt32(this.Inventory[i].MaximumDurability);
+                    x0F.WriteUInt32(this.Inventory[i].Durability);
+                    Enqueue(x0F);
+                }
             }
         }
 

@@ -30,6 +30,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System.Reflection;
 
 namespace Hybrasyl
 {
@@ -352,9 +354,9 @@ namespace Hybrasyl
 
             var inventory = (Inventory) value;
             var output = new object[inventory.Size];
-            var itemInfo = new Dictionary<String, object>();
             for (byte i = 0; i < inventory.Size; i++)
             {
+                var itemInfo = new Dictionary<String, object>();
                 if (inventory[i] != null)
                 {
                     itemInfo["Name"] = inventory[i].Name;
@@ -363,28 +365,31 @@ namespace Hybrasyl
                 }               
             }
             Newtonsoft.Json.Linq.JArray ja = Newtonsoft.Json.Linq.JArray.FromObject(output);
-            //Newtonsoft.Json.Linq.JObject jo = Newtonsoft.Json.Linq.JObject.FromObject(output);
-            ja.WriteTo(writer);
-            //serializer.Serialize(writer, output);
-
+            serializer.Serialize(writer, ja);
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
-            Inventory inv = new Inventory(59);
-            Newtonsoft.Json.Linq.JArray inventory = (Newtonsoft.Json.Linq.JArray)serializer.Deserialize(reader);
+            JArray jArray = JArray.Load(reader);
+            Inventory inv = new Inventory(jArray.Count);
 
-            for (byte i = 0; i < inventory.Count; i++)
+            for (byte i = 0; i < jArray.Count; i++)
             {
-                Item itm;
+                XSD.ItemType itmType = null;
                 Dictionary<string, object> item;
-                if (TryGetValue(inventory[i], out item))
+                if (TryGetValue(jArray[i], out item))
                 {
-                    if (inv.TryGetValue(item.FirstOrDefault().Key, out itm)) inv[i] = itm;
+                    itmType = World.Items.Where(x => x.Value.Name == (string)item.FirstOrDefault().Value).FirstOrDefault().Value;
+                    if (itmType != null)
+                    {
+                        inv[i] = new Item(itmType.Id, Game.World); //this will need to be expanded later based on item properties being saved back to the database.
+                    }
                 }
             }
+
             return inv;
         }
+
 
         public override bool CanConvert(Type objectType)
         {
@@ -400,6 +405,7 @@ namespace Hybrasyl
             return true;
         }
     }
+
 
     [JsonConverter(typeof(InventoryConverter))]
     public class Inventory : IEnumerable<Item>
