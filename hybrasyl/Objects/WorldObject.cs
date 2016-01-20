@@ -501,7 +501,7 @@ namespace Hybrasyl.Objects
         public uint Gold { get; set; }
         [JsonProperty]
         public Inventory Inventory { get; protected set; }
-        [JsonProperty]
+        [JsonProperty("Equipment")]
         public Inventory Equipment { get; protected set; }
 
         public Creature()

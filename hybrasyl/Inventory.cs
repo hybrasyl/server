@@ -30,6 +30,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System.Reflection;
 
 namespace Hybrasyl
 {
@@ -349,11 +351,12 @@ namespace Hybrasyl
     {
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
+
             var inventory = (Inventory) value;
             var output = new object[inventory.Size];
-            var itemInfo = new Dictionary<String, object>();
             for (byte i = 0; i < inventory.Size; i++)
             {
+                var itemInfo = new Dictionary<String, object>();
                 if (inventory[i] != null)
                 {
                     itemInfo["Name"] = inventory[i].Name;
@@ -361,24 +364,54 @@ namespace Hybrasyl
                     output[i] = itemInfo;
                 }               
             }
-            serializer.Serialize(writer, output);
-
+            Newtonsoft.Json.Linq.JArray ja = Newtonsoft.Json.Linq.JArray.FromObject(output);
+            serializer.Serialize(writer, ja);
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
-            return null;
+            JArray jArray = JArray.Load(reader);
+            Inventory inv = new Inventory(jArray.Count);
+
+            for (byte i = 0; i < jArray.Count; i++)
+            {
+                XSD.ItemType itmType = null;
+                Dictionary<string, object> item;
+                if (TryGetValue(jArray[i], out item))
+                {
+                    itmType = World.Items.Where(x => x.Value.Name == (string)item.FirstOrDefault().Value).FirstOrDefault().Value;
+                    if (itmType != null)
+                    {
+                        inv[i] = new Item(itmType.Id, Game.World); //this will need to be expanded later based on item properties being saved back to the database.
+                    }
+                }
+            }
+
+            return inv;
         }
+
 
         public override bool CanConvert(Type objectType)
         {
-            return objectType == typeof (Inventory);
+            return objectType == typeof(Inventory);
+        }
+
+        public bool TryGetValue(Newtonsoft.Json.Linq.JToken token, out Dictionary<string, object> item)
+        {
+            item = null;
+            if (!token.HasValues) return false;
+
+            item = token.ToObject<Dictionary<string, object>>();
+            return true;
         }
     }
+
 
     [JsonConverter(typeof(InventoryConverter))]
     public class Inventory : IEnumerable<Item>
     {
+        public DateTime LastSaved { get; set; }
+
         private Item[] _items;
         private Dictionary<int, List<Item>> _inventoryIndex;
 

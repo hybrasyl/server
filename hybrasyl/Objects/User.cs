@@ -98,6 +98,8 @@ namespace Hybrasyl.Objects
     [JsonObject(MemberSerialization.OptIn)]
     public class User : Creature
     {
+        public bool IsSaving { get; set; }
+
         public new static readonly ILog Logger =
                LogManager.GetLogger(
                System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
@@ -167,11 +169,7 @@ namespace Hybrasyl.Objects
         [JsonProperty]
         private Dictionary<String, String> UserFlags { get; set; }
         private Dictionary<String, String> UserSessionFlags { get; set; }
-        [JsonProperty]
-        public new Inventory Inventory
-        {
-            get; set;
-        }
+        
         public Exchange ActiveExchange { get; set; }
         public PlayerStatus Status { get; set; }
 
@@ -716,8 +714,13 @@ namespace Hybrasyl.Objects
 
         public void Save()
         {
-            var cache = World.DatastoreConnection.GetDatabase();
-            cache.Set(GetStorageKey(Name), JsonConvert.SerializeObject(this));
+            if (!IsSaving)
+            {
+                IsSaving = true;
+                var cache = World.DatastoreConnection.GetDatabase();
+                cache.Set(GetStorageKey(Name), JsonConvert.SerializeObject(this, new JsonSerializerSettings() { PreserveReferencesHandling = PreserveReferencesHandling.All }));
+                IsSaving = false;
+            }
         }
 
         public override void SendMapInfo()
@@ -1431,6 +1434,7 @@ namespace Hybrasyl.Objects
         {
             SendMapInfo();
             SendLocation();
+            SendInventory();
 
             foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
             {
@@ -1483,7 +1487,8 @@ namespace Hybrasyl.Objects
         public void SendProfile()
         {
             var profilePacket = new ServerPacket(0x39);
-            profilePacket.WriteByte((byte) Citizenship.Flag); // citizenship
+            //profilePacket.WriteByte((byte) Citizenship.Flag); // citizenship
+            profilePacket.WriteByte(4);
             profilePacket.WriteString8(Guild.Rank);
             profilePacket.WriteString8(Guild.Title);
             profilePacket.WriteString8(GroupText);
@@ -1925,6 +1930,26 @@ namespace Hybrasyl.Objects
             }
         }
 
+        public void SendInventory()
+        {
+            for(byte i = 0; i<this.Inventory.Size; i++)
+            {
+                if(this.Inventory[i] != null)
+                {
+                    var x0F = new ServerPacket(0x0F);
+                    x0F.WriteByte(i);
+                    x0F.WriteUInt16((ushort)(Inventory[i].Sprite + 0x8000));
+                    x0F.WriteByte(Inventory[i].Color);
+                    x0F.WriteString8(this.Inventory[i].Name);
+                    x0F.WriteInt32(this.Inventory[i].Count);
+                    x0F.WriteBoolean(this.Inventory[i].Stackable);
+                    x0F.WriteUInt32(this.Inventory[i].MaximumDurability);
+                    x0F.WriteUInt32(this.Inventory[i].Durability);
+                    Enqueue(x0F);
+                }
+            }
+        }
+
         public bool IsInViewport(VisibleObject obj)
         {
             return Map.EntityTree.GetObjects(GetViewport()).Contains(obj);
@@ -1935,6 +1960,8 @@ namespace Hybrasyl.Objects
         {
             Client.SendMessage(p, 3);
         }
+
+
         /*
         [SecurityPermission(SecurityAction.Demand, SerializationFormatter =true)]
         public void GetObjectData(SerializationInfo info, StreamingContext context)
