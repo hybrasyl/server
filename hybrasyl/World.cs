@@ -114,8 +114,8 @@ namespace Hybrasyl
         public Dictionary<string, WorldMap> WorldMaps { get; set; }
         public static Dictionary<int, XSD.ItemType> Items { get; set; }
         public Dictionary<string, XSD.VariantGroupType> ItemVariants { get; set; } 
-        public Dictionary<int, SkillTemplate> Skills { get; set; }
-        public Dictionary<int, SpellTemplate> Spells { get; set; }
+        public Dictionary<int, XSD.Castable> Skills { get; set; }
+        public Dictionary<int, XSD.Castable> Spells { get; set; }
         public Dictionary<int, MonsterTemplate> Monsters { get; set; }
         public Dictionary<int, MerchantTemplate> Merchants { get; set; }
         public Dictionary<int, ReactorTemplate> Reactors { get; set; }
@@ -155,6 +155,11 @@ namespace Hybrasyl
         public static string DataDirectory
         {
             get { return Constants.DataDirectory; }
+        }
+
+        public static string CastableDirectory
+        {
+            get { return Path.Combine(DataDirectory, "world", "xml", "castables"); }
         }
 
         public static string ItemDirectory
@@ -201,8 +206,8 @@ namespace Hybrasyl
             Maps = new Dictionary<ushort, Map>();
             WorldMaps = new Dictionary<string, WorldMap>();
             Items = new Dictionary<int, XSD.ItemType>();
-            Skills = new Dictionary<int, SkillTemplate>();
-            Spells = new Dictionary<int, SpellTemplate>();
+            Skills = new Dictionary<int, XSD.Castable>();
+            Spells = new Dictionary<int, XSD.Castable>();
             Monsters = new Dictionary<int, MonsterTemplate>();
             Merchants = new Dictionary<int, MerchantTemplate>();
             Methods = new Dictionary<string, MethodInfo>();
@@ -360,6 +365,27 @@ namespace Hybrasyl
                             variant.ResolveVariant(newItem);
                         }
                     }
+                }
+                catch (Exception e)
+                {
+                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, e);
+                }
+            }
+
+            foreach(var xml in Directory.GetFiles(CastableDirectory))
+            {
+                try
+                {
+                    string name = string.Empty;
+                    XSD.Castable newCastable = Serializer.Deserialize(XmlReader.Create(xml), new XSD.Castable());
+                    if (newCastable.Book == XSD.Book.primaryskill || newCastable.Book == XSD.Book.secondaryskill || newCastable.Book == XSD.Book.utilityskill)
+                    {
+                        Skills.Add(newCastable.Id, newCastable);
+                    }
+                    else
+                        Spells.Add(newCastable.Id, newCastable);
+
+                    Logger.DebugFormat("Castables: loaded {0}, id {1}", newCastable.Name, newCastable.Id);
                 }
                 catch (Exception e)
                 {
@@ -1379,6 +1405,19 @@ namespace Hybrasyl
                         }
                     }
                         break;
+                    case "/skill":
+                        {
+                            string skillName;
+
+                            Logger.DebugFormat("/skill: Last argument is {0}", args.Last());
+                            Regex integer = new Regex(@"^\d+$");
+
+                            skillName = string.Join(" ", args, 1, args.Length - 1);
+
+                            Castable skill = Skills.Where(x => x.Value.Name == skillName).FirstOrDefault().Value;
+                            user.AddSkill(skill);
+                        }
+                        break;
                     case "/master":
                     {
                         //if (!user.IsPrivileged)
@@ -1699,6 +1738,8 @@ namespace Hybrasyl
             loginUser.UpdateLoginTime();
             loginUser.UpdateAttributes(StatUpdateFlags.Full);
             loginUser.SendInventory();
+            loginUser.SendSkills();
+            loginUser.SendSpells();
             
 
             Logger.DebugFormat("Elapsed time since login: {0}", loginUser.SinceLastLogin);
