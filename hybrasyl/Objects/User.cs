@@ -139,9 +139,10 @@ namespace Hybrasyl.Objects
         public LoginInfo Login { get; set; }
         [JsonProperty]
         public PasswordInfo Password { get; set; }
-       
-        //public Skill[] SkillBook { get; private set; }
-        //public Spell[] SpellBook { get; private set; }
+        [JsonProperty]
+        public Book SkillBook { get; private set; }
+        [JsonProperty]
+        public Book SpellBook { get; private set; }
 
         [JsonProperty]
         public bool Grouping { get; set; }
@@ -321,8 +322,8 @@ namespace Hybrasyl.Objects
         {
             Inventory = new Inventory(59);
             Equipment = new Inventory(18);
-            //SkillBook = new Skill[90];
-            //SpellBook = new Spell[90];
+            SkillBook = new Book(90);
+            SpellBook = new Book(90);
             IsAtWorldMap = false;
             Login = new LoginInfo();
             Password = new PasswordInfo();
@@ -986,6 +987,13 @@ namespace Hybrasyl.Objects
             Enqueue(x10);
         }
 
+        public void SendClearSkill(int slot)
+        {
+            var x2D = new ServerPacket(0x2D);
+            x2D.WriteByte((byte)slot);
+            Enqueue(x2D);
+        }
+
         /// <summary>
         /// Send an item update packet (essentially placing the item in a given slot, as far as the client is concerned.
         /// </summary>
@@ -1012,6 +1020,47 @@ namespace Hybrasyl.Objects
             x0F.WriteUInt32(item.Durability);  //curdura
             x0F.WriteUInt32(0x00);  //?
             Enqueue(x0F);
+        }
+
+        public void SendSkillUpdate(Castable item, int slot)
+        {
+            if(item == null)
+            {
+                SendClearSkill(slot);
+                return;
+            }
+            Logger.DebugFormat("Adding skill {0} to slot {2}",
+                item.Name, slot);
+            var x2C = new ServerPacket(0x2C);
+            x2C.WriteByte((byte)slot);
+            x2C.WriteUInt16((ushort)(item.Icon));
+            x2C.WriteString8(item.Name);
+            x2C.WriteByte(0); //current level
+            x2C.WriteByte((byte)100); //this will need to be updated
+            Enqueue(x2C);
+
+        }
+
+        public void SendSpellUpdate(Castable item, int slot)
+        {
+            if (item == null)
+            {
+                SendClearSkill(slot);
+                return;
+            }
+            Logger.DebugFormat("Adding spell {0} to slot {2}",
+                item.Name, slot);
+            var x17 = new ServerPacket(0x17);
+            x17.WriteByte((byte)slot);
+            x17.WriteUInt16((ushort)(item.Icon));
+            x17.WriteByte(0x00); //spell type? how are we determining this?
+            x17.WriteString8(item.Name);
+            x17.WriteString8(item.Name); //prompt? what is this?
+            x17.WriteByte((byte)item.Lines);
+            x17.WriteByte(0); //current level
+            x17.WriteByte((byte)100); //this will need to be updated
+            Enqueue(x17);
+
         }
 
         public void SetFlag(String flag, String value)
@@ -1296,6 +1345,74 @@ namespace Hybrasyl.Objects
             return true;
         }
 
+        public bool AddSkill(Castable castable)
+        {
+            if (SkillBook.IsFull)
+            {
+                SendSystemMessage("You cannot learn any more skills.");
+                return false;
+            }
+            return AddSkill(castable, SkillBook.FindEmptySlot());
+        }
+
+        public bool AddSkill(Castable item, byte slot)
+        {
+            // Quantity check - if we already have an item with the same name, will
+            // adding the MaximumStack)
+
+            if(SkillBook.Contains(item.Id))
+            {
+                SendSystemMessage("You already know this skill.");
+                return false;
+            }
+
+            Logger.DebugFormat("Attempting to add skill to skillbook slot {0}", slot);
+
+
+            if (!SkillBook.Insert(slot, item))
+            {
+                Logger.DebugFormat("Slot was invalid or not null");
+                return false;
+            }
+
+            SendSkillUpdate(item, slot);
+            return true;
+        }
+
+        public bool AddSpell(Castable castable)
+        {
+            if (SpellBook.IsFull)
+            {
+                SendSystemMessage("You cannot learn any more spells.");
+                return false;
+            }
+            return AddSkill(castable, SkillBook.FindEmptySlot());
+        }
+
+        public bool AddSpell(Castable item, byte slot)
+        {
+            // Quantity check - if we already have an item with the same name, will
+            // adding the MaximumStack)
+
+            if (SpellBook.Contains(item.Id))
+            {
+                SendSystemMessage("You already know this spell.");
+                return false;
+            }
+
+            Logger.DebugFormat("Attempting to add spell to spellbook slot {0}", slot);
+
+
+            if (!SpellBook.Insert(slot, item))
+            {
+                Logger.DebugFormat("Slot was invalid or not null");
+                return false;
+            }
+
+            SendSpellUpdate(item, slot);
+            return true;
+        }
+
         public bool AddItem(Item item, bool updateWeight = true)
         {
             if (Inventory.IsFull)
@@ -1448,6 +1565,56 @@ namespace Hybrasyl.Objects
             Inventory.Swap(oldSlot, newSlot);
             SendItemUpdate(Inventory[oldSlot], oldSlot);
             SendItemUpdate(Inventory[newSlot], newSlot);
+        }
+
+        public override void Attack(Direction direction, Castable castObject = null, Creature target = null)
+        {
+            var damage = castObject.Effects.Damage;
+
+            if(damage.Formula == null) //will need to be expanded.
+            {
+                var simple = damage.Simple;
+
+                Random rand = new Random();
+                var dmg = rand.Next(Convert.ToInt32(simple.Min), Convert.ToInt32(simple.Max)); //these need to be set to integers as attributes. note to fix.
+                target.Damage(dmg, OffensiveElement, damage.Type, this);
+            }
+            else
+            {
+                var formula = damage.Formula;
+
+                
+            }
+            
+        }
+
+        public override void Attack(Castable castObject, Creature target = null)
+        {
+            base.Attack(castObject, target);
+        }
+
+        public override void Attack(Castable castObject)
+        {
+            base.Attack(castObject);
+        }
+
+        public void AssailAttack(Direction direction, Creature target = null)
+        {
+            if (target == null)
+            {
+                //try to get the creature we're facing and set it as the target.
+            }
+
+            foreach (Castable c in SkillBook)
+            {
+                if(c.Isassail == "true") //i do not like that this is a string. I'll probablt update it at some point to return a simple type of boolean.
+                {
+                    Attack(direction, c, target);
+                }
+            }
+            //animation handled here as to not repeatedly send assails.
+            SendAnimation(0x01, (byte)100, 0x01);
+
         }
 
         private string GroupProfileSegment()
@@ -1949,6 +2116,42 @@ namespace Hybrasyl.Objects
                 }
             }
         }
+        public void SendSkills()
+        {
+            for (byte i = 0; i < this.SkillBook.Size; i++)
+            {
+                if (this.SkillBook[i] != null)
+                {
+                    var x2C = new ServerPacket(0x2C);
+                    x2C.WriteByte((byte)i);
+                    x2C.WriteUInt16((ushort)(SkillBook[i].Icon));
+                    x2C.WriteString8(SkillBook[i].Name);
+                    x2C.WriteByte(0); //current level
+                    x2C.WriteByte((byte)100); //this will need to be updated
+                    Enqueue(x2C);
+                }
+            }
+        }
+        public void SendSpells()
+        {
+            for (byte i = 0; i < this.SpellBook.Size; i++)
+            {
+                if (this.SpellBook[i] != null)
+                {
+                    var x17 = new ServerPacket(0x17);
+                    x17.WriteByte((byte)i);
+                    x17.WriteUInt16((ushort)(SpellBook[i].Icon));
+                    x17.WriteByte(0x00); //spell type? how are we determining this?
+                    x17.WriteString8(SpellBook[i].Name);
+                    x17.WriteString8(SpellBook[i].Name); //prompt? what is this?
+                    x17.WriteByte((byte)SpellBook[i].Lines);
+                    x17.WriteByte(0); //current level
+                    x17.WriteByte((byte)100); //this will need to be updated
+                    Enqueue(x17);
+                }
+            }
+        }
+
 
         public bool IsInViewport(VisibleObject obj)
         {

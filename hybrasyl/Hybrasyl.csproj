@@ -121,6 +121,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Book.cs" />
     <Compile Include="Client.cs" />
     <Compile Include="Connection.cs" />
     <Compile Include="Dialogs.cs" />
