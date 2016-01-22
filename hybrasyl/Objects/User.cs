@@ -1567,6 +1567,56 @@ namespace Hybrasyl.Objects
             SendItemUpdate(Inventory[newSlot], newSlot);
         }
 
+        public override void Attack(Direction direction, Castable castObject = null, Creature target = null)
+        {
+            var damage = castObject.Effects.Damage;
+
+            if(damage.Formula == null) //will need to be expanded.
+            {
+                var simple = damage.Simple;
+
+                Random rand = new Random();
+                var dmg = rand.Next(Convert.ToInt32(simple.Min), Convert.ToInt32(simple.Max)); //these need to be set to integers as attributes. note to fix.
+                target.Damage(dmg, OffensiveElement, damage.Type, this);
+            }
+            else
+            {
+                var formula = damage.Formula;
+
+                
+            }
+            
+        }
+
+        public override void Attack(Castable castObject, Creature target = null)
+        {
+            base.Attack(castObject, target);
+        }
+
+        public override void Attack(Castable castObject)
+        {
+            base.Attack(castObject);
+        }
+
+        public void AssailAttack(Direction direction, Creature target = null)
+        {
+            if (target == null)
+            {
+                //try to get the creature we're facing and set it as the target.
+            }
+
+            foreach (Castable c in SkillBook)
+            {
+                if(c.Isassail == "true") //i do not like that this is a string. I'll probablt update it at some point to return a simple type of boolean.
+                {
+                    Attack(direction, c, target);
+                }
+            }
+            //animation handled here as to not repeatedly send assails.
+            SendAnimation(0x01, (byte)100, 0x01);
+
+        }
+
         private string GroupProfileSegment()
         {
             StringBuilder sb = new StringBuilder();

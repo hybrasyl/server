@@ -31,6 +31,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using Newtonsoft.Json;
+using Hybrasyl.XSD;
 
 namespace Hybrasyl.Objects
 {
@@ -490,8 +491,8 @@ namespace Hybrasyl.Objects
         public long BonusMr { get; set; }
         public long BonusRegen { get; set; }
 
-        public Element OffensiveElement { get; set; }
-        public Element DefensiveElement { get; set; }
+        public Enums.Element OffensiveElement { get; set; }
+        public Enums.Element DefensiveElement { get; set; }
 
         public ushort MapId { get; protected set; }
         public byte MapX { get; protected set; }
@@ -706,9 +707,19 @@ namespace Hybrasyl.Objects
         public bool PhysicalImmortal { get; set; }
         public bool MagicalImmortal { get; set; }
 
-        public virtual void Attack(Direction direction)
+        public virtual void Attack(Direction direction, XSD.Castable castObject, Creature target = null)
         {
-            SendAnimation(0x01, 0x14, 0x01);
+            //do something?
+        }
+
+        public virtual void Attack(XSD.Castable castObject, Creature target = null)
+        {
+            //do spell?
+        }
+
+        public virtual void Attack(XSD.Castable castObject)
+        {
+            //do aoe?
         }
 
         public void SendAnimation(byte animation, byte speed, byte sound)
@@ -780,15 +791,15 @@ namespace Hybrasyl.Objects
         //public virtual bool AddEquipment(Item item, byte slot, bool sendUpdate = true) { return false; }
         //public virtual bool RemoveEquipment(byte slot) { return false; }
 
-        public virtual void Damage(double damage, Element element = Element.None, DamageType damageType = DamageType.Direct, Creature attacker = null)
+        public virtual void Damage(double damage, Enums.Element element = Enums.Element.None, Enums.DamageType damageType = Enums.DamageType.Direct, Creature attacker = null)
         {
-            if (damageType == DamageType.Physical && (AbsoluteImmortal || PhysicalImmortal))
+            if (damageType == Enums.DamageType.Physical && (AbsoluteImmortal || PhysicalImmortal))
                 return;
 
-            if (damageType == DamageType.Magical && (AbsoluteImmortal || MagicalImmortal))
+            if (damageType == Enums.DamageType.Magical && (AbsoluteImmortal || MagicalImmortal))
                 return;
 
-            if (damageType != DamageType.Direct)
+            if (damageType != Enums.DamageType.Direct)
             {
                 double armor = Ac * -1 + 100;
                 double resist = Game.ElementTable[(int)element, 0];
@@ -852,6 +863,21 @@ namespace Hybrasyl.Objects
             }
 
             return false;
+        }
+
+        public override void Attack(Direction direction, XSD.Castable castObject = null, Creature target = null)
+        {
+            //do monster attack.
+        }
+
+        public override void Attack(Castable castObject, Creature target = null)
+        {
+            //do monster spell
+        }
+
+        public override void Attack(Castable castObject)
+        {
+            //do monster aoe
         }
     }
 
