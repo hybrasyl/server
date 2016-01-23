@@ -26,6 +26,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Reflection;
+using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
 
 namespace Hybrasyl
@@ -210,6 +211,7 @@ namespace Hybrasyl
         public const int ShutdownServer = 3;
         public const int RegenUser = 4;
         public const int LogoffUser = 5;
+        public const int MailNotifyUser = 6;
     }
 
     static class ServerTypes
@@ -332,6 +334,10 @@ namespace Hybrasyl
             //{0x13, new Throttle(USE_THROTTLE_TIME, GENERIC_REPEAT_TIMES, GENERIC_REPEAT_WITHIN, GENERIC_SQUELCH_DURATION, GENERIC_DISCONNECT_TRIGGER)}, //Assail - this doesn't work through normal throttling. Moved to assail usage.
         };
 
+        // Message throttling 
+
+        public const int SEND_MESSAGE_COOLDOWN = 2000; // You must wait two seconds before sending another message
+
         // Idle settings
         // A client counts as idle after IDLE_TIME seconds without any packet receipt (except for heartbeat opcodes)
         // The idle check job will run every IDLE_CHECK seconds
@@ -376,9 +382,7 @@ namespace Hybrasyl
                                                 "dmg", "ac", "mr", "regen" };
 
         public static string[] SCRIPT_DIRECTORIES = { "npc", "startup", "item", "reactor" };
-
-
-
+        public const int MESSAGE_RETURN_SIZE = 64;
     }
 
     public static class LevelCircles

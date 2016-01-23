@@ -206,7 +206,7 @@ namespace Hybrasyl
 
                 IDatabase cache = World.DatastoreConnection.GetDatabase();
                 var myPerson = JsonConvert.SerializeObject(newPlayer);
-                    cache.Set(String.Format("{0}:{1}", User.DatastorePrefix, newPlayer.Name), myPerson);
+                cache.Set(User.GetStorageKey(newPlayer.Name), myPerson);
 
 //                    Logger.ErrorFormat("Error saving new player!");
   //                  Logger.ErrorFormat(e.ToString());

@@ -21,12 +21,10 @@
  */
 
 using System.Runtime.Serialization.Formatters.Binary;
-using Community.CsharpSqlite;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
 using Hybrasyl.XML;
-using Hybrasyl.XML.Config;
 using Hybrasyl.XSD;
 using log4net;
 using log4net.Core;
@@ -34,6 +32,7 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.Eventing.Reader;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -125,10 +124,11 @@ namespace Hybrasyl
         public Dictionary<Int64, MapPoint> MapPoints { get; set; }
         public Dictionary<string, CompiledMetafile> Metafiles { get; set; }
         public Dictionary<string, Nation> Nations { get; set; }
-
         internal List<Monolith> Monoliths { get; set; }
-
-        public string DefaultCitizenship { get; set; }
+	    public Dictionary<string, Mailbox> Mailboxes { get; set; }
+        public Dictionary<int, Board> MessageboardIndex { get; set; }
+        public Dictionary<string, Board> Messageboards { get; set; }  
+	    public string DefaultCitizenship { get; set; }
 
         public List<DialogSequence> GlobalSequences { get; set; }
         public Dictionary<String, DialogSequence> GlobalSequencesCatalog { get; set; }
@@ -149,45 +149,21 @@ namespace Hybrasyl
 
         private static Lazy<ConnectionMultiplexer> _lazyConnector;
 
-        public static ConnectionMultiplexer DatastoreConnection
-        {
-            get { return _lazyConnector.Value; }
-        }
+        public static ConnectionMultiplexer DatastoreConnection => _lazyConnector.Value;
 
-        public static string DataDirectory
-        {
-            get { return Constants.DataDirectory; }
-        }
+        public static string DataDirectory => Constants.DataDirectory;
 
-        public static string CastableDirectory
-        {
-            get { return Path.Combine(DataDirectory, "world", "xml", "castables"); }
-        }
+        public static string CastableDirectory => Path.Combine(DataDirectory, "world", "xml", "castables");
 
-        public static string ItemDirectory
-        {
-            get { return Path.Combine(DataDirectory, "world", "xml", "items"); }
-        }
+        public static string ItemDirectory => Path.Combine(DataDirectory, "world", "xml", "items");
 
-        public static string NationDirectory
-        {
-            get { return Path.Combine(DataDirectory, "world", "xml", "nations"); }
-        }
+        public static string NationDirectory => Path.Combine(DataDirectory, "world", "xml", "nations");
 
-        public static string MapDirectory
-        {
-            get { return Path.Combine(DataDirectory, "world", "xml", "maps"); }
-        }
+        public static string MapDirectory => Path.Combine(DataDirectory, "world", "xml", "maps");
 
-        public static string WorldMapDirectory
-        {
-            get { return Path.Combine(DataDirectory, "world", "xml", "worldmaps"); }
-        }
+        public static string WorldMapDirectory => Path.Combine(DataDirectory, "world", "xml", "worldmaps");
 
-        public static string ItemVariantDirectory
-        {
-            get { return Path.Combine(DataDirectory, "world", "xml", "itemvariants"); }
-        }
+        public static string ItemVariantDirectory => Path.Combine(DataDirectory, "world", "xml", "itemvariants");
 
         public static bool TryGetUser(string name, out User userobj)
         {
@@ -198,11 +174,16 @@ namespace Hybrasyl
                 return false;
             }
             userobj = JsonConvert.DeserializeObject<User>(jsonString);
+            if (userobj == null)
+            {
+                Logger.FatalFormat("{0}: JSON object could not be deserialized!", name);
+                return false;
+            } 
             return true;
 
         }
 
-        public World(int port, XML.Config.DataStore store)
+        public World(int port, DataStore store)
             : base(port)
         {
             Maps = new Dictionary<ushort, Map>();
@@ -222,6 +203,11 @@ namespace Hybrasyl
             GlobalSequences = new List<DialogSequence>();
             ItemVariants = new Dictionary<string, VariantGroupType>();
             Monoliths = new List<Monolith>();
+	        Mailboxes = new Dictionary<string, Mailbox>();
+            Messageboards = new Dictionary<string, Board>();
+            MessageboardIndex = new Dictionary<int, Board>();
+
+
             GlobalSequencesCatalog = new Dictionary<String, DialogSequence>();
             ItemCatalog = new Dictionary<Tuple<Sex, String>, XSD.ItemType>();
             MapCatalog = new Dictionary<String, Map>();
@@ -229,18 +215,18 @@ namespace Hybrasyl
             ScriptProcessor = new HybrasylScriptProcessor(this);
             MessageQueue = new BlockingCollection<HybrasylMessage>(new ConcurrentQueue<HybrasylMessage>());
             ActiveUsers = new ConcurrentDictionary<long, User>();
-            ActiveUsersByName = new ConcurrentDictionary<String, long>();
-
+            ActiveUsersByName = new ConcurrentDictionary<string, long>();
+            
             var datastoreConfig = new ConfigurationOptions()
             {
                 EndPoints =
                 {
-                    {store.host, store.port}
+                    {store.Host, store.Port}
                 }
             };
 
-            if (!String.IsNullOrEmpty(store.password))
-                datastoreConfig.Password = store.password;
+            if (!String.IsNullOrEmpty(store.Password))
+                datastoreConfig.Password = store.Password;
 
             _lazyConnector = new Lazy<ConnectionMultiplexer>(() => ConnectionMultiplexer.Connect(datastoreConfig));
                     
@@ -271,8 +257,8 @@ namespace Hybrasyl
         }
 
         private void LoadData()
-        {           
-          
+        {
+
             // You'll notice some inconsistencies here in that we use both wrapper classes and 
             // native XML classes for Hybrasyl objects. This is unfortunate and should be 
             // refactored later, but it is way too much work to do now (e.g. maps, etc).
@@ -421,7 +407,7 @@ namespace Hybrasyl
             Logger.InfoFormat("Item variants: {0} variant sets loaded", ItemVariants.Count);
 
             // Load items
-            foreach (var xml in Directory.GetFiles(ItemDirectory)) 
+            foreach (var xml in Directory.GetFiles(ItemDirectory))
             {
                 try
                 {
@@ -433,7 +419,7 @@ namespace Hybrasyl
                     {
                         foreach (var variant in ItemVariants[targetGroup].Variant)
                         {
-                            Logger.DebugFormat("Item {0}: variantgroup {1}, subvariant {2}", newItem.Name, targetGroup, variant.Name);
+                            //Logger.DebugFormat("Item {0}: variantgroup {1}, subvariant {2}", newItem.Name, targetGroup, variant.Name);
                             variant.ResolveVariant(newItem);
                         }
                     }
@@ -444,13 +430,14 @@ namespace Hybrasyl
                 }
             }
 
-            foreach(var xml in Directory.GetFiles(CastableDirectory))
+            foreach (var xml in Directory.GetFiles(CastableDirectory))
             {
                 try
                 {
                     string name = string.Empty;
                     XSD.Castable newCastable = Serializer.Deserialize(XmlReader.Create(xml), new XSD.Castable());
-                    if (newCastable.Book == XSD.Book.primaryskill || newCastable.Book == XSD.Book.secondaryskill || newCastable.Book == XSD.Book.utilityskill)
+                    if (newCastable.Book == XSD.Book.primaryskill || newCastable.Book == XSD.Book.secondaryskill ||
+                        newCastable.Book == XSD.Book.utilityskill)
                     {
                         Skills.Add(newCastable.Id, newCastable);
                     }
@@ -465,6 +452,85 @@ namespace Hybrasyl
                 }
             }
 
+            // Load data from Redis
+            // Load mailboxes
+            var server = World.DatastoreConnection.GetServer(World.DatastoreConnection.GetEndPoints()[0]);
+            foreach (var key in server.Keys(pattern: "Hybrasyl.Mailbox*"))
+            {
+                Logger.InfoFormat("Loading mailbox at {0}", key);
+                var jsonString = (string) World.DatastoreConnection.GetDatabase().Get(key);
+                var mailbox = JsonConvert.DeserializeObject<Mailbox>(jsonString);
+                var name = key.ToString().Split(':')[1].ToLower();
+                if (name == string.Empty)
+                {
+                    Logger.Warn("Potentially corrupt mailbox data in Redis; ignoring");
+                    continue;
+                }
+                Mailboxes.Add(name, mailbox);
+            }
+
+            // Load all boards
+            foreach (var key in server.Keys(pattern: "Hybrasyl.Board*"))
+            {
+                Logger.InfoFormat("Loading board at {0}", key);
+                var jsonString = (string)World.DatastoreConnection.GetDatabase().Get(key);
+                var messageboard = JsonConvert.DeserializeObject<Board>(jsonString);
+                var name = key.ToString().Split(':')[1];
+                if (name == string.Empty)
+                {
+                    Logger.Warn("Potentially corrupt board data in Redis; ignoring");
+                    continue;
+                }
+                // Messageboard IDs are fairly irrelevant and only matter to the client
+                messageboard.Id = Messageboards.Count + 1;
+                Messageboards.Add(messageboard.Name, messageboard);
+                MessageboardIndex.Add(messageboard.Id, messageboard);
+
+
+            }
+
+            // Ensure global boards exist and are up to date with anything specified in the config
+
+            foreach (var globalboard in Game.Config.Boards)
+            {
+                var board = GetBoard(globalboard.Name);
+                board.DisplayName = globalboard.Displayname;
+                foreach (var reader in globalboard.Accesslist.Read)
+                {
+                    board.SetAccessLevel(Convert.ToString(reader),BoardAccessLevel.Read);
+                }
+                foreach (var writer in globalboard.Accesslist.Write)
+                {
+                    board.SetAccessLevel(Convert.ToString(writer), BoardAccessLevel.Write);
+                }
+                foreach (var moderator in globalboard.Accesslist.Moderate)
+                {
+                    board.SetAccessLevel(Convert.ToString(moderator), BoardAccessLevel.Moderate);
+                }
+                Logger.InfoFormat("Boards: Global board {0} initialized", globalboard.Name);
+                board.Save();
+            }
+        }
+
+        public Mailbox GetMailbox(string name)
+        {
+            var mailboxName = name.ToLower();
+            if (Mailboxes.ContainsKey(mailboxName)) return Mailboxes[mailboxName];
+            Mailboxes.Add(mailboxName, new Mailbox(mailboxName));
+            Mailboxes[mailboxName].Save();
+            Logger.InfoFormat("Mailbox: Creating mailbox for {0}", name);
+            return Mailboxes[mailboxName];
+        }
+
+        public Board GetBoard(string name)
+        {
+            if (Messageboards.ContainsKey(name)) return Messageboards[name];
+            var newBoard = new Board(name) {Id = MessageboardIndex.Count + 1};
+            Messageboards.Add(name, new Board(name));
+            MessageboardIndex.Add(newBoard.Id, newBoard);
+            Messageboards[name].Save();
+            Logger.InfoFormat("Board: Creating {0}", name);
+            return Messageboards[name];
         }
 
         private static void ValidationCallBack(object sender, ValidationEventArgs args)
@@ -599,6 +665,7 @@ namespace Hybrasyl
             ControlMessageHandlers[ControlOpcodes.ShutdownServer] = ControlMessage_ShutdownServer;
             ControlMessageHandlers[ControlOpcodes.RegenUser] = ControlMessage_RegenerateUser;
             ControlMessageHandlers[ControlOpcodes.LogoffUser] = ControlMessage_LogoffUser;
+            ControlMessageHandlers[ControlOpcodes.MailNotifyUser] = ControlMessage_MailNotifyUser;
         }
 
 
@@ -827,9 +894,25 @@ namespace Hybrasyl
                 user.Logoff();
             }
         }
+        private void ControlMessage_MailNotifyUser(HybrasylControlMessage message)
+        {
+            // Set unread mail flag and if the user is online, send them an UpdateAttributes packet
+            var userName = (string)message.Arguments[0];
+            Logger.DebugFormat("mail: attempting to notify {0} of new mail", userName);
+            User user;
+            if (Users.TryGetValue(userName, out user))
+            {
+                user.UpdateAttributes(StatUpdateFlags.Secondary);
+                Logger.DebugFormat("mail: notification to {0} sent", userName);
+            }
+            else
+            {
+                Logger.DebugFormat("mail: notification to {0} failed, not logged in?", userName);
+            }
+        }
+
         #endregion
-
-
+        
         #region Packet Handlers
 
         private void PacketHandler_0x05_RequestMap(Object obj, ClientPacket packet)
@@ -1213,6 +1296,11 @@ namespace Hybrasyl
 
                     }
                         break;
+                    case "/unreadmail":
+                    {
+                        user.SendSystemMessage(user.UnreadMail ? "Unread mail." : "No unread mail.");
+                    }
+                        break;
                     case "/effect":
                     {
                         ushort effect;
@@ -1475,6 +1563,16 @@ namespace Hybrasyl
                                 user.AddItem(item);
                             }
                         }
+                    }
+                        break;
+                    case "/magicval":
+                    {
+                        var valueName = args[1];
+                        var value = args[2];
+                        var property = typeof(User).GetProperty(valueName);
+                        property.SetValue(user, Convert.ToByte(value));
+                        user.SendSystemMessage(String.Format("Magic value {0} set to {1}", valueName, value));
+                        user.UpdateAttributes(StatUpdateFlags.Full);
                     }
                         break;
                     case "/skill":
@@ -2376,11 +2474,371 @@ namespace Hybrasyl
         private void PacketHandler_0x3B_AccessMessages(Object obj, ClientPacket packet)
         {
             var user = (User) obj;
-            var messagePacket = new ServerPacket(0x31);
-            messagePacket.WriteByte(0x01);
-            messagePacket.WriteUInt16(0x00);
-            messagePacket.WriteByte(0x00);
-            user.Enqueue(messagePacket);
+            var response = new ServerPacket(0x31);
+            var action = packet.ReadByte();
+
+            switch (action)
+            {
+                case 0x01:
+                {
+                    // Display board list
+                    response.WriteByte(0x01);
+
+                    // TODO: This has the potential to be a somewhat expensive operation, optimize this.
+                    var boardList =
+                        Messageboards.Values.Where(mb => mb.CheckAccessLevel(user.Name, BoardAccessLevel.Read));
+
+                    // Mail is always the first board and has a fixed id of 0
+                    response.WriteUInt16((ushort) (boardList.Count() + 1));
+                    response.WriteUInt16(0);
+                    response.WriteString8("Mail");
+                    foreach (var board in boardList)
+                    {
+                        response.WriteUInt16((ushort) board.Id);
+                        response.WriteString8(board.Name);
+                    }
+                    response.TransmitDelay = 600; // This is so the 'w' key in the client works
+                    // Without this, the messaging panel is a jittery piece of crap that never opens
+                }
+                    break;
+                case 0x02:
+                {
+                    // Get message list
+                    var boardId = packet.ReadUInt16();
+                    var startPostId = packet.ReadInt16();
+
+                    if (boardId == 0)
+                    {
+                        user.Enqueue(user.Mailbox.RenderToPacket());
+                        return;
+                    }
+                    else
+                    {
+                        Board board;
+                        if (MessageboardIndex.TryGetValue(boardId, out board))
+                        {
+                            user.Enqueue(board.RenderToPacket());
+                            return;
+                        }
+                        else
+                        {
+                            return;
+                        }
+                    }
+                }
+                case 0x03:
+                {
+                    // Get message
+                    var boardId = packet.ReadUInt16();
+                    var postId = packet.ReadInt16();
+                    var messageId = postId - 1;
+                    var offset = packet.ReadSByte();
+                    Message message = null;
+                    var error = string.Empty;
+                    if (boardId == 0)
+                    {
+                        // Mailbox access
+                        switch (offset)
+                        {
+                            case 0:
+                            {
+                                // postId is the exact message
+                                if (postId >= 0 && postId <= user.Mailbox.Messages.Count)
+                                    message = user.Mailbox.Messages[messageId];
+                                else
+                                    error = "That post could not be found.";
+                                break;
+                            }
+                            case 1:
+                            {
+                                // Client clicked "prev", which hilariously means "newer"
+                                // postId in this case is the next message
+                                if (postId > user.Mailbox.Messages.Count)
+                                    error = "There are no newer messages.";
+                                else
+                                {
+                                    var messageList = user.Mailbox.Messages.GetRange(messageId,
+                                        user.Mailbox.Messages.Count - messageId);
+                                    message = messageList.Find(m => m.Deleted == false);
+
+                                    if (message == null)
+                                        error = "There are no newer messages.";
+                                }
+                            }
+                                break;
+                            case -1:
+                            {
+                                // Client clicked "next", which means "older"
+                                // postId is previous message
+                                if (postId < 0)
+                                    error = "There are no older messages.";
+                                else
+                                {
+                                    var messageList = user.Mailbox.Messages.GetRange(0, postId);
+                                    messageList.Reverse();
+                                    message = messageList.Find(m => m.Deleted == false);
+                                    if (message == null)
+                                        error = "There are no older messages.";
+                                }
+                            }
+                                break;
+                            default:
+                            {
+                                error = "Invalid offset (nice try, chief)";
+                            }
+                                break;
+                        }
+                        if (message != null)
+                        {
+                            user.Enqueue(message.RenderToPacket());
+                            message.MarkAsRead();
+                            return;
+                        }
+                        response.WriteByte(0x06);
+                        response.WriteBoolean(false);
+                        response.WriteString8(error);
+
+                    }
+                    else
+                    {
+                        // Get board message
+                        Board board;
+                        if (MessageboardIndex.TryGetValue(boardId, out board))
+                        {
+                            // TODO: handle this better
+                            if (!board.CheckAccessLevel(user.Name, BoardAccessLevel.Read))
+                                return;
+
+                            switch (offset)
+                            {
+                                case 0:
+                                {
+                                    // postId is the exact message
+                                    if (postId >= 0 && postId <= board.Messages.Count)
+                                        message = board.Messages[messageId];
+                                    else
+                                        error = "That post could not be found.";
+                                    break;
+                                }
+                                case 1:
+                                {
+                                    // Client clicked "prev", which hilariously means "newer"
+                                    // postId in this case is the next message
+                                    if (postId > board.Messages.Count)
+                                        error = "There are no newer messages.";
+                                    else
+                                    {
+                                        var messageList = board.Messages.GetRange(messageId,
+                                            board.Messages.Count - messageId);
+                                        message = messageList.Find(m => m.Deleted == false);
+
+                                        if (message == null)
+                                            error = "There are no newer messages.";
+                                    }
+                                }
+                                    break;
+                                case -1:
+                                {
+                                    // Client clicked "next", which means "older"
+                                    // postId is previous message
+                                    if (postId < 0)
+                                        error = "There are no older messages.";
+                                    else
+                                    {
+                                        var messageList = board.Messages.GetRange(0, postId);
+                                        messageList.Reverse();
+                                        message = messageList.Find(m => m.Deleted == false);
+                                        if (message == null)
+                                            error = "There are no older messages.";
+                                    }
+                                }
+                                    break;
+                                default:
+                                {
+                                    error = "Invalid offset (nice try, chief)";
+                                }
+                                    break;
+                            }
+                            if (message != null)
+                            {
+                                user.Enqueue(message.RenderToPacket());
+                                message.MarkAsRead();
+                                return;
+                            }
+                            response.WriteByte(0x06);
+                            response.WriteBoolean(false);
+                            response.WriteString8(error);
+                        }
+                    }
+                }
+                    break;
+                // Send message
+                case 0x04:
+                {
+                    var boardId = packet.ReadUInt16();
+                    var subject = packet.ReadString8();
+                    var body = packet.ReadString16();
+                    Board board;
+                    response.WriteByte(0x06); // Generic board response
+                    if (DateTime.Now.Ticks - user.LastMailboxMessageSent < Constants.SEND_MESSAGE_COOLDOWN)
+                    {
+                        response.WriteBoolean(false);
+                        response.WriteString8("Try waiting a moment before sending another message.");
+                    }
+                    if (MessageboardIndex.TryGetValue(boardId, out board))
+                    {
+                        if (board.CheckAccessLevel(user.Name, BoardAccessLevel.Write))
+                        {
+                            if (board.ReceiveMessage(new Message(board.Name, user.Name, subject, body)))
+                            {
+                                response.WriteBoolean(true);
+                                response.WriteString8("Your message has been sent.");
+                            }
+                            else
+                            {
+                                if (board.IsLocked)
+                                {
+                                    response.WriteBoolean(false);
+                                    response.WriteString8(
+                                        "This board is being cleaned by the Mundanes. Please try again later.");
+                                }
+                                else if (board.Full)
+                                {
+                                    response.WriteBoolean(false);
+                                    response.WriteString8(
+                                        "This board has too many papers nailed to it. Please try again later.");
+                                }
+                            }
+                        }
+                        else
+                        {
+                            response.WriteBoolean(false);
+                            response.WriteString8(
+                                "A strange, ethereal force prohibits you from doing that.");
+                        }
+                    }
+                    else
+                    {
+                        Logger.WarnFormat("boards: {0} tried to post to non-existent board {1}",
+                            user.Name, boardId);
+                        response.WriteBoolean(false);
+                        response.WriteString8(
+                            "...What would you say you're doing here?");
+                    }
+                }
+                    break;
+                // Delete post
+                case 0x05:
+                {
+                    response.WriteByte(0x07); // Delete post response
+                    var boardId = packet.ReadUInt16();
+                    var postId = packet.ReadUInt16();
+                    Board board;
+                    if (MessageboardIndex.TryGetValue(boardId, out board))
+                    {
+                        if (user.IsPrivileged || board.CheckAccessLevel(user.Name, BoardAccessLevel.Moderate))
+                        {
+                            board.DeleteMessage(postId - 1);
+                            response.WriteBoolean(true);
+                            response.WriteString8("The message was destroyed.");
+                        }
+                        else
+                        {
+                            response.WriteBoolean(false);
+                            response.WriteString8("You can't do that.");
+                        }
+                    }
+                    else
+                    {
+                        Logger.WarnFormat("boards: {0} tried to post to non-existent board {1}",
+                            user.Name, boardId);
+                        response.WriteBoolean(false);
+                        response.WriteString8(
+                            "...What would you say you're doing here?");
+                    }
+                }
+                    break;
+                case 0x06:
+                {
+                    // Send mail (which one might argue, ye olde DOOMVAS protocol designers, is a type of message)
+
+                    var boardId = packet.ReadUInt16();
+                    var recipient = packet.ReadString8();
+                    var subject = packet.ReadString8();
+                    var body = packet.ReadString16();
+                    response.WriteByte(0x06); // Send post response
+                    User recipientUser;
+
+                    if (Users.TryGetValue(recipient, out recipientUser))
+                    {
+                        try
+                        {
+                            if (recipientUser.Mailbox.ReceiveMessage(new Message(recipientUser.Name, user.Name, subject,
+                                body)))
+                            {
+                                response.WriteByte(1); // Post was successful
+                                response.WriteString8("Your letter was sent.");
+                                Logger.InfoFormat("mail: {0} sent message to {1}", user.Name, recipientUser.Name);
+                                MessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MailNotifyUser,
+                                    recipientUser.Name));
+                            }
+                            else
+                            {
+                                response.WriteByte(1);
+                                response.WriteString8("{0}'s mailbox is full. Your message was discarded. Sorry!");
+                            }
+                        }
+                        catch (MessageStoreLocked)
+                        {
+                            response.WriteByte(1);
+                            response.WriteString8("{0} cannot receive mail at this time. Sorry!");
+                        }
+                    }
+                    else
+                    {
+                        response.WriteByte(0);
+                        response.WriteString8("Sadly, no record of that person exists in the realm.");
+                    }
+                }
+                    break;
+                case 0x07:
+                    // Highlight message
+                {
+                    // Highlight post (GM only)
+                    var boardId = packet.ReadUInt16();
+                    var postId = packet.ReadInt16();
+                    response.WriteByte(0x08); // Highlight response
+                    Board board;
+
+                    if (!user.IsPrivileged)
+                    {
+                        response.WriteBoolean(false);
+                        response.WriteString("You cannot highlight this message.");
+                        Logger.WarnFormat("mail: {0} tried to highlight message {1} but isn't GM! Hijinx suspected.",
+                            user.Name, postId);
+                    }
+                    if (MessageboardIndex.TryGetValue(boardId, out board))
+                    {
+                        board.Messages[postId - 1].Highlighted = true;
+                        response.WriteBoolean(true);
+                        response.WriteString8("The message was highlighted. Good work, chief.");
+                    }
+                    else
+                    {
+                        response.WriteBoolean(false);
+                        response.WriteString8("...What would you say you're trying to do here?");
+                    }
+                }
+                    break;
+                default:
+                {
+                    
+                }
+                    break;
+
+            }
+
+            user.Enqueue(response);
         }
 
         private void PacketHandler_0x3F_MapPointClick(Object obj, ClientPacket packet)
@@ -2631,7 +3089,7 @@ namespace Hybrasyl
                 var y = (byte) packet.ReadUInt16();
                 var coords = new Tuple<byte, byte>(x, y);
                 Logger.DebugFormat("coordinates were {0}, {1}", x, y);
-
+                
                 if (user.Map.Doors.ContainsKey(coords))
                 {
                     if (user.Map.Doors[coords].Closed)
