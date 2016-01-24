@@ -1571,19 +1571,21 @@ namespace Hybrasyl.Objects
         {
             var damage = castObject.Effects.Damage;
 
-            if(damage.Formula == null) //will need to be expanded.
+            if(damage.Formula == null) //will need to be expanded. also will need to account for damage scripts
             {
                 var simple = damage.Simple;
-
+                var damageType = EnumUtil.ParseEnum<Enums.DamageType>(damage.Type.ToString(), Enums.DamageType.Magical);
                 Random rand = new Random();
                 var dmg = rand.Next(Convert.ToInt32(simple.Min), Convert.ToInt32(simple.Max)); //these need to be set to integers as attributes. note to fix.
-                target.Damage(dmg, OffensiveElement, damage.Type, this);
+                target.Damage(dmg, OffensiveElement, damageType, this);
             }
             else
             {
                 var formula = damage.Formula;
-
-                
+                var damageType = EnumUtil.ParseEnum<Enums.DamageType>(damage.Type.ToString(), Enums.DamageType.Magical);
+                FormulaParser parser = new FormulaParser(this, castObject, target);
+                var dmg = parser.Eval(formula);
+                target.Damage(dmg, OffensiveElement, damageType, this);
             }
             
         }
