@@ -1569,25 +1569,27 @@ namespace Hybrasyl.Objects
 
         public override void Attack(Direction direction, Castable castObject = null, Creature target = null)
         {
-            var damage = castObject.Effects.Damage;
+            if (target != null)
+            {
+                var damage = castObject.Effects.Damage;
 
-            if(damage.Formula == null) //will need to be expanded. also will need to account for damage scripts
-            {
-                var simple = damage.Simple;
-                var damageType = EnumUtil.ParseEnum<Enums.DamageType>(damage.Type.ToString(), Enums.DamageType.Magical);
-                Random rand = new Random();
-                var dmg = rand.Next(Convert.ToInt32(simple.Min), Convert.ToInt32(simple.Max)); //these need to be set to integers as attributes. note to fix.
-                target.Damage(dmg, OffensiveElement, damageType, this);
+                if (damage.Formula == null) //will need to be expanded. also will need to account for damage scripts
+                {
+                    var simple = damage.Simple;
+                    var damageType = EnumUtil.ParseEnum<Enums.DamageType>(damage.Type.ToString(), Enums.DamageType.Magical);
+                    Random rand = new Random();
+                    var dmg = rand.Next(Convert.ToInt32(simple.Min), Convert.ToInt32(simple.Max)); //these need to be set to integers as attributes. note to fix.
+                    target.Damage(dmg, OffensiveElement, damageType, this);
+                }
+                else
+                {
+                    var formula = damage.Formula;
+                    var damageType = EnumUtil.ParseEnum<Enums.DamageType>(damage.Type.ToString(), Enums.DamageType.Magical);
+                    FormulaParser parser = new FormulaParser(this, castObject, target);
+                    var dmg = parser.Eval(formula);
+                    target.Damage(dmg, OffensiveElement, damageType, this);
+                }
             }
-            else
-            {
-                var formula = damage.Formula;
-                var damageType = EnumUtil.ParseEnum<Enums.DamageType>(damage.Type.ToString(), Enums.DamageType.Magical);
-                FormulaParser parser = new FormulaParser(this, castObject, target);
-                var dmg = parser.Eval(formula);
-                target.Damage(dmg, OffensiveElement, damageType, this);
-            }
-            
         }
 
         public override void Attack(Castable castObject, Creature target = null)
@@ -1615,7 +1617,7 @@ namespace Hybrasyl.Objects
                 }
             }
             //animation handled here as to not repeatedly send assails.
-            SendAnimation(0x01, (byte)100, 0x01);
+            SendAnimation(0x01, 25, 0x01);
 
         }
 
