@@ -20,6 +20,8 @@ namespace Hybrasyl
             _target = target;
         }
 
+
+
         private string[] _operators = { "-", "+", "/", "*", "^" };
         private Func<double, double, double>[] _operations = {
         (a1, a2) => a1 - a2,
@@ -35,6 +37,8 @@ namespace Hybrasyl
             Stack<double> operandStack = new Stack<double>();
             Stack<string> operatorStack = new Stack<string>();
             int tokenIndex = 0;
+
+            MapTokens(ref tokens);
 
             while (tokenIndex < tokens.Count)
             {
