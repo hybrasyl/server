@@ -126,6 +126,7 @@
     <Compile Include="Connection.cs" />
     <Compile Include="Dialogs.cs" />
     <Compile Include="Enums.cs" />
+    <Compile Include="FormulaParser.cs" />
     <Compile Include="Game.cs" />
     <Compile Include="Inventory.cs" />
     <Compile Include="Objects\Item.cs" />
