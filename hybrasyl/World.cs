@@ -572,7 +572,7 @@ namespace Hybrasyl
         private void PacketHandler_0x13_Attack(object obj, ClientPacket packet)
         {
             var user = (User)obj;
-            user.Attack(user.Direction);
+            user.AssailAttack(user.Direction);
         }
 
         public void SetMerchantMenuHandlers()
