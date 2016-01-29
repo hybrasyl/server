@@ -110,7 +110,6 @@ namespace Hybrasyl
                     foreach (var client in GlobalConnectionManifest.WorldClients.Values)
                     {
                         client.CheckIdle();
-
                     }
                     Logger.Debug("Job complete");
                 }
@@ -148,7 +147,6 @@ namespace Hybrasyl
                     Logger.Error("Exception occured in job:", e);
                 }
             }
-
         }
 
         public static class TickHeartbeatJob
@@ -236,6 +234,7 @@ namespace Hybrasyl
                 }
             }
         }
+
         public static class AutoSnoreJob
         {
             public static readonly ILog Logger =
@@ -298,7 +297,6 @@ namespace Hybrasyl
                     {
                         monolith.Spawn();
                         Logger.InfoFormat("Attempting to spawn monsters.", monolith.MaxSpawns);
-                        
                     }
 
                     Logger.Debug("Job complete");
