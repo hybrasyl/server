@@ -189,6 +189,8 @@ namespace Hybrasyl
         public Dictionary<Tuple<byte, byte>, Objects.Signpost> Signposts { get; set; }
         public Dictionary<Tuple<byte, byte>, Objects.Reactor> Reactors { get; set; }
 
+        public Dictionary<Monster, int> MapMonsters { get; set; }
+
         /// <summary>
         /// Create a new Hybrasyl map from an XMLMap object.
         /// </summary>
@@ -309,6 +311,12 @@ namespace Hybrasyl
             World.Insert(toInsert);
             Insert(toInsert, toInsert.X, toInsert.Y);
             toInsert.OnSpawn();
+        }
+        public void InsertCreature(Creature toInsert)
+        {
+            World.Insert(toInsert);
+            Insert(toInsert, toInsert.X, toInsert.Y);
+            Logger.DebugFormat("Monster {0} with id {1} spawned.", toInsert.Name, toInsert.Id);
         }
         
         public void InsertReactor(/*reactor toinsert*/)
@@ -641,7 +649,7 @@ namespace Hybrasyl
             {
                 if (obj is User)
                 {
-                    Logger.DebugFormat("Notifying {0} of item {1} at {2},{3} with sprite {4}", obj.Name, objectToAdd.Name,
+                    Logger.DebugFormat("Notifying {0} of object {1} at {2},{3} with sprite {4}", obj.Name, objectToAdd.Name,
                         objectToAdd.X, objectToAdd.Y, objectToAdd.Sprite);
                     var user = obj as User;
                     user.AoiEntry(objectToAdd);

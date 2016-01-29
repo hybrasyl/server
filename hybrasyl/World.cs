@@ -126,6 +126,8 @@ namespace Hybrasyl
         public Dictionary<string, CompiledMetafile> Metafiles { get; set; }
         public Dictionary<string, Nation> Nations { get; set; }
 
+        internal List<Monolith> Monoliths { get; set; }
+
         public string DefaultCitizenship { get; set; }
 
         public List<DialogSequence> GlobalSequences { get; set; }
@@ -219,7 +221,7 @@ namespace Hybrasyl
             Portraits = new Dictionary<string, string>();
             GlobalSequences = new List<DialogSequence>();
             ItemVariants = new Dictionary<string, VariantGroupType>();
-
+            Monoliths = new List<Monolith>();
             GlobalSequencesCatalog = new Dictionary<String, DialogSequence>();
             ItemCatalog = new Dictionary<Tuple<Sex, String>, XSD.ItemType>();
             MapCatalog = new Dictionary<String, Map>();
@@ -312,6 +314,76 @@ namespace Hybrasyl
             }
 
             Logger.InfoFormat("Maps: {0} maps loaded", Maps.Count);
+
+            /*DEBUG METHOD - MONOLITH & Maps*/
+            foreach(var map in Maps)
+            {
+                if(map.Key == 500)
+                {
+                    Dictionary<Monster, int> mobs = new Dictionary<Monster, int>();
+                    mobs.Add(
+                        new Monster()
+                        {
+                            Sprite = 1,
+                            World = Game.World,
+                            Map = Game.World.Maps[500],
+                            Level = 1,
+                            DisplayText = "TestBee",
+                            BaseHp = 100,
+                            Hp = 100,
+                            BaseMp = 1,
+                            Name = "TestBee",
+                            BaseStr = 3,
+                            BaseCon = 3,
+                            BaseDex = 3,
+                            BaseInt = 3,
+                            BaseWis = 3,
+                        }, 1
+                        );
+                    mobs.Add(
+                        new Monster()
+                        {
+                            Sprite = 2,
+                            World = Game.World,
+                            Map = Game.World.Maps[500],
+                            Level = 1,
+                            DisplayText = "TestBee",
+                            BaseHp = 100,
+                            Hp = 100,
+                            BaseMp = 1,
+                            Name = "TestWolf",
+                            BaseStr = 3,
+                            BaseCon = 3,
+                            BaseDex = 3,
+                            BaseInt = 3,
+                            BaseWis = 3,
+                        }, 2
+                        );
+                    mobs.Add(
+                        new Monster()
+                        {
+                            Sprite = 3,
+                            World = Game.World,
+                            Map = Game.World.Maps[500],
+                            Level = 1,
+                            DisplayText = "TestBee",
+                            BaseHp = 100,
+                            Hp = 100,
+                            BaseMp = 1,
+                            Name = "TestWisp",
+                            BaseStr = 3,
+                            BaseCon = 3,
+                            BaseDex = 3,
+                            BaseInt = 3,
+                            BaseWis = 3,
+                        }, 3
+                        );
+                    map.Value.MapMonsters = mobs;
+                }
+            }
+            Monoliths.Add(new Monolith() { ControlMaps = new List<Map>() { Game.World.Maps[500] }, MaxSpawns = 100 });
+            /*END DEBUG MONOLITH TEST*/
+
 
             // Load worldmaps
             foreach (var xml in Directory.GetFiles(WorldMapDirectory))
@@ -1416,6 +1488,37 @@ namespace Hybrasyl
 
                             Castable skill = Skills.Where(x => x.Value.Name == skillName).FirstOrDefault().Value;
                             user.AddSkill(skill);
+                        }
+                        break;
+                    case "/spawn":
+                        {
+                            string creatureName;
+                            Logger.DebugFormat("/skill Last argument is {0}", args.Last());
+
+                            creatureName = string.Join(" ", args, 1, args.Length - 1);
+
+                            Creature creature = new Creature()
+                            {
+                                Sprite = 1,
+                                World = Game.World,
+                                Map = Game.World.Maps[500],
+                                Level = 1,
+                                DisplayText = "TestMob",
+                                BaseHp = 100,
+                                Hp = 100,
+                                BaseMp = 1,
+                                Name = "TestMob",
+                                Id = 90210,
+                                BaseStr = 3,
+                                BaseCon = 3,
+                                BaseDex = 3,
+                                BaseInt = 3,
+                                BaseWis = 3,
+                                X = 50,
+                                Y = 51
+                            };
+                            Game.World.Maps[500].InsertCreature(creature);
+                            user.SendVisibleCreature(creature);
                         }
                         break;
                     case "/master":
