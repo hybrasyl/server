@@ -448,7 +448,7 @@ namespace Hybrasyl.Objects
         public new static readonly ILog Logger =
                LogManager.GetLogger(
                System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
+        [JsonProperty]
         public byte Level { get; set; }
         [JsonProperty]
         public uint Experience { get; set; }
@@ -816,17 +816,49 @@ namespace Hybrasyl.Objects
                 normalized = Hp;
 
             Hp -= normalized;
+
+            SendDamageUpdate(this);
+        }
+
+        private void SendDamageUpdate(Creature creature)
+        {
+            ServerPacket x13 = new ServerPacket(0x13);
+            x13.WriteUInt32(creature.Id);
+            double percent = (((double)creature.Hp / (double)creature.MaximumHp ) * 100);
+            x13.WriteByte(0);
+            x13.WriteByte((byte)(percent));
+            x13.WriteByte(1);
+            foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
+            {
+                if(obj is User)
+                {
+                    var user = (User)obj;
+                    user.Enqueue(x13);
+                }
+            }
+
+        }
+
+        public override void ShowTo(VisibleObject obj)
+        {
+            if (obj is User)
+            {
+                var user = obj as User;
+                user.SendVisibleCreature(this);
+            }
         }
 
         public virtual void Refresh() { }
+
     }
 
 
-    public class Monster : Creature
+    public class Monster : Creature, ICloneable
     {
         public Monster()
             : base()
         { }
+        private bool _idle = true;
 
         private uint _mTarget;
         public Creature Target
@@ -839,6 +871,11 @@ namespace Hybrasyl.Objects
             {
                 _mTarget = value == null ? 0 : value.Id;
             }
+        }
+
+        public override int GetHashCode()
+        {
+            return (Name.GetHashCode() * Id.GetHashCode()) - 1;
         }
 
         public virtual bool Pathfind(byte x, byte y)
@@ -878,6 +915,37 @@ namespace Hybrasyl.Objects
         public override void Attack(Castable castObject)
         {
             //do monster aoe
+        }
+
+        public override void ShowTo(VisibleObject obj)
+        {
+            if (obj is User)
+            {
+                var user = obj as User;
+                user.SendVisibleCreature(this);
+            }
+        }
+        public bool IsIdle()
+        {
+            return _idle;
+        }
+
+        public void Awaken()
+        {
+            _idle = false;
+            //add to alive monsters?
+
+
+        }
+        public void Sleep()
+        {
+            _idle = true;
+            //return to idle state
+        }
+
+        public object Clone()
+        {
+            return this.MemberwiseClone();
         }
     }
 
@@ -1030,5 +1098,7 @@ namespace Hybrasyl.Objects
                 Script.ExecuteScriptableFunction("OnDrop", Script.GetObjectWrapper(obj), 
                     Script.GetObjectWrapper(dropped));
         }
+
+
     }
 }
