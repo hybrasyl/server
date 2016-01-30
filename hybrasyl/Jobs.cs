@@ -110,7 +110,6 @@ namespace Hybrasyl
                     foreach (var client in GlobalConnectionManifest.WorldClients.Values)
                     {
                         client.CheckIdle();
-
                     }
                     Logger.Debug("Job complete");
                 }
@@ -148,7 +147,6 @@ namespace Hybrasyl
                     Logger.Error("Exception occured in job:", e);
                 }
             }
-
         }
 
         public static class TickHeartbeatJob
@@ -269,6 +267,35 @@ namespace Hybrasyl
                                     connectionId);
                             }
                         }
+                    }
+
+                    Logger.Debug("Job complete");
+                }
+                catch (Exception e)
+                {
+                    Logger.Error("Exception occured in job:", e);
+                }
+            }
+        }
+
+        public static class MonsterSpawnJob
+        {
+            public static readonly ILog Logger =
+                LogManager.GetLogger(
+                    System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
+            public static readonly int Interval = 20;
+
+            public static void Execute(Object obj, ElapsedEventArgs args)
+            {
+                Logger.Debug("Job starting");
+                try
+                {
+                    // FIXME: make this more efficient / don't break our own conventions
+                    foreach (var monolith in Game.World.Monoliths)
+                    {
+                        monolith.Spawn();
+                        Logger.InfoFormat("Attempting to spawn monsters.", monolith.MaxSpawns);
                     }
 
                     Logger.Debug("Job complete");

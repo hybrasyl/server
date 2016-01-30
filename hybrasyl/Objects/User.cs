@@ -871,7 +871,21 @@ namespace Hybrasyl.Objects
             x07.WriteUInt16(item.X);
             x07.WriteUInt16(item.Y);
             x07.WriteUInt32(item.Id);
-            x07.WriteUInt16((ushort)(item.EquipSprite + 0x8000));
+            x07.WriteUInt16((ushort)(item.Sprite + 0x8000));
+            x07.WriteInt32(0); // Unknown what this is
+            x07.DumpPacket();
+            Enqueue(x07);
+        }
+
+        public void SendVisibleCreature(Creature creature)
+        {
+            Logger.DebugFormat("Sending add visible creature packet");
+            var x07 = new ServerPacket(0x07);
+            x07.WriteUInt16(1); // Anything but 0x0001 does nothing or makes client crash
+            x07.WriteUInt16(creature.X);
+            x07.WriteUInt16(creature.Y);
+            x07.WriteUInt32(creature.Id);
+            x07.WriteUInt16((ushort)(creature.Sprite + 0x4000));
             x07.WriteInt32(0); // Unknown what this is
             x07.DumpPacket();
             Enqueue(x07);
@@ -1587,6 +1601,7 @@ namespace Hybrasyl.Objects
                     var damageType = EnumUtil.ParseEnum<Enums.DamageType>(damage.Type.ToString(), Enums.DamageType.Magical);
                     FormulaParser parser = new FormulaParser(this, castObject, target);
                     var dmg = parser.Eval(formula);
+                    if (dmg == 0) dmg = 1;
                     target.Damage(dmg, OffensiveElement, damageType, this);
                 }
             }
@@ -1606,6 +1621,35 @@ namespace Hybrasyl.Objects
         {
             if (target == null)
             {
+                switch(direction)
+                {
+                    case Direction.East:
+                        {
+                            var obj = this.Map.EntityTree.Where(x => x.X == X + 1 && x.Y == Y).FirstOrDefault();
+                            if (obj is Creature) target = (Creature)obj;
+                        }
+                        break;
+                    case Direction.West:
+                        {
+                            var obj = this.Map.EntityTree.Where(x => x.X == X - 1 && x.Y == Y).FirstOrDefault();
+                            if (obj is Creature) target = (Creature)obj;
+                        }
+                        break;
+                    case Direction.North:
+                        {
+                            var obj = this.Map.EntityTree.Where(x => x.X == X && x.Y == Y - 1).FirstOrDefault();
+                            if (obj is Creature) target = (Creature)obj;
+                        }
+                        break;
+                    case Direction.South:
+                        {
+                            var obj = this.Map.EntityTree.Where(x => x.X == X && x.Y == Y + 1).FirstOrDefault();
+                            if (obj is Creature) target = (Creature)obj;
+                        }
+                        break;
+                    default:
+                        break;
+                }
                 //try to get the creature we're facing and set it as the target.
             }
 
