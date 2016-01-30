@@ -234,7 +234,6 @@ namespace Hybrasyl
                 }
             }
         }
-
         public static class AutoSnoreJob
         {
             public static readonly ILog Logger =
