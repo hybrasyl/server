@@ -296,6 +296,7 @@ namespace Hybrasyl
 
         // Throttling for skills/spells. Not currently implemented because, well, skills aren't.
         public const int USE_THROTTLE_TIME = 250;
+        public const int SPACEBAR_THROTTLE_TIME = 600; 
 
         // Throttling for movement opcode
         // USDA seems to allow a total of 7 movements in a one second cycle; we decrease that
@@ -314,6 +315,7 @@ namespace Hybrasyl
         public const int GENERIC_REPEAT_WITHIN = 0;
         public const int GENERIC_SQUELCH_DURATION = 0;
         public const int GENERIC_DISCONNECT_TRIGGER = 200;
+        
 
         // This consolidates all the above information into a static dictionary of the following:
         // opcode, throttle time, number of consecutive packets that trigger a squelch, and squelch time.
@@ -327,6 +329,7 @@ namespace Hybrasyl
             {0x3a, new Throttle(GENERIC_THROTTLE_TIME, GENERIC_REPEAT_TIMES, GENERIC_REPEAT_WITHIN, GENERIC_SQUELCH_DURATION, GENERIC_DISCONNECT_TRIGGER)},  // NPC use dialog
             {0x38, new Throttle(REFRESH_THROTTLE_TIME, REFRESH_REPEAT_TIMES, REFRESH_REPEAT_WITHIN, REFRESH_SQUELCH_DURATION, REFRESH_DISCONNECT_TRIGGER)},  // refresh (F5)
             {0x39, new Throttle(GENERIC_THROTTLE_TIME, GENERIC_REPEAT_TIMES, GENERIC_REPEAT_WITHIN, GENERIC_SQUELCH_DURATION, GENERIC_DISCONNECT_TRIGGER)},  // NPC main menu
+            //{0x13, new Throttle(USE_THROTTLE_TIME, GENERIC_REPEAT_TIMES, GENERIC_REPEAT_WITHIN, GENERIC_SQUELCH_DURATION, GENERIC_DISCONNECT_TRIGGER)}, //Assail - this doesn't work through normal throttling. Moved to assail usage.
         };
 
         // Idle settings

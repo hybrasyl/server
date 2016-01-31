@@ -1619,50 +1619,57 @@ namespace Hybrasyl.Objects
 
         public void AssailAttack(Direction direction, Creature target = null)
         {
-            if (target == null)
+            if (this.LastAttack == null || (DateTime.Now - this.LastAttack).Milliseconds > 550)
             {
-                switch(direction)
+                if (target == null)
                 {
-                    case Direction.East:
-                        {
-                            var obj = this.Map.EntityTree.Where(x => x.X == X + 1 && x.Y == Y).FirstOrDefault();
-                            if (obj is Creature) target = (Creature)obj;
-                        }
-                        break;
-                    case Direction.West:
-                        {
-                            var obj = this.Map.EntityTree.Where(x => x.X == X - 1 && x.Y == Y).FirstOrDefault();
-                            if (obj is Creature) target = (Creature)obj;
-                        }
-                        break;
-                    case Direction.North:
-                        {
-                            var obj = this.Map.EntityTree.Where(x => x.X == X && x.Y == Y - 1).FirstOrDefault();
-                            if (obj is Creature) target = (Creature)obj;
-                        }
-                        break;
-                    case Direction.South:
-                        {
-                            var obj = this.Map.EntityTree.Where(x => x.X == X && x.Y == Y + 1).FirstOrDefault();
-                            if (obj is Creature) target = (Creature)obj;
-                        }
-                        break;
-                    default:
-                        break;
+                    switch (direction)
+                    {
+                        case Direction.East:
+                            {
+                                var obj = this.Map.EntityTree.Where(x => x.X == X + 1 && x.Y == Y).FirstOrDefault();
+                                if (obj is Monster) target = (Monster)obj;
+                                if (obj is User)
+                                {
+                                    var user = (User)obj;
+                                    //need to do something for if pvpflagged.
+                                }
+                            }
+                            break;
+                        case Direction.West:
+                            {
+                                var obj = this.Map.EntityTree.Where(x => x.X == X - 1 && x.Y == Y).FirstOrDefault();
+                                if (obj is Monster) target = (Monster)obj;
+                            }
+                            break;
+                        case Direction.North:
+                            {
+                                var obj = this.Map.EntityTree.Where(x => x.X == X && x.Y == Y - 1).FirstOrDefault();
+                                if (obj is Monster) target = (Monster)obj;
+                            }
+                            break;
+                        case Direction.South:
+                            {
+                                var obj = this.Map.EntityTree.Where(x => x.X == X && x.Y == Y + 1).FirstOrDefault();
+                                if (obj is Monster) target = (Monster)obj;
+                            }
+                            break;
+                        default:
+                            break;
+                    }
+                    //try to get the creature we're facing and set it as the target.
                 }
-                //try to get the creature we're facing and set it as the target.
-            }
 
-            foreach (Castable c in SkillBook)
-            {
-                if(c.Isassail == "true") //i do not like that this is a string. I'll probablt update it at some point to return a simple type of boolean.
+                foreach (Castable c in SkillBook)
                 {
-                    Attack(direction, c, target);
+                    if (c.Isassail == "true") //i do not like that this is a string. I'll probablt update it at some point to return a simple type of boolean.
+                    {
+                        Attack(direction, c, target);
+                    }
                 }
+                //animation handled here as to not repeatedly send assails.
+                SendAnimation(0x01, 25, 0x01);
             }
-            //animation handled here as to not repeatedly send assails.
-            SendAnimation(0x01, 25, 0x01);
-
         }
 
         private string GroupProfileSegment()

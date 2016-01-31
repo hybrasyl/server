@@ -250,6 +250,46 @@ namespace Hybrasyl
                         case "$CASTERBONUSAC":
                             tokens[i] = _caster.BonusAc.ToString();
                             break;
+                        case "$CASTERWEAPONSDMG":
+                            {
+                                Random rand = new Random();
+                                int mindmg = (int)_caster.Equipment.Weapon.MinSDamage;
+                                int maxdmg = (int)_caster.Equipment.Weapon.MaxSDamage;
+                                if (mindmg == 0) mindmg = 1;
+                                if (maxdmg == 0) maxdmg = 1;
+                                tokens[i] = rand.Next(mindmg, maxdmg).ToString();
+                            }
+                            break;
+                        case "$CASTERWEAPONSDMGMIN":
+                            {
+                                tokens[i] = _caster.Equipment.Weapon.MinSDamage.ToString();
+                            }
+                            break;
+                        case "$CASTERWEAPONSDMGMAX":
+                            {
+                                tokens[i] = _caster.Equipment.Weapon.MaxSDamage.ToString();
+                            }
+                            break;
+                        case "$CASTERWEAPONLDMG":
+                            {
+                                Random rand = new Random();
+                                int mindmg = (int)_caster.Equipment.Weapon.MinLDamage;
+                                int maxdmg = (int)_caster.Equipment.Weapon.MaxLDamage;
+                                if (mindmg == 0) mindmg = 1;
+                                if (maxdmg == 0) maxdmg = 1;
+                                tokens[i] = rand.Next(mindmg, maxdmg).ToString();
+                            }
+                            break;
+                        case "$CASTERWEAPONLDMGMIN":
+                            {
+                                tokens[i] = _caster.Equipment.Weapon.MinLDamage.ToString();
+                            }
+                            break;
+                        case "$CASTERWEAPONLDMGMAX":
+                            {
+                                tokens[i] = _caster.Equipment.Weapon.MaxLDamage.ToString();
+                            }
+                            break;
                         case "$CASTABLELEVEL":
                             {
                                 //this is temporary until castable.currentlevel is implemented.

@@ -729,8 +729,7 @@ namespace Hybrasyl.Objects
                 if (obj is User)
                 {
                     var user = (User)obj;
-                    if (user.LastAttack == null || (DateTime.Now - user.LastAttack).Milliseconds > 500)
-                    {
+                    
 
                         var x1A = new ServerPacket(0x1A);
                         x1A.WriteUInt32(Id);
@@ -744,7 +743,6 @@ namespace Hybrasyl.Objects
                         user.Enqueue(x1A); //send animation
                         PlaySound(sound);
                     }
-                }
             }
         }
 
