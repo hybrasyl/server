@@ -19,7 +19,7 @@ namespace Hybrasyl
     [JsonObject(MemberSerialization.OptIn)]
     public class MessageStore : IEnumerable<Message>
     {
-        [JsonProperty] public string Name;
+        [JsonProperty] public string Name;   
         [JsonProperty] public string DisplayName;
         [JsonProperty] public List<Message> Messages;
         [JsonProperty] public string Guid;
@@ -129,16 +129,8 @@ namespace Hybrasyl
                 response.WriteByte(0x01); // ??? - needs to be odd number unless board in world has been clicked
                 response.WriteUInt16(0); // board ID;
                 response.WriteString8("Mail");
-                if (Messages.Count <= Constants.MESSAGE_RETURN_SIZE)
-                {
-                    response.WriteByte((byte) Messages.Count);
-                }
-                else
-                {
-                    response.WriteByte(Constants.MESSAGE_RETURN_SIZE);
-                }
-
-                foreach (var message in Messages)
+                response.WriteByte(Math.Min((byte)this.Count(),(byte)Constants.MESSAGE_RETURN_SIZE));
+                foreach (var message in this)
                 {
                     response.WriteBoolean(!message.Read);
                     response.WriteInt16((short)message.Id);
@@ -159,7 +151,7 @@ namespace Hybrasyl
                 response.WriteString8(DisplayName);
                 response.WriteByte(Math.Min((byte) Messages.Count,
                     (byte) Constants.MESSAGE_RETURN_SIZE));
-                foreach (var message in Messages)
+                foreach (var message in this)
                 {
                     response.WriteBoolean(message.Highlighted);
                     response.WriteInt16((short) message.Id);
@@ -217,7 +209,7 @@ namespace Hybrasyl
         {
             if (CheckAccessLevel(newMessage.Sender, BoardAccessLevel.Write))
             {
-                base.ReceiveMessage(newMessage);
+                return base.ReceiveMessage(newMessage);
             }
             return false;
         }
@@ -266,7 +258,20 @@ namespace Hybrasyl
         [JsonProperty] public DateTime Created;
         [JsonProperty] public bool Highlighted;
         [JsonProperty] public bool Deleted;
-        [JsonProperty] public bool Read;
+        private bool _read;
+
+        [JsonProperty]
+        public bool Read
+        {
+            get { return _read; }
+            set
+            {
+                _read = value;
+                if (value == true)
+                    ReadTime = DateTime.Now;
+            }
+        }
+
         [JsonProperty] public DateTime ReadTime;
         [JsonProperty] public string Guid;
         [JsonProperty] public int Id;
@@ -282,12 +287,6 @@ namespace Hybrasyl
             Highlighted = false;
             Guid = System.Guid.NewGuid().ToString();
             Read = false;
-        }
-
-        public void MarkAsRead()
-        {
-            Read = true;
-            ReadTime = DateTime.Now;
         }
 
         public ServerPacket RenderToPacket(bool Mailbox = true)

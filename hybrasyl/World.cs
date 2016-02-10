@@ -2591,7 +2591,7 @@ namespace Hybrasyl
                         if (message != null)
                         {
                             user.Enqueue(message.RenderToPacket());
-                            message.MarkAsRead();
+                            message.Read = true;
                             return;
                         }
                         response.WriteByte(0x06);
@@ -2615,7 +2615,12 @@ namespace Hybrasyl
                                 {
                                     // postId is the exact message
                                     if (postId >= 0 && postId <= board.Messages.Count)
-                                        message = board.Messages[messageId];
+                                    {
+                                        if (board.Messages[messageId].Deleted)
+                                            error = "There is no such message.";
+                                        else
+                                            message = board.Messages[messageId];
+                                    }
                                     else
                                         error = "That post could not be found.";
                                     break;
@@ -2662,7 +2667,7 @@ namespace Hybrasyl
                             if (message != null)
                             {
                                 user.Enqueue(message.RenderToPacket());
-                                message.MarkAsRead();
+                                message.Read = true;
                                 return;
                             }
                             response.WriteByte(0x06);
@@ -2776,7 +2781,7 @@ namespace Hybrasyl
                             if (recipientUser.Mailbox.ReceiveMessage(new Message(recipientUser.Name, user.Name, subject,
                                 body)))
                             {
-                                response.WriteByte(1); // Post was successful
+                                response.WriteBoolean(true); // Post was successful
                                 response.WriteString8("Your letter was sent.");
                                 Logger.InfoFormat("mail: {0} sent message to {1}", user.Name, recipientUser.Name);
                                 MessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MailNotifyUser,
@@ -2784,19 +2789,19 @@ namespace Hybrasyl
                             }
                             else
                             {
-                                response.WriteByte(1);
+                                response.WriteBoolean(true);
                                 response.WriteString8("{0}'s mailbox is full. Your message was discarded. Sorry!");
                             }
                         }
                         catch (MessageStoreLocked)
                         {
-                            response.WriteByte(1);
+                            response.WriteBoolean(true);
                             response.WriteString8("{0} cannot receive mail at this time. Sorry!");
                         }
                     }
                     else
                     {
-                        response.WriteByte(0);
+                        response.WriteBoolean(true);
                         response.WriteString8("Sadly, no record of that person exists in the realm.");
                     }
                 }

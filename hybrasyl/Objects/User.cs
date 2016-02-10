@@ -1091,6 +1091,9 @@ namespace Hybrasyl.Objects
 
         public override void UpdateAttributes(StatUpdateFlags flags)
         {
+            if (Mailbox.HasUnreadMessages)
+                flags ^= StatUpdateFlags.UnreadMail;
+
             var x08 = new ServerPacket(0x08);
             x08.WriteByte((byte)flags);
             if (flags.HasFlag(StatUpdateFlags.Primary))
