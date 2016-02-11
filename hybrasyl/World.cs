@@ -2592,6 +2592,7 @@ namespace Hybrasyl
                         {
                             user.Enqueue(message.RenderToPacket());
                             message.Read = true;
+                            user.UpdateAttributes(StatUpdateFlags.Secondary);
                             return;
                         }
                         response.WriteByte(0x06);

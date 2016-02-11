@@ -1091,10 +1091,17 @@ namespace Hybrasyl.Objects
 
         public override void UpdateAttributes(StatUpdateFlags flags)
         {
-            if (Mailbox.HasUnreadMessages)
-                flags ^= StatUpdateFlags.UnreadMail;
-
             var x08 = new ServerPacket(0x08);
+            if (UnreadMail)
+            {
+                flags |= StatUpdateFlags.UnreadMail;
+            }
+
+            if (IsPrivileged || IsExempt)
+            {
+                flags |= StatUpdateFlags.GameMasterA;
+            }
+
             x08.WriteByte((byte)flags);
             if (flags.HasFlag(StatUpdateFlags.Primary))
             {
@@ -1138,20 +1145,12 @@ namespace Hybrasyl.Objects
             }
             if (flags.HasFlag(StatUpdateFlags.Secondary))
             {
-                x08.WriteByte(0x10);
-                x08.WriteByte(0x10);
-                x08.WriteByte(0x10);
-                x08.WriteByte(0x10);
-                x08.WriteByte(0x10);
-                x08.WriteByte(0x10);
-                //x08.WriteByte(0); //Unknown
-                //x08.WriteByte(Convert.ToByte(Status.HasFlag(PlayerStatus.Blinded)));
-                // x08.WriteByte(0); // Unknown
-                // x08.WriteByte(0); // Unknown
-                // x08.WriteByte(0); // Unknown
-                //x08.WriteUInt16(0x10);
-                //x08.WriteUInt16(0x10);
-                //x08.WriteUInt32(0x10);
+                x08.WriteByte(0); //Unknown
+                x08.WriteByte((byte) (Status.HasFlag(PlayerStatus.Blinded) ? 0x08 : 0x00));
+                x08.WriteByte(0); // Unknown
+                x08.WriteByte(0); // Unknown
+                x08.WriteByte(0); // Unknown
+                x08.WriteByte((byte) (Mailbox.HasUnreadMessages ? 0x10 : 0x00));
                 x08.WriteByte((byte)OffensiveElement);
                 x08.WriteByte((byte)DefensiveElement);
                 x08.WriteSByte(Mr);

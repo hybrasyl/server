@@ -149,7 +149,7 @@ namespace Hybrasyl
                 // ??? - needs to be odd number unless board in world has been clicked
                 response.WriteUInt16((ushort) Id); // board ID;
                 response.WriteString8(DisplayName);
-                response.WriteByte(Math.Min((byte) Messages.Count,
+                response.WriteByte(Math.Min((byte) this.Count(),
                     (byte) Constants.MESSAGE_RETURN_SIZE));
                 foreach (var message in this)
                 {
