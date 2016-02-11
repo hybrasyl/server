@@ -20,28 +20,16 @@
  *            Kyle Speck    <kojasou@hybrasyl.com>
  */
 
-using System.Net;
-using System.Runtime.Serialization;
-using System.Security.Permissions;
-using BinarySerialization;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
-using Hybrasyl.Properties;
-using Hybrasyl.Utility;
-using Hybrasyl.XML;
-using IronPython.Modules;
-using IronPython.SQLite;
 using log4net;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using System.Threading;
-using StackExchange.Redis;
 using Hybrasyl.XSD;
 
 namespace Hybrasyl.Objects
@@ -106,16 +94,11 @@ namespace Hybrasyl.Objects
 
         public static string GetStorageKey(string name)
         {
-            return String.Concat(DatastorePrefix, ':', name);
+            return string.Concat(typeof(User).Name, ':', name.ToLower());
         }
 
-        public string StorageKey
-        {
-            get { return String.Concat(DatastorePrefix, ':', Name); }
-        }
+        public string StorageKey => string.Concat(GetType().Name, ':', Name.ToLower());
         private Client Client { get; set; }
-
-        public static readonly String DatastorePrefix = "_user";
 
         [JsonProperty]
         public Sex Sex { get; set; }
@@ -131,6 +114,9 @@ namespace Hybrasyl.Objects
         public UserGroup Group { get; set; }
         [JsonProperty]
         public bool Dead { get; set; }
+
+        public Mailbox Mailbox => World.GetMailbox(Name);
+        public bool UnreadMail => Mailbox.HasUnreadMessages;
 
         // Some structs helping us to define various metadata 
         [JsonProperty]
@@ -166,7 +152,6 @@ namespace Hybrasyl.Objects
 
         public DialogState DialogState { get; set; }
 
-
         [JsonProperty]
         private Dictionary<String, String> UserFlags { get; set; }
         private Dictionary<String, String> UserSessionFlags { get; set; }
@@ -197,10 +182,7 @@ namespace Hybrasyl.Objects
 
         public bool IsPrivileged
         {
-            get
-            {
-                return IsExempt || Flags.ContainsKey("gamemaster");
-            }
+            get { return IsExempt || Flags.ContainsKey("gamemaster") || Game.Config.Access.Privileged.Contains(Name); }
         }
 
         public bool IsExempt
@@ -226,6 +208,10 @@ namespace Hybrasyl.Objects
         public long LastSpoke { get; set; }
         public string LastSaid { get; set; }
         public int NumSaidRepeated { get; set; }
+
+        // Throttling checks for messaging
+        public long LastBoardMessageSent { get; set; }
+        public long LastMailboxMessageSent { get; set; }
         public Dictionary<string, bool> Flags { get; private set; }
 
         public DateTime LastAttack { get; set; }
@@ -341,11 +327,6 @@ namespace Hybrasyl.Objects
             Status = PlayerStatus.Alive;
             Group = null;
             Flags = new Dictionary<string, bool>();
-            if (!string.IsNullOrEmpty(playername))
-            {
-                Name = playername;
-            }
-
         }
         /**
          * Invites another user to this user's group. If this user isn't in a group,
@@ -1111,6 +1092,16 @@ namespace Hybrasyl.Objects
         public override void UpdateAttributes(StatUpdateFlags flags)
         {
             var x08 = new ServerPacket(0x08);
+            if (UnreadMail)
+            {
+                flags |= StatUpdateFlags.UnreadMail;
+            }
+
+            if (IsPrivileged || IsExempt)
+            {
+                flags |= StatUpdateFlags.GameMasterA;
+            }
+
             x08.WriteByte((byte)flags);
             if (flags.HasFlag(StatUpdateFlags.Primary))
             {
@@ -1154,8 +1145,12 @@ namespace Hybrasyl.Objects
             }
             if (flags.HasFlag(StatUpdateFlags.Secondary))
             {
-                x08.WriteUInt32(uint.MinValue);
-                x08.WriteUInt16(ushort.MinValue);
+                x08.WriteByte(0); //Unknown
+                x08.WriteByte((byte) (Status.HasFlag(PlayerStatus.Blinded) ? 0x08 : 0x00));
+                x08.WriteByte(0); // Unknown
+                x08.WriteByte(0); // Unknown
+                x08.WriteByte(0); // Unknown
+                x08.WriteByte((byte) (Mailbox.HasUnreadMessages ? 0x10 : 0x00));
                 x08.WriteByte((byte)OffensiveElement);
                 x08.WriteByte((byte)DefensiveElement);
                 x08.WriteSByte(Mr);
@@ -1587,23 +1582,34 @@ namespace Hybrasyl.Objects
             {
                 var damage = castObject.Effects.Damage;
 
+                Random rand = new Random();
+
                 if (damage.Formula == null) //will need to be expanded. also will need to account for damage scripts
                 {
                     var simple = damage.Simple;
-                    var damageType = EnumUtil.ParseEnum<Enums.DamageType>(damage.Type.ToString(), Enums.DamageType.Magical);
-                    Random rand = new Random();
-                    var dmg = rand.Next(Convert.ToInt32(simple.Min), Convert.ToInt32(simple.Max)); //these need to be set to integers as attributes. note to fix.
+                    var damageType = EnumUtil.ParseEnum<Enums.DamageType>(damage.Type.ToString(),
+                        Enums.DamageType.Magical);
+                    var dmg = rand.Next(Convert.ToInt32(simple.Min), Convert.ToInt32(simple.Max));
+                        //these need to be set to integers as attributes. note to fix.
                     target.Damage(dmg, OffensiveElement, damageType, this);
                 }
                 else
                 {
                     var formula = damage.Formula;
-                    var damageType = EnumUtil.ParseEnum<Enums.DamageType>(damage.Type.ToString(), Enums.DamageType.Magical);
+                    var damageType = EnumUtil.ParseEnum<Enums.DamageType>(damage.Type.ToString(),
+                        Enums.DamageType.Magical);
                     FormulaParser parser = new FormulaParser(this, castObject, target);
                     var dmg = parser.Eval(formula);
                     if (dmg == 0) dmg = 1;
                     target.Damage(dmg, OffensiveElement, damageType, this);
                 }
+                //var dmg = rand.Next(Convert.ToInt32(simple.Min), Convert.ToInt32(simple.Max));
+                    //these need to be set to integers as attributes. note to fix.
+                //target.Damage(dmg, OffensiveElement, damage.Type, this);
+            }
+            else
+            {
+                //var formula = damage.Formula;
             }
         }
 
