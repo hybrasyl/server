@@ -2495,7 +2495,7 @@ namespace Hybrasyl
                     foreach (var board in boardList)
                     {
                         response.WriteUInt16((ushort) board.Id);
-                        response.WriteString8(board.Name);
+                        response.WriteString8(board.DisplayName);
                     }
                     response.TransmitDelay = 600; // This is so the 'w' key in the client works
                     // Without this, the messaging panel is a jittery piece of crap that never opens
