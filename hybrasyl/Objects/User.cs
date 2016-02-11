@@ -958,7 +958,7 @@ namespace Hybrasyl.Objects
 
             var equipPacket = new ServerPacket(0x37);
             equipPacket.WriteByte((byte)slot);
-            equipPacket.WriteUInt16((ushort)(item.EquipSprite + 0x8000));
+            equipPacket.WriteUInt16((ushort)(item.Sprite + 0x8000));
             equipPacket.WriteByte(0x00);
             equipPacket.WriteStringWithLength(item.Name);
             equipPacket.WriteByte(0x00);
