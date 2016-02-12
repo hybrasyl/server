@@ -134,7 +134,7 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                if (Template.Properties.Equipment != null)
+                if (Template.Properties.EquipmentSpecified && Template.Properties.Equipment.SlotSpecified)
                     return Enums.ItemType.Equipment;
                 return Template.Properties.Use != null ? Enums.ItemType.CanUse : Enums.ItemType.CannotUse;
             }
