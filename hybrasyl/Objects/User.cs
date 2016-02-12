@@ -2177,6 +2177,14 @@ namespace Hybrasyl.Objects
                 }
             }
         }
+
+        public void SendEquipment()
+        {
+            foreach (var item in Equipment)
+            {
+                SendEquipItem(item, item.EquipmentSlot);
+            }
+        }
         public void SendSkills()
         {
             for (byte i = 0; i < this.SkillBook.Size; i++)

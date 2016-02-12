@@ -1937,8 +1937,11 @@ namespace Hybrasyl
             loginUser.AssociateConnection(this, connectionId);
             loginUser.SetEncryptionParameters(key, seed, name);
             loginUser.UpdateLoginTime();
+            loginUser.Inventory.RecalculateWeight();
+            loginUser.Equipment.RecalculateWeight();
             loginUser.UpdateAttributes(StatUpdateFlags.Full);
             loginUser.SendInventory();
+            loginUser.SendEquipment();
             loginUser.SendSkills();
             loginUser.SendSpells();
             

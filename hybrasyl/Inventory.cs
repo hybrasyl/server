@@ -523,6 +523,14 @@ namespace Hybrasyl
             get { return Size - Count; }
         }
 
+        public void RecalculateWeight()
+        {
+            Weight = 0;
+            foreach (var item in this)
+            {
+                Weight += item.Weight;
+            }
+        }
         public Item this[byte slot]
         {
             get
