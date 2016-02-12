@@ -26,6 +26,59 @@ namespace Hybrasyl
 {
     namespace Enums
     {
+        //this is a wip
+        internal static class OpCodes
+        {
+            public const byte CryptoKey = 0x00;
+            public const byte LoginMessage = 0x02;
+            public const byte Redirect = 0x03;
+            public const byte Location = 0x04;
+            public const byte UserId = 0x05;
+            public const byte AddWorldObject = 0x07;
+            public const byte Attributes = 0x08;
+            public const byte SystemMessage = 0x0A;
+            public const byte UserMove = 0x0B;
+            public const byte CreatureMove = 0x0C;
+            public const byte RemoveWorldObject = 0x0E;
+            public const byte AddItem = 0x0F;
+            public const byte RemoveItem = 0x10;
+            public const byte CreatureDirection = 0x11;
+            public const byte HealthBar = 0x13;
+            public const byte MapInfo = 0x15;
+            public const byte AddSpell = 0x17;
+            public const byte RemoveSpell = 0x18;
+            public const byte PlaySound = 0x19;
+            public const byte PlayerAnimation = 0x1A;
+            public const byte MapChangeCompled = 0x1F;
+            public const byte Refresh = 0x22;
+            public const byte SpellAnimation = 0x29;
+            public const byte Pursuit = 0x30;
+            public const byte Board = 0x31;
+            public const byte UserMoveResponse = 0x32;
+            public const byte DisplayUser = 0x33;
+            public const byte Profile = 0x34;
+            public const byte UserList = 0x36;
+            public const byte AddEquipment = 0x37;
+            public const byte RemoveEquipment = 0x38;
+            public const byte SelfProfile = 0x39;
+            public const byte BuffBar = 0x3A;
+            public const byte PingA = 0x3B;
+            public const byte MapData = 0x3C;
+            public const byte UseSkill = 0x3E;
+            public const byte Cooldown = 0x3F;
+            public const byte ClickObject = 0x43;
+            public const byte CancelCast = 0x48;
+            public const byte ServerSelect = 0x57;
+            public const byte MapLoadComplete = 0x58;
+            public const byte Notification = 0x60;
+            public const byte Website = 0x66;
+            public const byte MapChangePending = 0x67;
+            public const byte PingB = 0x68;
+            public const byte MetaData = 0x6F;
+
+        }
+
+
         public enum PrivateMessageType : int
         {
             Whisper = 0,

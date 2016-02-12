@@ -722,7 +722,7 @@ namespace Hybrasyl.Objects
             //do aoe?
         }
 
-        public void SendAnimation(byte animation, byte speed, byte sound)
+        public void SendAnimation(byte animation, ushort speed, byte sound)
         {
             foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
             {
@@ -735,11 +735,11 @@ namespace Hybrasyl.Objects
                         x1A.WriteUInt32(Id);
                         x1A.WriteByte(animation);
                         x1A.WriteByte(0x00);
-                        x1A.WriteByte(speed);
+                        //x1A.WriteByte(speed);
                         x1A.WriteByte(0x01);
                         x1A.WriteByte(0x00);
 
-                        user.LastAttack = DateTime.Now;
+                        //user.LastAttack = DateTime.Now;
                         user.Enqueue(x1A); //send animation
                         PlaySound(sound);
                     }

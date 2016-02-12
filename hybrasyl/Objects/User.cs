@@ -1668,7 +1668,10 @@ namespace Hybrasyl.Objects
                     }
                 }
                 //animation handled here as to not repeatedly send assails.
-                SendAnimation(0x01, 25, 0x01);
+                this.LastAttack = DateTime.Now;
+                //SendAnimation(0x01, 25, 0x01);
+                var assail = new ServerPacketStructures.PlayerAnimation() { Animation = 1, Speed = 20, UserId = this.Id };
+                Enqueue(assail.Packet());
             }
         }
 
