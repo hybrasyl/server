@@ -668,14 +668,14 @@ namespace Hybrasyl.Objects
             profilePacket.WriteString8(Guild.Rank);
             profilePacket.WriteString8(Hybrasyl.Constants.REVERSE_CLASSES[(int)Class]);
             profilePacket.WriteString8(Guild.Name);
-            //profilePacket.WriteByte((byte)LegendMarks.Count);
-            /*foreach (var mark in LegendMarks)
+            profilePacket.WriteByte((byte)Legend.Count);
+            foreach (var mark in Legend)
             {
-                profilePacket.WriteByte((byte)mark.icon);
-                profilePacket.WriteByte((byte)mark.color);
-                profilePacket.WriteString8(mark.prefix);
-                profilePacket.WriteString8(mark.text);
-            }*/
+                profilePacket.WriteByte((byte)mark.Icon);
+                profilePacket.WriteByte((byte)mark.Color);
+                profilePacket.WriteString8(mark.Prefix);
+                profilePacket.WriteString8(mark.Text);
+            }
             profilePacket.WriteUInt16((ushort)(PortraitData.Length + ProfileText.Length + 4));
             profilePacket.WriteUInt16((ushort)PortraitData.Length);
             profilePacket.Write(PortraitData);
@@ -706,6 +706,16 @@ namespace Hybrasyl.Objects
             if (!IsSaving)
             {
                 IsSaving = true;
+                // Save location
+                if (IsAtWorldMap)
+                    Location.WorldMap = true;
+                else if (Map != null)
+                {
+                    Location.MapId = Map.Id;
+                    Location.X = X;
+                    Location.Y = Y;
+                }
+
                 var cache = World.DatastoreConnection.GetDatabase();
                 cache.Set(GetStorageKey(Name), JsonConvert.SerializeObject(this, new JsonSerializerSettings() { PreserveReferencesHandling = PreserveReferencesHandling.All }));
                 IsSaving = false;

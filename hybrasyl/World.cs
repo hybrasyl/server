@@ -1944,8 +1944,7 @@ namespace Hybrasyl
             loginUser.SendEquipment();
             loginUser.SendSkills();
             loginUser.SendSpells();
-            
-
+           
             Logger.DebugFormat("Elapsed time since login: {0}", loginUser.SinceLastLogin);
 
             if (loginUser.Citizenship != null && loginUser.Citizenship.Spawnpoints.Count != 0 &&
@@ -1955,10 +1954,10 @@ namespace Hybrasyl
                 var spawnpoint = loginUser.Citizenship.Spawnpoints.First();
                 loginUser.Teleport(spawnpoint.Mapname, spawnpoint.X, spawnpoint.Y);
             }
-            else if (Maps.ContainsKey(loginUser.MapId))
+            else if (Maps.ContainsKey(loginUser.Location.MapId))
             {
                 Insert(loginUser);
-                loginUser.Teleport(loginUser.MapId, (byte) loginUser.MapX, (byte) loginUser.MapY);
+                loginUser.Teleport(loginUser.Location.MapId, (byte) loginUser.Location.X, (byte) loginUser.Location.Y);
             }
             else
             {
