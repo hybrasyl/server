@@ -227,7 +227,12 @@ namespace Hybrasyl
             Lobby = new Lobby(Config.Network.Lobby.Port);
             Login = new Login(Config.Network.Login.Port);
             World = new World(Config.Network.World.Port, Config.Datastore);
-            World.InitWorld();
+            if (!World.InitWorld())
+            {
+                Logger.FatalFormat("Hybrasyl cannot continue loading. Press any key to exit.");
+                Console.ReadKey();
+                Environment.Exit(1);
+            }
 
             byte[] addressBytes;
             addressBytes = IpAddress.GetAddressBytes();

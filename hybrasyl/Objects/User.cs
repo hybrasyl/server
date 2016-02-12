@@ -138,15 +138,29 @@ namespace Hybrasyl.Objects
 
         [JsonProperty]
         public GuildMembership Guild { get; set; }
-        
-        public Nation Citizenship { get; set; }
-        /*THIS NEEDS FIXING*/
-        [JsonProperty]
-        public string NationName
+
+        private Nation _nation;
+
+        public Nation Nation
         {
-            get { return "Mileth"; /*return Citizenship.Name;*/ }
+            get { return _nation; }
+            set
+            {
+                _nation = value;
+                Citizenship = value.Name;
+            }
         }
 
+        [JsonProperty]
+        private string Citizenship { get; set; }
+
+        public string NationName
+        {
+            get
+            {
+                return Nation != null ? Nation.Name : string.Empty;
+            }
+        } 
         [JsonProperty]
         public List<LegendMark> Legend { get; set; }
 
@@ -179,6 +193,12 @@ namespace Hybrasyl.Objects
         public uint LevelPoints = 0;
 
         public byte CurrentMusicTrack { get; set; }
+
+        public void SetCitizenship()
+        {
+            Nation theNation;
+            Nation = World.Nations.TryGetValue(Citizenship, out theNation) ? theNation : World.DefaultNation;
+        }
 
         public bool IsPrivileged
         {
@@ -662,7 +682,7 @@ namespace Hybrasyl.Objects
 
             profilePacket.WriteByte((byte)GroupStatus);
             profilePacket.WriteString8(Name);
-            profilePacket.WriteByte((byte)Citizenship.Flag); // This should pull from town / nation
+            profilePacket.WriteByte((byte)Nation.Flag); // This should pull from town / nation
             profilePacket.WriteString8(Guild.Title);
             profilePacket.WriteByte((byte)(Grouping ? 1 : 0));
             profilePacket.WriteString8(Guild.Rank);
@@ -1735,8 +1755,7 @@ namespace Hybrasyl.Objects
         public void SendProfile()
         {
             var profilePacket = new ServerPacket(0x39);
-            //profilePacket.WriteByte((byte) Citizenship.Flag); // citizenship
-            profilePacket.WriteByte(4);
+            profilePacket.WriteByte((byte) Nation.Flag); // citizenship
             profilePacket.WriteString8(Guild.Rank);
             profilePacket.WriteString8(Guild.Title);
             profilePacket.WriteString8(GroupText);
