@@ -206,7 +206,7 @@ namespace Hybrasyl
 
                 IDatabase cache = World.DatastoreConnection.GetDatabase();
                 var myPerson = JsonConvert.SerializeObject(newPlayer);
-                    cache.Set(String.Format("{0}:{1}", User.DatastorePrefix, newPlayer.Name), myPerson);
+                cache.Set(User.GetStorageKey(newPlayer.Name), myPerson);
 
 //                    Logger.ErrorFormat("Error saving new player!");
   //                  Logger.ErrorFormat(e.ToString());
@@ -257,17 +257,16 @@ namespace Hybrasyl
 
             // TODO: REDIS
 
-            IDatabase cache = World.DatastoreConnection.GetDatabase();
-            var myPerson = cache.Get(name);
+            User player;
 
-            if (myPerson == null)
+            if (!World.TryGetUser(name, out player))
             {
                 client.LoginMessage(GetPasswordError(0x0E), 0x0E);
-                Logger.DebugFormat("Password change attempt on invalid player `{0}`", name);
-                
+                Logger.InfoFormat("cid {0}: Password change attempt on nonexistent player {1}", client.ConnectionId, name);
+                return;
+
             }
 
-            var player = JsonConvert.DeserializeObject(myPerson as String) as User;
             if (player.VerifyPassword(currentPass))
             {
 

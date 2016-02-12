@@ -23,6 +23,9 @@
 using Hybrasyl.Objects;
 using log4net;
 using System;
+
+using System.Linq;
+
 using System.Timers;
 
 namespace Hybrasyl
@@ -49,7 +52,8 @@ namespace Hybrasyl
         //    in which case consistency (obviously) isn't guaranteed.
         //    Example: a job that, say, occasionally reported the number of logged in players to
         //    somewhere else via an external API call: probably fine. A job that checked to see if
-        //    a player had a certain item and then took action based on that - BAD.
+        //    a player had a certain item and then took action based on that - BAD. The only exception
+        //    to this is if the object implements some kind of locking (see Mailbox for an example).
         //
         // 2) You can send packets to clients from a job (since doing so is intended to be
         //    thread safe). An instance of how to use this is in the AutoSnoreJob, where we can
@@ -82,6 +86,57 @@ namespace Hybrasyl
                         // everything else.
 
                         World.MessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.SaveUser, client.Key));
+                    }
+                    Logger.Debug("Job complete");
+                }
+                catch (Exception e)
+                {
+                    Logger.Error("Exception occured in job:", e);
+                }
+            }
+        }
+
+        public static class MailboxCleanupJob
+        {
+            public static readonly ILog Logger =
+                LogManager.GetLogger(
+                    System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
+            // Clean up mailboxes once an hour
+            public static readonly int Interval = 3600;
+
+            public static void Execute(Object obj, ElapsedEventArgs args)
+            {
+                try
+                {
+                    Logger.Debug("Job starting");
+
+                    var now = DateTime.Now.Ticks;
+                    foreach (var mailbox in Game.World.Mailboxes.Values.Where(mb => mb.Full))
+                    {
+                        try
+                        {
+                            mailbox.Lock();
+                            mailbox.Cleanup();
+                            mailbox.Unlock();
+                        }
+                        catch (MessageStoreLocked)
+                        {
+                            Logger.ErrorFormat("{0}: mailbox locked during cleanup...?", mailbox.Name);
+                        }
+                    }
+                    foreach (var board in Game.World.Messageboards.Values.Where(mb => mb.Full))
+                    {
+                        try
+                        {
+                            board.Lock();
+                            board.Cleanup();
+                            board.Unlock();
+                        }
+                        catch (MessageStoreLocked)
+                        {
+                            Logger.ErrorFormat("{0}: board locked during cleanup...?", board.Name);
+                        }
                     }
                     Logger.Debug("Job complete");
                 }
@@ -306,5 +361,5 @@ namespace Hybrasyl
                 }
             }
         }
-    }
+  }
 }

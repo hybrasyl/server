@@ -194,14 +194,15 @@ namespace Hybrasyl
         /// <summary>
         /// Create a new Hybrasyl map from an XMLMap object.
         /// </summary>
-        /// <param name="mapElement"></param>
+        /// <param name="newMap">An XSD.Map object representing the XML map file.</param>
+        /// <param name="theWorld">A world object where the map will be placed</param>
         public Map(XSD.Map newMap, World theWorld)
         {
             Init();
             World = theWorld;
 
             // TODO: refactor Map class to not do this, but be a partial which overlays
-            // TODO: XmlMap (which would then just be Map)
+            // TODO: XSD.Map
             Id = newMap.Id;
             X = newMap.X;
             Y = newMap.Y;
@@ -271,8 +272,10 @@ namespace Hybrasyl
                 }
                 else
                 {
-                    // TODO: Messageboards
-                    Logger.InfoFormat("{0}: messageboard ignored", Name);                
+                    var boardElement = postElement as XSD.Messageboard;
+                    var board = new Objects.Signpost(boardElement.X, boardElement.Y, string.Empty, true, boardElement.Name);
+                    InsertSignpost(board);
+                    Logger.InfoFormat("{0}: {1} - messageboard loaded", this.Name, board.Name );
                 }
             }
 

@@ -51,11 +51,20 @@ namespace Hybrasyl.Objects
 
             message = string.Empty;
 
+            // Check gender
+
+            if (Sex != 0 && (Sex != userobj.Sex))
+            {
+                message = "You conclude this garment would look much better on someone else.";
+                return false;
+            }
+
             // Check class
 
             if (userobj.Class != Class && Class != Enums.Class.Peasant)
             {
                 message = userobj.Class == Enums.Class.Peasant ? "Perhaps one day you'll know how to use such things." : "Your path has forbidden itself from using such vulgar implements.";
+                return false;
             }
 
             // Check level / AB
@@ -63,20 +72,16 @@ namespace Hybrasyl.Objects
             if (userobj.Level < Level || (Ability != 0 && userobj.Ability < Ability))
             {
                 message = "You can't even lift it above your head, let alone wield it!";
+                return false;
             }
 
-            // Check gender
-
-            if (Sex != 0 && (Sex != userobj.Sex))
-            {
-                message = "You conclude this garment would look much better on someone else.";
-            }
 
             // Check if user is equipping a shield while holding a two-handed weapon
 
             if (EquipmentSlot == ClientItemSlots.Shield && userobj.Equipment.Weapon != null && userobj.Equipment.Weapon.WeaponType == Enums.WeaponType.TwoHanded)
             {
                 message = "You can't equip a shield with a two-handed weapon.";
+                return false;
             }
 
             // Check if user is equipping a two-handed weapon while holding a shield
@@ -84,6 +89,7 @@ namespace Hybrasyl.Objects
             if (EquipmentSlot == ClientItemSlots.Weapon && WeaponType == Enums.WeaponType.TwoHanded && userobj.Equipment.Shield != null)
             {
                 message = "You can't equip a two-handed weapon with a shield.";
+                return false;
             }
 
             // Check mastership
@@ -91,14 +97,16 @@ namespace Hybrasyl.Objects
             if (Master && !userobj.IsMaster)
             {
                 message = "Perhaps one day you'll know how to use such things.";
+                return false;
             }
 
             if (UniqueEquipped && userobj.Equipment.Find(Name) != null)
             {
                 message = "You can't equip more than one of these.";
+                return false;
             }
 
-            return message == string.Empty; 
+            return true;
         }
 
         private XSD.ItemType Template => World.Items[TemplateId];
@@ -139,7 +147,7 @@ namespace Hybrasyl.Objects
         public byte EquipmentSlot => Convert.ToByte(Template.Properties.Equipment.Slot);
         public int Weight => Template.Properties.Physical.Weight;
         public int MaximumStack => Template.Properties.Stackable.Max;
-        public bool Stackable => Template.Stackable;
+        public bool Stackable => Template.Properties.StackableSpecified && Template.Properties.Stackable.Max > 1;
 
         public uint MaximumDurability => Template.Properties.Physical.Durability;
 

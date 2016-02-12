@@ -21,7 +21,7 @@
 
 using System.Data.Odbc;
 using Hybrasyl.Properties;
-using Hybrasyl.XML.Config;
+using Hybrasyl.XSD;
 using log4net;
 using System;
 using System.Collections.Generic;
@@ -31,7 +31,9 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
+using System.Xml;
 using System.Xml.Linq;
+using Hybrasyl.XML;
 using log4net.Core;
 using zlib;
 using AssemblyInfo = Hybrasyl.Utility.AssemblyInfo;
@@ -59,7 +61,7 @@ namespace Hybrasyl
         public static AssemblyInfo Assemblyinfo  { get; set; }
         private static long Active = 0;
 
-        public static XML.Config.HybrasylConfig Config { get; private set; }
+        public static HybrasylConfig Config { get; private set; }
 
         public static void ToggleActive()
         {
@@ -76,6 +78,71 @@ namespace Hybrasyl
             if (Interlocked.Read(ref Active) == 0)
                 return false;
             return true;
+        }
+
+        public static HybrasylConfig GatherConfig()
+        {
+            Config = new HybrasylConfig();
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.Write("Welcome to Project Hybrasyl: this is Hybrasyl server {0}\n", Assemblyinfo.Version);
+            Console.Write("I need to ask some questions before we can go on, to configure the server.\n");
+            Console.Write("These questions will only be asked once - if you need to make changes\n");
+            Console.Write("in the future, edit config.xml in the Hybrasyl server directory.\n\n");
+
+            Console.Write("Enter this server's IP address, or what IP we should bind to (default is 127.0.0.1): ");
+            var serverIp = Console.ReadLine();
+            Console.Write("Enter the Lobby Port (default is 2610): ");
+            var lobbyPort = Console.ReadLine();
+            Console.Write("Enter the Login Port: (default is 2611): ");
+            var loginPort = Console.ReadLine();
+            Console.Write("Enter the World Port (default is 2612): ");
+            var worldPort = Console.ReadLine();
+
+            if (String.IsNullOrEmpty(serverIp))
+                serverIp = "127.0.0.1";
+
+            if (String.IsNullOrEmpty(lobbyPort))
+                lobbyPort = "2610";
+
+            if (String.IsNullOrEmpty(loginPort))
+                loginPort = "2611";
+
+            if (String.IsNullOrEmpty(worldPort))
+                worldPort = "2612";
+
+            Config.Network.Lobby.Bindaddress = serverIp;
+            Config.Network.Lobby.Port = Convert.ToUInt16(lobbyPort);
+
+            Config.Network.Login.Bindaddress = serverIp;
+            Config.Network.Login.Port = Convert.ToUInt16(loginPort);
+
+            Config.Network.World.Bindaddress = serverIp;
+            Config.Network.World.Port = Convert.ToUInt16(loginPort);
+
+            Logger.InfoFormat("Using {0}: {1}, {2}, {3}", serverIp, lobbyPort, loginPort, worldPort);
+
+            Console.Write("Now, we will configure the Redis store.\n");
+            Console.Write("If you have just installed Redis and are using the default settings, just hit enter here.\n");
+               
+            Console.Write("Redis IP or hostname (default is localhost): ");
+            var redisHost = Console.ReadLine();
+
+            Console.Write("Redis port (default is 6379): ");
+            var redisPort = Console.ReadLine();
+
+            Console.Write("Redis authentication information (optional - if you don't have these, just hit enter)");
+            Console.Write("Username: ");
+            var redisUser = Console.ReadLine();
+
+            Console.Write("Password: ");
+            var redisPass = Console.ReadLine();
+
+            Config.Datastore.Host = string.IsNullOrEmpty(redisHost) ? "localhost" : redisHost;
+            Config.Datastore.Port = string.IsNullOrEmpty(redisPort) ? (ushort) 6379 : Convert.ToUInt16(redisPort);
+            Config.Datastore.Username = string.IsNullOrEmpty(redisUser) ? "" : redisUser;
+            Config.Datastore.Password = string.IsNullOrEmpty(redisPass) ? "" : redisPass;
+
+            return Config;
         }
 
         public static void Main(string[] args)
@@ -96,7 +163,7 @@ namespace Hybrasyl
                     Directory.CreateDirectory(Constants.DataDirectory);
                     Directory.CreateDirectory(Path.Combine(Constants.DataDirectory, "maps"));
                     Directory.CreateDirectory(Path.Combine(Constants.DataDirectory, "scripts"));
-
+                    Directory.CreateDirectory(Path.Combine(Constants.DataDirectory, "world"));
                 }
                 catch (Exception e)
                 {
@@ -106,88 +173,46 @@ namespace Hybrasyl
             }
             
             var hybconfig = Path.Combine(Constants.DataDirectory, "config.xml");
-
+       
             if (File.Exists(hybconfig))
             {
-                var xml = File.ReadAllText(hybconfig);
-                HybrasylConfig newConfig;
-                Exception parseException;
-                if (XML.Config.HybrasylConfig.Deserialize(xml, out newConfig, out parseException))
-                    Config = newConfig;
-                else
+
+                try
                 {
-                    Logger.ErrorFormat("Error parsing Hybrasyl configuration: {1}", hybconfig, parseException);
-                    Environment.Exit(0);
+                    Config = Serializer.Deserialize(XmlReader.Create(hybconfig), new HybrasylConfig());
+                    Logger.Info("Configuration file loaded.");
                 }
+                catch (Exception e)
+                {
+                    Logger.ErrorFormat("The config file {0} could not be parsed: {1}", hybconfig, e);
+                }
+
             }
             else
             {
-
-                Console.ForegroundColor = ConsoleColor.White;
-
-                Console.Write("Welcome to Project Hybrasyl: this is Hybrasyl server {0}\n", Assemblyinfo.Version);
-                Console.Write("I need to ask some questions before we can go on. You'll also need to\n");
-                Console.Write("make sure that an app.config exists in the Hybrasyl server directory,\n");
-                Console.Write("and that the database specified there exists and is properly loaded.\n");
-                Console.Write("Otherwise, you're gonna have a bad time.\n\n");
-                Console.Write("These questions will only be asked once - if you need to make changes\n");
-                Console.Write("in the future, edit config.xml in the Hybrasyl server directory.\n\n");
-
-                Console.Write("Enter this server's IP address, or what IP we should bind to (default is 127.0.0.1): ");
-                var serverIp = Console.ReadLine();
-                Console.Write("Enter the Lobby Port (default is 2610): ");
-                var lobbyPort = Console.ReadLine();
-                Console.Write("Enter the Login Port: (default is 2611): ");
-                var loginPort = Console.ReadLine();
-                Console.Write("Enter the World Port (default is 2612): ");
-                var worldPort = Console.ReadLine();
-
-                if (String.IsNullOrEmpty(serverIp))
-                    serverIp = "127.0.0.1";
-
-                if (String.IsNullOrEmpty(lobbyPort))
-                    lobbyPort = "2610";
-
-                if (String.IsNullOrEmpty(loginPort))
-                    loginPort = "2611";
-
-                if (String.IsNullOrEmpty(worldPort))
-                    worldPort = "2612";
-
-                Logger.InfoFormat("Using {0}: {1}, {2}, {3}", serverIp, lobbyPort, loginPort, worldPort);
-
-                Console.Write("Now, we will configure the Redis store.\n\n");
-                Console.Write("Redis IP or hostname (default is localhost): ");
-                var redisHost = Console.ReadLine();
-
-                Console.Write("Redis authentication information (optional - if you don't have these, just hit enter)");
-                Console.Write("Username: ");
-                var redisUser = Console.ReadLine();
-
-                Console.Write("Password: ");
-                var redisPass = Console.ReadLine();
-
-                if (String.IsNullOrEmpty(redisHost))
-                    redisHost = "localhost";
-
-                Config = new HybrasylConfig {datastore = {host = redisHost}, network =
+                var validConfig = false;
+                while (validConfig == false)
                 {
-                    lobby = new NetworkInfo { bindaddress = serverIp, port = Convert.ToUInt16(lobbyPort) },
-                    login = new NetworkInfo { bindaddress = serverIp, port = Convert.ToUInt16(loginPort) },
-                    world = new NetworkInfo { bindaddress = serverIp, port = Convert.ToUInt16(worldPort) }
-                }};
+                    try
+                    {
+                        Config = GatherConfig();
+                        validConfig = true;
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.ErrorFormat("Some of the values you entered were invalid. Try again. Error was: {0}",
+                            e.ToString());
 
-                if (String.IsNullOrEmpty(redisUser))
-                    Config.datastore.username = redisUser;
-
-                if (String.IsNullOrEmpty(redisPass))
-                    Config.datastore.username = redisPass;
-
-                Config.SaveToFile(Path.Combine(Constants.DataDirectory, "config.xml"));
+                    }
+                }
+                // Write out our configuration
+                XML.Serializer.Serialize(new XmlTextWriter(hybconfig, null), Config);
             }
-            ((log4net.Repository.Hierarchy.Hierarchy)LogManager.GetRepository()).Root.Level = Level.Debug;
-            ((log4net.Repository.Hierarchy.Hierarchy)LogManager.GetRepository()).RaiseConfigurationChanged(
+            // Set default logging level
+            ((log4net.Repository.Hierarchy.Hierarchy) LogManager.GetRepository()).Root.Level = Level.Info;
+                ((log4net.Repository.Hierarchy.Hierarchy) LogManager.GetRepository()).RaiseConfigurationChanged(
                 EventArgs.Empty);
+            
             // Set console buffer, so we can scroll back a bunch
             Console.BufferHeight = Int16.MaxValue - 1;
 
@@ -198,10 +223,10 @@ namespace Hybrasyl
 
             // For right now we don't support binding to different addresses; the support in the XML
             // is for a distant future where that may be desirable.
-            IpAddress = IPAddress.Parse(Config.network.lobby.bindaddress); 
-            Lobby = new Lobby(Config.network.lobby.port);
-            Login = new Login(Config.network.login.port);
-            World = new World(Config.network.world.port, Config.datastore);
+            IpAddress = IPAddress.Parse(Config.Network.Lobby.Bindaddress);
+            Lobby = new Lobby(Config.Network.Lobby.Port);
+            Login = new Login(Config.Network.Login.Port);
+            World = new World(Config.Network.World.Port, Config.Datastore);
             World.InitWorld();
 
             byte[] addressBytes;

@@ -70,6 +70,8 @@ namespace Hybrasyl.Objects
         }
 
         public virtual void SendId() { }
+
+       
     }
 
     public class VisibleObject : WorldObject
@@ -973,6 +975,11 @@ namespace Hybrasyl.Objects
                     invoker.SendMessage(Message, Hybrasyl.MessageTypes.SLATE);
                 else
                     invoker.SendMessage(Message, Hybrasyl.MessageTypes.SLATE_WITH_SCROLLBAR);
+            }
+            else
+            {
+                var board = World.GetBoard(BoardName);
+                invoker.Enqueue(board.RenderToPacket(true));
             }
         }
     }
