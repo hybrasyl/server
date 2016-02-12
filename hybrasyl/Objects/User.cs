@@ -182,7 +182,14 @@ namespace Hybrasyl.Objects
 
         public bool IsPrivileged
         {
-            get { return IsExempt || Flags.ContainsKey("gamemaster") || Game.Config.Access.Privileged.Contains(Name); }
+            get
+            {
+                if (Game.Config.Access.Privileged != null)
+                {
+                    return IsExempt || Flags.ContainsKey("gamemaster") || Game.Config.Access.Privileged.Contains(Name);
+                }
+                return IsExempt || Flags.ContainsKey("gamemaster");
+            }
         }
 
         public bool IsExempt
@@ -1674,7 +1681,10 @@ namespace Hybrasyl.Objects
                     }
                 }
                 //animation handled here as to not repeatedly send assails.
-                SendAnimation(0x01, 25, 0x01);
+                this.LastAttack = DateTime.Now;
+                //SendAnimation(0x01, 25, 0x01);
+                var assail = new ServerPacketStructures.PlayerAnimation() { Animation = 1, Speed = 20, UserId = this.Id };
+                Enqueue(assail.Packet());
             }
         }
 

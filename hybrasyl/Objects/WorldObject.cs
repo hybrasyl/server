@@ -724,29 +724,29 @@ namespace Hybrasyl.Objects
             //do aoe?
         }
 
-        public void SendAnimation(byte animation, byte speed, byte sound)
-        {
-            foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
-            {
-                if (obj is User)
-                {
-                    var user = (User)obj;
+        //public void SendAnimation(byte animation, ushort speed, byte sound)
+        //{
+        //    foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
+        //    {
+        //        if (obj is User)
+        //        {
+        //            var user = (User)obj;
                     
 
-                        var x1A = new ServerPacket(0x1A);
-                        x1A.WriteUInt32(Id);
-                        x1A.WriteByte(animation);
-                        x1A.WriteByte(0x00);
-                        x1A.WriteByte(speed);
-                        x1A.WriteByte(0x01);
-                        x1A.WriteByte(0x00);
+        //                var x1A = new ServerPacket(0x1A);
+        //                x1A.WriteUInt32(Id);
+        //                x1A.WriteByte(animation);
+        //                x1A.WriteByte(0x00);
+        //                //x1A.WriteByte(speed);
+        //                x1A.WriteByte(0x01);
+        //                x1A.WriteByte(0x00);
 
-                        user.LastAttack = DateTime.Now;
-                        user.Enqueue(x1A); //send animation
-                        PlaySound(sound);
-                    }
-            }
-        }
+        //                //user.LastAttack = DateTime.Now;
+        //                user.Enqueue(x1A); //send animation
+        //                PlaySound(sound);
+        //            }
+        //    }
+        //}
 
         public virtual void UpdateAttributes(StatUpdateFlags flags) { }
         public virtual bool Walk(Direction direction) { return false; }

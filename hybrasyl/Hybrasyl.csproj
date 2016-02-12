@@ -164,6 +164,7 @@
     <Compile Include="QuadTree.cs" />
     <Compile Include="Scripting.cs" />
     <Compile Include="Server.cs" />
+    <Compile Include="ServerPacketStructures.cs" />
     <Compile Include="Template.cs" />
     <Compile Include="Objects\User.cs" />
     <Compile Include="UserGroup.cs" />
