@@ -1726,7 +1726,7 @@ namespace Hybrasyl.Objects
             //            profilePacket.WriteByte(1); // ??
             profilePacket.WriteByte(0);
             profilePacket.WriteByte(0); // ??
-            profilePacket.WriteString8(Hybrasyl.Constants.REVERSE_CLASSES[(int) Class]);
+            profilePacket.WriteString8(IsMaster ? "Master" : Hybrasyl.Constants.REVERSE_CLASSES[(int) Class]);
             profilePacket.WriteString8(Guild.Name);
             profilePacket.WriteByte((byte) Legend.Count);
             foreach (var mark in Legend)
