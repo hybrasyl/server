@@ -182,7 +182,14 @@ namespace Hybrasyl.Objects
 
         public bool IsPrivileged
         {
-            get { return IsExempt || Flags.ContainsKey("gamemaster") || Game.Config.Access.Privileged.Contains(Name); }
+            get
+            {
+                if (Game.Config.Access.Privileged != null)
+                {
+                    return IsExempt || Flags.ContainsKey("gamemaster") || Game.Config.Access.Privileged.Contains(Name);
+                }
+                return IsExempt || Flags.ContainsKey("gamemaster");
+            }
         }
 
         public bool IsExempt
