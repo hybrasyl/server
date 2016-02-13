@@ -20,18 +20,16 @@
  *            Kyle Speck    <kojasou@hybrasyl.com>
  */
 
-using System.Runtime.Serialization;
 using C3;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
-using Hybrasyl.Properties;
+using Hybrasyl.XSD;
 using log4net;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using Newtonsoft.Json;
-using Hybrasyl.XSD;
 
 namespace Hybrasyl.Objects
 {
@@ -58,6 +56,7 @@ namespace Hybrasyl.Objects
         public byte X { get; set; }
         public byte Y { get; set; }
         public uint Id { get; set; }
+
         [JsonProperty]
         public string Name { get; set; }
 
@@ -69,9 +68,9 @@ namespace Hybrasyl.Objects
             Name = string.Empty;
         }
 
-        public virtual void SendId() { }
-
-       
+        public virtual void SendId()
+        {
+        }
     }
 
     public class VisibleObject : WorldObject
@@ -106,7 +105,7 @@ namespace Hybrasyl.Objects
         {
             if (pursuit.Id == null)
             {
-                // This is a local sequence, so assign it into the pursuit range and 
+                // This is a local sequence, so assign it into the pursuit range and
                 // assign an ID
                 pursuit.Id = (uint)(Constants.DIALOG_SEQUENCE_SHARED + Pursuits.Count());
                 Pursuits.Add(pursuit);
@@ -132,9 +131,13 @@ namespace Hybrasyl.Objects
             SequenceCatalog.Add(sequence.Name, sequence);
         }
 
-        public virtual void AoiDeparture(VisibleObject obj) { }
+        public virtual void AoiDeparture(VisibleObject obj)
+        {
+        }
 
-        public virtual void OnClick(User invoker) { }
+        public virtual void OnClick(User invoker)
+        {
+        }
 
         public Rectangle GetBoundingBox()
         {
@@ -165,13 +168,19 @@ namespace Hybrasyl.Objects
                 Logger.DebugFormat("Object type is {0} and its name is {1}", obj.GetType(), obj.Name);
                 obj.AoiEntry(this);
             }
-
         }
 
-        public virtual void ShowTo(VisibleObject obj) { }
+        public virtual void ShowTo(VisibleObject obj)
+        {
+        }
 
-        public virtual void Hide() { }
-        public virtual void HideFrom(VisibleObject obj) { }
+        public virtual void Hide()
+        {
+        }
+
+        public virtual void HideFrom(VisibleObject obj)
+        {
+        }
 
         public virtual void Remove()
         {
@@ -198,11 +207,16 @@ namespace Hybrasyl.Objects
                     Map.Remove(this);
                 Logger.DebugFormat("Teleporting {0} to {1}.", Name, targetMap.Name);
                 targetMap.Insert(this, x, y);
-
             }
         }
-        public virtual void SendMapInfo() { }
-        public virtual void SendLocation() { }
+
+        public virtual void SendMapInfo()
+        {
+        }
+
+        public virtual void SendLocation()
+        {
+        }
 
         public virtual int Distance(VisibleObject obj)
         {
@@ -398,8 +412,6 @@ namespace Hybrasyl.Objects
             menupacket.DumpPacket();
             invoker.Enqueue(menupacket);
         }
-
-
     }
 
     /// <summary>
@@ -450,33 +462,43 @@ namespace Hybrasyl.Objects
         public new static readonly ILog Logger =
                LogManager.GetLogger(
                System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
         [JsonProperty]
         public byte Level { get; set; }
+
         [JsonProperty]
         public uint Experience { get; set; }
 
         [JsonProperty]
         public byte Ability { get; set; }
+
         [JsonProperty]
         public uint AbilityExp { get; set; }
 
         [JsonProperty]
         public uint Hp { get; set; }
+
         [JsonProperty]
         public uint Mp { get; set; }
 
         [JsonProperty]
         public long BaseHp { get; set; }
+
         [JsonProperty]
         public long BaseMp { get; set; }
+
         [JsonProperty]
         public long BaseStr { get; set; }
+
         [JsonProperty]
         public long BaseInt { get; set; }
+
         [JsonProperty]
         public long BaseWis { get; set; }
+
         [JsonProperty]
         public long BaseCon { get; set; }
+
         [JsonProperty]
         public long BaseDex { get; set; }
 
@@ -502,8 +524,10 @@ namespace Hybrasyl.Objects
 
         [JsonProperty]
         public uint Gold { get; set; }
+
         [JsonProperty]
         public Inventory Inventory { get; protected set; }
+
         [JsonProperty("Equipment")]
         public Inventory Equipment { get; protected set; }
 
@@ -515,7 +539,9 @@ namespace Hybrasyl.Objects
             Equipment = new Inventory(18);
         }
 
-        public override void OnClick(User invoker) { }
+        public override void OnClick(User invoker)
+        {
+        }
 
         public uint MaximumHp
         {
@@ -532,6 +558,7 @@ namespace Hybrasyl.Objects
                 return (uint)value;
             }
         }
+
         public uint MaximumMp
         {
             get
@@ -547,6 +574,7 @@ namespace Hybrasyl.Objects
                 return (uint)value;
             }
         }
+
         public byte Str
         {
             get
@@ -562,6 +590,7 @@ namespace Hybrasyl.Objects
                 return (byte)value;
             }
         }
+
         public byte Int
         {
             get
@@ -577,6 +606,7 @@ namespace Hybrasyl.Objects
                 return (byte)value;
             }
         }
+
         public byte Wis
         {
             get
@@ -592,6 +622,7 @@ namespace Hybrasyl.Objects
                 return (byte)value;
             }
         }
+
         public byte Con
         {
             get
@@ -607,6 +638,7 @@ namespace Hybrasyl.Objects
                 return (byte)value;
             }
         }
+
         public byte Dex
         {
             get
@@ -622,6 +654,7 @@ namespace Hybrasyl.Objects
                 return (byte)value;
             }
         }
+
         public byte Dmg
         {
             get
@@ -635,6 +668,7 @@ namespace Hybrasyl.Objects
                 return (byte)BonusDmg;
             }
         }
+
         public byte Hit
         {
             get
@@ -648,6 +682,7 @@ namespace Hybrasyl.Objects
                 return (byte)BonusHit;
             }
         }
+
         public sbyte Ac
         {
             get
@@ -664,6 +699,7 @@ namespace Hybrasyl.Objects
                 return (sbyte)value;
             }
         }
+
         public sbyte Mr
         {
             get
@@ -693,6 +729,7 @@ namespace Hybrasyl.Objects
         }
 
         private uint _mLastHitter;
+
         public Creature LastHitter
         {
             get
@@ -724,36 +761,31 @@ namespace Hybrasyl.Objects
             //do aoe?
         }
 
-        //public void SendAnimation(byte animation, ushort speed, byte sound)
-        //{
-        //    foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
-        //    {
-        //        if (obj is User)
-        //        {
-        //            var user = (User)obj;
-                    
+        public void SendAnimation(ServerPacket packet, byte sound)
+        {
+            foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
+            {
+                if (obj is User)
+                {
+                    var user = (User)obj;
+                    user.Enqueue(packet);
+                    PlaySound(sound);
+                }
+            }
+        }
 
-        //                var x1A = new ServerPacket(0x1A);
-        //                x1A.WriteUInt32(Id);
-        //                x1A.WriteByte(animation);
-        //                x1A.WriteByte(0x00);
-        //                //x1A.WriteByte(speed);
-        //                x1A.WriteByte(0x01);
-        //                x1A.WriteByte(0x00);
+        public virtual void UpdateAttributes(StatUpdateFlags flags)
+        {
+        }
 
-        //                //user.LastAttack = DateTime.Now;
-        //                user.Enqueue(x1A); //send animation
-        //                PlaySound(sound);
-        //            }
-        //    }
-        //}
+        public virtual bool Walk(Direction direction)
+        {
+            return false;
+        }
 
-        public virtual void UpdateAttributes(StatUpdateFlags flags) { }
-        public virtual bool Walk(Direction direction) { return false; }
         public virtual bool Turn(Direction direction)
         {
             Direction = direction;
-
 
             foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
             {
@@ -781,7 +813,6 @@ namespace Hybrasyl.Objects
                 }
             }
         }
-
 
         //public virtual bool AddItem(Item item, bool updateWeight = true) { return false; }
         //public virtual bool AddItem(Item item, int slot, bool updateWeight = true) { return false; }
@@ -824,19 +855,18 @@ namespace Hybrasyl.Objects
         {
             ServerPacket x13 = new ServerPacket(0x13);
             x13.WriteUInt32(creature.Id);
-            double percent = (((double)creature.Hp / (double)creature.MaximumHp ) * 100);
+            double percent = (((double)creature.Hp / (double)creature.MaximumHp) * 100);
             x13.WriteByte(0);
             x13.WriteByte((byte)(percent));
             x13.WriteByte(1);
             foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
             {
-                if(obj is User)
+                if (obj is User)
                 {
                     var user = (User)obj;
                     user.Enqueue(x13);
                 }
             }
-
         }
 
         public override void ShowTo(VisibleObject obj)
@@ -848,19 +878,21 @@ namespace Hybrasyl.Objects
             }
         }
 
-        public virtual void Refresh() { }
-
+        public virtual void Refresh()
+        {
+        }
     }
-
 
     public class Monster : Creature, ICloneable
     {
         public Monster()
             : base()
         { }
+
         private bool _idle = true;
 
         private uint _mTarget;
+
         public Creature Target
         {
             get
@@ -896,7 +928,6 @@ namespace Hybrasyl.Objects
             }
             else
             {
-
             }
 
             return false;
@@ -925,6 +956,7 @@ namespace Hybrasyl.Objects
                 user.SendVisibleCreature(this);
             }
         }
+
         public bool IsIdle()
         {
             return _idle;
@@ -934,9 +966,8 @@ namespace Hybrasyl.Objects
         {
             _idle = false;
             //add to alive monsters?
-
-
         }
+
         public void Sleep()
         {
             _idle = true;
@@ -998,6 +1029,7 @@ namespace Hybrasyl.Objects
                 else return "Gold Pile";
             }
         }
+
         new public ushort Sprite
         {
             get
@@ -1028,6 +1060,7 @@ namespace Hybrasyl.Objects
     {
         //private reactor _reactor;
         private HybrasylWorldObject _world;
+
         public Boolean Ready;
 
         public Reactor(/* reactor reactor*/)
@@ -1045,32 +1078,32 @@ namespace Hybrasyl.Objects
         public void OnSpawn()
         {
             // Do we have a script?
-/*
-            Script thescript;
-            if (_reactor.script_name == String.Empty)
-                Game.World.ScriptProcessor.TryGetScript(_reactor.name, out thescript);
-            else 
-                Game.World.ScriptProcessor.TryGetScript(_reactor.script_name, out thescript);
+            /*
+                        Script thescript;
+                        if (_reactor.script_name == String.Empty)
+                            Game.World.ScriptProcessor.TryGetScript(_reactor.name, out thescript);
+                        else
+                            Game.World.ScriptProcessor.TryGetScript(_reactor.script_name, out thescript);
 
-            if (thescript == null)
-            {
-                Logger.WarnFormat("reactor {0}: script not found", _reactor.name);
-                return;
-            }
+                        if (thescript == null)
+                        {
+                            Logger.WarnFormat("reactor {0}: script not found", _reactor.name);
+                            return;
+                        }
 
-            Script = thescript;
+                        Script = thescript;
 
-            Script.AssociateScriptWithObject(this);
+                        Script.AssociateScriptWithObject(this);
 
-            if (!Script.InstantiateScriptable())
-            {
-                Logger.WarnFormat("reactor {0}: script instantiation failed", _reactor.name);
-                return;
-            }
+                        if (!Script.InstantiateScriptable())
+                        {
+                            Logger.WarnFormat("reactor {0}: script instantiation failed", _reactor.name);
+                            return;
+                        }
 
-            Script.ExecuteScriptableFunction("OnSpawn");
-            Ready = true;
- */
+                        Script.ExecuteScriptableFunction("OnSpawn");
+                        Ready = true;
+             */
         }
 
         public void OnEntry(WorldObject obj)
@@ -1100,10 +1133,8 @@ namespace Hybrasyl.Objects
         public void OnDrop(WorldObject obj, WorldObject dropped)
         {
             if (Ready)
-                Script.ExecuteScriptableFunction("OnDrop", Script.GetObjectWrapper(obj), 
+                Script.ExecuteScriptableFunction("OnDrop", Script.GetObjectWrapper(obj),
                     Script.GetObjectWrapper(dropped));
         }
-
-
     }
 }

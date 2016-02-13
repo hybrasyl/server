@@ -867,7 +867,7 @@ namespace Hybrasyl.Objects
 
             if(castable.Effects.Damage != null)
             {
-                byte radius = castable.Intents.Intent.Where(x => x;
+                //byte radius = castable.Intents.Intent.Where(x => x.;
                 Direction playerFacing = this.Direction;
                 byte maxTargets = 0;
                 //this is an attack skill
@@ -1709,9 +1709,9 @@ namespace Hybrasyl.Objects
                 }
                 //animation handled here as to not repeatedly send assails.
                 this.LastAttack = DateTime.Now;
-                //SendAnimation(0x01, 25, 0x01);
                 var assail = new ServerPacketStructures.PlayerAnimation() { Animation = 1, Speed = 20, UserId = this.Id };
-                Enqueue(assail.Packet());
+                //Enqueue(assail.Packet());
+                SendAnimation(assail.Packet(), 01);
             }
         }
 
