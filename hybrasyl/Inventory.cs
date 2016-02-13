@@ -139,7 +139,7 @@ namespace Hybrasyl
 
             // Is the item stackable?
 
-            if (theItem.Stackable)
+            if (theItem.Stackable && theItem.Count > 1)
             {
                 var targetItem = giver == _target ? _source.Inventory.Find(theItem.Name) : _target.Inventory.Find(theItem.Name);
 
@@ -178,9 +178,9 @@ namespace Hybrasyl
                 toAdd = new Item(theItem);
                 toAdd.Count = quantity;
             }
-            else if (!theItem.Stackable)
+            else if (!theItem.Stackable || theItem.Count == 1)
             {
-                // Item isn't stackable
+                // Item isn't stackable or is a stack of one
                 // Remove the item entirely from giver
                 toAdd = theItem;
                 giver.RemoveItem(slot);
@@ -378,11 +378,15 @@ namespace Hybrasyl
                 XSD.ItemType itmType = null;
                 Dictionary<string, object> item;
                 if (TryGetValue(jArray[i], out item))
-                {
+                {                   
                     itmType = World.Items.Where(x => x.Value.Name == (string)item.FirstOrDefault().Value).FirstOrDefault().Value;
                     if (itmType != null)
                     {
-                        inv[i] = new Item(itmType.Id, Game.World); //this will need to be expanded later based on item properties being saved back to the database.
+                        inv[i] = new Item(itmType.Id, Game.World)
+                        {
+                            Count = item.ContainsKey("Count") ? Convert.ToInt32(item["Count"]) : 1
+                        };
+                            //this will need to be expanded later based on item properties being saved back to the database.
                     }
                 }
             }
@@ -523,6 +527,14 @@ namespace Hybrasyl
             get { return Size - Count; }
         }
 
+        public void RecalculateWeight()
+        {
+            Weight = 0;
+            foreach (var item in this)
+            {
+                Weight += item.Weight;
+            }
+        }
         public Item this[byte slot]
         {
             get

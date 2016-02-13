@@ -71,10 +71,15 @@ namespace Hybrasyl.Objects
 
             if (userobj.Level < Level || (Ability != 0 && userobj.Ability < Ability))
             {
-                message = "You can't even lift it above your head, let alone wield it!";
+                message = "You require more insight.";
                 return false;
             }
 
+            if (userobj.Equipment.Weight + Weight > userobj.MaximumWeight/2)
+            {
+                message = "You can't even lift it above your head, let alone wield it!";
+                return false;
+            }
 
             // Check if user is equipping a shield while holding a two-handed weapon
 
@@ -129,7 +134,7 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                if (Template.Properties.Equipment != null)
+                if (Template.Properties.EquipmentSpecified && Template.Properties.Equipment.SlotSpecified)
                     return Enums.ItemType.Equipment;
                 return Template.Properties.Use != null ? Enums.ItemType.CanUse : Enums.ItemType.CannotUse;
             }
