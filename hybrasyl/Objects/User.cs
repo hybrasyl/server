@@ -851,6 +851,23 @@ namespace Hybrasyl.Objects
             Enqueue(x07);
         }
 
+        internal void UseSkill(byte slot)
+        {
+            var castable = SkillBook[slot];
+
+            if(castable.Effects.Damage != null)
+            {
+                byte radius = castable.Intents.Intent.Where(x => x;
+                Direction playerFacing = this.Direction;
+                byte maxTargets = 0;
+                //this is an attack skill
+                
+                //now lets define how we want to do the attack
+                //isclick should always be false for a skill (please correct me if I'm wrong)
+                
+            }
+        }
+
         public void SendVisibleItem(Item item)
         {
             Logger.DebugFormat("Sending add visible item packet");
