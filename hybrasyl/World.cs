@@ -1994,7 +1994,7 @@ namespace Hybrasyl
             {
                 Insert(loginUser);
                 var spawnpoint = loginUser.Nation.Spawnpoints.First();
-                loginUser.Teleport(spawnpoint.Mapname, spawnpoint.X, spawnpoint.Y);
+                loginUser.Teleport(spawnpoint.Value, spawnpoint.X, spawnpoint.Y);
             }
             else if (Maps.ContainsKey(loginUser.Location.MapId))
             {

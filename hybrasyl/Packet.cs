@@ -339,23 +339,12 @@ namespace Hybrasyl
     };
         #endregion
 
-        public override bool ShouldEncrypt
-        {
-            get
-            {
-                return Opcode != 0x00 && Opcode != 0x10;
-            }
-        }
-        public override bool UseDefaultKey
-        {
-            get
-            {
-                return Opcode == 0x02 || Opcode == 0x03 || Opcode == 0x04 || Opcode == 0x0B || Opcode == 0x26
-                    || Opcode == 0x2D || Opcode == 0x3A || Opcode == 0x42 || Opcode == 0x43 || Opcode == 0x4B
-                    || Opcode == 0x57 || Opcode == 0x62 || Opcode == 0x68 || Opcode == 0x71 || Opcode == 0x73
-                    || Opcode == 0x7B;
-            }
-        }
+        public override bool ShouldEncrypt => Opcode != 0x00 && Opcode != 0x10;
+
+        public override bool UseDefaultKey => Opcode == 0x02 || Opcode == 0x03 || Opcode == 0x04 || Opcode == 0x0B || Opcode == 0x26
+                                              || Opcode == 0x2D || Opcode == 0x3A || Opcode == 0x42 || Opcode == 0x43 || Opcode == 0x4B
+                                              || Opcode == 0x57 || Opcode == 0x62 || Opcode == 0x68 || Opcode == 0x71 || Opcode == 0x73
+                                              || Opcode == 0x7B;
 
         public ClientPacket(byte[] buffer)
         {
