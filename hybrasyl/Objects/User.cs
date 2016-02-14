@@ -143,7 +143,9 @@ namespace Hybrasyl.Objects
 
         public Nation Nation
         {
-            get { return _nation; }
+            get {
+                return _nation ?? World.DefaultNation;
+            }
             set
             {
                 _nation = value;
@@ -196,8 +198,11 @@ namespace Hybrasyl.Objects
 
         public void SetCitizenship()
         {
-            Nation theNation;
-            Nation = World.Nations.TryGetValue(Citizenship, out theNation) ? theNation : World.DefaultNation;
+            if (Citizenship != null)
+            {
+                Nation theNation;
+                Nation = World.Nations.TryGetValue(Citizenship, out theNation) ? theNation : World.DefaultNation;
+            }
         }
 
         public bool IsPrivileged

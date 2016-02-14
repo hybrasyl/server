@@ -740,6 +740,7 @@ namespace Hybrasyl
                     {
                         Thread.Sleep(250);
                         target.Teleport(map.Id, DestinationX, DestinationY);
+                        return true;
                     }
                     Logger.ErrorFormat("User {0} tried to warp to nonexistent map {1} from {2}: {3},{4}", target.Name,
                         DestinationMapName, SourceMap.Name, X, Y);
@@ -751,6 +752,7 @@ namespace Hybrasyl
                         SourceMap.Remove(target);
                         target.SendWorldMap(wmap);
                         SourceMap.World.Maps[Hybrasyl.Constants.LAG_MAP].Insert(target, 5, 5, false);
+                        return true;
                     }
                     Logger.ErrorFormat("User {0} tried to warp to nonexistent worldmap {1} from {2}: {3},{4}",
                         target.Name,
