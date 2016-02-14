@@ -881,6 +881,23 @@ namespace Hybrasyl.Objects
             Enqueue(x07);
         }
 
+        internal void UseSkill(byte slot)
+        {
+            var castable = SkillBook[slot];
+
+            if(castable.Effects.Damage != null)
+            {
+                //byte radius = castable.Intents.Intent.Where(x => x.;
+                Direction playerFacing = this.Direction;
+                byte maxTargets = 0;
+                //this is an attack skill
+                
+                //now lets define how we want to do the attack
+                //isclick should always be false for a skill (please correct me if I'm wrong)
+                
+            }
+        }
+
         public void SendVisibleItem(Item item)
         {
             Logger.DebugFormat("Sending add visible item packet");
@@ -1712,9 +1729,9 @@ namespace Hybrasyl.Objects
                 }
                 //animation handled here as to not repeatedly send assails.
                 this.LastAttack = DateTime.Now;
-                //SendAnimation(0x01, 25, 0x01);
                 var assail = new ServerPacketStructures.PlayerAnimation() { Animation = 1, Speed = 20, UserId = this.Id };
-                Enqueue(assail.Packet());
+                //Enqueue(assail.Packet());
+                SendAnimation(assail.Packet(), 01);
             }
         }
 

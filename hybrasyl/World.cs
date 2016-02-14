@@ -725,6 +725,7 @@ namespace Hybrasyl
             PacketHandlers[0x39] = PacketHandler_0x39_NPCMainMenu;
             PacketHandlers[0x3A] = PacketHandler_0x3A_DialogUse;
             PacketHandlers[0x3B] = PacketHandler_0x3B_AccessMessages;
+            PacketHandlers[0x3E] = PacketHandler_0x3E_UseSkill;
             PacketHandlers[0x3F] = PacketHandler_0x3F_MapPointClick;
             PacketHandlers[0x43] = PacketHandler_0x43_PointClick;
             PacketHandlers[0x44] = PacketHandler_0x44_EquippedItemClick;
@@ -735,6 +736,14 @@ namespace Hybrasyl
             PacketHandlers[0x75] = PacketHandler_0x75_TickHeartbeat;
             PacketHandlers[0x79] = PacketHandler_0x79_Status;
             PacketHandlers[0x7B] = PacketHandler_0x7B_RequestMetafile;
+        }
+
+        private void PacketHandler_0x3E_UseSkill(object obj, ClientPacket packet)
+        {
+            var user = (User)obj;
+            var slot = packet.ReadByte();
+
+            user.UseSkill(slot);
         }
 
         private void PacketHandler_0x13_Attack(object obj, ClientPacket packet)
