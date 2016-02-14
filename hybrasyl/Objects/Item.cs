@@ -91,7 +91,7 @@ namespace Hybrasyl.Objects
 
             // Check if user is equipping a two-handed weapon while holding a shield
 
-            if (EquipmentSlot == ClientItemSlots.Weapon && WeaponType == XSD.WeaponType.twohand && userobj.Equipment.Shield != null)
+            if (EquipmentSlot == ClientItemSlots.Weapon && (WeaponType == XSD.WeaponType.twohand || WeaponType == XSD.WeaponType.staff) && userobj.Equipment.Shield != null)
             {
                 message = "You can't equip a two-handed weapon with a shield.";
                 return false;
