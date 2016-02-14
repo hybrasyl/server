@@ -63,7 +63,6 @@ namespace Hybrasyl
             }
         }
 
-        public string Pointname { get; set; }
         public WorldMap Parent { get; set; }
         public int X { get; set; }
         public int Y { get; set; }
@@ -72,10 +71,10 @@ namespace Hybrasyl
         public byte DestinationX { get; set; }
         public byte DestinationY { get; set; }
 
-        public int XOffset { get { return X%255; } }
-        public int YOffset { get { return Y%255; } }
-        public int XQuadrant { get { return (X - XOffset)/255; } }
-        public int YQuadrant { get { return (Y - YOffset) / 255; } }
+        public int XOffset => X%255;
+        public int YOffset => Y%255;
+        public int XQuadrant => (X - XOffset)/255;
+        public int YQuadrant => (Y - YOffset) / 255;
 
         public MapPoint(int x, int y)
         {
@@ -126,12 +125,13 @@ namespace Hybrasyl
 
             foreach (var point in newWorldMap.Points.Point)
             {
-                var mapPoint = new MapPoint(point.Y, point.X)
+                var mapPoint = new MapPoint(point.X, point.Y)
                 {
                     DestinationMap = point.Target.Value,
                     DestinationX = point.Target.X,
                     DestinationY = point.Target.Y,
-                    Pointname = point.Name
+                    Name = point.Name
+
                 };
                 // We don't implement world map point restrictions yet, so we're done here
                 Points.Add(mapPoint);
@@ -351,7 +351,7 @@ namespace Hybrasyl
         public bool Load()
         {
             IsWall = new bool[X, Y];
-            var filename = Path.Combine(Constants.DataDirectory, string.Format("maps\\lod{0}.map", Id));
+            var filename = Path.Combine(World.MapFileDirectory, $"lod{Id}.map");
 
             if (File.Exists(filename))
             {

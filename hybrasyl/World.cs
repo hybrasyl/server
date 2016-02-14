@@ -161,6 +161,8 @@ namespace Hybrasyl
 
         public static string DataDirectory => Constants.DataDirectory;
 
+        public static string MapFileDirectory => Path.Combine(DataDirectory, "world", "mapfiles");
+
         public static string CastableDirectory => Path.Combine(DataDirectory, "world", "xml", "castables");
 
         public static string ItemDirectory => Path.Combine(DataDirectory, "world", "xml", "items");
@@ -407,6 +409,8 @@ namespace Hybrasyl
                     XSD.WorldMap newWorldMap = Serializer.Deserialize(XmlReader.Create(xml), new XSD.WorldMap());
                     var worldmap = new WorldMap(newWorldMap);
                     WorldMaps.Add(worldmap.Name, worldmap);
+                    foreach (var point in worldmap.Points)
+                        MapPoints.Add(point.Id, point);
                     Logger.DebugFormat("World Maps: Loaded {0}", worldmap.Name);
                 }
                 catch (Exception e)
