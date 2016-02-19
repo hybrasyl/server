@@ -117,7 +117,7 @@ namespace Hybrasyl
             Config.Network.Login.Port = Convert.ToUInt16(loginPort);
 
             Config.Network.World.Bindaddress = serverIp;
-            Config.Network.World.Port = Convert.ToUInt16(loginPort);
+            Config.Network.World.Port = Convert.ToUInt16(worldPort);
 
             Logger.InfoFormat("Using {0}: {1}, {2}, {3}", serverIp, lobbyPort, loginPort, worldPort);
 

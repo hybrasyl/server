@@ -687,7 +687,7 @@ namespace Hybrasyl.Objects
 
             profilePacket.WriteByte((byte)GroupStatus);
             profilePacket.WriteString8(Name);
-            profilePacket.WriteByte((byte)Nation.Flag); // This should pull from town / nation
+            profilePacket.WriteByte((byte)Nation.Flag); 
             profilePacket.WriteString8(Guild.Title);
             profilePacket.WriteByte((byte)(Grouping ? 1 : 0));
             profilePacket.WriteString8(Guild.Rank);
@@ -2164,7 +2164,7 @@ namespace Hybrasyl.Objects
                 x42.WriteByte(slot); // Which "exchange slot" to update
                 x42.WriteUInt16((ushort)(0x8000 + toAdd.Sprite));
                 x42.WriteByte(toAdd.Color);
-                x42.WriteString8(toAdd.Name);
+                x42.WriteString8(toAdd.Count > 1 ? $"{toAdd.Name} [{toAdd.Count}]" : toAdd.Name);
                 Enqueue(x42);
             }
         }
