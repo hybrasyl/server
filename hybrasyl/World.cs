@@ -29,6 +29,7 @@ using Hybrasyl.XSD;
 using log4net;
 using log4net.Core;
 using System;
+using System.CodeDom;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -365,7 +366,7 @@ namespace Hybrasyl
                             Level = 1,
                             DisplayText = "TestBee",
                             BaseHp = 100,
-                            Hp = 100,
+                            Hp = 100 ,
                             BaseMp = 1,
                             Name = "TestWolf",
                             BaseStr = 3,
@@ -451,12 +452,16 @@ namespace Hybrasyl
                     {
                         foreach (var variant in ItemVariants[targetGroup].Variant)
                         {
-                            //Logger.DebugFormat("Item {0}: variantgroup {1}, subvariant {2}", newItem.Name, targetGroup, variant.Name);
-                            variant.ResolveVariant(newItem);
+                            var variantItem = variant.ResolveVariant(newItem);
+                            variantItem.Name = $"{variant.Name} {newItem.Name}";
+                            Logger.DebugFormat("Item {0}: variantgroup {1}, subvariant {2}", variantItem.Name, targetGroup, variant.Name);
+                            Items.Add(variantItem.Id, variantItem);
+                            ItemCatalog.Add(new Tuple<Sex, string>(Sex.Neutral, variantItem.Name), variantItem);
                         }
                     }
                 }
-                catch (Exception e)
+                catch
+                    (Exception e)
                 {
                     Logger.ErrorFormat("Error parsing {0}: {1}", xml, e);
                 }
