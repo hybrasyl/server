@@ -203,6 +203,7 @@ namespace Hybrasyl
                 newPlayer.Password.Hash = client.NewCharacterPassword;
                 newPlayer.Password.LastChanged = DateTime.Now;
                 newPlayer.Password.LastChangedFrom = ((IPEndPoint) client.Socket.RemoteEndPoint).Address.ToString();
+                newPlayer.Nation = Game.World.DefaultNation;
 
                 IDatabase cache = World.DatastoreConnection.GetDatabase();
                 var myPerson = JsonConvert.SerializeObject(newPlayer);

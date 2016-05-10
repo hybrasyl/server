@@ -128,7 +128,15 @@ namespace Hybrasyl
 	    public Dictionary<string, Mailbox> Mailboxes { get; set; }
         public Dictionary<int, Board> MessageboardIndex { get; set; }
         public Dictionary<string, Board> Messageboards { get; set; }  
-	    public string DefaultCitizenship { get; set; }
+
+        public Nation DefaultNation
+        {
+            get
+            {
+                var nation = Nations.Values.Where(n => n.DefaultSpecified).FirstOrDefault();
+                return nation ?? Nations.Values.First();
+            }
+        }
 
         public List<DialogSequence> GlobalSequences { get; set; }
         public Dictionary<String, DialogSequence> GlobalSequencesCatalog { get; set; }
@@ -152,6 +160,8 @@ namespace Hybrasyl
         public static ConnectionMultiplexer DatastoreConnection => _lazyConnector.Value;
 
         public static string DataDirectory => Constants.DataDirectory;
+
+        public static string MapFileDirectory => Path.Combine(DataDirectory, "world", "mapfiles");
 
         public static string CastableDirectory => Path.Combine(DataDirectory, "world", "xml", "castables");
 
@@ -179,6 +189,7 @@ namespace Hybrasyl
                 Logger.FatalFormat("{0}: JSON object could not be deserialized!", name);
                 return false;
             } 
+            
             return true;
 
         }
@@ -232,15 +243,21 @@ namespace Hybrasyl
                     
         }
 
-        public void InitWorld()
+        public bool InitWorld()
         {
-            LoadData();
+            if (!LoadData())
+            {
+                Logger.Fatal("There were errors loading basic world data. Hybrasyl has halted.");
+                Logger.Fatal("Please fix the errors and try to restart the server again.");
+                return false;
+            }
             CompileScripts();
             LoadMetafiles();
             SetPacketHandlers();
             SetControlMessageHandlers();
             SetMerchantMenuHandlers();
             Logger.InfoFormat("Hybrasyl server ready");
+            return true;
         }
 
         internal void RegisterGlobalSequence(DialogSequence sequence)
@@ -256,31 +273,12 @@ namespace Hybrasyl
             return redis.KeyExists(User.GetStorageKey(name));
         }
 
-        private void LoadData()
+        private bool LoadData()
         {
 
             // You'll notice some inconsistencies here in that we use both wrapper classes and 
             // native XML classes for Hybrasyl objects. This is unfortunate and should be 
             // refactored later, but it is way too much work to do now (e.g. maps, etc).
-
-            // Load nations
-            foreach (var xml in Directory.GetFiles(NationDirectory))
-            {
-                try
-                {
-                    Nation newNation = Serializer.Deserialize(XmlReader.Create(xml), new Nation());
-                    Logger.DebugFormat("Nations: Loaded {0}", newNation.Name);
-                    Nations.Add(newNation.Name, newNation);
-                }
-                catch (Exception e)
-                {
-                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, e);
-
-                }
-
-            }
-
-            Logger.InfoFormat("Nations: {0} nations loaded", Nations.Count);
 
             // Load maps
             foreach (var xml in Directory.GetFiles(MapDirectory))
@@ -301,8 +299,40 @@ namespace Hybrasyl
 
             Logger.InfoFormat("Maps: {0} maps loaded", Maps.Count);
 
+            // Load nations
+            foreach (var xml in Directory.GetFiles(NationDirectory))
+            {
+                try
+                {
+                    Nation newNation = Serializer.Deserialize(XmlReader.Create(xml), new Nation());
+                    Logger.DebugFormat("Nations: Loaded {0}", newNation.Name);
+                    Nations.Add(newNation.Name, newNation);
+                }
+                catch (Exception e)
+                {
+                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, e);
+
+                }
+
+            }
+
+            // Ensure at least one nation and one map exist. Otherwise, things get a little weird
+            if (Nations.Count == 0)
+            {
+                Logger.FatalFormat("National data: at least one well-formed nation file must exist!");
+                return false;
+            }
+
+            if (Maps.Count == 0)
+            {
+                Logger.FatalFormat("Map data: at least one well-formed map file must exist!");
+                return false;
+            }
+
+            Logger.InfoFormat("National data: {0} nations loaded", Nations.Count);
+
             /*DEBUG METHOD - MONOLITH & Maps*/
-            foreach(var map in Maps)
+            foreach (var map in Maps)
             {
                 if(map.Key == 500)
                 {
@@ -379,6 +409,8 @@ namespace Hybrasyl
                     XSD.WorldMap newWorldMap = Serializer.Deserialize(XmlReader.Create(xml), new XSD.WorldMap());
                     var worldmap = new WorldMap(newWorldMap);
                     WorldMaps.Add(worldmap.Name, worldmap);
+                    foreach (var point in worldmap.Points)
+                        MapPoints.Add(point.Id, point);
                     Logger.DebugFormat("World Maps: Loaded {0}", worldmap.Name);
                 }
                 catch (Exception e)
@@ -510,6 +542,7 @@ namespace Hybrasyl
                 Logger.InfoFormat("Boards: Global board {0} initialized", globalboard.Name);
                 board.Save();
             }
+            return true;
         }
 
         public Mailbox GetMailbox(string name)
@@ -1190,6 +1223,17 @@ namespace Hybrasyl
                         }
                     }
                         break;
+                    case "/nation":
+                    {
+                        if (args.Length == 2)
+                        {
+                            if (Nations.ContainsKey(args[1]))
+                            {
+                                user.Nation = Nations[args[1]];
+                                user.SendSystemMessage($"Citizenship set to {args[1]}");
+                            }
+                        }
+                    } break;
                     case "/kick":
                     {
                         if (!user.IsPrivileged)
@@ -1953,15 +1997,17 @@ namespace Hybrasyl
             loginUser.SendEquipment();
             loginUser.SendSkills();
             loginUser.SendSpells();
+            loginUser.SetCitizenship();
            
             Logger.DebugFormat("Elapsed time since login: {0}", loginUser.SinceLastLogin);
 
-            if (loginUser.Citizenship != null && loginUser.Citizenship.Spawnpoints.Count != 0 &&
+
+            if (loginUser.Nation.Spawnpoints.Count != 0 &&
                 loginUser.SinceLastLogin > Hybrasyl.Constants.NATION_SPAWN_TIMEOUT)
             {
                 Insert(loginUser);
-                var spawnpoint = loginUser.Citizenship.Spawnpoints.First();
-                loginUser.Teleport(spawnpoint.Mapname, spawnpoint.X, spawnpoint.Y);
+                var spawnpoint = loginUser.Nation.Spawnpoints.First();
+                loginUser.Teleport(spawnpoint.Value, spawnpoint.X, spawnpoint.Y);
             }
             else if (Maps.ContainsKey(loginUser.Location.MapId))
             {

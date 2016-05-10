@@ -83,7 +83,7 @@ namespace Hybrasyl.Objects
 
             // Check if user is equipping a shield while holding a two-handed weapon
 
-            if (EquipmentSlot == ClientItemSlots.Shield && userobj.Equipment.Weapon != null && userobj.Equipment.Weapon.WeaponType == Enums.WeaponType.TwoHanded)
+            if (EquipmentSlot == ClientItemSlots.Shield && userobj.Equipment.Weapon != null && userobj.Equipment.Weapon.WeaponType == XSD.WeaponType.twohand)
             {
                 message = "You can't equip a shield with a two-handed weapon.";
                 return false;
@@ -91,7 +91,7 @@ namespace Hybrasyl.Objects
 
             // Check if user is equipping a two-handed weapon while holding a shield
 
-            if (EquipmentSlot == ClientItemSlots.Weapon && WeaponType == Enums.WeaponType.TwoHanded && userobj.Equipment.Shield != null)
+            if (EquipmentSlot == ClientItemSlots.Weapon && (WeaponType == XSD.WeaponType.twohand || WeaponType == XSD.WeaponType.staff) && userobj.Equipment.Shield != null)
             {
                 message = "You can't equip a two-handed weapon with a shield.";
                 return false;
@@ -140,13 +140,13 @@ namespace Hybrasyl.Objects
             }
         }
 
-        public Enums.WeaponType WeaponType
+        public XSD.WeaponType WeaponType
         {
             get
             {
                 if (Template.Properties.Equipment.WeapontypeSpecified)
-                    return (Enums.WeaponType) Template.Properties.Equipment.Weapontype;
-                return Enums.WeaponType.None;
+                    return Template.Properties.Equipment.Weapontype;
+                return XSD.WeaponType.none;
             }
         }
         public byte EquipmentSlot => Convert.ToByte(Template.Properties.Equipment.Slot);
@@ -181,7 +181,7 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                if (WeaponType == Enums.WeaponType.None)
+                if (WeaponType == XSD.WeaponType.none)
                     return (Enums.Element) Template.Properties.Stateffects.Element.Defense;
                 return (Enums.Element) Template.Properties.Stateffects.Element.Offense;
             }
