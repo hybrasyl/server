@@ -263,13 +263,27 @@ namespace Hybrasyl
 
         public byte[] ToArray()
         {
-            var buffer = new byte[Data.Length + (ShouldEncrypt ? 5 : 4)];
+            var shouldEncrypt = ShouldEncrypt ? 5 : 4;
+            var buffer = new byte[Data.Length + shouldEncrypt];
             buffer[0] = 0xAA;
             buffer[1] = (byte)((buffer.Length - 3) / 256);
             buffer[2] = (byte)(buffer.Length - 3);
             buffer[3] = Opcode;
             buffer[4] = Ordinal;
-            Array.Copy(Data, 0, buffer, ShouldEncrypt ? 5 : 4, Data.Length);
+            
+            try
+            {
+                Array.Copy(Data, 0, buffer, shouldEncrypt, Data.Length);
+            }
+            catch (Exception)
+            {
+
+                Array.Resize(ref buffer, Data.Length + shouldEncrypt + 2);
+            }
+            finally
+            {
+                Array.Copy(Data, 0, buffer, shouldEncrypt, Data.Length);
+            }
             return buffer;
         }
         public static explicit operator byte[](Packet packet)
@@ -432,7 +446,7 @@ namespace Hybrasyl
             if (_position + 4 > Data.Length)
                 throw new IndexOutOfRangeException();
 
-            return (int)(Data[_position++] << 24 | Data[_position++] << 16 | Data[_position++] << 8 | Data[_position++]);
+            return Data[_position++] << 24 | Data[_position++] << 16 | Data[_position++] << 8 | Data[_position++];
         }
         public uint ReadUInt32()
         {
@@ -482,7 +496,7 @@ namespace Hybrasyl
             ushort crc = 0;
             for (var i = 0; i < Data.Length - 6; i++)
             {
-                crc = (ushort)(Data[6 + i] ^ ((ushort)(crc << 8) ^ (ushort)DialogCrcTable[(crc >> 8)]));
+                crc = (ushort)(Data[6 + i] ^ ((ushort)(crc << 8) ^ DialogCrcTable[(crc >> 8)]));
             }
             var rand = new Random();
             Data[0] = (byte)rand.Next();
@@ -666,7 +680,7 @@ namespace Hybrasyl
         }
         public void WriteString8(string value)
         {
-            value = value == null ? String.Empty : value;
+            value = value ?? string.Empty;
             var buffer = Encoding.GetEncoding(949).GetBytes(value);
             if (_position + 1 + buffer.Length > Data.Length)
             {
