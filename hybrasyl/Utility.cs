@@ -101,14 +101,18 @@ namespace Hybrasyl
             }
         }
 
+        public long LastSuccess { get; set; }
+
         public bool IsThrottled
         {
             get
             {                
                 var elapsed = new TimeSpan(LastReceived - PreviousReceived);
-                if (Throttled && elapsed.TotalMilliseconds > Throttle.Time)
+                var lastSuccess = new TimeSpan(LastReceived - LastSuccess);
+                if ((Throttled && elapsed.TotalMilliseconds > Throttle.Time) || (Throttled && lastSuccess.TotalMilliseconds > Throttle.Time) )
                 {
                     Logger.DebugFormat("Unthrottled: difference since last throttle is {0}ms", elapsed.TotalMilliseconds);
+                    LastSuccess = DateTime.Now.Ticks;
                     Throttled = false;
                 }
                 else if (elapsed.TotalMilliseconds < Throttle.Time)
@@ -196,9 +200,20 @@ namespace Hybrasyl
         /// </summary>
         public void Received()
         {
-            PreviousReceived = LastReceived;
-            LastReceived = DateTime.Now.Ticks;
-            TotalReceived++;
+            
+            //if (Throttle != Constants.PACKET_THROTTLES[0x13])
+            //{
+                PreviousReceived = LastReceived;
+                LastReceived = DateTime.Now.Ticks;
+                TotalReceived++;
+            //}
+            //else
+            //{
+                LastReceived = DateTime.Now.Ticks;
+                TotalReceived++;
+                return;
+            //}
+            //PreviousReceived = LastReceived;
         }
 
     }
@@ -331,7 +346,7 @@ namespace Hybrasyl
             {0x3a, new Throttle(GENERIC_THROTTLE_TIME, GENERIC_REPEAT_TIMES, GENERIC_REPEAT_WITHIN, GENERIC_SQUELCH_DURATION, GENERIC_DISCONNECT_TRIGGER)},  // NPC use dialog
             {0x38, new Throttle(REFRESH_THROTTLE_TIME, REFRESH_REPEAT_TIMES, REFRESH_REPEAT_WITHIN, REFRESH_SQUELCH_DURATION, REFRESH_DISCONNECT_TRIGGER)},  // refresh (F5)
             {0x39, new Throttle(GENERIC_THROTTLE_TIME, GENERIC_REPEAT_TIMES, GENERIC_REPEAT_WITHIN, GENERIC_SQUELCH_DURATION, GENERIC_DISCONNECT_TRIGGER)},  // NPC main menu
-            //{0x13, new Throttle(USE_THROTTLE_TIME, GENERIC_REPEAT_TIMES, GENERIC_REPEAT_WITHIN, GENERIC_SQUELCH_DURATION, GENERIC_DISCONNECT_TRIGGER)}, //Assail - this doesn't work through normal throttling. Moved to assail usage.
+            {0x13, new Throttle(300, 1, 600, 600, 90000000)}, //Assail - this doesn't work through normal throttling. Moved to assail usage.
         };
 
         // Message throttling 

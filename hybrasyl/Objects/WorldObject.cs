@@ -43,13 +43,7 @@ namespace Hybrasyl.Objects
         /// <summary>
         /// The rectangle that defines the object's boundaries.
         /// </summary>
-        public Rectangle Rect
-        {
-            get
-            {
-                return new Rectangle((int)(X), (int)(Y), 1, 1);
-            }
-        }
+        public Rectangle Rect => new Rectangle(X, Y, 1, 1);
 
         public bool HasMoved { get; set; }
 
@@ -107,7 +101,7 @@ namespace Hybrasyl.Objects
             {
                 // This is a local sequence, so assign it into the pursuit range and
                 // assign an ID
-                pursuit.Id = (uint)(Constants.DIALOG_SEQUENCE_SHARED + Pursuits.Count());
+                pursuit.Id = (uint)(Constants.DIALOG_SEQUENCE_SHARED + Pursuits.Count);
                 Pursuits.Add(pursuit);
             }
             else
@@ -126,7 +120,7 @@ namespace Hybrasyl.Objects
 
         public virtual void RegisterDialogSequence(DialogSequence sequence)
         {
-            sequence.Id = (uint)(Constants.DIALOG_SEQUENCE_PURSUITS + DialogSequences.Count());
+            sequence.Id = (uint)(Constants.DIALOG_SEQUENCE_PURSUITS + DialogSequences.Count);
             DialogSequences.Add(sequence);
             SequenceCatalog.Add(sequence.Name, sequence);
         }
@@ -189,25 +183,19 @@ namespace Hybrasyl.Objects
 
         public virtual void Teleport(ushort mapid, byte x, byte y)
         {
-            if (World.Maps.ContainsKey(mapid))
-            {
-                if (Map != null)
-                    Map.Remove(this);
-                Logger.DebugFormat("Teleporting {0} to {1}.", Name, World.Maps[mapid].Name);
-                World.Maps[mapid].Insert(this, x, y);
-            }
+            if (!World.Maps.ContainsKey(mapid)) return;
+            Map?.Remove(this);
+            Logger.DebugFormat("Teleporting {0} to {1}.", Name, World.Maps[mapid].Name);
+            World.Maps[mapid].Insert(this, x, y);
         }
 
         public virtual void Teleport(string name, byte x, byte y)
         {
             Map targetMap;
-            if (World.MapCatalog.TryGetValue(name, out targetMap))
-            {
-                if (Map != null)
-                    Map.Remove(this);
-                Logger.DebugFormat("Teleporting {0} to {1}.", Name, targetMap.Name);
-                targetMap.Insert(this, x, y);
-            }
+            if (!World.MapCatalog.TryGetValue(name, out targetMap)) return;
+            Map?.Remove(this);
+            Logger.DebugFormat("Teleporting {0} to {1}.", Name, targetMap.Name);
+            targetMap.Insert(this, x, y);
         }
 
         public virtual void SendMapInfo()
@@ -233,7 +221,7 @@ namespace Hybrasyl.Objects
                     var x0D = new ServerPacket(0x0D);
                     x0D.WriteByte(0x00);
                     x0D.WriteUInt32(Id);
-                    x0D.WriteString8(string.Format("{0}: {1}", Name, message));
+                    x0D.WriteString8($"{Name}: {message}");
                     user.Enqueue(x0D);
                 }
             }
@@ -249,7 +237,7 @@ namespace Hybrasyl.Objects
                     var x0D = new ServerPacket(0x0D);
                     x0D.WriteByte(0x01);
                     x0D.WriteUInt32(Id);
-                    x0D.WriteString8(string.Format("{0}! {1}", Name, message));
+                    x0D.WriteString8($"{Name}! {message}");
 
                     user.Enqueue(x0D);
                 }
@@ -258,38 +246,26 @@ namespace Hybrasyl.Objects
 
         public virtual void Effect(short x, short y, ushort effect, short speed)
         {
-            foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
+            foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>().Select(obj => obj))
             {
-                if (obj is User)
-                {
-                    var user = obj as User;
-                    user.SendEffect(x, y, effect, speed);
-                }
+                user.SendEffect(x, y, effect, speed);
             }
         }
 
         public virtual void Effect(ushort effect, short speed)
         {
-            foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
+            foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>().Select(obj => obj))
             {
-                if (obj is User)
-                {
-                    var user = obj as User;
-                    user.SendEffect(Id, effect, speed);
-                }
+                user.SendEffect(Id, effect, speed);
             }
         }
 
         public virtual void PlaySound(byte sound)
         {
-            foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
-            {
-                if (obj is User)
-                {
-                    var user = obj as User;
-                    user.SendSound(sound);
-                }
-            }
+            //foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>().Select(obj => obj))
+            //{
+            //    user.SendSound(sound);
+            //}
         }
 
         public void DisplayPursuits(User invoker)
@@ -326,48 +302,46 @@ namespace Hybrasyl.Objects
             menupacket.WriteByte(0);
             menupacket.WriteByte(0);
             menupacket.WriteString8(Name);
-            menupacket.WriteString16(DisplayText ?? String.Empty);
+            menupacket.WriteString16(DisplayText ?? string.Empty);
 
             // Generate our list of dialog options
-            int countPosition = menupacket.Position;
+            var countPosition = menupacket.Position;
             menupacket.WriteByte(0);
 
-            int pursuitCount = Pursuits.Count;
+            var pursuitCount = Pursuits.Count;
 
-            if (this is Merchant)
+            var merchant = this as Merchant;
+            if (merchant?.Jobs.HasFlag(MerchantJob.Vend) ?? false)
             {
-                var merchant = (Merchant)this;
-                if (merchant.Jobs.HasFlag(MerchantJob.Vend))
-                {
-                    menupacket.WriteString8("Buy");
-                    menupacket.WriteUInt16((ushort)MerchantMenuItem.BuyItemMenu);
-                    menupacket.WriteString8("Sell");
-                    menupacket.WriteUInt16((ushort)MerchantMenuItem.SellItemMenu);
-                    pursuitCount += 2;
-                }
-                if (merchant.Jobs.HasFlag(MerchantJob.Bank))
-                {
-                    menupacket.WriteString8("Withdraw Item");
-                    menupacket.WriteUInt16((ushort)MerchantMenuItem.WithdrawItemMenu);
-                    menupacket.WriteString8("Withdraw Gold");
-                    menupacket.WriteUInt16((ushort)MerchantMenuItem.WithdrawGoldMenu);
-                    menupacket.WriteString8("Deposit Item");
-                    menupacket.WriteUInt16((ushort)MerchantMenuItem.DepositItemMenu);
-                    menupacket.WriteString8("Deposit Gold");
-                    menupacket.WriteUInt16((ushort)MerchantMenuItem.DepositGoldMenu);
-                    pursuitCount += 4;
-                }
-                if (merchant.Jobs.HasFlag(MerchantJob.Repair))
-                {
-                    menupacket.WriteString8("Repair Item");
-                    menupacket.WriteUInt16((ushort)MerchantMenuItem.RepairItemMenu);
-                    menupacket.WriteString8("Repair All Items");
-                    menupacket.WriteUInt16((ushort)MerchantMenuItem.RepairAllItems);
-                    pursuitCount += 2;
-                }
-                if (merchant.Jobs.HasFlag(MerchantJob.Train))
-                {
-                    /* if merchant has skills available to user:
+                menupacket.WriteString8("Buy");
+                menupacket.WriteUInt16((ushort)MerchantMenuItem.BuyItemMenu);
+                menupacket.WriteString8("Sell");
+                menupacket.WriteUInt16((ushort)MerchantMenuItem.SellItemMenu);
+                pursuitCount += 2;
+            }
+            if (merchant?.Jobs.HasFlag(MerchantJob.Bank) ?? false)
+            {
+                menupacket.WriteString8("Withdraw Item");
+                menupacket.WriteUInt16((ushort)MerchantMenuItem.WithdrawItemMenu);
+                menupacket.WriteString8("Withdraw Gold");
+                menupacket.WriteUInt16((ushort)MerchantMenuItem.WithdrawGoldMenu);
+                menupacket.WriteString8("Deposit Item");
+                menupacket.WriteUInt16((ushort)MerchantMenuItem.DepositItemMenu);
+                menupacket.WriteString8("Deposit Gold");
+                menupacket.WriteUInt16((ushort)MerchantMenuItem.DepositGoldMenu);
+                pursuitCount += 4;
+            }
+            if (merchant?.Jobs.HasFlag(MerchantJob.Repair) ?? false)
+            {
+                menupacket.WriteString8("Repair Item");
+                menupacket.WriteUInt16((ushort)MerchantMenuItem.RepairItemMenu);
+                menupacket.WriteString8("Repair All Items");
+                menupacket.WriteUInt16((ushort)MerchantMenuItem.RepairAllItems);
+                pursuitCount += 2;
+            }
+            if (merchant?.Jobs.HasFlag(MerchantJob.Train) ?? false)
+            {
+                /* if merchant has skills available to user:
                      *     menupacket.WriteString8("Learn Skill");
                      *     menupacket.WriteUInt16((ushort)MerchantMenuItem.LearnSkillMenu);
                      *     pursuitCount++;
@@ -376,18 +350,18 @@ namespace Hybrasyl.Objects
                      *     menupacket.WriteUInt16((ushort)MerchantMenuItem.LearnSpellMenu);
                      *     pursuitCount++;
                      */
-                    menupacket.WriteString8("Forget Skill");
-                    menupacket.WriteUInt16((ushort)MerchantMenuItem.ForgetSkillMenu);
-                    menupacket.WriteString8("Forget Spell");
-                    menupacket.WriteUInt16((ushort)MerchantMenuItem.ForgetSpellMenu);
-                    pursuitCount += 2;
-                }
-                if (merchant.Jobs.HasFlag(MerchantJob.Post))
-                {
-                    menupacket.WriteString8("Send Parcel");
-                    menupacket.WriteUInt16((ushort)MerchantMenuItem.SendParcelMenu);
-                    pursuitCount++;
-                    /* if user has item named "Letter"
+                menupacket.WriteString8("Forget Skill");
+                menupacket.WriteUInt16((ushort)MerchantMenuItem.ForgetSkillMenu);
+                menupacket.WriteString8("Forget Spell");
+                menupacket.WriteUInt16((ushort)MerchantMenuItem.ForgetSpellMenu);
+                pursuitCount += 2;
+            }
+            if (merchant?.Jobs.HasFlag(MerchantJob.Post) ?? false)
+            {
+                menupacket.WriteString8("Send Parcel");
+                menupacket.WriteUInt16((ushort)MerchantMenuItem.SendParcelMenu);
+                pursuitCount++;
+                /* if user has item named "Letter"
                      *     menupacket.WriteString8("Send Letter");
                      *     menupacket.WriteUInt16((ushort)MerchantMenuItem.SendLetterMenu);
                      *     pursuitCount++;
@@ -396,14 +370,13 @@ namespace Hybrasyl.Objects
                      *     menupacket.WriteUInt16((ushort)MerchantMenuItem.ReceiveParcel);
                      *     pursuitCount++;
                      */
-                }
             }
 
             foreach (var pursuit in Pursuits)
             {
                 Logger.DebugFormat("Pursuit {0}, id {1}", pursuit.Name, pursuit.Id);
                 menupacket.WriteString8(pursuit.Name);
-                menupacket.WriteUInt16((ushort)pursuit.Id);
+                if (pursuit.Id != null) menupacket.WriteUInt16((ushort)pursuit.Id);
             }
 
             menupacket.Seek(countPosition, PacketSeekOrigin.Begin);
@@ -448,12 +421,10 @@ namespace Hybrasyl.Objects
 
         public override void ShowTo(VisibleObject obj)
         {
-            if (obj is User)
-            {
-                var user = obj as User;
-                user.SendDoorUpdate(X, Y, Closed,
-                    IsLeftRight);
-            }
+            if (!(obj is User)) return;
+            var user = (User) obj;
+            user.SendDoorUpdate(X, Y, Closed,
+                IsLeftRight);
         }
     }
 
@@ -532,7 +503,6 @@ namespace Hybrasyl.Objects
         public Inventory Equipment { get; protected set; }
 
         public Creature()
-            : base()
         {
             Gold = 0;
             Inventory = new Inventory(59);
@@ -547,7 +517,7 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                long value = BaseHp + BonusHp;
+                var value = BaseHp + BonusHp;
 
                 if (value > uint.MaxValue)
                     return uint.MaxValue;
@@ -563,7 +533,7 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                long value = BaseMp + BonusMp;
+                var value = BaseMp + BonusMp;
 
                 if (value > uint.MaxValue)
                     return uint.MaxValue;
@@ -579,7 +549,7 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                long value = BaseStr + BonusStr;
+                var value = BaseStr + BonusStr;
 
                 if (value > byte.MaxValue)
                     return byte.MaxValue;
@@ -595,7 +565,7 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                long value = BaseInt + BonusInt;
+                var value = BaseInt + BonusInt;
 
                 if (value > byte.MaxValue)
                     return byte.MaxValue;
@@ -611,7 +581,7 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                long value = BaseWis + BonusWis;
+                var value = BaseWis + BonusWis;
 
                 if (value > byte.MaxValue)
                     return byte.MaxValue;
@@ -627,7 +597,7 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                long value = BaseCon + BonusCon;
+                var value = BaseCon + BonusCon;
 
                 if (value > byte.MaxValue)
                     return byte.MaxValue;
@@ -643,7 +613,7 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                long value = BaseDex + BonusDex;
+                var value = BaseDex + BonusDex;
 
                 if (value > byte.MaxValue)
                     return byte.MaxValue;
@@ -688,7 +658,7 @@ namespace Hybrasyl.Objects
             get
             {
                 Logger.DebugFormat("BonusAc is {0}", BonusAc);
-                long value = 100 - Level / 3 + BonusAc;
+                var value = 100 - Level / 3 + BonusAc;
 
                 if (value > sbyte.MaxValue)
                     return sbyte.MaxValue;
@@ -738,7 +708,7 @@ namespace Hybrasyl.Objects
             }
             set
             {
-                _mLastHitter = value == null ? 0 : value.Id;
+                _mLastHitter = value?.Id ?? 0;
             }
         }
 
@@ -746,31 +716,27 @@ namespace Hybrasyl.Objects
         public bool PhysicalImmortal { get; set; }
         public bool MagicalImmortal { get; set; }
 
-        public virtual void Attack(Direction direction, XSD.Castable castObject, Creature target = null)
+        public virtual void Attack(Direction direction, Castable castObject, Creature target = null)
         {
             //do something?
         }
 
-        public virtual void Attack(XSD.Castable castObject, Creature target = null)
+        public virtual void Attack(Castable castObject, Creature target)
         {
             //do spell?
         }
 
-        public virtual void Attack(XSD.Castable castObject)
+        public virtual void Attack(Castable castObject)
         {
             //do aoe?
         }
 
         public void SendAnimation(ServerPacket packet, byte sound)
         {
-            foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
+            foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>())
             {
-                if (obj is User)
-                {
-                    var user = (User)obj;
-                    user.Enqueue(packet);
-                    PlaySound(sound);
-                }
+                user.Enqueue(packet);
+                //PlaySound(sound);
             }
         }
 
@@ -789,14 +755,12 @@ namespace Hybrasyl.Objects
 
             foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
             {
-                if (obj is User)
-                {
-                    var user = obj as User;
-                    var x11 = new ServerPacket(0x11);
-                    x11.WriteUInt32(Id);
-                    x11.WriteByte((byte)direction);
-                    user.Enqueue(x11);
-                }
+                if (!(obj is User)) continue;
+                var user = obj as User;
+                var x11 = new ServerPacket(0x11);
+                x11.WriteUInt32(Id);
+                x11.WriteByte((byte)direction);
+                user.Enqueue(x11);
             }
 
             return true;
@@ -833,8 +797,8 @@ namespace Hybrasyl.Objects
             if (damageType != Enums.DamageType.Direct)
             {
                 double armor = Ac * -1 + 100;
-                double resist = Game.ElementTable[(int)element, 0];
-                double reduction = damage * (armor / (armor + 50));
+                var resist = Game.ElementTable[(int)element, 0];
+                var reduction = damage * (armor / (armor + 50));
                 damage = (damage - reduction) * resist;
             }
 
@@ -853,29 +817,23 @@ namespace Hybrasyl.Objects
 
         private void SendDamageUpdate(Creature creature)
         {
-            ServerPacket x13 = new ServerPacket(0x13);
+            var x13 = new ServerPacket(0x13);
             x13.WriteUInt32(creature.Id);
-            double percent = (((double)creature.Hp / (double)creature.MaximumHp) * 100);
+            var percent = ((creature.Hp / (double)creature.MaximumHp) * 100);
             x13.WriteByte(0);
             x13.WriteByte((byte)(percent));
-            x13.WriteByte(1);
-            foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
+            x13.WriteByte(255);
+            foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>())
             {
-                if (obj is User)
-                {
-                    var user = (User)obj;
-                    user.Enqueue(x13);
-                }
+                user.Enqueue(x13);
             }
         }
 
         public override void ShowTo(VisibleObject obj)
         {
-            if (obj is User)
-            {
-                var user = obj as User;
-                user.SendVisibleCreature(this);
-            }
+            if (!(obj is User)) return;
+            var user = (User) obj;
+            user.SendVisibleCreature(this);
         }
 
         public virtual void Refresh()
@@ -885,10 +843,6 @@ namespace Hybrasyl.Objects
 
     public class Monster : Creature, ICloneable
     {
-        public Monster()
-            : base()
-        { }
-
         private bool _idle = true;
 
         private uint _mTarget;
@@ -901,7 +855,7 @@ namespace Hybrasyl.Objects
             }
             set
             {
-                _mTarget = value == null ? 0 : value.Id;
+                _mTarget = value?.Id ?? 0;
             }
         }
 
@@ -912,33 +866,23 @@ namespace Hybrasyl.Objects
 
         public virtual bool Pathfind(byte x, byte y)
         {
-            int xDelta = Math.Abs(x - X);
-            int yDelta = Math.Abs(y - Y);
+            var xDelta = Math.Abs(x - X);
+            var yDelta = Math.Abs(y - Y);
 
             if (xDelta > yDelta)
             {
-                if (x > X)
-                {
-                    Walk(Direction.East);
-                }
-                else
-                {
-                    Walk(Direction.West);
-                }
-            }
-            else
-            {
+                Walk(x > X ? Direction.East : Direction.West);
             }
 
             return false;
         }
 
-        public override void Attack(Direction direction, XSD.Castable castObject = null, Creature target = null)
+        public override void Attack(Direction direction, Castable castObject, Creature target)
         {
             //do monster attack.
         }
 
-        public override void Attack(Castable castObject, Creature target = null)
+        public override void Attack(Castable castObject, Creature target)
         {
             //do monster spell
         }
@@ -1002,10 +946,7 @@ namespace Hybrasyl.Objects
             Logger.DebugFormat("Signpost was clicked");
             if (!IsMessageboard)
             {
-                if (Message.Length < 1024)
-                    invoker.SendMessage(Message, Hybrasyl.MessageTypes.SLATE);
-                else
-                    invoker.SendMessage(Message, Hybrasyl.MessageTypes.SLATE_WITH_SCROLLBAR);
+                invoker.SendMessage(Message, Message.Length < 1024 ? (byte)MessageTypes.SLATE : (byte)MessageTypes.SLATE_WITH_SCROLLBAR);
             }
             else
             {
@@ -1019,7 +960,7 @@ namespace Hybrasyl.Objects
     {
         public uint Amount { get; set; }
 
-        new public string Name
+        public new string Name
         {
             get
             {
@@ -1030,7 +971,7 @@ namespace Hybrasyl.Objects
             }
         }
 
-        new public ushort Sprite
+        public new ushort Sprite
         {
             get
             {
@@ -1048,11 +989,9 @@ namespace Hybrasyl.Objects
 
         public override void ShowTo(VisibleObject obj)
         {
-            if (obj is User)
-            {
-                var user = obj as User;
-                user.SendVisibleGold(this);
-            }
+            if (!(obj is User)) return;
+            var user = (User) obj;
+            user.SendVisibleGold(this);
         }
     }
 
@@ -1061,7 +1000,7 @@ namespace Hybrasyl.Objects
         //private reactor _reactor;
         private HybrasylWorldObject _world;
 
-        public Boolean Ready;
+        public bool Ready;
 
         public Reactor(/* reactor reactor*/)
         {
