@@ -451,8 +451,11 @@ namespace Hybrasyl
                     {
                         foreach (var variant in ItemVariants[targetGroup].Variant)
                         {
-                            //Logger.DebugFormat("Item {0}: variantgroup {1}, subvariant {2}", newItem.Name, targetGroup, variant.Name);
-                            variant.ResolveVariant(newItem);
+                            var variantItem = ResolveVariant(newItem, variant, targetGroup);
+                            //variantItem.Name = $"{variant.Name} {newItem.Name}";
+                            Logger.DebugFormat("Item {0}: variantgroup {1}, subvariant {2}", variantItem.Name, targetGroup, variant.Name);
+                            Items.Add(variantItem.Id, variantItem);
+                            ItemCatalog.Add(new Tuple<Sex, string>(Sex.Neutral, variantItem.Name), variantItem);
                         }
                     }
                 }
@@ -544,6 +547,80 @@ namespace Hybrasyl
             }
             return true;
         }
+
+
+        /* Debug ItemVariants*/
+        public XSD.ItemType ResolveVariant(XSD.ItemType item, VariantType variant, string variantGroup)
+        {
+            var variantItem = item.Clone();
+
+            variantItem.Name = variant.Modifier + " " + item.Name;
+            variantItem.Properties.Flags = variant.Properties.Flags;
+            variantItem.Properties.Physical.Value = Convert.ToUInt32(Math.Round(item.Properties.Physical.Value * (variant.Properties.Physical.Value * .01)));
+            variantItem.Properties.Physical.Durability = Convert.ToUInt32(Math.Round(item.Properties.Physical.Durability * (variant.Properties.Physical.Durability * .01)));
+            variantItem.Properties.Physical.Weight = Convert.ToInt32(Math.Round(item.Properties.Physical.Weight * (variant.Properties.Physical.Weight * .01)));
+
+            switch (variantGroup)
+            {
+                case "consecratable":
+                {   
+                    variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
+                    variantItem.Properties.Stateffects.Base.Dex += variant.Properties.Stateffects.Base.Dex; 
+                    variantItem.Properties.Stateffects.Base.Con += variant.Properties.Stateffects.Base.Con; 
+                    variantItem.Properties.Stateffects.Base.Str += variant.Properties.Stateffects.Base.Str; 
+                    variantItem.Properties.Stateffects.Base.Wis += variant.Properties.Stateffects.Base.Wis; 
+                    variantItem.Properties.Stateffects.Base.Int += variant.Properties.Stateffects.Base.Int; 
+                    break;
+                }
+                case "elemental":
+                {
+                    variantItem.Properties.Stateffects.Element.Offense = variant.Properties.Stateffects.Element.Offense;
+                    variantItem.Properties.Stateffects.Element.Defense = variant.Properties.Stateffects.Element.Defense;
+                    break;
+                }
+                case "enchantable":
+                {
+                    variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
+                    variantItem.Properties.Stateffects.Combat.Ac = (sbyte)(item.Properties.Stateffects.Combat.Ac + variant.Properties.Stateffects.Combat.Ac);
+                    variantItem.Properties.Stateffects.Combat.Dmg += variant.Properties.Stateffects.Combat.Dmg;
+                    variantItem.Properties.Stateffects.Combat.Hit += variant.Properties.Stateffects.Combat.Hit;
+                    variantItem.Properties.Stateffects.Combat.Mr += variant.Properties.Stateffects.Combat.Mr;
+                    variantItem.Properties.Stateffects.Combat.Regen += variant.Properties.Stateffects.Combat.Regen;
+                    variantItem.Properties.Stateffects.Base.Dex += variant.Properties.Stateffects.Base.Dex;
+                    variantItem.Properties.Stateffects.Base.Str += variant.Properties.Stateffects.Base.Str;
+                    variantItem.Properties.Stateffects.Base.Wis += variant.Properties.Stateffects.Base.Wis;
+                    variantItem.Properties.Stateffects.Base.Con += variant.Properties.Stateffects.Base.Con;
+                    variantItem.Properties.Stateffects.Base.Int += variant.Properties.Stateffects.Base.Int;
+                    variantItem.Properties.Stateffects.Base.Hp += variant.Properties.Stateffects.Base.Hp;
+                    variantItem.Properties.Stateffects.Base.Mp += variant.Properties.Stateffects.Base.Mp;
+                    break;
+                }
+                case "smithable":
+                {
+                    variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
+                    variantItem.Properties.Damage.Large.Min = Convert.ToUInt16(Math.Round(item.Properties.Damage.Large.Min * (variant.Properties.Damage.Large.Min * .01)));
+                    variantItem.Properties.Damage.Large.Max = Convert.ToUInt16(Math.Round(item.Properties.Damage.Large.Max * (variant.Properties.Damage.Large.Max * .01)));
+                    variantItem.Properties.Damage.Small.Min = Convert.ToUInt16(Math.Round(item.Properties.Damage.Small.Min * (variant.Properties.Damage.Small.Min * .01)));
+                    variantItem.Properties.Damage.Small.Max = Convert.ToUInt16(Math.Round(item.Properties.Damage.Small.Max * (variant.Properties.Damage.Small.Max * .01)));
+                    break;
+                }
+                case "tailorable":
+                {
+                    variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
+                    variantItem.Properties.Stateffects.Combat.Ac = (sbyte)(item.Properties.Stateffects.Combat.Ac + variant.Properties.Stateffects.Combat.Ac);
+                    variantItem.Properties.Stateffects.Combat.Dmg += variant.Properties.Stateffects.Combat.Dmg;
+                    variantItem.Properties.Stateffects.Combat.Hit += variant.Properties.Stateffects.Combat.Hit;
+                    variantItem.Properties.Stateffects.Combat.Mr += variant.Properties.Stateffects.Combat.Mr;
+                    variantItem.Properties.Stateffects.Combat.Regen += variant.Properties.Stateffects.Combat.Regen;
+                    break;
+                }
+                default:
+                    break;
+            }
+            return variantItem;
+        }
+
+        /*End ItemVariants*/
 
         public Mailbox GetMailbox(string name)
         {
