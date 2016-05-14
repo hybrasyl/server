@@ -40,15 +40,19 @@ namespace Hybrasyl
                System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         public int Port { get; private set; }
-        public TcpListener TcpListener { get; private set; }
+        public Socket Socket { get; private set; }
+       // public TcpListener TcpListener { get; private set; }
         public WorldPacketHandler[] PacketHandlers { get; private set; }
         public ControlMessageHandler[] ControlMessageHandlers { get; private set; }
         public ConcurrentDictionary<uint, Redirect> ExpectedConnections { get; private set; }
         public bool Active { get; private set; }
 
+        public ConcurrentDictionary<IntPtr, Client> Clients;
+
+
         public Server(int port)
         {
-            
+            Clients = new ConcurrentDictionary<IntPtr, Client>();
             Port = port;
             PacketHandlers = new WorldPacketHandler[256];
             ControlMessageHandlers = new ControlMessageHandler[64];
@@ -56,29 +60,36 @@ namespace Hybrasyl
 
             for (int i = 0; i < 256; ++i)
                 PacketHandlers[i] = (c, p) => Logger.WarnFormat("World: Unhandled opcode 0x{0:X2}", p.Opcode);
-
-            TcpListener = new TcpListener(IPAddress.Any, port);
+            Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            Socket.Bind(new IPEndPoint(IPAddress.Any, Port));
+            Socket.Listen(10);
+            Socket.BeginAccept(new AsyncCallback(AcceptConnection), null);
+            //TcpListener = new TcpListener(IPAddress.Any, port);
             Logger.InfoFormat("Starting TcpListener: {0}:{1}", IPAddress.Any.ToString(), port);
-            TcpListener.Start();
+            //TcpListener.Start();
         }
 
-        public virtual void AcceptConnection()
+        
+        public virtual void AcceptConnection(IAsyncResult ar)
         {
-            if (TcpListener.Pending())
-            {             
-                var socket = TcpListener.AcceptSocket();
-                var client = new Client(socket, this);
+            try
+            {
+                Socket clientSocket = Socket.EndAccept(ar);
+                Client client = new Client(clientSocket, this);
+                Clients.GetOrAdd(clientSocket.Handle, client);
                 client.Begin();
+                Socket.BeginAccept(new AsyncCallback(AcceptConnection), null);
+            }
+            catch
+            {
             }
         }
 
         public virtual void Shutdown()
         {
             Logger.WarnFormat("{0}: shutting down", this.GetType().ToString());
-            TcpListener.Stop();
+            Socket.Close();
             Logger.WarnFormat("{0}: shutdown complete", this.GetType().ToString());
-
-            
         }
     }
 

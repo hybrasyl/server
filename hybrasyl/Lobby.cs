@@ -20,6 +20,7 @@
  *
  */
 
+using System;
 using System.Threading;
 
 namespace Hybrasyl
@@ -41,12 +42,16 @@ namespace Hybrasyl
 
         }
 
-        public override void AcceptConnection()
+        public override void AcceptConnection(IAsyncResult ar)
         {
-            if (TcpListener.Pending())
-            {
-                var socket = TcpListener.AcceptSocket();
-                var client = new Client(socket, this);
+            var clientSocket = Socket.EndAccept(ar);
+            Client client = new Client(clientSocket, this);
+            Clients.GetOrAdd(clientSocket.Handle, client);
+
+            //if (TcpListener.Pending())
+            //{
+            //    var socket = TcpListener.AcceptSocket();
+            //    var client = new Client(socket, this);
 
                 var x7E = new ServerPacket(0x7E);
                 x7E.WriteByte(0x1B);
@@ -55,7 +60,7 @@ namespace Hybrasyl
 
                 var thread = new Thread(client.ClientLoop);
                 thread.Start();
-            }
+            //}
         }
 
         private void PacketHandler_0x00_ClientVersion(Client client, ClientPacket packet)

@@ -279,9 +279,9 @@ namespace Hybrasyl
 
             while (true)
             {
-                Lobby.AcceptConnection();
-                Login.AcceptConnection();
-                World.AcceptConnection();
+                Lobby.Socket.BeginAccept(new AsyncCallback(Lobby.AcceptConnection), null);
+                Login.Socket.BeginAccept(new AsyncCallback(Login.AcceptConnection), null);
+                World.Socket.BeginAccept(new AsyncCallback(World.AcceptConnection), null);
                 if (!IsActive())
                     break;
                 Thread.Sleep(10);

@@ -558,9 +558,9 @@ namespace Hybrasyl
 
             variantItem.Name = variant.Modifier + " " + item.Name;
             variantItem.Properties.Flags = variant.Properties.Flags;
-            variantItem.Properties.Physical.Value = Convert.ToUInt32(Math.Round(item.Properties.Physical.Value * (variant.Properties.Physical.Value * .01)));
-            variantItem.Properties.Physical.Durability = Convert.ToUInt32(Math.Round(item.Properties.Physical.Durability * (variant.Properties.Physical.Durability * .01)));
-            variantItem.Properties.Physical.Weight = Convert.ToInt32(Math.Round(item.Properties.Physical.Weight * (variant.Properties.Physical.Weight * .01)));
+            variantItem.Properties.Physical.Value = variant.Properties.Physical.Value == 100 ? item.Properties.Physical.Value : Convert.ToUInt32(Math.Round(item.Properties.Physical.Value * (variant.Properties.Physical.Value * .01)));
+            variantItem.Properties.Physical.Durability = variant.Properties.Physical.Durability == 100 ? item.Properties.Physical.Durability : Convert.ToUInt32(Math.Round(item.Properties.Physical.Durability * (variant.Properties.Physical.Durability * .01)));
+            variantItem.Properties.Physical.Weight = variant.Properties.Physical.Weight == 100 ? item.Properties.Physical.Weight : Convert.ToInt32(Math.Round(item.Properties.Physical.Weight * (variant.Properties.Physical.Weight * .01)));
 
             switch (variantGroup)
             {
@@ -900,7 +900,7 @@ namespace Hybrasyl
                 var user = connection.Value;
                 user.Logoff();
             }
-            TcpListener.Stop();
+            Socket.Close();
             Logger.Warn("Shutdown complete");
         }
 
