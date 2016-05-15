@@ -163,6 +163,8 @@ namespace Hybrasyl
 
         public static string MapFileDirectory => Path.Combine(DataDirectory, "world", "mapfiles");
 
+        public static string ScriptDirectory => Path.Combine(DataDirectory, "world", "scripts");
+
         public static string CastableDirectory => Path.Combine(DataDirectory, "world", "xml", "castables");
 
         public static string ItemDirectory => Path.Combine(DataDirectory, "world", "xml", "items");
@@ -736,7 +738,7 @@ namespace Hybrasyl
             foreach (var dir in Constants.SCRIPT_DIRECTORIES)
             {
                 Logger.InfoFormat("Scanning script directory: {0}", dir);
-                var directory = Path.Combine(Constants.DataDirectory, "scripts", dir);
+                var directory = Path.Combine(ScriptDirectory,dir);
                 if (!Directory.Exists(directory))
                 {
                     Logger.ErrorFormat("Scripting directory {0} not found!", dir);
