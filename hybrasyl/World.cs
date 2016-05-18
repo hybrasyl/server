@@ -900,7 +900,7 @@ namespace Hybrasyl
                 var user = connection.Value;
                 user.Logoff();
             }
-            Socket.Close();
+            Listener.Close();
             Logger.Warn("Shutdown complete");
         }
 

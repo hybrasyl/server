@@ -44,11 +44,11 @@ namespace Hybrasyl
         private Server Server { get; set; }
         private Thread Thread { get; set; }
 
-        private int SocketBufferSize = 65535;
-        private byte[] recvBuffer = new byte[65535];
-        private byte[] sendBuffer = new byte[65535];
-        private List<byte> fullRecvBuffer = new List<byte>();
-        private List<byte> fullSendBuffer = new List<byte>();
+        public int SocketBufferSize = 65535;
+        public byte[] RecvBuffer = new byte[65535];
+        public byte[] SendBuffer = new byte[65535];
+        public List<byte> FullRecvBuffer = new List<byte>();
+        public List<byte> FullSendBuffer = new List<byte>();
 
         public Dictionary<byte, ThrottleInfo> Throttle = new Dictionary<byte, ThrottleInfo>();
 
@@ -287,7 +287,6 @@ namespace Hybrasyl
             Logger.InfoFormat("Connection {0} from {1}:{2}", ConnectionId,
                 ((IPEndPoint)Socket.RemoteEndPoint).Address.ToString(),
                 ((IPEndPoint)Socket.RemoteEndPoint).Port);
-            Thread = new Thread(ClientLoop);
             Connected = true;
             EncryptionKey = Encoding.ASCII.GetBytes("UrkcnItnI");
             EncryptionKeyTable = new byte[1024];
@@ -303,14 +302,14 @@ namespace Hybrasyl
             Connected = false;
         }
 
-        public void Begin()
+/*        public void Begin()
         {
             if (Thread.IsAlive) return;
 
             Thread.Start();
         }
-
-        public void ClientLoop()
+        */
+/*        public void ClientLoop()
         {
             while (Connected)
             {
@@ -436,7 +435,7 @@ namespace Hybrasyl
 
                     try
                     {
-                        Socket.BeginReceive(recvBuffer, 0, recvBuffer.Length, SocketFlags.None, new AsyncCallback(EndReceive), this);
+                        Socket.BeginReceive(RecvBuffer, 0, RecvBuffer.Length, SocketFlags.None, new AsyncCallback(EndReceive), this);
                     }
                     catch (Exception e)
                     {
@@ -450,10 +449,10 @@ namespace Hybrasyl
             GlobalConnectionManifest.DeregisterClient(this);
             World.MessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.CleanupUser, ConnectionId));
             Socket.Close();
-        }
+        }*/
 
 
-        private static void EndSend(IAsyncResult ar)
+/*        private static void EndSend(IAsyncResult ar)
         {
             var socket = (System.Net.Sockets.Socket)ar.AsyncState;
             //var socket = client.Socket;
@@ -481,10 +480,10 @@ namespace Hybrasyl
 
                 for (int i = 0; i < count; ++i)
                 {
-                    this.fullRecvBuffer.Add(recvBuffer[i]);
+                    this.FullRecvBuffer.Add(RecvBuffer[i]);
                 }
 
-                if (count == 0 || fullRecvBuffer[0] != 0xAA)
+                if (count == 0 || FullRecvBuffer[0] != 0xAA)
                 {
                     Logger.DebugFormat("cid {0}: client is disconnected or corrupt packets received", ConnectionId);
                     Connected = false;
@@ -492,13 +491,13 @@ namespace Hybrasyl
                 }
 
                 var array = new byte[count];
-                Array.Copy(recvBuffer, array, count);
-                while (fullRecvBuffer.Count > 3)
+                Array.Copy(RecvBuffer, array, count);
+                while (FullRecvBuffer.Count > 3)
                 {
-                    var length = ((int) fullRecvBuffer[1] << 8) + (int) fullRecvBuffer[2] + 3;
-                    if (length > fullRecvBuffer.Count) break;
-                    List<byte> range = fullRecvBuffer.GetRange(0, length);
-                    fullRecvBuffer.RemoveRange(0, length);
+                    var length = ((int) FullRecvBuffer[1] << 8) + (int) FullRecvBuffer[2] + 3;
+                    if (length > FullRecvBuffer.Count) break;
+                    List<byte> range = FullRecvBuffer.GetRange(0, length);
+                    FullRecvBuffer.RemoveRange(0, length);
                     ClientPacket clientPacket = new ClientPacket(range.ToArray());
                     lock (RecvQueue)
                     {
@@ -609,7 +608,7 @@ namespace Hybrasyl
                 Connected = false;
                 Logger.ErrorFormat(e.ToString());
             }
-        }
+        }*/
 
         public byte[] GenerateKey(ushort bRand, byte sRand)
         {

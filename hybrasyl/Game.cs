@@ -47,6 +47,8 @@ namespace Hybrasyl
         public static readonly object SyncObj = new object();
         public static IPAddress IpAddress;
 
+        public static ManualResetEvent allDone = new ManualResetEvent(false);
+
         public static Lobby Lobby { get; private set; }
         public static Login Login { get; private set; }
         public static World World { get; private set; }
@@ -62,6 +64,10 @@ namespace Hybrasyl
         private static long Active = 0;
 
         public static HybrasylConfig Config { get; private set; }
+
+        private static Thread _lobbyThread;
+        private static Thread _loginThread;
+        private static Thread _worldThread;
 
         public static void ToggleActive()
         {
@@ -279,13 +285,13 @@ namespace Hybrasyl
 
             while (true)
             {
-                Lobby.Socket.BeginAccept(new AsyncCallback(Lobby.AcceptConnection), null);
-                Login.Socket.BeginAccept(new AsyncCallback(Login.AcceptConnection), null);
-                World.Socket.BeginAccept(new AsyncCallback(World.AcceptConnection), null);
+                _lobbyThread = new Thread(new ThreadStart(Lobby.StartListening));
+                _loginThread = new Thread(new ThreadStart(Login.StartListening));
+                _worldThread = new Thread(new ThreadStart(World.StartListening));
                 if (!IsActive())
+                {
                     break;
-                Thread.Sleep(10);
-                
+                }
             }
             Logger.Warn("Hybrasyl: all servers shutting down");
             // Server is shutting down. For Lobby and Login, this terminates the TCP listeners;

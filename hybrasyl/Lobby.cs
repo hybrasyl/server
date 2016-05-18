@@ -44,7 +44,7 @@ namespace Hybrasyl
 
         public override void AcceptConnection(IAsyncResult ar)
         {
-            var clientSocket = Socket.EndAccept(ar);
+            var clientSocket = Listener.EndAccept(ar);
             Client client = new Client(clientSocket, this);
             Clients.GetOrAdd(clientSocket.Handle, client);
 

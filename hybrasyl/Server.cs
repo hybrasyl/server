@@ -23,8 +23,11 @@
 using log4net;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
+using IronPython.Modules;
 
 namespace Hybrasyl
 {
@@ -40,12 +43,14 @@ namespace Hybrasyl
                System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         public int Port { get; private set; }
-        public Socket Socket { get; private set; }
+        public Socket Listener { get; private set; }
        // public TcpListener TcpListener { get; private set; }
         public WorldPacketHandler[] PacketHandlers { get; private set; }
         public ControlMessageHandler[] ControlMessageHandlers { get; private set; }
         public ConcurrentDictionary<uint, Redirect> ExpectedConnections { get; private set; }
         public bool Active { get; private set; }
+
+        public static ManualResetEvent AllDone = new ManualResetEvent(false);
 
         public ConcurrentDictionary<IntPtr, Client> Clients;
 
@@ -57,38 +62,87 @@ namespace Hybrasyl
             PacketHandlers = new WorldPacketHandler[256];
             ControlMessageHandlers = new ControlMessageHandler[64];
             ExpectedConnections = new ConcurrentDictionary<uint, Redirect>();
-
             for (int i = 0; i < 256; ++i)
                 PacketHandlers[i] = (c, p) => Logger.WarnFormat("World: Unhandled opcode 0x{0:X2}", p.Opcode);
-            Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            Socket.Bind(new IPEndPoint(IPAddress.Any, Port));
-            Socket.Listen(10);
-            Socket.BeginAccept(new AsyncCallback(AcceptConnection), null);
-            //TcpListener = new TcpListener(IPAddress.Any, port);
-            Logger.InfoFormat("Starting TcpListener: {0}:{1}", IPAddress.Any.ToString(), port);
-            //TcpListener.Start();
         }
 
-        
+        public void StartListening()
+        {
+            Listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            Listener.Bind(new IPEndPoint(IPAddress.Any, Port));
+            Listener.Listen(100);
+            Logger.InfoFormat("Starting TcpListener: {0}:{1}", IPAddress.Any.ToString(), port);
+            while (true)
+            {
+                AllDone.Reset();
+                Listener.BeginAccept(new AsyncCallback(AcceptConnection), Listener);
+                AllDone.WaitOne();
+            }
+        }
+
+
         public virtual void AcceptConnection(IAsyncResult ar)
         {
-            try
-            {
-                Socket clientSocket = Socket.EndAccept(ar);
-                Client client = new Client(clientSocket, this);
-                Clients.GetOrAdd(clientSocket.Handle, client);
-                client.Begin();
-                Socket.BeginAccept(new AsyncCallback(AcceptConnection), null);
-            }
-            catch
-            {
-            }
+            AllDone.Set();
+            Socket clientSocket = (Socket) ar.AsyncState;
+            Socket handler = clientSocket.EndAccept(ar);
+            Client client = new Client(handler, this);
+            Clients.GetOrAdd(clientSocket.Handle, client);
+            handler.BeginReceive(client.RecvBuffer, 0, client.SocketBufferSize, 0,
+                new AsyncCallback(ReadCallback), client);
+
+
+            //Listener.BeginAccept(new AsyncCallback(AcceptConnection), null);
         }
 
+        public void ReadCallback(IAsyncResult ar)
+        {
+            Client client = (Client) ar.AsyncState;
+            int bytesRead = client.Socket.EndReceive(ar);
+
+            if (bytesRead > 0)
+            {
+                client.FullRecvBuffer.AddRange(client.RecvBuffer);
+                if (client.FullRecvBuffer[0] != 0xAA)
+                {
+                    Logger.DebugFormat("cid {0}: client is disconnected",
+                        client.ConnectionId);
+                    client.Connected = false;
+                    return;
+                }
+
+                while (client.FullRecvBuffer.Count > 3)
+                {
+                    var length = ((int) client.FullRecvBuffer[1] << 8) + (int) client.FullRecvBuffer[2] + 3;
+                    if (length > client.FullRecvBuffer.Count)
+                    {
+                        // Get moar bytes
+                        client.Socket.BeginReceive(client.RecvBuffer, 0, client.SocketBufferSize, 0,
+                            new AsyncCallback(ReadCallback), client);
+                    }
+                    else
+                    {
+                        List<byte> range = client.FullRecvBuffer.GetRange(0, length);
+                        client.FullRecvBuffer.RemoveRange(0, length);
+                        ClientPacket clientPacket = new ClientPacket(range.ToArray());
+                        World.MessageQueue.Add(new HybrasylClientMessage(clientPacket, client.ConnectionId));
+                    }
+                }
+
+            }
+            else
+            {
+                Logger.DebugFormat("cid {0}: client is disconnected or corrupt packets received", client.ConnectionId);
+                client.Connected = false;
+                return;
+            }
+
+
+        }
         public virtual void Shutdown()
         {
             Logger.WarnFormat("{0}: shutting down", this.GetType().ToString());
-            Socket.Close();
+            Listener.Close();
             Logger.WarnFormat("{0}: shutdown complete", this.GetType().ToString());
         }
     }
