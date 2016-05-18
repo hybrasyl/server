@@ -42,27 +42,6 @@ namespace Hybrasyl
 
         }
 
-        public override void AcceptConnection(IAsyncResult ar)
-        {
-            var clientSocket = Listener.EndAccept(ar);
-            Client client = new Client(clientSocket, this);
-            Clients.GetOrAdd(clientSocket.Handle, client);
-
-            //if (TcpListener.Pending())
-            //{
-            //    var socket = TcpListener.AcceptSocket();
-            //    var client = new Client(socket, this);
-
-                var x7E = new ServerPacket(0x7E);
-                x7E.WriteByte(0x1B);
-                x7E.WriteString("CONNECTED SERVER\n");
-                client.Enqueue(x7E);
-
-                var thread = new Thread(client.ClientLoop);
-                thread.Start();
-            //}
-        }
-
         private void PacketHandler_0x00_ClientVersion(Client client, ClientPacket packet)
         {
             var x00 = new ServerPacket(0x00);
