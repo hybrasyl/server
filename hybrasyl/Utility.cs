@@ -248,7 +248,7 @@ namespace Hybrasyl
         public const int EXCHANGE_DISTANCE = 5;
         public const uint MAXIMUM_GOLD = 1000000000;
         public const int VARIANT_ID_START = 100000;
-        public const int DEFAULT_LOG_LEVEL = Hybrasyl.LogLevels.INFO;
+        public const int DEFAULT_LOG_LEVEL = Hybrasyl.LogLevels.DEBUG;
         // Manhattan distance between the user performing an action (killing a monster, etc) and other
         // users in the group in order to be eligible for sharing.
         public const int GROUP_SHARING_DISTANCE = 20;

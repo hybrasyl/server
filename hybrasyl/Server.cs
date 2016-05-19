@@ -24,6 +24,7 @@ using log4net;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Policy;
@@ -98,15 +99,21 @@ namespace Hybrasyl
                 x7E.WriteString("CONNECTED SERVER\n");
                 client.Enqueue(x7E);
             }
+            Logger.InfoFormat("AcceptConnection: BeginReceive");
             handler.BeginReceive(client.RecvBuffer, 0, client.SocketBufferSize, 0,
                 new AsyncCallback(ReadCallback), client);
+            Logger.InfoFormat("AcceptConnection returning");
+            clientSocket.BeginAccept(new AsyncCallback(AcceptConnection), clientSocket);
+
         }
 
         public void Send(Client client, ServerPacket serverPacket)
         {
             byte[] byteData = serverPacket.ToArray();
+            Logger.InfoFormat("Sending {0}", byteData[3]);
             client.Socket.BeginSend(byteData, 0, byteData.Length, 0,
                 new AsyncCallback(SendCallback), client);
+            Logger.InfoFormat("Send completed");
         }
 
         public void SendCallback(IAsyncResult ar)
@@ -120,6 +127,7 @@ namespace Hybrasyl
             {
                 Logger.ErrorFormat("Error transmitting data: {0}", e.ToString());
             }
+            Logger.InfoFormat("SendCallback completed");
         }
         public void ReadCallback(IAsyncResult ar)
         {
@@ -135,7 +143,7 @@ namespace Hybrasyl
 
             if (bytesRead > 0)
             {
-                client.FullRecvBuffer.AddRange(client.RecvBuffer);
+                client.FullRecvBuffer.AddRange(client.RecvBuffer.Take(bytesRead));
                 if (client.FullRecvBuffer[0] != 0xAA)
                 {
                     Logger.DebugFormat("cid {0}: client is disconnected",
@@ -146,6 +154,7 @@ namespace Hybrasyl
 
                 while (client.FullRecvBuffer.Count > 3)
                 {
+                    Logger.InfoFormat("Inside while loop");
                     var length = ((int) client.FullRecvBuffer[1] << 8) + (int) client.FullRecvBuffer[2] + 3;
                     if (length > client.FullRecvBuffer.Count)
                     {
@@ -168,23 +177,27 @@ namespace Hybrasyl
                         {
                             if (this is Lobby)
                             {
-                                Logger.DebugFormat("Lobby: 0x{0:X2}", receivedPacket.Opcode);
+                                Logger.InfoFormat("Lobby: 0x{0:X2}", receivedPacket.Opcode);
                                 var handler = (this as Lobby).PacketHandlers[receivedPacket.Opcode];
                                 handler.Invoke(client, receivedPacket);
+                                Logger.InfoFormat("Lobby packet done");
                                 client.UpdateLastReceived();
                             }
                             else if (this is Login)
                             {
-                                Logger.DebugFormat("Login: 0x{0:X2}", receivedPacket.Opcode);
+                                Logger.InfoFormat("Login: 0x{0:X2}", receivedPacket.Opcode);
                                 var handler = (this as Login).PacketHandlers[receivedPacket.Opcode];
                                 handler.Invoke(client, receivedPacket);
+                                Logger.InfoFormat("Login packet done");
                                 client.UpdateLastReceived();
                             }
                             else
                             {
                                 client.UpdateLastReceived(receivedPacket.Opcode != 0x45 && receivedPacket.Opcode != 0x75);
-                                Logger.DebugFormat("Queuing: 0x{0:X2}", receivedPacket.Opcode);
+                                Logger.InfoFormat("Queuing: 0x{0:X2}", receivedPacket.Opcode);
                                 World.MessageQueue.Add(new HybrasylClientMessage(receivedPacket, client.ConnectionId));
+                                Logger.InfoFormat("World packet done");
+
                             }
                         }
                         catch (Exception e)
@@ -202,7 +215,10 @@ namespace Hybrasyl
                 client.Connected = false;
                 return;
             }
-
+            // Continue getting dem bytes
+            workSocket.BeginReceive(client.RecvBuffer, 0, client.SocketBufferSize, 0,
+                new AsyncCallback(this.ReadCallback), client);
+            Logger.InfoFormat("Ending receive callback");
 
         }
 
