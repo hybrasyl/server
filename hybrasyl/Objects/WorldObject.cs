@@ -736,7 +736,7 @@ namespace Hybrasyl.Objects
             foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>())
             {
                 user.Enqueue(packet);
-                //PlaySound(sound);
+                PlaySound(sound);
             }
         }
 

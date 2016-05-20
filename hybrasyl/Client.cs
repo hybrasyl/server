@@ -61,7 +61,7 @@ namespace Hybrasyl
         private long LastSent = 0;
         private long Idle = 0;
         
-        private byte serverOrdinal = 0x00;
+        public byte ServerOrdinal = 0x00;
         //private byte clientOrdinal = 0x00;
 
         public String RemoteAddress

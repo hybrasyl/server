@@ -61,6 +61,7 @@ namespace Hybrasyl
                 var x56 = new ServerPacket(0x56);
                 x56.WriteUInt16((ushort)Game.ServerTable.Length);
                 x56.Write(Game.ServerTable);
+                Logger.InfoFormat("ServerTable: Sent: {0}", BitConverter.ToString(x56.ToArray()));
                 client.Enqueue(x56);
             }
             else

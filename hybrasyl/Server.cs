@@ -109,26 +109,47 @@ namespace Hybrasyl
 
         public void Send(Client client, ServerPacket serverPacket)
         {
-            byte[] byteData = serverPacket.ToArray();
-            Logger.InfoFormat("Sending {0}", byteData[3]);
+            if (serverPacket.ShouldEncrypt)
+            {
+                ++client.ServerOrdinal;
+                serverPacket.Ordinal = client.ServerOrdinal;
+
+                serverPacket.GenerateFooter();
+                serverPacket.Encrypt(client);
+            }
+            if (serverPacket.TransmitDelay != 0)
+            {
+                Thread.Sleep(serverPacket.TransmitDelay);
+            }
+
+            var byteData = (byte[]) serverPacket;
+
             client.Socket.BeginSend(byteData, 0, byteData.Length, 0,
                 new AsyncCallback(SendCallback), client);
+
+            Logger.InfoFormat("Sending: {0}", BitConverter.ToString(byteData));
             Logger.InfoFormat("Send completed");
         }
 
         public void SendCallback(IAsyncResult ar)
         {
+            Client client = (Client)ar.AsyncState;
+
             try
             {
-                Client client = (Client) ar.AsyncState;
                 int bytesSent = client.Socket.EndSend(ar);
+                Logger.InfoFormat("{0} bytes sent", bytesSent);
             }
             catch (Exception e)
             {
                 Logger.ErrorFormat("Error transmitting data: {0}", e.ToString());
+                GlobalConnectionManifest.DeregisterClient(client);
+                World.MessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.CleanupUser, client.ConnectionId));
+                client.Socket.Close();
             }
             Logger.InfoFormat("SendCallback completed");
         }
+
         public void ReadCallback(IAsyncResult ar)
         {
             Client client = (Client) ar.AsyncState;
@@ -273,3 +294,4 @@ namespace Hybrasyl
         }
     }
 }
+
