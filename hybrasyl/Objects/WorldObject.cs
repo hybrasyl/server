@@ -262,10 +262,10 @@ namespace Hybrasyl.Objects
 
         public virtual void PlaySound(byte sound)
         {
-            //foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>().Select(obj => obj))
-            //{
-            //    user.SendSound(sound);
-            //}
+            foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>().Select(obj => obj))
+            {
+                user.SendSound(sound);
+            }
         }
 
         public void DisplayPursuits(User invoker)
@@ -422,7 +422,7 @@ namespace Hybrasyl.Objects
         public override void ShowTo(VisibleObject obj)
         {
             if (!(obj is User)) return;
-            var user = (User) obj;
+            var user = (User)obj;
             user.SendDoorUpdate(X, Y, Closed,
                 IsLeftRight);
         }
@@ -736,7 +736,7 @@ namespace Hybrasyl.Objects
             foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>())
             {
                 user.Enqueue(packet);
-                //PlaySound(sound);
+                PlaySound(sound);
             }
         }
 
@@ -832,7 +832,7 @@ namespace Hybrasyl.Objects
         public override void ShowTo(VisibleObject obj)
         {
             if (!(obj is User)) return;
-            var user = (User) obj;
+            var user = (User)obj;
             user.SendVisibleCreature(this);
         }
 
@@ -990,7 +990,7 @@ namespace Hybrasyl.Objects
         public override void ShowTo(VisibleObject obj)
         {
             if (!(obj is User)) return;
-            var user = (User) obj;
+            var user = (User)obj;
             user.SendVisibleGold(this);
         }
     }

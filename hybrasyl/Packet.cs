@@ -26,6 +26,13 @@ using System.Text;
 
 namespace Hybrasyl
 {
+    public enum EncryptMethod
+    {
+        None,
+        Normal,
+        MD5Key
+    }
+
     public abstract class Packet
     {
         public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
@@ -251,6 +258,11 @@ namespace Hybrasyl
             get { return _position; }
         }
 
+        public abstract EncryptMethod EncryptMethod
+        {
+            get;
+        }
+
         public abstract bool ShouldEncrypt { get; }
         public abstract bool UseDefaultKey { get; }
 
@@ -270,7 +282,7 @@ namespace Hybrasyl
             buffer[2] = (byte)(buffer.Length - 3);
             buffer[3] = Opcode;
             buffer[4] = Ordinal;
-            
+
             try
             {
                 Array.Copy(Data, 0, buffer, shouldEncrypt, Data.Length);
@@ -286,7 +298,7 @@ namespace Hybrasyl
             }
             return buffer;
         }
-        public static explicit operator byte[](Packet packet)
+        public static explicit operator byte[] (Packet packet)
         {
             return packet.ToArray();
         }
@@ -359,6 +371,96 @@ namespace Hybrasyl
                                               || Opcode == 0x2D || Opcode == 0x3A || Opcode == 0x42 || Opcode == 0x43 || Opcode == 0x4B
                                               || Opcode == 0x57 || Opcode == 0x62 || Opcode == 0x68 || Opcode == 0x71 || Opcode == 0x73
                                               || Opcode == 0x7B;
+
+
+        public override EncryptMethod EncryptMethod
+        {
+            get
+            {
+                var opcode = Opcode;
+                if (opcode <= 0x43)
+                {
+                    if (opcode <= 0x10)
+                    {
+                        switch (opcode)
+                        {
+                            case 0x00:
+                                break;
+                            case 0x01:
+                                return EncryptMethod.MD5Key;
+                            case 0x02:
+                            case 0x03:
+                            case 0x04:
+                                return EncryptMethod.Normal;
+                            default:
+                                if (opcode == 0x0A)
+                                {
+                                    return EncryptMethod.Normal;
+                                }
+                                if (opcode != 0x10)
+                                {
+                                    return EncryptMethod.MD5Key;
+                                }
+                                break;
+                        }
+                    }
+                    else if (opcode <= 0x2D)
+                    {
+                        if (opcode != 0x26 && opcode != 0x2D)
+                        {
+                            return EncryptMethod.MD5Key;
+                        }
+                        return EncryptMethod.Normal;
+                    }
+                    else
+                    {
+                        if (opcode == 0x3A)
+                        {
+                            return EncryptMethod.Normal;
+                        }
+                        switch (opcode)
+                        {
+                            case 0x42:
+                            case 0x43:
+                                return EncryptMethod.Normal;
+                            default:
+                                return EncryptMethod.MD5Key;
+                        }
+                    }
+                }
+                else if (opcode <= 0x57)
+                {
+                    if (opcode == 0x48) return EncryptMethod.None;
+                    if (opcode != 0x4B && opcode != 0x57)
+                    {
+                        return EncryptMethod.MD5Key;
+                    }
+                    return EncryptMethod.Normal;
+                }
+                else if (opcode <= 0x68)
+                {
+                    if (opcode != 0x62 && opcode != 0x68)
+                    {
+                        return EncryptMethod.MD5Key;
+                    }
+                    return EncryptMethod.Normal;
+                }
+                else
+                {
+                    switch (opcode)
+                    {
+                        case 0x71:
+                        case 0x73:
+                            return EncryptMethod.Normal;
+                        case 0x72:
+                            return EncryptMethod.MD5Key;
+                        default:
+                            return opcode != 0x7B ? EncryptMethod.MD5Key : EncryptMethod.Normal;
+                    }
+                }
+                return EncryptMethod.None;
+            }
+        }
 
         public ClientPacket(byte[] buffer)
         {
@@ -546,19 +648,62 @@ namespace Hybrasyl
 
     public class ServerPacket : Packet
     {
-        public override bool ShouldEncrypt
+        public override bool ShouldEncrypt => Opcode != 0x00 && Opcode != 0x03 && Opcode != 0x7E;
+
+        public override bool UseDefaultKey => Opcode == 0x01 || Opcode == 0x02 || Opcode == 0x0A || Opcode == 0x56 || Opcode == 0x60
+                                              || Opcode == 0x62 || Opcode == 0x66 || Opcode == 0x6F;
+
+        public override EncryptMethod EncryptMethod
         {
             get
             {
-                return Opcode != 0x00 && Opcode != 0x03 && Opcode != 0x7E;
-            }
-        }
-        public override bool UseDefaultKey
-        {
-            get
-            {
-                return Opcode == 0x01 || Opcode == 0x02 || Opcode == 0x0A || Opcode == 0x56 || Opcode == 0x60
-                    || Opcode == 0x62 || Opcode == 0x66 || Opcode == 0x6F;
+                var opcode = Opcode;
+                if (opcode <= 0x56)
+                {
+                    if (opcode <= 0x0A)
+                    {
+                        switch (opcode)
+                        {
+                            case 0x00:
+                            case 0x03:
+                                break;
+                            case 0x01:
+                            case 0x02:
+                                return EncryptMethod.Normal;
+                            default:
+                                return opcode != 0x0A ? EncryptMethod.MD5Key : EncryptMethod.Normal;
+                        }
+                    }
+                    else if (opcode != 0x40)
+                    {
+                        return opcode != 0x56 ? EncryptMethod.MD5Key : EncryptMethod.Normal;
+                    }
+                }
+                else if (opcode <= 0x66)
+                {
+                    switch (opcode)
+                    {
+                        case 0x60:
+                        case 0x62:
+                            return EncryptMethod.Normal;
+                        case 0x63:
+                            return EncryptMethod.MD5Key;
+                        default:
+                            return opcode != 0x66 ? EncryptMethod.MD5Key : EncryptMethod.Normal;
+                    }
+                }
+                else
+                {
+                    if (opcode == 0x6F)
+                    {
+                        return EncryptMethod.Normal;
+                    }
+                    if (opcode != 0x7E)
+                    {
+                        return EncryptMethod.MD5Key;
+                    }
+                }
+                return EncryptMethod.None;
             }
         }
 
@@ -715,10 +860,25 @@ namespace Hybrasyl
             var length = Data.Length - 3;
 
             var rand = new Random();
-            var bRand = (ushort)(rand.Next() % 65277 + 256);
-            var sRand = (byte)(rand.Next() % 155 + 100);
+            //var bRand = (ushort)(rand.Next() % 65277 + 256);
+            var bRand = (ushort)(rand.Next(65277) + 256);
+            //var sRand = (byte)(rand.Next() % 155 + 100);
+            var sRand = (byte)(rand.Next(155) + 100);
 
-            var key = (UseDefaultKey) ? client.EncryptionKey : client.GenerateKey(bRand, sRand);
+            byte[] key;
+            switch (this.EncryptMethod)
+            {
+                case EncryptMethod.Normal:
+                    key = client.EncryptionKey;
+                    break;
+                case EncryptMethod.MD5Key:
+                    key = client.GenerateKey(bRand, sRand);
+                    break;
+                default:
+                    return;
+            }
+
+            //var key = (UseDefaultKey) ? client.EncryptionKey : client.GenerateKey(bRand, sRand);
 
             for (var i = 0; i < length; i++)
             {
