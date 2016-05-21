@@ -1734,7 +1734,7 @@ namespace Hybrasyl.Objects
             //animation handled here as to not repeatedly send assails.
             //this.LastAttack = DateTime.Now;
             var assail = new ServerPacketStructures.PlayerAnimation() {Animation = 1, Speed = 20, UserId = this.Id};
-            //Enqueue(assail.Packet());
+            Enqueue(assail.Packet());
             SendAnimation(assail.Packet(), 01);
         }
 
@@ -1830,6 +1830,7 @@ namespace Hybrasyl.Objects
 
         public void SendMotion(uint id, byte motion, short speed)
         {
+            Logger.InfoFormat("SendMotion id {0}, motion {1}, speed {2}", id,motion,speed);
             var x1A = new ServerPacket(0x1A);
             x1A.WriteUInt32(id);
             x1A.WriteByte(motion);
@@ -1840,6 +1841,7 @@ namespace Hybrasyl.Objects
 
         public void SendEffect(uint id, ushort effect, short speed)
         {
+            Logger.InfoFormat("SendEffect: id {0}, effect {1}, speed {2} ", id, effect, speed);
             var x29 = new ServerPacket(0x29);
             x29.WriteUInt32(id);
             x29.WriteUInt32(id);
@@ -1851,6 +1853,8 @@ namespace Hybrasyl.Objects
         }
         public void SendEffect(uint targetId, ushort targetEffect, uint srcId, ushort srcEffect, short speed)
         {
+            Logger.InfoFormat("SendEffect: targetId {0}, targetEffect {1}, srcId {2}, srcEffect {3}, speed {4}",
+                targetId, targetEffect, srcId, srcEffect, speed);
             var x29 = new ServerPacket(0x29);
             x29.WriteUInt32(targetId);
             x29.WriteUInt32(srcId);
@@ -1862,6 +1866,7 @@ namespace Hybrasyl.Objects
         }
         public void SendEffect(short x, short y, ushort effect, short speed)
         {
+            Logger.InfoFormat("SendEffect: x {0}, y {1}, effect {2}, speed {3}", x,y,effect,speed);
             var x29 = new ServerPacket(0x29);
             x29.WriteUInt32(uint.MinValue);
             x29.WriteUInt16(effect);
@@ -1883,9 +1888,10 @@ namespace Hybrasyl.Objects
 
         public void SendSound(byte sound)
         {
-            //var x19 = new ServerPacket(0x19);
-            //x19.WriteByte(sound);
-            //Enqueue(x19);
+            Logger.InfoFormat("SendSound {0}", sound);
+            var x19 = new ServerPacket(0x19);
+            x19.WriteByte(sound);
+            Enqueue(x19);
         }
 
         public void SendDoorUpdate(byte x, byte y, bool state, bool leftright)

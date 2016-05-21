@@ -33,6 +33,7 @@ using System.Text;
 using System.Threading;
 using System.Xml;
 using System.Xml.Linq;
+using Community.CsharpSqlite;
 using Hybrasyl.XML;
 using log4net.Core;
 using zlib;
@@ -157,7 +158,9 @@ namespace Hybrasyl
             Console.SetWindowSize(140, 36);
             LogLevel = Hybrasyl.Constants.DEFAULT_LOG_LEVEL;
             Assemblyinfo = new AssemblyInfo(Assembly.GetEntryAssembly());
-
+            ((log4net.Repository.Hierarchy.Hierarchy)LogManager.GetRepository()).Root.Level = Level.All;
+            ((log4net.Repository.Hierarchy.Hierarchy)LogManager.GetRepository()).RaiseConfigurationChanged(
+                EventArgs.Empty);
             Constants.DataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Hybrasyl");
 
             if (!Directory.Exists(Constants.DataDirectory))
@@ -283,15 +286,21 @@ namespace Hybrasyl
 
             ToggleActive();
 
+            _lobbyThread = new Thread(new ThreadStart(Lobby.StartListening));
+            _loginThread = new Thread(new ThreadStart(Login.StartListening));
+            _worldThread = new Thread(new ThreadStart(World.StartListening));
+
+            _lobbyThread.Start();
+            _loginThread.Start();
+            _worldThread.Start();
+
             while (true)
             {
-                _lobbyThread = new Thread(new ThreadStart(Lobby.StartListening));
-                _loginThread = new Thread(new ThreadStart(Login.StartListening));
-                _worldThread = new Thread(new ThreadStart(World.StartListening));
                 if (!IsActive())
                 {
                     break;
                 }
+                Thread.Sleep(100);
             }
             Logger.Warn("Hybrasyl: all servers shutting down");
             // Server is shutting down. For Lobby and Login, this terminates the TCP listeners;

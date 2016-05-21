@@ -733,8 +733,11 @@ namespace Hybrasyl.Objects
 
         public void SendAnimation(ServerPacket packet, byte sound)
         {
+            Logger.InfoFormat("SendAnimation");
+            Logger.InfoFormat("SendAnimation byte format is: {0}", BitConverter.ToString(packet.ToArray()));
             foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>())
             {
+                Logger.InfoFormat("SendAnimation to {0}",user.Name);
                 user.Enqueue(packet);
                 PlaySound(sound);
             }
