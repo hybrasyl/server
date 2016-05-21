@@ -107,8 +107,15 @@ namespace Hybrasyl
 
         public void Dispose()
         {
-            WorkSocket.Shutdown(SocketShutdown.Both);
-            WorkSocket.Close();
+            try
+            {
+                WorkSocket.Shutdown(SocketShutdown.Both);
+            }
+            finally
+            {
+                WorkSocket.Close();
+            }
+
             Connected = false;
         }
     }
