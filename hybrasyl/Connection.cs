@@ -33,15 +33,9 @@ namespace Hybrasyl
     {
         public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        private static long _connectionId = 0;
-        public static ConcurrentDictionary<long, Client> ConnectedClients = new ConcurrentDictionary<long, Client>();
-        public static ConcurrentDictionary<long, Client> WorldClients = new ConcurrentDictionary<long, Client>();
+        public static ConcurrentDictionary<IntPtr, Client> ConnectedClients = new ConcurrentDictionary<IntPtr, Client>();
+        public static ConcurrentDictionary<IntPtr, Client> WorldClients = new ConcurrentDictionary<IntPtr, Client>();
 
-        public static long GetNewConnectionId()
-        {
-            Interlocked.Increment(ref _connectionId);
-            return _connectionId;
-        }
 
         public static void RegisterClient(Client client)
         {
@@ -84,9 +78,9 @@ namespace Hybrasyl
     public class HybrasylClientMessage : HybrasylMessage
     {
         public ClientPacket Packet { get; private set; }
-        public Int64 ConnectionId { get; private set; }
+        public IntPtr ConnectionId { get; private set; }
 
-        public HybrasylClientMessage(ClientPacket packet, Int64 connectionId, params object[] arguments) : 
+        public HybrasylClientMessage(ClientPacket packet, IntPtr connectionId, params object[] arguments) : 
             base("HybrasylClientMessage", arguments)
         {
             Packet = packet;

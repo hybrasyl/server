@@ -531,7 +531,7 @@ namespace Hybrasyl.Objects
             
         }
 
-        public bool AssociateConnection(World world, long connectionId)
+        public bool AssociateConnection(World world, IntPtr connectionId)
         {
             World = world;
             Client client;
@@ -540,7 +540,7 @@ namespace Hybrasyl.Objects
             return true;
         }
 
-        public User(World world, long connectionId, string playername = "")
+        public User(World world, IntPtr connectionId, string playername = "")
         {
             World = world;
             Client client;
@@ -624,7 +624,7 @@ namespace Hybrasyl.Objects
                     if (tinfo.SquelchCount > tinfo.Throttle.DisconnectAfter)
                     {
                         Logger.WarnFormat("cid {0}: reached squelch count for {1}: disconnected", Client.ConnectionId, opcode);
-                        Client.Connected = false;
+                        Client.Disconnect();
                     }
                     return true;
                 }

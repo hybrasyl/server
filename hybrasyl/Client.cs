@@ -26,40 +26,113 @@ using log4net;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using Microsoft.Scripting.Utils;
 
 namespace Hybrasyl
 {
+    public class ClientState
+    {
+        private const int BufferSize = 65535;
+        private byte[] _buffer = new byte[BufferSize];
+        private ConcurrentQueue<ServerPacket> _sendBuffer = new ConcurrentQueue<ServerPacket>(); 
+        public bool Connected { get; set; }
+
+        public IntPtr Id { get; }
+
+        public Socket WorkSocket { get; }
+
+        public ClientState(Socket incoming)
+        {
+            this.WorkSocket = incoming;
+            this.Id = incoming.Handle;
+            this.Connected = true;
+        }
+
+        public byte[] Buffer => _buffer;
+        public void ReceiveBufferAdd(IEnumerable<byte> received)
+        {
+            lock (_buffer)
+            {
+                _buffer.AddRange(received);
+            }
+        }
+
+        public IEnumerable<byte> ReceiveBufferTake(int range)
+        {
+            lock (_buffer)
+            {
+                return _buffer.Take(range);
+            }
+        }
+
+        public IEnumerable<byte> ReceiveBufferPop(int range)
+        {
+            lock (_buffer)
+            {
+                var ret = _buffer.Take(range);
+                var asList = _buffer.ToList();
+                asList.RemoveRange(0, range);
+                _buffer = asList.ToArray();
+                return ret;
+            }
+        }
+
+        public void SendBufferAdd(ServerPacket packet)
+        {
+            _sendBuffer.Enqueue(packet);
+        }
+
+        public bool SendBufferTake(out ServerPacket packet)
+        {
+            return _sendBuffer.TryDequeue(out packet);
+        }
+
+        public void ResetReceive()
+        {
+            lock (_buffer)
+            {
+                _buffer = new byte[BufferSize];
+            }
+        }
+
+        public void ResetSend()
+        {
+            _sendBuffer = new ConcurrentQueue<ServerPacket>();
+        }
+
+        public void Dispose()
+        {
+            WorkSocket.Shutdown(SocketShutdown.Both);
+            WorkSocket.Close();
+            Connected = false;
+        }
+    }
+
     public class Client
     {
 
         public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        public bool Connected { private get; set; }
-        public Socket Socket { get; private set; }
+        public bool Connected => ClientState.Connected;
+
+        public ClientState ClientState;
+
+        public Socket Socket => ClientState.WorkSocket;
 
         private Server Server { get; set; }
-        private Thread Thread { get; set; }
-
-        public int SocketBufferSize = 65535;
-        public byte[] RecvBuffer = new byte[65535];
-        public byte[] SendBuffer = new byte[65535];
-        public List<byte> FullRecvBuffer = new List<byte>();
-        public List<byte> FullSendBuffer = new List<byte>();
 
         public Dictionary<byte, ThrottleInfo> Throttle = new Dictionary<byte, ThrottleInfo>();
 
-        private bool sending = false;
-        private bool recving = false;
+        public IntPtr ConnectionId => ClientState.Id;
 
-        public long ConnectionId { get; private set; }
-
-        private long LastReceived = 0;
-        private long LastSent = 0;
-        private long Idle = 0;
+        private long _lastReceived = 0;
+        private long _lastSent = 0;
+        private long _idle = 0;
         
         public byte ServerOrdinal = 0x00;
         //private byte clientOrdinal = 0x00;
@@ -147,7 +220,7 @@ namespace Hybrasyl
         public void CheckIdle()
         {
             var now = DateTime.Now.Ticks;
-            var idletime = new TimeSpan(now - LastReceived);
+            var idletime = new TimeSpan(now - _lastReceived);
             if (idletime.TotalSeconds > Constants.IDLE_TIME)
             {
                 Logger.DebugFormat("cid {0}: idle for {1} seconds, marking as idle", ConnectionId, idletime.TotalSeconds);
@@ -245,10 +318,10 @@ namespace Hybrasyl
         /// </summary>
         public void UpdateLastReceived(bool updateIdle = true)
         {
-            Interlocked.Exchange(ref LastReceived, DateTime.Now.Ticks);
+            Interlocked.Exchange(ref _lastReceived, DateTime.Now.Ticks);
             if (updateIdle)
-                Interlocked.Exchange(ref Idle, 0);
-            Logger.DebugFormat("cid {0}: lastReceived now {1}", ConnectionId, LastReceived);
+                Interlocked.Exchange(ref _idle, 0);
+            Logger.DebugFormat("cid {0}: lastReceived now {1}", ConnectionId, _lastReceived);
         }
 
         /// <summary>
@@ -256,12 +329,12 @@ namespace Hybrasyl
         /// </summary>
         public void ToggleIdle()
         {
-            if (Idle == 0)
+            if (_idle == 0)
             {
-                Interlocked.Exchange(ref Idle, 1);
+                Interlocked.Exchange(ref _idle, 1);
                 return;
             }
-            Interlocked.Exchange(ref Idle, 0);
+            Interlocked.Exchange(ref _idle, 0);
         }
 
         /// <summary>
@@ -269,7 +342,7 @@ namespace Hybrasyl
         /// </summary>
         public bool IsIdle()
         {
-            return (Idle == 1);
+            return (_idle == 1);
         }
 
         public Client()
@@ -279,25 +352,24 @@ namespace Hybrasyl
 
         public Client(Socket socket, Server server)
         {
-            Socket = socket;
+            ClientState = new ClientState(socket);
             Server = server;
-            ConnectionId = GlobalConnectionManifest.GetNewConnectionId();
             Logger.InfoFormat("Connection {0} from {1}:{2}", ConnectionId,
                 ((IPEndPoint)Socket.RemoteEndPoint).Address.ToString(),
                 ((IPEndPoint)Socket.RemoteEndPoint).Port);
-            Connected = true;
             EncryptionKey = Encoding.ASCII.GetBytes("UrkcnItnI");
             EncryptionKeyTable = new byte[1024];
-            LastReceived = DateTime.Now.Ticks;
+            _lastReceived = DateTime.Now.Ticks;
             GlobalConnectionManifest.RegisterClient(this);
             ConnectedSince = DateTime.Now.Ticks;
         }
 
-
-
         public void Disconnect()
         {
-            Connected = false;
+            GlobalConnectionManifest.DeregisterClient(this);
+            World.MessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.CleanupUser, ConnectionId));
+            ClientState.Dispose();
+
         }
 
         public byte[] GenerateKey(ushort bRand, byte sRand)
