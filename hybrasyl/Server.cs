@@ -153,22 +153,39 @@ namespace Hybrasyl
         public void SendCallback(IAsyncResult ar)
         {
             ClientState state = (ClientState) ar.AsyncState;
+            Client client;
+
+            if (!GlobalConnectionManifest.ConnectedClients.TryGetValue(state.Id, out client))
+            {
+                Logger.ErrorFormat("Received data on a socket that should not exist");
+                state.WorkSocket.Close();
+                state.WorkSocket.Dispose();
+                return;
+            }
 
             try
             {
                 SocketError errorCode;
                 var bytesSent = state.WorkSocket.EndSend(ar, out errorCode);
-                if (errorCode != SocketError.Success)
-                    bytesSent = 0;
+                if (bytesSent == 0 || errorCode != SocketError.Success)
+                {
+                    Logger.ErrorFormat("cid {0}: disconnected");
+                    client.Disconnect();
+                    return;
+                }
+                // Last but not least, go back to receiving
+                state.WorkSocket.BeginReceive(state.Buffer, 0, state.Buffer.Length, 0,
+                    new AsyncCallback(this.ReadCallback), state);
             }
             catch (SocketException)
             {
-
+                client.Disconnect();
             }
             catch (ObjectDisposedException)
             {
-                
+                client.Disconnect();
             }
+
         }
 
         public void ReadCallback(IAsyncResult ar)
@@ -178,6 +195,8 @@ namespace Hybrasyl
             if (!GlobalConnectionManifest.ConnectedClients.TryGetValue(state.Id, out client))
             {
                 Logger.ErrorFormat("Received data on a socket that should not exist");
+                state.WorkSocket.Close();
+                state.WorkSocket.Dispose();
                 return;
             }
             SocketError errorCode;
@@ -196,7 +215,6 @@ namespace Hybrasyl
             {
                 // TODO: Other handling options here?
                 client.Disconnect();
-
             }
             catch (ObjectDisposedException)
             {
@@ -220,8 +238,7 @@ namespace Hybrasyl
                     if (packetLength > inboundBytes.Length)
                     {
                         // We haven't received the entire packet yet; read more bytes
-                        state.WorkSocket.BeginReceive(state.Buffer, 0, state.Buffer.Length, 0,
-                            new AsyncCallback(this.ReadCallback), state);
+                        break;
                     }
                     else
                     {
