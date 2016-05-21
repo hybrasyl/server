@@ -110,8 +110,9 @@ namespace Hybrasyl
             try
             {
                 WorkSocket.Shutdown(SocketShutdown.Both);
+                WorkSocket.Close();
             }
-            finally
+            catch (Exception)
             {
                 WorkSocket.Close();
             }

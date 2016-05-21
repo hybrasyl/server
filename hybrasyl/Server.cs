@@ -98,6 +98,7 @@ namespace Hybrasyl
             Socket handler = clientSocket.EndAccept(ar);
             Client client = new Client(handler, this);
             Clients.GetOrAdd(clientSocket.Handle, client);
+            GlobalConnectionManifest.RegisterClient(client);
             if (this is Lobby)
             {
                 var x7E = new ServerPacket(0x7E);

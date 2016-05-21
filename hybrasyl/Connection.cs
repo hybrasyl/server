@@ -39,7 +39,7 @@ namespace Hybrasyl
 
         public static void RegisterClient(Client client)
         {
-            Logger.DebugFormat("RegisterConnection: {0}", client.ConnectionId);
+            Logger.InfoFormat("RegisterConnection: {0}", client.ConnectionId);
             ConnectedClients[client.ConnectionId] = client;
             if (client.ServerType == ServerTypes.World)
                 WorldClients[client.ConnectionId] = client;
