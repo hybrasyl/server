@@ -123,7 +123,7 @@ namespace Hybrasyl
             }
 
             var byteData = (byte[]) serverPacket;
-
+            Logger.InfoFormat("Sending 0x{0:X2}", byteData[3]);
             client.Socket.BeginSend(byteData, 0, byteData.Length, 0,
                 new AsyncCallback(SendCallback), client);
 
