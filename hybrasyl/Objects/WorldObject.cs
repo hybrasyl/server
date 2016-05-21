@@ -737,8 +737,9 @@ namespace Hybrasyl.Objects
             Logger.InfoFormat("SendAnimation byte format is: {0}", BitConverter.ToString(packet.ToArray()));
             foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>())
             {
+                var nPacket = (ServerPacket)packet.Clone();
                 Logger.InfoFormat("SendAnimation to {0}",user.Name);
-                user.Enqueue(packet);
+                user.Enqueue(nPacket);
                 PlaySound(sound);
             }
         }

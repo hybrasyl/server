@@ -22,6 +22,8 @@
 
 using log4net;
 using System;
+using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 
 namespace Hybrasyl
@@ -32,7 +34,7 @@ namespace Hybrasyl
         Normal,
         MD5Key
     }
-
+    [Serializable]
     public abstract class Packet
     {
         public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
@@ -316,6 +318,17 @@ namespace Hybrasyl
             if (_position > Data.Length) _position = Data.Length;
             return _position;
         }
+
+        public object Clone()
+        {
+            MemoryStream ms = new MemoryStream();
+            BinaryFormatter bf = new BinaryFormatter();
+            bf.Serialize(ms, this);
+            ms.Position = 0;
+            object obj = bf.Deserialize(ms);
+            ms.Close();
+            return obj;
+        }
     }
 
     public enum PacketSeekOrigin
@@ -324,7 +337,7 @@ namespace Hybrasyl
         Current,
         End
     }
-
+    [Serializable]
     public class ClientPacket : Packet
     {
         #region Dialog Crc Table
@@ -644,8 +657,19 @@ namespace Hybrasyl
                 }
             }
         }
-    }
 
+        //public override object Clone()
+        //{
+        //    MemoryStream ms = new MemoryStream();
+        //    BinaryFormatter bf = new BinaryFormatter();
+        //    bf.Serialize(ms, this);
+        //    ms.Position = 0;
+        //    object obj = bf.Deserialize(ms);
+        //    ms.Close();
+        //    return (ClientPacket)obj;
+        //}
+    }
+    [Serializable]
     public class ServerPacket : Packet
     {
         public override bool ShouldEncrypt => Opcode != 0x00 && Opcode != 0x03 && Opcode != 0x7E;
@@ -894,5 +918,16 @@ namespace Hybrasyl
             Data[length + 1] = (byte)(sRand ^ 0x24);
             Data[length + 2] = (byte)((bRand >> 8) % 256 ^ 0x64);
         }
+
+        //public override object Clone()
+        //{
+        //    MemoryStream ms = new MemoryStream();
+        //    BinaryFormatter bf = new BinaryFormatter();
+        //    bf.Serialize(ms, this);
+        //    ms.Position = 0;
+        //    object obj = bf.Deserialize(ms);
+        //    ms.Close();
+        //    return (ServerPacket)obj;
+        //}
     }
 }
