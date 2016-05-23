@@ -73,7 +73,7 @@ namespace Hybrasyl
         private static Thread _loginSendThread;
         private static Thread _worldSendThread;
 
-        private static CancellationTokenSource CancellationTokenSource;
+        private static readonly CancellationTokenSource CancellationTokenSource = new CancellationTokenSource();
 
         public static void ToggleActive()
         {
@@ -243,7 +243,7 @@ namespace Hybrasyl
             Lobby.StopToken = CancellationTokenSource.Token;
             Login.StopToken = CancellationTokenSource.Token;
             World.StopToken = CancellationTokenSource.Token;
-
+        
             if (!World.InitWorld())
             {
                 Logger.FatalFormat("Hybrasyl cannot continue loading. Press any key to exit.");
