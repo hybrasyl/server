@@ -1734,8 +1734,11 @@ namespace Hybrasyl.Objects
             //animation handled here as to not repeatedly send assails.
             //this.LastAttack = DateTime.Now;
             var assail = new ServerPacketStructures.PlayerAnimation() {Animation = 1, Speed = 20, UserId = this.Id};
+            var sound = new ServerPacketStructures.PlaySound() {Sound = 01};
             Enqueue(assail.Packet());
-            SendAnimation(assail.Packet(), 01);
+            Enqueue(sound.Packet());
+            SendAnimation(assail.Packet());
+            PlaySound(sound.Packet());
         }
 
 

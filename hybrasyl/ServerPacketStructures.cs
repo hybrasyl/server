@@ -14,6 +14,7 @@ namespace Hybrasyl
         internal partial class UseSkill
         {
             private byte OpCode;
+
             internal UseSkill()
             {
                 OpCode = OpCodes.UseSkill;
@@ -25,10 +26,12 @@ namespace Hybrasyl
         internal partial class PlayerAnimation
         {
             private byte OpCode;
+
             internal PlayerAnimation()
             {
                 OpCode = OpCodes.PlayerAnimation;
             }
+
             internal uint UserId { get; set; }
             internal ushort Speed { get; set; }
             internal byte Animation { get; set; }
@@ -45,5 +48,51 @@ namespace Hybrasyl
             }
 
         }
-    }
+
+        internal partial class PlaySound
+        {
+            private byte OpCode;
+
+            internal PlaySound()
+            {
+                OpCode = OpCodes.PlaySound;
+            }
+
+            internal byte Sound { get; set; }
+
+            internal ServerPacket Packet()
+            {
+                ServerPacket packet = new ServerPacket(OpCode);
+                Console.WriteLine(String.Format("sound: {0}", Sound));
+                packet.WriteByte(Sound);
+                return packet;
+            }
+        }
+
+        internal partial class HealthBar
+        {
+            private byte OpCode;
+            internal HealthBar()
+            {
+                OpCode = OpCodes.HealthBar;
+            }
+
+            internal uint ObjId { get; set; }
+
+            internal byte CurrentPercent { get; set; }
+            internal byte? Sound { get; set; }
+
+            internal ServerPacket Packet()
+            {
+                ServerPacket packet = new ServerPacket(OpCode);
+                packet.WriteUInt32(ObjId);
+                packet.WriteByte(0);
+                packet.WriteByte(CurrentPercent);
+                packet.WriteByte(Sound ?? 0xFF);
+
+                return packet;
+            }
+
+        }
+}
 }
