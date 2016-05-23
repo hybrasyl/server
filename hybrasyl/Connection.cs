@@ -32,14 +32,29 @@ namespace Hybrasyl
     public static class GlobalConnectionManifest
     {
         public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+        private static long _connectionId = 0;
+        public static long GetNewConnectionId()
+        {
+            Interlocked.Increment(ref _connectionId);
+            return _connectionId;
+        }
 
-        public static ConcurrentDictionary<IntPtr, Client> ConnectedClients = new ConcurrentDictionary<IntPtr, Client>();
-        public static ConcurrentDictionary<IntPtr, Client> WorldClients = new ConcurrentDictionary<IntPtr, Client>();
+        public static ConcurrentDictionary<long, Client> ConnectedClients = new ConcurrentDictionary<long, Client>();
+        public static ConcurrentDictionary<long, Client> WorldClients = new ConcurrentDictionary<long, Client>();
+        public static ConcurrentDictionary<long, Redirect> Redirects = new ConcurrentDictionary<long, Redirect>();
 
+        public static void RegisterRedirect(Client client, Redirect redirect)
+        {
+            Redirects[client.ConnectionId] = redirect;
+        }
+
+        public static bool TryGetRedirect(long cid, out Redirect redirect)
+        {
+            return Redirects.TryGetValue(cid, out redirect);
+        }
 
         public static void RegisterClient(Client client)
         {
-            Logger.InfoFormat("RegisterConnection: {0}", client.ConnectionId);
             ConnectedClients[client.ConnectionId] = client;
             if (client.ServerType == ServerTypes.World)
                 WorldClients[client.ConnectionId] = client;
@@ -47,7 +62,8 @@ namespace Hybrasyl
 
         public static void DeregisterClient(Client client)
         {
-            ((IDictionary)ConnectedClients).Remove(client.ConnectionId);
+            ((IDictionary) ConnectedClients).Remove(client.ConnectionId);
+                Logger.InfoFormat("Deregistering {0}", client.ConnectionId);
             // Send a control message to clean up after World users; Lobby and Login handle themselves
             if (client.ServerType == ServerTypes.World)
             {
@@ -78,9 +94,9 @@ namespace Hybrasyl
     public class HybrasylClientMessage : HybrasylMessage
     {
         public ClientPacket Packet { get; private set; }
-        public IntPtr ConnectionId { get; private set; }
+        public long ConnectionId { get; private set; }
 
-        public HybrasylClientMessage(ClientPacket packet, IntPtr connectionId, params object[] arguments) : 
+        public HybrasylClientMessage(ClientPacket packet, long connectionId, params object[] arguments) : 
             base("HybrasylClientMessage", arguments)
         {
             Packet = packet;

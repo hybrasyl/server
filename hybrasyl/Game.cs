@@ -69,6 +69,10 @@ namespace Hybrasyl
         private static Thread _loginThread;
         private static Thread _worldThread;
 
+        private static Thread _lobbySendThread;
+        private static Thread _loginSendThread;
+        private static Thread _worldSendThread;
+
         public static void ToggleActive()
         {
             if (Interlocked.Read(ref Active) == 0)
@@ -287,10 +291,18 @@ namespace Hybrasyl
             _loginThread = new Thread(new ThreadStart(Login.StartListening));
             _worldThread = new Thread(new ThreadStart(World.StartListening));
 
+            _lobbySendThread = new Thread(new ThreadStart(Lobby.SendLoop));
+            _loginSendThread = new Thread(new ThreadStart(Login.SendLoop));
+            _worldSendThread = new Thread(new ThreadStart(World.SendLoop));
+
             _lobbyThread.Start();
             _loginThread.Start();
             _worldThread.Start();
-                
+
+            _lobbySendThread.Start();
+            _loginSendThread.Start();
+            _worldSendThread.Start();
+
             while (true)
             {
                 if (!IsActive())

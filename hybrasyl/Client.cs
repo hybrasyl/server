@@ -31,25 +31,29 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using IronPython.Compiler;
 using Microsoft.Scripting.Utils;
 
 namespace Hybrasyl
 {
     public class ClientState
     {
-        private const int BufferSize = 65535;
+        private const int BufferSize = 1024;
         private byte[] _buffer = new byte[BufferSize];
+        public bool Recieving;
         private ConcurrentQueue<ServerPacket> _sendBuffer = new ConcurrentQueue<ServerPacket>(); 
         public bool Connected { get; set; }
 
-        public IntPtr Id { get; }
+        public long Id { get; }
+
+        public object Lock = new object();
 
         public Socket WorkSocket { get; }
 
         public ClientState(Socket incoming)
         {
             this.WorkSocket = incoming;
-            this.Id = incoming.Handle;
+            this.Id = GlobalConnectionManifest.GetNewConnectionId();
             this.Connected = true;
         }
 
@@ -136,7 +140,7 @@ namespace Hybrasyl
 
         public Dictionary<byte, ThrottleInfo> Throttle = new Dictionary<byte, ThrottleInfo>();
 
-        public IntPtr ConnectionId => ClientState.Id;
+        public long ConnectionId => ClientState.Id;
 
         private long _lastReceived = 0;
         private long _lastSent = 0;
@@ -407,13 +411,15 @@ namespace Hybrasyl
         public void Enqueue(ServerPacket packet)
         {
             Logger.DebugFormat("Enqueueing {0}", packet.Opcode);
-            Server.Send(this, packet);
+            ClientState.SendBufferAdd(packet);
         }
 
         public void Redirect(Redirect redirect)
         {
-            Logger.DebugFormat("Processing redirect");
-            GlobalConnectionManifest.DeregisterClient(this);
+            Logger.InfoFormat("Processing redirect");
+            GlobalConnectionManifest.RegisterRedirect(this, redirect);
+            Logger.InfoFormat("Redirect: cid {0}", this.ConnectionId);
+            //GlobalConnectionManifest.DeregisterClient(this);
 
             redirect.Destination.ExpectedConnections.TryAdd(redirect.Id, redirect);
 

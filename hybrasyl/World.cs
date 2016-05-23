@@ -148,8 +148,8 @@ namespace Hybrasyl
         public HybrasylScriptProcessor ScriptProcessor { get; set; }
 
         public static BlockingCollection<HybrasylMessage> MessageQueue;
-        public static ConcurrentDictionary<IntPtr, User> ActiveUsers { get; private set; }
-        public ConcurrentDictionary<string, IntPtr> ActiveUsersByName { get; set; }
+        public static ConcurrentDictionary<long, User> ActiveUsers { get; private set; }
+        public ConcurrentDictionary<string, long> ActiveUsersByName { get; set; }
 
         private Thread ConsumerThread { get; set; }
 
@@ -227,8 +227,8 @@ namespace Hybrasyl
 
             ScriptProcessor = new HybrasylScriptProcessor(this);
             MessageQueue = new BlockingCollection<HybrasylMessage>(new ConcurrentQueue<HybrasylMessage>());
-            ActiveUsers = new ConcurrentDictionary<IntPtr, User>();
-            ActiveUsersByName = new ConcurrentDictionary<string, IntPtr>();
+            ActiveUsers = new ConcurrentDictionary<long, User>();
+            ActiveUsersByName = new ConcurrentDictionary<string, long>();
             
             var datastoreConfig = new ConfigurationOptions()
             {
@@ -910,7 +910,7 @@ namespace Hybrasyl
         private void ControlMessage_CleanupUser(HybrasylControlMessage message)
         {
             // clean up after a broken connection
-            var connectionId = (IntPtr) message.Arguments[0];
+            var connectionId = (long) message.Arguments[0];
             User user;
             if (ActiveUsers.TryRemove(connectionId, out user))
             {
@@ -940,7 +940,7 @@ namespace Hybrasyl
             // USDA Formula for MP: MAXMP * (0.1 + (WIS - Lv) * 0.01) <20% MAXMP
             // Regen = regen * 0.0015 (so 100 regen = 15%)
             User user;
-            var connectionId = (IntPtr) message.Arguments[0];
+            var connectionId = (long) message.Arguments[0];
             if (ActiveUsers.TryGetValue(connectionId, out user))
             {
                 uint hpRegen = 0;
@@ -971,7 +971,7 @@ namespace Hybrasyl
         {
             // save a user
             User user;
-            var connectionId = (IntPtr) message.Arguments[0];
+            var connectionId = (long) message.Arguments[0];
             if (ActiveUsers.TryGetValue(connectionId, out user))
             {
                 Logger.DebugFormat("Saving user {0}", user.Name);
@@ -2025,7 +2025,7 @@ namespace Hybrasyl
             }
             else
             {
-                IntPtr connectionId;
+                long connectionId;
 
                 //user.Save();
                 user.UpdateLogoffTime();
@@ -2048,7 +2048,7 @@ namespace Hybrasyl
 
         private void PacketHandler_0x10_ClientJoin(Object obj, ClientPacket packet)
         {
-            var connectionId = (IntPtr) obj;
+            var connectionId = (long) obj;
 
             var seed = packet.ReadByte();
             var keyLength = packet.ReadByte();
