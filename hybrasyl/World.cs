@@ -3823,8 +3823,10 @@ namespace Hybrasyl
 
         private void QueueConsumer()
         {
-            while (!MessageQueue.IsCompleted) 
+            while (!MessageQueue.IsCompleted)
             {
+                if (StopToken.IsCancellationRequested)
+                    return;
                 // Process messages.
                 HybrasylMessage message;
                 User user;

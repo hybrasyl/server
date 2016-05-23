@@ -56,7 +56,7 @@ namespace Hybrasyl
         public ControlMessageHandler[] ControlMessageHandlers { get; private set; }
         public ConcurrentDictionary<uint, Redirect> ExpectedConnections { get; private set; }
 
-        private CancellationToken _serverStop = new CancellationToken();
+        public CancellationToken StopToken { get; set; }
 
         public bool Active { get; private set; }
 
@@ -85,7 +85,7 @@ namespace Hybrasyl
             Logger.InfoFormat("Starting TcpListener: {0}:{1}", IPAddress.Any.ToString(), Port);
             while (true)
             {
-                if (_serverStop.IsCancellationRequested)
+                if (StopToken.IsCancellationRequested)
                     return;
                 AllDone.Reset();
                 Listener.BeginAccept(new AsyncCallback(AcceptConnection), Listener);
@@ -98,7 +98,7 @@ namespace Hybrasyl
         {
             while (true)
             {
-                if (_serverStop.IsCancellationRequested)
+                if (StopToken.IsCancellationRequested)
                     return;
                 //Logger.InfoFormat("GCM value: {0}", GlobalConnectionManifest.ConnectedClients.Count);
                 foreach (var client in GlobalConnectionManifest.ConnectedClients.Select(kvp => kvp.Value))

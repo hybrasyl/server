@@ -740,7 +740,7 @@ namespace Hybrasyl.Objects
                 var nPacket = (ServerPacket)packet.Clone();
                 Logger.InfoFormat("SendAnimation to {0}",user.Name);
                 user.Enqueue(nPacket);
-                PlaySound(sound);
+                user.SendSound(sound);
             }
         }
 
