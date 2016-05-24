@@ -260,11 +260,12 @@ namespace Hybrasyl.Objects
             }
         }
 
-        public virtual void PlaySound(byte sound)
+        public virtual void PlaySound(ServerPacket packet)
         {
             foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>().Select(obj => obj))
             {
-                user.SendSound(sound);
+                var nPacket = (ServerPacket)packet.Clone();
+                user.Enqueue(nPacket);
             }
         }
 
@@ -731,7 +732,7 @@ namespace Hybrasyl.Objects
             //do aoe?
         }
 
-        public void SendAnimation(ServerPacket packet, byte sound)
+        public void SendAnimation(ServerPacket packet)
         {
             Logger.InfoFormat("SendAnimation");
             Logger.InfoFormat("SendAnimation byte format is: {0}", BitConverter.ToString(packet.ToArray()));
@@ -740,7 +741,7 @@ namespace Hybrasyl.Objects
                 var nPacket = (ServerPacket)packet.Clone();
                 Logger.InfoFormat("SendAnimation to {0}",user.Name);
                 user.Enqueue(nPacket);
-                user.SendSound(sound);
+                
             }
         }
 
@@ -806,7 +807,7 @@ namespace Hybrasyl.Objects
                 damage = (damage - reduction) * resist;
             }
 
-            if (attacker != null)
+            if (attacker == null)
                 _mLastHitter = attacker.Id;
 
             var normalized = (uint)damage;
@@ -821,15 +822,13 @@ namespace Hybrasyl.Objects
 
         private void SendDamageUpdate(Creature creature)
         {
-            var x13 = new ServerPacket(0x13);
-            x13.WriteUInt32(creature.Id);
             var percent = ((creature.Hp / (double)creature.MaximumHp) * 100);
-            x13.WriteByte(0);
-            x13.WriteByte((byte)(percent));
-            x13.WriteByte(255);
+            var healthbar = new ServerPacketStructures.HealthBar() {CurrentPercent = (byte)percent, ObjId = creature.Id};
+
             foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>())
             {
-                user.Enqueue(x13);
+                var nPacket = (ServerPacket)healthbar.Packet().Clone();
+                user.Enqueue(nPacket);
             }
         }
 
