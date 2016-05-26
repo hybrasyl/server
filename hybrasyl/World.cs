@@ -44,7 +44,9 @@ using System.Threading;
 using System.Timers;
 using System.Xml;
 using System.Xml.Schema;
+using log4net.Util.TypeConverters;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using StackExchange.Redis;
 
 namespace Hybrasyl
@@ -99,8 +101,114 @@ namespace Hybrasyl
         }
     }
 
+
+    public class HybrasylTimeConverter
+    {
+        public static DateTime ConvertToTerran(HybrasylTime hybrasyl)
+        {
+            return DateTime.Now;
+        }
+
+        public static HybrasylTime ConvertToHybrasyl(DateTime terran)
+        {
+            HybrasylAge currentAge;
+
+            Game.Config.TimeConfig.Ages.
+        }
+    }
+
+    public class HybrasylTime
+    {
+        public string Age;
+        public int Year;
+        public int Moon;
+        public int Sun;
+        public int Hour;
+        public int Minute;
+
+        public const long YearTicks = 12*MoonTicks;
+        public const long MoonTicks = 28*SunTicks;
+        public const long SunTicks = 24*HourTicks;
+        public const long HourTicks = 60*MinuteTicks;
+        public const long MinuteTicks = 480*TimeSpan.TicksPerSecond;
+
+        public HybrasylTime(int year, int moon, int sun, int hour, string age = World.DefaultAge)
+        {
+            Age = age;
+            Year = year;
+            Moon = moon;
+            Sun = sun;
+            Hour = hour;
+        }
+
+        public HybrasylTime(DateTime terran)
+        {
+            
+        }
+
+        public static HybrasylTime Now()
+        {
+            var timeElapsed = (Game.Config.TimeConfig.ServerStart.Ticks - DateTime.Now.Ticks)*8;
+            var hybrasylTime = new HybrasylTime(0, 0, 0, 0);
+            while (timeElapsed < HourTicks)
+            {
+                // Year
+                if (timeElapsed >= YearTicks)
+                {
+                    timeElapsed = timeElapsed - YearTicks;
+                    hybrasylTime.Year++;
+                    continue;
+                }
+                if (timeElapsed >= MoonTicks)
+                {
+                    timeElapsed = timeElapsed - MoonTicks;
+                    hybrasylTime.Moon++;
+                    continue;
+                }
+                if (timeElapsed >= SunTicks)
+                {
+                    timeElapsed = timeElapsed - SunTicks;
+                    hybrasylTime.Sun++;
+                    continue;
+                }
+                if (timeElapsed < HourTicks) continue;
+                timeElapsed = timeElapsed - HourTicks;
+                hybrasylTime.Hour++;                
+            }
+            hybrasylTime.Minute = (int)timeElapsed/8;
+            return hybrasylTime;
+        }
+
+        public long TerranTicksElapsed => HybrasylTicksElapsed/8;
+
+        public long HybrasylTicksElapsed =>
+            Year*YearTicks + Moon*MoonTicks + Sun*SunTicks + Hour*HourTicks + Minute*MinuteTicks;
+
+        public static DateTime ConvertToTerran(HybrasylTime hybrasylTime)
+        {
+            // Determine the age (in Terran time), in order to set our start date
+            if (hybrasylTime.Age == Game.Config.Time.)
+            {
+                return new DateTime(Game.Config.TimeConfig.ServerStart.Ticks + hybrasylTime.TerranTicksElapsed);
+            }
+            else
+            {
+                // Determine our current age
+                var currentAge = Game.Config.TimeConfig.Ages.Find(age => age.Name == hybrasylTime.Age);
+                if (currentAge == null)
+                {
+                    throw new ArgumentException($"Age \"{hybrasylTime.Age}\" is unknown according to configured ages");
+                }
+                if (currentAge.EndDate != null && currentAge.StartDate.Ticks + hybrasylTime.TerranTicksElapsed > currentAge.EndDate.Ticks)
+            }
+            
+        }
+
+    }
+
     public class World : Server
     {
+        internal const string DefaultAge = "Hybrasyl";
         private static uint worldObjectID = 0;
 
         public new static ILog Logger =

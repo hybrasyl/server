@@ -19,7 +19,6 @@
  *            Kyle Speck    <kojasou@hybrasyl.com>
  */
 
-using System.Data.Odbc;
 using Hybrasyl.Properties;
 using Hybrasyl.XSD;
 using log4net;
@@ -32,7 +31,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Xml;
-using System.Xml.Linq;
 using Hybrasyl.XML;
 using log4net.Core;
 using zlib;

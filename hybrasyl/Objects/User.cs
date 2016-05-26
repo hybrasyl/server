@@ -44,6 +44,12 @@ namespace Hybrasyl.Objects
         public String Text { get; set; }
         public bool Public { get; set; }
         public DateTime Created { get; set; }
+        public int Quantity { get; set; }
+        /*
+        public override string ToString()
+        {
+            //var ingame = World.TimeConverter.AsString(Created, bool fullTime = false)
+        }*/
     }
 
     [JsonObject]
@@ -693,13 +699,13 @@ namespace Hybrasyl.Objects
             profilePacket.WriteString8(Guild.Rank);
             profilePacket.WriteString8(Hybrasyl.Constants.REVERSE_CLASSES[(int)Class]);
             profilePacket.WriteString8(Guild.Name);
-            profilePacket.WriteByte((byte)Legend.Count);
+            profilePacket.WriteByte((byte)Legend.Count );
             foreach (var mark in Legend)
             {
                 profilePacket.WriteByte((byte)mark.Icon);
                 profilePacket.WriteByte((byte)mark.Color);
                 profilePacket.WriteString8(mark.Prefix);
-                profilePacket.WriteString8(mark.Text);
+                profilePacket.WriteString8(mark.ToString());
             }
             profilePacket.WriteUInt16((ushort)(PortraitData.Length + ProfileText.Length + 4));
             profilePacket.WriteUInt16((ushort)PortraitData.Length);
