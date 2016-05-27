@@ -80,7 +80,7 @@ mobs, etc).
    | xml/maps                   | Maps, including signpost / messageboard locations, NPCs, etc. Fully implemented.                                                                     |
    | xml/nations                | Nations (citizenship), including spawnpoints. Fully implemented.                                                                                     |
    | xml/worldmaps              | World maps (travelling between areas). Fully implemented.                                                                                            |
-   |----------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
+
 3. Put the [example XML data](https://github.com/hybrasyl/server/examples) from the examples directory into each corresponding XML directory.
    This will populate the world with enough to login as a user, wander around, and test functionality.
 
@@ -100,12 +100,11 @@ The process for compiling the **game server** is detailed below.
 4. Open `HybrasylIntegration.sln` from the SDK repository, and build the integration libraries (just click build).
 5. Open `Hybrasyl.sln` in Visual Studio and update all NuGet packages.
 6. Build Hybrasyl. The default settings should be adequate for most system
-   setups, assuming you've updated and installed all NuGet packages (which is
-   supposed to happen automatically but sometimes has issues).
-4. Copy `lod136.map` and `lod500.map` from your Dark Ages directory (or an
+   setups, assuming you've updated and installed all NuGet packages (which should occur automatically).
+7. Copy `lod136.map` and `lod500.map` from your Dark Ages directory (or an
    online archive) into `My Documents\Hybrasyl\mapfiles` (the directory you
    created above).
-7. Run Hybrasyl.exe either from within Visual Studio or as a standalone
+8. Run `Hybrasyl.exe` either from within Visual Studio or as a standalone
    executable in the `hybrasyl\bin\Debug` folder of your git repository. This
    should launch the server and run you through a first-launch configuration
    wizard. Here's you'll need to point the **Hybrasyl server** at Redis;
@@ -113,7 +112,7 @@ The process for compiling the **game server** is detailed below.
    You can change any of Hybrasyl’s settings later by editing `config.xml`
    in `My Documents\Hybrasyl`.
 
-That completes Hybrasyl server setup. You should be able to use the
+That completes the Hybrasyl server setup. You should be able to use the
 [released version of the launcher](https://www.hybrasyl.com/launcher/Hybrasyl_Launcher_Installer.msi) to
 connect to it. In case you have trouble with the latest launcher, open
 `Hy-brasyl Launcher.sln` and build the project. Launch the executable and
@@ -143,7 +142,8 @@ You should find your Aisling in an inn and ready to explore the world.
   ```xml
   <access>
     <privileged>MyUser</privileged>
-  </access>```
+  </access>
+  ```
 
 * Some flags require admin-level access to the *Hybrasyl server*. Try typing
   `/item Stick` when you log in to add a stick to your inventory. You can add
@@ -155,4 +155,4 @@ You should find your Aisling in an inn and ready to explore the world.
 * You can add new items by creating new XML files. The example items should
   provide good models to follow; there are also XSD files for the XML structure
   in the SDK repository.
-  
+
