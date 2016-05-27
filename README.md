@@ -62,24 +62,26 @@ mobs, etc).
    settings. You will need to ensure that the Redis port, 6379, can be accessed
    from the server running Hybrasyl; you may need to grant access or open
    ports.
+
 2. Create some directories manually (we swear this will be automatically
    handled soon). You’ll need the Hybrasyl data directory, which, for
    convenience, is currently located at ```%MYDOCUMENTS%\Hybrasyl```. You’ll need
-   the following directories:
-   | Location                   | Use |
-   |----------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
-   | mapfiles                   | Used to store *.map files. Map files  have a unique ID, which will be referred to in map XML.                                                        |
-   | scripts/castable           | Scripts (*.py) that can be called by castables (skills and spells) to trigger actions. Not fully implemented.                                        |
-   | scripts/item               | Scripts that can be called by items (e.g. on item use). Not yet implemented.                                                                         |
-   | scripts/npc                | Scripts that will be used by NPCs to interact with players (dialogs, etc.)                                                                           |
-   | scripts/reactor            | Scripts that will be used by reactors (map tiles that respond to events). Not fully implemented.                                                     |
-   | scripts/startup            | Scripts that will be run by Hybrasyl at startup.                                                                                                     |
-   | xml/items                  | Items in the game. Fully implemented.                                                                                                                |
-   | xml/castables              | Castables (actions). Support is ongoing.                                                                                                             |
-   | xml/itemvariants           | Item variants (create modifiers on items, such as Really Cool Stick. Fully implemented for known variants; custom variants will require coding work. |
-   | xml/maps                   | Maps, including signpost / messageboard locations, NPCs, etc. Fully implemented.                                                                     |
-   | xml/nations                | Nations (citizenship), including spawnpoints. Fully implemented.                                                                                     |
-   | xml/worldmaps              | World maps (travelling between areas). Fully implemented.                                                                                            |
+   the following directories: 
+
+   | Location                   | Use | Status |
+   | -------------------------- | --- | ------ |
+   | `mapfiles`                   | Used to store *.map files. Map files  have a unique ID, which will be referred to in map XML. | Fully implemented |
+   | `scripts/castable`           | Scripts (*.py) that can be called by castables (skills and spells) to trigger actions. | Work in progress |
+   | `scripts/item`               | Scripts that can be called by items (e.g. on item use). |  Not implemented |
+   | `scripts/npc`                | Scripts that will be used by NPCs to interact with players (dialogs, etc.)  | Fully implemented |
+   | `scripts/reactor`            | Scripts that will be used by reactors (map tiles that respond to events). | Not implemented  |
+   | `scripts/startup`            | Scripts that will be run by Hybrasyl at startup. | Fully implemented |
+   | `xml/items`                  | Items in the game. | Fully implemented.  |
+   | `xml/castables`              | Castables (actions). | Work in progress. Basic support |
+   | `xml/itemvariants`           | Item variants (create modifiers on items, such as Really Cool Stick. | Fully implemented for known variants; custom variants will require coding work. |
+   | `xml/maps`                   | Maps, including signpost / messageboard locations, NPCs, etc. | Fully implemented.   | 
+   | `xml/nations`                | Nations (citizenship), including spawnpoints. | Fully implemented. |
+   | `xml/worldmaps`              | World maps (travelling between areas). | Fully implemented. |
 
 3. Put the [example XML data](https://github.com/hybrasyl/server/examples) from the examples directory into each corresponding XML directory.
    This will populate the world with enough to login as a user, wander around, and test functionality.
