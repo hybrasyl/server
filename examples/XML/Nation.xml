@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<nation xmlns="http://www.hybrasyl.com/XML/Nations" flag="4" default="yes">
+  <name>Example Nation</name>
+  <spawnpoints>
+	<spawnpoint x="3" y="7">Example Inn</spawnpoint>
+	<spawnpoint x="3" y="8">Example Inn</spawnpoint>
+	<spawnpoint x="3" y="9">Example Inn</spawnpoint>
+	<spawnpoint x="4" y="7">Example Inn</spawnpoint>
+	<spawnpoint x="4" y="8">Example Inn</spawnpoint>
+	<spawnpoint x="4" y="9">Example Inn</spawnpoint>
+	<spawnpoint x="5" y="7">Example Inn</spawnpoint>
+	<spawnpoint x="5" y="8">Example Inn</spawnpoint>
+	<spawnpoint x="5" y="9">Example Inn</spawnpoint>
+	<spawnpoint x="6" y="7">Example Inn</spawnpoint>
+	<spawnpoint x="6" y="8">Example Inn</spawnpoint>
+	<spawnpoint x="6" y="9">Example Inn</spawnpoint>
+  </spawnpoints>	
+</nation>

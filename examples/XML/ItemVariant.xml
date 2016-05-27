@@ -1,0 +1,70 @@
+<?xml version="1.0"?>
+<variantgroup xmlns="http://www.hybrasyl.com/XML/Items">
+  <name>elemental</name>
+  <variant>
+    <name>Fire</name>
+    <modifier>Fire</modifier>
+    <properties>
+      <flags>depositable exchangeable vendorable</flags>
+      <physical value="400"/>
+      <stateffects>
+        <element offense="fire" defense="fire"/>
+      </stateffects>
+    </properties>
+  </variant>
+  <variant>
+    <name>Water</name>
+    <modifier>Water</modifier>
+    <properties>
+      <flags>depositable exchangeable vendorable</flags>
+      <physical value="400"/>
+      <stateffects>
+        <element offense="water" defense="water"/>
+      </stateffects>
+    </properties>
+  </variant>
+  <variant>
+    <name>Wind</name>
+    <modifier>Wind</modifier>
+    <properties>
+      <flags>depositable exchangeable vendorable</flags>
+      <physical value="400"/>
+      <stateffects>
+        <element offense="wind" defense="wind"/>
+      </stateffects>
+    </properties>
+  </variant>
+  <variant>
+    <name>Earth</name>
+    <modifier>Earth</modifier>
+    <properties>
+      <flags>depositable exchangeable vendorable</flags>
+      <physical value="400"/>
+      <stateffects>
+        <element offense="earth" defense="earth"/>
+      </stateffects>
+    </properties>
+  </variant>
+  <variant>
+    <name>Light</name>
+    <modifier>Light</modifier>
+    <properties>
+      <flags>depositable exchangeable vendorable</flags>
+      <physical value="1000"/>
+      <stateffects>
+        <element offense="light" defense="light"/>
+      </stateffects>
+    </properties>
+  </variant>
+  <variant>
+    <name>Shadow</name>
+    <modifier>Shadow</modifier>
+    <properties>
+      <flags>depositable exchangeable vendorable</flags>
+      <physical value="1000"/>
+      <stateffects>
+        <element offense="dark" defense="dark"/>
+      </stateffects>
+    </properties>
+  </variant>
+</variantgroup>
