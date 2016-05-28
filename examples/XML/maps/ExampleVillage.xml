@@ -2,12 +2,6 @@
 <map xmlns="http://www.hybrasyl.com/XML/Maps" id="500" x="100" y="100">
   <name>Example Village</name>
   <warps>
-    <warp x="13" y="68">
-      <maptarget x="6" y="13">Example Weapon Shop</maptarget>
-    </warp>
-    <warp x="18" y="62">
-      <maptarget x="10" y="9">Example Armor Shop</maptarget>
-    </warp>
     <warp x="27" y="43">
       <maptarget x="5" y="10">Example Inn</maptarget>
     </warp>
