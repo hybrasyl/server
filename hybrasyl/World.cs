@@ -32,7 +32,6 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics.Eventing.Reader;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -42,11 +41,12 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Timers;
+using System.Windows.Forms;
 using System.Xml;
 using System.Xml.Schema;
-using log4net.Util.TypeConverters;
+using IronPython.Modules;
+using Microsoft.Win32.SafeHandles;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
 using StackExchange.Redis;
 
 namespace Hybrasyl
@@ -101,116 +101,12 @@ namespace Hybrasyl
         }
     }
 
-
-    public class HybrasylTimeConverter
-    {
-        public static DateTime ConvertToTerran(HybrasylTime hybrasyl)
-        {
-            return DateTime.Now;
-        }
-
-        public static HybrasylTime ConvertToHybrasyl(DateTime terran)
-        {
-            HybrasylAge currentAge;
-
-            Game.Config.TimeConfig.Ages.
-        }
-    }
-
-    public class HybrasylTime
-    {
-        public string Age;
-        public int Year;
-        public int Moon;
-        public int Sun;
-        public int Hour;
-        public int Minute;
-
-        public const long YearTicks = 12*MoonTicks;
-        public const long MoonTicks = 28*SunTicks;
-        public const long SunTicks = 24*HourTicks;
-        public const long HourTicks = 60*MinuteTicks;
-        public const long MinuteTicks = 480*TimeSpan.TicksPerSecond;
-
-        public HybrasylTime(int year, int moon, int sun, int hour, string age = World.DefaultAge)
-        {
-            Age = age;
-            Year = year;
-            Moon = moon;
-            Sun = sun;
-            Hour = hour;
-        }
-
-        public HybrasylTime(DateTime terran)
-        {
-            
-        }
-
-        public static HybrasylTime Now()
-        {
-            var timeElapsed = (Game.Config.TimeConfig.ServerStart.Ticks - DateTime.Now.Ticks)*8;
-            var hybrasylTime = new HybrasylTime(0, 0, 0, 0);
-            while (timeElapsed < HourTicks)
-            {
-                // Year
-                if (timeElapsed >= YearTicks)
-                {
-                    timeElapsed = timeElapsed - YearTicks;
-                    hybrasylTime.Year++;
-                    continue;
-                }
-                if (timeElapsed >= MoonTicks)
-                {
-                    timeElapsed = timeElapsed - MoonTicks;
-                    hybrasylTime.Moon++;
-                    continue;
-                }
-                if (timeElapsed >= SunTicks)
-                {
-                    timeElapsed = timeElapsed - SunTicks;
-                    hybrasylTime.Sun++;
-                    continue;
-                }
-                if (timeElapsed < HourTicks) continue;
-                timeElapsed = timeElapsed - HourTicks;
-                hybrasylTime.Hour++;                
-            }
-            hybrasylTime.Minute = (int)timeElapsed/8;
-            return hybrasylTime;
-        }
-
-        public long TerranTicksElapsed => HybrasylTicksElapsed/8;
-
-        public long HybrasylTicksElapsed =>
-            Year*YearTicks + Moon*MoonTicks + Sun*SunTicks + Hour*HourTicks + Minute*MinuteTicks;
-
-        public static DateTime ConvertToTerran(HybrasylTime hybrasylTime)
-        {
-            // Determine the age (in Terran time), in order to set our start date
-            if (hybrasylTime.Age == Game.Config.Time.)
-            {
-                return new DateTime(Game.Config.TimeConfig.ServerStart.Ticks + hybrasylTime.TerranTicksElapsed);
-            }
-            else
-            {
-                // Determine our current age
-                var currentAge = Game.Config.TimeConfig.Ages.Find(age => age.Name == hybrasylTime.Age);
-                if (currentAge == null)
-                {
-                    throw new ArgumentException($"Age \"{hybrasylTime.Age}\" is unknown according to configured ages");
-                }
-                if (currentAge.EndDate != null && currentAge.StartDate.Ticks + hybrasylTime.TerranTicksElapsed > currentAge.EndDate.Ticks)
-            }
-            
-        }
-
-    }
-
     public class World : Server
     {
-        internal const string DefaultAge = "Hybrasyl";
         private static uint worldObjectID = 0;
 
+        public static DateTime StartDate
+            => Game.Config.Time.StartDate != null ? (DateTime) Game.Config.Time.StartDate : Game.StartDate;
         public new static ILog Logger =
             LogManager.GetLogger(
                 System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
@@ -1883,6 +1779,53 @@ namespace Hybrasyl
                         else
                         {
                             user.SendMessage("That Aisling is not in Temuair.", 0x01);
+                        }
+                    }
+                        break;
+                    case "/time":
+                    {
+                        var time = HybrasylTime.Now();
+                        user.SendMessage(time.ToString(), 0x1);
+                    }
+                        break;
+                    case "/timeconvert":
+                    {
+                        var target = args[1].ToLower();
+                        Logger.InfoFormat("timeconvert: {0}", target);
+
+                        if (target == "aisling")
+                        {
+                            try
+                            {
+                                var dateString = string.Join(" ", args, 2, args.Length - 2);
+                                var hybrasylTime = HybrasylTime.FromString(dateString);
+                                user.SendSystemMessage(HybrasylTime.ConvertToTerran(hybrasylTime).ToString("o"));
+                            }
+                            catch (Exception)
+                            {
+                                user.SendSystemMessage("Your Aisling time could not be parsed!");
+                            }
+                        }
+                        else if (target == "terran")
+                        {
+                            try
+                            {
+                                var dateString = string.Join(" ", args, 2, args.Length - 2);
+                                var dateTime = DateTime.Parse(dateString);
+                                var hybrasylTime = HybrasylTime.ConvertToHybrasyl(dateTime);
+                                Logger.InfoFormat("Yo dawg: {0} {1}, {2} moon, {3} sun", hybrasylTime.Age, hybrasylTime.Year, hybrasylTime.Moon, hybrasylTime.Sun);
+                                user.SendSystemMessage(hybrasylTime.ToString());
+                                Logger.Info("yo dawg");
+                            }
+                            catch (Exception)
+                            {
+                                user.SendSystemMessage(
+                                    "Your terran time couldn't be parsed, or, you know, something else was wrong");
+                            }
+                        }
+                        else
+                        {
+                            user.SendSystemMessage("Usage: /timeconvert (aisling|terran) <date>");
                         }
                     }
                         break;

@@ -71,6 +71,8 @@ namespace Hybrasyl
         private static Thread _loginSendThread;
         private static Thread _worldSendThread;
 
+        public static DateTime StartDate { get; set; }
+
         private static readonly CancellationTokenSource CancellationTokenSource = new CancellationTokenSource();
 
         public static void ToggleActive()
@@ -127,7 +129,7 @@ namespace Hybrasyl
             Config.Network.Login.Port = Convert.ToUInt16(loginPort);
 
             Config.Network.World.Bindaddress = serverIp;
-            Config.Network.World.Port = Convert.ToUInt16(loginPort);
+            Config.Network.World.Port = Convert.ToUInt16(worldPort);
 
             Logger.InfoFormat("Using {0}: {1}, {2}, {3}", serverIp, lobbyPort, loginPort, worldPort);
 
@@ -151,6 +153,10 @@ namespace Hybrasyl
             Config.Datastore.Port = string.IsNullOrEmpty(redisPort) ? (ushort) 6379 : Convert.ToUInt16(redisPort);
             Config.Datastore.Username = string.IsNullOrEmpty(redisUser) ? "" : redisUser;
             Config.Datastore.Password = string.IsNullOrEmpty(redisPass) ? "" : redisPass;
+
+            Config.Time.ServerStart.Value = DateTime.Now.ToString("O");
+            Config.Time.ServerStart.DefaultAge = "Hybrasyl";
+            Config.Time.ServerStart.DefaultYear = 1;
 
             return Config;
         }
@@ -291,6 +297,7 @@ namespace Hybrasyl
             World.StartQueueConsumer();
 
             ToggleActive();
+            StartDate = DateTime.Now;
 
             _lobbyThread = new Thread(new ThreadStart(Lobby.StartListening));
             _loginThread = new Thread(new ThreadStart(Login.StartListening));
