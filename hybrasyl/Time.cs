@@ -204,7 +204,6 @@ namespace Hybrasyl
             }
 
             hybrasylTime.AdvanceDateFromTerranTicks(timeElapsed);
-            Logger.InfoFormat("Time elapsed is {0} which is about {1} years", timeElapsed, timeElapsed / (TimeSpan.TicksPerDay * 365));
 
             return hybrasylTime;
         }

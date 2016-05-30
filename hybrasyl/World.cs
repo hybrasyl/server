@@ -1813,9 +1813,7 @@ namespace Hybrasyl
                                 var dateString = string.Join(" ", args, 2, args.Length - 2);
                                 var dateTime = DateTime.Parse(dateString);
                                 var hybrasylTime = HybrasylTime.ConvertToHybrasyl(dateTime);
-                                Logger.InfoFormat("Yo dawg: {0} {1}, {2} moon, {3} sun", hybrasylTime.Age, hybrasylTime.Year, hybrasylTime.Moon, hybrasylTime.Sun);
                                 user.SendSystemMessage(hybrasylTime.ToString());
-                                Logger.Info("yo dawg");
                             }
                             catch (Exception)
                             {
