@@ -83,7 +83,7 @@ mobs, etc).
    | `xml/nations`                | Nations (citizenship), including spawnpoints. | Fully implemented. |
    | `xml/worldmaps`              | World maps (travelling between areas). | Fully implemented. |
 
-3. Put the [example XML data](https://github.com/hybrasyl/server/examples) from the examples directory into each corresponding XML directory.
+3. Put the [example XML data](https://github.com/hybrasyl/server/tree/master/examples/XML) from the examples directory into each corresponding XML directory.
    This will populate the world with enough to login as a user, wander around, and test functionality.
 
 ## Compiling the Game Server
