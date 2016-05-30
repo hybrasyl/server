@@ -65,8 +65,8 @@ mobs, etc).
 
 2. Create some directories manually (we swear this will be automatically
    handled soon). You’ll need the Hybrasyl data directory, which, for
-   convenience, is currently located at ```%MYDOCUMENTS%\Hybrasyl```. You’ll need
-   the following directories: 
+   convenience, is currently located at ```%MYDOCUMENTS%\Hybrasyl\world```. You’ll need
+   the following directories under `world`:
 
    | Location                   | Use | Status |
    | -------------------------- | --- | ------ |
@@ -83,8 +83,9 @@ mobs, etc).
    | `xml/nations`                | Nations (citizenship), including spawnpoints. | Fully implemented. |
    | `xml/worldmaps`              | World maps (travelling between areas). | Fully implemented. |
 
-3. Put the [example XML data](https://github.com/hybrasyl/server/tree/master/examples/XML) from the examples directory into each corresponding XML directory.
-   This will populate the world with enough to login as a user, wander around, and test functionality.
+3. Copy the [example XML data](https://github.com/hybrasyl/server/tree/master/examples/XML) (including 
+   subdirectories) from the examples directory into the `world\xml` directory. This will populate 
+   the world with enough to login as a user, wander around, and test functionality.
 
 ## Compiling the Game Server
 The process for compiling the **game server** is detailed below.
