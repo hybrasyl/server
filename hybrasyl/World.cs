@@ -32,7 +32,6 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics.Eventing.Reader;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -42,8 +41,11 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Timers;
+using System.Windows.Forms;
 using System.Xml;
 using System.Xml.Schema;
+using IronPython.Modules;
+using Microsoft.Win32.SafeHandles;
 using Newtonsoft.Json;
 using StackExchange.Redis;
 
@@ -103,6 +105,8 @@ namespace Hybrasyl
     {
         private static uint worldObjectID = 0;
 
+        public static DateTime StartDate
+            => Game.Config.Time.StartDate != null ? (DateTime) Game.Config.Time.StartDate : Game.StartDate;
         public new static ILog Logger =
             LogManager.GetLogger(
                 System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
@@ -1775,6 +1779,51 @@ namespace Hybrasyl
                         else
                         {
                             user.SendMessage("That Aisling is not in Temuair.", 0x01);
+                        }
+                    }
+                        break;
+                    case "/time":
+                    {
+                        var time = HybrasylTime.Now();
+                        user.SendMessage(time.ToString(), 0x1);
+                    }
+                        break;
+                    case "/timeconvert":
+                    {
+                        var target = args[1].ToLower();
+                        Logger.InfoFormat("timeconvert: {0}", target);
+
+                        if (target == "aisling")
+                        {
+                            try
+                            {
+                                var dateString = string.Join(" ", args, 2, args.Length - 2);
+                                var hybrasylTime = HybrasylTime.FromString(dateString);
+                                user.SendSystemMessage(HybrasylTime.ConvertToTerran(hybrasylTime).ToString("o"));
+                            }
+                            catch (Exception)
+                            {
+                                user.SendSystemMessage("Your Aisling time could not be parsed!");
+                            }
+                        }
+                        else if (target == "terran")
+                        {
+                            try
+                            {
+                                var dateString = string.Join(" ", args, 2, args.Length - 2);
+                                var dateTime = DateTime.Parse(dateString);
+                                var hybrasylTime = HybrasylTime.ConvertToHybrasyl(dateTime);
+                                user.SendSystemMessage(hybrasylTime.ToString());
+                            }
+                            catch (Exception)
+                            {
+                                user.SendSystemMessage(
+                                    "Your terran time couldn't be parsed, or, you know, something else was wrong");
+                            }
+                        }
+                        else
+                        {
+                            user.SendSystemMessage("Usage: /timeconvert (aisling|terran) <date>");
                         }
                     }
                         break;
