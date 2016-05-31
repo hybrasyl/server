@@ -1,4 +1,25 @@
-﻿using System;
+﻿/*
+ * This file is part of Project Hybrasyl.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the Affero General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+ * for more details.
+ *
+ * You should have received a copy of the Affero General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
+ *
+ * (C) 2016 Project Hybrasyl (info@hybrasyl.com)
+ *
+ * Authors:   Justin Baugh  <baughj@hybrasyl.com>
+ *
+ */
+ 
+ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -19,6 +40,34 @@ namespace Hybrasyl
         public int Sun;
         public int Hour;
         public int Minute;
+
+        public string Season
+        {
+            get
+            {
+                switch (Moon)
+               {
+                    case 12:
+                    case 1:
+                    case 2:
+                       return "Winter";
+                    case 3:
+                    case 4:
+                    case 5:
+                        return "Spring";
+                    case 6:
+                    case 7:
+                    case 8:
+                        return "Summer";
+                    case 9:
+                    case 10:
+                    case 11:
+                        return "Fall";
+                    default:
+                       return String.Empty;
+               }
+            }
+        }
 
         public const long YearTicks = 12 * MoonTicks;
         public const long MoonTicks = 28 * SunTicks;

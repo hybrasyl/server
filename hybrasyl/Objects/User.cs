@@ -35,21 +35,55 @@ using Hybrasyl.XSD;
 namespace Hybrasyl.Objects
 {
 
+
     [JsonObject]
     public class LegendMark
     {
         public String Prefix { get; set; }
-        public int Color { get; set; }
-        public int Icon { get; set; }
+        public LegendColor Color { get; set; }
+        public LegendIcon Icon { get; set; }
         public String Text { get; set; }
         public bool Public { get; set; }
         public DateTime Created { get; set; }
         public int Quantity { get; set; }
-        /*
+
+        public LegendMark()
+        {           
+        }
+
+        public LegendMark(LegendIcon icon, LegendColor color, string text, DateTime created, string prefix="HYB", bool isPublic = true, int quantity = 0)
+        {
+            Icon = icon;
+            Color = color;
+            Text = text;
+            Public = isPublic;
+            Quantity = quantity;
+            Prefix = prefix;
+            Created = created;
+        }
+
         public override string ToString()
         {
-            //var ingame = World.TimeConverter.AsString(Created, bool fullTime = false)
-        }*/
+            var aislingDate = HybrasylTime.ConvertToHybrasyl(Created);
+            var returnString = Text;
+            var markDate = $"{aislingDate.Age} {aislingDate.Year}, {aislingDate.Season}";
+
+            var maxLength = 254 - 15 - markDate.Length;
+
+            if (Text.Length > maxLength)
+            {
+                returnString = Text.Substring(0, maxLength);
+            }
+
+            if (Quantity != 0)
+                returnString = $"{returnString} ({Quantity})";
+            if (!Public)
+                returnString = $" - {returnString}";
+
+            returnString = $"{returnString} - {markDate}";
+            return returnString;
+
+        }
     }
 
     [JsonObject]
@@ -240,6 +274,10 @@ namespace Hybrasyl.Objects
                 return span.TotalSeconds < 0 ? 0 : span.TotalSeconds;
             }
         }
+
+        public string SinceLastLoginString => SinceLastLogin < 86400 ? 
+            $"{Math.Floor(SinceLastLogin/3600)} hours, {Math.Floor(SinceLastLogin%3600/60)} minutes" : 
+            $"{Math.Floor(SinceLastLogin/86400)} days, {Math.Floor(SinceLastLogin%86400/3600)} hours, {Math.Floor(SinceLastLogin%86400%3600)/60} minutes";
 
         // Throttling checks for messaging
 
@@ -702,6 +740,8 @@ namespace Hybrasyl.Objects
             profilePacket.WriteByte((byte)Legend.Count );
             foreach (var mark in Legend)
             {
+                if (!mark.Public)
+                    continue;
                 profilePacket.WriteByte((byte)mark.Icon);
                 profilePacket.WriteByte((byte)mark.Color);
                 profilePacket.WriteString8(mark.Prefix);
@@ -1803,7 +1843,7 @@ namespace Hybrasyl.Objects
                 profilePacket.WriteByte((byte) mark.Icon);
                 profilePacket.WriteByte((byte) mark.Color);
                 profilePacket.WriteString8(mark.Prefix);
-                profilePacket.WriteString8(mark.Text);
+                profilePacket.WriteString8(mark.ToString());
             }
 
             Enqueue(profilePacket);
@@ -2308,51 +2348,5 @@ namespace Hybrasyl.Objects
             Client.SendMessage(p, 3);
         }
 
-
-        /*
-        [SecurityPermission(SecurityAction.Demand, SerializationFormatter =true)]
-        public void GetObjectData(SerializationInfo info, StreamingContext context)
-        {
-            info.AddValue("SerializationVersion", "1");
-            info.AddValue("Name", Name);
-            info.AddValue("Sex", Sex);
-            info.AddValue("HairStyle", HairStyle);
-            info.AddValue("HairColor", HairColor);
-            info.AddValue("Class", Class);
-            info.AddValue("Level", Level);
-            info.AddValue("LevelPoints", LevelPoints);
-            info.AddValue("Experience", Experience);
-            info.AddValue("Ability", Ability);
-            info.AddValue("MapId", MapId);
-            info.AddValue("MapX", MapX);
-            info.AddValue("AbilityExp", AbilityExp);
-            info.AddValue("BaseHp", BaseHp);
-            info.AddValue("BaseMp", BaseMp);
-            info.AddValue("Hp", Hp);
-            info.AddValue("Mp", Mp);
-            info.AddValue("BaseStr", BaseStr);
-            info.AddValue("BaseInt", BaseStr);
-            info.AddValue("BaseWis", BaseStr);
-            info.AddValue("BaseDex", BaseStr);
-            info.AddValue("BaseCon", BaseStr);
-            info.AddValue("Gold", Gold);
-            info.AddValue("IsMaster", IsMaster);
-            info.AddValue("Dead", Dead);
-            info.AddValue("Grouping", Grouping);
-            info.AddValue("PortraitData", PortraitData);
-            info.AddValue("ProfileText", ProfileText);
-            info.AddValue("LoginTime", LoginTime);
-            info.AddValue("LogoffTime", LogoffTime);
-            info.AddValue("UserFlags", UserFlags);
-            info.AddValue("PlayerStatus", Status);
-                
-            info.AddValue("LegendMarks", Legend);
-            info.AddValue("Inventory", Inventory, typeof(Inventory));
-            info.AddValue("Equipment", Equipment, typeof(Inventory));
-
-
-
-
-        }*/
     }
 }

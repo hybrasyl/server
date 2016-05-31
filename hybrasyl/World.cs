@@ -41,11 +41,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Timers;
-using System.Windows.Forms;
 using System.Xml;
 using System.Xml.Schema;
-using IronPython.Modules;
-using Microsoft.Win32.SafeHandles;
 using Newtonsoft.Json;
 using StackExchange.Redis;
 
@@ -1511,7 +1508,24 @@ namespace Hybrasyl
                         }
                     }
                         break;
+                    case "/legend":
+                    {
+                        var icon = (LegendIcon) Enum.Parse(typeof(LegendIcon), args[1]);
+                        var color =(LegendColor) Enum.Parse(typeof(LegendColor), args[2]);
+                        var quantity = Int32.Parse(args[3]);
+                        var datetime = DateTime.Parse(args[4]);
+                        
+                        var legend = string.Join(" ", args, 4, args.Length - 4);
+                        user.Legend.Add(new LegendMark(icon, color, legend, datetime, "HYB", true, quantity));
+                    }
+                        break;
 
+                    case "/legendclear":
+                    {
+                        user.Legend.Clear();
+                        user.SendSystemMessage("Legend has been cleared.");
+                    }
+                        break;
                     case "/level":
                     {
                         byte newLevel;
@@ -2129,7 +2143,6 @@ namespace Hybrasyl
            
             Logger.DebugFormat("Elapsed time since login: {0}", loginUser.SinceLastLogin);
 
-
             if (loginUser.Nation.Spawnpoints.Count != 0 &&
                 loginUser.SinceLastLogin > Hybrasyl.Constants.NATION_SPAWN_TIMEOUT)
             {
@@ -2154,6 +2167,9 @@ namespace Hybrasyl
             ActiveUsers[connectionId] = loginUser;
             ActiveUsersByName[loginUser.Name] = connectionId;
             Logger.InfoFormat("cid {0}: {1} entering world", connectionId, loginUser.Name);
+            Logger.InfoFormat($"{loginUser.SinceLastLoginString}");
+            loginUser.SendSystemMessage($"It has been {loginUser.SinceLastLoginString} since your last login.");
+            loginUser.SendSystemMessage(HybrasylTime.Now().ToString());
         }
 
         private void PacketHandler_0x18_ShowPlayerList(Object obj, ClientPacket packet)
