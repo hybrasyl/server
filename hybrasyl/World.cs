@@ -1515,8 +1515,8 @@ namespace Hybrasyl
                         var quantity = Int32.Parse(args[3]);
                         var datetime = DateTime.Parse(args[4]);
                         
-                        var legend = string.Join(" ", args, 4, args.Length - 4);
-                        user.Legend.Add(new LegendMark(icon, color, legend, datetime, "HYB", true, quantity));
+                        var legend = string.Join(" ", args, 5, args.Length - 5);
+                        user.Legend.AddMark(icon, color, legend, datetime, string.Empty, true, quantity);
                     }
                         break;
 
@@ -2170,6 +2170,7 @@ namespace Hybrasyl
             Logger.InfoFormat($"{loginUser.SinceLastLoginString}");
             loginUser.SendSystemMessage($"It has been {loginUser.SinceLastLoginString} since your last login.");
             loginUser.SendSystemMessage(HybrasylTime.Now().ToString());
+            loginUser.Reindex();
         }
 
         private void PacketHandler_0x18_ShowPlayerList(Object obj, ClientPacket packet)

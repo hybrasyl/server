@@ -35,57 +35,6 @@ using Hybrasyl.XSD;
 namespace Hybrasyl.Objects
 {
 
-
-    [JsonObject]
-    public class LegendMark
-    {
-        public String Prefix { get; set; }
-        public LegendColor Color { get; set; }
-        public LegendIcon Icon { get; set; }
-        public String Text { get; set; }
-        public bool Public { get; set; }
-        public DateTime Created { get; set; }
-        public int Quantity { get; set; }
-
-        public LegendMark()
-        {           
-        }
-
-        public LegendMark(LegendIcon icon, LegendColor color, string text, DateTime created, string prefix="HYB", bool isPublic = true, int quantity = 0)
-        {
-            Icon = icon;
-            Color = color;
-            Text = text;
-            Public = isPublic;
-            Quantity = quantity;
-            Prefix = prefix;
-            Created = created;
-        }
-
-        public override string ToString()
-        {
-            var aislingDate = HybrasylTime.ConvertToHybrasyl(Created);
-            var returnString = Text;
-            var markDate = $"{aislingDate.Age} {aislingDate.Year}, {aislingDate.Season}";
-
-            var maxLength = 254 - 15 - markDate.Length;
-
-            if (Text.Length > maxLength)
-            {
-                returnString = Text.Substring(0, maxLength);
-            }
-
-            if (Quantity != 0)
-                returnString = $"{returnString} ({Quantity})";
-            if (!Public)
-                returnString = $" - {returnString}";
-
-            returnString = $"{returnString} - {markDate}";
-            return returnString;
-
-        }
-    }
-
     [JsonObject]
     public class GuildMembership
     {
@@ -202,10 +151,18 @@ namespace Hybrasyl.Objects
             {
                 return Nation != null ? Nation.Name : string.Empty;
             }
-        } 
-        [JsonProperty]
-        public List<LegendMark> Legend { get; set; }
+        }
 
+        [JsonProperty] public Legend Legend;
+
+        /// <summary>
+        /// Reindexes any temporary data structures that may need to be recreated after a user is deserialized from JSON data.
+        /// </summary>
+        public void Reindex()
+        {
+            Legend.RegenerateIndex();    
+        }
+            
         public DialogState DialogState { get; set; }
 
         [JsonProperty]
@@ -390,7 +347,7 @@ namespace Hybrasyl.Objects
             Login = new LoginInfo();
             Password = new PasswordInfo();
             Location = new Location();
-            Legend = new List<LegendMark>();
+            Legend = new Legend();
             Guild = new GuildMembership();
             LastSaid = String.Empty;
             LastSpoke = 0;
@@ -737,11 +694,9 @@ namespace Hybrasyl.Objects
             profilePacket.WriteString8(Guild.Rank);
             profilePacket.WriteString8(Hybrasyl.Constants.REVERSE_CLASSES[(int)Class]);
             profilePacket.WriteString8(Guild.Name);
-            profilePacket.WriteByte((byte)Legend.Count );
-            foreach (var mark in Legend)
+            profilePacket.WriteByte((byte)Legend.Count);
+            foreach (var mark in Legend.Where(mark => mark.Public))
             {
-                if (!mark.Public)
-                    continue;
                 profilePacket.WriteByte((byte)mark.Icon);
                 profilePacket.WriteByte((byte)mark.Color);
                 profilePacket.WriteString8(mark.Prefix);
@@ -1840,8 +1795,8 @@ namespace Hybrasyl.Objects
             profilePacket.WriteByte((byte) Legend.Count);
             foreach (var mark in Legend)
             {
-                profilePacket.WriteByte((byte) mark.Icon);
-                profilePacket.WriteByte((byte) mark.Color);
+                profilePacket.WriteByte((byte)mark.Icon);
+                profilePacket.WriteByte((byte)mark.Color);
                 profilePacket.WriteString8(mark.Prefix);
                 profilePacket.WriteString8(mark.ToString());
             }
