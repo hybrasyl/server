@@ -1512,7 +1512,7 @@ namespace Hybrasyl
                     {
                         var icon = (LegendIcon) Enum.Parse(typeof(LegendIcon), args[1]);
                         var color =(LegendColor) Enum.Parse(typeof(LegendColor), args[2]);
-                        var quantity = Int32.Parse(args[3]);
+                        var quantity = int.Parse(args[3]);
                         var datetime = DateTime.Parse(args[4]);
                         
                         var legend = string.Join(" ", args, 5, args.Length - 5);
