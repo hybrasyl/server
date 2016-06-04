@@ -590,7 +590,7 @@ from System import DateTime
         public dynamic GetLegendMark(string prefix)
         {
             LegendMark mark;
-            return User.Legend.TryGetMark(prefix, out mark) ? mark : null;
+            return User.Legend.TryGetMark(prefix, out mark) ? mark : (object)null;
         }
 
         public Legend GetLegend()
