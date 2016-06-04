@@ -234,7 +234,7 @@ namespace Hybrasyl.Objects
 
         public string SinceLastLoginString => SinceLastLogin < 86400 ? 
             $"{Math.Floor(SinceLastLogin/3600)} hours, {Math.Floor(SinceLastLogin%3600/60)} minutes" : 
-            $"{Math.Floor(SinceLastLogin/86400)} days, {Math.Floor(SinceLastLogin%86400/3600)} hours, {Math.Floor(SinceLastLogin%86400%3600)/60} minutes";
+            $"{Math.Floor(SinceLastLogin/86400)} days, {Math.Floor(SinceLastLogin%86400/3600)} hours, {Math.Floor(SinceLastLogin%86400%3600/60)} minutes";
 
         // Throttling checks for messaging
 

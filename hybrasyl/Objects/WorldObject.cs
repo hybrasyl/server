@@ -60,39 +60,18 @@ namespace Hybrasyl.Objects
         public WorldObject()
         {
             Name = string.Empty;
+            ResetPursuits();
         }
 
         public virtual void SendId()
         {
         }
-    }
 
-    public class VisibleObject : WorldObject
-    {
-        public new static readonly ILog Logger =
-               LogManager.GetLogger(
-               System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
-        public Map Map { get; set; }
-        public Direction Direction { get; set; }
-        public ushort Sprite { get; set; }
-        public String Portrait { get; set; }
-        public string DisplayText { get; set; }
-
-        public List<DialogSequence> Pursuits;
-        public List<DialogSequence> DialogSequences;
-        public Dictionary<String, DialogSequence> SequenceCatalog;
-
-        public VisibleObject()
+        public void ResetPursuits()
         {
             Pursuits = new List<DialogSequence>();
             DialogSequences = new List<DialogSequence>();
-            SequenceCatalog = new Dictionary<String, DialogSequence>();
-            DisplayText = String.Empty;
-        }
-
-        public virtual void AoiEntry(VisibleObject obj)
-        {
+            SequenceCatalog = new Dictionary<string, DialogSequence>();
         }
 
         public virtual void AddPursuit(DialogSequence pursuit)
@@ -110,6 +89,13 @@ namespace Hybrasyl.Objects
                 Pursuits.Add(pursuit);
             }
 
+            if (SequenceCatalog.ContainsKey(pursuit.Name))
+            {
+                Logger.WarnFormat("Pursuit {0} is being overwritten", pursuit.Name);
+                SequenceCatalog.Remove(pursuit.Name);
+
+            }
+
             SequenceCatalog.Add(pursuit.Name, pursuit);
 
             if (pursuit.Id > Constants.DIALOG_SEQUENCE_SHARED)
@@ -122,7 +108,41 @@ namespace Hybrasyl.Objects
         {
             sequence.Id = (uint)(Constants.DIALOG_SEQUENCE_PURSUITS + DialogSequences.Count);
             DialogSequences.Add(sequence);
+            if (SequenceCatalog.ContainsKey(sequence.Name))
+            {
+                Logger.WarnFormat("Dialog sequence {0} is being overwritten", sequence.Name);
+                SequenceCatalog.Remove(sequence.Name);
+
+            }
             SequenceCatalog.Add(sequence.Name, sequence);
+        }
+
+        public List<DialogSequence> Pursuits;
+        public List<DialogSequence> DialogSequences;
+        public Dictionary<String, DialogSequence> SequenceCatalog;
+    }
+
+    public class VisibleObject : WorldObject
+    {
+        public new static readonly ILog Logger =
+               LogManager.GetLogger(
+               System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
+        public Map Map { get; set; }
+        public Direction Direction { get; set; }
+        public ushort Sprite { get; set; }
+        public String Portrait { get; set; }
+        public string DisplayText { get; set; }
+
+
+        public VisibleObject()
+        {
+          
+            DisplayText = String.Empty;
+        }
+
+        public virtual void AoiEntry(VisibleObject obj)
+        {
         }
 
         public virtual void AoiDeparture(VisibleObject obj)
