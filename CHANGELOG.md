@@ -1,3 +1,10 @@
+# Hybrasyl Server 0.5.1
+
+* Sample XML data updated.
+* Documentation updates.
+* Bug fixed where the server would write out incorrect XML, causing the login/world port to be the same.
+* Added support for server (Aisling) time.
+
 # Hybrasyl Server 0.5.0 ("Riona")
 
 * Redis is now a requirement, and is used for storing state data such as users, board posts, and mailboxes.

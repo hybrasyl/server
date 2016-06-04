@@ -26,6 +26,36 @@ namespace Hybrasyl
 {
     namespace Enums
     {
+        public enum LegendIcon
+        {
+            Community = 0,
+            Warrior = 1,
+            Rogue = 2,
+            Wizard = 3,
+            Priest = 4,
+            Monk = 5,
+            Heart = 6,
+            Victory = 7
+        }
+
+        public enum LegendColor
+        {
+            White = 32,
+            LightOrange = 50,
+            LightYellow = 64,
+            Yellow = 68,
+            LightGreen = 75,
+            Blue = 88,
+            LightPink = 96,
+            DarkPurple = 100,
+            Pink = 105,
+            Darkgreen = 125,
+            Green = 128,
+            Orange = 152,
+            Brown = 160,
+            Red = 248
+        }
+
         //this is a wip
         internal static class OpCodes
         {
@@ -77,7 +107,6 @@ namespace Hybrasyl
             public const byte MetaData = 0x6F;
 
         }
-
 
         public enum PrivateMessageType : int
         {
