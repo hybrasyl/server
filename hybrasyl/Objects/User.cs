@@ -2139,14 +2139,18 @@ namespace Hybrasyl.Objects
         /// <param name="requestor">The user requesting the trade</param>
         public void SendExchangeInitiation(User requestor)
         {
-            if (Status.HasFlag(PlayerStatus.InExchange) && requestor.Status.HasFlag(PlayerStatus.InExchange))
+            if (!Status.HasFlag(PlayerStatus.InExchange) || !requestor.Status.HasFlag(PlayerStatus.InExchange)) return;
+            Enqueue(new ServerPacketStructures.Exchange
             {
-                var x42 = new ServerPacket(0x42);
-                x42.WriteByte(0); // show exchange window
-                x42.WriteUInt32(requestor.Id);
-                x42.WriteString8(requestor.Name);
-                Enqueue(x42);
-            }            
+                Action = ExchangeActions.Initiate,
+                RequestorId = requestor.Id,
+                RequestorName = requestor.Name
+            }.Packet());
+            var x42 = new ServerPacket(0x42);
+            x42.WriteByte(0); // show exchange window
+            x42.WriteUInt32(requestor.Id);
+            x42.WriteString8(requestor.Name);
+            Enqueue(x42);
         }
 
         /// <summary>
@@ -2155,14 +2159,13 @@ namespace Hybrasyl.Objects
         /// <param name="itemSlot">The item slot containing a stacked item that will be split (client side)</param>
         public void SendExchangeQuantityPrompt(byte itemSlot)
         {
-            if (Status.HasFlag(PlayerStatus.InExchange))
-            {
-                var x42 = new ServerPacket(0x42);
-                x42.WriteByte(1); // show quantity prompt
-                x42.WriteByte(itemSlot); // Slot for which we need quantity info
-                Enqueue(x42);
-            }
-            
+            if (!Status.HasFlag(PlayerStatus.InExchange)) return;
+            Enqueue(
+                new ServerPacketStructures.Exchange
+                {
+                    Action = ExchangeActions.QuantityPrompt,
+                    ItemSlot = itemSlot
+                }.Packet());
         }
         /// <summary>
         /// Send an exchange update packet for an item to an active exchange participant.
@@ -2172,20 +2175,17 @@ namespace Hybrasyl.Objects
         /// <param name="source">Boolean indicating which "side" of the transaction will be updated (source / "left side" == true)</param>
         public void SendExchangeUpdate(Item toAdd, byte slot, bool source = true)
         {
-            if (Status.HasFlag(PlayerStatus.InExchange))
+            if (!Status.HasFlag(PlayerStatus.InExchange)) return;
+            var update = new ServerPacketStructures.Exchange
             {
-                var x42 = new ServerPacket(0x42); // Update exchange packet
-                x42.WriteByte(2); // Show item in exchange window
-                x42.WriteByte((byte)(source ? 0 : 1)); // Update "my" side of the transaction
-                x42.WriteByte(slot); // Which "exchange slot" to update
-                x42.WriteUInt16((ushort)(0x8000 + toAdd.Sprite));
-                x42.WriteByte(toAdd.Color);
-                if (toAdd.Stackable && toAdd.Count > 1)
-                    x42.WriteString8($"{toAdd.Name} ({toAdd.Count})");
-                else
-                    x42.WriteString8(toAdd.Name);
-                Enqueue(x42);
-            }
+                Action = ExchangeActions.ItemUpdate,
+                Side = source,
+                ItemSlot = slot,
+                ItemSprite = toAdd.Sprite,
+                ItemColor = toAdd.Color,
+                ItemName = toAdd.Stackable && toAdd.Count > 1 ? $"{toAdd.Name} ({toAdd.Count}" : toAdd.Name
+            };
+            Enqueue(update.Packet());
         }
 
         /// <summary>
@@ -2195,14 +2195,13 @@ namespace Hybrasyl.Objects
         /// <param name="source">Boolean indicating which "side" of the transaction will be updated (source / "left side" == true)</param>
         public void SendExchangeUpdate(uint gold, bool source = true)
         {
-            if (Status.HasFlag(PlayerStatus.InExchange))
+            if (!Status.HasFlag(PlayerStatus.InExchange)) return;
+            Enqueue(new ServerPacketStructures.Exchange
             {
-                var x42 = new ServerPacket(0x42); // Update exchange packet
-                x42.WriteByte(3); // Update gold in exchange window
-                x42.WriteByte((byte)(source ? 0 : 1)); // Update "my" side of the transaction
-                x42.WriteUInt32(gold); // Which "exchange slot" to update
-                Enqueue(x42);
-            }
+                Action=ExchangeActions.GoldUpdate,
+                Side =source,
+                Gold =gold
+            }.Packet());
         }
 
         /// <summary>
@@ -2211,14 +2210,12 @@ namespace Hybrasyl.Objects
         /// <param name="source">The "side" responsible for cancellation (source / "left side" == true)</param>
         public void SendExchangeCancellation(bool source = true)
         {
-           if (Status.HasFlag(PlayerStatus.InExchange))
+            if (!Status.HasFlag(PlayerStatus.InExchange)) return;
+            Enqueue(new ServerPacketStructures.Exchange
             {
-                var x42 = new ServerPacket(0x42); // Update exchange packet
-                x42.WriteByte(4); // Exchange cancelled
-                x42.WriteByte((byte)(source ? 0 : 1)); // Which "side" cancelled the transaction
-                x42.WriteString8("Exchange was cancelled.");
-                Enqueue(x42);
-           }  
+                Action = ExchangeActions.Cancel,
+                Side =source
+            }.Packet());
         }
 
         /// <summary>
@@ -2228,14 +2225,12 @@ namespace Hybrasyl.Objects
 
         public void SendExchangeConfirmation(bool source = true)
         {
-            if (Status.HasFlag(PlayerStatus.InExchange))
+            if (!Status.HasFlag(PlayerStatus.InExchange)) return;
+            Enqueue(new ServerPacketStructures.Exchange
             {
-                var x42 = new ServerPacket(0x42); // Update exchange packet
-                x42.WriteByte(5); // Exchange confirmed
-                x42.WriteByte((byte)(source ? 0 : 1)); // Which "side" confirmed the transaction
-                x42.WriteString8("You exchanged.");
-                Enqueue(x42);
-            }
+                Action = ExchangeActions.Confirm,
+                Side =source
+            }.Packet());
         }
 
         public void SendInventory()

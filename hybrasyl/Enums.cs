@@ -56,6 +56,16 @@ namespace Hybrasyl
             Red = 248
         }
 
+        internal static class ExchangeActions
+        {
+            public const byte Initiate = 0x00;
+            public const byte QuantityPrompt = 0x01;
+            public const byte ItemUpdate = 0x02;
+            public const byte GoldUpdate = 0x03;
+            public const byte Cancel = 0x04;
+            public const byte Confirm = 0x05;
+        }
+
         //this is a wip
         internal static class OpCodes
         {
@@ -96,7 +106,8 @@ namespace Hybrasyl
             public const byte MapData = 0x3C;
             public const byte UseSkill = 0x3E;
             public const byte Cooldown = 0x3F;
-            public const byte ClickObject = 0x43;
+            public const byte Exchange = 0x42;
+            public const byte ClickObject = 0x43;           
             public const byte CancelCast = 0x48;
             public const byte ServerSelect = 0x57;
             public const byte MapLoadComplete = 0x58;

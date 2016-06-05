@@ -152,7 +152,7 @@ namespace Hybrasyl
 
                 if (quantity > theItem.Count)
                 {
-                    giver.SendSystemMessage(String.Format("You don't have that many {0} to give!", theItem.Name));
+                    giver.SendSystemMessage($"You don't have that many {theItem.Name} to give!");
                     return false;
                 }
 
@@ -163,13 +163,13 @@ namespace Hybrasyl
                 {
                     if (giver == _target)
                     {
-                        _target.SendSystemMessage(String.Format("They can't carry any more {0}", theItem.Name));
-                        _source.SendSystemMessage(String.Format("You can't carry any more {0}.", theItem.Name));
+                        _target.SendSystemMessage($"They can't carry any more {theItem.Name}");
+                        _source.SendSystemMessage($"You can't carry any more {theItem.Name}.");
                     }
                     else
                     {
-                        _source.SendSystemMessage(String.Format("They can't carry any more {0}", theItem.Name));
-                        _target.SendSystemMessage(String.Format("You can't carry any more {0}.", theItem.Name));
+                        _source.SendSystemMessage($"They can't carry any more {theItem.Name}");
+                        _target.SendSystemMessage($"You can't carry any more {theItem.Name}.");
                     }
                     return false;
                 }
@@ -356,7 +356,7 @@ namespace Hybrasyl
             var output = new object[inventory.Size];
             for (byte i = 0; i < inventory.Size; i++)
             {
-                var itemInfo = new Dictionary<String, object>();
+                var itemInfo = new Dictionary<string, object>();
                 if (inventory[i] != null)
                 {
                     itemInfo["Name"] = inventory[i].Name;
@@ -580,7 +580,7 @@ namespace Hybrasyl
             }
         }
 
-        public bool TryGetValue(String name, out Item item)
+        public bool TryGetValue(string name, out Item item)
         {
             item = null;
             List<Item> itemList;
