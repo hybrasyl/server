@@ -115,7 +115,7 @@ namespace Hybrasyl
         public LegendIcon Icon { get; set; }
         public string Text { get; set; }
         public bool Public { get; set; }
-        public DateTime Created { get; set; }
+        public DateTime Created { get; }
         public int Quantity { get; set; }
 
         public LegendMark(LegendIcon icon, LegendColor color, string text, DateTime created,
