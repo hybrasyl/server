@@ -2134,6 +2134,7 @@ namespace Hybrasyl
             loginUser.UpdateLoginTime();
             loginUser.Inventory.RecalculateWeight();
             loginUser.Equipment.RecalculateWeight();
+            loginUser.RecalculateBonuses();
             loginUser.UpdateAttributes(StatUpdateFlags.Full);
             loginUser.SendInventory();
             loginUser.SendEquipment();

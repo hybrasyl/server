@@ -1398,6 +1398,13 @@ namespace Hybrasyl.Objects
         {
             return RemoveGold(gold.Amount);
         }
+
+        public void RecalculateBonuses()
+        {
+            foreach (var item in Equipment)
+                ApplyBonuses(item);            
+        }
+
         public bool RemoveGold(uint amount)
         {
             Logger.DebugFormat("Removing {0} gold", amount);
