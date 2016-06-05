@@ -2180,7 +2180,10 @@ namespace Hybrasyl.Objects
                 x42.WriteByte(slot); // Which "exchange slot" to update
                 x42.WriteUInt16((ushort)(0x8000 + toAdd.Sprite));
                 x42.WriteByte(toAdd.Color);
-                x42.WriteString8(toAdd.Name);
+                if (toAdd.Stackable && toAdd.Count > 1)
+                    x42.WriteString8($"{toAdd.Name} ({toAdd.Count})");
+                else
+                    x42.WriteString8(toAdd.Name);
                 Enqueue(x42);
             }
         }
