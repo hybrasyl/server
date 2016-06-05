@@ -2146,11 +2146,6 @@ namespace Hybrasyl.Objects
                 RequestorId = requestor.Id,
                 RequestorName = requestor.Name
             }.Packet());
-            var x42 = new ServerPacket(0x42);
-            x42.WriteByte(0); // show exchange window
-            x42.WriteUInt32(requestor.Id);
-            x42.WriteString8(requestor.Name);
-            Enqueue(x42);
         }
 
         /// <summary>
