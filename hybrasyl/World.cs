@@ -1260,7 +1260,15 @@ namespace Hybrasyl
                             }
                         }
                         break;
-
+                    /* Reset a user to level 1, with no level points and no experience. */
+                    case "/expreset":
+                    {
+                        user.LevelPoints = 0;
+                        user.Level = 1;
+                        user.Experience = 0;
+                        user.UpdateAttributes(StatUpdateFlags.Full);
+                    }
+                        break;
                     case "/group":
                         User newMember = FindUser(args[1]);
 
@@ -2022,7 +2030,7 @@ namespace Hybrasyl
                             user.SendMessage("Invalid class. " + errorMessage, 0x1);
 
                         }
-                        else if (!byte.TryParse(args[2], out level) || level < 1 || level > 99)
+                        else if (!byte.TryParse(args[2], out level) || level < 1 || level > Constants.MAX_LEVEL)
                         {
                             user.SendMessage("Invalid level. " + errorMessage, 0x1);
                         }
