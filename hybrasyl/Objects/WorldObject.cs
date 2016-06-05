@@ -30,6 +30,8 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Runtime.Remoting.Messaging;
+using Community.CsharpSqlite;
 
 namespace Hybrasyl.Objects
 {
@@ -810,6 +812,31 @@ namespace Hybrasyl.Objects
         //public virtual bool AddEquipment(Item item) { return false; }
         //public virtual bool AddEquipment(Item item, byte slot, bool sendUpdate = true) { return false; }
         //public virtual bool RemoveEquipment(byte slot) { return false; }
+
+        public virtual void Heal(double heal, Creature healer = null)
+        {
+            if (AbsoluteImmortal || PhysicalImmortal)
+                return;
+
+            if (Hp == MaximumHp || heal > MaximumHp)
+                return;
+
+            Hp = heal > uint.MaxValue ? MaximumHp : Math.Min(MaximumHp, (uint)(Hp + heal));
+
+            SendDamageUpdate(this);
+
+        }
+
+        public virtual void RegenerateMp(double mp, Creature regenerator = null)
+        {
+            if (AbsoluteImmortal)
+                return;
+
+            if (Mp == MaximumMp || mp > MaximumMp)
+                return;
+
+            Mp = mp > uint.MaxValue ? MaximumMp : Math.Min(MaximumMp, (uint) (Mp + mp));
+        }
 
         public virtual void Damage(double damage, Enums.Element element = Enums.Element.None, Enums.DamageType damageType = Enums.DamageType.Direct, Creature attacker = null)
         {

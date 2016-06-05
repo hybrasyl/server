@@ -254,6 +254,7 @@ namespace Hybrasyl
     {
         // Eventually most of these should be moved into a config file. For right now they're here.
 
+        public static int MAX_LEVEL = 99;
         public static Regex PercentageRegex = new Regex(@"(\+|\-){0,1}(\d{0,4})%", RegexOptions.Compiled);
         public const int VIEWPORT_SIZE = 24;
         public const byte MAXIMUM_INVENTORY = 59;
@@ -410,7 +411,7 @@ namespace Hybrasyl
         public static string[] BONUS_ATTRS = { "hp", "mp", "str", "int", "wis", "con", "dex", "hit", 
                                                 "dmg", "ac", "mr", "regen" };
 
-        public static string[] SCRIPT_DIRECTORIES = { "npc", "startup", "item", "reactor" };
+        public static string[] SCRIPT_DIRECTORIES = { "npc", "startup", "item", "reactor", "common"};
         public const int MESSAGE_RETURN_SIZE = 64;
     }
 

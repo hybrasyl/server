@@ -181,10 +181,11 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                if (Level == 99)
-                    return 0;
-                else
-                    return (uint) (Math.Pow(Level, 3) * 250 - Experience);
+                var levelExp = (uint) Math.Pow(Level, 3)*250;
+                if (Level == Constants.MAX_LEVEL || Experience >= levelExp)
+                    return 0; 
+                            
+                return (uint) (Math.Pow(Level, 3) * 250 - Experience);
             }
         }
 
@@ -401,9 +402,15 @@ namespace Hybrasyl.Objects
          */
         public void GiveExperience(uint exp)
         {
-            if (Level == 99 || exp < ExpToLevel)
+            if (Level == Constants.MAX_LEVEL || exp < ExpToLevel)
             {
-                Experience += exp;
+                if (uint.MaxValue - Experience >= exp)
+                    Experience += exp;
+                else
+                {
+                    Experience = uint.MaxValue;
+                    SendSystemMessage("You cannot gain any more experience.");
+                }
             }
             else
             {
@@ -412,7 +419,7 @@ namespace Hybrasyl.Objects
                 var levelsGained = 0;
                 Random random = new Random();
 
-                while (exp > 0)
+                while (exp > 0 && Level < 99)
                 {
                     uint expChunk = Math.Min(exp, ExpToLevel);
 
@@ -514,6 +521,9 @@ namespace Hybrasyl.Objects
                         #endregion
                     }
                 }
+                // If a user has just become level 99, add the remainder exp to their box
+                if (Level == 99)
+                    Experience += exp;
 
                 if (levelsGained > 0)
                 {
@@ -777,7 +787,6 @@ namespace Hybrasyl.Objects
             x04.WriteUInt16(11);
             Enqueue(x04);
         }
-
 
         public void DisplayIncomingWhisper(String charname, String message)
         {
@@ -1398,6 +1407,13 @@ namespace Hybrasyl.Objects
         {
             return RemoveGold(gold.Amount);
         }
+
+        public void RecalculateBonuses()
+        {
+            foreach (var item in Equipment)
+                ApplyBonuses(item);            
+        }
+
         public bool RemoveGold(uint amount)
         {
             Logger.DebugFormat("Removing {0} gold", amount);
@@ -1634,6 +1650,19 @@ namespace Hybrasyl.Objects
             Inventory.Swap(oldSlot, newSlot);
             SendItemUpdate(Inventory[oldSlot], oldSlot);
             SendItemUpdate(Inventory[newSlot], newSlot);
+        }
+
+        public override void RegenerateMp(double mp, Creature regenerator = null)
+        {
+            base.RegenerateMp(mp, regenerator);
+            UpdateAttributes(StatUpdateFlags.Current);
+        }
+
+        public override void Damage(double damage, Enums.Element element = Enums.Element.None,
+            Enums.DamageType damageType = Enums.DamageType.Direct, Creature attacker = null)
+        {
+            base.Damage(damage, element, damageType, attacker);
+            UpdateAttributes(StatUpdateFlags.Current);
         }
 
         public override void Attack(Direction direction, Castable castObject = null, Creature target = null)

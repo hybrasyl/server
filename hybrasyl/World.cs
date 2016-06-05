@@ -757,6 +757,8 @@ namespace Hybrasyl
                             Logger.InfoFormat("Loading script {0}\\{1}", dir, scriptname);
                             var script = new Script(file, ScriptProcessor);
                             ScriptProcessor.RegisterScript(script);
+                            if (dir == "common")
+                                script.InstantiateScriptable();
                         }
                     }
                     catch (Exception e)
@@ -1251,6 +1253,16 @@ namespace Hybrasyl
                      * will be distributed across a group if the user is in a group, or
                      * passed directly to them if they're not in a group.
                      */
+                    case "/hp":
+                    {
+                        uint hp = 0;
+                        if (uint.TryParse(args[1], out hp))
+                        {
+                            user.Hp = hp;
+                            user.UpdateAttributes(StatUpdateFlags.Current);
+                        }                           
+                    }
+                        break;
                     case "/exp":
                         {
                             uint amount = 0;
@@ -1260,7 +1272,15 @@ namespace Hybrasyl
                             }
                         }
                         break;
-
+                    /* Reset a user to level 1, with no level points and no experience. */
+                    case "/expreset":
+                    {
+                        user.LevelPoints = 0;
+                        user.Level = 1;
+                        user.Experience = 0;
+                        user.UpdateAttributes(StatUpdateFlags.Full);
+                    }
+                        break;
                     case "/group":
                         User newMember = FindUser(args[1]);
 
@@ -1534,7 +1554,7 @@ namespace Hybrasyl
                             user.SendMessage("That's not a valid level, champ.", 0x1);
                         else
                         {
-                            user.Level = newLevel;
+                            user.Level = newLevel > Constants.MAX_LEVEL ? (byte) Constants.MAX_LEVEL : newLevel;
                             user.UpdateAttributes(StatUpdateFlags.Full);
                             user.SendMessage(String.Format("Level changed to {0}", newLevel), 0x1);
                         }
@@ -2022,7 +2042,7 @@ namespace Hybrasyl
                             user.SendMessage("Invalid class. " + errorMessage, 0x1);
 
                         }
-                        else if (!byte.TryParse(args[2], out level) || level < 1 || level > 99)
+                        else if (!byte.TryParse(args[2], out level) || level < 1 || level > Constants.MAX_LEVEL)
                         {
                             user.SendMessage("Invalid level. " + errorMessage, 0x1);
                         }
@@ -2134,6 +2154,7 @@ namespace Hybrasyl
             loginUser.UpdateLoginTime();
             loginUser.Inventory.RecalculateWeight();
             loginUser.Equipment.RecalculateWeight();
+            loginUser.RecalculateBonuses();
             loginUser.UpdateAttributes(StatUpdateFlags.Full);
             loginUser.SendInventory();
             loginUser.SendEquipment();
@@ -2241,6 +2262,10 @@ namespace Hybrasyl
             {
                 case Enums.ItemType.CanUse:
                     item.Invoke(user);
+                    if (item.Count == 0)
+                        user.RemoveItem(slot);
+                    else
+                        user.SendItemUpdate(item, slot);
                     break;
                 case Enums.ItemType.CannotUse:
                     user.SendMessage("You can't use that.", 3);
