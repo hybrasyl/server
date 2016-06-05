@@ -181,10 +181,11 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                if (Level == 99)
-                    return 0;
-                else
-                    return (uint) (Math.Pow(Level, 3) * 250 - Experience);
+                var levelExp = (uint) Math.Pow(Level, 3)*250;
+                if (Level == Constants.MAX_LEVEL || Experience >= levelExp)
+                    return 0; 
+                            
+                return (uint) (Math.Pow(Level, 3) * 250 - Experience);
             }
         }
 
@@ -401,9 +402,15 @@ namespace Hybrasyl.Objects
          */
         public void GiveExperience(uint exp)
         {
-            if (Level == 99 || exp < ExpToLevel)
+            if (Level == Constants.MAX_LEVEL || exp < ExpToLevel)
             {
-                Experience += exp;
+                if (uint.MaxValue - Experience >= exp)
+                    Experience += exp;
+                else
+                {
+                    Experience = uint.MaxValue;
+                    SendSystemMessage("You cannot gain any more experience.");
+                }
             }
             else
             {
@@ -412,7 +419,7 @@ namespace Hybrasyl.Objects
                 var levelsGained = 0;
                 Random random = new Random();
 
-                while (exp > 0)
+                while (exp > 0 && Level < 99)
                 {
                     uint expChunk = Math.Min(exp, ExpToLevel);
 
@@ -514,6 +521,9 @@ namespace Hybrasyl.Objects
                         #endregion
                     }
                 }
+                // If a user has just become level 99, add the remainder exp to their box
+                if (Level == 99)
+                    Experience += exp;
 
                 if (levelsGained > 0)
                 {
