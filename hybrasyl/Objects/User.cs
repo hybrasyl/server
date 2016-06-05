@@ -778,7 +778,6 @@ namespace Hybrasyl.Objects
             Enqueue(x04);
         }
 
-
         public void DisplayIncomingWhisper(String charname, String message)
         {
             Client.SendMessage(String.Format("{0}\" {1}", charname, message), 0x0);
@@ -1641,6 +1640,19 @@ namespace Hybrasyl.Objects
             Inventory.Swap(oldSlot, newSlot);
             SendItemUpdate(Inventory[oldSlot], oldSlot);
             SendItemUpdate(Inventory[newSlot], newSlot);
+        }
+
+        public override void RegenerateMp(double mp, Creature regenerator = null)
+        {
+            base.RegenerateMp(mp, regenerator);
+            UpdateAttributes(StatUpdateFlags.Current);
+        }
+
+        public override void Damage(double damage, Enums.Element element = Enums.Element.None,
+            Enums.DamageType damageType = Enums.DamageType.Direct, Creature attacker = null)
+        {
+            base.Damage(damage, element, damageType, attacker);
+            UpdateAttributes(StatUpdateFlags.Current);
         }
 
         public override void Attack(Direction direction, Castable castObject = null, Creature target = null)

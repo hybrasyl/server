@@ -560,7 +560,7 @@ __builtins__.raw_input = None
         internal User User { get; set; }
         internal HybrasylWorld World { get; set; }
         internal HybrasylMap Map { get; set; }
-        public string Name { get { return User.Name; } }
+        public string Name => User.Name;
 
         public HybrasylUser(User user)
         {
@@ -631,15 +631,30 @@ __builtins__.raw_input = None
                 User.Effect(x, y, effect, speed);
         }
 
-        public void Teleport(String location)
+        public void Teleport(String location, int x, int y)
         {
-
-
+            User.Teleport(location, (byte) x, (byte) y);
         }
 
         public void SoundEffect(byte sound)
         {
             User.SendSound(sound);
+        }
+
+        public void HealToFull()
+        {
+            User.Heal(User.MaximumHp);
+        }
+
+        public void Heal(int heal)
+        {
+            User.Heal((double)heal);            
+        }
+
+        public void Damage(int damage, Enums.Element element = Enums.Element.None,
+           Enums.DamageType damageType = Enums.DamageType.Direct)
+        {
+            User.Damage((double) damage, element, damageType);
         }
 
         public bool GiveItem(String name)

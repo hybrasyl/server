@@ -410,7 +410,7 @@ namespace Hybrasyl
         public static string[] BONUS_ATTRS = { "hp", "mp", "str", "int", "wis", "con", "dex", "hit", 
                                                 "dmg", "ac", "mr", "regen" };
 
-        public static string[] SCRIPT_DIRECTORIES = { "npc", "startup", "item", "reactor" };
+        public static string[] SCRIPT_DIRECTORIES = { "npc", "startup", "item", "reactor", "common"};
         public const int MESSAGE_RETURN_SIZE = 64;
     }
 
