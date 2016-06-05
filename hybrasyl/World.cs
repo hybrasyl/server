@@ -1542,7 +1542,7 @@ namespace Hybrasyl
                             user.SendMessage("That's not a valid level, champ.", 0x1);
                         else
                         {
-                            user.Level = newLevel;
+                            user.Level = newLevel > Constants.MAX_LEVEL ? (byte) Constants.MAX_LEVEL : newLevel;
                             user.UpdateAttributes(StatUpdateFlags.Full);
                             user.SendMessage(String.Format("Level changed to {0}", newLevel), 0x1);
                         }
