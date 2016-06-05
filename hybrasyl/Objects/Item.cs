@@ -120,6 +120,8 @@ namespace Hybrasyl.Objects
 
         public new ushort Sprite => Template.Properties.Appearance.Sprite;
 
+        public ItemPropertiesUse Use => Template.Properties.Use;
+
         public ushort EquipSprite
         {
             get
@@ -149,6 +151,7 @@ namespace Hybrasyl.Objects
                 return XSD.WeaponType.none;
             }
         }
+
         public byte EquipmentSlot => Convert.ToByte(Template.Properties.Equipment.Slot);
         public int Weight => Template.Properties.Physical.Weight;
         public int MaximumStack => Template.Properties.Stackable.Max;
@@ -229,17 +232,56 @@ namespace Hybrasyl.Objects
 
         public void Invoke(User trigger)
         {
-            /*
-            try
+            // Run through all the different potential uses. We allow combinations of any
+            // use specified in the item XML.
+            Logger.InfoFormat($"User {trigger.Name}: used item {Name}");
+            if (Use.ScriptnameSpecified)
             {
-                World.ScriptMethod(ScriptName, this, trigger);
-            }
-            catch
+                Script invokeScript;
+                if (!World.ScriptProcessor.TryGetScript(Use.Scriptname, out invokeScript))
+                {
+                    trigger.SendSystemMessage("It doesn't work.");
+                    return;
+                }
+                    
+                try
+                {
+                    invokeScript.ExecuteScriptableFunction("OnUse", new HybrasylWorldObject(this), new HybrasylUser(trigger));
+                }
+                catch (Exception e)
+                {
+                    trigger.SendSystemMessage("It doesn't work.");
+                    Logger.ErrorFormat($"User {trigger.Name}, item {Name}: exception {e}");
+                }              
+            }            
+            if (Use.EffectSpecified)
             {
-                trigger.SendMessage("It doesn't work.", 3);
+               trigger.SendEffect(trigger.Id, Use.Effect.Id, Use.Effect.Speed); 
             }
-             * */
-            trigger.SendMessage("Not implemented.", 3);
+            if (Use.PlayerEffectSpecified)
+            {
+                if (Use.PlayerEffect.GoldSpecified)
+                    trigger.AddGold(new Gold((uint)Use.PlayerEffect.Gold));
+                if (Use.PlayerEffect.HpSpecified)
+                    trigger.Heal(Use.PlayerEffect.Hp);
+                if (Use.PlayerEffect.MpSpecified)
+                    trigger.RegenerateMp(Use.PlayerEffect.Mp);
+                if (Use.PlayerEffect.XpSpecified)
+                    trigger.GiveExperience((uint)Use.PlayerEffect.Xp);
+                trigger.UpdateAttributes(StatUpdateFlags.Current|StatUpdateFlags.Experience);
+            }
+            if (Use.SoundSpecified)
+            {
+                trigger.SendSound((byte) Use.Sound.Id);
+            }
+            if (Use.TeleportSpecified)
+            {
+                trigger.Teleport(Use.Teleport.Value, Use.Teleport.X, Use.Teleport.Y);
+            }
+            if (Use.ConsumedSpecified)
+            {
+                Count--;
+            }
         }
 
         public Item(int id, World world)

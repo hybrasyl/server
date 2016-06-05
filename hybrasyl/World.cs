@@ -757,6 +757,8 @@ namespace Hybrasyl
                             Logger.InfoFormat("Loading script {0}\\{1}", dir, scriptname);
                             var script = new Script(file, ScriptProcessor);
                             ScriptProcessor.RegisterScript(script);
+                            if (dir == "common")
+                                script.InstantiateScriptable();
                         }
                     }
                     catch (Exception e)
@@ -1251,6 +1253,16 @@ namespace Hybrasyl
                      * will be distributed across a group if the user is in a group, or
                      * passed directly to them if they're not in a group.
                      */
+                    case "/hp":
+                    {
+                        uint hp = 0;
+                        if (uint.TryParse(args[1], out hp))
+                        {
+                            user.Hp = hp;
+                            user.UpdateAttributes(StatUpdateFlags.Current);
+                        }                           
+                    }
+                        break;
                     case "/exp":
                         {
                             uint amount = 0;
@@ -2242,6 +2254,10 @@ namespace Hybrasyl
             {
                 case Enums.ItemType.CanUse:
                     item.Invoke(user);
+                    if (item.Count == 0)
+                        user.RemoveItem(slot);
+                    else
+                        user.SendItemUpdate(item, slot);
                     break;
                 case Enums.ItemType.CannotUse:
                     user.SendMessage("You can't use that.", 3);
