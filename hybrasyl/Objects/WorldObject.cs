@@ -536,6 +536,18 @@ namespace Hybrasyl.Objects
         {
         }
 
+        // Clamp to (inclusive) range between [min, max]. Max is optional, and if its
+        // not present then no upper limit will be enforced.
+        private static long ClampToRange(long start, long min, long? max = null)
+        {
+            if (start < min)
+                return min;
+            else if (max != null && start > max)
+                return max.GetValueOrDefault();
+            else
+                return start;
+        }
+
         public uint MaximumHp
         {
             get
@@ -548,7 +560,7 @@ namespace Hybrasyl.Objects
                 if (value < uint.MinValue)
                     return uint.MinValue;
 
-                return (uint)value;
+                return (uint)ClampToRange(value, 1);
             }
         }
 
@@ -564,7 +576,7 @@ namespace Hybrasyl.Objects
                 if (value < uint.MinValue)
                     return uint.MinValue;
 
-                return (uint)value;
+                return (uint)ClampToRange(value, 1);
             }
         }
 
@@ -580,7 +592,7 @@ namespace Hybrasyl.Objects
                 if (value < byte.MinValue)
                     return byte.MinValue;
 
-                return (byte)value;
+                return (byte)ClampToRange(value, 1, Constants.MAX_STAT);
             }
         }
 
@@ -596,7 +608,7 @@ namespace Hybrasyl.Objects
                 if (value < byte.MinValue)
                     return byte.MinValue;
 
-                return (byte)value;
+                return (byte)ClampToRange(value, 1, Constants.MAX_STAT);
             }
         }
 
@@ -612,7 +624,7 @@ namespace Hybrasyl.Objects
                 if (value < byte.MinValue)
                     return byte.MinValue;
 
-                return (byte)value;
+                return (byte)ClampToRange(value, 1, Constants.MAX_STAT);
             }
         }
 
@@ -628,7 +640,7 @@ namespace Hybrasyl.Objects
                 if (value < byte.MinValue)
                     return byte.MinValue;
 
-                return (byte)value;
+                return (byte)ClampToRange(value, 1, Constants.MAX_STAT);
             }
         }
 
@@ -644,7 +656,7 @@ namespace Hybrasyl.Objects
                 if (value < byte.MinValue)
                     return byte.MinValue;
 
-                return (byte)value;
+                return (byte)ClampToRange(value, 1, Constants.MAX_STAT);
             }
         }
 
@@ -658,7 +670,7 @@ namespace Hybrasyl.Objects
                 if (BonusDmg < byte.MinValue)
                     return byte.MinValue;
 
-                return (byte)BonusDmg;
+                return (byte)ClampToRange(BonusDmg, 0);
             }
         }
 
@@ -672,7 +684,7 @@ namespace Hybrasyl.Objects
                 if (BonusHit < byte.MinValue)
                     return byte.MinValue;
 
-                return (byte)BonusHit;
+                return (byte)ClampToRange(BonusHit, 0);
             }
         }
 
@@ -689,7 +701,7 @@ namespace Hybrasyl.Objects
                 if (value < sbyte.MinValue)
                     return sbyte.MinValue;
 
-                return (sbyte)value;
+                return (sbyte)ClampToRange(value, -90, 100);
             }
         }
 
@@ -703,7 +715,7 @@ namespace Hybrasyl.Objects
                 if (BonusMr < sbyte.MinValue)
                     return sbyte.MinValue;
 
-                return (sbyte)BonusMr;
+                return (sbyte)ClampToRange(BonusMr, 0, 8);
             }
         }
 
