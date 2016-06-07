@@ -536,12 +536,12 @@ namespace Hybrasyl.Objects
         {
         }
 
-        // Clamp to (inclusive) range between [min, max]. Max is optional, and if its
+        // Restrict to (inclusive) range between [min, max]. Max is optional, and if its
         // not present then no upper limit will be enforced.
-        private static long ClampToRange(long start, long min, long? max = null)
+        private static long BindToRange(long start, long? min, long? max)
         {
-            if (start < min)
-                return min;
+            if (min != null && start < min)
+                return min.GetValueOrDefault();
             else if (max != null && start > max)
                 return max.GetValueOrDefault();
             else
@@ -560,7 +560,7 @@ namespace Hybrasyl.Objects
                 if (value < uint.MinValue)
                     return uint.MinValue;
 
-                return (uint)ClampToRange(value, 1);
+                return (uint)BindToRange(value, StatLimitConstants.MIN_BASE_HPMP, StatLimitConstants.MAX_BASE_HPMP);
             }
         }
 
@@ -576,7 +576,7 @@ namespace Hybrasyl.Objects
                 if (value < uint.MinValue)
                     return uint.MinValue;
 
-                return (uint)ClampToRange(value, 1);
+                return (uint)BindToRange(value, StatLimitConstants.MIN_BASE_HPMP, StatLimitConstants.MAX_BASE_HPMP);
             }
         }
 
@@ -592,7 +592,7 @@ namespace Hybrasyl.Objects
                 if (value < byte.MinValue)
                     return byte.MinValue;
 
-                return (byte)ClampToRange(value, 1, Constants.MAX_STAT);
+                return (byte)BindToRange(value, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
             }
         }
 
@@ -608,7 +608,7 @@ namespace Hybrasyl.Objects
                 if (value < byte.MinValue)
                     return byte.MinValue;
 
-                return (byte)ClampToRange(value, 1, Constants.MAX_STAT);
+                return (byte)BindToRange(value, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
             }
         }
 
@@ -624,7 +624,7 @@ namespace Hybrasyl.Objects
                 if (value < byte.MinValue)
                     return byte.MinValue;
 
-                return (byte)ClampToRange(value, 1, Constants.MAX_STAT);
+                return (byte)BindToRange(value, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
             }
         }
 
@@ -640,7 +640,7 @@ namespace Hybrasyl.Objects
                 if (value < byte.MinValue)
                     return byte.MinValue;
 
-                return (byte)ClampToRange(value, 1, Constants.MAX_STAT);
+                return (byte)BindToRange(value, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
             }
         }
 
@@ -656,7 +656,7 @@ namespace Hybrasyl.Objects
                 if (value < byte.MinValue)
                     return byte.MinValue;
 
-                return (byte)ClampToRange(value, 1, Constants.MAX_STAT);
+                return (byte)BindToRange(value, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
             }
         }
 
@@ -670,7 +670,7 @@ namespace Hybrasyl.Objects
                 if (BonusDmg < byte.MinValue)
                     return byte.MinValue;
 
-                return (byte)ClampToRange(BonusDmg, 0);
+                return (byte)BindToRange(BonusDmg, StatLimitConstants.MIN_DMG, StatLimitConstants.MAX_DMG);
             }
         }
 
@@ -684,7 +684,7 @@ namespace Hybrasyl.Objects
                 if (BonusHit < byte.MinValue)
                     return byte.MinValue;
 
-                return (byte)ClampToRange(BonusHit, 0);
+                return (byte)BindToRange(BonusHit, StatLimitConstants.MIN_HIT, StatLimitConstants.MAX_HIT);
             }
         }
 
@@ -701,7 +701,7 @@ namespace Hybrasyl.Objects
                 if (value < sbyte.MinValue)
                     return sbyte.MinValue;
 
-                return (sbyte)ClampToRange(value, -90, 100);
+                return (sbyte)BindToRange(value, StatLimitConstants.MIN_AC, StatLimitConstants.MAX_AC);
             }
         }
 
@@ -715,7 +715,7 @@ namespace Hybrasyl.Objects
                 if (BonusMr < sbyte.MinValue)
                     return sbyte.MinValue;
 
-                return (sbyte)ClampToRange(BonusMr, 0, 8);
+                return (sbyte)BindToRange(BonusMr, StatLimitConstants.MIN_MR, StatLimitConstants.MAX_MR);
             }
         }
 

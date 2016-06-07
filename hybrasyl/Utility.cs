@@ -255,7 +255,6 @@ namespace Hybrasyl
         // Eventually most of these should be moved into a config file. For right now they're here.
 
         public static int MAX_LEVEL = 99;
-        public static int MAX_STAT = 255;
         public static Regex PercentageRegex = new Regex(@"(\+|\-){0,1}(\d{0,4})%", RegexOptions.Compiled);
         public const int VIEWPORT_SIZE = 24;
         public const byte MAXIMUM_INVENTORY = 59;
@@ -422,6 +421,23 @@ namespace Hybrasyl
         public const int CIRCLE_2 = 41;
         public const int CIRCLE_3 = 71;
         public const int CIRCLE_4 = 90;
+    }
+
+    static class StatLimitConstants
+    {
+        public static int MIN_STAT = 1; // str, int, wis, con, dex
+        public static int MAX_STAT = 255;
+        public static int MIN_BASE_HPMP = 1;
+        public static int? MAX_BASE_HPMP = null;
+
+        public static int MIN_DMG = 0;
+        public static int? MAX_DMG = null;
+        public static int MIN_HIT = 0;
+        public static int? MAX_HIT = null;
+        public static int MIN_AC = -90;
+        public static int MAX_AC = 100;
+        public static int MIN_MR = 0;
+        public static int MAX_MR = 8;
     }
 
     static class StatGainConstants
