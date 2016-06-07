@@ -890,17 +890,7 @@ namespace Hybrasyl.Objects
         {
             var castable = SkillBook[slot];
 
-            if(castable.Effects.Damage != null)
-            {
-                //byte radius = castable.Intents.Intent.Where(x => x.;
-                Direction playerFacing = this.Direction;
-                byte maxTargets = 0;
-                //this is an attack skill
-                
-                //now lets define how we want to do the attack
-                //isclick should always be false for a skill (please correct me if I'm wrong)
-                
-            }
+            Attack(castable);
         }
 
         public void SendVisibleItem(Item item)
@@ -1679,7 +1669,79 @@ namespace Hybrasyl.Objects
 
         public override void Attack(Castable castObject)
         {
-            base.Attack(castObject);
+            var direction = this.Direction;
+            var damage = castObject.Effects.Damage;
+            if (damage != null)
+            {
+                var intents = castObject.Intents;
+                foreach (var intent in intents.Intent)
+                {
+                    //isclick should always be 0 for a skill.
+                    var targetAreas = new List<KeyValuePair<int, int>>();
+
+
+                    var possibleTargets = new List<VisibleObject>();
+                    possibleTargets.AddRange(Map.EntityTree.GetObjects(new Rectangle(this.X - intent.Radius, this.Y, (this.X + intent.Radius) - (this.X - intent.Radius), (this.Y + intent.Radius) - (this.Y - intent.Radius))).Where(obj => obj is Creature && obj != this && obj.GetType() != typeof(User)));
+                    possibleTargets.AddRange(Map.EntityTree.GetObjects(new Rectangle(this.X, this.Y - intent.Radius, (this.X + intent.Radius) - (this.X - intent.Radius), (this.Y + intent.Radius) - (this.Y - intent.Radius))).Where(obj => obj is Creature && obj != this && obj.GetType() != typeof(User)));
+
+                    List<Creature> actualTargets = new List<Creature>();
+                    if (intent.Maxtargets > 0)
+                    {
+                        actualTargets = possibleTargets.Take(intent.Maxtargets).OfType<Creature>().ToList();
+                    }
+                    else
+                    {
+                        actualTargets = possibleTargets.OfType<Creature>().ToList();
+                    }
+
+                    foreach (var target in actualTargets)
+                    {
+                        if (target != null)
+                        {
+
+                            Random rand = new Random();
+
+                            if (damage.Formula == null) //will need to be expanded. also will need to account for damage scripts
+                            {
+                                var simple = damage.Simple;
+                                var damageType = EnumUtil.ParseEnum<Enums.DamageType>(damage.Type.ToString(),
+                                    Enums.DamageType.Magical);
+                                var dmg = rand.Next(Convert.ToInt32(simple.Min), Convert.ToInt32(simple.Max));
+                                //these need to be set to integers as attributes. note to fix.
+                                target.Damage(dmg, OffensiveElement, damageType, this);
+                            }
+                            else
+                            {
+                                var formula = damage.Formula;
+                                var damageType = EnumUtil.ParseEnum<Enums.DamageType>(damage.Type.ToString(),
+                                    Enums.DamageType.Magical);
+                                FormulaParser parser = new FormulaParser(this, castObject, target);
+                                var dmg = parser.Eval(formula);
+                                if (dmg == 0) dmg = 1;
+                                target.Damage(dmg, OffensiveElement, damageType, this);
+                            }
+
+                        }
+                        else
+                        {
+                            //var formula = damage.Formula;
+                        }
+                    }
+                }
+
+                var animation = new ServerPacketStructures.PlayerAnimation() { Animation = (byte)castObject.Effects.Animations.OnCast.Motion.Id, Speed = (ushort)(castObject.Effects.Animations.OnCast.Motion.Speed / 5), UserId = this.Id };
+                var sound = new ServerPacketStructures.PlaySound() { Sound = (byte)castObject.Effects.Sound.Id };
+                Enqueue(animation.Packet());
+                Enqueue(sound.Packet());
+                SendAnimation(animation.Packet());
+                PlaySound(sound.Packet());
+
+                //this is an attack skill
+            }
+            else
+            {
+                //need to handle scripting
+            }
         }
 
         public void AssailAttack(Direction direction, Creature target = null)
