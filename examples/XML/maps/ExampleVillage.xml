@@ -11,6 +11,7 @@
     <warp x="32" y="38">
       <maptarget x="10" y="2">Example Inn</maptarget>
     </warp>
+  </warps>
   <npcs>
     <npc x="89" y="49">
       <name>Beggar</name>

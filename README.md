@@ -151,7 +151,7 @@ The process for compiling Hybrasyl is detailed below.
    in `My Documents\Hybrasyl`.
 
 Now that your setup is complete, you should be able to use the
-[released version of the launcher](https://www.hybrasyl.com/launcher/Hybrasyl_Launcher_Installer.msi)
+[released version of the launcher](https://www.hybrasyl.com/files/Hybrasyl_Launcher_Installer.msi)
 to connect to it. In case you have trouble with the latest launcher, open
 `Hy-brasyl Launcher.sln` and build the project. Launch the executable and
 select `localhost` from the server selection dropdown. You should now be able
