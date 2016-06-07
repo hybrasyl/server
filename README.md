@@ -203,7 +203,7 @@ You should find your Aisling in an inn and ready to explore the world.
 We're here to help!
 
 The project maintains a
-[public Discord server](https://discord.gg/0ziUhzij2THyYHXK) and it should be
+[public Discord server](https://discord.gg/0ziUhzij2THMqU7B) and it should be
 your first go-to for asking questions. **Remember that Hybrasyl is a volunteer
 project, not a job; we'll try to get to your questions as soon as we see
 them**.
