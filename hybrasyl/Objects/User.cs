@@ -25,9 +25,11 @@ using Hybrasyl.Enums;
 using log4net;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Net.NetworkInformation;
 using System.Reflection;
 using System.Text;
 using Hybrasyl.Nations;
@@ -129,6 +131,8 @@ namespace Hybrasyl.Objects
         [JsonProperty]
         public GuildMembership Guild { get; set; }
 
+        [JsonProperty] private ConcurrentDictionary<ushort, IPlayerStatus> _currentStatuses;
+
         private Nation _nation;
 
         public Nation Nation
@@ -171,11 +175,11 @@ namespace Hybrasyl.Objects
         private Dictionary<String, String> UserSessionFlags { get; set; }
         
         public Exchange ActiveExchange { get; set; }
-        public PlayerStatus Status { get; set; }
+        public Enums.PlayerCondition Status { get; set; }
 
         public bool IsAvailableForExchange
         {
-            get { return Status == PlayerStatus.Alive; }
+            get { return Status == Enums.PlayerCondition.Alive; }
         }
 
         public uint ExpToLevel
@@ -292,6 +296,141 @@ namespace Hybrasyl.Objects
             Enqueue(removePacket);
         }
 
+        #region Status handling
+
+        /// <summary>
+        /// Apply a given status to a player.
+        /// </summary>
+        /// <param name="status">The status to apply to the player.</param>
+        public bool ApplyStatus(IPlayerStatus status)
+        {
+            if (!_currentStatuses.TryAdd(status.Icon, status)) return false;
+            status.OnStart();
+            return true;
+        }
+
+        /// <summary>
+        /// Remove a status from a client, firing the appropriate OnEnd events and removing the icon from the status bar.
+        /// </summary>
+        /// <param name="status">The status to remove.</param>
+        private void _removeStatus(IPlayerStatus status)
+        {
+            status.OnEnd();
+            SendStatusUpdate(status);
+        }
+        /// <summary>
+        /// Remove a status from a client.
+        /// </summary>
+        /// <param name="icon">The icon of the status we are removing.</param>
+        /// <returns></returns>
+        public bool RemoveStatus(ushort icon)
+        {
+            IPlayerStatus status;
+            if (!_currentStatuses.TryRemove(icon, out status)) return false;
+            _removeStatus(status);
+            return true;
+        }
+
+        /// <summary>
+        /// Remove a status from a client.
+        /// </summary>
+        /// <param name="name">The name of the status to remove.</param>
+        /// <returns></returns>
+        public bool RemoveStatus(string name)
+        {
+            IPlayerStatus status;
+            if (!TryGetStatus(name, out status)) return false;
+            _removeStatus(status);
+            return true;
+        }
+
+        public bool TryGetStatus(string name, out IPlayerStatus status)
+        {
+            status = _currentStatuses.Values.FirstOrDefault(s => s.Name == name);
+            return status != null;
+        }
+
+        /// <summary>
+        /// Process all the given status ticks for a user's active statuses.
+        /// </summary>
+        public void ProcessStatusTicks()
+        {
+            foreach (var kvp in _currentStatuses)
+            {
+                Logger.DebugFormat("OnTick: {0}, {1}", Name, kvp.Value.Name);
+
+                if (kvp.Value.Expired)
+                    RemoveStatus(kvp.Key);
+                
+                if (kvp.Value.ElapsedSinceTick >= kvp.Value.Tick)
+                    kvp.Value.OnTick();
+            }
+        }
+
+        public int ActiveStatusCount => _currentStatuses.Count;
+
+        /// <summary>
+        /// Send a status bar update to the client based on the state of a given status.
+        /// </summary>
+        /// <param name="status">The status to update on the client side.</param>
+
+        public virtual void SendStatusUpdate(IPlayerStatus status)
+        {
+            var statuspacket = new ServerPacketStructures.StatusBar { Icon = status.Icon };
+            var elapsed = DateTime.Now - status.Start;
+            var remaining = status.Duration - elapsed.TotalSeconds;
+            StatusBarColor color;
+            if (remaining >= 80)
+                color = StatusBarColor.White;
+            else if (remaining <= 80 && remaining >= 60)
+                color = StatusBarColor.Red;
+            else if (remaining <= 60 && remaining >= 40)
+                color = StatusBarColor.Orange;
+            else if (remaining <= 40 && remaining >= 20)
+                color = StatusBarColor.Green;
+            else
+                color = StatusBarColor.Blue;
+
+            statuspacket.BarColor = color;
+            Enqueue(statuspacket.Packet());
+        }
+
+        /// <summary>
+        /// Toggle whether or not the user has been blinded.
+        /// </summary>
+        public void ToggleBlind()
+        {
+            if (Status.HasFlag(Enums.PlayerCondition.Blinded))
+                Status &= ~Enums.PlayerCondition.Blinded;
+            else
+                Status |= Enums.PlayerCondition.Blinded;
+            UpdateAttributes(StatUpdateFlags.Secondary);
+        }
+
+        /// <summary>
+        /// Toggle whether or not the user is paralyzed.
+        /// </summary>
+        public void ToggleParalyzed()
+        {
+            if (Status.HasFlag(Enums.PlayerCondition.Paralyzed))
+                Status &= ~Enums.PlayerCondition.Paralyzed;
+            else
+                Status |= Enums.PlayerCondition.Paralyzed;
+            UpdateAttributes(StatUpdateFlags.Secondary);
+        }
+
+        /// <summary>
+        /// Toggle whether or not the user is asleep.
+        /// </summary>
+        public void ToggleAsleep()
+        {
+            if (Status.HasFlag(Enums.PlayerCondition.Asleep))
+                Status &= ~Enums.PlayerCondition.Asleep;
+            else
+                Status |= Enums.PlayerCondition.Asleep;
+        }
+        #endregion
+
         public string GroupText
         {
             get
@@ -359,10 +498,12 @@ namespace Hybrasyl.Objects
             DialogState = new DialogState(this);
             UserFlags = new Dictionary<String, String>();
             UserSessionFlags = new Dictionary<String, String>();
-            Status = PlayerStatus.Alive;
+            Status = PlayerCondition.Alive;
             Group = null;
             Flags = new Dictionary<string, bool>();
+            _currentStatuses = new ConcurrentDictionary<ushort, IPlayerStatus>();
         }
+
         /**
          * Invites another user to this user's group. If this user isn't in a group,
          * create a new one.
@@ -911,13 +1052,13 @@ namespace Hybrasyl.Objects
 
             foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
             {
-                if (obj.Id == target)
-                {
-                    targetCreature = (Creature) obj;
-                }
+                //byte radius = castable.Intents.Intent.Where(x => x.;
+                Direction playerFacing = this.Direction;
+                byte maxTargets = 0;//this is an attack skill
+                
+                //now lets define how we want to do the attack
+                //isclick should always be false for a skill (please correct me if I'm wrong)
             }
-
-
                 Attack(castable, targetCreature);
         }
 
@@ -998,6 +1139,8 @@ namespace Hybrasyl.Objects
             x33.WriteString8(string.Empty); // group name
             client.Enqueue(x33);
         }
+
+  
 
         public override void SendId()
         {
@@ -1225,7 +1368,7 @@ namespace Hybrasyl.Objects
             if (flags.HasFlag(StatUpdateFlags.Secondary))
             {
                 x08.WriteByte(0); //Unknown
-                x08.WriteByte((byte) (Status.HasFlag(PlayerStatus.Blinded) ? 0x08 : 0x00));
+                x08.WriteByte((byte) (Status.HasFlag(PlayerCondition.Blinded) ? 0x08 : 0x00));
                 x08.WriteByte(0); // Unknown
                 x08.WriteByte(0); // Unknown
                 x08.WriteByte(0); // Unknown
@@ -2311,7 +2454,7 @@ namespace Hybrasyl.Objects
         /// <param name="requestor">The user requesting the trade</param>
         public void SendExchangeInitiation(User requestor)
         {
-            if (!Status.HasFlag(PlayerStatus.InExchange) || !requestor.Status.HasFlag(PlayerStatus.InExchange)) return;
+            if (!Status.HasFlag(PlayerCondition.InExchange) || !requestor.Status.HasFlag(PlayerCondition.InExchange)) return;
             Enqueue(new ServerPacketStructures.Exchange
             {
                 Action = ExchangeActions.Initiate,
@@ -2326,7 +2469,7 @@ namespace Hybrasyl.Objects
         /// <param name="itemSlot">The ItemObject slot containing a stacked ItemObject that will be split (client side)</param>
         public void SendExchangeQuantityPrompt(byte itemSlot)
         {
-            if (!Status.HasFlag(PlayerStatus.InExchange)) return;
+            if (!Status.HasFlag(PlayerCondition.InExchange)) return;
             Enqueue(
                 new ServerPacketStructures.Exchange
                 {
@@ -2342,7 +2485,7 @@ namespace Hybrasyl.Objects
         /// <param name="source">Boolean indicating which "side" of the transaction will be updated (source / "left side" == true)</param>
         public void SendExchangeUpdate(ItemObject toAdd, byte slot, bool source = true)
         {
-            if (!Status.HasFlag(PlayerStatus.InExchange)) return;
+            if (!Status.HasFlag(PlayerCondition.InExchange)) return;
             var update = new ServerPacketStructures.Exchange
             {
                 Action = ExchangeActions.ItemUpdate,
@@ -2362,7 +2505,7 @@ namespace Hybrasyl.Objects
         /// <param name="source">Boolean indicating which "side" of the transaction will be updated (source / "left side" == true)</param>
         public void SendExchangeUpdate(uint gold, bool source = true)
         {
-            if (!Status.HasFlag(PlayerStatus.InExchange)) return;
+            if (!Status.HasFlag(PlayerCondition.InExchange)) return;
             Enqueue(new ServerPacketStructures.Exchange
             {
                 Action=ExchangeActions.GoldUpdate,
@@ -2377,7 +2520,7 @@ namespace Hybrasyl.Objects
         /// <param name="source">The "side" responsible for cancellation (source / "left side" == true)</param>
         public void SendExchangeCancellation(bool source = true)
         {
-            if (!Status.HasFlag(PlayerStatus.InExchange)) return;
+            if (!Status.HasFlag(PlayerCondition.InExchange)) return;
             Enqueue(new ServerPacketStructures.Exchange
             {
                 Action = ExchangeActions.Cancel,
@@ -2392,7 +2535,7 @@ namespace Hybrasyl.Objects
 
         public void SendExchangeConfirmation(bool source = true)
         {
-            if (!Status.HasFlag(PlayerStatus.InExchange)) return;
+            if (!Status.HasFlag(PlayerCondition.InExchange)) return;
             Enqueue(new ServerPacketStructures.Exchange
             {
                 Action = ExchangeActions.Confirm,

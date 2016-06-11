@@ -25,7 +25,8 @@ using System;
 namespace Hybrasyl
 {
     namespace Enums
-    {
+    { 
+
         public enum LegendIcon
         {
             Community = 0,
@@ -101,7 +102,7 @@ namespace Hybrasyl
             public const byte AddEquipment = 0x37;
             public const byte RemoveEquipment = 0x38;
             public const byte SelfProfile = 0x39;
-            public const byte BuffBar = 0x3A;
+            public const byte StatusBar = 0x3A;
             public const byte PingA = 0x3B;
             public const byte MapData = 0x3C;
             public const byte UseSkill = 0x3E;
@@ -259,8 +260,18 @@ namespace Hybrasyl
             Claw
         }
 
+        public enum StatusBarColor
+        {
+            Off,
+            Blue,
+            Green,
+            Orange,
+            Red,
+            White
+        }
+
         [Flags]
-        public enum PlayerStatus : byte
+        public enum PlayerCondition : byte
         {
             Alive = 0x01,
             Frozen = 0x02,

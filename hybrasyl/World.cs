@@ -784,6 +784,7 @@ namespace Hybrasyl
             ControlMessageHandlers[ControlOpcodes.RegenUser] = ControlMessage_RegenerateUser;
             ControlMessageHandlers[ControlOpcodes.LogoffUser] = ControlMessage_LogoffUser;
             ControlMessageHandlers[ControlOpcodes.MailNotifyUser] = ControlMessage_MailNotifyUser;
+            ControlMessageHandlers[ControlOpcodes.StatusTick] = ControlMessage_StatusTick;
         }
 
 
@@ -1052,6 +1053,20 @@ namespace Hybrasyl
             }
         }
 
+        private void ControlMessage_StatusTick(HybrasylControlMessage message)
+        {
+            var userName = (string)message.Arguments[0];
+            Logger.DebugFormat("statustick: processing tick for {0}", userName);
+            User user;
+            if (Users.TryGetValue(userName, out user))
+            {
+                user.ProcessStatusTicks();
+            }
+            else
+            {
+                Logger.DebugFormat("mail: notification to {0} failed, not logged in?", userName);
+            }
+        }
         #endregion
         
         #region Packet Handlers
@@ -1278,6 +1293,35 @@ namespace Hybrasyl
                             user.Hp = hp;
                             user.UpdateAttributes(StatUpdateFlags.Current);
                         }                           
+                    }
+                        break;
+                    case "/applystatus":
+                    {
+                        var status = args[1];
+                        if (status.ToLower() == "poison")
+                        {
+                            user.ApplyStatus(new PoisonEffect(user, 30, 1, 5));
+                        }
+                        if (status.ToLower() == "sleep")
+                        {
+                            user.ApplyStatus(new SleepEffect(user, 30, 1));
+                        }
+                        if (status.ToLower() == "paralyze")
+                        {
+                            user.ApplyStatus(new ParalyzeEffect(user, 30, 1));
+                        }
+                        if (status.ToLower() == "blind")
+                        {
+                            user.ApplyStatus(new BlindEffect(user, 30, 1));
+                        }
+
+                    }
+                        break;
+                    case "/status":
+                    {
+                        var icon = ushort.Parse(args[1]);
+                        
+                        user.Enqueue(new ServerPacketStructures.StatusBar { Icon = icon, BarColor = (StatusBarColor) Enum.Parse(typeof(StatusBarColor), args[2])}.Packet());
                     }
                         break;
                     case "/exp":

@@ -289,6 +289,28 @@ namespace Hybrasyl
                 }
             }
         }
+
+        public static class StatusTickJob
+        {
+            public static readonly ILog Logger =
+                LogManager.GetLogger(
+                    System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
+            public static readonly int Interval = 1;
+
+            public static void Execute(Object obj, ElapsedEventArgs args)
+            {
+                foreach (var connectionId in GlobalConnectionManifest.WorldClients.Keys)
+                {
+                    User user;
+                    if (World.ActiveUsers.TryGetValue(connectionId, out user))
+                    {
+                        World.MessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.StatusTick, user.Name));
+                    }
+                }
+            }
+        }
+
         public static class AutoSnoreJob
         {
             public static readonly ILog Logger =
