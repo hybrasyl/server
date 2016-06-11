@@ -139,7 +139,6 @@ namespace Hybrasyl.Objects
 
         public VisibleObject()
         {
-          
             DisplayText = String.Empty;
         }
 
@@ -552,7 +551,7 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                var value = BaseHp + BonusHp;
+                var value = BaseHp + BonusHp + (Con * 50);
 
                 if (value > uint.MaxValue)
                     return uint.MaxValue;
@@ -568,7 +567,7 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                var value = BaseMp + BonusMp;
+                var value = BaseMp + BonusMp + (Wis * 25);
 
                 if (value > uint.MaxValue)
                     return uint.MaxValue;
@@ -664,13 +663,16 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                if (BonusDmg > byte.MaxValue)
+                // Every six points in intelligence beyond base increases DMG by one.
+                var value = BonusDmg + (Int - 3) / 6;
+
+                if (value > byte.MaxValue)
                     return byte.MaxValue;
 
-                if (BonusDmg < byte.MinValue)
+                if (value < byte.MinValue)
                     return byte.MinValue;
 
-                return (byte)BindToRange(BonusDmg, StatLimitConstants.MIN_DMG, StatLimitConstants.MAX_DMG);
+                return (byte)BindToRange(value, StatLimitConstants.MIN_DMG, StatLimitConstants.MAX_DMG);
             }
         }
 
@@ -678,13 +680,16 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                if (BonusHit > byte.MaxValue)
+                // Every three points in intelligence beyond base increases HIT by one.
+                var value = BonusHit + (Int - 3) / 3;
+
+                if (value > byte.MaxValue)
                     return byte.MaxValue;
 
-                if (BonusHit < byte.MinValue)
+                if (value < byte.MinValue)
                     return byte.MinValue;
 
-                return (byte)BindToRange(BonusHit, StatLimitConstants.MIN_HIT, StatLimitConstants.MAX_HIT);
+                return (byte)BindToRange(value, StatLimitConstants.MIN_HIT, StatLimitConstants.MAX_HIT);
             }
         }
 
@@ -693,7 +698,7 @@ namespace Hybrasyl.Objects
             get
             {
                 Logger.DebugFormat("BonusAc is {0}", BonusAc);
-                var value = 100 - Level / 3 + BonusAc;
+                var value = 100 + BonusAc - (Level / 3) - (Dex - 5);
 
                 if (value > sbyte.MaxValue)
                     return sbyte.MaxValue;
@@ -775,7 +780,6 @@ namespace Hybrasyl.Objects
                 var nPacket = (ServerPacket)packet.Clone();
                 Logger.InfoFormat("SendAnimation to {0}",user.Name);
                 user.Enqueue(nPacket);
-                
             }
         }
 
