@@ -2189,7 +2189,11 @@ namespace Hybrasyl
             ActiveUsersByName[loginUser.Name] = connectionId;
             Logger.InfoFormat("cid {0}: {1} entering world", connectionId, loginUser.Name);
             Logger.InfoFormat($"{loginUser.SinceLastLoginString}");
-            loginUser.SendSystemMessage($"It has been {loginUser.SinceLastLoginString} since your last login.");
+            // If the user's never logged off before (new character), don't display this message.
+            if (loginUser.Login.LastLogoff != default(DateTime))
+            {
+                loginUser.SendSystemMessage($"It has been {loginUser.SinceLastLoginString} since your last login.");
+            }
             loginUser.SendSystemMessage(HybrasylTime.Now().ToString());
             loginUser.Reindex();
         }
