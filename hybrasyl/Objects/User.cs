@@ -95,10 +95,7 @@ namespace Hybrasyl.Objects
         [JsonProperty]
         public Sex Sex { get; set; }
         //private account Account { get; set; }
-        [JsonProperty]
-        public byte HairStyle { get; set; }
-        [JsonProperty]
-        public byte HairColor { get; set; }
+     
         [JsonProperty]
         public Enums.Class Class { get; set; }
         [JsonProperty]
@@ -110,6 +107,30 @@ namespace Hybrasyl.Objects
         public Mailbox Mailbox => World.GetMailbox(Name);
         public bool UnreadMail => Mailbox.HasUnreadMessages;
 
+        #region Appearance settings settings
+        [JsonProperty]
+        public RestPosition RestPosition { get; set; }
+        [JsonProperty]
+        public SkinColor SkinColor { get; set; }
+        [JsonProperty]
+        internal bool Transparent { get; set; }
+        [JsonProperty]
+        public byte FaceShape { get; set; }
+        [JsonProperty]
+        public LanternSize LanternSize { get; set; }
+        [JsonProperty]
+        public NameDisplayStyle NameStyle { get; set; }
+        [JsonProperty]
+        public bool DisplayAsMonster { get; set; }
+        [JsonProperty]
+        public ushort MonsterSprite { get; set; }
+        [JsonProperty]
+        public byte HairStyle { get; set; }
+        [JsonProperty]
+        public byte HairColor { get; set; }
+        #endregion
+
+        #region User metadata
         // Some structs helping us to define various metadata 
         [JsonProperty]
         public Location Location { get; set; }
@@ -160,20 +181,13 @@ namespace Hybrasyl.Objects
 
         [JsonProperty] public Legend Legend;
 
-        /// <summary>
-        /// Reindexes any temporary data structures that may need to be recreated after a user is deserialized from JSON data.
-        /// </summary>
-        public void Reindex()
-        {
-            Legend.RegenerateIndex();    
-        }
-            
+
         public DialogState DialogState { get; set; }
 
         [JsonProperty]
         private Dictionary<String, String> UserFlags { get; set; }
         private Dictionary<String, String> UserSessionFlags { get; set; }
-        
+
         public Exchange ActiveExchange { get; set; }
         public Enums.PlayerCondition Status { get; set; }
 
@@ -181,6 +195,16 @@ namespace Hybrasyl.Objects
         {
             get { return Status == Enums.PlayerCondition.Alive; }
         }
+        #endregion
+
+        /// <summary>
+        /// Reindexes any temporary data structures that may need to be recreated after a user is deserialized from JSON data.
+        /// </summary>
+        public void Reindex()
+        {
+            Legend.RegenerateIndex();    
+        }
+    
 
         public uint ExpToLevel
         {
@@ -419,6 +443,59 @@ namespace Hybrasyl.Objects
             UpdateAttributes(StatUpdateFlags.Secondary);
         }
 
+        public void ToggleNearDeath()
+        {
+            if (Status.HasFlag(PlayerCondition.InComa))
+            {
+                Status &= ~PlayerCondition.InComa;
+                Group?.SendMessage($"{Name} has recovered!");
+            }
+            else
+                Status |= PlayerCondition.InComa;
+        }
+
+        public void ToggleAlive()
+        {
+            if (Status.HasFlag(PlayerCondition.Alive))
+                Status &= ~PlayerCondition.Alive;
+            else
+                Status |= PlayerCondition.Alive;
+            UpdateAttributes(StatUpdateFlags.Secondary);
+        }
+
+        /// <summary>
+        /// Sadly, all things in this world must come to an end.
+        /// </summary>
+        public override void OnDeath()
+        {
+            // First: break everything that is breakable in the inventory
+            for (byte i = 0; i <= Inventory.Size; ++i)
+            {
+                var theItem = Inventory[i];
+                Inventory.Remove(i);
+                if (!Inventory[i].Perishable)
+                    Map.AddItem(X,Y,theItem);
+            }
+
+            foreach (var item in Equipment)
+            {                
+                Equipment.Remove(item.EquipmentSlot);
+                if (!item.Perishable)
+                    Map.AddItem(X,Y,item);
+            }
+
+            Status &= PlayerCondition.Alive;
+            Teleport("Mileth Village", 10, 10);
+            Group?.SendMessage($"{Name} has died!");
+        }
+
+        /// <summary>
+        /// Resurrect a player.
+        /// </summary>
+        public void Resurrect()
+        {
+        }
+
         /// <summary>
         /// Toggle whether or not the user is asleep.
         /// </summary>
@@ -502,13 +579,24 @@ namespace Hybrasyl.Objects
             Group = null;
             Flags = new Dictionary<string, bool>();
             _currentStatuses = new ConcurrentDictionary<ushort, IPlayerStatus>();
+
+            #region Appearance defaults
+            RestPosition = RestPosition.Standing;
+            SkinColor = SkinColor.Flesh;
+            Transparent = false;
+            FaceShape = 0;
+            NameStyle = NameDisplayStyle.GreyHover;
+            LanternSize = LanternSize.None;
+            DisplayAsMonster = false;
+            MonsterSprite = ushort.MinValue;
+            #endregion
         }
 
-        /**
-         * Invites another user to this user's group. If this user isn't in a group,
-         * create a new one.
-         */
-        public bool InviteToGroup(User invitee)
+    /**
+     * Invites another user to this user's group. If this user isn't in a group,
+     * create a new one.
+     */
+    public bool InviteToGroup(User invitee)
         {
             // If you're inviting others to group, you must have grouping enabled.
             // Enable it automatically if necessary.
@@ -1092,12 +1180,37 @@ namespace Hybrasyl.Objects
 
         public void SendUpdateToUser(Client client)
         {
-            // 0x33 <X> <Y> <Direction> <Player ID> <hat/hairstyle> <Offset for sex/status (includes dead/etc)>
-            // <armor sprite> <boots> <armor sprite> <shield> <weapon> <hair color> <boot color> <acc1 color> <acc1>
-            // <acc2 color> <acc2> <acc3 color> <acc3> <nfi> <nfi> <overcoat> <overcoat color> <skin color> <transparency>
-            // <face> <name style (see Enums.NameStyles)> <name length> <name> <group name length> <group name> (shows up as hovering clickable bar)
-            var x33 = new ServerPacket(0x33);
+           
+
             byte offset = (byte)(Equipment.Armor != null ? Equipment.Armor.BodyStyle : 0);
+
+            Enqueue(new ServerPacketStructures.DisplayUser()
+            {
+                Armor = (Equipment.Armor?.DisplaySprite ?? 0),
+                BodySpriteOffset = offset,
+                Boots = (byte) (Equipment.Boots?.DisplaySprite ?? 0),
+                BootsColor = ((byte)(Equipment.Boots?.Color ?? 0),
+                Direction = (byte) Direction,
+                DisplayAsMonster = DisplayAsMonster,
+                FaceShape = FaceShape,
+                FirstAcc = Equipment.FirstAcc?.DisplaySprite ?? 0,
+                SecondAcc = Equipment.SecondAcc?.DisplaySprite ?? 0,
+                ThirdAcc = Equipment.ThirdAcc?.DisplaySprite ?? 0,
+                FirstAccColor = Equipment.FirstAcc?.Color ?? 0,
+                SecondAccColor = Equipment.SecondAcc?.Color ?? 0,
+                ThirdAccColor = Equipment.ThirdAcc?.Color ?? 0,
+                LanternSize = LanternSize,
+                RestPosition = RestPosition,
+                Overcoat = Equipment.Overcoat?.DisplaySprite ?? 0,
+                OvercoatColor = Equipment.Overcoat?.Color ?? 0,
+                SkinColor = SkinColor,
+                Invisible = Transparent,
+
+
+
+
+            }.Packet());
+            var x33 = new ServerPacket(0x33);
 
 
             x33.WriteUInt16(X);
@@ -1106,8 +1219,8 @@ namespace Hybrasyl.Objects
             x33.WriteUInt32(Id);
 
             // hacky until we rewrite it correctly
-            var helmat = (Equipment.Helmet != null ? Equipment.Helmet.DisplaySprite : HairStyle);
-            helmat = (Equipment.DisplayHelm != null ? Equipment.DisplayHelm.DisplaySprite : helmat);
+            var helmat = Equipment.Helmet?.DisplaySprite ?? HairStyle;
+            helmat = Equipment.DisplayHelm?.DisplaySprite ?? helmat;
 
             x33.WriteUInt16((ushort)helmat);
 

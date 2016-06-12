@@ -155,6 +155,8 @@ namespace Hybrasyl.Objects
         {
         }
 
+        public virtual void OnDeath() { }
+
         public Rectangle GetBoundingBox()
         {
             return new Rectangle(X, Y, 1, 1);

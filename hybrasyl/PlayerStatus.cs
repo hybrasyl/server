@@ -13,6 +13,7 @@ namespace Hybrasyl
         string OnTickMessage { get; set; }
         string OnStartMessage { get; set; }
         string OnEndMessage { get; set; }
+        string ActionProhibitedMessage { get; set; }
         string Name { get; }
         int Duration { get; set; }
         int Tick { get; set; }
@@ -68,6 +69,7 @@ namespace Hybrasyl
         public string OnTickMessage { get; set; }
         public string OnStartMessage { get; set; }
         public string OnEndMessage { get; set; }
+        public string ActionProhibitedMessage { get; set; }
 
         protected PlayerStatus(User user, int duration, int tick, ushort icon, string name)
         {
@@ -135,13 +137,13 @@ namespace Hybrasyl
         public override void OnStart()
         {
             base.OnStart();
-            User.SendEffect(User.Id, OnTickEffect, 120);
+            User.Effect(OnTickEffect, 120);
         }
 
         public override void OnTick()
         {
             base.OnTick();
-            User.SendEffect(User.Id, OnTickEffect, 120);
+            User.Effect(OnTickEffect, 120);
             User.Damage(_damagePerTick);
         }
     }
@@ -154,6 +156,7 @@ namespace Hybrasyl
 
         private new const string OnStartMessage = "You are in hibernation.";
         private new const string OnEndMessage = "Your body thaws.";
+        private new const string ActionProhibitedMessage = "You cannot move!";
 
         public ParalyzeEffect(User user, int duration, int tick) : base(user, duration, tick, Icon, Name)
         {
@@ -162,7 +165,7 @@ namespace Hybrasyl
         public override void OnStart()
         {
             base.OnStart();
-            User.SendEffect(User.Id, OnTickEffect, 1);
+            User.Effect(OnTickEffect, 120);
             User.ToggleParalyzed();
         }
         public override void OnEnd()
@@ -181,6 +184,8 @@ namespace Hybrasyl
 
         private new const string OnStartMessage = "You are asleep.";
         private new const string OnEndMessage = "You awaken.";
+        private new const string ActionProhibitedMessage = "You are too sleepy to even raise your hands!";
+
 
         public SleepEffect(User user, int duration, int tick) : base(user, duration, tick, Icon, Name)
         {
@@ -189,16 +194,51 @@ namespace Hybrasyl
         public override void OnStart()
         {
             base.OnStart();
-            User.SendEffect(User.Id, OnTickEffect, 1);
+            User.Effect(OnTickEffect, 120);
             User.ToggleParalyzed();
         }
 
         public override void OnTick()
         {
             base.OnTick();
-            User.SendEffect(User.Id, OnTickEffect, 1);
+            User.Effect(OnTickEffect, 120);
         }
 
+    }
+
+    internal class NearDeathEffect : PlayerStatus
+    {
+        private new const ushort Icon = 24;
+        private new const string Name = "NearDeath";
+        private const ushort OnTickEffect = 24;
+
+        private new const string OnStartMessage = "You are near death.";
+        private new const string OnEndMessage = "You have died!";
+        private new const string ActionProhibitedMessage = "The life is draining from your body.";
+
+        public NearDeathEffect(User user, int duration, int tick) : base(user, duration, tick, Icon, Name)
+        {           
+        }
+
+        public override void OnStart()
+        {
+            base.OnStart();
+            User.Effect(OnTickEffect, 120);
+            User.ToggleNearDeath();
+            User.Group?.SendMessage($"{Name} is close to death!");
+        }
+
+        public override void OnTick()
+        {
+            base.OnTick();
+            User.Effect(OnTickEffect, 120);
+        }
+
+        public override void OnEnd()
+        {
+            base.OnEnd();
+            User.OnDeath();
+        }
     }
 
     /*
