@@ -25,7 +25,32 @@ using System;
 namespace Hybrasyl
 {
     namespace Enums
-    { 
+    {
+
+        #region Colors and display enumerations
+        public enum LanternSize : byte
+        {
+            None = 0x00,
+            Small = 0x01,
+            Large = 0x02
+        }
+
+        public enum RestPosition : byte
+        {
+            // Seriously, you try naming these
+            Standing = 0x00,
+            RestPosition1 = 0x01,
+            RestPosition2 = 0x02,
+            MaximumChill = 0x03
+        }   
+
+        public enum NameDisplayStyle : byte
+        {
+            GreyHover = 0x00,
+            RedAlwaysOn = 0x01,
+            GreenHover = 0x02,
+            GreyAlwaysOn = 0x03
+        }
 
         public enum LegendIcon
         {
@@ -57,6 +82,51 @@ namespace Hybrasyl
             Red = 248
         }
 
+        public enum TextColor : int
+        {
+            Red = 62,
+            Yellow = 63,
+            DarkBlue = 66,
+            DarkGrey = 67,
+            MediumGrey = 68,
+            LightGrey = 69,
+            DarkPurple = 70,
+            BrightGreen = 71,
+            DarkGreen = 72,
+            Orange = 73,
+            DarkOrange = 74,
+            White = 75,
+            Blue = 76,
+            WhisperBlue = 76,
+            Pink = 77
+        }
+
+        public enum SkinColor : int
+        {
+            Flesh = 0,
+            White = 1,
+            Cocoa = 2,
+            Green = 3,
+            Yellow = 4,
+            Tan = 5,
+            Grey = 6,
+            LightBlue = 7,
+            Orange = 8,
+            Purple = 9
+        }
+        public enum StatusBarColor
+        {
+            Off,
+            Blue,
+            Green,
+            Orange,
+            Red,
+            White
+        }
+
+        #endregion
+
+        #region Opcode enumerations
         internal static class ExchangeActions
         {
             public const byte Initiate = 0x00;
@@ -119,7 +189,9 @@ namespace Hybrasyl
             public const byte MetaData = 0x6F;
 
         }
+        #endregion
 
+        #region Messaging types
         public enum PrivateMessageType : int
         {
             Whisper = 0,
@@ -138,6 +210,8 @@ namespace Hybrasyl
             Spell = 2
         }
 
+        #endregion
+
         public enum UserStatus : byte
         {
             Awake = 0,
@@ -150,45 +224,45 @@ namespace Hybrasyl
             NeedHelp = 7
         }
 
-        public enum TextColor : int
+        #region Slots, element types, item types
+
+        public enum Element : int
         {
-            Red = 62,
-            Yellow = 63,
-            DarkBlue = 66,
-            DarkGrey = 67,
-            MediumGrey = 68,
-            LightGrey = 69,
-            DarkPurple = 70,
-            BrightGreen = 71,
-            DarkGreen = 72,
-            Orange = 73,
-            DarkOrange = 74,
-            White = 75,
-            Blue = 76,
-            WhisperBlue = 76,
-            Pink = 77
+            None = 0x00,
+            Fire = 0x01,
+            Water = 0x02,
+            Wind = 0x03,
+            Earth = 0x04,
+            Light = 0x05,
+            Dark = 0x06,
+            Wood = 0x07,
+            Metal = 0x08,
+            Undead = 0x09,
+            Random = 0x10
         }
 
-        public enum NameStyle : int
+        public enum ItemSlots : int
         {
-            Normal = 0,
-            RedAlwaysOn = 1,
-            GreenHover = 2,
-            GreyAlwaysOn = 3
-        }
-
-        public enum SkinColor : int
-        {
-            Flesh = 0,
-            White = 1,
-            Cocoa = 2,
-            Green = 3,
-            Yellow = 4,
-            Tan = 5,
-            Grey = 6,
-            LightBlue = 7,
-            Orange = 8,
-            Purple = 9
+            None = 0,
+            Weapon = 1,
+            Armor = 2,
+            Shield = 3,
+            Helmet = 4,
+            Earring = 5,
+            Necklace = 6,
+            LHand = 7,
+            RHand = 8,
+            LArm = 9,
+            RArm = 10,
+            Waist = 11,
+            Leg = 12,
+            Foot = 13,
+            // The rest are all "vanity" slots
+            FirstAcc = 14,
+            Trousers = 15,
+            Coat = 16,
+            SecondAcc = 17,
+            ThirdAcc = 18
         }
 
         public static class ServerItemSlots
@@ -260,15 +334,7 @@ namespace Hybrasyl
             Claw
         }
 
-        public enum StatusBarColor
-        {
-            Off,
-            Blue,
-            Green,
-            Orange,
-            Red,
-            White
-        }
+        #endregion
 
         [Flags]
         public enum PlayerCondition : byte
@@ -325,44 +391,6 @@ namespace Hybrasyl
             Female = 0x02
         }
 
-        public enum Element : int
-        {
-            None = 0x00,
-            Fire = 0x01,
-            Water = 0x02,
-            Wind = 0x03,
-            Earth = 0x04,
-            Light = 0x05,
-            Dark = 0x06,
-            Wood = 0x07,
-            Metal = 0x08,
-            Undead = 0x09,
-            Random = 0x10
-        }
-
-        public enum ItemSlots : int
-        {
-            None = 0,
-            Weapon = 1,
-            Armor = 2,
-            Shield = 3,
-            Helmet = 4,
-            Earring = 5,
-            Necklace = 6,
-            LHand = 7,
-            RHand = 8,
-            LArm = 9,
-            RArm = 10,
-            Waist = 11,
-            Leg = 12,
-            Foot = 13,
-            // The rest are all "vanity" slots
-            FirstAcc = 14,
-            Trousers = 15,
-            Coat = 16,
-            SecondAcc = 17,
-            ThirdAcc = 18
-        }
 
         public enum DamageType
         {
