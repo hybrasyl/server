@@ -147,7 +147,6 @@
     <Compile Include="FormulaParser.cs" />
     <Compile Include="Game.cs" />
     <Compile Include="Inventory.cs" />
-    <Compile Include="Monolith.cs" />
     <Compile Include="Objects\Item.cs" />
     <Compile Include="Jobs.cs" />
     <Compile Include="Lobby.cs" />

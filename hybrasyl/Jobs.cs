@@ -341,24 +341,30 @@ namespace Hybrasyl
 
             public static readonly int Interval = 20;
 
+            // todo: scheduling for spawns based on XML configuration; currently happens along a global cycle (is this bad?)
             public static void Execute(Object obj, ElapsedEventArgs args)
             {
-                Logger.Debug("Job starting");
+                Logger.Debug("Starting MonsterSpawnJob");
+
                 try
                 {
-                    // FIXME: make this more efficient / don't break our own conventions
-                    foreach (var monolith in Game.World.Monoliths)
+                    foreach (var map in Game.World.Maps.Values)
                     {
-                        monolith.Spawn();
-                        Logger.InfoFormat("Attempting to spawn monsters.", monolith.MaxSpawns);
+                        if (map.SpawnsSpecified)
+                        {
+                            World.MessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.SpawnMonsters, map.Id));
+                        }
+                        else
+                        {
+                            Logger.InfoFormat("Skipping spawning in {0}; no spawns configured", map.Name);
+                        }
                     }
-
-                    Logger.Debug("Job complete");
                 }
                 catch (Exception e)
                 {
-                    Logger.Error("Exception occured in job:", e);
+                    Logger.Error("Exception occurred in job:", e);
                 }
+                Logger.Debug("Finishing MonsterSpawnJob");
             }
         }
   }
