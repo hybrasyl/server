@@ -18,6 +18,15 @@
       <appearance sprite="21" direction="2"/>
     </npc>
   </npcs>
+  <spawns>
+    <spawn interval="20" checkInterval="60" mob="1">
+      <strategy>random</strategy>
+      <spawnModifiers>
+        <quantity min="20" max="120" />
+        <zone start="10,10" end="100,100" />
+      </spawnModifiers>
+    </spawn>
+  </spawns>
   <signposts>
     <messageboard x="67" y="17">
       <name>Example Village Board</name>
