@@ -126,9 +126,9 @@ namespace Hybrasyl.Objects
         [JsonProperty]
         public PasswordInfo Password { get; set; }
         [JsonProperty]
-        public Book SkillBook { get; private set; }
+        public SkillBook SkillBook { get; private set; }
         [JsonProperty]
-        public Book SpellBook { get; private set; }
+        public SpellBook SpellBook { get; private set; }
 
         [JsonProperty]
         public bool Grouping { get; set; }
@@ -340,8 +340,8 @@ namespace Hybrasyl.Objects
         {
             Inventory = new Inventory(59);
             Equipment = new Inventory(18);
-            SkillBook = new Book(90);
-            SpellBook = new Book(90);
+            SkillBook = new SkillBook();
+            SpellBook = new SpellBook();
             IsAtWorldMap = false;
             Login = new LoginInfo();
             Password = new PasswordInfo();
@@ -893,6 +893,23 @@ namespace Hybrasyl.Objects
             Attack(castable);
         }
 
+        internal void UseSpell(byte slot, uint target = 0)
+        {
+            var castable = SpellBook[slot];
+            Creature targetCreature = null;
+
+            foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
+            {
+                if (obj.Id == target)
+                {
+                    targetCreature = (Creature) obj;
+                }
+            }
+
+
+                Attack(castable, targetCreature);
+        }
+
         public void SendVisibleItem(Item item)
         {
             Logger.DebugFormat("Sending add visible item packet");
@@ -1097,8 +1114,10 @@ namespace Hybrasyl.Objects
             var x17 = new ServerPacket(0x17);
             x17.WriteByte((byte)slot);
             x17.WriteUInt16((ushort)(item.Icon));
-            x17.WriteByte(0x00); //spell type? how are we determining this?
-            x17.WriteString8(item.Name);
+            var isClick = item.Intents.Intent[0].Isclick;
+            var spellType = isClick ? 2 : 5;
+            x17.WriteByte((byte)spellType); //spell type? how are we determining this?
+            x17.WriteString8(item.Name + " (" + item.CastableLevel + "/" + item.MaxLevel + ")");
             x17.WriteString8(item.Name); //prompt? what is this?
             x17.WriteByte((byte)item.Lines);
             x17.WriteByte(0); //current level
@@ -1444,7 +1463,7 @@ namespace Hybrasyl.Objects
                 SendSystemMessage("You cannot learn any more spells.");
                 return false;
             }
-            return AddSkill(castable, SkillBook.FindEmptySlot());
+            return AddSpell(castable, SpellBook.FindEmptySlot());
         }
 
         public bool AddSpell(Castable item, byte slot)
@@ -1664,7 +1683,70 @@ namespace Hybrasyl.Objects
 
         public override void Attack(Castable castObject, Creature target = null)
         {
-            base.Attack(castObject, target);
+            var direction = this.Direction;
+            if (target == null)
+            {
+                Attack(castObject);
+            }
+            else
+            {
+                var damage = castObject.Effects.Damage;
+                if (damage != null)
+                {
+                    var intents = castObject.Intents;
+                    foreach (var intent in intents.Intent)
+                    {
+                        //isclick should always be 0 for a skill.
+                        var targetAreas = new List<KeyValuePair<int, int>>();
+
+                        Random rand = new Random();
+
+                        if (damage.Formula == null)
+                            //will need to be expanded. also will need to account for damage scripts
+                        {
+                            var simple = damage.Simple;
+                            var damageType = EnumUtil.ParseEnum<Enums.DamageType>(damage.Type.ToString(),
+                                Enums.DamageType.Magical);
+                            var dmg = rand.Next(Convert.ToInt32(simple.Min), Convert.ToInt32(simple.Max));
+                            //these need to be set to integers as attributes. note to fix.
+                            target.Damage(dmg, OffensiveElement, damageType, this);
+                        }
+                        else
+                        {
+                            var formula = damage.Formula;
+                            var damageType = EnumUtil.ParseEnum<Enums.DamageType>(damage.Type.ToString(),
+                                Enums.DamageType.Magical);
+                            FormulaParser parser = new FormulaParser(this, castObject, target);
+                            var dmg = parser.Eval(formula);
+                            if (dmg == 0) dmg = 1;
+                            target.Damage(dmg, OffensiveElement, damageType, this);
+
+                            var effectAnimation = new ServerPacketStructures.EffectAnimation()
+                            {
+                                SourceId = this.Id,
+                                Speed = (short) castObject.Effects.Animations.OnCast.Target.Speed,
+                                TargetId = target.Id,
+                                TargetAnimation = /*castObject.Effects.Animations.OnCast.Target.Id*/ 237
+                            };
+                            Enqueue(effectAnimation.Packet());
+                            SendAnimation(effectAnimation.Packet());
+
+                        }
+                    }
+                }
+
+                var playerAnimation = new ServerPacketStructures.PlayerAnimation()
+                {
+                    Animation = (byte) castObject.Effects.Animations.OnCast.Motion.Id,
+                    Speed = (ushort) (castObject.Effects.Animations.OnCast.Motion.Speed),
+                    UserId = this.Id
+                };
+                var sound = new ServerPacketStructures.PlaySound() {Sound = (byte) castObject.Effects.Sound.Id};
+                Enqueue(playerAnimation.Packet());
+                Enqueue(sound.Packet());
+                SendAnimation(playerAnimation.Packet());
+                PlaySound(sound.Packet());
+            }
         }
 
         public override void Attack(Castable castObject)
@@ -1719,6 +1801,11 @@ namespace Hybrasyl.Objects
                                 var dmg = parser.Eval(formula);
                                 if (dmg == 0) dmg = 1;
                                 target.Damage(dmg, OffensiveElement, damageType, this);
+
+                                var effectAnimation = new ServerPacketStructures.EffectAnimation() {SourceId = this.Id ,Speed = (short)castObject.Effects.Animations.OnCast.Target.Speed, TargetId = target.Id, TargetAnimation = /*castObject.Effects.Animations.OnCast.Target.Id*/ 237 };
+                                Enqueue(effectAnimation.Packet());
+                                SendAnimation(effectAnimation.Packet());
+
                             }
 
                         }
@@ -1729,11 +1816,11 @@ namespace Hybrasyl.Objects
                     }
                 }
 
-                var animation = new ServerPacketStructures.PlayerAnimation() { Animation = (byte)castObject.Effects.Animations.OnCast.Motion.Id, Speed = (ushort)(castObject.Effects.Animations.OnCast.Motion.Speed / 5), UserId = this.Id };
+                var playerAnimation = new ServerPacketStructures.PlayerAnimation() { Animation = (byte)castObject.Effects.Animations.OnCast.Motion.Id, Speed = (ushort)(castObject.Effects.Animations.OnCast.Motion.Speed / 5), UserId = this.Id };
                 var sound = new ServerPacketStructures.PlaySound() { Sound = (byte)castObject.Effects.Sound.Id };
-                Enqueue(animation.Packet());
+                Enqueue(playerAnimation.Packet());
                 Enqueue(sound.Packet());
-                SendAnimation(animation.Packet());
+                SendAnimation(playerAnimation.Packet());
                 PlaySound(sound.Packet());
 
                 //this is an attack skill
@@ -2341,8 +2428,10 @@ namespace Hybrasyl.Objects
                     var x17 = new ServerPacket(0x17);
                     x17.WriteByte((byte)i);
                     x17.WriteUInt16((ushort)(SpellBook[i].Icon));
-                    x17.WriteByte(0x00); //spell type? how are we determining this?
-                    x17.WriteString8(SpellBook[i].Name);
+                    var isClick = SpellBook[i].Intents.Intent[0].Isclick;
+                    var spellType = isClick ? 2 : 5;
+                    x17.WriteByte((byte)spellType); //spell type? how are we determining this?
+                    x17.WriteString8(SpellBook[i].Name + " (" + SpellBook[i].CastableLevel + "/" + 100 + ")"); //fortest
                     x17.WriteString8(SpellBook[i].Name); //prompt? what is this?
                     x17.WriteByte((byte)SpellBook[i].Lines);
                     x17.WriteByte(0); //current level

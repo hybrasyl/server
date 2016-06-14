@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using Hybrasyl.Enums;
@@ -11,18 +12,6 @@ namespace Hybrasyl
 
     internal class ServerPacketStructures
     {
-        internal partial class UseSkill
-        {
-            private byte OpCode;
-
-            internal UseSkill()
-            {
-                OpCode = OpCodes.UseSkill;
-            }
-
-            internal byte Slot { get; set; }
-        }
-
         internal partial class PlayerAnimation
         {
             private byte OpCode;
@@ -93,6 +82,34 @@ namespace Hybrasyl
                 return packet;
             }
 
+        }
+
+        internal partial class EffectAnimation
+        {
+            private byte OpCode;
+
+            internal EffectAnimation()
+            {
+                OpCode = OpCodes.SpellAnimation;
+            }
+            internal uint TargetId { get; set; }
+            internal uint? SourceId { get; set; }
+            internal uint TargetAnimation { get; set; }
+            internal uint? SourceAnimation { get; set; }
+            internal short Speed { get; set; }
+
+            internal ServerPacket Packet()
+            {
+                ServerPacket packet = new ServerPacket(OpCode);
+                int position = packet.Position;
+                packet.WriteUInt32(TargetId); 
+                packet.WriteUInt32(SourceId ?? 0);
+                packet.WriteUInt16((ushort)TargetAnimation);
+                packet.WriteUInt16((ushort)(SourceAnimation ?? 0));
+                packet.WriteInt16(Speed);
+                packet.WriteInt32(0);
+                return packet;
+            }
         }
 }
 }

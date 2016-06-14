@@ -25,6 +25,7 @@ namespace Hybrasyl
                 {
                     itemInfo["Name"] = book[i].Name;
                     itemInfo["Id"] = book[i].Id;
+
                     output[i] = itemInfo;
                 }
             }
@@ -34,19 +35,51 @@ namespace Hybrasyl
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
+            
             JArray jArray = JArray.Load(reader);
-            Book book = new Book(jArray.Count);
-
-            for (byte i = 0; i < jArray.Count; i++)
+            if (objectType.Name == "SkillBook")
             {
-                Dictionary<string, object> item;
-                if (TryGetValue(jArray[i], out item))
-                {
-                    book[i] = Game.World.Skills.Where(x => x.Value.Name == (string)item.FirstOrDefault().Value && x.Value.Id == Convert.ToInt32((item.Where(y => y.Key == "Id").FirstOrDefault().Value))).FirstOrDefault().Value;
-                }
-            }
+               var book = new SkillBook();
 
-            return book;
+                for (byte i = 0; i < jArray.Count; i++)
+                {
+                    Dictionary<string, object> item;
+                    if (TryGetValue(jArray[i], out item))
+                    {
+                        book[i] =
+                            Game.World.Skills.Where(
+                                x =>
+                                    x.Value.Name == (string) item.FirstOrDefault().Value &&
+                                    x.Value.Id ==
+                                    Convert.ToInt32((item.Where(y => y.Key == "Id").FirstOrDefault().Value)))
+                                .FirstOrDefault()
+                                .Value;
+                    }
+                }
+                return book;
+            }
+            else
+            {
+                var book = new SpellBook();
+
+                for (byte i = 0; i < jArray.Count; i++)
+                {
+                    Dictionary<string, object> item;
+                    if (TryGetValue(jArray[i], out item))
+                    {
+                        book[i] =
+                            Game.World.Spells.Where(
+                                x =>
+                                    x.Value.Name == (string)item.FirstOrDefault().Value &&
+                                    x.Value.Id ==
+                                    Convert.ToInt32((item.Where(y => y.Key == "Id").FirstOrDefault().Value)))
+                                .FirstOrDefault()
+                                .Value;
+                    }
+                }
+                return book;
+            }
+           
         }
 
 
@@ -66,7 +99,7 @@ namespace Hybrasyl
     }
 
     [JsonConverter(typeof(BookConverter))]
-    public sealed class Book : IEnumerable<Castable>
+    public class Book : IEnumerable<Castable>
     {
         private Castable[] _items;
         private Dictionary<int, Castable> _itemIndex;
@@ -118,6 +151,13 @@ namespace Hybrasyl
                 if (_itemIndex.Keys.Contains(item.Id))
                     _itemIndex.Remove(item.Id);
             }
+        }
+
+        public Book()
+        {
+            this._items = new Castable[90];
+            Size = 90;
+            this._itemIndex = new Dictionary<int, Castable>();
         }
 
         public Book(int size)
@@ -240,4 +280,8 @@ namespace Hybrasyl
         }
 
     }
+    [JsonConverter(typeof(BookConverter))]
+    public sealed class SkillBook : Book { }
+    [JsonConverter(typeof(BookConverter))]
+    public sealed class SpellBook : Book { }
 }

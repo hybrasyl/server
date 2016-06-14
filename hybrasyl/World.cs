@@ -790,6 +790,7 @@ namespace Hybrasyl
             PacketHandlers[0x08] = PacketHandler_0x08_DropItem;
             PacketHandlers[0x0B] = PacketHandler_0x0B_ClientExit;
             PacketHandlers[0x0E] = PacketHandler_0x0E_Talk;
+            PacketHandlers[0x0F] = PacketHandler_0x0F_UseSpell;
             PacketHandlers[0x10] = PacketHandler_0x10_ClientJoin;
             PacketHandlers[0x11] = PacketHandler_0x11_Turn;
             PacketHandlers[0x13] = PacketHandler_0x13_Attack;
@@ -827,6 +828,19 @@ namespace Hybrasyl
             var slot = packet.ReadByte();
 
             user.UseSkill(slot);
+        }
+
+        private void PacketHandler_0x0F_UseSpell(object obj, ClientPacket packet)
+        {
+            var user = (User) obj;
+            var slot = packet.ReadByte();
+            var target = packet.ReadUInt32();
+
+            
+
+            user.UseSpell(slot, target);
+
+
         }
 
         private void PacketHandler_0x13_Attack(object obj, ClientPacket packet)
@@ -1718,6 +1732,19 @@ namespace Hybrasyl
 
                             Castable skill = Skills.Where(x => x.Value.Name == skillName).FirstOrDefault().Value;
                             user.AddSkill(skill);
+                        }
+                        break;
+                    case "/spell":
+                        {
+                            string spellName;
+
+                            Logger.DebugFormat("/skill: Last argument is {0}", args.Last());
+                            Regex integer = new Regex(@"^\d+$");
+
+                            spellName = string.Join(" ", args, 1, args.Length - 1);
+
+                            Castable spell = Spells.Where(x => x.Value.Name == spellName).FirstOrDefault().Value;
+                            user.AddSpell(spell);
                         }
                         break;
                     case "/spawn":
