@@ -46,6 +46,7 @@ using System.Xml;
 using System.Xml.Schema;
 using Hybrasyl.Config;
 using Hybrasyl.Nations;
+using Microsoft.Scripting.Utils;
 using Newtonsoft.Json;
 using StackExchange.Redis;
 
@@ -1064,7 +1065,7 @@ namespace Hybrasyl
             }
             else
             {
-                Logger.DebugFormat("mail: notification to {0} failed, not logged in?", userName);
+                Logger.DebugFormat("tick: Cannot process tick for {0}, not logged in?", userName);
             }
         }
         #endregion
@@ -1090,6 +1091,10 @@ namespace Hybrasyl
             }
         }
 
+        [ProhibitedCondition(PlayerCondition.InComa)]
+        [ProhibitedCondition(PlayerCondition.Asleep)]
+        [ProhibitedCondition(PlayerCondition.Frozen)]
+        [ProhibitedCondition(PlayerCondition.Paralyzed)]
         private void PacketHandler_0x06_Walk(Object obj, ClientPacket packet)
         {
             var user = (User) obj;
@@ -1098,6 +1103,10 @@ namespace Hybrasyl
             user.Walk((Direction) direction);
         }
 
+        [ProhibitedCondition(PlayerCondition.InComa)]
+        [ProhibitedCondition(PlayerCondition.Asleep)]
+        [ProhibitedCondition(PlayerCondition.Frozen)]
+        [RequiredCondition(PlayerCondition.Alive)]
         private void PacketHandler_0x07_PickupItem(Object obj, ClientPacket packet)
         {
             var user = (User) obj;
@@ -1176,6 +1185,10 @@ namespace Hybrasyl
             }
         }
 
+        [ProhibitedCondition(PlayerCondition.InComa)]
+        [ProhibitedCondition(PlayerCondition.Asleep)]
+        [ProhibitedCondition(PlayerCondition.Frozen)]
+        [RequiredCondition(PlayerCondition.Alive)]
         private void PacketHandler_0x08_DropItem(Object obj, ClientPacket packet)
         {
             var user = (User) obj;
@@ -1244,6 +1257,7 @@ namespace Hybrasyl
                 user.Map.AddItem(x, y, toDrop);
         }
 
+        [ProhibitedCondition(PlayerCondition.Frozen)]
         private void PacketHandler_0x11_Turn(Object obj, ClientPacket packet)
         {
             var user = (User) obj;
@@ -1295,26 +1309,50 @@ namespace Hybrasyl
                         }                           
                     }
                         break;
+                    case "/clearstatus":
+                    {
+                        user.RemoveAllStatuses();
+                        user.SendSystemMessage("All statuses cleared.");
+                    }
+                        break;
+                    case "/clearconditions":
+                    {
+                        user.Status = PlayerCondition.Alive;
+                        user.SendSystemMessage("Alive, conditions cleared");
+                    }
+                        break;
                     case "/applystatus":
                     {
                         var status = args[1];
                         if (status.ToLower() == "poison")
                         {
-                            user.ApplyStatus(new PoisonEffect(user, 30, 1, 5));
+                            user.ApplyStatus(new PoisonStatus(user, 30, 1, 5));
                         }
                         if (status.ToLower() == "sleep")
                         {
-                            user.ApplyStatus(new SleepEffect(user, 30, 1));
+                            user.ApplyStatus(new SleepStatus(user, 30, 1));
                         }
                         if (status.ToLower() == "paralyze")
                         {
-                            user.ApplyStatus(new ParalyzeEffect(user, 30, 1));
+                            user.ApplyStatus(new ParalyzeStatus(user, 30, 1));
                         }
                         if (status.ToLower() == "blind")
                         {
-                            user.ApplyStatus(new BlindEffect(user, 30, 1));
+                            user.ApplyStatus(new BlindStatus(user, 30, 1));
                         }
 
+                    }
+                        break;
+                    case "/damage":
+                    {
+                        var dmg = double.Parse(args[1]);
+                        user.Damage(dmg);
+                    }
+                        break;
+
+                    case "/condition":
+                    {
+                        user.SendSystemMessage($"Status: {user.Status}");
                     }
                         break;
                     case "/status":
@@ -2146,6 +2184,11 @@ namespace Hybrasyl
             }
             else
             {
+                if (!user.Status.HasFlag(PlayerCondition.Alive))
+                {
+                    user.SendSystemMessage("Your voice is carried away by a sudden wind.");
+                    return;
+                }
                 if (user.CheckSquelch(0x0e, message))
                 {
                     Logger.DebugFormat("{1}: squelched (say/shout)", user.Name);
@@ -2303,6 +2346,7 @@ namespace Hybrasyl
             me.Enqueue(listPacket);
         }
 
+        [RequiredCondition(PlayerCondition.Alive)]
         private void PacketHandler_0x19_Whisper(Object obj, ClientPacket packet)
         {
             var user = (User) obj;
@@ -2324,6 +2368,10 @@ namespace Hybrasyl
             }
         }
 
+        [ProhibitedCondition(PlayerCondition.InComa)]
+        [ProhibitedCondition(PlayerCondition.Asleep)]
+        [ProhibitedCondition(PlayerCondition.Frozen)]
+        [RequiredCondition(PlayerCondition.Alive)]
         private void PacketHandler_0x1C_UseItem(Object obj, ClientPacket packet)
         {
             var user = (User) obj;
@@ -2339,7 +2387,13 @@ namespace Hybrasyl
 
             switch (item.ItemObjectType)
             {
-                case Enums.ItemObjectType.CanUse:
+                case Enums.ItemType.CanUse:
+                    if (item.Durability == 0)
+                    {
+                        user.SendSystemMessage("This item is too badly damaged to use.");
+                        return;
+                    }
+
                     item.Invoke(user);
                     if (item.Count == 0)
                         user.RemoveItem(slot);
@@ -2351,9 +2405,13 @@ namespace Hybrasyl
                     break;
                 case Enums.ItemObjectType.Equipment:
                 {
-
+                    if (item.Durability == 0)
+                    {
+                        user.SendSystemMessage("This item is too badly damaged to use.");
+                        return;
+                    }
                     // Check item requirements here before we do anything rash
-                    String message;
+                        String message;
                     if (!item.CheckRequirements(user, out message))
                     {
                         // If an item can't be equipped, CheckRequirements will return false
@@ -2465,6 +2523,10 @@ namespace Hybrasyl
             }
         }
 
+        [ProhibitedCondition(PlayerCondition.InComa)]
+        [ProhibitedCondition(PlayerCondition.Asleep)]
+        [ProhibitedCondition(PlayerCondition.Frozen)]
+        [RequiredCondition(PlayerCondition.Alive)]
         private void PacketHandler_0x1D_Emote(Object obj, ClientPacket packet)
         {
             var user = (User) obj;
@@ -2476,6 +2538,10 @@ namespace Hybrasyl
             }
         }
 
+        [ProhibitedCondition(PlayerCondition.InComa)]
+        [ProhibitedCondition(PlayerCondition.Asleep)]
+        [ProhibitedCondition(PlayerCondition.Frozen)]
+        [RequiredCondition(PlayerCondition.Alive)]
         private void PacketHandler_0x24_DropGold(Object obj, ClientPacket packet)
         {
             var user = (User) obj;
@@ -2528,7 +2594,7 @@ namespace Hybrasyl
             var user = (User) obj;
             user.SendProfile();
         }
-         
+
         /**
          * Handle user-initiated grouping requests. There are a number of mechanisms in the client
          * that send this packet, but generally amount to one of three serverside actions:
@@ -2544,6 +2610,8 @@ namespace Hybrasyl
          *    5) Send them a dialog and have them explicitly accept.
          *    6) If accepted, join group (see stage 0x03).
          */
+        [ProhibitedCondition(PlayerCondition.InComa)]
+        [RequiredCondition(PlayerCondition.Alive)]
         private void PacketHandler_0x2E_GroupRequest(Object obj, ClientPacket packet)
         {
             var user = (User) obj;
@@ -2610,13 +2678,14 @@ namespace Hybrasyl
                     Logger.Debug("Invitation accepted. Grouping.");
                     partner.InviteToGroup(user);
                     break;
-                // This shouldn't happen but we should log it and fix it if it does.
                 default:
                     Logger.Error("Unknown GroupRequest stage. No action taken.");
                     break;
             }
         }
 
+        [ProhibitedCondition(PlayerCondition.InComa)]
+        [RequiredCondition(PlayerCondition.Alive)]
         private void PacketHandler_0x2F_GroupToggle(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -2635,6 +2704,10 @@ namespace Hybrasyl
             // are extra bytes coming through but not sure what purpose they serve.
         }
 
+        [ProhibitedCondition(PlayerCondition.InComa)]
+        [ProhibitedCondition(PlayerCondition.Asleep)]
+        [ProhibitedCondition(PlayerCondition.Frozen)]
+        [RequiredCondition(PlayerCondition.Alive)]
         private void PacketHandler_0x2A_DropGoldOnCreature(Object obj, ClientPacket packet)
         {
             var goldAmount = packet.ReadUInt32();
@@ -2692,6 +2765,10 @@ namespace Hybrasyl
 
         }
 
+        [ProhibitedCondition(PlayerCondition.InComa)]
+        [ProhibitedCondition(PlayerCondition.Asleep)]
+        [ProhibitedCondition(PlayerCondition.Frozen)]
+        [RequiredCondition(PlayerCondition.Alive)]
         private void PacketHandler_0x29_DropItemOnCreature(Object obj, ClientPacket packet)
         {
             var itemSlot = packet.ReadByte();
@@ -2754,6 +2831,7 @@ namespace Hybrasyl
             }
         }
 
+        [RequiredCondition(PlayerCondition.Alive)]
         private void PacketHandler_0x30_MoveUIElement(Object obj, ClientPacket packet)
         {
             var user = (User) obj;
@@ -2777,6 +2855,10 @@ namespace Hybrasyl
             user.SwapItem(oldSlot, newSlot);
         }
 
+        [ProhibitedCondition(PlayerCondition.InComa)]
+        [ProhibitedCondition(PlayerCondition.Asleep)]
+        [ProhibitedCondition(PlayerCondition.Frozen)]
+        [RequiredCondition(PlayerCondition.Alive)]
         private void PacketHandler_0x3B_AccessMessages(Object obj, ClientPacket packet)
         {
             var user = (User) obj;
@@ -3153,6 +3235,9 @@ namespace Hybrasyl
             user.Enqueue(response);
         }
 
+        [ProhibitedCondition(PlayerCondition.InComa)]
+        [ProhibitedCondition(PlayerCondition.Asleep)]
+        [ProhibitedCondition(PlayerCondition.Frozen)]
         private void PacketHandler_0x3F_MapPointClick(Object obj, ClientPacket packet)
         {
             var user = (User) obj;
@@ -3191,6 +3276,10 @@ namespace Hybrasyl
             user.Refresh();
         }
 
+        [ProhibitedCondition(PlayerCondition.InComa)]
+        [ProhibitedCondition(PlayerCondition.Asleep)]
+        [ProhibitedCondition(PlayerCondition.Frozen)]
+        [RequiredCondition(PlayerCondition.Alive)]
         private void PacketHandler_0x39_NPCMainMenu(Object obj, ClientPacket packet)
         {
             var user = (User) obj;
@@ -3291,6 +3380,10 @@ namespace Hybrasyl
         }
 
 
+        [ProhibitedCondition(PlayerCondition.InComa)]
+        [ProhibitedCondition(PlayerCondition.Asleep)]
+        [ProhibitedCondition(PlayerCondition.Frozen)]
+        [RequiredCondition(PlayerCondition.Alive)]
         private void PacketHandler_0x3A_DialogUse(Object obj, ClientPacket packet)
         {
             var user = (User) obj;
@@ -3389,6 +3482,10 @@ namespace Hybrasyl
             }
         }
 
+        [ProhibitedCondition(PlayerCondition.InComa)]
+        [ProhibitedCondition(PlayerCondition.Asleep)]
+        [ProhibitedCondition(PlayerCondition.Frozen)]
+        [RequiredCondition(PlayerCondition.Alive)]
         private void PacketHandler_0x43_PointClick(Object obj, ClientPacket packet)
         {
             var user = (User) obj;
@@ -3450,6 +3547,10 @@ namespace Hybrasyl
 
         }
 
+        [ProhibitedCondition(PlayerCondition.InComa)]
+        [ProhibitedCondition(PlayerCondition.Asleep)]
+        [ProhibitedCondition(PlayerCondition.Frozen)]
+        [RequiredCondition(PlayerCondition.Alive)]
         private void PacketHandler_0x44_EquippedItemClick(Object obj, ClientPacket packet)
         {
             var user = (User) obj;
@@ -3496,6 +3597,10 @@ namespace Hybrasyl
             }
         }
 
+        [ProhibitedCondition(PlayerCondition.InComa)]
+        [ProhibitedCondition(PlayerCondition.Asleep)]
+        [ProhibitedCondition(PlayerCondition.Frozen)]
+        [RequiredCondition(PlayerCondition.Alive)]
         private void PacketHandler_0x47_StatPoint(Object obj, ClientPacket packet)
         {
             var user = (User) obj;
@@ -3528,6 +3633,10 @@ namespace Hybrasyl
 
         }
 
+        [ProhibitedCondition(PlayerCondition.InComa)]
+        [ProhibitedCondition(PlayerCondition.Asleep)]
+        [ProhibitedCondition(PlayerCondition.Frozen)]
+        [RequiredCondition(PlayerCondition.Alive)]
         private void PacketHandler_0x4A_Trade(object obj, ClientPacket packet)
         {
             var user = (User) obj;
@@ -4020,12 +4129,38 @@ namespace Hybrasyl
                         {                            
                             if (ActiveUsers.TryGetValue(clientMessage.ConnectionId, out user))
                             {
+                                // Check if the action is prohibited due to statuses
+                                MethodBase method = handler.GetMethod();
+                                bool ignore = false;
+                                foreach (var prohibited in method.GetCustomAttributes(typeof(ProhibitedCondition), true))
+                                {
+                                    var prohibitedCondition = prohibited as ProhibitedCondition;
+                                    if (prohibitedCondition == null) continue;
+                                    Logger.InfoFormat($"{user.Status} : {prohibitedCondition.Condition} : {user.Status.HasFlag(prohibitedCondition.Condition)}");
+                                    if (!user.Status.HasFlag(prohibitedCondition.Condition)) continue;
+                                    user.SendSystemMessage(Constants.STATUS_RESTRICTION_MESSAGES[prohibitedCondition.Condition]);
+                                    ignore = true;
+                                }
+                                foreach (var required in method.GetCustomAttributes(typeof(RequiredCondition), true))
+                                {
+                                    var requiredCondition = required as ProhibitedCondition;
+                                    if (requiredCondition == null) continue;
+                                    if (user.Status.HasFlag(requiredCondition.Condition)) continue;
+                                    user.SendSystemMessage(Constants.STATUS_RESTRICTION_MESSAGES[requiredCondition.Condition]);
+                                    ignore = true;
+                                }
+
                                 // If we are in an exchange, we should only receive exchange packets and the
                                 // occasional heartbeat. If we receive anything else, just kill the exchange.
                                 if (user.ActiveExchange != null && (clientMessage.Packet.Opcode != 0x4a &&
                                     clientMessage.Packet.Opcode != 0x45 && clientMessage.Packet.Opcode != 0x75)) 
                                     user.ActiveExchange.CancelExchange(user);
-
+                                if (ignore)
+                                {
+                                    if (clientMessage.Packet.Opcode == 0x06) user.Refresh();
+                                    continue;
+                                }
+                                // Last but not least, invoke the handler
                                 handler.Invoke(user, clientMessage.Packet);
                             }
                             else if (clientMessage.Packet.Opcode == 0x10) // Handle special case of join world

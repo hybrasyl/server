@@ -114,14 +114,14 @@ namespace Hybrasyl
             Orange = 8,
             Purple = 9
         }
-        public enum StatusBarColor
+        public enum StatusBarColor : byte
         {
-            Off,
-            Blue,
-            Green,
-            Orange,
-            Red,
-            White
+            Off = 0,
+            Blue = 1,
+            Green = 2,
+            Orange = 3,
+            Red = 4,
+            White = 5
         }
 
         #endregion

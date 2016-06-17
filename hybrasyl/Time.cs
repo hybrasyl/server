@@ -269,7 +269,7 @@ namespace Hybrasyl
                 throw new ArgumentException("Date passed occurs before known time", nameof(datetime));
 
             var hybrasylTime = new HybrasylTime();
-            var thisAge = Game.Config.Time.Ages.First(age => age.DateInAge(datetime));
+            var thisAge = Game.Config.Time.Ages.FirstOrDefault(age => age.DateInAge(datetime));
             var timeElapsed = datetime.Ticks - World.StartDate.Ticks;
 
             if (thisAge == null)

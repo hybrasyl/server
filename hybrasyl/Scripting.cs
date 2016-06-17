@@ -32,6 +32,7 @@ using Microsoft.Scripting.Hosting;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using Hybrasyl.Items;
@@ -586,6 +587,27 @@ from System import DateTime
         public List<HybrasylUser> GetViewportPlayers()
         {
             return new List<HybrasylUser>();
+        }
+
+        public void Resurrect()
+        {
+            User.Resurrect();
+        }
+
+        public HybrasylUser GetFacingUser()
+        {
+            var facing = User.GetFacingUser();
+            return facing != null ? new HybrasylUser(facing) : null;
+        }
+
+        public List<HybrasylWorldObject> GetFacingObjects()
+        {
+            return User.GetFacingObjects().Select(item => new HybrasylWorldObject(item)).ToList();
+        }
+
+        public void EndComa()
+        {
+            User.EndComa();
         }
 
         public dynamic GetLegendMark(string prefix)

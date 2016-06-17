@@ -136,11 +136,16 @@ namespace Hybrasyl.Objects
         public String Portrait { get; set; }
         public string DisplayText { get; set; }
 
+        public string DeathPileOwner { get; set; }
+        public List<string> DeathPileAllowedLooters { get; set; }
+        public DateTime? DeathPileTime { get; set; }
 
         public VisibleObject()
-        {
-          
-            DisplayText = String.Empty;
+        {         
+            DisplayText = string.Empty;
+            DeathPileAllowedLooters = new List<string>();
+            DeathPileOwner = string.Empty;
+            DeathPileTime = null;
         }
 
         public virtual void AoiEntry(VisibleObject obj)

@@ -300,6 +300,7 @@ namespace Hybrasyl
 
             public static void Execute(Object obj, ElapsedEventArgs args)
             {
+                Logger.Debug("Status tick job starting");
                 foreach (var connectionId in GlobalConnectionManifest.WorldClients.Keys)
                 {
                     User user;
@@ -308,6 +309,8 @@ namespace Hybrasyl
                         World.MessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.StatusTick, user.Name));
                     }
                 }
+                Logger.Debug("Status tick job ending");
+
             }
         }
 

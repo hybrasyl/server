@@ -28,6 +28,7 @@ using System.ComponentModel;
 using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
+using Hybrasyl.Enums;
 
 namespace Hybrasyl
 {
@@ -293,7 +294,20 @@ namespace Hybrasyl
         public const int TICK_HEARTBEAT_INTERVAL = 60;
         public const int REAP_HEARTBEAT_INTERVAL = 5;
 
+        // The message a spirit gets when it tries to do things it cannot
 
+        public const string SPIRIT_FORBIDDEN = "Spirits cannot do that.";
+
+        public static Dictionary<PlayerCondition, string> STATUS_RESTRICTION_MESSAGES = new Dictionary
+            <PlayerCondition, string>
+        {
+            {PlayerCondition.InComa, NearDeathStatus.ActionProhibitedMessage},
+            {PlayerCondition.Asleep, SleepStatus.ActionProhibitedMessage},
+            {PlayerCondition.Frozen, FreezeStatus.ActionProhibitedMessage},
+            {PlayerCondition.Paralyzed, ParalyzeStatus.ActionProhibitedMessage},
+            {PlayerCondition.Alive, Constants.SPIRIT_FORBIDDEN}
+
+        };
         // These times control various throttling of packet receipts. 
         // The thresholds are in milliseconds.
         // Generally:
