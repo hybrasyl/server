@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<mob xmlns="http://www.hybrasyl.com/XML/Creatures" id="1" sprite="1">
+    <name>Fearsome Beast</name>
+    <description>A wild, ferocious predator.</description>
+    <properties>
+        <difficulty level="5"></difficulty>
+        <damage min="10" max="100" element="fire"></damage>
+        <defense mr="1" ac="85" element="water"></defense>
+        <loot exp="100">
+            <drops>
+                <gold minqty="10" maxqty="50"></gold>
+            </drops>
+        </loot>
+    </properties>
+</mob>

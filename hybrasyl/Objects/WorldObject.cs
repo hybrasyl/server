@@ -908,6 +908,9 @@ namespace Hybrasyl.Objects
         private bool _idle = true;
 
         private uint _mTarget;
+        // All Monsters come from a Mob of a given type (wolves, etc). All mobs are stored at a
+        // world level and can be retrieved using mob ID's.
+        public int MobType;
 
         public Creature Target
         {

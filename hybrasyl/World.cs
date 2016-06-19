@@ -125,10 +125,10 @@ namespace Hybrasyl
         public Dictionary<Int64, MapPoint> MapPoints { get; set; }
         public Dictionary<string, CompiledMetafile> Metafiles { get; set; }
         public Dictionary<string, Nation> Nations { get; set; }
-        internal List<Monolith> Monoliths { get; set; }
 	    public Dictionary<string, Mailbox> Mailboxes { get; set; }
         public Dictionary<int, Board> MessageboardIndex { get; set; }
-        public Dictionary<string, Board> Messageboards { get; set; }  
+        public Dictionary<string, Board> Messageboards { get; set; }
+        public Dictionary<int, Mob> Mobs { get; private set; }  
 
         public Nation DefaultNation
         {
@@ -174,6 +174,8 @@ namespace Hybrasyl
 
         public static string MapDirectory => Path.Combine(DataDirectory, "world", "xml", "maps");
 
+        public static string MonsterDirectory => Path.Combine(DataDirectory, "world", "xml", "monsters");
+
         public static string WorldMapDirectory => Path.Combine(DataDirectory, "world", "xml", "worldmaps");
 
         public static string ItemVariantDirectory => Path.Combine(DataDirectory, "world", "xml", "itemvariants");
@@ -216,10 +218,10 @@ namespace Hybrasyl
             Portraits = new Dictionary<string, string>();
             GlobalSequences = new List<DialogSequence>();
             ItemVariants = new Dictionary<string, VariantGroupType>();
-            Monoliths = new List<Monolith>();
 	        Mailboxes = new Dictionary<string, Mailbox>();
             Messageboards = new Dictionary<string, Board>();
             MessageboardIndex = new Dictionary<int, Board>();
+            Mobs = new Dictionary<int, Mob>();
 
 
             GlobalSequencesCatalog = new Dictionary<String, DialogSequence>();
@@ -334,76 +336,23 @@ namespace Hybrasyl
 
             Logger.InfoFormat("National data: {0} nations loaded", Nations.Count);
 
-            /*DEBUG METHOD - MONOLITH & Maps*/
-            foreach (var map in Maps)
+            foreach (var xml in Directory.GetFiles(MonsterDirectory))
             {
-                if(map.Key == 500)
+                try
                 {
-                    Dictionary<Monster, int> mobs = new Dictionary<Monster, int>();
-                    mobs.Add(
-                        new Monster()
-                        {
-                            Sprite = 1,
-                            World = Game.World,
-                            Map = Game.World.Maps[500],
-                            Level = 1,
-                            DisplayText = "TestBee",
-                            BaseHp = 100,
-                            Hp = 100,
-                            BaseMp = 1,
-                            Name = "TestBee",
-                            BaseStr = 3,
-                            BaseCon = 3,
-                            BaseDex = 3,
-                            BaseInt = 3,
-                            BaseWis = 3,
-                        }, 1
-                        );
-                    mobs.Add(
-                        new Monster()
-                        {
-                            Sprite = 2,
-                            World = Game.World,
-                            Map = Game.World.Maps[500],
-                            Level = 1,
-                            DisplayText = "TestBee",
-                            BaseHp = 100,
-                            Hp = 100,
-                            BaseMp = 1,
-                            Name = "TestWolf",
-                            BaseStr = 3,
-                            BaseCon = 3,
-                            BaseDex = 3,
-                            BaseInt = 3,
-                            BaseWis = 3,
-                        }, 2
-                        );
-                    mobs.Add(
-                        new Monster()
-                        {
-                            Sprite = 3,
-                            World = Game.World,
-                            Map = Game.World.Maps[500],
-                            Level = 1,
-                            DisplayText = "TestBee",
-                            BaseHp = 100,
-                            Hp = 100,
-                            BaseMp = 1,
-                            Name = "TestWisp",
-                            BaseStr = 3,
-                            BaseCon = 3,
-                            BaseDex = 3,
-                            BaseInt = 3,
-                            BaseWis = 3,
-                        }, 3
-                        );
-                    map.Value.MapMonsters = mobs;
+                    Mob newMob = Serializer.Deserialize(XmlReader.Create(xml), new Mob());
+                    Logger.DebugFormat("Mobs: Loaded {0}", newMob.Name);
+                    
+                    Mobs[newMob.Id] = newMob;
+                }
+                catch (Exception e)
+                {
+                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, e);
                 }
             }
-            Monoliths.Add(new Monolith() { ControlMaps = new List<Map>() { Game.World.Maps[500] }, MaxSpawns = 100 });
-            /*END DEBUG MONOLITH TEST*/
 
-
+            Logger.InfoFormat("Mob data: {0} mobs loaded", Mobs.Count);
+            
             // Load worldmaps
             foreach (var xml in Directory.GetFiles(WorldMapDirectory))
             {
@@ -781,6 +730,7 @@ namespace Hybrasyl
             ControlMessageHandlers[ControlOpcodes.RegenUser] = ControlMessage_RegenerateUser;
             ControlMessageHandlers[ControlOpcodes.LogoffUser] = ControlMessage_LogoffUser;
             ControlMessageHandlers[ControlOpcodes.MailNotifyUser] = ControlMessage_MailNotifyUser;
+            ControlMessageHandlers[ControlOpcodes.SpawnMonsters] = ControlMessage_SpawnMonsters;
         }
 
 
@@ -1033,6 +983,106 @@ namespace Hybrasyl
             {
                 Logger.DebugFormat("mail: notification to {0} failed, not logged in?", userName);
             }
+        }
+
+        private void ControlMessage_SpawnMonsters(HybrasylControlMessage message)
+        {
+            var mapId = (ushort)message.Arguments[0];
+            var map = Maps[mapId];
+
+            Logger.InfoFormat("Spawning monsters in {0}", Maps[mapId].Name);
+
+            foreach (var spawn in map.Spawns)
+            {
+                // Get the current count of this spawn on the map. If less than max, pick a randon int as a target count
+                // and iterate until we get there.
+                int currentCount = map.Monsters.Where(monster => monster.MobType == spawn.MobId).Count();
+
+                // todo: max and min should be stored as ints or uints; xs:nonNegativeInteger is converting to string.
+                if (currentCount < Int32.Parse(spawn.SpawnModifiers.Quantity.Max))
+                {
+                    // todo: assuming strategy = random. this will need to be more generic at some point.
+                    int targetCount = new Random().Next(Int32.Parse(spawn.SpawnModifiers.Quantity.Min), Int32.Parse(spawn.SpawnModifiers.Quantity.Max));
+
+                    // Spawn until there are targetCount monsters (potentially zero if lots of monsters are already around).
+                    Mob mob;
+                    if (Mobs.TryGetValue(spawn.MobId, out mob))
+                    {
+                        for (int i = 0; i < targetCount - currentCount; i++)
+                        {
+                            SpawnMonster(map, mob);
+                        }
+                    }
+                    else
+                    {
+                        Logger.ErrorFormat("Attempting to spawn non-existant monster (id {0})", spawn.MobId);
+                    }
+
+                    Logger.InfoFormat("There are now {0} / {1} monsters in {2}", map.Monsters.Count, spawn.SpawnModifiers.Quantity.Max, map.Name);
+                }
+            }
+        }
+
+        private Tuple<int, int> FindEmptySpace(Map map, int minX, int maxX, int minY, int maxY)
+        {
+            Random coord = new Random();
+
+            // Make this a finite loop; otherwise it could become infinite if the map
+            // was full and bring bad things into this world. Better to have it throw 
+            // an exception after X attempts that can be handled if need be.
+            for (int i = 0; i < 100; i++)
+            {
+                int x = coord.Next(minX, maxX);
+                int y = coord.Next(minY, maxX);
+                
+                // todo: check other conditions:
+                //   1. no users at the position
+                //   2. no other monsters at the position
+                if (!map.IsWall[x, y])
+                {
+                    return new Tuple<int, int>(x, y);
+                }
+            }
+
+            throw new Exception("Couldn't find an empty space on map: " + map.Name);
+        }
+
+        private void SpawnMonster(Map where, Mob what)
+        {
+            Tuple<int, int> coords = FindEmptySpace(where, 0, where.X, 0, where.Y);
+
+            // todo: replace almost all of these defaults
+            // todo: scripting needs to be configured here I think
+            Monster monster = new Monster()
+            {
+                MobType = what.Id,
+                Sprite = what.Sprite,
+                World = Game.World,
+                Map = where,
+                Level = 1,
+                DisplayText = what.Name,
+                BaseHp = 100,
+                Hp = 100,
+                BaseMp = 1,
+                Name = what.Name,
+                Id = 90210,
+                BaseStr = 3,
+                BaseCon = 3,
+                BaseDex = 3,
+                BaseInt = 3,
+                BaseWis = 3,
+                X = (byte)coords.Item1,
+                Y = (byte)coords.Item2,
+            };
+            // Insert the creature into the map
+            where.InsertCreature(monster);
+
+            // Notify all users that are currently on the map
+            foreach (var user in where.Users.Values)
+            {
+                user.SendVisibleCreature(monster);
+            }
+            Logger.InfoFormat("Spawning {0} in {1}", what.Name, where.Name);
         }
 
         #endregion
@@ -1760,22 +1810,27 @@ namespace Hybrasyl
                         break;
                     case "/spawn":
                         {
-                            string creatureName;
-                            Logger.DebugFormat("/skill Last argument is {0}", args.Last());
-
-                            creatureName = string.Join(" ", args, 1, args.Length - 1);
-
-                            Creature creature = new Creature()
+                            int mobId;
+                            if (!Int32.TryParse(args.Last(), out mobId))
                             {
+                                user.SendSystemMessage("Usage: /spawn [mobId]");
+                                return;
+                            }
+                            Mob mob = Mobs[Int32.Parse(args.Last())];
+                            Logger.InfoFormat("spawn'ing {0}", mob.Name);
+
+                            Monster creature = new Monster()
+                            {
+                                MobType = mob.Id,
                                 Sprite = 1,
                                 World = Game.World,
                                 Map = Game.World.Maps[500],
                                 Level = 1,
-                                DisplayText = "TestMob",
+                                DisplayText = mob.Name,
                                 BaseHp = 100,
                                 Hp = 100,
                                 BaseMp = 1,
-                                Name = "TestMob",
+                                Name = mob.Name,
                                 Id = 90210,
                                 BaseStr = 3,
                                 BaseCon = 3,

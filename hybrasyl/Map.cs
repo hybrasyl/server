@@ -189,7 +189,18 @@ namespace Hybrasyl
         public Dictionary<Tuple<byte, byte>, Objects.Signpost> Signposts { get; set; }
         public Dictionary<Tuple<byte, byte>, Objects.Reactor> Reactors { get; set; }
 
-        public Dictionary<Monster, int> MapMonsters { get; set; }
+        public bool SpawnsSpecified
+        {
+            get
+            {
+                return Spawns.Count > 0;
+            }
+        }
+        public List<Spawn> Spawns { get; private set; }
+
+        // LinkedList may or may not end up being the right data structure; it works well 
+        // for the current use cases (adding, removing, iteration) though.
+        public LinkedList<Monster> Monsters { get; set; }
 
         /// <summary>
         /// Create a new Hybrasyl map from an XMLMap object.
@@ -208,6 +219,7 @@ namespace Hybrasyl
             Y = newMap.Y;
             Name = newMap.Name;
             EntityTree = new QuadTree<VisibleObject>(0,0,X,Y);
+            Monsters = new LinkedList<Monster>();
             Music = newMap.Music;
 
             foreach (var warpElement in newMap.Warps)
@@ -279,10 +291,14 @@ namespace Hybrasyl
                 }
             }
 
+            Spawns = new List<Spawn>();
+            Logger.InfoFormat("Spawns: {0}", newMap.Spawns.Count);
             foreach (var spawnElement in newMap.Spawns)
             {
-                // TODO: implement spawning
+                // TODO: add a spawn object to Spawns list
+                Spawns.Add(spawnElement);
             }
+            Logger.InfoFormat("{0} has {1} spawns.", this.Name, Spawns.Count);
 
             Load();
         }
@@ -319,6 +335,12 @@ namespace Hybrasyl
         {
             World.Insert(toInsert);
             Insert(toInsert, toInsert.X, toInsert.Y);
+
+            if (toInsert is Monster)
+            {
+                Monsters.AddLast((Monster)toInsert);
+            }
+
             Logger.DebugFormat("Monster {0} with id {1} spawned.", toInsert.Name, toInsert.Id);
         }
         
@@ -442,6 +464,9 @@ namespace Hybrasyl
                     target.AoiEntry(obj);
                     obj.AoiEntry(target);
                 }
+
+                // todo: add a Monster section here? seems like the client doesn't always 
+                // show monsters, but F5 makes them appear. need to investigate
 
             }
         }

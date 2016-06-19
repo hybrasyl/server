@@ -241,6 +241,7 @@ namespace Hybrasyl
         public const int RegenUser = 4;
         public const int LogoffUser = 5;
         public const int MailNotifyUser = 6;
+        public const int SpawnMonsters = 7;
     }
 
     static class ServerTypes
