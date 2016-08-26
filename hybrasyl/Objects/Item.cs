@@ -235,10 +235,10 @@ namespace Hybrasyl.Objects
             // Run through all the different potential uses. We allow combinations of any
             // use specified in the item XML.
             Logger.InfoFormat($"User {trigger.Name}: used item {Name}");
-            if (Use.ScriptnameSpecified)
+            if (Use.ScriptSpecified)
             {
                 Script invokeScript;
-                if (!World.ScriptProcessor.TryGetScript(Use.Scriptname, out invokeScript))
+                if (!World.ScriptProcessor.TryGetScript(Use.Script, out invokeScript))
                 {
                     trigger.SendSystemMessage("It doesn't work.");
                     return;

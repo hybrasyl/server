@@ -877,6 +877,36 @@ namespace Hybrasyl.Objects
             Hp -= normalized;
 
             SendDamageUpdate(this);
+
+            if (Hp == 0)
+            {
+                OnDeath(attacker);
+            }
+        }
+
+        private void OnDeath(Creature attacker)
+        {
+            // give exp
+            if (this is Monster && attacker is User)
+            {
+                var attackerUser = (attacker as User);
+                attackerUser.GiveExperience(this.Experience);
+            }
+
+            // TODO: drop items
+
+            //var items = Inventory.ToList();
+            //for (byte i = 0; i < Inventory.Size; i++)
+            //{
+            //    byte slot = (byte)(i + 1);
+            //    Inventory.Remove(slot);
+            //}
+            //foreach (var item in items)
+            //{
+            //    Map.AddItem(X, Y, item);
+            //}
+
+            Remove();
         }
 
         private void SendDamageUpdate(Creature creature)

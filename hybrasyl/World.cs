@@ -405,11 +405,11 @@ namespace Hybrasyl
 
 
             // Load worldmaps
-            foreach (var xml in Directory.GetFiles(WorldMapDirectory))
+            foreach (var xmlWorldMap in Directory.GetFiles(WorldMapDirectory))
             {
                 try
                 {
-                    XSD.WorldMap newWorldMap = Serializer.Deserialize(XmlReader.Create(xml), new XSD.WorldMap());
+                    XSD.WorldMap newWorldMap = Serializer.Deserialize(XmlReader.Create(xmlWorldMap), new XSD.WorldMap());
                     var worldmap = new WorldMap(newWorldMap);
                     WorldMaps.Add(worldmap.Name, worldmap);
                     foreach (var point in worldmap.Points)
@@ -418,35 +418,35 @@ namespace Hybrasyl
                 }
                 catch (Exception e)
                 {
-                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, e);
+                    Logger.ErrorFormat("Error parsing {0}: {1}", xmlWorldMap, e);
                 }
             }
 
             Logger.InfoFormat("World Maps: {0} world maps loaded", WorldMaps.Count);
 
             // Load item variants
-            foreach (var xml in Directory.GetFiles(ItemVariantDirectory))
+            foreach (var xmlItemVariant in Directory.GetFiles(ItemVariantDirectory))
             {
                 try
                 {
-                    VariantGroupType newGroup = Serializer.Deserialize(XmlReader.Create(xml), new VariantGroupType());
+                    VariantGroupType newGroup = Serializer.Deserialize(XmlReader.Create(xmlItemVariant), new VariantGroupType());
                     Logger.DebugFormat("Item variants: loaded {0}", newGroup.Name);
                     ItemVariants.Add(newGroup.Name, newGroup);
                 }
                 catch (Exception e)
                 {
-                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, e);
+                    Logger.ErrorFormat("Error parsing {0}: {1}", xmlItemVariant, e);
                 }
             }
 
             Logger.InfoFormat("Item variants: {0} variant sets loaded", ItemVariants.Count);
 
             // Load items
-            foreach (var xml in Directory.GetFiles(ItemDirectory))
+            foreach (var xmlItem in Directory.GetFiles(ItemDirectory))
             {
                 try
                 {
-                    XSD.ItemType newItem = Serializer.Deserialize(XmlReader.Create(xml), new XSD.ItemType());
+                    XSD.ItemType newItem = Serializer.Deserialize(XmlReader.Create(xmlItem), new XSD.ItemType());
                     Logger.DebugFormat("Items: loaded {0}, id {1}", newItem.Name, newItem.Id);
                     Items.Add(newItem.Id, newItem);
                     ItemCatalog.Add(new Tuple<Sex, string>(Sex.Neutral, newItem.Name), newItem);
@@ -464,29 +464,32 @@ namespace Hybrasyl
                 }
                 catch (Exception e)
                 {
-                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, e);
+                    Logger.ErrorFormat("Error parsing {0}: {1}", xmlItem, e);
                 }
             }
 
-            foreach (var xml in Directory.GetFiles(CastableDirectory))
+            foreach (var xmlCastable in Directory.GetFiles(CastableDirectory, "*.xml"))
             {
                 try
                 {
                     string name = string.Empty;
-                    XSD.Castable newCastable = Serializer.Deserialize(XmlReader.Create(xml), new XSD.Castable());
-                    if (newCastable.Book == XSD.Book.primaryskill || newCastable.Book == XSD.Book.secondaryskill ||
+                    XSD.Castable newCastable = Serializer.Deserialize(XmlReader.Create(xmlCastable), new XSD.Castable());
+                    if (newCastable.Book == XSD.Book.primaryskill || 
+                        newCastable.Book == XSD.Book.secondaryskill ||
                         newCastable.Book == XSD.Book.utilityskill)
                     {
                         Skills.Add(newCastable.Id, newCastable);
                     }
                     else
+                    {
                         Spells.Add(newCastable.Id, newCastable);
+                    }
 
                     Logger.DebugFormat("Castables: loaded {0}, id {1}", newCastable.Name, newCastable.Id);
                 }
                 catch (Exception e)
                 {
-                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, e);
+                    Logger.ErrorFormat("Error parsing {0}: {1}", xmlCastable, e);
                 }
             }
 
@@ -1765,11 +1768,20 @@ namespace Hybrasyl
 
                             creatureName = string.Join(" ", args, 1, args.Length - 1);
 
+                            ushort mapId = user.Map.Id;
+                            byte x = user.X;
+                            byte y = user.Y;
+
+                            if (user.Direction == Direction.North) y -= 1;
+                            else if (user.Direction == Direction.South) y += 1;
+                            else if (user.Direction == Direction.West) x -= 1;
+                            else if (user.Direction == Direction.East) x += 1;
+
                             Creature creature = new Creature()
                             {
                                 Sprite = 1,
                                 World = Game.World,
-                                Map = Game.World.Maps[500],
+                                Map = Game.World.Maps[mapId],
                                 Level = 1,
                                 DisplayText = "TestMob",
                                 BaseHp = 100,
@@ -1782,10 +1794,10 @@ namespace Hybrasyl
                                 BaseDex = 3,
                                 BaseInt = 3,
                                 BaseWis = 3,
-                                X = 50,
-                                Y = 51
+                                X = x,
+                                Y = y
                             };
-                            Game.World.Maps[500].InsertCreature(creature);
+                            Game.World.Maps[mapId].InsertCreature(creature);
                             user.SendVisibleCreature(creature);
                         }
                         break;
