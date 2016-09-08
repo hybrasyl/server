@@ -22,7 +22,7 @@
 
 using FastMember;
 using Hybrasyl.Enums;
-using Hybrasyl.XSD;
+using Hybrasyl.Items;
 using Hybrasyl.Properties;
 using log4net;
 using System;
@@ -83,7 +83,7 @@ namespace Hybrasyl.Objects
 
             // Check if user is equipping a shield while holding a two-handed weapon
 
-            if (EquipmentSlot == ClientItemSlots.Shield && userobj.Equipment.Weapon != null && userobj.Equipment.Weapon.WeaponType == XSD.WeaponType.twohand)
+            if (EquipmentSlot == ClientItemSlots.Shield && userobj.Equipment.Weapon != null && userobj.Equipment.Weapon.WeaponType == Items.WeaponType.twohand)
             {
                 message = "You can't equip a shield with a two-handed weapon.";
                 return false;
@@ -91,7 +91,7 @@ namespace Hybrasyl.Objects
 
             // Check if user is equipping a two-handed weapon while holding a shield
 
-            if (EquipmentSlot == ClientItemSlots.Weapon && (WeaponType == XSD.WeaponType.twohand || WeaponType == XSD.WeaponType.staff) && userobj.Equipment.Shield != null)
+            if (EquipmentSlot == ClientItemSlots.Weapon && (WeaponType == Items.WeaponType.twohand || WeaponType == Items.WeaponType.staff) && userobj.Equipment.Shield != null)
             {
                 message = "You can't equip a two-handed weapon with a shield.";
                 return false;
@@ -114,7 +114,7 @@ namespace Hybrasyl.Objects
             return true;
         }
 
-        private XSD.ItemType Template => World.Items[TemplateId];
+        private Items.ItemType Template => World.Items[TemplateId];
 
         public new string Name => Template.Name;
 
@@ -140,13 +140,13 @@ namespace Hybrasyl.Objects
             }
         }
 
-        public XSD.WeaponType WeaponType
+        public Items.WeaponType WeaponType
         {
             get
             {
                 if (Template.Properties.Equipment.WeapontypeSpecified)
                     return Template.Properties.Equipment.Weapontype;
-                return XSD.WeaponType.none;
+                return Items.WeaponType.none;
             }
         }
         public byte EquipmentSlot => Convert.ToByte(Template.Properties.Equipment.Slot);
@@ -181,7 +181,7 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                if (WeaponType == XSD.WeaponType.none)
+                if (WeaponType == Items.WeaponType.none)
                     return (Enums.Element) Template.Properties.Stateffects.Element.Defense;
                 return (Enums.Element) Template.Properties.Stateffects.Element.Offense;
             }
@@ -196,29 +196,29 @@ namespace Hybrasyl.Objects
 
         public sbyte Regen => Template.Properties.Stateffects.Combat.Regen;
 
-        public bool Enchantable => Template.Properties.Flags.HasFlag(XSD.ItemFlags.enchantable);
+        public bool Enchantable => Template.Properties.Flags.HasFlag(ItemFlags.enchantable);
 
-        public bool Consecratable => Template.Properties.Flags.HasFlag(XSD.ItemFlags.consecratable);
+        public bool Consecratable => Template.Properties.Flags.HasFlag(ItemFlags.consecratable);
 
-        public bool Tailorable => Template.Properties.Flags.HasFlag(XSD.ItemFlags.tailorable);
+        public bool Tailorable => Template.Properties.Flags.HasFlag(ItemFlags.tailorable);
 
-        public bool Smithable => Template.Properties.Flags.HasFlag(XSD.ItemFlags.smithable);
+        public bool Smithable => Template.Properties.Flags.HasFlag(ItemFlags.smithable);
 
-        public bool Exchangeable => Template.Properties.Flags.HasFlag(XSD.ItemFlags.exchangeable);
+        public bool Exchangeable => Template.Properties.Flags.HasFlag(ItemFlags.exchangeable);
 
-        public bool Master => Template.Properties.Flags.HasFlag(XSD.ItemFlags.master);
+        public bool Master => Template.Properties.Flags.HasFlag(ItemFlags.master);
 
-        public bool Unique => Template.Properties.Flags.HasFlag(XSD.ItemFlags.unique);
+        public bool Unique => Template.Properties.Flags.HasFlag(ItemFlags.unique);
 
-        public bool UniqueEquipped => Template.Properties.Flags.HasFlag(XSD.ItemFlags.uniqueequipped);
+        public bool UniqueEquipped => Template.Properties.Flags.HasFlag(ItemFlags.uniqueequipped);
 
         public bool IsVariant => Template.IsVariant;
 
-        public XSD.ItemType ParentItem => Template.ParentItem;
+        public Items.ItemType ParentItem => Template.ParentItem;
 
-        public XSD.VariantType CurrentVariant => Template.CurrentVariant;
+        public VariantType CurrentVariant => Template.CurrentVariant;
 
-        public XSD.ItemType GetVariant(int variantId)
+        public Items.ItemType GetVariant(int variantId)
         {
             return Template.Variants[variantId];
         }

@@ -23,7 +23,7 @@
 using C3;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
-using Hybrasyl.XSD;
+using Hybrasyl.Castables;
 using log4net;
 using Newtonsoft.Json;
 using System;

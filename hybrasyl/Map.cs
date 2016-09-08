@@ -34,7 +34,7 @@ using System.Text;
 using System.Threading;
 using System.Xml;
 using log4net.Appender;
-using Hybrasyl.XSD;
+using Hybrasyl.Maps;
 
 namespace Hybrasyl.Properties
 {
@@ -117,7 +117,7 @@ namespace Hybrasyl
         public List<MapPoint> Points { get; set; }
         public World World { get; set; }
 
-        public WorldMap(XSD.WorldMap newWorldMap)
+        public WorldMap(Maps.WorldMap newWorldMap)
         {
             Points = new List<MapPoint>();
             Name = newWorldMap.Name;
@@ -196,7 +196,7 @@ namespace Hybrasyl
         /// </summary>
         /// <param name="newMap">An XSD.Map object representing the XML map file.</param>
         /// <param name="theWorld">A world object where the map will be placed</param>
-        public Map(XSD.Map newMap, World theWorld)
+        public Map(Maps.Map newMap, World theWorld)
         {
             Init();
             World = theWorld;
@@ -218,7 +218,7 @@ namespace Hybrasyl
 
                 if (warpElement.MapTarget !=null)
                 {
-                    var maptarget = warpElement.MapTarget as XSD.WarpMaptarget;
+                    var maptarget = warpElement.MapTarget as Maps.WarpMaptarget;
                     // map warp
                     warp.DestinationMapName = maptarget.Value;
                     warp.WarpType = WarpType.Map;
@@ -227,7 +227,7 @@ namespace Hybrasyl
                 }
                 else
                 {
-                    var worldmaptarget = warpElement.WorldMapTarget as XSD.WorldMapPointTarget;
+                    var worldmaptarget = warpElement.WorldMapTarget as Maps.WorldMapPointTarget;
                     // worldmap warp
                     warp.DestinationMapName = worldmaptarget.Value;
                     warp.WarpType = WarpType.WorldMap;
@@ -264,15 +264,15 @@ namespace Hybrasyl
 
             foreach (var postElement in newMap.Signposts.Items)
             {
-                if (postElement is XSD.Signpost)
+                if (postElement is Maps.Signpost)
                 {
-                    var signpostElement = postElement as XSD.Signpost;
+                    var signpostElement = postElement as Maps.Signpost;
                     var signpost = new Objects.Signpost(signpostElement.X, signpostElement.Y, signpostElement.Message);
                     InsertSignpost(signpost);
                 }
                 else
                 {
-                    var boardElement = postElement as XSD.Messageboard;
+                    var boardElement = postElement as Maps.Messageboard;
                     var board = new Objects.Signpost(boardElement.X, boardElement.Y, string.Empty, true, boardElement.Name);
                     InsertSignpost(board);
                     Logger.InfoFormat("{0}: {1} - messageboard loaded", this.Name, board.Name );

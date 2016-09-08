@@ -375,7 +375,7 @@ namespace Hybrasyl
 
             for (byte i = 0; i < jArray.Count; i++)
             {
-                XSD.ItemType itmType = null;
+                Items.ItemType itmType = null;
                 Dictionary<string, object> item;
                 if (TryGetValue(jArray[i], out item))
                 {                   
@@ -584,7 +584,7 @@ namespace Hybrasyl
         {
             item = null;
             List<Item> itemList;
-            XSD.ItemType theItem;
+            Items.ItemType theItem;
             if (!Game.World.TryGetItemTemplate(name, out theItem) ||
                 !_inventoryIndex.TryGetValue(theItem.Id, out itemList)) return false;
             item = itemList.First();
@@ -615,7 +615,7 @@ namespace Hybrasyl
 
         public bool Contains(string name)
         {
-            XSD.ItemType theItem;
+            Items.ItemType theItem;
             return Game.World.TryGetItemTemplate(name, out theItem) && _inventoryIndex.ContainsKey(theItem.Id);
         }
 
@@ -668,7 +668,7 @@ namespace Hybrasyl
 
         public Item Find(string name)
         {
-            XSD.ItemType theItem;
+            Items.ItemType theItem;
             return Game.World.TryGetItemTemplate(name, out theItem) && _inventoryIndex.ContainsKey(theItem.Id)
                 ? _inventoryIndex[theItem.Id].First()
                 : null;

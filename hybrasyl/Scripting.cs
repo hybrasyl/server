@@ -645,7 +645,7 @@ __builtins__.raw_input = None
         public bool GiveItem(String name)
         {
             // Does the item exist?
-            XSD.ItemType theitem;
+            Items.ItemType theitem;
             if (Game.World.ItemCatalog.TryGetValue(new Tuple<Sex, String>(User.Sex, name), out theitem) ||
                 Game.World.ItemCatalog.TryGetValue(new Tuple<Sex, String>(Sex.Neutral, name), out theitem))
             {

@@ -30,7 +30,8 @@ using System.Drawing;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using Hybrasyl.XSD;
+using Hybrasyl.Nations;
+using Hybrasyl.Castables;
 
 namespace Hybrasyl.Objects
 {

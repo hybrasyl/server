@@ -25,7 +25,8 @@ using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
 using Hybrasyl.XML;
-using Hybrasyl.XSD;
+using Hybrasyl.Items;
+using Hybrasyl.Castables;
 using log4net;
 using log4net.Core;
 using System;
@@ -44,6 +45,8 @@ using System.Threading;
 using System.Timers;
 using System.Xml;
 using System.Xml.Schema;
+using Hybrasyl.Config;
+using Hybrasyl.Nations;
 using Newtonsoft.Json;
 using StackExchange.Redis;
 
@@ -111,10 +114,10 @@ namespace Hybrasyl
 
         public Dictionary<ushort, Map> Maps { get; set; }
         public Dictionary<string, WorldMap> WorldMaps { get; set; }
-        public static Dictionary<int, XSD.ItemType> Items { get; set; }
-        public Dictionary<string, XSD.VariantGroupType> ItemVariants { get; set; } 
-        public Dictionary<int, XSD.Castable> Skills { get; set; }
-        public Dictionary<int, XSD.Castable> Spells { get; set; }
+        public static Dictionary<int, Items.ItemType> Items { get; set; }
+        public Dictionary<string, VariantGroupType> ItemVariants { get; set; } 
+        public Dictionary<int, Castable> Skills { get; set; }
+        public Dictionary<int, Castable> Spells { get; set; }
         public Dictionary<int, MonsterTemplate> Monsters { get; set; }
         public Dictionary<int, MerchantTemplate> Merchants { get; set; }
         public Dictionary<int, ReactorTemplate> Reactors { get; set; }
@@ -142,7 +145,7 @@ namespace Hybrasyl
         public Dictionary<String, DialogSequence> GlobalSequencesCatalog { get; set; }
         private Dictionary<MerchantMenuItem, MerchantMenuHandler> merchantMenuHandlers;
 
-        public Dictionary<Tuple<Sex, String>, XSD.ItemType> ItemCatalog { get; set; }
+        public Dictionary<Tuple<Sex, String>, Items.ItemType> ItemCatalog { get; set; }
         public Dictionary<String, Map> MapCatalog { get; set; }
 
         public HybrasylScriptProcessor ScriptProcessor { get; set; }
@@ -201,9 +204,9 @@ namespace Hybrasyl
         {
             Maps = new Dictionary<ushort, Map>();
             WorldMaps = new Dictionary<string, WorldMap>();
-            Items = new Dictionary<int, XSD.ItemType>();
-            Skills = new Dictionary<int, XSD.Castable>();
-            Spells = new Dictionary<int, XSD.Castable>();
+            Items = new Dictionary<int, Items.ItemType>();
+            Skills = new Dictionary<int, Castable>();
+            Spells = new Dictionary<int, Castable>();
             Monsters = new Dictionary<int, MonsterTemplate>();
             Merchants = new Dictionary<int, MerchantTemplate>();
             Methods = new Dictionary<string, MethodInfo>();
@@ -222,7 +225,7 @@ namespace Hybrasyl
 
 
             GlobalSequencesCatalog = new Dictionary<String, DialogSequence>();
-            ItemCatalog = new Dictionary<Tuple<Sex, String>, XSD.ItemType>();
+            ItemCatalog = new Dictionary<Tuple<Sex, String>, Items.ItemType>();
             MapCatalog = new Dictionary<String, Map>();
 
             ScriptProcessor = new HybrasylScriptProcessor(this);
@@ -287,7 +290,7 @@ namespace Hybrasyl
             {
                 try
                 {
-                    XSD.Map newMap = Serializer.Deserialize(XmlReader.Create(xml), new XSD.Map());
+                    Maps.Map newMap = Serializer.Deserialize(XmlReader.Create(xml), new Maps.Map());
                     var map = new Map(newMap, this);
                     Maps.Add(map.Id, map);
                     MapCatalog.Add(map.Name, map);
@@ -408,7 +411,7 @@ namespace Hybrasyl
             {
                 try
                 {
-                    XSD.WorldMap newWorldMap = Serializer.Deserialize(XmlReader.Create(xml), new XSD.WorldMap());
+                    Maps.WorldMap newWorldMap = Serializer.Deserialize(XmlReader.Create(xml), new Maps.WorldMap());
                     var worldmap = new WorldMap(newWorldMap);
                     WorldMaps.Add(worldmap.Name, worldmap);
                     foreach (var point in worldmap.Points)
@@ -445,7 +448,7 @@ namespace Hybrasyl
             {
                 try
                 {
-                    XSD.ItemType newItem = Serializer.Deserialize(XmlReader.Create(xml), new XSD.ItemType());
+                    Items.ItemType newItem = Serializer.Deserialize(XmlReader.Create(xml), new Items.ItemType());
                     Logger.DebugFormat("Items: loaded {0}, id {1}", newItem.Name, newItem.Id);
                     Items.Add(newItem.Id, newItem);
                     ItemCatalog.Add(new Tuple<Sex, string>(Sex.Neutral, newItem.Name), newItem);
@@ -472,9 +475,9 @@ namespace Hybrasyl
                 try
                 {
                     string name = string.Empty;
-                    XSD.Castable newCastable = Serializer.Deserialize(XmlReader.Create(xml), new XSD.Castable());
-                    if (newCastable.Book == XSD.Book.primaryskill || newCastable.Book == XSD.Book.secondaryskill ||
-                        newCastable.Book == XSD.Book.utilityskill)
+                    Castable newCastable = Serializer.Deserialize(XmlReader.Create(xml), new Castable());
+                    if (newCastable.Book == Castables.Book.primaryskill || newCastable.Book == Castables.Book.secondaryskill ||
+                        newCastable.Book == Castables.Book.utilityskill)
                     {
                         Skills.Add(newCastable.Id, newCastable);
                     }
@@ -552,7 +555,7 @@ namespace Hybrasyl
 
 
         /* Debug ItemVariants*/
-        public XSD.ItemType ResolveVariant(XSD.ItemType item, VariantType variant, string variantGroup)
+        public Items.ItemType ResolveVariant(Items.ItemType item, VariantType variant, string variantGroup)
         {
             var variantItem = item.Clone();
 
@@ -609,7 +612,7 @@ namespace Hybrasyl
                 case "tailorable":
                 {
                     variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
-                    variantItem.Properties.Stateffects.Combat.Ac = (sbyte)(item.Properties.Stateffects.Combat.Ac + variant.Properties.Stateffects.Combat.Ac);
+                    variantItem.Properties.Stateffects.Combat.Ac = item.Properties.Stateffects.Combat.Ac + variant.Properties.Stateffects.Combat.Ac;
                     variantItem.Properties.Stateffects.Combat.Dmg += variant.Properties.Stateffects.Combat.Dmg;
                     variantItem.Properties.Stateffects.Combat.Hit += variant.Properties.Stateffects.Combat.Hit;
                     variantItem.Properties.Stateffects.Combat.Mr += variant.Properties.Stateffects.Combat.Mr;
@@ -3819,13 +3822,13 @@ namespace Hybrasyl
             }
         }
 
-        public bool TryGetItemTemplate(string name, Sex itemSex, out XSD.ItemType item)
+        public bool TryGetItemTemplate(string name, Sex itemSex, out Items.ItemType item)
         {
             var itemKey = new Tuple<Sex, String>(itemSex, name);
             return ItemCatalog.TryGetValue(itemKey, out item);
         }
 
-        public bool TryGetItemTemplate(string name, out XSD.ItemType item)
+        public bool TryGetItemTemplate(string name, out Items.ItemType item)
         {
             // This is kinda gross
             var neutralKey = new Tuple<Sex, String>(Sex.Neutral, name);

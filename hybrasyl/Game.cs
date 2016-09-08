@@ -21,7 +21,7 @@
 
 using System.Data.Odbc;
 using Hybrasyl.Properties;
-using Hybrasyl.XSD;
+using Hybrasyl.Config;
 using log4net;
 using System;
 using System.Collections.Generic;
