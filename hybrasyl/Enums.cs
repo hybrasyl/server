@@ -242,14 +242,14 @@ namespace Hybrasyl
 
         }
 
-        public enum ItemType
+        public enum ItemObjectType
         {
             CanUse,
             CannotUse,
             Equipment
         }
 
-        public enum WeaponType
+        public enum WeaponObjectType
         {
             None,
             Basic,
@@ -358,6 +358,18 @@ namespace Hybrasyl
             Direct,
             Physical,
             Magical
+        }
+
+        public enum SpellUseType : byte
+        {
+            Unusable = 0,
+            Prompt = 1,
+            ChooseTarget = 2,
+            FourDigit = 3,
+            ThreeDigit = 4,
+            NoTarget = 5,
+            TwoDigit = 6,
+            OneDigit = 7,
         }
 
         public class EnumUtil

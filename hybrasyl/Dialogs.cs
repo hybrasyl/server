@@ -188,9 +188,9 @@ namespace Hybrasyl
                     sprite = (ushort) (0x4000 + creature.Sprite);
                     objType = 1;
                 }
-                else if (invokee is Item)
+                else if (invokee is ItemObject)
                 {
-                    var item = (Item) invokee;
+                    var item = (ItemObject) invokee;
                     objType = 2;
                     sprite = (ushort)(0x8000 + item.Sprite);
                     color = item.Color;

@@ -34,6 +34,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq.Expressions;
 using System.Reflection;
+using Hybrasyl.Items;
 
 namespace Hybrasyl
 {
@@ -703,10 +704,10 @@ from System import DateTime
             User.Damage((double) damage, element, damageType);
         }
 
-        public bool GiveItem(String name)
+        public bool GiveItem(string name)
         {
             // Does the item exist?
-            XSD.ItemType theitem;
+            Item theitem;
             if (Game.World.ItemCatalog.TryGetValue(new Tuple<Sex, string>(User.Sex, name), out theitem) ||
                 Game.World.ItemCatalog.TryGetValue(new Tuple<Sex, string>(Sex.Neutral, name), out theitem))
             {
@@ -829,7 +830,7 @@ from System import DateTime
 
         public void Destroy()
         {
-            if (Obj is Item || Obj is Gold)
+            if (Obj is ItemObject || Obj is Gold)
             {
                 Game.World.Remove(Obj);
             }

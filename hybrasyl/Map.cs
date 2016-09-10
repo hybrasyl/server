@@ -34,7 +34,7 @@ using System.Text;
 using System.Threading;
 using System.Xml;
 using log4net.Appender;
-using Hybrasyl.XSD;
+using Hybrasyl.Maps;
 
 namespace Hybrasyl.Properties
 {
@@ -117,11 +117,11 @@ namespace Hybrasyl
         public List<MapPoint> Points { get; set; }
         public World World { get; set; }
 
-        public WorldMap(XSD.WorldMap newWorldMap)
+        public WorldMap(Maps.WorldMap newWorldMap)
         {
             Points = new List<MapPoint>();
             Name = newWorldMap.Name;
-            ClientMap = newWorldMap.Clientmap;
+            ClientMap = newWorldMap.ClientMap;
 
             foreach (var point in newWorldMap.Points.Point)
             {
@@ -196,7 +196,7 @@ namespace Hybrasyl
         /// </summary>
         /// <param name="newMap">An XSD.Map object representing the XML map file.</param>
         /// <param name="theWorld">A world object where the map will be placed</param>
-        public Map(XSD.Map newMap, World theWorld)
+        public Map(Maps.Map newMap, World theWorld)
         {
             Init();
             World = theWorld;
@@ -218,7 +218,7 @@ namespace Hybrasyl
 
                 if (warpElement.MapTarget !=null)
                 {
-                    var maptarget = warpElement.MapTarget as XSD.WarpMaptarget;
+                    var maptarget = warpElement.MapTarget as Maps.WarpMapTarget;
                     // map warp
                     warp.DestinationMapName = maptarget.Value;
                     warp.WarpType = WarpType.Map;
@@ -227,9 +227,9 @@ namespace Hybrasyl
                 }
                 else
                 {
-                    var worldmaptarget = warpElement.WorldMapTarget as XSD.WorldMapPointTarget;
+                    var worldmaptarget = warpElement.WorldMapTarget;
                     // worldmap warp
-                    warp.DestinationMapName = worldmaptarget.Value;
+                    warp.DestinationMapName = worldmaptarget;
                     warp.WarpType = WarpType.WorldMap;
                 }
 
@@ -262,27 +262,26 @@ namespace Hybrasyl
                 // TODO: implement reactor loading support
             }
 
-            foreach (var postElement in newMap.Signposts.Items)
+            foreach (var postElement in newMap.Signs.Signposts)
             {
-                if (postElement is XSD.Signpost)
-                {
-                    var signpostElement = postElement as XSD.Signpost;
-                    var signpost = new Objects.Signpost(signpostElement.X, signpostElement.Y, signpostElement.Message);
-                    InsertSignpost(signpost);
-                }
-                else
-                {
-                    var boardElement = postElement as XSD.Messageboard;
+                var signpostElement = postElement as Maps.Signpost;
+                var signpost = new Objects.Signpost(signpostElement.X, signpostElement.Y, signpostElement.Message);
+                InsertSignpost(signpost);
+
+            }
+            foreach(var postElement in newMap.Signs.MessageBoards)
+            {
+                    var boardElement = postElement as Maps.MessageBoard;
                     var board = new Objects.Signpost(boardElement.X, boardElement.Y, string.Empty, true, boardElement.Name);
                     InsertSignpost(board);
                     Logger.InfoFormat("{0}: {1} - messageboard loaded", this.Name, board.Name );
                 }
-            }
+            
 
-            foreach (var spawnElement in newMap.Spawns)
-            {
+            
+            
                 // TODO: implement spawning
-            }
+            
 
             Load();
         }
@@ -597,7 +596,7 @@ namespace Hybrasyl
                 x, y, gold.Name, gold.Amount, gold.Id);
             if (gold == null)
             {
-                Logger.DebugFormat("Item is null, aborting");
+                Logger.DebugFormat("ItemObject is null, aborting");
                 return;
             }
             // Add the gold to the world at the given location.
@@ -609,22 +608,22 @@ namespace Hybrasyl
             NotifyNearbyAoiEntry(gold);
         }
 
-        public void AddItem(int x, int y, Item item)
+        public void AddItem(int x, int y, ItemObject itemObject)
         {
             Logger.DebugFormat("{0}, {1}, {2} qty {3} id {4}",
-                x, y, item.Name, item.Count, item.Id);
-            if (item == null)
+                x, y, itemObject.Name, itemObject.Count, itemObject.Id);
+            if (itemObject == null)
             {
-                Logger.DebugFormat("Item is null, aborting");
+                Logger.DebugFormat("ItemObject is null, aborting");
                 return;
             }            
-            // Add the item to the world at the given location.
-            item.X = (byte)x;
-            item.Y = (byte)y;
-            item.Map = this;
-            EntityTree.Add(item);
-            Objects.Add(item);
-            NotifyNearbyAoiEntry(item);
+            // Add the ItemObject to the world at the given location.
+            itemObject.X = (byte)x;
+            itemObject.Y = (byte)y;
+            itemObject.Map = this;
+            EntityTree.Add(itemObject);
+            Objects.Add(itemObject);
+            NotifyNearbyAoiEntry(itemObject);
         }
 
         public void RemoveGold(Gold gold)
@@ -636,13 +635,13 @@ namespace Hybrasyl
             Objects.Remove(gold);
         }
 
-        public void RemoveItem(Item item)
+        public void RemoveItem(ItemObject itemObject)
         {
-            // Remove the item from the world at the specified location.
-            Logger.DebugFormat("Removing {0} qty {1} id {2}", item.Name, item.Count, item.Id);
-            NotifyNearbyAoiDeparture(item);
-            EntityTree.Remove(item);
-            Objects.Remove(item);
+            // Remove the ItemObject from the world at the specified location.
+            Logger.DebugFormat("Removing {0} qty {1} id {2}", itemObject.Name, itemObject.Count, itemObject.Id);
+            NotifyNearbyAoiDeparture(itemObject);
+            EntityTree.Remove(itemObject);
+            Objects.Remove(itemObject);
         }
 
 

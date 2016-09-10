@@ -22,6 +22,7 @@
 
 using Hybrasyl.Enums;
 using Hybrasyl.Properties;
+using Hybrasyl.Items;
 using System;
 using System.Collections.Generic;
 
@@ -32,14 +33,14 @@ namespace Hybrasyl.Objects
         public bool Ready;
         //public npc Data;
         public MerchantJob Jobs { get; set; }
-        public Dictionary<string, XSD.ItemType> Inventory { get; private set; }
+        public Dictionary<string, Item> Inventory { get; private set; }
 
         public Merchant()
             : base()
         {
             Ready = false;
             //Jobs = (MerchantJob).jobs;
-            Inventory = new Dictionary<string, XSD.ItemType>();
+            Inventory = new Dictionary<string, Item>();
             //foreach (var item in data.inventory)
             //{
             //   Inventory.Add(item.name, item);

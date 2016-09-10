@@ -32,8 +32,8 @@ namespace Hybrasyl
         public ushort EquipSprite { get; set; }
         public ushort DisplaySprite { get; set; }
         public byte Color { get; set; }
-        public ItemType ItemType { get; set; }
-        public WeaponType WeaponType { get; set; }
+        public ItemObjectType ItemObjectType { get; set; }
+        public WeaponObjectType WeaponObjectType { get; set; }
         public byte EquipmentSlot { get; set; }
         public ushort Weight { get; set; }
         public byte MaximumStack { get; set; }

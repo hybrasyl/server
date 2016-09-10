@@ -30,7 +30,8 @@ using System.Drawing;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using Hybrasyl.XSD;
+using Hybrasyl.Nations;
+using Hybrasyl.Castables;
 
 namespace Hybrasyl.Objects
 {
@@ -115,9 +116,9 @@ namespace Hybrasyl.Objects
         [JsonProperty]
         public PasswordInfo Password { get; set; }
         [JsonProperty]
-        public Book SkillBook { get; private set; }
+        public SkillBook SkillBook { get; private set; }
         [JsonProperty]
-        public Book SpellBook { get; private set; }
+        public SpellBook SpellBook { get; private set; }
 
         [JsonProperty]
         public bool Grouping { get; set; }
@@ -276,7 +277,7 @@ namespace Hybrasyl.Objects
 
         public override void AoiDeparture(VisibleObject obj)
         {
-            Logger.DebugFormat("Removing item with ID {0}", obj.Id);
+            Logger.DebugFormat("Removing ItemObject with ID {0}", obj.Id);
             var removePacket = new ServerPacket(0x0E);
             removePacket.WriteUInt32(obj.Id);
             Enqueue(removePacket);
@@ -284,7 +285,7 @@ namespace Hybrasyl.Objects
 
         public void AoiDeparture(VisibleObject obj, int transmitDelay)
         {
-            Logger.DebugFormat("Removing item with ID {0}", obj.Id);
+            Logger.DebugFormat("Removing ItemObject with ID {0}", obj.Id);
             var removePacket = new ServerPacket(0x0E);
             removePacket.TransmitDelay = transmitDelay;
             removePacket.WriteUInt32(obj.Id);
@@ -342,8 +343,8 @@ namespace Hybrasyl.Objects
         {
             Inventory = new Inventory(59);
             Equipment = new Inventory(18);
-            SkillBook = new Book(90);
-            SpellBook = new Book(90);
+            SkillBook = new SkillBook();
+            SpellBook = new SpellBook();
             IsAtWorldMap = false;
             Login = new LoginInfo();
             Password = new PasswordInfo();
@@ -578,12 +579,12 @@ namespace Hybrasyl.Objects
         }
 
         /// <summary>
-        /// Given a specified item, apply the given bonuses to the player.
+        /// Given a specified ItemObject, apply the given bonuses to the player.
         /// </summary>
-        /// <param name="toApply">The item used to calculate bonuses.</param>
-        public void ApplyBonuses(Item toApply)
+        /// <param name="toApply">The ItemObject used to calculate bonuses.</param>
+        public void ApplyBonuses(ItemObject toApply)
         {
-            // Given an item, set our bonuses appropriately.
+            // Given an ItemObject, set our bonuses appropriately.
             // We might want to do this with reflection eventually?
             Logger.DebugFormat("Bonuses are: {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11}",
                 toApply.BonusHp, toApply.BonusHp, toApply.BonusStr, toApply.BonusInt, toApply.BonusWis,
@@ -644,10 +645,10 @@ namespace Hybrasyl.Objects
         }
         
         /// <summary>
-        /// Given a specified item, remove the given bonuses from the player.
+        /// Given a specified ItemObject, remove the given bonuses from the player.
         /// </summary>
         /// <param name="toRemove"></param>
-        public void RemoveBonuses(Item toRemove)
+        public void RemoveBonuses(ItemObject toRemove)
         {
             BonusHp -= toRemove.BonusHp;
             BonusMp -= toRemove.BonusMp;
@@ -874,9 +875,9 @@ namespace Hybrasyl.Objects
                 var user = obj as User;
                 SendUpdateToUser(user.Client);
             }
-            else if (obj is Item)
+            else if (obj is ItemObject)
             {
-                var item = obj as Item;
+                var item = obj as ItemObject;
                 SendVisibleItem(item);
 
             }
@@ -884,7 +885,7 @@ namespace Hybrasyl.Objects
 
         public void SendVisibleGold(Gold gold)
         {
-            Logger.DebugFormat("Sending add visible item packet");
+            Logger.DebugFormat("Sending add visible ItemObject packet");
             var x07 = new ServerPacket(0x07);
             x07.WriteUInt16(1);
             x07.WriteUInt16(gold.X);
@@ -903,15 +904,32 @@ namespace Hybrasyl.Objects
             Attack(castable);
         }
 
-        public void SendVisibleItem(Item item)
+        internal void UseSpell(byte slot, uint target = 0)
         {
-            Logger.DebugFormat("Sending add visible item packet");
+            var castable = SpellBook[slot];
+            Creature targetCreature = null;
+
+            foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
+            {
+                if (obj.Id == target)
+                {
+                    targetCreature = (Creature) obj;
+                }
+            }
+
+
+                Attack(castable, targetCreature);
+        }
+
+        public void SendVisibleItem(ItemObject itemObject)
+        {
+            Logger.DebugFormat("Sending add visible ItemObject packet");
             var x07 = new ServerPacket(0x07);
             x07.WriteUInt16(1); // Anything but 0x0001 does nothing or makes client crash
-            x07.WriteUInt16(item.X);
-            x07.WriteUInt16(item.Y);
-            x07.WriteUInt32(item.Id);
-            x07.WriteUInt16((ushort)(item.Sprite + 0x8000));
+            x07.WriteUInt16(itemObject.X);
+            x07.WriteUInt16(itemObject.Y);
+            x07.WriteUInt32(itemObject.Id);
+            x07.WriteUInt16((ushort)(itemObject.Sprite + 0x8000));
             x07.WriteInt32(0); // Unknown what this is
             x07.DumpPacket();
             Enqueue(x07);
@@ -993,23 +1011,23 @@ namespace Hybrasyl.Objects
         }
 
         /// <summary>
-        /// Sends an equip item packet to the client, triggering an update of the detail window ('a').
+        /// Sends an equip ItemObject packet to the client, triggering an update of the detail window ('a').
         /// </summary>
-        /// <param name="item">The item which will be equipped.</param>
+        /// <param name="itemObject">The ItemObject which will be equipped.</param>
         /// <param name="slot">The slot in which we are equipping.</param>
-        public void SendEquipItem(Item item, int slot)
+        public void SendEquipItem(ItemObject itemObject, int slot)
         {
             // Update the client.
             // ServerPacket type: 0x37
             // byte: index
             // Uint16: sprite offset (79 FF is actually a red scroll, 80 00 onwards are real items)
             // Byte: ??
-            // Byte: Item Name length
-            // String: Item Name
+            // Byte: ItemObject Name length
+            // String: ItemObject Name
             // Uint32: Max Durability
             // Uint32: Min Durability
 
-            if (item == null)
+            if (itemObject == null)
             {
                 SendRefreshEquipmentSlot(slot);
                 return;
@@ -1017,18 +1035,18 @@ namespace Hybrasyl.Objects
 
             var equipPacket = new ServerPacket(0x37);
             equipPacket.WriteByte((byte)slot);
-            equipPacket.WriteUInt16((ushort)(item.Sprite + 0x8000));
+            equipPacket.WriteUInt16((ushort)(itemObject.Sprite + 0x8000));
             equipPacket.WriteByte(0x00);
-            equipPacket.WriteStringWithLength(item.Name);
+            equipPacket.WriteStringWithLength(itemObject.Name);
             equipPacket.WriteByte(0x00);
-            equipPacket.WriteUInt32(item.MaximumDurability);
-            equipPacket.WriteUInt32(item.Durability);
+            equipPacket.WriteUInt32(itemObject.MaximumDurability);
+            equipPacket.WriteUInt32(itemObject.Durability);
             equipPacket.DumpPacket();
             Enqueue(equipPacket);
         }
 
         /// <summary>
-        /// Sends a clear item packet to the connected client for the specified slot. 
+        /// Sends a clear ItemObject packet to the connected client for the specified slot. 
         /// Because the slots on the client side start with one, decrement the slot before sending.
         /// </summary>
         /// <param name="slot">The client side slot to clear.</param>
@@ -1049,29 +1067,29 @@ namespace Hybrasyl.Objects
         }
 
         /// <summary>
-        /// Send an item update packet (essentially placing the item in a given slot, as far as the client is concerned.
+        /// Send an ItemObject update packet (essentially placing the ItemObject in a given slot, as far as the client is concerned.
         /// </summary>
-        /// <param name="item">The item we are sending to the user.</param>
-        /// <param name="slot">The client's item slot.</param>
-        public void SendItemUpdate(Item item, int slot)
+        /// <param name="itemObject">The ItemObject we are sending to the user.</param>
+        /// <param name="slot">The client's ItemObject slot.</param>
+        public void SendItemUpdate(ItemObject itemObject, int slot)
         {
-            if (item == null)
+            if (itemObject == null)
             {
                 SendClearItem(slot);
                 return;
             }
 
             Logger.DebugFormat("Adding {0} qty {1} to slot {2}",
-                item.Name, item.Count, slot);
+                itemObject.Name, itemObject.Count, slot);
             var x0F = new ServerPacket(0x0F);
             x0F.WriteByte((byte)slot);
-            x0F.WriteUInt16((ushort)(item.Sprite + 0x8000));
+            x0F.WriteUInt16((ushort)(itemObject.Sprite + 0x8000));
             x0F.WriteByte(0x00);
-            x0F.WriteString8(item.Name);
-            x0F.WriteInt32(item.Count);  //amount
-            x0F.WriteBoolean(item.Stackable);
-            x0F.WriteUInt32(item.MaximumDurability);  //maxdura
-            x0F.WriteUInt32(item.Durability);  //curdura
+            x0F.WriteString8(itemObject.Name);
+            x0F.WriteInt32(itemObject.Count);  //amount
+            x0F.WriteBoolean(itemObject.Stackable);
+            x0F.WriteUInt32(itemObject.MaximumDurability);  //maxdura
+            x0F.WriteUInt32(itemObject.Durability);  //curdura
             x0F.WriteUInt32(0x00);  //?
             Enqueue(x0F);
         }
@@ -1107,8 +1125,10 @@ namespace Hybrasyl.Objects
             var x17 = new ServerPacket(0x17);
             x17.WriteByte((byte)slot);
             x17.WriteUInt16((ushort)(item.Icon));
-            x17.WriteByte(0x00); //spell type? how are we determining this?
-            x17.WriteString8(item.Name);
+            var spellType = item.Intents[0].UseType;
+            //var spellType = isClick ? 2 : 5;
+            x17.WriteByte((byte)spellType); //spell type? how are we determining this?
+            x17.WriteString8(item.Name + " (" + item.CastableLevel + "/" + item.MaxLevel + ")");
             x17.WriteString8(item.Name); //prompt? what is this?
             x17.WriteByte((byte)item.Lines);
             x17.WriteByte(0); //current level
@@ -1432,7 +1452,7 @@ namespace Hybrasyl.Objects
 
         public bool AddSkill(Castable item, byte slot)
         {
-            // Quantity check - if we already have an item with the same name, will
+            // Quantity check - if we already have an ItemObject with the same name, will
             // adding the MaximumStack)
 
             if(SkillBook.Contains(item.Id))
@@ -1461,12 +1481,12 @@ namespace Hybrasyl.Objects
                 SendSystemMessage("You cannot learn any more spells.");
                 return false;
             }
-            return AddSkill(castable, SkillBook.FindEmptySlot());
+            return AddSpell(castable, SpellBook.FindEmptySlot());
         }
 
         public bool AddSpell(Castable item, byte slot)
         {
-            // Quantity check - if we already have an item with the same name, will
+            // Quantity check - if we already have an ItemObject with the same name, will
             // adding the MaximumStack)
 
             if (SpellBook.Contains(item.Id))
@@ -1488,63 +1508,63 @@ namespace Hybrasyl.Objects
             return true;
         }
 
-        public bool AddItem(Item item, bool updateWeight = true)
+        public bool AddItem(ItemObject itemObject, bool updateWeight = true)
         {
             if (Inventory.IsFull)
             {
                 SendSystemMessage("You cannot carry any more items.");
-                Map.Insert(item, X, Y);
+                Map.Insert(itemObject, X, Y);
                 return false;
             }
-            return AddItem(item, Inventory.FindEmptySlot(), updateWeight);
+            return AddItem(itemObject, Inventory.FindEmptySlot(), updateWeight);
         }
 
-        public bool AddItem(Item item, byte slot, bool updateWeight = true)
+        public bool AddItem(ItemObject itemObject, byte slot, bool updateWeight = true)
         {
             // Weight check
 
-            if (item.Weight + CurrentWeight > MaximumWeight)
+            if (itemObject.Weight + CurrentWeight > MaximumWeight)
             {
                 SendSystemMessage("It's too heavy.");
-                Map.Insert(item, X, Y);
+                Map.Insert(itemObject, X, Y);
                 return false;
             }
 
-            // Quantity check - if we already have an item with the same name, will
+            // Quantity check - if we already have an ItemObject with the same name, will
             // adding the MaximumStack)
 
-            var inventoryItem = Inventory.Find(item.Name);
+            var inventoryItem = Inventory.Find(itemObject.Name);
 
-            if (inventoryItem != null && item.Stackable)
+            if (inventoryItem != null && itemObject.Stackable)
             {
-                if (item.Count + inventoryItem.Count > inventoryItem.MaximumStack)
+                if (itemObject.Count + inventoryItem.Count > inventoryItem.MaximumStack)
                 {
-                    item.Count = (inventoryItem.Count + item.Count) - inventoryItem.MaximumStack;
+                    itemObject.Count = (inventoryItem.Count + itemObject.Count) - inventoryItem.MaximumStack;
                     inventoryItem.Count = inventoryItem.MaximumStack;
-                    SendSystemMessage(String.Format("You can't carry any more {0}", item.Name));
-                    Map.Insert(item, X, Y);
+                    SendSystemMessage(String.Format("You can't carry any more {0}", itemObject.Name));
+                    Map.Insert(itemObject, X, Y);
                     return false;
                 }
                 
-                // Merge stack and destroy "added" item
-                inventoryItem.Count += item.Count;
-                item.Count = 0;
+                // Merge stack and destroy "added" ItemObject
+                inventoryItem.Count += itemObject.Count;
+                itemObject.Count = 0;
                 SendItemUpdate(inventoryItem, Inventory.SlotOf(inventoryItem.Name));
-                World.Remove(item);
+                World.Remove(itemObject);
                 return true;
             }
 
-            Logger.DebugFormat("Attempting to add item to inventory slot {0}", slot);
+            Logger.DebugFormat("Attempting to add ItemObject to inventory slot {0}", slot);
 
 
-            if (!Inventory.Insert(slot, item))
+            if (!Inventory.Insert(slot, itemObject))
             {
                 Logger.DebugFormat("Slot was invalid or not null");
-                Map.Insert(item, X, Y);
+                Map.Insert(itemObject, X, Y);
                 return false;
             }
 
-            SendItemUpdate(item, slot);
+            SendItemUpdate(itemObject, slot);
             if (updateWeight) UpdateAttributes(StatUpdateFlags.Primary);
             return true;
         }
@@ -1580,19 +1600,19 @@ namespace Hybrasyl.Objects
             return false;
         }
 
-        public bool AddEquipment(Item item, byte slot, bool sendUpdate = true)
+        public bool AddEquipment(ItemObject itemObject, byte slot, bool sendUpdate = true)
         {
             Logger.DebugFormat("Adding equipment to slot {0}", slot);
 
-            if (!Equipment.Insert(slot, item))
+            if (!Equipment.Insert(slot, itemObject))
             {
                 Logger.DebugFormat("Slot wasn't null, aborting");
                 return false;
             }
 
-            SendEquipItem(item, slot);
-            Client.SendMessage(string.Format("Equipped {0}", item.Name), 3);
-            ApplyBonuses(item);
+            SendEquipItem(itemObject, slot);
+            Client.SendMessage(string.Format("Equipped {0}", itemObject.Name), 3);
+            ApplyBonuses(itemObject);
             UpdateAttributes(StatUpdateFlags.Stats);
             if (sendUpdate) Show();
 
@@ -1694,7 +1714,70 @@ namespace Hybrasyl.Objects
 
         public override void Attack(Castable castObject, Creature target = null)
         {
-            base.Attack(castObject, target);
+            var direction = this.Direction;
+            if (target == null)
+            {
+                Attack(castObject);
+            }
+            else
+            {
+                var damage = castObject.Effects.Damage;
+                if (damage != null)
+                {
+                    var intents = castObject.Intents;
+                    foreach (var intent in intents)
+                    {
+                        //isclick should always be 0 for a skill.
+                        var targetAreas = new List<KeyValuePair<int, int>>();
+
+                        Random rand = new Random();
+
+                        if (damage.Formula == null)
+                            //will need to be expanded. also will need to account for damage scripts
+                        {
+                            var simple = damage.Simple;
+                            var damageType = EnumUtil.ParseEnum<Enums.DamageType>(damage.Type.ToString(),
+                                Enums.DamageType.Magical);
+                            var dmg = rand.Next(Convert.ToInt32(simple.Min), Convert.ToInt32(simple.Max));
+                            //these need to be set to integers as attributes. note to fix.
+                            target.Damage(dmg, OffensiveElement, damageType, this);
+                        }
+                        else
+                        {
+                            var formula = damage.Formula;
+                            var damageType = EnumUtil.ParseEnum<Enums.DamageType>(damage.Type.ToString(),
+                                Enums.DamageType.Magical);
+                            FormulaParser parser = new FormulaParser(this, castObject, target);
+                            var dmg = parser.Eval(formula);
+                            if (dmg == 0) dmg = 1;
+                            target.Damage(dmg, OffensiveElement, damageType, this);
+
+                            var effectAnimation = new ServerPacketStructures.EffectAnimation()
+                            {
+                                SourceId = this.Id,
+                                Speed = (short) castObject.Effects.Animations.OnCast.Target.Speed,
+                                TargetId = target.Id,
+                                TargetAnimation = /*castObject.Effects.Animations.OnCast.Target.Id*/ 237
+                            };
+                            Enqueue(effectAnimation.Packet());
+                            SendAnimation(effectAnimation.Packet());
+
+                        }
+                    }
+                }
+
+                var playerAnimation = new ServerPacketStructures.PlayerAnimation()
+                {
+                    Animation = (byte) castObject.Effects.Animations.OnCast.Motion.Id,
+                    Speed = (ushort) (castObject.Effects.Animations.OnCast.Motion.Speed),
+                    UserId = this.Id
+                };
+                var sound = new ServerPacketStructures.PlaySound() {Sound = (byte) castObject.Effects.Sound.Id};
+                Enqueue(playerAnimation.Packet());
+                Enqueue(sound.Packet());
+                SendAnimation(playerAnimation.Packet());
+                PlaySound(sound.Packet());
+            }
         }
 
         public override void Attack(Castable castObject)
@@ -1704,7 +1787,7 @@ namespace Hybrasyl.Objects
             if (damage != null)
             {
                 var intents = castObject.Intents;
-                foreach (var intent in intents.Intent)
+                foreach (var intent in intents)
                 {
                     //isclick should always be 0 for a skill.
                     var targetAreas = new List<KeyValuePair<int, int>>();
@@ -1715,9 +1798,9 @@ namespace Hybrasyl.Objects
                     possibleTargets.AddRange(Map.EntityTree.GetObjects(new Rectangle(this.X, this.Y - intent.Radius, (this.X + intent.Radius) - (this.X - intent.Radius), (this.Y + intent.Radius) - (this.Y - intent.Radius))).Where(obj => obj is Creature && obj != this && obj.GetType() != typeof(User)));
 
                     List<Creature> actualTargets = new List<Creature>();
-                    if (intent.Maxtargets > 0)
+                    if (intent.MaxTargets > 0)
                     {
-                        actualTargets = possibleTargets.Take(intent.Maxtargets).OfType<Creature>().ToList();
+                        actualTargets = possibleTargets.Take(intent.MaxTargets).OfType<Creature>().ToList();
                     }
                     else
                     {
@@ -1749,6 +1832,11 @@ namespace Hybrasyl.Objects
                                 var dmg = parser.Eval(formula);
                                 if (dmg == 0) dmg = 1;
                                 target.Damage(dmg, OffensiveElement, damageType, this);
+
+                                var effectAnimation = new ServerPacketStructures.EffectAnimation() {SourceId = this.Id ,Speed = (short)castObject.Effects.Animations.OnCast.Target.Speed, TargetId = target.Id, TargetAnimation = /*castObject.Effects.Animations.OnCast.Target.Id*/ 237 };
+                                Enqueue(effectAnimation.Packet());
+                                SendAnimation(effectAnimation.Packet());
+
                             }
 
                         }
@@ -1759,11 +1847,11 @@ namespace Hybrasyl.Objects
                     }
                 }
 
-                var animation = new ServerPacketStructures.PlayerAnimation() { Animation = (byte)castObject.Effects.Animations.OnCast.Motion.Id, Speed = (ushort)(castObject.Effects.Animations.OnCast.Motion.Speed / 5), UserId = this.Id };
+                var playerAnimation = new ServerPacketStructures.PlayerAnimation() { Animation = (byte)castObject.Effects.Animations.OnCast.Motion.Id, Speed = (ushort)(castObject.Effects.Animations.OnCast.Motion.Speed / 5), UserId = this.Id };
                 var sound = new ServerPacketStructures.PlaySound() { Sound = (byte)castObject.Effects.Sound.Id };
-                Enqueue(animation.Packet());
+                Enqueue(playerAnimation.Packet());
                 Enqueue(sound.Packet());
-                SendAnimation(animation.Packet());
+                SendAnimation(playerAnimation.Packet());
                 PlaySound(sound.Packet());
 
                 //this is an attack skill
@@ -1817,7 +1905,7 @@ namespace Hybrasyl.Objects
 
             foreach (Castable c in SkillBook)
             {
-                if (c.Isassail == "true")
+                if (c.IsAssail == "true")
                     //i do not like that this is a string. I'll probablt update it at some point to return a simple type of boolean.
                 {
                     Attack(direction, c, target);
@@ -2025,7 +2113,7 @@ namespace Hybrasyl.Objects
                 x2F.WriteByte((byte)item.Properties.Appearance.Color);
                 x2F.WriteUInt32((uint)item.Properties.Physical.Value);
                 x2F.WriteString8(item.Name);
-                x2F.WriteString8(string.Empty); // defunct item description
+                x2F.WriteString8(string.Empty); // defunct ItemObject description
             }
             Enqueue(x2F);
         }
@@ -2235,7 +2323,7 @@ namespace Hybrasyl.Objects
         /// <summary>
         /// Send a quantity prompt request to the client (when dealing with stacked items)
         /// </summary>
-        /// <param name="itemSlot">The item slot containing a stacked item that will be split (client side)</param>
+        /// <param name="itemSlot">The ItemObject slot containing a stacked ItemObject that will be split (client side)</param>
         public void SendExchangeQuantityPrompt(byte itemSlot)
         {
             if (!Status.HasFlag(PlayerStatus.InExchange)) return;
@@ -2247,12 +2335,12 @@ namespace Hybrasyl.Objects
                 }.Packet());
         }
         /// <summary>
-        /// Send an exchange update packet for an item to an active exchange participant.
+        /// Send an exchange update packet for an ItemObject to an active exchange participant.
         /// </summary>
-        /// <param name="toAdd">Item to add to the exchange window</param>
+        /// <param name="toAdd">ItemObject to add to the exchange window</param>
         /// <param name="slot">Byte indicating the exchange window slot to be updated</param>
         /// <param name="source">Boolean indicating which "side" of the transaction will be updated (source / "left side" == true)</param>
-        public void SendExchangeUpdate(Item toAdd, byte slot, bool source = true)
+        public void SendExchangeUpdate(ItemObject toAdd, byte slot, bool source = true)
         {
             if (!Status.HasFlag(PlayerStatus.InExchange)) return;
             var update = new ServerPacketStructures.Exchange
@@ -2364,8 +2452,10 @@ namespace Hybrasyl.Objects
                     var x17 = new ServerPacket(0x17);
                     x17.WriteByte((byte)i);
                     x17.WriteUInt16((ushort)(SpellBook[i].Icon));
-                    x17.WriteByte(0x00); //spell type? how are we determining this?
-                    x17.WriteString8(SpellBook[i].Name);
+                    var spellType = SpellBook[i].Intents[0].UseType;
+                    //var spellType = isClick ? 2 : 5;
+                    x17.WriteByte((byte)spellType); //spell type? how are we determining this?
+                    x17.WriteString8(SpellBook[i].Name + " (" + SpellBook[i].CastableLevel + "/" + 100 + ")"); //fortest
                     x17.WriteString8(SpellBook[i].Name); //prompt? what is this?
                     x17.WriteByte((byte)SpellBook[i].Lines);
                     x17.WriteByte(0); //current level

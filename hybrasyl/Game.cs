@@ -20,7 +20,7 @@
  */
 
 using Hybrasyl.Properties;
-using Hybrasyl.XSD;
+using Hybrasyl.Config;
 using log4net;
 using System;
 using System.Collections.Generic;
@@ -122,13 +122,13 @@ namespace Hybrasyl
             if (String.IsNullOrEmpty(worldPort))
                 worldPort = "2612";
 
-            Config.Network.Lobby.Bindaddress = serverIp;
+            Config.Network.Lobby.BindAddress = serverIp;
             Config.Network.Lobby.Port = Convert.ToUInt16(lobbyPort);
 
-            Config.Network.Login.Bindaddress = serverIp;
+            Config.Network.Login.BindAddress = serverIp;
             Config.Network.Login.Port = Convert.ToUInt16(loginPort);
 
-            Config.Network.World.Bindaddress = serverIp;
+            Config.Network.World.BindAddress = serverIp;
             Config.Network.World.Port = Convert.ToUInt16(worldPort);
 
             Logger.InfoFormat("Using {0}: {1}, {2}, {3}", serverIp, lobbyPort, loginPort, worldPort);
@@ -149,12 +149,12 @@ namespace Hybrasyl
             Console.Write("Password: ");
             var redisPass = Console.ReadLine();
 
-            Config.Datastore.Host = string.IsNullOrEmpty(redisHost) ? "localhost" : redisHost;
-            Config.Datastore.Port = string.IsNullOrEmpty(redisPort) ? (ushort) 6379 : Convert.ToUInt16(redisPort);
-            Config.Datastore.Username = string.IsNullOrEmpty(redisUser) ? "" : redisUser;
-            Config.Datastore.Password = string.IsNullOrEmpty(redisPass) ? "" : redisPass;
+            Config.DataStore.Host = string.IsNullOrEmpty(redisHost) ? "localhost" : redisHost;
+            Config.DataStore.Port = string.IsNullOrEmpty(redisPort) ? (ushort) 6379 : Convert.ToUInt16(redisPort);
+            Config.DataStore.Username = string.IsNullOrEmpty(redisUser) ? "" : redisUser;
+            Config.DataStore.Password = string.IsNullOrEmpty(redisPass) ? "" : redisPass;
 
-            Config.Time.ServerStart.Value = DateTime.Now.ToString("O");
+            Config.Time.ServerStart.Value = DateTime.Now;
             Config.Time.ServerStart.DefaultAge = "Hybrasyl";
             Config.Time.ServerStart.DefaultYear = 1;
 
@@ -239,10 +239,10 @@ namespace Hybrasyl
 
             // For right now we don't support binding to different addresses; the support in the XML
             // is for a distant future where that may be desirable.
-            IpAddress = IPAddress.Parse(Config.Network.Lobby.Bindaddress);
+            IpAddress = IPAddress.Parse(Config.Network.Lobby.BindAddress);
             Lobby = new Lobby(Config.Network.Lobby.Port);
             Login = new Login(Config.Network.Login.Port);
-            World = new World(Config.Network.World.Port, Config.Datastore);
+            World = new World(Config.Network.World.Port, Config.DataStore);
 
             Lobby.StopToken = CancellationTokenSource.Token;
             Login.StopToken = CancellationTokenSource.Token;
