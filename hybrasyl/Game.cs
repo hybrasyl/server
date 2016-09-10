@@ -154,7 +154,7 @@ namespace Hybrasyl
             Config.DataStore.Username = string.IsNullOrEmpty(redisUser) ? "" : redisUser;
             Config.DataStore.Password = string.IsNullOrEmpty(redisPass) ? "" : redisPass;
 
-            Config.Time.ServerStart.Value = DateTime.Now.ToString("O");
+            Config.Time.ServerStart.Value = DateTime.Now;
             Config.Time.ServerStart.DefaultAge = "Hybrasyl";
             Config.Time.ServerStart.DefaultYear = 1;
 

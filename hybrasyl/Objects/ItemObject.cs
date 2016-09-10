@@ -219,10 +219,10 @@ namespace Hybrasyl.Objects
             // Run through all the different potential uses. We allow combinations of any
             // use specified in the item XML.
             Logger.InfoFormat($"User {trigger.Name}: used item {Name}");
-            if (Use.ScriptnameSpecified)
+            if (Use.Script != null)
             {
                 Script invokeScript;
-                if (!World.ScriptProcessor.TryGetScript(Use.Scriptname, out invokeScript))
+                if (!World.ScriptProcessor.TryGetScript(Use.Script, out invokeScript))
                 {
                     trigger.SendSystemMessage("It doesn't work.");
                     return;
@@ -238,31 +238,31 @@ namespace Hybrasyl.Objects
                     Logger.ErrorFormat($"User {trigger.Name}, item {Name}: exception {e}");
                 }              
             }            
-            if (Use.EffectSpecified)
+            if (Use.Effect != null)
             {
                trigger.SendEffect(trigger.Id, Use.Effect.Id, Use.Effect.Speed); 
             }
-            if (Use.PlayerEffectSpecified)
+            if (Use.PlayerEffect != null)
             {
-                if (Use.PlayerEffect.GoldSpecified)
+                if (Use.PlayerEffect.Gold > 0)
                     trigger.AddGold(new Gold((uint)Use.PlayerEffect.Gold));
-                if (Use.PlayerEffect.HpSpecified)
+                if (Use.PlayerEffect.Hp > 0)
                     trigger.Heal(Use.PlayerEffect.Hp);
-                if (Use.PlayerEffect.MpSpecified)
+                if (Use.PlayerEffect.Mp > 0)
                     trigger.RegenerateMp(Use.PlayerEffect.Mp);
-                if (Use.PlayerEffect.XpSpecified)
+                if (Use.PlayerEffect.Xp > 0)
                     trigger.GiveExperience((uint)Use.PlayerEffect.Xp);
                 trigger.UpdateAttributes(StatUpdateFlags.Current|StatUpdateFlags.Experience);
             }
-            if (Use.SoundSpecified)
+            if (Use.Sound != null)
             {
                 trigger.SendSound((byte) Use.Sound.Id);
             }
-            if (Use.TeleportSpecified)
+            if (Use.Teleport != null)
             {
                 trigger.Teleport(Use.Teleport.Value, Use.Teleport.X, Use.Teleport.Y);
             }
-            if (Use.ConsumedSpecified)
+            if (Use.Consumed)
             {
                 Count--;
             }
