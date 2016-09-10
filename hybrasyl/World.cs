@@ -33,7 +33,6 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics.Eventing.Reader;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -106,6 +105,8 @@ namespace Hybrasyl
     {
         private static uint worldObjectID = 0;
 
+        public static DateTime StartDate
+            => Game.Config.Time.StartDate != null ? (DateTime) Game.Config.Time.StartDate : Game.StartDate;
         public new static ILog Logger =
             LogManager.GetLogger(
                 System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
@@ -759,6 +760,8 @@ namespace Hybrasyl
                             Logger.InfoFormat("Loading script {0}\\{1}", dir, scriptname);
                             var script = new Script(file, ScriptProcessor);
                             ScriptProcessor.RegisterScript(script);
+                            if (dir == "common")
+                                script.InstantiateScriptable();
                         }
                     }
                     catch (Exception e)
@@ -1267,6 +1270,16 @@ namespace Hybrasyl
                      * will be distributed across a group if the user is in a group, or
                      * passed directly to them if they're not in a group.
                      */
+                    case "/hp":
+                    {
+                        uint hp = 0;
+                        if (uint.TryParse(args[1], out hp))
+                        {
+                            user.Hp = hp;
+                            user.UpdateAttributes(StatUpdateFlags.Current);
+                        }                           
+                    }
+                        break;
                     case "/exp":
                         {
                             uint amount = 0;
@@ -1276,7 +1289,15 @@ namespace Hybrasyl
                             }
                         }
                         break;
-
+                    /* Reset a user to level 1, with no level points and no experience. */
+                    case "/expreset":
+                    {
+                        user.LevelPoints = 0;
+                        user.Level = 1;
+                        user.Experience = 0;
+                        user.UpdateAttributes(StatUpdateFlags.Full);
+                    }
+                        break;
                     case "/group":
                         User newMember = FindUser(args[1]);
 
@@ -1524,7 +1545,24 @@ namespace Hybrasyl
                         }
                     }
                         break;
+                    case "/legend":
+                    {
+                        var icon = (LegendIcon) Enum.Parse(typeof(LegendIcon), args[1]);
+                        var color =(LegendColor) Enum.Parse(typeof(LegendColor), args[2]);
+                        var quantity = int.Parse(args[3]);
+                        var datetime = DateTime.Parse(args[4]);
+                        
+                        var legend = string.Join(" ", args, 5, args.Length - 5);
+                        user.Legend.AddMark(icon, color, legend, datetime, string.Empty, true, quantity);
+                    }
+                        break;
 
+                    case "/legendclear":
+                    {
+                        user.Legend.Clear();
+                        user.SendSystemMessage("Legend has been cleared.");
+                    }
+                        break;
                     case "/level":
                     {
                         byte newLevel;
@@ -1533,7 +1571,7 @@ namespace Hybrasyl
                             user.SendMessage("That's not a valid level, champ.", 0x1);
                         else
                         {
-                            user.Level = newLevel;
+                            user.Level = newLevel > Constants.MAX_LEVEL ? (byte) Constants.MAX_LEVEL : newLevel;
                             user.UpdateAttributes(StatUpdateFlags.Full);
                             user.SendMessage(String.Format("Level changed to {0}", newLevel), 0x1);
                         }
@@ -1808,6 +1846,51 @@ namespace Hybrasyl
                         }
                     }
                         break;
+                    case "/time":
+                    {
+                        var time = HybrasylTime.Now();
+                        user.SendMessage(time.ToString(), 0x1);
+                    }
+                        break;
+                    case "/timeconvert":
+                    {
+                        var target = args[1].ToLower();
+                        Logger.InfoFormat("timeconvert: {0}", target);
+
+                        if (target == "aisling")
+                        {
+                            try
+                            {
+                                var dateString = string.Join(" ", args, 2, args.Length - 2);
+                                var hybrasylTime = HybrasylTime.FromString(dateString);
+                                user.SendSystemMessage(HybrasylTime.ConvertToTerran(hybrasylTime).ToString("o"));
+                            }
+                            catch (Exception)
+                            {
+                                user.SendSystemMessage("Your Aisling time could not be parsed!");
+                            }
+                        }
+                        else if (target == "terran")
+                        {
+                            try
+                            {
+                                var dateString = string.Join(" ", args, 2, args.Length - 2);
+                                var dateTime = DateTime.Parse(dateString);
+                                var hybrasylTime = HybrasylTime.ConvertToHybrasyl(dateTime);
+                                user.SendSystemMessage(hybrasylTime.ToString());
+                            }
+                            catch (Exception)
+                            {
+                                user.SendSystemMessage(
+                                    "Your terran time couldn't be parsed, or, you know, something else was wrong");
+                            }
+                        }
+                        else
+                        {
+                            user.SendSystemMessage("Usage: /timeconvert (aisling|terran) <date>");
+                        }
+                    }
+                        break;
                     case "/unmute":
                     {
                         if (!user.IsPrivileged)
@@ -1989,7 +2072,7 @@ namespace Hybrasyl
                             user.SendMessage("Invalid class. " + errorMessage, 0x1);
 
                         }
-                        else if (!byte.TryParse(args[2], out level) || level < 1 || level > 99)
+                        else if (!byte.TryParse(args[2], out level) || level < 1 || level > Constants.MAX_LEVEL)
                         {
                             user.SendMessage("Invalid level. " + errorMessage, 0x1);
                         }
@@ -2101,6 +2184,7 @@ namespace Hybrasyl
             loginUser.UpdateLoginTime();
             loginUser.Inventory.RecalculateWeight();
             loginUser.Equipment.RecalculateWeight();
+            loginUser.RecalculateBonuses();
             loginUser.UpdateAttributes(StatUpdateFlags.Full);
             loginUser.SendInventory();
             loginUser.SendEquipment();
@@ -2135,6 +2219,14 @@ namespace Hybrasyl
             ActiveUsers[connectionId] = loginUser;
             ActiveUsersByName[loginUser.Name] = connectionId;
             Logger.InfoFormat("cid {0}: {1} entering world", connectionId, loginUser.Name);
+            Logger.InfoFormat($"{loginUser.SinceLastLoginString}");
+            // If the user's never logged off before (new character), don't display this message.
+            if (loginUser.Login.LastLogoff != default(DateTime))
+            {
+                loginUser.SendSystemMessage($"It has been {loginUser.SinceLastLoginString} since your last login.");
+            }
+            loginUser.SendSystemMessage(HybrasylTime.Now().ToString());
+            loginUser.Reindex();
         }
 
         private void PacketHandler_0x18_ShowPlayerList(Object obj, ClientPacket packet)
@@ -2205,6 +2297,10 @@ namespace Hybrasyl
             {
                 case Enums.ItemObjectType.CanUse:
                     item.Invoke(user);
+                    if (item.Count == 0)
+                        user.RemoveItem(slot);
+                    else
+                        user.SendItemUpdate(item, slot);
                     break;
                 case Enums.ItemObjectType.CannotUse:
                     user.SendMessage("You can't use that.", 3);

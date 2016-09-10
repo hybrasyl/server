@@ -26,6 +26,46 @@ namespace Hybrasyl
 {
     namespace Enums
     {
+        public enum LegendIcon
+        {
+            Community = 0,
+            Warrior = 1,
+            Rogue = 2,
+            Wizard = 3,
+            Priest = 4,
+            Monk = 5,
+            Heart = 6,
+            Victory = 7
+        }
+
+        public enum LegendColor
+        {
+            White = 32,
+            LightOrange = 50,
+            LightYellow = 64,
+            Yellow = 68,
+            LightGreen = 75,
+            Blue = 88,
+            LightPink = 96,
+            DarkPurple = 100,
+            Pink = 105,
+            Darkgreen = 125,
+            Green = 128,
+            Orange = 152,
+            Brown = 160,
+            Red = 248
+        }
+
+        internal static class ExchangeActions
+        {
+            public const byte Initiate = 0x00;
+            public const byte QuantityPrompt = 0x01;
+            public const byte ItemUpdate = 0x02;
+            public const byte GoldUpdate = 0x03;
+            public const byte Cancel = 0x04;
+            public const byte Confirm = 0x05;
+        }
+
         //this is a wip
         internal static class OpCodes
         {
@@ -66,7 +106,8 @@ namespace Hybrasyl
             public const byte MapData = 0x3C;
             public const byte UseSkill = 0x3E;
             public const byte Cooldown = 0x3F;
-            public const byte ClickObject = 0x43;
+            public const byte Exchange = 0x42;
+            public const byte ClickObject = 0x43;           
             public const byte CancelCast = 0x48;
             public const byte ServerSelect = 0x57;
             public const byte MapLoadComplete = 0x58;
@@ -77,7 +118,6 @@ namespace Hybrasyl
             public const byte MetaData = 0x6F;
 
         }
-
 
         public enum PrivateMessageType : int
         {

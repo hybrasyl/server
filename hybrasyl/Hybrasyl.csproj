@@ -138,6 +138,8 @@
   <ItemGroup>
     <Compile Include="Book.cs" />
     <Compile Include="Board.cs" />
+    <Compile Include="Legend.cs" />
+    <Compile Include="Time.cs" />
     <Compile Include="Client.cs" />
     <Compile Include="Connection.cs" />
     <Compile Include="Dialogs.cs" />

@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<castable xmlns="http://www.hybrasyl.com/XML/Actions" type="skill" icon="2" book="primaryskill" class="monk priest wizard warrior rogue" cooldown="1" isassail="true">
+  <name>Assail</name>
+  <description>Strike a target. Shouldn't you already know this?</description>
+  <categories>
+    <category>assail</category>
+  </categories>
+  <intents>
+    <intent isclick="0" maxtargets="1" radius="1" direction="front" target="hostile pvp"/>
+  </intents>
+  <maxlevel wizard="100" priest="100" warrior="100" rogue="100" monk="100"/>
+  <incrementaluses>20</incrementaluses>
+  <requirements>
+    <level min="1" max="99"/>
+    <gold>10</gold>
+    <physical str="3" int="3" wis="3" con="3" dex="3" />
+  </requirements>
+  <effects>
+    <animations>
+      <oncast>
+        <motion id="1" speed="100"/>
+      </oncast>
+    </animations>
+    <sound id="1"/>
+    <damage type="physical">
+      <flags>threat</flags>
+      <formula>($CASTERSTR*2.5+$CASTABLELEVEL)+5</formula>
+    </damage>
+  </effects>
+</castable>

@@ -30,6 +30,8 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Runtime.Remoting.Messaging;
+using Community.CsharpSqlite;
 
 namespace Hybrasyl.Objects
 {
@@ -60,39 +62,18 @@ namespace Hybrasyl.Objects
         public WorldObject()
         {
             Name = string.Empty;
+            ResetPursuits();
         }
 
         public virtual void SendId()
         {
         }
-    }
 
-    public class VisibleObject : WorldObject
-    {
-        public new static readonly ILog Logger =
-               LogManager.GetLogger(
-               System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
-        public Map Map { get; set; }
-        public Direction Direction { get; set; }
-        public ushort Sprite { get; set; }
-        public String Portrait { get; set; }
-        public string DisplayText { get; set; }
-
-        public List<DialogSequence> Pursuits;
-        public List<DialogSequence> DialogSequences;
-        public Dictionary<String, DialogSequence> SequenceCatalog;
-
-        public VisibleObject()
+        public void ResetPursuits()
         {
             Pursuits = new List<DialogSequence>();
             DialogSequences = new List<DialogSequence>();
-            SequenceCatalog = new Dictionary<String, DialogSequence>();
-            DisplayText = String.Empty;
-        }
-
-        public virtual void AoiEntry(VisibleObject obj)
-        {
+            SequenceCatalog = new Dictionary<string, DialogSequence>();
         }
 
         public virtual void AddPursuit(DialogSequence pursuit)
@@ -110,6 +91,13 @@ namespace Hybrasyl.Objects
                 Pursuits.Add(pursuit);
             }
 
+            if (SequenceCatalog.ContainsKey(pursuit.Name))
+            {
+                Logger.WarnFormat("Pursuit {0} is being overwritten", pursuit.Name);
+                SequenceCatalog.Remove(pursuit.Name);
+
+            }
+
             SequenceCatalog.Add(pursuit.Name, pursuit);
 
             if (pursuit.Id > Constants.DIALOG_SEQUENCE_SHARED)
@@ -122,7 +110,41 @@ namespace Hybrasyl.Objects
         {
             sequence.Id = (uint)(Constants.DIALOG_SEQUENCE_PURSUITS + DialogSequences.Count);
             DialogSequences.Add(sequence);
+            if (SequenceCatalog.ContainsKey(sequence.Name))
+            {
+                Logger.WarnFormat("Dialog sequence {0} is being overwritten", sequence.Name);
+                SequenceCatalog.Remove(sequence.Name);
+
+            }
             SequenceCatalog.Add(sequence.Name, sequence);
+        }
+
+        public List<DialogSequence> Pursuits;
+        public List<DialogSequence> DialogSequences;
+        public Dictionary<String, DialogSequence> SequenceCatalog;
+    }
+
+    public class VisibleObject : WorldObject
+    {
+        public new static readonly ILog Logger =
+               LogManager.GetLogger(
+               System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
+        public Map Map { get; set; }
+        public Direction Direction { get; set; }
+        public ushort Sprite { get; set; }
+        public String Portrait { get; set; }
+        public string DisplayText { get; set; }
+
+
+        public VisibleObject()
+        {
+          
+            DisplayText = String.Empty;
+        }
+
+        public virtual void AoiEntry(VisibleObject obj)
+        {
         }
 
         public virtual void AoiDeparture(VisibleObject obj)
@@ -514,6 +536,18 @@ namespace Hybrasyl.Objects
         {
         }
 
+        // Restrict to (inclusive) range between [min, max]. Max is optional, and if its
+        // not present then no upper limit will be enforced.
+        private static long BindToRange(long start, long? min, long? max)
+        {
+            if (min != null && start < min)
+                return min.GetValueOrDefault();
+            else if (max != null && start > max)
+                return max.GetValueOrDefault();
+            else
+                return start;
+        }
+
         public uint MaximumHp
         {
             get
@@ -526,7 +560,7 @@ namespace Hybrasyl.Objects
                 if (value < uint.MinValue)
                     return uint.MinValue;
 
-                return (uint)value;
+                return (uint)BindToRange(value, StatLimitConstants.MIN_BASE_HPMP, StatLimitConstants.MAX_BASE_HPMP);
             }
         }
 
@@ -542,7 +576,7 @@ namespace Hybrasyl.Objects
                 if (value < uint.MinValue)
                     return uint.MinValue;
 
-                return (uint)value;
+                return (uint)BindToRange(value, StatLimitConstants.MIN_BASE_HPMP, StatLimitConstants.MAX_BASE_HPMP);
             }
         }
 
@@ -558,7 +592,7 @@ namespace Hybrasyl.Objects
                 if (value < byte.MinValue)
                     return byte.MinValue;
 
-                return (byte)value;
+                return (byte)BindToRange(value, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
             }
         }
 
@@ -574,7 +608,7 @@ namespace Hybrasyl.Objects
                 if (value < byte.MinValue)
                     return byte.MinValue;
 
-                return (byte)value;
+                return (byte)BindToRange(value, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
             }
         }
 
@@ -590,7 +624,7 @@ namespace Hybrasyl.Objects
                 if (value < byte.MinValue)
                     return byte.MinValue;
 
-                return (byte)value;
+                return (byte)BindToRange(value, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
             }
         }
 
@@ -606,7 +640,7 @@ namespace Hybrasyl.Objects
                 if (value < byte.MinValue)
                     return byte.MinValue;
 
-                return (byte)value;
+                return (byte)BindToRange(value, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
             }
         }
 
@@ -622,7 +656,7 @@ namespace Hybrasyl.Objects
                 if (value < byte.MinValue)
                     return byte.MinValue;
 
-                return (byte)value;
+                return (byte)BindToRange(value, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
             }
         }
 
@@ -636,7 +670,7 @@ namespace Hybrasyl.Objects
                 if (BonusDmg < byte.MinValue)
                     return byte.MinValue;
 
-                return (byte)BonusDmg;
+                return (byte)BindToRange(BonusDmg, StatLimitConstants.MIN_DMG, StatLimitConstants.MAX_DMG);
             }
         }
 
@@ -650,7 +684,7 @@ namespace Hybrasyl.Objects
                 if (BonusHit < byte.MinValue)
                     return byte.MinValue;
 
-                return (byte)BonusHit;
+                return (byte)BindToRange(BonusHit, StatLimitConstants.MIN_HIT, StatLimitConstants.MAX_HIT);
             }
         }
 
@@ -667,7 +701,7 @@ namespace Hybrasyl.Objects
                 if (value < sbyte.MinValue)
                     return sbyte.MinValue;
 
-                return (sbyte)value;
+                return (sbyte)BindToRange(value, StatLimitConstants.MIN_AC, StatLimitConstants.MAX_AC);
             }
         }
 
@@ -681,7 +715,7 @@ namespace Hybrasyl.Objects
                 if (BonusMr < sbyte.MinValue)
                     return sbyte.MinValue;
 
-                return (sbyte)BonusMr;
+                return (sbyte)BindToRange(BonusMr, StatLimitConstants.MIN_MR, StatLimitConstants.MAX_MR);
             }
         }
 
@@ -790,6 +824,31 @@ namespace Hybrasyl.Objects
         //public virtual bool AddEquipment(ItemObject item) { return false; }
         //public virtual bool AddEquipment(ItemObject item, byte slot, bool sendUpdate = true) { return false; }
         //public virtual bool RemoveEquipment(byte slot) { return false; }
+
+        public virtual void Heal(double heal, Creature healer = null)
+        {
+            if (AbsoluteImmortal || PhysicalImmortal)
+                return;
+
+            if (Hp == MaximumHp || heal > MaximumHp)
+                return;
+
+            Hp = heal > uint.MaxValue ? MaximumHp : Math.Min(MaximumHp, (uint)(Hp + heal));
+
+            SendDamageUpdate(this);
+
+        }
+
+        public virtual void RegenerateMp(double mp, Creature regenerator = null)
+        {
+            if (AbsoluteImmortal)
+                return;
+
+            if (Mp == MaximumMp || mp > MaximumMp)
+                return;
+
+            Mp = mp > uint.MaxValue ? MaximumMp : Math.Min(MaximumMp, (uint) (Mp + mp));
+        }
 
         public virtual void Damage(double damage, Enums.Element element = Enums.Element.None, Enums.DamageType damageType = Enums.DamageType.Direct, Creature attacker = null)
         {

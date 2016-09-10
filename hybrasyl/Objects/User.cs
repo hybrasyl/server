@@ -37,17 +37,6 @@ namespace Hybrasyl.Objects
 {
 
     [JsonObject]
-    public class LegendMark
-    {
-        public String Prefix { get; set; }
-        public int Color { get; set; }
-        public int Icon { get; set; }
-        public String Text { get; set; }
-        public bool Public { get; set; }
-        public DateTime Created { get; set; }
-    }
-
-    [JsonObject]
     public class GuildMembership
     {
         public String Title { get; set; }
@@ -163,10 +152,18 @@ namespace Hybrasyl.Objects
             {
                 return Nation != null ? Nation.Name : string.Empty;
             }
-        } 
-        [JsonProperty]
-        public List<LegendMark> Legend { get; set; }
+        }
 
+        [JsonProperty] public Legend Legend;
+
+        /// <summary>
+        /// Reindexes any temporary data structures that may need to be recreated after a user is deserialized from JSON data.
+        /// </summary>
+        public void Reindex()
+        {
+            Legend.RegenerateIndex();    
+        }
+            
         public DialogState DialogState { get; set; }
 
         [JsonProperty]
@@ -185,10 +182,11 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                if (Level == 99)
-                    return 0;
-                else
-                    return (uint) (Math.Pow(Level, 3) * 250 - Experience);
+                var levelExp = (uint) Math.Pow(Level, 3)*250;
+                if (Level == Constants.MAX_LEVEL || Experience >= levelExp)
+                    return 0; 
+                            
+                return (uint) (Math.Pow(Level, 3) * 250 - Experience);
             }
         }
 
@@ -235,6 +233,10 @@ namespace Hybrasyl.Objects
                 return span.TotalSeconds < 0 ? 0 : span.TotalSeconds;
             }
         }
+
+        public string SinceLastLoginString => SinceLastLogin < 86400 ? 
+            $"{Math.Floor(SinceLastLogin/3600)} hours, {Math.Floor(SinceLastLogin%3600/60)} minutes" : 
+            $"{Math.Floor(SinceLastLogin/86400)} days, {Math.Floor(SinceLastLogin%86400/3600)} hours, {Math.Floor(SinceLastLogin%86400%3600/60)} minutes";
 
         // Throttling checks for messaging
 
@@ -347,7 +349,7 @@ namespace Hybrasyl.Objects
             Login = new LoginInfo();
             Password = new PasswordInfo();
             Location = new Location();
-            Legend = new List<LegendMark>();
+            Legend = new Legend();
             Guild = new GuildMembership();
             LastSaid = String.Empty;
             LastSpoke = 0;
@@ -401,9 +403,15 @@ namespace Hybrasyl.Objects
          */
         public void GiveExperience(uint exp)
         {
-            if (Level == 99 || exp < ExpToLevel)
+            if (Level == Constants.MAX_LEVEL || exp < ExpToLevel)
             {
-                Experience += exp;
+                if (uint.MaxValue - Experience >= exp)
+                    Experience += exp;
+                else
+                {
+                    Experience = uint.MaxValue;
+                    SendSystemMessage("You cannot gain any more experience.");
+                }
             }
             else
             {
@@ -412,7 +420,7 @@ namespace Hybrasyl.Objects
                 var levelsGained = 0;
                 Random random = new Random();
 
-                while (exp > 0)
+                while (exp > 0 && Level < 99)
                 {
                     uint expChunk = Math.Min(exp, ExpToLevel);
 
@@ -514,6 +522,9 @@ namespace Hybrasyl.Objects
                         #endregion
                     }
                 }
+                // If a user has just become level 99, add the remainder exp to their box
+                if (Level == 99)
+                    Experience += exp;
 
                 if (levelsGained > 0)
                 {
@@ -695,12 +706,12 @@ namespace Hybrasyl.Objects
             profilePacket.WriteString8(Hybrasyl.Constants.REVERSE_CLASSES[(int)Class]);
             profilePacket.WriteString8(Guild.Name);
             profilePacket.WriteByte((byte)Legend.Count);
-            foreach (var mark in Legend)
+            foreach (var mark in Legend.Where(mark => mark.Public))
             {
                 profilePacket.WriteByte((byte)mark.Icon);
                 profilePacket.WriteByte((byte)mark.Color);
                 profilePacket.WriteString8(mark.Prefix);
-                profilePacket.WriteString8(mark.Text);
+                profilePacket.WriteString8(mark.ToString());
             }
             profilePacket.WriteUInt16((ushort)(PortraitData.Length + ProfileText.Length + 4));
             profilePacket.WriteUInt16((ushort)PortraitData.Length);
@@ -777,7 +788,6 @@ namespace Hybrasyl.Objects
             x04.WriteUInt16(11);
             Enqueue(x04);
         }
-
 
         public void DisplayIncomingWhisper(String charname, String message)
         {
@@ -1407,6 +1417,13 @@ namespace Hybrasyl.Objects
         {
             return RemoveGold(gold.Amount);
         }
+
+        public void RecalculateBonuses()
+        {
+            foreach (var item in Equipment)
+                ApplyBonuses(item);            
+        }
+
         public bool RemoveGold(uint amount)
         {
             Logger.DebugFormat("Removing {0} gold", amount);
@@ -1643,6 +1660,19 @@ namespace Hybrasyl.Objects
             Inventory.Swap(oldSlot, newSlot);
             SendItemUpdate(Inventory[oldSlot], oldSlot);
             SendItemUpdate(Inventory[newSlot], newSlot);
+        }
+
+        public override void RegenerateMp(double mp, Creature regenerator = null)
+        {
+            base.RegenerateMp(mp, regenerator);
+            UpdateAttributes(StatUpdateFlags.Current);
+        }
+
+        public override void Damage(double damage, Enums.Element element = Enums.Element.None,
+            Enums.DamageType damageType = Enums.DamageType.Direct, Creature attacker = null)
+        {
+            base.Damage(damage, element, damageType, attacker);
+            UpdateAttributes(StatUpdateFlags.Current);
         }
 
         public override void Attack(Direction direction, Castable castObject = null, Creature target = null)
@@ -1944,10 +1974,10 @@ namespace Hybrasyl.Objects
             profilePacket.WriteByte((byte) Legend.Count);
             foreach (var mark in Legend)
             {
-                profilePacket.WriteByte((byte) mark.Icon);
-                profilePacket.WriteByte((byte) mark.Color);
+                profilePacket.WriteByte((byte)mark.Icon);
+                profilePacket.WriteByte((byte)mark.Color);
                 profilePacket.WriteString8(mark.Prefix);
-                profilePacket.WriteString8(mark.Text);
+                profilePacket.WriteString8(mark.ToString());
             }
 
             Enqueue(profilePacket);
@@ -2281,14 +2311,13 @@ namespace Hybrasyl.Objects
         /// <param name="requestor">The user requesting the trade</param>
         public void SendExchangeInitiation(User requestor)
         {
-            if (Status.HasFlag(PlayerStatus.InExchange) && requestor.Status.HasFlag(PlayerStatus.InExchange))
+            if (!Status.HasFlag(PlayerStatus.InExchange) || !requestor.Status.HasFlag(PlayerStatus.InExchange)) return;
+            Enqueue(new ServerPacketStructures.Exchange
             {
-                var x42 = new ServerPacket(0x42);
-                x42.WriteByte(0); // show exchange window
-                x42.WriteUInt32(requestor.Id);
-                x42.WriteString8(requestor.Name);
-                Enqueue(x42);
-            }            
+                Action = ExchangeActions.Initiate,
+                RequestorId = requestor.Id,
+                RequestorName = requestor.Name
+            }.Packet());
         }
 
         /// <summary>
@@ -2297,14 +2326,13 @@ namespace Hybrasyl.Objects
         /// <param name="itemSlot">The ItemObject slot containing a stacked ItemObject that will be split (client side)</param>
         public void SendExchangeQuantityPrompt(byte itemSlot)
         {
-            if (Status.HasFlag(PlayerStatus.InExchange))
-            {
-                var x42 = new ServerPacket(0x42);
-                x42.WriteByte(1); // show quantity prompt
-                x42.WriteByte(itemSlot); // Slot for which we need quantity info
-                Enqueue(x42);
-            }
-            
+            if (!Status.HasFlag(PlayerStatus.InExchange)) return;
+            Enqueue(
+                new ServerPacketStructures.Exchange
+                {
+                    Action = ExchangeActions.QuantityPrompt,
+                    ItemSlot = itemSlot
+                }.Packet());
         }
         /// <summary>
         /// Send an exchange update packet for an ItemObject to an active exchange participant.
@@ -2314,17 +2342,17 @@ namespace Hybrasyl.Objects
         /// <param name="source">Boolean indicating which "side" of the transaction will be updated (source / "left side" == true)</param>
         public void SendExchangeUpdate(ItemObject toAdd, byte slot, bool source = true)
         {
-            if (Status.HasFlag(PlayerStatus.InExchange))
+            if (!Status.HasFlag(PlayerStatus.InExchange)) return;
+            var update = new ServerPacketStructures.Exchange
             {
-                var x42 = new ServerPacket(0x42); // Update exchange packet
-                x42.WriteByte(2); // Show ItemObject in exchange window
-                x42.WriteByte((byte)(source ? 0 : 1)); // Update "my" side of the transaction
-                x42.WriteByte(slot); // Which "exchange slot" to update
-                x42.WriteUInt16((ushort)(0x8000 + toAdd.Sprite));
-                x42.WriteByte(toAdd.Color);
-                x42.WriteString8(toAdd.Name);
-                Enqueue(x42);
-            }
+                Action = ExchangeActions.ItemUpdate,
+                Side = source,
+                ItemSlot = slot,
+                ItemSprite = toAdd.Sprite,
+                ItemColor = toAdd.Color,
+                ItemName = toAdd.Stackable && toAdd.Count > 1 ? $"{toAdd.Name} ({toAdd.Count}" : toAdd.Name
+            };
+            Enqueue(update.Packet());
         }
 
         /// <summary>
@@ -2334,14 +2362,13 @@ namespace Hybrasyl.Objects
         /// <param name="source">Boolean indicating which "side" of the transaction will be updated (source / "left side" == true)</param>
         public void SendExchangeUpdate(uint gold, bool source = true)
         {
-            if (Status.HasFlag(PlayerStatus.InExchange))
+            if (!Status.HasFlag(PlayerStatus.InExchange)) return;
+            Enqueue(new ServerPacketStructures.Exchange
             {
-                var x42 = new ServerPacket(0x42); // Update exchange packet
-                x42.WriteByte(3); // Update gold in exchange window
-                x42.WriteByte((byte)(source ? 0 : 1)); // Update "my" side of the transaction
-                x42.WriteUInt32(gold); // Which "exchange slot" to update
-                Enqueue(x42);
-            }
+                Action=ExchangeActions.GoldUpdate,
+                Side =source,
+                Gold =gold
+            }.Packet());
         }
 
         /// <summary>
@@ -2350,14 +2377,12 @@ namespace Hybrasyl.Objects
         /// <param name="source">The "side" responsible for cancellation (source / "left side" == true)</param>
         public void SendExchangeCancellation(bool source = true)
         {
-           if (Status.HasFlag(PlayerStatus.InExchange))
+            if (!Status.HasFlag(PlayerStatus.InExchange)) return;
+            Enqueue(new ServerPacketStructures.Exchange
             {
-                var x42 = new ServerPacket(0x42); // Update exchange packet
-                x42.WriteByte(4); // Exchange cancelled
-                x42.WriteByte((byte)(source ? 0 : 1)); // Which "side" cancelled the transaction
-                x42.WriteString8("Exchange was cancelled.");
-                Enqueue(x42);
-           }  
+                Action = ExchangeActions.Cancel,
+                Side =source
+            }.Packet());
         }
 
         /// <summary>
@@ -2367,14 +2392,12 @@ namespace Hybrasyl.Objects
 
         public void SendExchangeConfirmation(bool source = true)
         {
-            if (Status.HasFlag(PlayerStatus.InExchange))
+            if (!Status.HasFlag(PlayerStatus.InExchange)) return;
+            Enqueue(new ServerPacketStructures.Exchange
             {
-                var x42 = new ServerPacket(0x42); // Update exchange packet
-                x42.WriteByte(5); // Exchange confirmed
-                x42.WriteByte((byte)(source ? 0 : 1)); // Which "side" confirmed the transaction
-                x42.WriteString8("You exchanged.");
-                Enqueue(x42);
-            }
+                Action = ExchangeActions.Confirm,
+                Side =source
+            }.Packet());
         }
 
         public void SendInventory()
@@ -2454,51 +2477,5 @@ namespace Hybrasyl.Objects
             Client.SendMessage(p, 3);
         }
 
-
-        /*
-        [SecurityPermission(SecurityAction.Demand, SerializationFormatter =true)]
-        public void GetObjectData(SerializationInfo info, StreamingContext context)
-        {
-            info.AddValue("SerializationVersion", "1");
-            info.AddValue("Name", Name);
-            info.AddValue("Sex", Sex);
-            info.AddValue("HairStyle", HairStyle);
-            info.AddValue("HairColor", HairColor);
-            info.AddValue("Class", Class);
-            info.AddValue("Level", Level);
-            info.AddValue("LevelPoints", LevelPoints);
-            info.AddValue("Experience", Experience);
-            info.AddValue("Ability", Ability);
-            info.AddValue("MapId", MapId);
-            info.AddValue("MapX", MapX);
-            info.AddValue("AbilityExp", AbilityExp);
-            info.AddValue("BaseHp", BaseHp);
-            info.AddValue("BaseMp", BaseMp);
-            info.AddValue("Hp", Hp);
-            info.AddValue("Mp", Mp);
-            info.AddValue("BaseStr", BaseStr);
-            info.AddValue("BaseInt", BaseStr);
-            info.AddValue("BaseWis", BaseStr);
-            info.AddValue("BaseDex", BaseStr);
-            info.AddValue("BaseCon", BaseStr);
-            info.AddValue("Gold", Gold);
-            info.AddValue("IsMaster", IsMaster);
-            info.AddValue("Dead", Dead);
-            info.AddValue("Grouping", Grouping);
-            info.AddValue("PortraitData", PortraitData);
-            info.AddValue("ProfileText", ProfileText);
-            info.AddValue("LoginTime", LoginTime);
-            info.AddValue("LogoffTime", LogoffTime);
-            info.AddValue("UserFlags", UserFlags);
-            info.AddValue("PlayerStatus", Status);
-                
-            info.AddValue("LegendMarks", Legend);
-            info.AddValue("Inventory", Inventory, typeof(Inventory));
-            info.AddValue("Equipment", Equipment, typeof(Inventory));
-
-
-
-
-        }*/
     }
 }
