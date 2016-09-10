@@ -114,8 +114,8 @@ namespace Hybrasyl
 
         public Dictionary<ushort, Map> Maps { get; set; }
         public Dictionary<string, WorldMap> WorldMaps { get; set; }
-        public static Dictionary<int, Items.ItemType> Items { get; set; }
-        public Dictionary<string, VariantGroupType> ItemVariants { get; set; } 
+        public static Dictionary<int, Item> Items { get; set; }
+        public Dictionary<string, VariantGroup> ItemVariants { get; set; } 
         public Dictionary<int, Castable> Skills { get; set; }
         public Dictionary<int, Castable> Spells { get; set; }
         public Dictionary<int, MonsterTemplate> Monsters { get; set; }
@@ -136,7 +136,7 @@ namespace Hybrasyl
         {
             get
             {
-                var nation = Nations.Values.Where(n => n.DefaultSpecified).FirstOrDefault();
+                var nation = Nations.Values.FirstOrDefault(n => n.Default);
                 return nation ?? Nations.Values.First();
             }
         }
@@ -145,7 +145,7 @@ namespace Hybrasyl
         public Dictionary<String, DialogSequence> GlobalSequencesCatalog { get; set; }
         private Dictionary<MerchantMenuItem, MerchantMenuHandler> merchantMenuHandlers;
 
-        public Dictionary<Tuple<Sex, String>, Items.ItemType> ItemCatalog { get; set; }
+        public Dictionary<Tuple<Sex, String>, Item> ItemCatalog { get; set; }
         public Dictionary<String, Map> MapCatalog { get; set; }
 
         public HybrasylScriptProcessor ScriptProcessor { get; set; }
@@ -204,7 +204,7 @@ namespace Hybrasyl
         {
             Maps = new Dictionary<ushort, Map>();
             WorldMaps = new Dictionary<string, WorldMap>();
-            Items = new Dictionary<int, Items.ItemType>();
+            Items = new Dictionary<int, Item>();
             Skills = new Dictionary<int, Castable>();
             Spells = new Dictionary<int, Castable>();
             Monsters = new Dictionary<int, MonsterTemplate>();
@@ -217,7 +217,7 @@ namespace Hybrasyl
             Nations = new Dictionary<string, Nation>();
             Portraits = new Dictionary<string, string>();
             GlobalSequences = new List<DialogSequence>();
-            ItemVariants = new Dictionary<string, VariantGroupType>();
+            ItemVariants = new Dictionary<string, VariantGroup>();
             Monoliths = new List<Monolith>();
 	        Mailboxes = new Dictionary<string, Mailbox>();
             Messageboards = new Dictionary<string, Board>();
@@ -225,7 +225,7 @@ namespace Hybrasyl
 
 
             GlobalSequencesCatalog = new Dictionary<String, DialogSequence>();
-            ItemCatalog = new Dictionary<Tuple<Sex, String>, Items.ItemType>();
+            ItemCatalog = new Dictionary<Tuple<Sex, String>, Item>();
             MapCatalog = new Dictionary<String, Map>();
 
             ScriptProcessor = new HybrasylScriptProcessor(this);
@@ -431,8 +431,8 @@ namespace Hybrasyl
             {
                 try
                 {
-                    VariantGroupType newGroup = Serializer.Deserialize(XmlReader.Create(xml), new VariantGroupType());
-                    Logger.DebugFormat("Item variants: loaded {0}", newGroup.Name);
+                    VariantGroup newGroup = Serializer.Deserialize(XmlReader.Create(xml), new VariantGroup());
+                    Logger.DebugFormat("ItemObject variants: loaded {0}", newGroup.Name);
                     ItemVariants.Add(newGroup.Name, newGroup);
                 }
                 catch (Exception e)
@@ -441,14 +441,14 @@ namespace Hybrasyl
                 }
             }
 
-            Logger.InfoFormat("Item variants: {0} variant sets loaded", ItemVariants.Count);
+            Logger.InfoFormat("ItemObject variants: {0} variant sets loaded", ItemVariants.Count);
 
             // Load items
             foreach (var xml in Directory.GetFiles(ItemDirectory))
             {
                 try
                 {
-                    Items.ItemType newItem = Serializer.Deserialize(XmlReader.Create(xml), new Items.ItemType());
+                    Item newItem = Serializer.Deserialize(XmlReader.Create(xml), new Item());
                     Logger.DebugFormat("Items: loaded {0}, id {1}", newItem.Name, newItem.Id);
                     Items.Add(newItem.Id, newItem);
                     ItemCatalog.Add(new Tuple<Sex, string>(Sex.Neutral, newItem.Name), newItem);
@@ -458,7 +458,7 @@ namespace Hybrasyl
                         {
                             var variantItem = ResolveVariant(newItem, variant, targetGroup);
                             //variantItem.Name = $"{variant.Name} {newItem.Name}";
-                            Logger.DebugFormat("Item {0}: variantgroup {1}, subvariant {2}", variantItem.Name, targetGroup, variant.Name);
+                            Logger.DebugFormat("ItemObject {0}: variantgroup {1}, subvariant {2}", variantItem.Name, targetGroup, variant.Name);
                             Items.Add(variantItem.Id, variantItem);
                             ItemCatalog.Add(new Tuple<Sex, string>(Sex.Neutral, variantItem.Name), variantItem);
                         }
@@ -476,8 +476,8 @@ namespace Hybrasyl
                 {
                     string name = string.Empty;
                     Castable newCastable = Serializer.Deserialize(XmlReader.Create(xml), new Castable());
-                    if (newCastable.Book == Castables.Book.primaryskill || newCastable.Book == Castables.Book.secondaryskill ||
-                        newCastable.Book == Castables.Book.utilityskill)
+                    if (newCastable.Book == Castables.Book.PrimarySkill || newCastable.Book == Castables.Book.SecondarySkill ||
+                        newCastable.Book == Castables.Book.UtilitySkill)
                     {
                         Skills.Add(newCastable.Id, newCastable);
                     }
@@ -534,16 +534,16 @@ namespace Hybrasyl
             foreach (var globalboard in Game.Config.Boards)
             {
                 var board = GetBoard(globalboard.Name);
-                board.DisplayName = globalboard.Displayname;
-                foreach (var reader in globalboard.Accesslist.Read)
+                board.DisplayName = globalboard.DisplayName;
+                foreach (var reader in globalboard.AccessList.Read)
                 {
                     board.SetAccessLevel(Convert.ToString(reader),BoardAccessLevel.Read);
                 }
-                foreach (var writer in globalboard.Accesslist.Write)
+                foreach (var writer in globalboard.AccessList.Write)
                 {
                     board.SetAccessLevel(Convert.ToString(writer), BoardAccessLevel.Write);
                 }
-                foreach (var moderator in globalboard.Accesslist.Moderate)
+                foreach (var moderator in globalboard.AccessList.Moderate)
                 {
                     board.SetAccessLevel(Convert.ToString(moderator), BoardAccessLevel.Moderate);
                 }
@@ -555,7 +555,7 @@ namespace Hybrasyl
 
 
         /* Debug ItemVariants*/
-        public Items.ItemType ResolveVariant(Items.ItemType item, VariantType variant, string variantGroup)
+        public Item ResolveVariant(Item item, Variant variant, string variantGroup)
         {
             var variantItem = item.Clone();
 
@@ -570,34 +570,34 @@ namespace Hybrasyl
                 case "consecratable":
                 {   
                     variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
-                    variantItem.Properties.Stateffects.Base.Dex += variant.Properties.Stateffects.Base.Dex; 
-                    variantItem.Properties.Stateffects.Base.Con += variant.Properties.Stateffects.Base.Con; 
-                    variantItem.Properties.Stateffects.Base.Str += variant.Properties.Stateffects.Base.Str; 
-                    variantItem.Properties.Stateffects.Base.Wis += variant.Properties.Stateffects.Base.Wis; 
-                    variantItem.Properties.Stateffects.Base.Int += variant.Properties.Stateffects.Base.Int; 
+                    variantItem.Properties.StatEffects.Base.Dex += variant.Properties.StatEffects.Base.Dex; 
+                    variantItem.Properties.StatEffects.Base.Con += variant.Properties.StatEffects.Base.Con; 
+                    variantItem.Properties.StatEffects.Base.Str += variant.Properties.StatEffects.Base.Str; 
+                    variantItem.Properties.StatEffects.Base.Wis += variant.Properties.StatEffects.Base.Wis; 
+                    variantItem.Properties.StatEffects.Base.Int += variant.Properties.StatEffects.Base.Int; 
                     break;
                 }
                 case "elemental":
                 {
-                    variantItem.Properties.Stateffects.Element.Offense = variant.Properties.Stateffects.Element.Offense;
-                    variantItem.Properties.Stateffects.Element.Defense = variant.Properties.Stateffects.Element.Defense;
+                    variantItem.Properties.StatEffects.Element.Offense = variant.Properties.StatEffects.Element.Offense;
+                    variantItem.Properties.StatEffects.Element.Defense = variant.Properties.StatEffects.Element.Defense;
                     break;
                 }
                 case "enchantable":
                 {
                     variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
-                    variantItem.Properties.Stateffects.Combat.Ac = (sbyte)(item.Properties.Stateffects.Combat.Ac + variant.Properties.Stateffects.Combat.Ac);
-                    variantItem.Properties.Stateffects.Combat.Dmg += variant.Properties.Stateffects.Combat.Dmg;
-                    variantItem.Properties.Stateffects.Combat.Hit += variant.Properties.Stateffects.Combat.Hit;
-                    variantItem.Properties.Stateffects.Combat.Mr += variant.Properties.Stateffects.Combat.Mr;
-                    variantItem.Properties.Stateffects.Combat.Regen += variant.Properties.Stateffects.Combat.Regen;
-                    variantItem.Properties.Stateffects.Base.Dex += variant.Properties.Stateffects.Base.Dex;
-                    variantItem.Properties.Stateffects.Base.Str += variant.Properties.Stateffects.Base.Str;
-                    variantItem.Properties.Stateffects.Base.Wis += variant.Properties.Stateffects.Base.Wis;
-                    variantItem.Properties.Stateffects.Base.Con += variant.Properties.Stateffects.Base.Con;
-                    variantItem.Properties.Stateffects.Base.Int += variant.Properties.Stateffects.Base.Int;
-                    variantItem.Properties.Stateffects.Base.Hp += variant.Properties.Stateffects.Base.Hp;
-                    variantItem.Properties.Stateffects.Base.Mp += variant.Properties.Stateffects.Base.Mp;
+                    variantItem.Properties.StatEffects.Combat.Ac = (sbyte)(item.Properties.StatEffects.Combat.Ac + variant.Properties.StatEffects.Combat.Ac);
+                    variantItem.Properties.StatEffects.Combat.Dmg += variant.Properties.StatEffects.Combat.Dmg;
+                    variantItem.Properties.StatEffects.Combat.Hit += variant.Properties.StatEffects.Combat.Hit;
+                    variantItem.Properties.StatEffects.Combat.Mr += variant.Properties.StatEffects.Combat.Mr;
+                    variantItem.Properties.StatEffects.Combat.Regen += variant.Properties.StatEffects.Combat.Regen;
+                    variantItem.Properties.StatEffects.Base.Dex += variant.Properties.StatEffects.Base.Dex;
+                    variantItem.Properties.StatEffects.Base.Str += variant.Properties.StatEffects.Base.Str;
+                    variantItem.Properties.StatEffects.Base.Wis += variant.Properties.StatEffects.Base.Wis;
+                    variantItem.Properties.StatEffects.Base.Con += variant.Properties.StatEffects.Base.Con;
+                    variantItem.Properties.StatEffects.Base.Int += variant.Properties.StatEffects.Base.Int;
+                    variantItem.Properties.StatEffects.Base.Hp += variant.Properties.StatEffects.Base.Hp;
+                    variantItem.Properties.StatEffects.Base.Mp += variant.Properties.StatEffects.Base.Mp;
                     break;
                 }
                 case "smithable":
@@ -612,11 +612,11 @@ namespace Hybrasyl
                 case "tailorable":
                 {
                     variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
-                    variantItem.Properties.Stateffects.Combat.Ac = item.Properties.Stateffects.Combat.Ac + variant.Properties.Stateffects.Combat.Ac;
-                    variantItem.Properties.Stateffects.Combat.Dmg += variant.Properties.Stateffects.Combat.Dmg;
-                    variantItem.Properties.Stateffects.Combat.Hit += variant.Properties.Stateffects.Combat.Hit;
-                    variantItem.Properties.Stateffects.Combat.Mr += variant.Properties.Stateffects.Combat.Mr;
-                    variantItem.Properties.Stateffects.Combat.Regen += variant.Properties.Stateffects.Combat.Regen;
+                    variantItem.Properties.StatEffects.Combat.Ac = (sbyte)(item.Properties.StatEffects.Combat.Ac + variant.Properties.StatEffects.Combat.Ac);
+                    variantItem.Properties.StatEffects.Combat.Dmg += variant.Properties.StatEffects.Combat.Dmg;
+                    variantItem.Properties.StatEffects.Combat.Hit += variant.Properties.StatEffects.Combat.Hit;
+                    variantItem.Properties.StatEffects.Combat.Mr += variant.Properties.StatEffects.Combat.Mr;
+                    variantItem.Properties.StatEffects.Combat.Regen += variant.Properties.StatEffects.Combat.Regen;
                     break;
                 }
                 default:
@@ -667,7 +667,7 @@ namespace Hybrasyl
             foreach (var item in Items.Values)
             {
                 iteminfo0.Nodes.Add(new MetafileNode(item.Name, item.Properties.Restrictions.Level.Min, (int) item.Properties.Restrictions.@Class, item.Properties.Physical.Weight,
-                    item.Properties.Vendor.Shoptab, item.Properties.Vendor.Description));
+                    item.Properties.Vendor.ShopTab, item.Properties.Vendor.Description));
             }
             Metafiles.Add(iteminfo0.Name, iteminfo0.Compile());
 
@@ -1117,9 +1117,9 @@ namespace Hybrasyl
                     user.Map.RemoveGold(gold);
                 }
             }
-            else if (pickupObject is Item)
+            else if (pickupObject is ItemObject)
             {
-                var item = (Item) pickupObject;
+                var item = (ItemObject) pickupObject;
                 if (item.Unique && user.Inventory.Contains(item.TemplateId))
                 {
                     user.SendMessage(string.Format("You can't carry any more of those.", item.Name), 3);
@@ -1199,14 +1199,14 @@ namespace Hybrasyl
                 return;
             }
 
-            Item toDrop = user.Inventory[slot];
+            ItemObject toDrop = user.Inventory[slot];
 
             if (toDrop.Stackable && count < toDrop.Count)
             {
                 toDrop.Count -= count;
                 user.SendItemUpdate(toDrop, slot);
 
-                toDrop = new Item(toDrop);
+                toDrop = new ItemObject(toDrop);
                 toDrop.Count = count;
                 Insert(toDrop);
             }
@@ -2111,11 +2111,11 @@ namespace Hybrasyl
             Logger.DebugFormat("Elapsed time since login: {0}", loginUser.SinceLastLogin);
 
 
-            if (loginUser.Nation.Spawnpoints.Count != 0 &&
+            if (loginUser.Nation.SpawnPoints.Count != 0 &&
                 loginUser.SinceLastLogin > Hybrasyl.Constants.NATION_SPAWN_TIMEOUT)
             {
                 Insert(loginUser);
-                var spawnpoint = loginUser.Nation.Spawnpoints.First();
+                var spawnpoint = loginUser.Nation.SpawnPoints.First();
                 loginUser.Teleport(spawnpoint.Value, spawnpoint.X, spawnpoint.Y);
             }
             else if (Maps.ContainsKey(loginUser.Location.MapId))
@@ -2201,15 +2201,15 @@ namespace Hybrasyl
             
             if (item == null) return;
 
-            switch (item.ItemType)
+            switch (item.ItemObjectType)
             {
-                case Enums.ItemType.CanUse:
+                case Enums.ItemObjectType.CanUse:
                     item.Invoke(user);
                     break;
-                case Enums.ItemType.CannotUse:
+                case Enums.ItemObjectType.CannotUse:
                     user.SendMessage("You can't use that.", 3);
                     break;
-                case Enums.ItemType.Equipment:
+                case Enums.ItemObjectType.Equipment:
                 {
 
                     // Check item requirements here before we do anything rash
@@ -3548,7 +3548,7 @@ namespace Hybrasyl
 
         #endregion
 
-        #region Merchant Menu Item Handlers
+        #region Merchant Menu ItemObject Handlers
 
         private void MerchantMenuHandler_MainMenu(User user, Merchant merchant, ClientPacket packet)
         {
@@ -3806,11 +3806,11 @@ namespace Hybrasyl
 
         }
 
-        public Item CreateItem(int id, int quantity = 1)
+        public ItemObject CreateItem(int id, int quantity = 1)
         {
             if (Items.ContainsKey(id))
             {
-                var item = new Item(id, this);
+                var item = new ItemObject(id, this);
                 if (quantity > item.MaximumStack)
                     quantity = item.MaximumStack;
                 item.Count = Math.Max(quantity, 1);
@@ -3822,13 +3822,13 @@ namespace Hybrasyl
             }
         }
 
-        public bool TryGetItemTemplate(string name, Sex itemSex, out Items.ItemType item)
+        public bool TryGetItemTemplate(string name, Sex itemSex, out Item item)
         {
             var itemKey = new Tuple<Sex, String>(itemSex, name);
             return ItemCatalog.TryGetValue(itemKey, out item);
         }
 
-        public bool TryGetItemTemplate(string name, out Items.ItemType item)
+        public bool TryGetItemTemplate(string name, out Item item)
         {
             // This is kinda gross
             var neutralKey = new Tuple<Sex, String>(Sex.Neutral, name);

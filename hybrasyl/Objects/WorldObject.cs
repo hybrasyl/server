@@ -281,7 +281,7 @@ namespace Hybrasyl.Objects
             {
                 menupacket.WriteByte(1);
             }
-            else if (this is Item)
+            else if (this is ItemObject)
             {
                 menupacket.WriteByte(2);
             }
@@ -322,11 +322,11 @@ namespace Hybrasyl.Objects
             }
             if (merchant?.Jobs.HasFlag(MerchantJob.Bank) ?? false)
             {
-                menupacket.WriteString8("Withdraw Item");
+                menupacket.WriteString8("Withdraw ItemObject");
                 menupacket.WriteUInt16((ushort)MerchantMenuItem.WithdrawItemMenu);
                 menupacket.WriteString8("Withdraw Gold");
                 menupacket.WriteUInt16((ushort)MerchantMenuItem.WithdrawGoldMenu);
-                menupacket.WriteString8("Deposit Item");
+                menupacket.WriteString8("Deposit ItemObject");
                 menupacket.WriteUInt16((ushort)MerchantMenuItem.DepositItemMenu);
                 menupacket.WriteString8("Deposit Gold");
                 menupacket.WriteUInt16((ushort)MerchantMenuItem.DepositGoldMenu);
@@ -334,7 +334,7 @@ namespace Hybrasyl.Objects
             }
             if (merchant?.Jobs.HasFlag(MerchantJob.Repair) ?? false)
             {
-                menupacket.WriteString8("Repair Item");
+                menupacket.WriteString8("Repair ItemObject");
                 menupacket.WriteUInt16((ushort)MerchantMenuItem.RepairItemMenu);
                 menupacket.WriteString8("Repair All Items");
                 menupacket.WriteUInt16((ushort)MerchantMenuItem.RepairAllItems);
@@ -783,12 +783,12 @@ namespace Hybrasyl.Objects
             }
         }
 
-        //public virtual bool AddItem(Item item, bool updateWeight = true) { return false; }
-        //public virtual bool AddItem(Item item, int slot, bool updateWeight = true) { return false; }
+        //public virtual bool AddItem(ItemObject item, bool updateWeight = true) { return false; }
+        //public virtual bool AddItem(ItemObject item, int slot, bool updateWeight = true) { return false; }
         //public virtual bool RemoveItem(int slot, bool updateWeight = true) { return false; }
         //public virtual bool RemoveItem(int slot, int count, bool updateWeight = true) { return false; }
-        //public virtual bool AddEquipment(Item item) { return false; }
-        //public virtual bool AddEquipment(Item item, byte slot, bool sendUpdate = true) { return false; }
+        //public virtual bool AddEquipment(ItemObject item) { return false; }
+        //public virtual bool AddEquipment(ItemObject item, byte slot, bool sendUpdate = true) { return false; }
         //public virtual bool RemoveEquipment(byte slot) { return false; }
 
         public virtual void Damage(double damage, Enums.Element element = Enums.Element.None, Enums.DamageType damageType = Enums.DamageType.Direct, Creature attacker = null)

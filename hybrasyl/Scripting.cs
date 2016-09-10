@@ -32,6 +32,7 @@ using Microsoft.Scripting.Hosting;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Hybrasyl.Items;
 
 namespace Hybrasyl
 {
@@ -645,7 +646,7 @@ __builtins__.raw_input = None
         public bool GiveItem(String name)
         {
             // Does the item exist?
-            Items.ItemType theitem;
+            Item theitem;
             if (Game.World.ItemCatalog.TryGetValue(new Tuple<Sex, String>(User.Sex, name), out theitem) ||
                 Game.World.ItemCatalog.TryGetValue(new Tuple<Sex, String>(Sex.Neutral, name), out theitem))
             {
@@ -778,7 +779,7 @@ __builtins__.raw_input = None
 
         public void Destroy()
         {
-            if (Obj is Item || Obj is Gold)
+            if (Obj is ItemObject || Obj is Gold)
             {
                 Game.World.Remove(Obj);
             }

@@ -202,14 +202,14 @@ namespace Hybrasyl
 
         }
 
-        public enum ItemType
+        public enum ItemObjectType
         {
             CanUse,
             CannotUse,
             Equipment
         }
 
-        public enum WeaponType
+        public enum WeaponObjectType
         {
             None,
             Basic,

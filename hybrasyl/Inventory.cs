@@ -32,6 +32,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Reflection;
+using Hybrasyl.Items;
 
 namespace Hybrasyl
 {
@@ -91,7 +92,7 @@ namespace Hybrasyl
 
         public bool AddItem(User giver, byte slot, byte quantity = 1)
         {
-            Item toAdd;
+            ItemObject toAdd;
             // Some sanity checks
 
             // Check if our "exchange" is full
@@ -113,7 +114,7 @@ namespace Hybrasyl
             var theItem = giver.Inventory[slot];
 
             // Further checks!
-            // Is the item exchangeable?
+            // Is the ItemObject exchangeable?
 
             if (!theItem.Exchangeable)
             {
@@ -137,7 +138,7 @@ namespace Hybrasyl
                 return false;
             }
 
-            // Is the item stackable?
+            // Is the ItemObject stackable?
 
             if (theItem.Stackable && theItem.Count > 1)
             {
@@ -156,8 +157,8 @@ namespace Hybrasyl
                     return false;
                 }
 
-                // Check if the recipient already has this item - if they do, ensure the quantity proposed for trade
-                // wouldn't put them over maxcount for the item in question
+                // Check if the recipient already has this ItemObject - if they do, ensure the quantity proposed for trade
+                // wouldn't put them over maxcount for the ItemObject in question
 
                 if (targetItem != null && targetItem.Count + quantity > theItem.MaximumStack)
                 {
@@ -175,13 +176,13 @@ namespace Hybrasyl
                 }
                 theItem.Count -= quantity;
                 giver.SendItemUpdate(theItem, slot);
-                toAdd = new Item(theItem);
+                toAdd = new ItemObject(theItem);
                 toAdd.Count = quantity;
             }
             else if (!theItem.Stackable || theItem.Count == 1)
             {
-                // Item isn't stackable or is a stack of one
-                // Remove the item entirely from giver
+                // ItemObject isn't stackable or is a stack of one
+                // Remove the ItemObject entirely from giver
                 toAdd = theItem;
                 giver.RemoveItem(slot);
             }
@@ -193,7 +194,7 @@ namespace Hybrasyl
                 return false;
             }
 
-            // Now add the item to the active exchange and make sure we update weight
+            // Now add the ItemObject to the active exchange and make sure we update weight
             if (giver == _source)
             {
                 var exchangeSlot = (byte)_sourceItems.Count;
@@ -375,18 +376,18 @@ namespace Hybrasyl
 
             for (byte i = 0; i < jArray.Count; i++)
             {
-                Items.ItemType itmType = null;
+                Item itmType = null;
                 Dictionary<string, object> item;
                 if (TryGetValue(jArray[i], out item))
                 {                   
                     itmType = World.Items.Where(x => x.Value.Name == (string)item.FirstOrDefault().Value).FirstOrDefault().Value;
                     if (itmType != null)
                     {
-                        inv[i] = new Item(itmType.Id, Game.World)
+                        inv[i] = new ItemObject(itmType.Id, Game.World)
                         {
                             Count = item.ContainsKey("Count") ? Convert.ToInt32(item["Count"]) : 1
                         };
-                            //this will need to be expanded later based on item properties being saved back to the database.
+                            //this will need to be expanded later based on ItemObject properties being saved back to the database.
                     }
                 }
             }
@@ -412,12 +413,12 @@ namespace Hybrasyl
 
 
     [JsonConverter(typeof(InventoryConverter))]
-    public class Inventory : IEnumerable<Item>
+    public class Inventory : IEnumerable<ItemObject>
     {
         public DateTime LastSaved { get; set; }
 
-        private Item[] _items;
-        private Dictionary<int, List<Item>> _inventoryIndex;
+        private ItemObject[] _itemsObject;
+        private Dictionary<int, List<ItemObject>> _inventoryIndex;
 
         public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
@@ -427,94 +428,94 @@ namespace Hybrasyl
 
         #region Equipment Properties
 
-        public Item Weapon
+        public ItemObject Weapon
         {
-            get { return _items[ServerItemSlots.Weapon]; }
+            get { return _itemsObject[ServerItemSlots.Weapon]; }
         }
 
-        public Item Armor
+        public ItemObject Armor
         {
-            get { return _items[ServerItemSlots.Armor]; }
+            get { return _itemsObject[ServerItemSlots.Armor]; }
         }
 
-        public Item Shield
+        public ItemObject Shield
         {
-            get { return _items[ServerItemSlots.Shield]; }
+            get { return _itemsObject[ServerItemSlots.Shield]; }
         }
 
-        public Item Helmet
+        public ItemObject Helmet
         {
-            get { return _items[ServerItemSlots.Helmet]; }
+            get { return _itemsObject[ServerItemSlots.Helmet]; }
         }
 
-        public Item Earring
+        public ItemObject Earring
         {
-            get { return _items[ServerItemSlots.Earring]; }
+            get { return _itemsObject[ServerItemSlots.Earring]; }
         }
 
-        public Item Necklace
+        public ItemObject Necklace
         {
-            get { return _items[ServerItemSlots.Necklace]; }
+            get { return _itemsObject[ServerItemSlots.Necklace]; }
         }
 
-        public Item LRing
+        public ItemObject LRing
         {
-            get { return _items[ServerItemSlots.LHand]; }
+            get { return _itemsObject[ServerItemSlots.LHand]; }
         }
 
-        public Item RRing
+        public ItemObject RRing
         {
-            get { return _items[ServerItemSlots.RHand]; }
+            get { return _itemsObject[ServerItemSlots.RHand]; }
         }
 
-        public Item LGauntlet
+        public ItemObject LGauntlet
         {
-            get { return _items[ServerItemSlots.LArm]; }
+            get { return _itemsObject[ServerItemSlots.LArm]; }
         }
 
-        public Item RGauntlet
+        public ItemObject RGauntlet
         {
-            get { return _items[ServerItemSlots.RArm]; }
+            get { return _itemsObject[ServerItemSlots.RArm]; }
         }
 
-        public Item Belt
+        public ItemObject Belt
         {
-            get { return _items[ServerItemSlots.Waist]; }
+            get { return _itemsObject[ServerItemSlots.Waist]; }
         }
 
-        public Item Greaves
+        public ItemObject Greaves
         {
-            get { return _items[ServerItemSlots.Leg]; }
+            get { return _itemsObject[ServerItemSlots.Leg]; }
         }
 
-        public Item Boots
+        public ItemObject Boots
         {
-            get { return _items[ServerItemSlots.Foot]; }
+            get { return _itemsObject[ServerItemSlots.Foot]; }
         }
 
-        public Item FirstAcc
+        public ItemObject FirstAcc
         {
-            get { return _items[ServerItemSlots.FirstAcc]; }
+            get { return _itemsObject[ServerItemSlots.FirstAcc]; }
         }
 
-        public Item Overcoat
+        public ItemObject Overcoat
         {
-            get { return _items[ServerItemSlots.Trousers]; }
+            get { return _itemsObject[ServerItemSlots.Trousers]; }
         }
 
-        public Item DisplayHelm
+        public ItemObject DisplayHelm
         {
-            get { return _items[ServerItemSlots.Coat]; }
+            get { return _itemsObject[ServerItemSlots.Coat]; }
         }
 
-        public Item SecondAcc
+        public ItemObject SecondAcc
         {
-            get { return _items[ServerItemSlots.SecondAcc]; }
+            get { return _itemsObject[ServerItemSlots.SecondAcc]; }
         }
 
-        public Item ThirdAcc
+        public ItemObject ThirdAcc
         {
-            get { return _items[ServerItemSlots.ThirdAcc]; }
+            get { return _itemsObject[ServerItemSlots.ThirdAcc]; }
         }
         #endregion Equipment Properties
 
@@ -535,14 +536,14 @@ namespace Hybrasyl
                 Weight += item.Weight;
             }
         }
-        public Item this[byte slot]
+        public ItemObject this[byte slot]
         {
             get
             {
                 var index = slot - 1;
                 if (index < 0 || index >= Size)
                     return null;
-                return _items[index];
+                return _itemsObject[index];
             }
             internal set
             {
@@ -550,62 +551,62 @@ namespace Hybrasyl
                 if (index < 0 || index >= Size)
                     return;
                 if (value == null)
-                    _RemoveFromIndex(_items[index]);
+                    _RemoveFromIndex(_itemsObject[index]);
                 else
                     _AddToIndex(value);
-                _items[index] = value;
+                _itemsObject[index] = value;
                 
             }   
         }
 
-        private void _AddToIndex(Item item)
+        private void _AddToIndex(ItemObject itemObject)
         {
-            List<Item> itemList;
-            if (_inventoryIndex.TryGetValue(item.TemplateId, out itemList))
+            List<ItemObject> itemList;
+            if (_inventoryIndex.TryGetValue(itemObject.TemplateId, out itemList))
             {
-                itemList.Add(item);
+                itemList.Add(itemObject);
             }
             else 
-                _inventoryIndex[item.TemplateId] = new List<Item> {item};
+                _inventoryIndex[itemObject.TemplateId] = new List<ItemObject> {itemObject};
         }
 
-        private void _RemoveFromIndex(Item item)
+        private void _RemoveFromIndex(ItemObject itemObject)
         {
-            List<Item> itemList;
-            if (_inventoryIndex.TryGetValue(item.TemplateId, out itemList))
+            List<ItemObject> itemList;
+            if (_inventoryIndex.TryGetValue(itemObject.TemplateId, out itemList))
             {
-                _inventoryIndex[item.TemplateId] = itemList.Where(x => x.Id != item.Id).ToList();
-                if (_inventoryIndex[item.TemplateId].Count == 0)
-                    _inventoryIndex.Remove(item.TemplateId);
+                _inventoryIndex[itemObject.TemplateId] = itemList.Where(x => x.Id != itemObject.Id).ToList();
+                if (_inventoryIndex[itemObject.TemplateId].Count == 0)
+                    _inventoryIndex.Remove(itemObject.TemplateId);
             }
         }
 
-        public bool TryGetValue(String name, out Item item)
+        public bool TryGetValue(String name, out ItemObject itemObject)
         {
-            item = null;
-            List<Item> itemList;
-            Items.ItemType theItem;
+            itemObject = null;
+            List<ItemObject> itemList;
+            Item theItem;
             if (!Game.World.TryGetItemTemplate(name, out theItem) ||
                 !_inventoryIndex.TryGetValue(theItem.Id, out itemList)) return false;
-            item = itemList.First();
+            itemObject = itemList.First();
             return true;
         }
 
-        public bool TryGetValue(int templateId, out Item item)
+        public bool TryGetValue(int templateId, out ItemObject itemObject)
         {
-            item = null;
-            List<Item> itemList;
+            itemObject = null;
+            List<ItemObject> itemList;
             if (!_inventoryIndex.TryGetValue(templateId, out itemList)) return false;
-            item = itemList.First();
+            itemObject = itemList.First();
             return true;
 
         }
 
         public Inventory(int size)
         {
-            _items = new Item[size];
+            _itemsObject = new ItemObject[size];
             Size = size;
-            _inventoryIndex = new Dictionary<int, List<Item>>();
+            _inventoryIndex = new Dictionary<int, List<ItemObject>>();
         }
 
         public bool Contains(int id)
@@ -615,7 +616,7 @@ namespace Hybrasyl
 
         public bool Contains(string name)
         {
-            Items.ItemType theItem;
+            Item theItem;
             return Game.World.TryGetItemTemplate(name, out theItem) && _inventoryIndex.ContainsKey(theItem.Id);
         }
 
@@ -623,7 +624,7 @@ namespace Hybrasyl
         {
             for (var i = 0; i < Size; ++i)
             {
-                if (_items[i] == null)
+                if (_itemsObject[i] == null)
                     return i;
             }
             return -1;
@@ -637,7 +638,7 @@ namespace Hybrasyl
         {
             for (var i = 0; i < Size; ++i)
             {
-                if (_items[i] != null && _items[i].TemplateId == id)
+                if (_itemsObject[i] != null && _itemsObject[i].TemplateId == id)
                     return i;
             }
             return -1;
@@ -646,7 +647,7 @@ namespace Hybrasyl
         {
             for (var i = 0; i < Size; ++i)
             {
-                if (_items[i] != null && _items[i].Name == name)
+                if (_itemsObject[i] != null && _itemsObject[i].Name == name)
                     return i;
             }
             return -1;
@@ -661,35 +662,35 @@ namespace Hybrasyl
             return (byte)(IndexOf(name) + 1);
         }
 
-        public Item Find(int id)
+        public ItemObject Find(int id)
         {
             return _inventoryIndex.ContainsKey(id) ? _inventoryIndex[id].First() : null;
         }
 
-        public Item Find(string name)
+        public ItemObject Find(string name)
         {
-            Items.ItemType theItem;
+            Item theItem;
             return Game.World.TryGetItemTemplate(name, out theItem) && _inventoryIndex.ContainsKey(theItem.Id)
                 ? _inventoryIndex[theItem.Id].First()
                 : null;
         }
 
-        public bool AddItem(Item item)
+        public bool AddItem(ItemObject itemObject)
         {
             if (IsFull) return false;
             var slot = FindEmptySlot();
-            return Insert(slot, item);
+            return Insert(slot, itemObject);
         }
 
-        public bool Insert(byte slot, Item item)
+        public bool Insert(byte slot, ItemObject itemObject)
         {
             var index = slot - 1;
-            if (index < 0 || index >= Size || _items[index] != null)
+            if (index < 0 || index >= Size || _itemsObject[index] != null)
                 return false;
-            _items[index] = item;
+            _itemsObject[index] = itemObject;
             Count += 1;
-            Weight += item.Weight;
-            _AddToIndex(item);
+            Weight += itemObject.Weight;
+            _AddToIndex(itemObject);
 
             return true;
         }
@@ -697,10 +698,10 @@ namespace Hybrasyl
         public bool Remove(byte slot)
         {
             var index = slot - 1;
-            if (index < 0 || index >= Size || _items[index] == null)
+            if (index < 0 || index >= Size || _itemsObject[index] == null)
                 return false;
-            var item = _items[index];
-            _items[index] = null;
+            var item = _itemsObject[index];
+            _itemsObject[index] = null;
             Count -= 1;
             Weight -= item.Weight;
             _RemoveFromIndex(item);
@@ -713,16 +714,16 @@ namespace Hybrasyl
             int index1 = slot1 - 1, index2 = slot2 - 1;
             if (index1 < 0 || index1 >= Size || index2 < 0 || index2 >= Size)
                 return false;
-            var item = _items[index1];
-            _items[index1] = _items[index2];
-            _items[index2] = item;
+            var item = _itemsObject[index1];
+            _itemsObject[index1] = _itemsObject[index2];
+            _itemsObject[index2] = item;
             return true;
         }
 
         public void Clear()
         {
             for (var i = 0; i < Size; ++i)
-                _items[i] = null;
+                _itemsObject[i] = null;
             Count = 0;
             Weight = 0;
             _inventoryIndex.Clear();
@@ -731,9 +732,9 @@ namespace Hybrasyl
         public bool Increase(byte slot, int amount)
         {
             var index = slot - 1;
-            if (index < 0 || index >= Size || _items[index] == null)
+            if (index < 0 || index >= Size || _itemsObject[index] == null)
                 return false;
-            var item = _items[index];
+            var item = _itemsObject[index];
             if (item.Count + amount > item.MaximumStack)
                 return false;
             item.Count += amount;
@@ -743,25 +744,25 @@ namespace Hybrasyl
         public bool Decrease(byte slot, int amount)
         {
             var index = slot - 1;
-            if (index < 0 || index >= Size || _items[index] == null)
+            if (index < 0 || index >= Size || _itemsObject[index] == null)
                 return false;
-            var item = _items[index];
+            var item = _itemsObject[index];
             if (item.Count < amount)
                 return false;
             item.Count -= amount;
             if (item.Count != 0) return true;
-            _items[index] = null;
+            _itemsObject[index] = null;
             Count -= 1;
             Weight -= item.Weight;
             return true;
         }
 
-        public IEnumerator<Item> GetEnumerator()
+        public IEnumerator<ItemObject> GetEnumerator()
         {
             for (var i = 0; i < Size; ++i)
             {
-                if (_items[i] != null)
-                    yield return _items[i];
+                if (_itemsObject[i] != null)
+                    yield return _itemsObject[i];
             }
         }
         IEnumerator IEnumerable.GetEnumerator()
@@ -778,17 +779,17 @@ namespace Hybrasyl
                 // This is fucking bullshit. Why would you even do this? HEY I KNOW KOREAN INTERN DESIGNING
                 // THIS PROTOCOL, LET'S RANDOMLY SWAP ITEM SLOTS FOR NO REASON!!11`1`
                 if (x == ServerItemSlots.Foot)
-                    returnList.Add(_items[ServerItemSlots.FirstAcc] == null
+                    returnList.Add(_itemsObject[ServerItemSlots.FirstAcc] == null
                         ? new Tuple<ushort, byte>(0, 0)
-                        : new Tuple<ushort, byte>((ushort)(0x8000 + _items[ServerItemSlots.FirstAcc].EquipSprite), _items[ServerItemSlots.FirstAcc].Color));
+                        : new Tuple<ushort, byte>((ushort)(0x8000 + _itemsObject[ServerItemSlots.FirstAcc].EquipSprite), _itemsObject[ServerItemSlots.FirstAcc].Color));
                 else if (x == ServerItemSlots.FirstAcc)
-                    returnList.Add(_items[ServerItemSlots.Foot] == null
+                    returnList.Add(_itemsObject[ServerItemSlots.Foot] == null
                         ? new Tuple<ushort, byte>(0, 0)
-                        : new Tuple<ushort, byte>((ushort)(0x8000 + _items[ServerItemSlots.Foot].EquipSprite), _items[ServerItemSlots.Foot].Color));
+                        : new Tuple<ushort, byte>((ushort)(0x8000 + _itemsObject[ServerItemSlots.Foot].EquipSprite), _itemsObject[ServerItemSlots.Foot].Color));
                 else
-                    returnList.Add(_items[x] == null
+                    returnList.Add(_itemsObject[x] == null
                         ? new Tuple<ushort, byte>(0, 0)
-                        : new Tuple<ushort, byte>((ushort) (0x8000 + _items[x].EquipSprite), _items[x].Color));
+                        : new Tuple<ushort, byte>((ushort) (0x8000 + _itemsObject[x].EquipSprite), _itemsObject[x].Color));
             }
 
             return returnList;
