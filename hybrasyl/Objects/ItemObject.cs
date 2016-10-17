@@ -29,22 +29,20 @@ using System;
 using System.CodeDom;
 using System.Collections.Generic;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
 namespace Hybrasyl.Objects
 {
-    
-    public class Item : VisibleObject
+    public class ItemObject : VisibleObject
     {
         public int TemplateId { get; private set; }
 
         /// <summary>
-        /// Check to see if a specified user can equip an item. Returns a boolean indicating whether
-        /// the item can be equipped and if not, sets the message reference to contain an appropriate
+        /// Check to see if a specified user can equip an ItemObject. Returns a boolean indicating whether
+        /// the ItemObject can be equipped and if not, sets the message reference to contain an appropriate
         /// message to be sent to the user.
         /// </summary>
-        /// <param name="userobj">User object to check for meeting this item's requirements.</param>
+        /// <param name="userobj">User object to check for meeting this ItemObject's requirements.</param>
         /// <param name="message">A reference that will be used in the case of failure to set an appropriate error message.</param>
         /// <returns></returns>
         public bool CheckRequirements(User userobj, out String message)
@@ -116,7 +114,7 @@ namespace Hybrasyl.Objects
             return true;
         }
 
-        private Items.Item Template => World.Items[TemplateId];
+        private Item Template => World.Items[TemplateId];
 
         public new string Name => Template.Name;
 
@@ -124,24 +122,23 @@ namespace Hybrasyl.Objects
 
         public ItemPropertiesUse Use => Template.Properties.Use;
 
-        public ushort EquipSprite => Template.Properties.Appearance.EquipSprite;
-
-        public Enums.ItemType ItemType
+        public ushort EquipSprite
         {
             get
             {
-                if (Template.Properties.Equipment != null)
-                    return Enums.ItemType.Equipment;
-                return Template.Properties.Use != null ? Enums.ItemType.CanUse : Enums.ItemType.CannotUse;
+                if (Template.Properties.Appearance.EquipSprite == 0)
+                    return Template.Properties.Appearance.Sprite;
+                return Template.Properties.Appearance.EquipSprite;
             }
         }
 
-        public Items.WeaponType WeaponType => Template.Properties.Equipment.WeaponType;
+        public ItemObjectType ItemObjectType => Template.Properties.Use != null ? Enums.ItemObjectType.CanUse : Enums.ItemObjectType.CannotUse;
 
+        public WeaponType WeaponType => Template.Properties.Equipment.WeaponType;
         public byte EquipmentSlot => Convert.ToByte(Template.Properties.Equipment.Slot);
         public int Weight => Template.Properties.Physical.Weight;
         public int MaximumStack => Template.Properties.Stackable.Max;
-        public bool Stackable => Template.Properties.Stackable != null && Template.Properties.Stackable.Max > 1;
+        public bool Stackable => Template.Properties.Stackable.Max > 1;
 
         public uint MaximumDurability => Template.Properties.Physical.Durability;
 
@@ -170,7 +167,7 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                if (WeaponType == Items.WeaponType.None)
+                if (WeaponType == WeaponType.None)
                     return (Enums.Element) Template.Properties.StatEffects.Element.Defense;
                 return (Enums.Element) Template.Properties.StatEffects.Element.Offense;
             }
@@ -192,11 +189,12 @@ namespace Hybrasyl.Objects
         public bool Tailorable => Template.Properties.Flags.HasFlag(ItemFlags.Tailorable);
 
         public bool Smithable => Template.Properties.Flags.HasFlag(ItemFlags.Smithable);
-        public bool Perishable => Template.Properties.Physical.Perishable;
 
         public bool Exchangeable => Template.Properties.Flags.HasFlag(ItemFlags.Exchangeable);
 
         public bool Master => Template.Properties.Flags.HasFlag(ItemFlags.Master);
+
+        public bool Perishable => Template.Properties.Physical.Perishable;
 
         public bool Unique => Template.Properties.Flags.HasFlag(ItemFlags.Unique);
 
@@ -204,11 +202,11 @@ namespace Hybrasyl.Objects
 
         public bool IsVariant => Template.IsVariant;
 
-        public Items.Item ParentItem => Template.ParentItem;
+        public Item ParentItem => Template.ParentItem;
 
-        public Items.Variant CurrentVariant => Template.CurrentVariant;
+        public Variant CurrentVariant => Template.CurrentVariant;
 
-        public Items.Item GetVariant(int variantId)
+        public Item GetVariant(int variantId)
         {
             return Template.Variants[variantId];
         }
@@ -219,6 +217,7 @@ namespace Hybrasyl.Objects
 
         public void Invoke(User trigger)
         {
+            trigger.SendMessage("Not implemented.", 3);
             // Run through all the different potential uses. We allow combinations of any
             // use specified in the item XML.
             Logger.InfoFormat($"User {trigger.Name}: used item {Name}");
@@ -249,11 +248,11 @@ namespace Hybrasyl.Objects
             {
                 if (Use.PlayerEffect.Gold > 0)
                     trigger.AddGold(new Gold((uint)Use.PlayerEffect.Gold));
-                if (Use.PlayerEffect.Hp != 0)
+                if (Use.PlayerEffect.Hp > 0)
                     trigger.Heal(Use.PlayerEffect.Hp);
-                if (Use.PlayerEffect.Mp != 0)
+                if (Use.PlayerEffect.Mp > 0)
                     trigger.RegenerateMp(Use.PlayerEffect.Mp);
-                if (Use.PlayerEffect.Xp != 0)
+                if (Use.PlayerEffect.Xp > 0)
                     trigger.GiveExperience((uint)Use.PlayerEffect.Xp);
                 trigger.UpdateAttributes(StatUpdateFlags.Current|StatUpdateFlags.Experience);
             }
@@ -271,23 +270,22 @@ namespace Hybrasyl.Objects
             }
         }
 
-
-        public Item(int id, World world)
+        public ItemObject(int id, World world)
         {
             World = world;
             TemplateId = id;
-            Durability = MaximumDurability == 0 ? 100 : MaximumDurability;
-            Count = 1;          
+            Durability = MaximumDurability;
+            Count = 1;
         }
 
-        // Simple copy constructor for an item, mostly used when we split a stack and it results
-        // in the creation of a new item.
-        public Item(Item previousItem)
+        // Simple copy constructor for an ItemObject, mostly used when we split a stack and it results
+        // in the creation of a new ItemObject.
+        public ItemObject(ItemObject previousItemObject)
         {
-            World = previousItem.World;
-            TemplateId = previousItem.TemplateId;
-            Durability = previousItem.Durability;
-            Count = previousItem.Count;
+            World = previousItemObject.World;
+            TemplateId = previousItemObject.TemplateId;
+            Durability = previousItemObject.Durability;
+            Count = previousItemObject.Count;
         }
 
         public override void ShowTo(VisibleObject obj)
@@ -306,4 +304,3 @@ namespace Hybrasyl.Objects
     
 
 
->>>>>>> [server-167] Update branch to be in sync witn new XSD:hybrasyl/Objects/Item.cs

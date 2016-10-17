@@ -44,10 +44,6 @@ using System.Threading;
 using System.Timers;
 using System.Xml;
 using System.Xml.Schema;
-<<<<<<< dd3a672caad037bdf97a0faca036275328ecbfb9
-=======
-using Hybrasyl.Castables;
->>>>>>> [server-167] Update branch to be in sync witn new XSD
 using Hybrasyl.Config;
 using Hybrasyl.Nations;
 using Microsoft.Scripting.Utils;
@@ -2389,7 +2385,7 @@ namespace Hybrasyl
 
             switch (item.ItemObjectType)
             {
-                case Enums.ItemType.CanUse:
+                case Enums.ItemObjectType.CanUse:
                     if (item.Durability == 0)
                     {
                         user.SendSystemMessage("This item is too badly damaged to use.");

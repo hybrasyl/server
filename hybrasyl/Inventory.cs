@@ -531,9 +531,9 @@ namespace Hybrasyl
         public void RecalculateWeight()
         {
             Weight = 0;
-            foreach (var item in this)
+            foreach (var obj in this)
             {
-                Weight += item.Weight;
+                Weight += obj.Weight;
             }
         }
         public ItemObject this[byte slot]
@@ -583,8 +583,8 @@ namespace Hybrasyl
 
         public bool TryGetValue(string name, out ItemObject itemObject)
         {
-            item = null;
-            List<Item> itemList;
+            itemObject = null;
+            List<ItemObject> itemList;
             Items.Item theItem;
             if (!Game.World.TryGetItemTemplate(name, out theItem) ||
                 !_inventoryIndex.TryGetValue(theItem.Id, out itemList)) return false;
