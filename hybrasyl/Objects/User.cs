@@ -22,6 +22,8 @@
 
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
+using Hybrasyl.Castables;
+using Hybrasyl.Nations;
 using log4net;
 using Newtonsoft.Json;
 using System;
@@ -600,9 +602,9 @@ namespace Hybrasyl.Objects
         {
             // Teleport user to national spawn point
             Status |= PlayerCondition.Alive;
-            if (Nation.Spawnpoints.Count != 0)
+            if (Nation.SpawnPoints.Count != 0)
             { 
-                var spawnpoint = Nation.Spawnpoints.First();
+                var spawnpoint = Nation.SpawnPoints.First();
                 Teleport(spawnpoint.Value, spawnpoint.X, spawnpoint.Y);
             }
             else
@@ -2330,7 +2332,7 @@ namespace Hybrasyl.Objects
                 }
             }
             //animation handled here as to not repeatedly send assails.
-            //this.LastAttack = DateTime.Now;
+            //this.LastAttack = DateTime.Now; 
             var assail = new ServerPacketStructures.PlayerAnimation() {Animation = 1, Speed = 20, UserId = this.Id};
             var sound = new ServerPacketStructures.PlaySound() {Sound = 01};
             Enqueue(assail.Packet());

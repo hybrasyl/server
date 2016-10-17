@@ -1,4 +1,3 @@
-﻿
 ﻿/*
  * This file is part of Project Hybrasyl.
  *
@@ -23,13 +22,14 @@
 
 using FastMember;
 using Hybrasyl.Enums;
-using Hybrasyl.XSD;
+using Hybrasyl.Items;
 using Hybrasyl.Properties;
 using log4net;
 using System;
 using System.CodeDom;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
 namespace Hybrasyl.Objects
@@ -85,7 +85,7 @@ namespace Hybrasyl.Objects
 
             // Check if user is equipping a shield while holding a two-handed weapon
 
-            if (EquipmentSlot == ClientItemSlots.Shield && userobj.Equipment.Weapon != null && userobj.Equipment.Weapon.WeaponType == XSD.WeaponType.twohand)
+            if (EquipmentSlot == ClientItemSlots.Shield && userobj.Equipment.Weapon != null && userobj.Equipment.Weapon.WeaponType == Items.WeaponType.TwoHand)
             {
                 message = "You can't equip a shield with a two-handed weapon.";
                 return false;
@@ -93,7 +93,7 @@ namespace Hybrasyl.Objects
 
             // Check if user is equipping a two-handed weapon while holding a shield
 
-            if (EquipmentSlot == ClientItemSlots.Weapon && (WeaponType == XSD.WeaponType.twohand || WeaponType == XSD.WeaponType.staff) && userobj.Equipment.Shield != null)
+            if (EquipmentSlot == ClientItemSlots.Weapon && (WeaponType == Items.WeaponType.TwoHand || WeaponType == Items.WeaponType.Staff) && userobj.Equipment.Shield != null)
             {
                 message = "You can't equip a two-handed weapon with a shield.";
                 return false;
@@ -116,7 +116,7 @@ namespace Hybrasyl.Objects
             return true;
         }
 
-        private XSD.ItemType Template => World.Items[TemplateId];
+        private Items.Item Template => World.Items[TemplateId];
 
         public new string Name => Template.Name;
 
@@ -124,40 +124,24 @@ namespace Hybrasyl.Objects
 
         public ItemPropertiesUse Use => Template.Properties.Use;
 
-        public ushort EquipSprite
-        {
-            get
-            {
-                if (Template.Properties.Appearance.Equipsprite == -1)
-                    return Template.Properties.Appearance.Sprite;
-                return Template.Properties.Appearance.Equipsprite;
-            }
-        }
+        public ushort EquipSprite => Template.Properties.Appearance.EquipSprite;
 
         public Enums.ItemType ItemType
         {
             get
             {
-                if (Template.Properties.EquipmentSpecified && Template.Properties.Equipment.SlotSpecified)
+                if (Template.Properties.Equipment != null)
                     return Enums.ItemType.Equipment;
                 return Template.Properties.Use != null ? Enums.ItemType.CanUse : Enums.ItemType.CannotUse;
             }
         }
 
-        public XSD.WeaponType WeaponType
-        {
-            get
-            {
-                if (Template.Properties.Equipment.WeapontypeSpecified)
-                    return Template.Properties.Equipment.Weapontype;
-                return XSD.WeaponType.none;
-            }
-        }
+        public Items.WeaponType WeaponType => Template.Properties.Equipment.WeaponType;
 
         public byte EquipmentSlot => Convert.ToByte(Template.Properties.Equipment.Slot);
         public int Weight => Template.Properties.Physical.Weight;
         public int MaximumStack => Template.Properties.Stackable.Max;
-        public bool Stackable => Template.Properties.StackableSpecified && Template.Properties.Stackable.Max > 1;
+        public bool Stackable => Template.Properties.Stackable != null && Template.Properties.Stackable.Max > 1;
 
         public uint MaximumDurability => Template.Properties.Physical.Durability;
 
@@ -166,65 +150,65 @@ namespace Hybrasyl.Objects
         public Enums.Class Class => (Enums.Class) Template.Properties.Restrictions.@Class;
         public Sex Sex => (Sex)Template.Properties.Restrictions.Gender;
 
-        public int BonusHp => Template.Properties.Stateffects.@Base.Hp;
-        public int BonusMp => Template.Properties.Stateffects.@Base.Mp;
-        public sbyte BonusStr => Template.Properties.Stateffects.@Base.Str;
-        public sbyte BonusInt => Template.Properties.Stateffects.@Base.@Int;
-        public sbyte BonusWis => Template.Properties.Stateffects.@Base.Wis;
-        public sbyte BonusCon => Template.Properties.Stateffects.@Base.Con;
-        public sbyte BonusDex => Template.Properties.Stateffects.@Base.Dex;
-        public sbyte BonusDmg => Template.Properties.Stateffects.Combat.Dmg;
-        public sbyte BonusHit => Template.Properties.Stateffects.Combat.Hit;
-        public sbyte BonusAc => Template.Properties.Stateffects.Combat.Ac;
-        public sbyte BonusMr => Template.Properties.Stateffects.Combat.Mr;
-        public sbyte BonusRegen => Template.Properties.Stateffects.Combat.Regen;
+        public int BonusHp => Template.Properties.StatEffects.@Base.Hp;
+        public int BonusMp => Template.Properties.StatEffects.@Base.Mp;
+        public sbyte BonusStr => Template.Properties.StatEffects.@Base.Str;
+        public sbyte BonusInt => Template.Properties.StatEffects.@Base.@Int;
+        public sbyte BonusWis => Template.Properties.StatEffects.@Base.Wis;
+        public sbyte BonusCon => Template.Properties.StatEffects.@Base.Con;
+        public sbyte BonusDex => Template.Properties.StatEffects.@Base.Dex;
+        public sbyte BonusDmg => Template.Properties.StatEffects.Combat.Dmg;
+        public sbyte BonusHit => Template.Properties.StatEffects.Combat.Hit;
+        public sbyte BonusAc => Template.Properties.StatEffects.Combat.Ac;
+        public sbyte BonusMr => Template.Properties.StatEffects.Combat.Mr;
+        public sbyte BonusRegen => Template.Properties.StatEffects.Combat.Regen;
         public byte Color => Convert.ToByte(Template.Properties.Appearance.Color);
 
-        public byte BodyStyle => Convert.ToByte(Template.Properties.Appearance.Bodystyle);
+        public byte BodyStyle => Convert.ToByte(Template.Properties.Appearance.BodyStyle);
 
         public Enums.Element Element
         {
             get
             {
-                if (WeaponType == XSD.WeaponType.none)
-                    return (Enums.Element) Template.Properties.Stateffects.Element.Defense;
-                return (Enums.Element) Template.Properties.Stateffects.Element.Offense;
+                if (WeaponType == Items.WeaponType.None)
+                    return (Enums.Element) Template.Properties.StatEffects.Element.Defense;
+                return (Enums.Element) Template.Properties.StatEffects.Element.Offense;
             }
         }
         public ushort MinLDamage => Template.Properties.Damage.Large.Min;
         public ushort MaxLDamage => Template.Properties.Damage.Large.Max;
         public ushort MinSDamage => Template.Properties.Damage.Small.Min;
         public ushort MaxSDamage => Template.Properties.Damage.Small.Max;
-        public ushort DisplaySprite => Template.Properties.Appearance.Displaysprite;
+        public ushort DisplaySprite => Template.Properties.Appearance.DisplaySprite;
 
         public uint Value => Template.Properties.Physical.Value;
 
-        public sbyte Regen => Template.Properties.Stateffects.Combat.Regen;
+        public sbyte Regen => Template.Properties.StatEffects.Combat.Regen;
 
-        public bool Enchantable => Template.Properties.Flags.HasFlag(XSD.ItemFlags.enchantable);
+        public bool Enchantable => Template.Properties.Flags.HasFlag(ItemFlags.Enchantable);
 
-        public bool Consecratable => Template.Properties.Flags.HasFlag(XSD.ItemFlags.consecratable);
+        public bool Consecratable => Template.Properties.Flags.HasFlag(ItemFlags.Consecratable);
 
-        public bool Tailorable => Template.Properties.Flags.HasFlag(XSD.ItemFlags.tailorable);
+        public bool Tailorable => Template.Properties.Flags.HasFlag(ItemFlags.Tailorable);
 
-        public bool Smithable => Template.Properties.Flags.HasFlag(XSD.ItemFlags.smithable);
+        public bool Smithable => Template.Properties.Flags.HasFlag(ItemFlags.Smithable);
         public bool Perishable => Template.Properties.Physical.Perishable;
 
-        public bool Exchangeable => Template.Properties.Flags.HasFlag(XSD.ItemFlags.exchangeable);
+        public bool Exchangeable => Template.Properties.Flags.HasFlag(ItemFlags.Exchangeable);
 
-        public bool Master => Template.Properties.Flags.HasFlag(XSD.ItemFlags.master);
+        public bool Master => Template.Properties.Flags.HasFlag(ItemFlags.Master);
 
-        public bool Unique => Template.Properties.Flags.HasFlag(XSD.ItemFlags.unique);
+        public bool Unique => Template.Properties.Flags.HasFlag(ItemFlags.Unique);
 
-        public bool UniqueEquipped => Template.Properties.Flags.HasFlag(XSD.ItemFlags.uniqueequipped);
+        public bool UniqueEquipped => Template.Properties.Flags.HasFlag(ItemFlags.UniqueEquipped);
 
         public bool IsVariant => Template.IsVariant;
 
-        public XSD.ItemType ParentItem => Template.ParentItem;
+        public Items.Item ParentItem => Template.ParentItem;
 
-        public XSD.VariantType CurrentVariant => Template.CurrentVariant;
+        public Items.Variant CurrentVariant => Template.CurrentVariant;
 
-        public XSD.ItemType GetVariant(int variantId)
+        public Items.Item GetVariant(int variantId)
         {
             return Template.Variants[variantId];
         }
@@ -238,10 +222,10 @@ namespace Hybrasyl.Objects
             // Run through all the different potential uses. We allow combinations of any
             // use specified in the item XML.
             Logger.InfoFormat($"User {trigger.Name}: used item {Name}");
-            if (Use.ScriptnameSpecified)
+            if (Use.Script != null)
             {
                 Script invokeScript;
-                if (!World.ScriptProcessor.TryGetScript(Use.Scriptname, out invokeScript))
+                if (!World.ScriptProcessor.TryGetScript(Use.Script, out invokeScript))
                 {
                     trigger.SendSystemMessage("It doesn't work.");
                     return;
@@ -257,31 +241,31 @@ namespace Hybrasyl.Objects
                     Logger.ErrorFormat($"User {trigger.Name}, item {Name}: exception {e}");
                 }              
             }            
-            if (Use.EffectSpecified)
+            if (Use.Effect != null)
             {
                trigger.SendEffect(trigger.Id, Use.Effect.Id, Use.Effect.Speed); 
             }
-            if (Use.PlayerEffectSpecified)
+            if (Use.PlayerEffect != null)
             {
-                if (Use.PlayerEffect.GoldSpecified)
+                if (Use.PlayerEffect.Gold > 0)
                     trigger.AddGold(new Gold((uint)Use.PlayerEffect.Gold));
-                if (Use.PlayerEffect.HpSpecified)
+                if (Use.PlayerEffect.Hp != 0)
                     trigger.Heal(Use.PlayerEffect.Hp);
-                if (Use.PlayerEffect.MpSpecified)
+                if (Use.PlayerEffect.Mp != 0)
                     trigger.RegenerateMp(Use.PlayerEffect.Mp);
-                if (Use.PlayerEffect.XpSpecified)
+                if (Use.PlayerEffect.Xp != 0)
                     trigger.GiveExperience((uint)Use.PlayerEffect.Xp);
                 trigger.UpdateAttributes(StatUpdateFlags.Current|StatUpdateFlags.Experience);
             }
-            if (Use.SoundSpecified)
+            if (Use.Sound != null)
             {
                 trigger.SendSound((byte) Use.Sound.Id);
             }
-            if (Use.TeleportSpecified)
+            if (Use.Teleport != null)
             {
                 trigger.Teleport(Use.Teleport.Value, Use.Teleport.X, Use.Teleport.Y);
             }
-            if (Use.ConsumedSpecified)
+            if (Use.Consumed)
             {
                 Count--;
             }
@@ -322,4 +306,4 @@ namespace Hybrasyl.Objects
     
 
 
->>>>>>> Implement status effects including poison, sleep, coma,:hybrasyl/Objects/Item.cs
+>>>>>>> [server-167] Update branch to be in sync witn new XSD:hybrasyl/Objects/Item.cs

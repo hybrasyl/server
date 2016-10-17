@@ -22,6 +22,7 @@
 
 using C3;
 using Hybrasyl.Objects;
+using Hybrasyl.Maps;
 using Hybrasyl.Properties;
 using Hybrasyl.XML;
 using log4net;
@@ -237,7 +238,7 @@ namespace Hybrasyl
                 warp.MaximumLevel = warpElement.Restrictions.Level.Max;
                 warp.MinimumAbility = warpElement.Restrictions.Ab.Min;
                 warp.MaximumAbility = warpElement.Restrictions.Ab.Max;
-                warp.MobUse = warpElement.Restrictions.NoMobUse == null;
+                warp.MobUse = warpElement.Restrictions.NoMobUse;
                 Warps[new Tuple<byte, byte>(warp.X, warp.Y)] = warp;
             }
 
@@ -275,14 +276,7 @@ namespace Hybrasyl
                     var board = new Objects.Signpost(boardElement.X, boardElement.Y, string.Empty, true, boardElement.Name);
                     InsertSignpost(board);
                     Logger.InfoFormat("{0}: {1} - messageboard loaded", this.Name, board.Name );
-                }
-            
-
-            
-            
-                // TODO: implement spawning
-            
-
+            }
             Load();
         }
 

@@ -44,6 +44,10 @@ using System.Threading;
 using System.Timers;
 using System.Xml;
 using System.Xml.Schema;
+<<<<<<< dd3a672caad037bdf97a0faca036275328ecbfb9
+=======
+using Hybrasyl.Castables;
+>>>>>>> [server-167] Update branch to be in sync witn new XSD
 using Hybrasyl.Config;
 using Hybrasyl.Nations;
 using Microsoft.Scripting.Utils;
@@ -116,10 +120,10 @@ namespace Hybrasyl
 
         public Dictionary<ushort, Map> Maps { get; set; }
         public Dictionary<string, WorldMap> WorldMaps { get; set; }
-        public static Dictionary<int, Item> Items { get; set; }
-        public Dictionary<string, VariantGroup> ItemVariants { get; set; } 
-        public Dictionary<int, Castable> Skills { get; set; }
-        public Dictionary<int, Castable> Spells { get; set; }
+        public static Dictionary<int, Items.Item> Items { get; set; }
+        public Dictionary<string, Items.VariantGroup> ItemVariants { get; set; } 
+        public Dictionary<int, Castables.Castable> Skills { get; set; }
+        public Dictionary<int, Castables.Castable> Spells { get; set; }
         public Dictionary<int, MonsterTemplate> Monsters { get; set; }
         public Dictionary<int, MerchantTemplate> Merchants { get; set; }
         public Dictionary<int, ReactorTemplate> Reactors { get; set; }
@@ -147,7 +151,7 @@ namespace Hybrasyl
         public Dictionary<String, DialogSequence> GlobalSequencesCatalog { get; set; }
         private Dictionary<MerchantMenuItem, MerchantMenuHandler> merchantMenuHandlers;
 
-        public Dictionary<Tuple<Sex, String>, Item> ItemCatalog { get; set; }
+        public Dictionary<Tuple<Sex, String>, Items.Item> ItemCatalog { get; set; }
         public Dictionary<String, Map> MapCatalog { get; set; }
 
         public HybrasylScriptProcessor ScriptProcessor { get; set; }
@@ -206,9 +210,9 @@ namespace Hybrasyl
         {
             Maps = new Dictionary<ushort, Map>();
             WorldMaps = new Dictionary<string, WorldMap>();
-            Items = new Dictionary<int, Item>();
-            Skills = new Dictionary<int, Castable>();
-            Spells = new Dictionary<int, Castable>();
+            Items = new Dictionary<int, Items.Item>();
+            Skills = new Dictionary<int, Castables.Castable>();
+            Spells = new Dictionary<int, Castables.Castable>();
             Monsters = new Dictionary<int, MonsterTemplate>();
             Merchants = new Dictionary<int, MerchantTemplate>();
             Methods = new Dictionary<string, MethodInfo>();
@@ -219,15 +223,15 @@ namespace Hybrasyl
             Nations = new Dictionary<string, Nation>();
             Portraits = new Dictionary<string, string>();
             GlobalSequences = new List<DialogSequence>();
-            ItemVariants = new Dictionary<string, VariantGroup>();
+            ItemVariants = new Dictionary<string, Items.VariantGroup>();
             Monoliths = new List<Monolith>();
-	        Mailboxes = new Dictionary<string, Mailbox>();
+            Mailboxes = new Dictionary<string, Mailbox>();
             Messageboards = new Dictionary<string, Board>();
             MessageboardIndex = new Dictionary<int, Board>();
 
 
             GlobalSequencesCatalog = new Dictionary<String, DialogSequence>();
-            ItemCatalog = new Dictionary<Tuple<Sex, String>, Item>();
+            ItemCatalog = new Dictionary<Tuple<Sex, String>, Items.Item>();
             MapCatalog = new Dictionary<String, Map>();
 
             ScriptProcessor = new HybrasylScriptProcessor(this);
@@ -433,8 +437,8 @@ namespace Hybrasyl
             {
                 try
                 {
-                    VariantGroup newGroup = Serializer.Deserialize(XmlReader.Create(xml), new VariantGroup());
-                    Logger.DebugFormat("ItemObject variants: loaded {0}", newGroup.Name);
+                    Items.VariantGroup newGroup = Serializer.Deserialize(XmlReader.Create(xml), new Items.VariantGroup());
+                    Logger.DebugFormat("Item variants: loaded {0}", newGroup.Name);
                     ItemVariants.Add(newGroup.Name, newGroup);
                 }
                 catch (Exception e)
@@ -450,7 +454,7 @@ namespace Hybrasyl
             {
                 try
                 {
-                    Item newItem = Serializer.Deserialize(XmlReader.Create(xml), new Item());
+                    Items.Item newItem = Serializer.Deserialize(XmlReader.Create(xml), new Items.Item());
                     Logger.DebugFormat("Items: loaded {0}, id {1}", newItem.Name, newItem.Id);
                     Items.Add(newItem.Id, newItem);
                     ItemCatalog.Add(new Tuple<Sex, string>(Sex.Neutral, newItem.Name), newItem);
@@ -477,7 +481,7 @@ namespace Hybrasyl
                 try
                 {
                     string name = string.Empty;
-                    Castable newCastable = Serializer.Deserialize(XmlReader.Create(xml), new Castable());
+                    Castables.Castable newCastable = Serializer.Deserialize(XmlReader.Create(xml), new Castables.Castable());
                     if (newCastable.Book == Castables.Book.PrimarySkill || newCastable.Book == Castables.Book.SecondarySkill ||
                         newCastable.Book == Castables.Book.UtilitySkill)
                     {
@@ -556,8 +560,7 @@ namespace Hybrasyl
         }
 
 
-        /* Debug ItemVariants*/
-        public Item ResolveVariant(Item item, Variant variant, string variantGroup)
+        public Items.Item ResolveVariant(Items.Item item, Items.Variant variant, string variantGroup)
         {
             var variantItem = item.Clone();
 
@@ -2280,7 +2283,6 @@ namespace Hybrasyl
             loginUser.SetCitizenship();
            
             Logger.DebugFormat("Elapsed time since login: {0}", loginUser.SinceLastLogin);
-
 
             if (loginUser.Nation.SpawnPoints.Count != 0 &&
                 loginUser.SinceLastLogin > Hybrasyl.Constants.NATION_SPAWN_TIMEOUT)
@@ -4071,13 +4073,13 @@ namespace Hybrasyl
             }
         }
 
-        public bool TryGetItemTemplate(string name, Sex itemSex, out Item item)
+        public bool TryGetItemTemplate(string name, Sex itemSex, out Items.Item item)
         {
             var itemKey = new Tuple<Sex, String>(itemSex, name);
             return ItemCatalog.TryGetValue(itemKey, out item);
         }
 
-        public bool TryGetItemTemplate(string name, out Item item)
+        public bool TryGetItemTemplate(string name, out Items.Item item)
         {
             // This is kinda gross
             var neutralKey = new Tuple<Sex, String>(Sex.Neutral, name);
