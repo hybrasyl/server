@@ -84,37 +84,36 @@ namespace Hybrasyl
 
             byte[] buffer;
 
-            using (var stream = new MemoryStream())
+            using (var metaFileStream = new MemoryStream())
             {
-                using (var writer = new BinaryWriter(stream, Encoding.GetEncoding(949)))
+                using (var metaFileWriter = new BinaryWriter(metaFileStream, Encoding.GetEncoding(949), true))
                 {
-                    writer.Write((byte)(file.Nodes.Count / 256));
-                    writer.Write((byte)(file.Nodes.Count % 256));
+                    metaFileWriter.Write((byte)(file.Nodes.Count / 256));
+                    metaFileWriter.Write((byte)(file.Nodes.Count % 256));
                     foreach (var node in file.Nodes)
                     {
                         buffer = Encoding.GetEncoding(949).GetBytes(node.Text);
-                        writer.Write((byte)buffer.Length);
-                        writer.Write(buffer);
-                        writer.Write((byte)(node.Properties.Count / 256));
-                        writer.Write((byte)(node.Properties.Count % 256));
+                        metaFileWriter.Write((byte)buffer.Length);
+                        metaFileWriter.Write(buffer);
+                        metaFileWriter.Write((byte)(node.Properties.Count / 256));
+                        metaFileWriter.Write((byte)(node.Properties.Count % 256));
                         foreach (var property in node.Properties)
                         {
                             buffer = Encoding.GetEncoding(949).GetBytes(property);
-                            writer.Write((byte)(buffer.Length / 256));
-                            writer.Write((byte)(buffer.Length % 256));
-                            writer.Write(buffer);
+                            metaFileWriter.Write((byte)(buffer.Length / 256));
+                            metaFileWriter.Write((byte)(buffer.Length % 256));
+                            metaFileWriter.Write(buffer);
                         }
                     }
-                    writer.Flush();
                 }
 
-                buffer = stream.ToArray();
-                Checksum = ~Crc32.Calculate(buffer);
-            }
+                Checksum = ~Crc32.Calculate(metaFileStream.ToArray());
 
-            using (var stream = new MemoryStream(buffer))
-            {
-                Data = Zlib.Compress(stream).ToArray();
+                using (var compressedMetaFileStream = new MemoryStream())
+                {
+                    ZlibCompression.Compress(metaFileStream, compressedMetaFileStream);
+                    Data = compressedMetaFileStream.ToArray();
+                }
             }
         }
     }

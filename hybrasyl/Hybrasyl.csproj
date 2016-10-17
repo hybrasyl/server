@@ -131,13 +131,11 @@
       <HintPath>packages\XmlSchemaClassGenerator-beta.1.0.20\lib\net45\XmlSchemaClassGenerator.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="zlib.net">
-      <HintPath>packages\zlib.net.1.0.4.0\lib\zlib.net.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Book.cs" />
     <Compile Include="Board.cs" />
+    <Compile Include="Compression.cs" />
     <Compile Include="Legend.cs" />
     <Compile Include="Time.cs" />
     <Compile Include="Client.cs" />
