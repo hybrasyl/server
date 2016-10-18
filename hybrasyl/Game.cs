@@ -33,7 +33,6 @@ using System.Threading;
 using System.Xml;
 using Hybrasyl.XML;
 using log4net.Core;
-using zlib;
 using AssemblyInfo = Hybrasyl.Utility.AssemblyInfo;
 
 namespace Hybrasyl
@@ -259,39 +258,51 @@ namespace Hybrasyl
             addressBytes = IpAddress.GetAddressBytes();
             Array.Reverse(addressBytes);
 
-            var stream = new MemoryStream();
-            var writer = new BinaryWriter(stream, Encoding.GetEncoding(949));
-
-            writer.Write((byte)1);
-            writer.Write((byte)1);
-            writer.Write(addressBytes);
-            writer.Write((byte)(2611 / 256));
-            writer.Write((byte)(2611 % 256));
-            writer.Write(Encoding.GetEncoding(949).GetBytes("Hybrasyl;Hybrasyl Production\0"));
-            writer.Flush();
-
-            var serverTable = stream.ToArray();
-            ServerTableCrc = ~Crc32.Calculate(serverTable);
-            ServerTable = Zlib.Compress(stream).ToArray();
-
-            writer.Close();
-            stream.Close();
-            var serverMsg = Path.Combine(Constants.DataDirectory, "server.msg");
-            
-            if (File.Exists(serverMsg))
+            using (var multiServerTableStream = new MemoryStream())
             {
-                stream = new MemoryStream(Encoding.GetEncoding(949).GetBytes(File.ReadAllText(serverMsg)));
+                using (var multiServerTableWriter = new BinaryWriter(multiServerTableStream, Encoding.GetEncoding(949), true))
+                {
+                    multiServerTableWriter.Write((byte)1);
+                    multiServerTableWriter.Write((byte)1);
+                    multiServerTableWriter.Write(addressBytes);
+                    multiServerTableWriter.Write((byte)(2611 / 256));
+                    multiServerTableWriter.Write((byte)(2611 % 256));
+                    multiServerTableWriter.Write(Encoding.GetEncoding(949).GetBytes("Hybrasyl;Hybrasyl Production\0"));
+                }
 
-            }
-            else
-            {
-                stream = new MemoryStream(Encoding.GetEncoding(949).GetBytes(String.Format("Welcome to Hybrasyl!\n\nThis is Hybrasyl (version {0}).\n\nFor more information please visit http://www.hybrasyl.com",
-                    Assemblyinfo.Version)));
+                ServerTableCrc = ~Crc32.Calculate(multiServerTableStream.ToArray());
+
+                using (var compressedMultiServerTableStream = new MemoryStream())
+                {
+                    ZlibCompression.Compress(multiServerTableStream, compressedMultiServerTableStream);
+                    ServerTable = compressedMultiServerTableStream.ToArray();
+                }
             }
 
-            var notification = stream.ToArray();
-            NotificationCrc = ~Crc32.Calculate(notification);
-            Notification = Zlib.Compress(stream).ToArray();
+            using (var stipulationStream = new MemoryStream())
+            {
+                using (var stipulationWriter = new StreamWriter(stipulationStream, Encoding.GetEncoding(949), 1024, true))
+                {
+                    var serverMsgFileName = Path.Combine(Constants.DataDirectory, "server.msg");
+
+                    if (File.Exists(serverMsgFileName))
+                    {
+                        stipulationWriter.Write(File.ReadAllText(serverMsgFileName));
+                    }
+                    else
+                    {
+                        stipulationWriter.Write($"Welcome to Hybrasyl!\n\nThis is Hybrasyl (version {Assemblyinfo.Version}).\n\nFor more information please visit http://www.hybrasyl.com");
+                    }
+                }
+
+                NotificationCrc = ~Crc32.Calculate(stipulationStream.ToArray());
+
+                using (var compressedStipulationStream = new MemoryStream())
+                {
+                    ZlibCompression.Compress(stipulationStream, compressedStipulationStream);
+                    Notification = compressedStipulationStream.ToArray();
+                }
+            }
 
             World.StartTimers();
             World.StartQueueConsumer();
@@ -585,46 +596,6 @@ namespace Hybrasyl
             }
 
             return crc;
-        }
-    }
-
-    public static class Zlib
-    {
-        public static MemoryStream Compress(MemoryStream input)
-        {
-            var output = new MemoryStream();
-
-            using (var outZStream = new ZOutputStream(output, zlibConst.Z_DEFAULT_COMPRESSION))
-            {
-                input.Seek(0, SeekOrigin.Begin);
-                byte[] buffer = new byte[2000];
-                int len;
-                while ((len = input.Read(buffer, 0, 2000)) > 0)
-                {
-                    outZStream.Write(buffer, 0, len);
-                }
-                outZStream.Flush();
-            }
-
-            return output;
-        }
-        public static MemoryStream Decompress(MemoryStream input)
-        {
-            var output = new MemoryStream();
-
-            using (var outZStream = new ZOutputStream(output))
-            {
-                input.Seek(0, SeekOrigin.Begin);
-                byte[] buffer = new byte[2000];
-                int len;
-                while ((len = input.Read(buffer, 0, 2000)) > 0)
-                {
-                    outZStream.Write(buffer, 0, len);
-                }
-                outZStream.Flush();
-            }
-
-            return output;
         }
     }
 }
