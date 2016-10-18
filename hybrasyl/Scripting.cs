@@ -729,7 +729,7 @@ from System import DateTime
         public bool GiveItem(string name)
         {
             // Does the item exist?
-            Items.Item theitem;
+            Item theitem;
             if (Game.World.ItemCatalog.TryGetValue(new Tuple<Sex, string>(User.Sex, name), out theitem) ||
                 Game.World.ItemCatalog.TryGetValue(new Tuple<Sex, string>(Sex.Neutral, name), out theitem))
             {
