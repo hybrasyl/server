@@ -30,8 +30,6 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.Runtime.Remoting.Messaging;
-using Community.CsharpSqlite;
 
 namespace Hybrasyl.Objects
 {
@@ -136,11 +134,16 @@ namespace Hybrasyl.Objects
         public String Portrait { get; set; }
         public string DisplayText { get; set; }
 
+        public string DeathPileOwner { get; set; }
+        public List<string> DeathPileAllowedLooters { get; set; }
+        public DateTime? DeathPileTime { get; set; }
 
         public VisibleObject()
-        {
-          
-            DisplayText = String.Empty;
+        {         
+            DisplayText = string.Empty;
+            DeathPileAllowedLooters = new List<string>();
+            DeathPileOwner = string.Empty;
+            DeathPileTime = null;
         }
 
         public virtual void AoiEntry(VisibleObject obj)
@@ -154,6 +157,8 @@ namespace Hybrasyl.Objects
         public virtual void OnClick(User invoker)
         {
         }
+
+        public virtual void OnDeath() { }
 
         public Rectangle GetBoundingBox()
         {
@@ -866,7 +871,7 @@ namespace Hybrasyl.Objects
                 damage = (damage - reduction) * resist;
             }
 
-            if (attacker == null)
+            if (attacker != null)
                 _mLastHitter = attacker.Id;
 
             var normalized = (uint)damage;

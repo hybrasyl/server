@@ -378,7 +378,7 @@ namespace Hybrasyl
     };
         #endregion
 
-        public override bool ShouldEncrypt => Opcode != 0x00 && Opcode != 0x10;
+        public override bool ShouldEncrypt => Opcode != 0x00 && Opcode != 0x10 && Opcode != 0x29;
 
         public override bool UseDefaultKey => Opcode == 0x02 || Opcode == 0x03 || Opcode == 0x04 || Opcode == 0x0B || Opcode == 0x26
                                               || Opcode == 0x2D || Opcode == 0x3A || Opcode == 0x42 || Opcode == 0x43 || Opcode == 0x4B

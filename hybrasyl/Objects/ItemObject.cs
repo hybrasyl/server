@@ -194,6 +194,8 @@ namespace Hybrasyl.Objects
 
         public bool Master => Template.Properties.Flags.HasFlag(ItemFlags.Master);
 
+        public bool Perishable => Template.Properties.Physical.Perishable;
+
         public bool Unique => Template.Properties.Flags.HasFlag(ItemFlags.Unique);
 
         public bool UniqueEquipped => Template.Properties.Flags.HasFlag(ItemFlags.UniqueEquipped);

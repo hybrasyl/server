@@ -73,8 +73,8 @@ namespace Hybrasyl
         {
             return source.Map == target.Map && source.IsInViewport(target) &&
                    target.IsInViewport(source) &&
-                   source.Status == PlayerStatus.Alive &&
-                   target.Status == PlayerStatus.Alive && target.Distance(source) <= Constants.EXCHANGE_DISTANCE;
+                   source.Status == Enums.PlayerCondition.Alive &&
+                   target.Status == PlayerCondition.Alive && target.Distance(source) <= Constants.EXCHANGE_DISTANCE;
 
         }
 
@@ -84,8 +84,8 @@ namespace Hybrasyl
             {
                 return _source.Map == _target.Map && _source.IsInViewport(_target) &&
                        _target.IsInViewport(_source) &&
-                       _source.Status.HasFlag(PlayerStatus.InExchange) &&
-                       _target.Status.HasFlag(PlayerStatus.InExchange) &&
+                       _source.Status.HasFlag(PlayerCondition.InExchange) &&
+                       _target.Status.HasFlag(PlayerCondition.InExchange) &&
                        _active;
             }
         }
@@ -261,8 +261,8 @@ namespace Hybrasyl
         {
             Logger.InfoFormat("Starting exchange between {0} and {1}", _source.Name, _target.Name);
             _active = true;
-            _source.Status |= PlayerStatus.InExchange;
-            _target.Status |= PlayerStatus.InExchange;
+            _source.Status |= PlayerCondition.InExchange;
+            _target.Status |= PlayerCondition.InExchange;
             _source.ActiveExchange = this;
             _target.ActiveExchange = this;
             // Send "open window" packet to both clients
@@ -291,8 +291,8 @@ namespace Hybrasyl
             _target.SendExchangeCancellation(requestor == _target);
             _source.ActiveExchange = null;
             _target.ActiveExchange = null;
-            _source.Status &= ~PlayerStatus.InExchange;
-            _target.Status &= ~PlayerStatus.InExchange;
+            _source.Status &= ~PlayerCondition.InExchange;
+            _target.Status &= ~PlayerCondition.InExchange;
             return true;
         }
 
@@ -316,8 +316,8 @@ namespace Hybrasyl
 
             _source.ActiveExchange = null;
             _target.ActiveExchange = null;
-            _source.Status &= ~PlayerStatus.InExchange;
-            _target.Status &= ~PlayerStatus.InExchange;
+            _source.Status &= ~PlayerCondition.InExchange;
+            _target.Status &= ~PlayerCondition.InExchange;
         }
 
         /// <summary>
@@ -531,9 +531,9 @@ namespace Hybrasyl
         public void RecalculateWeight()
         {
             Weight = 0;
-            foreach (var item in this)
+            foreach (var obj in this)
             {
-                Weight += item.Weight;
+                Weight += obj.Weight;
             }
         }
         public ItemObject this[byte slot]
