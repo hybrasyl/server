@@ -1,36 +1,21 @@
 <?xml version="1.0"?>
-<map xmlns="http://www.hybrasyl.com/XML/Maps" id="500" x="100" y="100">
-  <name>Example Village</name>
-  <warps>
-    <warp x="27" y="43">
-      <maptarget x="5" y="10">Example Inn</maptarget>
-    </warp>
-    <warp x="32" y="37">
-      <maptarget x="10" y="2">Example Inn</maptarget>
-    </warp>
-    <warp x="32" y="38">
-      <maptarget x="10" y="2">Example Inn</maptarget>
-    </warp>
-  </warps>
-  <npcs>
-    <npc x="89" y="49">
-      <name>Beggar</name>
-      <appearance sprite="21" direction="2"/>
-    </npc>
-  </npcs>
-  <signposts>
-    <messageboard x="67" y="17">
-      <name>Example Village Board</name>
-      <description>Example Village community board</description>
-    </messageboard>
-    <signpost x="16" y="71">
-      <message>Get your weapons here!</message>
-    </signpost>
-    <signpost x="21" y="64">
-      <message>Smithing, jewels, and armor.</message>
-    </signpost>
-    <signpost x="21" y="87">
-      <message>Trainer of all.</message>
-    </signpost>
-  </signposts>
-</map>
+<Map xmlns="http://www.hybrasyl.com/XML/Maps" Id="500" X="100" Y="100">
+  <Name>Example Village</Name>
+  <Warps>
+    <Warp X="27" Y="43">
+      <MapTarget X="5" Y="10">Example Inn</MapTarget>
+    </Warp>
+    <Warp X="32" y="37">
+      <MapTarget X="10" Y="2">Example Inn</MapTarget>
+    </Warp>
+    <Warp X="32" y="38">
+      <MapTarget X="10" Y="2">Example Inn</MapTarget>
+    </Warp>
+  </Warps>
+  <Npcs>
+    <Npc x="89" y="49">
+      <Name>Beggar</Name>
+      <Appearance Sprite="21" Direction="2"/>
+    </Npc>
+  </Npcs>
+</Map>
