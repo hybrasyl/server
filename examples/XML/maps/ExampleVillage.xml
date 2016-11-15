@@ -5,15 +5,15 @@
     <Warp X="27" Y="43">
       <MapTarget X="5" Y="10">Example Inn</MapTarget>
     </Warp>
-    <Warp X="32" y="37">
+    <Warp X="32" Y="37">
       <MapTarget X="10" Y="2">Example Inn</MapTarget>
     </Warp>
-    <Warp X="32" y="38">
+    <Warp X="32" Y="38">
       <MapTarget X="10" Y="2">Example Inn</MapTarget>
     </Warp>
   </Warps>
   <Npcs>
-    <Npc x="89" y="49">
+    <Npc X="89" Y="49">
       <Name>Beggar</Name>
       <Appearance Sprite="21" Direction="2"/>
     </Npc>
