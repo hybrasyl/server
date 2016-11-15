@@ -1,24 +1,24 @@
 <?xml version="1.0"?>
-<map xmlns="http://www.hybrasyl.com/XML/Maps" id="136" x="12" y="12">
-  <name>Example Inn</name>
-  <warps>
-    <warp x="5" y="11">
-      <maptarget x="27" y="44">Example Village</maptarget>
-    </warp>
-    <warp x="6" y="11">
-      <maptarget x="27" y="44">Example Village</maptarget>
-    </warp>
-    <warp x="11" y="2">
-      <maptarget x="33" y="37">Example Village</maptarget>
-    </warp>
-    <warp x="11" y="3">
-      <maptarget x="33" y="37">Example Village</maptarget>
-    </warp>
-  </warps>
-  <npcs>
-    <npc x="3" y="3">
-      <name>Riona</name>
-      <appearance sprite="516" direction="0"/>
-    </npc>
-  </npcs>
-</map>
+<Map xmlns="http://www.hybrasyl.com/XML/Maps" Id="136" X="12" Y="12">
+  <Name>Example Inn</Name>
+  <Warps>
+    <Warp X="5" Y="11">
+      <MapTarget X="27" Y="44">Example Village</MapTarget>
+    </Warp>
+    <Warp X="6" Y="11">
+      <MapTarget X="27" Y="44">Example Village</MapTarget>
+    </Warp>
+    <Warp X="11" Y="2">
+      <MapTarget X="33" Y="37">Example Village</MapTarget>
+    </Warp>
+    <Warp X="11" Y="3">
+      <MapTarget X="33" Y="37">Example Village</MapTarget>
+    </Warp>
+  </Warps>
+  <Npcs>
+    <Npc X="3" Y="3">
+      <Name>Riona</Name>
+      <Appearance Sprite="516" Direction="0"/>
+    </Npc>
+  </Npcs>
+</Map>
