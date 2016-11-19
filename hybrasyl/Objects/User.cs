@@ -1325,6 +1325,7 @@ namespace Hybrasyl.Objects
                 Id = Id,
                 Sex = Sex,
                 Helmet = helmet,
+                Weapon = Equipment.Weapon?.DisplaySprite ?? 0,
                 Armor = (Equipment.Armor?.DisplaySprite ?? 0),
                 BodySpriteOffset = offset,
                 Boots = (byte) (Equipment.Boots?.DisplaySprite ?? 0),
