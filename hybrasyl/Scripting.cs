@@ -652,8 +652,8 @@ from System import DateTime
         {
             try
             {
-                User.SetFlag(flag, value.ToString());
-                Logger.DebugFormat("{0} - set flag {1} to {2}", User.Name, flag, value.toString());
+                User.SetSessionFlag(flag, value.ToString());
+                Logger.DebugFormat("{0} - set session flag {1} to {2}", User.Name, flag, value.toString());
             }
             catch (Exception e)
             {
