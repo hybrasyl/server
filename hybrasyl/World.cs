@@ -1130,7 +1130,7 @@ namespace Hybrasyl
             var tile = new Rectangle(x, y, 1, 1);
 
             // We don't want to pick up people
-            var pickupObject = user.Map.EntityTree.GetObjects(tile).FindLast(i => i is Gold || i is Item);
+            var pickupObject = user.Map.EntityTree.GetObjects(tile).FindLast(i => i is Gold || i is ItemObject);
 
             // If the add is successful, remove the item from the map quadtree
             if (pickupObject is Gold)
@@ -4024,7 +4024,7 @@ namespace Hybrasyl
             obj.World = this;
             obj.SendId();
 
-            if (obj is Item)
+            if (obj is ItemObject)
             {
                 var itemscript = Game.World.ScriptProcessor.GetScript(obj.Name);
                 if (itemscript != null)
