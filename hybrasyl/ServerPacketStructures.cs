@@ -326,8 +326,8 @@ namespace Hybrasyl
                 else
                 {
                     packet.WriteUInt16(MonsterSprite);
-                    packet.WriteUInt16(HairColor);
-                    packet.WriteUInt16(BootsColor);
+                    packet.WriteByte(HairColor);
+                    packet.WriteByte(BootsColor);
                     // Unknown
                     packet.WriteByte(0x00);
                     packet.WriteByte(0x00);
