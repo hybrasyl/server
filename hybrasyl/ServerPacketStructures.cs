@@ -15,14 +15,16 @@ namespace Hybrasyl
         byte OpCode { get; }
         ServerPacket ToPacket();
     }
+
     //This is a POC. Nothing to see here folks.
 
     internal class ServerPacketStructures
     {
 
         public new static readonly ILog Logger =
-               LogManager.GetLogger(
-               System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+            LogManager.GetLogger(
+                System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
         internal partial class UseSkill
         {
             private byte OpCode;
@@ -220,6 +222,7 @@ namespace Hybrasyl
             {
                 OpCode = OpCodes.SpellAnimation;
             }
+
             internal uint TargetId { get; set; }
             internal uint? SourceId { get; set; }
             internal uint TargetAnimation { get; set; }
@@ -230,10 +233,10 @@ namespace Hybrasyl
             {
                 ServerPacket packet = new ServerPacket(OpCode);
                 int position = packet.Position;
-                packet.WriteUInt32(TargetId); 
+                packet.WriteUInt32(TargetId);
                 packet.WriteUInt32(SourceId ?? 0);
-                packet.WriteUInt16((ushort)TargetAnimation);
-                packet.WriteUInt16((ushort)(SourceAnimation ?? 0));
+                packet.WriteUInt16((ushort) TargetAnimation);
+                packet.WriteUInt16((ushort) (SourceAnimation ?? 0));
                 packet.WriteInt16(Speed);
                 packet.WriteInt32(0);
                 return packet;
@@ -250,13 +253,16 @@ namespace Hybrasyl
             }
 
             #region Location information
+
             internal byte X { get; set; }
             internal byte Y { get; set; }
             internal Direction Direction { get; set; }
             internal uint Id { get; set; }
+
             #endregion
 
             #region Appearance
+
             internal string Name { get; set; }
             internal Sex Sex { get; set; }
             internal ushort Helmet { get; set; }
@@ -284,18 +290,30 @@ namespace Hybrasyl
             internal string GroupName { get; set; }
             internal bool DisplayAsMonster { get; set; }
             internal ushort MonsterSprite { get; set; }
-            #endregion
 
-            // 0x33 <X> <Y> <Direction> <Player ID> <hat/hairstyle> <Offset for sex/status (includes dead/etc)>
-            // <armor sprite> <boots> <armor sprite> <shield> <weapon> <hair color> <boot color> <acc1 color> <acc1>
-            // <acc2 color> <acc2> <acc3 color> <acc3> <nfi> <nfi> <overcoat> <overcoat color> <skin color> <transparency>
-            // <face> <name style (see Enums.NameDisplayStyles)> <name length> <name> <group name length> <group name> (shows up as hovering clickable bar)
+            #endregion
+            // General notes about this god awful packet:
+
+            /* Offsets:
+               00-0F: no human body + pants
+               10-1F: male human body + pants
+               20-2F: female human body, no pants
+               30-3F: male spirit + pants
+               40-4F: female spirit, no pants
+               50-5F: invisible male body + pants
+               60-6F: invisible female body, no pants
+               70-7F: male doll body + pants
+               80-8F: male mounted body + pants
+               90-9F: female mounted body, no pants
+               A0-FF: no human body + pants
+            */
+
             internal ServerPacket Packet()
             {
                 ServerPacket packet = new ServerPacket(OpCode);
                 packet.WriteUInt16(X);
                 packet.WriteUInt16(Y);
-                packet.WriteByte((byte)Direction);
+                packet.WriteByte((byte) Direction);
                 packet.WriteUInt32(Id);
                 packet.WriteUInt16(Helmet);
                 Logger.InfoFormat($"Sex is {Sex}");
@@ -315,11 +333,11 @@ namespace Hybrasyl
                     packet.WriteUInt16(SecondAcc);
                     packet.WriteByte(ThirdAccColor);
                     packet.WriteUInt16(ThirdAcc);
-                    packet.WriteByte((byte)LanternSize);
-                    packet.WriteByte((byte)RestPosition);
+                    packet.WriteByte((byte) LanternSize);
+                    packet.WriteByte((byte) RestPosition);
                     packet.WriteUInt16(Overcoat);
                     packet.WriteByte(OvercoatColor);
-                    packet.WriteByte((byte)SkinColor);
+                    packet.WriteByte((byte) SkinColor);
                     packet.WriteBoolean(Invisible);
                     packet.WriteByte(FaceShape);
                 }
@@ -336,7 +354,7 @@ namespace Hybrasyl
                     packet.WriteByte(0x00);
                     packet.WriteByte(0x00);
                 }
-                packet.WriteByte((byte)NameStyle);
+                packet.WriteByte((byte) NameStyle);
                 packet.WriteString8(Name ?? string.Empty);
                 packet.WriteString8(GroupName ?? string.Empty);
 
