@@ -1,7 +1,7 @@
 =======
 # Hybrasyl Server
 
-[![Build status](https://ci.appveyor.com/api/projects/status/qx1g0etqkhlt1qw3/branch/master?svg=true)](https://ci.appveyor.com/project/Hybrasyl/server/branch/master) - *please ignore this for now*
+[![Build status](https://ci.appveyor.com/api/projects/status/qx1g0etqkhlt1qw3/branch/master?svg=true)](https://ci.appveyor.com/project/Hybrasyl/server/branch/master)
 
 [Project website](http://hybrasyl.com/) - [Bug tracker](https://hybrasyl.atlassian.net/secure/Dashboard.jspa)
 
