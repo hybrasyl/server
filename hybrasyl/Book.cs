@@ -105,14 +105,9 @@ namespace Hybrasyl
         private Dictionary<int, Castable> _itemIndex;
         public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        public bool IsFull
-        {
-            get { return Count == Size; }
-        }
-        public int EmptySlots
-        {
-            get { return Size - Count; }
-        }
+        public bool IsFull => Count == Size;
+
+        public int EmptySlots => Size - Count;
         public int Size { get; private set; }
         public int Count { get; private set; }
 

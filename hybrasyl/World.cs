@@ -460,6 +460,7 @@ namespace Hybrasyl
                             var variantItem = ResolveVariant(newItem, variant, targetGroup);
                             //variantItem.Name = $"{variant.Name} {newItem.Name}";
                             Logger.DebugFormat("ItemObject {0}: variantgroup {1}, subvariant {2}", variantItem.Name, targetGroup, variant.Name);
+                            if(Items.ContainsKey(variantItem.Id)) Logger.ErrorFormat("Item already exists with Key {0} : {1}. Cannot add {2}", variantItem.Id, Items[variantItem.Id].Name, variantItem.Name); 
                             Items.Add(variantItem.Id, variantItem);
                             ItemCatalog.Add(new Tuple<Sex, string>(Sex.Neutral, variantItem.Name), variantItem);
                         }
