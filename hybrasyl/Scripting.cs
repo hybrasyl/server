@@ -32,6 +32,7 @@ using Microsoft.Scripting.Hosting;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using Hybrasyl.Items;
@@ -588,6 +589,27 @@ from System import DateTime
             return new List<HybrasylUser>();
         }
 
+        public void Resurrect()
+        {
+            User.Resurrect();
+        }
+
+        public HybrasylUser GetFacingUser()
+        {
+            var facing = User.GetFacingUser();
+            return facing != null ? new HybrasylUser(facing) : null;
+        }
+
+        public List<HybrasylWorldObject> GetFacingObjects()
+        {
+            return User.GetFacingObjects().Select(item => new HybrasylWorldObject(item)).ToList();
+        }
+
+        public void EndComa()
+        {
+            User.EndComa();
+        }
+
         public dynamic GetLegendMark(string prefix)
         {
             LegendMark mark;
@@ -630,8 +652,8 @@ from System import DateTime
         {
             try
             {
-                User.SetFlag(flag, value.ToString());
-                Logger.DebugFormat("{0} - set flag {1} to {2}", User.Name, flag, value.toString());
+                User.SetSessionFlag(flag, value.ToString());
+                Logger.DebugFormat("{0} - set session flag {1} to {2}", User.Name, flag, value.toString());
             }
             catch (Exception e)
             {

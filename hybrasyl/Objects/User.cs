@@ -22,12 +22,16 @@
 
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
+using Hybrasyl.Castables;
+using Hybrasyl.Nations;
 using log4net;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Net.NetworkInformation;
 using System.Reflection;
 using System.Text;
 using Hybrasyl.Nations;
@@ -93,10 +97,7 @@ namespace Hybrasyl.Objects
         [JsonProperty]
         public Sex Sex { get; set; }
         //private account Account { get; set; }
-        [JsonProperty]
-        public byte HairStyle { get; set; }
-        [JsonProperty]
-        public byte HairColor { get; set; }
+     
         [JsonProperty]
         public Enums.Class Class { get; set; }
         [JsonProperty]
@@ -108,6 +109,30 @@ namespace Hybrasyl.Objects
         public Mailbox Mailbox => World.GetMailbox(Name);
         public bool UnreadMail => Mailbox.HasUnreadMessages;
 
+        #region Appearance settings 
+        [JsonProperty]
+        public RestPosition RestPosition { get; set; }
+        [JsonProperty]
+        public SkinColor SkinColor { get; set; }
+        [JsonProperty]
+        internal bool Transparent { get; set; }
+        [JsonProperty]
+        public byte FaceShape { get; set; }
+        [JsonProperty]
+        public LanternSize LanternSize { get; set; }
+        [JsonProperty]
+        public NameDisplayStyle NameStyle { get; set; }
+        [JsonProperty]
+        public bool DisplayAsMonster { get; set; }
+        [JsonProperty]
+        public ushort MonsterSprite { get; set; }
+        [JsonProperty]
+        public byte HairStyle { get; set; }
+        [JsonProperty]
+        public byte HairColor { get; set; }
+        #endregion
+
+        #region User metadata
         // Some structs helping us to define various metadata 
         [JsonProperty]
         public Location Location { get; set; }
@@ -128,6 +153,8 @@ namespace Hybrasyl.Objects
 
         [JsonProperty]
         public GuildMembership Guild { get; set; }
+
+        [JsonProperty] private ConcurrentDictionary<ushort, IPlayerStatus> _currentStatuses;
 
         private Nation _nation;
 
@@ -156,26 +183,30 @@ namespace Hybrasyl.Objects
 
         [JsonProperty] public Legend Legend;
 
+
+        public DialogState DialogState { get; set; }
+
+        [JsonProperty]
+        private Dictionary<String, String> UserFlags { get; set; }
+        private Dictionary<String, String> UserSessionFlags { get; set; }
+
+        public Exchange ActiveExchange { get; set; }
+
+        [JsonProperty]
+        public PlayerCondition Status { get; set; }
+
+        public bool IsAvailableForExchange
+        {
+            get { return Status == Enums.PlayerCondition.Alive; }
+        }
+        #endregion
+
         /// <summary>
         /// Reindexes any temporary data structures that may need to be recreated after a user is deserialized from JSON data.
         /// </summary>
         public void Reindex()
         {
             Legend.RegenerateIndex();    
-        }
-            
-        public DialogState DialogState { get; set; }
-
-        [JsonProperty]
-        private Dictionary<String, String> UserFlags { get; set; }
-        private Dictionary<String, String> UserSessionFlags { get; set; }
-        
-        public Exchange ActiveExchange { get; set; }
-        public PlayerStatus Status { get; set; }
-
-        public bool IsAvailableForExchange
-        {
-            get { return Status == PlayerStatus.Alive; }
         }
 
         public uint ExpToLevel
@@ -292,14 +323,323 @@ namespace Hybrasyl.Objects
             Enqueue(removePacket);
         }
 
+        #region Status handling
+
+        /// <summary>
+        /// Apply a given status to a player.
+        /// </summary>
+        /// <param name="status">The status to apply to the player.</param>
+        public bool ApplyStatus(IPlayerStatus status)
+        {
+            if (!_currentStatuses.TryAdd(status.Icon, status)) return false;
+            SendStatusUpdate(status);
+            status.OnStart();
+            return true;
+        }
+
+        /// <summary>
+        /// Remove a status from a client, firing the appropriate OnEnd events and removing the icon from the status bar.
+        /// </summary>
+        /// <param name="status">The status to remove.</param>
+        /// <param name="onEnd">Whether or not to run the onEnd event for the status removal.</param>
+        private void _removeStatus(IPlayerStatus status, bool onEnd = true)
+        {
+            if (onEnd)
+                status.OnEnd();
+            SendStatusUpdate(status, true);
+        }
+
+        /// <summary>
+        /// Remove a status from a client.
+        /// </summary>
+        /// <param name="icon">The icon of the status we are removing.</param>
+        /// <param name="onEnd">Whether or not to run the onEnd effect for the status.</param>
+        /// <returns></returns>
+        public bool RemoveStatus(ushort icon, bool onEnd = true)
+        {
+            IPlayerStatus status;
+            if (!_currentStatuses.TryRemove(icon, out status)) return false;
+            _removeStatus(status, onEnd);
+            return true;
+        }
+
+        public bool TryGetStatus(string name, out IPlayerStatus status)
+        {
+            status = _currentStatuses.Values.FirstOrDefault(s => s.Name == name);
+            return status != null;
+        }
+
+        /// <summary>
+        /// Remove all statuses from a user.
+        /// </summary>
+        public void RemoveAllStatuses()
+        {
+            lock (_currentStatuses)
+            {
+                foreach (var status in _currentStatuses.Values)
+                {
+                    _removeStatus(status, false);
+                }
+
+                _currentStatuses.Clear();
+                Logger.Debug($"Current status count is {_currentStatuses.Count}");
+            }
+        }
+
+        /// <summary>
+        /// Process all the given status ticks for a user's active statuses.
+        /// </summary>
+        public void ProcessStatusTicks()
+        {
+            foreach (var kvp in _currentStatuses)
+            {
+                Logger.DebugFormat("OnTick: {0}, {1}", Name, kvp.Value.Name);
+
+                if (kvp.Value.Expired)
+                {
+                    var removed = RemoveStatus(kvp.Key);
+                    Logger.DebugFormat($"Status {kvp.Value.Name} has expired: removal was {removed}");
+                }
+
+                if (kvp.Value.ElapsedSinceTick >= kvp.Value.Tick)
+                {
+                    kvp.Value.OnTick();
+                    SendStatusUpdate(kvp.Value);
+                }
+            }
+        }
+
+        public int ActiveStatusCount => _currentStatuses.Count;
+
+        /// <summary>T
+        /// Send a status bar update to the client based on the state of a given status.
+        /// </summary>
+        /// <param name="status">The status to update on the client side.</param>
+        /// <param name="remove">Force removal of the status</param>
+
+        public virtual void SendStatusUpdate(IPlayerStatus status, bool remove = false)
+        {
+            var statuspacket = new ServerPacketStructures.StatusBar {Icon = status.Icon};
+            var elapsed = DateTime.Now - status.Start;
+            var remaining = status.Duration - elapsed.TotalSeconds;
+            StatusBarColor color;
+            if (remaining >= 80)
+                color = StatusBarColor.White;
+            else if (remaining <= 80 && remaining >= 60)
+                color = StatusBarColor.Red;
+            else if (remaining <= 60 && remaining >= 40)
+                color = StatusBarColor.Orange;
+            else if (remaining <= 40 && remaining >= 20)
+                color = StatusBarColor.Green;
+            else
+                color = StatusBarColor.Blue;
+
+            if (remove || status.Expired)
+                color = StatusBarColor.Off;
+
+            Logger.DebugFormat("StackTrace: '{0}'", Environment.StackTrace);
+
+            statuspacket.BarColor = color;
+            Logger.DebugFormat($"{Name} - status update - sending Icon: {statuspacket.Icon}, Color: {statuspacket.BarColor}");
+            Logger.DebugFormat($"{Name} - status: {status.Name}, expired: {status.Expired}, remaining: {remaining}, duration: {status.Duration}");
+            Enqueue(statuspacket.Packet());
+        }
+
+        #region Toggles for statuses
+
+        /// <summary>
+        /// Toggle whether or not the user is frozen.
+        /// </summary>
+        public void ToggleFreeze()
+        {
+            Status ^= PlayerCondition.Frozen;
+        }
+
+        /// <summary>
+        /// Toggle whether or not the user is asleep.
+        /// </summary>
+        public void ToggleAsleep()
+        {
+            Status ^= PlayerCondition.Asleep;
+        }
+
+        /// <summary>
+        /// Toggle whether or not the user is blind.
+        /// </summary>
+        public void ToggleBlind()
+        {
+            Status ^= PlayerCondition.Blinded;
+            UpdateAttributes(StatUpdateFlags.Secondary);
+        }
+
+        /// <summary>
+        /// Toggle whether or not the user is paralyzed.
+        /// </summary>
+        public void ToggleParalyzed()
+        {
+            Status ^= PlayerCondition.Paralyzed;
+            UpdateAttributes(StatUpdateFlags.Secondary);
+        }
+
+        /// <summary>
+        /// Toggle whether or not the user is near death (in a coma).
+        /// </summary>
+        public void ToggleNearDeath()
+        {
+            if (Status.HasFlag(PlayerCondition.InComa))
+            {
+                Status &= ~PlayerCondition.InComa;
+                Group?.SendMessage($"{Name} has recovered!");
+            }
+            else
+                Status |= PlayerCondition.InComa;
+        }
+
+        /// <summary>
+        /// Toggle whether or not a user is alive.
+        /// </summary>
+        public void ToggleAlive()
+        {
+            Status ^= PlayerCondition.Alive;
+            UpdateAttributes(StatUpdateFlags.Secondary);
+        }
+
+        #endregion
+
+        /// <summary>
+        /// Sadly, all things in this world must come to an end.
+        /// </summary>
+        public override void OnDeath()
+        {
+            var timeofdeath = DateTime.Now;
+            var looters = Group?.Members.Select(user => user.Name).ToList() ?? new List<string>();
+
+            // Remove all statuses
+            RemoveAllStatuses();
+
+            // We are now quite dead, not mostly dead
+            Status &= ~PlayerCondition.InComa;
+
+            // First: break everything that is breakable in the inventory
+            for (byte i = 0; i <= Inventory.Size; ++i)
+            {
+                if (Inventory[i] == null) continue;
+                var theItem = Inventory[i];
+                RemoveItem(i);
+                if (theItem.Perishable) continue;
+                theItem.DeathPileOwner = Name;
+                theItem.DeathPileTime = timeofdeath;
+                DeathPileAllowedLooters = looters;
+                Map.AddItem(X, Y, theItem);
+            }
+
+            // Now process equipment
+            foreach (var item in Equipment)
+            {
+                RemoveEquipment(item.EquipmentSlot);
+                if (item.Perishable) continue;
+                if (item.Durability > 10)
+                    item.Durability = (uint) Math.Ceiling(item.Durability*0.90);
+                else
+                    item.Durability = 0;
+                item.DeathPileOwner = Name;
+                item.DeathPileTime = timeofdeath;
+                DeathPileAllowedLooters = looters;
+
+                Map.AddItem(X, Y, item);
+            }
+
+            // Drop all gold
+            if (Gold > 0)
+            {
+                var newGold = new Gold(Gold);
+                newGold.DeathPileAllowedLooters = looters;
+                newGold.DeathPileOwner = Name;
+                newGold.DeathPileTime = timeofdeath;
+                Map.AddGold(X,Y, new Gold(Gold));
+                Gold = 0;
+            }
+
+            // Experience penalty
+            if (Experience > 1000)
+            {
+                var expPenalty = (uint) Math.Ceiling(Experience*0.05);
+                Experience -= expPenalty;
+                SendSystemMessage($"You lose {expPenalty} experience!");
+            }
+            Hp = 0;
+            Mp = 0;
+            UpdateAttributes(StatUpdateFlags.Full);
+
+            Status &= ~PlayerCondition.Alive;
+            Effect(76, 120);
+            SendSystemMessage("Your items are ripped from your body.");
+            Teleport("Chaotic Threshold", 10, 10);
+            Group?.SendMessage($"{Name} has died!");
+        }
+
+
+        /// <summary>
+        /// End a user's coma status (skulling).
+        /// </summary>
+        public void EndComa()
+        {
+            if (!Status.HasFlag(PlayerCondition.InComa)) return;
+            ToggleNearDeath();
+            var bar = RemoveStatus(NearDeathStatus.Icon, false);
+            Logger.Debug($"EndComa: {Name}: removestatus for coma is {bar}");
+            
+            foreach (var status in _currentStatuses.Values)
+            {
+                Logger.Debug($"EXTANT STATUSES: {status.Name} with duration {status.Duration}");
+            }
+        }
+
+        /// <summary>
+        /// Resurrect a player.
+        /// </summary>
+        public void Resurrect()
+        {
+            // Teleport user to national spawn point
+            Status |= PlayerCondition.Alive;
+            if (Nation.SpawnPoints.Count != 0)
+            { 
+                var spawnpoint = Nation.SpawnPoints.First();
+                Teleport(spawnpoint.Value, spawnpoint.X, spawnpoint.Y);
+            }
+            else
+            {
+                // Handle any weird cases where a map someone exited on was deleted, etc
+                // This "default" of Mileth should be set somewhere else
+                Teleport((ushort)500, (byte)50, (byte)50);              
+            }
+
+            Hp = 1;
+            Mp = 1;
+
+            UpdateAttributes(StatUpdateFlags.Full);
+
+            LegendMark deathMark;
+
+            if (Legend.TryGetMark("scars", out deathMark))
+            {
+                deathMark.AddQuantity(1);
+            }
+            else
+                Legend.AddMark(LegendIcon.Community, LegendColor.Orange, "Scar of Sgrios", DateTime.Now, "scars", true,
+                    1);
+
+
+        }
+
+        #endregion
+
         public string GroupText
         {
             get
             {
                 // This also eventually needs to consider marriages
-                if (Grouping)
-                    return "Grouped!";
-                return "Adventuring Alone";
+                return Grouping ? "Grouped!" : "Adventuring Alone";
             }
         }
 
@@ -359,14 +699,28 @@ namespace Hybrasyl.Objects
             DialogState = new DialogState(this);
             UserFlags = new Dictionary<String, String>();
             UserSessionFlags = new Dictionary<String, String>();
-            Status = PlayerStatus.Alive;
+            Status = PlayerCondition.Alive;
             Group = null;
             Flags = new Dictionary<string, bool>();
+            _currentStatuses = new ConcurrentDictionary<ushort, IPlayerStatus>();
+
+            #region Appearance defaults
+            RestPosition = RestPosition.Standing;
+            SkinColor = SkinColor.Flesh;
+            Transparent = false;
+            FaceShape = 0;
+            NameStyle = NameDisplayStyle.GreyHover;
+            LanternSize = LanternSize.None;
+            DisplayAsMonster = false;
+            MonsterSprite = ushort.MinValue;
+            #endregion
         }
-        /**
-         * Invites another user to this user's group. If this user isn't in a group,
-         * create a new one.
-         */
+        
+    /**
+     * Invites another user to this user's group. If this user isn't in a group,
+     * create a new one.
+     */
+
         public bool InviteToGroup(User invitee)
         {
             // If you're inviting others to group, you must have grouping enabled.
@@ -614,12 +968,14 @@ namespace Hybrasyl.Objects
                     break;
             }
 
-            Logger.DebugFormat("Player {0}: stats now {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11}, {12}, {13}",
-            BonusHp, BonusHp, BonusStr, BonusInt, BonusWis,
-            BonusCon, BonusDex, BonusHit, BonusDmg, BonusAc,
-            BonusMr, BonusRegen, OffensiveElement, DefensiveElement);
+            Logger.DebugFormat(
+                "Player {0}: stats now {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11}, {12}, {13}",
+                BonusHp, BonusHp, BonusStr, BonusInt, BonusWis,
+                BonusCon, BonusDex, BonusHit, BonusDmg, BonusAc,
+                BonusMr, BonusRegen, OffensiveElement, DefensiveElement);
 
         }
+
         /// <summary>
         /// Check to see if a player is squelched, considering a given object
         /// </summary>
@@ -635,7 +991,8 @@ namespace Hybrasyl.Objects
                 {
                     if (tinfo.SquelchCount > tinfo.Throttle.DisconnectAfter)
                     {
-                        Logger.WarnFormat("cid {0}: reached squelch count for {1}: disconnected", Client.ConnectionId, opcode);
+                        Logger.WarnFormat("cid {0}: reached squelch count for {1}: disconnected", Client.ConnectionId,
+                            opcode);
                         Client.Disconnect();
                     }
                     return true;
@@ -643,7 +1000,7 @@ namespace Hybrasyl.Objects
             }
             return false;
         }
-        
+
         /// <summary>
         /// Given a specified ItemObject, remove the given bonuses from the player.
         /// </summary>
@@ -697,24 +1054,24 @@ namespace Hybrasyl.Objects
                 profilePacket.WriteByte(tuple.Item2);
             }
 
-            profilePacket.WriteByte((byte)GroupStatus);
+            profilePacket.WriteByte((byte) GroupStatus);
             profilePacket.WriteString8(Name);
-            profilePacket.WriteByte((byte)Nation.Flag); // This should pull from town / nation
+            profilePacket.WriteByte((byte) Nation.Flag); // This should pull from town / nation
             profilePacket.WriteString8(Guild.Title);
-            profilePacket.WriteByte((byte)(Grouping ? 1 : 0));
+            profilePacket.WriteByte((byte) (Grouping ? 1 : 0));
             profilePacket.WriteString8(Guild.Rank);
-            profilePacket.WriteString8(Hybrasyl.Constants.REVERSE_CLASSES[(int)Class]);
+            profilePacket.WriteString8(Hybrasyl.Constants.REVERSE_CLASSES[(int) Class]);
             profilePacket.WriteString8(Guild.Name);
-            profilePacket.WriteByte((byte)Legend.Count);
+            profilePacket.WriteByte((byte) Legend.Count);
             foreach (var mark in Legend.Where(mark => mark.Public))
             {
-                profilePacket.WriteByte((byte)mark.Icon);
-                profilePacket.WriteByte((byte)mark.Color);
+                profilePacket.WriteByte((byte) mark.Icon);
+                profilePacket.WriteByte((byte) mark.Color);
                 profilePacket.WriteString8(mark.Prefix);
                 profilePacket.WriteString8(mark.ToString());
             }
-            profilePacket.WriteUInt16((ushort)(PortraitData.Length + ProfileText.Length + 4));
-            profilePacket.WriteUInt16((ushort)PortraitData.Length);
+            profilePacket.WriteUInt16((ushort) (PortraitData.Length + ProfileText.Length + 4));
+            profilePacket.WriteUInt16((ushort) PortraitData.Length);
             profilePacket.Write(PortraitData);
             profilePacket.WriteString16(ProfileText);
 
@@ -737,7 +1094,7 @@ namespace Hybrasyl.Objects
             }
 
         }
-
+    
         public void Save()
         {
             if (!IsSaving)
@@ -911,13 +1268,13 @@ namespace Hybrasyl.Objects
 
             foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
             {
-                if (obj.Id == target)
-                {
-                    targetCreature = (Creature) obj;
-                }
+                //byte radius = castable.Intents.Intent.Where(x => x.;
+                Direction playerFacing = this.Direction;
+                byte maxTargets = 0;//this is an attack skill
+                
+                //now lets define how we want to do the attack
+                //isclick should always be false for a skill (please correct me if I'm wrong)
             }
-
-
                 Attack(castable, targetCreature);
         }
 
@@ -943,7 +1300,7 @@ namespace Hybrasyl.Objects
             x07.WriteUInt16(creature.X);
             x07.WriteUInt16(creature.Y);
             x07.WriteUInt32(creature.Id);
-            x07.WriteUInt16((ushort)(creature.Sprite + 0x4000));
+            x07.WriteUInt16((ushort) (creature.Sprite + 0x4000));
             x07.WriteInt32(0); // Unknown what this is
             x07.DumpPacket();
             Enqueue(x07);
@@ -951,53 +1308,51 @@ namespace Hybrasyl.Objects
 
         public void SendUpdateToUser(Client client)
         {
-            // 0x33 <X> <Y> <Direction> <Player ID> <hat/hairstyle> <Offset for sex/status (includes dead/etc)>
-            // <armor sprite> <boots> <armor sprite> <shield> <weapon> <hair color> <boot color> <acc1 color> <acc1>
-            // <acc2 color> <acc2> <acc3 color> <acc3> <nfi> <nfi> <overcoat> <overcoat color> <skin color> <transparency>
-            // <face> <name style (see Enums.NameStyles)> <name length> <name> <group name length> <group name> (shows up as hovering clickable bar)
-            var x33 = new ServerPacket(0x33);
-            byte offset = (byte)(Equipment.Armor != null ? Equipment.Armor.BodyStyle : 0);
+            var offset = Equipment.Armor?.BodyStyle ?? 0;
+            if (!Status.HasFlag(PlayerCondition.Alive))
+                offset += 0x20;
 
+            Logger.Debug($"Offset is: {offset.ToString("X")}");
+            // Figure out what we're sending as the "helmet"
+            var helmet = Equipment.Helmet?.DisplaySprite ?? HairStyle;
+            helmet = Equipment.DisplayHelm?.DisplaySprite ?? helmet;
 
-            x33.WriteUInt16(X);
-            x33.WriteUInt16(Y);
-            x33.WriteByte((byte)Direction);
-            x33.WriteUInt32(Id);
-
-            // hacky until we rewrite it correctly
-            var helmat = (Equipment.Helmet != null ? Equipment.Helmet.DisplaySprite : HairStyle);
-            helmat = (Equipment.DisplayHelm != null ? Equipment.DisplayHelm.DisplaySprite : helmat);
-
-            x33.WriteUInt16((ushort)helmat);
-
-            // shit like this is really pissing me off
-            x33.WriteByte((byte)(((byte)Sex * 16) + offset));
-
-            x33.WriteUInt16((ushort)(Equipment.Armor != null ? Equipment.Armor.DisplaySprite : 0));
-            x33.WriteByte((byte)(Equipment.Boots != null ? Equipment.Boots.DisplaySprite : 0));
-            x33.WriteUInt16((ushort)(Equipment.Armor != null ? Equipment.Armor.DisplaySprite : 0));
-            x33.WriteByte((byte)(Equipment.Shield != null ? Equipment.Shield.DisplaySprite : 0));
-            x33.WriteUInt16((ushort)(Equipment.Weapon != null ? Equipment.Weapon.DisplaySprite : 0));
-            x33.WriteByte(HairColor);
-            x33.WriteByte((byte)(Equipment.Boots != null ? Equipment.Boots.Color : 0));
-            x33.WriteByte(0x00); // accessory 1 color
-            x33.WriteUInt16((ushort)(Equipment.FirstAcc != null ? Equipment.FirstAcc.DisplaySprite : 0)); // accessory 1
-            x33.WriteByte(0x00); // accessory 2 color
-            x33.WriteUInt16((ushort)(Equipment.SecondAcc != null ? Equipment.SecondAcc.DisplaySprite : 0)); // accessory 2
-            x33.WriteByte(0x00); // accessory 3 color
-            x33.WriteUInt16((ushort)(Equipment.ThirdAcc != null ? Equipment.ThirdAcc.DisplaySprite : 0)); // accessory 3
-            x33.WriteByte(0x00); // lantern size
-            x33.WriteByte(0x00); // rest position
-            x33.WriteUInt16((ushort)(Equipment.Overcoat != null ? Equipment.Overcoat.DisplaySprite : 0)); // overcoat
-            x33.WriteByte(0x00); // overcoat color
-            x33.WriteByte(0x00); // skin color
-            x33.WriteByte(0x00); // semi-trans
-            x33.WriteByte(0x00); // face
-            x33.WriteByte(0x00); // name style
-            x33.WriteString8(Name);
-            x33.WriteString8(string.Empty); // group name
-            client.Enqueue(x33);
+            client.Enqueue(new ServerPacketStructures.DisplayUser()
+            {
+                X = X,
+                Y = Y,
+                Direction = Direction,
+                Id = Id,
+                Sex = Sex,
+                Helmet = helmet,
+                Weapon = Equipment.Weapon?.DisplaySprite ?? 0,
+                Armor = (Equipment.Armor?.DisplaySprite ?? 0),
+                BodySpriteOffset = offset,
+                Boots = (byte) (Equipment.Boots?.DisplaySprite ?? 0),
+                BootsColor = (byte)(Equipment.Boots?.Color ?? 0),
+                DisplayAsMonster = DisplayAsMonster,
+                FaceShape = FaceShape,
+                FirstAcc = Equipment.FirstAcc?.DisplaySprite ?? 0,
+                SecondAcc = Equipment.SecondAcc?.DisplaySprite ?? 0,
+                ThirdAcc = Equipment.ThirdAcc?.DisplaySprite ?? 0,
+                FirstAccColor = Equipment.FirstAcc?.Color ?? 0,
+                SecondAccColor = Equipment.SecondAcc?.Color ?? 0,
+                ThirdAccColor = Equipment.ThirdAcc?.Color ?? 0,
+                LanternSize = LanternSize,
+                RestPosition = RestPosition,
+                Overcoat = Equipment.Overcoat?.DisplaySprite ?? 0,
+                OvercoatColor = Equipment.Overcoat?.Color ?? 0,
+                SkinColor = SkinColor,
+                Invisible = Transparent,
+                NameStyle = NameStyle,
+                Name = Name,
+                GroupName = string.Empty, // TODO: Group name
+                MonsterSprite = MonsterSprite,
+                HairColor = HairColor
+            }.Packet());
         }
+
+  
 
         public override void SendId()
         {
@@ -1225,7 +1580,7 @@ namespace Hybrasyl.Objects
             if (flags.HasFlag(StatUpdateFlags.Secondary))
             {
                 x08.WriteByte(0); //Unknown
-                x08.WriteByte((byte) (Status.HasFlag(PlayerStatus.Blinded) ? 0x08 : 0x00));
+                x08.WriteByte((byte) (Status.HasFlag(PlayerCondition.Blinded) ? 0x08 : 0x00));
                 x08.WriteByte(0); // Unknown
                 x08.WriteByte(0); // Unknown
                 x08.WriteByte(0); // Unknown
@@ -1239,6 +1594,63 @@ namespace Hybrasyl.Objects
                 x08.WriteByte(Hit);
             }
             Enqueue(x08);
+        }
+
+
+        public User GetFacingUser()
+        {
+            List<VisibleObject> contents;
+
+            switch (Direction)
+            {
+                case Direction.North:
+                    contents = Map.GetTileContents(X, Y-1);
+                    break;
+                case Direction.South:
+                    contents = Map.GetTileContents(X, Y+1);
+                    break;
+                case Direction.West:
+                    contents = Map.GetTileContents(X-1, Y);
+                    break;
+                case Direction.East:
+                    contents = Map.GetTileContents(X+1, Y);
+                    break;
+                default:
+                    contents = new List<VisibleObject>();
+                    break;
+            }
+
+            return (User) contents.FirstOrDefault(y => y is User);
+        }
+
+        /// <summary>
+        /// Returns all the objects that are directly facing the user.
+        /// </summary>
+        /// <returns>A list of visible objects.</returns>
+        public List<VisibleObject> GetFacingObjects()
+        {
+            List<VisibleObject> contents;
+
+            switch (Direction)
+            {
+                case Direction.North:
+                    contents = Map.GetTileContents(X, Y - 1);
+                    break;
+                case Direction.South:
+                    contents = Map.GetTileContents(X, Y + 1);
+                    break;
+                case Direction.West:
+                    contents = Map.GetTileContents(X - 1, Y);
+                    break;
+                case Direction.East:
+                    contents = Map.GetTileContents(X + 1, Y);
+                    break;
+                default:
+                    contents = new List<VisibleObject>();
+                    break;
+            }
+
+            return contents;
         }
 
         public override bool Walk(Direction direction)
@@ -1671,7 +2083,16 @@ namespace Hybrasyl.Objects
         public override void Damage(double damage, Enums.Element element = Enums.Element.None,
             Enums.DamageType damageType = Enums.DamageType.Direct, Creature attacker = null)
         {
+            if (Status.HasFlag(PlayerCondition.InComa) || !Status.HasFlag(PlayerCondition.Alive)) return;
             base.Damage(damage, element, damageType, attacker);
+            if (Hp == 0)
+            {
+                Hp = 1;
+                if (Group != null)
+                    ApplyStatus(new NearDeathStatus(this, 30, 1));
+                else
+                    OnDeath();
+            }
             UpdateAttributes(StatUpdateFlags.Current);
         }
 
@@ -1912,7 +2333,7 @@ namespace Hybrasyl.Objects
                 }
             }
             //animation handled here as to not repeatedly send assails.
-            //this.LastAttack = DateTime.Now;
+            //this.LastAttack = DateTime.Now; 
             var assail = new ServerPacketStructures.PlayerAnimation() {Animation = 1, Speed = 20, UserId = this.Id};
             var sound = new ServerPacketStructures.PlaySound() {Sound = 01};
             Enqueue(assail.Packet());
@@ -2311,7 +2732,7 @@ namespace Hybrasyl.Objects
         /// <param name="requestor">The user requesting the trade</param>
         public void SendExchangeInitiation(User requestor)
         {
-            if (!Status.HasFlag(PlayerStatus.InExchange) || !requestor.Status.HasFlag(PlayerStatus.InExchange)) return;
+            if (!Status.HasFlag(PlayerCondition.InExchange) || !requestor.Status.HasFlag(PlayerCondition.InExchange)) return;
             Enqueue(new ServerPacketStructures.Exchange
             {
                 Action = ExchangeActions.Initiate,
@@ -2326,7 +2747,7 @@ namespace Hybrasyl.Objects
         /// <param name="itemSlot">The ItemObject slot containing a stacked ItemObject that will be split (client side)</param>
         public void SendExchangeQuantityPrompt(byte itemSlot)
         {
-            if (!Status.HasFlag(PlayerStatus.InExchange)) return;
+            if (!Status.HasFlag(PlayerCondition.InExchange)) return;
             Enqueue(
                 new ServerPacketStructures.Exchange
                 {
@@ -2342,7 +2763,7 @@ namespace Hybrasyl.Objects
         /// <param name="source">Boolean indicating which "side" of the transaction will be updated (source / "left side" == true)</param>
         public void SendExchangeUpdate(ItemObject toAdd, byte slot, bool source = true)
         {
-            if (!Status.HasFlag(PlayerStatus.InExchange)) return;
+            if (!Status.HasFlag(PlayerCondition.InExchange)) return;
             var update = new ServerPacketStructures.Exchange
             {
                 Action = ExchangeActions.ItemUpdate,
@@ -2362,7 +2783,7 @@ namespace Hybrasyl.Objects
         /// <param name="source">Boolean indicating which "side" of the transaction will be updated (source / "left side" == true)</param>
         public void SendExchangeUpdate(uint gold, bool source = true)
         {
-            if (!Status.HasFlag(PlayerStatus.InExchange)) return;
+            if (!Status.HasFlag(PlayerCondition.InExchange)) return;
             Enqueue(new ServerPacketStructures.Exchange
             {
                 Action=ExchangeActions.GoldUpdate,
@@ -2377,7 +2798,7 @@ namespace Hybrasyl.Objects
         /// <param name="source">The "side" responsible for cancellation (source / "left side" == true)</param>
         public void SendExchangeCancellation(bool source = true)
         {
-            if (!Status.HasFlag(PlayerStatus.InExchange)) return;
+            if (!Status.HasFlag(PlayerCondition.InExchange)) return;
             Enqueue(new ServerPacketStructures.Exchange
             {
                 Action = ExchangeActions.Cancel,
@@ -2392,7 +2813,7 @@ namespace Hybrasyl.Objects
 
         public void SendExchangeConfirmation(bool source = true)
         {
-            if (!Status.HasFlag(PlayerStatus.InExchange)) return;
+            if (!Status.HasFlag(PlayerCondition.InExchange)) return;
             Enqueue(new ServerPacketStructures.Exchange
             {
                 Action = ExchangeActions.Confirm,

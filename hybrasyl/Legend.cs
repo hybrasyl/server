@@ -116,6 +116,7 @@ namespace Hybrasyl
         public string Text { get; set; }
         public bool Public { get; set; }
         public DateTime Created { get; }
+        public DateTime LastUpdated { get; set; }
         public int Quantity { get; set; }
 
         public LegendMark(LegendIcon icon, LegendColor color, string text, DateTime created,
@@ -128,11 +129,18 @@ namespace Hybrasyl
             Quantity = quantity;
             Prefix = prefix;
             Created = created;
+            LastUpdated = created;
+        }
+
+        public void AddQuantity(int quantity)
+        {
+            Quantity += quantity;
+            LastUpdated = DateTime.Now;
         }
 
         public override string ToString()
         {
-            var aislingDate = HybrasylTime.ConvertToHybrasyl(Created);
+            var aislingDate = HybrasylTime.ConvertToHybrasyl(Created != LastUpdated ? Created : LastUpdated);
             var returnString = Text;
             var markDate = $"{aislingDate.Age} {aislingDate.Year}, {aislingDate.Season}";
 

@@ -255,14 +255,11 @@ namespace Hybrasyl
 
             if (bytesRead > 0)
             {
-                if (this is Login)
-                {
-                    Logger.InfoFormat("Dafuq bro");
-                }
+           
                 var inboundBytes = state.ReceiveBufferTake(bytesRead).ToArray();
                 if (inboundBytes[0] != 0xAA)
                 {
-                    Logger.DebugFormat("cid {0}: client is wat",
+                    Logger.DebugFormat("cid {0}: client is sending corrupt data, potentially",
                         client.ConnectionId);
                     state.ResetReceive();
                 }

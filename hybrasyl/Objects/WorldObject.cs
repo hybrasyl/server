@@ -30,8 +30,6 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.Runtime.Remoting.Messaging;
-using Community.CsharpSqlite;
 
 namespace Hybrasyl.Objects
 {
@@ -136,11 +134,16 @@ namespace Hybrasyl.Objects
         public String Portrait { get; set; }
         public string DisplayText { get; set; }
 
+        public string DeathPileOwner { get; set; }
+        public List<string> DeathPileAllowedLooters { get; set; }
+        public DateTime? DeathPileTime { get; set; }
 
         public VisibleObject()
-        {
-          
-            DisplayText = String.Empty;
+        {         
+            DisplayText = string.Empty;
+            DeathPileAllowedLooters = new List<string>();
+            DeathPileOwner = string.Empty;
+            DeathPileTime = null;
         }
 
         public virtual void AoiEntry(VisibleObject obj)
@@ -154,6 +157,8 @@ namespace Hybrasyl.Objects
         public virtual void OnClick(User invoker)
         {
         }
+
+        public virtual void OnDeath() { }
 
         public Rectangle GetBoundingBox()
         {
@@ -866,7 +871,7 @@ namespace Hybrasyl.Objects
                 damage = (damage - reduction) * resist;
             }
 
-            if (attacker == null)
+            if (attacker != null)
                 _mLastHitter = attacker.Id;
 
             var normalized = (uint)damage;
@@ -1026,21 +1031,25 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                if (Amount == 1) return "Silver Coin";
-                else if (Amount < 100) return "Gold Coin";
-                else if (Amount < 1000) return "Silver Pile";
-                else return "Gold Pile";
+                if (Amount == 1) return "Copper Coin";
+                if (Amount < 10) return "Copper Pile";
+                if (Amount < 100) return "Silver Coin";
+                if (Amount < 1000) return "Silver Pile";
+                if (Amount < 10000) return "Gold Coin";
+                return "Gold Pile";
             }
         }
-
+    
         public new ushort Sprite
         {
             get
             {
-                if (Amount == 1) return 138;
-                else if (Amount < 100) return 137;
-                else if (Amount < 1000) return 141;
-                else return 140;
+                if (Amount == 1) return 139;
+                if (Amount < 10) return 142;
+                if (Amount < 100) return 138;
+                if (Amount < 1000) return 141;
+                if (Amount < 10000) return 137;
+                return 140;
             }
         }
 

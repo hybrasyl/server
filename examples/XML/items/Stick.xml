@@ -1,23 +1,23 @@
 <?xml version="1.0"?>
-<item xmlns="http://www.hybrasyl.com/XML/Items">
-  <name>Stick</name>
-  <properties>
-    <appearance sprite="86" displaysprite="1" bodystyle="transparent"/>
-    <stackable max="1"/>
-    <physical value="100" weight="3" durability="1000" perishable="false" vendorable="false" bound="false"/>
-    <equipment slot="weapon" unique="false" weapontype="onehand"/>
-    <stateffects>
-      <base str="0" con="0" int="0" wis="0" dex="0" hp="0" mp="0"/>
-      <combat hit="0" dmg="0" ac="0" regen="0" mr="0"/>
-    </stateffects>
-    <flags>depositable tailorable exchangeable</flags>
-    <variants/>
-    <damage>
-      <small min="4" max="14"/>
-      <large min="4" max="14"/>
-    </damage>
-    <restrictions>
-      <level min="1"/>
-    </restrictions>
-  </properties>
-</item>
+<Item xmlns="http://www.hybrasyl.com/XML/Items">
+  <Name>Stick</Name>
+  <Properties>
+    <Appearance Sprite="86" DisplaySprite="1" BodyStyle="Transparent"/>
+    <Stackable Max="1"/>
+    <Physical Value="100" Weight="3" Durability="1000" Perishable="false" Vendorable="false" Bound="false"/>
+    <Equipment Slot="Weapon" Unique="false" WeaponType="OneHand"/>
+    <StatEffects>
+      <Base Str="0" Con="0" Int="0" Wis="0" Dex="0" Hp="0" Mp="0"/>
+      <Combat Hit="0" Dmg="0" Ac="0" Regen="0" Mr="0"/>
+    </StatEffects>
+    <Flags>Depositable Tailorable Exchangeable</Flags>
+    <Variants/>
+    <Damage>
+      <Small Min="4" Max="14"/>
+      <Large Min="4" Max="14"/>
+    </Damage>
+    <Restrictions>
+      <Level Min="1"/>
+    </Restrictions>
+  </Properties>
+</Item>

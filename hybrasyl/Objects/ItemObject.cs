@@ -132,7 +132,17 @@ namespace Hybrasyl.Objects
             }
         }
 
-        public ItemObjectType ItemObjectType => Template.Properties.Use != null ? Enums.ItemObjectType.CanUse : Enums.ItemObjectType.CannotUse;
+        public ItemObjectType ItemObjectType
+        {
+            get
+            {
+                if (Template.Properties.Equipment != null)
+                    return ItemObjectType.Equipment;
+                else
+                    return Template.Properties.Use != null ? ItemObjectType.CanUse : ItemObjectType.CannotUse;
+
+            }
+        }
 
         public WeaponType WeaponType => Template.Properties.Equipment.WeaponType;
         public byte EquipmentSlot => Convert.ToByte(Template.Properties.Equipment.Slot);
@@ -193,6 +203,8 @@ namespace Hybrasyl.Objects
         public bool Exchangeable => Template.Properties.Flags.HasFlag(ItemFlags.Exchangeable);
 
         public bool Master => Template.Properties.Flags.HasFlag(ItemFlags.Master);
+
+        public bool Perishable => Template.Properties.Physical.Perishable;
 
         public bool Unique => Template.Properties.Flags.HasFlag(ItemFlags.Unique);
 
