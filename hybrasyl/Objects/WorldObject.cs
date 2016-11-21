@@ -23,12 +23,14 @@
 using C3;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
+using Hybrasyl.Castables;
 using log4net;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using Hybrasyl.Creatures;
 using Castable = Hybrasyl.Castables.Castable;
 
@@ -153,6 +155,25 @@ namespace Hybrasyl.Objects
 
         public virtual void AoiDeparture(VisibleObject obj)
         {
+        }
+
+        public bool CanBeLooted(string username, out string error)
+        {
+            error = string.Empty;
+            // Let's just be sure here
+            if (!(this is Gold || this is ItemObject))
+            {
+                error = "You can't do that.";
+                return false;
+            }
+            // Check if the item is part of a death pile
+            if (DeathPileTime == null) return true;
+            if (DeathPileOwner == username) return true;
+            if (DeathPileAllowedLooters.Contains(username) &&
+                (DateTime.Now - DeathPileTime.Value).Seconds > Constants.DEATHPILE_GROUP_TIMEOUT) return true;
+            if ((DateTime.Now - DeathPileTime.Value).Seconds > Constants.DEATHPILE_RANDO_TIMEOUT) return true;
+            error = "These items are cursed.";
+            return false;
         }
 
         public virtual void OnClick(User invoker)
