@@ -967,6 +967,7 @@ namespace Hybrasyl
                 uint hpRegen = 0;
                 uint mpRegen = 0;
                 double fixedRegenBuff = Math.Min(user.Regen*0.0015, 0.15);
+                fixedRegenBuff = Math.Max(fixedRegenBuff, 0.125);
                 if (user.Hp != user.MaximumHp)
                 {
                     hpRegen = (uint) Math.Min(user.MaximumHp*(0.1*Math.Max(user.Con, (user.Con - user.Level))*0.01),
