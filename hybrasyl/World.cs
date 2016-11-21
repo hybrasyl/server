@@ -1132,6 +1132,15 @@ namespace Hybrasyl
             // We don't want to pick up people
             var pickupObject = user.Map.EntityTree.GetObjects(tile).FindLast(i => i is Gold || i is ItemObject);
 
+            if (pickupObject == null) return;
+
+            string error;
+            if (!pickupObject.CanBeLooted(user.Name, out error))
+            {
+                user.SendSystemMessage(error);
+                return;
+            }
+
             // If the add is successful, remove the item from the map quadtree
             if (pickupObject is Gold)
             {

@@ -281,6 +281,11 @@ namespace Hybrasyl
 
         public const int NATION_SPAWN_TIMEOUT = 10800; // 3 hours
 
+        // Death pile timeouts (how long someone has to wait until they can loot a death pile)
+
+        public const int DEATHPILE_GROUP_TIMEOUT = 0; // Group/self can pick up deathpile immediately
+        public const int DEATHPILE_RANDO_TIMEOUT = 900; // Randos can pick up death piles after 15 minutes
+
         // Heartbeat controls
         // Every BYTE_HEARTBEAT_INTERVAL and TICK_HEARTBEAT_INTERVAL seconds, Hybrasyl sends 0x3B and 0x68 
         // heartbeat packets to clients.
