@@ -73,7 +73,7 @@ namespace Hybrasyl
 
             public static readonly int Interval = 300;
 
-            public static void Execute(Object obj, ElapsedEventArgs args)
+            public static void Execute(object obj, ElapsedEventArgs args)
             {
                 try
                 {
@@ -105,7 +105,7 @@ namespace Hybrasyl
             // Clean up mailboxes once an hour
             public static readonly int Interval = 3600;
 
-            public static void Execute(Object obj, ElapsedEventArgs args)
+            public static void Execute(object obj, ElapsedEventArgs args)
             {
                 try
                 {
@@ -155,7 +155,7 @@ namespace Hybrasyl
 
             public static readonly int Interval = 60;
 
-            public static void Execute(Object obj, ElapsedEventArgs args)
+            public static void Execute(object obj, ElapsedEventArgs args)
             {
                 try
                 {
@@ -183,7 +183,7 @@ namespace Hybrasyl
 
             public static readonly int Interval = Constants.BYTE_HEARTBEAT_INTERVAL;
 
-            public static void Execute(Object obj, ElapsedEventArgs args)
+            public static void Execute(object obj, ElapsedEventArgs args)
             {
                 try
                 {
@@ -212,7 +212,7 @@ namespace Hybrasyl
 
             public static readonly int Interval = Constants.TICK_HEARTBEAT_INTERVAL;
 
-            public static void Execute(Object obj, ElapsedEventArgs args)
+            public static void Execute(object obj, ElapsedEventArgs args)
             {
                 try
                 {
@@ -244,7 +244,7 @@ namespace Hybrasyl
 
             public static readonly int Interval = Constants.REAP_HEARTBEAT_INTERVAL;
 
-            public static void Execute(Object obj, ElapsedEventArgs args)
+            public static void Execute(object obj, ElapsedEventArgs args)
             {
                 Logger.Debug("Job starting");
                 try
@@ -281,7 +281,7 @@ namespace Hybrasyl
 
             public static readonly int Interval = 25;
 
-            public static void Execute(Object obj, ElapsedEventArgs args)
+            public static void Execute(object obj, ElapsedEventArgs args)
             {
                 foreach (var connId in GlobalConnectionManifest.WorldClients.Keys)
                 {
@@ -298,7 +298,7 @@ namespace Hybrasyl
 
             public static readonly int Interval = 1;
 
-            public static void Execute(Object obj, ElapsedEventArgs args)
+            public static void Execute(object obj, ElapsedEventArgs args)
             {
                 Logger.Debug("Status tick job starting");
                 foreach (var connectionId in GlobalConnectionManifest.WorldClients.Keys)
@@ -322,7 +322,7 @@ namespace Hybrasyl
 
             public static readonly int Interval = 10;
 
-            public static void Execute(Object obj, ElapsedEventArgs args)
+            public static void Execute(object obj, ElapsedEventArgs args)
             {
                 Logger.Debug("Job starting");
                 try
@@ -347,35 +347,6 @@ namespace Hybrasyl
                                     connectionId);
                             }
                         }
-                    }
-
-                    Logger.Debug("Job complete");
-                }
-                catch (Exception e)
-                {
-                    Logger.Error("Exception occured in job:", e);
-                }
-            }
-        }
-
-        public static class MonsterSpawnJob
-        {
-            public static readonly ILog Logger =
-                LogManager.GetLogger(
-                    System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
-            public static readonly int Interval = 20;
-
-            public static void Execute(Object obj, ElapsedEventArgs args)
-            {
-                Logger.Debug("Job starting");
-                try
-                {
-                    // FIXME: make this more efficient / don't break our own conventions
-                    foreach (var monolith in Game.World.Monoliths)
-                    {
-                        monolith.Spawn();
-                        Logger.InfoFormat("Attempting to spawn monsters.", monolith.MaxSpawns);
                     }
 
                     Logger.Debug("Job complete");

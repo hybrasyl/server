@@ -60,6 +60,8 @@ namespace Hybrasyl
         public static AssemblyInfo Assemblyinfo  { get; set; }
         private static long Active = 0;
 
+        private static Monolith _monolith;
+
         public static HybrasylConfig Config { get; private set; }
 
         private static Thread _lobbyThread;
@@ -69,6 +71,8 @@ namespace Hybrasyl
         private static Thread _lobbySendThread;
         private static Thread _loginSendThread;
         private static Thread _worldSendThread;
+
+        private static Thread _spawnThread;
 
         public static DateTime StartDate { get; set; }
 
@@ -246,6 +250,8 @@ namespace Hybrasyl
             Lobby.StopToken = CancellationTokenSource.Token;
             Login.StopToken = CancellationTokenSource.Token;
             World.StopToken = CancellationTokenSource.Token;
+
+            _monolith = new Monolith();
         
             if (!World.InitWorld())
             {
@@ -318,6 +324,8 @@ namespace Hybrasyl
             _loginSendThread = new Thread(new ThreadStart(Login.SendLoop));
             _worldSendThread = new Thread(new ThreadStart(World.SendLoop));
 
+            _spawnThread = new Thread(_monolith.Start);
+
             _lobbyThread.Start();
             _loginThread.Start();
             _worldThread.Start();
@@ -326,6 +334,7 @@ namespace Hybrasyl
             _loginSendThread.Start();
             _worldSendThread.Start();
 
+            _spawnThread.Start();
             while (true)
             {
                 if (!IsActive())

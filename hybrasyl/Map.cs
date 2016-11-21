@@ -35,7 +35,6 @@ using System.Text;
 using System.Threading;
 using System.Xml;
 using log4net.Appender;
-using Hybrasyl.Maps;
 
 namespace Hybrasyl.Properties
 {

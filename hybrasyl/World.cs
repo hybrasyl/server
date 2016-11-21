@@ -26,7 +26,6 @@ using Hybrasyl.Enums;
 using Hybrasyl.Objects;
 using Hybrasyl.XML;
 using Hybrasyl.Items;
-using Hybrasyl.Castables;
 using log4net;
 using log4net.Core;
 using System;
@@ -45,10 +44,13 @@ using System.Timers;
 using System.Xml;
 using System.Xml.Schema;
 using Hybrasyl.Config;
+using Hybrasyl.Creatures;
 using Hybrasyl.Nations;
 using Microsoft.Scripting.Utils;
 using Newtonsoft.Json;
 using StackExchange.Redis;
+using Castable = Hybrasyl.Castables.Castable;
+using Creature = Hybrasyl.Objects.Creature;
 
 namespace Hybrasyl
 {
@@ -129,10 +131,11 @@ namespace Hybrasyl
         public Dictionary<Int64, MapPoint> MapPoints { get; set; }
         public Dictionary<string, CompiledMetafile> Metafiles { get; set; }
         public Dictionary<string, Nation> Nations { get; set; }
-        internal List<Monolith> Monoliths { get; set; }
 	    public Dictionary<string, Mailbox> Mailboxes { get; set; }
         public Dictionary<int, Board> MessageboardIndex { get; set; }
         public Dictionary<string, Board> Messageboards { get; set; }  
+        public Dictionary<string, Creatures.Creature> Creatures { get; set; }
+        public Dictionary<int, SpawnGroup> SpawnGroups { get; set; }
 
         public Nation DefaultNation
         {
@@ -180,6 +183,10 @@ namespace Hybrasyl
 
         public static string WorldMapDirectory => Path.Combine(DataDirectory, "world", "xml", "worldmaps");
 
+        public static string CreatureDirectory => Path.Combine(DataDirectory, "world", "xml", "creatures");
+
+        public static string SpawnGroupDirectory => Path.Combine(DataDirectory, "world", "xml", "spawngroups");
+
         public static string ItemVariantDirectory => Path.Combine(DataDirectory, "world", "xml", "itemvariants");
 
         public static bool TryGetUser(string name, out User userobj)
@@ -209,7 +216,8 @@ namespace Hybrasyl
             Items = new Dictionary<int, Item>();
             Skills = new Dictionary<int, Castables.Castable>();
             Spells = new Dictionary<int, Castables.Castable>();
-            Monsters = new Dictionary<int, MonsterTemplate>();
+            Creatures = new Dictionary<string, Creatures.Creature>();
+            SpawnGroups = new Dictionary<int, SpawnGroup>();
             Merchants = new Dictionary<int, MerchantTemplate>();
             Methods = new Dictionary<string, MethodInfo>();
             Objects = new Dictionary<uint, WorldObject>();
@@ -220,7 +228,6 @@ namespace Hybrasyl
             Portraits = new Dictionary<string, string>();
             GlobalSequences = new List<DialogSequence>();
             ItemVariants = new Dictionary<string, Items.VariantGroup>();
-            Monoliths = new List<Monolith>();
             Mailboxes = new Dictionary<string, Mailbox>();
             Messageboards = new Dictionary<string, Board>();
             MessageboardIndex = new Dictionary<int, Board>();
@@ -338,75 +345,34 @@ namespace Hybrasyl
 
             Logger.InfoFormat("National data: {0} nations loaded", Nations.Count);
 
-            /*DEBUG METHOD - MONOLITH & Maps*/
-            foreach (var map in Maps)
+            //Load Creatures
+            foreach (var xml in Directory.GetFiles(CreatureDirectory))
             {
-                if(map.Key == 500)
+                try
                 {
-                    Dictionary<Monster, int> mobs = new Dictionary<Monster, int>();
-                    mobs.Add(
-                        new Monster()
-                        {
-                            Sprite = 1,
-                            World = Game.World,
-                            Map = Game.World.Maps[500],
-                            Level = 1,
-                            DisplayText = "TestBee",
-                            BaseHp = 100,
-                            Hp = 100,
-                            BaseMp = 1,
-                            Name = "TestBee",
-                            BaseStr = 3,
-                            BaseCon = 3,
-                            BaseDex = 3,
-                            BaseInt = 3,
-                            BaseWis = 3,
-                        }, 1
-                        );
-                    mobs.Add(
-                        new Monster()
-                        {
-                            Sprite = 2,
-                            World = Game.World,
-                            Map = Game.World.Maps[500],
-                            Level = 1,
-                            DisplayText = "TestBee",
-                            BaseHp = 100,
-                            Hp = 100,
-                            BaseMp = 1,
-                            Name = "TestWolf",
-                            BaseStr = 3,
-                            BaseCon = 3,
-                            BaseDex = 3,
-                            BaseInt = 3,
-                            BaseWis = 3,
-                        }, 2
-                        );
-                    mobs.Add(
-                        new Monster()
-                        {
-                            Sprite = 3,
-                            World = Game.World,
-                            Map = Game.World.Maps[500],
-                            Level = 1,
-                            DisplayText = "TestBee",
-                            BaseHp = 100,
-                            Hp = 100,
-                            BaseMp = 1,
-                            Name = "TestWisp",
-                            BaseStr = 3,
-                            BaseCon = 3,
-                            BaseDex = 3,
-                            BaseInt = 3,
-                            BaseWis = 3,
-                        }, 3
-                        );
-                    map.Value.MapMonsters = mobs;
+                    var creature = Serializer.Deserialize(XmlReader.Create(xml), new Creatures.Creature());
+                    Logger.DebugFormat("Creatures: loaded {0}", creature.Name);
+                    Creatures.Add(creature.Name, creature);
+                }
+                catch (Exception e)
+                {
+                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, e);
                 }
             }
-            Monoliths.Add(new Monolith() { ControlMaps = new List<Map>() { Game.World.Maps[500] }, MaxSpawns = 100 });
-            /*END DEBUG MONOLITH TEST*/
-
+            //Load SpawnGroups
+            foreach (var xml in Directory.GetFiles(SpawnGroupDirectory))
+            {
+                try
+                {
+                    var spawnGroup = Serializer.Deserialize(XmlReader.Create(xml), new SpawnGroup());
+                    Logger.DebugFormat("SpawnGroup: loaded {0}", spawnGroup.GetHashCode());
+                    SpawnGroups.Add(spawnGroup.GetHashCode(), spawnGroup);
+                }
+                catch (Exception e)
+                {
+                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, e);
+                }
+            }
 
             // Load worldmaps
             foreach (var xml in Directory.GetFiles(WorldMapDirectory))
@@ -786,6 +752,7 @@ namespace Hybrasyl
             ControlMessageHandlers[ControlOpcodes.LogoffUser] = ControlMessage_LogoffUser;
             ControlMessageHandlers[ControlOpcodes.MailNotifyUser] = ControlMessage_MailNotifyUser;
             ControlMessageHandlers[ControlOpcodes.StatusTick] = ControlMessage_StatusTick;
+            ControlMessageHandlers[ControlOpcodes.MonolithSpawn] = ControlMessage_SpawnMonster;
         }
 
 
@@ -1067,6 +1034,14 @@ namespace Hybrasyl
             {
                 Logger.DebugFormat("tick: Cannot process tick for {0}, not logged in?", userName);
             }
+        }
+
+        private void ControlMessage_SpawnMonster(HybrasylControlMessage message)
+        {
+            var monster = (Monster) message.Arguments[0];
+            var map = (Map) message.Arguments[1];
+            Logger.DebugFormat("monolith: spawning monster {0} on map {1}", monster.Name, map.Name);
+            map.InsertCreature(monster);
         }
         #endregion
         
