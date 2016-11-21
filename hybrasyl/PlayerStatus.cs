@@ -177,7 +177,10 @@ namespace Hybrasyl
             base.OnTick();
             if (!User.Status.HasFlag(PlayerCondition.InComa))
                 User.Effect(OnTickEffect, 120);
-            User.Damage(_damagePerTick);
+            if (_damagePerTick >= User.Hp)
+                User.Damage(User.Hp - 1);
+            else
+                User.Damage(_damagePerTick);
         }
     }
 
