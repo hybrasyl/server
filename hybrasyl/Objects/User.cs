@@ -743,7 +743,7 @@ namespace Hybrasyl.Objects
         {
             if (Group != null)
             {
-                Group.ShareExperience(this, (int)exp);
+                Group.ShareExperience(this, exp);
             }
             else
             {
@@ -757,6 +757,7 @@ namespace Hybrasyl.Objects
          */
         public void GiveExperience(uint exp)
         {
+            Client.SendMessage($"{exp} experience!", MessageTypes.SYSTEM);
             if (Level == Constants.MAX_LEVEL || exp < ExpToLevel)
             {
                 if (uint.MaxValue - Experience >= exp)

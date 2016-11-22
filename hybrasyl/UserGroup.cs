@@ -45,7 +45,7 @@ namespace Hybrasyl
         public Dictionary<Class, uint> ClassCount { get; private set; }
         public uint MaxMembers = 0;
 
-        private delegate Dictionary<uint, int> DistributionFunc(User source, int full);
+        private delegate Dictionary<uint, uint> DistributionFunc(User source, uint full);
 
         private DistributionFunc ExperienceDistributionFunc;
 
@@ -169,9 +169,9 @@ namespace Hybrasyl
          * Distribute a pool of experience across members of the group.
          */
 
-        public void ShareExperience(User source, int experience)
+        public void ShareExperience(User source, uint experience)
         {
-            Dictionary<uint, int> share = ExperienceDistributionFunc(source, experience);
+            Dictionary<uint, uint> share = ExperienceDistributionFunc(source, experience);
 
             for (int i = 0; i < Members.Count; i++)
             {
@@ -192,9 +192,9 @@ namespace Hybrasyl
          * group members.
          */
 
-        private Dictionary<uint, int> Distribution_Full(User source, int full)
+        private Dictionary<uint, uint> Distribution_Full(User source, uint full)
         {
-            Dictionary<uint, int> share = new Dictionary<uint, int>();
+            Dictionary<uint, uint> share = new Dictionary<uint, uint>();
 
             foreach (var member in Members)
             {
@@ -209,12 +209,12 @@ namespace Hybrasyl
          * if there's at least one representative from each class.
          */
 
-        private Dictionary<uint, int> Distribution_AllClassBonus(User source, int full)
+        private Dictionary<uint, uint> Distribution_AllClassBonus(User source, uint full)
         {
             // Check to see if at least one representative from each class is in the group.
             if (ContainsAllClasses())
             {
-                full = (int) (full*1.10);
+                full = (uint) Math.Round(full* 1.10);
             }
 
             return Distribution_Full(source, full);

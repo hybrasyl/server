@@ -317,7 +317,7 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                return World.Objects.ContainsKey(_mLastHitter) ? (Creature)World.Objects[_mLastHitter] : null;
+                return Game.World.Objects.ContainsKey(_mLastHitter) ? (Creature)Game.World.Objects[_mLastHitter] : null;
             }
             set
             {
@@ -455,6 +455,8 @@ namespace Hybrasyl.Objects
             Hp -= normalized;
 
             SendDamageUpdate(this);
+
+            if (Hp == 0) OnDeath();
         }
 
         private void SendDamageUpdate(Creature creature)

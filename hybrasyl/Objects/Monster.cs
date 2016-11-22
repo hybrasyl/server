@@ -34,9 +34,27 @@ namespace Hybrasyl.Objects
         private uint _mTarget;
 
         private Spawn _spawn;
+
         public Monster()
         {
 
+        }
+
+        public override void OnDeath()
+        {
+            Shout("AAAAAAAAAAaaaaa!!!");
+            Map.Remove(this);
+            // Now that we're dead, award loot.
+            // FIXME: Implement loot tables / full looting.
+            var hitter = LastHitter as User;
+            if (hitter == null) return; // Don't handle cases of MOB ON MOB COMBAT just yet
+            hitter.ShareExperience(_spawn.Loot.Xp);
+
+            if (_spawn.Loot.Gold <= 0) return;
+            var golds = new Gold(_spawn.Loot.Gold);
+            World.Insert(golds);
+            Map.Insert(golds, X,Y);
+            World.Remove(this);
         }
 
         public Monster(Hybrasyl.Creatures.Creature creature, Spawn spawn, int map)
