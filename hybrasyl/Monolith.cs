@@ -15,6 +15,7 @@ namespace Hybrasyl
     internal class Monolith
     {
         private static readonly ManualResetEvent AcceptDone = new ManualResetEvent(false);
+        private static Random _random;
 
         public static readonly ILog Logger =
             LogManager.GetLogger(
@@ -23,12 +24,14 @@ namespace Hybrasyl
         private readonly Dictionary<int, SpawnGroup> _spawnGroups;
         private readonly Dictionary<string, Map> _maps;
         private readonly Dictionary<string, Creature> _creatures;
+        
 
         internal Monolith()
         {
             _spawnGroups = Game.World.SpawnGroups;
             _maps = Game.World.MapCatalog;
             _creatures = Game.World.Creatures;
+            _random = new Random();
         }
 
         public void Start()
@@ -72,29 +75,28 @@ namespace Hybrasyl
 
                 map.LastSpawn = DateTime.Now;
 
-                var random = new Random();
-                var thisSpawn = random.Next(map.MinSpawn, map.MaxSpawn);
+                
+                var thisSpawn = _random.Next(map.MinSpawn, map.MaxSpawn);
 
                 for (var i = 0; i < thisSpawn; i++)
                 {
-                    var randSpawn = new Random();
-                    var idx = randSpawn.Next(0, spawnGroup.Spawns.Count - 1);
+                    var idx = _random.Next(0, spawnGroup.Spawns.Count - 1);
                     var spawn = spawnGroup.Spawns[idx];
                     var creature = _creatures.Values.Single(x => x.Name == spawn.Base);
 
-                    var mob = new Monster(creature, spawn, map.Id);
-
-                    var rand = new Random();
+                    var baseMob = new Monster(creature, spawn, map.Id);
+                    var mob = (Monster)baseMob.Clone();
+                    
                     var xcoord = 0;
                     var ycoord = 0;
                     do
                     {
-                        xcoord = rand.Next(0, spawnMap.X -1);
-                        ycoord = rand.Next(0, spawnMap.Y -1);
+                        xcoord = _random.Next(0, spawnMap.X -1);
+                        ycoord = _random.Next(0, spawnMap.Y -1);
                     } while (spawnMap.IsWall[xcoord, ycoord]);
                     mob.X = (byte) xcoord;
                     mob.Y = (byte) ycoord;
-                    mob.Id = Convert.ToUInt32(rand.Next(0, int.MaxValue - 1));
+                    mob.Id = Convert.ToUInt32(_random.Next(0, int.MaxValue - 1));
                     SpawnMonster(mob, spawnMap);
                 }
             }
