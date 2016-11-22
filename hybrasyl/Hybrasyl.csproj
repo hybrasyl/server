@@ -136,6 +136,14 @@
     <Compile Include="Book.cs" />
     <Compile Include="Board.cs" />
     <Compile Include="Compression.cs" />
+    <Compile Include="Objects\Creature.cs" />
+    <Compile Include="Objects\Door.cs" />
+    <Compile Include="Objects\Gold.cs" />
+    <Compile Include="Objects\Monster.cs" />
+    <Compile Include="Objects\Reactor.cs" />
+    <Compile Include="Objects\Signpost.cs" />
+    <Compile Include="Objects\VisibleObject.cs" />
+    <Compile Include="Objects\WorldObject.cs" />
     <Compile Include="PlayerStatus.cs" />
     <Compile Include="Legend.cs" />
     <Compile Include="Time.cs" />
@@ -171,7 +179,6 @@
     <Compile Include="UserGroup.cs" />
     <Compile Include="Utility.cs" />
     <Compile Include="World.cs" />
-    <Compile Include="Objects\WorldObject.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config">
