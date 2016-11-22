@@ -313,6 +313,13 @@ namespace Hybrasyl
             Insert(toInsert, toInsert.X, toInsert.Y);
             Logger.DebugFormat("Monster {0} with id {1} spawned.", toInsert.Name, toInsert.Id);
         }
+
+        public void RemoveCreature(Creature toRemove)
+        {
+            World.Remove(toRemove);
+            Remove(toRemove);
+            Logger.DebugFormat("Removing creature {0} (id {1})", toRemove.Name, toRemove.Id);
+        }
         
         public void InsertReactor(/*reactor toinsert*/)
         {
