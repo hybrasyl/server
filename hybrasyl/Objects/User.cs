@@ -2076,6 +2076,22 @@ namespace Hybrasyl.Objects
             SendItemUpdate(Inventory[newSlot], newSlot);
         }
 
+        public void SwapCastable(byte oldSlot, byte newSlot, Book book)
+        {
+            if (book == SkillBook)
+            {
+                SkillBook.Swap(oldSlot, newSlot);
+                SendSkillUpdate(SkillBook[oldSlot], oldSlot);
+                SendSkillUpdate(SkillBook[newSlot], newSlot);
+            }
+            else
+            {
+                SpellBook.Swap(oldSlot, newSlot);
+                SendSpellUpdate(SpellBook[oldSlot], oldSlot);
+                SendSpellUpdate(SpellBook[newSlot], newSlot);
+            }
+        }
+
         public override void RegenerateMp(double mp, Creature regenerator = null)
         {
             base.RegenerateMp(mp, regenerator);
