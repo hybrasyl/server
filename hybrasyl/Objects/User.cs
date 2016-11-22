@@ -14,11 +14,12 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2015-2016 Project Hybrasyl (info@hybrasyl.com)
  *
- * Authors:   Justin Baugh  <baughj@hybrasyl.com>
- *            Kyle Speck    <kojasou@hybrasyl.com>
+ * For contributors and individual authors please refer to CONTRIBUTORS.MD.
+ * 
  */
+
 
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
@@ -31,11 +32,8 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.Net.NetworkInformation;
 using System.Reflection;
 using System.Text;
-using Hybrasyl.Nations;
-using Hybrasyl.Castables;
 
 namespace Hybrasyl.Objects
 {

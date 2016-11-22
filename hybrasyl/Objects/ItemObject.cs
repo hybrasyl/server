@@ -14,22 +14,16 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2015-2016 Project Hybrasyl (info@hybrasyl.com)
  *
- * Authors:   Justin Baugh  <baughj@hybrasyl.com>
- *            Kyle Speck    <kojasou@hybrasyl.com>
+ * For contributors and individual authors please refer to CONTRIBUTORS.MD.
+ * 
  */
 
-using FastMember;
+
 using Hybrasyl.Enums;
 using Hybrasyl.Items;
-using Hybrasyl.Properties;
-using log4net;
 using System;
-using System.CodeDom;
-using System.Collections.Generic;
-using System.Reflection;
-using System.Text.RegularExpressions;
 
 namespace Hybrasyl.Objects
 {
