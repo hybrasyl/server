@@ -31,6 +31,8 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
+using Hybrasyl.Creatures;
+using Castable = Hybrasyl.Castables.Castable;
 
 namespace Hybrasyl.Objects
 {
@@ -933,6 +935,31 @@ namespace Hybrasyl.Objects
         private bool _idle = true;
 
         private uint _mTarget;
+
+        public Monster()
+        {
+            
+        }
+
+        public Monster(Hybrasyl.Creatures.Creature creature, Spawn spawn, int map)
+        {
+            Name = creature.Name;
+            Sprite = creature.Sprite;
+            World = Game.World;
+            Map = Game.World.Maps[(ushort)map];
+            Level = spawn.Stats.Level;
+            BaseHp = spawn.Stats.Hp;
+            Hp = spawn.Stats.Hp;
+            BaseMp = spawn.Stats.Mp;
+            Mp = spawn.Stats.Mp;
+            DisplayText = creature.Description;
+            BaseStr = spawn.Stats.Str;
+            BaseInt = spawn.Stats.Int;
+            BaseWis = spawn.Stats.Wis;
+            BaseCon = spawn.Stats.Con;
+            BaseDex = spawn.Stats.Dex;
+
+        }
 
         public Creature Target
         {
