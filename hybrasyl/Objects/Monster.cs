@@ -59,6 +59,7 @@ namespace Hybrasyl.Objects
 
         public Monster(Hybrasyl.Creatures.Creature creature, Spawn spawn, int map)
         {
+            Name = creature.Name;
             Sprite = creature.Sprite;
             World = Game.World;
             Map = Game.World.Maps[(ushort)map];
