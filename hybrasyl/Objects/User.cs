@@ -1265,18 +1265,12 @@ namespace Hybrasyl.Objects
         internal void UseSpell(byte slot, uint target = 0)
         {
             var castable = SpellBook[slot];
-            Creature targetCreature = null;
+            Creature targetCreature = Map.EntityTree.OfType<Monster>().SingleOrDefault(x => x.Id == target) ?? null;
+            Direction playerFacing = this.Direction;
 
-            foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
-            {
-                //byte radius = castable.Intents.Intent.Where(x => x.;
-                Direction playerFacing = this.Direction;
-                byte maxTargets = 0;//this is an attack skill
+            if(targetCreature != null) Attack(castable, targetCreature);
+            else Attack(castable);
                 
-                //now lets define how we want to do the attack
-                //isclick should always be false for a skill (please correct me if I'm wrong)
-            }
-                Attack(castable, targetCreature);
         }
 
         public void SendVisibleItem(ItemObject itemObject)
