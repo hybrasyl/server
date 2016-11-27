@@ -3617,7 +3617,7 @@ namespace Hybrasyl
             if (!user.IsHeartbeatValid(byteA, byteB))
             {
                 Logger.InfoFormat("{0}: byte heartbeat not valid, disconnecting", user.Name);
-                user.Logoff();
+                user.SendRedirectAndLogoff(Game.World, Game.Login, user.Name);
             }
             else
             {
@@ -3780,7 +3780,7 @@ namespace Hybrasyl
             if (!user.IsHeartbeatValid(serverTick, clientTick))
             {
                 Logger.InfoFormat("{0}: tick heartbeat not valid, disconnecting", user.Name);
-                user.Logoff();
+                user.SendRedirectAndLogoff(Game.World, Game.Login, user.Name);
             }
             else
             {

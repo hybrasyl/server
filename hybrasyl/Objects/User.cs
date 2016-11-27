@@ -34,6 +34,7 @@ using System.Drawing;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using Class = Hybrasyl.Castables.Class;
 
 namespace Hybrasyl.Objects
 {
@@ -2198,16 +2199,20 @@ namespace Hybrasyl.Objects
                     }
                 }
 
-                var playerAnimation = new ServerPacketStructures.PlayerAnimation()
+                var motion = castObject.Effects.Animations.OnCast.Motions.FirstOrDefault(x => x.Class.Contains((Class)Class));
+                if (motion != null)
                 {
-                    Animation = (byte) castObject.Effects.Animations.OnCast.Motion.Id,
-                    Speed = (ushort) (castObject.Effects.Animations.OnCast.Motion.Speed),
-                    UserId = this.Id
-                };
+                    var playerAnimation = new ServerPacketStructures.PlayerAnimation()
+                    {
+                        Animation = (byte)motion.Id,
+                        Speed = (ushort)(motion.Speed),
+                        UserId = Id
+                    };
+                    Enqueue(playerAnimation.Packet());
+                    SendAnimation(playerAnimation.Packet());
+                }
                 var sound = new ServerPacketStructures.PlaySound() {Sound = (byte) castObject.Effects.Sound.Id};
-                Enqueue(playerAnimation.Packet());
                 Enqueue(sound.Packet());
-                SendAnimation(playerAnimation.Packet());
                 PlaySound(sound.Packet());
             }
         }
@@ -2279,11 +2284,16 @@ namespace Hybrasyl.Objects
                     }
                 }
 
-                var playerAnimation = new ServerPacketStructures.PlayerAnimation() { Animation = (byte)castObject.Effects.Animations.OnCast.Motion.Id, Speed = (ushort)(castObject.Effects.Animations.OnCast.Motion.Speed / 5), UserId = this.Id };
-                var sound = new ServerPacketStructures.PlaySound() { Sound = (byte)castObject.Effects.Sound.Id };
-                Enqueue(playerAnimation.Packet());
+                var motion = castObject.Effects.Animations.OnCast.Motions.SingleOrDefault(x => x.Class.Contains((Class) Class));
+                if (motion != null)
+                {
+                    var playerAnimation = new ServerPacketStructures.PlayerAnimation() { Animation = (byte)motion.Id, Speed = (ushort)(motion.Speed / 5), UserId = this.Id };
+                    Enqueue(playerAnimation.Packet());
+                    SendAnimation(playerAnimation.Packet());
+                }
+                
+                var sound = new ServerPacketStructures.PlaySound() { Sound = (byte)castObject.Effects.Sound.Id };                
                 Enqueue(sound.Packet());
-                SendAnimation(playerAnimation.Packet());
                 PlaySound(sound.Packet());
 
                 //this is an attack skill
@@ -2302,7 +2312,7 @@ namespace Hybrasyl.Objects
                 {
                     case Direction.East:
                     {
-                        var obj = Map.EntityTree.Where(x => x.X == X + 1 && x.Y == Y).FirstOrDefault();
+                        var obj = Map.EntityTree.FirstOrDefault(x => x.X == X + 1 && x.Y == Y);
                         if (obj is Monster) target = (Monster) obj;
                         if (obj is User)
                         {
@@ -2313,19 +2323,19 @@ namespace Hybrasyl.Objects
                         break;
                     case Direction.West:
                     {
-                        var obj = Map.EntityTree.Where(x => x.X == X - 1 && x.Y == Y).FirstOrDefault();
+                        var obj = Map.EntityTree.FirstOrDefault(x => x.X == X - 1 && x.Y == Y);
                         if (obj is Monster) target = (Monster) obj;
                     }
                         break;
                     case Direction.North:
                     {
-                        var obj = Map.EntityTree.Where(x => x.X == X && x.Y == Y - 1).FirstOrDefault();
+                        var obj = Map.EntityTree.FirstOrDefault(x => x.X == X && x.Y == Y - 1);
                         if (obj is Monster) target = (Monster) obj;
                     }
                         break;
                     case Direction.South:
                     {
-                        var obj = Map.EntityTree.Where(x => x.X == X && x.Y == Y + 1).FirstOrDefault();
+                        var obj = Map.EntityTree.FirstOrDefault(x => x.X == X && x.Y == Y + 1);
                         if (obj is Monster) target = (Monster) obj;
                     }
                         break;
@@ -2337,7 +2347,7 @@ namespace Hybrasyl.Objects
 
             foreach (Castable c in SkillBook)
             {
-                if (c.IsAssail == "true")
+                if (c.IsAssail)
                     //i do not like that this is a string. I'll probablt update it at some point to return a simple type of boolean.
                 {
                     Attack(direction, c, target);
@@ -2704,8 +2714,8 @@ namespace Hybrasyl.Objects
 
         public void SendRedirectAndLogoff(World world, Login login, string name)
         {
-            Client.Redirect(new Redirect(Client, world, Game.Login, name, Client.EncryptionSeed, Client.EncryptionKey));
             GlobalConnectionManifest.DeregisterClient(Client);
+            Client.Redirect(new Redirect(Client, world, Game.Login, name, Client.EncryptionSeed, Client.EncryptionKey));
         }
 
         public bool IsHeartbeatValid(byte a, byte b)
@@ -2727,7 +2737,8 @@ namespace Hybrasyl.Objects
         {
             UpdateLogoffTime();
             Save();
-            Client.Disconnect();
+            var redirect = new Redirect(Client, Game.World, Game.Login, "socket", Client.EncryptionSeed, Client.EncryptionKey);
+            Client.Redirect(redirect);
         }
 
         public void SetEncryptionParameters(byte[] key, byte seed, string name)

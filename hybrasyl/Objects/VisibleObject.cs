@@ -275,11 +275,11 @@ namespace Hybrasyl.Objects
             }
             if (merchant?.Jobs.HasFlag(MerchantJob.Bank) ?? false)
             {
-                menupacket.WriteString8("Withdraw ItemObject");
+                menupacket.WriteString8("Withdraw Item");
                 menupacket.WriteUInt16((ushort)MerchantMenuItem.WithdrawItemMenu);
                 menupacket.WriteString8("Withdraw Gold");
                 menupacket.WriteUInt16((ushort)MerchantMenuItem.WithdrawGoldMenu);
-                menupacket.WriteString8("Deposit ItemObject");
+                menupacket.WriteString8("Deposit Item");
                 menupacket.WriteUInt16((ushort)MerchantMenuItem.DepositItemMenu);
                 menupacket.WriteString8("Deposit Gold");
                 menupacket.WriteUInt16((ushort)MerchantMenuItem.DepositGoldMenu);
@@ -287,7 +287,7 @@ namespace Hybrasyl.Objects
             }
             if (merchant?.Jobs.HasFlag(MerchantJob.Repair) ?? false)
             {
-                menupacket.WriteString8("Repair ItemObject");
+                menupacket.WriteString8("Repair Item");
                 menupacket.WriteUInt16((ushort)MerchantMenuItem.RepairItemMenu);
                 menupacket.WriteString8("Repair All Items");
                 menupacket.WriteUInt16((ushort)MerchantMenuItem.RepairAllItems);
@@ -295,15 +295,15 @@ namespace Hybrasyl.Objects
             }
             if (merchant?.Jobs.HasFlag(MerchantJob.Train) ?? false)
             {
-                /* if merchant has skills available to user:
-                     *     menupacket.WriteString8("Learn Skill");
-                     *     menupacket.WriteUInt16((ushort)MerchantMenuItem.LearnSkillMenu);
-                     *     pursuitCount++;
-                     * if merchant has spells available to user:
-                     *     menupacket.WriteString8("Learn Spell");
-                     *     menupacket.WriteUInt16((ushort)MerchantMenuItem.LearnSpellMenu);
-                     *     pursuitCount++;
-                     */
+                //if merchant has skills available to user:
+                menupacket.WriteString8("Learn Skill");
+                menupacket.WriteUInt16((ushort)MerchantMenuItem.LearnSkillMenu);
+                pursuitCount++;
+                //if merchant has spells available to user:
+                menupacket.WriteString8("Learn Spell");
+                menupacket.WriteUInt16((ushort)MerchantMenuItem.LearnSpellMenu);
+                pursuitCount++;
+
                 menupacket.WriteString8("Forget Skill");
                 menupacket.WriteUInt16((ushort)MerchantMenuItem.ForgetSkillMenu);
                 menupacket.WriteString8("Forget Spell");

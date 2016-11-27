@@ -234,7 +234,7 @@ namespace Hybrasyl
                 client.EncryptionKey = key;
                 client.EncryptionSeed = seed;
 
-                if (redirect.Source is Lobby)
+                if (redirect.Source is Lobby || redirect.Source is World)
                 {
                     var x60 = new ServerPacket(0x60);
                     x60.WriteByte(0x00);
