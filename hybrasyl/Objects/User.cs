@@ -2199,19 +2199,38 @@ namespace Hybrasyl.Objects
                     }
                 }
 
-                var motion = castObject.Effects.Animations.OnCast.Motions.FirstOrDefault(x => x.Class.Contains((Class)Class));
+                Motion motion;
+
+                try
+                {
+                    motion =
+                        castObject.Effects.Animations.OnCast.Motions.SingleOrDefault(
+                            x => x.Class.Contains((Class) Class));
+                }
+                catch (InvalidOperationException)
+                {
+                    motion =
+                        castObject.Effects.Animations.OnCast.Motions.FirstOrDefault(
+                            x => x.Class.Contains((Class) Class));
+
+                    Logger.ErrorFormat("{1}: contains more than one motion for a class definition, using first one found!", castObject.Name);
+                }
+
+                var sound = new ServerPacketStructures.PlaySound { Sound = (byte)castObject.Effects.Sound.Id };
+
+
                 if (motion != null)
                 {
                     var playerAnimation = new ServerPacketStructures.PlayerAnimation()
                     {
-                        Animation = (byte)motion.Id,
-                        Speed = (ushort)(motion.Speed),
+                        Animation = (byte) motion.Id,
+                        Speed = (ushort) motion.Speed,
                         UserId = Id
                     };
                     Enqueue(playerAnimation.Packet());
                     SendAnimation(playerAnimation.Packet());
+
                 }
-                var sound = new ServerPacketStructures.PlaySound() {Sound = (byte) castObject.Effects.Sound.Id};
                 Enqueue(sound.Packet());
                 PlaySound(sound.Packet());
             }
@@ -2284,18 +2303,41 @@ namespace Hybrasyl.Objects
                     }
                 }
 
-                var motion = castObject.Effects.Animations.OnCast.Motions.SingleOrDefault(x => x.Class.Contains((Class) Class));
+                //TODO: DRY
+                Motion motion;
+
+                try
+                {
+                    motion =
+                        castObject.Effects.Animations.OnCast.Motions.SingleOrDefault(
+                            x => x.Class.Contains((Class)Class));
+                }
+                catch (InvalidOperationException)
+                {
+                    motion =
+                        castObject.Effects.Animations.OnCast.Motions.FirstOrDefault(
+                            x => x.Class.Contains((Class)Class));
+
+                    Logger.ErrorFormat("{1}: contains more than one motion for a class definition, using first one found!", castObject.Name);
+                }
+
+                var sound = new ServerPacketStructures.PlaySound { Sound = (byte)castObject.Effects.Sound.Id };
+
+
                 if (motion != null)
                 {
-                    var playerAnimation = new ServerPacketStructures.PlayerAnimation() { Animation = (byte)motion.Id, Speed = (ushort)(motion.Speed / 5), UserId = this.Id };
+                    var playerAnimation = new ServerPacketStructures.PlayerAnimation()
+                    {
+                        Animation = (byte)motion.Id,
+                        Speed = (ushort)(motion.Speed / 5),
+                        UserId = Id
+                    };
                     Enqueue(playerAnimation.Packet());
                     SendAnimation(playerAnimation.Packet());
+
                 }
-                
-                var sound = new ServerPacketStructures.PlaySound() { Sound = (byte)castObject.Effects.Sound.Id };                
                 Enqueue(sound.Packet());
                 PlaySound(sound.Packet());
-
                 //this is an attack skill
             }
             else
@@ -2348,7 +2390,6 @@ namespace Hybrasyl.Objects
             foreach (Castable c in SkillBook)
             {
                 if (c.IsAssail)
-                    //i do not like that this is a string. I'll probablt update it at some point to return a simple type of boolean.
                 {
                     Attack(direction, c, target);
                 }
