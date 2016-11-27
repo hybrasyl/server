@@ -34,6 +34,7 @@ using System.Drawing;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using Class = Hybrasyl.Castables.Class;
 
 namespace Hybrasyl.Objects
 {
@@ -2188,16 +2189,39 @@ namespace Hybrasyl.Objects
                     }
                 }
 
-                var playerAnimation = new ServerPacketStructures.PlayerAnimation()
+                Motion motion;
+
+                try
                 {
-                    Animation = (byte) castObject.Effects.Animations.OnCast.Motion.Id,
-                    Speed = (ushort) (castObject.Effects.Animations.OnCast.Motion.Speed),
-                    UserId = this.Id
-                };
-                var sound = new ServerPacketStructures.PlaySound() {Sound = (byte) castObject.Effects.Sound.Id};
-                Enqueue(playerAnimation.Packet());
+                    motion =
+                        castObject.Effects.Animations.OnCast.Motions.SingleOrDefault(
+                            x => x.Class.Contains((Class) Class));
+                }
+                catch (InvalidOperationException)
+                {
+                    motion =
+                        castObject.Effects.Animations.OnCast.Motions.FirstOrDefault(
+                            x => x.Class.Contains((Class) Class));
+
+                    Logger.ErrorFormat("{1}: contains more than one motion for a class definition, using first one found!", castObject.Name);
+                }
+
+                var sound = new ServerPacketStructures.PlaySound { Sound = (byte)castObject.Effects.Sound.Id };
+
+
+                if (motion != null)
+                {
+                    var playerAnimation = new ServerPacketStructures.PlayerAnimation()
+                    {
+                        Animation = (byte) motion.Id,
+                        Speed = (ushort) motion.Speed,
+                        UserId = Id
+                    };
+                    Enqueue(playerAnimation.Packet());
+                    SendAnimation(playerAnimation.Packet());
+
+                }
                 Enqueue(sound.Packet());
-                SendAnimation(playerAnimation.Packet());
                 PlaySound(sound.Packet());
             }
         }
@@ -2269,13 +2293,41 @@ namespace Hybrasyl.Objects
                     }
                 }
 
-                var playerAnimation = new ServerPacketStructures.PlayerAnimation() { Animation = (byte)castObject.Effects.Animations.OnCast.Motion.Id, Speed = (ushort)(castObject.Effects.Animations.OnCast.Motion.Speed / 5), UserId = this.Id };
-                var sound = new ServerPacketStructures.PlaySound() { Sound = (byte)castObject.Effects.Sound.Id };
-                Enqueue(playerAnimation.Packet());
-                Enqueue(sound.Packet());
-                SendAnimation(playerAnimation.Packet());
-                PlaySound(sound.Packet());
+                //TODO: DRY
+                Motion motion;
 
+                try
+                {
+                    motion =
+                        castObject.Effects.Animations.OnCast.Motions.SingleOrDefault(
+                            x => x.Class.Contains((Class)Class));
+                }
+                catch (InvalidOperationException)
+                {
+                    motion =
+                        castObject.Effects.Animations.OnCast.Motions.FirstOrDefault(
+                            x => x.Class.Contains((Class)Class));
+
+                    Logger.ErrorFormat("{1}: contains more than one motion for a class definition, using first one found!", castObject.Name);
+                }
+
+                var sound = new ServerPacketStructures.PlaySound { Sound = (byte)castObject.Effects.Sound.Id };
+
+
+                if (motion != null)
+                {
+                    var playerAnimation = new ServerPacketStructures.PlayerAnimation()
+                    {
+                        Animation = (byte)motion.Id,
+                        Speed = (ushort)(motion.Speed / 5),
+                        UserId = Id
+                    };
+                    Enqueue(playerAnimation.Packet());
+                    SendAnimation(playerAnimation.Packet());
+
+                }
+                Enqueue(sound.Packet());
+                PlaySound(sound.Packet());
                 //this is an attack skill
             }
             else
@@ -2327,8 +2379,7 @@ namespace Hybrasyl.Objects
 
             foreach (Castable c in SkillBook)
             {
-                if (c.IsAssail == "true")
-                    //i do not like that this is a string. I'll probablt update it at some point to return a simple type of boolean.
+                if (c.IsAssail)
                 {
                     Attack(direction, c, target);
                 }

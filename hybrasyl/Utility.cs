@@ -368,6 +368,12 @@ namespace Hybrasyl
         public const int GENERIC_REPEAT_WITHIN = 0;
         public const int GENERIC_SQUELCH_DURATION = 0;
         public const int GENERIC_DISCONNECT_TRIGGER = 200;
+
+        public const int ASSAIL_THROTTLE_TIME = 800;
+        public const int ASSAIL_REPEAT_TIMES = 0;
+        public const int ASSAIL_REPEAT_WITHIN = 0;
+        public const int ASSAIL_SQUELCH_DURATION = 0;
+        public const int ASSAIL_DISCONNECT_TRIGGER = 0;
         
 
         // This consolidates all the above information into a static dictionary of the following:
@@ -382,7 +388,7 @@ namespace Hybrasyl
             {0x3a, new Throttle(GENERIC_THROTTLE_TIME, GENERIC_REPEAT_TIMES, GENERIC_REPEAT_WITHIN, GENERIC_SQUELCH_DURATION, GENERIC_DISCONNECT_TRIGGER)},  // NPC use dialog
             {0x38, new Throttle(REFRESH_THROTTLE_TIME, REFRESH_REPEAT_TIMES, REFRESH_REPEAT_WITHIN, REFRESH_SQUELCH_DURATION, REFRESH_DISCONNECT_TRIGGER)},  // refresh (F5)
             {0x39, new Throttle(GENERIC_THROTTLE_TIME, GENERIC_REPEAT_TIMES, GENERIC_REPEAT_WITHIN, GENERIC_SQUELCH_DURATION, GENERIC_DISCONNECT_TRIGGER)},  // NPC main menu
-            {0x13, new Throttle(300, 1, 600, 600, 90000000)}, //Assail - this doesn't work through normal throttling. Moved to assail usage.
+            {0x13, new Throttle(ASSAIL_THROTTLE_TIME, ASSAIL_REPEAT_TIMES, ASSAIL_REPEAT_WITHIN, ASSAIL_SQUELCH_DURATION, ASSAIL_DISCONNECT_TRIGGER)}, //Assail - this doesn't work through normal throttling. Moved to assail usage.
         };
 
         // Message throttling 
