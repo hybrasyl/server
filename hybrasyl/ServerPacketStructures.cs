@@ -167,6 +167,33 @@ namespace Hybrasyl
             }
         }
 
+        internal partial class CastLine
+        {
+            private byte OpCode;
+
+            internal CastLine()
+            {
+                OpCode = OpCodes.CastLine;
+            }
+
+            internal string LineText { get; set; }
+            internal byte ChatType { get; set; }
+            internal uint TargetId { get; set; }
+            internal byte LineLength { get; set; }
+            internal ServerPacket Packet()
+            {
+                var packet = new ServerPacket(OpCode);
+                packet.WriteByte(ChatType);
+                packet.WriteUInt32(TargetId);
+                packet.WriteByte(LineLength);
+                packet.WriteString(LineText);
+                packet.WriteByte(0);
+                packet.WriteByte(0);
+                packet.WriteByte(0);
+                return packet;
+            }
+        }
+
         internal partial class PlaySound
         {
             private byte OpCode;

@@ -104,6 +104,7 @@ namespace Hybrasyl.Objects
         public UserGroup Group { get; set; }
         [JsonProperty]
         public bool Dead { get; set; }
+        public bool IsCasting { get; set; }
 
         public Mailbox Mailbox => World.GetMailbox(Name);
         public bool UnreadMail => Mailbox.HasUnreadMessages;

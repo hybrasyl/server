@@ -778,6 +778,8 @@ namespace Hybrasyl
             PacketHandlers[0x45] = PacketHandler_0x45_ByteHeartbeat;
             PacketHandlers[0x47] = PacketHandler_0x47_StatPoint;
             PacketHandlers[0x4a] = PacketHandler_0x4A_Trade;
+            PacketHandlers[0x4D] = PacketHandler_0x4D_BeginCasting;
+            PacketHandlers[0x4E] = PacketHandler_0x4E_CastLine;
             PacketHandlers[0x4F] = PacketHandler_0x4F_ProfileTextPortrait;
             PacketHandlers[0x75] = PacketHandler_0x75_TickHeartbeat;
             PacketHandlers[0x79] = PacketHandler_0x79_Status;
@@ -799,6 +801,7 @@ namespace Hybrasyl
             var target = packet.ReadUInt32();
 
             user.UseSpell(slot, target);
+            user.IsCasting = false;
         }
 
         private void PacketHandler_0x13_Attack(object obj, ClientPacket packet)
@@ -3757,6 +3760,24 @@ namespace Hybrasyl
                 default:
                     return;
             }
+        }
+
+        private void PacketHandler_0x4D_BeginCasting(object obj, ClientPacket packet)
+        {
+            var user = (User) obj;
+            user.IsCasting = true;
+        }
+
+        private void PacketHandler_0x4E_CastLine(object obj, ClientPacket packet)
+        {
+            var user = (User) obj;
+            var textLength = packet.ReadByte();
+            var text = packet.Read(textLength);
+
+            var x0D = new ServerPacketStructures.CastLine() {ChatType = 2, LineLength = textLength, LineText = Encoding.UTF8.GetString(text), TargetId = user.Id};
+            var enqueue = x0D.Packet();
+            user.Enqueue(enqueue);
+
         }
 
         private void PacketHandler_0x4F_ProfileTextPortrait(Object obj, ClientPacket packet)

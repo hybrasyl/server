@@ -314,18 +314,17 @@ namespace Hybrasyl
                                     client.UpdateLastReceived(receivedPacket.Opcode != 0x45 &&
                                                               receivedPacket.Opcode != 0x75);
                                     Logger.InfoFormat("Queuing: 0x{0:X2}", receivedPacket.Opcode);
-                                    // Check for throttling
-                                    var throttleInfo = client.Throttle[receivedPacket.Opcode];
-                                    if (!throttleInfo.IsThrottled)
-                                    {
-                                        client.Throttle[receivedPacket.Opcode].Received();
-                                        World.MessageQueue.Add(new HybrasylClientMessage(receivedPacket,
-                                            client.ConnectionId));
-                                    }
-                                    else
-                                    {
-                                        client.Throttle[receivedPacket.Opcode].TotalThrottled++;
-                                    }
+                                    //// Check for throttling
+                                    //var throttleInfo = client.Throttle[receivedPacket.Opcode];
+                                    //if (!throttleInfo.IsThrottled)
+                                    //{
+                                    //    client.Throttle[receivedPacket.Opcode].Received();
+                                        World.MessageQueue.Add(new HybrasylClientMessage(receivedPacket, client.ConnectionId));
+                                    //}
+                                    //else
+                                    //{
+                                    //    client.Throttle[receivedPacket.Opcode].TotalThrottled++;
+                                    //}
 
                                 }
                             }
