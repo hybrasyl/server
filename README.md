@@ -140,7 +140,7 @@ The process for compiling Hybrasyl is detailed below.
    setups, assuming you've updated and installed all NuGet packages (which
    should occur automatically).
 7. Copy `lod136.map` and `lod500.map` from your Dark Ages directory (or an
-   online archive) into `My Documents\Hybrasyl\mapfiles` (the directory you
+   online archive) into `My Documents\Hybrasyl\world\mapfiles` (the directory you
    created above).
 8. Run `Hybrasyl.exe` either from within Visual Studio or as a standalone
    executable in the `hybrasyl\bin\Debug` folder of your git checkout. This
