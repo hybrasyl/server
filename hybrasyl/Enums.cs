@@ -348,6 +348,7 @@ namespace Hybrasyl
             InExchange = 0x20,
             InDialog = 0x40,
             InComa = 0x80,
+            Casting = 0xCA,
             AliveExchange = (Alive | InExchange)
         }
 

@@ -801,13 +801,14 @@ namespace Hybrasyl
             var target = packet.ReadUInt32();
 
             user.UseSpell(slot, target);
-            user.IsCasting = false;
+            
         }
 
         private void PacketHandler_0x13_Attack(object obj, ClientPacket packet)
         {
             var user = (User)obj;
             user.AssailAttack(user.Direction);
+            user.Status ^= PlayerCondition.Casting;
         }
 
         public void SetMerchantMenuHandlers()
@@ -836,7 +837,32 @@ namespace Hybrasyl
                 {
                     MerchantMenuItem.SellItemAccept,
                     new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_SellItemConfirmation)
-                }
+                },
+                {
+                    MerchantMenuItem.LearnSkillMenu, new MerchantMenuHandler(MerchantJob.Train, MerchantMenuHandler_LearnSkill)
+                },
+                {
+                    MerchantMenuItem.LearnSpellMenu, new MerchantMenuHandler(MerchantJob.Train, MerchantMenuHandler_LearnSpell)
+                },
+                {
+                    MerchantMenuItem.ForgetSkillMenu, new MerchantMenuHandler(MerchantJob.Train, MerchantMenuHandler_ForgetSkill)
+                },
+                {
+                    MerchantMenuItem.ForgetSpellMenu, new MerchantMenuHandler(MerchantJob.Train, MerchantMenuHandler_ForgetSpell)
+                },
+                {
+                    MerchantMenuItem.LearnSkillAccept, new MerchantMenuHandler(MerchantJob.Train, MerchantMenuHandler_LearnSkillAccept)
+                },
+                {
+                    MerchantMenuItem.LearnSpellAccept, new MerchantMenuHandler(MerchantJob.Train, MerchantMenuHandler_LearnSpellAccept)
+                },
+                {
+                    MerchantMenuItem.ForgetSkillAccept, new MerchantMenuHandler(MerchantJob.Train, MerchantMenuHandler_ForgetSkillAccept)
+                },
+                {
+                    MerchantMenuItem.ForgetSpellAccept, new MerchantMenuHandler(MerchantJob.Train, MerchantMenuHandler_ForgetSpellAccept)
+                },
+
             };
         }
 
@@ -3765,7 +3791,7 @@ namespace Hybrasyl
         private void PacketHandler_0x4D_BeginCasting(object obj, ClientPacket packet)
         {
             var user = (User) obj;
-            user.IsCasting = true;
+            user.Status ^= PlayerCondition.Casting;
         }
 
         private void PacketHandler_0x4E_CastLine(object obj, ClientPacket packet)
@@ -4070,6 +4096,39 @@ namespace Hybrasyl
             merchant.DisplayPursuits(user);
         }
 
+        private void MerchantMenuHandler_LearnSkill(User user, Merchant merchant, ClientPacket packet)
+        {
+            
+        }
+        private void MerchantMenuHandler_LearnSkillAccept(User user, Merchant merchant, ClientPacket packet)
+        {
+
+        }
+
+        private void MerchantMenuHandler_LearnSpell(User user, Merchant merchant, ClientPacket packet)
+        {
+            
+        }
+        private void MerchantMenuHandler_LearnSpellAccept(User user, Merchant merchant, ClientPacket packet)
+        {
+
+        }
+        private void MerchantMenuHandler_ForgetSkill(User user, Merchant merchant, ClientPacket packet)
+        {
+            
+        }
+        private void MerchantMenuHandler_ForgetSkillAccept(User user, Merchant merchant, ClientPacket packet)
+        {
+
+        }
+        private void MerchantMenuHandler_ForgetSpell(User user, Merchant merchant, ClientPacket packet)
+        {
+            
+        }
+        private void MerchantMenuHandler_ForgetSpellAccept(User user, Merchant merchant, ClientPacket packet)
+        {
+
+        }
         #endregion Merchant Menu ItemObject Handlers
 
         public void Insert(WorldObject obj)
