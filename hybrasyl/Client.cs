@@ -438,6 +438,7 @@ namespace Hybrasyl
             x03.Write(redirect.EncryptionKey);
             x03.WriteString8(redirect.Name);
             x03.WriteUInt32(redirect.Id);
+            Thread.Sleep(100);
             Enqueue(x03);
         }
 

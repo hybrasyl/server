@@ -104,6 +104,7 @@ namespace Hybrasyl.Objects
         public UserGroup Group { get; set; }
         [JsonProperty]
         public bool Dead { get; set; }
+        public bool IsCasting { get; set; }
 
         public Mailbox Mailbox => World.GetMailbox(Name);
         public bool UnreadMail => Mailbox.HasUnreadMessages;
@@ -2354,7 +2355,7 @@ namespace Hybrasyl.Objects
                 {
                     case Direction.East:
                     {
-                        var obj = Map.EntityTree.Where(x => x.X == X + 1 && x.Y == Y).FirstOrDefault();
+                        var obj = Map.EntityTree.FirstOrDefault(x => x.X == X + 1 && x.Y == Y);
                         if (obj is Monster) target = (Monster) obj;
                         if (obj is User)
                         {
@@ -2365,19 +2366,19 @@ namespace Hybrasyl.Objects
                         break;
                     case Direction.West:
                     {
-                        var obj = Map.EntityTree.Where(x => x.X == X - 1 && x.Y == Y).FirstOrDefault();
+                        var obj = Map.EntityTree.FirstOrDefault(x => x.X == X - 1 && x.Y == Y);
                         if (obj is Monster) target = (Monster) obj;
                     }
                         break;
                     case Direction.North:
                     {
-                        var obj = Map.EntityTree.Where(x => x.X == X && x.Y == Y - 1).FirstOrDefault();
+                        var obj = Map.EntityTree.FirstOrDefault(x => x.X == X && x.Y == Y - 1);
                         if (obj is Monster) target = (Monster) obj;
                     }
                         break;
                     case Direction.South:
                     {
-                        var obj = Map.EntityTree.Where(x => x.X == X && x.Y == Y + 1).FirstOrDefault();
+                        var obj = Map.EntityTree.FirstOrDefault(x => x.X == X && x.Y == Y + 1);
                         if (obj is Monster) target = (Monster) obj;
                     }
                         break;
@@ -2755,8 +2756,8 @@ namespace Hybrasyl.Objects
 
         public void SendRedirectAndLogoff(World world, Login login, string name)
         {
-            Client.Redirect(new Redirect(Client, world, Game.Login, name, Client.EncryptionSeed, Client.EncryptionKey));
             GlobalConnectionManifest.DeregisterClient(Client);
+            Client.Redirect(new Redirect(Client, world, Game.Login, name, Client.EncryptionSeed, Client.EncryptionKey));
         }
 
         public bool IsHeartbeatValid(byte a, byte b)
@@ -2778,7 +2779,8 @@ namespace Hybrasyl.Objects
         {
             UpdateLogoffTime();
             Save();
-            Client.Disconnect();
+            var redirect = new Redirect(Client, Game.World, Game.Login, "socket", Client.EncryptionSeed, Client.EncryptionKey);
+            Client.Redirect(redirect);
         }
 
         public void SetEncryptionParameters(byte[] key, byte seed, string name)

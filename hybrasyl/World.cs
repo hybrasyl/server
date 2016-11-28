@@ -778,6 +778,8 @@ namespace Hybrasyl
             PacketHandlers[0x45] = PacketHandler_0x45_ByteHeartbeat;
             PacketHandlers[0x47] = PacketHandler_0x47_StatPoint;
             PacketHandlers[0x4a] = PacketHandler_0x4A_Trade;
+            PacketHandlers[0x4D] = PacketHandler_0x4D_BeginCasting;
+            PacketHandlers[0x4E] = PacketHandler_0x4E_CastLine;
             PacketHandlers[0x4F] = PacketHandler_0x4F_ProfileTextPortrait;
             PacketHandlers[0x75] = PacketHandler_0x75_TickHeartbeat;
             PacketHandlers[0x79] = PacketHandler_0x79_Status;
@@ -799,6 +801,7 @@ namespace Hybrasyl
             var target = packet.ReadUInt32();
 
             user.UseSpell(slot, target);
+            user.Status ^= PlayerCondition.Casting;
         }
 
         private void PacketHandler_0x13_Attack(object obj, ClientPacket packet)
@@ -833,7 +836,32 @@ namespace Hybrasyl
                 {
                     MerchantMenuItem.SellItemAccept,
                     new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_SellItemConfirmation)
-                }
+                },
+                {
+                    MerchantMenuItem.LearnSkillMenu, new MerchantMenuHandler(MerchantJob.Train, MerchantMenuHandler_LearnSkill)
+                },
+                {
+                    MerchantMenuItem.LearnSpellMenu, new MerchantMenuHandler(MerchantJob.Train, MerchantMenuHandler_LearnSpell)
+                },
+                {
+                    MerchantMenuItem.ForgetSkillMenu, new MerchantMenuHandler(MerchantJob.Train, MerchantMenuHandler_ForgetSkill)
+                },
+                {
+                    MerchantMenuItem.ForgetSpellMenu, new MerchantMenuHandler(MerchantJob.Train, MerchantMenuHandler_ForgetSpell)
+                },
+                {
+                    MerchantMenuItem.LearnSkillAccept, new MerchantMenuHandler(MerchantJob.Train, MerchantMenuHandler_LearnSkillAccept)
+                },
+                {
+                    MerchantMenuItem.LearnSpellAccept, new MerchantMenuHandler(MerchantJob.Train, MerchantMenuHandler_LearnSpellAccept)
+                },
+                {
+                    MerchantMenuItem.ForgetSkillAccept, new MerchantMenuHandler(MerchantJob.Train, MerchantMenuHandler_ForgetSkillAccept)
+                },
+                {
+                    MerchantMenuItem.ForgetSpellAccept, new MerchantMenuHandler(MerchantJob.Train, MerchantMenuHandler_ForgetSpellAccept)
+                },
+
             };
         }
 
@@ -3617,7 +3645,7 @@ namespace Hybrasyl
             if (!user.IsHeartbeatValid(byteA, byteB))
             {
                 Logger.InfoFormat("{0}: byte heartbeat not valid, disconnecting", user.Name);
-                user.Logoff();
+                user.SendRedirectAndLogoff(Game.World, Game.Login, user.Name);
             }
             else
             {
@@ -3759,6 +3787,24 @@ namespace Hybrasyl
             }
         }
 
+        private void PacketHandler_0x4D_BeginCasting(object obj, ClientPacket packet)
+        {
+            var user = (User) obj;
+            user.Status ^= PlayerCondition.Casting;
+        }
+
+        private void PacketHandler_0x4E_CastLine(object obj, ClientPacket packet)
+        {
+            var user = (User) obj;
+            var textLength = packet.ReadByte();
+            var text = packet.Read(textLength);
+
+            var x0D = new ServerPacketStructures.CastLine() {ChatType = 2, LineLength = textLength, LineText = Encoding.UTF8.GetString(text), TargetId = user.Id};
+            var enqueue = x0D.Packet();
+            user.Enqueue(enqueue);
+
+        }
+
         private void PacketHandler_0x4F_ProfileTextPortrait(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -3780,7 +3826,7 @@ namespace Hybrasyl
             if (!user.IsHeartbeatValid(serverTick, clientTick))
             {
                 Logger.InfoFormat("{0}: tick heartbeat not valid, disconnecting", user.Name);
-                user.Logoff();
+                user.SendRedirectAndLogoff(Game.World, Game.Login, user.Name);
             }
             else
             {
@@ -4049,6 +4095,39 @@ namespace Hybrasyl
             merchant.DisplayPursuits(user);
         }
 
+        private void MerchantMenuHandler_LearnSkill(User user, Merchant merchant, ClientPacket packet)
+        {
+            
+        }
+        private void MerchantMenuHandler_LearnSkillAccept(User user, Merchant merchant, ClientPacket packet)
+        {
+
+        }
+
+        private void MerchantMenuHandler_LearnSpell(User user, Merchant merchant, ClientPacket packet)
+        {
+            
+        }
+        private void MerchantMenuHandler_LearnSpellAccept(User user, Merchant merchant, ClientPacket packet)
+        {
+
+        }
+        private void MerchantMenuHandler_ForgetSkill(User user, Merchant merchant, ClientPacket packet)
+        {
+            
+        }
+        private void MerchantMenuHandler_ForgetSkillAccept(User user, Merchant merchant, ClientPacket packet)
+        {
+
+        }
+        private void MerchantMenuHandler_ForgetSpell(User user, Merchant merchant, ClientPacket packet)
+        {
+            
+        }
+        private void MerchantMenuHandler_ForgetSpellAccept(User user, Merchant merchant, ClientPacket packet)
+        {
+
+        }
         #endregion Merchant Menu ItemObject Handlers
 
         public void Insert(WorldObject obj)

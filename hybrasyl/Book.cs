@@ -21,16 +21,14 @@ namespace Hybrasyl
             var output = new object[book.Size];
             for (byte i = 0; i < book.Size; i++)
             {
-                var itemInfo = new Dictionary<String, object>();
+                var itemInfo = new string[book.Size];
                 if (book[i] != null)
                 {
-                    itemInfo["Name"] = book[i].Name;
-                    itemInfo["Id"] = book[i].Id;
-
+                    itemInfo[i] = book[i].Name.ToLower();
                     output[i] = itemInfo;
                 }
             }
-            Newtonsoft.Json.Linq.JArray ja = Newtonsoft.Json.Linq.JArray.FromObject(output);
+            var ja = JArray.FromObject(output);
             serializer.Serialize(writer, ja);
         }
 
@@ -44,17 +42,10 @@ namespace Hybrasyl
 
                 for (byte i = 0; i < jArray.Count; i++)
                 {
-                    Dictionary<string, object> item;
+                    string[] item;
                     if (TryGetValue(jArray[i], out item))
                     {
-                        book[i] =
-                            Game.World.Skills.Where(
-                                x =>
-                                    x.Value.Name == (string) item.FirstOrDefault().Value &&
-                                    x.Value.Id ==
-                                    Convert.ToInt32((item.Where(y => y.Key == "Id").FirstOrDefault().Value)))
-                                .FirstOrDefault()
-                                .Value;
+                        book[i] = Game.World.Skills.SingleOrDefault(x => x.Value.Name.ToLower() == item[i]).Value;
                     }
                 }
                 return book;
@@ -65,17 +56,11 @@ namespace Hybrasyl
 
                 for (byte i = 0; i < jArray.Count; i++)
                 {
-                    Dictionary<string, object> item;
+                    string[] item;
                     if (TryGetValue(jArray[i], out item))
                     {
                         book[i] =
-                            Game.World.Spells.Where(
-                                x =>
-                                    x.Value.Name == (string)item.FirstOrDefault().Value &&
-                                    x.Value.Id ==
-                                    Convert.ToInt32((item.Where(y => y.Key == "Id").FirstOrDefault().Value)))
-                                .FirstOrDefault()
-                                .Value;
+                            Game.World.Spells.SingleOrDefault(x => x.Value.Name.ToLower() == item[i]).Value;
                     }
                 }
                 return book;
@@ -89,12 +74,12 @@ namespace Hybrasyl
             return objectType == typeof(Inventory);
         }
 
-        public bool TryGetValue(Newtonsoft.Json.Linq.JToken token, out Dictionary<string, object> item)
+        public bool TryGetValue(JToken token, out string[] item)
         {
             item = null;
             if (!token.HasValues) return false;
 
-            item = token.ToObject<Dictionary<string, object>>();
+            item = token.ToObject<string[]>();
             return true;
         }
     }

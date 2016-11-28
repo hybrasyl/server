@@ -150,6 +150,7 @@ namespace Hybrasyl
             public const byte SystemMessage = 0x0A;
             public const byte UserMove = 0x0B;
             public const byte CreatureMove = 0x0C;
+            public const byte CastLine = 0x0D;
             public const byte RemoveWorldObject = 0x0E;
             public const byte AddItem = 0x0F;
             public const byte RemoveItem = 0x10;
@@ -347,6 +348,7 @@ namespace Hybrasyl
             InExchange = 0x20,
             InDialog = 0x40,
             InComa = 0x80,
+            Casting = 0xCA,
             AliveExchange = (Alive | InExchange)
         }
 

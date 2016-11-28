@@ -72,6 +72,10 @@ namespace Hybrasyl.Objects
             {
                 Script.ExecuteScriptableFunction("OnClick", new HybrasylUser(invoker));
             }
+            else
+            {
+                DisplayPursuits(invoker);
+            }
         }
 
         public override void AoiEntry(VisibleObject obj)
