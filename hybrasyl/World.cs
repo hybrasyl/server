@@ -801,14 +801,13 @@ namespace Hybrasyl
             var target = packet.ReadUInt32();
 
             user.UseSpell(slot, target);
-            
+            user.Status ^= PlayerCondition.Casting;
         }
 
         private void PacketHandler_0x13_Attack(object obj, ClientPacket packet)
         {
             var user = (User)obj;
             user.AssailAttack(user.Direction);
-            user.Status ^= PlayerCondition.Casting;
         }
 
         public void SetMerchantMenuHandlers()
