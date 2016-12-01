@@ -1458,9 +1458,7 @@ namespace Hybrasyl.Objects
             var x2C = new ServerPacket(0x2C);
             x2C.WriteByte((byte)slot);
             x2C.WriteUInt16((ushort)(item.Icon));
-            x2C.WriteString8(item.Name);
-            x2C.WriteByte(0); //current level
-            x2C.WriteByte((byte)100); //this will need to be updated
+            x2C.WriteString8(item.Name + " (" + item.CastableLevel + "/" + item.GetMaxLevelForUser(this) + ")");
             Enqueue(x2C);
 
         }
@@ -1480,11 +1478,9 @@ namespace Hybrasyl.Objects
             var spellType = item.Intents[0].UseType;
             //var spellType = isClick ? 2 : 5;
             x17.WriteByte((byte)spellType); //spell type? how are we determining this?
-            x17.WriteString8(item.Name + " (" + item.CastableLevel + "/" + item.MaxLevel + ")");
+            x17.WriteString8(item.Name + " (" + item.CastableLevel + "/" + item.GetMaxLevelForUser(this) + ")");
             x17.WriteString8(item.Name); //prompt? what is this?
             x17.WriteByte((byte)item.Lines);
-            x17.WriteByte(0); //current level
-            x17.WriteByte((byte)100); //this will need to be updated
             Enqueue(x17);
 
         }
@@ -2921,9 +2917,7 @@ namespace Hybrasyl.Objects
                     var x2C = new ServerPacket(0x2C);
                     x2C.WriteByte((byte)i);
                     x2C.WriteUInt16((ushort)(SkillBook[i].Icon));
-                    x2C.WriteString8(SkillBook[i].Name);
-                    x2C.WriteByte(0); //current level
-                    x2C.WriteByte((byte)100); //this will need to be updated
+                    x2C.WriteString8(SkillBook[i].Name + " (" + SkillBook[i].CastableLevel + "/" + SkillBook[i].GetMaxLevelForUser(this) + ")");
                     Enqueue(x2C);
                 }
             }
@@ -2940,11 +2934,9 @@ namespace Hybrasyl.Objects
                     var spellType = SpellBook[i].Intents[0].UseType;
                     //var spellType = isClick ? 2 : 5;
                     x17.WriteByte((byte)spellType); //spell type? how are we determining this?
-                    x17.WriteString8(SpellBook[i].Name + " (" + SpellBook[i].CastableLevel + "/" + 100 + ")"); //fortest
+                    x17.WriteString8(SpellBook[i].Name + " (" + SpellBook[i].CastableLevel + "/" + SpellBook[i].GetMaxLevelForUser(this) + ")");
                     x17.WriteString8(SpellBook[i].Name); //prompt? what is this?
                     x17.WriteByte((byte)SpellBook[i].Lines);
-                    x17.WriteByte(0); //current level
-                    x17.WriteByte((byte)100); //this will need to be updated
                     Enqueue(x17);
                 }
             }

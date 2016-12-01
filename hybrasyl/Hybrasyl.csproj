@@ -136,6 +136,7 @@
     <Compile Include="Book.cs" />
     <Compile Include="Board.cs" />
     <Compile Include="Compression.cs" />
+    <Compile Include="Extensions.cs" />
     <Compile Include="Objects\Creature.cs" />
     <Compile Include="Objects\Door.cs" />
     <Compile Include="Objects\Gold.cs" />
