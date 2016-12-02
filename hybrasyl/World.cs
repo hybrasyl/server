@@ -1309,6 +1309,7 @@ namespace Hybrasyl
                     case "/clearstatus":
                         {
                             user.RemoveAllStatuses();
+                            user.Status = PlayerCondition.Alive;
                             user.SendSystemMessage("All statuses cleared.");
                         }
                         break;
@@ -2217,7 +2218,7 @@ namespace Hybrasyl
             }
             else
             {
-                if (!user.Status.HasFlag(PlayerCondition.Alive))
+                if (user.Dead)
                 {
                     user.SendSystemMessage("Your voice is carried away by a sudden wind.");
                     return;
@@ -2312,27 +2313,30 @@ namespace Hybrasyl
             loginUser.SendSpells();
             loginUser.SetCitizenship();
 
+            Insert(loginUser);
             Logger.DebugFormat("Elapsed time since login: {0}", loginUser.SinceLastLogin);
 
-            if (loginUser.Nation.SpawnPoints.Count != 0 &&
+            if (loginUser.Dead)
+            {
+                loginUser.Teleport("Chaotic Threshold", 10, 10);
+            }
+            else if(loginUser.Nation.SpawnPoints.Count != 0 &&
                 loginUser.SinceLastLogin > Hybrasyl.Constants.NATION_SPAWN_TIMEOUT)
             {
-                Insert(loginUser);
                 var spawnpoint = loginUser.Nation.SpawnPoints.First();
                 loginUser.Teleport(spawnpoint.MapName, spawnpoint.X, spawnpoint.Y);
             }
             else if (Maps.ContainsKey(loginUser.Location.MapId))
             {
-                Insert(loginUser);
                 loginUser.Teleport(loginUser.Location.MapId, (byte)loginUser.Location.X, (byte)loginUser.Location.Y);
             }
             else
             {
                 // Handle any weird cases where a map someone exited on was deleted, etc
                 // This "default" of Mileth should be set somewhere else
-                Insert(loginUser);
                 loginUser.Teleport((ushort)500, (byte)50, (byte)50);
             }
+
             Logger.DebugFormat("Adding {0} to hash", loginUser.Name);
             AddUser(loginUser);
             ActiveUsers[connectionId] = loginUser;

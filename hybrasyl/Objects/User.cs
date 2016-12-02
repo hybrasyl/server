@@ -102,9 +102,10 @@ namespace Hybrasyl.Objects
         [JsonProperty]
         public bool IsMaster { get; set; }
         public UserGroup Group { get; set; }
+
         [JsonProperty]
-        public bool Dead { get; set; }
-        public bool IsCasting { get; set; }
+        public bool Dead => !Status.HasFlag(PlayerCondition.Alive);
+        public bool IsCasting => Status.HasFlag(PlayerCondition.Casting);
 
         public Mailbox Mailbox => World.GetMailbox(Name);
         public bool UnreadMail => Mailbox.HasUnreadMessages;
@@ -558,6 +559,7 @@ namespace Hybrasyl.Objects
                     DeathPileOwner = Name,
                     DeathPileTime = timeofdeath
                 };
+                World.Insert(newGold);
                 Map.AddGold(X,Y, newGold);
                 Gold = 0;
             }
@@ -1269,8 +1271,8 @@ namespace Hybrasyl.Objects
             var castable = SpellBook[slot];
             Creature targetCreature = Map.EntityTree.OfType<Monster>().SingleOrDefault(x => x.Id == target) ?? null;
             Direction playerFacing = this.Direction;
-
-            if(targetCreature != null) Attack(castable, targetCreature);
+            if (targetCreature is Merchant) return;
+            if (targetCreature != null) Attack(castable, targetCreature);
             else Attack(castable);
                 
         }
@@ -2239,7 +2241,6 @@ namespace Hybrasyl.Objects
 
         public override void Attack(Castable castObject)
         {
-            var direction = this.Direction;
             var damage = castObject.Effects.Damage;
             if (damage != null)
             {
@@ -2266,7 +2267,7 @@ namespace Hybrasyl.Objects
 
                     foreach (var target in actualTargets)
                     {
-                        if (target != null)
+                        if (target != null && target is Monster)
                         {
 
                             Random rand = new Random();
