@@ -633,6 +633,7 @@ namespace Hybrasyl
             NotifyNearbyAoiDeparture(gold);
             EntityTree.Remove(gold);
             Objects.Remove(gold);
+            World.Remove(gold);
         }
 
         public void RemoveItem(ItemObject itemObject)
