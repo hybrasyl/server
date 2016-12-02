@@ -76,12 +76,20 @@ namespace Hybrasyl
         public virtual void OnStart()
         {
             if (OnStartMessage != string.Empty) User.SendSystemMessage(OnStartMessage);
+            var tickEffect = (ushort?)GetType().GetField("OnTickEffect").GetValue(null);
+            if (tickEffect == null) return;
+            if (!User.Status.HasFlag(PlayerCondition.InComa))
+                User.Effect((ushort)tickEffect, 120);
         }
 
         public virtual void OnTick()
         {
             LastTick = DateTime.Now;
             if (OnTickMessage != string.Empty) User.SendSystemMessage(OnTickMessage);
+            var tickEffect = (ushort?) GetType().GetField("OnTickEffect").GetValue(null);
+            if (tickEffect == null) return;
+            if (!User.Status.HasFlag(PlayerCondition.InComa))
+                User.Effect((ushort)tickEffect, 120);
         }
 
         public virtual void OnEnd()
@@ -131,12 +139,9 @@ namespace Hybrasyl
 
         public override void OnStart()
         {
-            base.OnStart();
+            base.OnEnd();
             User.ToggleBlind();
-        }
 
-        public override void OnTick()
-        {
         }
 
         public override void OnEnd()
@@ -165,18 +170,9 @@ namespace Hybrasyl
             _damagePerTick = damagePerTick;
         }
 
-        public override void OnStart()
-        {
-            base.OnStart();
-            if (!User.Status.HasFlag(PlayerCondition.InComa))
-                User.Effect(OnTickEffect, 120);
-        }
-
         public override void OnTick()
         {
             base.OnTick();
-            if (!User.Status.HasFlag(PlayerCondition.InComa))
-                User.Effect(OnTickEffect, 120);
             if (_damagePerTick >= User.Hp)
                 User.Damage(User.Hp - 1);
             else
@@ -194,15 +190,13 @@ namespace Hybrasyl
 
         public ParalyzeStatus(User user, int duration, int tick) : base(user, duration, tick, Icon, Name)
         {
-            OnStartMessage = "You are in hibernation.";
-            OnEndMessage = "Your body thaws.";
+            OnStartMessage = "Stunned!";
+            OnEndMessage = "You can move again.";
         }
 
         public override void OnStart()
         {
             base.OnStart();
-            if (!User.Status.HasFlag(PlayerCondition.InComa))
-                User.Effect(OnTickEffect, 120);
             User.ToggleParalyzed();
         }
         public override void OnEnd()
@@ -230,8 +224,6 @@ namespace Hybrasyl
         public override void OnStart()
         {
             base.OnStart();
-            if (!User.Status.HasFlag(PlayerCondition.InComa))
-                User.Effect(OnTickEffect, 120);
             User.ToggleFreeze();
         }
         public override void OnEnd()
@@ -258,16 +250,9 @@ namespace Hybrasyl
         public override void OnStart()
         {
             base.OnStart();
-            if (!User.Status.HasFlag(PlayerCondition.InComa))
-                User.Effect(OnTickEffect, 120);
             User.ToggleAsleep();
         }
-
-        public override void OnTick()
-        {
-            base.OnTick();
-            User.Effect(OnTickEffect, 120);
-        }
+      
         public override void OnEnd()
         {
             base.OnEnd();
@@ -293,7 +278,6 @@ namespace Hybrasyl
         public override void OnStart()
         {
             base.OnStart();
-            User.Effect(OnTickEffect, 120);
             User.ToggleNearDeath();
             User.Group?.SendMessage($"{User.Name} is dying!");
         }

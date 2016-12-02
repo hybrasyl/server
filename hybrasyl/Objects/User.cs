@@ -103,9 +103,14 @@ namespace Hybrasyl.Objects
         public bool IsMaster { get; set; }
         public UserGroup Group { get; set; }
 
-        [JsonProperty]
         public bool Dead => !Status.HasFlag(PlayerCondition.Alive);
         public bool IsCasting => Status.HasFlag(PlayerCondition.Casting);
+
+        public bool CanCast
+            =>
+            !(Status.HasFlag(PlayerCondition.Asleep) ||
+              Status.HasFlag(PlayerCondition.Frozen) || Status.HasFlag(PlayerCondition.Paralyzed));
+        
 
         public Mailbox Mailbox => World.GetMailbox(Name);
         public bool UnreadMail => Mailbox.HasUnreadMessages;
