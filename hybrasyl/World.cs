@@ -786,30 +786,6 @@ namespace Hybrasyl
             PacketHandlers[0x7B] = PacketHandler_0x7B_RequestMetafile;
         }
 
-        private void PacketHandler_0x3E_UseSkill(object obj, ClientPacket packet)
-        {
-            var user = (User)obj;
-            var slot = packet.ReadByte();
-
-            user.UseSkill(slot);
-        }
-
-        private void PacketHandler_0x0F_UseSpell(object obj, ClientPacket packet)
-        {
-            var user = (User)obj;
-            var slot = packet.ReadByte();
-            var target = packet.ReadUInt32();
-
-            user.UseSpell(slot, target);
-            user.Status ^= PlayerCondition.Casting;
-        }
-
-        private void PacketHandler_0x13_Attack(object obj, ClientPacket packet)
-        {
-            var user = (User)obj;
-            user.AssailAttack(user.Direction);
-        }
-
         public void SetMerchantMenuHandlers()
         {
             merchantMenuHandlers = new Dictionary<MerchantMenuItem, MerchantMenuHandler>()
@@ -1250,19 +1226,6 @@ namespace Hybrasyl
             }
             else
                 user.Map.AddItem(x, y, toDrop);
-        }
-
-        [ProhibitedCondition(PlayerCondition.Frozen)]
-        private void PacketHandler_0x11_Turn(Object obj, ClientPacket packet)
-        {
-            var user = (User)obj;
-            var direction = packet.ReadByte();
-            if (direction > 3) return;
-            user.Turn((Direction)direction);
-        }
-
-        private void ProcessSlashCommands(Client client, ClientPacket packet)
-        {
         }
 
         private void PacketHandler_0x0E_Talk(Object obj, ClientPacket packet)
@@ -2240,9 +2203,19 @@ namespace Hybrasyl
             }
         }
 
-        private void CheckCommandPrivileges()
+        [ProhibitedCondition(PlayerCondition.InComa)]
+        [ProhibitedCondition(PlayerCondition.Asleep)]
+        [ProhibitedCondition(PlayerCondition.Frozen)]
+        [ProhibitedCondition(PlayerCondition.Paralyzed)]
+        [RequiredCondition(PlayerCondition.Alive)]
+        private void PacketHandler_0x0F_UseSpell(object obj, ClientPacket packet)
         {
-            throw new NotImplementedException();
+            var user = (User)obj;
+            var slot = packet.ReadByte();
+            var target = packet.ReadUInt32();
+
+            user.UseSpell(slot, target);
+            user.Status ^= PlayerCondition.Casting;
         }
 
         private void PacketHandler_0x0B_ClientExit(Object obj, ClientPacket packet)
@@ -2350,6 +2323,25 @@ namespace Hybrasyl
             }
             loginUser.SendSystemMessage(HybrasylTime.Now().ToString());
             loginUser.Reindex();
+        }
+
+        [ProhibitedCondition(PlayerCondition.Frozen)]
+        private void PacketHandler_0x11_Turn(Object obj, ClientPacket packet)
+        {
+            var user = (User)obj;
+            var direction = packet.ReadByte();
+            if (direction > 3) return;
+            user.Turn((Direction)direction);
+        }
+
+        [ProhibitedCondition(PlayerCondition.InComa)]
+        [ProhibitedCondition(PlayerCondition.Asleep)]
+        [ProhibitedCondition(PlayerCondition.Frozen)]
+        [ProhibitedCondition(PlayerCondition.Paralyzed)]
+        private void PacketHandler_0x13_Attack(object obj, ClientPacket packet)
+        {
+            var user = (User)obj;
+            user.AssailAttack(user.Direction);
         }
 
         private void PacketHandler_0x18_ShowPlayerList(Object obj, ClientPacket packet)
@@ -2648,7 +2640,6 @@ namespace Hybrasyl
          *    5) Send them a dialog and have them explicitly accept.
          *    6) If accepted, join group (see stage 0x03).
          */
-
         [ProhibitedCondition(PlayerCondition.InComa)]
         [RequiredCondition(PlayerCondition.Alive)]
         private void PacketHandler_0x2E_GroupRequest(Object obj, ClientPacket packet)
@@ -3300,6 +3291,20 @@ namespace Hybrasyl
             }
 
             user.Enqueue(response);
+        }
+
+
+        [ProhibitedCondition(PlayerCondition.InComa)]
+        [ProhibitedCondition(PlayerCondition.Asleep)]
+        [ProhibitedCondition(PlayerCondition.Frozen)]
+        [ProhibitedCondition(PlayerCondition.Paralyzed)]
+        [RequiredCondition(PlayerCondition.Alive)]
+        private void PacketHandler_0x3E_UseSkill(object obj, ClientPacket packet)
+        {
+            var user = (User)obj;
+            var slot = packet.ReadByte();
+
+            user.UseSkill(slot);
         }
 
         [ProhibitedCondition(PlayerCondition.InComa)]
