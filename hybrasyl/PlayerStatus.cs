@@ -149,7 +149,7 @@ namespace Hybrasyl
 
     internal class PoisonStatus : PlayerStatus
     {
-        private new static ushort Icon = 36;
+        private new static ushort Icon = 97;
         public new static string Name = "poison";
         public static ushort OnTickEffect = 25;
 
@@ -215,7 +215,7 @@ namespace Hybrasyl
 
     internal class FreezeStatus : PlayerStatus
     {
-        public new static ushort Icon = 36;
+        public new static ushort Icon = 50;
         public new static string Name = "freeze";
         public static ushort OnTickEffect = 40;
 
@@ -243,7 +243,7 @@ namespace Hybrasyl
 
     internal class SleepStatus : PlayerStatus
     {
-        public new static ushort Icon = 36;
+        public new static ushort Icon = 2;
         public new static string Name = "sleep";
         public static ushort OnTickEffect = 28;
 
