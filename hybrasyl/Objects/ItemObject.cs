@@ -23,6 +23,7 @@
 
 using Hybrasyl.Enums;
 using Hybrasyl.Items;
+using Hybrasyl.Scripting;
 using System;
 
 namespace Hybrasyl.Objects

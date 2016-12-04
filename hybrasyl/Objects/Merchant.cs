@@ -22,6 +22,7 @@
 
 
 using Hybrasyl.Items;
+using Hybrasyl.Scripting;
 using System;
 using System.Collections.Generic;
 

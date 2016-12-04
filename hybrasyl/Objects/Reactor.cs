@@ -20,6 +20,8 @@
  * 
  */
 
+ using Hybrasyl.Scripting;
+
 namespace Hybrasyl.Objects
 {
     public class Reactor : VisibleObject

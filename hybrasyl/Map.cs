@@ -36,14 +36,6 @@ using System.Threading;
 using System.Xml;
 using log4net.Appender;
 
-namespace Hybrasyl.Properties
-{
-    public partial class Door
-    {
-        public bool Open { get; set; }
-    }
-}
-
 namespace Hybrasyl
 {
 

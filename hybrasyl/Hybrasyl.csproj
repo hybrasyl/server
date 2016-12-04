@@ -146,6 +146,15 @@
     <Compile Include="Objects\WorldObject.cs" />
     <Compile Include="PlayerStatus.cs" />
     <Compile Include="Legend.cs" />
+    <Compile Include="Scripting\HybrasylDialog.cs" />
+    <Compile Include="Scripting\HybrasylDialogSequence.cs" />
+    <Compile Include="Scripting\HybrasylMap.cs" />
+    <Compile Include="Scripting\HybrasylUser.cs" />
+    <Compile Include="Scripting\HybrasylWorld.cs" />
+    <Compile Include="Scripting\HybrasylWorldObject.cs" />
+    <Compile Include="Scripting\Script.cs" />
+    <Compile Include="Scripting\ScriptInvocation.cs" />
+    <Compile Include="Scripting\ScriptProcessor.cs" />
     <Compile Include="Time.cs" />
     <Compile Include="Client.cs" />
     <Compile Include="Connection.cs" />

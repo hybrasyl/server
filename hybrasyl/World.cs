@@ -49,6 +49,7 @@ using System.Threading;
 using System.Timers;
 using System.Xml;
 using System.Xml.Schema;
+using Hybrasyl.Scripting;
 using Castable = Hybrasyl.Castables.Castable;
 using Creature = Hybrasyl.Objects.Creature;
 
@@ -153,7 +154,7 @@ namespace Hybrasyl
         public Dictionary<Tuple<Sex, String>, Item> ItemCatalog { get; set; }
         public Dictionary<String, Map> MapCatalog { get; set; }
 
-        public HybrasylScriptProcessor ScriptProcessor { get; set; }
+        public ScriptProcessor ScriptProcessor { get; set; }
 
         public static BlockingCollection<HybrasylMessage> MessageQueue;
         public static ConcurrentDictionary<long, User> ActiveUsers { get; private set; }
@@ -235,7 +236,7 @@ namespace Hybrasyl
             ItemCatalog = new Dictionary<Tuple<Sex, String>, Item>();
             MapCatalog = new Dictionary<String, Map>();
 
-            ScriptProcessor = new HybrasylScriptProcessor(this);
+            ScriptProcessor = new ScriptProcessor(this);
             MessageQueue = new BlockingCollection<HybrasylMessage>(new ConcurrentQueue<HybrasylMessage>());
             ActiveUsers = new ConcurrentDictionary<long, User>();
             ActiveUsersByName = new ConcurrentDictionary<string, long>();
