@@ -62,7 +62,7 @@ namespace Hybrasyl.Objects
             Name = creature.Name;
             Sprite = creature.Sprite;
             World = Game.World;
-            Map = Game.World.Maps[(ushort)map];
+            Map = Game.World.WorldData.Get<Map>(map);
             Level = spawn.Stats.Level;
             BaseHp = spawn.Stats.Hp;
             Hp = spawn.Stats.Hp;

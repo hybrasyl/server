@@ -20,8 +20,6 @@
  *            Kyle Speck    <kojasou@hybrasyl.com>
  */
 
-using System.Runtime.Serialization;
-using IronPython.Modules;
 using log4net;
 using System;
 using System.Collections.Concurrent;
@@ -31,7 +29,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-using IronPython.Compiler;
 using Microsoft.Scripting.Utils;
 
 namespace Hybrasyl

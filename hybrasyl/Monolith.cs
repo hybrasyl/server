@@ -41,34 +41,37 @@ namespace Hybrasyl
             LogManager.GetLogger(
                 System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        private readonly Dictionary<int, SpawnGroup> _spawnGroups;
-        private readonly Dictionary<string, Map> _maps;
-        private readonly Dictionary<string, Creature> _creatures;
-        
+        private IEnumerable<SpawnGroup> _spawnGroups => Game.World.WorldData.Values<SpawnGroup>();
+        private IEnumerable<Map> _maps => Game.World.WorldData.Values<Map>();
+        private IEnumerable<Creature> _creatures => Game.World.WorldData.Values<Creature>();
+        //        private readonly Dictionary<int, SpawnGroup> _spawnGroups;
+        //        private readonly Dictionary<string, Map> _maps;
+        //        private readonly Dictionary<string, Creature> _creatures;
+
 
         internal Monolith()
         {
-            _spawnGroups = Game.World.SpawnGroups;
-            _maps = Game.World.MapCatalog;
-            _creatures = Game.World.Creatures;
+  //          _spawnGroups = Game.World.WorldData.GetDictionary<SpawnGroup>();
+    //        _maps = Game.World.MapCatalog;
+      //      _creatures = Game.World.WorldData.Values<Creature>();
             _random = new Random();
         }
 
         public void Start()
         {
-            try
+/*            try
             {
-                foreach (var map in _spawnGroups.Values.SelectMany(spawnGroup => spawnGroup.Maps))
+                foreach (var map in _spawnGroups.SelectMany(spawnGroup => spawnGroup.Maps))
                 {
                     //set extension properties on startup
-                    map.Id = _maps.Values.Single(x => x.Name == map.Name).Id;
+                    map.Id = Game.World.WorldData.Values<Map>().Single(x => x.Name == map.Name).Id;
                     map.LastSpawn = DateTime.Now;
                 }
 
 
                 while (true)
                 {
-                    foreach (var spawnGroup in _spawnGroups.Values)
+                    foreach (var spawnGroup in _spawnGroups)
                     {
                         Spawn(spawnGroup);
                         Thread.Sleep(100);
@@ -79,14 +82,14 @@ namespace Hybrasyl
             {
 
                 throw;
-            }
+            }*/
         }
 
         public void Spawn(SpawnGroup spawnGroup)
         {
             foreach (var map in spawnGroup.Maps)
             {
-                var spawnMap = Game.World.Maps[(ushort) map.Id];
+                var spawnMap = Game.World.WorldData.Get<Map>(map.Id);
                 var monsterList = spawnMap.Objects.OfType<Monster>().ToList();
                 var monsterCount = monsterList.Count;
 
@@ -102,7 +105,7 @@ namespace Hybrasyl
                 {
                     var idx = _random.Next(0, spawnGroup.Spawns.Count - 1);
                     var spawn = spawnGroup.Spawns[idx];
-                    var creature = _creatures.Values.Single(x => x.Name == spawn.Base);
+                    var creature = _creatures.Single(x => x.Name == spawn.Base);
 
                     var baseMob = new Monster(creature, spawn, map.Id);
                     var mob = (Monster)baseMob.Clone();

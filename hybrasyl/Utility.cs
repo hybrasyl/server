@@ -20,13 +20,11 @@
  *            Kyle Speck    <kojasou@hybrasyl.com>
  */
 
-using System.IO;
 using log4net;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Reflection;
-using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
 using Hybrasyl.Enums;
 

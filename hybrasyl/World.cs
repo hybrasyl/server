@@ -115,35 +115,38 @@ namespace Hybrasyl
             LogManager.GetLogger(
                 System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
+        
         public Dictionary<uint, WorldObject> Objects { get; set; }
 
-        public Dictionary<ushort, Map> Maps { get; set; }
-        public Dictionary<string, WorldMap> WorldMaps { get; set; }
-        public static Dictionary<int, Item> Items { get; set; }
-        public Dictionary<string, Items.VariantGroup> ItemVariants { get; set; }
-        public Dictionary<int, Castables.Castable> Skills { get; set; }
-        public Dictionary<int, Castables.Castable> Spells { get; set; }
-        public Dictionary<int, MonsterTemplate> Monsters { get; set; }
-        public Dictionary<int, MerchantTemplate> Merchants { get; set; }
-        public Dictionary<int, ReactorTemplate> Reactors { get; set; }
+        //public Dictionary<ushort, Map> Maps { get; set; }
+        //public Dictionary<string, WorldMap> WorldMaps { get; set; }
+        //public static Dictionary<int, Item> Items { get; set; }
+        //public Dictionary<string, Items.VariantGroup> ItemVariants { get; set; }
+        //public Dictionary<int, Castables.Castable> Skills { get; set; }
+        //public Dictionary<int, Castables.Castable> Spells { get; set; }
+        //public Dictionary<int, MonsterTemplate> Monsters { get; set; }
+        //public Dictionary<int, MerchantTemplate> Merchants { get; set; }
+        //public Dictionary<int, ReactorTemplate> Reactors { get; set; }
         public Dictionary<string, string> Portraits { get; set; }
-        public Dictionary<string, MethodInfo> Methods { get; set; }
-        public Dictionary<string, User> Users { get; set; }
-        public Dictionary<Int64, MapPoint> MapPoints { get; set; }
-        public Dictionary<string, CompiledMetafile> Metafiles { get; set; }
-        public Dictionary<string, Nation> Nations { get; set; }
-        public Dictionary<string, Mailbox> Mailboxes { get; set; }
-        public Dictionary<int, Board> MessageboardIndex { get; set; }
-        public Dictionary<string, Board> Messageboards { get; set; }
-        public Dictionary<string, Creatures.Creature> Creatures { get; set; }
-        public Dictionary<int, SpawnGroup> SpawnGroups { get; set; }
+        //public Dictionary<string, MethodInfo> Methods { get; set; }
+        //public Dictionary<string, User> Users { get; set; }
+        //public Dictionary<Int64, MapPoint> MapPoints { get; set; }
+        //public Dictionary<string, CompiledMetafile> Metafiles { get; set; }
+        //public Dictionary<string, Nation> Nations { get; set; }
+        //public Dictionary<string, Mailbox> Mailboxes { get; set; }
+        //public Dictionary<int, Board> MessageboardIndex { get; set; }
+        //public Dictionary<string, Board> Messageboards { get; set; }
+        //public Dictionary<string, Creatures.Creature> Creatures { get; set; }
+        //public Dictionary<int, SpawnGroup> SpawnGroups { get; set; }
 
+        public WorldDataStore WorldData { set; get;  }
+      
         public Nation DefaultNation
         {
             get
             {
-                var nation = Nations.Values.FirstOrDefault(n => n.Default);
-                return nation ?? Nations.Values.First();
+                var nation = WorldData.Values<Nation>().FirstOrDefault(n => n.Default);
+                return nation ?? WorldData.Values<Nation>().First();
             }
         }
 
@@ -152,7 +155,7 @@ namespace Hybrasyl
         private Dictionary<MerchantMenuItem, MerchantMenuHandler> merchantMenuHandlers;
 
         public Dictionary<Tuple<Sex, String>, Item> ItemCatalog { get; set; }
-        public Dictionary<String, Map> MapCatalog { get; set; }
+       // public Dictionary<String, Map> MapCatalog { get; set; }
 
         public ScriptProcessor ScriptProcessor { get; set; }
 
@@ -190,6 +193,9 @@ namespace Hybrasyl
 
         public static string ItemVariantDirectory => Path.Combine(DataDirectory, "world", "xml", "itemvariants");
 
+        public static string NpcsDirectory => Path.Combine(DataDirectory, "world", "xml", "npcs");
+
+
         public static bool TryGetUser(string name, out User userobj)
         {
             var jsonString = (string)DatastoreConnection.GetDatabase().Get(User.GetStorageKey(name));
@@ -211,35 +217,38 @@ namespace Hybrasyl
         public World(int port, DataStore store)
             : base(port)
         {
-            Maps = new Dictionary<ushort, Map>();
-            WorldMaps = new Dictionary<string, WorldMap>();
-            Items = new Dictionary<int, Item>();
-            Skills = new Dictionary<int, Castables.Castable>();
-            Spells = new Dictionary<int, Castables.Castable>();
-            Creatures = new Dictionary<string, Creatures.Creature>();
-            SpawnGroups = new Dictionary<int, SpawnGroup>();
-            Merchants = new Dictionary<int, MerchantTemplate>();
-            Methods = new Dictionary<string, MethodInfo>();
+            //Maps = new Dictionary<ushort, Map>();
+            /* WorldMaps = new Dictionary<string, WorldMap>();
+             Items = new Dictionary<int, Item>();
+             Skills = new Dictionary<int, Castables.Castable>();
+             Spells = new Dictionary<int, Castables.Castable>();
+             Creatures = new Dictionary<string, Creatures.Creature>();
+             SpawnGroups = new Dictionary<int, SpawnGroup>();
+             Merchants = new Dictionary<int, MerchantTemplate>();
+             Methods = new Dictionary<string, MethodInfo>();
+             Users = new Dictionary<string, User>(StringComparer.CurrentCultureIgnoreCase);
+             MapPoints = new Dictionary<Int64, MapPoint>();
+             Metafiles = new Dictionary<string, CompiledMetafile>();
+             Nations = new Dictionary<string, Nation>();
+             GlobalSequences = new List<DialogSequence>();
+             ItemVariants = new Dictionary<string, Items.VariantGroup>();
+             Mailboxes = new Dictionary<string, Mailbox>();
+             Messageboards = new Dictionary<string, Board>();
+             MessageboardIndex = new Dictionary<int, Board>();
+             */
             Objects = new Dictionary<uint, WorldObject>();
-            Users = new Dictionary<string, User>(StringComparer.CurrentCultureIgnoreCase);
-            MapPoints = new Dictionary<Int64, MapPoint>();
-            Metafiles = new Dictionary<string, CompiledMetafile>();
-            Nations = new Dictionary<string, Nation>();
             Portraits = new Dictionary<string, string>();
-            GlobalSequences = new List<DialogSequence>();
-            ItemVariants = new Dictionary<string, Items.VariantGroup>();
-            Mailboxes = new Dictionary<string, Mailbox>();
-            Messageboards = new Dictionary<string, Board>();
-            MessageboardIndex = new Dictionary<int, Board>();
 
             GlobalSequencesCatalog = new Dictionary<String, DialogSequence>();
             ItemCatalog = new Dictionary<Tuple<Sex, String>, Item>();
-            MapCatalog = new Dictionary<String, Map>();
+            //MapCatalog = new Dictionary<String, Map>();
 
             ScriptProcessor = new ScriptProcessor(this);
             MessageQueue = new BlockingCollection<HybrasylMessage>(new ConcurrentQueue<HybrasylMessage>());
             ActiveUsers = new ConcurrentDictionary<long, User>();
             ActiveUsersByName = new ConcurrentDictionary<string, long>();
+
+            WorldData = new WorldDataStore();
 
             var datastoreConfig = new ConfigurationOptions()
             {
@@ -291,6 +300,21 @@ namespace Hybrasyl
             // native XML classes for Hybrasyl objects. This is unfortunate and should be
             // refactored later, but it is way too much work to do now (e.g. maps, etc).
 
+            //Load NPCs
+            foreach (var xml in Directory.GetFiles(NpcsDirectory))
+            {
+                try
+                {
+                    var npc = Serializer.Deserialize(XmlReader.Create(xml), new Creatures.Npc());
+                    Logger.Debug($"NPCs: loaded {npc.Name}");
+                    WorldData.Set(npc.Name, npc);
+                }
+                catch (Exception e)
+                {
+                    Logger.Error($"Error parsing {xml}: {e}");
+                }
+            }
+
             // Load maps
             foreach (var xml in Directory.GetFiles(MapDirectory))
             {
@@ -298,8 +322,9 @@ namespace Hybrasyl
                 {
                     Maps.Map newMap = Serializer.Deserialize(XmlReader.Create(xml), new Maps.Map());
                     var map = new Map(newMap, this);
-                    Maps.Add(map.Id, map);
-                    MapCatalog.Add(map.Name, map);
+                    //Maps.Add(map.Id, map);
+                    //MapCatalog.Add(map.Name, map);
+                    WorldData.SetWithIndex(map.Id, map, map.Name);
                     Logger.DebugFormat("Maps: Loaded {0}", map.Name);
                 }
                 catch (Exception e)
@@ -308,7 +333,7 @@ namespace Hybrasyl
                 }
             }
 
-            Logger.InfoFormat("Maps: {0} maps loaded", Maps.Count);
+            Logger.InfoFormat("Maps: {0} maps loaded", WorldData.Count<Map>());
 
             // Load nations
             foreach (var xml in Directory.GetFiles(NationDirectory))
@@ -317,7 +342,8 @@ namespace Hybrasyl
                 {
                     Nation newNation = Serializer.Deserialize(XmlReader.Create(xml), new Nation());
                     Logger.DebugFormat("Nations: Loaded {0}", newNation.Name);
-                    Nations.Add(newNation.Name, newNation);
+                    //Nations.Add(newNation.Name, newNation);
+                    WorldData.Set(newNation.Name, newNation);
                 }
                 catch (Exception e)
                 {
@@ -326,19 +352,19 @@ namespace Hybrasyl
             }
 
             // Ensure at least one nation and one map exist. Otherwise, things get a little weird
-            if (Nations.Count == 0)
+            if (WorldData.Count<Nation>() == 0)
             {
                 Logger.FatalFormat("National data: at least one well-formed nation file must exist!");
                 return false;
             }
 
-            if (Maps.Count == 0)
+            if (WorldData.Count<Map>() == 0)
             {
                 Logger.FatalFormat("Map data: at least one well-formed map file must exist!");
                 return false;
             }
 
-            Logger.InfoFormat("National data: {0} nations loaded", Nations.Count);
+            Logger.InfoFormat("National data: {0} nations loaded", WorldData.Count<Nation>());
 
             //Load Creatures
             foreach (var xml in Directory.GetFiles(CreatureDirectory))
@@ -347,13 +373,17 @@ namespace Hybrasyl
                 {
                     var creature = Serializer.Deserialize(XmlReader.Create(xml), new Creatures.Creature());
                     Logger.DebugFormat("Creatures: loaded {0}", creature.Name);
-                    Creatures.Add(creature.Name, creature);
+                    //Creatures.Add(creature.Name, creature);
+                    WorldData.Set(creature.Name, creature);
                 }
                 catch (Exception e)
                 {
                     Logger.ErrorFormat("Error parsing {0}: {1}", xml, e);
                 }
             }
+
+
+
             //Load SpawnGroups
             foreach (var xml in Directory.GetFiles(SpawnGroupDirectory))
             {
@@ -361,7 +391,10 @@ namespace Hybrasyl
                 {
                     var spawnGroup = Serializer.Deserialize(XmlReader.Create(xml), new SpawnGroup());
                     Logger.DebugFormat("SpawnGroup: loaded {0}", spawnGroup.GetHashCode());
-                    SpawnGroups.Add(spawnGroup.GetHashCode(), spawnGroup);
+                    //SpawnGroups.Add(spawnGroup.GetHashCode(), spawnGroup);
+                    WorldData.Set(spawnGroup.GetHashCode(), spawnGroup);
+
+
                 }
                 catch (Exception e)
                 {
@@ -376,9 +409,13 @@ namespace Hybrasyl
                 {
                     Maps.WorldMap newWorldMap = Serializer.Deserialize(XmlReader.Create(xml), new Maps.WorldMap());
                     var worldmap = new WorldMap(newWorldMap);
-                    WorldMaps.Add(worldmap.Name, worldmap);
+                    //WorldMaps.Add(worldmap.Name, worldmap);
+                    WorldData.Set(worldmap.Name, worldmap);
                     foreach (var point in worldmap.Points)
-                        MapPoints.Add(point.Id, point);
+                    {
+                        //MapPoints.Add(point.Id, point);
+                        WorldData.Set(point.Id, point);
+                    }
                     Logger.DebugFormat("World Maps: Loaded {0}", worldmap.Name);
                 }
                 catch (Exception e)
@@ -387,7 +424,7 @@ namespace Hybrasyl
                 }
             }
 
-            Logger.InfoFormat("World Maps: {0} world maps loaded", WorldMaps.Count);
+            Logger.InfoFormat("World Maps: {0} world maps loaded", WorldData.Count<WorldMap>());
 
             // Load item variants
             foreach (var xml in Directory.GetFiles(ItemVariantDirectory))
@@ -396,7 +433,9 @@ namespace Hybrasyl
                 {
                     Items.VariantGroup newGroup = Serializer.Deserialize(XmlReader.Create(xml), new Items.VariantGroup());
                     Logger.DebugFormat("Item variants: loaded {0}", newGroup.Name);
-                    ItemVariants.Add(newGroup.Name, newGroup);
+                    //ItemVariants.Add(newGroup.Name, newGroup);
+                    WorldData.Set(newGroup.Name, newGroup);
+
                 }
                 catch (Exception e)
                 {
@@ -404,7 +443,7 @@ namespace Hybrasyl
                 }
             }
 
-            Logger.InfoFormat("ItemObject variants: {0} variant sets loaded", ItemVariants.Count);
+            Logger.InfoFormat("ItemObject variants: {0} variant sets loaded", WorldData.Values<VariantGroup>().Count());
 
             // Load items
             foreach (var xml in Directory.GetFiles(ItemDirectory))
@@ -413,18 +452,21 @@ namespace Hybrasyl
                 {
                     Item newItem = Serializer.Deserialize(XmlReader.Create(xml), new Item());
                     Logger.DebugFormat("Items: loaded {0}, id {1}", newItem.Name, newItem.Id);
-                    Items.Add(newItem.Id, newItem);
-                    ItemCatalog.Add(new Tuple<Sex, string>(Sex.Neutral, newItem.Name), newItem);
+                    //Items.Add(newItem.Id, newItem);
+                    WorldData.SetWithIndex(newItem.Id, newItem, new Tuple<Sex, string>(Sex.Neutral, newItem.Name));
+                    //ItemCatalog.Add(new Tuple<Sex, string>(Sex.Neutral, newItem.Name), newItem);
                     foreach (var targetGroup in newItem.Properties.Variants.Group)
                     {
-                        foreach (var variant in ItemVariants[targetGroup].Variant)
+                        foreach (var variant in WorldData.Get<VariantGroup>(targetGroup).Variant)
                         {
                             var variantItem = ResolveVariant(newItem, variant, targetGroup);
                             //variantItem.Name = $"{variant.Name} {newItem.Name}";
                             Logger.DebugFormat("ItemObject {0}: variantgroup {1}, subvariant {2}", variantItem.Name, targetGroup, variant.Name);
-                            if (Items.ContainsKey(variantItem.Id)) Logger.ErrorFormat("Item already exists with Key {0} : {1}. Cannot add {2}", variantItem.Id, Items[variantItem.Id].Name, variantItem.Name);
-                            Items.Add(variantItem.Id, variantItem);
-                            ItemCatalog.Add(new Tuple<Sex, string>(Sex.Neutral, variantItem.Name), variantItem);
+                            if (WorldData.ContainsKey<Item>(variantItem.Id)) Logger.ErrorFormat("Item already exists with Key {0} : {1}. Cannot add {2}", variantItem.Id, WorldData.Get<Item>(variantItem.Id).Name, variantItem.Name);
+                            //Items.Add(variantItem.Id, variantItem);
+                            WorldData.SetWithIndex(variantItem.Id, variantItem,
+                                new Tuple<Sex, string>(Sex.Neutral, variantItem.Name));
+                            //ItemCatalog.Add(new Tuple<Sex, string>(Sex.Neutral, variantItem.Name), variantItem);
                         }
                     }
                 }
@@ -440,14 +482,18 @@ namespace Hybrasyl
                 {
                     string name = string.Empty;
                     Castables.Castable newCastable = Serializer.Deserialize(XmlReader.Create(xml), new Castables.Castable());
-                    if (newCastable.Book == Castables.Book.PrimarySkill || newCastable.Book == Castables.Book.SecondarySkill ||
+                    if (newCastable.Book == Castables.Book.PrimarySkill ||
+                        newCastable.Book == Castables.Book.SecondarySkill ||
                         newCastable.Book == Castables.Book.UtilitySkill)
                     {
-                        Skills.Add(newCastable.Id, newCastable);
+                        //Skills.Add(newCastable.Id, newCastable);
+                        WorldData.Set(newCastable.Id, newCastable);
                     }
                     else
-                        Spells.Add(newCastable.Id, newCastable);
-
+                    {
+                        //Spells.Add(newCastable.Id, newCastable);
+                        WorldData.Set(newCastable.Id, newCastable);
+                    }
                     Logger.DebugFormat("Castables: loaded {0}, id {1}", newCastable.Name, newCastable.Id);
                 }
                 catch (Exception e)
@@ -470,7 +516,8 @@ namespace Hybrasyl
                     Logger.Warn("Potentially corrupt mailbox data in Redis; ignoring");
                     continue;
                 }
-                Mailboxes.Add(name, mailbox);
+                //Mailboxes.Add(name, mailbox);
+                WorldData.Set(name, mailbox);
             }
 
             // Load all boards
@@ -486,9 +533,10 @@ namespace Hybrasyl
                     continue;
                 }
                 // Messageboard IDs are fairly irrelevant and only matter to the client
-                messageboard.Id = Messageboards.Count + 1;
-                Messageboards.Add(messageboard.Name, messageboard);
-                MessageboardIndex.Add(messageboard.Id, messageboard);
+                messageboard.Id = WorldData.Count<Board>() + 1;
+                //Messageboards.Add(messageboard.Name, messageboard);
+                WorldData.SetWithIndex(messageboard.Name, messageboard, messageboard.Id);
+                //MessageboardIndex.Add(messageboard.Id, messageboard);
             }
 
             // Ensure global boards exist and are up to date with anything specified in the config
@@ -590,22 +638,21 @@ namespace Hybrasyl
         public Mailbox GetMailbox(string name)
         {
             var mailboxName = name.ToLower();
-            if (Mailboxes.ContainsKey(mailboxName)) return Mailboxes[mailboxName];
-            Mailboxes.Add(mailboxName, new Mailbox(mailboxName));
-            Mailboxes[mailboxName].Save();
+            if (WorldData.ContainsKey<Mailbox>(mailboxName)) return WorldData.Get<Mailbox>(mailboxName);
+            WorldData.Set<Mailbox>(mailboxName, new Mailbox(mailboxName));
+            WorldData.Get<Mailbox>(mailboxName).Save();
             Logger.InfoFormat("Mailbox: Creating mailbox for {0}", name);
-            return Mailboxes[mailboxName];
+            return WorldData.Get<Mailbox>(mailboxName);
         }
 
         public Board GetBoard(string name)
         {
-            if (Messageboards.ContainsKey(name)) return Messageboards[name];
-            var newBoard = new Board(name) { Id = MessageboardIndex.Count + 1 };
-            Messageboards.Add(name, new Board(name));
-            MessageboardIndex.Add(newBoard.Id, newBoard);
-            Messageboards[name].Save();
+            if (WorldData.ContainsKey<Board>(name)) return WorldData.Get<Board>(name);
+            var newBoard = new Board(name) { Id = WorldData.Values<Board>().Count() + 1 };
+            WorldData.SetWithIndex<Board>(name, newBoard, newBoard.Id);
+            newBoard.Save();
             Logger.InfoFormat("Board: Creating {0}", name);
-            return Messageboards[name];
+            return WorldData.Get<Board>(name);
         }
 
         private static void ValidationCallBack(object sender, ValidationEventArgs args)
@@ -624,12 +671,12 @@ namespace Hybrasyl
 
             var iteminfo0 = new Metafile("ItemInfo0");
             // TODO: split items into multiple ItemInfo files (DA does ~700 each)
-            foreach (var item in Items.Values)
+            foreach (var item in WorldData.Values<Item>())
             {
                 iteminfo0.Nodes.Add(new MetafileNode(item.Name, item.Properties.Restrictions.Level.Min, (int)item.Properties.Restrictions.@Class, item.Properties.Physical.Weight,
                     item.Properties.Vendor.ShopTab, item.Properties.Vendor.Description));
             }
-            Metafiles.Add(iteminfo0.Name, iteminfo0.Compile());
+            WorldData.Set(iteminfo0.Name, iteminfo0.Compile());
 
             #endregion ItemInfo
 
@@ -639,7 +686,7 @@ namespace Hybrasyl
             {
                 var sclass = new Metafile("SClass" + i);
                 sclass.Nodes.Add("Skill");
-                foreach (var skill in Skills.Values)
+                foreach (var skill in WorldData.Values<Castable>().Where(x => x.Type.Contains("skill")))
                 // placeholder; change to skills where class == i, are learnable from trainer, and sort by level
                 {
                     sclass.Nodes.Add(new MetafileNode(skill.Name,
@@ -653,7 +700,7 @@ namespace Hybrasyl
                 }
                 sclass.Nodes.Add("Skill_End");
                 sclass.Nodes.Add("Spell");
-                foreach (var spell in Spells.Values)
+                foreach (var spell in WorldData.Values<Castable>().Where(x => x.Type.Contains("spell")))
                 // placeholder; change to skills where class == i, are learnable from trainer, and sort by level
                 {
                     sclass.Nodes.Add(new MetafileNode(spell.Name,
@@ -666,7 +713,7 @@ namespace Hybrasyl
                         ));
                 }
                 sclass.Nodes.Add("Spell_End");
-                Metafiles.Add(sclass.Name, sclass.Compile());
+                WorldData.Set(sclass.Name, sclass.Compile());
             }
 
             #endregion SClass
@@ -678,19 +725,19 @@ namespace Hybrasyl
             {
                 npcillust.Nodes.Add(new MetafileNode(kvp.Key, kvp.Value /* portrait filename */));
             }
-            Metafiles.Add(npcillust.Name, npcillust.Compile());
+            WorldData.Set(npcillust.Name, npcillust.Compile());
 
             #endregion NPCIllust
 
             #region NationDesc
 
             var nationdesc = new Metafile("NationDesc");
-            foreach (var nation in Nations.Values)
+            foreach (var nation in WorldData.Values<Nation>())
             {
                 Logger.DebugFormat("Adding flag {0} for nation {1}", nation.Flag, nation.Name);
                 nationdesc.Nodes.Add(new MetafileNode("nation_" + nation.Flag, nation.Name));
             }
-            Metafiles.Add(nationdesc.Name, nationdesc.Compile());
+            WorldData.Set(nationdesc.Name, nationdesc.Compile());
 
             #endregion NationDesc
         }
@@ -847,24 +894,17 @@ namespace Hybrasyl
         // FIXME: *User here should now use the ConcurrentDictionaries instead
         public void DeleteUser(string username)
         {
-            Users.Remove(username);
+            WorldData.Remove<User>(username);
         }
 
         public void AddUser(User userobj)
         {
-            Users[userobj.Name] = userobj;
+            WorldData.Set(userobj.Name, userobj);
         }
 
         public User FindUser(string username)
         {
-            if (Users.ContainsKey(username))
-            {
-                return Users[username];
-            }
-            else
-            {
-                return null;
-            }
+            return WorldData.Get<User>(username);
         }
 
         public override void Shutdown()
@@ -985,7 +1025,7 @@ namespace Hybrasyl
             var userName = (string)message.Arguments[0];
             Logger.WarnFormat("{0}: forcing logoff", userName);
             User user;
-            if (Users.TryGetValue(userName, out user))
+            if (WorldData.TryGetValue(userName, out user))
             {
                 user.Logoff();
             }
@@ -997,7 +1037,7 @@ namespace Hybrasyl
             var userName = (string)message.Arguments[0];
             Logger.DebugFormat("mail: attempting to notify {0} of new mail", userName);
             User user;
-            if (Users.TryGetValue(userName, out user))
+            if (WorldData.TryGetValue(userName, out user))
             {
                 user.UpdateAttributes(StatUpdateFlags.Secondary);
                 Logger.DebugFormat("mail: notification to {0} sent", userName);
@@ -1013,7 +1053,7 @@ namespace Hybrasyl
             var userName = (string)message.Arguments[0];
             Logger.DebugFormat("statustick: processing tick for {0}", userName);
             User user;
-            if (Users.TryGetValue(userName, out user))
+            if (WorldData.TryGetValue(userName, out user))
             {
                 user.ProcessStatusTicks();
             }
@@ -1373,12 +1413,12 @@ namespace Hybrasyl
 
                             if (args.Length == 2)
                             {
-                                if (!Users.ContainsKey(args[1]))
+                                if (!WorldData.ContainsKey<User>(args[1]))
                                 {
                                     user.SendMessage("User not logged in.", MessageTypes.SYSTEM);
                                     return;
                                 }
-                                var target = Users[args[1]];
+                                var target = WorldData.Get<User>(args[1]);
                                 if (target.IsExempt)
                                     user.SendMessage("Access denied.", MessageTypes.SYSTEM);
                                 else
@@ -1394,9 +1434,9 @@ namespace Hybrasyl
                         {
                             if (args.Length == 2)
                             {
-                                if (Nations.ContainsKey(args[1]))
+                                if (WorldData.ContainsKey<Nation>(args[1]))
                                 {
-                                    user.Nation = Nations[args[1]];
+                                    user.Nation = WorldData.Get<Nation>(args[1]);
                                     user.SendSystemMessage($"Citizenship set to {args[1]}");
                                 }
                             }
@@ -1410,12 +1450,12 @@ namespace Hybrasyl
 
                             if (args.Length == 2)
                             {
-                                if (!Users.ContainsKey(args[1]))
+                                if (!WorldData.ContainsKey<User>(args[1]))
                                 {
                                     user.SendMessage("User not logged in.", MessageTypes.SYSTEM);
                                     return;
                                 }
-                                var target = Users[args[1]];
+                                var target = WorldData.Get<User>(args[1]);
                                 if (target.IsExempt)
                                     user.SendMessage("Access denied.", MessageTypes.SYSTEM);
                                 else
@@ -1435,14 +1475,14 @@ namespace Hybrasyl
                             {
                                 if (!ushort.TryParse(args[1], out number))
                                 {
-                                    if (!Users.ContainsKey(args[1]))
+                                    if (!WorldData.ContainsKey<User>(args[1]))
                                     {
                                         user.SendMessage("Invalid map number or user name", 3);
                                         return;
                                     }
                                     else
                                     {
-                                        var target = Users[args[1]];
+                                        var target = WorldData.Get<User>(args[1]);
                                         number = target.Map.Id;
                                         x = target.X;
                                         y = target.Y;
@@ -1456,9 +1496,9 @@ namespace Hybrasyl
                                 byte.TryParse(args[3], out y);
                             }
 
-                            if (Maps.ContainsKey(number))
+                            if (WorldData.ContainsKey<Map>(number))
                             {
-                                var map = Maps[number];
+                                var map = WorldData.Get<Map>(number);
                                 if (x < map.X && y < map.Y) user.Teleport(number, x, y);
                                 else user.SendMessage("Invalid x/y", 3);
                             }
@@ -1506,11 +1546,11 @@ namespace Hybrasyl
                                 return;
                             }
 
-                            var queryMaps = from amap in MapCatalog
-                                            where searchTerm.IsMatch(amap.Key)
+                            var queryMaps = from amap in WorldData.Values<Map>()
+                                            where searchTerm.IsMatch(amap.Name)
                                             select amap;
                             var result = queryMaps.Aggregate("",
-                                (current, map) => current + String.Format("{0} - {1}\n", map.Value.Id, map.Value.Name));
+                                (current, map) => current + String.Format("{0} - {1}\n", map.Id, map.Name));
 
                             if (result.Length > 65400)
                                 result = String.Format("{0}\n(Results truncated)", result.Substring(0, 65400));
@@ -1770,9 +1810,9 @@ namespace Hybrasyl
                                     gcmContents = gcmContents + String.Format("{0}:{1} disposed\n", pair.Key, serverType);
                                 }
                             }
-                            foreach (var tehuser in Users)
+                            foreach (var tehuser in WorldData.Values<User>())
                             {
-                                userContents = userContents + tehuser.Value.Name + "\n";
+                                userContents = userContents + tehuser.Name + "\n";
                             }
                             foreach (var tehotheruser in ActiveUsersByName)
                             {
@@ -1809,11 +1849,11 @@ namespace Hybrasyl
 
                             // HURR O(N) IS MY FRIEND
                             // change this to use itemcatalog pls
-                            foreach (var template in Items)
+                            foreach (var template in WorldData.Values<Item>())
                             {
-                                if (template.Value.Name.Equals(itemName, StringComparison.CurrentCultureIgnoreCase))
+                                if (template.Name.Equals(itemName, StringComparison.CurrentCultureIgnoreCase))
                                 {
-                                    var item = CreateItem(template.Key);
+                                    var item = CreateItem(template.Id);
                                     if (count > item.MaximumStack)
                                         item.Count = item.MaximumStack;
                                     else
@@ -1845,7 +1885,7 @@ namespace Hybrasyl
 
                             skillName = string.Join(" ", args, 1, args.Length - 1);
 
-                            Castable skill = Skills.Where(x => x.Value.Name == skillName).FirstOrDefault().Value;
+                            Castable skill = WorldData.Get<Castable>(skillName);
                             user.AddSkill(skill);
                         }
                         break;
@@ -1859,7 +1899,7 @@ namespace Hybrasyl
 
                             spellName = string.Join(" ", args, 1, args.Length - 1);
 
-                            Castable spell = Spells.Where(x => x.Value.Name == spellName).FirstOrDefault().Value;
+                            Castable spell = WorldData.Get<Castable>(spellName);
                             user.AddSpell(spell);
                         }
                         break;
@@ -1875,7 +1915,7 @@ namespace Hybrasyl
                             {
                                 Sprite = 1,
                                 World = Game.World,
-                                Map = Game.World.Maps[500],
+                                Map = Game.World.WorldData.Get<Map>(500),
                                 Level = 1,
                                 DisplayText = "TestMob",
                                 BaseHp = 100,
@@ -1891,7 +1931,7 @@ namespace Hybrasyl
                                 X = 50,
                                 Y = 51
                             };
-                            Game.World.Maps[500].InsertCreature(creature);
+                            Game.World.WorldData.Get<Map>(500).InsertCreature(creature);
                             user.SendVisibleCreature(creature);
                         }
                         break;
@@ -2300,7 +2340,7 @@ namespace Hybrasyl
                 var spawnpoint = loginUser.Nation.SpawnPoints.First();
                 loginUser.Teleport(spawnpoint.MapName, spawnpoint.X, spawnpoint.Y);
             }
-            else if (Maps.ContainsKey(loginUser.Location.MapId))
+            else if (WorldData.ContainsKey<Map>(loginUser.Location.MapId))
             {
                 loginUser.Teleport(loginUser.Location.MapId, (byte)loginUser.Location.X, (byte)loginUser.Location.Y);
             }
@@ -2349,7 +2389,7 @@ namespace Hybrasyl
         {
             var me = (User)obj;
 
-            var list = from user in Users.Values
+            var list = from user in WorldData.Values<User>()
                        orderby user.IsMaster descending, user.Level descending, user.BaseHp + user.BaseMp * 2 descending, user.Name ascending
                        select user;
 
@@ -2928,7 +2968,7 @@ namespace Hybrasyl
 
                         // TODO: This has the potential to be a somewhat expensive operation, optimize this.
                         var boardList =
-                            Messageboards.Values.Where(mb => mb.CheckAccessLevel(user.Name, BoardAccessLevel.Read));
+                            WorldData.Values<Board>().Where(mb => mb.CheckAccessLevel(user.Name, BoardAccessLevel.Read));
 
                         // Mail is always the first board and has a fixed id of 0
                         response.WriteUInt16((ushort)(boardList.Count() + 1));
@@ -2958,7 +2998,7 @@ namespace Hybrasyl
                         else
                         {
                             Board board;
-                            if (MessageboardIndex.TryGetValue(boardId, out board))
+                            if (WorldData.TryGetValueByIndex<Board>(boardId, out board))
                             {
                                 user.Enqueue(board.RenderToPacket());
                                 return;
@@ -3048,7 +3088,7 @@ namespace Hybrasyl
                         {
                             // Get board message
                             Board board;
-                            if (MessageboardIndex.TryGetValue(boardId, out board))
+                            if (WorldData.TryGetValue<Board>(boardId, out board))
                             {
                                 // TODO: handle this better
                                 if (!board.CheckAccessLevel(user.Name, BoardAccessLevel.Read))
@@ -3137,7 +3177,7 @@ namespace Hybrasyl
                             response.WriteBoolean(false);
                             response.WriteString8("Try waiting a moment before sending another message.");
                         }
-                        if (MessageboardIndex.TryGetValue(boardId, out board))
+                        if (WorldData.TryGetValue(boardId, out board))
                         {
                             if (board.CheckAccessLevel(user.Name, BoardAccessLevel.Write))
                             {
@@ -3186,7 +3226,7 @@ namespace Hybrasyl
                         var boardId = packet.ReadUInt16();
                         var postId = packet.ReadUInt16();
                         Board board;
-                        if (MessageboardIndex.TryGetValue(boardId, out board))
+                        if (WorldData.TryGetValue(boardId, out board))
                         {
                             if (user.IsPrivileged || board.CheckAccessLevel(user.Name, BoardAccessLevel.Moderate))
                             {
@@ -3222,7 +3262,7 @@ namespace Hybrasyl
                         response.WriteByte(0x06); // Send post response
                         User recipientUser;
 
-                        if (Users.TryGetValue(recipient, out recipientUser))
+                        if (WorldData.TryGetValue(recipient, out recipientUser))
                         {
                             try
                             {
@@ -3271,7 +3311,7 @@ namespace Hybrasyl
                             Logger.WarnFormat("mail: {0} tried to highlight message {1} but isn't GM! Hijinx suspected.",
                                 user.Name, postId);
                         }
-                        if (MessageboardIndex.TryGetValue(boardId, out board))
+                        if (WorldData.TryGetValue(boardId, out board))
                         {
                             board.Messages[postId - 1].Highlighted = true;
                             response.WriteBoolean(true);
@@ -3320,7 +3360,7 @@ namespace Hybrasyl
             if (user.IsAtWorldMap)
             {
                 MapPoint targetmap;
-                if (MapPoints.TryGetValue(target, out targetmap))
+                if (WorldData.TryGetValue<MapPoint>(target, out targetmap))
                 {
                     user.Teleport(targetmap.DestinationMap, targetmap.DestinationX, targetmap.DestinationY);
                 }
@@ -3863,8 +3903,8 @@ namespace Hybrasyl
             {
                 var x6F = new ServerPacket(0x6F);
                 x6F.WriteBoolean(all);
-                x6F.WriteUInt16((ushort)Metafiles.Count);
-                foreach (var metafile in Metafiles.Values)
+                x6F.WriteUInt16((ushort)WorldData.Count<CompiledMetafile>());
+                foreach (var metafile in WorldData.Values<CompiledMetafile>())
                 {
                     x6F.WriteString8(metafile.Name);
                     x6F.WriteUInt32(metafile.Checksum);
@@ -3874,9 +3914,9 @@ namespace Hybrasyl
             else
             {
                 var name = packet.ReadString8();
-                if (Metafiles.ContainsKey(name))
+                if (WorldData.ContainsKey<CompiledMetafile>(name))
                 {
-                    var file = Metafiles[name];
+                    var file = WorldData.Get<CompiledMetafile>(name);
 
                     var x6F = new ServerPacket(0x6F);
                     x6F.WriteBoolean(all);
@@ -4182,7 +4222,7 @@ namespace Hybrasyl
 
         public ItemObject CreateItem(int id, int quantity = 1)
         {
-            if (Items.ContainsKey(id))
+            if (WorldData.ContainsKey<Item>(id))
             {
                 var item = new ItemObject(id, this);
                 if (quantity > item.MaximumStack)
@@ -4215,10 +4255,10 @@ namespace Hybrasyl
         public object ScriptMethod(string name, params object[] args)
         {
             object result = null;
-
-            if (Methods.ContainsKey(name))
+        
+            if (WorldData.ContainsKey<MethodInfo>(name))
             {
-                var method = Methods[name];
+                var method = WorldData.Get<MethodInfo>(name);
                 result = method.Invoke(null, args);
             }
 

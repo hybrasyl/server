@@ -1,8 +1,5 @@
 ﻿
 using System;
-using System.Data.SqlTypes;
-using System.Windows.Forms;
-using Community.CsharpSqlite;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
 

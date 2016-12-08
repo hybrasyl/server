@@ -237,7 +237,7 @@ namespace Hybrasyl.Objects
             if (Citizenship != null)
             {
                 Nation theNation;
-                Nation = World.Nations.TryGetValue(Citizenship, out theNation) ? theNation : World.DefaultNation;
+                Nation = World.WorldData.TryGetValue(Citizenship, out theNation) ? theNation : World.DefaultNation;
             }
         }
 

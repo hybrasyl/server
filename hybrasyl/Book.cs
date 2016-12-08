@@ -1,14 +1,11 @@
 using Hybrasyl.Castables;
 using log4net;
-using Hybrasyl.Castables;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Hybrasyl
 {
@@ -45,7 +42,7 @@ namespace Hybrasyl
                     string[] item;
                     if (TryGetValue(jArray[i], out item))
                     {
-                        book[i] = Game.World.Skills.SingleOrDefault(x => x.Value.Name.ToLower() == item[i]).Value;
+                        book[i] = Game.World.WorldData.Values<Castable>().SingleOrDefault(x => x.Name.ToLower() == item[i]);
                     }
                 }
                 return book;
@@ -60,7 +57,7 @@ namespace Hybrasyl
                     if (TryGetValue(jArray[i], out item))
                     {
                         book[i] =
-                            Game.World.Spells.SingleOrDefault(x => x.Value.Name.ToLower() == item[i]).Value;
+                            Game.World.WorldData.Values<Castable>().SingleOrDefault(x => x.Name.ToLower() == item[i]);
                     }
                 }
                 return book;

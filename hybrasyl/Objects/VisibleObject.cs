@@ -136,16 +136,16 @@ namespace Hybrasyl.Objects
 
         public virtual void Teleport(ushort mapid, byte x, byte y)
         {
-            if (!World.Maps.ContainsKey(mapid)) return;
+            if (!World.WorldData.ContainsKey<Map>(mapid)) return;
             Map?.Remove(this);
-            Logger.DebugFormat("Teleporting {0} to {1}.", Name, World.Maps[mapid].Name);
-            World.Maps[mapid].Insert(this, x, y);
+            Logger.DebugFormat("Teleporting {0} to {1}.", Name, World.WorldData.Get<Map>(mapid).Name);
+            World.WorldData.Get<Map>(mapid).Insert(this, x, y);
         }
 
         public virtual void Teleport(string name, byte x, byte y)
         {
             Map targetMap;
-            if (!World.MapCatalog.TryGetValue(name, out targetMap)) return;
+            if (!World.WorldData.TryGetValueByIndex(name, out targetMap)) return;
             Map?.Remove(this);
             Logger.DebugFormat("Teleporting {0} to {1}.", Name, targetMap.Name);
             targetMap.Insert(this, x, y);
