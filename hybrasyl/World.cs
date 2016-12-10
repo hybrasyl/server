@@ -482,18 +482,7 @@ namespace Hybrasyl
                 {
                     string name = string.Empty;
                     Castables.Castable newCastable = Serializer.Deserialize(XmlReader.Create(xml), new Castables.Castable());
-                    if (newCastable.Book == Castables.Book.PrimarySkill ||
-                        newCastable.Book == Castables.Book.SecondarySkill ||
-                        newCastable.Book == Castables.Book.UtilitySkill)
-                    {
-                        //Skills.Add(newCastable.Id, newCastable);
-                        WorldData.Set(newCastable.Id, newCastable);
-                    }
-                    else
-                    {
-                        //Spells.Add(newCastable.Id, newCastable);
-                        WorldData.Set(newCastable.Id, newCastable);
-                    }
+                    WorldData.SetWithIndex(newCastable.Id, newCastable, newCastable.Name);
                     Logger.DebugFormat("Castables: loaded {0}, id {1}", newCastable.Name, newCastable.Id);
                 }
                 catch (Exception e)
@@ -1885,7 +1874,7 @@ namespace Hybrasyl
 
                             skillName = string.Join(" ", args, 1, args.Length - 1);
 
-                            Castable skill = WorldData.Get<Castable>(skillName);
+                            Castable skill = WorldData.GetByIndex<Castable>(skillName);
                             user.AddSkill(skill);
                         }
                         break;
@@ -1899,7 +1888,7 @@ namespace Hybrasyl
 
                             spellName = string.Join(" ", args, 1, args.Length - 1);
 
-                            Castable spell = WorldData.Get<Castable>(spellName);
+                            Castable spell = WorldData.GetByIndex<Castable>(spellName);
                             user.AddSpell(spell);
                         }
                         break;

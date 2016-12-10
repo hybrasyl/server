@@ -53,7 +53,7 @@ namespace Hybrasyl
         {
             if (_dataStore.ContainsKey(typeof(T)))
             {
-                return (T) _dataStore[typeof(T)][key];
+                return (T) _dataStore[typeof(T)][key.ToString()];
             }
             return default(T);
         }

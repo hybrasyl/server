@@ -43,7 +43,6 @@ namespace Hybrasyl.Objects
         public override void OnDeath()
         {
             Shout("AAAAAAAAAAaaaaa!!!");
-            Map.Remove(this);
             // Now that we're dead, award loot.
             // FIXME: Implement loot tables / full looting.
             var hitter = LastHitter as User;
@@ -54,6 +53,7 @@ namespace Hybrasyl.Objects
             var golds = new Gold(_spawn.Loot.Gold);
             World.Insert(golds);
             Map.Insert(golds, X,Y);
+            Map.Remove(this);
             World.Remove(this);
         }
 

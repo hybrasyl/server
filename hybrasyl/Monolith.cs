@@ -59,7 +59,7 @@ namespace Hybrasyl
 
         public void Start()
         {
-/*            try
+            try
             {
                 foreach (var map in _spawnGroups.SelectMany(spawnGroup => spawnGroup.Maps))
                 {
@@ -82,8 +82,9 @@ namespace Hybrasyl
             {
 
                 throw;
-            }*/
+            }
         }
+    
 
         public void Spawn(SpawnGroup spawnGroup)
         {
