@@ -2319,7 +2319,7 @@ namespace Hybrasyl
             {
                 Insert(loginUser);
                 var spawnpoint = loginUser.Nation.SpawnPoints.First();
-                loginUser.Teleport(spawnpoint.Value, spawnpoint.X, spawnpoint.Y);
+                loginUser.Teleport(spawnpoint.MapName, spawnpoint.X, spawnpoint.Y);
             }
             else if (Maps.ContainsKey(loginUser.Location.MapId))
             {

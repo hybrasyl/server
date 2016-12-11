@@ -89,7 +89,7 @@ namespace Hybrasyl.Objects
         {
             return string.Concat(typeof(User).Name, ':', name.ToLower());
         }
-
+        
         public string StorageKey => string.Concat(GetType().Name, ':', Name.ToLower());
         private Client Client { get; set; }
 
@@ -607,7 +607,7 @@ namespace Hybrasyl.Objects
             if (Nation.SpawnPoints.Count != 0)
             { 
                 var spawnpoint = Nation.SpawnPoints.First();
-                Teleport(spawnpoint.Value, spawnpoint.X, spawnpoint.Y);
+                Teleport(spawnpoint.MapName, spawnpoint.X, spawnpoint.Y);
             }
             else
             {
