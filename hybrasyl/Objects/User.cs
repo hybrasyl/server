@@ -1417,6 +1417,12 @@ namespace Hybrasyl.Objects
             x2D.WriteByte((byte)slot);
             Enqueue(x2D);
         }
+        public void SendClearSpell(int slot)
+        {
+            var x2D = new ServerPacket(0x18);
+            x2D.WriteByte((byte)slot);
+            Enqueue(x2D);
+        }
 
         /// <summary>
         /// Send an ItemObject update packet (essentially placing the ItemObject in a given slot, as far as the client is concerned.
@@ -1469,7 +1475,7 @@ namespace Hybrasyl.Objects
         {
             if (item == null)
             {
-                SendClearSkill(slot);
+                SendClearSpell(slot);
                 return;
             }
             Logger.DebugFormat("Adding spell {0} to slot {2}",
@@ -1480,7 +1486,7 @@ namespace Hybrasyl.Objects
             var spellType = item.Intents[0].UseType;
             //var spellType = isClick ? 2 : 5;
             x17.WriteByte((byte)spellType); //spell type? how are we determining this?
-            x17.WriteString8(item.Name + " (" + item.CastableLevel + "/" + item.MaxLevel + ")");
+            x17.WriteString8(item.Name + " (" + item.CastableLevel + "/" + item.MaxLevel.Peasant + ")");
             x17.WriteString8(item.Name); //prompt? what is this?
             x17.WriteByte((byte)item.Lines);
             x17.WriteByte(0); //current level
