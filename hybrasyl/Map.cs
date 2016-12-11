@@ -22,19 +22,14 @@
 
 using C3;
 using Hybrasyl.Objects;
-using Hybrasyl.Maps;
-using Hybrasyl.Properties;
-using Hybrasyl.XML;
 using log4net;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Threading;
-using System.Xml;
-using log4net.Appender;
+using Microsoft.Scripting.Runtime;
 
 namespace Hybrasyl
 {
@@ -235,17 +230,26 @@ namespace Hybrasyl
 
             foreach (var npcElement in newMap.Npcs)
             {
+                var npcTemplate = World.WorldData.Get<Creatures.Npc>(npcElement.Name);
+                if (npcTemplate == null)
+                {
+                    Logger.Error("map ${Name}: NPC ${npcElement.Name} is missing, will not be loaded");
+                    continue;
+                }
                 var merchant = new Merchant
                 {
                     X = npcElement.X,
                     Y = npcElement.Y,
                     Name = npcElement.Name,
-                    Sprite = npcElement.Appearance.Sprite,
-                    Direction = (Enums.Direction) npcElement.Appearance.Direction,
-                    Portrait = npcElement.Appearance.Portrait,
-                    // Wow this is terrible
-                    Jobs = ((MerchantJob) (int) npcElement.Jobs)
+                    Sprite = npcTemplate.Appearance.Sprite,
+                    Direction = (Enums.Direction) npcElement.Direction,
+                    Portrait = npcTemplate.Appearance.Portrait,
                 };
+                if (npcTemplate.Roles.Post != null) { merchant.Jobs ^= MerchantJob.Post; }
+                if (npcTemplate.Roles.Bank != null) { merchant.Jobs ^= MerchantJob.Bank; }
+                if (npcTemplate.Roles.Repair != null) { merchant.Jobs ^= MerchantJob.Repair; }
+                if (npcTemplate.Roles.Train != null) { merchant.Jobs ^= MerchantJob.Train; }
+                if (npcTemplate.Roles.Vend != null) { merchant.Jobs ^= MerchantJob.Vend; }
                 InsertNpc(merchant);
             }
 
@@ -728,7 +732,7 @@ namespace Hybrasyl
             {
                 case WarpType.Map:
                     Map map;
-                    if (SourceMap.World.MapCatalog.TryGetValue(DestinationMapName, out map))
+                    if (SourceMap.World.WorldData.TryGetValueByIndex(DestinationMapName, out map))
                     {
                         Thread.Sleep(250);
                         target.Teleport(map.Id, DestinationX, DestinationY);
@@ -739,11 +743,11 @@ namespace Hybrasyl
                     break;
                 case WarpType.WorldMap:
                     WorldMap wmap;
-                    if (SourceMap.World.WorldMaps.TryGetValue(DestinationMapName, out wmap))
+                    if (SourceMap.World.WorldData.TryGetValueByIndex(DestinationMapName, out wmap))
                     {
                         SourceMap.Remove(target);
                         target.SendWorldMap(wmap);
-                        SourceMap.World.Maps[Hybrasyl.Constants.LAG_MAP].Insert(target, 5, 5, false);
+                        SourceMap.World.WorldData.Get<Map>(Hybrasyl.Constants.LAG_MAP).Insert(target, 5, 5, false);
                         return true;
                     }
                     Logger.ErrorFormat("User {0} tried to warp to nonexistent worldmap {1} from {2}: {3},{4}",

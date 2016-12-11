@@ -379,8 +379,9 @@ namespace Hybrasyl
                 Item itmType = null;
                 Dictionary<string, object> item;
                 if (TryGetValue(jArray[i], out item))
-                {                   
-                    itmType = World.Items.Where(x => x.Value.Name == (string)item.FirstOrDefault().Value).FirstOrDefault().Value;
+                {
+                    itmType = Game.World.WorldData.Get<Item>(item.FirstOrDefault().Value);
+                    //itmType = Game.World.WorldData.Values<Item>().Where(x => x.Name == (string)item.FirstOrDefault().Value).FirstOrDefault().Name;
                     if (itmType != null)
                     {
                         inv[i] = new ItemObject(itmType.Id, Game.World)

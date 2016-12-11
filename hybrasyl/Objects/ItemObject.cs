@@ -109,7 +109,7 @@ namespace Hybrasyl.Objects
             return true;
         }
 
-        private Item Template => World.Items[TemplateId];
+        private Item Template => World.WorldData.Get<Item>(TemplateId);
 
         public new string Name => Template.Name;
 

@@ -42,7 +42,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
-    <UseVSHostingProcess>true</UseVSHostingProcess>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>x64</PlatformTarget>
@@ -67,8 +67,8 @@
     <Reference Include="FastMember">
       <HintPath>packages\FastMember.1.0.0.11\lib\net40\FastMember.dll</HintPath>
     </Reference>
-    <Reference Include="Hybrasyl.XML, Version=0.5.5.8, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\Hybrasyl.XML.0.5.5.9\lib\net452\Hybrasyl.XML.dll</HintPath>
+    <Reference Include="Hybrasyl.XML, Version=0.5.5.10, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\Hybrasyl.XML.0.5.5.10\lib\net452\Hybrasyl.XML.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="IronPython, Version=2.7.5.0, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
@@ -178,9 +178,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Include="Pursuit.cs" />
     <Compile Include="QuadTree.cs" />
-    <Compile Include="Scripting.cs" />
     <Compile Include="Server.cs" />
     <Compile Include="ServerPacketStructures.cs" />
     <Compile Include="Template.cs" />
@@ -188,6 +186,7 @@
     <Compile Include="UserGroup.cs" />
     <Compile Include="Utility.cs" />
     <Compile Include="World.cs" />
+    <Compile Include="WorldDataStore.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config">
