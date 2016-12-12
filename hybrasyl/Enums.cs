@@ -349,6 +349,7 @@ namespace Hybrasyl
             InDialog = 0x40,
             InComa = 0x80,
             Casting = 0x100,
+            Pvp = 0x200,
             AliveExchange = (Alive | InExchange)
         }
 
