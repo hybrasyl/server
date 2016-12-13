@@ -124,11 +124,9 @@ namespace Hybrasyl.Objects
 
         public override void ShowTo(VisibleObject obj)
         {
-            if (obj is User)
-            {
-                var user = obj as User;
-                user.SendVisibleCreature(this);
-            }
+            if (!(obj is User)) return;
+            var user = obj as User;
+            user.SendVisibleCreature(this);
         }
 
         public bool IsIdle()

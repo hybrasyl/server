@@ -357,6 +357,20 @@ namespace Hybrasyl.Objects
             }
         }
 
+        public void SendCastLine(ServerPacket packet)
+        {
+            Logger.InfoFormat("SendCastLine");
+            Logger.InfoFormat($"SendCastLine byte format is: {BitConverter.ToString(packet.ToArray())}");
+            foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>())
+            {
+                var nPacket = (ServerPacket)packet.Clone();
+                Logger.InfoFormat($"SendCastLine to {user.Name}");
+                user.Enqueue(nPacket);
+
+            }
+
+        }
+
         public virtual void UpdateAttributes(StatUpdateFlags flags)
         {
         }

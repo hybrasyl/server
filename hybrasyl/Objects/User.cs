@@ -1305,9 +1305,18 @@ namespace Hybrasyl.Objects
             x07.WriteUInt16(creature.Y);
             x07.WriteUInt32(creature.Id);
             x07.WriteUInt16((ushort) (creature.Sprite + 0x4000));
-            x07.WriteInt32(0); // Unknown what this is
+            x07.WriteByte(0); // Unknown what this is
+            x07.WriteByte(0);
+            x07.WriteByte(0);
+            x07.WriteByte(0);
+            x07.WriteByte((byte)creature.Direction);
+            x07.WriteByte(0);
+            x07.WriteByte(1);
+            x07.WriteString8(creature.Name);
             x07.DumpPacket();
             Enqueue(x07);
+
+            
         }
 
         public void SendUpdateToUser(Client client)
@@ -2411,9 +2420,12 @@ namespace Hybrasyl.Objects
                 }
             }
             //animation handled here as to not repeatedly send assails.
-            var motionId = (byte)SkillBook.FirstOrDefault(x => x.IsAssail).Effects.Animations.OnCast.Motions.FirstOrDefault(y => y.Class.Contains((Class) Class)).Id;
+            var firstAssail = SkillBook.FirstOrDefault(x => x.IsAssail);
+            var motion = firstAssail?.Effects.Animations.OnCast.Motions.FirstOrDefault(y => y.Class.Contains((Class) Class));
+
+            var motionId = motion != null ? (byte)motion.Id : (byte)1;
             var assail = new ServerPacketStructures.PlayerAnimation() {Animation = motionId , Speed = 20, UserId = this.Id};
-            var sound = new ServerPacketStructures.PlaySound() {Sound = (byte)SkillBook.FirstOrDefault(x => x.IsAssail).Effects.Sound.Id};
+            var sound = new ServerPacketStructures.PlaySound() {Sound = firstAssail != null ? (byte)firstAssail.Effects.Sound.Id : (byte)1};
             Enqueue(assail.Packet());
             Enqueue(sound.Packet());
             SendAnimation(assail.Packet());
