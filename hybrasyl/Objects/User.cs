@@ -2217,15 +2217,11 @@ namespace Hybrasyl.Objects
 
                 try
                 {
-                    motion =
-                        castObject.Effects.Animations.OnCast.Motions.SingleOrDefault(
-                            x => x.Class.Contains((Class) Class));
+                    motion = castObject.Effects.Animations.OnCast.Motions.SingleOrDefault(x => x.Class.Contains((Class) Class));
                 }
                 catch (InvalidOperationException)
                 {
-                    motion =
-                        castObject.Effects.Animations.OnCast.Motions.FirstOrDefault(
-                            x => x.Class.Contains((Class) Class));
+                    motion = castObject.Effects.Animations.OnCast.Motions.FirstOrDefault(x => x.Class.Contains((Class) Class));
 
                     Logger.ErrorFormat("{1}: contains more than one motion for a class definition, using first one found!", castObject.Name);
                 }
@@ -2259,8 +2255,6 @@ namespace Hybrasyl.Objects
                 foreach (var intent in intents)
                 {
                     //isclick should always be 0 for a skill.
-                    var targetAreas = new List<KeyValuePair<int, int>>();
-
 
                     var possibleTargets = new List<VisibleObject>();
                     possibleTargets.AddRange(Map.EntityTree.GetObjects(new Rectangle(this.X - intent.Radius, this.Y, (this.X + intent.Radius) - (this.X - intent.Radius), (this.Y + intent.Radius) - (this.Y - intent.Radius))).Where(obj => obj is Creature && obj != this && obj.GetType() != typeof(User)));
@@ -2278,16 +2272,15 @@ namespace Hybrasyl.Objects
 
                     foreach (var target in actualTargets)
                     {
-                        if (target != null && target is Monster)
+                        if (target is Monster)
                         {
 
-                            Random rand = new Random();
+                            var rand = new Random();
 
                             if (damage.Formula == null) //will need to be expanded. also will need to account for damage scripts
                             {
                                 var simple = damage.Simple;
-                                var damageType = EnumUtil.ParseEnum<Enums.DamageType>(damage.Type.ToString(),
-                                    Enums.DamageType.Magical);
+                                var damageType = EnumUtil.ParseEnum(damage.Type.ToString(), Enums.DamageType.Magical);
                                 var dmg = rand.Next(Convert.ToInt32(simple.Min), Convert.ToInt32(simple.Max));
                                 //these need to be set to integers as attributes. note to fix.
                                 target.Damage(dmg, OffensiveElement, damageType, this);
@@ -2295,14 +2288,13 @@ namespace Hybrasyl.Objects
                             else
                             {
                                 var formula = damage.Formula;
-                                var damageType = EnumUtil.ParseEnum<Enums.DamageType>(damage.Type.ToString(),
-                                    Enums.DamageType.Magical);
-                                FormulaParser parser = new FormulaParser(this, castObject, target);
+                                var damageType = EnumUtil.ParseEnum(damage.Type.ToString(), Enums.DamageType.Magical);
+                                var parser = new FormulaParser(this, castObject, target);
                                 var dmg = parser.Eval(formula);
                                 if (dmg == 0) dmg = 1;
                                 target.Damage(dmg, OffensiveElement, damageType, this);
 
-                                var effectAnimation = new ServerPacketStructures.EffectAnimation() {SourceId = this.Id ,Speed = (short)castObject.Effects.Animations.OnCast.Target.Speed, TargetId = target.Id, TargetAnimation = /*castObject.Effects.Animations.OnCast.Target.Id*/ 237 };
+                                var effectAnimation = new ServerPacketStructures.EffectAnimation() {SourceId = this.Id ,Speed = (short)castObject.Effects.Animations.OnCast.Target.Speed, TargetId = target.Id, TargetAnimation = castObject.Effects.Animations.OnCast.Target.Id };
                                 Enqueue(effectAnimation.Packet());
                                 SendAnimation(effectAnimation.Packet());
 
@@ -2321,33 +2313,27 @@ namespace Hybrasyl.Objects
 
                 try
                 {
-                    motion =
-                        castObject.Effects.Animations.OnCast.Motions.SingleOrDefault(
-                            x => x.Class.Contains((Class)Class));
+                    motion = castObject.Effects.Animations.OnCast.Motions.SingleOrDefault(x => x.Class.Contains((Class)Class));
                 }
                 catch (InvalidOperationException)
                 {
-                    motion =
-                        castObject.Effects.Animations.OnCast.Motions.FirstOrDefault(
-                            x => x.Class.Contains((Class)Class));
+                    motion = castObject.Effects.Animations.OnCast.Motions.FirstOrDefault(x => x.Class.Contains((Class)Class));
 
                     Logger.ErrorFormat("{1}: contains more than one motion for a class definition, using first one found!", castObject.Name);
                 }
 
                 var sound = new ServerPacketStructures.PlaySound { Sound = (byte)castObject.Effects.Sound.Id };
 
-
                 if (motion != null)
                 {
                     var playerAnimation = new ServerPacketStructures.PlayerAnimation()
                     {
                         Animation = (byte)motion.Id,
-                        Speed = (ushort)(motion.Speed / 5),
+                        Speed = (ushort)(motion.Speed / 5), //handles the speed offset in this specific packet.
                         UserId = Id
                     };
                     Enqueue(playerAnimation.Packet());
                     SendAnimation(playerAnimation.Packet());
-
                 }
                 Enqueue(sound.Packet());
                 PlaySound(sound.Packet());
@@ -2368,39 +2354,56 @@ namespace Hybrasyl.Objects
                     case Direction.East:
                     {
                         var obj = Map.EntityTree.FirstOrDefault(x => x.X == X + 1 && x.Y == Y);
-                        if (obj is Monster) target = (Monster) obj;
-                        if (obj is User)
+                        var monster = obj as Monster;
+                        if (monster != null) target = monster;
+                        var user = obj as User;
+                        if (user != null && user.Status.HasFlag(PlayerCondition.Pvp))
                         {
-                            var user = (User) obj;
-                            //need to do something for if pvpflagged.
+                            target = user;
                         }
                     }
                         break;
                     case Direction.West:
                     {
                         var obj = Map.EntityTree.FirstOrDefault(x => x.X == X - 1 && x.Y == Y);
-                        if (obj is Monster) target = (Monster) obj;
+                        var monster = obj as Monster;
+                        if (monster != null) target = monster;
+                        var user = obj as User;
+                        if (user != null && user.Status.HasFlag(PlayerCondition.Pvp))
+                        {
+                            target = user;
+                        }
                     }
                         break;
                     case Direction.North:
                     {
                         var obj = Map.EntityTree.FirstOrDefault(x => x.X == X && x.Y == Y - 1);
-                        if (obj is Monster) target = (Monster) obj;
+                        var monster = obj as Monster;
+                        if (monster != null) target = monster;
+                        var user = obj as User;
+                        if (user != null && user.Status.HasFlag(PlayerCondition.Pvp))
+                        {
+                            target = user;
+                        }
                     }
                         break;
                     case Direction.South:
                     {
                         var obj = Map.EntityTree.FirstOrDefault(x => x.X == X && x.Y == Y + 1);
-                        if (obj is Monster) target = (Monster) obj;
+                        var monster = obj as Monster;
+                        if (monster != null) target = monster;
+                        var user = obj as User;
+                        if (user != null && user.Status.HasFlag(PlayerCondition.Pvp))
+                        {
+                            target = user;
+                        }
                     }
-                        break;
-                    default:
                         break;
                 }
                 //try to get the creature we're facing and set it as the target.
             }
 
-            foreach (Castable c in SkillBook)
+            foreach (var c in SkillBook)
             {
                 if (c.IsAssail)
                 {
@@ -2408,9 +2411,9 @@ namespace Hybrasyl.Objects
                 }
             }
             //animation handled here as to not repeatedly send assails.
-            //this.LastAttack = DateTime.Now; 
-            var assail = new ServerPacketStructures.PlayerAnimation() {Animation = 1, Speed = 20, UserId = this.Id};
-            var sound = new ServerPacketStructures.PlaySound() {Sound = 01};
+            var motionId = (byte)SkillBook.FirstOrDefault(x => x.IsAssail).Effects.Animations.OnCast.Motions.FirstOrDefault(y => y.Class.Contains((Class) Class)).Id;
+            var assail = new ServerPacketStructures.PlayerAnimation() {Animation = motionId , Speed = 20, UserId = this.Id};
+            var sound = new ServerPacketStructures.PlaySound() {Sound = (byte)SkillBook.FirstOrDefault(x => x.IsAssail).Effects.Sound.Id};
             Enqueue(assail.Packet());
             Enqueue(sound.Packet());
             SendAnimation(assail.Packet());
@@ -2420,31 +2423,29 @@ namespace Hybrasyl.Objects
 
         private string GroupProfileSegment()
         {
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
 
             // Only build this string if the user's in a group. Otherwise an empty
             // string should be sent.
-            if (Grouped)
+            if (!Grouped) return sb.ToString();
+            sb.Append("Group members");
+            sb.Append((char)0x0A);
+
+            // The user's name should go first, and should not have an asterisk.
+            // In practice this will mean that the user's name appears first and
+            // is grayed out, while all other names are white.
+            sb.Append("  " + Name);
+            sb.Append((char)0x0A);
+
+            foreach (var member in Group.Members)
             {
-                sb.Append("Group members");
-                sb.Append((char)0x0A);
-
-                // The user's name should go first, and should not have an asterisk.
-                // In practice this will mean that the user's name appears first and
-                // is grayed out, while all other names are white.
-                sb.Append("  " + Name);
-                sb.Append((char)0x0A);
-
-                foreach (var member in Group.Members)
+                if (member.Name != Name)
                 {
-                    if (member.Name != Name)
-                    {
-                        sb.Append("  " + member.Name);
-                        sb.Append((char)0x0A);
-                    }
+                    sb.Append("  " + member.Name);
+                    sb.Append((char)0x0A);
                 }
-                sb.Append(String.Format("Total {0}", Group.Members.Count));
             }
+            sb.Append($"Total {Group.Members.Count}");
 
             return sb.ToString();
         }
