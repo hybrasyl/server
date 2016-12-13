@@ -3837,10 +3837,11 @@ namespace Hybrasyl
             var user = (User) obj;
             var textLength = packet.ReadByte();
             var text = packet.Read(textLength);
-            if (!user.CanCast) return;
+            if (!user.Status.HasFlag(PlayerCondition.Casting)) return;
             var x0D = new ServerPacketStructures.CastLine() {ChatType = 2, LineLength = textLength, LineText = Encoding.UTF8.GetString(text), TargetId = user.Id};
             var enqueue = x0D.Packet();
-            user.Enqueue(enqueue);
+           
+            user.SendCastLine(enqueue);
 
         }
 
