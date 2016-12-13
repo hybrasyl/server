@@ -357,36 +357,37 @@ namespace Hybrasyl
             var output = new object[inventory.Size];
             for (byte i = 0; i < inventory.Size; i++)
             {
-                var itemInfo = new Dictionary<string, object>();
+                dynamic itemInfo = new JObject();
                 if (inventory[i] != null)
                 {
-                    itemInfo["Name"] = inventory[i].Name;
-                    itemInfo["Count"] = inventory[i].Count;
+                    itemInfo.Name = inventory[i].Name;
+                    itemInfo.Count = inventory[i].Count;
+                    itemInfo.Id = inventory[i].TemplateId;
                     output[i] = itemInfo;
                 }               
             }
-            Newtonsoft.Json.Linq.JArray ja = Newtonsoft.Json.Linq.JArray.FromObject(output);
+            var ja = JArray.FromObject(output);
             serializer.Serialize(writer, ja);
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
             JArray jArray = JArray.Load(reader);
-            Inventory inv = new Inventory(jArray.Count);
+            var inv = new Inventory(jArray.Count);
 
             for (byte i = 0; i < jArray.Count; i++)
             {
                 Item itmType = null;
-                Dictionary<string, object> item;
+                dynamic item;
                 if (TryGetValue(jArray[i], out item))
                 {
-                    itmType = Game.World.WorldData.Get<Item>(item.FirstOrDefault().Value);
+                    itmType = Game.World.WorldData.Get<Item>(item.Id);
                     //itmType = Game.World.WorldData.Values<Item>().Where(x => x.Name == (string)item.FirstOrDefault().Value).FirstOrDefault().Name;
                     if (itmType != null)
                     {
                         inv[i] = new ItemObject(itmType.Id, Game.World)
                         {
-                            Count = item.ContainsKey("Count") ? Convert.ToInt32(item["Count"]) : 1
+                            Count = item.Count ?? 1
                         };
                             //this will need to be expanded later based on ItemObject properties being saved back to the database.
                     }
@@ -402,12 +403,12 @@ namespace Hybrasyl
             return objectType == typeof(Inventory);
         }
 
-        public bool TryGetValue(Newtonsoft.Json.Linq.JToken token, out Dictionary<string, object> item)
+        public bool TryGetValue(JToken token, out dynamic item)
         {
             item = null;
             if (!token.HasValues) return false;
 
-            item = token.ToObject<Dictionary<string, object>>();
+            item = token.ToObject<dynamic>();
             return true;
         }
     }
