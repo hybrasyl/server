@@ -1,14 +1,11 @@
 using Hybrasyl.Castables;
 using log4net;
-using Hybrasyl.Castables;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Hybrasyl
 {
@@ -21,12 +18,11 @@ namespace Hybrasyl
             var output = new object[book.Size];
             for (byte i = 0; i < book.Size; i++)
             {
-                var itemInfo = new string[book.Size];
-                if (book[i] != null)
-                {
-                    itemInfo[i] = book[i].Name.ToLower();
-                    output[i] = itemInfo;
-                }
+                dynamic itemInfo = new JObject();
+                if (book[i] == null) continue;
+                itemInfo.Name = book[i].Name.ToLower();
+                itemInfo.Level = book[i].CastableLevel;
+                output[i] = itemInfo;
             }
             var ja = JArray.FromObject(output);
             serializer.Serialize(writer, ja);
@@ -35,18 +31,18 @@ namespace Hybrasyl
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
             
-            JArray jArray = JArray.Load(reader);
+            var jArray = JArray.Load(reader);
             if (objectType.Name == "SkillBook")
             {
                var book = new SkillBook();
 
                 for (byte i = 0; i < jArray.Count; i++)
                 {
-                    string[] item;
-                    if (TryGetValue(jArray[i], out item))
-                    {
-                        book[i] = Game.World.Skills.SingleOrDefault(x => x.Value.Name.ToLower() == item[i]).Value;
-                    }
+                    dynamic item;
+                    if (!TryGetValue(jArray[i], out item)) continue;
+                    book[i] = Game.World.WorldData.Values<Castable>().SingleOrDefault(x => x.Name.ToLower() == (string)item.Name);
+                    var castable = book[i];
+                    if (castable != null) castable.CastableLevel = (byte)item.Level;
                 }
                 return book;
             }
@@ -56,12 +52,11 @@ namespace Hybrasyl
 
                 for (byte i = 0; i < jArray.Count; i++)
                 {
-                    string[] item;
-                    if (TryGetValue(jArray[i], out item))
-                    {
-                        book[i] =
-                            Game.World.Spells.SingleOrDefault(x => x.Value.Name.ToLower() == item[i]).Value;
-                    }
+                    dynamic item;
+                    if (!TryGetValue(jArray[i], out item)) continue;
+                    book[i] = Game.World.WorldData.Values<Castable>().SingleOrDefault(x => x.Name.ToLower() == (string)item.Name);
+                    var castable = book[i];
+                    if (castable != null) castable.CastableLevel = (byte)item.Level;
                 }
                 return book;
             }
@@ -74,12 +69,12 @@ namespace Hybrasyl
             return objectType == typeof(Inventory);
         }
 
-        public bool TryGetValue(JToken token, out string[] item)
+        public bool TryGetValue(JToken token, out dynamic item)
         {
             item = null;
             if (!token.HasValues) return false;
 
-            item = token.ToObject<string[]>();
+            item = token.ToObject<dynamic>();
             return true;
         }
     }

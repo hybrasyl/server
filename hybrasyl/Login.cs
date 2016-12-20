@@ -20,18 +20,13 @@
  *            Kyle Speck    <kojasou@hybrasyl.com>
  */
 
-using System.IO;
 using System.Net;
-using System.Runtime.CompilerServices;
-using System.Runtime.Serialization.Formatters.Binary;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
-using Hybrasyl.Properties;
 using System;
 using System.Collections;
 using System.Linq;
 using System.Text.RegularExpressions;
-using IronPython.Modules;
 using Newtonsoft.Json;
 using StackExchange.Redis;
 

@@ -338,7 +338,7 @@ namespace Hybrasyl
         #endregion
 
         [Flags]
-        public enum PlayerCondition : byte
+        public enum PlayerCondition : int
         {
             Alive = 0x01,
             Frozen = 0x02,
@@ -348,7 +348,8 @@ namespace Hybrasyl
             InExchange = 0x20,
             InDialog = 0x40,
             InComa = 0x80,
-            Casting = 0xCA,
+            Casting = 0x100,
+            Pvp = 0x200,
             AliveExchange = (Alive | InExchange)
         }
 

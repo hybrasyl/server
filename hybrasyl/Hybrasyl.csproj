@@ -16,6 +16,7 @@
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">.\</SolutionDir>
     <RestorePackages>true</RestorePackages>
     <TargetFrameworkProfile />
+    <IsWebBootstrapper>false</IsWebBootstrapper>
     <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Disk</InstallFrom>
@@ -28,7 +29,6 @@
     <MapFileExtensions>true</MapFileExtensions>
     <ApplicationRevision>0</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
-    <IsWebBootstrapper>false</IsWebBootstrapper>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
   </PropertyGroup>
@@ -42,7 +42,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
-    <UseVSHostingProcess>true</UseVSHostingProcess>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>x64</PlatformTarget>
@@ -67,8 +67,8 @@
     <Reference Include="FastMember">
       <HintPath>packages\FastMember.1.0.0.11\lib\net40\FastMember.dll</HintPath>
     </Reference>
-    <Reference Include="Hybrasyl.XML, Version=0.5.5.8, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\Hybrasyl.XML.0.5.5.8\lib\net452\Hybrasyl.XML.dll</HintPath>
+    <Reference Include="Hybrasyl.XML, Version=0.5.5.17, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\Hybrasyl.XML.0.5.5.17\lib\net452\Hybrasyl.XML.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="IronPython, Version=2.7.5.0, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
@@ -107,18 +107,19 @@
       <HintPath>packages\IronPython.2.7.5\lib\Net45\Microsoft.Scripting.Metadata.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Newtonsoft.Json, Version=8.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>packages\Newtonsoft.Json.8.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
+    <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>packages\Newtonsoft.Json.9.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="StackExchange.Redis, Version=1.0.316.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\StackExchange.Redis.1.0.488\lib\net45\StackExchange.Redis.dll</HintPath>
+    <Reference Include="StackExchange.Redis, Version=1.1.608.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\StackExchange.Redis.1.1.608\lib\net45\StackExchange.Redis.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.IO.Compression" />
     <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Security" />
     <Reference Include="System.Windows.Forms" />
@@ -146,6 +147,15 @@
     <Compile Include="Objects\WorldObject.cs" />
     <Compile Include="PlayerStatus.cs" />
     <Compile Include="Legend.cs" />
+    <Compile Include="Scripting\HybrasylDialog.cs" />
+    <Compile Include="Scripting\HybrasylDialogSequence.cs" />
+    <Compile Include="Scripting\HybrasylMap.cs" />
+    <Compile Include="Scripting\HybrasylUser.cs" />
+    <Compile Include="Scripting\HybrasylWorld.cs" />
+    <Compile Include="Scripting\HybrasylWorldObject.cs" />
+    <Compile Include="Scripting\Script.cs" />
+    <Compile Include="Scripting\ScriptInvocation.cs" />
+    <Compile Include="Scripting\ScriptProcessor.cs" />
     <Compile Include="Time.cs" />
     <Compile Include="Client.cs" />
     <Compile Include="Connection.cs" />
@@ -169,9 +179,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Include="Pursuit.cs" />
     <Compile Include="QuadTree.cs" />
-    <Compile Include="Scripting.cs" />
     <Compile Include="Server.cs" />
     <Compile Include="ServerPacketStructures.cs" />
     <Compile Include="Template.cs" />
@@ -179,6 +187,7 @@
     <Compile Include="UserGroup.cs" />
     <Compile Include="Utility.cs" />
     <Compile Include="World.cs" />
+    <Compile Include="WorldDataStore.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config">

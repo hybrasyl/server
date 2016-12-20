@@ -23,6 +23,7 @@
 
 using Hybrasyl.Enums;
 using Hybrasyl.Items;
+using Hybrasyl.Scripting;
 using System;
 
 namespace Hybrasyl.Objects
@@ -108,13 +109,14 @@ namespace Hybrasyl.Objects
             return true;
         }
 
-        private Item Template => World.Items[TemplateId];
+        private Item Template => World.WorldData.Get<Item>(TemplateId);
 
         public new string Name => Template.Name;
 
         public new ushort Sprite => Template.Properties.Appearance.Sprite;
 
-        public ItemPropertiesUse Use => Template.Properties.Use;
+        public bool Usable => Template.Properties.Use != null;
+        public Use Use => Template.Properties.Use;
 
         public ushort EquipSprite
         {
@@ -132,59 +134,52 @@ namespace Hybrasyl.Objects
             {
                 if (Template.Properties.Equipment != null)
                     return ItemObjectType.Equipment;
-                else
-                    return Template.Properties.Use != null ? ItemObjectType.CanUse : ItemObjectType.CannotUse;
-
+                else if (Template.Properties.Use != null)
+                    return ItemObjectType.CanUse;
+                return ItemObjectType.CannotUse;
             }
         }
 
         public WeaponType WeaponType => Template.Properties.Equipment.WeaponType;
         public byte EquipmentSlot => Convert.ToByte(Template.Properties.Equipment.Slot);
         public int Weight => Template.Properties.Physical.Weight;
-        public int MaximumStack => Template.Properties.Stackable.Max;
-        public bool Stackable => Template.Properties.Stackable.Max > 1;
+        public int MaximumStack => Template.MaximumStack;
+        public bool Stackable => Template.Stackable;
 
         public uint MaximumDurability => Template.Properties.Physical.Durability;
 
-        public byte Level => Template.Properties.Restrictions.Level.Min;
-        public byte Ability => (byte)Template.Properties.Restrictions.Ab.Min;
-        public Enums.Class Class => (Enums.Class) Template.Properties.Restrictions.@Class;
-        public Sex Sex => (Sex)Template.Properties.Restrictions.Gender;
+        public byte Level => Template.Level;
+        public byte Ability => Template.Ability;
+        public Enums.Class Class => (Enums.Class)(Template.Class);
+        public Sex Sex => (Sex)Template.Gender;
 
-        public int BonusHp => Template.Properties.StatEffects.@Base.Hp;
-        public int BonusMp => Template.Properties.StatEffects.@Base.Mp;
-        public sbyte BonusStr => Template.Properties.StatEffects.@Base.Str;
-        public sbyte BonusInt => Template.Properties.StatEffects.@Base.@Int;
-        public sbyte BonusWis => Template.Properties.StatEffects.@Base.Wis;
-        public sbyte BonusCon => Template.Properties.StatEffects.@Base.Con;
-        public sbyte BonusDex => Template.Properties.StatEffects.@Base.Dex;
-        public sbyte BonusDmg => Template.Properties.StatEffects.Combat.Dmg;
-        public sbyte BonusHit => Template.Properties.StatEffects.Combat.Hit;
-        public sbyte BonusAc => Template.Properties.StatEffects.Combat.Ac;
-        public sbyte BonusMr => Template.Properties.StatEffects.Combat.Mr;
-        public sbyte BonusRegen => Template.Properties.StatEffects.Combat.Regen;
+        public int BonusHp => Template.BonusHp;
+        public int BonusMp => Template.BonusMp;
+        public sbyte BonusStr => Template.BonusStr;
+        public sbyte BonusInt => Template.BonusInt;
+        public sbyte BonusWis => Template.BonusWis;
+        public sbyte BonusCon => Template.BonusCon;
+        public sbyte BonusDex => Template.BonusDex;
+        public sbyte BonusDmg => Template.BonusDmg;
+        public sbyte BonusHit => Template.BonusHit;
+        public sbyte BonusAc => Template.BonusAc;
+        public sbyte BonusMr => Template.BonusMr;
+        public sbyte BonusRegen => Template.BonusRegen;
         public byte Color => Convert.ToByte(Template.Properties.Appearance.Color);
 
         public byte BodyStyle => Convert.ToByte(Template.Properties.Appearance.BodyStyle);
 
-        public Enums.Element Element
-        {
-            get
-            {
-                if (WeaponType == WeaponType.None)
-                    return (Enums.Element) Template.Properties.StatEffects.Element.Defense;
-                return (Enums.Element) Template.Properties.StatEffects.Element.Offense;
-            }
-        }
-        public ushort MinLDamage => Template.Properties.Damage.Large.Min;
-        public ushort MaxLDamage => Template.Properties.Damage.Large.Max;
-        public ushort MinSDamage => Template.Properties.Damage.Small.Min;
-        public ushort MaxSDamage => Template.Properties.Damage.Small.Max;
+        public Enums.Element Element => (Enums.Element)Template.Element;
+
+        public ushort MinLDamage => Template.MinLDamage;
+        public ushort MaxLDamage => Template.MaxLDamage;
+        public ushort MinSDamage => Template.MinSDamage;
+        public ushort MaxSDamage => Template.MaxSDamage;
         public ushort DisplaySprite => Template.Properties.Appearance.DisplaySprite;
 
         public uint Value => Template.Properties.Physical.Value;
 
-        public sbyte Regen => Template.Properties.StatEffects.Combat.Regen;
+        public sbyte Regen => Template.Regen;
 
         public bool Enchantable => Template.Properties.Flags.HasFlag(ItemFlags.Enchantable);
 
@@ -221,7 +216,6 @@ namespace Hybrasyl.Objects
 
         public void Invoke(User trigger)
         {
-            trigger.SendMessage("Not implemented.", 3);
             // Run through all the different potential uses. We allow combinations of any
             // use specified in the item XML.
             Logger.InfoFormat($"User {trigger.Name}: used item {Name}");

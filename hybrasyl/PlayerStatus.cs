@@ -1,8 +1,5 @@
 ﻿
 using System;
-using System.Data.SqlTypes;
-using System.Windows.Forms;
-using Community.CsharpSqlite;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
 
@@ -76,12 +73,20 @@ namespace Hybrasyl
         public virtual void OnStart()
         {
             if (OnStartMessage != string.Empty) User.SendSystemMessage(OnStartMessage);
+            var tickEffect = (ushort?)GetType().GetField("OnTickEffect").GetValue(null);
+            if (tickEffect == null) return;
+            if (!User.Status.HasFlag(PlayerCondition.InComa))
+                User.Effect((ushort)tickEffect, 120);
         }
 
         public virtual void OnTick()
         {
             LastTick = DateTime.Now;
             if (OnTickMessage != string.Empty) User.SendSystemMessage(OnTickMessage);
+            var tickEffect = (ushort?) GetType().GetField("OnTickEffect").GetValue(null);
+            if (tickEffect == null) return;
+            if (!User.Status.HasFlag(PlayerCondition.InComa))
+                User.Effect((ushort)tickEffect, 120);
         }
 
         public virtual void OnEnd()
@@ -131,12 +136,9 @@ namespace Hybrasyl
 
         public override void OnStart()
         {
-            base.OnStart();
+            base.OnEnd();
             User.ToggleBlind();
-        }
 
-        public override void OnTick()
-        {
         }
 
         public override void OnEnd()
@@ -149,7 +151,7 @@ namespace Hybrasyl
 
     internal class PoisonStatus : PlayerStatus
     {
-        private new static ushort Icon = 36;
+        private new static ushort Icon = 97;
         public new static string Name = "poison";
         public static ushort OnTickEffect = 25;
 
@@ -165,18 +167,9 @@ namespace Hybrasyl
             _damagePerTick = damagePerTick;
         }
 
-        public override void OnStart()
-        {
-            base.OnStart();
-            if (!User.Status.HasFlag(PlayerCondition.InComa))
-                User.Effect(OnTickEffect, 120);
-        }
-
         public override void OnTick()
         {
             base.OnTick();
-            if (!User.Status.HasFlag(PlayerCondition.InComa))
-                User.Effect(OnTickEffect, 120);
             if (_damagePerTick >= User.Hp)
                 User.Damage(User.Hp - 1);
             else
@@ -194,15 +187,13 @@ namespace Hybrasyl
 
         public ParalyzeStatus(User user, int duration, int tick) : base(user, duration, tick, Icon, Name)
         {
-            OnStartMessage = "You are in hibernation.";
-            OnEndMessage = "Your body thaws.";
+            OnStartMessage = "Stunned!";
+            OnEndMessage = "You can move again.";
         }
 
         public override void OnStart()
         {
             base.OnStart();
-            if (!User.Status.HasFlag(PlayerCondition.InComa))
-                User.Effect(OnTickEffect, 120);
             User.ToggleParalyzed();
         }
         public override void OnEnd()
@@ -215,7 +206,7 @@ namespace Hybrasyl
 
     internal class FreezeStatus : PlayerStatus
     {
-        public new static ushort Icon = 36;
+        public new static ushort Icon = 50;
         public new static string Name = "freeze";
         public static ushort OnTickEffect = 40;
 
@@ -230,8 +221,6 @@ namespace Hybrasyl
         public override void OnStart()
         {
             base.OnStart();
-            if (!User.Status.HasFlag(PlayerCondition.InComa))
-                User.Effect(OnTickEffect, 120);
             User.ToggleFreeze();
         }
         public override void OnEnd()
@@ -243,7 +232,7 @@ namespace Hybrasyl
 
     internal class SleepStatus : PlayerStatus
     {
-        public new static ushort Icon = 36;
+        public new static ushort Icon = 2;
         public new static string Name = "sleep";
         public static ushort OnTickEffect = 28;
 
@@ -258,16 +247,9 @@ namespace Hybrasyl
         public override void OnStart()
         {
             base.OnStart();
-            if (!User.Status.HasFlag(PlayerCondition.InComa))
-                User.Effect(OnTickEffect, 120);
             User.ToggleAsleep();
         }
-
-        public override void OnTick()
-        {
-            base.OnTick();
-            User.Effect(OnTickEffect, 120);
-        }
+      
         public override void OnEnd()
         {
             base.OnEnd();
@@ -293,7 +275,6 @@ namespace Hybrasyl
         public override void OnStart()
         {
             base.OnStart();
-            User.Effect(OnTickEffect, 120);
             User.ToggleNearDeath();
             User.Group?.SendMessage($"{User.Name} is dying!");
         }
