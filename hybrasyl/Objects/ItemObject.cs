@@ -216,7 +216,6 @@ namespace Hybrasyl.Objects
 
         public void Invoke(User trigger)
         {
-            trigger.SendMessage("Not implemented.", 3);
             // Run through all the different potential uses. We allow combinations of any
             // use specified in the item XML.
             Logger.InfoFormat($"User {trigger.Name}: used item {Name}");

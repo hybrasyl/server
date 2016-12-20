@@ -428,7 +428,7 @@ namespace Hybrasyl.Objects
             Hp = heal > uint.MaxValue ? MaximumHp : Math.Min(MaximumHp, (uint)(Hp + heal));
 
             SendDamageUpdate(this);
-
+            if (this is User) { UpdateAttributes(StatUpdateFlags.Current); }
         }
 
         public virtual void RegenerateMp(double mp, Creature regenerator = null)
