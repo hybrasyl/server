@@ -2330,7 +2330,7 @@ namespace Hybrasyl
             else if(loginUser.Nation.SpawnPoints.Count != 0 &&
                 loginUser.SinceLastLogin > Hybrasyl.Constants.NATION_SPAWN_TIMEOUT)
             {
-                var spawnpoint = loginUser.Nation.SpawnPoints.First();
+                var spawnpoint = loginUser.Nation.RandomSpawnPoint;
                 loginUser.Teleport(spawnpoint.MapName, spawnpoint.X, spawnpoint.Y);
             }
             else if (WorldData.ContainsKey<Map>(loginUser.Location.MapId))

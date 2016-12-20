@@ -612,8 +612,8 @@ namespace Hybrasyl.Objects
             // Teleport user to national spawn point
             Status |= PlayerCondition.Alive;
             if (Nation.SpawnPoints.Count != 0)
-            { 
-                var spawnpoint = Nation.SpawnPoints.First();
+            {
+                var spawnpoint = Nation.RandomSpawnPoint;
                 Teleport(spawnpoint.MapName, spawnpoint.X, spawnpoint.Y);
             }
             else
