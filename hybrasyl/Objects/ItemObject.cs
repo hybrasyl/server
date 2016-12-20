@@ -115,7 +115,8 @@ namespace Hybrasyl.Objects
 
         public new ushort Sprite => Template.Properties.Appearance.Sprite;
 
-        public ItemPropertiesUse Use => Template.Properties.Use;
+        public bool Usable => Template.Properties.Use != null;
+        public Use Use => Template.Properties.Use;
 
         public ushort EquipSprite
         {
@@ -133,9 +134,9 @@ namespace Hybrasyl.Objects
             {
                 if (Template.Properties.Equipment != null)
                     return ItemObjectType.Equipment;
-                else
-                    return Template.Properties.Use != null ? ItemObjectType.CanUse : ItemObjectType.CannotUse;
-
+                else if (Template.Properties.Use != null)
+                    return ItemObjectType.CanUse;
+                return ItemObjectType.CannotUse;
             }
         }
 

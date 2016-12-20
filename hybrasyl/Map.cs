@@ -30,6 +30,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using Microsoft.Scripting.Runtime;
+using System.Linq;
 
 namespace Hybrasyl
 {
@@ -152,7 +153,7 @@ namespace Hybrasyl
     public class Map
     {
         public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-        
+
         public ushort Id { get; set; }
         public byte X { get; set; }
         public byte Y { get; set; }
@@ -194,7 +195,7 @@ namespace Hybrasyl
             X = newMap.X;
             Y = newMap.Y;
             Name = newMap.Name;
-            EntityTree = new QuadTree<VisibleObject>(0,0,X,Y);
+            EntityTree = new QuadTree<VisibleObject>(0, 0, X, Y);
             Music = newMap.Music;
 
             foreach (var warpElement in newMap.Warps)
@@ -203,7 +204,7 @@ namespace Hybrasyl
                 warp.X = warpElement.X;
                 warp.Y = warpElement.Y;
 
-                if (warpElement.MapTarget !=null)
+                if (warpElement.MapTarget != null)
                 {
                     var maptarget = warpElement.MapTarget as Maps.WarpMapTarget;
                     // map warp
@@ -219,12 +220,17 @@ namespace Hybrasyl
                     warp.DestinationMapName = worldmaptarget;
                     warp.WarpType = WarpType.WorldMap;
                 }
-
-                warp.MinimumLevel = warpElement.Restrictions.Level.Min;
-                warp.MaximumLevel = warpElement.Restrictions.Level.Max;
-                warp.MinimumAbility = warpElement.Restrictions.Ab.Min;
-                warp.MaximumAbility = warpElement.Restrictions.Ab.Max;
-                warp.MobUse = warpElement.Restrictions.NoMobUse;
+                if (warpElement.Restrictions?.Level != null)
+                {
+                    warp.MinimumLevel = warpElement.Restrictions.Level.Min;
+                    warp.MaximumLevel = warpElement.Restrictions.Level.Max;
+                }
+                if (warpElement.Restrictions?.Ab != null)
+                {
+                    warp.MinimumAbility = warpElement.Restrictions.Ab.Min;
+                    warp.MaximumAbility = warpElement.Restrictions.Ab.Max;
+                }
+                warp.MobUse = warpElement.Restrictions?.NoMobUse ?? true;
                 Warps[new Tuple<byte, byte>(warp.X, warp.Y)] = warp;
             }
 
@@ -242,14 +248,17 @@ namespace Hybrasyl
                     Y = npcElement.Y,
                     Name = npcElement.Name,
                     Sprite = npcTemplate.Appearance.Sprite,
-                    Direction = (Enums.Direction) npcElement.Direction,
+                    Direction = (Enums.Direction)npcElement.Direction,
                     Portrait = npcTemplate.Appearance.Portrait,
                 };
-                if (npcTemplate.Roles.Post != null) { merchant.Jobs ^= MerchantJob.Post; }
-                if (npcTemplate.Roles.Bank != null) { merchant.Jobs ^= MerchantJob.Bank; }
-                if (npcTemplate.Roles.Repair != null) { merchant.Jobs ^= MerchantJob.Repair; }
-                if (npcTemplate.Roles.Train != null) { merchant.Jobs ^= MerchantJob.Train; }
-                if (npcTemplate.Roles.Vend != null) { merchant.Jobs ^= MerchantJob.Vend; }
+                if (npcTemplate.Roles != null)
+                {
+                    if (npcTemplate.Roles.Post != null) { merchant.Jobs ^= MerchantJob.Post; }
+                    if (npcTemplate.Roles.Bank != null) { merchant.Jobs ^= MerchantJob.Bank; }
+                    if (npcTemplate.Roles.Repair != null) { merchant.Jobs ^= MerchantJob.Repair; }
+                    if (npcTemplate.Roles.Train != null) { merchant.Jobs ^= MerchantJob.Train; }
+                    if (npcTemplate.Roles.Vend != null) { merchant.Jobs ^= MerchantJob.Vend; }
+                }
                 InsertNpc(merchant);
             }
 
@@ -257,23 +266,25 @@ namespace Hybrasyl
             {
                 // TODO: implement reactor loading support
             }
+            if (newMap.Signs != null) {
+                foreach (var postElement in newMap.Signs.Signposts)
+                {
+                    var signpostElement = postElement as Maps.Signpost;
+                    var signpost = new Objects.Signpost(signpostElement.X, signpostElement.Y, signpostElement.Message);
+                    InsertSignpost(signpost);
 
-            foreach (var postElement in newMap.Signs.Signposts)
-            {
-                var signpostElement = postElement as Maps.Signpost;
-                var signpost = new Objects.Signpost(signpostElement.X, signpostElement.Y, signpostElement.Message);
-                InsertSignpost(signpost);
-
-            }
-            foreach(var postElement in newMap.Signs.MessageBoards)
-            {
+                }
+                foreach (var postElement in newMap.Signs.MessageBoards)
+                {
                     var boardElement = postElement as Maps.MessageBoard;
                     var board = new Objects.Signpost(boardElement.X, boardElement.Y, string.Empty, true, boardElement.Name);
                     InsertSignpost(board);
-                    Logger.InfoFormat("{0}: {1} - messageboard loaded", this.Name, board.Name );
+                    Logger.InfoFormat("{0}: {1} - messageboard loaded", this.Name, board.Name);
+                }
             }
             Load();
         }
+    
 
         public Map()
         {

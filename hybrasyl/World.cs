@@ -433,7 +433,6 @@ namespace Hybrasyl
                 {
                     Items.VariantGroup newGroup = Serializer.Deserialize(XmlReader.Create(xml), new Items.VariantGroup());
                     Logger.DebugFormat("Item variants: loaded {0}", newGroup.Name);
-                    //ItemVariants.Add(newGroup.Name, newGroup);
                     WorldData.Set(newGroup.Name, newGroup);
 
                 }
@@ -448,32 +447,37 @@ namespace Hybrasyl
             // Load items
             foreach (var xml in Directory.GetFiles(ItemDirectory))
             {
-                try
-                {
+//                try
+ //               {
                     Item newItem = Serializer.Deserialize(XmlReader.Create(xml), new Item());
                     Logger.DebugFormat("Items: loaded {0}, id {1}", newItem.Name, newItem.Id);
-                    //Items.Add(newItem.Id, newItem);
                     WorldData.SetWithIndex(newItem.Id, newItem, new Tuple<Sex, string>(Sex.Neutral, newItem.Name));
-                    //ItemCatalog.Add(new Tuple<Sex, string>(Sex.Neutral, newItem.Name), newItem);
-                    foreach (var targetGroup in newItem.Properties.Variants.Group)
+                    // Handle some null cases; there's probably a nicer way to do this
+                    if (newItem.Properties.StatEffects.Combat == null) { newItem.Properties.StatEffects.Combat = new StatEffectsCombat(); }
+                    if (newItem.Properties.StatEffects.Element == null) { newItem.Properties.StatEffects.Element = new StatEffectsElement(); }
+                    if (newItem.Properties.StatEffects.Base == null) { newItem.Properties.StatEffects.Base = new StatEffectsBase(); }
+                    if (newItem.Properties.Variants != null)
                     {
-                        foreach (var variant in WorldData.Get<VariantGroup>(targetGroup).Variant)
+                        foreach (var targetGroup in newItem.Properties.Variants.Group)
                         {
-                            var variantItem = ResolveVariant(newItem, variant, targetGroup);
-                            //variantItem.Name = $"{variant.Name} {newItem.Name}";
-                            Logger.DebugFormat("ItemObject {0}: variantgroup {1}, subvariant {2}", variantItem.Name, targetGroup, variant.Name);
-                            if (WorldData.ContainsKey<Item>(variantItem.Id)) Logger.ErrorFormat("Item already exists with Key {0} : {1}. Cannot add {2}", variantItem.Id, WorldData.Get<Item>(variantItem.Id).Name, variantItem.Name);
-                            //Items.Add(variantItem.Id, variantItem);
-                            WorldData.SetWithIndex(variantItem.Id, variantItem,
-                                new Tuple<Sex, string>(Sex.Neutral, variantItem.Name));
-                            //ItemCatalog.Add(new Tuple<Sex, string>(Sex.Neutral, variantItem.Name), variantItem);
+                            foreach (var variant in WorldData.Get<VariantGroup>(targetGroup).Variant)
+                            {
+                                var variantItem = ResolveVariant(newItem, variant, targetGroup);
+                                //variantItem.Name = $"{variant.Name} {newItem.Name}";
+                                Logger.DebugFormat("ItemObject {0}: variantgroup {1}, subvariant {2}", variantItem.Name, targetGroup, variant.Name);
+                                if (WorldData.ContainsKey<Item>(variantItem.Id)) Logger.ErrorFormat("Item already exists with Key {0} : {1}. Cannot add {2}", variantItem.Id, WorldData.Get<Item>(variantItem.Id).Name, variantItem.Name);
+                                //Items.Add(variantItem.Id, variantItem);
+                                WorldData.SetWithIndex(variantItem.Id, variantItem,
+                                    new Tuple<Sex, string>(Sex.Neutral, variantItem.Name));
+                                //ItemCatalog.Add(new Tuple<Sex, string>(Sex.Neutral, variantItem.Name), variantItem);
+                            }
                         }
                     }
-                }
-                catch (Exception e)
-                {
-                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, e);
-                }
+   //             }
+     //           catch (Exception e)
+       //         {
+         //           Logger.ErrorFormat("Error parsing {0}: {1}", xml, e);
+           //     }
             }
 
             foreach (var xml in Directory.GetFiles(CastableDirectory))
@@ -558,6 +562,10 @@ namespace Hybrasyl
 
             variantItem.Name = variant.Modifier + " " + item.Name;
             variantItem.Properties.Flags = variant.Properties.Flags;
+            if (item.Name == "Beryl Earrings")
+            {
+                Logger.Info("hi");
+            }
             variantItem.Properties.Physical.Value = variant.Properties.Physical.Value == 100 ? item.Properties.Physical.Value : Convert.ToUInt32(Math.Round(item.Properties.Physical.Value * (variant.Properties.Physical.Value * .01)));
             variantItem.Properties.Physical.Durability = variant.Properties.Physical.Durability == 100 ? item.Properties.Physical.Durability : Convert.ToUInt32(Math.Round(item.Properties.Physical.Durability * (variant.Properties.Physical.Durability * .01)));
             variantItem.Properties.Physical.Weight = variant.Properties.Physical.Weight == 100 ? item.Properties.Physical.Weight : Convert.ToInt32(Math.Round(item.Properties.Physical.Weight * (variant.Properties.Physical.Weight * .01)));
@@ -576,6 +584,7 @@ namespace Hybrasyl
                     }
                 case "elemental":
                     {
+                        variantItem.Properties.StatEffects.Element = new StatEffectsElement();
                         variantItem.Properties.StatEffects.Element.Offense = variant.Properties.StatEffects.Element.Offense;
                         variantItem.Properties.StatEffects.Element.Defense = variant.Properties.StatEffects.Element.Defense;
                         break;
@@ -662,8 +671,8 @@ namespace Hybrasyl
             // TODO: split items into multiple ItemInfo files (DA does ~700 each)
             foreach (var item in WorldData.Values<Item>())
             {
-                iteminfo0.Nodes.Add(new MetafileNode(item.Name, item.Properties.Restrictions.Level.Min, (int)item.Properties.Restrictions.@Class, item.Properties.Physical.Weight,
-                    item.Properties.Vendor.ShopTab, item.Properties.Vendor.Description));
+                iteminfo0.Nodes.Add(new MetafileNode(item.Name, item.Properties.Restrictions?.Level?.Min ?? 1, (int)(item.Properties.Restrictions?.@Class ?? Items.Class.Peasant),
+                    item.Properties.Physical.Weight, item.Properties.Vendor?.ShopTab ?? 0, item.Properties.Vendor?.Description ?? String.Empty));
             }
             WorldData.Set(iteminfo0.Name, iteminfo0.Compile());
 
@@ -880,7 +889,6 @@ namespace Hybrasyl
 
         #endregion Set Handlers
 
-        // FIXME: *User here should now use the ConcurrentDictionaries instead
         public void DeleteUser(string username)
         {
             WorldData.Remove<User>(username);
