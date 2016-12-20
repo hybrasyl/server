@@ -136,7 +136,7 @@ namespace Hybrasyl.Objects
                     return uint.MaxValue;
 
                 if (value < uint.MinValue)
-                    return uint.MinValue;
+                    return 1;
 
                 return (uint)BindToRange(value, StatLimitConstants.MIN_BASE_HPMP, StatLimitConstants.MAX_BASE_HPMP);
             }
@@ -152,7 +152,7 @@ namespace Hybrasyl.Objects
                     return uint.MaxValue;
 
                 if (value < uint.MinValue)
-                    return uint.MinValue;
+                    return 1;
 
                 return (uint)BindToRange(value, StatLimitConstants.MIN_BASE_HPMP, StatLimitConstants.MAX_BASE_HPMP);
             }
