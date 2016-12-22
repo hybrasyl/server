@@ -98,7 +98,7 @@ namespace Hybrasyl
 
         public long TerranTicks => HybrasylTicks / 8;
 
-        public static string DefaultAge => Game.Config.Time.ServerStart.DefaultAge != string.Empty ? Game.Config.Time.ServerStart.DefaultAge : "Hybrasyl";
+        public static string DefaultAge => Game.Config.Time != null ? (Game.Config.Time.ServerStart.DefaultAge != string.Empty ? Game.Config.Time.ServerStart.DefaultAge : "Hybrasyl") : "Hybrasyl";
         public static int DefaultYear => Game.Config.Time.ServerStart.DefaultYear != 1 ? Game.Config.Time.ServerStart.DefaultYear : 1;
 
         public static bool ValidAge(string age)
@@ -225,7 +225,7 @@ namespace Hybrasyl
             var terranNow = DateTime.Now;
             var timeElapsed = DateTime.Now.Ticks - World.StartDate.Ticks;
 
-            if (Game.Config.Time.Ages.Count > 0)
+            if (Game.Config.Time != null && Game.Config.Time.Ages.Count > 0)
             {
                 var currentAge = Game.Config.Time.Ages.First(age => age.DateInAge(terranNow));
                 if (currentAge == null)
@@ -244,11 +244,11 @@ namespace Hybrasyl
             }
             else
             {
-                hybrasylTime.Age = Game.Config.Time.ServerStart.DefaultAge != string.Empty
+                hybrasylTime.Age =  Game.Config.Time != null && Game.Config.Time.ServerStart.DefaultAge != string.Empty
                     ? Game.Config.Time.ServerStart.DefaultAge
                     : DefaultAge;
 
-                if (Game.Config.Time.ServerStart.DefaultYear != 1)
+                if (Game.Config.Time != null && Game.Config.Time.ServerStart.DefaultYear != 1)
                     hybrasylTime.Year += Game.Config.Time.ServerStart.DefaultYear;
             }
 
