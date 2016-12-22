@@ -108,8 +108,7 @@ namespace Hybrasyl
     {
         private static uint worldObjectID = 0;
 
-        public static DateTime StartDate
-            => Game.Config.Time.StartDate != null ? (DateTime)Game.Config.Time.StartDate : Game.StartDate;
+        public static DateTime StartDate => Game.Config.Time != null ? Game.Config.Time.StartDate : Game.StartDate;
 
         public new static ILog Logger =
             LogManager.GetLogger(
