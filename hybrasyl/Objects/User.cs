@@ -1311,7 +1311,7 @@ namespace Hybrasyl.Objects
             x07.WriteByte(0);
             x07.WriteByte((byte)creature.Direction);
             x07.WriteByte(0);
-            x07.WriteByte(1);
+            x07.WriteByte(0);
             x07.WriteString8(creature.Name);
             x07.DumpPacket();
             Enqueue(x07);
@@ -2264,7 +2264,7 @@ namespace Hybrasyl.Objects
                 foreach (var intent in intents)
                 {
                     //isclick should always be 0 for a skill.
-
+                    
                     var possibleTargets = new List<VisibleObject>();
                     possibleTargets.AddRange(Map.EntityTree.GetObjects(new Rectangle(this.X - intent.Radius, this.Y, (this.X + intent.Radius) - (this.X - intent.Radius), (this.Y + intent.Radius) - (this.Y - intent.Radius))).Where(obj => obj is Creature && obj != this && obj.GetType() != typeof(User)));
                     possibleTargets.AddRange(Map.EntityTree.GetObjects(new Rectangle(this.X, this.Y - intent.Radius, (this.X + intent.Radius) - (this.X - intent.Radius), (this.Y + intent.Radius) - (this.Y - intent.Radius))).Where(obj => obj is Creature && obj != this && obj.GetType() != typeof(User)));
