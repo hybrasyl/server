@@ -16,6 +16,7 @@
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">.\</SolutionDir>
     <RestorePackages>true</RestorePackages>
     <TargetFrameworkProfile />
+    <IsWebBootstrapper>false</IsWebBootstrapper>
     <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Disk</InstallFrom>
@@ -28,7 +29,6 @@
     <MapFileExtensions>true</MapFileExtensions>
     <ApplicationRevision>0</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
-    <IsWebBootstrapper>false</IsWebBootstrapper>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
   </PropertyGroup>
@@ -67,8 +67,8 @@
     <Reference Include="FastMember">
       <HintPath>packages\FastMember.1.0.0.11\lib\net40\FastMember.dll</HintPath>
     </Reference>
-    <Reference Include="Hybrasyl.XML, Version=0.5.5.10, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\Hybrasyl.XML.0.5.5.10\lib\net452\Hybrasyl.XML.dll</HintPath>
+    <Reference Include="Hybrasyl.XML, Version=0.5.5.17, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\Hybrasyl.XML.0.5.5.17\lib\net452\Hybrasyl.XML.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="IronPython, Version=2.7.5.0, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">

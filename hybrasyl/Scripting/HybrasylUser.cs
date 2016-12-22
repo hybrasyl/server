@@ -41,6 +41,25 @@ namespace Hybrasyl.Scripting
         internal HybrasylMap Map { get; set; }
         public string Name => User.Name;
 
+        public uint Hp
+        {
+            get { return User.Hp; }
+            set {
+                User.Hp = value;
+                User.UpdateAttributes(StatUpdateFlags.Current);
+            }
+        }
+
+        public uint Mp
+        {
+            get { return User.Mp; }
+            set
+            {
+                User.Mp = value;
+                User.UpdateAttributes(StatUpdateFlags.Current);
+            }
+        }
+
         public HybrasylUser(User user)
         {
             User = user;
