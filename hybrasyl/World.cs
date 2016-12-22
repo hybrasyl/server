@@ -2331,7 +2331,8 @@ namespace Hybrasyl
                 loginUser.SinceLastLogin > Hybrasyl.Constants.NATION_SPAWN_TIMEOUT)
             {
                 var spawnpoint = loginUser.Nation.RandomSpawnPoint;
-                loginUser.Teleport(spawnpoint.MapName, spawnpoint.X, spawnpoint.Y);
+                if (spawnpoint != null) loginUser.Teleport(spawnpoint.MapName, spawnpoint.X, spawnpoint.Y);
+                else loginUser.Teleport((ushort)500, (byte)50, (byte)(50));
             }
             else if (WorldData.ContainsKey<Map>(loginUser.Location.MapId))
             {
