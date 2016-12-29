@@ -339,7 +339,7 @@ namespace Hybrasyl
             {
                 try
                 {
-                    Nation newNation = Serializer.Deserialize(XmlReader.Create(xml), new Nation());
+                    var newNation = Serializer.Deserialize(XmlReader.Create(xml), new Nation());
                     Logger.DebugFormat("Nations: Loaded {0}", newNation.Name);
                     //Nations.Add(newNation.Name, newNation);
                     WorldData.Set(newNation.Name, newNation);

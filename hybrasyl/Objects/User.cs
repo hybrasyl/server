@@ -2263,25 +2263,222 @@ namespace Hybrasyl.Objects
                 var intents = castObject.Intents;
                 foreach (var intent in intents)
                 {
-                    //isclick should always be 0 for a skill.
-                    
                     var possibleTargets = new List<VisibleObject>();
-                    possibleTargets.AddRange(Map.EntityTree.GetObjects(new Rectangle(this.X - intent.Radius, this.Y, (this.X + intent.Radius) - (this.X - intent.Radius), (this.Y + intent.Radius) - (this.Y - intent.Radius))).Where(obj => obj is Creature && obj != this && obj.GetType() != typeof(User)));
-                    possibleTargets.AddRange(Map.EntityTree.GetObjects(new Rectangle(this.X, this.Y - intent.Radius, (this.X + intent.Radius) - (this.X - intent.Radius), (this.Y + intent.Radius) - (this.Y - intent.Radius))).Where(obj => obj is Creature && obj != this && obj.GetType() != typeof(User)));
 
-                    List<Creature> actualTargets = new List<Creature>();
-                    if (intent.MaxTargets > 0)
+                    switch (intent.Direction)
                     {
-                        actualTargets = possibleTargets.Take(intent.MaxTargets).OfType<Creature>().ToList();
+                        case IntentDirection.Front:
+                        {
+                            switch (Direction)
+                            {
+                                case Direction.North:
+                                {
+                                    //facing north, attack north
+                                    possibleTargets.AddRange(
+                                        Map.EntityTree.GetObjects(new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius))
+                                            .Where(
+                                                obj =>
+                                                    obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
+                                }
+                                    break;
+                                case Direction.South:
+                                {
+                                    //facing south, attack south
+                                    possibleTargets.AddRange(
+                                        Map.EntityTree.GetObjects(new Rectangle(this.X, this.Y, 1, 1 + intent.Radius))
+                                            .Where(
+                                                obj =>
+                                                    obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
+                                }
+                                    break;
+                                case Direction.East:
+                                {
+                                    //facing east, attack east
+                                    possibleTargets.AddRange(
+                                        Map.EntityTree.GetObjects(new Rectangle(this.X, this.Y, 1 + intent.Radius, 1))
+                                            .Where(
+                                                obj =>
+                                                    obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
+                                }
+                                    break;
+                                case Direction.West:
+                                {
+                                    //facing west, attack west
+                                    possibleTargets.AddRange(
+                                        Map.EntityTree.GetObjects(new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1))
+                                            .Where(
+                                                obj =>
+                                                    obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
+                                }
+                                    break;
+                            }
+                        }
+                            break;
+                        case IntentDirection.Back:
+                        {
+                            switch (Direction)
+                            {
+                                case Direction.North:
+                                {
+                                    //facing north, attack south
+                                    possibleTargets.AddRange(
+                                        Map.EntityTree.GetObjects(new Rectangle(this.X, this.Y, 1, 1 + intent.Radius))
+                                            .Where(
+                                                obj =>
+                                                    obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
+                                }
+                                    break;
+                                case Direction.South:
+                                {
+                                    //facing south, attack north
+                                    possibleTargets.AddRange(
+                                        Map.EntityTree.GetObjects(new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius))
+                                            .Where(
+                                                obj =>
+                                                    obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
+                                }
+                                    break;
+                                case Direction.East:
+                                {
+                                    //facing east, attack west
+                                    possibleTargets.AddRange(
+                                        Map.EntityTree.GetObjects(new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1))
+                                            .Where(
+                                                obj =>
+                                                    obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
+                                }
+                                    break;
+                                case Direction.West:
+                                {
+                                    //facing west, attack east
+                                    possibleTargets.AddRange(
+                                        Map.EntityTree.GetObjects(new Rectangle(this.X, this.Y, 1 + intent.Radius, 1))
+                                            .Where(
+                                                obj =>
+                                                    obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
+                                }
+                                    break;
+                            }
+                        }
+                            break;
+                        case IntentDirection.Left:
+                        {
+                            switch (Direction)
+                            {
+                                case Direction.North:
+                                {
+                                    //facing north, attack west
+                                    possibleTargets.AddRange(
+                                        Map.EntityTree.GetObjects(new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1))
+                                            .Where(
+                                                obj =>
+                                                    obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
+                                }
+                                    break;
+                                case Direction.South:
+                                {
+                                    //facing south, attack east
+                                    possibleTargets.AddRange(
+                                        Map.EntityTree.GetObjects(new Rectangle(this.X, this.Y, 1 + intent.Radius, 1))
+                                            .Where(
+                                                obj =>
+                                                    obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
+                                }
+                                    break;
+                                case Direction.East:
+                                {
+                                    //facing east, attack north
+                                    possibleTargets.AddRange(
+                                        Map.EntityTree.GetObjects(new Rectangle(this.X, this.Y, 1, 1 + intent.Radius))
+                                            .Where(
+                                                obj =>
+                                                    obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
+                                }
+                                    break;
+                                case Direction.West:
+                                {
+                                    //facing west, attack south
+                                    possibleTargets.AddRange(
+                                        Map.EntityTree.GetObjects(new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius))
+                                            .Where(
+                                                obj =>
+                                                    obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
+                                }
+                                    break;
+                            }
+                        }
+                            break;
+                        case IntentDirection.Right:
+                        {
+                            switch (Direction)
+                            {
+                                case Direction.North:
+                                {
+                                    //facing north, attack east
+                                    possibleTargets.AddRange(
+                                        Map.EntityTree.GetObjects(new Rectangle(this.X, this.Y, 1 + intent.Radius, 1))
+                                            .Where(
+                                                obj =>
+                                                    obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
+                                }
+                                    break;
+                                case Direction.South:
+                                {
+                                    //facing south, attack west
+                                    possibleTargets.AddRange(
+                                        Map.EntityTree.GetObjects(new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1))
+                                            .Where(
+                                                obj =>
+                                                    obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
+                                }
+                                    break;
+                                case Direction.East:
+                                {
+                                    //facing east, attack south
+                                    possibleTargets.AddRange(
+                                        Map.EntityTree.GetObjects(new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius))
+                                            .Where(
+                                                obj =>
+                                                    obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
+                                }
+                                    break;
+                                case Direction.West:
+                                {
+                                    //facing west, attack north
+                                    possibleTargets.AddRange(
+                                        Map.EntityTree.GetObjects(new Rectangle(this.X, this.Y, 1, 1 + intent.Radius))
+                                            .Where(
+                                                obj =>
+                                                    obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
+                                }
+                                    break;
+                            }
+                        }
+                            break;
+                        case IntentDirection.Nearby:
+                        {
+                            //attack radius
+                            possibleTargets.AddRange(
+                                Map.EntityTree.GetObjects(new Rectangle(this.X - intent.Radius, this.Y,
+                                        (this.X + intent.Radius) - (this.X - intent.Radius),
+                                        (this.Y + intent.Radius) - (this.Y - intent.Radius)))
+                                    .Where(obj => obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
+                            possibleTargets.AddRange(
+                                Map.EntityTree.GetObjects(new Rectangle(this.X, this.Y - intent.Radius,
+                                        (this.X + intent.Radius) - (this.X - intent.Radius),
+                                        (this.Y + intent.Radius) - (this.Y - intent.Radius)))
+                                    .Where(obj => obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
+                        }
+                            break;
                     }
-                    else
-                    {
-                        actualTargets = possibleTargets.OfType<Creature>().ToList();
-                    }
+
+                    var actualTargets = intent.MaxTargets > 0
+                        ? possibleTargets.Take(intent.MaxTargets).OfType<Creature>().ToList()
+                        : possibleTargets.OfType<Creature>().ToList();
 
                     foreach (var target in actualTargets)
                     {
-                        if (target is Monster)
+                        if (target is Monster || (target is User && ((User)target).Status.HasFlag(PlayerCondition.Pvp)))
                         {
 
                             var rand = new Random();
@@ -2303,10 +2500,16 @@ namespace Hybrasyl.Objects
                                 if (dmg == 0) dmg = 1;
                                 target.Damage(dmg, OffensiveElement, damageType, this);
 
-                                var effectAnimation = new ServerPacketStructures.EffectAnimation() {SourceId = this.Id ,Speed = (short)castObject.Effects.Animations.OnCast.Target.Speed, TargetId = target.Id, TargetAnimation = castObject.Effects.Animations.OnCast.Target.Id };
+                                if (castObject.Effects.Animations.OnCast.Target == null) continue;
+                                var effectAnimation = new ServerPacketStructures.EffectAnimation()
+                                {
+                                    SourceId = this.Id,
+                                    Speed = (short) castObject.Effects.Animations.OnCast.Target.Speed,
+                                    TargetId = target.Id,
+                                    TargetAnimation = castObject.Effects.Animations.OnCast.Target.Id
+                                };
                                 Enqueue(effectAnimation.Packet());
                                 SendAnimation(effectAnimation.Packet());
-
                             }
 
                         }
@@ -2370,6 +2573,11 @@ namespace Hybrasyl.Objects
                         {
                             target = user;
                         }
+                        var npc = obj as Merchant;
+                        if (npc != null)
+                        {
+                            target = npc;
+                        }
                     }
                         break;
                     case Direction.West:
@@ -2381,6 +2589,11 @@ namespace Hybrasyl.Objects
                         if (user != null && user.Status.HasFlag(PlayerCondition.Pvp))
                         {
                             target = user;
+                        }
+                        var npc = obj as Merchant;
+                        if (npc != null)
+                        {
+                            target = npc;
                         }
                     }
                         break;
@@ -2394,6 +2607,11 @@ namespace Hybrasyl.Objects
                         {
                             target = user;
                         }
+                        var npc = obj as Merchant;
+                        if (npc != null)
+                        {
+                            target = npc;
+                        }
                     }
                         break;
                     case Direction.South:
@@ -2406,15 +2624,22 @@ namespace Hybrasyl.Objects
                         {
                             target = user;
                         }
+                        var npc = obj as Merchant;
+                        if (npc != null)
+                        {
+                            target = npc;
+                        }
                     }
                         break;
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(direction), direction, null);
                 }
                 //try to get the creature we're facing and set it as the target.
             }
 
             foreach (var c in SkillBook)
             {
-                if (c.IsAssail)
+                if (target != null && c.IsAssail && target.GetType() != typeof(Merchant) )
                 {
                     Attack(direction, c, target);
                 }
