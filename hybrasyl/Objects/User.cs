@@ -2264,6 +2264,7 @@ namespace Hybrasyl.Objects
                 foreach (var intent in intents)
                 {
                     var possibleTargets = new List<VisibleObject>();
+                    Rectangle rect = new Rectangle(0, 0, 0 ,0);
 
                     switch (intent.Direction)
                     {
@@ -2274,41 +2275,25 @@ namespace Hybrasyl.Objects
                                 case Direction.North:
                                 {
                                     //facing north, attack north
-                                    possibleTargets.AddRange(
-                                        Map.EntityTree.GetObjects(new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius))
-                                            .Where(
-                                                obj =>
-                                                    obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
+                                   rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
                                 }
                                     break;
                                 case Direction.South:
                                 {
                                     //facing south, attack south
-                                    possibleTargets.AddRange(
-                                        Map.EntityTree.GetObjects(new Rectangle(this.X, this.Y, 1, 1 + intent.Radius))
-                                            .Where(
-                                                obj =>
-                                                    obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
+                                    rect =new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
                                 }
                                     break;
                                 case Direction.East:
                                 {
                                     //facing east, attack east
-                                    possibleTargets.AddRange(
-                                        Map.EntityTree.GetObjects(new Rectangle(this.X, this.Y, 1 + intent.Radius, 1))
-                                            .Where(
-                                                obj =>
-                                                    obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
+                                    rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
                                 }
                                     break;
                                 case Direction.West:
                                 {
                                     //facing west, attack west
-                                    possibleTargets.AddRange(
-                                        Map.EntityTree.GetObjects(new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1))
-                                            .Where(
-                                                obj =>
-                                                    obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
+                                    rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
                                 }
                                     break;
                             }
@@ -2321,41 +2306,25 @@ namespace Hybrasyl.Objects
                                 case Direction.North:
                                 {
                                     //facing north, attack south
-                                    possibleTargets.AddRange(
-                                        Map.EntityTree.GetObjects(new Rectangle(this.X, this.Y, 1, 1 + intent.Radius))
-                                            .Where(
-                                                obj =>
-                                                    obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
+                                    rect =new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
                                 }
                                     break;
                                 case Direction.South:
                                 {
                                     //facing south, attack north
-                                    possibleTargets.AddRange(
-                                        Map.EntityTree.GetObjects(new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius))
-                                            .Where(
-                                                obj =>
-                                                    obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
+                                    rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
                                 }
                                     break;
                                 case Direction.East:
                                 {
                                     //facing east, attack west
-                                    possibleTargets.AddRange(
-                                        Map.EntityTree.GetObjects(new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1))
-                                            .Where(
-                                                obj =>
-                                                    obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
+                                    rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
                                 }
                                     break;
                                 case Direction.West:
                                 {
                                     //facing west, attack east
-                                    possibleTargets.AddRange(
-                                        Map.EntityTree.GetObjects(new Rectangle(this.X, this.Y, 1 + intent.Radius, 1))
-                                            .Where(
-                                                obj =>
-                                                    obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
+                                    rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
                                 }
                                     break;
                             }
@@ -2368,41 +2337,25 @@ namespace Hybrasyl.Objects
                                 case Direction.North:
                                 {
                                     //facing north, attack west
-                                    possibleTargets.AddRange(
-                                        Map.EntityTree.GetObjects(new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1))
-                                            .Where(
-                                                obj =>
-                                                    obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
+                                    rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
                                 }
                                     break;
                                 case Direction.South:
                                 {
                                     //facing south, attack east
-                                    possibleTargets.AddRange(
-                                        Map.EntityTree.GetObjects(new Rectangle(this.X, this.Y, 1 + intent.Radius, 1))
-                                            .Where(
-                                                obj =>
-                                                    obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
+                                    rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
                                 }
                                     break;
                                 case Direction.East:
                                 {
                                     //facing east, attack north
-                                    possibleTargets.AddRange(
-                                        Map.EntityTree.GetObjects(new Rectangle(this.X, this.Y, 1, 1 + intent.Radius))
-                                            .Where(
-                                                obj =>
-                                                    obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
+                                    rect = new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
                                 }
                                     break;
                                 case Direction.West:
                                 {
                                     //facing west, attack south
-                                    possibleTargets.AddRange(
-                                        Map.EntityTree.GetObjects(new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius))
-                                            .Where(
-                                                obj =>
-                                                    obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
+                                    rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
                                 }
                                     break;
                             }
@@ -2415,41 +2368,25 @@ namespace Hybrasyl.Objects
                                 case Direction.North:
                                 {
                                     //facing north, attack east
-                                    possibleTargets.AddRange(
-                                        Map.EntityTree.GetObjects(new Rectangle(this.X, this.Y, 1 + intent.Radius, 1))
-                                            .Where(
-                                                obj =>
-                                                    obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
+                                   rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
                                 }
                                     break;
                                 case Direction.South:
                                 {
                                     //facing south, attack west
-                                    possibleTargets.AddRange(
-                                        Map.EntityTree.GetObjects(new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1))
-                                            .Where(
-                                                obj =>
-                                                    obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
+                                    rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
                                 }
                                     break;
                                 case Direction.East:
                                 {
                                     //facing east, attack south
-                                    possibleTargets.AddRange(
-                                        Map.EntityTree.GetObjects(new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius))
-                                            .Where(
-                                                obj =>
-                                                    obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
+                                    rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
                                 }
                                     break;
                                 case Direction.West:
                                 {
                                     //facing west, attack north
-                                    possibleTargets.AddRange(
-                                        Map.EntityTree.GetObjects(new Rectangle(this.X, this.Y, 1, 1 + intent.Radius))
-                                            .Where(
-                                                obj =>
-                                                    obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
+                                    rect = new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
                                 }
                                     break;
                             }
@@ -2458,23 +2395,14 @@ namespace Hybrasyl.Objects
                         case IntentDirection.Nearby:
                         {
                             //attack radius
-                            possibleTargets.AddRange(
-                                Map.EntityTree.GetObjects(new Rectangle(this.X - intent.Radius, this.Y,
-                                        (this.X + intent.Radius) - (this.X - intent.Radius),
-                                        (this.Y + intent.Radius) - (this.Y - intent.Radius)))
-                                    .Where(obj => obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
-                            possibleTargets.AddRange(
-                                Map.EntityTree.GetObjects(new Rectangle(this.X, this.Y - intent.Radius,
-                                        (this.X + intent.Radius) - (this.X - intent.Radius),
-                                        (this.Y + intent.Radius) - (this.Y - intent.Radius)))
-                                    .Where(obj => obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));
+                            rect = new Rectangle(this.X - intent.Radius, this.Y - intent.Radius, intent.Radius * 2, intent.Radius * 2);
                         }
                             break;
                     }
 
-                    var actualTargets = intent.MaxTargets > 0
-                        ? possibleTargets.Take(intent.MaxTargets).OfType<Creature>().ToList()
-                        : possibleTargets.OfType<Creature>().ToList();
+                    if(!rect.IsEmpty) possibleTargets.AddRange(Map.EntityTree.GetObjects(rect).Where(obj => obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));;
+
+                    var actualTargets = intent.MaxTargets > 0 ? possibleTargets.Take(intent.MaxTargets).OfType<Creature>().ToList() : possibleTargets.OfType<Creature>().ToList();
 
                     foreach (var target in actualTargets)
                     {
