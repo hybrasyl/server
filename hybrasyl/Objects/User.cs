@@ -2306,7 +2306,7 @@ namespace Hybrasyl.Objects
                                 case Direction.North:
                                 {
                                     //facing north, attack south
-                                    rect =new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
+                                    rect = new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
                                 }
                                     break;
                                 case Direction.South:
@@ -2489,78 +2489,45 @@ namespace Hybrasyl.Objects
         {
             if (target == null)
             {
+                VisibleObject obj;
+
                 switch (direction)
                 {
                     case Direction.East:
                     {
-                        var obj = Map.EntityTree.FirstOrDefault(x => x.X == X + 1 && x.Y == Y);
-                        var monster = obj as Monster;
-                        if (monster != null) target = monster;
-                        var user = obj as User;
-                        if (user != null && user.Status.HasFlag(PlayerCondition.Pvp))
-                        {
-                            target = user;
-                        }
-                        var npc = obj as Merchant;
-                        if (npc != null)
-                        {
-                            target = npc;
-                        }
+                        obj = Map.EntityTree.FirstOrDefault(x => x.X == X + 1 && x.Y == Y);
                     }
                         break;
                     case Direction.West:
                     {
-                        var obj = Map.EntityTree.FirstOrDefault(x => x.X == X - 1 && x.Y == Y);
-                        var monster = obj as Monster;
-                        if (monster != null) target = monster;
-                        var user = obj as User;
-                        if (user != null && user.Status.HasFlag(PlayerCondition.Pvp))
-                        {
-                            target = user;
-                        }
-                        var npc = obj as Merchant;
-                        if (npc != null)
-                        {
-                            target = npc;
-                        }
+                        obj = Map.EntityTree.FirstOrDefault(x => x.X == X - 1 && x.Y == Y);
                     }
                         break;
                     case Direction.North:
                     {
-                        var obj = Map.EntityTree.FirstOrDefault(x => x.X == X && x.Y == Y - 1);
-                        var monster = obj as Monster;
-                        if (monster != null) target = monster;
-                        var user = obj as User;
-                        if (user != null && user.Status.HasFlag(PlayerCondition.Pvp))
-                        {
-                            target = user;
-                        }
-                        var npc = obj as Merchant;
-                        if (npc != null)
-                        {
-                            target = npc;
-                        }
+                        obj = Map.EntityTree.FirstOrDefault(x => x.X == X && x.Y == Y - 1);
                     }
                         break;
                     case Direction.South:
                     {
-                        var obj = Map.EntityTree.FirstOrDefault(x => x.X == X && x.Y == Y + 1);
-                        var monster = obj as Monster;
-                        if (monster != null) target = monster;
-                        var user = obj as User;
-                        if (user != null && user.Status.HasFlag(PlayerCondition.Pvp))
-                        {
-                            target = user;
-                        }
-                        var npc = obj as Merchant;
-                        if (npc != null)
-                        {
-                            target = npc;
-                        }
+                        obj = Map.EntityTree.FirstOrDefault(x => x.X == X && x.Y == Y + 1);
                     }
                         break;
                     default:
                         throw new ArgumentOutOfRangeException(nameof(direction), direction, null);
+                }
+
+                var monster = obj as Monster;
+                if (monster != null) target = monster;
+                var user = obj as User;
+                if (user != null && user.Status.HasFlag(PlayerCondition.Pvp))
+                {
+                    target = user;
+                }
+                var npc = obj as Merchant;
+                if (npc != null)
+                {
+                    target = npc;
                 }
                 //try to get the creature we're facing and set it as the target.
             }
