@@ -200,24 +200,25 @@ namespace Hybrasyl
 
             foreach (var warpElement in newMap.Warps)
             {
-                var warp = new Warp(this);
-                warp.X = warpElement.X;
-                warp.Y = warpElement.Y;
+                var warp = new Warp(this)
+                {
+                    X = warpElement.X,
+                    Y = warpElement.Y
+                };
 
                 if (warpElement.MapTarget != null)
                 {
-                    var maptarget = warpElement.MapTarget as Maps.WarpMapTarget;
                     // map warp
-                    warp.DestinationMapName = maptarget.Value;
+                    warp.DestinationMapName = warpElement.MapTarget.Value;
                     warp.WarpType = WarpType.Map;
-                    warp.DestinationX = maptarget.X;
-                    warp.DestinationY = maptarget.Y;
+                    warp.DestinationX = warpElement.MapTarget.X;
+                    warp.DestinationY = warpElement.MapTarget.Y;
                 }
-                else
+                else if (warpElement.WorldMapTarget != string.Empty)
                 {
-                    var worldmaptarget = warpElement.WorldMapTarget;
                     // worldmap warp
-                    warp.DestinationMapName = worldmaptarget;
+                    Logger.Info("LOADED WORLD WARP YO");
+                    warp.DestinationMapName = warpElement.WorldMapTarget;
                     warp.WarpType = WarpType.WorldMap;
                 }
                 if (warpElement.Restrictions?.Level != null)
@@ -754,7 +755,7 @@ namespace Hybrasyl
                     break;
                 case WarpType.WorldMap:
                     WorldMap wmap;
-                    if (SourceMap.World.WorldData.TryGetValueByIndex(DestinationMapName, out wmap))
+                    if (SourceMap.World.WorldData.TryGetValue(DestinationMapName, out wmap))
                     {
                         SourceMap.Remove(target);
                         target.SendWorldMap(wmap);

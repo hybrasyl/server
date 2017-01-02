@@ -118,16 +118,8 @@ namespace Hybrasyl.Objects
         public bool Usable => Template.Properties.Use != null;
         public Use Use => Template.Properties.Use;
 
-        public ushort EquipSprite
-        {
-            get
-            {
-                if (Template.Properties.Appearance.EquipSprite == 0)
-                    return Template.Properties.Appearance.Sprite;
-                return Template.Properties.Appearance.EquipSprite;
-            }
-        }
-
+        public ushort EquipSprite => Template.Properties.Appearance.EquipSprite == 0 ? Template.Properties.Appearance.Sprite : Template.Properties.Appearance.EquipSprite;
+           
         public ItemObjectType ItemObjectType
         {
             get
