@@ -731,9 +731,12 @@ namespace Hybrasyl
             #region NPCIllust
 
             var npcillust = new Metafile("NPCIllust");
-            foreach (var kvp in Portraits) // change to merchants that have a portrait rather than all
+            foreach (var npc in WorldData.Values<Npc>()) // change to merchants that have a portrait rather than all
             {
-                npcillust.Nodes.Add(new MetafileNode(kvp.Key, kvp.Value /* portrait filename */));
+                if (npc.Appearance.Portrait != null)
+                {
+                    npcillust.Nodes.Add(new MetafileNode(npc.Name, npc.Appearance.Portrait /* portrait filename */));
+                }
             }
             WorldData.Set(npcillust.Name, npcillust.Compile());
 
