@@ -36,13 +36,13 @@ namespace Hybrasyl
             static readonly ILog Logger = LogManager.GetLogger(typeof(DialogSequence));
 
             public List<Dialog> Dialogs { get; private set; }
-            public String Name { get; private set; }
+            public string Name { get; private set; }
             public uint? Id { get; set; }
             public Script Script { get; private set; }
             public WorldObject Associate { get; private set; }
             public dynamic PreDisplayCallback { get; private set; }
 
-            public DialogSequence(String sequenceName)
+            public DialogSequence(string sequenceName)
             {
                 Name = sequenceName;
                 Dialogs = new List<Dialog>();
@@ -99,7 +99,7 @@ namespace Hybrasyl
 
         public class DialogOption
         {
-            public String OptionText { get; private set; }
+            public string OptionText { get; private set; }
             private Dialog ParentDialog { get; set; }
 
             public dynamic CallbackFunction { get; private set; }
@@ -120,11 +120,11 @@ namespace Hybrasyl
             protected ushort DialogType;
             public DialogSequence Sequence { get; private set; }
             public int Index;
-            public String DisplayText { get; protected set; }
+            public string DisplayText { get; protected set; }
             public dynamic CallbackFunction { get; protected set; }
             public ushort DisplaySprite { get; set; }
 
-            public Dialog(int dialogType, String displayText = null, dynamic callbackFunction = null)
+            public Dialog(int dialogType, string displayText = null, dynamic callbackFunction = null)
             {
                 DialogType = (ushort)dialogType;
                 DisplayText = displayText;
@@ -262,7 +262,7 @@ namespace Hybrasyl
 
         class SimpleDialog : Dialog
         {
-            public SimpleDialog(String displayText)
+            public SimpleDialog(string displayText)
                 : base(DialogTypes.SIMPLE_DIALOG, displayText)
             { }
 
@@ -279,7 +279,7 @@ namespace Hybrasyl
         {
             protected dynamic Handler { get; private set; }
 
-            public InputDialog(int dialogType, String displayText)
+            public InputDialog(int dialogType, string displayText)
                 : base(dialogType, displayText)
             {
                 Handler = null;
@@ -295,7 +295,7 @@ namespace Hybrasyl
         {
             protected List<DialogOption> Options { get; private set; }
 
-            public OptionsDialog(String displayText)
+            public OptionsDialog(string displayText)
                 : base(DialogTypes.OPTIONS_DIALOG, displayText)
             {
                 Options = new List<DialogOption>();
@@ -316,7 +316,7 @@ namespace Hybrasyl
                 }
             }
 
-            public void AddDialogOption(String option, dynamic callback = null)
+            public void AddDialogOption(string option, dynamic callback = null)
             {
                 Options.Add(new DialogOption(option, callback));
             }
@@ -346,11 +346,11 @@ namespace Hybrasyl
 
         class TextDialog : InputDialog
         {
-            protected String TopCaption;
-            protected String BottomCaption;
+            protected string TopCaption;
+            protected string BottomCaption;
             protected int InputLength;
 
-            public TextDialog(String displayText, String topCaption, String bottomCaption, int inputLength)
+            public TextDialog(string displayText, string topCaption, string bottomCaption, int inputLength)
                 : base(DialogTypes.INPUT_DIALOG, displayText)
             {
                 TopCaption = topCaption;
@@ -369,7 +369,7 @@ namespace Hybrasyl
                 RunCallback(invoker, invokee);
             }
 
-            public void HandleResponse(WorldObject invoker, String response, WorldObject associateOverride = null)
+            public void HandleResponse(WorldObject invoker, string response, WorldObject associateOverride = null)
             {
                 Logger.DebugFormat("Response {0} from player {1}", response, invoker.Name);
                 if (Handler != null)

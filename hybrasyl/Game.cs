@@ -113,16 +113,16 @@ namespace Hybrasyl
             Console.Write("Enter the World Port (default is 2612): ");
             var worldPort = Console.ReadLine();
 
-            if (String.IsNullOrEmpty(serverIp))
+            if (string.IsNullOrEmpty(serverIp))
                 serverIp = "127.0.0.1";
 
-            if (String.IsNullOrEmpty(lobbyPort))
+            if (string.IsNullOrEmpty(lobbyPort))
                 lobbyPort = "2610";
 
-            if (String.IsNullOrEmpty(loginPort))
+            if (string.IsNullOrEmpty(loginPort))
                 loginPort = "2611";
 
-            if (String.IsNullOrEmpty(worldPort))
+            if (string.IsNullOrEmpty(worldPort))
                 worldPort = "2612";
 
             Config.Network.Lobby.BindAddress = serverIp;
@@ -474,7 +474,7 @@ namespace Hybrasyl
 
     public static class Crypto
     {
-        public static string HashString(string value, string hashName)
+        public static string Hashstring(string value, string hashName)
         {
             var algo = HashAlgorithm.Create(hashName);
             var buffer = Encoding.ASCII.GetBytes(value);

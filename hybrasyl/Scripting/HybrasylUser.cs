@@ -141,7 +141,7 @@ namespace Hybrasyl.Scripting
             try
             {
                 User.SetSessionFlag(flag, value.ToString());
-                Logger.DebugFormat("{0} - set session flag {1} to {2}", User.Name, flag, value.toString());
+                Logger.DebugFormat("{0} - set session flag {1} to {2}", User.Name, flag, value.tostring());
             }
             catch (Exception e)
             {
@@ -188,7 +188,7 @@ namespace Hybrasyl.Scripting
                 User.Effect(x, y, effect, speed);
         }
 
-        public void Teleport(String location, int x, int y)
+        public void Teleport(string location, int x, int y)
         {
             User.Teleport(location, (byte)x, (byte)y);
         }

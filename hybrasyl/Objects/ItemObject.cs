@@ -40,7 +40,7 @@ namespace Hybrasyl.Objects
         /// <param name="userobj">User object to check for meeting this ItemObject's requirements.</param>
         /// <param name="message">A reference that will be used in the case of failure to set an appropriate error message.</param>
         /// <returns></returns>
-        public bool CheckRequirements(User userobj, out String message)
+        public bool CheckRequirements(User userobj, out string message)
         {
             // We check a variety of conditions and return the first failure.
 

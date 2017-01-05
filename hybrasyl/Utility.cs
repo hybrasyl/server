@@ -148,7 +148,7 @@ namespace Hybrasyl
             ClearExpiredSquelches();
 
             if (obj == null)
-                obj = String.Empty;
+                obj = string.Empty;
 
             if (SquelchedObjects.ContainsValue(obj))
                 return true;
@@ -204,7 +204,7 @@ namespace Hybrasyl
             else
             {
                 throw new ArgumentException(
-                    String.Format("Can't throttle opcode {0} as it doesn't exist in PACKET_THROTTLES constant!", opcode));
+                    string.Format("Can't throttle opcode {0} as it doesn't exist in PACKET_THROTTLES constant!", opcode));
             }
         }
 
