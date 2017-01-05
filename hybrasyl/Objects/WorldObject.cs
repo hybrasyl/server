@@ -118,7 +118,7 @@ namespace Hybrasyl.Objects
 
         public List<DialogSequence> Pursuits;
         public List<DialogSequence> DialogSequences;
-        public Dictionary<String, DialogSequence> SequenceCatalog;
+        public Dictionary<string, DialogSequence> SequenceCatalog;
     }
 
 

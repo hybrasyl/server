@@ -115,11 +115,11 @@ namespace Hybrasyl.Scripting
             catch (Exception e)
             {
                 var pythonFrames = PythonOps.GetDynamicStackFrames(e);
-                var exceptionString = Processor.Engine.GetService<ExceptionOperations>().FormatException(e);
+                var exceptionstring = Processor.Engine.GetService<ExceptionOperations>().FormatException(e);
                 Logger.ErrorFormat("script {0} encountered error, Python stack follows", Path);
-                Logger.ErrorFormat("{0}", exceptionString);
+                Logger.ErrorFormat("{0}", exceptionstring);
                 Disabled = true;
-                CompilationError = exceptionString;
+                CompilationError = exceptionstring;
                 return false;
             }
             return true;
@@ -162,12 +162,12 @@ namespace Hybrasyl.Scripting
             catch (Exception e)
             {
                 var pythonFrames = PythonOps.GetDynamicStackFrames(e);
-                var exceptionString = Processor.Engine.GetService<ExceptionOperations>().FormatException(e);
+                var exceptionstring = Processor.Engine.GetService<ExceptionOperations>().FormatException(e);
                 Logger.ErrorFormat("script {0} encountered error, Python stack follows", Path);
-                Logger.ErrorFormat("{0}", exceptionString);
+                Logger.ErrorFormat("{0}", exceptionstring);
                 Logger.ErrorFormat("script {0} now disabled", Path);
                 Disabled = true;
-                CompilationError = exceptionString;
+                CompilationError = exceptionstring;
                 return false;
             }
             return true;
@@ -200,11 +200,11 @@ namespace Hybrasyl.Scripting
             catch (Exception e)
             {
                 var pythonFrames = PythonOps.GetDynamicStackFrames(e);
-                var exceptionString = Processor.Engine.GetService<ExceptionOperations>().FormatException(e);
+                var exceptionstring = Processor.Engine.GetService<ExceptionOperations>().FormatException(e);
                 Logger.ErrorFormat("script {0} encountered error, Python stack follows", Path);
-                Logger.ErrorFormat("{0}", exceptionString);
+                Logger.ErrorFormat("{0}", exceptionstring);
                 Logger.ErrorFormat("script {0} now disabled", Path);
-                LastRuntimeError = exceptionString;
+                LastRuntimeError = exceptionstring;
                 return false;
             }
             return true;
@@ -245,11 +245,11 @@ namespace Hybrasyl.Scripting
             catch (Exception e)
             {
                 var pythonFrames = PythonOps.GetDynamicStackFrames(e);
-                var exceptionString = Processor.Engine.GetService<ExceptionOperations>().FormatException(e);
+                var exceptionstring = Processor.Engine.GetService<ExceptionOperations>().FormatException(e);
                 Logger.ErrorFormat("script {0} encountered error, Python stack follows", Path);
-                Logger.ErrorFormat("{0}", exceptionString);
+                Logger.ErrorFormat("{0}", exceptionstring);
                 Logger.ErrorFormat("script {0} now disabled");
-                LastRuntimeError = exceptionString;
+                LastRuntimeError = exceptionstring;
             }
         }
 

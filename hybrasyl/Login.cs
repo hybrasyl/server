@@ -60,9 +60,9 @@ namespace Hybrasyl
 
         private void PacketHandler_0x02_CreateA(Client client, ClientPacket packet)
         {
-            var name = packet.ReadString8();
-            var password = packet.ReadString8();
-            var email = packet.ReadString8();
+            var name = packet.Readstring8();
+            var password = packet.Readstring8();
+            var email = packet.Readstring8();
 
             // This string will contain a client-ready message if the provided password
             // isn't valid.
@@ -95,8 +95,8 @@ namespace Hybrasyl
 
         private void PacketHandler_0x03_Login(Client client, ClientPacket packet)
         {
-            var name = packet.ReadString8();
-            var password = packet.ReadString8();
+            var name = packet.Readstring8();
+            var password = packet.Readstring8();
             Logger.DebugFormat("cid {0}: Login request for {1}", client.ConnectionId, name);
 
             User loginUser;
@@ -218,7 +218,7 @@ namespace Hybrasyl
             var seed = packet.ReadByte();
             var keyLength = packet.ReadByte();
             var key = packet.Read(keyLength);
-            var name = packet.ReadString8();
+            var name = packet.Readstring8();
             var id = packet.ReadUInt32();
 
             var redirect = ExpectedConnections[id];
@@ -244,12 +244,12 @@ namespace Hybrasyl
         // https://github.com/hybrasyl/server/pull/11.
         private void PacketHandler_0x26_ChangePassword(Client client, ClientPacket packet)
         {
-            var name = packet.ReadString8();
-            var currentPass = packet.ReadString8();
+            var name = packet.Readstring8();
+            var currentPass = packet.Readstring8();
             // Clientside validation ensures that the same string is typed twice for the new
             // password, and the new password is only sent to the server once. We can assume
             // that they matched if 0x26 request is sent from the client.
-            var newPass = packet.ReadString8();
+            var newPass = packet.Readstring8();
 
             // TODO: REDIS
 

@@ -79,7 +79,7 @@ namespace Hybrasyl
 
                 foreach (var member in Members)
                 {
-                    member.SendMessage(String.Format("{0} is in another group.", user.Name), MessageTypes.SYSTEM);
+                    member.SendMessage(string.Format("{0} is in another group.", user.Name), MessageTypes.SYSTEM);
                 }
 
                 // If this fails when the group only contains one other person, the group should be abandoned.

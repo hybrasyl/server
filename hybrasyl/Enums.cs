@@ -399,7 +399,8 @@ namespace Hybrasyl
         {
             Direct,
             Physical,
-            Magical
+            Magical,
+            Elemental
         }
 
         public enum SpellUseType : byte

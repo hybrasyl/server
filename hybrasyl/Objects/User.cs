@@ -42,9 +42,9 @@ namespace Hybrasyl.Objects
     [JsonObject]
     public class GuildMembership
     {
-        public String Title { get; set; }
-        public String Name { get; set; }
-        public String Rank { get; set; }
+        public string Title { get; set; }
+        public string Name { get; set; }
+        public string Rank { get; set; }
     }
 
     [JsonObject]
@@ -60,9 +60,9 @@ namespace Hybrasyl.Objects
     [JsonObject]
     public class PasswordInfo
     {
-        public String Hash { get; set; }
+        public string Hash { get; set; }
         public DateTime LastChanged { get; set; }
-        public String LastChangedFrom { get; set; }
+        public string LastChangedFrom { get; set; }
     }
 
     [JsonObject]
@@ -71,7 +71,7 @@ namespace Hybrasyl.Objects
         public DateTime LastLogin { get; set; }
         public DateTime LastLogoff { get; set; }
         public DateTime LastLoginFailure { get; set; }
-        public String LastLoginFrom { get; set; }
+        public string LastLoginFrom { get; set; }
         public Int64 LoginFailureCount { get; set; }
         public DateTime CreatedTime { get; set; }
     }
@@ -193,8 +193,8 @@ namespace Hybrasyl.Objects
         public DialogState DialogState { get; set; }
 
         [JsonProperty]
-        private Dictionary<String, String> UserFlags { get; set; }
-        private Dictionary<String, String> UserSessionFlags { get; set; }
+        private Dictionary<string, string> UserFlags { get; set; }
+        private Dictionary<string, string> UserSessionFlags { get; set; }
 
         public Exchange ActiveExchange { get; set; }
 
@@ -271,7 +271,7 @@ namespace Hybrasyl.Objects
             }
         }
 
-        public string SinceLastLoginString => SinceLastLogin < 86400 ? 
+        public string SinceLastLoginstring => SinceLastLogin < 86400 ? 
             $"{Math.Floor(SinceLastLogin/3600)} hours, {Math.Floor(SinceLastLogin%3600/60)} minutes" : 
             $"{Math.Floor(SinceLastLogin/86400)} days, {Math.Floor(SinceLastLogin%86400/3600)} hours, {Math.Floor(SinceLastLogin%86400%3600/60)} minutes";
 
@@ -678,7 +678,7 @@ namespace Hybrasyl.Objects
             get { return (ushort) (BaseStr + Level/4 + 48); }
         }
 
-        public bool VerifyPassword(String password)
+        public bool VerifyPassword(string password)
         {
              return BCrypt.Net.BCrypt.Verify(password, Password.Hash);
         }
@@ -700,14 +700,14 @@ namespace Hybrasyl.Objects
             Location = new Location();
             Legend = new Legend();
             Guild = new GuildMembership();
-            LastSaid = String.Empty;
+            LastSaid = string.Empty;
             LastSpoke = 0;
             NumSaidRepeated = 0;
             PortraitData = new byte[0];
             ProfileText = string.Empty;
             DialogState = new DialogState(this);
-            UserFlags = new Dictionary<String, String>();
-            UserSessionFlags = new Dictionary<String, String>();
+            UserFlags = new Dictionary<string, string>();
+            UserSessionFlags = new Dictionary<string, string>();
             Status = PlayerCondition.Alive;
             Group = null;
             Flags = new Dictionary<string, bool>();
@@ -1156,20 +1156,20 @@ namespace Hybrasyl.Objects
             Enqueue(x04);
         }
 
-        public void DisplayIncomingWhisper(String charname, String message)
+        public void DisplayIncomingWhisper(string charname, string message)
         {
-            Client.SendMessage(String.Format("{0}\" {1}", charname, message), 0x0);
+            Client.SendMessage(string.Format("{0}\" {1}", charname, message), 0x0);
         }
 
-        public void DisplayOutgoingWhisper(String charname, String message)
+        public void DisplayOutgoingWhisper(string charname, string message)
         {
-            Client.SendMessage(String.Format("{0}> {1}", charname, message), 0x0);
+            Client.SendMessage(string.Format("{0}> {1}", charname, message), 0x0);
         }
 
-        public void SendWhisper(String charname, String message)
+        public void SendWhisper(string charname, string message)
         {
             var target = World.FindUser(charname);
-            string err = String.Empty;
+            string err = string.Empty;
 
             if (CanTalkTo(target, out err))
             {
@@ -1195,12 +1195,12 @@ namespace Hybrasyl.Objects
             }
             else
             {
-                string err = String.Empty;
+                string err = string.Empty;
                 foreach (var member in Group.Members)
                 {
                     if (CanTalkTo(member, out err))
                     {
-                        member.Client.SendMessage(String.Format("[!{0}] {1}", Name, message), MessageTypes.GROUP);
+                        member.Client.SendMessage(string.Format("[!{0}] {1}", Name, message), MessageTypes.GROUP);
                     }
                     else
                     {
@@ -1231,7 +1231,7 @@ namespace Hybrasyl.Objects
                 return false;
             }
 
-            msg = String.Empty;
+            msg = string.Empty;
             return true;
         }
 
@@ -1391,7 +1391,7 @@ namespace Hybrasyl.Objects
             // Uint16: sprite offset (79 FF is actually a red scroll, 80 00 onwards are real items)
             // Byte: ??
             // Byte: ItemObject Name length
-            // String: ItemObject Name
+            // string: ItemObject Name
             // Uint32: Max Durability
             // Uint32: Min Durability
 
@@ -1511,35 +1511,35 @@ namespace Hybrasyl.Objects
 
         }
 
-        public void SetFlag(String flag, String value)
+        public void SetFlag(string flag, string value)
         {
             UserFlags[flag] = value;
         }
 
-        public void SetSessionFlag(String flag, String value)
+        public void SetSessionFlag(string flag, string value)
         {
             UserSessionFlags[flag] = value;
         }
 
-        public String GetFlag(String flag)
+        public string GetFlag(string flag)
         {
-            String value;
+            string value;
             if (UserFlags.TryGetValue(flag, out value))
             {
                 return value;
             }
-            return String.Empty;
+            return string.Empty;
         }
 
 
-        public String GetSessionFlag(String flag)
+        public string GetSessionFlag(string flag)
         {
-            String value;
+            string value;
             if (UserSessionFlags.TryGetValue(flag, out value))
             {
                 return value;
             }
-            return String.Empty;
+            return string.Empty;
         }
 
         public override void UpdateAttributes(StatUpdateFlags flags)
@@ -1972,7 +1972,7 @@ namespace Hybrasyl.Objects
                 {
                     itemObject.Count = (inventoryItem.Count + itemObject.Count) - inventoryItem.MaximumStack;
                     inventoryItem.Count = inventoryItem.MaximumStack;
-                    SendSystemMessage(String.Format("You can't carry any more {0}", itemObject.Name));
+                    SendSystemMessage(string.Format("You can't carry any more {0}", itemObject.Name));
                     Map.Insert(itemObject, X, Y);
                     return false;
                 }
@@ -2131,6 +2131,7 @@ namespace Hybrasyl.Objects
             UpdateAttributes(StatUpdateFlags.Current);
         }
 
+        //below method might not be needed.
         public override void Attack(Direction direction, Castable castObject = null, Creature target = null)
         {
             if (target != null)
@@ -2180,20 +2181,17 @@ namespace Hybrasyl.Objects
                 var damage = castObject.Effects.Damage;
                 if (damage != null)
                 {
+                    //TODO: if a castable is targetable, does intent matter?
                     var intents = castObject.Intents;
                     foreach (var intent in intents)
                     {
-                        //isclick should always be 0 for a skill.
-                        var targetAreas = new List<KeyValuePair<int, int>>();
-
                         Random rand = new Random();
 
                         if (damage.Formula == null)
                             //will need to be expanded. also will need to account for damage scripts
                         {
                             var simple = damage.Simple;
-                            var damageType = EnumUtil.ParseEnum<Enums.DamageType>(damage.Type.ToString(),
-                                Enums.DamageType.Magical);
+                            var damageType = EnumUtil.ParseEnum(damage.Type.ToString(), (Enums.DamageType)castObject.Effects.Damage.Type);
                             var dmg = rand.Next(Convert.ToInt32(simple.Min), Convert.ToInt32(simple.Max));
                             //these need to be set to integers as attributes. note to fix.
                             target.Damage(dmg, OffensiveElement, damageType, this);
@@ -2201,24 +2199,23 @@ namespace Hybrasyl.Objects
                         else
                         {
                             var formula = damage.Formula;
-                            var damageType = EnumUtil.ParseEnum<Enums.DamageType>(damage.Type.ToString(),
-                                Enums.DamageType.Magical);
-                            FormulaParser parser = new FormulaParser(this, castObject, target);
+                            var damageType = EnumUtil.ParseEnum(damage.Type.ToString(), (Enums.DamageType)castObject.Effects.Damage.Type);
+                            var parser = new FormulaParser(this, castObject, target);
                             var dmg = parser.Eval(formula);
                             if (dmg == 0) dmg = 1;
                             target.Damage(dmg, OffensiveElement, damageType, this);
-
-                            var effectAnimation = new ServerPacketStructures.EffectAnimation()
-                            {
-                                SourceId = this.Id,
-                                Speed = (short) castObject.Effects.Animations.OnCast.Target.Speed,
-                                TargetId = target.Id,
-                                TargetAnimation = /*castObject.Effects.Animations.OnCast.Target.Id*/ 237
-                            };
-                            Enqueue(effectAnimation.Packet());
-                            SendAnimation(effectAnimation.Packet());
-
                         }
+
+                        if (castObject.Effects.Animations.OnCast.Target == null) continue;
+                        var effectAnimation = new ServerPacketStructures.EffectAnimation()
+                        {
+                            SourceId = this.Id,
+                            Speed = (short)castObject.Effects.Animations.OnCast.Target.Speed,
+                            TargetId = target.Id,
+                            TargetAnimation = castObject.Effects.Animations.OnCast.Target.Id
+                        };
+                        Enqueue(effectAnimation.Packet());
+                        SendAnimation(effectAnimation.Packet());
                     }
                 }
 
@@ -2236,7 +2233,6 @@ namespace Hybrasyl.Objects
                 }
 
                 var sound = new ServerPacketStructures.PlaySound { Sound = (byte)castObject.Effects.Sound.Id };
-
 
                 if (motion != null)
                 {
@@ -2889,7 +2885,7 @@ namespace Hybrasyl.Objects
             // to be <67) otherwise we will cause a buffer overflow / crash on the client side
             // (For right now we assume the color code ({=c) isn't counted but that needs testing)
             // I MEAN IT TAKES 16 BIT RITE BUT HAY ARBITRARY LENGTH ON STRINGS WITH NO NULL TERMINATION IS LEET
-            var transmit = String.Format("{{=c[{0}] {1}", sender, message);
+            var transmit = string.Format("{{=c[{0}] {1}", sender, message);
             if (transmit.Length > 67)
             {
                 // IT'S CHOPPIN TIME

@@ -1,5 +1,6 @@
 ﻿using System;
 using Hybrasyl.Enums;
+using Hybrasyl.Objects;
 using log4net;
 
 namespace Hybrasyl
@@ -85,7 +86,7 @@ namespace Hybrasyl
             internal ServerPacket Packet()
             {
                 ServerPacket packet = new ServerPacket(OpCode);
-                Console.WriteLine(String.Format("uid: {0}, Animation: {1}, speed {2}", UserId, Animation, Speed));
+                Console.WriteLine(string.Format("uid: {0}, Animation: {1}, speed {2}", UserId, Animation, Speed));
                 packet.WriteUInt32(UserId);
                 packet.WriteByte(Animation);
                 packet.WriteUInt16(Speed);
@@ -203,7 +204,7 @@ namespace Hybrasyl
             internal ServerPacket Packet()
             {
                 ServerPacket packet = new ServerPacket(OpCode);
-                Console.WriteLine(String.Format("sound: {0}", Sound));
+                Console.WriteLine(string.Format("sound: {0}", Sound));
                 packet.WriteByte(Sound);
                 return packet;
             }
@@ -384,6 +385,115 @@ namespace Hybrasyl
             }
 
 
+        }
+
+        internal partial class MerchantResponse
+        {
+            private byte OpCode;
+            internal MerchantDialogType MerchantDialogType { get; set; }
+            internal MerchantDialogObjectType MerchantDialogObjectType { get; set; }
+            internal uint ObjectId { get; set; }
+            private byte Unknow4 = 1;
+            internal ushort Tile1 { get; set; }
+            internal byte Color1 { get; set; } //affect items only
+            internal byte Unknow7 = 1;
+            internal ushort Tile2 { get; set; }
+            internal byte Color2 { get; set; } //affect item only
+            private byte Unknow10 = 1; //portrait style. 0 = anime 1 = sprite
+            internal byte NameLength { get; set; }
+            internal string Name { get; set; }
+            internal ushort TextLength { get; set; }
+            internal string Text { get; set; }
+
+            internal struct MerchantOptions
+            {
+                public byte OptionsCount;
+                public MerchantDialogOption[] Options;
+            }
+
+            internal struct MerchantOptionsWithArgument
+            {
+                public byte ArgumentLength;
+                public string Argument;
+                public byte OptionsCount;
+                public MerchantDialogOption[] Options;
+            }
+
+            internal struct MerchantDialogOption
+            {
+                public byte Length;
+                public string Text;
+                public ushort Id;
+            }
+
+            internal struct MerchantInput
+            {
+                public ushort Id;
+            }
+
+            internal struct MerchantInputWithArgument
+            {
+                public byte ArgumentLength;
+                public string Argument;
+                public ushort Id;
+            }
+
+            internal struct MerchantShopItems
+            {
+                public ushort Id;
+                public ushort ItemsCount;
+                public MerchantShopItem[] Items;
+            }
+
+            internal struct MerchantShopItem
+            {
+                public ushort Tile;
+                public byte Color;
+                public uint Price;
+                public byte NameLength;
+                public string Name;
+                public byte DescriptionLength;
+                public string Description;
+            }
+
+            internal struct UserInventoryItems
+            {
+                public ushort Id;
+                public ushort InventorySlotsCount;
+                public byte[] InventorySlots;
+            }
+
+            internal struct MerchantSpells
+            {
+                public ushort Id;
+                public ushort SpellsCount;
+                public byte IconType;
+                public MerchantSpell[] Spells;
+            }
+
+            internal struct MerchantSpell
+            {
+                public ushort Icon;
+                public byte Index;
+                public byte NameLength;
+                public string Name;
+            }
+
+            internal struct MerchantSkills
+            {
+                public ushort Id;
+                public ushort SkillsCount;
+                public byte IconType;
+                public MerchantSkill[] Skills;
+            }
+
+            internal struct MerchantSkill
+            {
+                public ushort Icon;
+                public byte Index;
+                public byte NameLength;
+                public string Name;
+            }
         }
     }
 

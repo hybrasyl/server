@@ -141,23 +141,23 @@ namespace Hybrasyl
         public override string ToString()
         {
             var aislingDate = HybrasylTime.ConvertToHybrasyl(Created != LastUpdated ? Created : LastUpdated);
-            var returnString = Text;
+            var returnstring = Text;
             var markDate = $"{aislingDate.Age} {aislingDate.Year}, {aislingDate.Season}";
 
             var maxLength = 254 - 15 - markDate.Length;
 
             if (Text.Length > maxLength)
             {
-                returnString = Text.Substring(0, maxLength);
+                returnstring = Text.Substring(0, maxLength);
             }
 
             if (Quantity != 0)
-                returnString = $"{returnString} ({Quantity})";
+                returnstring = $"{returnstring} ({Quantity})";
             if (!Public)
-                returnString = $" - {returnString}";
+                returnstring = $" - {returnstring}";
 
-            returnString = $"{returnString} - {markDate}";
-            return returnString;
+            returnstring = $"{returnstring} - {markDate}";
+            return returnstring;
 
         }
     }

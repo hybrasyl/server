@@ -38,7 +38,7 @@ namespace Hybrasyl.Objects
         public Map Map { get; set; }
         public Direction Direction { get; set; }
         public ushort Sprite { get; set; }
-        public String Portrait { get; set; }
+        public string Portrait { get; set; }
         public string DisplayText { get; set; }
 
         public string DeathPileOwner { get; set; }
@@ -224,13 +224,13 @@ namespace Hybrasyl.Objects
 
         public void DisplayPursuits(User invoker)
         {
-            var menupacket = new ServerPacket(0x2F);
+            var menupacket = new ServerPacket(0x2F); //opcode
             // menuType (0), objectType (1 for "creature"), objectID, random, sprite, spritecolor,
             // random1 (same as random), sprite, spriteColor, ??, promptName (Green "nameplate" text on dialog),
             // byte pursuitsCount, array <string pursuitName, uint16 pursuitID>
-            menupacket.WriteByte(0);
+            menupacket.WriteByte(0); //dialogtype
 
-            if (this is Merchant || this is Creature)
+            if (this is Merchant || this is Creature) //objecttype
             {
                 menupacket.WriteByte(1);
             }
@@ -247,16 +247,20 @@ namespace Hybrasyl.Objects
                 menupacket.WriteByte(3); // this is probably bad
             }
 
-            menupacket.WriteUInt32(Id);
-            menupacket.WriteByte(1);
-            menupacket.WriteUInt16((ushort)(0x4000 + Sprite));
-            menupacket.WriteByte(0);
-            menupacket.WriteByte(1);
-            menupacket.WriteUInt16((ushort)(0x4000 + Sprite));
-            menupacket.WriteByte(0);
-            menupacket.WriteByte(0);
+            menupacket.WriteUInt32(Id); //objectid
+            menupacket.WriteByte(1); //unknow4
+            menupacket.WriteUInt16((ushort)(0x4000 + Sprite)); //tile1
+            menupacket.WriteByte(0); //color1
+            menupacket.WriteByte(1); //unknow7
+            //menupacket.WriteUInt16(1);
+            menupacket.WriteUInt16((ushort)(0x4000 + Sprite)); //tile2
+            menupacket.WriteByte(0); //color2
+            menupacket.WriteByte(1); //unknow10 = sprite type??
+            //menupacket.WriteUInt16(1);
             menupacket.WriteString8(Name);
-            menupacket.WriteString16(DisplayText ?? string.Empty);
+            var firstOrDefault = World.Strings.Merchant.FirstOrDefault(x => x.Key == "greeting");
+            if (firstOrDefault != null)
+                menupacket.WriteString16(firstOrDefault.Value ?? string.Empty);
 
             // Generate our list of dialog options
             var countPosition = menupacket.Position;

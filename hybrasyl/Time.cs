@@ -64,7 +64,7 @@ namespace Hybrasyl
                     case 11:
                         return "Fall";
                     default:
-                       return String.Empty;
+                       return string.Empty;
                }
             }
         }
@@ -75,7 +75,7 @@ namespace Hybrasyl
         public const long HourTicks = 60 * MinuteTicks;
         public const long MinuteTicks = 60 * TimeSpan.TicksPerSecond;
 
-        public static readonly List<string> RegexStringList = new List<string>
+        public static readonly List<string> RegexstringList = new List<string>
         {
             @"(?<Age>[A-Za-z _]*) (?<Year>\d*)(\s*,\s*(?<Moon>\d*)\s*(rd|st|nd|th) moon,\s*(?<Sun>\d*)\s*(rd|st|nd|th) sun,\s*(?<Hour>\d{0,2}):(?<Minute>\d{0,2})\s*(?<TimeMeridian>am|pm|a.m.|p.m.)){0,1}",
             @"(?<Age>[A-Za-z _]*)\s*(?<Year>\d*)(\s*,\s*Moon\s*(?<Moon>\d*),\s*Sun\s*(?<Sun>\d*)\s*(?<Hour>\d{0,2}):(?<Minute>\d{0,2})\s*(?<TimeMeridian>am|pm|a.m.|p.m.)){0,1}"
@@ -151,7 +151,7 @@ namespace Hybrasyl
 
         static HybrasylTime()
         {
-            foreach (var regex in RegexStringList)
+            foreach (var regex in RegexstringList)
             {
                 RegexList.Add(new Regex(regex,
                     RegexOptions.Singleline | RegexOptions.Compiled));
@@ -288,28 +288,28 @@ namespace Hybrasyl
             return hybrasylTime;
         }
 
-        public static HybrasylTime FromString(string hybrasyldate)
+        public static HybrasylTime Fromstring(string hybrasyldate)
         {
             // Supported formats:
             // <Age> <Year>, [<cardinal> moon, <cardinal> sun, HH:MM (a.m. | p.m.)]
             // <Age <Year>, [Moon <moon>, Sun <sun>, HH:MM (a.m. | p.m.)]
 
-            var searchString = hybrasyldate.ToLower();
+            var searchstring = hybrasyldate.ToLower();
             foreach (var regex in RegexList)
             {
                 var theMatch = regex.Match(hybrasyldate);
                 if (!theMatch.Success) continue;
                 var yearInt = Int32.Parse(theMatch.Groups["Year"].Value);
-                var minuteInt = theMatch.Groups["Minute"].Value != String.Empty
+                var minuteInt = theMatch.Groups["Minute"].Value != string.Empty
                     ? Int32.Parse(theMatch.Groups["Minute"].Value)
                     : 0;
-                var hourInt = theMatch.Groups["Hour"].Value != String.Empty
+                var hourInt = theMatch.Groups["Hour"].Value != string.Empty
                     ? Int32.Parse(theMatch.Groups["Hour"].Value)
                     : 0;
-                var moonInt = theMatch.Groups["Moon"].Value != String.Empty
+                var moonInt = theMatch.Groups["Moon"].Value != string.Empty
                     ? Int32.Parse(theMatch.Groups["Moon"].Value)
                     : 1;
-                var sunInt = theMatch.Groups["Sun"].Value != String.Empty
+                var sunInt = theMatch.Groups["Sun"].Value != string.Empty
                     ? Int32.Parse(theMatch.Groups["Sun"].Value)
                     : 1;
 
@@ -329,7 +329,7 @@ namespace Hybrasyl
             throw new ArgumentException("Date / time could not be parsed", nameof(hybrasyldate));
         }
 
-        public static HybrasylTime FromDateTimeString(string datetimestring)
+        public static HybrasylTime FromDateTimestring(string datetimestring)
         {
             var datetime = DateTime.Parse(datetimestring);
             return ConvertToHybrasyl(datetime);

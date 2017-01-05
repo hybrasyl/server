@@ -184,6 +184,28 @@ namespace Hybrasyl.Objects
         SendLetterRecipient = 0xFF53
     }
 
+    enum MerchantDialogType : byte
+    {
+        Options = 0,
+        OptionsWithArgument = 1,
+        Input = 2,
+        InputWithArgument = 3,
+        MerchantShopItems = 4,
+        UserInventoryItems = 5,
+        MerchantSpells = 6,
+        MerchantSkills = 7,
+        UserSkillBook = 8,
+        UserSpellBook = 9
+    }
+
+    enum MerchantDialogObjectType : byte
+    {
+        Merchant = 1
+    }
+
+
+
+
     public delegate void MerchantMenuHandlerDelegate(User user, Merchant merchant, ClientPacket packet);
 
     public class MerchantMenuHandler

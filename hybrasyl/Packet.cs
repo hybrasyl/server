@@ -378,7 +378,7 @@ namespace Hybrasyl
     };
         #endregion
 
-        public override bool ShouldEncrypt => Opcode != 0x00 && Opcode != 0x10 && Opcode != 0x29;
+        public override bool ShouldEncrypt => Opcode != 0x00 && Opcode != 0x10 && Opcode != 0x29 ;
 
         public override bool UseDefaultKey => Opcode == 0x02 || Opcode == 0x03 || Opcode == 0x04 || Opcode == 0x0B || Opcode == 0x26
                                               || Opcode == 0x2D || Opcode == 0x3A || Opcode == 0x42 || Opcode == 0x43 || Opcode == 0x4B
@@ -560,7 +560,7 @@ namespace Hybrasyl
             return (uint)(Data[_position++] << 24 | Data[_position++] << 16 | Data[_position++] << 8 | Data[_position++]);
         }
 
-        public string ReadString8()
+        public string Readstring8()
         {
             if (_position + 1 > Data.Length)
                 throw new IndexOutOfRangeException();
@@ -577,7 +577,7 @@ namespace Hybrasyl
 
             return Encoding.GetEncoding(949).GetString(buffer);
         }
-        public string ReadString16()
+        public string Readstring16()
         {
             if (_position + 1 > Data.Length)
                 throw new IndexOutOfRangeException();
