@@ -263,6 +263,8 @@ namespace Hybrasyl
                         if (npcTemplate.Roles.Train.Any(x => x.Type == "Spell")) merchant.Jobs ^= MerchantJob.Spells;
                     }
                     if (npcTemplate.Roles.Vend != null) { merchant.Jobs ^= MerchantJob.Vend; }
+
+                    merchant.Roles = npcTemplate.Roles;
                 }
                 InsertNpc(merchant);
             }

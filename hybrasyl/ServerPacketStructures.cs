@@ -471,7 +471,7 @@ namespace Hybrasyl
                         packet.WriteUInt16(item.Tile);
                         packet.WriteByte(item.Color);
                         packet.WriteUInt32(item.Price);
-                        packet.WriteString8(Name);
+                        packet.WriteString8(item.Name);
                         packet.WriteString8(item.Description);
                     }
                 }
@@ -481,8 +481,10 @@ namespace Hybrasyl
                     packet.WriteUInt16(Skills.SkillsCount);
                     foreach (var skill in Skills.Skills)
                     {
-                        packet.WriteByte(skill.Index);
-                        packet.WriteUInt16(skill.Icon);
+                        packet.WriteByte(skill.IconType);
+                        packet.WriteByte(0);
+                        packet.WriteByte(skill.Icon);
+                        packet.WriteByte(skill.Color);
                         packet.WriteString8(skill.Name);
                     }
                 }
@@ -492,8 +494,10 @@ namespace Hybrasyl
                     packet.WriteUInt16(Spells.SpellsCount);
                     foreach (var spell in Spells.Spells)
                     {
-                        packet.WriteByte(spell.Index);
+                        packet.WriteByte(spell.IconType);
+                        packet.WriteByte(0);
                         packet.WriteUInt16(spell.Icon);
+                        packet.WriteByte(spell.Color);
                         packet.WriteString8(spell.Name);
                     }
                 }

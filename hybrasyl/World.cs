@@ -466,7 +466,7 @@ namespace Hybrasyl
                 {
                     Item newItem = Serializer.Deserialize(XmlReader.Create(xml), new Item());
                     Logger.DebugFormat("Items: loaded {0}, id {1}", newItem.Name, newItem.Id);
-                    WorldData.SetWithIndex(newItem.Id, newItem, new Tuple<Sex, string>(Sex.Neutral, newItem.Name));
+                    WorldData.SetWithIndex(newItem.Id, newItem,  newItem.Name);
                     // Handle some null cases; there's probably a nicer way to do this
                     if (newItem.Properties.StatEffects.Combat == null) { newItem.Properties.StatEffects.Combat = new StatEffectsCombat(); }
                     if (newItem.Properties.StatEffects.Element == null) { newItem.Properties.StatEffects.Element = new StatEffectsElement(); }
@@ -582,58 +582,88 @@ namespace Hybrasyl
             variantItem.Properties.Physical.Durability = variant.Properties.Physical.Durability == 100 ? item.Properties.Physical.Durability : Convert.ToUInt32(Math.Round(item.Properties.Physical.Durability * (variant.Properties.Physical.Durability * .01)));
             variantItem.Properties.Physical.Weight = variant.Properties.Physical.Weight == 100 ? item.Properties.Physical.Weight : Convert.ToInt32(Math.Round(item.Properties.Physical.Weight * (variant.Properties.Physical.Weight * .01)));
 
-            switch (variantGroup)
+            switch (variantGroup.ToLower())
             {
                 case "consecratable":
                     {
-                        variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
-                        variantItem.Properties.StatEffects.Base.Dex += variant.Properties.StatEffects.Base.Dex;
-                        variantItem.Properties.StatEffects.Base.Con += variant.Properties.StatEffects.Base.Con;
-                        variantItem.Properties.StatEffects.Base.Str += variant.Properties.StatEffects.Base.Str;
-                        variantItem.Properties.StatEffects.Base.Wis += variant.Properties.StatEffects.Base.Wis;
-                        variantItem.Properties.StatEffects.Base.Int += variant.Properties.StatEffects.Base.Int;
+                        if (variant.Properties.Restrictions?.Level != null) variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
+                        if (variant.Properties.StatEffects?.Base != null)
+                        {
+                            variantItem.Properties.StatEffects.Base.Dex += variant.Properties.StatEffects.Base.Dex;
+                            variantItem.Properties.StatEffects.Base.Con += variant.Properties.StatEffects.Base.Con;
+                            variantItem.Properties.StatEffects.Base.Str += variant.Properties.StatEffects.Base.Str;
+                            variantItem.Properties.StatEffects.Base.Wis += variant.Properties.StatEffects.Base.Wis;
+                            variantItem.Properties.StatEffects.Base.Int += variant.Properties.StatEffects.Base.Int;
+                        }
                         break;
                     }
                 case "elemental":
                     {
-                        variantItem.Properties.StatEffects.Element.Offense = variant.Properties.StatEffects.Element.Offense;
-                        variantItem.Properties.StatEffects.Element.Defense = variant.Properties.StatEffects.Element.Defense;
+                        if (variant.Properties.StatEffects?.Element != null)
+                        { 
+                            variantItem.Properties.StatEffects.Element.Offense = variant.Properties.StatEffects.Element.Offense;
+                            variantItem.Properties.StatEffects.Element.Defense = variant.Properties.StatEffects.Element.Defense;
+                        }
                         break;
                     }
                 case "enchantable":
                     {
-                        variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
-                        variantItem.Properties.StatEffects.Combat.Ac = (sbyte)(item.Properties.StatEffects.Combat.Ac + variant.Properties.StatEffects.Combat.Ac);
-                        variantItem.Properties.StatEffects.Combat.Dmg += variant.Properties.StatEffects.Combat.Dmg;
-                        variantItem.Properties.StatEffects.Combat.Hit += variant.Properties.StatEffects.Combat.Hit;
-                        variantItem.Properties.StatEffects.Combat.Mr += variant.Properties.StatEffects.Combat.Mr;
-                        variantItem.Properties.StatEffects.Combat.Regen += variant.Properties.StatEffects.Combat.Regen;
-                        variantItem.Properties.StatEffects.Base.Dex += variant.Properties.StatEffects.Base.Dex;
-                        variantItem.Properties.StatEffects.Base.Str += variant.Properties.StatEffects.Base.Str;
-                        variantItem.Properties.StatEffects.Base.Wis += variant.Properties.StatEffects.Base.Wis;
-                        variantItem.Properties.StatEffects.Base.Con += variant.Properties.StatEffects.Base.Con;
-                        variantItem.Properties.StatEffects.Base.Int += variant.Properties.StatEffects.Base.Int;
-                        variantItem.Properties.StatEffects.Base.Hp += variant.Properties.StatEffects.Base.Hp;
-                        variantItem.Properties.StatEffects.Base.Mp += variant.Properties.StatEffects.Base.Mp;
+                        if (variant.Properties.Restrictions?.Level != null)
+                        {
+                            variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
+                        }
+                        if (variant.Properties.StatEffects?.Combat != null)
+                        { 
+                            variantItem.Properties.StatEffects.Combat.Ac = (sbyte)(item.Properties.StatEffects.Combat.Ac + variant.Properties.StatEffects.Combat.Ac);
+                            variantItem.Properties.StatEffects.Combat.Dmg += variant.Properties.StatEffects.Combat.Dmg;
+                            variantItem.Properties.StatEffects.Combat.Hit += variant.Properties.StatEffects.Combat.Hit;
+                            variantItem.Properties.StatEffects.Combat.Mr += variant.Properties.StatEffects.Combat.Mr;
+                            variantItem.Properties.StatEffects.Combat.Regen += variant.Properties.StatEffects.Combat.Regen;
+                        }
+                        if (variant.Properties.StatEffects?.Base != null)
+                        {
+                            variantItem.Properties.StatEffects.Base.Dex += variant.Properties.StatEffects.Base.Dex;
+                            variantItem.Properties.StatEffects.Base.Str += variant.Properties.StatEffects.Base.Str;
+                            variantItem.Properties.StatEffects.Base.Wis += variant.Properties.StatEffects.Base.Wis;
+                            variantItem.Properties.StatEffects.Base.Con += variant.Properties.StatEffects.Base.Con;
+                            variantItem.Properties.StatEffects.Base.Int += variant.Properties.StatEffects.Base.Int;
+                            variantItem.Properties.StatEffects.Base.Hp += variant.Properties.StatEffects.Base.Hp;
+                            variantItem.Properties.StatEffects.Base.Mp += variant.Properties.StatEffects.Base.Mp;
+                        }
                         break;
                     }
                 case "smithable":
                     {
-                        variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
-                        variantItem.Properties.Damage.Large.Min = Convert.ToUInt16(Math.Round(item.Properties.Damage.Large.Min * (variant.Properties.Damage.Large.Min * .01)));
-                        variantItem.Properties.Damage.Large.Max = Convert.ToUInt16(Math.Round(item.Properties.Damage.Large.Max * (variant.Properties.Damage.Large.Max * .01)));
-                        variantItem.Properties.Damage.Small.Min = Convert.ToUInt16(Math.Round(item.Properties.Damage.Small.Min * (variant.Properties.Damage.Small.Min * .01)));
-                        variantItem.Properties.Damage.Small.Max = Convert.ToUInt16(Math.Round(item.Properties.Damage.Small.Max * (variant.Properties.Damage.Small.Max * .01)));
+                        if (variant.Properties.Restrictions?.Level != null)
+                        {
+                            variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
+                        }
+                        if(variant.Properties.Damage?.Large != null)
+                        { 
+                            variantItem.Properties.Damage.Large.Min = Convert.ToUInt16(Math.Round(item.Properties.Damage.Large.Min * (variant.Properties.Damage.Large.Min * .01)));
+                            variantItem.Properties.Damage.Large.Max = Convert.ToUInt16(Math.Round(item.Properties.Damage.Large.Max * (variant.Properties.Damage.Large.Max * .01)));
+                        }
+                        if (variant.Properties.Damage?.Small != null)
+                        { 
+                            variantItem.Properties.Damage.Small.Min = Convert.ToUInt16(Math.Round(item.Properties.Damage.Small.Min * (variant.Properties.Damage.Small.Min * .01)));
+                            variantItem.Properties.Damage.Small.Max = Convert.ToUInt16(Math.Round(item.Properties.Damage.Small.Max * (variant.Properties.Damage.Small.Max * .01)));
+}
                         break;
                     }
                 case "tailorable":
                     {
-                        variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
-                        variantItem.Properties.StatEffects.Combat.Ac = (sbyte)(item.Properties.StatEffects.Combat.Ac + variant.Properties.StatEffects.Combat.Ac);
-                        variantItem.Properties.StatEffects.Combat.Dmg += variant.Properties.StatEffects.Combat.Dmg;
-                        variantItem.Properties.StatEffects.Combat.Hit += variant.Properties.StatEffects.Combat.Hit;
-                        variantItem.Properties.StatEffects.Combat.Mr += variant.Properties.StatEffects.Combat.Mr;
-                        variantItem.Properties.StatEffects.Combat.Regen += variant.Properties.StatEffects.Combat.Regen;
+                        if (variant.Properties.Restrictions?.Level != null)
+                        {
+                            variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
+                        }
+                        if (variant.Properties.StatEffects?.Combat != null)
+                        { 
+                            variantItem.Properties.StatEffects.Combat.Ac = (sbyte)(item.Properties.StatEffects.Combat.Ac + variant.Properties.StatEffects.Combat.Ac);
+                            variantItem.Properties.StatEffects.Combat.Dmg += variant.Properties.StatEffects.Combat.Dmg;
+                            variantItem.Properties.StatEffects.Combat.Hit += variant.Properties.StatEffects.Combat.Hit;
+                            variantItem.Properties.StatEffects.Combat.Mr += variant.Properties.StatEffects.Combat.Mr;
+                            variantItem.Properties.StatEffects.Combat.Regen += variant.Properties.StatEffects.Combat.Regen;
+                        }
                         break;
                     }
                 default:
@@ -874,19 +904,37 @@ namespace Hybrasyl
                     new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_SellItemConfirmation)
                 },
                 {
-                    MerchantMenuItem.LearnSkillMenu, new MerchantMenuHandler(MerchantJob.Skills, MerchantMenuHandler_LearnSkill)
+                    MerchantMenuItem.LearnSkillMenu, new MerchantMenuHandler(MerchantJob.Skills, MerchantMenuHandler_LearnSkillMenu)
                 },
                 {
-                    MerchantMenuItem.LearnSpellMenu, new MerchantMenuHandler(MerchantJob.Spells, MerchantMenuHandler_LearnSpell)
+                    MerchantMenuItem.LearnSpellMenu, new MerchantMenuHandler(MerchantJob.Spells, MerchantMenuHandler_LearnSpellMenu)
                 },
                 {
-                    MerchantMenuItem.ForgetSkillMenu, new MerchantMenuHandler(MerchantJob.Skills, MerchantMenuHandler_ForgetSkill)
+                    MerchantMenuItem.ForgetSkillMenu, new MerchantMenuHandler(MerchantJob.Skills, MerchantMenuHandler_ForgetSkillMenu)
                 },
                 {
-                    MerchantMenuItem.ForgetSpellMenu, new MerchantMenuHandler(MerchantJob.Spells, MerchantMenuHandler_ForgetSpell)
+                    MerchantMenuItem.ForgetSpellMenu, new MerchantMenuHandler(MerchantJob.Spells, MerchantMenuHandler_ForgetSpellMenu)
+                },
+                {
+                    MerchantMenuItem.LearnSkill, new MerchantMenuHandler(MerchantJob.Skills, MerchantMenuHandler_LearnSkill)
+                },
+                {
+                    MerchantMenuItem.LearnSpell, new MerchantMenuHandler(MerchantJob.Spells, MerchantMenuHandler_LearnSpell)
+                },
+                {
+                    MerchantMenuItem.ForgetSkill, new MerchantMenuHandler(MerchantJob.Skills, MerchantMenuHandler_ForgetSkill)
+                },
+                {
+                    MerchantMenuItem.ForgetSpell, new MerchantMenuHandler(MerchantJob.Spells, MerchantMenuHandler_ForgetSpell)
                 },
                 {
                     MerchantMenuItem.LearnSkillAccept, new MerchantMenuHandler(MerchantJob.Skills, MerchantMenuHandler_LearnSkillAccept)
+                },
+                {
+                    MerchantMenuItem.LearnSkillAgree, new MerchantMenuHandler(MerchantJob.Skills, MerchantMenuHandler_LearnSkillAgree)
+                },
+                {
+                    MerchantMenuItem.LearnSkillDisagree, new MerchantMenuHandler(MerchantJob.Skills, MerchantMenuHandler_LearnSkillDisagree)
                 },
                 {
                     MerchantMenuItem.LearnSpellAccept, new MerchantMenuHandler(MerchantJob.Spells, MerchantMenuHandler_LearnSpellAccept)
@@ -4158,15 +4206,53 @@ namespace Hybrasyl
             merchant.DisplayPursuits(user);
         }
 
+        private void MerchantMenuHandler_LearnSkillMenu(User user, Merchant merchant, ClientPacket packet)
+        {
+            user.ShowLearnSkillMenu(merchant);
+        }
         private void MerchantMenuHandler_LearnSkill(User user, Merchant merchant, ClientPacket packet)
         {
-            
+            packet.ReadInt32();
+            packet.ReadInt32();
+            packet.ReadInt32();//objectid
+            packet.ReadInt16(); //actionId
+            var skillName = packet.ReadString8(); //skill name
+            var skill = WorldData.GetByIndex<Castable>(skillName);
+            user.ShowLearnSkill(merchant, skill);
         }
         private void MerchantMenuHandler_LearnSkillAccept(User user, Merchant merchant, ClientPacket packet)
         {
+            packet.ReadInt32();
+            packet.ReadInt32();
+            packet.ReadInt32();//objectid
+            packet.ReadInt16(); //actionId
+            var skillName = packet.ReadString8(); //skill name
+            var skill = WorldData.GetByIndex<Castable>(skillName);
+            user.ShowLearnSkillAccept(merchant, skill);
 
         }
 
+        private void MerchantMenuHandler_LearnSkillAgree(User user, Merchant merchant, ClientPacket packet)
+        {
+            packet.ReadInt32();
+            packet.ReadInt32();
+            packet.ReadInt32();//objectid
+            packet.ReadInt16(); //actionId
+            var skillName = packet.ReadString8(); //skill name
+            var skill = WorldData.GetByIndex<Castable>(skillName);
+            user.ShowLearnSkillAgree(merchant, skill);
+        }
+
+        private void MerchantMenuHandler_LearnSkillDisagree(User user, Merchant merchant, ClientPacket packet)
+        {
+            user.ShowLearnSkillDisagree(merchant);
+        }
+
+
+        private void MerchantMenuHandler_LearnSpellMenu(User user, Merchant merchant, ClientPacket packet)
+        {
+            user.ShowLearnSpellMenu(merchant);
+        }
         private void MerchantMenuHandler_LearnSpell(User user, Merchant merchant, ClientPacket packet)
         {
             
@@ -4175,17 +4261,25 @@ namespace Hybrasyl
         {
 
         }
-        private void MerchantMenuHandler_ForgetSkill(User user, Merchant merchant, ClientPacket packet)
+        private void MerchantMenuHandler_ForgetSkillMenu(User user, Merchant merchant, ClientPacket packet)
         {
             
+        }
+        private void MerchantMenuHandler_ForgetSkill(User user, Merchant merchant, ClientPacket packet)
+        {
+
         }
         private void MerchantMenuHandler_ForgetSkillAccept(User user, Merchant merchant, ClientPacket packet)
         {
 
         }
-        private void MerchantMenuHandler_ForgetSpell(User user, Merchant merchant, ClientPacket packet)
+        private void MerchantMenuHandler_ForgetSpellMenu(User user, Merchant merchant, ClientPacket packet)
         {
             
+        }
+        private void MerchantMenuHandler_ForgetSpell(User user, Merchant merchant, ClientPacket packet)
+        {
+
         }
         private void MerchantMenuHandler_ForgetSpellAccept(User user, Merchant merchant, ClientPacket packet)
         {

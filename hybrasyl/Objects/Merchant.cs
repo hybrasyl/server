@@ -181,6 +181,11 @@ namespace Hybrasyl.Objects
         ForgetSkillAccept = 0xFF35,
         ForgetSpell = 0xFF36,
         ForgetSpellAccept = 0xFF37,
+        LearnSkillAgree = 0xFF38,
+        LearnSkillDisagree = 0xFF39,
+        LearnSpellAgree = 0xFF3A,
+        LearnSpellDisagree = 0xFF3B,
+
 
         RepairItem = 0xFF40,
         RepairItemAccept = 0xFF41,
@@ -222,7 +227,7 @@ namespace Hybrasyl.Objects
         public byte ArgumentLength;
         public string Argument;
         public byte OptionsCount;
-        public MerchantDialogOption[] Options;
+        public List<MerchantDialogOption> Options;
     }
 
     public struct MerchantDialogOption
@@ -248,7 +253,7 @@ namespace Hybrasyl.Objects
     {
         public ushort Id;
         public ushort ItemsCount;
-        public MerchantShopItem[] Items;
+        public List<MerchantShopItem> Items;
     }
 
     public struct MerchantShopItem
@@ -274,13 +279,14 @@ namespace Hybrasyl.Objects
         public ushort Id;
         public ushort SpellsCount;
         public byte IconType;
-        public MerchantSpell[] Spells;
+        public List<MerchantSpell> Spells;
     }
 
     public struct MerchantSpell
     {
-        public ushort Icon;
-        public byte Index;
+        public byte IconType;
+        public byte Icon;
+        public byte Color;
         public byte NameLength;
         public string Name;
     }
@@ -290,13 +296,14 @@ namespace Hybrasyl.Objects
         public ushort Id;
         public ushort SkillsCount;
         public byte IconType;
-        public MerchantSkill[] Skills;
+        public List<MerchantSkill> Skills;
     }
 
     public struct MerchantSkill
     {
-        public ushort Icon;
-        public byte Index;
+        public byte IconType;
+        public byte Icon;
+        public byte Color;
         public byte NameLength;
         public string Name;
     }
