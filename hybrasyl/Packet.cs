@@ -560,7 +560,7 @@ namespace Hybrasyl
             return (uint)(Data[_position++] << 24 | Data[_position++] << 16 | Data[_position++] << 8 | Data[_position++]);
         }
 
-        public string Readstring8()
+        public string ReadString8()
         {
             if (_position + 1 > Data.Length)
                 throw new IndexOutOfRangeException();
@@ -577,7 +577,7 @@ namespace Hybrasyl
 
             return Encoding.GetEncoding(949).GetString(buffer);
         }
-        public string Readstring16()
+        public string ReadString16()
         {
             if (_position + 1 > Data.Length)
                 throw new IndexOutOfRangeException();

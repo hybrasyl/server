@@ -395,11 +395,11 @@ namespace Hybrasyl
 
         public void GenerateKeyTable(string seed)
         {
-            string table = Crypto.Hashstring(seed, "MD5");
-            table = Crypto.Hashstring(table, "MD5");
+            string table = Crypto.HashString(seed, "MD5");
+            table = Crypto.HashString(table, "MD5");
             for (var i = 0; i < 31; i++)
             {
-                table += Crypto.Hashstring(table, "MD5");
+                table += Crypto.HashString(table, "MD5");
             }
 
             EncryptionKeyTable = Encoding.ASCII.GetBytes(table);

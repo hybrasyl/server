@@ -474,7 +474,7 @@ namespace Hybrasyl
 
     public static class Crypto
     {
-        public static string Hashstring(string value, string hashName)
+        public static string HashString(string value, string hashName)
         {
             var algo = HashAlgorithm.Create(hashName);
             var buffer = Encoding.ASCII.GetBytes(value);

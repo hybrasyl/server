@@ -1285,7 +1285,7 @@ namespace Hybrasyl
         {
             var user = (User)obj;
             var isShout = packet.ReadByte();
-            var message = packet.Readstring8();
+            var message = packet.ReadString8();
 
             if (message.StartsWith("/"))
             {
@@ -2313,7 +2313,7 @@ namespace Hybrasyl
             var seed = packet.ReadByte();
             var keyLength = packet.ReadByte();
             var key = packet.Read(keyLength);
-            var name = packet.Readstring8();
+            var name = packet.ReadString8();
             var id = packet.ReadUInt32();
 
             var redirect = ExpectedConnections[id];
@@ -2704,7 +2704,7 @@ namespace Hybrasyl
             //   0x02 = user is sending initial request to invitee
             //   0x03 = invitee responds with a "yes"
             byte stage = packet.ReadByte();
-            User partner = FindUser(packet.Readstring8());
+            User partner = FindUser(packet.ReadString8());
 
             // TODO: currently leaving five bytes on the table here. There's probably some
             // additional work that needs to happen though I haven't been able to determine
@@ -3181,8 +3181,8 @@ namespace Hybrasyl
                 case 0x04:
                     {
                         var boardId = packet.ReadUInt16();
-                        var subject = packet.Readstring8();
-                        var body = packet.Readstring16();
+                        var subject = packet.ReadString8();
+                        var body = packet.ReadString16();
                         Board board;
                         response.WriteByte(0x06); // Generic board response
                         if (DateTime.Now.Ticks - user.LastMailboxMessageSent < Constants.SEND_MESSAGE_COOLDOWN)
@@ -3269,9 +3269,9 @@ namespace Hybrasyl
                         // Send mail (which one might argue, ye olde DOOMVAS protocol designers, is a type of message)
 
                         var boardId = packet.ReadUInt16();
-                        var recipient = packet.Readstring8();
-                        var subject = packet.Readstring8();
-                        var body = packet.Readstring16();
+                        var recipient = packet.ReadString8();
+                        var subject = packet.ReadString8();
+                        var body = packet.ReadString16();
                         response.WriteByte(0x06); // Send post response
                         User recipientUser;
 
@@ -3574,7 +3574,7 @@ namespace Hybrasyl
                 if (user.DialogState.ActiveDialog is TextDialog)
                 {
                     var paramsLength = packet.ReadByte();
-                    var response = packet.Readstring8();
+                    var response = packet.ReadString8();
                     var dialog = user.DialogState.ActiveDialog as TextDialog;
                     dialog.HandleResponse(user, response, clickTarget);
                 }
@@ -3875,7 +3875,7 @@ namespace Hybrasyl
             var totalLength = packet.ReadUInt16();
             var portraitLength = packet.ReadUInt16();
             var portraitData = packet.Read(portraitLength);
-            var profileText = packet.Readstring16();
+            var profileText = packet.ReadString16();
 
             user.PortraitData = portraitData;
             user.ProfileText = profileText;
@@ -3927,7 +3927,7 @@ namespace Hybrasyl
             }
             else
             {
-                var name = packet.Readstring8();
+                var name = packet.ReadString8();
                 if (WorldData.ContainsKey<CompiledMetafile>(name))
                 {
                     var file = WorldData.Get<CompiledMetafile>(name);
@@ -3964,7 +3964,7 @@ namespace Hybrasyl
 
         private void MerchantMenuHandler_BuyItem(User user, Merchant merchant, ClientPacket packet)
         {
-            string name = packet.Readstring8();
+            string name = packet.ReadString8();
 
             if (!merchant.Inventory.ContainsKey(name))
             {
@@ -4010,8 +4010,8 @@ namespace Hybrasyl
 
         private void MerchantMenuHandler_BuyItemWithQuantity(User user, Merchant merchant, ClientPacket packet)
         {
-            string name = packet.Readstring8();
-            string qStr = packet.Readstring8();
+            string name = packet.ReadString8();
+            string qStr = packet.ReadString8();
 
             if (!merchant.Inventory.ContainsKey(name))
             {
@@ -4100,7 +4100,7 @@ namespace Hybrasyl
         {
             packet.ReadByte();
             byte slot = packet.ReadByte();
-            string qStr = packet.Readstring8();
+            string qStr = packet.ReadString8();
 
             int quantity;
             if (!int.TryParse(qStr, out quantity) || quantity < 1)
