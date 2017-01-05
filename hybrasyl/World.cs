@@ -197,7 +197,6 @@ namespace Hybrasyl
 
         public static string LocalizationDirectory => Path.Combine(DataDirectory, "world", "xml", "localization");
 
-
         public static bool TryGetUser(string name, out User userobj)
         {
             var jsonstring = (string)DatastoreConnection.GetDatabase().Get(User.GetStorageKey(name));
@@ -875,28 +874,28 @@ namespace Hybrasyl
                     new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_SellItemConfirmation)
                 },
                 {
-                    MerchantMenuItem.LearnSkillMenu, new MerchantMenuHandler(MerchantJob.Train, MerchantMenuHandler_LearnSkill)
+                    MerchantMenuItem.LearnSkillMenu, new MerchantMenuHandler(MerchantJob.Skills, MerchantMenuHandler_LearnSkill)
                 },
                 {
-                    MerchantMenuItem.LearnSpellMenu, new MerchantMenuHandler(MerchantJob.Train, MerchantMenuHandler_LearnSpell)
+                    MerchantMenuItem.LearnSpellMenu, new MerchantMenuHandler(MerchantJob.Spells, MerchantMenuHandler_LearnSpell)
                 },
                 {
-                    MerchantMenuItem.ForgetSkillMenu, new MerchantMenuHandler(MerchantJob.Train, MerchantMenuHandler_ForgetSkill)
+                    MerchantMenuItem.ForgetSkillMenu, new MerchantMenuHandler(MerchantJob.Skills, MerchantMenuHandler_ForgetSkill)
                 },
                 {
-                    MerchantMenuItem.ForgetSpellMenu, new MerchantMenuHandler(MerchantJob.Train, MerchantMenuHandler_ForgetSpell)
+                    MerchantMenuItem.ForgetSpellMenu, new MerchantMenuHandler(MerchantJob.Spells, MerchantMenuHandler_ForgetSpell)
                 },
                 {
-                    MerchantMenuItem.LearnSkillAccept, new MerchantMenuHandler(MerchantJob.Train, MerchantMenuHandler_LearnSkillAccept)
+                    MerchantMenuItem.LearnSkillAccept, new MerchantMenuHandler(MerchantJob.Skills, MerchantMenuHandler_LearnSkillAccept)
                 },
                 {
-                    MerchantMenuItem.LearnSpellAccept, new MerchantMenuHandler(MerchantJob.Train, MerchantMenuHandler_LearnSpellAccept)
+                    MerchantMenuItem.LearnSpellAccept, new MerchantMenuHandler(MerchantJob.Spells, MerchantMenuHandler_LearnSpellAccept)
                 },
                 {
-                    MerchantMenuItem.ForgetSkillAccept, new MerchantMenuHandler(MerchantJob.Train, MerchantMenuHandler_ForgetSkillAccept)
+                    MerchantMenuItem.ForgetSkillAccept, new MerchantMenuHandler(MerchantJob.Skills, MerchantMenuHandler_ForgetSkillAccept)
                 },
                 {
-                    MerchantMenuItem.ForgetSpellAccept, new MerchantMenuHandler(MerchantJob.Train, MerchantMenuHandler_ForgetSpellAccept)
+                    MerchantMenuItem.ForgetSpellAccept, new MerchantMenuHandler(MerchantJob.Spells, MerchantMenuHandler_ForgetSpellAccept)
                 },
 
             };

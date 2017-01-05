@@ -25,13 +25,16 @@ using Hybrasyl.Items;
 using Hybrasyl.Scripting;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using Hybrasyl.Creatures;
 
 namespace Hybrasyl.Objects
 {
-    public class Merchant : Monster
+    public class Merchant : Creature
     {
         public bool Ready;
         //public npc Data;
+        public NpcRoleList Roles { get; set; }
         public MerchantJob Jobs { get; set; }
         public Dictionary<string, Item> Inventory { get; private set; }
 
@@ -39,12 +42,16 @@ namespace Hybrasyl.Objects
             : base()
         {
             Ready = false;
-            //Jobs = (MerchantJob).jobs;
+            //Roles = Game.World.WorldData.Get<Npc>(Name).Roles;
             Inventory = new Dictionary<string, Item>();
-            //foreach (var item in data.inventory)
-            //{
-            //   Inventory.Add(item.name, item);
-            //}
+            //Jobs = new List<MerchantJob>();
+            //if(Roles.Bank != null) Jobs.Add(MerchantJob.Bank);
+            //if(Roles.Post != null) Jobs.Add(MerchantJob.Post);
+            //if(Roles.Repair != null) Jobs.Add(MerchantJob.Repair);
+            //if(Roles.Vend != null) Jobs.Add(MerchantJob.Vend);
+            //if (Roles.Train == null) return;
+            //if (Roles.Train.Count > 0 && Roles.Train.FirstOrDefault(x => x.Type == "skill") != null) Jobs.Add(MerchantJob.Skills);
+            //if (Roles.Train.Count > 0 && Roles.Train.FirstOrDefault(x => x.Type == "spell") != null) Jobs.Add(MerchantJob.Spells);
         }
         
 
@@ -125,9 +132,10 @@ namespace Hybrasyl.Objects
     {
         Vend = 0x01,
         Bank = 0x02,
-        Train = 0x04,
-        Repair = 0x08,
-        Post = 0x10
+        Skills = 0x04,
+        Spells = 0x08,
+        Repair = 0x10,
+        Post = 0x20
     }
 
     public enum MerchantMenuItem : ushort
@@ -201,6 +209,96 @@ namespace Hybrasyl.Objects
     enum MerchantDialogObjectType : byte
     {
         Merchant = 1
+    }
+
+    public struct MerchantOptions
+    {
+        public byte OptionsCount;
+        public List<MerchantDialogOption> Options;
+    }
+
+    public struct MerchantOptionsWithArgument
+    {
+        public byte ArgumentLength;
+        public string Argument;
+        public byte OptionsCount;
+        public MerchantDialogOption[] Options;
+    }
+
+    public struct MerchantDialogOption
+    {
+        public byte Length;
+        public string Text;
+        public ushort Id;
+    }
+
+    public struct MerchantInput
+    {
+        public ushort Id;
+    }
+
+    public struct MerchantInputWithArgument
+    {
+        public byte ArgumentLength;
+        public string Argument;
+        public ushort Id;
+    }
+
+    public struct MerchantShopItems
+    {
+        public ushort Id;
+        public ushort ItemsCount;
+        public MerchantShopItem[] Items;
+    }
+
+    public struct MerchantShopItem
+    {
+        public ushort Tile;
+        public byte Color;
+        public uint Price;
+        public byte NameLength;
+        public string Name;
+        public byte DescriptionLength;
+        public string Description;
+    }
+
+    public struct UserInventoryItems
+    {
+        public ushort Id;
+        public ushort InventorySlotsCount;
+        public byte[] InventorySlots;
+    }
+
+    public struct MerchantSpells
+    {
+        public ushort Id;
+        public ushort SpellsCount;
+        public byte IconType;
+        public MerchantSpell[] Spells;
+    }
+
+    public struct MerchantSpell
+    {
+        public ushort Icon;
+        public byte Index;
+        public byte NameLength;
+        public string Name;
+    }
+
+    public struct MerchantSkills
+    {
+        public ushort Id;
+        public ushort SkillsCount;
+        public byte IconType;
+        public MerchantSkill[] Skills;
+    }
+
+    public struct MerchantSkill
+    {
+        public ushort Icon;
+        public byte Index;
+        public byte NameLength;
+        public string Name;
     }
 
 
