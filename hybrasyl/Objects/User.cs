@@ -83,6 +83,7 @@ namespace Hybrasyl.Objects
     [JsonObject(MemberSerialization.OptIn)]
     public class User : Creature
     {
+
         public bool IsSaving { get; set; }
 
         public new static readonly ILog Logger =
@@ -160,6 +161,8 @@ namespace Hybrasyl.Objects
         public UserStatus GroupStatus { get; set; }
         public byte[] PortraitData { get; set; }
         public string ProfileText { get; set; }
+
+        public Castable PendingLearnableCastable { get; private set; }
 
         [JsonProperty]
         public GuildMembership Guild { get; set; }
@@ -2797,31 +2800,35 @@ namespace Hybrasyl.Objects
                 Options = options
             };
 
+            PendingLearnableCastable = castable;
+
             Enqueue(packet.Packet());
         }
 
-        public void ShowLearnSkillAgree(Merchant merchant, Castable castable)
+        public void ShowLearnSkillAgree(Merchant merchant)
         {
+            var castable = PendingLearnableCastable;
             //now check requirements.
             var classReq = castable.Requirements.Single(x => x.Class.Contains((Class) Class) || Class == Enums.Class.Peasant);
             String learnString = null;
             MerchantOptions options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
             var prompt = string.Empty;
             if (classReq.Level.Min > Level)
             {
                 learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_player_level");
                 prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$LEVEL", classReq.Level.Min.ToString());
             }
-            else if (classReq.Physical != null)
+            if (classReq.Physical != null)
             {
                 if (Str < classReq.Physical.Str || Int < classReq.Physical.Int || Wis < classReq.Physical.Wis || Con < classReq.Physical.Con || Dex < classReq.Physical.Dex)
                 {
                     learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_stats");
-                    var statStr = $"\n[\nSTR {classReq.Physical.Str}\nINT {classReq.Physical.Int}\nWIS {classReq.Physical.Wis}\nCON {classReq.Physical.Con}\nDEX {classReq.Physical.Dex}\n]";
+                    var statStr = $"\n[STR {classReq.Physical.Str} INT {classReq.Physical.Int} WIS {classReq.Physical.Wis} CON {classReq.Physical.Con} DEX {classReq.Physical.Dex}]";
                     prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$STATS", statStr);
                 }
             }
-            else if (classReq.Prerequisites != null)
+            if (classReq.Prerequisites != null)
             {
                 foreach (var preReq in classReq.Prerequisites)
                 {
@@ -2843,7 +2850,7 @@ namespace Hybrasyl.Objects
                     }
                 }
             }
-            if (prompt != string.Empty) //this is so bad
+            if (prompt == string.Empty) //this is so bad
             {
                 var reqStr = string.Empty;
                 //now we can learning!
@@ -2860,7 +2867,6 @@ namespace Hybrasyl.Objects
                 }
                 prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$REQS", reqStr);
 
-                options.Options = new List<MerchantDialogOption>();
                 options.Options.Add(new MerchantDialogOption()
                 {
                     Id = (ushort)MerchantMenuItem.LearnSkillAccept,
@@ -2871,8 +2877,10 @@ namespace Hybrasyl.Objects
                     Id = (ushort)MerchantMenuItem.LearnSkillDisagree,
                     Text = "No"
                 });
-                options.OptionsCount = (byte) options.Options.Count;
+                
             }
+
+            options.OptionsCount = (byte)options.Options.Count;
 
             var packet = new ServerPacketStructures.MerchantResponse()
             {
@@ -2893,22 +2901,45 @@ namespace Hybrasyl.Objects
 
         }
 
-        public void ShowLearnSkillAccept(Merchant merchant, Castable castable)
+        public void ShowLearnSkillAccept(Merchant merchant)
         {
+            var castable = PendingLearnableCastable;
             var classReq = castable.Requirements.Single(x => x.Class.Contains((Class)Class) || Class == Enums.Class.Peasant);
-
-            Gold -= classReq.Gold;
-            foreach (var req in classReq.Items)
-            {
-                Inventory.Find(req.Value).Remove();
-            }
-            SkillBook.Add(castable);
-            SendInventory();
-            SendSkills();
-            var learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_success");
-            var prompt = learnString.Value;
+            String learnString;
+            var prompt = string.Empty;
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
+            //verify user has required items.
+            if (!(Gold > classReq.Gold))
+            {
+                learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_gold");
+                prompt = learnString.Value;
+            }
+            if (prompt == string.Empty)
+            {
+                foreach (var itemReq in classReq.Items)
+                {
+                    if (Inventory.All(x => x.Name != itemReq.Value))
+                    {
+                        learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_item");
+                        prompt = learnString.Value;
+                        break;
+                    }
+                }
+            }
+            if (prompt == string.Empty)
+            {
+                RemoveGold(classReq.Gold);
+                foreach (var req in classReq.Items)
+                {
+                    Inventory.Find(req.Value).Remove();
+                }
+                SkillBook.Add(castable);
+                SendInventory();
+                SendSkills();
+                learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_success");
+                prompt = learnString.Value;
+            }
             var packet = new ServerPacketStructures.MerchantResponse()
             {
                 MerchantDialogType = MerchantDialogType.Options,
@@ -2929,6 +2960,7 @@ namespace Hybrasyl.Objects
 
         public void ShowLearnSkillDisagree(Merchant merchant)
         {
+            PendingLearnableCastable = null;
             var learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "forget_skill_success");
             var prompt = learnString.Value;
             var options = new MerchantOptions();

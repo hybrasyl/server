@@ -4212,35 +4212,19 @@ namespace Hybrasyl
         }
         private void MerchantMenuHandler_LearnSkill(User user, Merchant merchant, ClientPacket packet)
         {
-            packet.ReadInt32();
-            packet.ReadInt32();
-            packet.ReadInt32();//objectid
-            packet.ReadInt16(); //actionId
             var skillName = packet.ReadString8(); //skill name
             var skill = WorldData.GetByIndex<Castable>(skillName);
             user.ShowLearnSkill(merchant, skill);
         }
         private void MerchantMenuHandler_LearnSkillAccept(User user, Merchant merchant, ClientPacket packet)
         {
-            packet.ReadInt32();
-            packet.ReadInt32();
-            packet.ReadInt32();//objectid
-            packet.ReadInt16(); //actionId
-            var skillName = packet.ReadString8(); //skill name
-            var skill = WorldData.GetByIndex<Castable>(skillName);
-            user.ShowLearnSkillAccept(merchant, skill);
-
+            user.ShowLearnSkillAccept(merchant);
         }
 
         private void MerchantMenuHandler_LearnSkillAgree(User user, Merchant merchant, ClientPacket packet)
         {
-            packet.ReadInt32();
-            packet.ReadInt32();
-            packet.ReadInt32();//objectid
-            packet.ReadInt16(); //actionId
-            var skillName = packet.ReadString8(); //skill name
-            var skill = WorldData.GetByIndex<Castable>(skillName);
-            user.ShowLearnSkillAgree(merchant, skill);
+            
+            user.ShowLearnSkillAgree(merchant);
         }
 
         private void MerchantMenuHandler_LearnSkillDisagree(User user, Merchant merchant, ClientPacket packet)
