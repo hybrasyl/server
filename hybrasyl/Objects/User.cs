@@ -1987,7 +1987,7 @@ namespace Hybrasyl.Objects
                 // Merge stack and destroy "added" ItemObject
                 inventoryItem.Count += itemObject.Count;
                 itemObject.Count = 0;
-                SendItemUpdate(inventoryItem, Inventory.SlotOf(inventoryItem.Name));
+                SendItemUpdate(inventoryItem, Inventory.SlotOf(inventoryItem.Name).First());
                 World.Remove(itemObject);
                 return true;
             }
@@ -2018,6 +2018,49 @@ namespace Hybrasyl.Objects
 
             return false;
         }
+
+        public bool RemoveItem(string itemName, byte quantity = 0x01, bool updateWeight = true)
+        {
+            if (Inventory.Contains(itemName, quantity))
+            {
+                var remaining = (int) quantity;
+                var slots = Inventory.SlotOf(itemName);
+                foreach (var i in slots)
+                {
+                    if (remaining > 0)
+                    {
+                        if (Inventory[i].Stackable)
+                        {
+                            if (Inventory[i].Count <= remaining)
+                            {
+                                remaining -= Inventory[i].Count;
+                                Inventory[i].Remove();
+                                SendClearItem(i);
+                            }
+                            if (Inventory[i].Count > remaining)
+                            {
+                                Inventory[i].Count -= remaining;
+                                remaining = 0;
+                                SendItemUpdate(Inventory[i], i);
+                            }
+                        }
+                        else
+                        {
+                            Inventory.Remove(i);
+                            remaining--;
+                            SendItemUpdate(Inventory[i], i);
+                        }
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                return true;
+            }
+            return false;
+        }
+
 
         public bool IncreaseItem(byte slot, int quantity)
         {
@@ -2917,14 +2960,10 @@ namespace Hybrasyl.Objects
             }
             if (prompt == string.Empty)
             {
-                foreach (var itemReq in classReq.Items)
+                if (classReq.Items.Any(itemReq => !Inventory.Contains(itemReq.Value, itemReq.Quantity)))
                 {
-                    if (Inventory.All(x => x.Name != itemReq.Value))
-                    {
-                        learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_item");
-                        prompt = learnString.Value;
-                        break;
-                    }
+                    learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_item");
+                    prompt = learnString.Value;
                 }
             }
             if (prompt == string.Empty)
@@ -2932,7 +2971,7 @@ namespace Hybrasyl.Objects
                 RemoveGold(classReq.Gold);
                 foreach (var req in classReq.Items)
                 {
-                    Inventory.Find(req.Value).Remove();
+                    RemoveItem(req.Value, req.Quantity);
                 }
                 SkillBook.Add(castable);
                 SendInventory();

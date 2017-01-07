@@ -4087,17 +4087,17 @@ namespace Hybrasyl
 
             if (quantity > template.Properties.Stackable.Max)
             {
-                user.ShowMerchantGoBack(merchant, string.Format("You cannot hold that many {0}.", name),
+                user.ShowMerchantGoBack(merchant, $"You cannot hold that many {name}.",
                     MerchantMenuItem.BuyItemMenu);
                 return;
             }
 
             if (user.Inventory.Contains(name))
             {
-                byte slot = user.Inventory.SlotOf(name);
+                var slot = user.Inventory.SlotOf(name).First();
                 if (user.Inventory[slot].Count + quantity > template.Properties.Stackable.Max)
                 {
-                    user.ShowMerchantGoBack(merchant, string.Format("You cannot hold that many {0}.", name),
+                    user.ShowMerchantGoBack(merchant, $"You cannot hold that many {name}.",
                         MerchantMenuItem.BuyItemMenu);
                     return;
                 }
