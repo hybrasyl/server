@@ -415,6 +415,9 @@ namespace Hybrasyl
             internal MerchantShopItems ShopItems { get; set; }
             internal MerchantSpells Spells { get; set; }
             internal MerchantSkills Skills { get; set; }
+            internal UserSkillBook UserSkills { get; set; }
+            internal UserSpellBook UserSpells { get; set; }
+
 
             internal MerchantResponse()
             {
@@ -505,20 +508,15 @@ namespace Hybrasyl
                 }
                 if (MerchantDialogType == MerchantDialogType.UserSkillBook)
                 {
-                    
+                    packet.WriteUInt16(UserSkills.Id);
                 }
                 if (MerchantDialogType == MerchantDialogType.UserSpellBook)
                 {
-                    
+                    packet.WriteUInt16(UserSpells.Id);
                 }
                 if (MerchantDialogType == MerchantDialogType.UserInventoryItems)
                 {
                     packet.WriteUInt16(UserInventoryItems.Id);
-                    packet.WriteUInt16(UserInventoryItems.InventorySlotsCount);
-                    foreach (var slot in UserInventoryItems.InventorySlots)
-                    {
-                        packet.WriteByte(slot);
-                    }
                 }
 
                 return packet;

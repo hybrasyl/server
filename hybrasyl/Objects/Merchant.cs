@@ -216,8 +216,8 @@ namespace Hybrasyl.Objects
         UserInventoryItems = 5,
         MerchantSpells = 6,
         MerchantSkills = 7,
-        UserSkillBook = 8,
-        UserSpellBook = 9
+        UserSpellBook = 8,
+        UserSkillBook = 9
     }
 
     enum MerchantDialogObjectType : byte
@@ -286,15 +286,11 @@ namespace Hybrasyl.Objects
     public struct UserSkillBook
     {
         public ushort Id;
-        public ushort SkillsCount;
-        public List<byte> SkillSlots;
     }
 
     public struct UserSpellBook
     {
         public ushort Id;
-        public ushort SpellsCount;
-        public List<byte> SpellSlots;
     }
 
     public struct MerchantSpells

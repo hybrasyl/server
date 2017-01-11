@@ -4140,13 +4140,6 @@ namespace Hybrasyl
             byte slot = packet.ReadByte();
 
             var item = user.Inventory[slot];
-            if (item == null) return;
-
-            //if (!merchant.Inventory.ContainsKey(item.Name))
-            //{
-            //    user.ShowMerchantGoBack(merchant, "I do not want that item.", MerchantMenuItem.SellItemMenu);
-            //    return;
-            //}
 
             if (item.Stackable && item.Count > 1)
             {
@@ -4154,7 +4147,7 @@ namespace Hybrasyl
                 return;
             }
 
-            user.ShowSellConfirm(merchant, slot, 1);
+            user.ShowSellConfirm(merchant, slot);
         }
 
         private void MerchantMenuHandler_SellItemWithQuantity(User user, Merchant merchant, ClientPacket packet)
@@ -4276,7 +4269,7 @@ namespace Hybrasyl
 
         private void MerchantMenuHandler_ForgetSkillMenu(User user, Merchant merchant, ClientPacket packet)
         {
-            
+            user.ShowForgetSkillMenu(merchant);
         }
         private void MerchantMenuHandler_ForgetSkill(User user, Merchant merchant, ClientPacket packet)
         {
@@ -4284,7 +4277,9 @@ namespace Hybrasyl
         }
         private void MerchantMenuHandler_ForgetSkillAccept(User user, Merchant merchant, ClientPacket packet)
         {
-
+            var slot = packet.ReadByte();
+            
+            user.ShowForgetSkillAccept(merchant, slot);
         }
         private void MerchantMenuHandler_ForgetSpellMenu(User user, Merchant merchant, ClientPacket packet)
         {

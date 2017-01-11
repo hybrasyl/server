@@ -2816,6 +2816,118 @@ namespace Hybrasyl.Objects
             Enqueue(packet.Packet());
         }
 
+        public void ShowForgetSkillMenu(Merchant merchant)
+        {
+            var forgetString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "forget_skill");
+            var prompt = string.Empty;
+            if (forgetString != null) prompt = forgetString.Value ?? string.Empty;
+
+            var userSkills = new UserSkillBook();
+            userSkills.Id = (ushort)MerchantMenuItem.ForgetSkillAccept;
+
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.UserSkillBook,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                UserSkills = userSkills
+            };
+
+            Enqueue(packet.Packet());
+        }
+
+        public void ShowForgetSkillAccept(Merchant merchant, byte slot)
+        {
+            var forgetString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "forget_castable_success");
+            var prompt = forgetString.Value;
+
+            var options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
+
+            options.OptionsCount = (byte)options.Options.Count;
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Options,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Options = options
+            };
+            Enqueue(packet.Packet());
+
+            SkillBook.Remove(slot);
+            SendClearSkill(slot);
+        }
+
+        public void ShowForgetSpellMenu(Merchant merchant)
+        {
+            var forgetString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "forget_spell");
+            var prompt = string.Empty;
+            if (forgetString != null) prompt = forgetString.Value ?? string.Empty;
+
+            var userSpells = new UserSpellBook();
+            userSpells.Id = (ushort)MerchantMenuItem.ForgetSpellAccept;
+
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.UserSpellBook,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                UserSpells = userSpells
+            };
+
+            Enqueue(packet.Packet());
+        }
+
+        public void ShowForgetSpellAccept(Merchant merchant, byte slot)
+        {
+            var forgetString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "forget_castable_success");
+            var prompt = forgetString.Value;
+
+            var options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
+
+            options.OptionsCount = (byte)options.Options.Count;
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Options,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Options = options
+            };
+            Enqueue(packet.Packet());
+
+            SpellBook.Remove(slot);
+            SendClearSpell(slot);
+        }
+
         public void ShowLearnSkill(Merchant merchant, Castable castable)
         {
             var learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_choice");
@@ -3462,17 +3574,6 @@ namespace Hybrasyl.Objects
             if (sellString != null) prompt = sellString.Value ?? string.Empty;
 
             var inventoryItems = new UserInventoryItems();
-            inventoryItems.InventorySlots = new List<byte>();
-            var itemsCount = 0;
-            foreach (var item in Inventory)
-            {
-                if (item.Exchangeable && item.Durability == item.MaximumDurability)
-                {
-                    inventoryItems.InventorySlots.Add(Inventory.SlotOf(item.Name).First());
-                    itemsCount++;
-                }
-            }
-            inventoryItems.InventorySlotsCount = (ushort)itemsCount;
             inventoryItems.Id = (ushort)MerchantMenuItem.SellItemQuantity;
 
             var packet = new ServerPacketStructures.MerchantResponse()
@@ -3490,39 +3591,6 @@ namespace Hybrasyl.Objects
                 UserInventoryItems = inventoryItems
             };
             Enqueue(packet.Packet());
-
-            //var x2F = new ServerPacket(0x2F);
-            //x2F.WriteByte(0x05); // type!
-            //x2F.WriteByte(0x01); // obj type
-            //x2F.WriteUInt32(merchant.Id);
-            //x2F.WriteByte(0x01); // ??
-            //x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
-            //x2F.WriteByte(0x00); // color
-            //x2F.WriteByte(0x01); // ??
-            //x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
-            //x2F.WriteByte(0x00); // color
-            //x2F.WriteByte(0x00); // ??
-            //x2F.WriteString8(merchant.Name);
-            //x2F.WriteString16("What would you like to sell?");
-            //x2F.WriteUInt16((ushort)MerchantMenuItem.SellItem);
-
-            //int position = x2F.Position;
-            //x2F.WriteByte(0);
-            //int count = 0;
-
-            //for (byte i = 1; i <= Inventory.Size; ++i)
-            //{
-            //    if (Inventory[i] == null || !merchant.Inventory.ContainsKey(Inventory[i].Name))
-            //        continue;
-
-            //    x2F.WriteByte((byte)i);
-            //    ++count;
-            //}
-
-            //x2F.Seek(position, PacketSeekOrigin.Begin);
-            //x2F.WriteByte((byte)count);
-
-            //Enqueue(x2F);
         }
         public void ShowSellQuantity(Merchant merchant, byte slot)
         {
@@ -3589,13 +3657,19 @@ namespace Hybrasyl.Objects
             options.Options = new List<MerchantDialogOption>();
             var prompt = string.Empty;
 
-            if (!Inventory.Contains(item.Name))
+            if (item.Durability != item.MaximumDurability)
             {
                 offerString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_failure");
                 prompt = offerString.Value;
             }
 
-            if (!Inventory.Contains(item.Name, quantity))
+            if (prompt == string.Empty && !Inventory.Contains(item.Name))
+            {
+                offerString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_failure");
+                prompt = offerString.Value;
+            }
+
+            if (prompt == string.Empty && !Inventory.Contains(item.Name, quantity))
             {
                 offerString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_failure_quantity");
                 prompt = offerString.Value;
@@ -3640,28 +3714,6 @@ namespace Hybrasyl.Objects
 
             Enqueue(packet.Packet());
 
-            //var x2F = new ServerPacket(0x2F);
-            //x2F.WriteByte(0x01); // type!
-            //x2F.WriteByte(0x01); // obj type
-            //x2F.WriteUInt32(merchant.Id);
-            //x2F.WriteByte(0x01); // ??
-            //x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
-            //x2F.WriteByte(0x00); // color
-            //x2F.WriteByte(0x01); // ??
-            //x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
-            //x2F.WriteByte(0x00); // color
-            //x2F.WriteByte(0x00); // ??
-            //x2F.WriteString8(merchant.Name);
-            //x2F.WriteString16(string.Format("I'll give you {0} gold for {1}.", offer, quantity == 1 ? "that" : "those"));
-            //x2F.WriteByte(2);
-            //x2F.WriteByte(slot);
-            //x2F.WriteByte((byte)quantity);
-            //x2F.WriteByte(2);
-            //x2F.WriteString8("Accept");
-            //x2F.WriteUInt16((ushort)MerchantMenuItem.SellItemAccept);
-            //x2F.WriteString8("Decline");
-            //x2F.WriteUInt16((ushort)MerchantMenuItem.SellItemMenu);
-            //Enqueue(x2F);
         }
 
         public void SellItemAccept(Merchant merchant)
