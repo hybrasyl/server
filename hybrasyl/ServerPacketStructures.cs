@@ -404,6 +404,8 @@ namespace Hybrasyl
             internal string Name { get; set; }
             internal ushort TextLength { get; set; }
             internal string Text { get; set; }
+            internal byte Slot { get; set; }
+            internal uint Quantity { get; set; }
 
             internal MerchantOptions Options { get; set; }
             internal MerchantOptionsWithArgument OptionsWithArgument { get;set;}
@@ -499,6 +501,23 @@ namespace Hybrasyl
                         packet.WriteUInt16(spell.Icon);
                         packet.WriteByte(spell.Color);
                         packet.WriteString8(spell.Name);
+                    }
+                }
+                if (MerchantDialogType == MerchantDialogType.UserSkillBook)
+                {
+                    
+                }
+                if (MerchantDialogType == MerchantDialogType.UserSpellBook)
+                {
+                    
+                }
+                if (MerchantDialogType == MerchantDialogType.UserInventoryItems)
+                {
+                    packet.WriteUInt16(UserInventoryItems.Id);
+                    packet.WriteUInt16(UserInventoryItems.InventorySlotsCount);
+                    foreach (var slot in UserInventoryItems.InventorySlots)
+                    {
+                        packet.WriteByte(slot);
                     }
                 }
 

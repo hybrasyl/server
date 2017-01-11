@@ -891,17 +891,20 @@ namespace Hybrasyl
                     new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_BuyItemWithQuantity)
                 },
                 {
-                    MerchantMenuItem.SellItemMenu,
-                    new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_SellItemMenu)
-                },
-                {MerchantMenuItem.SellItem, new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_SellItem)},
-                {
-                    MerchantMenuItem.SellItemQuantity,
-                    new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_SellItemWithQuantity)
+                  MerchantMenuItem.BuyItemAccept, new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_BuyItemAccept)  
                 },
                 {
-                    MerchantMenuItem.SellItemAccept,
-                    new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_SellItemConfirmation)
+                    MerchantMenuItem.SellItemMenu, new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_SellItemMenu)
+                },
+                { MerchantMenuItem.SellItem, new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_SellItem)},
+                {
+                    MerchantMenuItem.SellItemQuantity, new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_SellItemWithQuantity)
+                },
+                {
+                    MerchantMenuItem.SellItemConfirm, new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_SellItemConfirmation)
+                },
+                {
+                    MerchantMenuItem.SellItemAccept, new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_SellItemAccept)
                 },
                 {
                     MerchantMenuItem.LearnSkillMenu, new MerchantMenuHandler(MerchantJob.Skills, MerchantMenuHandler_LearnSkillMenu)
@@ -944,6 +947,12 @@ namespace Hybrasyl
                 },
                 {
                     MerchantMenuItem.ForgetSpellAccept, new MerchantMenuHandler(MerchantJob.Spells, MerchantMenuHandler_ForgetSpellAccept)
+                },
+                {
+                    MerchantMenuItem.LearnSpellAgree, new MerchantMenuHandler(MerchantJob.Spells, MerchantMenuHandler_LearnSpellAgree)
+                },
+                {
+                    MerchantMenuItem.LearnSpellDisagree, new MerchantMenuHandler(MerchantJob.Spells, MerchantMenuHandler_LearnSpellDisagree)
                 },
 
             };
@@ -4013,11 +4022,11 @@ namespace Hybrasyl
         {
             string name = packet.ReadString8();
 
-            if (!merchant.Inventory.ContainsKey(name))
-            {
-                user.ShowMerchantGoBack(merchant, "I do not sell that item.", MerchantMenuItem.BuyItemMenu);
-                return;
-            }
+            //if (!merchant.Inventory.ContainsKey(name))
+            //{
+            //    user.ShowMerchantGoBack(merchant, "I do not sell that item.", MerchantMenuItem.BuyItemMenu);
+            //    return;
+            //}
 
             var template = merchant.Inventory[name];
 
@@ -4060,65 +4069,70 @@ namespace Hybrasyl
             string name = packet.ReadString8();
             string qStr = packet.ReadString8();
 
-            if (!merchant.Inventory.ContainsKey(name))
-            {
-                user.ShowMerchantGoBack(merchant, "I do not sell that item.", MerchantMenuItem.BuyItemMenu);
-                return;
-            }
+            //if (!merchant.Inventory.ContainsKey(name))
+            //{
+            //    user.ShowMerchantGoBack(merchant, "I do not sell that item.", MerchantMenuItem.BuyItemMenu);
+            //    return;
+            //}
 
-            var template = merchant.Inventory[name];
+           // var template = merchant.Inventory[name];
 
-            if (!template.Stackable) return;
+            //if (!template.Stackable) return;
 
-            int quantity;
-            if (!int.TryParse(qStr, out quantity) || quantity < 1)
-            {
-                user.ShowBuyMenuQuantity(merchant, name);
-                return;
-            }
+            //int quantity;
+            //if (!int.TryParse(qStr, out quantity) || quantity < 1)
+            //{
+            //    user.ShowBuyMenuQuantity(merchant, name);
+            //    return;
+            //}
 
-            uint cost = (uint)(template.Properties.Physical.Value * quantity);
+            //uint cost = (uint)(template.Properties.Physical.Value * quantity);
 
-            if (user.Gold < cost)
-            {
-                user.ShowMerchantGoBack(merchant, "You do not have enough gold.", MerchantMenuItem.BuyItemMenu);
-                return;
-            }
+            //if (user.Gold < cost)
+            //{
+            //    user.ShowMerchantGoBack(merchant, "You do not have enough gold.", MerchantMenuItem.BuyItemMenu);
+            //    return;
+            //}
 
-            if (quantity > template.Properties.Stackable.Max)
-            {
-                user.ShowMerchantGoBack(merchant, $"You cannot hold that many {name}.",
-                    MerchantMenuItem.BuyItemMenu);
-                return;
-            }
+            //if (quantity > template.Properties.Stackable.Max)
+            //{
+            //    user.ShowMerchantGoBack(merchant, $"You cannot hold that many {name}.",
+            //        MerchantMenuItem.BuyItemMenu);
+            //    return;
+            //}
 
-            if (user.Inventory.Contains(name))
-            {
-                var slot = user.Inventory.SlotOf(name).First();
-                if (user.Inventory[slot].Count + quantity > template.Properties.Stackable.Max)
-                {
-                    user.ShowMerchantGoBack(merchant, $"You cannot hold that many {name}.",
-                        MerchantMenuItem.BuyItemMenu);
-                    return;
-                }
-                user.IncreaseItem(slot, quantity);
-            }
-            else
-            {
-                if (user.Inventory.IsFull)
-                {
-                    user.ShowMerchantGoBack(merchant, "You cannot carry any more items.", MerchantMenuItem.BuyItemMenu);
-                    return;
-                }
+            //if (user.Inventory.Contains(name))
+            //{
+            //    var slot = user.Inventory.SlotOf(name).First();
+            //    if (user.Inventory[slot].Count + quantity > template.Properties.Stackable.Max)
+            //    {
+            //        user.ShowMerchantGoBack(merchant, $"You cannot hold that many {name}.",
+            //            MerchantMenuItem.BuyItemMenu);
+            //        return;
+            //    }
+            //    user.IncreaseItem(slot, quantity);
+            //}
+            //else
+            //{
+            //    if (user.Inventory.IsFull)
+            //    {
+            //        user.ShowMerchantGoBack(merchant, "You cannot carry any more items.", MerchantMenuItem.BuyItemMenu);
+            //        return;
+            //    }
 
-                var item = CreateItem(template.Id, quantity);
-                Insert(item);
-                user.AddItem(item);
-            }
+            //    var item = CreateItem(template.Id, quantity);
+            //    Insert(item);
+            //    user.AddItem(item);
+            //}
 
-            user.RemoveGold(cost);
-            user.UpdateAttributes(StatUpdateFlags.Experience);
-            user.ShowBuyMenu(merchant);
+            //user.RemoveGold(cost);
+            //user.UpdateAttributes(StatUpdateFlags.Experience);
+            user.ShowBuyMenuQuantity(merchant, name);
+        }
+
+        private void MerchantMenuHandler_BuyItemAccept(User user, Merchant merchant, ClientPacket packet)
+        {
+            user.ShowBuyItem(merchant);
         }
 
         private void MerchantMenuHandler_SellItem(User user, Merchant merchant, ClientPacket packet)
@@ -4128,11 +4142,11 @@ namespace Hybrasyl
             var item = user.Inventory[slot];
             if (item == null) return;
 
-            if (!merchant.Inventory.ContainsKey(item.Name))
-            {
-                user.ShowMerchantGoBack(merchant, "I do not want that item.", MerchantMenuItem.SellItemMenu);
-                return;
-            }
+            //if (!merchant.Inventory.ContainsKey(item.Name))
+            //{
+            //    user.ShowMerchantGoBack(merchant, "I do not want that item.", MerchantMenuItem.SellItemMenu);
+            //    return;
+            //}
 
             if (item.Stackable && item.Count > 1)
             {
@@ -4159,17 +4173,17 @@ namespace Hybrasyl
             var item = user.Inventory[slot];
             if (item == null || !item.Stackable) return;
 
-            if (!merchant.Inventory.ContainsKey(item.Name))
-            {
-                user.ShowMerchantGoBack(merchant, "I do not want that item.", MerchantMenuItem.SellItemMenu);
-                return;
-            }
+            //if (!merchant.Inventory.ContainsKey(item.Name))
+            //{
+            //    user.ShowMerchantGoBack(merchant, "I do not want that item.", MerchantMenuItem.SellItemMenu);
+            //    return;
+            //}
 
-            if (item.Count < quantity)
-            {
-                user.ShowMerchantGoBack(merchant, "You don't have that many to sell.", MerchantMenuItem.SellItemMenu);
-                return;
-            }
+            //if (item.Count < quantity)
+            //{
+            //    user.ShowMerchantGoBack(merchant, "You don't have that many to sell.", MerchantMenuItem.SellItemMenu);
+            //    return;
+            //}
 
             user.ShowSellConfirm(merchant, slot, quantity);
         }
@@ -4206,6 +4220,11 @@ namespace Hybrasyl
             merchant.DisplayPursuits(user);
         }
 
+        private void MerchantMenuHandler_SellItemAccept(User user, Merchant merchant, ClientPacket packet)
+        {
+            user.SellItemAccept(merchant);
+        }
+
         private void MerchantMenuHandler_LearnSkillMenu(User user, Merchant merchant, ClientPacket packet)
         {
             user.ShowLearnSkillMenu(merchant);
@@ -4232,19 +4251,29 @@ namespace Hybrasyl
             user.ShowLearnSkillDisagree(merchant);
         }
 
-
         private void MerchantMenuHandler_LearnSpellMenu(User user, Merchant merchant, ClientPacket packet)
         {
             user.ShowLearnSpellMenu(merchant);
         }
         private void MerchantMenuHandler_LearnSpell(User user, Merchant merchant, ClientPacket packet)
         {
-            
+            var spellName = packet.ReadString8();
+            var spell = WorldData.GetByIndex<Castable>(spellName);
+            user.ShowLearnSpell(merchant, spell);
         }
         private void MerchantMenuHandler_LearnSpellAccept(User user, Merchant merchant, ClientPacket packet)
         {
-
+            user.ShowLearnSpellAccept(merchant);
         }
+        private void MerchantMenuHandler_LearnSpellAgree(User user, Merchant merchant, ClientPacket packet)
+        {
+            user.ShowLearnSpellAgree(merchant);
+        }
+        private void MerchantMenuHandler_LearnSpellDisagree(User user, Merchant merchant, ClientPacket packet)
+        {
+            user.ShowLearnSpellDisagree(merchant);
+        }
+
         private void MerchantMenuHandler_ForgetSkillMenu(User user, Merchant merchant, ClientPacket packet)
         {
             

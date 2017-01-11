@@ -164,9 +164,11 @@ namespace Hybrasyl.Objects
 
         BuyItem = 0xFF10,
         BuyItemQuantity = 0xFF11,
-        SellItem = 0xFF12,
-        SellItemQuantity = 0xFF13,
-        SellItemAccept = 0xFF14,
+        BuyItemAccept = 0xFF12,
+        SellItem = 0xFF13,
+        SellItemQuantity = 0xFF14,
+        SellItemConfirm = 0xFF15,
+        SellItemAccept = 0xFF16,
 
         WithdrawItem = 0xFF20,
         WithdrawItemQuantity = 0xFF21,
@@ -194,7 +196,14 @@ namespace Hybrasyl.Objects
         SendParcel = 0xFF50,
         SendParcelRecipient = 0xFF51,
         SendLetter = 0xFF52,
-        SendLetterRecipient = 0xFF53
+        SendLetterRecipient = 0xFF53,
+        SendParcelAccept = 0xFF54,
+        SendParcelSuccess = 0xFF55,
+        SendParcelFailure = 0xFF56,
+        SendLetterAccept = 0xFF57,
+        SendLetterSuccess = 0xFF59,
+        SendLetterFailure = 0xFF59,
+
     }
 
     enum MerchantDialogType : byte
@@ -271,7 +280,21 @@ namespace Hybrasyl.Objects
     {
         public ushort Id;
         public ushort InventorySlotsCount;
-        public byte[] InventorySlots;
+        public List<byte> InventorySlots;
+    }
+
+    public struct UserSkillBook
+    {
+        public ushort Id;
+        public ushort SkillsCount;
+        public List<byte> SkillSlots;
+    }
+
+    public struct UserSpellBook
+    {
+        public ushort Id;
+        public ushort SpellsCount;
+        public List<byte> SpellSlots;
     }
 
     public struct MerchantSpells
