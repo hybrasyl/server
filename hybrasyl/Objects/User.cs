@@ -3574,7 +3574,20 @@ namespace Hybrasyl.Objects
             if (sellString != null) prompt = sellString.Value ?? string.Empty;
 
             var inventoryItems = new UserInventoryItems();
+            inventoryItems.InventorySlots = new List<byte>();
             inventoryItems.Id = (ushort)MerchantMenuItem.SellItemQuantity;
+
+            var itemsCount = 0;
+            for (byte i = 0; i < Inventory.Size; i++)
+            {
+                if (Inventory[i] == null) continue;
+                if (Inventory[i].Exchangeable && Inventory[i].Durability == Inventory[i].MaximumDurability)
+                {
+                    inventoryItems.InventorySlots.Add(i);
+                    itemsCount++;
+                }
+            }
+            inventoryItems.InventorySlotsCount = (byte)itemsCount;
 
             var packet = new ServerPacketStructures.MerchantResponse()
             {
@@ -3594,7 +3607,7 @@ namespace Hybrasyl.Objects
         }
         public void ShowSellQuantity(Merchant merchant, byte slot)
         {
-            var item = Game.World.WorldData.GetByIndex<ItemObject>(Inventory[slot].Name);
+            var item = Inventory[slot];
             PendingSellableSlot = slot;
             if (item.Stackable)
             {
@@ -3663,16 +3676,22 @@ namespace Hybrasyl.Objects
                 prompt = offerString.Value;
             }
 
-            if (prompt == string.Empty && !Inventory.Contains(item.Name))
+            if (prompt == string.Empty)
             {
-                offerString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_failure");
-                prompt = offerString.Value;
+                if (!Inventory.Contains(item.Name))
+                {
+                    offerString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_failure");
+                    prompt = offerString.Value;
+                }
             }
 
-            if (prompt == string.Empty && !Inventory.Contains(item.Name, quantity))
+            if (prompt == string.Empty)
             {
-                offerString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_failure_quantity");
-                prompt = offerString.Value;
+                if(!Inventory.Contains(item.Name, quantity))
+                {
+                    offerString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_failure_quantity");
+                    prompt = offerString.Value;
+                }
             }
 
             if (prompt == string.Empty) //this is so bad
@@ -3730,6 +3749,27 @@ namespace Hybrasyl.Objects
             }
             PendingSellableSlot = 0;
             PendingMerchantOffer = 0;
+
+            var options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
+            options.OptionsCount = 0;
+
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Options,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = "Come back if you have more wares to sell.",
+                Options = options
+            };
+
+            Enqueue(packet.Packet());
         }
 
         public void ShowMerchantGoBack(Merchant merchant, string message, MerchantMenuItem menuItem = MerchantMenuItem.MainMenu)
@@ -3763,13 +3803,14 @@ namespace Hybrasyl.Objects
             var itemsCount = 0;
             for(byte i = 0; i<Inventory.Size; i++)
             {
+                if (Inventory[i] == null) continue;
                 if (Inventory[i].Exchangeable && Inventory[i].Durability == Inventory[i].MaximumDurability)
                 {
                     userItems.InventorySlots.Add(i);
                     itemsCount++;
                 }
             }
-            userItems.InventorySlotsCount = (ushort)itemsCount;
+            userItems.InventorySlotsCount = (byte)itemsCount;
             userItems.Id = (ushort)MerchantMenuItem.SendParcelRecipient;
 
 
@@ -3800,7 +3841,7 @@ namespace Hybrasyl.Objects
 
             var packet = new ServerPacketStructures.MerchantResponse()
             {
-                MerchantDialogType = MerchantDialogType.Options,
+                MerchantDialogType = MerchantDialogType.Input,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
                 ObjectId = merchant.Id,
                 Tile1 = (ushort)(0x4000 + merchant.Sprite),
@@ -3830,7 +3871,7 @@ namespace Hybrasyl.Objects
             var parcelFee = (uint) Math.Round(itemObj.Value * .10, 0);
             if (!(Gold > parcelFee))
             {
-                parcelString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel_fee");
+                parcelString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel_fail");
                 prompt = parcelString.Value.Replace("$FEE", parcelFee.ToString());
             }
             if (prompt == string.Empty)

@@ -618,18 +618,25 @@ namespace Hybrasyl
 
         public bool Contains(string name)
         {
-            Item theItem;
-            return Game.World.TryGetItemTemplate(name, out theItem) && _inventoryIndex.ContainsKey(theItem.Id);
+            Item theItem = Game.World.WorldData.GetByIndex<Item>(name);
+            return _inventoryIndex.ContainsKey(theItem.Id);
         }
 
         public bool Contains(string name, int quantity)
         {
-            Item theItem;
-            var itemExists = Game.World.TryGetItemTemplate(name, out theItem);
-            if (!itemExists) return false;
+            Item theItem = Game.World.WorldData.GetByIndex<Item>(name); 
+            
             var hasItem = _inventoryIndex.ContainsKey(theItem.Id);
             if (!hasItem) return false;
-            var hasQuantity = _itemsObject.Select(x => x.Id == theItem.Id).ToList().Count == quantity;
+            var inv = _inventoryIndex.Where(x=> x.Key == theItem.Id).ToList();
+
+            var quant = 0;
+            foreach (var itm in inv)
+            {
+                quant += itm.Value.Count;
+            }
+
+            var hasQuantity = quant >= quantity;
             return hasQuantity;
         }
 

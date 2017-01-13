@@ -279,7 +279,7 @@ namespace Hybrasyl.Objects
     public struct UserInventoryItems
     {
         public ushort Id;
-        public ushort InventorySlotsCount;
+        public byte InventorySlotsCount;
         public List<byte> InventorySlots;
     }
 

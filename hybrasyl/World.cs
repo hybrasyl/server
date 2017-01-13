@@ -954,6 +954,21 @@ namespace Hybrasyl
                 {
                     MerchantMenuItem.LearnSpellDisagree, new MerchantMenuHandler(MerchantJob.Spells, MerchantMenuHandler_LearnSpellDisagree)
                 },
+                {
+                    MerchantMenuItem.SendParcelMenu, new MerchantMenuHandler(MerchantJob.Post, MerchantMenuHandler_SendParcelMenu)
+                },
+                {
+                    MerchantMenuItem.SendParcelAccept, new MerchantMenuHandler(MerchantJob.Post, MerchantMenuHandler_SendParcelAccept)
+                },
+                {
+                    MerchantMenuItem.SendParcel, new MerchantMenuHandler(MerchantJob.Post, MerchantMenuHandler_SendParcel)
+                },
+                {
+                    MerchantMenuItem.SendParcelRecipient, new MerchantMenuHandler(MerchantJob.Post, MerchantMenuHandler_SendParcelRecipient)
+                },
+                {
+                    MerchantMenuItem.SendParcelFailure, new MerchantMenuHandler(MerchantJob.Post, MerchantMenuHandler_SendParcelFailure)
+                },
 
             };
         }
@@ -4152,12 +4167,11 @@ namespace Hybrasyl
 
         private void MerchantMenuHandler_SellItemWithQuantity(User user, Merchant merchant, ClientPacket packet)
         {
-            packet.ReadByte();
             byte slot = packet.ReadByte();
-            string qStr = packet.ReadString8();
+            byte quantity = packet.ReadByte();
 
-            int quantity;
-            if (!int.TryParse(qStr, out quantity) || quantity < 1)
+            
+            if (quantity < 1)
             {
                 user.ShowSellQuantity(merchant, slot);
                 return;
@@ -4292,6 +4306,31 @@ namespace Hybrasyl
         private void MerchantMenuHandler_ForgetSpellAccept(User user, Merchant merchant, ClientPacket packet)
         {
 
+        }
+
+        private void MerchantMenuHandler_SendParcelMenu(User user, Merchant merchant, ClientPacket packet)
+        {
+            user.ShowMerchantSendParcel(merchant);
+        }
+        private void MerchantMenuHandler_SendParcelRecipient(User user, Merchant merchant, ClientPacket packet)
+        {
+            var item = packet.ReadByte();
+            var itemObj = user.Inventory[item];
+            user.ShowMerchantSendParcelRecipient(merchant, itemObj);
+        }
+        private void MerchantMenuHandler_SendParcel(User user, Merchant merchant, ClientPacket packet)
+        {
+
+        }
+
+        private void MerchantMenuHandler_SendParcelFailure(User user, Merchant merchant, ClientPacket packet)
+        {
+            
+        }
+        private void MerchantMenuHandler_SendParcelAccept(User user, Merchant merchant, ClientPacket packet)
+        {
+            var recipient = packet.ReadString8();
+            user.ShowMerchantSendParcelAccept(merchant, recipient);
         }
         #endregion Merchant Menu ItemObject Handlers
 

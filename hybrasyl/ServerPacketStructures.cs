@@ -517,6 +517,11 @@ namespace Hybrasyl
                 if (MerchantDialogType == MerchantDialogType.UserInventoryItems)
                 {
                     packet.WriteUInt16(UserInventoryItems.Id);
+                    packet.WriteByte(UserInventoryItems.InventorySlotsCount);
+                    foreach (var slot in UserInventoryItems.InventorySlots)
+                    {
+                        packet.WriteByte(slot);
+                    }
                 }
 
                 return packet;
