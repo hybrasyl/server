@@ -33,8 +33,12 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Remoting.Channels;
 using System.Text;
+using System.Xml;
+using Hybrasyl.Items;
 using Class = Hybrasyl.Castables.Class;
+using Motion = Hybrasyl.Castables.Motion;
 
 namespace Hybrasyl.Objects
 {
@@ -79,6 +83,7 @@ namespace Hybrasyl.Objects
     [JsonObject(MemberSerialization.OptIn)]
     public class User : Creature
     {
+
         public bool IsSaving { get; set; }
 
         public new static readonly ILog Logger =
@@ -156,6 +161,16 @@ namespace Hybrasyl.Objects
         public UserStatus GroupStatus { get; set; }
         public byte[] PortraitData { get; set; }
         public string ProfileText { get; set; }
+
+        public Castable PendingLearnableCastable { get; private set; }
+        public ItemObject PendingSendableParcel { get; private set; }
+        public string PendingParcelRecipient { get; private set; }
+        public string PendingBuyableItem { get; private set; }
+        public int PendingBuyableQuantity { get; private set; }
+        public byte PendingSellableSlot { get; private set; }
+        public int PendingSellableQuantity { get; private set; }
+        public uint PendingMerchantOffer { get; private set; }
+
 
         [JsonProperty]
         public GuildMembership Guild { get; set; }
@@ -1980,7 +1995,7 @@ namespace Hybrasyl.Objects
                 // Merge stack and destroy "added" ItemObject
                 inventoryItem.Count += itemObject.Count;
                 itemObject.Count = 0;
-                SendItemUpdate(inventoryItem, Inventory.SlotOf(inventoryItem.Name));
+                SendItemUpdate(inventoryItem, Inventory.SlotOf(inventoryItem.Name).First());
                 World.Remove(itemObject);
                 return true;
             }
@@ -2011,6 +2026,49 @@ namespace Hybrasyl.Objects
 
             return false;
         }
+
+        public bool RemoveItem(string itemName, byte quantity = 0x01, bool updateWeight = true)
+        {
+            if (Inventory.Contains(itemName, quantity))
+            {
+                var remaining = (int) quantity;
+                var slots = Inventory.SlotOf(itemName);
+                foreach (var i in slots)
+                {
+                    if (remaining > 0)
+                    {
+                        if (Inventory[i].Stackable)
+                        {
+                            if (Inventory[i].Count <= remaining)
+                            {
+                                remaining -= Inventory[i].Count;
+                                Inventory[i].Remove();
+                                SendClearItem(i);
+                            }
+                            if (Inventory[i].Count > remaining)
+                            {
+                                Inventory[i].Count -= remaining;
+                                remaining = 0;
+                                SendItemUpdate(Inventory[i], i);
+                            }
+                        }
+                        else
+                        {
+                            Inventory.Remove(i);
+                            remaining--;
+                            SendItemUpdate(Inventory[i], i);
+                        }
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                return true;
+            }
+            return false;
+        }
+
 
         public bool IncreaseItem(byte slot, int quantity)
         {
@@ -2715,137 +2773,1003 @@ namespace Hybrasyl.Objects
             Enqueue(doorPacket);
         }
 
+        public void ShowLearnSkillMenu(Merchant merchant)
+        {
+            var learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill");
+            var prompt = string.Empty;
+            if (learnString != null) prompt = learnString.Value ?? string.Empty;
+
+            var merchantSkills = new MerchantSkills();
+            merchantSkills.Skills = new List<MerchantSkill>();
+            var skillsCount = 0;
+            foreach (var skill in merchant.Roles.Train.Where(x => x.Type == "Skill").OrderBy(y => y.Name))
+            {
+                if (SkillBook.Contains(Game.World.WorldData.GetByIndex<Castable>(skill.Name))) continue;
+                skillsCount++;
+                var worldSkill = Game.World.WorldData.GetByIndex<Castable>(skill.Name);
+                merchantSkills.Skills.Add(new MerchantSkill()
+                {
+                    IconType = 3,
+                    Icon = worldSkill.Icon,
+                    Color = 1,
+                    Name = worldSkill.Name
+                });
+            }
+            merchantSkills.SkillsCount = (ushort)skillsCount;
+            merchantSkills.Id = (ushort) MerchantMenuItem.LearnSkill;
+
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.MerchantSkills,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Skills = merchantSkills
+            };
+
+            Enqueue(packet.Packet());
+        }
+
+        public void ShowForgetSkillMenu(Merchant merchant)
+        {
+            var forgetString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "forget_skill");
+            var prompt = string.Empty;
+            if (forgetString != null) prompt = forgetString.Value ?? string.Empty;
+
+            var userSkills = new UserSkillBook();
+            userSkills.Id = (ushort)MerchantMenuItem.ForgetSkillAccept;
+
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.UserSkillBook,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                UserSkills = userSkills
+            };
+
+            Enqueue(packet.Packet());
+        }
+
+        public void ShowForgetSkillAccept(Merchant merchant, byte slot)
+        {
+            var forgetString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "forget_castable_success");
+            var prompt = forgetString.Value;
+
+            var options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
+
+            options.OptionsCount = (byte)options.Options.Count;
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Options,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Options = options
+            };
+            Enqueue(packet.Packet());
+
+            SkillBook.Remove(slot);
+            SendClearSkill(slot);
+        }
+
+        public void ShowForgetSpellMenu(Merchant merchant)
+        {
+            var forgetString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "forget_spell");
+            var prompt = string.Empty;
+            if (forgetString != null) prompt = forgetString.Value ?? string.Empty;
+
+            var userSpells = new UserSpellBook();
+            userSpells.Id = (ushort)MerchantMenuItem.ForgetSpellAccept;
+
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.UserSpellBook,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                UserSpells = userSpells
+            };
+
+            Enqueue(packet.Packet());
+        }
+
+        public void ShowForgetSpellAccept(Merchant merchant, byte slot)
+        {
+            var forgetString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "forget_castable_success");
+            var prompt = forgetString.Value;
+
+            var options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
+
+            options.OptionsCount = (byte)options.Options.Count;
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Options,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Options = options
+            };
+            Enqueue(packet.Packet());
+
+            SpellBook.Remove(slot);
+            SendClearSpell(slot);
+        }
+
+        public void ShowLearnSkill(Merchant merchant, Castable castable)
+        {
+            var learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_choice");
+            var skillDesc = castable.Descriptions.Single(x => x.Class.Contains((Class)Class) || x.Class.Contains(Castables.Class.Peasant));
+            var prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$SKILLDESC", skillDesc.Value );
+
+            var options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
+
+            options.Options.Add(new MerchantDialogOption()
+            {
+                Id = (ushort)MerchantMenuItem.LearnSkillAgree,
+                Text = "Yes"
+            });
+            options.Options.Add(new MerchantDialogOption()
+            {
+                Id = (ushort)MerchantMenuItem.LearnSkillDisagree,
+                Text = "No"
+            });
+
+            options.OptionsCount = (byte) options.Options.Count;
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Options,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Options = options
+            };
+
+            PendingLearnableCastable = castable;
+
+            Enqueue(packet.Packet());
+        }
+
+        public void ShowLearnSkillAgree(Merchant merchant)
+        {
+            var castable = PendingLearnableCastable;
+            //now check requirements.
+            var classReq = castable.Requirements.Single(x => x.Class.Contains((Class) Class) || Class == Enums.Class.Peasant);
+            String learnString = null;
+            MerchantOptions options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
+            var prompt = string.Empty;
+            if (classReq.Level.Min > Level)
+            {
+                learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_player_level");
+                prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$LEVEL", classReq.Level.Min.ToString());
+            }
+            if (classReq.Physical != null)
+            {
+                if (Str < classReq.Physical.Str || Int < classReq.Physical.Int || Wis < classReq.Physical.Wis || Con < classReq.Physical.Con || Dex < classReq.Physical.Dex)
+                {
+                    learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_stats");
+                    var statStr = $"\n[STR {classReq.Physical.Str} INT {classReq.Physical.Int} WIS {classReq.Physical.Wis} CON {classReq.Physical.Con} DEX {classReq.Physical.Dex}]";
+                    prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$STATS", statStr);
+                }
+            }
+            if (classReq.Prerequisites != null)
+            {
+                foreach (var preReq in classReq.Prerequisites)
+                {
+                    if (!SkillBook.Contains(Game.World.WorldData.GetByIndex<Castable>(preReq.Value)))
+                    {
+                        learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_level");
+                        prompt = learnString.Value.Replace("$SKILLNAME", preReq.Value).Replace("$PREREQ", preReq.Level.ToString());
+                        break;
+                    }
+                    else if(SkillBook.Contains(Game.World.WorldData.GetByIndex<Castable>(preReq.Value)))
+                    {
+                        var preReqSkill = SkillBook.Single(x=> x.Name == preReq.Value);
+                        if (preReqSkill.CastableLevel < preReq.Level)
+                        {
+                            learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_level");
+                            prompt = learnString.Value.Replace("$SKILLNAME", preReq.Value).Replace("$PREREQ", preReq.Level.ToString());
+                            break;
+                        }
+                    }
+                }
+            }
+            if (prompt == string.Empty) //this is so bad
+            {
+                var reqStr = string.Empty;
+                //now we can learning!
+                learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_reqs");
+                reqStr = classReq.Items.Aggregate(reqStr, (current, req) => current + (req.Value + "(" + req.Quantity + "), "));
+
+                if (classReq.Gold != 0)
+                {
+                    reqStr += classReq.Gold + " coins";
+                }
+                else
+                {
+                    reqStr = reqStr.Remove(reqStr.Length - 1);
+                }
+                prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$REQS", reqStr);
+
+                options.Options.Add(new MerchantDialogOption()
+                {
+                    Id = (ushort)MerchantMenuItem.LearnSkillAccept,
+                    Text = "Yes"
+                });
+                options.Options.Add(new MerchantDialogOption()
+                {
+                    Id = (ushort)MerchantMenuItem.LearnSkillDisagree,
+                    Text = "No"
+                });
+                
+            }
+
+            options.OptionsCount = (byte)options.Options.Count;
+
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Options,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Options = options
+            };
+
+            Enqueue(packet.Packet());
+
+        }
+
+        public void ShowLearnSkillAccept(Merchant merchant)
+        {
+            var castable = PendingLearnableCastable;
+            var classReq = castable.Requirements.Single(x => x.Class.Contains((Class)Class) || Class == Enums.Class.Peasant);
+            String learnString;
+            var prompt = string.Empty;
+            var options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
+            //verify user has required items.
+            if (!(Gold > classReq.Gold))
+            {
+                learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_gold");
+                prompt = learnString.Value;
+            }
+            if (prompt == string.Empty)
+            {
+                if (classReq.Items.Any(itemReq => !Inventory.Contains(itemReq.Value, itemReq.Quantity)))
+                {
+                    learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_item");
+                    prompt = learnString.Value;
+                }
+            }
+            if (prompt == string.Empty)
+            {
+                RemoveGold(classReq.Gold);
+                foreach (var req in classReq.Items)
+                {
+                    RemoveItem(req.Value, req.Quantity);
+                }
+                SkillBook.Add(castable);
+                SendInventory();
+                SendSkills();
+                learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_success");
+                prompt = learnString.Value;
+            }
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Options,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Options = options
+            };
+
+            Enqueue(packet.Packet());
+        }
+
+        public void ShowLearnSkillDisagree(Merchant merchant)
+        {
+            PendingLearnableCastable = null;
+            var learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "forget_castable_success");
+            var prompt = learnString.Value;
+            var options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Options,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Options = options
+            };
+
+            Enqueue(packet.Packet());
+        }
+
+        public void ShowLearnSpellMenu(Merchant merchant)
+        {
+            var learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell");
+            var prompt = string.Empty;
+            if (learnString != null) prompt = learnString.Value ?? string.Empty;
+
+            var merchantSpells = new MerchantSpells();
+            merchantSpells.Spells = new List<MerchantSpell>();
+            var spellsCount = 0;
+            foreach (var spell in merchant.Roles.Train.Where(x => x.Type == "Spell").OrderBy(y => y.Name))
+            {
+                if (SpellBook.Contains(Game.World.WorldData.GetByIndex<Castable>(spell.Name))) continue;
+                spellsCount++;
+                var worldSpell = Game.World.WorldData.GetByIndex<Castable>(spell.Name);
+                merchantSpells.Spells.Add(new MerchantSpell()
+                {
+                    IconType = 2,
+                    Icon = worldSpell.Icon,
+                    Color = 1,
+                    Name = worldSpell.Name
+                });
+            }
+            merchantSpells.SpellsCount = (ushort)spellsCount;
+            merchantSpells.Id = (ushort)MerchantMenuItem.LearnSpell;
+
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.MerchantSpells,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Spells = merchantSpells
+            };
+
+            Enqueue(packet.Packet());
+        }
+
+        public void ShowLearnSpell(Merchant merchant, Castable castable)
+        {
+            var learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_choice");
+            var skillDesc = castable.Descriptions.Single(x => x.Class.Contains((Class)Class) || x.Class.Contains(Castables.Class.Peasant));
+            var prompt = learnString.Value.Replace("$SPELLNAME", castable.Name).Replace("$SPELLDESC", skillDesc.Value);
+
+            var options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
+
+            options.Options.Add(new MerchantDialogOption()
+            {
+                Id = (ushort)MerchantMenuItem.LearnSpellAgree,
+                Text = "Yes"
+            });
+            options.Options.Add(new MerchantDialogOption()
+            {
+                Id = (ushort)MerchantMenuItem.LearnSpellDisagree,
+                Text = "No"
+            });
+
+            options.OptionsCount = (byte)options.Options.Count;
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Options,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Options = options
+            };
+
+            PendingLearnableCastable = castable;
+
+            Enqueue(packet.Packet());
+        }
+
+        public void ShowLearnSpellAgree(Merchant merchant)
+        {
+            var castable = PendingLearnableCastable;
+            //now check requirements.
+            var classReq = castable.Requirements.Single(x => x.Class.Contains((Class)Class) || Class == Enums.Class.Peasant);
+            String learnString = null;
+            MerchantOptions options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
+            var prompt = string.Empty;
+            if (classReq.Level.Min > Level)
+            {
+                learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_player_level");
+                prompt = learnString.Value.Replace("$SPELLNAME", castable.Name).Replace("$LEVEL", classReq.Level.Min.ToString());
+            }
+            if (classReq.Physical != null)
+            {
+                if (Str < classReq.Physical.Str || Int < classReq.Physical.Int || Wis < classReq.Physical.Wis || Con < classReq.Physical.Con || Dex < classReq.Physical.Dex)
+                {
+                    learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_stats");
+                    var statStr = $"\n[STR {classReq.Physical.Str} INT {classReq.Physical.Int} WIS {classReq.Physical.Wis} CON {classReq.Physical.Con} DEX {classReq.Physical.Dex}]";
+                    prompt = learnString.Value.Replace("$SPELLNAME", castable.Name).Replace("$STATS", statStr);
+                }
+            }
+            if (classReq.Prerequisites != null)
+            {
+                foreach (var preReq in classReq.Prerequisites)
+                {
+                    if (!SkillBook.Contains(Game.World.WorldData.GetByIndex<Castable>(preReq.Value)))
+                    {
+                        learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_level");
+                        prompt = learnString.Value.Replace("$SPELLNAME", preReq.Value).Replace("$PREREQ", preReq.Level.ToString());
+                        break;
+                    }
+                    else if (SkillBook.Contains(Game.World.WorldData.GetByIndex<Castable>(preReq.Value)))
+                    {
+                        var preReqSkill = SkillBook.Single(x => x.Name == preReq.Value);
+                        if (preReqSkill.CastableLevel < preReq.Level)
+                        {
+                            learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_level");
+                            prompt = learnString.Value.Replace("$SPELLNAME", preReq.Value).Replace("$PREREQ", preReq.Level.ToString());
+                            break;
+                        }
+                    }
+                }
+            }
+            if (prompt == string.Empty) //this is so bad
+            {
+                var reqStr = string.Empty;
+                //now we can learning!
+                learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_reqs");
+                reqStr = classReq.Items.Aggregate(reqStr, (current, req) => current + (req.Value + "(" + req.Quantity + "), "));
+
+                if (classReq.Gold != 0)
+                {
+                    reqStr += classReq.Gold + " coins";
+                }
+                else
+                {
+                    reqStr = reqStr.Remove(reqStr.Length - 1);
+                }
+                prompt = learnString.Value.Replace("$SPELLNAME", castable.Name).Replace("$REQS", reqStr);
+
+                options.Options.Add(new MerchantDialogOption()
+                {
+                    Id = (ushort)MerchantMenuItem.LearnSkillAccept,
+                    Text = "Yes"
+                });
+                options.Options.Add(new MerchantDialogOption()
+                {
+                    Id = (ushort)MerchantMenuItem.LearnSkillDisagree,
+                    Text = "No"
+                });
+
+            }
+
+            options.OptionsCount = (byte)options.Options.Count;
+
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Options,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Options = options
+            };
+
+            Enqueue(packet.Packet());
+
+        }
+
+        public void ShowLearnSpellAccept(Merchant merchant)
+        {
+            var castable = PendingLearnableCastable;
+            var classReq = castable.Requirements.Single(x => x.Class.Contains((Class)Class) || Class == Enums.Class.Peasant);
+            String learnString;
+            var prompt = string.Empty;
+            var options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
+            //verify user has required items.
+            if (!(Gold > classReq.Gold))
+            {
+                learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_gold");
+                prompt = learnString.Value;
+            }
+            if (prompt == string.Empty)
+            {
+                if (classReq.Items.Any(itemReq => !Inventory.Contains(itemReq.Value, itemReq.Quantity)))
+                {
+                    learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_item");
+                    prompt = learnString.Value;
+                }
+            }
+            if (prompt == string.Empty)
+            {
+                RemoveGold(classReq.Gold);
+                foreach (var req in classReq.Items)
+                {
+                    RemoveItem(req.Value, req.Quantity);
+                }
+                SkillBook.Add(castable);
+                SendInventory();
+                SendSkills();
+                learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_success");
+                prompt = learnString.Value;
+            }
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Options,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Options = options
+            };
+
+            Enqueue(packet.Packet());
+        }
+
+        public void ShowLearnSpellDisagree(Merchant merchant)
+        {
+            PendingLearnableCastable = null;
+            var learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "forget_castable_success");
+            var prompt = learnString.Value;
+            var options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Options,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Options = options
+            };
+
+            Enqueue(packet.Packet());
+        }
+
         public void ShowBuyMenu(Merchant merchant)
         {
-            var x2F = new ServerPacket(0x2F);
-            x2F.WriteByte(0x04); // type!
-            x2F.WriteByte(0x01); // obj type
-            x2F.WriteUInt32(merchant.Id);
-            x2F.WriteByte(0x01); // ??
-            x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
-            x2F.WriteByte(0x00); // color
-            x2F.WriteByte(0x01); // ??
-            x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
-            x2F.WriteByte(0x00); // color
-            x2F.WriteByte(0x00); // ??
-            x2F.WriteString8(merchant.Name);
-            x2F.WriteString16("What would you like to buy?");
-            x2F.WriteUInt16((ushort)MerchantMenuItem.BuyItem);
-            x2F.WriteUInt16((ushort)merchant.Inventory.Count);
-            foreach (var item in merchant.Inventory.Values)
+            var buyString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "buy");
+            var prompt = string.Empty;
+            if (buyString != null) prompt = buyString.Value ?? string.Empty;
+
+            var merchantItems = new MerchantShopItems();
+            merchantItems.Items = new List<MerchantShopItem>();
+            var itemsCount = 0;
+            foreach (var item in merchant.Roles.Vend)
             {
-                x2F.WriteUInt16((ushort)(0x8000 + item.Properties.Appearance.Sprite));
-                x2F.WriteByte((byte)item.Properties.Appearance.Color);
-                x2F.WriteUInt32((uint)item.Properties.Physical.Value);
-                x2F.WriteString8(item.Name);
-                x2F.WriteString8(string.Empty); // defunct ItemObject description
+                var worldItem = Game.World.WorldData.GetByIndex<Item>(item.Name);
+                merchantItems.Items.Add(new MerchantShopItem()
+                {
+                    Tile = (ushort) (0x8000 + worldItem.Properties.Appearance.Sprite),
+                    Color = (byte)worldItem.Properties.Appearance.Color,
+                    Description = worldItem.Properties.Vendor?.Description ?? "",
+                    Name = worldItem.Name,
+                    Price = worldItem.Properties.Physical.Value
+                    
+                });
+                itemsCount++;
             }
-            Enqueue(x2F);
+            merchantItems.ItemsCount = (ushort)itemsCount;
+            merchantItems.Id = (ushort)MerchantMenuItem.BuyItemQuantity;
+
+
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.MerchantShopItems,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                ShopItems = merchantItems
+            };
+            Enqueue(packet.Packet());
         }
 
         public void ShowBuyMenuQuantity(Merchant merchant, string name)
         {
-            var x2F = new ServerPacket(0x2F);
-            x2F.WriteByte(0x03); // type!
-            x2F.WriteByte(0x01); // obj type
-            x2F.WriteUInt32(merchant.Id);
-            x2F.WriteByte(0x01); // ??
-            x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
-            x2F.WriteByte(0x00); // color
-            x2F.WriteByte(0x01); // ??
-            x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
-            x2F.WriteByte(0x00); // color
-            x2F.WriteByte(0x00); // ??
-            x2F.WriteString8(merchant.Name);
-            x2F.WriteString16(string.Format("How many {0} would you like to buy?", name));
-            x2F.WriteString8(name);
-            x2F.WriteUInt16((ushort)MerchantMenuItem.BuyItemQuantity);
-            Enqueue(x2F);
+            var item = Game.World.WorldData.GetByIndex<Item>(name);
+            PendingBuyableItem = name;
+            if (item.Stackable)
+            {
+                var buyString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "buy_quantity");
+                var prompt = string.Empty;
+                if (buyString != null) prompt = buyString.Value ?? string.Empty;
+
+                var input = new MerchantInput();
+
+                input.Id = (ushort) MerchantMenuItem.BuyItemAccept;
+
+
+                var packet = new ServerPacketStructures.MerchantResponse()
+                {
+                    MerchantDialogType = MerchantDialogType.Input,
+                    MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                    ObjectId = merchant.Id,
+                    Tile1 = (ushort) (0x4000 + merchant.Sprite),
+                    Color1 = 0,
+                    Tile2 = (ushort) (0x4000 + merchant.Sprite),
+                    Color2 = 0,
+                    PortraitType = 0,
+                    Name = merchant.Name,
+                    Text = prompt,
+                    Input = input
+                };
+                Enqueue(packet.Packet());
+            }
+            else //buy item
+            {
+                ShowBuyItem(merchant);
+            }
+            //var x2F = new ServerPacket(0x2F);
+            //x2F.WriteByte(0x03); // type!
+            //x2F.WriteByte(0x01); // obj type
+            //x2F.WriteUInt32(merchant.Id);
+            //x2F.WriteByte(0x01); // ??
+            //x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
+            //x2F.WriteByte(0x00); // color
+            //x2F.WriteByte(0x01); // ??
+            //x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
+            //x2F.WriteByte(0x00); // color
+            //x2F.WriteByte(0x00); // ??
+            //x2F.WriteString8(merchant.Name);
+            //x2F.WriteString16(string.Format("How many {0} would you like to buy?", name));
+            //x2F.WriteString8(name);
+            //x2F.WriteUInt16((ushort)MerchantMenuItem.BuyItemQuantity);
+            //Enqueue(x2F);
+        }
+
+        public void ShowBuyItem(Merchant merchant, int quantity = 1)
+        {
+            String buyString;
+            var prompt = string.Empty;
+            var item = Game.World.WorldData.GetByIndex<Item>(PendingBuyableItem);
+            var itemObj = Game.World.CreateItem(item.Id);
+            var reqGold = (uint) (itemObj.Value * quantity);
+            var options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
+            if (quantity > 10) //TODO: merchants need to hold their current inventory count.
+            {
+                buyString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "buy_failure_quantity");
+                prompt = buyString.Value;
+            }
+            if (Gold < reqGold)
+            {
+                buyString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "buy_failure_gold");
+                prompt = buyString.Value;
+            }
+
+            if (prompt == string.Empty) //this is so bad
+            {
+                //check if user has item
+                var hasItem = Inventory.Contains(itemObj.Name);
+                if (hasItem)
+                {
+                    if (itemObj.Stackable) IncreaseItem(Inventory.SlotOf(itemObj.Name).First(), quantity);
+                    else
+                    {
+                        AddItem(itemObj);
+                    }
+                }
+                else
+                {
+                    if (itemObj.Stackable)
+                    {
+                        AddItem(itemObj);
+                        IncreaseItem(Inventory.SlotOf(itemObj.Name).First(), quantity - 1);
+                    }
+                    else
+                    {
+                        AddItem(itemObj);
+                    }
+                }
+                RemoveGold(reqGold);
+            }
+            else
+            {
+                options.OptionsCount = (byte)options.Options.Count;
+
+                var packet = new ServerPacketStructures.MerchantResponse()
+                {
+                    MerchantDialogType = MerchantDialogType.Options,
+                    MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                    ObjectId = merchant.Id,
+                    Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                    Color1 = 0,
+                    Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                    Color2 = 0,
+                    PortraitType = 0,
+                    Name = merchant.Name,
+                    Text = prompt,
+                    Options = options
+                };
+
+                Enqueue(packet.Packet());
+            }
         }
 
         public void ShowSellMenu(Merchant merchant)
         {
+            var sellString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell");
+            var prompt = string.Empty;
+            if (sellString != null) prompt = sellString.Value ?? string.Empty;
 
-            var x2F = new ServerPacket(0x2F);
-            x2F.WriteByte(0x05); // type!
-            x2F.WriteByte(0x01); // obj type
-            x2F.WriteUInt32(merchant.Id);
-            x2F.WriteByte(0x01); // ??
-            x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
-            x2F.WriteByte(0x00); // color
-            x2F.WriteByte(0x01); // ??
-            x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
-            x2F.WriteByte(0x00); // color
-            x2F.WriteByte(0x00); // ??
-            x2F.WriteString8(merchant.Name);
-            x2F.WriteString16("What would you like to sell?");
-            x2F.WriteUInt16((ushort)MerchantMenuItem.SellItem);
+            var inventoryItems = new UserInventoryItems();
+            inventoryItems.InventorySlots = new List<byte>();
+            inventoryItems.Id = (ushort)MerchantMenuItem.SellItemQuantity;
 
-            int position = x2F.Position;
-            x2F.WriteByte(0);
-            int count = 0;
-
-            for (byte i = 1; i <= Inventory.Size; ++i)
+            var itemsCount = 0;
+            for (byte i = 0; i < Inventory.Size; i++)
             {
-                if (Inventory[i] == null || !merchant.Inventory.ContainsKey(Inventory[i].Name))
-                    continue;
-
-                x2F.WriteByte((byte)i);
-                ++count;
+                if (Inventory[i] == null) continue;
+                if (Inventory[i].Exchangeable && Inventory[i].Durability == Inventory[i].MaximumDurability)
+                {
+                    inventoryItems.InventorySlots.Add(i);
+                    itemsCount++;
+                }
             }
+            inventoryItems.InventorySlotsCount = (byte)itemsCount;
 
-            x2F.Seek(position, PacketSeekOrigin.Begin);
-            x2F.WriteByte((byte)count);
-
-            Enqueue(x2F);
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.UserInventoryItems,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                UserInventoryItems = inventoryItems
+            };
+            Enqueue(packet.Packet());
         }
         public void ShowSellQuantity(Merchant merchant, byte slot)
         {
-            var x2F = new ServerPacket(0x2F);
-            x2F.WriteByte(0x03); // type!
-            x2F.WriteByte(0x01); // obj type
-            x2F.WriteUInt32(merchant.Id);
-            x2F.WriteByte(0x01); // ??
-            x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
-            x2F.WriteByte(0x00); // color
-            x2F.WriteByte(0x01); // ??
-            x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
-            x2F.WriteByte(0x00); // color
-            x2F.WriteByte(0x00); // ??
-            x2F.WriteString8(merchant.Name);
-            x2F.WriteString16("How many are you selling?");
-            x2F.WriteByte(1);
-            x2F.WriteByte(slot);
-            x2F.WriteUInt16((ushort)MerchantMenuItem.SellItemQuantity);
-            Enqueue(x2F);
-        }
-        public void ShowSellConfirm(Merchant merchant, byte slot, int quantity)
-        {
             var item = Inventory[slot];
-            double offer = Math.Round(item.Value * 0.50) * quantity;
+            PendingSellableSlot = slot;
+            if (item.Stackable)
+            {
+                var sellString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_quantity");
+                var prompt = string.Empty;
+                if (sellString != null) prompt = sellString.Value ?? string.Empty;
 
-            var x2F = new ServerPacket(0x2F);
-            x2F.WriteByte(0x01); // type!
-            x2F.WriteByte(0x01); // obj type
-            x2F.WriteUInt32(merchant.Id);
-            x2F.WriteByte(0x01); // ??
-            x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
-            x2F.WriteByte(0x00); // color
-            x2F.WriteByte(0x01); // ??
-            x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
-            x2F.WriteByte(0x00); // color
-            x2F.WriteByte(0x00); // ??
-            x2F.WriteString8(merchant.Name);
-            x2F.WriteString16(string.Format("I'll give you {0} gold for {1}.", offer, quantity == 1 ? "that" : "those"));
-            x2F.WriteByte(2);
-            x2F.WriteByte(slot);
-            x2F.WriteByte((byte)quantity);
-            x2F.WriteByte(2);
-            x2F.WriteString8("Accept");
-            x2F.WriteUInt16((ushort)MerchantMenuItem.SellItemAccept);
-            x2F.WriteString8("Decline");
-            x2F.WriteUInt16((ushort)MerchantMenuItem.SellItemMenu);
-            Enqueue(x2F);
+                var input = new MerchantInput();
+
+                input.Id = (ushort)MerchantMenuItem.SellItem;
+
+                var packet = new ServerPacketStructures.MerchantResponse()
+                {
+                    MerchantDialogType = MerchantDialogType.InputWithArgument,
+                    MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                    ObjectId = merchant.Id,
+                    Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                    Color1 = 0,
+                    Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                    Color2 = 0,
+                    PortraitType = 0,
+                    Name = merchant.Name,
+                    Text = prompt,
+                    Input = input
+                    
+                };
+                Enqueue(packet.Packet());
+            }
+            else
+            {
+                ShowSellConfirm(merchant, slot);
+            }
+
+            //var x2F = new ServerPacket(0x2F);
+            //x2F.WriteByte(0x03); // type!
+            //x2F.WriteByte(0x01); // obj type
+            //x2F.WriteUInt32(merchant.Id);
+            //x2F.WriteByte(0x01); // ??
+            //x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
+            //x2F.WriteByte(0x00); // color
+            //x2F.WriteByte(0x01); // ??
+            //x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
+            //x2F.WriteByte(0x00); // color
+            //x2F.WriteByte(0x00); // ??
+            //x2F.WriteString8(merchant.Name);
+            //x2F.WriteString16("How many are you selling?");
+            //x2F.WriteByte(1);
+            //x2F.WriteByte(slot);
+            //x2F.WriteUInt16((ushort)MerchantMenuItem.SellItemQuantity);
+            //Enqueue(x2F);
+        }
+        public void ShowSellConfirm(Merchant merchant, byte slot, int quantity = 1)
+        {
+            PendingSellableQuantity = quantity;
+            var item = Inventory[slot];
+            var offer = (uint) (Math.Round(item.Value * 0.10, 0) * quantity);
+            PendingMerchantOffer = offer;
+            String offerString = null;
+            var options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
+            var prompt = string.Empty;
+
+            if (item.Durability != item.MaximumDurability)
+            {
+                offerString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_failure");
+                prompt = offerString.Value;
+            }
+
+            if (prompt == string.Empty)
+            {
+                if (!Inventory.Contains(item.Name))
+                {
+                    offerString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_failure");
+                    prompt = offerString.Value;
+                }
+            }
+
+            if (prompt == string.Empty)
+            {
+                if(!Inventory.Contains(item.Name, quantity))
+                {
+                    offerString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_failure_quantity");
+                    prompt = offerString.Value;
+                }
+            }
+
+            if (prompt == string.Empty) //this is so bad
+            {
+                var quant = quantity > 1 ? "those" : "that";
+                //now we can learning!
+                offerString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_offer");
+                prompt = offerString.Value.Replace("$GOLD", offer.ToString()).Replace("$QUANTITY", quant);
+
+                options.Options.Add(new MerchantDialogOption()
+                {
+                    Id = (ushort)MerchantMenuItem.SellItemAccept,
+                    Text = "Yes"
+                });
+                options.Options.Add(new MerchantDialogOption()
+                {
+                    Id = (ushort)MerchantMenuItem.MainMenu,
+                    Text = "No"
+                });
+
+            }
+
+            options.OptionsCount = (byte)options.Options.Count;
+
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Options,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Options = options
+            };
+
+            Enqueue(packet.Packet());
+
+        }
+
+        public void SellItemAccept(Merchant merchant)
+        {
+            if (Inventory[PendingSellableSlot].Count > PendingSellableQuantity)
+            {
+                DecreaseItem(PendingSellableSlot, PendingSellableQuantity);
+                AddGold(PendingMerchantOffer);
+            }
+            else
+            {
+                RemoveItem(PendingSellableSlot);
+                AddGold(PendingMerchantOffer);
+            }
+            PendingSellableSlot = 0;
+            PendingMerchantOffer = 0;
+
+            var options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
+            options.OptionsCount = 0;
+
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Options,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = "Come back if you have more wares to sell.",
+                Options = options
+            };
+
+            Enqueue(packet.Packet());
         }
 
         public void ShowMerchantGoBack(Merchant merchant, string message, MerchantMenuItem menuItem = MerchantMenuItem.MainMenu)
@@ -2867,6 +3791,144 @@ namespace Hybrasyl.Objects
             x2F.WriteString8("Go back");
             x2F.WriteUInt16((ushort)menuItem);
             Enqueue(x2F);
+        }
+
+        public void ShowMerchantSendParcel(Merchant merchant)
+        {
+            var parcelString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel");
+            var prompt = string.Empty;
+            if (parcelString != null) prompt = parcelString.Value ?? string.Empty;
+
+            var userItems = new UserInventoryItems {InventorySlots = new List<byte>()};
+            var itemsCount = 0;
+            for(byte i = 0; i<Inventory.Size; i++)
+            {
+                if (Inventory[i] == null) continue;
+                if (Inventory[i].Exchangeable && Inventory[i].Durability == Inventory[i].MaximumDurability)
+                {
+                    userItems.InventorySlots.Add(i);
+                    itemsCount++;
+                }
+            }
+            userItems.InventorySlotsCount = (byte)itemsCount;
+            userItems.Id = (ushort)MerchantMenuItem.SendParcelRecipient;
+
+
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.UserInventoryItems,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                UserInventoryItems = userItems
+            };
+            Enqueue(packet.Packet());
+        }
+
+        public void ShowMerchantSendParcelRecipient(Merchant merchant, ItemObject item)
+        {
+            var sendString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel_recipient");
+            var prompt = sendString.Value;
+
+            var input = new MerchantInput();
+            input.Id = (ushort)MerchantMenuItem.SendParcelAccept;
+
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Input,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Input = input
+            };
+
+            PendingSendableParcel = item;
+
+            Enqueue(packet.Packet());
+        }
+
+        public void ShowMerchantSendParcelAccept(Merchant merchant, string recipient)
+        {
+            var itemObj = PendingSendableParcel;
+            PendingParcelRecipient = recipient;
+            String parcelString;
+            var prompt = string.Empty;
+            var options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
+            //verify user has required items.
+            var parcelFee = (uint) Math.Round(itemObj.Value * .10, 0);
+            if (!(Gold > parcelFee))
+            {
+                parcelString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel_fail");
+                prompt = parcelString.Value.Replace("$FEE", parcelFee.ToString());
+            }
+            if (prompt == string.Empty)
+            {
+                RemoveGold(parcelFee);
+                RemoveItem(itemObj.Name);
+                SendInventory();
+                parcelString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel_success");
+                prompt = parcelString.Value.Replace("$FEE", parcelFee.ToString());
+
+                //TODO: Send parcel to recipient
+                PendingSendableParcel = null;
+            }
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Options,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Options = options
+            };
+
+            Enqueue(packet.Packet());
+        }
+
+        public void ShowMerchantReceiveParcelAccept(Merchant merchant)
+        {
+            var sendString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "receive_parcel");
+            var prompt = sendString.Value;
+
+            var input = new MerchantInput();
+            input.Id = (ushort)MerchantMenuItem.SendParcelAccept;
+
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Options,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Input = input
+            };
+
+            //TODO: Get Parcel from pending mail.
+
+            Enqueue(packet.Packet());
         }
 
         public void SendMessage(string message, byte type)

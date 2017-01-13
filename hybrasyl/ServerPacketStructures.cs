@@ -399,100 +399,132 @@ namespace Hybrasyl
             internal byte Unknow7 = 1;
             internal ushort Tile2 { get; set; }
             internal byte Color2 { get; set; } //affect item only
-            private byte Unknow10 = 1; //portrait style. 0 = anime 1 = sprite
+            internal byte PortraitType { get; set; } //portrait style. 0 = anime 1 = sprite
             internal byte NameLength { get; set; }
             internal string Name { get; set; }
             internal ushort TextLength { get; set; }
             internal string Text { get; set; }
+            internal byte Slot { get; set; }
+            internal uint Quantity { get; set; }
 
-            internal struct MerchantOptions
+            internal MerchantOptions Options { get; set; }
+            internal MerchantOptionsWithArgument OptionsWithArgument { get;set;}
+            internal MerchantInput Input { get; set; }
+            internal MerchantInputWithArgument InputWithArgument { get; set; }
+            internal UserInventoryItems UserInventoryItems { get; set; }
+            internal MerchantShopItems ShopItems { get; set; }
+            internal MerchantSpells Spells { get; set; }
+            internal MerchantSkills Skills { get; set; }
+            internal UserSkillBook UserSkills { get; set; }
+            internal UserSpellBook UserSpells { get; set; }
+
+
+            internal MerchantResponse()
             {
-                public byte OptionsCount;
-                public MerchantDialogOption[] Options;
+                OpCode = OpCodes.NpcReply;
             }
 
-            internal struct MerchantOptionsWithArgument
+            internal ServerPacket Packet()
             {
-                public byte ArgumentLength;
-                public string Argument;
-                public byte OptionsCount;
-                public MerchantDialogOption[] Options;
-            }
+                var packet = new ServerPacket(OpCode);
+                packet.WriteByte((byte)MerchantDialogType);
+                packet.WriteByte((byte)MerchantDialogObjectType);
+                packet.WriteUInt32(ObjectId);
+                packet.WriteByte(Unknow4);
+                packet.WriteUInt16(Tile1);
+                packet.WriteByte(Color1);
+                packet.WriteByte(Unknow7);
+                packet.WriteUInt16(Tile2);
+                packet.WriteByte(Color2);
+                packet.WriteByte(PortraitType);
+                packet.WriteString8(Name);
+                packet.WriteString16(Text);
+                if (MerchantDialogType == MerchantDialogType.Options)
+                {
+                    packet.WriteByte(Options.OptionsCount);
+                    foreach (var opt in Options.Options)
+                    {
+                        packet.WriteString8(opt.Text);
+                        packet.WriteUInt16(opt.Id);
+                    }
+                }
+                if (MerchantDialogType == MerchantDialogType.OptionsWithArgument)
+                {
+                    packet.WriteString8(OptionsWithArgument.Argument);
+                    packet.WriteByte(OptionsWithArgument.OptionsCount);
+                    foreach (var opt in OptionsWithArgument.Options)
+                    {
+                        packet.WriteString8(opt.Text);
+                        packet.WriteUInt16(opt.Id);
+                    }
+                }
+                if (MerchantDialogType == MerchantDialogType.Input)
+                {
+                    packet.WriteUInt16(Input.Id);
+                }
+                if (MerchantDialogType == MerchantDialogType.InputWithArgument)
+                {
+                    packet.WriteString8(InputWithArgument.Argument);
+                    packet.WriteUInt16(InputWithArgument.Id);
+                }
+                if (MerchantDialogType == MerchantDialogType.MerchantShopItems)
+                {
+                    packet.WriteUInt16(ShopItems.Id);
+                    packet.WriteUInt16(ShopItems.ItemsCount);
+                    foreach (var item in ShopItems.Items)
+                    {
+                        packet.WriteUInt16(item.Tile);
+                        packet.WriteByte(item.Color);
+                        packet.WriteUInt32(item.Price);
+                        packet.WriteString8(item.Name);
+                        packet.WriteString8(item.Description);
+                    }
+                }
+                if (MerchantDialogType == MerchantDialogType.MerchantSkills)
+                {
+                    packet.WriteUInt16(Skills.Id);
+                    packet.WriteUInt16(Skills.SkillsCount);
+                    foreach (var skill in Skills.Skills)
+                    {
+                        packet.WriteByte(skill.IconType);
+                        packet.WriteByte(0);
+                        packet.WriteByte(skill.Icon);
+                        packet.WriteByte(skill.Color);
+                        packet.WriteString8(skill.Name);
+                    }
+                }
+                if (MerchantDialogType == MerchantDialogType.MerchantSpells)
+                {
+                    packet.WriteUInt16(Spells.Id);
+                    packet.WriteUInt16(Spells.SpellsCount);
+                    foreach (var spell in Spells.Spells)
+                    {
+                        packet.WriteByte(spell.IconType);
+                        packet.WriteByte(0);
+                        packet.WriteUInt16(spell.Icon);
+                        packet.WriteByte(spell.Color);
+                        packet.WriteString8(spell.Name);
+                    }
+                }
+                if (MerchantDialogType == MerchantDialogType.UserSkillBook)
+                {
+                    packet.WriteUInt16(UserSkills.Id);
+                }
+                if (MerchantDialogType == MerchantDialogType.UserSpellBook)
+                {
+                    packet.WriteUInt16(UserSpells.Id);
+                }
+                if (MerchantDialogType == MerchantDialogType.UserInventoryItems)
+                {
+                    packet.WriteUInt16(UserInventoryItems.Id);
+                    packet.WriteByte(UserInventoryItems.InventorySlotsCount);
+                    foreach (var slot in UserInventoryItems.InventorySlots)
+                    {
+                        packet.WriteByte(slot);
+                    }
+                }
 
-            internal struct MerchantDialogOption
-            {
-                public byte Length;
-                public string Text;
-                public ushort Id;
-            }
-
-            internal struct MerchantInput
-            {
-                public ushort Id;
-            }
-
-            internal struct MerchantInputWithArgument
-            {
-                public byte ArgumentLength;
-                public string Argument;
-                public ushort Id;
-            }
-
-            internal struct MerchantShopItems
-            {
-                public ushort Id;
-                public ushort ItemsCount;
-                public MerchantShopItem[] Items;
-            }
-
-            internal struct MerchantShopItem
-            {
-                public ushort Tile;
-                public byte Color;
-                public uint Price;
-                public byte NameLength;
-                public string Name;
-                public byte DescriptionLength;
-                public string Description;
-            }
-
-            internal struct UserInventoryItems
-            {
-                public ushort Id;
-                public ushort InventorySlotsCount;
-                public byte[] InventorySlots;
-            }
-
-            internal struct MerchantSpells
-            {
-                public ushort Id;
-                public ushort SpellsCount;
-                public byte IconType;
-                public MerchantSpell[] Spells;
-            }
-
-            internal struct MerchantSpell
-            {
-                public ushort Icon;
-                public byte Index;
-                public byte NameLength;
-                public string Name;
-            }
-
-            internal struct MerchantSkills
-            {
-                public ushort Id;
-                public ushort SkillsCount;
-                public byte IconType;
-                public MerchantSkill[] Skills;
-            }
-
-            internal struct MerchantSkill
-            {
-                public ushort Icon;
-                public byte Index;
-                public byte NameLength;
-                public string Name;
+                return packet;
             }
         }
     }

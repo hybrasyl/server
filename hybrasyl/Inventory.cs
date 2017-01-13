@@ -618,9 +618,29 @@ namespace Hybrasyl
 
         public bool Contains(string name)
         {
-            Item theItem;
-            return Game.World.TryGetItemTemplate(name, out theItem) && _inventoryIndex.ContainsKey(theItem.Id);
+            Item theItem = Game.World.WorldData.GetByIndex<Item>(name);
+            return _inventoryIndex.ContainsKey(theItem.Id);
         }
+
+        public bool Contains(string name, int quantity)
+        {
+            Item theItem = Game.World.WorldData.GetByIndex<Item>(name); 
+            
+            var hasItem = _inventoryIndex.ContainsKey(theItem.Id);
+            if (!hasItem) return false;
+            var inv = _inventoryIndex.Where(x=> x.Key == theItem.Id).ToList();
+
+            var quant = 0;
+            foreach (var itm in inv)
+            {
+                quant += itm.Value.Count;
+            }
+
+            var hasQuantity = quant >= quantity;
+            return hasQuantity;
+        }
+
+
 
         public int FindEmptyIndex()
         {
@@ -645,23 +665,40 @@ namespace Hybrasyl
             }
             return -1;
         }
-        public int IndexOf(string name)
+        //public int IndexOf(string name)
+        //{
+        //    for (var i = 0; i < Size; ++i)
+        //    {
+        //        if (_itemsObject[i] != null && _itemsObject[i].Name == name)
+        //            return i;
+        //    }
+        //    return -1;
+        //}
+
+        public int[] IndexOf(string name)
         {
-            for (var i = 0; i < Size; ++i)
+            var indices = new List<int>();
+            for (var i = 0; i < Size; i++)
             {
-                if (_itemsObject[i] != null && _itemsObject[i].Name == name)
-                    return i;
+                if (_itemsObject[i] != null && _itemsObject[i].Name == name) indices.Add(i);
             }
-            return -1;
+            if (indices.Count == 0) indices.Add(-1);
+            return indices.ToArray();
         }
 
         public byte SlotOf(int id)
         {
             return (byte)(IndexOf(id) + 1);
         }
-        public byte SlotOf(string name)
+        public byte[] SlotOf(string name)
         {
-            return (byte)(IndexOf(name) + 1);
+            var slotsInt = IndexOf(name);
+            var slotsByte = new byte[slotsInt.Length];
+            for(int i = 0; i < slotsInt.Length; i++)
+            {
+                slotsByte[i] += 1;
+            }
+            return slotsByte;
         }
 
         public ItemObject Find(int id)
