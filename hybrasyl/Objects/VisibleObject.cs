@@ -279,6 +279,14 @@ namespace Hybrasyl.Objects
                      *     pursuitCount++;
                      */
             }
+
+            foreach (var pursuit in Pursuits)
+            {
+                Logger.DebugFormat("Pursuit {0}, id {1}", pursuit.Name, pursuit.Id);
+                options.Options.Add(new MerchantDialogOption { Id = (ushort)pursuit.Id.Value, Text = pursuit.Name} );
+                optionsCount++;
+
+            }
             options.OptionsCount = (byte)optionsCount;
         
             var packet =new ServerPacketStructures.MerchantResponse()
