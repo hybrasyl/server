@@ -67,9 +67,8 @@
     <Reference Include="FastMember">
       <HintPath>packages\FastMember.1.0.0.11\lib\net40\FastMember.dll</HintPath>
     </Reference>
-    <Reference Include="Hybrasyl.XML, Version=0.5.6.2, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\sdk\HybrasylIntegration\HybrasylXML\bin\Debug\Hybrasyl.XML.dll</HintPath>
+    <Reference Include="Hybrasyl.XML, Version=0.5.6.15, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\Hybrasyl.XML.0.5.6.15\lib\net452\Hybrasyl.XML.dll</HintPath>
     </Reference>
     <Reference Include="IronPython, Version=2.7.5.0, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
       <HintPath>packages\IronPython.2.7.5\lib\Net45\IronPython.dll</HintPath>
