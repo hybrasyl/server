@@ -187,6 +187,7 @@ namespace Hybrasyl
 
         
 
+
         public ThrottleInfo(byte opcode)
         {
             if (Constants.PACKET_THROTTLES.ContainsKey(opcode))
@@ -203,8 +204,7 @@ namespace Hybrasyl
             }
             else
             {
-                throw new ArgumentException(
-                    string.Format("Can't throttle opcode {0} as it doesn't exist in PACKET_THROTTLES constant!", opcode));
+                Logger.DebugFormat(string.Format("Can't throttle opcode {0} as it doesn't exist in PACKET_THROTTLES constant!", opcode));
             }
         }
 

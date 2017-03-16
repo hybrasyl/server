@@ -310,17 +310,22 @@ namespace Hybrasyl
                                     client.UpdateLastReceived(receivedPacket.Opcode != 0x45 &&
                                                               receivedPacket.Opcode != 0x75);
                                     Logger.InfoFormat("Queuing: 0x{0:X2}", receivedPacket.Opcode);
-                                    //// Check for throttling
-                                    //var throttleInfo = client.Throttle[receivedPacket.Opcode];
-                                    //if (!throttleInfo.IsThrottled)
-                                    //{
-                                    //    client.Throttle[receivedPacket.Opcode].Received();
+                                    // Check for throttling
+                                    ThrottleInfo throttleInfo = null;
+                                    if (client.Throttle.ContainsKey(receivedPacket.Opcode))
+                                    {
+                                        throttleInfo = client.Throttle[receivedPacket.Opcode];
+                                    }
+                                    
+                                    if (throttleInfo == null || !throttleInfo.IsThrottled)
+                                    {
+                                        if(throttleInfo != null) client.Throttle[receivedPacket.Opcode].Received();
                                         World.MessageQueue.Add(new HybrasylClientMessage(receivedPacket, client.ConnectionId));
-                                    //}
-                                    //else
-                                    //{
-                                    //    client.Throttle[receivedPacket.Opcode].TotalThrottled++;
-                                    //}
+                                    }
+                                    else
+                                    {
+                                        client.Throttle[receivedPacket.Opcode].TotalThrottled++;
+                                    }
 
                                 }
                             }
