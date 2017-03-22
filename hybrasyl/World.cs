@@ -2466,7 +2466,7 @@ namespace Hybrasyl
         private void PacketHandler_0x13_Attack(object obj, ClientPacket packet)
         {
             var user = (User)obj;
-            user.AssailAttack(user.Direction);
+            if(!user.CheckSquelch(0x13, null)) user.AssailAttack(user.Direction);
         }
 
         private void PacketHandler_0x18_ShowPlayerList(Object obj, ClientPacket packet)
