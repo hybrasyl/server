@@ -317,7 +317,7 @@ namespace Hybrasyl
                                         throttleInfo = client.Throttle[receivedPacket.Opcode];
                                     }
                                     
-                                    if (throttleInfo == null || !throttleInfo.IsThrottled)
+                                    if (throttleInfo == null || throttleInfo.IsThrottled == false)
                                     {
                                         if(throttleInfo != null) client.Throttle[receivedPacket.Opcode].Received();
                                         World.MessageQueue.Add(new HybrasylClientMessage(receivedPacket, client.ConnectionId));

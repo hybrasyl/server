@@ -119,7 +119,7 @@ namespace Hybrasyl
         public bool IsThrottled
         {
             get
-            {                
+            {
                 var elapsed = new TimeSpan(LastReceived - PreviousReceived);
                 var lastSuccess = new TimeSpan(LastReceived - LastSuccess);
                 if ((Throttled && elapsed.TotalMilliseconds > Throttle.Time) || (Throttled && lastSuccess.TotalMilliseconds > Throttle.Time) )
@@ -213,20 +213,20 @@ namespace Hybrasyl
         /// </summary>
         public void Received()
         {
-            
-            //if (Throttle != Constants.PACKET_THROTTLES[0x13])
-            //{
+
+            if (Throttle != Constants.PACKET_THROTTLES[0x13])
+            {
                 PreviousReceived = LastReceived;
                 LastReceived = DateTime.Now.Ticks;
                 TotalReceived++;
-            //}
-            //else
-            //{
+            }
+            else
+            {
                 LastReceived = DateTime.Now.Ticks;
                 TotalReceived++;
                 return;
-            //}
-            //PreviousReceived = LastReceived;
+            }
+            PreviousReceived = LastReceived;
         }
 
     }
@@ -369,8 +369,8 @@ namespace Hybrasyl
         public const int GENERIC_DISCONNECT_TRIGGER = 200;
 
         public const int ASSAIL_THROTTLE_TIME = 800;
-        public const int ASSAIL_REPEAT_TIMES = 0;
-        public const int ASSAIL_REPEAT_WITHIN = 0;
+        public const int ASSAIL_REPEAT_TIMES = 1;
+        public const int ASSAIL_REPEAT_WITHIN = 800;
         public const int ASSAIL_SQUELCH_DURATION = 0;
         public const int ASSAIL_DISCONNECT_TRIGGER = 0;
         
@@ -382,7 +382,7 @@ namespace Hybrasyl
         // by the squelch time (_SQUELCH_TIME). A value of 0 for the repeat time disables squelching for the given opcode.
         // e.g. 3, 250 = A player can send 3 packets of the same opcode / object in a row before being squelched for 250ms.
         public static Dictionary<byte, Throttle> PACKET_THROTTLES = new Dictionary<byte, Throttle> {
-            {0x06, new Throttle(MOVEMENT_THROTTLE_TIME, MOVEMENT_REPEAT_TIMES, MOVEMENT_REPEAT_WITHIN, MOVEMENT_SQUELCH_DURATION, MOVEMENT_DISCONNECT_TRIGGER)}, // movement
+            //{0x06, new Throttle(MOVEMENT_THROTTLE_TIME, MOVEMENT_REPEAT_TIMES, MOVEMENT_REPEAT_WITHIN, MOVEMENT_SQUELCH_DURATION, MOVEMENT_DISCONNECT_TRIGGER)}, // movement
             {0x0e, new Throttle(SPEAK_THROTTLE_TIME, SPEAK_REPEAT_TIMES, SPEAK_REPEAT_WITHIN, SPEAK_SQUELCH_DURATION, SPEAK_DISCONNECT_TRIGGER)},  // say / shout 
             {0x3a, new Throttle(GENERIC_THROTTLE_TIME, GENERIC_REPEAT_TIMES, GENERIC_REPEAT_WITHIN, GENERIC_SQUELCH_DURATION, GENERIC_DISCONNECT_TRIGGER)},  // NPC use dialog
             {0x38, new Throttle(REFRESH_THROTTLE_TIME, REFRESH_REPEAT_TIMES, REFRESH_REPEAT_WITHIN, REFRESH_SQUELCH_DURATION, REFRESH_DISCONNECT_TRIGGER)},  // refresh (F5)
