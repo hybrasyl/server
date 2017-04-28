@@ -302,8 +302,8 @@ namespace Hybrasyl
             // refactored later, but it is way too much work to do now (e.g. maps, etc).
 
             //Load strings
-            foreach (var xml in Directory.GetFiles(LocalizationDirectory))
-            {
+            foreach (var xml in Directory.GetFiles(LocalizationDirectory, "*.xml"))
+            {              
                 try
                 {
                     Strings = Serializer.Deserialize(XmlReader.Create(xml), new Strings());
@@ -316,7 +316,7 @@ namespace Hybrasyl
             }
 
             //Load NPCs
-            foreach (var xml in Directory.GetFiles(NpcsDirectory))
+            foreach (var xml in Directory.GetFiles(NpcsDirectory, "*.xml"))
             {
                 try
                 {
@@ -331,7 +331,7 @@ namespace Hybrasyl
             }
 
             // Load maps
-            foreach (var xml in Directory.GetFiles(MapDirectory))
+            foreach (var xml in Directory.GetFiles(MapDirectory, "*.xml"))
             {
                 try
                 {
@@ -351,7 +351,7 @@ namespace Hybrasyl
             Logger.InfoFormat("Maps: {0} maps loaded", WorldData.Count<Map>());
 
             // Load nations
-            foreach (var xml in Directory.GetFiles(NationDirectory))
+            foreach (var xml in Directory.GetFiles(NationDirectory, "*.xml"))
             {
                 try
                 {
@@ -382,7 +382,7 @@ namespace Hybrasyl
             Logger.InfoFormat("National data: {0} nations loaded", WorldData.Count<Nation>());
 
             //Load Creatures
-            foreach (var xml in Directory.GetFiles(CreatureDirectory))
+            foreach (var xml in Directory.GetFiles(CreatureDirectory, "*.xml"))
             {
                 try
                 {
@@ -400,7 +400,7 @@ namespace Hybrasyl
 
 
             //Load SpawnGroups
-            foreach (var xml in Directory.GetFiles(SpawnGroupDirectory))
+            foreach (var xml in Directory.GetFiles(SpawnGroupDirectory, "*.xml"))
             {
                 try
                 {
@@ -418,7 +418,7 @@ namespace Hybrasyl
             }
 
             // Load worldmaps
-            foreach (var xml in Directory.GetFiles(WorldMapDirectory))
+            foreach (var xml in Directory.GetFiles(WorldMapDirectory, "*.xml"))
             {
                 try
                 {
@@ -442,7 +442,7 @@ namespace Hybrasyl
             Logger.InfoFormat("World Maps: {0} world maps loaded", WorldData.Count<WorldMap>());
 
             // Load item variants
-            foreach (var xml in Directory.GetFiles(ItemVariantDirectory))
+            foreach (var xml in Directory.GetFiles(ItemVariantDirectory, "*.xml"))
             {
                 try
                 {
@@ -460,7 +460,7 @@ namespace Hybrasyl
             Logger.InfoFormat("ItemObject variants: {0} variant sets loaded", WorldData.Values<VariantGroup>().Count());
 
             // Load items
-            foreach (var xml in Directory.GetFiles(ItemDirectory))
+            foreach (var xml in Directory.GetFiles(ItemDirectory, "*.xml"))
             {
                 try
                 {
@@ -495,7 +495,7 @@ namespace Hybrasyl
                 }
             }
 
-            foreach (var xml in Directory.GetFiles(CastableDirectory))
+            foreach (var xml in Directory.GetFiles(CastableDirectory, "*.xml"))
             {
                 try
                 {
@@ -549,24 +549,27 @@ namespace Hybrasyl
 
             // Ensure global boards exist and are up to date with anything specified in the config
 
-            foreach (var globalboard in Game.Config.Boards)
+            if (Game.Config.Boards != null)
             {
-                var board = GetBoard(globalboard.Name);
-                board.DisplayName = globalboard.DisplayName;
-                foreach (var reader in globalboard.AccessList.Read)
+                foreach (var globalboard in Game.Config.Boards)
                 {
-                    board.SetAccessLevel(Convert.ToString(reader), BoardAccessLevel.Read);
+                    var board = GetBoard(globalboard.Name);
+                    board.DisplayName = globalboard.DisplayName;
+                    foreach (var reader in globalboard.AccessList.Read)
+                    {
+                        board.SetAccessLevel(Convert.ToString(reader), BoardAccessLevel.Read);
+                    }
+                    foreach (var writer in globalboard.AccessList.Write)
+                    {
+                        board.SetAccessLevel(Convert.ToString(writer), BoardAccessLevel.Write);
+                    }
+                    foreach (var moderator in globalboard.AccessList.Moderate)
+                    {
+                        board.SetAccessLevel(Convert.ToString(moderator), BoardAccessLevel.Moderate);
+                    }
+                    Logger.InfoFormat("Boards: Global board {0} initialized", globalboard.Name);
+                    board.Save();
                 }
-                foreach (var writer in globalboard.AccessList.Write)
-                {
-                    board.SetAccessLevel(Convert.ToString(writer), BoardAccessLevel.Write);
-                }
-                foreach (var moderator in globalboard.AccessList.Moderate)
-                {
-                    board.SetAccessLevel(Convert.ToString(moderator), BoardAccessLevel.Moderate);
-                }
-                Logger.InfoFormat("Boards: Global board {0} initialized", globalboard.Name);
-                board.Save();
             }
             return true;
         }
@@ -576,11 +579,49 @@ namespace Hybrasyl
             var variantItem = item.Clone();
 
             variantItem.Name = $"{variant.Modifier} {item.Name}";
+            Logger.Debug($"Processing variant: {variantItem.Name}");
             variantItem.Properties.Flags = variant.Properties.Flags;
-
+                    
             variantItem.Properties.Physical.Value = variant.Properties.Physical.Value == 100 ? item.Properties.Physical.Value : Convert.ToUInt32(Math.Round(item.Properties.Physical.Value * (variant.Properties.Physical.Value * .01)));
             variantItem.Properties.Physical.Durability = variant.Properties.Physical.Durability == 100 ? item.Properties.Physical.Durability : Convert.ToUInt32(Math.Round(item.Properties.Physical.Durability * (variant.Properties.Physical.Durability * .01)));
             variantItem.Properties.Physical.Weight = variant.Properties.Physical.Weight == 100 ? item.Properties.Physical.Weight : Convert.ToInt32(Math.Round(item.Properties.Physical.Weight * (variant.Properties.Physical.Weight * .01)));
+
+            // Ensure all our modifiable / referenced properties at least exist
+            // TODO: this is pretty hacky
+            if (variantItem.Properties.Restrictions.Level is null)
+                variantItem.Properties.Restrictions.Level = new RestrictionsLevel();
+
+            if (variantItem.Properties.StatEffects is null)
+                variantItem.Properties.StatEffects = new StatEffects()
+                {
+                    Base = new StatEffectsBase(),
+                    Element = new StatEffectsElement(),
+                    Combat = new StatEffectsCombat()
+                };
+
+            if (variantItem.Properties.Damage is null)
+            {
+                variantItem.Properties.Damage = new Items.Damage()
+                {
+                    Large = new DamageLarge(),
+                    Small = new DamageSmall()
+                };
+            }
+
+            if (variantItem.Properties.Damage.Large is null)
+                variantItem.Properties.Damage.Large = new DamageLarge();
+
+            if (variantItem.Properties.Damage.Small is null)
+                variantItem.Properties.Damage.Small = new DamageSmall();
+
+            if (item.Properties.Damage is null)
+            {
+                item.Properties.Damage = new Items.Damage()
+                {
+                    Large = new DamageLarge(),
+                    Small = new DamageSmall()
+                };
+            }
 
             switch (variantGroup.ToLower())
             {
@@ -638,7 +679,7 @@ namespace Hybrasyl
                         {
                             variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
                         }
-                        if(variant.Properties.Damage?.Large != null)
+                        if (variant.Properties.Damage?.Large != null)
                         { 
                             variantItem.Properties.Damage.Large.Min = Convert.ToUInt16(Math.Round(item.Properties.Damage.Large.Min * (variant.Properties.Damage.Large.Min * .01)));
                             variantItem.Properties.Damage.Large.Max = Convert.ToUInt16(Math.Round(item.Properties.Damage.Large.Max * (variant.Properties.Damage.Large.Max * .01)));
