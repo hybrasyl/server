@@ -2281,11 +2281,11 @@ namespace Hybrasyl.Objects
 
                 try
                 {
-                    motion = castObject.Effects.Animations.OnCast.Motions.SingleOrDefault(x => x.Class.Contains((Class) Class));
+                    motion = castObject.Effects.Animations.OnCast.Player.SingleOrDefault(x => x.Class.Contains((Class) Class));
                 }
                 catch (InvalidOperationException)
                 {
-                    motion = castObject.Effects.Animations.OnCast.Motions.FirstOrDefault(x => x.Class.Contains((Class) Class));
+                    motion = castObject.Effects.Animations.OnCast.Player.FirstOrDefault(x => x.Class.Contains((Class) Class));
 
                     Logger.ErrorFormat("{1}: contains more than one motion for a class definition, using first one found!", castObject.Name);
                 }
@@ -2507,11 +2507,11 @@ namespace Hybrasyl.Objects
 
                 try
                 {
-                    motion = castObject.Effects.Animations.OnCast.Motions.SingleOrDefault(x => x.Class.Contains((Class)Class));
+                    motion = castObject.Effects.Animations.OnCast.Player.SingleOrDefault(x => x.Class.Contains((Class)Class));
                 }
                 catch (InvalidOperationException)
                 {
-                    motion = castObject.Effects.Animations.OnCast.Motions.FirstOrDefault(x => x.Class.Contains((Class)Class));
+                    motion = castObject.Effects.Animations.OnCast.Player.FirstOrDefault(x => x.Class.Contains((Class)Class));
 
                     Logger.ErrorFormat("{1}: contains more than one motion for a class definition, using first one found!", castObject.Name);
                 }
@@ -2595,7 +2595,7 @@ namespace Hybrasyl.Objects
             }
             //animation handled here as to not repeatedly send assails.
             var firstAssail = SkillBook.FirstOrDefault(x => x.IsAssail);
-            var motion = firstAssail?.Effects.Animations.OnCast.Motions.FirstOrDefault(y => y.Class.Contains((Class) Class));
+            var motion = firstAssail?.Effects.Animations.OnCast.Player.FirstOrDefault(y => y.Class.Contains((Class) Class));
 
             var motionId = motion != null ? (byte)motion.Id : (byte)1;
             var assail = new ServerPacketStructures.PlayerAnimation() {Animation = motionId , Speed = 20, UserId = this.Id};
@@ -3410,7 +3410,7 @@ namespace Hybrasyl.Objects
             var merchantItems = new MerchantShopItems();
             merchantItems.Items = new List<MerchantShopItem>();
             var itemsCount = 0;
-            foreach (var item in merchant.Roles.Vend)
+            foreach (var item in merchant.Roles.Vend.Items)
             {
                 var worldItem = Game.World.WorldData.GetByIndex<Item>(item.Name);
                 merchantItems.Items.Add(new MerchantShopItem()
