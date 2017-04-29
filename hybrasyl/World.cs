@@ -885,7 +885,7 @@ namespace Hybrasyl
                     MerchantMenuItem.BuyItemMenu,
                     new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_BuyItemMenu)
                 },
-                {MerchantMenuItem.BuyItem, new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_BuyItem)},
+                //{MerchantMenuItem.BuyItem, new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_BuyItem)},
                 {
                     MerchantMenuItem.BuyItemQuantity,
                     new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_BuyItemWithQuantity)
@@ -4084,64 +4084,6 @@ namespace Hybrasyl
             string name = packet.ReadString8();
             string qStr = packet.ReadString8();
 
-            //if (!merchant.Inventory.ContainsKey(name))
-            //{
-            //    user.ShowMerchantGoBack(merchant, "I do not sell that item.", MerchantMenuItem.BuyItemMenu);
-            //    return;
-            //}
-
-           // var template = merchant.Inventory[name];
-
-            //if (!template.Stackable) return;
-
-            //int quantity;
-            //if (!int.TryParse(qStr, out quantity) || quantity < 1)
-            //{
-            //    user.ShowBuyMenuQuantity(merchant, name);
-            //    return;
-            //}
-
-            //uint cost = (uint)(template.Properties.Physical.Value * quantity);
-
-            //if (user.Gold < cost)
-            //{
-            //    user.ShowMerchantGoBack(merchant, "You do not have enough gold.", MerchantMenuItem.BuyItemMenu);
-            //    return;
-            //}
-
-            //if (quantity > template.Properties.Stackable.Max)
-            //{
-            //    user.ShowMerchantGoBack(merchant, $"You cannot hold that many {name}.",
-            //        MerchantMenuItem.BuyItemMenu);
-            //    return;
-            //}
-
-            //if (user.Inventory.Contains(name))
-            //{
-            //    var slot = user.Inventory.SlotOf(name).First();
-            //    if (user.Inventory[slot].Count + quantity > template.Properties.Stackable.Max)
-            //    {
-            //        user.ShowMerchantGoBack(merchant, $"You cannot hold that many {name}.",
-            //            MerchantMenuItem.BuyItemMenu);
-            //        return;
-            //    }
-            //    user.IncreaseItem(slot, quantity);
-            //}
-            //else
-            //{
-            //    if (user.Inventory.IsFull)
-            //    {
-            //        user.ShowMerchantGoBack(merchant, "You cannot carry any more items.", MerchantMenuItem.BuyItemMenu);
-            //        return;
-            //    }
-
-            //    var item = CreateItem(template.Id, quantity);
-            //    Insert(item);
-            //    user.AddItem(item);
-            //}
-
-            //user.RemoveGold(cost);
-            //user.UpdateAttributes(StatUpdateFlags.Experience);
             user.ShowBuyMenuQuantity(merchant, name);
         }
 
