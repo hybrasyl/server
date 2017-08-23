@@ -79,7 +79,7 @@ namespace Hybrasyl
                 return null;
             }
 
-            BinaryFormatter binaryFormatter = new BinaryFormatter();
+            System.Runtime.Serialization.Formatters.Binary.BinaryFormatter binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
             using (MemoryStream memoryStream = new MemoryStream())
             {
                 binaryFormatter.Serialize(memoryStream, o);
@@ -95,7 +95,7 @@ namespace Hybrasyl
                 return default(T);
             }
 
-            BinaryFormatter binaryFormatter = new BinaryFormatter();
+            System.Runtime.Serialization.Formatters.Binary.BinaryFormatter binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
             using (MemoryStream memoryStream = new MemoryStream(stream))
             {
                 T result = (T)binaryFormatter.Deserialize(memoryStream);
