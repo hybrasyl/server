@@ -322,7 +322,7 @@ namespace Hybrasyl
         public object Clone()
         {
             MemoryStream ms = new MemoryStream();
-            BinaryFormatter bf = new BinaryFormatter();
+            System.Runtime.Serialization.Formatters.Binary.BinaryFormatter bf = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
             bf.Serialize(ms, this);
             ms.Position = 0;
             object obj = bf.Deserialize(ms);

@@ -204,7 +204,7 @@ namespace Hybrasyl
             }
             else
             {
-                Logger.DebugFormat(string.Format("Can't throttle opcode {0} as it doesn't exist in PACKET_THROTTLES constant!", opcode));
+                Logger.DebugFormat($"Can't throttle opcode {opcode} as it doesn't exist in PACKET_THROTTLES constant!");
             }
         }
 
@@ -371,7 +371,7 @@ namespace Hybrasyl
         public const int ASSAIL_THROTTLE_TIME = 800;
         public const int ASSAIL_REPEAT_TIMES = 1;
         public const int ASSAIL_REPEAT_WITHIN = 800;
-        public const int ASSAIL_SQUELCH_DURATION = 0;
+        public const int ASSAIL_SQUELCH_DURATION = 800;
         public const int ASSAIL_DISCONNECT_TRIGGER = 0;
         
 
