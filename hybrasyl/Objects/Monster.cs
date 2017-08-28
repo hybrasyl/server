@@ -43,7 +43,6 @@ namespace Hybrasyl.Objects
         public override void OnDeath()
         {
             Shout("AAAAAAAAAAaaaaa!!!");
-            Map.Remove(this);
             // Now that we're dead, award loot.
             // FIXME: Implement loot tables / full looting.
             var hitter = LastHitter as User;
@@ -54,6 +53,7 @@ namespace Hybrasyl.Objects
             var golds = new Gold(_spawn.Loot.Gold);
             World.Insert(golds);
             Map.Insert(golds, X,Y);
+            Map.Remove(this);
             World.Remove(this);
         }
 
@@ -62,7 +62,7 @@ namespace Hybrasyl.Objects
             Name = creature.Name;
             Sprite = creature.Sprite;
             World = Game.World;
-            Map = Game.World.Maps[(ushort)map];
+            Map = Game.World.WorldData.Get<Map>(map);
             Level = spawn.Stats.Level;
             BaseHp = spawn.Stats.Hp;
             Hp = spawn.Stats.Hp;
@@ -124,11 +124,9 @@ namespace Hybrasyl.Objects
 
         public override void ShowTo(VisibleObject obj)
         {
-            if (obj is User)
-            {
-                var user = obj as User;
-                user.SendVisibleCreature(this);
-            }
+            if (!(obj is User)) return;
+            var user = obj as User;
+            user.SendVisibleCreature(this);
         }
 
         public bool IsIdle()

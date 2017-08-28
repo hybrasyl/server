@@ -112,7 +112,7 @@ namespace Hybrasyl
                     Logger.Debug("Job starting");
 
                     var now = DateTime.Now.Ticks;
-                    foreach (var mailbox in Game.World.Mailboxes.Values.Where(mb => mb.Full))
+                    foreach (var mailbox in Game.World.WorldData.Values<Mailbox>().Where(mb => mb.Full))
                     {
                         try
                         {
@@ -125,7 +125,7 @@ namespace Hybrasyl
                             Logger.ErrorFormat("{0}: mailbox locked during cleanup...?", mailbox.Name);
                         }
                     }
-                    foreach (var board in Game.World.Messageboards.Values.Where(mb => mb.Full))
+                    foreach (var board in Game.World.WorldData.Values<Board>().Where(mb => mb.Full))
                     {
                         try
                         {

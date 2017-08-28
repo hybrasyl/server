@@ -25,6 +25,7 @@ using log4net;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Hybrasyl.Scripting;
 
 namespace Hybrasyl
 {

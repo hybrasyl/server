@@ -22,27 +22,15 @@
 
 using C3;
 using Hybrasyl.Objects;
-using Hybrasyl.Maps;
-using Hybrasyl.Properties;
-using Hybrasyl.XML;
 using log4net;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Threading;
-using System.Xml;
-using log4net.Appender;
-
-namespace Hybrasyl.Properties
-{
-    public partial class Door
-    {
-        public bool Open { get; set; }
-    }
-}
+using Microsoft.Scripting.Runtime;
+using System.Linq;
 
 namespace Hybrasyl
 {
@@ -165,7 +153,7 @@ namespace Hybrasyl
     public class Map
     {
         public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-        
+
         public ushort Id { get; set; }
         public byte X { get; set; }
         public byte Y { get; set; }
@@ -207,7 +195,7 @@ namespace Hybrasyl
             X = newMap.X;
             Y = newMap.Y;
             Name = newMap.Name;
-            EntityTree = new QuadTree<VisibleObject>(0,0,X,Y);
+            EntityTree = new QuadTree<VisibleObject>(0, 0, X, Y);
             Music = newMap.Music;
 
             foreach (var warpElement in newMap.Warps)
@@ -216,7 +204,7 @@ namespace Hybrasyl
                 warp.X = warpElement.X;
                 warp.Y = warpElement.Y;
 
-                if (warpElement.MapTarget !=null)
+                if (warpElement.MapTarget != null)
                 {
                     var maptarget = warpElement.MapTarget as Maps.WarpMapTarget;
                     // map warp
@@ -232,28 +220,45 @@ namespace Hybrasyl
                     warp.DestinationMapName = worldmaptarget;
                     warp.WarpType = WarpType.WorldMap;
                 }
-
-                warp.MinimumLevel = warpElement.Restrictions.Level.Min;
-                warp.MaximumLevel = warpElement.Restrictions.Level.Max;
-                warp.MinimumAbility = warpElement.Restrictions.Ab.Min;
-                warp.MaximumAbility = warpElement.Restrictions.Ab.Max;
-                warp.MobUse = warpElement.Restrictions.NoMobUse;
+                if (warpElement.Restrictions?.Level != null)
+                {
+                    warp.MinimumLevel = warpElement.Restrictions.Level.Min;
+                    warp.MaximumLevel = warpElement.Restrictions.Level.Max;
+                }
+                if (warpElement.Restrictions?.Ab != null)
+                {
+                    warp.MinimumAbility = warpElement.Restrictions.Ab.Min;
+                    warp.MaximumAbility = warpElement.Restrictions.Ab.Max;
+                }
+                warp.MobUse = warpElement.Restrictions?.NoMobUse ?? true;
                 Warps[new Tuple<byte, byte>(warp.X, warp.Y)] = warp;
             }
 
             foreach (var npcElement in newMap.Npcs)
             {
+                var npcTemplate = World.WorldData.Get<Creatures.Npc>(npcElement.Name);
+                if (npcTemplate == null)
+                {
+                    Logger.Error("map ${Name}: NPC ${npcElement.Name} is missing, will not be loaded");
+                    continue;
+                }
                 var merchant = new Merchant
                 {
                     X = npcElement.X,
                     Y = npcElement.Y,
                     Name = npcElement.Name,
-                    Sprite = npcElement.Appearance.Sprite,
-                    Direction = (Enums.Direction) npcElement.Appearance.Direction,
-                    Portrait = npcElement.Appearance.Portrait,
-                    // Wow this is terrible
-                    Jobs = ((MerchantJob) (int) npcElement.Jobs)
+                    Sprite = npcTemplate.Appearance.Sprite,
+                    Direction = (Enums.Direction)npcElement.Direction,
+                    Portrait = npcTemplate.Appearance.Portrait,
                 };
+                if (npcTemplate.Roles != null)
+                {
+                    if (npcTemplate.Roles.Post != null) { merchant.Jobs ^= MerchantJob.Post; }
+                    if (npcTemplate.Roles.Bank != null) { merchant.Jobs ^= MerchantJob.Bank; }
+                    if (npcTemplate.Roles.Repair != null) { merchant.Jobs ^= MerchantJob.Repair; }
+                    if (npcTemplate.Roles.Train != null) { merchant.Jobs ^= MerchantJob.Train; }
+                    if (npcTemplate.Roles.Vend != null) { merchant.Jobs ^= MerchantJob.Vend; }
+                }
                 InsertNpc(merchant);
             }
 
@@ -261,23 +266,25 @@ namespace Hybrasyl
             {
                 // TODO: implement reactor loading support
             }
+            if (newMap.Signs != null) {
+                foreach (var postElement in newMap.Signs.Signposts)
+                {
+                    var signpostElement = postElement as Maps.Signpost;
+                    var signpost = new Objects.Signpost(signpostElement.X, signpostElement.Y, signpostElement.Message);
+                    InsertSignpost(signpost);
 
-            foreach (var postElement in newMap.Signs.Signposts)
-            {
-                var signpostElement = postElement as Maps.Signpost;
-                var signpost = new Objects.Signpost(signpostElement.X, signpostElement.Y, signpostElement.Message);
-                InsertSignpost(signpost);
-
-            }
-            foreach(var postElement in newMap.Signs.MessageBoards)
-            {
+                }
+                foreach (var postElement in newMap.Signs.MessageBoards)
+                {
                     var boardElement = postElement as Maps.MessageBoard;
                     var board = new Objects.Signpost(boardElement.X, boardElement.Y, string.Empty, true, boardElement.Name);
                     InsertSignpost(board);
-                    Logger.InfoFormat("{0}: {1} - messageboard loaded", this.Name, board.Name );
+                    Logger.InfoFormat("{0}: {1} - messageboard loaded", this.Name, board.Name);
+                }
             }
             Load();
         }
+    
 
         public Map()
         {
@@ -633,6 +640,7 @@ namespace Hybrasyl
             NotifyNearbyAoiDeparture(gold);
             EntityTree.Remove(gold);
             Objects.Remove(gold);
+            World.Remove(gold);
         }
 
         public void RemoveItem(ItemObject itemObject)
@@ -735,7 +743,7 @@ namespace Hybrasyl
             {
                 case WarpType.Map:
                     Map map;
-                    if (SourceMap.World.MapCatalog.TryGetValue(DestinationMapName, out map))
+                    if (SourceMap.World.WorldData.TryGetValueByIndex(DestinationMapName, out map))
                     {
                         Thread.Sleep(250);
                         target.Teleport(map.Id, DestinationX, DestinationY);
@@ -746,11 +754,11 @@ namespace Hybrasyl
                     break;
                 case WarpType.WorldMap:
                     WorldMap wmap;
-                    if (SourceMap.World.WorldMaps.TryGetValue(DestinationMapName, out wmap))
+                    if (SourceMap.World.WorldData.TryGetValueByIndex(DestinationMapName, out wmap))
                     {
                         SourceMap.Remove(target);
                         target.SendWorldMap(wmap);
-                        SourceMap.World.Maps[Hybrasyl.Constants.LAG_MAP].Insert(target, 5, 5, false);
+                        SourceMap.World.WorldData.Get<Map>(Hybrasyl.Constants.LAG_MAP).Insert(target, 5, 5, false);
                         return true;
                     }
                     Logger.ErrorFormat("User {0} tried to warp to nonexistent worldmap {1} from {2}: {3},{4}",

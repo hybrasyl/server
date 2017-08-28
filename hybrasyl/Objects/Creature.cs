@@ -136,7 +136,7 @@ namespace Hybrasyl.Objects
                     return uint.MaxValue;
 
                 if (value < uint.MinValue)
-                    return uint.MinValue;
+                    return 1;
 
                 return (uint)BindToRange(value, StatLimitConstants.MIN_BASE_HPMP, StatLimitConstants.MAX_BASE_HPMP);
             }
@@ -152,7 +152,7 @@ namespace Hybrasyl.Objects
                     return uint.MaxValue;
 
                 if (value < uint.MinValue)
-                    return uint.MinValue;
+                    return 1;
 
                 return (uint)BindToRange(value, StatLimitConstants.MIN_BASE_HPMP, StatLimitConstants.MAX_BASE_HPMP);
             }
@@ -357,6 +357,20 @@ namespace Hybrasyl.Objects
             }
         }
 
+        public void SendCastLine(ServerPacket packet)
+        {
+            Logger.InfoFormat("SendCastLine");
+            Logger.InfoFormat($"SendCastLine byte format is: {BitConverter.ToString(packet.ToArray())}");
+            foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>())
+            {
+                var nPacket = (ServerPacket)packet.Clone();
+                Logger.InfoFormat($"SendCastLine to {user.Name}");
+                user.Enqueue(nPacket);
+
+            }
+
+        }
+
         public virtual void UpdateAttributes(StatUpdateFlags flags)
         {
         }
@@ -414,7 +428,7 @@ namespace Hybrasyl.Objects
             Hp = heal > uint.MaxValue ? MaximumHp : Math.Min(MaximumHp, (uint)(Hp + heal));
 
             SendDamageUpdate(this);
-
+            if (this is User) { UpdateAttributes(StatUpdateFlags.Current); }
         }
 
         public virtual void RegenerateMp(double mp, Creature regenerator = null)

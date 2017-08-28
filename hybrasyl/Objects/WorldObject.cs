@@ -26,6 +26,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using C3;
 using Hybrasyl.Dialogs;
+using Hybrasyl.Scripting;
 using log4net;
 using Newtonsoft.Json;
 

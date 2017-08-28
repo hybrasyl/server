@@ -4,6 +4,37 @@
  generally add fairly significant features, whereas ones without are primarily
  for bugfixing and other updates.*
 
+# Hybrasyl Server 0.5.5 ("Devlin")
+
+*Released: December 20, 2016* - [View this release on GitHub](https://github.com/hybrasyl/server/releases/tag/0.5.5)
+
+### Features
+
+* Spell targeting implemented
+* Cast lines for castables supported
+* Creatures and players can now die and have OnDeath events
+* Basic player status support (such as poison, sleep, etc) implemented
+* Monster spawning support implemented (regularly spawning new creatures in an area, using spawngroups)
+* Castable support is mostly implemented; 0.5.6 will complete the implementation (NPC learning / forgetting skills, proper directional usage, etc)
+* Skills and spells are now movable on the client pane
+* Use skill / use spell handlers implemented
+
+### Bug Fixes
+
+* National support for spawn locations fixed / updated
+* Two-handed equipment should now properly prevent a shield from being equipped
+* Two-handed flags on items should work as expected
+* Items allowing negative stats / HP / MP now fixed
+* Assail now properly uses the sound from the first assail in your list
+
+### Known Issues
+
+* Server socket state can sometimes get a little wonky which can require a restart. We're working on it.
+* Client sometimes cannot login again after logging off.
+* Packet throttling is disabled pending reimplementation. This means you can spam attack things at the moment, and also is related to the socket state issues.
+
+Required SDK Version: at least 0.5.5.17
+
 # Hybrasyl Server 0.5.2 ("Dar")
 
 *Released: June 6, 2016* - [View this release on GitHub](https://github.com/hybrasyl/server/releases/tag/0.5.2)
@@ -97,3 +128,4 @@
 
 * Poor, long-suffering Riona in Mileth, critically wounded in a prior release,
   will now respond to Aislings again.
+x

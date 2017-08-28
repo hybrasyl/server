@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Data.SqlTypes;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading;
-using Microsoft.Scripting.Interpreter;
 using Newtonsoft.Json;
 
 namespace Hybrasyl

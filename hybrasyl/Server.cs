@@ -22,16 +22,12 @@
 
 using log4net;
 using System;
-using System.CodeDom;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Security.Policy;
 using System.Threading;
-using IronPython.Modules;
-using Microsoft.Scripting.Utils;
 
 namespace Hybrasyl
 {
