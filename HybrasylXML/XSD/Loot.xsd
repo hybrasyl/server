@@ -1,0 +1,53 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:hyb="http://www.hybrasyl.com/XML/HybrasylCommon" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:loot="http://www.hybrasyl.com/XML/Loot" targetNamespace="http://www.hybrasyl.com/XML/Loot" elementFormDefault="qualified">
+
+  <xs:annotation>
+    <xs:documentation xml:lang="en">
+      Hybrasyl Project - Hybrasyl XML Schema - Loot Types
+      This file is subject to the same licenses as Project Hybrasyl.
+      (C) 2016 Project Hybrasyl (info@hybrasyl.com)
+      Written by Michael Norris (norrism@hybrasyl.com)
+    </xs:documentation>
+  </xs:annotation>
+
+  <xs:import schemaLocation="hybrasylTypes.xsd" namespace="http://www.hybrasyl.com/XML/HybrasylCommon" />
+
+  <xs:complexType name="LootTableItem">
+    <xs:attribute name="Chance" type="xs:double" />
+    <xs:attribute name="Unique" type="xs:boolean" />
+    <xs:attribute name="Name" type="hyb:String8"/>
+  </xs:complexType>
+
+  <xs:complexType name="LootTableItemList">
+    <xs:sequence>
+      <xs:element name="Item" type="loot:LootTableItem" minOccurs="1" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="Rolls" type="xs:int"/>
+    <xs:attribute name="Chance" type="xs:double"/>
+  </xs:complexType>
+
+  <xs:complexType name="LootTableGold">
+    <xs:attribute name="Min" type="xs:int"/>
+    <xs:attribute name="Max" type="xs:int"/>
+    <xs:attribute name="Chance" type="xs:double"/>
+  </xs:complexType>
+
+  <xs:complexType name="LootTable">
+    <xs:sequence>
+      <xs:element name="Items" minOccurs="0" maxOccurs="1" type="loot:LootTableItemList"/>
+      <xs:element name="Gold" minOccurs="1" maxOccurs="1" type="loot:LootTableGold"/>
+    </xs:sequence>
+    <xs:attribute name="Rolls" type="xs:int"/>
+    <xs:attribute name="Chance" type="xs:double"/>
+  </xs:complexType>
+
+  <xs:element name="LootSet">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="Table" minOccurs="1" maxOccurs="unbounded" type="loot:LootTable"/>
+      </xs:sequence>
+      <xs:attribute name="Name" type="hyb:String8"/>
+    </xs:complexType>
+  </xs:element>
+
+</xs:schema>
