@@ -302,7 +302,7 @@ namespace Hybrasyl
             // refactored later, but it is way too much work to do now (e.g. maps, etc).
 
             //Load strings
-            foreach (var xml in Directory.GetFiles(LocalizationDirectory))
+            foreach (var xml in Directory.GetFiles(LocalizationDirectory, "*.xml"))
             {
                 try
                 {
@@ -316,7 +316,7 @@ namespace Hybrasyl
             }
 
             //Load NPCs
-            foreach (var xml in Directory.GetFiles(NpcsDirectory))
+            foreach (var xml in Directory.GetFiles(NpcsDirectory, "*.xml"))
             {
                 try
                 {
@@ -331,7 +331,7 @@ namespace Hybrasyl
             }
 
             // Load maps
-            foreach (var xml in Directory.GetFiles(MapDirectory))
+            foreach (var xml in Directory.GetFiles(MapDirectory, "*.xml"))
             {
                 try
                 {
@@ -351,7 +351,7 @@ namespace Hybrasyl
             Logger.InfoFormat("Maps: {0} maps loaded", WorldData.Count<Map>());
 
             // Load nations
-            foreach (var xml in Directory.GetFiles(NationDirectory))
+            foreach (var xml in Directory.GetFiles(NationDirectory,"*.xml"))
             {
                 try
                 {
@@ -382,13 +382,12 @@ namespace Hybrasyl
             Logger.InfoFormat("National data: {0} nations loaded", WorldData.Count<Nation>());
 
             //Load Creatures
-            foreach (var xml in Directory.GetFiles(CreatureDirectory))
+            foreach (var xml in Directory.GetFiles(CreatureDirectory,"*.xml"))
             {
                 try
                 {
                     var creature = Serializer.Deserialize(XmlReader.Create(xml), new Creatures.Creature());
                     Logger.DebugFormat("Creatures: loaded {0}", creature.Name);
-                    //Creatures.Add(creature.Name, creature);
                     WorldData.Set(creature.Name, creature);
                 }
                 catch (Exception e)
@@ -400,13 +399,13 @@ namespace Hybrasyl
 
 
             //Load SpawnGroups
-            foreach (var xml in Directory.GetFiles(SpawnGroupDirectory))
+            foreach (var xml in Directory.GetFiles(SpawnGroupDirectory,"*.xml"))
             {
                 try
                 {
                     var spawnGroup = Serializer.Deserialize(XmlReader.Create(xml), new SpawnGroup());
+                    spawnGroup.Filename = Path.GetFileName(xml);
                     Logger.DebugFormat("SpawnGroup: loaded {0}", spawnGroup.GetHashCode());
-                    //SpawnGroups.Add(spawnGroup.GetHashCode(), spawnGroup);
                     WorldData.Set(spawnGroup.GetHashCode(), spawnGroup);
 
 
@@ -418,17 +417,15 @@ namespace Hybrasyl
             }
 
             // Load worldmaps
-            foreach (var xml in Directory.GetFiles(WorldMapDirectory))
+            foreach (var xml in Directory.GetFiles(WorldMapDirectory,"*.xml"))
             {
                 try
                 {
                     Maps.WorldMap newWorldMap = Serializer.Deserialize(XmlReader.Create(xml), new Maps.WorldMap());
                     var worldmap = new WorldMap(newWorldMap);
-                    //WorldMaps.Add(worldmap.Name, worldmap);
                     WorldData.Set(worldmap.Name, worldmap);
                     foreach (var point in worldmap.Points)
                     {
-                        //MapPoints.Add(point.Id, point);
                         WorldData.Set(point.Id, point);
                     }
                     Logger.DebugFormat("World Maps: Loaded {0}", worldmap.Name);
@@ -442,7 +439,7 @@ namespace Hybrasyl
             Logger.InfoFormat("World Maps: {0} world maps loaded", WorldData.Count<WorldMap>());
 
             // Load item variants
-            foreach (var xml in Directory.GetFiles(ItemVariantDirectory))
+            foreach (var xml in Directory.GetFiles(ItemVariantDirectory,"*.xml"))
             {
                 try
                 {
@@ -460,7 +457,7 @@ namespace Hybrasyl
             Logger.InfoFormat("ItemObject variants: {0} variant sets loaded", WorldData.Values<VariantGroup>().Count());
 
             // Load items
-            foreach (var xml in Directory.GetFiles(ItemDirectory))
+            foreach (var xml in Directory.GetFiles(ItemDirectory,"*.xml"))
             {
                 try
                 {
@@ -495,7 +492,7 @@ namespace Hybrasyl
                 }
             }
 
-            foreach (var xml in Directory.GetFiles(CastableDirectory))
+            foreach (var xml in Directory.GetFiles(CastableDirectory,"*.xml"))
             {
                 try
                 {
@@ -2058,7 +2055,7 @@ namespace Hybrasyl
                     case "/timeconvert":
                         {
                             var target = args[1].ToLower();
-                            Logger.InfoFormat("timeconvert: {0}", target);
+                            Logger.DebugFormat("timeconvert: {0}", target);
 
                             if (target == "aisling")
                             {

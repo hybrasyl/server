@@ -196,6 +196,13 @@ namespace Hybrasyl.Creatures
     {
         public DateTime LastSpawn { get; set; }
         public int Id { get; set; }
+        public bool Disabled { get; set; }
+    }
+
+    public partial class SpawnGroup
+    {
+        public bool Disabled { get; set; }
+        public string Filename { get; set; }
     }
 
 }

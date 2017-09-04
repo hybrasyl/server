@@ -260,7 +260,7 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                if (Game.Config.Access.Privileged != null)
+                if (Game.Config.Access?.Privileged != null)
                 {
                     return IsExempt || Flags.ContainsKey("gamemaster") || Game.Config.Access.Privileged.Contains(Name);
                 }

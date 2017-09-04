@@ -217,7 +217,6 @@ namespace Hybrasyl
                 else if (warpElement.WorldMapTarget != string.Empty)
                 {
                     // worldmap warp
-                    Logger.Info("LOADED WORLD WARP YO");
                     warp.DestinationMapName = warpElement.WorldMapTarget;
                     warp.WarpType = WarpType.WorldMap;
                 }
