@@ -98,11 +98,17 @@ namespace Hybrasyl
         public static HybrasylConfig GatherConfig()
         {
             Config = new HybrasylConfig();
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.Write("Welcome to Project Hybrasyl: this is Hybrasyl server {0}\n\n", Assemblyinfo.Version);
             Console.ForegroundColor = ConsoleColor.White;
-            Console.Write("Welcome to Project Hybrasyl: this is Hybrasyl server {0}\n", Assemblyinfo.Version);
-            Console.Write("I need to ask some questions before we can go on, to configure the server.\n");
+            Console.Write("It looks like this is the first time you've run the server.\n");
+            Console.Write("I need to ask some questions before we can continue, to configure a few basics.\n");
             Console.Write("These questions will only be asked once - if you need to make changes\n");
-            Console.Write("in the future, edit config.xml in the Hybrasyl server directory.\n\n");
+            Console.Write("in the future, you can edit config.xml in the Hybrasyl server directory.\n\n");
+
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.Write("--- Network Settings ---\n\n");
+            Console.ForegroundColor = ConsoleColor.White;
 
             Console.Write("Enter this server's IP address, or what IP we should bind to (default is 127.0.0.1): ");
             var serverIp = Console.ReadLine();
@@ -113,31 +119,22 @@ namespace Hybrasyl
             Console.Write("Enter the World Port (default is 2612): ");
             var worldPort = Console.ReadLine();
 
-            if (string.IsNullOrEmpty(serverIp))
-                serverIp = "127.0.0.1";
+            Config.Network.Lobby.BindAddress = string.IsNullOrEmpty(serverIp) ? "127.0.0.1" : serverIp;
+            Config.Network.Lobby.Port = (ushort)(string.IsNullOrEmpty(lobbyPort) ? 2610 : Convert.ToUInt16(lobbyPort));
+            Config.Network.Login.Port = (ushort)(string.IsNullOrEmpty(lobbyPort) ? 2611 : Convert.ToUInt16(loginPort));
+            Config.Network.World.Port = (ushort)(string.IsNullOrEmpty(lobbyPort) ? 2612 : Convert.ToUInt16(worldPort));
 
-            if (string.IsNullOrEmpty(lobbyPort))
-                lobbyPort = "2610";
+            Console.ForegroundColor = ConsoleColor.Yellow;
 
-            if (string.IsNullOrEmpty(loginPort))
-                loginPort = "2611";
+            Console.Write($"\nBinding to {Config.Network.Lobby.BindAddress}, lobby port {Config.Network.Lobby.Port}, " +
+                $"login port {Config.Network.Login.Port}, world port {Config.Network.World.Port}\n\n");
 
-            if (string.IsNullOrEmpty(worldPort))
-                worldPort = "2612";
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.Write("--- Data Storage Settings ---\n\n");
+            Console.ForegroundColor = ConsoleColor.White;
 
-            Config.Network.Lobby.BindAddress = serverIp;
-            Config.Network.Lobby.Port = Convert.ToUInt16(lobbyPort);
-
-            Config.Network.Login.BindAddress = serverIp;
-            Config.Network.Login.Port = Convert.ToUInt16(loginPort);
-
-            Config.Network.World.BindAddress = serverIp;
-            Config.Network.World.Port = Convert.ToUInt16(worldPort);
-
-            Logger.InfoFormat("Using {0}: {1}, {2}, {3}", serverIp, lobbyPort, loginPort, worldPort);
-
-            Console.Write("Now, we will configure the Redis store.\n");
-            Console.Write("If you have just installed Redis and are using the default settings, just hit enter here.\n");
+            Console.Write("Now, we need to configure the Redis store. Redis is used to store Hybrasyl's state data (such as players).\n");
+            Console.Write("If you have just installed Redis and are using the default settings, you can probably just stick with the defaults.\n\n");
                
             Console.Write("Redis IP or hostname (default is localhost): ");
             var redisHost = Console.ReadLine();
@@ -145,7 +142,7 @@ namespace Hybrasyl
             Console.Write("Redis port (default is 6379): ");
             var redisPort = Console.ReadLine();
 
-            Console.Write("Redis authentication information (optional - if you don't have these, just hit enter)");
+            Console.Write("\nRedis authentication information (optional - if you don't have these, just hit enter)\n\n");
             Console.Write("Username: ");
             var redisUser = Console.ReadLine();
 
@@ -153,13 +150,44 @@ namespace Hybrasyl
             var redisPass = Console.ReadLine();
 
             Config.DataStore.Host = string.IsNullOrEmpty(redisHost) ? "localhost" : redisHost;
-            Config.DataStore.Port = string.IsNullOrEmpty(redisPort) ? (ushort) 6379 : Convert.ToUInt16(redisPort);
-            Config.DataStore.Username = string.IsNullOrEmpty(redisUser) ? "" : redisUser;
-            Config.DataStore.Password = string.IsNullOrEmpty(redisPass) ? "" : redisPass;
+            Config.DataStore.Port = string.IsNullOrEmpty(redisPort) ? (ushort)6379 : Convert.ToUInt16(redisPort);
 
-            Config.Time.ServerStart.Value = DateTime.Now;
-            Config.Time.ServerStart.DefaultAge = "Hybrasyl";
-            Config.Time.ServerStart.DefaultYear = 1;
+            Config.DataStore.Username = string.IsNullOrEmpty(redisUser) ? null : redisUser;
+            Config.DataStore.Password = string.IsNullOrEmpty(redisPass) ? null : redisPass;
+
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.Write("\nDatastore: redis: {0}, port {1}\n\n", Config.DataStore.Host, Config.DataStore.Port);
+
+            Config.Time = new Time
+            {
+                ServerStart = new ServerStart
+                {
+                    Value = DateTime.Now,
+                    DefaultAge = "Hybrasyl",
+                    DefaultYear = 1
+                }
+            };
+
+            Config.Access = new Access();
+
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.Write("--- Privileged User Configuration ---\n\n");
+            Console.ForegroundColor = ConsoleColor.White;
+
+            Console.Write("It is helpful to have at least one user who is privileged; that is to say, a user that can run admin commands and debug the server.\n");
+            Console.Write("The character obviously doesn't need to exist yet, but, we need to know the name.\n\n");
+            Console.Write("Privileged User (enter character name): ");
+            var privUser = Console.ReadLine();
+
+            Config.Access = new Access();
+            Config.Access.Privileged = string.IsNullOrEmpty(privUser) ? null : privUser;
+
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.Write($"\nPrivileged user: {Config.Access.Privileged}\n\n");
+
+            Console.Write($"In-game time set to Hybrasyl, Year 1 (server start date set as {Config.Time.ServerStart.Value})\n\n");
+            Console.ForegroundColor = ConsoleColor.White;
+            Config.Boards = new List<GlobalBoard>();
 
             return Config;
         }
@@ -222,10 +250,13 @@ namespace Hybrasyl
                         Logger.ErrorFormat("Some of the values you entered were invalid. Try again. Error was: {0}",
                             e.ToString());
 
-                    }
+
+                   }
                 }
                 // Write out our configuration
                 XML.Serializer.Serialize(new XmlTextWriter(hybconfig, null), Config);
+                Console.WriteLine("Configuration has been written. Press any key to start the server.");
+                Console.ReadKey();
             }
             // Set default logging level
             ((log4net.Repository.Hierarchy.Hierarchy) LogManager.GetRepository()).Root.Level = Level.Info;
