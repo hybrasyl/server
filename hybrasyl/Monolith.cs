@@ -131,5 +131,55 @@ namespace Hybrasyl
             //Game.World.Maps[mapId].InsertCreature(monster);
             //Logger.DebugFormat("Spawning monster: {0} at {1}, {2}", monster.Name, (int) monster.X, (int) monster.Y);
         }
+
+        private static void Evaluate(Monster monster, Map map)
+        {
+            //need an IsHostile flag?
+            var entityTree = map.EntityTree.GetObjects(monster.GetViewport());
+            var hasPlayer = entityTree.Any(x => x is User);
+
+            if (hasPlayer)
+            {
+                //get players
+                var players = entityTree.OfType<User>();
+
+                //get closest
+                var closest = players.OrderBy(x => Math.Sqrt((Math.Pow(monster.X - x.X, 2) + Math.Pow(monster.Y - x.Y, 2)))).FirstOrDefault();
+
+                if (closest != null)
+                {
+                    var rand = new Random();
+
+                    //pathfind or cast if far away
+                    var distanceX = (int)Math.Sqrt(Math.Pow(monster.X - closest.X, 2));
+                    var distanceY = (int)Math.Sqrt(Math.Pow(monster.Y - closest.Y, 2));
+                    if (distanceX > 1 || distanceY > 1)
+                    {
+                        var nextAction = rand.Next(1, 2);
+
+                        if (nextAction == 1)
+                        {
+                            //pathfind;
+                            if (distanceX > distanceY)
+                            {
+                                //movex
+                            }
+                            else
+                            {
+                                //movey
+                            }
+                        }
+                        else
+                        {
+                            //cast
+                        }
+                    }
+                    else
+                    {
+                        //check facing and attack or cast
+                    }
+                }
+            }
+        }
     }
 }
