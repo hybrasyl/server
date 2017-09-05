@@ -130,6 +130,7 @@ namespace Hybrasyl
                             catch (SocketException e)
                             {
                                 Logger.Fatal(e.Message);
+                                client.Disconnect();
                             }
                             
                         }
