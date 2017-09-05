@@ -213,20 +213,10 @@ namespace Hybrasyl
         /// </summary>
         public void Received()
         {
-
-            if (Throttle != Constants.PACKET_THROTTLES[0x13])
-            {
                 PreviousReceived = LastReceived;
                 LastReceived = DateTime.Now.Ticks;
                 TotalReceived++;
-            }
-            else
-            {
-                LastReceived = DateTime.Now.Ticks;
-                TotalReceived++;
-                return;
-            }
-            PreviousReceived = LastReceived;
+
         }
 
     }
