@@ -100,7 +100,7 @@ namespace Hybrasyl
                 foreach (var client in GlobalConnectionManifest.ConnectedClients.Select(kvp => kvp.Value))
                 {
                     ServerPacket packet;
-                    while (client.ClientState.SendBufferTake(out packet))
+                    if (client.ClientState.SendBufferTake(out packet))
                     {
                         if (packet.ShouldEncrypt)
                         {
@@ -118,10 +118,10 @@ namespace Hybrasyl
 
                         var byteData = (byte[])packet;
 
-                        client.ClientState.WorkSocket.BeginSend(buffer, 0, buffer.Length, 0,
-                            new AsyncCallback(SendCallback), client.ClientState);
+                        client.ClientState.WorkSocket.BeginSend(buffer, 0, buffer.Length, 0, new AsyncCallback(SendCallback), client.ClientState);
                     }
                 }
+
                 Thread.Sleep(100);
             }
         }
