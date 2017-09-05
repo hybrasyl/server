@@ -129,6 +129,8 @@ namespace Hybrasyl
 
         public bool Connected => ClientState.Connected;
 
+        public bool IsReceiving { get; set; }
+
         public ClientState ClientState;
 
         public Socket Socket => ClientState.WorkSocket;

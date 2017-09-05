@@ -336,7 +336,7 @@ namespace Hybrasyl
         public const int SPEAK_REPEAT_TIMES = 3;
         public const int SPEAK_REPEAT_WITHIN = 10000;
         public const int SPEAK_SQUELCH_DURATION = 10000;
-        public const int SPEAK_DISCONNECT_TRIGGER = 200;
+        public const int SPEAK_DISCONNECT_TRIGGER = 0;
 
         // Number of times you're allowed to whisper exactly the same thing
         // Not currently enforced.
@@ -344,7 +344,7 @@ namespace Hybrasyl
         public const int WHISPER_REPEAT_TIMES = 6;
         public const int WHISPER_REPEAT_WITHIN = 2000;
         public const int WHISPER_SQUELCH_DURATION = 4000;
-        public const int WHISPER_DISCONNECT_TRIGGER = 200;
+        public const int WHISPER_DISCONNECT_TRIGGER = 0;
 
         // Throttling for skills/spells. Not currently implemented because, well, skills aren't.
         public const int USE_THROTTLE_TIME = 250;
@@ -392,7 +392,7 @@ namespace Hybrasyl
 
         // Message throttling 
 
-        public const int SEND_MESSAGE_COOLDOWN = 2000; // You must wait two seconds before sending another message
+        public const int SEND_MESSAGE_COOLDOWN = 1000; // You must wait two seconds before sending another message
 
         // Idle settings
         // A client counts as idle after IDLE_TIME seconds without any packet receipt (except for heartbeat opcodes)
