@@ -99,9 +99,12 @@ namespace Hybrasyl
                 //Logger.InfoFormat("GCM value: {0}", GlobalConnectionManifest.ConnectedClients.Count);
                 foreach (var client in GlobalConnectionManifest.ConnectedClients.Select(kvp => kvp.Value))
                 {
-                    ServerPacket packet;
-                    if (client.ClientState.SendBufferTake(out packet))
+                    try
                     {
+                        if (client.IsReceiving) continue;
+                        
+                        ServerPacket packet;
+                        if (!client.ClientState.SendBufferTake(out packet)) continue;
                         if (packet.ShouldEncrypt)
                         {
                             ++client.ServerOrdinal;
@@ -116,15 +119,34 @@ namespace Hybrasyl
                         }
                         var buffer = packet.ToArray();
 
-                        var byteData = (byte[])packet;
+                        var byteData = (byte[]) packet;
+                        if (client.ClientState.WorkSocket.Connected)
+                        {
+                            try
+                            {
+                                client.ClientState.WorkSocket.BeginSend(buffer, 0, buffer.Length, 0,
+                                new AsyncCallback(SendCallback), client.ClientState);
+                            }
+                            catch (SocketException e)
+                            {
+                                Logger.Fatal(e.Message);
+                            }
+                            
+                        }
 
-                        client.ClientState.WorkSocket.BeginSend(buffer, 0, buffer.Length, 0, new AsyncCallback(SendCallback), client.ClientState);
                     }
+                    catch (Exception e)
+                    {
+                       Logger.Fatal(e.Message);
+                    }
+                    
                 }
-
+                
                 Thread.Sleep(100);
             }
         }
+
+       
 
         public byte[] SendPacket(Client client, ServerPacket packet)
         {
@@ -331,9 +353,14 @@ namespace Hybrasyl
                                     Logger.DebugFormat("Lobby: 0x{0:X2}", receivedPacket.Opcode);
                                     var handler = (this as Lobby).PacketHandlers[receivedPacket.Opcode];
                                     handler.Invoke(client, receivedPacket);
-                                    ServerPacket sendBuff;
-                                    state.SendBufferTake(out sendBuff);
-                                    Send(state, SendPacket(client, sendBuff));
+                                    if (!client.IsReceiving)
+                                    {
+                                        client.IsReceiving = true;
+                                        ServerPacket sendBuff;
+                                        state.SendBufferTake(out sendBuff);
+                                        Send(state, SendPacket(client, sendBuff));
+                                        client.IsReceiving = false;
+                                    }
                                     Logger.DebugFormat("Lobby packet done");
                                     client.UpdateLastReceived();
                                 }
@@ -342,9 +369,14 @@ namespace Hybrasyl
                                     Logger.DebugFormat("Login: 0x{0:X2}", receivedPacket.Opcode);
                                     var handler = (this as Login).PacketHandlers[receivedPacket.Opcode];
                                     handler.Invoke(client, receivedPacket);
-                                    ServerPacket sendBuff;
-                                    state.SendBufferTake(out sendBuff);
-                                    Send(state, SendPacket(client, sendBuff));
+                                    if (!client.IsReceiving)
+                                    {
+                                        client.IsReceiving = true;
+                                        ServerPacket sendBuff;
+                                        state.SendBufferTake(out sendBuff);
+                                        Send(state, SendPacket(client, sendBuff));
+                                        client.IsReceiving = false;
+                                    }
                                     Logger.DebugFormat("Login packet done");
                                     client.UpdateLastReceived();
                                 }
@@ -365,9 +397,14 @@ namespace Hybrasyl
                                         if (throttleInfo != null) client.Throttle[receivedPacket.Opcode].Received();
                                         World.MessageQueue.Add(new HybrasylClientMessage(receivedPacket,
                                             client.ConnectionId));
-                                        ServerPacket sendBuff;
-                                        state.SendBufferTake(out sendBuff);
-                                        Send(state, SendPacket(client, sendBuff));
+                                        if (!client.IsReceiving)
+                                        {
+                                            client.IsReceiving = true;
+                                            ServerPacket sendBuff;
+                                            state.SendBufferTake(out sendBuff);
+                                            Send(state, SendPacket(client, sendBuff));
+                                            client.IsReceiving = false;
+                                        }
                                     }
                                     else
                                     {
