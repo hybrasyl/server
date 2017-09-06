@@ -42,7 +42,7 @@ namespace Hybrasyl
             return "Shutdown ControlMessage not queued.";
         }
 
-        public List<User> CurrentUsers() => my BadImageFormatExceptionWorld.ActiveUsers.Select(x => x.Value ).ToList();
+        public List<User> CurrentUsers() => World.ActiveUsers.Select(x => x.Value ).ToList();
 
         public User User(string name)
         {
