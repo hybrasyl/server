@@ -111,19 +111,19 @@ namespace Hybrasyl
             Name = newWorldMap.Name;
             ClientMap = newWorldMap.ClientMap;
 
-            foreach (var point in newWorldMap.Points.Point)
-            {
-                var mapPoint = new MapPoint(point.X, point.Y)
-                {
-                    DestinationMap = point.Target.Value,
-                    DestinationX = point.Target.X,
-                    DestinationY = point.Target.Y,
-                    Name = point.Name
+            //foreach (var point in newWorldMap.Points.Point)
+            //{
+            //    var mapPoint = new MapPoint(point.X, point.Y)
+            //    {
+            //        DestinationMap = point.Target.Value,
+            //        DestinationX = point.Target.X,
+            //        DestinationY = point.Target.Y,
+            //        Name = point.Name
 
-                };
-                // We don't implement world map point restrictions yet, so we're done here
-                Points.Add(mapPoint);
-            }
+            //    };
+            //    // We don't implement world map point restrictions yet, so we're done here
+            //    Points.Add(mapPoint);
+            //}
 
         }
         public byte[] GetBytes()
