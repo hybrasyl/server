@@ -204,10 +204,10 @@ namespace Hybrasyl
 
             //set up service endpoint for ControlService
 
-            var host = new WebServiceHost(typeof(ControlService), new Uri("http://localhost:4949/ControlService"));
+            var host = new WebServiceHost(typeof(ControlService), new Uri($"http://localhost:{Constants.ControlServicePort}/ControlService"));
             
             host.Open();
-            Logger.InfoFormat("Starting ControlService on port 4949.");
+            Logger.InfoFormat($"Starting ControlService on port {Constants.ControlServicePort}");
             
 
             Constants.DataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Hybrasyl");

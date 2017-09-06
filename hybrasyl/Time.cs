@@ -98,8 +98,8 @@ namespace Hybrasyl
 
         public long TerranTicks => HybrasylTicks / 8;
 
-        public static string DefaultAge => Game.Config != null ? Game.Config.Time.ServerStart.DefaultAge != string.Empty ? Game.Config.Time.ServerStart.DefaultAge : "Hybrasyl" : "Hybrasyl";
-        public static int DefaultYear => Game.Config != null ? Game.Config.Time.ServerStart.DefaultYear != 1 ? Game.Config.Time.ServerStart.DefaultYear : 1 : 1;
+        public static string DefaultAge => Game.Config != null ? Game.Config.Time?.ServerStart?.DefaultAge != string.Empty ? Game.Config.Time?.ServerStart?.DefaultAge : "Hybrasyl" : "Hybrasyl";
+        public static int DefaultYear => Game.Config != null ? Game.Config.Time?.ServerStart?.DefaultYear != 1 ? Game.Config.Time.ServerStart.DefaultYear : 1 : 1;
 
         public static bool ValidAge(string age)
         {

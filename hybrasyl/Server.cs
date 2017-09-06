@@ -212,7 +212,7 @@ namespace Hybrasyl
         }
 
         public void SendCallback(IAsyncResult ar)
-        {
+             {
 
             ClientState state = (ClientState) ar.AsyncState;
             Client client;

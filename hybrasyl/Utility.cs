@@ -395,6 +395,7 @@ namespace Hybrasyl
         // This is a dirty hack until we have better role / auth support
 
         public const string ShutdownPassword = "batterystaple8!";
+        public const int ControlServicePort = 4949;
 
         // Dialog settings
         // Dialog sequence IDs between 1 and DIALOG_SEQUENCE_SHARED are processed as 
