@@ -60,6 +60,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System.Drawing" />
+    <Reference Include="System.ServiceModel" />
+    <Reference Include="System.ServiceModel.Web" />
     <Reference Include="XmlSchemaClassGenerator, Version=1.0.20.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>packages\XmlSchemaClassGenerator-beta.1.0.20\lib\net45\XmlSchemaClassGenerator.dll</HintPath>
       <Private>True</Private>
@@ -69,6 +71,7 @@
     <Compile Include="Book.cs" />
     <Compile Include="Board.cs" />
     <Compile Include="Compression.cs" />
+    <Compile Include="ControlService.cs" />
     <Compile Include="Objects\Creature.cs" />
     <Compile Include="Objects\Door.cs" />
     <Compile Include="Objects\Gold.cs" />

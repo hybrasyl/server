@@ -28,6 +28,9 @@ using System.IO;
 using System.Net;
 using System.Reflection;
 using System.Security.Cryptography;
+using System.ServiceModel;
+using System.ServiceModel.Description;
+using System.ServiceModel.Web;
 using System.Text;
 using System.Threading;
 using System.Xml;
@@ -198,6 +201,14 @@ namespace Hybrasyl
             Console.SetWindowSize(140, 36);
             LogLevel = Hybrasyl.Constants.DEFAULT_LOG_LEVEL;
             Assemblyinfo = new AssemblyInfo(Assembly.GetEntryAssembly());
+
+            //set up service endpoint for ControlService
+
+            var host = new WebServiceHost(typeof(ControlService), new Uri($"http://localhost:{Constants.ControlServicePort}/ControlService"));
+            
+            host.Open();
+            Logger.InfoFormat($"Starting ControlService on port {Constants.ControlServicePort}");
+            
 
             Constants.DataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Hybrasyl");
 
@@ -380,6 +391,7 @@ namespace Hybrasyl
             // for World, this triggers a logoff for all logged in users and then terminates. After
             // termination, the queue consumer is stopped as well.
             // For a true restart we'll need to do a few other things; stop timers, etc.
+            host.Close();
             Lobby.Shutdown();
             Login.Shutdown();
             World.Shutdown();
