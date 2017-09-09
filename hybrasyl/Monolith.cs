@@ -203,11 +203,11 @@ namespace Hybrasyl
                         //pathfind or cast if far away
                         var distanceX = (int)Math.Sqrt(Math.Pow(monster.X - closest.X, 2));
                         var distanceY = (int)Math.Sqrt(Math.Pow(monster.Y - closest.Y, 2));
-                        if (distanceX > 1 || distanceY > 1)
+                        if (distanceX >= 1 && distanceY >= 1)
                         {
-                            var nextAction = _random.Next(1, 3);
+                            var nextAction = _random.Next(1, 6);
 
-                            if (nextAction == 1)
+                            if (nextAction > 1)
                             {
                                 //pathfind;
                                 if (distanceX > distanceY)
@@ -218,6 +218,20 @@ namespace Hybrasyl
                                 {
                                     //movey
                                     monster.Walk(monster.Y > closest.Y ? Direction.North : Direction.South);
+                                }
+
+                                if (distanceX == distanceY)
+                                {
+                                    var next = _random.Next(0, 2);
+
+                                    if (next == 0)
+                                    {
+                                        monster.Walk(monster.X > closest.X ? Direction.West : Direction.East);
+                                    }
+                                    else
+                                    {
+                                        monster.Walk(monster.Y > closest.Y ? Direction.North : Direction.South);
+                                    }
                                 }
                             }
                             else
@@ -230,8 +244,8 @@ namespace Hybrasyl
                         {
                             //check facing and attack or cast
 
-                            var nextAction = _random.Next(1, 3);
-                            if (nextAction == 1)
+                            var nextAction = _random.Next(1, 6);
+                            if (nextAction > 1)
                             {
                                 var facing = monster.CheckFacing(monster.Direction, closest);
                                 if (facing)

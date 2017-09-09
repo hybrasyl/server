@@ -206,18 +206,18 @@ namespace Hybrasyl.Objects
                 if (((this.X - target.X) == 0 && (this.Y - target.Y) == 1))
                 {
                     //check if facing south
-                    if (this.Direction == Direction.South) return true;
-                    else
-                    {
-                        this.Turn(Direction.South);
-                    }
-                }
-                if (((this.X - target.X) == 0 && (this.Y - target.Y) == -1))
-                {
                     if (this.Direction == Direction.North) return true;
                     else
                     {
                         this.Turn(Direction.North);
+                    }
+                }
+                if (((this.X - target.X) == 0 && (this.Y - target.Y) == -1))
+                {
+                    if (this.Direction == Direction.South) return true;
+                    else
+                    {
+                        this.Turn(Direction.South);
                     }
                 }
             }
