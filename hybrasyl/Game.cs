@@ -25,6 +25,7 @@ using log4net;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Security.Cryptography;
@@ -33,6 +34,7 @@ using System.ServiceModel.Description;
 using System.ServiceModel.Web;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Xml;
 using Hybrasyl.XML;
 using log4net.Core;
@@ -64,6 +66,7 @@ namespace Hybrasyl
         private static long Active = 0;
 
         private static Monolith _monolith;
+        private static MonolithControl _monolithControl;
 
         public static HybrasylConfig Config { get; private set; }
 
@@ -76,6 +79,7 @@ namespace Hybrasyl
         private static Thread _worldSendThread;
 
         private static Thread _spawnThread;
+        private static Thread _controlThread;
 
         public static DateTime StartDate { get; set; }
 
@@ -294,6 +298,8 @@ namespace Hybrasyl
             World.StopToken = CancellationTokenSource.Token;
 
             _monolith = new Monolith();
+            _monolithControl = new MonolithControl();
+            
         
             if (!World.InitWorld())
             {
@@ -368,6 +374,16 @@ namespace Hybrasyl
 
             _spawnThread = new Thread(_monolith.Start);
 
+            _controlThread = new Thread(_monolithControl.Start);
+
+            //foreach (var control in _monolithControls)
+            //{
+            //    Task.Run(() =>
+            //    {
+            //        control.Start();
+            //    });
+            //}
+
             _lobbyThread.Start();
             _loginThread.Start();
             _worldThread.Start();
@@ -377,6 +393,7 @@ namespace Hybrasyl
             _worldSendThread.Start();
 
             _spawnThread.Start();
+            _controlThread.Start();
             while (true)
             {
                 if (!IsActive())

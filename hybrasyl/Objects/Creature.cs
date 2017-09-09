@@ -386,12 +386,25 @@ namespace Hybrasyl.Objects
 
             foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
             {
-                if (!(obj is User)) continue;
-                var user = obj as User;
-                var x11 = new ServerPacket(0x11);
-                x11.WriteUInt32(Id);
-                x11.WriteByte((byte)direction);
-                user.Enqueue(x11);
+                if (obj is User)
+                {
+                    var user = obj as User;
+                    var x11 = new ServerPacket(0x11);
+                    x11.WriteUInt32(Id);
+                    x11.WriteByte((byte)direction);
+                    user.Enqueue(x11);
+                }
+                if (obj is Monster)
+                {
+                    var mob = obj as Monster;
+                    var x11 = new ServerPacket(0x11);
+                    x11.WriteUInt32(Id);
+                    x11.WriteByte((byte)direction);
+                    foreach (var user in Map.EntityTree.GetObjects(Map.GetViewport(mob.X, mob.Y)).OfType<User>().ToList())
+                    {
+                        user.Enqueue(x11);
+                    }
+                }
             }
 
             return true;

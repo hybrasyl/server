@@ -829,6 +829,7 @@ namespace Hybrasyl
             ControlMessageHandlers[ControlOpcodes.MailNotifyUser] = ControlMessage_MailNotifyUser;
             ControlMessageHandlers[ControlOpcodes.StatusTick] = ControlMessage_StatusTick;
             ControlMessageHandlers[ControlOpcodes.MonolithSpawn] = ControlMessage_SpawnMonster;
+            ControlMessageHandlers[ControlOpcodes.MonolithControl] = ControlMessage_MonolithControl;
         }
 
         public void SetPacketHandlers()
@@ -1149,6 +1150,11 @@ namespace Hybrasyl
             var map = (Map)message.Arguments[1];
             Logger.DebugFormat("monolith: spawning monster {0} on map {1}", monster.Name, map.Name);
             map.InsertCreature(monster);
+        }
+
+        private void ControlMessage_MonolithControl(HybrasylControlMessage message)
+        {
+            
         }
 
         #endregion Control Message Handlers

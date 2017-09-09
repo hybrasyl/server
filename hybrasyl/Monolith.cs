@@ -25,9 +25,12 @@ using log4net;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
-using Hybrasyl.Creatures;
-using Creature = Hybrasyl.Creatures.Creature;
+ using System.Runtime.CompilerServices;
+ using System.Threading;
+ using System.Threading.Tasks;
+ using Hybrasyl.Creatures;
+ using Hybrasyl.Enums;
+ using Creature = Hybrasyl.Creatures.Creature;
 
 namespace Hybrasyl
 {
@@ -133,52 +136,143 @@ namespace Hybrasyl
             //Game.World.Maps[mapId].InsertCreature(monster);
             //Logger.DebugFormat("Spawning monster: {0} at {1}, {2}", monster.Name, (int) monster.X, (int) monster.Y);
         }
+    }
+
+    internal class MonolithControl
+    {
+        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
+        private IEnumerable<Map> _maps => Game.World.WorldData.Values<Map>();
+        private static Random _random;
+
+        internal MonolithControl()
+        {
+            _random = new Random();
+        }
+        
+        public void Start()
+        {
+            while (true)
+            {
+                foreach (var map in _maps)
+                {
+                    foreach (var mob in map.EntityTree.GetAllObjects().OfType<Monster>())
+                    {
+                        Evaluate(mob, map);
+                        
+                    }
+                }
+            }
+        }
+
 
         private static void Evaluate(Monster monster, Map map)
         {
-            //need an IsHostile flag?
-            var entityTree = map.EntityTree.GetObjects(monster.GetViewport());
-            var hasPlayer = entityTree.Any(x => x is User);
-
-            if (hasPlayer)
+            if (monster.IsHostile)
             {
-                //get players
-                var players = entityTree.OfType<User>();
+                var entityTree = map.EntityTree.GetObjects(monster.GetViewport());
+                var hasPlayer = entityTree.Any(x => x is User);
 
-                //get closest
-                var closest = players.OrderBy(x => Math.Sqrt((Math.Pow(monster.X - x.X, 2) + Math.Pow(monster.Y - x.Y, 2)))).FirstOrDefault();
-
-                if (closest != null)
+                if (hasPlayer)
                 {
-                    var rand = new Random();
+                    //get players
+                    var players = entityTree.OfType<User>();
 
-                    //pathfind or cast if far away
-                    var distanceX = (int)Math.Sqrt(Math.Pow(monster.X - closest.X, 2));
-                    var distanceY = (int)Math.Sqrt(Math.Pow(monster.Y - closest.Y, 2));
-                    if (distanceX > 1 || distanceY > 1)
+                    //get closest
+                    var closest =
+                        players.OrderBy(x => Math.Sqrt((Math.Pow(monster.X - x.X, 2) + Math.Pow(monster.Y - x.Y, 2))))
+                            .FirstOrDefault();
+
+                    if (closest != null)
                     {
-                        var nextAction = rand.Next(1, 2);
 
-                        if (nextAction == 1)
+                        //pathfind or cast if far away
+                        var distanceX = (int)Math.Sqrt(Math.Pow(monster.X - closest.X, 2));
+                        var distanceY = (int)Math.Sqrt(Math.Pow(monster.Y - closest.Y, 2));
+                        if (distanceX > 1 || distanceY > 1)
                         {
-                            //pathfind;
-                            if (distanceX > distanceY)
+                            var nextAction = _random.Next(1, 3);
+
+                            if (nextAction == 1)
                             {
-                                //movex
+                                //pathfind;
+                                if (distanceX > distanceY)
+                                {
+                                    monster.Walk(monster.X > closest.X ? Direction.West : Direction.East);
+                                }
+                                else
+                                {
+                                    //movey
+                                    monster.Walk(monster.Y > closest.Y ? Direction.South : Direction.North);
+                                }
                             }
                             else
                             {
-                                //movey
+                                //cast
+                                monster.Shout("I SHOULD BE CASTING RIGHT NOW!");
                             }
                         }
                         else
                         {
-                            //cast
+                            //check facing and attack or cast
+
+                            var nextAction = _random.Next(1, 3);
+                            if (nextAction == 1)
+                            {
+                                var facing = monster.CheckFacing(monster.Direction, closest);
+                                if (facing)
+                                {
+                                    monster.AssailAttack(monster.Direction, closest);
+                                }
+                            }
+                            else
+                            {
+                                monster.Shout("I WANT TO CAST BUT ITS NOT IMPLEMENTED YET!");
+                            }
                         }
                     }
-                    else
+                }
+            }
+            if (monster.ShouldWander)
+            {
+                var nextAction = _random.Next(0, 2);
+
+                if (nextAction == 1)
+                {
+                    var nextMove = _random.Next(0, 4);
+                    switch (nextMove)
                     {
-                        //check facing and attack or cast
+                        case 0:
+                            monster.Walk(Direction.East);
+                            break;
+                        case 1:
+                            monster.Walk(Direction.West);
+                            break;
+                        case 2:
+                            monster.Walk(Direction.North);
+                            break;
+                        case 3:
+                            monster.Walk(Direction.South);
+                            break;
+                    }
+                }
+                else
+                {
+                    var nextMove = _random.Next(0, 4);
+                    switch (nextMove)
+                    {
+                        case 0:
+                            monster.Turn(Direction.East);
+                            break;
+                        case 1:
+                            monster.Turn(Direction.West);
+                            break;
+                        case 2:
+                            monster.Turn(Direction.North);
+                            break;
+                        case 3:
+                            monster.Turn(Direction.South);
+                            break;
                     }
                 }
             }

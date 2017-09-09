@@ -232,6 +232,7 @@ namespace Hybrasyl
         public const int MailNotifyUser = 6;
         public const int StatusTick = 7;
         public const int MonolithSpawn = 8;
+        public const int MonolithControl = 9;
     }
 
     static class ServerTypes
