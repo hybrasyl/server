@@ -156,11 +156,19 @@ namespace Hybrasyl
             {
                 foreach (var map in _maps)
                 {
-                    foreach (var mob in map.EntityTree.GetAllObjects().OfType<Monster>())
-                    {
-                        Evaluate(mob, map);
-                        
-                    }
+                    //var t = Task.Run(() =>
+                    //{
+                        foreach (var mob in map.EntityTree.GetAllObjects().OfType<Monster>())
+                        {
+                            Evaluate(mob, map);
+                        }
+                    //});
+                    //while (!t.IsCompleted)
+                    //{
+                    //    //wait
+                    //}
+                    //t.Dispose();
+                    Thread.Sleep(2);
                 }
             }
         }
@@ -168,6 +176,12 @@ namespace Hybrasyl
 
         private static void Evaluate(Monster monster, Map map)
         {
+            if (!(monster.LastAction < DateTime.Now.AddMilliseconds(-monster.ActionDelay))) return;
+
+            var mapTree = map.EntityTree.GetAllObjects();
+            var mapPlayers = mapTree.Any(x => x is User);
+            if (!mapPlayers) return;
+
             if (monster.IsHostile)
             {
                 var entityTree = map.EntityTree.GetObjects(monster.GetViewport());
@@ -203,7 +217,7 @@ namespace Hybrasyl
                                 else
                                 {
                                     //movey
-                                    monster.Walk(monster.Y > closest.Y ? Direction.South : Direction.North);
+                                    monster.Walk(monster.Y > closest.Y ? Direction.North : Direction.South);
                                 }
                             }
                             else

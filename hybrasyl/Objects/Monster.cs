@@ -42,6 +42,9 @@ namespace Hybrasyl.Objects
 
         private Creatures.Damage _simpleDamage;
 
+        public int ActionDelay = 800;
+
+        public DateTime LastAction { get; set; }
         public bool IsHostile { get; set; }
         public bool ShouldWander { get; set; }
 
@@ -180,9 +183,9 @@ namespace Hybrasyl.Objects
 
         public bool CheckFacing(Direction direction, Creature target)
         {
-            if (Math.Abs(this.X - Target.X) <= 1 && Math.Abs(this.Y - Target.Y) <= 1)
+            if (Math.Abs(this.X - target.X) <= 1 && Math.Abs(this.Y - target.Y) <= 1)
             {
-                if (((this.X - Target.X) == 1 && (this.Y - Target.Y) == 0))
+                if (((this.X - target.X) == 1 && (this.Y - target.Y) == 0))
                 {
                     //check if facing west
                     if (this.Direction == Direction.West) return true;
@@ -191,7 +194,7 @@ namespace Hybrasyl.Objects
                         this.Turn(Direction.West);
                     }
                 }
-                if (((this.X - Target.X) == -1 && (this.Y - Target.Y) == 0))
+                if (((this.X - target.X) == -1 && (this.Y - target.Y) == 0))
                 {
                     //check if facing east
                     if (this.Direction == Direction.East) return true;
@@ -200,7 +203,7 @@ namespace Hybrasyl.Objects
                         this.Turn(Direction.East);
                     }
                 }
-                if (((this.X - Target.X) == 0 && (this.Y - Target.Y) == 1))
+                if (((this.X - target.X) == 0 && (this.Y - target.Y) == 1))
                 {
                     //check if facing south
                     if (this.Direction == Direction.South) return true;
@@ -209,7 +212,7 @@ namespace Hybrasyl.Objects
                         this.Turn(Direction.South);
                     }
                 }
-                if (((this.X - Target.X) == 0 && (this.Y - Target.Y) == -1))
+                if (((this.X - target.X) == 0 && (this.Y - target.Y) == -1))
                 {
                     if (this.Direction == Direction.North) return true;
                     else
