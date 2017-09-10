@@ -202,12 +202,12 @@ namespace Hybrasyl
         /// </summary>
         public void RegisterWorldThrottles()
         {
-            RegisterThrottle(new GenericPacketThrottle(0x06, 1000, 0, 500));  // Movement
+            RegisterPacketThrottle(new GenericPacketThrottle(0x06, 1000, 0, 500));  // Movement
            // RegisterThrottle(new SpeechThrottle(0x0e, 250, 3, 10000, 10000, 200, 250, 6, 2000, 4000, 200)); // speech
-            RegisterThrottle(new GenericPacketThrottle(0x3a, 1000, 1000, 500));  // NPC use dialog
-            RegisterThrottle(new GenericPacketThrottle(0x38, 1000, 1000, 500));  // refresh (f5)
-            RegisterThrottle(new GenericPacketThrottle(0x39, 1000, 1000, 500));  // NPC main menu
-            RegisterThrottle(new GenericPacketThrottle(0x13, 800, 0, 0));        // Assail
+            RegisterPacketThrottle(new GenericPacketThrottle(0x3a, 1000, 1000, 500));  // NPC use dialog
+            RegisterPacketThrottle(new GenericPacketThrottle(0x38, 1000, 1000, 500));  // refresh (f5)
+            RegisterPacketThrottle(new GenericPacketThrottle(0x39, 1000, 1000, 500));  // NPC main menu
+            RegisterPacketThrottle(new GenericPacketThrottle(0x13, 800, 0, 0));        // Assail
         }
 
 

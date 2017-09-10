@@ -9,43 +9,37 @@ using Hybrasyl.Enums;
 namespace Hybrasyl
 {
 
+    public interface IThrottleData
+    {
+
+    }
+
+    public interface IPacketThrottleData : IThrottleData
+    {
+        Client Client { get; }
+        ClientPacket Packet { get; }
+        byte Opcode { get; }
+    }
+
+    public class PacketThrottleData : IPacketThrottleData
+    {
+        public Client Client { get; set; }
+        public ClientPacket Packet { get; set; }
+        public byte Opcode => Packet.Opcode;
+
+        public PacketThrottleData(Client client, ClientPacket packet)
+        {
+            Client = client;
+            Packet = packet;
+        }
+    }
 
     public interface IThrottle
     {
         /// <summary>
-        /// The opcode which will have this throttle applied.
+        /// Whether or not a throttle supports squelching.
         /// </summary>
-        byte Opcode { get; set; }
-        /// <summary>
-        /// Minimum interval that must pass between consumption of a given packet (in milliseconds).
-        /// </summary>
-        int Interval { get; set; }
-        /// <summary>
-        /// Number of times we need to see an object (text, etc) in a row, during SquelchDuration, 
-        /// before it will be squelched (ignored).
-        /// </summary>
-        int SquelchCount { get; set; }
-        /// <summary>
-        /// The time window we consider for squelching. For instance, if set to 1000ms, a player would
-        /// need to send the same object (text, etc) >= SquelchCount times within this interval.
-        /// </summary>
-        int SquelchInterval { get; set; }
-        /// <summary>
-        /// The duration of a squelch once active (in milliseconds).
-        /// </summary>
-        int SquelchDuration { get; set; }
-        /// <summary>
-        /// The maximum number of throttled packets received during a throttle before a client
-        /// is forcibly disconnected.
-        /// </summary>
-        int ThrottleDisconnectThreshold { get; set; }
-        /// <summary>
-        /// The duration of a throttle, in milliseconds.
-        /// </summary>
-        int ThrottleDuration { get; set; }
-        /// <summary>
-        /// Whether or not a throttle supports squelching. This is an automatic property.
-        /// </summary>
+
         bool SupportSquelch { get; set; }
 
         /// <summary>
@@ -53,33 +47,60 @@ namespace Hybrasyl
         /// </summary>
         /// <param name="packet"></param>
         /// <returns>ThrottleResult indicating the result of processing.</returns>
-        ThrottleResult ProcessPacket(Client throttledClient, ClientPacket packet);
+        ThrottleResult ProcessThrottle(IThrottleData throttleData);
         /// <summary>
         /// A function that runs when a throttle starts.
         /// </summary>
         /// <param name="throttledClient"></param>
-        void OnThrottleStart(Client throttledClient);
+        void OnThrottleStart(IThrottleTrigger trigger);
         /// <summary>
         /// A function that runs when a throttle stops (ends).
         /// </summary>
         /// <param name="throttledClient"></param>
-        void OnThrottleStop(Client throttledClient);
+        void OnThrottleStop(IThrottleTrigger trigger);
         /// <summary>
         /// A function that runs when a squelch begins.
         /// </summary>
         /// <param name="squelchedClient"></param>
-        void OnSquelchStart(Client squelchedClient);
+        void OnSquelchStart(IThrottleTrigger trigger);
         /// <summary>
         /// A function that runs when a squelch stops (ends).
         /// </summary>
         /// <param name="squelchedClient"></param>
-        void OnSquelchStop(Client squelchedClient);
+        void OnSquelchStop(IThrottleTrigger trigger);
         /// <summary>
         /// A function that runs when a throttle's disconnect threshold (number of throttled packets)
         /// is exceeded.
         /// </summary>
         /// <param name="squelchedClient"></param>
-        void OnDisconnectThreshold(Client squelchedClient);
+        void OnDisconnectThreshold(IThrottleTrigger trigger);
+    }
+
+    public interface IPacketThrottle
+    {
+        ThrottleResult ProcessThrottle(IPacketThrottleData throttleData);
+        byte Opcode { get; }
+    }
+
+    public interface IThrottleTrigger
+    {
+        Int64 Id { get; }
+    }
+
+    public interface IClientTrigger : IThrottleTrigger
+    {
+        Client Client { get; }
+    }
+
+    public class ClientTrigger : IClientTrigger
+    {
+        public Client Client { get; private set; }
+        public Int64 Id => Client.ConnectionId;
+
+        public ClientTrigger(Client client)
+        {
+            Client = client;
+        }
     }
 
     public abstract class Throttle : IThrottle
@@ -87,25 +108,22 @@ namespace Hybrasyl
         public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         public int Interval { get; set; }
         public int SquelchCount { get; set; }    
-        public byte Opcode { get; set; }
         public int SquelchInterval { get; set; }
         public int SquelchDuration { get; set; }
         public int ThrottleDisconnectThreshold { get; set; }
         public bool SupportSquelch { get; set; }
         public int ThrottleDuration { get; set; }
 
-        protected Throttle(byte opcode, int interval, int duration, int disconnectthreshold)
+        protected Throttle(int interval, int duration, int disconnectthreshold)
         {
-            Opcode = opcode;
             Interval = interval;
             ThrottleDuration = duration;
             ThrottleDisconnectThreshold = disconnectthreshold;
             SupportSquelch = false;
         }
 
-        protected Throttle(byte opcode, int interval, int duration, int squelchcount, int squelchinterval, int squelchduration, int disconnectthreshold)
+        protected Throttle(int interval, int duration, int squelchcount, int squelchinterval, int squelchduration, int disconnectthreshold)
         {
-            Opcode = opcode;
             Interval = interval;
             ThrottleDuration = duration;
             SquelchCount = squelchcount;
@@ -115,33 +133,30 @@ namespace Hybrasyl
             SupportSquelch = true;
         }
 
-        public abstract ThrottleResult ProcessPacket(Client client, ClientPacket packet);
+        public abstract ThrottleResult ProcessThrottle(IThrottleData throttleObject);
 
-        public void OnThrottleStart(Client trigger)
+        public void OnThrottleStart(IThrottleTrigger trigger)
         {
-            Logger.Debug($"Client {trigger.ConnectionId}: opcode {Opcode} throttled");
+            Logger.Debug($"Client {trigger.Id}: throttled");
         }
 
-        public void OnThrottleStop(Client trigger)
+        public void OnThrottleStop(IThrottleTrigger trigger)
         {
-            Logger.Debug($"Client {trigger.ConnectionId}: opcode {Opcode} throttle expired");
+            Logger.Debug($"Client {trigger.Id}: throttle expired");
         }
 
-        public void OnSquelchStart(Client trigger)
+        public void OnSquelchStart(IThrottleTrigger trigger)
         {
-            Logger.Debug($"Client {trigger.ConnectionId}: opcode {Opcode}: object squelched");
+            Logger.Debug($"Client {trigger.Id}: squelched");
         }
 
-        public void OnSquelchStop(Client trigger)
+        public void OnSquelchStop(IThrottleTrigger trigger)
         {
-            Logger.Debug($"Client {trigger.ConnectionId}: opcode {Opcode}: squelch expired");
+            Logger.Debug($"Client {trigger.Id}: squelch expired");
         }
 
-        public void OnDisconnectThreshold(Client trigger)
-        {
-            trigger.SendMessage("You have been automatically disconnected due to server abuse. Goodbye!", MessageTypes.SYSTEM_WITH_OVERHEAD);
-            Logger.Warn($"Client {trigger.ConnectionId}: disconnected due to packet spam");
-            trigger.Disconnect();
+        public void OnDisconnectThreshold(IThrottleTrigger trigger)
+        {         
         }
     }
 
@@ -150,8 +165,10 @@ namespace Hybrasyl
     /// A generic throttler that can be used for any packet. It implements a simple throttle with no
     /// squelching.
     /// </summary>
-    public class GenericPacketThrottle : Throttle
+    public class GenericPacketThrottle : Throttle, IPacketThrottle
     {
+
+        public byte Opcode { get; private set; }
         /// <summary>
         /// Constructor for a throttle without squelch.
         /// </summary>
@@ -159,7 +176,10 @@ namespace Hybrasyl
         /// <param name="interval">The minimum acceptable interval between accepted packets, in milliseconds. </param>
         /// <param name="duration">The duration of this throttle, once applied.</param>
         /// <param name="disconnectthreshold">Maximum number of packets that can be sent during a throttle before a client is forcibly disconnected.</param>
-        public GenericPacketThrottle(byte opcode, int interval, int duration, int disconnectthreshold) : base(opcode, interval, duration, disconnectthreshold) { }
+        public GenericPacketThrottle(byte opcode, int interval, int duration, int disconnectthreshold) : base(interval, duration, disconnectthreshold)
+        {
+            Opcode = opcode;
+        }
         /// <summary>
         /// Constructor for a throttle with squelch.
         /// </summary>
@@ -171,9 +191,22 @@ namespace Hybrasyl
         /// <param name="squelchinterval">The time window to consider for squelching.</param>
         /// <param name="squelchduration">The duration of a squelch, once applied.</param>
         public GenericPacketThrottle(byte opcode, int interval, int duration, int squelchcount, int squelchinterval, int squelchduration, int disconnectthreshold) :
-            base(opcode, interval, duration, squelchcount, squelchinterval, squelchduration, disconnectthreshold) { }
+            base(interval, duration, squelchcount, squelchinterval, squelchduration, disconnectthreshold) {
+            Opcode = opcode;
+        }
 
-        public override ThrottleResult ProcessPacket(Client client, ClientPacket packet)
+        public override ThrottleResult ProcessThrottle(IThrottleData throttleData)
+        {
+            var packetData = throttleData as IPacketThrottleData;
+            if (packetData == null) { return ThrottleResult.Error; }
+            return ProcessThrottle(packetData);
+        }
+        public ThrottleResult ProcessThrottle(IPacketThrottleData throttleData)
+        {
+            return ProcessThrottle(throttleData.Client, throttleData.Packet);
+        }
+
+        public ThrottleResult ProcessThrottle(Client client, ClientPacket packet)
         {
             ThrottleInfo info;
             ThrottleResult result = ThrottleResult.Error;
@@ -201,24 +234,24 @@ namespace Hybrasyl
                     result = ThrottleResult.Throttled;
                     if (acceptedInterval > ThrottleDuration && acceptedInterval >= Interval)
                     {
-                        Logger.Warn($"Transmit interval {transmitInterval}, last accepted {acceptedInterval} - maximum is {Interval}, not throttled");
+                        Logger.Debug($"Transmit interval {transmitInterval}, last accepted {acceptedInterval} - maximum is {Interval}, not throttled");
                         info.Throttled = false;
                         info.TotalThrottled = 0;
                         result = ThrottleResult.ThrottleEnd;
                         info.PreviousAccepted = info.LastAccepted;
                         info.LastAccepted = rightnow;
-                        OnThrottleStop(client);
+                        OnThrottleStop(new ClientTrigger(client));
                     }
                     else
                     {
                         info.TotalThrottled++;
-                        Logger.Warn($"Throttled, count is {info.TotalThrottled}");
+                        Logger.Debug($"Throttled, count is {info.TotalThrottled}");
 
                         result = ThrottleResult.Throttled;
                         if (ThrottleDisconnectThreshold > 0 && info.TotalThrottled > ThrottleDisconnectThreshold)
                         {
                             result = ThrottleResult.Disconnect;
-                            OnDisconnectThreshold(client);
+                            OnDisconnectThreshold(new ClientTrigger(client));
                         }
                     }
                 }
@@ -226,9 +259,9 @@ namespace Hybrasyl
                 {
                     if (acceptedInterval <= Interval)
                     {
-                        Logger.Warn($"Transmit interval {transmitInterval}, last accepted {acceptedInterval} - maximum is {Interval}, throttled");
+                        Logger.Debug($"Transmit interval {transmitInterval}, last accepted {acceptedInterval} - maximum is {Interval}, throttled");
                         info.Throttled = true;
-                        OnThrottleStart(client);
+                        OnThrottleStart(new ClientTrigger(client));
                         result = ThrottleResult.Throttled;
                     }
                     else
@@ -246,6 +279,15 @@ namespace Hybrasyl
             }
             return result;
         }
+
+        public void OnDisconnectThreshold(IClientTrigger trigger)
+        {
+            trigger.Client.SendMessage("You have been automatically disconnected due to server abuse. Goodbye!", MessageTypes.SYSTEM_WITH_OVERHEAD);
+            Logger.Warn($"Client {trigger.Id}: disconnected due to packet spam");
+            trigger.Client.Disconnect();
+
+        }
+
     }
 
     // TODO: add other types of throttles
