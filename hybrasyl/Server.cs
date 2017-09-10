@@ -20,6 +20,7 @@
  *            Kyle Speck    <kojasou@hybrasyl.com>
  */
 
+using Hybrasyl.Enums;
 using log4net;
 using System;
 using System.Collections.Concurrent;
@@ -49,6 +50,8 @@ namespace Hybrasyl
         public int Port { get; private set; }
         public Socket Listener { get; private set; }
         public WorldPacketHandler[] PacketHandlers { get; private set; }
+        public Dictionary<byte, IThrottle> Throttles { get; private set; }
+
         public ControlMessageHandler[] ControlMessageHandlers { get; private set; }
         public ConcurrentDictionary<uint, Redirect> ExpectedConnections { get; private set; }
 
@@ -67,10 +70,26 @@ namespace Hybrasyl
             Port = port;
             PacketHandlers = new WorldPacketHandler[256];
             ControlMessageHandlers = new ControlMessageHandler[64];
+            Throttles = new Dictionary<byte, IThrottle>();
             ExpectedConnections = new ConcurrentDictionary<uint, Redirect>();
             for (int i = 0; i < 256; ++i)
                 PacketHandlers[i] = (c, p) => Logger.WarnFormat("Server: Unhandled opcode 0x{0:X2}", p.Opcode);
 
+        }
+
+        public void RegisterThrottle(IThrottle newThrottle)
+        {
+            Throttles[newThrottle.Opcode] = newThrottle;
+        }
+
+        public ThrottleResult ThrottleCheck(Client client, ClientPacket packet)
+        {
+            IThrottle throttle;
+            if (Throttles.TryGetValue(packet.Opcode, out throttle))
+            {
+                return throttle.ProcessPacket(client, packet);
+            }
+            return ThrottleResult.OK;
         }
 
         public void StartListening()
@@ -387,15 +406,9 @@ namespace Hybrasyl
                                                               receivedPacket.Opcode != 0x75);
                                     Logger.DebugFormat("Queuing: 0x{0:X2}", receivedPacket.Opcode);
                                     // Check for throttling
-                                    ThrottleInfo throttleInfo = null;
-                                    if (client.Throttle.ContainsKey(receivedPacket.Opcode))
+                                    var throttleResult = ThrottleCheck(client, receivedPacket);
+                                    if (throttleResult == ThrottleResult.OK || throttleResult == ThrottleResult.ThrottleEnd)
                                     {
-                                        throttleInfo = client.Throttle[receivedPacket.Opcode];
-                                    }
-
-                                    if (throttleInfo == null || throttleInfo.IsThrottled == false)
-                                    {
-                                        if (throttleInfo != null) client.Throttle[receivedPacket.Opcode].Received();
                                         World.MessageQueue.Add(new HybrasylClientMessage(receivedPacket,
                                             client.ConnectionId));
                                         if (!client.IsReceiving)
@@ -407,11 +420,6 @@ namespace Hybrasyl
                                             client.IsReceiving = false;
                                         }
                                     }
-                                    else
-                                    {
-                                        client.Throttle[receivedPacket.Opcode].TotalThrottled++;
-                                    }
-
                                 }
                             }
                             catch (Exception e)

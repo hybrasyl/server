@@ -416,6 +416,18 @@ namespace Hybrasyl
             OneDigit = 7,
         }
 
+        public enum ThrottleResult : int
+        {
+            OK = 0,
+            Throttled = 1,
+            Squelched = 2,
+            Disconnect = 3,
+            ThrottleEnd = 4,
+            SquelchEnd = 5,
+            Error = 255
+        }
+
+
         public class EnumUtil
         {
             public static T ParseEnum<T>(string value, T defaultValue) where T : struct, IConvertible

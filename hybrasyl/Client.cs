@@ -137,7 +137,7 @@ namespace Hybrasyl
 
         private Server Server { get; set; }
 
-        public Dictionary<byte, ThrottleInfo> Throttle = new Dictionary<byte, ThrottleInfo>();
+        public Dictionary<byte, ThrottleInfo> ThrottleState = new Dictionary<byte, ThrottleInfo>();
 
         public long ConnectionId => ClientState.Id;
 
@@ -373,10 +373,6 @@ namespace Hybrasyl
             _lastReceived = DateTime.Now.Ticks;
             GlobalConnectionManifest.RegisterClient(this);
             ConnectedSince = DateTime.Now.Ticks;
-            foreach( var i in Constants.PACKET_THROTTLES.Keys)
-            {
-                Throttle.Add(i, new ThrottleInfo(i));
-            }
         }
 
         public void Disconnect()
