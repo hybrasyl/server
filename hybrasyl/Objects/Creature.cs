@@ -483,6 +483,8 @@ namespace Hybrasyl.Objects
 
             SendDamageUpdate(this);
 
+            OnReceiveDamage();
+            
             if (Hp == 0) OnDeath();
         }
 

@@ -85,6 +85,7 @@ namespace Hybrasyl.Objects
         }
 
         public virtual void OnDeath() { }
+        public virtual void OnReceiveDamage() { }
 
         public Rectangle GetBoundingBox()
         {

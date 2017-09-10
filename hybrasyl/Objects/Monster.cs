@@ -62,12 +62,20 @@ namespace Hybrasyl.Objects
             if (hitter == null) return; // Don't handle cases of MOB ON MOB COMBAT just yet
             hitter.ShareExperience(_spawn.Loot.Xp);
 
-            if (_spawn.Loot.Gold <= 0) return;
-            var golds = new Gold(_spawn.Loot.Gold);
-            World.Insert(golds);
-            Map.Insert(golds, X,Y);
+            if (_spawn.Loot.Gold > 0)
+            {
+                var golds = new Gold(_spawn.Loot.Gold);
+                World.Insert(golds);
+                Map.Insert(golds, X, Y);
+            }
             Map.Remove(this);
             World.Remove(this);
+        }
+
+        public override void OnReceiveDamage()
+        {
+            this.IsHostile = true;
+            this.ShouldWander = false;
         }
 
         public Monster(Hybrasyl.Creatures.Creature creature, Spawn spawn, int map)

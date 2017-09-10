@@ -164,8 +164,11 @@ namespace Hybrasyl
         public ConcurrentDictionary<string, long> ActiveUsersByName { get; set; }
 
         private Thread ConsumerThread { get; set; }
+        
 
         public Login Login { get; private set; }
+
+        private static Random _random;
 
         private static Lazy<ConnectionMultiplexer> _lazyConnector;
 
@@ -263,6 +266,7 @@ namespace Hybrasyl
                 datastoreConfig.Password = store.Password;
 
             _lazyConnector = new Lazy<ConnectionMultiplexer>(() => ConnectionMultiplexer.Connect(datastoreConfig));
+            _random = new Random();
         }
 
         public bool InitWorld()
@@ -1154,7 +1158,104 @@ namespace Hybrasyl
 
         private void ControlMessage_MonolithControl(HybrasylControlMessage message)
         {
-            
+
+            var monster = (Monster) message.Arguments[0];
+            var map = (Map) message.Arguments[1];
+
+            if (monster.IsHostile)
+            {
+                var entityTree = map.EntityTree.GetObjects(monster.GetViewport());
+                var hasPlayer = entityTree.Any(x => x is User);
+
+                if (hasPlayer)
+                {
+                    //get players
+                    var players = entityTree.OfType<User>();
+
+                    //get closest
+                    var closest =
+                        players.OrderBy(x => Math.Sqrt((Math.Pow(monster.X - x.X, 2) + Math.Pow(monster.Y - x.Y, 2))))
+                            .FirstOrDefault();
+
+                    if (closest != null)
+                    {
+
+                        //pathfind or cast if far away
+                        var distanceX = (int)Math.Sqrt(Math.Pow(monster.X - closest.X, 2));
+                        var distanceY = (int)Math.Sqrt(Math.Pow(monster.Y - closest.Y, 2));
+                        if (distanceX >= 1 && distanceY >= 1)
+                        {
+                            var nextAction = _random.Next(1, 6);
+
+                            if (nextAction > 1)
+                            {
+                                //pathfind;
+                                if (distanceX > distanceY)
+                                {
+                                    monster.Walk(monster.X > closest.X ? Direction.West : Direction.East);
+                                }
+                                else
+                                {
+                                    //movey
+                                    monster.Walk(monster.Y > closest.Y ? Direction.North : Direction.South);
+                                }
+
+                                if (distanceX == distanceY)
+                                {
+                                    var next = _random.Next(0, 2);
+
+                                    if (next == 0)
+                                    {
+                                        monster.Walk(monster.X > closest.X ? Direction.West : Direction.East);
+                                    }
+                                    else
+                                    {
+                                        monster.Walk(monster.Y > closest.Y ? Direction.North : Direction.South);
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                //cast
+                                monster.Shout("I SHOULD BE CASTING RIGHT NOW!");
+                            }
+                        }
+                        else
+                        {
+                            //check facing and attack or cast
+
+                            var nextAction = _random.Next(1, 6);
+                            if (nextAction > 1)
+                            {
+                                var facing = monster.CheckFacing(monster.Direction, closest);
+                                if (facing)
+                                {
+                                    monster.AssailAttack(monster.Direction, closest);
+                                }
+                            }
+                            else
+                            {
+                                monster.Shout("I WANT TO CAST BUT ITS NOT IMPLEMENTED YET!");
+                            }
+                        }
+                    }
+                }
+            }
+            if (monster.ShouldWander)
+            {
+                var nextAction = _random.Next(0, 2);
+
+                if (nextAction == 1)
+                {
+                    var nextMove = _random.Next(0, 4);
+                    monster.Walk((Direction)nextMove);
+                }
+                else
+                {
+                    var nextMove = _random.Next(0, 4);
+                    monster.Turn((Direction)nextMove);
+                }
+            }
         }
 
         #endregion Control Message Handlers
@@ -4366,7 +4467,7 @@ namespace Hybrasyl
 
         private void QueueConsumer()
         {
-            while (!MessageQueue.IsCompleted)
+            while (!MessageQueue.IsAddingCompleted)
             {
                 if (StopToken.IsCancellationRequested)
                     return;
@@ -4469,6 +4570,11 @@ namespace Hybrasyl
             if (ConsumerThread.IsAlive) return;
             ConsumerThread.Start();
             Logger.InfoFormat("Consumer thread: started");
+            //Start our secondary thread
+            //SecondaryConsumer = new Thread(QueueConsumer);
+            //if (SecondaryConsumer.IsAlive) return;
+            //SecondaryConsumer.Start();
+            //Logger.InfoFormat("Secondary Consumer thread: started");
         }
 
         public void StopQueueConsumer()
