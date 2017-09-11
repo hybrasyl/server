@@ -117,26 +117,7 @@ namespace Hybrasyl
         
         public Dictionary<uint, WorldObject> Objects { get; set; }
 
-        //public Dictionary<ushort, Map> Maps { get; set; }
-        //public Dictionary<string, WorldMap> WorldMaps { get; set; }
-        //public static Dictionary<int, Item> Items { get; set; }
-        //public Dictionary<string, Items.VariantGroup> ItemVariants { get; set; }
-        //public Dictionary<int, Castables.Castable> Skills { get; set; }
-        //public Dictionary<int, Castables.Castable> Spells { get; set; }
-        //public Dictionary<int, MonsterTemplate> Monsters { get; set; }
-        //public Dictionary<int, MerchantTemplate> Merchants { get; set; }
-        //public Dictionary<int, ReactorTemplate> Reactors { get; set; }
         public Dictionary<string, string> Portraits { get; set; }
-        //public Dictionary<string, MethodInfo> Methods { get; set; }
-        //public Dictionary<string, User> Users { get; set; }
-        //public Dictionary<Int64, MapPoint> MapPoints { get; set; }
-        //public Dictionary<string, CompiledMetafile> Metafiles { get; set; }
-        //public Dictionary<string, Nation> Nations { get; set; }
-        //public Dictionary<string, Mailbox> Mailboxes { get; set; }
-        //public Dictionary<int, Board> MessageboardIndex { get; set; }
-        //public Dictionary<string, Board> Messageboards { get; set; }
-        //public Dictionary<string, Creatures.Creature> Creatures { get; set; }
-        //public Dictionary<int, SpawnGroup> SpawnGroups { get; set; }
         public Strings Strings { get; set; }
 
         public WorldDataStore WorldData { set; get;  }
@@ -218,28 +199,24 @@ namespace Hybrasyl
             return true;
         }
 
+        /// <summary>
+        /// Register world throttles. This should eventually use XML configuration; for now it simply
+        /// registers our hardcoded throttle values.
+        /// </summary>
+        public void RegisterWorldThrottles()
+        {
+            RegisterPacketThrottle(new GenericPacketThrottle(0x06, 1000, 0, 500));  // Movement
+           // RegisterThrottle(new SpeechThrottle(0x0e, 250, 3, 10000, 10000, 200, 250, 6, 2000, 4000, 200)); // speech
+            RegisterPacketThrottle(new GenericPacketThrottle(0x3a, 1000, 1000, 500));  // NPC use dialog
+            RegisterPacketThrottle(new GenericPacketThrottle(0x38, 1000, 1000, 500));  // refresh (f5)
+            RegisterPacketThrottle(new GenericPacketThrottle(0x39, 1000, 1000, 500));  // NPC main menu
+            RegisterPacketThrottle(new GenericPacketThrottle(0x13, 800, 0, 0));        // Assail
+        }
+
+
         public World(int port, DataStore store)
             : base(port)
         {
-            //Maps = new Dictionary<ushort, Map>();
-            /* WorldMaps = new Dictionary<string, WorldMap>();
-             Items = new Dictionary<int, Item>();
-             Skills = new Dictionary<int, Castables.Castable>();
-             Spells = new Dictionary<int, Castables.Castable>();
-             Creatures = new Dictionary<string, Creatures.Creature>();
-             SpawnGroups = new Dictionary<int, SpawnGroup>();
-             Merchants = new Dictionary<int, MerchantTemplate>();
-             Methods = new Dictionary<string, MethodInfo>();
-             Users = new Dictionary<string, User>(stringComparer.CurrentCultureIgnoreCase);
-             MapPoints = new Dictionary<Int64, MapPoint>();
-             Metafiles = new Dictionary<string, CompiledMetafile>();
-             Nations = new Dictionary<string, Nation>();
-             GlobalSequences = new List<DialogSequence>();
-             ItemVariants = new Dictionary<string, Items.VariantGroup>();
-             Mailboxes = new Dictionary<string, Mailbox>();
-             Messageboards = new Dictionary<string, Board>();
-             MessageboardIndex = new Dictionary<int, Board>();
-             */
             Objects = new Dictionary<uint, WorldObject>();
             Portraits = new Dictionary<string, string>();
 
@@ -282,6 +259,7 @@ namespace Hybrasyl
             SetPacketHandlers();
             SetControlMessageHandlers();
             SetMerchantMenuHandlers();
+            RegisterWorldThrottles();
             Logger.InfoFormat("Hybrasyl server ready");
             return true;
         }
@@ -2414,11 +2392,6 @@ namespace Hybrasyl
                     user.SendSystemMessage("Your voice is carried away by a sudden wind.");
                     return;
                 }
-                if (user.CheckSquelch(0x0e, message))
-                {
-                    Logger.DebugFormat("{1}: squelched (say/shout)", user.Name);
-                    return;
-                }
 
                 if (isShout == 1)
                 {
@@ -2570,7 +2543,7 @@ namespace Hybrasyl
         private void PacketHandler_0x13_Attack(object obj, ClientPacket packet)
         {
             var user = (User)obj;
-            if(!user.CheckSquelch(0x13, null)) user.AssailAttack(user.Direction);
+            user.AssailAttack(user.Direction);
         }
 
         private void PacketHandler_0x18_ShowPlayerList(Object obj, ClientPacket packet)
@@ -3568,11 +3541,6 @@ namespace Hybrasyl
         private void PacketHandler_0x38_Refresh(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
-            if (user.CheckSquelch(0x38, null))
-            {
-                Logger.InfoFormat("{0}: squelched (refresh)", user.Name);
-                return;
-            }
             user.Refresh();
         }
 
@@ -3583,12 +3551,6 @@ namespace Hybrasyl
         private void PacketHandler_0x39_NPCMainMenu(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
-
-            if (user.CheckSquelch(0x38, null))
-            {
-                Logger.InfoFormat("{0}: squelched (NPC main menu)", user.Name);
-                return;
-            }
 
             // We just ignore the header, because, really, what exactly is a 16-bit encryption
             // key plus CRC really doing for you
@@ -3685,11 +3647,6 @@ namespace Hybrasyl
         private void PacketHandler_0x3A_DialogUse(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
-            if (user.CheckSquelch(0x38, null))
-            {
-                Logger.InfoFormat("{0}: squelched (dialog use)", user.Name);
-                return;
-            }
 
             var header = packet.ReadDialogHeader();
             var objectType = packet.ReadByte();
