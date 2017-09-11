@@ -221,9 +221,9 @@ namespace Hybrasyl
 
             try
             {
-                Int64 rightnow = DateTime.Now.Ticks;
-                Int64 transmitInterval = (rightnow - info.LastReceived) / TimeSpan.TicksPerMillisecond;
-                Int64 acceptedInterval = (rightnow - info.LastAccepted) / TimeSpan.TicksPerMillisecond;
+                DateTime rightnow = DateTime.Now;
+                var transmitInterval = (rightnow - info.LastReceived);
+                var acceptedInterval = (rightnow - info.LastAccepted);
                 info.PreviousReceived = info.LastReceived;
                 info.LastReceived = rightnow;
                 //Logger.Error($"Interval is {interval} - maximum is {Interval}");
@@ -232,7 +232,7 @@ namespace Hybrasyl
                 if (info.Throttled)
                 {
                     result = ThrottleResult.Throttled;
-                    if (acceptedInterval > ThrottleDuration && acceptedInterval >= Interval)
+                    if (acceptedInterval.Milliseconds > ThrottleDuration && acceptedInterval.Milliseconds >= Interval)
                     {
                         Logger.Debug($"Transmit interval {transmitInterval}, last accepted {acceptedInterval} - maximum is {Interval}, not throttled");
                         info.Throttled = false;
@@ -257,7 +257,7 @@ namespace Hybrasyl
                 }
                 else
                 {
-                    if (acceptedInterval <= Interval)
+                    if (acceptedInterval.Milliseconds <= Interval)
                     {
                         Logger.Debug($"Transmit interval {transmitInterval}, last accepted {acceptedInterval} - maximum is {Interval}, throttled");
                         info.Throttled = true;
@@ -294,11 +294,11 @@ namespace Hybrasyl
 
     public class ThrottleInfo
     {
-        public Int64 PreviousReceived;
-        public Int64 LastReceived;
+        public DateTime PreviousReceived;
+        public DateTime LastReceived;
 
-        public Int64 PreviousAccepted;
-        public Int64 LastAccepted;
+        public DateTime PreviousAccepted;
+        public DateTime LastAccepted;
 
         public Int64 TotalReceived;
         public Int64 TotalAccepted;
@@ -313,7 +313,7 @@ namespace Hybrasyl
 
         public ThrottleInfo()
         {
-            PreviousReceived = 0;
+            PreviousReceived = DateTime.Now;
             TotalReceived = 0;
             TotalSquelched = 0;
             TotalThrottled = 0;
