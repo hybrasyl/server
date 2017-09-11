@@ -407,18 +407,18 @@ namespace Hybrasyl
                                     Logger.DebugFormat("Queuing: 0x{0:X2}", receivedPacket.Opcode);
                                     // Check for throttling
                                     var throttleResult = PacketThrottleCheck(client, receivedPacket);
-                                    if (throttleResult == ThrottleResult.OK || throttleResult == ThrottleResult.ThrottleEnd)
+                                    if (throttleResult == ThrottleResult.OK || throttleResult == ThrottleResult.ThrottleEnd || throttleResult == ThrottleResult.SquelchEnd)
                                     {
                                         World.MessageQueue.Add(new HybrasylClientMessage(receivedPacket,
                                             client.ConnectionId));
-                                        if (!client.IsReceiving)
-                                        {
-                                            client.IsReceiving = true;
-                                            ServerPacket sendBuff;
-                                            state.SendBufferTake(out sendBuff);
-                                            Send(state, SendPacket(client, sendBuff));
-                                            client.IsReceiving = false;
-                                        }
+                                    }
+                                    if (!client.IsReceiving)
+                                    {
+                                        client.IsReceiving = true;
+                                        ServerPacket sendBuff;
+                                        state.SendBufferTake(out sendBuff);
+                                        Send(state, SendPacket(client, sendBuff));
+                                        client.IsReceiving = false;
                                     }
                                 }
                             }
