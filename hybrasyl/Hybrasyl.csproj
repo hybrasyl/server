@@ -91,6 +91,7 @@
     <Compile Include="Scripting\Script.cs" />
     <Compile Include="Scripting\ScriptInvocation.cs" />
     <Compile Include="Scripting\ScriptProcessor.cs" />
+    <Compile Include="Throttle.cs" />
     <Compile Include="Time.cs" />
     <Compile Include="Client.cs" />
     <Compile Include="Connection.cs" />

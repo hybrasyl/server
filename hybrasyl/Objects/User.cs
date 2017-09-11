@@ -39,6 +39,7 @@ using System.Xml;
 using Hybrasyl.Items;
 using Class = Hybrasyl.Castables.Class;
 using Motion = Hybrasyl.Castables.Motion;
+using System.Globalization;
 
 namespace Hybrasyl.Objects
 {
@@ -262,7 +263,8 @@ namespace Hybrasyl.Objects
             {
                 if (Game.Config.Access?.Privileged != null)
                 {
-                    return IsExempt || Flags.ContainsKey("gamemaster") || Game.Config.Access.Privileged.Contains(Name);
+                    return IsExempt || Flags.ContainsKey("gamemaster") ||
+                        Game.Config.Access.Privileged.IndexOf(Name, 0, StringComparison.CurrentCultureIgnoreCase) != 1;
                 }
                 return IsExempt || Flags.ContainsKey("gamemaster");
             }
@@ -999,31 +1001,6 @@ namespace Hybrasyl.Objects
                 BonusCon, BonusDex, BonusHit, BonusDmg, BonusAc,
                 BonusMr, BonusRegen, OffensiveElement, DefensiveElement);
 
-        }
-
-        /// <summary>
-        /// Check to see if a player is squelched, considering a given object
-        /// </summary>
-        /// <param name="opcode">The byte opcode to check</param>
-        /// <param name="obj">The object for comparison</param>
-        /// <returns></returns>
-        public bool CheckSquelch(byte opcode, object obj)
-        {
-            ThrottleInfo tinfo;
-            if (Client.Throttle.TryGetValue(opcode, out tinfo))
-            {
-                if (tinfo.IsSquelched(obj))
-                {
-                    if (tinfo.SquelchCount > tinfo.Throttle.DisconnectAfter)
-                    {
-                        Logger.WarnFormat("cid {0}: reached squelch count for {1}: disconnected", Client.ConnectionId,
-                            opcode);
-                        Client.Disconnect();
-                    }
-                    return true;
-                }
-            }
-            return false;
         }
 
         /// <summary>
