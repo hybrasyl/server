@@ -413,13 +413,15 @@ namespace Hybrasyl
             ClientState.SendBufferAdd(packet);
         }
 
-        public void Redirect(Redirect redirect)
+        public void Redirect(Redirect redirect, bool isLogoff = false)
         {
             Logger.InfoFormat("Processing redirect");
             GlobalConnectionManifest.RegisterRedirect(this, redirect);
             Logger.InfoFormat("Redirect: cid {0}", this.ConnectionId);
-            //GlobalConnectionManifest.DeregisterClient(this);
-
+            if (isLogoff)
+            {
+                GlobalConnectionManifest.DeregisterClient(this);
+            }
             redirect.Destination.ExpectedConnections.TryAdd(redirect.Id, redirect);
 
             var endPoint = Socket.RemoteEndPoint as IPEndPoint;
