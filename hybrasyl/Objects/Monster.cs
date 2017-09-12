@@ -42,11 +42,16 @@ namespace Hybrasyl.Objects
 
         private Creatures.Damage _simpleDamage;
 
+        private List<Creatures.Castable> _castables;
+
         public int ActionDelay = 800;
 
         public DateTime LastAction { get; set; }
         public bool IsHostile { get; set; }
         public bool ShouldWander { get; set; }
+        public bool CanCast { get; set; }
+
+
 
         public Monster()
         {
@@ -97,11 +102,13 @@ namespace Hybrasyl.Objects
             BaseDex = spawn.Stats.Dex;
             _spawn = spawn;
             _simpleDamage = spawn.Damage;
+            _castables = spawn.Castables;
 
             
             //until intents are fixed, this is how this is going to be done.
-            IsHostile = _random.Next(0, 7) > 2;
+            IsHostile = _random.Next(0, 7) < 2;
             ShouldWander = IsHostile == false;
+            CanCast = spawn.Castables.Count > 0;
         }
 
         public Creature Target
@@ -233,9 +240,66 @@ namespace Hybrasyl.Objects
             return false;
         }
 
-        public override void Attack(Castables.Castable castObject, Creature target)
+        public override void Attack(Castable castObject, Creature target = null)
         {
-            //do monster spell
+            var direction = this.Direction;
+            if (target == null)
+            {
+                Attack(castObject);
+            }
+            else
+            {
+                var damage = castObject.Effects.Damage;
+                if (damage != null)
+                {
+                    //TODO: if a castable is targetable, does intent matter?
+                    var intents = castObject.Intents;
+                    foreach (var intent in intents)
+                    {
+                        Random rand = new Random();
+
+                        if (damage.Formula == null)
+                        //will need to be expanded. also will need to account for damage scripts
+                        {
+                            var simple = damage.Simple;
+                            var damageType = EnumUtil.ParseEnum(damage.Type.ToString(), (Enums.DamageType)castObject.Effects.Damage.Type);
+                            var dmg = rand.Next(Convert.ToInt32(simple.Min), Convert.ToInt32(simple.Max));
+                            //these need to be set to integers as attributes. note to fix.
+                            target.Damage(dmg, OffensiveElement, damageType, this);
+                        }
+                        else
+                        {
+                            var formula = damage.Formula;
+                            var damageType = EnumUtil.ParseEnum(damage.Type.ToString(), (Enums.DamageType)castObject.Effects.Damage.Type);
+                            var parser = new FormulaParser(this, castObject, target);
+                            var dmg = parser.Eval(formula);
+                            if (dmg == 0) dmg = 1;
+                            target.Damage(dmg, OffensiveElement, damageType, this);
+                        }
+
+                        if (castObject.Effects.Animations.OnCast.Target == null) continue;
+                        var effectAnimation = new ServerPacketStructures.EffectAnimation()
+                        {
+                            SourceId = this.Id,
+                            Speed = (short)castObject.Effects.Animations.OnCast.Target.Speed,
+                            TargetId = target.Id,
+                            TargetAnimation = castObject.Effects.Animations.OnCast.Target.Id
+                        };
+                        SendAnimation(effectAnimation.Packet());
+                    }
+                }
+
+                var sound = new ServerPacketStructures.PlaySound { Sound = (byte)castObject.Effects.Sound.Id }; 
+                var playerAnimation = new ServerPacketStructures.PlayerAnimation()
+                {
+                    Animation = (byte)255,
+                    Speed = (ushort)100,
+                    UserId = Id
+                };
+                
+                SendAnimation(playerAnimation.Packet());
+                PlaySound(sound.Packet());
+            }
         }
 
         public override void Attack(Castable castObject)
@@ -453,6 +517,17 @@ namespace Hybrasyl.Objects
             {
                 //need to handle scripting
             }
+        }
+
+        public void Cast(Creature target)
+        {
+            var nextSpell = _random.Next(0, _castables.Count);
+            var creatureCastable = _castables[nextSpell];
+            var castable = World.WorldData.Get<Castable>(creatureCastable.Value);
+            if (target is Merchant) return;
+            if (target != null) Attack(castable, target);
+            else Attack(castable);
+
         }
 
         public void AssailAttack(Direction direction, Creature target = null)

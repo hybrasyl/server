@@ -1195,7 +1195,10 @@ namespace Hybrasyl
                             else
                             {
                                 //cast
-                                monster.Shout("I SHOULD BE CASTING RIGHT NOW!");
+                                if (monster.CanCast)
+                                {
+                                    monster.Cast(closest);
+                                }
                             }
                         }
                         else
@@ -1213,7 +1216,10 @@ namespace Hybrasyl
                             }
                             else
                             {
-                                monster.Shout("I WANT TO CAST BUT ITS NOT IMPLEMENTED YET!");
+                                if (monster.CanCast)
+                                {
+                                    monster.Cast(closest);
+                                }
                             }
                         }
                     }
