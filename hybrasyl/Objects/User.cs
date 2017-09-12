@@ -3937,7 +3937,7 @@ namespace Hybrasyl.Objects
         public void SendRedirectAndLogoff(World world, Login login, string name)
         {
             GlobalConnectionManifest.DeregisterClient(Client);
-            Client.Redirect(new Redirect(Client, world, Game.Login, name, Client.EncryptionSeed, Client.EncryptionKey));
+            Client.Redirect(new Redirect(Client, world, Game.Login, name, Client.EncryptionSeed, Client.EncryptionKey), true);
         }
 
         public bool IsHeartbeatValid(byte a, byte b)
@@ -3960,7 +3960,7 @@ namespace Hybrasyl.Objects
             UpdateLogoffTime();
             Save();
             var redirect = new Redirect(Client, Game.World, Game.Login, "socket", Client.EncryptionSeed, Client.EncryptionKey);
-            Client.Redirect(redirect);
+            Client.Redirect(redirect, true);
         }
 
         public void SetEncryptionParameters(byte[] key, byte seed, string name)
