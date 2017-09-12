@@ -103,6 +103,9 @@ namespace Hybrasyl
         }
     }
 
+    /// <summary>
+    /// An abstract class for Throttles.
+    /// </summary>
     public abstract class Throttle : IThrottle
     {
         public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
@@ -222,19 +225,20 @@ namespace Hybrasyl
             try
             {
                 DateTime rightnow = DateTime.Now;
+                Logger.Warn($"Right now is {rightnow}");
                 var transmitInterval = (rightnow - info.LastReceived);
                 var acceptedInterval = (rightnow - info.LastAccepted);
                 info.PreviousReceived = info.LastReceived;
                 info.LastReceived = rightnow;
-                //Logger.Error($"Interval is {interval} - maximum is {Interval}");
                 info.TotalReceived++;
+                Logger.Error($"Begin: PA: {info.PreviousAccepted} LA: {info.LastAccepted} AInterval is {acceptedInterval.TotalMilliseconds} TInterval {transmitInterval.TotalMilliseconds}");
 
                 if (info.Throttled)
                 {
                     result = ThrottleResult.Throttled;
-                    if (acceptedInterval.Milliseconds > ThrottleDuration && acceptedInterval.Milliseconds >= Interval)
+                    if (acceptedInterval.TotalMilliseconds >= ThrottleDuration && acceptedInterval.TotalMilliseconds >= Interval)
                     {
-                        Logger.Debug($"Transmit interval {transmitInterval}, last accepted {acceptedInterval} - maximum is {Interval}, not throttled");
+                        Logger.Error($"Unthrottled: {acceptedInterval.TotalMilliseconds} > {ThrottleDuration} and {Interval}");
                         info.Throttled = false;
                         info.TotalThrottled = 0;
                         result = ThrottleResult.ThrottleEnd;
@@ -245,7 +249,7 @@ namespace Hybrasyl
                     else
                     {
                         info.TotalThrottled++;
-                        Logger.Debug($"Throttled, count is {info.TotalThrottled}");
+                        Logger.Error($"Throttled, count is {info.TotalThrottled}");
 
                         result = ThrottleResult.Throttled;
                         if (ThrottleDisconnectThreshold > 0 && info.TotalThrottled > ThrottleDisconnectThreshold)
@@ -257,25 +261,26 @@ namespace Hybrasyl
                 }
                 else
                 {
-                    if (acceptedInterval.Milliseconds <= Interval)
+                    if (acceptedInterval.TotalMilliseconds <= Interval && info.LastAccepted != DateTime.MinValue)
                     {
-                        Logger.Debug($"Transmit interval {transmitInterval}, last accepted {acceptedInterval} - maximum is {Interval}, throttled");
+                        Logger.Error($"TInterval {transmitInterval}, AInterval {acceptedInterval} - maximum is {Interval}, throttled");
                         info.Throttled = true;
                         OnThrottleStart(new ClientTrigger(client));
                         result = ThrottleResult.Throttled;
                     }
                     else
                     {
+                        info.PreviousAccepted = info.LastAccepted;
                         info.LastAccepted = rightnow;
                         info.TotalAccepted++;
                         result = ThrottleResult.OK;
+                        Logger.Error($"Packet accepted, PA: {info.PreviousAccepted} LA: {info.LastAccepted}");
                     }
                 }
             }
             finally
             {
                 Monitor.Exit(info);
-
             }
             return result;
         }
@@ -313,11 +318,16 @@ namespace Hybrasyl
 
         public ThrottleInfo()
         {
-            PreviousReceived = DateTime.Now;
+            PreviousReceived = DateTime.MinValue;
+            LastReceived = DateTime.MinValue;
+            PreviousAccepted = DateTime.MinValue;
+            LastAccepted = DateTime.MinValue;
             TotalReceived = 0;
             TotalSquelched = 0;
             TotalThrottled = 0;
             SquelchCount = 0;
+            Throttled = false;
+            Squelched = false;
         }
 
     }

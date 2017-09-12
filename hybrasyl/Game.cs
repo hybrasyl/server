@@ -210,7 +210,7 @@ namespace Hybrasyl
 
             var host = new WebServiceHost(typeof(ControlService), new Uri($"http://localhost:{Constants.ControlServicePort}/ControlService"));
             
-            host.Open();
+            //host.Open();
             Logger.InfoFormat($"Starting ControlService on port {Constants.ControlServicePort}");
             
 
