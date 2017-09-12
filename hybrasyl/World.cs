@@ -4424,7 +4424,7 @@ namespace Hybrasyl
 
         private void QueueConsumer()
         {
-            while (!MessageQueue.IsAddingCompleted)
+            while (!MessageQueue.IsCompleted)
             {
                 if (StopToken.IsCancellationRequested)
                     return;
