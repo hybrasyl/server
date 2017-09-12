@@ -31,6 +31,7 @@ namespace Hybrasyl.Objects
 {
     public class VisibleObject : WorldObject
     {
+        public static Random _random = new Random();
         public new static readonly ILog Logger =
                LogManager.GetLogger(
                System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
@@ -85,6 +86,7 @@ namespace Hybrasyl.Objects
         }
 
         public virtual void OnDeath() { }
+        public virtual void OnReceiveDamage() { }
 
         public Rectangle GetBoundingBox()
         {
@@ -304,124 +306,6 @@ namespace Hybrasyl.Objects
                 Options = options
             };
 
-            //var menupacket = new ServerPacket(0x2F); //opcode
-            //// menuType (0), objectType (1 for "creature"), objectID, random, sprite, spritecolor,
-            //// random1 (same as random), sprite, spriteColor, ??, promptName (Green "nameplate" text on dialog),
-            //// byte pursuitsCount, array <string pursuitName, uint16 pursuitID>
-            //menupacket.WriteByte(0); //dialogtype
-
-            //if (this is Merchant || this is Creature) //objecttype
-            //{
-            //    menupacket.WriteByte(1);
-            //}
-            //else if (this is ItemObject)
-            //{
-            //    menupacket.WriteByte(2);
-            //}
-            //else if (this is Reactor)
-            //{
-            //    menupacket.WriteByte(4);
-            //}
-            //else
-            //{
-            //    menupacket.WriteByte(3); // this is probably bad
-            //}
-
-            //menupacket.WriteUInt32(Id); //objectid
-            //menupacket.WriteByte(1); //unknow4
-            //menupacket.WriteUInt16((ushort)(0x4000 + Sprite)); //tile1
-            //menupacket.WriteByte(0); //color1
-            //menupacket.WriteByte(1); //unknow7
-            ////menupacket.WriteUInt16(1);
-            //menupacket.WriteUInt16((ushort)(0x4000 + Sprite)); //tile2
-            //menupacket.WriteByte(0); //color2
-            //menupacket.WriteByte(0); //unknow10 = sprite type??
-            ////menupacket.WriteUInt16(1);
-            //menupacket.WriteString8(Name);
-            //var firstOrDefault = World.Strings.Merchant.FirstOrDefault(x => x.Key == "greeting");
-            //if (firstOrDefault != null)
-            //    menupacket.WriteString16(firstOrDefault.Value ?? string.Empty);
-
-            //// Generate our list of dialog options
-            //var countPosition = menupacket.Position;
-            //menupacket.WriteByte(0);
-
-            //var pursuitCount = Pursuits.Count;
-
-            //var merchant = this as Merchant;
-            //if (merchant?.Jobs.HasFlag(MerchantJob.Vend) ?? false)
-            //{
-            //    menupacket.WriteString8("Buy");
-            //    menupacket.WriteUInt16((ushort)MerchantMenuItem.BuyItemMenu);
-            //    menupacket.WriteString8("Sell");
-            //    menupacket.WriteUInt16((ushort)MerchantMenuItem.SellItemMenu);
-            //    pursuitCount += 2;
-            //}
-            //if (merchant?.Jobs.HasFlag(MerchantJob.Bank) ?? false)
-            //{
-            //    menupacket.WriteString8("Withdraw Item");
-            //    menupacket.WriteUInt16((ushort)MerchantMenuItem.WithdrawItemMenu);
-            //    menupacket.WriteString8("Withdraw Gold");
-            //    menupacket.WriteUInt16((ushort)MerchantMenuItem.WithdrawGoldMenu);
-            //    menupacket.WriteString8("Deposit Item");
-            //    menupacket.WriteUInt16((ushort)MerchantMenuItem.DepositItemMenu);
-            //    menupacket.WriteString8("Deposit Gold");
-            //    menupacket.WriteUInt16((ushort)MerchantMenuItem.DepositGoldMenu);
-            //    pursuitCount += 4;
-            //}
-            //if (merchant?.Jobs.HasFlag(MerchantJob.Repair) ?? false)
-            //{
-            //    menupacket.WriteString8("Repair Item");
-            //    menupacket.WriteUInt16((ushort)MerchantMenuItem.RepairItemMenu);
-            //    menupacket.WriteString8("Repair All Items");
-            //    menupacket.WriteUInt16((ushort)MerchantMenuItem.RepairAllItems);
-            //    pursuitCount += 2;
-            //}
-            //if (merchant?.Jobs.HasFlag(MerchantJob.Train) ?? false)
-            //{
-            //    //if merchant has skills available to user:
-            //    menupacket.WriteString8("Learn Skill");
-            //    menupacket.WriteUInt16((ushort)MerchantMenuItem.LearnSkillMenu);
-            //    pursuitCount++;
-            //    //if merchant has spells available to user:
-            //    menupacket.WriteString8("Learn Spell");
-            //    menupacket.WriteUInt16((ushort)MerchantMenuItem.LearnSpellMenu);
-            //    pursuitCount++;
-
-            //    menupacket.WriteString8("Forget Skill");
-            //    menupacket.WriteUInt16((ushort)MerchantMenuItem.ForgetSkillMenu);
-            //    menupacket.WriteString8("Forget Spell");
-            //    menupacket.WriteUInt16((ushort)MerchantMenuItem.ForgetSpellMenu);
-            //    pursuitCount += 2;
-            //}
-            //if (merchant?.Jobs.HasFlag(MerchantJob.Post) ?? false)
-            //{
-            //    menupacket.WriteString8("Send Parcel");
-            //    menupacket.WriteUInt16((ushort)MerchantMenuItem.SendParcelMenu);
-            //    pursuitCount++;
-            //    /* if user has item named "Letter"
-            //         *     menupacket.WriteString8("Send Letter");
-            //         *     menupacket.WriteUInt16((ushort)MerchantMenuItem.SendLetterMenu);
-            //         *     pursuitCount++;
-            //         * if user has incoming parcel
-            //         *     menupacket.WriteString8("Receive Parcel");
-            //         *     menupacket.WriteUInt16((ushort)MerchantMenuItem.ReceiveParcel);
-            //         *     pursuitCount++;
-            //         */
-            //}
-
-            //foreach (var pursuit in Pursuits)
-            //{
-            //    Logger.DebugFormat("Pursuit {0}, id {1}", pursuit.Name, pursuit.Id);
-            //    menupacket.WriteString8(pursuit.Name);
-            //    if (pursuit.Id != null) menupacket.WriteUInt16((ushort)pursuit.Id);
-            //}
-
-            //menupacket.Seek(countPosition, PacketSeekOrigin.Begin);
-            //menupacket.WriteByte((byte)pursuitCount);
-
-            //menupacket.DumpPacket();
-            //invoker.Enqueue(menupacket);
             invoker.Enqueue(packet.Packet());
         }
     }

@@ -25,9 +25,13 @@ using log4net;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
-using Hybrasyl.Creatures;
-using Creature = Hybrasyl.Creatures.Creature;
+ using System.Runtime.CompilerServices;
+ using System.Threading;
+ using System.Threading.Tasks;
+ using Community.CsharpSqlite;
+ using Hybrasyl.Creatures;
+ using Hybrasyl.Enums;
+ using Creature = Hybrasyl.Creatures.Creature;
 
 namespace Hybrasyl
 {
@@ -133,55 +137,52 @@ namespace Hybrasyl
             //Game.World.Maps[mapId].InsertCreature(monster);
             //Logger.DebugFormat("Spawning monster: {0} at {1}, {2}", monster.Name, (int) monster.X, (int) monster.Y);
         }
+    }
+
+    internal class MonolithControl
+    {
+        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
+        private IEnumerable<Map> _maps => Game.World.WorldData.Values<Map>();
+        private static Random _random;
+
+        internal MonolithControl()
+        {
+            _random = new Random();
+        }
+        
+        public void Start()
+        {
+            while (true)
+            {
+                var mapsWithUsers = _maps.Where(x => x.EntityTree.GetAllObjects().OfType<User>().Any());
+                foreach (var map in mapsWithUsers)
+                {
+                    var mobsToEval = from monsters in map.EntityTree.GetAllObjects().OfType<Monster>()
+                        join users in map.EntityTree.GetAllObjects().OfType<User>() on monsters.Map equals users.Map
+                        where monsters.GetViewport().IntersectsWith(users.GetViewport())
+                        select monsters;
+
+                    foreach (var mob in mobsToEval)
+                    {
+                        Evaluate(mob, map);
+                    }
+                    Thread.Sleep(1000);
+                }
+            }
+        }
+
 
         private static void Evaluate(Monster monster, Map map)
         {
-            //need an IsHostile flag?
-            var entityTree = map.EntityTree.GetObjects(monster.GetViewport());
-            var hasPlayer = entityTree.Any(x => x is User);
+            if (!(monster.LastAction < DateTime.Now.AddMilliseconds(-monster.ActionDelay))) return;
 
-            if (hasPlayer)
-            {
-                //get players
-                var players = entityTree.OfType<User>();
+            var mapTree = map.EntityTree.GetAllObjects();
+            var mapPlayers = mapTree.Any(x => x is User);
+            if (!mapPlayers) return;
 
-                //get closest
-                var closest = players.OrderBy(x => Math.Sqrt((Math.Pow(monster.X - x.X, 2) + Math.Pow(monster.Y - x.Y, 2)))).FirstOrDefault();
+            World.MessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MonolithControl, monster, map));
 
-                if (closest != null)
-                {
-                    var rand = new Random();
-
-                    //pathfind or cast if far away
-                    var distanceX = (int)Math.Sqrt(Math.Pow(monster.X - closest.X, 2));
-                    var distanceY = (int)Math.Sqrt(Math.Pow(monster.Y - closest.Y, 2));
-                    if (distanceX > 1 || distanceY > 1)
-                    {
-                        var nextAction = rand.Next(1, 2);
-
-                        if (nextAction == 1)
-                        {
-                            //pathfind;
-                            if (distanceX > distanceY)
-                            {
-                                //movex
-                            }
-                            else
-                            {
-                                //movey
-                            }
-                        }
-                        else
-                        {
-                            //cast
-                        }
-                    }
-                    else
-                    {
-                        //check facing and attack or cast
-                    }
-                }
-            }
         }
     }
 }
