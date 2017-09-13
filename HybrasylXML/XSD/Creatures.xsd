@@ -88,9 +88,9 @@
   <!-- List of intents -->
   <xs:complexType name="IntentList">
     <xs:sequence>
-      <xs:element name="Npc" type="creature:Intent" minOccurs="0" maxOccurs="unbounded"/>
-      <xs:element name="Player" type="creature:Intent" minOccurs="0" maxOccurs="unbounded"/>
-      <xs:element name="Monster" type="creature:Intent" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Npc" type="creature:Intent" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Player" type="creature:Intent" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Monster" type="creature:Intent" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
   </xs:complexType>
 

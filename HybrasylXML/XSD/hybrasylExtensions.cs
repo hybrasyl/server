@@ -20,7 +20,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Xml.Serialization;
 
@@ -193,30 +192,15 @@ namespace Hybrasyl.Config
 namespace Hybrasyl.Creatures
 {
 
-    public partial class LootXp
-    {
-        private static Random XpRng = new Random();
-
-        public uint RollXp()
-        {           
-            return (uint) XpRng.Next((int) Min, (int) Max);
-        }
-    }
-
-    public partial class LootGold
-    {
-        private static Random GoldRng = new Random();
-
-        public uint RollGold()
-        {
-            return (uint) GoldRng.Next((int)Min, (int)Max);
-        }
-    }
 
     public partial class Spawn
     {
         protected static Random Rng = new Random();
 
+        /// <summary>
+        /// Calculate a specific offensive element for a spawn from its list of elements.
+        /// </summary>
+        /// <returns>Element enum</returns>
         public Element GetOffensiveElement()
         {
             if (_damage.Element.Count > 1)
@@ -228,6 +212,10 @@ namespace Hybrasyl.Creatures
             return (Element)Rng.Next(1, 4);
         }
 
+        /// <summary>
+        /// Calculate a specific defensive element for a spawn from its list of elements.
+        /// </summary>
+        /// <returns>Element enum</returns>
         public Element GetDefensiveElement()
         {
             if (_defense.Element.Count > 1)
@@ -238,6 +226,8 @@ namespace Hybrasyl.Creatures
             // Only deal with "base" elements for right now
             return (Element)Rng.Next(1, 4);
         }
+
+
     }
     public partial class Map
     {

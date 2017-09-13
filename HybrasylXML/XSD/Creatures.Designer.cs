@@ -1370,15 +1370,14 @@ namespace Hybrasyl.Creatures
     {
         
         #region Private fields
-        private List<Intent> _npc;
+        private Intent _npc;
         
-        private List<Intent> _player;
+        private Intent _player;
         
-        private List<Intent> _monster;
+        private Intent _monster;
         #endregion
         
-        [System.Xml.Serialization.XmlElementAttribute("Npc")]
-        public List<Intent> Npc
+        public Intent Npc
         {
             get
             {
@@ -1390,8 +1389,7 @@ namespace Hybrasyl.Creatures
             }
         }
         
-        [System.Xml.Serialization.XmlElementAttribute("Player")]
-        public List<Intent> Player
+        public Intent Player
         {
             get
             {
@@ -1403,8 +1401,7 @@ namespace Hybrasyl.Creatures
             }
         }
         
-        [System.Xml.Serialization.XmlElementAttribute("Monster")]
-        public List<Intent> Monster
+        public Intent Monster
         {
             get
             {

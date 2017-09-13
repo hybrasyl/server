@@ -34,15 +34,18 @@ namespace Hybrasyl.Objects
 {
     public class Monster : Creature, ICloneable
     {
+        protected static Random Rng = new Random();
+
         private bool _idle = true;
 
         private uint _mTarget;
 
         private Spawn _spawn;
 
-        private Creatures.Damage _simpleDamage;
+        private uint _simpleDamage => Convert.ToUInt32(Rng.Next(_spawn.Damage.Min, _spawn.Damage.Max) * _variance);
 
         private List<Creatures.Castable> _castables;
+        private double _variance;
 
         public int ActionDelay = 800;
 
@@ -51,7 +54,6 @@ namespace Hybrasyl.Objects
         public bool ShouldWander { get; set; }
         public bool CanCast { get; set; }
 
-        protected static Random Rng = new Random();
 
         public Monster()
         {
@@ -66,11 +68,12 @@ namespace Hybrasyl.Objects
             var hitter = LastHitter as User;
             if (hitter == null) return; // Don't handle cases of MOB ON MOB COMBAT just yet
             if (_spawn.Loot.Xp.FirstOrDefault() != null)
-                hitter.ShareExperience(_spawn.Loot.Xp.FirstOrDefault().RollXp());
+                hitter.ShareExperience(CalculateXP());
 
             if (_spawn.Loot.Gold.FirstOrDefault() != null)
             {
-                var golds = new Gold(_spawn.Loot.Gold.FirstOrDefault().RollGold());
+
+                var golds = new Gold(CalculateGold());
                 World.Insert(golds);
                 Map.Insert(golds, X, Y);
             }
@@ -84,25 +87,89 @@ namespace Hybrasyl.Objects
             this.ShouldWander = false;
         }
 
+
+        /// <summary>
+        /// Calculates a sanity-checked stat using a spawn's variance value.
+        /// </summary>
+        /// <param name="stat">byte stat to be modified</param>
+        /// <returns>new byte stat, +/- variance</returns>
+        public byte CalculateVariance(byte stat)
+        {
+            var newStat = (int)Math.Round(stat + (stat * _variance));
+            if (newStat > byte.MaxValue)
+                return byte.MaxValue;
+            else if (newStat < byte.MinValue)
+                return byte.MinValue;
+
+            return (byte)newStat;
+        }
+
+        /// <summary>
+        /// Calculates a sanity-checked stat using a spawn's variance value.
+        /// </summary>
+        /// <param name="stat">uint stat to be modified</param>
+        /// <returns>new uint stat, +/- variance</returns>
+        public uint CalculateVariance(uint stat)
+        {
+
+            var newStat = (Int64)Math.Round(stat + (stat * _variance));
+            if (newStat > uint.MaxValue)
+                return uint.MaxValue;
+            else if (newStat < uint.MinValue)
+                return uint.MinValue;
+
+            return (uint)newStat;
+        }
+
+        // Convenience methods to avoid calling CalculateVariance directly
+        public byte VariantStr => CalculateVariance(_spawn.Stats.Str);
+        public byte VariantInt => CalculateVariance(_spawn.Stats.Int);
+        public byte VariantDex => CalculateVariance(_spawn.Stats.Dex);
+        public byte VariantCon => CalculateVariance(_spawn.Stats.Con);
+        public byte VariantWis => CalculateVariance(_spawn.Stats.Wis);
+        public uint VariantHp => CalculateVariance(_spawn.Stats.Hp);
+        public uint VariantMp => CalculateVariance(_spawn.Stats.Mp);
+
+
+        public uint CalculateXP()
+        {
+            if (_spawn.Loot.Xp.Count > 0)
+                return CalculateVariance((uint)Rng.Next((int)_spawn.Loot.Xp[0].Min, (int)_spawn.Loot.Xp[0].Max));
+            else
+                return 1;
+        }
+
+        public uint CalculateGold()
+        {
+            if (_spawn.Loot.Gold.Count > 0)
+                return CalculateVariance((uint)Rng.Next((int)_spawn.Loot.Xp[0].Min, (int)_spawn.Loot.Xp[0].Max));
+            else
+                return 1;
+        }
+
+
         public Monster(Hybrasyl.Creatures.Creature creature, Spawn spawn, int map)
         {
+
+            var direction = (Rng.Next(0, 100) >= 50);
+            _variance = (direction == true ? Rng.NextDouble() * -1 : Rng.NextDouble()) * _spawn.Variance;
+            _spawn = spawn;
+
             Name = creature.Name;
             Sprite = creature.Sprite;
             World = Game.World;
             Map = Game.World.WorldData.Get<Map>(map);
             Level = spawn.Stats.Level;
-            BaseHp = spawn.Stats.Hp;
-            Hp = spawn.Stats.Hp;
-            BaseMp = spawn.Stats.Mp;
-            Mp = spawn.Stats.Mp;
+            BaseHp = VariantHp;
+            Hp = VariantHp;
+            BaseMp = VariantMp;
+            Mp = VariantMp;
             DisplayText = creature.Description;
-            BaseStr = spawn.Stats.Str;
-            BaseInt = spawn.Stats.Int;
-            BaseWis = spawn.Stats.Wis;
-            BaseCon = spawn.Stats.Con;
-            BaseDex = spawn.Stats.Dex;
-            _spawn = spawn;
-            _simpleDamage = spawn.Damage;
+            BaseStr = VariantStr;
+            BaseInt = VariantInt;
+            BaseWis = VariantWis;
+            BaseCon = VariantCon;
+            BaseDex = VariantDex;
             _castables = spawn.Castables;
             DefensiveElement = (Enums.Element) spawn.GetDefensiveElement();
             DefensiveElement = (Enums.Element) spawn.GetOffensiveElement();
@@ -143,18 +210,15 @@ namespace Hybrasyl.Objects
             return false;
         }
 
-        public void Attack(Direction direction, Creatures.Damage damage, Creature target)
+        public void Attack(Direction direction, Creature target)
         {
             //do monster attack.
             //monsters are using simple damage for now.
             if (target != null)
             {
-                var dmgRand = new Random();
-                var dmg = dmgRand.Next(damage.Min, damage.Max);
-
                 var damageType = Enums.DamageType.Physical;
                 //these need to be set to integers as attributes. note to fix.
-                target.Damage(dmg, OffensiveElement, damageType, this);
+                target.Damage(_simpleDamage, OffensiveElement, damageType, this);
             }
             else
             {
@@ -579,7 +643,7 @@ namespace Hybrasyl.Objects
                 //try to get the creature we're facing and set it as the target.
             }
             
-             Attack(direction, _simpleDamage, target);
+             Attack(direction, target);
                 
             
             //animation handled here as to not repeatedly send assails.
