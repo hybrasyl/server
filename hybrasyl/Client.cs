@@ -129,13 +129,15 @@ namespace Hybrasyl
 
         public bool Connected => ClientState.Connected;
 
+        public bool IsReceiving { get; set; }
+
         public ClientState ClientState;
 
         public Socket Socket => ClientState.WorkSocket;
 
         private Server Server { get; set; }
 
-        public Dictionary<byte, ThrottleInfo> Throttle = new Dictionary<byte, ThrottleInfo>();
+        public Dictionary<byte, ThrottleInfo> ThrottleState = new Dictionary<byte, ThrottleInfo>();
 
         public long ConnectionId => ClientState.Id;
 
@@ -146,7 +148,7 @@ namespace Hybrasyl
         public byte ServerOrdinal = 0x00;
         //private byte clientOrdinal = 0x00;
 
-        public String RemoteAddress
+        public string RemoteAddress
         {
             get
             {
@@ -411,13 +413,15 @@ namespace Hybrasyl
             ClientState.SendBufferAdd(packet);
         }
 
-        public void Redirect(Redirect redirect)
+        public void Redirect(Redirect redirect, bool isLogoff = false)
         {
             Logger.InfoFormat("Processing redirect");
             GlobalConnectionManifest.RegisterRedirect(this, redirect);
             Logger.InfoFormat("Redirect: cid {0}", this.ConnectionId);
-            //GlobalConnectionManifest.DeregisterClient(this);
-
+            if (isLogoff)
+            {
+                GlobalConnectionManifest.DeregisterClient(this);
+            }
             redirect.Destination.ExpectedConnections.TryAdd(redirect.Id, redirect);
 
             var endPoint = Socket.RemoteEndPoint as IPEndPoint;

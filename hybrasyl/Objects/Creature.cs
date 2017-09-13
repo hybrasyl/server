@@ -21,6 +21,7 @@
  */
  
 using System;
+using System.Drawing;
 using System.Linq;
 using Hybrasyl.Castables;
 using Hybrasyl.Enums;
@@ -377,7 +378,141 @@ namespace Hybrasyl.Objects
 
         public virtual bool Walk(Direction direction)
         {
-            return false;
+            int oldX = X, oldY = Y, newX = X, newY = Y;
+            Rectangle arrivingViewport = Rectangle.Empty;
+            Rectangle departingViewport = Rectangle.Empty;
+            Rectangle commonViewport = Rectangle.Empty;
+            var halfViewport = Constants.VIEWPORT_SIZE / 2;
+            Warp targetWarp;
+
+            switch (direction)
+            {
+                // Calculate the differences (which are, in all cases, rectangles of height 12 / width 1 or vice versa)
+                // between the old and new viewpoints. The arrivingViewport represents the objects that need to be notified
+                // of this object's arrival (because it is now within the viewport distance), and departingViewport represents
+                // the reverse. We later use these rectangles to query the quadtree to locate the objects that need to be 
+                // notified of an update to their AOI (area of interest, which is the object's viewport calculated from its
+                // current position).
+
+                case Direction.North:
+                    --newY;
+                    arrivingViewport = new Rectangle(oldX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE, 1);
+                    departingViewport = new Rectangle(oldX - halfViewport, oldY + halfViewport, Constants.VIEWPORT_SIZE, 1);
+                    break;
+                case Direction.South:
+                    ++newY;
+                    arrivingViewport = new Rectangle(oldX - halfViewport, oldY + halfViewport, Constants.VIEWPORT_SIZE, 1);
+                    departingViewport = new Rectangle(oldX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE, 1);
+                    break;
+                case Direction.West:
+                    --newX;
+                    arrivingViewport = new Rectangle(newX - halfViewport, oldY - halfViewport, 1, Constants.VIEWPORT_SIZE);
+                    departingViewport = new Rectangle(oldX + halfViewport, oldY - halfViewport, 1, Constants.VIEWPORT_SIZE);
+                    break;
+                case Direction.East:
+                    ++newX;
+                    arrivingViewport = new Rectangle(oldX + halfViewport, oldY - halfViewport, 1, Constants.VIEWPORT_SIZE);
+                    departingViewport = new Rectangle(oldX - halfViewport, oldY - halfViewport, 1, Constants.VIEWPORT_SIZE);
+                    break;
+            }
+            var isWarp = Map.Warps.TryGetValue(new Tuple<byte, byte>((byte)newX, (byte)newY), out targetWarp);
+
+            // Now that we know where we are going, perform some sanity checks.
+            // Is the player trying to walk into a wall, or off the map?
+
+            if (newX >= Map.X || newY >= Map.Y || newX < 0 || newY < 0)
+            {
+                Refresh();
+                return false;
+            }
+            if (Map.IsWall[newX, newY])
+            {
+                Refresh();
+                return false;
+            }
+            else
+            {
+                // Is the player trying to walk into an occupied tile?
+                foreach (var obj in Map.GetTileContents((byte)newX, (byte)newY))
+                {
+                    Logger.DebugFormat("Collsion check: found obj {0}", obj.Name);
+                    if (obj is Creature)
+                    {
+                        Logger.DebugFormat("Walking prohibited: found {0}", obj.Name);
+                        Refresh();
+                        return false;
+                    }
+                }
+                // Is this user entering a forbidden (by level or otherwise) warp?
+                if (isWarp)
+                {
+                    if (targetWarp.MinimumLevel > Level)
+                    {
+
+                        Refresh();
+                        return false;
+                    }
+                    else if (targetWarp.MaximumLevel < Level)
+                    {
+
+                        Refresh();
+                        return false;
+                    }
+                }
+            }
+
+            // Calculate the common viewport between the old and new position
+
+            commonViewport = new Rectangle(oldX - halfViewport, oldY - halfViewport, Constants.VIEWPORT_SIZE, Constants.VIEWPORT_SIZE);
+            commonViewport.Intersect(new Rectangle(newX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE, Constants.VIEWPORT_SIZE));
+            Logger.DebugFormat("Moving from {0},{1} to {2},{3}", oldX, oldY, newX, newY);
+            Logger.DebugFormat("Arriving viewport is a rectangle starting at {0}, {1}", arrivingViewport.X, arrivingViewport.Y);
+            Logger.DebugFormat("Departing viewport is a rectangle starting at {0}, {1}", departingViewport.X, departingViewport.Y);
+            Logger.DebugFormat("Common viewport is a rectangle starting at {0}, {1} of size {2}, {3}", commonViewport.X,
+                commonViewport.Y, commonViewport.Width, commonViewport.Height);
+
+            X = (byte)newX;
+            Y = (byte)newY;
+            Direction = direction;
+
+
+
+            // Objects in the common viewport receive a "walk" (0x0C) packet
+            // Objects in the arriving viewport receive a "show to" (0x33) packet
+            // Objects in the departing viewport receive a "remove object" (0x0E) packet
+
+            foreach (var obj in Map.EntityTree.GetObjects(commonViewport))
+            {
+                if (obj != this && obj is User)
+                {
+
+                    var user = obj as User;
+                    Logger.DebugFormat("Sending walk packet for {0} to {1}", Name, user.Name);
+                    var x0C = new ServerPacket(0x0C);
+                    x0C.WriteUInt32(Id);
+                    x0C.WriteUInt16((byte)oldX);
+                    x0C.WriteUInt16((byte)oldY);
+                    x0C.WriteByte((byte)direction);
+                    x0C.WriteByte(0x00);
+                    user.Enqueue(x0C);
+                }
+            }
+
+            foreach (var obj in Map.EntityTree.GetObjects(arrivingViewport))
+            {
+                obj.AoiEntry(this);
+                AoiEntry(obj);
+            }
+
+            foreach (var obj in Map.EntityTree.GetObjects(departingViewport))
+            {
+                obj.AoiDeparture(this);
+                AoiDeparture(obj);
+            }
+
+            HasMoved = true;
+            Map.EntityTree.Move(this);
+            return true;
         }
 
         public virtual bool Turn(Direction direction)
@@ -386,12 +521,25 @@ namespace Hybrasyl.Objects
 
             foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
             {
-                if (!(obj is User)) continue;
-                var user = obj as User;
-                var x11 = new ServerPacket(0x11);
-                x11.WriteUInt32(Id);
-                x11.WriteByte((byte)direction);
-                user.Enqueue(x11);
+                if (obj is User)
+                {
+                    var user = obj as User;
+                    var x11 = new ServerPacket(0x11);
+                    x11.WriteUInt32(Id);
+                    x11.WriteByte((byte)direction);
+                    user.Enqueue(x11);
+                }
+                if (obj is Monster)
+                {
+                    var mob = obj as Monster;
+                    var x11 = new ServerPacket(0x11);
+                    x11.WriteUInt32(Id);
+                    x11.WriteByte((byte)direction);
+                    foreach (var user in Map.EntityTree.GetObjects(Map.GetViewport(mob.X, mob.Y)).OfType<User>().ToList())
+                    {
+                        user.Enqueue(x11);
+                    }
+                }
             }
 
             return true;
@@ -470,6 +618,8 @@ namespace Hybrasyl.Objects
 
             SendDamageUpdate(this);
 
+            OnReceiveDamage();
+            
             if (Hp == 0) OnDeath();
         }
 

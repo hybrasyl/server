@@ -114,9 +114,9 @@ namespace Hybrasyl
             Icon = icon;
             Name = name;
             Start = DateTime.Now;
-            OnTickMessage = String.Empty;
-            OnStartMessage = String.Empty;
-            OnEndMessage = String.Empty;
+            OnTickMessage = string.Empty;
+            OnStartMessage = string.Empty;
+            OnEndMessage = string.Empty;
 
         }
     }

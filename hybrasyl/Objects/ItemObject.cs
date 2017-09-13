@@ -40,7 +40,7 @@ namespace Hybrasyl.Objects
         /// <param name="userobj">User object to check for meeting this ItemObject's requirements.</param>
         /// <param name="message">A reference that will be used in the case of failure to set an appropriate error message.</param>
         /// <returns></returns>
-        public bool CheckRequirements(User userobj, out String message)
+        public bool CheckRequirements(User userobj, out string message)
         {
             // We check a variety of conditions and return the first failure.
 
@@ -118,16 +118,8 @@ namespace Hybrasyl.Objects
         public bool Usable => Template.Properties.Use != null;
         public Use Use => Template.Properties.Use;
 
-        public ushort EquipSprite
-        {
-            get
-            {
-                if (Template.Properties.Appearance.EquipSprite == 0)
-                    return Template.Properties.Appearance.Sprite;
-                return Template.Properties.Appearance.EquipSprite;
-            }
-        }
-
+        public ushort EquipSprite => Template.Properties.Appearance.EquipSprite == 0 ? Template.Properties.Appearance.Sprite : Template.Properties.Appearance.EquipSprite;
+           
         public ItemObjectType ItemObjectType
         {
             get

@@ -48,7 +48,7 @@ namespace Hybrasyl.Objects
             // Do we have a script?
             /*
                         Script thescript;
-                        if (_reactor.script_name == String.Empty)
+                        if (_reactor.script_name == string.Empty)
                             Game.World.ScriptProcessor.TryGetScript(_reactor.name, out thescript);
                         else
                             Game.World.ScriptProcessor.TryGetScript(_reactor.script_name, out thescript);

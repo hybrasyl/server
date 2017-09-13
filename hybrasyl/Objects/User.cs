@@ -33,8 +33,13 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Remoting.Channels;
 using System.Text;
+using System.Xml;
+using Hybrasyl.Items;
 using Class = Hybrasyl.Castables.Class;
+using Motion = Hybrasyl.Castables.Motion;
+using System.Globalization;
 
 namespace Hybrasyl.Objects
 {
@@ -42,9 +47,9 @@ namespace Hybrasyl.Objects
     [JsonObject]
     public class GuildMembership
     {
-        public String Title { get; set; }
-        public String Name { get; set; }
-        public String Rank { get; set; }
+        public string Title { get; set; }
+        public string Name { get; set; }
+        public string Rank { get; set; }
     }
 
     [JsonObject]
@@ -60,9 +65,9 @@ namespace Hybrasyl.Objects
     [JsonObject]
     public class PasswordInfo
     {
-        public String Hash { get; set; }
+        public string Hash { get; set; }
         public DateTime LastChanged { get; set; }
-        public String LastChangedFrom { get; set; }
+        public string LastChangedFrom { get; set; }
     }
 
     [JsonObject]
@@ -71,7 +76,7 @@ namespace Hybrasyl.Objects
         public DateTime LastLogin { get; set; }
         public DateTime LastLogoff { get; set; }
         public DateTime LastLoginFailure { get; set; }
-        public String LastLoginFrom { get; set; }
+        public string LastLoginFrom { get; set; }
         public Int64 LoginFailureCount { get; set; }
         public DateTime CreatedTime { get; set; }
     }
@@ -79,6 +84,7 @@ namespace Hybrasyl.Objects
     [JsonObject(MemberSerialization.OptIn)]
     public class User : Creature
     {
+
         public bool IsSaving { get; set; }
 
         public new static readonly ILog Logger =
@@ -157,6 +163,16 @@ namespace Hybrasyl.Objects
         public byte[] PortraitData { get; set; }
         public string ProfileText { get; set; }
 
+        public Castable PendingLearnableCastable { get; private set; }
+        public ItemObject PendingSendableParcel { get; private set; }
+        public string PendingParcelRecipient { get; private set; }
+        public string PendingBuyableItem { get; private set; }
+        public int PendingBuyableQuantity { get; private set; }
+        public byte PendingSellableSlot { get; private set; }
+        public int PendingSellableQuantity { get; private set; }
+        public uint PendingMerchantOffer { get; private set; }
+
+
         [JsonProperty]
         public GuildMembership Guild { get; set; }
 
@@ -193,8 +209,8 @@ namespace Hybrasyl.Objects
         public DialogState DialogState { get; set; }
 
         [JsonProperty]
-        private Dictionary<String, String> UserFlags { get; set; }
-        private Dictionary<String, String> UserSessionFlags { get; set; }
+        private Dictionary<string, string> UserFlags { get; set; }
+        private Dictionary<string, string> UserSessionFlags { get; set; }
 
         public Exchange ActiveExchange { get; set; }
 
@@ -245,9 +261,10 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                if (Game.Config.Access.Privileged != null)
+                if (Game.Config.Access?.Privileged != null)
                 {
-                    return IsExempt || Flags.ContainsKey("gamemaster") || Game.Config.Access.Privileged.Contains(Name);
+                    return IsExempt || Flags.ContainsKey("gamemaster") ||
+                        Game.Config.Access.Privileged.IndexOf(Name, 0, StringComparison.CurrentCultureIgnoreCase) != 1;
                 }
                 return IsExempt || Flags.ContainsKey("gamemaster");
             }
@@ -271,7 +288,7 @@ namespace Hybrasyl.Objects
             }
         }
 
-        public string SinceLastLoginString => SinceLastLogin < 86400 ? 
+        public string SinceLastLoginstring => SinceLastLogin < 86400 ? 
             $"{Math.Floor(SinceLastLogin/3600)} hours, {Math.Floor(SinceLastLogin%3600/60)} minutes" : 
             $"{Math.Floor(SinceLastLogin/86400)} days, {Math.Floor(SinceLastLogin%86400/3600)} hours, {Math.Floor(SinceLastLogin%86400%3600/60)} minutes";
 
@@ -678,7 +695,7 @@ namespace Hybrasyl.Objects
             get { return (ushort) (BaseStr + Level/4 + 48); }
         }
 
-        public bool VerifyPassword(String password)
+        public bool VerifyPassword(string password)
         {
              return BCrypt.Net.BCrypt.Verify(password, Password.Hash);
         }
@@ -700,14 +717,14 @@ namespace Hybrasyl.Objects
             Location = new Location();
             Legend = new Legend();
             Guild = new GuildMembership();
-            LastSaid = String.Empty;
+            LastSaid = string.Empty;
             LastSpoke = 0;
             NumSaidRepeated = 0;
             PortraitData = new byte[0];
             ProfileText = string.Empty;
             DialogState = new DialogState(this);
-            UserFlags = new Dictionary<String, String>();
-            UserSessionFlags = new Dictionary<String, String>();
+            UserFlags = new Dictionary<string, string>();
+            UserSessionFlags = new Dictionary<string, string>();
             Status = PlayerCondition.Alive;
             Group = null;
             Flags = new Dictionary<string, bool>();
@@ -987,31 +1004,6 @@ namespace Hybrasyl.Objects
         }
 
         /// <summary>
-        /// Check to see if a player is squelched, considering a given object
-        /// </summary>
-        /// <param name="opcode">The byte opcode to check</param>
-        /// <param name="obj">The object for comparison</param>
-        /// <returns></returns>
-        public bool CheckSquelch(byte opcode, object obj)
-        {
-            ThrottleInfo tinfo;
-            if (Client.Throttle.TryGetValue(opcode, out tinfo))
-            {
-                if (tinfo.IsSquelched(obj))
-                {
-                    if (tinfo.SquelchCount > tinfo.Throttle.DisconnectAfter)
-                    {
-                        Logger.WarnFormat("cid {0}: reached squelch count for {1}: disconnected", Client.ConnectionId,
-                            opcode);
-                        Client.Disconnect();
-                    }
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        /// <summary>
         /// Given a specified ItemObject, remove the given bonuses from the player.
         /// </summary>
         /// <param name="toRemove"></param>
@@ -1156,20 +1148,20 @@ namespace Hybrasyl.Objects
             Enqueue(x04);
         }
 
-        public void DisplayIncomingWhisper(String charname, String message)
+        public void DisplayIncomingWhisper(string charname, string message)
         {
-            Client.SendMessage(String.Format("{0}\" {1}", charname, message), 0x0);
+            Client.SendMessage(string.Format("{0}\" {1}", charname, message), 0x0);
         }
 
-        public void DisplayOutgoingWhisper(String charname, String message)
+        public void DisplayOutgoingWhisper(string charname, string message)
         {
-            Client.SendMessage(String.Format("{0}> {1}", charname, message), 0x0);
+            Client.SendMessage(string.Format("{0}> {1}", charname, message), 0x0);
         }
 
-        public void SendWhisper(String charname, String message)
+        public void SendWhisper(string charname, string message)
         {
             var target = World.FindUser(charname);
-            string err = String.Empty;
+            string err = string.Empty;
 
             if (CanTalkTo(target, out err))
             {
@@ -1195,12 +1187,12 @@ namespace Hybrasyl.Objects
             }
             else
             {
-                string err = String.Empty;
+                string err = string.Empty;
                 foreach (var member in Group.Members)
                 {
                     if (CanTalkTo(member, out err))
                     {
-                        member.Client.SendMessage(String.Format("[!{0}] {1}", Name, message), MessageTypes.GROUP);
+                        member.Client.SendMessage(string.Format("[!{0}] {1}", Name, message), MessageTypes.GROUP);
                     }
                     else
                     {
@@ -1231,7 +1223,7 @@ namespace Hybrasyl.Objects
                 return false;
             }
 
-            msg = String.Empty;
+            msg = string.Empty;
             return true;
         }
 
@@ -1311,7 +1303,7 @@ namespace Hybrasyl.Objects
             x07.WriteByte(0);
             x07.WriteByte((byte)creature.Direction);
             x07.WriteByte(0);
-            x07.WriteByte(1);
+            x07.WriteByte(0);
             x07.WriteString8(creature.Name);
             x07.DumpPacket();
             Enqueue(x07);
@@ -1391,7 +1383,7 @@ namespace Hybrasyl.Objects
             // Uint16: sprite offset (79 FF is actually a red scroll, 80 00 onwards are real items)
             // Byte: ??
             // Byte: ItemObject Name length
-            // String: ItemObject Name
+            // string: ItemObject Name
             // Uint32: Max Durability
             // Uint32: Min Durability
 
@@ -1511,35 +1503,35 @@ namespace Hybrasyl.Objects
 
         }
 
-        public void SetFlag(String flag, String value)
+        public void SetFlag(string flag, string value)
         {
             UserFlags[flag] = value;
         }
 
-        public void SetSessionFlag(String flag, String value)
+        public void SetSessionFlag(string flag, string value)
         {
             UserSessionFlags[flag] = value;
         }
 
-        public String GetFlag(String flag)
+        public string GetFlag(string flag)
         {
-            String value;
+            string value;
             if (UserFlags.TryGetValue(flag, out value))
             {
                 return value;
             }
-            return String.Empty;
+            return string.Empty;
         }
 
 
-        public String GetSessionFlag(String flag)
+        public string GetSessionFlag(string flag)
         {
-            String value;
+            string value;
             if (UserSessionFlags.TryGetValue(flag, out value))
             {
                 return value;
             }
-            return String.Empty;
+            return string.Empty;
         }
 
         public override void UpdateAttributes(StatUpdateFlags flags)
@@ -1972,7 +1964,7 @@ namespace Hybrasyl.Objects
                 {
                     itemObject.Count = (inventoryItem.Count + itemObject.Count) - inventoryItem.MaximumStack;
                     inventoryItem.Count = inventoryItem.MaximumStack;
-                    SendSystemMessage(String.Format("You can't carry any more {0}", itemObject.Name));
+                    SendSystemMessage(string.Format("You can't carry any more {0}", itemObject.Name));
                     Map.Insert(itemObject, X, Y);
                     return false;
                 }
@@ -1980,7 +1972,7 @@ namespace Hybrasyl.Objects
                 // Merge stack and destroy "added" ItemObject
                 inventoryItem.Count += itemObject.Count;
                 itemObject.Count = 0;
-                SendItemUpdate(inventoryItem, Inventory.SlotOf(inventoryItem.Name));
+                SendItemUpdate(inventoryItem, Inventory.SlotOf(inventoryItem.Name).First());
                 World.Remove(itemObject);
                 return true;
             }
@@ -2011,6 +2003,49 @@ namespace Hybrasyl.Objects
 
             return false;
         }
+
+        public bool RemoveItem(string itemName, byte quantity = 0x01, bool updateWeight = true)
+        {
+            if (Inventory.Contains(itemName, quantity))
+            {
+                var remaining = (int) quantity;
+                var slots = Inventory.SlotOf(itemName);
+                foreach (var i in slots)
+                {
+                    if (remaining > 0)
+                    {
+                        if (Inventory[i].Stackable)
+                        {
+                            if (Inventory[i].Count <= remaining)
+                            {
+                                remaining -= Inventory[i].Count;
+                                Inventory[i].Remove();
+                                SendClearItem(i);
+                            }
+                            if (Inventory[i].Count > remaining)
+                            {
+                                Inventory[i].Count -= remaining;
+                                remaining = 0;
+                                SendItemUpdate(Inventory[i], i);
+                            }
+                        }
+                        else
+                        {
+                            Inventory.Remove(i);
+                            remaining--;
+                            SendItemUpdate(Inventory[i], i);
+                        }
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                return true;
+            }
+            return false;
+        }
+
 
         public bool IncreaseItem(byte slot, int quantity)
         {
@@ -2131,6 +2166,7 @@ namespace Hybrasyl.Objects
             UpdateAttributes(StatUpdateFlags.Current);
         }
 
+        //below method might not be needed.
         public override void Attack(Direction direction, Castable castObject = null, Creature target = null)
         {
             if (target != null)
@@ -2180,20 +2216,17 @@ namespace Hybrasyl.Objects
                 var damage = castObject.Effects.Damage;
                 if (damage != null)
                 {
+                    //TODO: if a castable is targetable, does intent matter?
                     var intents = castObject.Intents;
                     foreach (var intent in intents)
                     {
-                        //isclick should always be 0 for a skill.
-                        var targetAreas = new List<KeyValuePair<int, int>>();
-
                         Random rand = new Random();
 
                         if (damage.Formula == null)
                             //will need to be expanded. also will need to account for damage scripts
                         {
                             var simple = damage.Simple;
-                            var damageType = EnumUtil.ParseEnum<Enums.DamageType>(damage.Type.ToString(),
-                                Enums.DamageType.Magical);
+                            var damageType = EnumUtil.ParseEnum(damage.Type.ToString(), (Enums.DamageType)castObject.Effects.Damage.Type);
                             var dmg = rand.Next(Convert.ToInt32(simple.Min), Convert.ToInt32(simple.Max));
                             //these need to be set to integers as attributes. note to fix.
                             target.Damage(dmg, OffensiveElement, damageType, this);
@@ -2201,24 +2234,23 @@ namespace Hybrasyl.Objects
                         else
                         {
                             var formula = damage.Formula;
-                            var damageType = EnumUtil.ParseEnum<Enums.DamageType>(damage.Type.ToString(),
-                                Enums.DamageType.Magical);
-                            FormulaParser parser = new FormulaParser(this, castObject, target);
+                            var damageType = EnumUtil.ParseEnum(damage.Type.ToString(), (Enums.DamageType)castObject.Effects.Damage.Type);
+                            var parser = new FormulaParser(this, castObject, target);
                             var dmg = parser.Eval(formula);
                             if (dmg == 0) dmg = 1;
                             target.Damage(dmg, OffensiveElement, damageType, this);
-
-                            var effectAnimation = new ServerPacketStructures.EffectAnimation()
-                            {
-                                SourceId = this.Id,
-                                Speed = (short) castObject.Effects.Animations.OnCast.Target.Speed,
-                                TargetId = target.Id,
-                                TargetAnimation = /*castObject.Effects.Animations.OnCast.Target.Id*/ 237
-                            };
-                            Enqueue(effectAnimation.Packet());
-                            SendAnimation(effectAnimation.Packet());
-
                         }
+
+                        if (castObject.Effects.Animations.OnCast.Target == null) continue;
+                        var effectAnimation = new ServerPacketStructures.EffectAnimation()
+                        {
+                            SourceId = this.Id,
+                            Speed = (short)castObject.Effects.Animations.OnCast.Target.Speed,
+                            TargetId = target.Id,
+                            TargetAnimation = castObject.Effects.Animations.OnCast.Target.Id
+                        };
+                        Enqueue(effectAnimation.Packet());
+                        SendAnimation(effectAnimation.Packet());
                     }
                 }
 
@@ -2226,17 +2258,16 @@ namespace Hybrasyl.Objects
 
                 try
                 {
-                    motion = castObject.Effects.Animations.OnCast.Motions.SingleOrDefault(x => x.Class.Contains((Class) Class));
+                    motion = castObject.Effects.Animations.OnCast.Player.SingleOrDefault(x => x.Class.Contains((Class) Class));
                 }
                 catch (InvalidOperationException)
                 {
-                    motion = castObject.Effects.Animations.OnCast.Motions.FirstOrDefault(x => x.Class.Contains((Class) Class));
+                    motion = castObject.Effects.Animations.OnCast.Player.FirstOrDefault(x => x.Class.Contains((Class) Class));
 
                     Logger.ErrorFormat("{1}: contains more than one motion for a class definition, using first one found!", castObject.Name);
                 }
 
                 var sound = new ServerPacketStructures.PlaySound { Sound = (byte)castObject.Effects.Sound.Id };
-
 
                 if (motion != null)
                 {
@@ -2263,25 +2294,150 @@ namespace Hybrasyl.Objects
                 var intents = castObject.Intents;
                 foreach (var intent in intents)
                 {
-                    //isclick should always be 0 for a skill.
-
                     var possibleTargets = new List<VisibleObject>();
-                    possibleTargets.AddRange(Map.EntityTree.GetObjects(new Rectangle(this.X - intent.Radius, this.Y, (this.X + intent.Radius) - (this.X - intent.Radius), (this.Y + intent.Radius) - (this.Y - intent.Radius))).Where(obj => obj is Creature && obj != this && obj.GetType() != typeof(User)));
-                    possibleTargets.AddRange(Map.EntityTree.GetObjects(new Rectangle(this.X, this.Y - intent.Radius, (this.X + intent.Radius) - (this.X - intent.Radius), (this.Y + intent.Radius) - (this.Y - intent.Radius))).Where(obj => obj is Creature && obj != this && obj.GetType() != typeof(User)));
+                    Rectangle rect = new Rectangle(0, 0, 0 ,0);
 
-                    List<Creature> actualTargets = new List<Creature>();
-                    if (intent.MaxTargets > 0)
+                    switch (intent.Direction)
                     {
-                        actualTargets = possibleTargets.Take(intent.MaxTargets).OfType<Creature>().ToList();
+                        case IntentDirection.Front:
+                        {
+                            switch (Direction)
+                            {
+                                case Direction.North:
+                                {
+                                    //facing north, attack north
+                                   rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
+                                }
+                                    break;
+                                case Direction.South:
+                                {
+                                    //facing south, attack south
+                                    rect =new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
+                                }
+                                    break;
+                                case Direction.East:
+                                {
+                                    //facing east, attack east
+                                    rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
+                                }
+                                    break;
+                                case Direction.West:
+                                {
+                                    //facing west, attack west
+                                    rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
+                                }
+                                    break;
+                            }
+                        }
+                            break;
+                        case IntentDirection.Back:
+                        {
+                            switch (Direction)
+                            {
+                                case Direction.North:
+                                {
+                                    //facing north, attack south
+                                    rect = new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
+                                }
+                                    break;
+                                case Direction.South:
+                                {
+                                    //facing south, attack north
+                                    rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
+                                }
+                                    break;
+                                case Direction.East:
+                                {
+                                    //facing east, attack west
+                                    rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
+                                }
+                                    break;
+                                case Direction.West:
+                                {
+                                    //facing west, attack east
+                                    rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
+                                }
+                                    break;
+                            }
+                        }
+                            break;
+                        case IntentDirection.Left:
+                        {
+                            switch (Direction)
+                            {
+                                case Direction.North:
+                                {
+                                    //facing north, attack west
+                                    rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
+                                }
+                                    break;
+                                case Direction.South:
+                                {
+                                    //facing south, attack east
+                                    rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
+                                }
+                                    break;
+                                case Direction.East:
+                                {
+                                    //facing east, attack north
+                                    rect = new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
+                                }
+                                    break;
+                                case Direction.West:
+                                {
+                                    //facing west, attack south
+                                    rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
+                                }
+                                    break;
+                            }
+                        }
+                            break;
+                        case IntentDirection.Right:
+                        {
+                            switch (Direction)
+                            {
+                                case Direction.North:
+                                {
+                                    //facing north, attack east
+                                   rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
+                                }
+                                    break;
+                                case Direction.South:
+                                {
+                                    //facing south, attack west
+                                    rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
+                                }
+                                    break;
+                                case Direction.East:
+                                {
+                                    //facing east, attack south
+                                    rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
+                                }
+                                    break;
+                                case Direction.West:
+                                {
+                                    //facing west, attack north
+                                    rect = new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
+                                }
+                                    break;
+                            }
+                        }
+                            break;
+                        case IntentDirection.Nearby:
+                        {
+                            //attack radius
+                            rect = new Rectangle(this.X - intent.Radius, this.Y - intent.Radius, intent.Radius * 2, intent.Radius * 2);
+                        }
+                            break;
                     }
-                    else
-                    {
-                        actualTargets = possibleTargets.OfType<Creature>().ToList();
-                    }
+
+                    if(!rect.IsEmpty) possibleTargets.AddRange(Map.EntityTree.GetObjects(rect).Where(obj => obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));;
+
+                    var actualTargets = intent.MaxTargets > 0 ? possibleTargets.Take(intent.MaxTargets).OfType<Creature>().ToList() : possibleTargets.OfType<Creature>().ToList();
 
                     foreach (var target in actualTargets)
                     {
-                        if (target is Monster)
+                        if (target is Monster || (target is User && ((User)target).Status.HasFlag(PlayerCondition.Pvp)))
                         {
 
                             var rand = new Random();
@@ -2303,10 +2459,16 @@ namespace Hybrasyl.Objects
                                 if (dmg == 0) dmg = 1;
                                 target.Damage(dmg, OffensiveElement, damageType, this);
 
-                                var effectAnimation = new ServerPacketStructures.EffectAnimation() {SourceId = this.Id ,Speed = (short)castObject.Effects.Animations.OnCast.Target.Speed, TargetId = target.Id, TargetAnimation = castObject.Effects.Animations.OnCast.Target.Id };
+                                if (castObject.Effects.Animations.OnCast.Target == null) continue;
+                                var effectAnimation = new ServerPacketStructures.EffectAnimation()
+                                {
+                                    SourceId = this.Id,
+                                    Speed = (short) castObject.Effects.Animations.OnCast.Target.Speed,
+                                    TargetId = target.Id,
+                                    TargetAnimation = castObject.Effects.Animations.OnCast.Target.Id
+                                };
                                 Enqueue(effectAnimation.Packet());
                                 SendAnimation(effectAnimation.Packet());
-
                             }
 
                         }
@@ -2322,11 +2484,11 @@ namespace Hybrasyl.Objects
 
                 try
                 {
-                    motion = castObject.Effects.Animations.OnCast.Motions.SingleOrDefault(x => x.Class.Contains((Class)Class));
+                    motion = castObject.Effects.Animations.OnCast.Player.SingleOrDefault(x => x.Class.Contains((Class)Class));
                 }
                 catch (InvalidOperationException)
                 {
-                    motion = castObject.Effects.Animations.OnCast.Motions.FirstOrDefault(x => x.Class.Contains((Class)Class));
+                    motion = castObject.Effects.Animations.OnCast.Player.FirstOrDefault(x => x.Class.Contains((Class)Class));
 
                     Logger.ErrorFormat("{1}: contains more than one motion for a class definition, using first one found!", castObject.Name);
                 }
@@ -2358,70 +2520,59 @@ namespace Hybrasyl.Objects
         {
             if (target == null)
             {
+                VisibleObject obj;
+
                 switch (direction)
                 {
                     case Direction.East:
                     {
-                        var obj = Map.EntityTree.FirstOrDefault(x => x.X == X + 1 && x.Y == Y);
-                        var monster = obj as Monster;
-                        if (monster != null) target = monster;
-                        var user = obj as User;
-                        if (user != null && user.Status.HasFlag(PlayerCondition.Pvp))
-                        {
-                            target = user;
-                        }
+                        obj = Map.EntityTree.FirstOrDefault(x => x.X == X + 1 && x.Y == Y);
                     }
                         break;
                     case Direction.West:
                     {
-                        var obj = Map.EntityTree.FirstOrDefault(x => x.X == X - 1 && x.Y == Y);
-                        var monster = obj as Monster;
-                        if (monster != null) target = monster;
-                        var user = obj as User;
-                        if (user != null && user.Status.HasFlag(PlayerCondition.Pvp))
-                        {
-                            target = user;
-                        }
+                        obj = Map.EntityTree.FirstOrDefault(x => x.X == X - 1 && x.Y == Y);
                     }
                         break;
                     case Direction.North:
                     {
-                        var obj = Map.EntityTree.FirstOrDefault(x => x.X == X && x.Y == Y - 1);
-                        var monster = obj as Monster;
-                        if (monster != null) target = monster;
-                        var user = obj as User;
-                        if (user != null && user.Status.HasFlag(PlayerCondition.Pvp))
-                        {
-                            target = user;
-                        }
+                        obj = Map.EntityTree.FirstOrDefault(x => x.X == X && x.Y == Y - 1);
                     }
                         break;
                     case Direction.South:
                     {
-                        var obj = Map.EntityTree.FirstOrDefault(x => x.X == X && x.Y == Y + 1);
-                        var monster = obj as Monster;
-                        if (monster != null) target = monster;
-                        var user = obj as User;
-                        if (user != null && user.Status.HasFlag(PlayerCondition.Pvp))
-                        {
-                            target = user;
-                        }
+                        obj = Map.EntityTree.FirstOrDefault(x => x.X == X && x.Y == Y + 1);
                     }
                         break;
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(direction), direction, null);
+                }
+
+                var monster = obj as Monster;
+                if (monster != null) target = monster;
+                var user = obj as User;
+                if (user != null && user.Status.HasFlag(PlayerCondition.Pvp))
+                {
+                    target = user;
+                }
+                var npc = obj as Merchant;
+                if (npc != null)
+                {
+                    target = npc;
                 }
                 //try to get the creature we're facing and set it as the target.
             }
 
             foreach (var c in SkillBook)
             {
-                if (c.IsAssail)
+                if (target != null && c.IsAssail && target.GetType() != typeof(Merchant) )
                 {
                     Attack(direction, c, target);
                 }
             }
             //animation handled here as to not repeatedly send assails.
             var firstAssail = SkillBook.FirstOrDefault(x => x.IsAssail);
-            var motion = firstAssail?.Effects.Animations.OnCast.Motions.FirstOrDefault(y => y.Class.Contains((Class) Class));
+            var motion = firstAssail?.Effects.Animations.OnCast.Player.FirstOrDefault(y => y.Class.Contains((Class) Class));
 
             var motionId = motion != null ? (byte)motion.Id : (byte)1;
             var assail = new ServerPacketStructures.PlayerAnimation() {Animation = motionId , Speed = 20, UserId = this.Id};
@@ -2599,137 +2750,1003 @@ namespace Hybrasyl.Objects
             Enqueue(doorPacket);
         }
 
+        public void ShowLearnSkillMenu(Merchant merchant)
+        {
+            var learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill");
+            var prompt = string.Empty;
+            if (learnString != null) prompt = learnString.Value ?? string.Empty;
+
+            var merchantSkills = new MerchantSkills();
+            merchantSkills.Skills = new List<MerchantSkill>();
+            var skillsCount = 0;
+            foreach (var skill in merchant.Roles.Train.Where(x => x.Type == "Skill").OrderBy(y => y.Name))
+            {
+                if (SkillBook.Contains(Game.World.WorldData.GetByIndex<Castable>(skill.Name))) continue;
+                skillsCount++;
+                var worldSkill = Game.World.WorldData.GetByIndex<Castable>(skill.Name);
+                merchantSkills.Skills.Add(new MerchantSkill()
+                {
+                    IconType = 3,
+                    Icon = worldSkill.Icon,
+                    Color = 1,
+                    Name = worldSkill.Name
+                });
+            }
+            merchantSkills.SkillsCount = (ushort)skillsCount;
+            merchantSkills.Id = (ushort) MerchantMenuItem.LearnSkill;
+
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.MerchantSkills,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Skills = merchantSkills
+            };
+
+            Enqueue(packet.Packet());
+        }
+
+        public void ShowForgetSkillMenu(Merchant merchant)
+        {
+            var forgetString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "forget_skill");
+            var prompt = string.Empty;
+            if (forgetString != null) prompt = forgetString.Value ?? string.Empty;
+
+            var userSkills = new UserSkillBook();
+            userSkills.Id = (ushort)MerchantMenuItem.ForgetSkillAccept;
+
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.UserSkillBook,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                UserSkills = userSkills
+            };
+
+            Enqueue(packet.Packet());
+        }
+
+        public void ShowForgetSkillAccept(Merchant merchant, byte slot)
+        {
+            var forgetString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "forget_castable_success");
+            var prompt = forgetString.Value;
+
+            var options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
+
+            options.OptionsCount = (byte)options.Options.Count;
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Options,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Options = options
+            };
+            Enqueue(packet.Packet());
+
+            SkillBook.Remove(slot);
+            SendClearSkill(slot);
+        }
+
+        public void ShowForgetSpellMenu(Merchant merchant)
+        {
+            var forgetString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "forget_spell");
+            var prompt = string.Empty;
+            if (forgetString != null) prompt = forgetString.Value ?? string.Empty;
+
+            var userSpells = new UserSpellBook();
+            userSpells.Id = (ushort)MerchantMenuItem.ForgetSpellAccept;
+
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.UserSpellBook,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                UserSpells = userSpells
+            };
+
+            Enqueue(packet.Packet());
+        }
+
+        public void ShowForgetSpellAccept(Merchant merchant, byte slot)
+        {
+            var forgetString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "forget_castable_success");
+            var prompt = forgetString.Value;
+
+            var options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
+
+            options.OptionsCount = (byte)options.Options.Count;
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Options,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Options = options
+            };
+            Enqueue(packet.Packet());
+
+            SpellBook.Remove(slot);
+            SendClearSpell(slot);
+        }
+
+        public void ShowLearnSkill(Merchant merchant, Castable castable)
+        {
+            var learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_choice");
+            var skillDesc = castable.Descriptions.Single(x => x.Class.Contains((Class)Class) || x.Class.Contains(Castables.Class.Peasant));
+            var prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$SKILLDESC", skillDesc.Value );
+
+            var options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
+
+            options.Options.Add(new MerchantDialogOption()
+            {
+                Id = (ushort)MerchantMenuItem.LearnSkillAgree,
+                Text = "Yes"
+            });
+            options.Options.Add(new MerchantDialogOption()
+            {
+                Id = (ushort)MerchantMenuItem.LearnSkillDisagree,
+                Text = "No"
+            });
+
+            options.OptionsCount = (byte) options.Options.Count;
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Options,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Options = options
+            };
+
+            PendingLearnableCastable = castable;
+
+            Enqueue(packet.Packet());
+        }
+
+        public void ShowLearnSkillAgree(Merchant merchant)
+        {
+            var castable = PendingLearnableCastable;
+            //now check requirements.
+            var classReq = castable.Requirements.Single(x => x.Class.Contains((Class) Class) || Class == Enums.Class.Peasant);
+            String learnString = null;
+            MerchantOptions options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
+            var prompt = string.Empty;
+            if (classReq.Level.Min > Level)
+            {
+                learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_player_level");
+                prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$LEVEL", classReq.Level.Min.ToString());
+            }
+            if (classReq.Physical != null)
+            {
+                if (Str < classReq.Physical.Str || Int < classReq.Physical.Int || Wis < classReq.Physical.Wis || Con < classReq.Physical.Con || Dex < classReq.Physical.Dex)
+                {
+                    learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_stats");
+                    var statStr = $"\n[STR {classReq.Physical.Str} INT {classReq.Physical.Int} WIS {classReq.Physical.Wis} CON {classReq.Physical.Con} DEX {classReq.Physical.Dex}]";
+                    prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$STATS", statStr);
+                }
+            }
+            if (classReq.Prerequisites != null)
+            {
+                foreach (var preReq in classReq.Prerequisites)
+                {
+                    if (!SkillBook.Contains(Game.World.WorldData.GetByIndex<Castable>(preReq.Value)))
+                    {
+                        learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_level");
+                        prompt = learnString.Value.Replace("$SKILLNAME", preReq.Value).Replace("$PREREQ", preReq.Level.ToString());
+                        break;
+                    }
+                    else if(SkillBook.Contains(Game.World.WorldData.GetByIndex<Castable>(preReq.Value)))
+                    {
+                        var preReqSkill = SkillBook.Single(x=> x.Name == preReq.Value);
+                        if (preReqSkill.CastableLevel < preReq.Level)
+                        {
+                            learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_level");
+                            prompt = learnString.Value.Replace("$SKILLNAME", preReq.Value).Replace("$PREREQ", preReq.Level.ToString());
+                            break;
+                        }
+                    }
+                }
+            }
+            if (prompt == string.Empty) //this is so bad
+            {
+                var reqStr = string.Empty;
+                //now we can learning!
+                learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_reqs");
+                reqStr = classReq.Items.Aggregate(reqStr, (current, req) => current + (req.Value + "(" + req.Quantity + "), "));
+
+                if (classReq.Gold != 0)
+                {
+                    reqStr += classReq.Gold + " coins";
+                }
+                else
+                {
+                    reqStr = reqStr.Remove(reqStr.Length - 1);
+                }
+                prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$REQS", reqStr);
+
+                options.Options.Add(new MerchantDialogOption()
+                {
+                    Id = (ushort)MerchantMenuItem.LearnSkillAccept,
+                    Text = "Yes"
+                });
+                options.Options.Add(new MerchantDialogOption()
+                {
+                    Id = (ushort)MerchantMenuItem.LearnSkillDisagree,
+                    Text = "No"
+                });
+                
+            }
+
+            options.OptionsCount = (byte)options.Options.Count;
+
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Options,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Options = options
+            };
+
+            Enqueue(packet.Packet());
+
+        }
+
+        public void ShowLearnSkillAccept(Merchant merchant)
+        {
+            var castable = PendingLearnableCastable;
+            var classReq = castable.Requirements.Single(x => x.Class.Contains((Class)Class) || Class == Enums.Class.Peasant);
+            String learnString;
+            var prompt = string.Empty;
+            var options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
+            //verify user has required items.
+            if (!(Gold > classReq.Gold))
+            {
+                learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_gold");
+                prompt = learnString.Value;
+            }
+            if (prompt == string.Empty)
+            {
+                if (classReq.Items.Any(itemReq => !Inventory.Contains(itemReq.Value, itemReq.Quantity)))
+                {
+                    learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_item");
+                    prompt = learnString.Value;
+                }
+            }
+            if (prompt == string.Empty)
+            {
+                RemoveGold(classReq.Gold);
+                foreach (var req in classReq.Items)
+                {
+                    RemoveItem(req.Value, req.Quantity);
+                }
+                SkillBook.Add(castable);
+                SendInventory();
+                SendSkills();
+                learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_success");
+                prompt = learnString.Value;
+            }
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Options,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Options = options
+            };
+
+            Enqueue(packet.Packet());
+        }
+
+        public void ShowLearnSkillDisagree(Merchant merchant)
+        {
+            PendingLearnableCastable = null;
+            var learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "forget_castable_success");
+            var prompt = learnString.Value;
+            var options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Options,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Options = options
+            };
+
+            Enqueue(packet.Packet());
+        }
+
+        public void ShowLearnSpellMenu(Merchant merchant)
+        {
+            var learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell");
+            var prompt = string.Empty;
+            if (learnString != null) prompt = learnString.Value ?? string.Empty;
+
+            var merchantSpells = new MerchantSpells();
+            merchantSpells.Spells = new List<MerchantSpell>();
+            var spellsCount = 0;
+            foreach (var spell in merchant.Roles.Train.Where(x => x.Type == "Spell").OrderBy(y => y.Name))
+            {
+                if (SpellBook.Contains(Game.World.WorldData.GetByIndex<Castable>(spell.Name))) continue;
+                spellsCount++;
+                var worldSpell = Game.World.WorldData.GetByIndex<Castable>(spell.Name);
+                merchantSpells.Spells.Add(new MerchantSpell()
+                {
+                    IconType = 2,
+                    Icon = worldSpell.Icon,
+                    Color = 1,
+                    Name = worldSpell.Name
+                });
+            }
+            merchantSpells.SpellsCount = (ushort)spellsCount;
+            merchantSpells.Id = (ushort)MerchantMenuItem.LearnSpell;
+
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.MerchantSpells,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Spells = merchantSpells
+            };
+
+            Enqueue(packet.Packet());
+        }
+
+        public void ShowLearnSpell(Merchant merchant, Castable castable)
+        {
+            var learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_choice");
+            var skillDesc = castable.Descriptions.Single(x => x.Class.Contains((Class)Class) || x.Class.Contains(Castables.Class.Peasant));
+            var prompt = learnString.Value.Replace("$SPELLNAME", castable.Name).Replace("$SPELLDESC", skillDesc.Value);
+
+            var options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
+
+            options.Options.Add(new MerchantDialogOption()
+            {
+                Id = (ushort)MerchantMenuItem.LearnSpellAgree,
+                Text = "Yes"
+            });
+            options.Options.Add(new MerchantDialogOption()
+            {
+                Id = (ushort)MerchantMenuItem.LearnSpellDisagree,
+                Text = "No"
+            });
+
+            options.OptionsCount = (byte)options.Options.Count;
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Options,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Options = options
+            };
+
+            PendingLearnableCastable = castable;
+
+            Enqueue(packet.Packet());
+        }
+
+        public void ShowLearnSpellAgree(Merchant merchant)
+        {
+            var castable = PendingLearnableCastable;
+            //now check requirements.
+            var classReq = castable.Requirements.Single(x => x.Class.Contains((Class)Class) || Class == Enums.Class.Peasant);
+            String learnString = null;
+            MerchantOptions options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
+            var prompt = string.Empty;
+            if (classReq.Level.Min > Level)
+            {
+                learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_player_level");
+                prompt = learnString.Value.Replace("$SPELLNAME", castable.Name).Replace("$LEVEL", classReq.Level.Min.ToString());
+            }
+            if (classReq.Physical != null)
+            {
+                if (Str < classReq.Physical.Str || Int < classReq.Physical.Int || Wis < classReq.Physical.Wis || Con < classReq.Physical.Con || Dex < classReq.Physical.Dex)
+                {
+                    learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_stats");
+                    var statStr = $"\n[STR {classReq.Physical.Str} INT {classReq.Physical.Int} WIS {classReq.Physical.Wis} CON {classReq.Physical.Con} DEX {classReq.Physical.Dex}]";
+                    prompt = learnString.Value.Replace("$SPELLNAME", castable.Name).Replace("$STATS", statStr);
+                }
+            }
+            if (classReq.Prerequisites != null)
+            {
+                foreach (var preReq in classReq.Prerequisites)
+                {
+                    if (!SkillBook.Contains(Game.World.WorldData.GetByIndex<Castable>(preReq.Value)))
+                    {
+                        learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_level");
+                        prompt = learnString.Value.Replace("$SPELLNAME", preReq.Value).Replace("$PREREQ", preReq.Level.ToString());
+                        break;
+                    }
+                    else if (SkillBook.Contains(Game.World.WorldData.GetByIndex<Castable>(preReq.Value)))
+                    {
+                        var preReqSkill = SkillBook.Single(x => x.Name == preReq.Value);
+                        if (preReqSkill.CastableLevel < preReq.Level)
+                        {
+                            learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_level");
+                            prompt = learnString.Value.Replace("$SPELLNAME", preReq.Value).Replace("$PREREQ", preReq.Level.ToString());
+                            break;
+                        }
+                    }
+                }
+            }
+            if (prompt == string.Empty) //this is so bad
+            {
+                var reqStr = string.Empty;
+                //now we can learning!
+                learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_reqs");
+                reqStr = classReq.Items.Aggregate(reqStr, (current, req) => current + (req.Value + "(" + req.Quantity + "), "));
+
+                if (classReq.Gold != 0)
+                {
+                    reqStr += classReq.Gold + " coins";
+                }
+                else
+                {
+                    reqStr = reqStr.Remove(reqStr.Length - 1);
+                }
+                prompt = learnString.Value.Replace("$SPELLNAME", castable.Name).Replace("$REQS", reqStr);
+
+                options.Options.Add(new MerchantDialogOption()
+                {
+                    Id = (ushort)MerchantMenuItem.LearnSkillAccept,
+                    Text = "Yes"
+                });
+                options.Options.Add(new MerchantDialogOption()
+                {
+                    Id = (ushort)MerchantMenuItem.LearnSkillDisagree,
+                    Text = "No"
+                });
+
+            }
+
+            options.OptionsCount = (byte)options.Options.Count;
+
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Options,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Options = options
+            };
+
+            Enqueue(packet.Packet());
+
+        }
+
+        public void ShowLearnSpellAccept(Merchant merchant)
+        {
+            var castable = PendingLearnableCastable;
+            var classReq = castable.Requirements.Single(x => x.Class.Contains((Class)Class) || Class == Enums.Class.Peasant);
+            String learnString;
+            var prompt = string.Empty;
+            var options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
+            //verify user has required items.
+            if (!(Gold > classReq.Gold))
+            {
+                learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_gold");
+                prompt = learnString.Value;
+            }
+            if (prompt == string.Empty)
+            {
+                if (classReq.Items.Any(itemReq => !Inventory.Contains(itemReq.Value, itemReq.Quantity)))
+                {
+                    learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_item");
+                    prompt = learnString.Value;
+                }
+            }
+            if (prompt == string.Empty)
+            {
+                RemoveGold(classReq.Gold);
+                foreach (var req in classReq.Items)
+                {
+                    RemoveItem(req.Value, req.Quantity);
+                }
+                SkillBook.Add(castable);
+                SendInventory();
+                SendSkills();
+                learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_success");
+                prompt = learnString.Value;
+            }
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Options,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Options = options
+            };
+
+            Enqueue(packet.Packet());
+        }
+
+        public void ShowLearnSpellDisagree(Merchant merchant)
+        {
+            PendingLearnableCastable = null;
+            var learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "forget_castable_success");
+            var prompt = learnString.Value;
+            var options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Options,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Options = options
+            };
+
+            Enqueue(packet.Packet());
+        }
+
         public void ShowBuyMenu(Merchant merchant)
         {
-            var x2F = new ServerPacket(0x2F);
-            x2F.WriteByte(0x04); // type!
-            x2F.WriteByte(0x01); // obj type
-            x2F.WriteUInt32(merchant.Id);
-            x2F.WriteByte(0x01); // ??
-            x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
-            x2F.WriteByte(0x00); // color
-            x2F.WriteByte(0x01); // ??
-            x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
-            x2F.WriteByte(0x00); // color
-            x2F.WriteByte(0x00); // ??
-            x2F.WriteString8(merchant.Name);
-            x2F.WriteString16("What would you like to buy?");
-            x2F.WriteUInt16((ushort)MerchantMenuItem.BuyItem);
-            x2F.WriteUInt16((ushort)merchant.Inventory.Count);
-            foreach (var item in merchant.Inventory.Values)
+            var buyString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "buy");
+            var prompt = string.Empty;
+            if (buyString != null) prompt = buyString.Value ?? string.Empty;
+
+            var merchantItems = new MerchantShopItems();
+            merchantItems.Items = new List<MerchantShopItem>();
+            var itemsCount = 0;
+            foreach (var item in merchant.Roles.Vend.Items)
             {
-                x2F.WriteUInt16((ushort)(0x8000 + item.Properties.Appearance.Sprite));
-                x2F.WriteByte((byte)item.Properties.Appearance.Color);
-                x2F.WriteUInt32((uint)item.Properties.Physical.Value);
-                x2F.WriteString8(item.Name);
-                x2F.WriteString8(string.Empty); // defunct ItemObject description
+                var worldItem = Game.World.WorldData.GetByIndex<Item>(item.Name);
+                merchantItems.Items.Add(new MerchantShopItem()
+                {
+                    Tile = (ushort) (0x8000 + worldItem.Properties.Appearance.Sprite),
+                    Color = (byte)worldItem.Properties.Appearance.Color,
+                    Description = worldItem.Properties.Vendor?.Description ?? "",
+                    Name = worldItem.Name,
+                    Price = worldItem.Properties.Physical.Value
+                    
+                });
+                itemsCount++;
             }
-            Enqueue(x2F);
+            merchantItems.ItemsCount = (ushort)itemsCount;
+            merchantItems.Id = (ushort)MerchantMenuItem.BuyItemQuantity;
+
+
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.MerchantShopItems,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                ShopItems = merchantItems
+            };
+            Enqueue(packet.Packet());
         }
 
         public void ShowBuyMenuQuantity(Merchant merchant, string name)
         {
-            var x2F = new ServerPacket(0x2F);
-            x2F.WriteByte(0x03); // type!
-            x2F.WriteByte(0x01); // obj type
-            x2F.WriteUInt32(merchant.Id);
-            x2F.WriteByte(0x01); // ??
-            x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
-            x2F.WriteByte(0x00); // color
-            x2F.WriteByte(0x01); // ??
-            x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
-            x2F.WriteByte(0x00); // color
-            x2F.WriteByte(0x00); // ??
-            x2F.WriteString8(merchant.Name);
-            x2F.WriteString16(string.Format("How many {0} would you like to buy?", name));
-            x2F.WriteString8(name);
-            x2F.WriteUInt16((ushort)MerchantMenuItem.BuyItemQuantity);
-            Enqueue(x2F);
+            var item = Game.World.WorldData.GetByIndex<Item>(name);
+            PendingBuyableItem = name;
+            if (item.Stackable)
+            {
+                var buyString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "buy_quantity");
+                var prompt = string.Empty;
+                if (buyString != null) prompt = buyString.Value ?? string.Empty;
+
+                var input = new MerchantInput();
+
+                input.Id = (ushort) MerchantMenuItem.BuyItemAccept;
+
+
+                var packet = new ServerPacketStructures.MerchantResponse()
+                {
+                    MerchantDialogType = MerchantDialogType.Input,
+                    MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                    ObjectId = merchant.Id,
+                    Tile1 = (ushort) (0x4000 + merchant.Sprite),
+                    Color1 = 0,
+                    Tile2 = (ushort) (0x4000 + merchant.Sprite),
+                    Color2 = 0,
+                    PortraitType = 0,
+                    Name = merchant.Name,
+                    Text = prompt,
+                    Input = input
+                };
+                Enqueue(packet.Packet());
+            }
+            else //buy item
+            {
+                ShowBuyItem(merchant);
+            }
+            //var x2F = new ServerPacket(0x2F);
+            //x2F.WriteByte(0x03); // type!
+            //x2F.WriteByte(0x01); // obj type
+            //x2F.WriteUInt32(merchant.Id);
+            //x2F.WriteByte(0x01); // ??
+            //x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
+            //x2F.WriteByte(0x00); // color
+            //x2F.WriteByte(0x01); // ??
+            //x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
+            //x2F.WriteByte(0x00); // color
+            //x2F.WriteByte(0x00); // ??
+            //x2F.WriteString8(merchant.Name);
+            //x2F.WriteString16(string.Format("How many {0} would you like to buy?", name));
+            //x2F.WriteString8(name);
+            //x2F.WriteUInt16((ushort)MerchantMenuItem.BuyItemQuantity);
+            //Enqueue(x2F);
+        }
+
+        public void ShowBuyItem(Merchant merchant, int quantity = 1)
+        {
+            String buyString;
+            var prompt = string.Empty;
+            var item = Game.World.WorldData.GetByIndex<Item>(PendingBuyableItem);
+            var itemObj = Game.World.CreateItem(item.Id);
+            var reqGold = (uint) (itemObj.Value * quantity);
+            var options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
+            if (quantity > 10) //TODO: merchants need to hold their current inventory count.
+            {
+                buyString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "buy_failure_quantity");
+                prompt = buyString.Value;
+            }
+            if (Gold < reqGold)
+            {
+                buyString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "buy_failure_gold");
+                prompt = buyString.Value;
+            }
+
+            if (prompt == string.Empty) //this is so bad
+            {
+                //check if user has item
+                var hasItem = Inventory.Contains(itemObj.Name);
+                if (hasItem)
+                {
+                    if (itemObj.Stackable) IncreaseItem(Inventory.SlotOf(itemObj.Name).First(), quantity);
+                    else
+                    {
+                        AddItem(itemObj);
+                    }
+                }
+                else
+                {
+                    if (itemObj.Stackable)
+                    {
+                        AddItem(itemObj);
+                        IncreaseItem(Inventory.SlotOf(itemObj.Name).First(), quantity - 1);
+                    }
+                    else
+                    {
+                        AddItem(itemObj);
+                    }
+                }
+                RemoveGold(reqGold);
+            }
+            else
+            {
+                options.OptionsCount = (byte)options.Options.Count;
+
+                var packet = new ServerPacketStructures.MerchantResponse()
+                {
+                    MerchantDialogType = MerchantDialogType.Options,
+                    MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                    ObjectId = merchant.Id,
+                    Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                    Color1 = 0,
+                    Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                    Color2 = 0,
+                    PortraitType = 0,
+                    Name = merchant.Name,
+                    Text = prompt,
+                    Options = options
+                };
+
+                Enqueue(packet.Packet());
+            }
         }
 
         public void ShowSellMenu(Merchant merchant)
         {
+            var sellString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell");
+            var prompt = string.Empty;
+            if (sellString != null) prompt = sellString.Value ?? string.Empty;
 
-            var x2F = new ServerPacket(0x2F);
-            x2F.WriteByte(0x05); // type!
-            x2F.WriteByte(0x01); // obj type
-            x2F.WriteUInt32(merchant.Id);
-            x2F.WriteByte(0x01); // ??
-            x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
-            x2F.WriteByte(0x00); // color
-            x2F.WriteByte(0x01); // ??
-            x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
-            x2F.WriteByte(0x00); // color
-            x2F.WriteByte(0x00); // ??
-            x2F.WriteString8(merchant.Name);
-            x2F.WriteString16("What would you like to sell?");
-            x2F.WriteUInt16((ushort)MerchantMenuItem.SellItem);
+            var inventoryItems = new UserInventoryItems();
+            inventoryItems.InventorySlots = new List<byte>();
+            inventoryItems.Id = (ushort)MerchantMenuItem.SellItemQuantity;
 
-            int position = x2F.Position;
-            x2F.WriteByte(0);
-            int count = 0;
-
-            for (byte i = 1; i <= Inventory.Size; ++i)
+            var itemsCount = 0;
+            for (byte i = 0; i < Inventory.Size; i++)
             {
-                if (Inventory[i] == null || !merchant.Inventory.ContainsKey(Inventory[i].Name))
-                    continue;
-
-                x2F.WriteByte((byte)i);
-                ++count;
+                if (Inventory[i] == null) continue;
+                if (Inventory[i].Exchangeable && Inventory[i].Durability == Inventory[i].MaximumDurability)
+                {
+                    inventoryItems.InventorySlots.Add(i);
+                    itemsCount++;
+                }
             }
+            inventoryItems.InventorySlotsCount = (byte)itemsCount;
 
-            x2F.Seek(position, PacketSeekOrigin.Begin);
-            x2F.WriteByte((byte)count);
-
-            Enqueue(x2F);
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.UserInventoryItems,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                UserInventoryItems = inventoryItems
+            };
+            Enqueue(packet.Packet());
         }
         public void ShowSellQuantity(Merchant merchant, byte slot)
         {
-            var x2F = new ServerPacket(0x2F);
-            x2F.WriteByte(0x03); // type!
-            x2F.WriteByte(0x01); // obj type
-            x2F.WriteUInt32(merchant.Id);
-            x2F.WriteByte(0x01); // ??
-            x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
-            x2F.WriteByte(0x00); // color
-            x2F.WriteByte(0x01); // ??
-            x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
-            x2F.WriteByte(0x00); // color
-            x2F.WriteByte(0x00); // ??
-            x2F.WriteString8(merchant.Name);
-            x2F.WriteString16("How many are you selling?");
-            x2F.WriteByte(1);
-            x2F.WriteByte(slot);
-            x2F.WriteUInt16((ushort)MerchantMenuItem.SellItemQuantity);
-            Enqueue(x2F);
-        }
-        public void ShowSellConfirm(Merchant merchant, byte slot, int quantity)
-        {
             var item = Inventory[slot];
-            double offer = Math.Round(item.Value * 0.50) * quantity;
+            PendingSellableSlot = slot;
+            if (item.Stackable)
+            {
+                var sellString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_quantity");
+                var prompt = string.Empty;
+                if (sellString != null) prompt = sellString.Value ?? string.Empty;
 
-            var x2F = new ServerPacket(0x2F);
-            x2F.WriteByte(0x01); // type!
-            x2F.WriteByte(0x01); // obj type
-            x2F.WriteUInt32(merchant.Id);
-            x2F.WriteByte(0x01); // ??
-            x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
-            x2F.WriteByte(0x00); // color
-            x2F.WriteByte(0x01); // ??
-            x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
-            x2F.WriteByte(0x00); // color
-            x2F.WriteByte(0x00); // ??
-            x2F.WriteString8(merchant.Name);
-            x2F.WriteString16(string.Format("I'll give you {0} gold for {1}.", offer, quantity == 1 ? "that" : "those"));
-            x2F.WriteByte(2);
-            x2F.WriteByte(slot);
-            x2F.WriteByte((byte)quantity);
-            x2F.WriteByte(2);
-            x2F.WriteString8("Accept");
-            x2F.WriteUInt16((ushort)MerchantMenuItem.SellItemAccept);
-            x2F.WriteString8("Decline");
-            x2F.WriteUInt16((ushort)MerchantMenuItem.SellItemMenu);
-            Enqueue(x2F);
+                var input = new MerchantInput();
+
+                input.Id = (ushort)MerchantMenuItem.SellItem;
+
+                var packet = new ServerPacketStructures.MerchantResponse()
+                {
+                    MerchantDialogType = MerchantDialogType.InputWithArgument,
+                    MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                    ObjectId = merchant.Id,
+                    Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                    Color1 = 0,
+                    Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                    Color2 = 0,
+                    PortraitType = 0,
+                    Name = merchant.Name,
+                    Text = prompt,
+                    Input = input
+                    
+                };
+                Enqueue(packet.Packet());
+            }
+            else
+            {
+                ShowSellConfirm(merchant, slot);
+            }
+
+            //var x2F = new ServerPacket(0x2F);
+            //x2F.WriteByte(0x03); // type!
+            //x2F.WriteByte(0x01); // obj type
+            //x2F.WriteUInt32(merchant.Id);
+            //x2F.WriteByte(0x01); // ??
+            //x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
+            //x2F.WriteByte(0x00); // color
+            //x2F.WriteByte(0x01); // ??
+            //x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
+            //x2F.WriteByte(0x00); // color
+            //x2F.WriteByte(0x00); // ??
+            //x2F.WriteString8(merchant.Name);
+            //x2F.WriteString16("How many are you selling?");
+            //x2F.WriteByte(1);
+            //x2F.WriteByte(slot);
+            //x2F.WriteUInt16((ushort)MerchantMenuItem.SellItemQuantity);
+            //Enqueue(x2F);
+        }
+        public void ShowSellConfirm(Merchant merchant, byte slot, int quantity = 1)
+        {
+            PendingSellableQuantity = quantity;
+            var item = Inventory[slot];
+            var offer = (uint) (Math.Round(item.Value * 0.10, 0) * quantity);
+            PendingMerchantOffer = offer;
+            String offerString = null;
+            var options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
+            var prompt = string.Empty;
+
+            if (item.Durability != item.MaximumDurability)
+            {
+                offerString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_failure");
+                prompt = offerString.Value;
+            }
+
+            if (prompt == string.Empty)
+            {
+                if (!Inventory.Contains(item.Name))
+                {
+                    offerString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_failure");
+                    prompt = offerString.Value;
+                }
+            }
+
+            if (prompt == string.Empty)
+            {
+                if(!Inventory.Contains(item.Name, quantity))
+                {
+                    offerString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_failure_quantity");
+                    prompt = offerString.Value;
+                }
+            }
+
+            if (prompt == string.Empty) //this is so bad
+            {
+                var quant = quantity > 1 ? "those" : "that";
+                //now we can learning!
+                offerString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_offer");
+                prompt = offerString.Value.Replace("$GOLD", offer.ToString()).Replace("$QUANTITY", quant);
+
+                options.Options.Add(new MerchantDialogOption()
+                {
+                    Id = (ushort)MerchantMenuItem.SellItemAccept,
+                    Text = "Yes"
+                });
+                options.Options.Add(new MerchantDialogOption()
+                {
+                    Id = (ushort)MerchantMenuItem.MainMenu,
+                    Text = "No"
+                });
+
+            }
+
+            options.OptionsCount = (byte)options.Options.Count;
+
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Options,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Options = options
+            };
+
+            Enqueue(packet.Packet());
+
+        }
+
+        public void SellItemAccept(Merchant merchant)
+        {
+            if (Inventory[PendingSellableSlot].Count > PendingSellableQuantity)
+            {
+                DecreaseItem(PendingSellableSlot, PendingSellableQuantity);
+                AddGold(PendingMerchantOffer);
+            }
+            else
+            {
+                RemoveItem(PendingSellableSlot);
+                AddGold(PendingMerchantOffer);
+            }
+            PendingSellableSlot = 0;
+            PendingMerchantOffer = 0;
+
+            var options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
+            options.OptionsCount = 0;
+
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Options,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = "Come back if you have more wares to sell.",
+                Options = options
+            };
+
+            Enqueue(packet.Packet());
         }
 
         public void ShowMerchantGoBack(Merchant merchant, string message, MerchantMenuItem menuItem = MerchantMenuItem.MainMenu)
@@ -2753,6 +3770,144 @@ namespace Hybrasyl.Objects
             Enqueue(x2F);
         }
 
+        public void ShowMerchantSendParcel(Merchant merchant)
+        {
+            var parcelString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel");
+            var prompt = string.Empty;
+            if (parcelString != null) prompt = parcelString.Value ?? string.Empty;
+
+            var userItems = new UserInventoryItems {InventorySlots = new List<byte>()};
+            var itemsCount = 0;
+            for(byte i = 0; i<Inventory.Size; i++)
+            {
+                if (Inventory[i] == null) continue;
+                if (Inventory[i].Exchangeable && Inventory[i].Durability == Inventory[i].MaximumDurability)
+                {
+                    userItems.InventorySlots.Add(i);
+                    itemsCount++;
+                }
+            }
+            userItems.InventorySlotsCount = (byte)itemsCount;
+            userItems.Id = (ushort)MerchantMenuItem.SendParcelRecipient;
+
+
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.UserInventoryItems,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                UserInventoryItems = userItems
+            };
+            Enqueue(packet.Packet());
+        }
+
+        public void ShowMerchantSendParcelRecipient(Merchant merchant, ItemObject item)
+        {
+            var sendString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel_recipient");
+            var prompt = sendString.Value;
+
+            var input = new MerchantInput();
+            input.Id = (ushort)MerchantMenuItem.SendParcelAccept;
+
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Input,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Input = input
+            };
+
+            PendingSendableParcel = item;
+
+            Enqueue(packet.Packet());
+        }
+
+        public void ShowMerchantSendParcelAccept(Merchant merchant, string recipient)
+        {
+            var itemObj = PendingSendableParcel;
+            PendingParcelRecipient = recipient;
+            String parcelString;
+            var prompt = string.Empty;
+            var options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
+            //verify user has required items.
+            var parcelFee = (uint) Math.Round(itemObj.Value * .10, 0);
+            if (!(Gold > parcelFee))
+            {
+                parcelString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel_fail");
+                prompt = parcelString.Value.Replace("$FEE", parcelFee.ToString());
+            }
+            if (prompt == string.Empty)
+            {
+                RemoveGold(parcelFee);
+                RemoveItem(itemObj.Name);
+                SendInventory();
+                parcelString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel_success");
+                prompt = parcelString.Value.Replace("$FEE", parcelFee.ToString());
+
+                //TODO: Send parcel to recipient
+                PendingSendableParcel = null;
+            }
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Options,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Options = options
+            };
+
+            Enqueue(packet.Packet());
+        }
+
+        public void ShowMerchantReceiveParcelAccept(Merchant merchant)
+        {
+            var sendString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "receive_parcel");
+            var prompt = sendString.Value;
+
+            var input = new MerchantInput();
+            input.Id = (ushort)MerchantMenuItem.SendParcelAccept;
+
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Options,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Input = input
+            };
+
+            //TODO: Get Parcel from pending mail.
+
+            Enqueue(packet.Packet());
+        }
+
         public void SendMessage(string message, byte type)
         {
             var x0A = new ServerPacket(0x0A);
@@ -2769,7 +3924,7 @@ namespace Hybrasyl.Objects
             // to be <67) otherwise we will cause a buffer overflow / crash on the client side
             // (For right now we assume the color code ({=c) isn't counted but that needs testing)
             // I MEAN IT TAKES 16 BIT RITE BUT HAY ARBITRARY LENGTH ON STRINGS WITH NO NULL TERMINATION IS LEET
-            var transmit = String.Format("{{=c[{0}] {1}", sender, message);
+            var transmit = string.Format("{{=c[{0}] {1}", sender, message);
             if (transmit.Length > 67)
             {
                 // IT'S CHOPPIN TIME
@@ -2782,7 +3937,7 @@ namespace Hybrasyl.Objects
         public void SendRedirectAndLogoff(World world, Login login, string name)
         {
             GlobalConnectionManifest.DeregisterClient(Client);
-            Client.Redirect(new Redirect(Client, world, Game.Login, name, Client.EncryptionSeed, Client.EncryptionKey));
+            Client.Redirect(new Redirect(Client, world, Game.Login, name, Client.EncryptionSeed, Client.EncryptionKey), true);
         }
 
         public bool IsHeartbeatValid(byte a, byte b)
@@ -2805,7 +3960,7 @@ namespace Hybrasyl.Objects
             UpdateLogoffTime();
             Save();
             var redirect = new Redirect(Client, Game.World, Game.Login, "socket", Client.EncryptionSeed, Client.EncryptionKey);
-            Client.Redirect(redirect);
+            Client.Redirect(redirect, true);
         }
 
         public void SetEncryptionParameters(byte[] key, byte seed, string name)

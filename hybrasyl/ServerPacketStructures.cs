@@ -1,5 +1,6 @@
 ﻿using System;
 using Hybrasyl.Enums;
+using Hybrasyl.Objects;
 using log4net;
 
 namespace Hybrasyl
@@ -85,7 +86,7 @@ namespace Hybrasyl
             internal ServerPacket Packet()
             {
                 ServerPacket packet = new ServerPacket(OpCode);
-                Console.WriteLine(String.Format("uid: {0}, Animation: {1}, speed {2}", UserId, Animation, Speed));
+                Console.WriteLine(string.Format("uid: {0}, Animation: {1}, speed {2}", UserId, Animation, Speed));
                 packet.WriteUInt32(UserId);
                 packet.WriteByte(Animation);
                 packet.WriteUInt16(Speed);
@@ -203,7 +204,7 @@ namespace Hybrasyl
             internal ServerPacket Packet()
             {
                 ServerPacket packet = new ServerPacket(OpCode);
-                Console.WriteLine(String.Format("sound: {0}", Sound));
+                Console.WriteLine(string.Format("sound: {0}", Sound));
                 packet.WriteByte(Sound);
                 return packet;
             }
@@ -384,6 +385,147 @@ namespace Hybrasyl
             }
 
 
+        }
+
+        internal partial class MerchantResponse
+        {
+            private byte OpCode;
+            internal MerchantDialogType MerchantDialogType { get; set; }
+            internal MerchantDialogObjectType MerchantDialogObjectType { get; set; }
+            internal uint ObjectId { get; set; }
+            private byte Unknow4 = 1;
+            internal ushort Tile1 { get; set; }
+            internal byte Color1 { get; set; } //affect items only
+            internal byte Unknow7 = 1;
+            internal ushort Tile2 { get; set; }
+            internal byte Color2 { get; set; } //affect item only
+            internal byte PortraitType { get; set; } //portrait style. 0 = anime 1 = sprite
+            internal byte NameLength { get; set; }
+            internal string Name { get; set; }
+            internal ushort TextLength { get; set; }
+            internal string Text { get; set; }
+            internal byte Slot { get; set; }
+            internal uint Quantity { get; set; }
+
+            internal MerchantOptions Options { get; set; }
+            internal MerchantOptionsWithArgument OptionsWithArgument { get;set;}
+            internal MerchantInput Input { get; set; }
+            internal MerchantInputWithArgument InputWithArgument { get; set; }
+            internal UserInventoryItems UserInventoryItems { get; set; }
+            internal MerchantShopItems ShopItems { get; set; }
+            internal MerchantSpells Spells { get; set; }
+            internal MerchantSkills Skills { get; set; }
+            internal UserSkillBook UserSkills { get; set; }
+            internal UserSpellBook UserSpells { get; set; }
+
+
+            internal MerchantResponse()
+            {
+                OpCode = OpCodes.NpcReply;
+            }
+
+            internal ServerPacket Packet()
+            {
+                var packet = new ServerPacket(OpCode);
+                packet.WriteByte((byte)MerchantDialogType);
+                packet.WriteByte((byte)MerchantDialogObjectType);
+                packet.WriteUInt32(ObjectId);
+                packet.WriteByte(Unknow4);
+                packet.WriteUInt16(Tile1);
+                packet.WriteByte(Color1);
+                packet.WriteByte(Unknow7);
+                packet.WriteUInt16(Tile2);
+                packet.WriteByte(Color2);
+                packet.WriteByte(PortraitType);
+                packet.WriteString8(Name);
+                packet.WriteString16(Text);
+                if (MerchantDialogType == MerchantDialogType.Options)
+                {
+                    packet.WriteByte(Options.OptionsCount);
+                    foreach (var opt in Options.Options)
+                    {
+                        packet.WriteString8(opt.Text);
+                        packet.WriteUInt16(opt.Id);
+                    }
+                }
+                if (MerchantDialogType == MerchantDialogType.OptionsWithArgument)
+                {
+                    packet.WriteString8(OptionsWithArgument.Argument);
+                    packet.WriteByte(OptionsWithArgument.OptionsCount);
+                    foreach (var opt in OptionsWithArgument.Options)
+                    {
+                        packet.WriteString8(opt.Text);
+                        packet.WriteUInt16(opt.Id);
+                    }
+                }
+                if (MerchantDialogType == MerchantDialogType.Input)
+                {
+                    packet.WriteUInt16(Input.Id);
+                }
+                if (MerchantDialogType == MerchantDialogType.InputWithArgument)
+                {
+                    packet.WriteString8(InputWithArgument.Argument);
+                    packet.WriteUInt16(InputWithArgument.Id);
+                }
+                if (MerchantDialogType == MerchantDialogType.MerchantShopItems)
+                {
+                    packet.WriteUInt16(ShopItems.Id);
+                    packet.WriteUInt16(ShopItems.ItemsCount);
+                    foreach (var item in ShopItems.Items)
+                    {
+                        packet.WriteUInt16(item.Tile);
+                        packet.WriteByte(item.Color);
+                        packet.WriteUInt32(item.Price);
+                        packet.WriteString8(item.Name);
+                        packet.WriteString8(item.Description);
+                    }
+                }
+                if (MerchantDialogType == MerchantDialogType.MerchantSkills)
+                {
+                    packet.WriteUInt16(Skills.Id);
+                    packet.WriteUInt16(Skills.SkillsCount);
+                    foreach (var skill in Skills.Skills)
+                    {
+                        packet.WriteByte(skill.IconType);
+                        packet.WriteByte(0);
+                        packet.WriteByte(skill.Icon);
+                        packet.WriteByte(skill.Color);
+                        packet.WriteString8(skill.Name);
+                    }
+                }
+                if (MerchantDialogType == MerchantDialogType.MerchantSpells)
+                {
+                    packet.WriteUInt16(Spells.Id);
+                    packet.WriteUInt16(Spells.SpellsCount);
+                    foreach (var spell in Spells.Spells)
+                    {
+                        packet.WriteByte(spell.IconType);
+                        packet.WriteByte(0);
+                        packet.WriteUInt16(spell.Icon);
+                        packet.WriteByte(spell.Color);
+                        packet.WriteString8(spell.Name);
+                    }
+                }
+                if (MerchantDialogType == MerchantDialogType.UserSkillBook)
+                {
+                    packet.WriteUInt16(UserSkills.Id);
+                }
+                if (MerchantDialogType == MerchantDialogType.UserSpellBook)
+                {
+                    packet.WriteUInt16(UserSpells.Id);
+                }
+                if (MerchantDialogType == MerchantDialogType.UserInventoryItems)
+                {
+                    packet.WriteUInt16(UserInventoryItems.Id);
+                    packet.WriteByte(UserInventoryItems.InventorySlotsCount);
+                    foreach (var slot in UserInventoryItems.InventorySlots)
+                    {
+                        packet.WriteByte(slot);
+                    }
+                }
+
+                return packet;
+            }
         }
     }
 

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:hyb="http://www.hybrasyl.com/XML/HybrasylCommon" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:nations="http://www.hybrasyl.com/XML/Nations" targetNamespace="http://www.hybrasyl.com/XML/Nations" elementFormDefault="qualified">
+
+  <xs:annotation>
+    <xs:documentation xml:lang="en">
+      Hybrasyl Project - Hybrasyl XML Schema - Nations
+      This file is subject to the same licenses as Project Hybrasyl.
+      (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+      Written by Justin Baugh (baughj@hybrasyl.com)
+    </xs:documentation>
+  </xs:annotation>
+
+  <xs:import schemaLocation="hybrasylTypes.xsd" namespace="http://www.hybrasyl.com/XML/HybrasylCommon" />
+
+  <xs:complexType name="SpawnPoints">
+    <xs:sequence>
+      <xs:element name="SpawnPoint" minOccurs="1" maxOccurs="unbounded" type="nations:SpawnPoint">
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="SpawnPoint">
+    <xs:attribute name="MapName" type="hyb:String8" use="required" />
+    <xs:attribute name="X" type="xs:unsignedByte" use="required" />
+    <xs:attribute name="Y" type="xs:unsignedByte" use="required" />
+  </xs:complexType>
+
+
+  <xs:complexType name="Map">
+    <xs:attribute name="Name" type="hyb:String8"/>
+  </xs:complexType>
+  
+  <xs:complexType name="Territory">
+    <xs:sequence>
+      <xs:element name="Map" minOccurs="1" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="Nation" type="hyb:String8"/>
+  </xs:complexType>
+
+  <xs:element name="Nation">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="Name" type="hyb:String8" minOccurs="1" maxOccurs="1" />
+        <xs:element name="Description" type="hyb:String8" minOccurs="0" maxOccurs="1" />
+        <xs:element name="SpawnPoints" type="nations:SpawnPoints" minOccurs="0" maxOccurs="1" />
+      </xs:sequence>
+      <xs:attribute name="Flag" type="xs:unsignedByte" use="required" />
+      <xs:attribute name="Default" type="xs:boolean" default="false"/>
+    </xs:complexType>
+  </xs:element>
+  
+  <xs:element name="Territory" type="nations:Territory"/>
+  
+</xs:schema>

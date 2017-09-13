@@ -200,24 +200,24 @@ namespace Hybrasyl
 
             foreach (var warpElement in newMap.Warps)
             {
-                var warp = new Warp(this);
-                warp.X = warpElement.X;
-                warp.Y = warpElement.Y;
+                var warp = new Warp(this)
+                {
+                    X = warpElement.X,
+                    Y = warpElement.Y
+                };
 
                 if (warpElement.MapTarget != null)
                 {
-                    var maptarget = warpElement.MapTarget as Maps.WarpMapTarget;
                     // map warp
-                    warp.DestinationMapName = maptarget.Value;
+                    warp.DestinationMapName = warpElement.MapTarget.Value;
                     warp.WarpType = WarpType.Map;
-                    warp.DestinationX = maptarget.X;
-                    warp.DestinationY = maptarget.Y;
+                    warp.DestinationX = warpElement.MapTarget.X;
+                    warp.DestinationY = warpElement.MapTarget.Y;
                 }
-                else
+                else if (warpElement.WorldMapTarget != string.Empty)
                 {
-                    var worldmaptarget = warpElement.WorldMapTarget;
                     // worldmap warp
-                    warp.DestinationMapName = worldmaptarget;
+                    warp.DestinationMapName = warpElement.WorldMapTarget;
                     warp.WarpType = WarpType.WorldMap;
                 }
                 if (warpElement.Restrictions?.Level != null)
@@ -256,8 +256,14 @@ namespace Hybrasyl
                     if (npcTemplate.Roles.Post != null) { merchant.Jobs ^= MerchantJob.Post; }
                     if (npcTemplate.Roles.Bank != null) { merchant.Jobs ^= MerchantJob.Bank; }
                     if (npcTemplate.Roles.Repair != null) { merchant.Jobs ^= MerchantJob.Repair; }
-                    if (npcTemplate.Roles.Train != null) { merchant.Jobs ^= MerchantJob.Train; }
+                    if (npcTemplate.Roles.Train != null)
+                    {
+                        if(npcTemplate.Roles.Train.Any(x=>x.Type=="Skill")) merchant.Jobs ^= MerchantJob.Skills;
+                        if (npcTemplate.Roles.Train.Any(x => x.Type == "Spell")) merchant.Jobs ^= MerchantJob.Spells;
+                    }
                     if (npcTemplate.Roles.Vend != null) { merchant.Jobs ^= MerchantJob.Vend; }
+
+                    merchant.Roles = npcTemplate.Roles;
                 }
                 InsertNpc(merchant);
             }
@@ -754,7 +760,7 @@ namespace Hybrasyl
                     break;
                 case WarpType.WorldMap:
                     WorldMap wmap;
-                    if (SourceMap.World.WorldData.TryGetValueByIndex(DestinationMapName, out wmap))
+                    if (SourceMap.World.WorldData.TryGetValue(DestinationMapName, out wmap))
                     {
                         SourceMap.Remove(target);
                         target.SendWorldMap(wmap);

@@ -80,7 +80,7 @@ namespace Hybrasyl
 
         public Int64 Ticks { get; private set; }
         // Maybe this can be like, idk, function name or something? Thread context? Whatever?
-        public String Sender { get; private set; }
+        public string Sender { get; private set; }
         public object[] Arguments { get; private set; }
 
         public HybrasylMessage(string sender = "HybrasylMessage", params object[] parameters)

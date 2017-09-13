@@ -164,6 +164,7 @@ namespace Hybrasyl
             public const byte MapChangeCompled = 0x1F;
             public const byte Refresh = 0x22;
             public const byte SpellAnimation = 0x29;
+            public const byte NpcReply = 0x2F;
             public const byte Pursuit = 0x30;
             public const byte Board = 0x31;
             public const byte UserMoveResponse = 0x32;
@@ -399,7 +400,8 @@ namespace Hybrasyl
         {
             Direct,
             Physical,
-            Magical
+            Magical,
+            Elemental
         }
 
         public enum SpellUseType : byte
@@ -413,6 +415,18 @@ namespace Hybrasyl
             TwoDigit = 6,
             OneDigit = 7,
         }
+
+        public enum ThrottleResult : int
+        {
+            OK = 0,
+            Throttled = 1,
+            Squelched = 2,
+            Disconnect = 3,
+            ThrottleEnd = 4,
+            SquelchEnd = 5,
+            Error = 255
+        }
+
 
         public class EnumUtil
         {
