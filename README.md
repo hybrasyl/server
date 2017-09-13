@@ -56,7 +56,7 @@ You will need four things to compile and use Hybrasyl:
 
 * [Hybrasyl Launcher](https://github.com/hybrasyl/launcher)
 * [Redis](https://github.com/MSOpenTech/redis/releases)
-* [Hybrasyl SDK](https://github.com/hybrasyl/sdk)
+* [Hybrasyl SDK] (as of August 2017, the needed SDK is included in the server repository)
 * [Dark Ages Client](https://www.darkages.com)
 
 ## Terminology and key concepts
@@ -132,10 +132,10 @@ The process for compiling Hybrasyl is detailed below.
    [sdk](https://github.com/hybrasyl/sdk) repositories to your local machine
    using a [git client](https://git-scm.com/downloads/guis). Make sure you
    clone them into separate directories.
-4. Open the Hybrasyl SDK solution (`HybrasylIntegration.sln`) from the SDK
-   repository, and build the integration libraries (just click build).
 5. Open the Hybrasyl Server solution (`Hybrasyl.sln`) in Visual Studio and
-   update all NuGet packages (just building it will do this).
+   update all NuGet packages (just building it will do this). The SDK for
+   XML is now included in server to make this process (as well as making changes) 
+   easier.
 6. Build Hybrasyl. The default settings should be adequate for most system
    setups, assuming you've updated and installed all NuGet packages (which
    should occur automatically).
