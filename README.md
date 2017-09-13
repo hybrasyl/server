@@ -1,8 +1,6 @@
 =======
 # Hybrasyl Server
 
-[![Build status](https://ci.appveyor.com/api/projects/status/qx1g0etqkhlt1qw3/branch/master?svg=true)](https://ci.appveyor.com/project/Hybrasyl/server/branch/master)
-
 [Project website](http://hybrasyl.com/) - [Bug tracker](https://hybrasyl.atlassian.net/secure/Dashboard.jspa)
 
 Welcome to Project Hybrasyl! Our aim is to create a well-documented and
