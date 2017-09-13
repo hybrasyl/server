@@ -151,7 +151,7 @@
 
   <!-- List of loot tables which can be defined <table> or imported from external sources <import> -->
   <xs:complexType name="LootList">
-    <xs:sequence minOccurs="1" maxOccurs="unbounded">
+    <xs:sequence>
       <xs:element name="Set" type="creature:LootImport" minOccurs="0" maxOccurs="unbounded"/>
       <xs:element name="Table" type="loot:LootTable" minOccurs="0" maxOccurs="unbounded"/>
       <xs:element name="Xp" type="creature:LootXp" minOccurs="0" maxOccurs="1"/>

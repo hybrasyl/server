@@ -67,16 +67,12 @@ namespace Hybrasyl.Objects
             // FIXME: Implement loot tables / full looting.
             var hitter = LastHitter as User;
             if (hitter == null) return; // Don't handle cases of MOB ON MOB COMBAT just yet
-            if (_spawn.Loot.Xp.FirstOrDefault() != null)
-                hitter.ShareExperience(CalculateXP());
 
-            if (_spawn.Loot.Gold.FirstOrDefault() != null)
-            {
+            hitter.ShareExperience(LootableXP);
 
-                var golds = new Gold(CalculateGold());
-                World.Insert(golds);
-                Map.Insert(golds, X, Y);
-            }
+            var golds = new Gold(LootableGold);
+            World.Insert(golds);
+            Map.Insert(golds, X, Y);
             Map.Remove(this);
             World.Remove(this);
         }
@@ -131,21 +127,8 @@ namespace Hybrasyl.Objects
         public uint VariantMp => CalculateVariance(_spawn.Stats.Mp);
 
 
-        public uint CalculateXP()
-        {
-            if (_spawn.Loot.Xp.Count > 0)
-                return CalculateVariance((uint)Rng.Next((int)_spawn.Loot.Xp[0].Min, (int)_spawn.Loot.Xp[0].Max));
-            else
-                return 1;
-        }
-
-        public uint CalculateGold()
-        {
-            if (_spawn.Loot.Gold.Count > 0)
-                return CalculateVariance((uint)Rng.Next((int)_spawn.Loot.Xp[0].Min, (int)_spawn.Loot.Xp[0].Max));
-            else
-                return 1;
-        }
+        public uint LootableXP => CalculateVariance((uint)Rng.Next((int)(_spawn.Loot.Xp?.Min ?? 1), (int)(_spawn.Loot.Gold?.Max ?? 1)));
+        public uint LootableGold => CalculateVariance((uint)Rng.Next((int)(_spawn.Loot.Gold?.Min ?? 1),(int)(_spawn.Loot.Gold?.Max ?? 1)));
 
 
         public Monster(Hybrasyl.Creatures.Creature creature, Spawn spawn, int map)

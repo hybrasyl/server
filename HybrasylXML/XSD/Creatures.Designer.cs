@@ -775,9 +775,9 @@ namespace Hybrasyl.Creatures
         
         private List<LootTable> _table;
         
-        private List<LootXp> _xp;
+        private LootXp _xp;
         
-        private List<LootGold> _gold;
+        private LootGold _gold;
         #endregion
         
         [System.Xml.Serialization.XmlElementAttribute("Set")]
@@ -806,8 +806,7 @@ namespace Hybrasyl.Creatures
             }
         }
         
-        [System.Xml.Serialization.XmlElementAttribute("Xp")]
-        public List<LootXp> Xp
+        public LootXp Xp
         {
             get
             {
@@ -819,8 +818,7 @@ namespace Hybrasyl.Creatures
             }
         }
         
-        [System.Xml.Serialization.XmlElementAttribute("Gold")]
-        public List<LootGold> Gold
+        public LootGold Gold
         {
             get
             {
