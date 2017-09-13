@@ -54,7 +54,7 @@ You will need four things to compile and use Hybrasyl:
 
 * [Hybrasyl Launcher](https://github.com/hybrasyl/launcher)
 * [Redis](https://github.com/MSOpenTech/redis/releases)
-* [Hybrasyl SDK] (as of August 2017, the needed SDK is included in the server repository)
+* Hybrasyl SDK (as of August 2017, the needed SDK is included in the server repository. Easy!)
 * [Dark Ages Client](https://www.darkages.com)
 
 ## Terminology and key concepts
