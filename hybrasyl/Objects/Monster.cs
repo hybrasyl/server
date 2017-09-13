@@ -51,7 +51,7 @@ namespace Hybrasyl.Objects
         public bool ShouldWander { get; set; }
         public bool CanCast { get; set; }
 
-
+        protected static Random Rng = new Random();
 
         public Monster()
         {
@@ -65,11 +65,12 @@ namespace Hybrasyl.Objects
             // FIXME: Implement loot tables / full looting.
             var hitter = LastHitter as User;
             if (hitter == null) return; // Don't handle cases of MOB ON MOB COMBAT just yet
-            hitter.ShareExperience(_spawn.Loot.Xp);
+            if (_spawn.Loot.Xp.FirstOrDefault() != null)
+                hitter.ShareExperience(_spawn.Loot.Xp.FirstOrDefault().RollXp());
 
-            if (_spawn.Loot.Gold > 0)
+            if (_spawn.Loot.Gold.FirstOrDefault() != null)
             {
-                var golds = new Gold(_spawn.Loot.Gold);
+                var golds = new Gold(_spawn.Loot.Gold.FirstOrDefault().RollGold());
                 World.Insert(golds);
                 Map.Insert(golds, X, Y);
             }
@@ -103,8 +104,9 @@ namespace Hybrasyl.Objects
             _spawn = spawn;
             _simpleDamage = spawn.Damage;
             _castables = spawn.Castables;
+            DefensiveElement = (Enums.Element) spawn.GetDefensiveElement();
+            DefensiveElement = (Enums.Element) spawn.GetOffensiveElement();
 
-            
             //until intents are fixed, this is how this is going to be done.
             IsHostile = _random.Next(0, 7) < 2;
             ShouldWander = IsHostile == false;
@@ -148,7 +150,7 @@ namespace Hybrasyl.Objects
             if (target != null)
             {
                 var dmgRand = new Random();
-                var dmg = dmgRand.Next(damage.Small.Min, damage.Small.Max);
+                var dmg = dmgRand.Next(damage.Min, damage.Max);
 
                 var damageType = Enums.DamageType.Physical;
                 //these need to be set to integers as attributes. note to fix.

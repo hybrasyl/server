@@ -327,20 +327,20 @@ namespace Hybrasyl.Creatures
     {
         
         #region Private fields
-        private int _min;
+        private uint _min;
         
-        private int _max;
+        private uint _max;
         #endregion
         
         public LootGold()
         {
-            this._min = 1;
-            this._max = 1;
+            this._min = ((uint)(1));
+            this._max = ((uint)(1));
         }
         
         [System.Xml.Serialization.XmlAttributeAttribute()]
-        [System.ComponentModel.DefaultValueAttribute(1)]
-        public int Min
+        [System.ComponentModel.DefaultValueAttribute(typeof(uint), "1")]
+        public uint Min
         {
             get
             {
@@ -353,8 +353,8 @@ namespace Hybrasyl.Creatures
         }
         
         [System.Xml.Serialization.XmlAttributeAttribute()]
-        [System.ComponentModel.DefaultValueAttribute(1)]
-        public int Max
+        [System.ComponentModel.DefaultValueAttribute(typeof(uint), "1")]
+        public uint Max
         {
             get
             {
@@ -376,20 +376,20 @@ namespace Hybrasyl.Creatures
     {
         
         #region Private fields
-        private int _min;
+        private uint _min;
         
-        private int _max;
+        private uint _max;
         #endregion
         
         public LootXp()
         {
-            this._min = 1;
-            this._max = 1;
+            this._min = ((uint)(1));
+            this._max = ((uint)(1));
         }
         
         [System.Xml.Serialization.XmlAttributeAttribute()]
-        [System.ComponentModel.DefaultValueAttribute(1)]
-        public int Min
+        [System.ComponentModel.DefaultValueAttribute(typeof(uint), "1")]
+        public uint Min
         {
             get
             {
@@ -402,8 +402,8 @@ namespace Hybrasyl.Creatures
         }
         
         [System.Xml.Serialization.XmlAttributeAttribute()]
-        [System.ComponentModel.DefaultValueAttribute(1)]
-        public int Max
+        [System.ComponentModel.DefaultValueAttribute(typeof(uint), "1")]
+        public uint Max
         {
             get
             {
@@ -779,11 +779,6 @@ namespace Hybrasyl.Creatures
         
         private List<LootGold> _gold;
         #endregion
-        
-        public LootList()
-        {
-            this._xp = new List<LootXp>();
-        }
         
         [System.Xml.Serialization.XmlElementAttribute("Set")]
         public List<LootImport> Set

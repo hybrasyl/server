@@ -154,7 +154,7 @@
     <xs:sequence minOccurs="1" maxOccurs="unbounded">
       <xs:element name="Set" type="creature:LootImport" minOccurs="0" maxOccurs="unbounded"/>
       <xs:element name="Table" type="loot:LootTable" minOccurs="0" maxOccurs="unbounded"/>
-      <xs:element name="Xp" type="creature:LootXp" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="Xp" type="creature:LootXp" minOccurs="0" maxOccurs="1"/>
       <xs:element name="Gold" type="creature:LootGold" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
   </xs:complexType>
@@ -168,14 +168,14 @@
 
   <!-- Amount of gold defined in a loot table, in addition to any base gold defined in <loot> -->
   <xs:complexType name="LootGold">
-    <xs:attribute name="Min" type="xs:int" default="1" use="optional"/>
-    <xs:attribute name="Max" type="xs:int" default="1" use="optional"/>
+    <xs:attribute name="Min" type="xs:unsignedInt" default="1" use="optional"/>
+    <xs:attribute name="Max" type="xs:unsignedInt" default="1" use="optional"/>
   </xs:complexType>
 
   <!-- Amount of XP defined in a loot table -->
   <xs:complexType name="LootXp">
-    <xs:attribute name="Min" type="xs:int" default="1" use="optional"/>
-    <xs:attribute name="Max" type="xs:int" default="1" use="optional"/>
+    <xs:attribute name="Min" type="xs:unsignedInt" default="1" use="optional"/>
+    <xs:attribute name="Max" type="xs:unsignedInt" default="1" use="optional"/>
   </xs:complexType>
 
   <!-- List of castables a creature is allowed to use -->

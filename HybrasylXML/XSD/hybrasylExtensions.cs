@@ -192,6 +192,53 @@ namespace Hybrasyl.Config
 
 namespace Hybrasyl.Creatures
 {
+
+    public partial class LootXp
+    {
+        private static Random XpRng = new Random();
+
+        public uint RollXp()
+        {           
+            return (uint) XpRng.Next((int) Min, (int) Max);
+        }
+    }
+
+    public partial class LootGold
+    {
+        private static Random GoldRng = new Random();
+
+        public uint RollGold()
+        {
+            return (uint) GoldRng.Next((int)Min, (int)Max);
+        }
+    }
+
+    public partial class Spawn
+    {
+        protected static Random Rng = new Random();
+
+        public Element GetOffensiveElement()
+        {
+            if (_damage.Element.Count > 1)
+                return _damage.Element[Rng.Next(_damage.Element.Count)];
+            else if (_damage.Element.Count == 1 && _damage.Element[0] != Element.Random)
+                return _damage.Element[0];
+
+            // Only deal with "base" elements for right now
+            return (Element)Rng.Next(1, 4);
+        }
+
+        public Element GetDefensiveElement()
+        {
+            if (_defense.Element.Count > 1)
+                return _defense.Element[Rng.Next(_defense.Element.Count)];
+            else if (_defense.Element.Count == 1 && _defense.Element[0] != Element.Random)
+                return _damage.Element[0];
+
+            // Only deal with "base" elements for right now
+            return (Element)Rng.Next(1, 4);
+        }
+    }
     public partial class Map
     {
         public DateTime LastSpawn { get; set; }
