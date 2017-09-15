@@ -20,7 +20,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Xml.Serialization;
 
@@ -192,6 +191,44 @@ namespace Hybrasyl.Config
 
 namespace Hybrasyl.Creatures
 {
+
+
+    public partial class Spawn
+    {
+        protected static Random Rng = new Random();
+
+        /// <summary>
+        /// Calculate a specific offensive element for a spawn from its list of elements.
+        /// </summary>
+        /// <returns>Element enum</returns>
+        public Element GetOffensiveElement()
+        {
+            if (_damage.Element.Count > 1)
+                return _damage.Element[Rng.Next(_damage.Element.Count)];
+            else if (_damage.Element.Count == 1 && _damage.Element[0] != Element.Random)
+                return _damage.Element[0];
+
+            // Only deal with "base" elements for right now
+            return (Element)Rng.Next(1, 4);
+        }
+
+        /// <summary>
+        /// Calculate a specific defensive element for a spawn from its list of elements.
+        /// </summary>
+        /// <returns>Element enum</returns>
+        public Element GetDefensiveElement()
+        {
+            if (_defense.Element.Count > 1)
+                return _defense.Element[Rng.Next(_defense.Element.Count)];
+            else if (_defense.Element.Count == 1 && _defense.Element[0] != Element.Random)
+                return _damage.Element[0];
+
+            // Only deal with "base" elements for right now
+            return (Element)Rng.Next(1, 4);
+        }
+
+
+    }
     public partial class Map
     {
         public DateTime LastSpawn { get; set; }
