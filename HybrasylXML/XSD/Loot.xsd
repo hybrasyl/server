@@ -12,15 +12,32 @@
 
   <xs:import schemaLocation="hybrasylTypes.xsd" namespace="http://www.hybrasyl.com/XML/HybrasylCommon" />
 
-  <xs:complexType name="LootTableItem">
-    <xs:attribute name="Chance" type="xs:double" />
-    <xs:attribute name="Unique" type="xs:boolean" />
-    <xs:attribute name="Name" type="hyb:String8"/>
+  <!-- An item defined in a loot table-->
+  <xs:complexType name="LootItem">
+    <xs:simpleContent>
+      <xs:extension base="hyb:String8">
+        <xs:attribute name="Min" type="xs:int" default="1" use="optional"/>
+        <xs:attribute name="Max" type="xs:int" default="1" use="optional"/>
+        <xs:attribute name="Unique" type="xs:boolean" default="false" use="optional"/>
+        <xs:attribute name="Always" type="xs:boolean" default="false" use="optional"/>
+        <xs:attribute name="Variants" use="optional">
+          <xs:simpleType>
+            <xs:list itemType="hyb:String8" />
+          </xs:simpleType>
+        </xs:attribute>
+      </xs:extension>
+    </xs:simpleContent>
   </xs:complexType>
 
+  <xs:complexType name="LootTableItems">
+    <xs:sequence>
+      <xs:element name="Item" type="loot:LootItem" minOccurs="1" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType> 
+  
   <xs:complexType name="LootTableItemList">
     <xs:sequence>
-      <xs:element name="Item" type="loot:LootTableItem" minOccurs="1" maxOccurs="unbounded"/>
+      <xs:element name="Items" type="loot:LootTableItems" minOccurs="1" maxOccurs="1"/>
     </xs:sequence>
     <xs:attribute name="Rolls" type="xs:int"/>
     <xs:attribute name="Chance" type="xs:double"/>
@@ -29,7 +46,6 @@
   <xs:complexType name="LootTableGold">
     <xs:attribute name="Min" type="xs:int"/>
     <xs:attribute name="Max" type="xs:int"/>
-    <xs:attribute name="Chance" type="xs:double"/>
   </xs:complexType>
 
   <xs:complexType name="LootTable">
@@ -44,7 +60,7 @@
   <xs:element name="LootSet">
     <xs:complexType>
       <xs:sequence>
-        <xs:element name="Table" minOccurs="1" maxOccurs="unbounded" type="loot:LootTable"/>
+        <xs:element name="Table" minOccurs="1" maxOccurs="unbounded" type="loot:LootTable"/>        
       </xs:sequence>
       <xs:attribute name="Name" type="hyb:String8"/>
     </xs:complexType>
