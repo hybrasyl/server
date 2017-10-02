@@ -732,7 +732,7 @@ namespace Hybrasyl.Objects
 
             #region Appearance defaults
             RestPosition = RestPosition.Standing;
-            SkinColor = SkinColor.Flesh;
+            SkinColor = SkinColor.Basic;
             Transparent = false;
             FaceShape = 0;
             NameStyle = NameDisplayStyle.GreyHover;

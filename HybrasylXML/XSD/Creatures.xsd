@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<xs:schema xmlns:hyb="http://www.hybrasyl.com/XML/HybrasylCommon" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:creature="http://www.hybrasyl.com/XML/Creature" targetNamespace="http://www.hybrasyl.com/XML/Creature" elementFormDefault="qualified">
+<xs:schema xmlns:loot="http://www.hybrasyl.com/XML/Loot" xmlns:hyb="http://www.hybrasyl.com/XML/HybrasylCommon" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:creature="http://www.hybrasyl.com/XML/Creature" targetNamespace="http://www.hybrasyl.com/XML/Creature" elementFormDefault="qualified">
 
   <xs:annotation>
     <xs:documentation xml:lang="en">
@@ -11,6 +11,7 @@
   </xs:annotation>
 
   <xs:import schemaLocation="hybrasylTypes.xsd" namespace="http://www.hybrasyl.com/XML/HybrasylCommon" />
+  <xs:import schemaLocation="Loot.xsd" namespace="http://www.hybrasyl.com/XML/Loot"/>
 
   <!-- Base definition for a monster -->
   <xs:complexType name="Creature">
@@ -64,6 +65,7 @@
       <xs:element name="Castables" type="creature:CastableList" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
     <xs:attribute name="Base" type="hyb:String8" use="required"/>
+    <xs:attribute name="Variance" type="xs:float" use="optional" default="1.0"/>
   </xs:complexType>
 
   <!-- Whether or not a specified script overrides the spawning behavior or supplements it-->
@@ -86,9 +88,9 @@
   <!-- List of intents -->
   <xs:complexType name="IntentList">
     <xs:sequence>
-      <xs:element name="Npc" type="creature:Intent" minOccurs="0" maxOccurs="unbounded"/>
-      <xs:element name="Player" type="creature:Intent" minOccurs="0" maxOccurs="unbounded"/>
-      <xs:element name="Monster" type="creature:Intent" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Npc" type="creature:Intent" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Player" type="creature:Intent" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Monster" type="creature:Intent" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
   </xs:complexType>
 
@@ -111,26 +113,27 @@
 
   <!-- Damage a spawn can do (min/max, elment, type (physical/magical etc)) -->
   <xs:complexType name="Damage">
-    <xs:sequence>
-      <xs:element name="Small" type="creature:DamageAmount" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="Large" type="creature:DamageAmount" minOccurs="0" maxOccurs="1"/>
-    </xs:sequence>
-    <xs:attribute name="Element" type="hyb:Element" default="None" use="optional"/>
+    <xs:attribute name="Min" type="xs:int" default="0" use="optional"/>
+    <xs:attribute name="Max" type="xs:int" default="0" use="optional"/>
+    <xs:attribute name="Element" use="optional">
+      <xs:simpleType>
+        <xs:list itemType="hyb:Element" />
+      </xs:simpleType>
+    </xs:attribute>
     <xs:attribute name="Type" type="hyb:DamageType" default="Physical" use="optional"/>
     <xs:attribute name="Dmg" type="xs:unsignedByte" use="optional" default="0"/>
     <xs:attribute name="Hit" type="xs:unsignedByte" use="optional" default="0"/>
   </xs:complexType>
-
-  <xs:complexType name="DamageAmount">
-    <xs:attribute name="Min" type="xs:int" default="0" use="optional"/>
-    <xs:attribute name="Max" type="xs:int" default="1" use="optional"/>
-  </xs:complexType>
-  
+ 
   <!-- A creature's defense, including element, magic resistance and armor class -->
   <xs:complexType name="Defense">
     <xs:attribute name="Mr" type="xs:int" default="0" use="optional"/>
     <xs:attribute name="Ac" type="xs:int" use="required"/>
-    <xs:attribute name="Element" type="hyb:Element" default="None" use="optional"/>
+    <xs:attribute name="Element" use="optional">
+      <xs:simpleType>
+        <xs:list itemType="hyb:Element" />
+      </xs:simpleType>
+    </xs:attribute>
     <xs:attribute name="Regen" type="xs:unsignedByte" use="optional" default="0"/>
   </xs:complexType>
 
@@ -148,45 +151,31 @@
 
   <!-- List of loot tables which can be defined <table> or imported from external sources <import> -->
   <xs:complexType name="LootList">
-    <xs:sequence minOccurs="1" maxOccurs="unbounded">
+    <xs:sequence>
       <xs:element name="Set" type="creature:LootImport" minOccurs="0" maxOccurs="unbounded"/>
-      <xs:element name="Table" type="creature:LootTable" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Table" type="loot:LootTable" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Xp" type="creature:LootXp" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Gold" type="creature:LootGold" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
-    <xs:attribute name="Xp" type="xs:unsignedInt" default="0" use="optional" />
-    <xs:attribute name="Gold" type="xs:unsignedInt" default="0" use="optional" />
   </xs:complexType>
 
   <!-- Imported loot table-->
   <xs:complexType name="LootImport">
     <xs:attribute name="Name" type="hyb:String8"/>
-  </xs:complexType>
-
-  <!-- Locally defined loot table-->
-  <xs:complexType name="LootTable">
-    <xs:sequence>
-      <xs:element name="Item" type="creature:LootItem" minOccurs="0" maxOccurs="unbounded"/>
-      <xs:element name="Gold" type="creature:LootGold" minOccurs="0" maxOccurs="1"/>
-    </xs:sequence>
-    <xs:attribute name="Rolls" type="xs:int" default="1" use="optional"/>
-    <xs:attribute name="Chance" type="xs:double" default="1" use="optional"/>
-  </xs:complexType>
-
-  <!-- An item defined in a loot table-->
-  <xs:complexType name="LootItem">
-    <xs:simpleContent>
-      <xs:extension base="hyb:String8">
-        <xs:attribute name="Min" type="xs:int" default="1" use="optional"/>
-        <xs:attribute name="Max" type="xs:int" default="1" use="optional"/>
-        <xs:attribute name="Unique" type="xs:boolean" default="false" use="optional"/>
-        <xs:attribute name="Always" type="xs:boolean" default="false" use="optional"/>
-      </xs:extension>
-    </xs:simpleContent>
+    <xs:attribute name="Rolls" type="xs:int"/>
+    <xs:attribute name="Chance" type="xs:float"/>
   </xs:complexType>
 
   <!-- Amount of gold defined in a loot table, in addition to any base gold defined in <loot> -->
   <xs:complexType name="LootGold">
-    <xs:attribute name="Min" type="xs:int" default="1" use="optional"/>
-    <xs:attribute name="Max" type="xs:int" default="1" use="optional"/>
+    <xs:attribute name="Min" type="xs:unsignedInt" default="1" use="optional"/>
+    <xs:attribute name="Max" type="xs:unsignedInt" default="1" use="optional"/>
+  </xs:complexType>
+
+  <!-- Amount of XP defined in a loot table -->
+  <xs:complexType name="LootXp">
+    <xs:attribute name="Min" type="xs:unsignedInt" default="1" use="optional"/>
+    <xs:attribute name="Max" type="xs:unsignedInt" default="1" use="optional"/>
   </xs:complexType>
 
   <!-- List of castables a creature is allowed to use -->

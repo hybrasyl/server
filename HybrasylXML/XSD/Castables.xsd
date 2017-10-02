@@ -322,14 +322,22 @@
   </xs:complexType>
 
   <!-- Animations container element -->
-  <xs:complexType name="Animations">
+  <xs:complexType name="SpellAnimations">
     <xs:sequence minOccurs="0" maxOccurs="1">
       <xs:element name="OnCast" type="actions:AnimationGroup" minOccurs="0" maxOccurs="1" />
-      <xs:element name="OnTick" type="actions:AnimationDurationGroup" minOccurs="0" maxOccurs="1" />
-      <xs:element name="OnEnd" type="actions:AnimationDurationGroup" minOccurs="0" maxOccurs="1" />
+      <xs:element name="OnEnd" type="actions:AnimationGroup" minOccurs="0" maxOccurs="1" />
     </xs:sequence>
   </xs:complexType>
 
+  <!-- Status animations container element -->
+  <xs:complexType name="StatusAnimations">
+    <xs:sequence minOccurs="0" maxOccurs="1">
+      <xs:element name="OnCast" type="actions:AnimationGroup" minOccurs="0" maxOccurs="1" />
+      <xs:element name="OnTick" type="actions:AnimationGroup" minOccurs="0" maxOccurs="1" />
+      <xs:element name="OnEnd" type="actions:AnimationGroup" minOccurs="0" maxOccurs="1" />
+    </xs:sequence>
+  </xs:complexType>
+  
   <!-- Animation group -->
   <xs:complexType name="AnimationGroup">
     <xs:sequence minOccurs="0" maxOccurs="1">
@@ -339,32 +347,16 @@
     </xs:sequence>
   </xs:complexType>
 
-  <!-- Animation group -->
-  <xs:complexType name="AnimationDurationGroup">
-    <xs:sequence minOccurs="0" maxOccurs="1">
-      <xs:element name="Player" type="actions:AnimationDuration" minOccurs="0" maxOccurs="1" />
-      <xs:element name="SpellEffect" type="actions:AnimationDuration" minOccurs="0" maxOccurs="1" />
-      <xs:element name="Target" type="actions:AnimationDuration" minOccurs="0" maxOccurs="1" />
-    </xs:sequence>
-  </xs:complexType>
-
   <!-- Animation set -->
   <xs:complexType name="Animation">
     <xs:attribute name="Id" type="xs:unsignedShort" use="required" />
     <xs:attribute name="Speed" type="xs:unsignedShort" use="optional" default="100" />
   </xs:complexType>
 
-  <!-- Animation set for duration -->
-  <xs:complexType name="AnimationDuration">
-    <xs:attribute name="Id" type="xs:unsignedShort" use="required" />
-    <xs:attribute name="Speed" type="xs:unsignedShort" use="optional" default="100" />
-    <xs:attribute name="Tick" type="xs:unsignedInt" />
-  </xs:complexType>
-
   <!-- Effects type -->
   <xs:complexType name="Effects">
     <xs:sequence minOccurs="0" maxOccurs="1">
-      <xs:element name="Animations" type="actions:Animations" minOccurs="0" maxOccurs="1" />
+      <xs:element name="Animations" type="actions:SpellAnimations" minOccurs="0" maxOccurs="1" />
       <xs:element name="Sound" minOccurs="0" maxOccurs="1">
         <xs:complexType>
           <xs:attribute name="Id" type="xs:unsignedByte" use="required" />
@@ -403,17 +395,11 @@
     <xs:sequence>
       <xs:element name="StatEffects" type="actions:StatusStatEffects" minOccurs="0" maxOccurs="unbounded"/>
       <xs:element name="Conditions" type="actions:Conditions" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Animations" type="actions:StatusAnimations" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
     <xs:attribute name="Icon" type="xs:unsignedShort" use="required"/>
     <xs:attribute name="Duration" type="xs:int" use="required"/>
     <xs:attribute name="Tick" type="xs:int" use="required"/>
-  </xs:complexType>
-
-  <xs:complexType name="StatusStatEffects">
-    <xs:sequence>
-      <xs:element name="OnCast" type="actions:StatEffects" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="OnTick" type="actions:StatEffects" minOccurs="0" maxOccurs="1"/>
-    </xs:sequence>
   </xs:complexType>
   
   <xs:complexType name="RemoveStatus">
@@ -514,6 +500,15 @@
     <xs:attribute name="Cooldown" use="optional" default="0" type="xs:int" />
     <xs:attribute name="IsAssail" use="optional" default="false" type="xs:boolean"/>
   </xs:complexType>
+
+  <xs:complexType name="StatusStatEffects">
+    <xs:sequence>
+      <xs:element name="OnCast" type="actions:StatEffects" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="OnTick" type="actions:StatEffects" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+  </xs:complexType>
+
+
 
   <!-- Bring it all together -->
   <xs:element name="Castable" type="actions:Castable" />
