@@ -97,7 +97,6 @@
     <Compile Include="Scripting\HybrasylWorld.cs" />
     <Compile Include="Scripting\HybrasylWorldObject.cs" />
     <Compile Include="Scripting\Script.cs" />
-    <Compile Include="Scripting\ScriptInvocation.cs" />
     <Compile Include="Scripting\ScriptProcessor.cs" />
     <Compile Include="Throttle.cs" />
     <Compile Include="Time.cs" />

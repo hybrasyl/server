@@ -285,7 +285,7 @@ namespace Hybrasyl
                 Handler = null;
             }
 
-            public void setInputHandler(string handler)
+            public void SetInputHandler(string handler)
             {
                 Handler = handler;
             }

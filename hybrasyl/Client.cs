@@ -54,13 +54,6 @@ namespace Hybrasyl
         }
 
         public byte[] Buffer => _buffer;
-      /*  public void ReceiveBufferAdd(IEnumerable<byte> received)
-        {
-            lock (_buffer)
-            {
-                _buffer.AddRange(received);
-            }
-        }*/
 
         public IEnumerable<byte> ReceiveBufferTake(int range)
         {

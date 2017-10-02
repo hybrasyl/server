@@ -89,19 +89,19 @@ namespace Hybrasyl.Scripting
         public HybrasylDialog NewTextDialog(string displayText, string topCaption, string bottomCaption, int inputLength = 254, string handler="", string callback="")
         {
             var dialog = new TextDialog(displayText, topCaption, bottomCaption, inputLength);
-            dialog.setInputHandler(handler);
+            dialog.SetInputHandler(handler);
             dialog.SetCallbackHandler(callback);
             return new HybrasylDialog(dialog);
         }
 
-        public HybrasylDialog NewOptionsDialog(string displayText, HybrasylDialogOptions dialogOptions, string callbackExpr="")
+        public HybrasylDialog NewOptionsDialog(string displayText, HybrasylDialogOptions dialogOptions, string handler="", string callback="")
         {
             var dialog = new OptionsDialog(displayText);
-            Logger.Info("hurk");
             foreach (DictionaryEntry entry in dialogOptions.Options)
             {
                 dialog.AddDialogOption(entry.Key as string, entry.Value as string);
             }
+            dialog.SetInputHandler(handler);
             dialog.SetCallbackHandler(callbackExpr);
             return new HybrasylDialog(dialog);
         }
