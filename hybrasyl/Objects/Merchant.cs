@@ -42,32 +42,19 @@ namespace Hybrasyl.Objects
             : base()
         {
             Ready = false;
-            //Roles = Game.World.WorldData.Get<Npc>(Name).Roles;
             Inventory = new Dictionary<string, Item>();
-            //Jobs = new List<MerchantJob>();
-            //if(Roles.Bank != null) Jobs.Add(MerchantJob.Bank);
-            //if(Roles.Post != null) Jobs.Add(MerchantJob.Post);
-            //if(Roles.Repair != null) Jobs.Add(MerchantJob.Repair);
-            //if(Roles.Vend != null) Jobs.Add(MerchantJob.Vend);
-            //if (Roles.Train == null) return;
-            //if (Roles.Train.Count > 0 && Roles.Train.FirstOrDefault(x => x.Type == "skill") != null) Jobs.Add(MerchantJob.Skills);
-            //if (Roles.Train.Count > 0 && Roles.Train.FirstOrDefault(x => x.Type == "spell") != null) Jobs.Add(MerchantJob.Spells);
         }
         
 
-
         public void OnSpawn()
         {
-            // Do we have a script? 
-            Script = World.ScriptProcessor.GetScript(Name);
-            if (Script != null)
+            Script script;
+            // Do we have a script? If so, get it and run OnSpawn.
+            if (World.ScriptProcessor.TryGetScript(Name, out script))
             {
+                Script = script;
                 Script.AssociateScriptWithObject(this);
-                if (Script.InstantiateScriptable())
-                {
-                    Script.ExecuteScriptableFunction("OnSpawn");
-                    Ready = true;
-                }
+                Ready = Script.ExecuteFunction("OnSpawn");
             }
         }
 
@@ -76,21 +63,17 @@ namespace Hybrasyl.Objects
             if (!Ready)
                 OnSpawn();
 
-            if (Script != null)
-            {
-                Script.ExecuteScriptableFunction("OnClick", new HybrasylUser(invoker));
-            }
+            if (Script != null && Script.HasFunction("OnClick"))
+               Script.ExecuteFunction("OnClick", new HybrasylUser(invoker));
             else
-            {
-                DisplayPursuits(invoker);
-            }
+               DisplayPursuits(invoker);
         }
 
         public override void AoiEntry(VisibleObject obj)
         {
             if (Script != null)
             {
-                Script.ExecuteScriptableFunction("OnEntry", new HybrasylWorldObject(obj));
+                Script.ExecuteFunction("OnEntry", new HybrasylWorldObject(obj));
             }
         }
 
@@ -98,7 +81,7 @@ namespace Hybrasyl.Objects
         {
             if (Script != null)
             {
-                Script.ExecuteScriptableFunction("OnLeave", new HybrasylWorldObject(obj));
+                Script.ExecuteFunction("OnLeave", new HybrasylWorldObject(obj));
             }
         }
 

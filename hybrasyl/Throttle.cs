@@ -231,7 +231,7 @@ namespace Hybrasyl
                 info.PreviousReceived = info.LastReceived;
                 info.LastReceived = rightnow;
                 info.TotalReceived++;
-                Logger.Error($"Begin: PA: {info.PreviousAccepted} LA: {info.LastAccepted} AInterval is {acceptedInterval.TotalMilliseconds} TInterval {transmitInterval.TotalMilliseconds}");
+                Logger.Debug($"Begin: PA: {info.PreviousAccepted} LA: {info.LastAccepted} AInterval is {acceptedInterval.TotalMilliseconds} TInterval {transmitInterval.TotalMilliseconds}");
 
                 if (info.Throttled)
                 {
@@ -263,7 +263,7 @@ namespace Hybrasyl
                 {
                     if (acceptedInterval.TotalMilliseconds <= Interval && info.LastAccepted != DateTime.MinValue)
                     {
-                        Logger.Error($"TInterval {transmitInterval}, AInterval {acceptedInterval} - maximum is {Interval}, throttled");
+                        Logger.Debug($"TInterval {transmitInterval}, AInterval {acceptedInterval} - maximum is {Interval}, throttled");
                         info.Throttled = true;
                         OnThrottleStart(new ClientTrigger(client));
                         result = ThrottleResult.Throttled;
@@ -274,7 +274,7 @@ namespace Hybrasyl
                         info.LastAccepted = rightnow;
                         info.TotalAccepted++;
                         result = ThrottleResult.OK;
-                        Logger.Error($"Packet accepted, PA: {info.PreviousAccepted} LA: {info.LastAccepted}");
+                        Logger.Debug($"Packet accepted, PA: {info.PreviousAccepted} LA: {info.LastAccepted}");
                     }
                 }
             }

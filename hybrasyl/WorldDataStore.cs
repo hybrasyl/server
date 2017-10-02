@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Markup;
-using Microsoft.Scripting.Ast;
 
 namespace Hybrasyl
 {

@@ -24,27 +24,4 @@
 
 namespace Hybrasyl.Scripting
 {
-    public struct ScriptInvocation
-    {
-        public dynamic Function;
-        public Script Script;
-        public WorldObject Associate;
-        public WorldObject Invoker;
-
-        public ScriptInvocation(dynamic function = null, WorldObject associate = null, WorldObject invoker = null, Script script = null)
-        {
-            Function = function;
-            Associate = associate;
-            Invoker = invoker;
-            Script = null;
-        }
-
-        public bool Execute(params object[] parameters)
-        {
-            if (Script != null)
-                return Script.ExecuteFunction(this, parameters);
-            else
-                return Associate.Script.ExecuteFunction(this, parameters);
-        }
-    }
 }

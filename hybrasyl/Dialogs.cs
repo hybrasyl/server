@@ -30,7 +30,7 @@ using Hybrasyl.Scripting;
 namespace Hybrasyl
 {
     namespace Dialogs
-    {
+    {       
         public class DialogSequence
         {
             static readonly ILog Logger = LogManager.GetLogger(typeof(DialogSequence));
@@ -40,7 +40,7 @@ namespace Hybrasyl
             public uint? Id { get; set; }
             public Script Script { get; private set; }
             public WorldObject Associate { get; private set; }
-            public dynamic PreDisplayCallback { get; private set; }
+            public string PreDisplayCallback { get; private set; }
 
             public DialogSequence(string sequenceName)
             {
@@ -49,6 +49,12 @@ namespace Hybrasyl
                 Id = null;
             }
 
+            /// <summary>
+            /// 
+            /// </summary>
+            /// <param name="invoker"></param>
+            /// <param name="target"></param>
+            /// <param name="runCheck"></param>
             public void ShowTo(User invoker, VisibleObject target = null, bool runCheck = true)
             {
                 // Either we must have an associate already known to us, one must be passed, or we must have a script defined
@@ -59,7 +65,7 @@ namespace Hybrasyl
                     return;
                 }
                 if (PreDisplayCallback != null && runCheck)
-                {
+                {/*
                     var invocation = new ScriptInvocation();
                     invocation.Function = PreDisplayCallback;
                     invocation.Invoker = invoker;
@@ -68,7 +74,7 @@ namespace Hybrasyl
                         invocation.Script = Script;
 
                     if (invocation.Execute())
-                        Dialogs.First().ShowTo(invoker, target);
+                        Dialogs.First().ShowTo(invoker, target);*/
                 }
                 else
                 {
@@ -91,7 +97,7 @@ namespace Hybrasyl
                 Dialogs.Add(dialog);
             }
 
-            public void AddPreDisplayCallback(dynamic check)
+            public void AddPreDisplayCallback(string check)
             {
                 PreDisplayCallback = check;
             }
@@ -102,9 +108,9 @@ namespace Hybrasyl
             public string OptionText { get; private set; }
             private Dialog ParentDialog { get; set; }
 
-            public dynamic CallbackFunction { get; private set; }
+            public string CallbackFunction { get; private set; }
 
-            public DialogOption(string option, dynamic callback = null, Dialog parentdialog = null)
+            public DialogOption(string option, string callback = null, Dialog parentdialog = null)
             {
                 OptionText = option;
                 CallbackFunction = callback;
@@ -121,37 +127,31 @@ namespace Hybrasyl
             public DialogSequence Sequence { get; private set; }
             public int Index;
             public string DisplayText { get; protected set; }
-            public dynamic CallbackFunction { get; protected set; }
+            public string CallbackExpression { get; protected set; }
             public ushort DisplaySprite { get; set; }
 
-            public Dialog(int dialogType, string displayText = null, dynamic callbackFunction = null)
+            public Dialog(int dialogType, string displayText = null, string callbackFunction="")
             {
                 DialogType = (ushort)dialogType;
                 DisplayText = displayText;
-                CallbackFunction = callbackFunction;
+                CallbackExpression = callbackFunction;
                 DisplaySprite = 0;
             }
 
             // Any Dialog can have a callback function which can be used to process dialog responses, or
             // take some action after a dialog fires.
-            // response. Normally this is set to a resolvable function inside a Hybrasyl scripting class.
-            public void SetCallbackHandler(dynamic callback)
+            // response. Normally this is set to a resolvable function inside a Hybrasyl script.
+            public void SetCallbackHandler(string callback)
             {
-                CallbackFunction = callback;
+                CallbackExpression = callback;
             }
 
             public void RunCallback(User target, VisibleObject associateOverride = null)
             {
-                if (CallbackFunction != null)
+                if (CallbackExpression != null)
                 {
                     VisibleObject associate = associateOverride == null ? Sequence.Associate as VisibleObject : associateOverride;
-
-                    var invocation = new ScriptInvocation();
-                    invocation.Invoker = target;
-                    invocation.Associate = associate;
-                    invocation.Function = CallbackFunction;
-
-                    associate.Script.ExecuteFunction(invocation);
+                    associate.Script.Execute(CallbackExpression, target);
                 }
             }
 
@@ -246,9 +246,9 @@ namespace Hybrasyl
         /// </summary>
         class FunctionDialog : Dialog
         {
-            protected dynamic Function;
+            protected string Function;
 
-            public FunctionDialog(dynamic function)
+            public FunctionDialog(string function)
                 : base(DialogTypes.FUNCTION_DIALOG)
             {
                 Function = function;
@@ -277,7 +277,7 @@ namespace Hybrasyl
 
         class InputDialog : Dialog
         {
-            protected dynamic Handler { get; private set; }
+            protected string Handler { get; private set; }
 
             public InputDialog(int dialogType, string displayText)
                 : base(dialogType, displayText)
@@ -285,7 +285,7 @@ namespace Hybrasyl
                 Handler = null;
             }
 
-            public void setInputHandler(dynamic handler)
+            public void setInputHandler(string handler)
             {
                 Handler = handler;
             }
@@ -316,31 +316,34 @@ namespace Hybrasyl
                 }
             }
 
-            public void AddDialogOption(string option, dynamic callback = null)
+            public void AddDialogOption(string option, string callbackExpr = null)
             {
-                Options.Add(new DialogOption(option, callback));
+                Options.Add(new DialogOption(option, callbackExpr));
             }
 
             public void HandleResponse(WorldObject invoker, int optionSelected, WorldObject associateOverride = null)
             {
-                var invocation = new ScriptInvocation();
-                invocation.Invoker = invoker;
+                WorldObject Associate;
+                string Expression = string.Empty;
 
                 if (Sequence.Associate != null)
-                    invocation.Associate = Sequence.Associate;
+                    Associate = Sequence.Associate;
                 else
-                    invocation.Associate = associateOverride;
+                    Associate = associateOverride;
 
+                
                 // If the individual options don't have callbacks, use the dialog callback instead.
                 if (Handler != null && Options[optionSelected - 1].CallbackFunction == null)
                 {
-                    invocation.Function = Handler;
+                    Expression = Handler;
                 }
                 else if (Options[optionSelected - 1].CallbackFunction != null)
                 {
-                    invocation.Function = Options[optionSelected - 1].CallbackFunction;
+                    Expression = Options[optionSelected - 1].CallbackFunction;
                 }
-                invocation.Execute(optionSelected);
+                
+                Associate.Script.Execute(Expression, invoker);
+                
             }
         }
 
@@ -372,7 +375,8 @@ namespace Hybrasyl
             public void HandleResponse(WorldObject invoker, string response, WorldObject associateOverride = null)
             {
                 Logger.DebugFormat("Response {0} from player {1}", response, invoker.Name);
-                if (Handler != null)
+
+                if (Handler != string.Empty)
                 {
                     // Either we must have an associate already known to us, one must be passed, or we must have a script defined
                     if (Sequence.Associate == null && associateOverride == null && Sequence.Script == null)
@@ -381,11 +385,14 @@ namespace Hybrasyl
                         // Need better error handling here
                         return;
                     }
-                    var invocation = new ScriptInvocation();
-                    invocation.Function = Handler;
-                    invocation.Associate = associateOverride == null ? Sequence.Associate : associateOverride;
-                    invocation.Invoker = invoker;
-                    invocation.Execute(response);
+
+                    var Associate = associateOverride == null ? Sequence.Associate : associateOverride;
+                    // Expand this in the future, for right now we simply replace %RESPONSE% with whatever the user put into the text box
+                    var Expression = System.String.Copy(Handler);
+                    Expression = Expression.Replace("%RESPONSE%", response);
+
+                    Associate.Script.Execute(Expression, invoker);
+
                 }
             }
         }

@@ -21,21 +21,43 @@
  */
 
 using Hybrasyl.Dialogs;
-using IronPython.Runtime;
 using log4net;
+using System.Collections;
+using System.Collections.Specialized;
 
 namespace Hybrasyl.Scripting
 {
 
+    public class HybrasylDialogOptions
+    {
+        public OrderedDictionary Options;
+
+        public HybrasylDialogOptions()
+        {
+            Options = new OrderedDictionary();
+        }
+
+        public void AddSelection(string option, string jsexpr)
+        {
+            Options.Add(option, jsexpr);
+        }
+    }
+
     public class HybrasylWorld
     {
-        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+        private static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+        private static readonly ILog ScriptingLogger = LogManager.GetLogger("ScriptingLog");
 
         internal World World { get; set; }
 
         public HybrasylWorld(World world)
         {
             World = world;
+        }
+
+        public void WriteLog(string message)
+        {
+            ScriptingLogger.Info(message);
         }
 
         public HybrasylDialogSequence NewDialogSequence(string sequenceName, params object[] list)
@@ -49,23 +71,22 @@ namespace Hybrasyl.Scripting
                     var newdialog = entry as HybrasylDialog;
                     dialogSequence.AddDialog(newdialog);
                 }
-                else if (entry is PythonFunction)
+                else
                 {
-                    var action = entry as PythonFunction;
+                    ScriptingLogger.Error($"Unknown parameter type {entry.GetType()} passed to NewDialogSequence, ignored");
                 }
-
             }
             return dialogSequence;
         }
 
-        public HybrasylDialog NewDialog(string displayText, dynamic callback = null)
+        public HybrasylDialog NewDialog(string displayText, string callback = null)
         {
             var dialog = new SimpleDialog(displayText);
             dialog.SetCallbackHandler(callback);
             return new HybrasylDialog(dialog);
         }
 
-        public HybrasylDialog NewTextDialog(string displayText, string topCaption, string bottomCaption, int inputLength = 254, dynamic handler = null, dynamic callback = null)
+        public HybrasylDialog NewTextDialog(string displayText, string topCaption, string bottomCaption, int inputLength = 254, string handler="", string callback="")
         {
             var dialog = new TextDialog(displayText, topCaption, bottomCaption, inputLength);
             dialog.setInputHandler(handler);
@@ -73,40 +94,15 @@ namespace Hybrasyl.Scripting
             return new HybrasylDialog(dialog);
         }
 
-        public HybrasylDialog NewOptionsDialog(string displayText, dynamic optionsStructure, dynamic handler = null, dynamic callback = null)
+        public HybrasylDialog NewOptionsDialog(string displayText, HybrasylDialogOptions dialogOptions, string callbackExpr="")
         {
             var dialog = new OptionsDialog(displayText);
-            dialog.SetCallbackHandler(callback);
-
-            if (optionsStructure is IronPython.Runtime.List)
+            Logger.Info("hurk");
+            foreach (DictionaryEntry entry in dialogOptions.Options)
             {
-                // A simple options dialog with a callback handler for the response
-                var optionlist = optionsStructure as IronPython.Runtime.List;
-                foreach (var option in optionsStructure)
-                {
-                    if (option is string)
-                    {
-                        dialog.AddDialogOption(option as string);
-                    }
-                }
-                if (handler != null)
-                {
-                    dialog.setInputHandler(handler);
-                    Logger.InfoFormat("Input handler associated with dialog");
-                }
+                dialog.AddDialogOption(entry.Key as string, entry.Value as string);
             }
-            else if (optionsStructure is IronPython.Runtime.PythonDictionary)
-            {
-                var hash = optionsStructure as IronPython.Runtime.PythonDictionary;
-                foreach (var key in hash.Keys)
-                {
-                    if (key is string)
-                    {
-                        dialog.AddDialogOption(key as string, hash[key]);
-                    }
-                }
-
-            }
+            dialog.SetCallbackHandler(callbackExpr);
             return new HybrasylDialog(dialog);
         }
     }
