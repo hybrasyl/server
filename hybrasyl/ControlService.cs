@@ -1,15 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
-using System.Net.Http;
 using System.ServiceModel;
 using System.ServiceModel.Activation;
 using System.ServiceModel.Web;
 using System.Text;
 using System.Threading.Tasks;
 using Hybrasyl.Objects;
-using Newtonsoft.Json.Linq;
 using StackExchange.Redis;
 
 namespace Hybrasyl
@@ -23,7 +20,7 @@ namespace Hybrasyl
 
         [OperationContract]
         [WebGet(UriTemplate = "/CurrentUsers")]
-        List<string> CurrentUsers();
+        List<User> CurrentUsers();
 
         [OperationContract]
         [WebGet(UriTemplate = "/User/{name}")]
@@ -45,24 +42,11 @@ namespace Hybrasyl
             return "Shutdown ControlMessage not queued.";
         }
 
-        public List<string> CurrentUsers() => World.ActiveUsers.Select(x => x.Value.Name).ToList();
+        public List<User> CurrentUsers() => World.ActiveUsers.Select(x => x.Value ).ToList();
 
         public User User(string name)
         {
             return World.ActiveUsers.All(x => x.Value.Name != name) ? null : World.ActiveUsers.Single(x => x.Value.Name == name).Value;
-        }
-
-        public static string GetMotd()
-        {
-            using (HttpClient client = new HttpClient())
-            {
-                client.BaseAddress = new Uri("http://build.hybrasyl.com/api/news");
-
-                var json = $"[{client.GetAsync(client.BaseAddress + "/GetMotd").Result.Content.ReadAsStringAsync().Result}]";
-
-                dynamic motd = JArray.Parse(json);
-                return motd[0].Data[0].Message;
-            }
         }
     }
 }
