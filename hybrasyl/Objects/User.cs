@@ -1601,31 +1601,7 @@ namespace Hybrasyl.Objects
             Enqueue(x08);
         }
 
-        public int GetCastableMaxLevel(Castable castable)
-        {
-            if (IsMaster)
-            {
-                return 100;
-            }
-
-            switch (Class)
-            {
-                case Enums.Class.Peasant:
-                    return castable.MaxLevel.Peasant;
-                case Enums.Class.Warrior:
-                    return castable.MaxLevel.Warrior;
-                case Enums.Class.Rogue:
-                    return castable.MaxLevel.Rogue;
-                case Enums.Class.Wizard:
-                    return castable.MaxLevel.Wizard;
-                case Enums.Class.Priest:
-                    return castable.MaxLevel.Priest;
-                case Enums.Class.Monk:
-                    return castable.MaxLevel.Monk;
-            }
-
-            return 0;
-        }
+        public int GetCastableMaxLevel(Castable castable) => IsMaster ? 100 : castable.GetMaxLevelByClass((Castables.Class)Class);
 
 
         public User GetFacingUser()
