@@ -1472,11 +1472,8 @@ namespace Hybrasyl.Objects
             var x2C = new ServerPacket(0x2C);
             x2C.WriteByte((byte)slot);
             x2C.WriteUInt16((ushort)(item.Icon));
-            x2C.WriteString8(item.Name);
-            x2C.WriteByte(0); //current level
-            x2C.WriteByte((byte)100); //this will need to be updated
+            x2C.WriteString8(Class == Enums.Class.Peasant ? item.Name : $"{item.Name} (Lev:{item.CastableLevel}/{GetCastableMaxLevel(item)}");
             Enqueue(x2C);
-
         }
 
         public void SendSpellUpdate(Castable item, int slot)
@@ -1494,13 +1491,10 @@ namespace Hybrasyl.Objects
             var spellType = item.Intents[0].UseType;
             //var spellType = isClick ? 2 : 5;
             x17.WriteByte((byte)spellType); //spell type? how are we determining this?
-            x17.WriteString8(item.Name + " (" + item.CastableLevel + "/" + item.MaxLevel.Peasant + ")");
+            x17.WriteString8(Class == Enums.Class.Peasant ? item.Name : $"{item.Name} (Lev:{item.CastableLevel}/{GetCastableMaxLevel(item)}");
             x17.WriteString8(item.Name); //prompt? what is this?
             x17.WriteByte((byte)item.Lines);
-            x17.WriteByte(0); //current level
-            x17.WriteByte((byte)100); //this will need to be updated
             Enqueue(x17);
-
         }
 
         public void SetFlag(string flag, string value)
@@ -1605,6 +1599,32 @@ namespace Hybrasyl.Objects
                 x08.WriteByte(Hit);
             }
             Enqueue(x08);
+        }
+
+        public int GetCastableMaxLevel(Castable castable)
+        {
+            if (IsMaster)
+            {
+                return 100;
+            }
+
+            switch (Class)
+            {
+                case Enums.Class.Peasant:
+                    return castable.MaxLevel.Peasant;
+                case Enums.Class.Warrior:
+                    return castable.MaxLevel.Warrior;
+                case Enums.Class.Rogue:
+                    return castable.MaxLevel.Rogue;
+                case Enums.Class.Wizard:
+                    return castable.MaxLevel.Wizard;
+                case Enums.Class.Priest:
+                    return castable.MaxLevel.Priest;
+                case Enums.Class.Monk:
+                    return castable.MaxLevel.Monk;
+            }
+
+            return 0;
         }
 
 
@@ -4098,13 +4118,7 @@ namespace Hybrasyl.Objects
             {
                 if (this.SkillBook[i] != null)
                 {
-                    var x2C = new ServerPacket(0x2C);
-                    x2C.WriteByte((byte)i);
-                    x2C.WriteUInt16((ushort)(SkillBook[i].Icon));
-                    x2C.WriteString8(SkillBook[i].Name);
-                    x2C.WriteByte(0); //current level
-                    x2C.WriteByte((byte)100); //this will need to be updated
-                    Enqueue(x2C);
+                    SendSkillUpdate(SkillBook[i], i);
                 }
             }
         }
@@ -4114,18 +4128,7 @@ namespace Hybrasyl.Objects
             {
                 if (this.SpellBook[i] != null)
                 {
-                    var x17 = new ServerPacket(0x17);
-                    x17.WriteByte((byte)i);
-                    x17.WriteUInt16((ushort)(SpellBook[i].Icon));
-                    var spellType = SpellBook[i].Intents[0].UseType;
-                    //var spellType = isClick ? 2 : 5;
-                    x17.WriteByte((byte)spellType); //spell type? how are we determining this?
-                    x17.WriteString8(SpellBook[i].Name + " (" + SpellBook[i].CastableLevel + "/" + 100 + ")"); //fortest
-                    x17.WriteString8(SpellBook[i].Name); //prompt? what is this?
-                    x17.WriteByte((byte)SpellBook[i].Lines);
-                    x17.WriteByte(0); //current level
-                    x17.WriteByte((byte)100); //this will need to be updated
-                    Enqueue(x17);
+                    SendSpellUpdate(SpellBook[i], i);
                 }
             }
         }
