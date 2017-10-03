@@ -172,6 +172,12 @@ namespace Hybrasyl.Castables
         }
 
         public byte CastableLevel { get; set; }
+
+        public byte GetMaxLevelByClass(Class castableClass)
+        {
+            var maxLevelProperty = MaxLevel.GetType().GetProperty(castableClass.ToString());
+            return (byte)(maxLevelProperty != null ? maxLevelProperty.GetValue(MaxLevel, null) : 0);
+        }
     }
 }
 
