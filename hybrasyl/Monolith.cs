@@ -28,7 +28,6 @@ using System.Linq;
  using System.Runtime.CompilerServices;
  using System.Threading;
  using System.Threading.Tasks;
- using Community.CsharpSqlite;
  using Hybrasyl.Creatures;
  using Hybrasyl.Enums;
  using Creature = Hybrasyl.Creatures.Creature;
@@ -64,7 +63,7 @@ namespace Hybrasyl
                     var mapObject = Game.World.WorldData.Values<Map>().SingleOrDefault(x => x.Name == spawnmap.Name);
                     if (mapObject is null)
                     {
-                        Logger.Error($"Spawngroup {spawngroup.Filename} references non-existent map {spawnmap.Name}, disabling");
+                        //Logger.Error($"Spawngroup {spawngroup.Filename} references non-existent map {spawnmap.Name}, disabling");
                         spawnmap.Disabled = true;
                         continue;
                     }
@@ -125,7 +124,7 @@ namespace Hybrasyl
                 }
                 catch (Exception e)
                 {
-                    Logger.Error($"Spawngroup {spawnGroup.Filename}: disabled map {map.Name} due to error {e.ToString()}");
+                    //Logger.Error($"Spawngroup {spawnGroup.Filename}: disabled map {map.Name} due to error {e.ToString()}");
                     map.Disabled = true;
                     continue;
                 }
