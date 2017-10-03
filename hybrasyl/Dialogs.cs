@@ -316,9 +316,9 @@ namespace Hybrasyl
                 }
             }
 
-            public void AddDialogOption(string option, string callbackExpr = null)
+            public void AddDialogOption(string option, string callback = null)
             {
-                Options.Add(new DialogOption(option, callbackExpr));
+                Options.Add(new DialogOption(option, callback));
             }
 
             public void HandleResponse(WorldObject invoker, int optionSelected, WorldObject associateOverride = null)

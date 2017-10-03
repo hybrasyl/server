@@ -102,7 +102,7 @@ namespace Hybrasyl.Scripting
                 dialog.AddDialogOption(entry.Key as string, entry.Value as string);
             }
             dialog.SetInputHandler(handler);
-            dialog.SetCallbackHandler(callbackExpr);
+            dialog.SetCallbackHandler(callback);
             return new HybrasylDialog(dialog);
         }
     }
