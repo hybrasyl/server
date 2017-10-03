@@ -690,7 +690,7 @@ namespace Hybrasyl
             foreach (var item in WorldData.Values<Item>())
             {
                 iteminfo0.Nodes.Add(new MetafileNode(item.Name, item.Properties.Restrictions?.Level?.Min ?? 1, (int)(item.Properties.Restrictions?.@Class ?? Items.Class.Peasant),
-                    item.Properties.Physical.Weight, item.Properties.Vendor?.ShopTab ?? 0, item.Properties.Vendor?.Description ?? string.Empty));
+                    item.Properties.Physical.Weight, item.Properties.Vendor?.ShopTab ?? string.Empty, item.Properties.Vendor?.Description ?? string.Empty));
             }
             WorldData.Set(iteminfo0.Name, iteminfo0.Compile());
 
