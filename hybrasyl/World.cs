@@ -3645,6 +3645,15 @@ namespace Hybrasyl
                     }
                 }
 
+                // Did the user click next on the last dialog in a sequence?
+                // If so, show them the main menu
+
+                if (user.DialogState.ActiveDialogSequence.Dialogs.Count() == pursuitIndex)
+                {
+                    user.DialogState.EndDialog();
+                    clickTarget.DisplayPursuits(user);
+                }
+
                 // Is the active dialog an input or options dialog?
 
                 if (user.DialogState.ActiveDialog is OptionsDialog)
