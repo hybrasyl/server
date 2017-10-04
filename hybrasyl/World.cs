@@ -118,7 +118,6 @@ namespace Hybrasyl
 
         public Dictionary<string, string> Portraits { get; set; }
         public Strings Strings { get; set; }
-
         public WorldDataStore WorldData { set; get;  }
       
         public Nation DefaultNation
