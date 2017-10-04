@@ -733,7 +733,7 @@ namespace Hybrasyl.Objects
 
             #region Appearance defaults
             RestPosition = RestPosition.Standing;
-            SkinColor = SkinColor.Flesh;
+            SkinColor = SkinColor.Basic;
             Transparent = false;
             FaceShape = 0;
             NameStyle = NameDisplayStyle.GreyHover;
@@ -1602,20 +1602,7 @@ namespace Hybrasyl.Objects
             Enqueue(x08);
         }
 
-        public int GetCastableMaxLevel(Castable castable)
-        {
-            if (IsMaster)
-            {
-                return 100;
-            }
-
-            var propertyInfo = castable.MaxLevel.GetType().GetProperty(Class.ToString());
-            if (propertyInfo != null)
-                return (int)(propertyInfo.GetValue(castable.MaxLevel, null));
-
-            
-            return 0;
-        }
+        public int GetCastableMaxLevel(Castable castable) => IsMaster ? 100 : castable.GetMaxLevelByClass((Castables.Class)Class);
 
 
         public User GetFacingUser()

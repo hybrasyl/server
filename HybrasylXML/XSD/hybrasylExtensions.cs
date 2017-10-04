@@ -175,23 +175,8 @@ namespace Hybrasyl.Castables
 
         public byte GetMaxLevelByClass(Class castableClass)
         {
-            switch (castableClass)
-            {
-                case Castables.Class.Peasant:
-                    return MaxLevel.Peasant;
-                case Castables.Class.Warrior:
-                    return MaxLevel.Warrior;
-                case Castables.Class.Rogue:
-                    return MaxLevel.Rogue;
-                case Castables.Class.Wizard:
-                    return MaxLevel.Wizard;
-                case Castables.Class.Priest:
-                    return MaxLevel.Priest;
-                case Castables.Class.Monk:
-                    return MaxLevel.Monk;
-            }
-
-            return 0;
+            var maxLevelProperty = MaxLevel.GetType().GetProperty(castableClass.ToString());
+            return (byte)(maxLevelProperty != null ? maxLevelProperty.GetValue(MaxLevel, null) : 0);
         }
     }
 }

@@ -20,26 +20,43 @@
  * 
  */
  
-using IronPython.Runtime.Operations;
 using System;
 using System.IO;
 using Hybrasyl.Objects;
 using log4net;
-using Microsoft.Scripting.Hosting;
+using NLua;
 
 namespace Hybrasyl.Scripting
 {
+
+    public class ScriptLogger
+    {
+        private static readonly ILog ScriptingLogger = LogManager.GetLogger("ScriptingLog");
+        
+        public string ScriptName { get; set; }
+
+        public ScriptLogger(string name)
+        {
+            ScriptName = name;
+        }
+
+        public void Info(string message) => ScriptingLogger.Info($"{ScriptName} : {message}");
+
+        public void Error(string message) => ScriptingLogger.Error($"{ScriptName} : {message}");
+    }
+
     public class Script
     {
-        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-        public ScriptSource Source { get; set; }
-        public string Name { get; set; }
-        public string Path { get; private set; }
+        private static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+        private static readonly ILog ScriptingLogger = LogManager.GetLogger("ScriptingLog");
 
+        public string RawSource { get; set; }
+        public string Name { get; set; }
+        public string FullPath { get; private set; }
+
+        public Lua State { get; private set; }
         public ScriptProcessor Processor { get; set; }
-        public CompiledCode Compiled { get; private set; }
-        public ScriptScope Scope { get; set; }
-        public dynamic Instance { get; set; }
+        public LuaFunction Compiled { get; private set; }
         public HybrasylWorldObject Associate { get; private set; }
 
         public bool Disabled { get; set; }
@@ -48,28 +65,29 @@ namespace Hybrasyl.Scripting
 
         public Script Clone()
         {
-            var clone = new Script(Path, Processor);
-            // Reload and reinstantiate the script with a new ScriptScope
-            Scope = Processor.Engine.CreateScope();
-            clone.Load();
-            clone.InstantiateScriptable();
+            var clone = new Script(FullPath, Processor);
+            clone.Run();
             return clone;
         }
 
         public Script(string path, ScriptProcessor processor)
         {
-            Path = path;
+            FullPath = path;
+            Name = Path.GetFileName(path);
             Compiled = null;
-            Source = null;
+            RawSource = string.Empty;
             Processor = processor;
             Disabled = false;
             CompilationError = string.Empty;
             LastRuntimeError = string.Empty;
+            State = new Lua();
+            PrepareState();
         }
 
         public void AssociateScriptWithObject(WorldObject obj)
         {
             Associate = new HybrasylWorldObject(obj);
+            State["associate"] = Associate;
             obj.Script = this;
         }
 
@@ -79,135 +97,163 @@ namespace Hybrasyl.Scripting
                 return new HybrasylUser(obj as User);
             return new HybrasylWorldObject(obj);
         }
+
         /// <summary>
-        /// Load the script from disk, recompile it into bytecode, and execute it.
+        /// Prepare a script's Lua state for executing Hybrasyl scripting code, adding needed host object and type references.
+        /// </summary>
+        public void PrepareState()
+        {
+            State.LoadCLRPackage();
+            State.DoString(@"Scripting = CLRPackage('Hybrasyl', 'Hybrasyl.Scripting')");
+            State.DoString(@"Enums = CLRPackage('Hybrasyl', 'Hybrasyl.Enums')");
+            State["world"] = Processor.World;
+            State["logger"] = new ScriptLogger(Name);
+            // Prohibit future imports from other .NET assemblies
+            State.DoString(@"import = function() end");
+            State.DoString(@"CLRPackage = function() end");
+        }
+
+        /// <summary>
+        /// Check to see if a script implements a given function.
+        /// </summary>
+        /// <param name="name">The function name to check</param>
+        /// <returns></returns>
+        public bool HasFunction(string name)
+        {
+            var luaFunction = State[name] as LuaFunction;
+            return luaFunction != null;
+        }
+
+        /// <summary>
+        /// Load the script from disk and execute it.
         /// </summary>
         /// <returns>boolean indicating whether the script was reloaded or not</returns>
-        public bool Load()
+        public bool Run()
         {
-            string scriptText;
             try
             {
-                scriptText = File.ReadAllText(Path);
+                State.DoFile(FullPath);
             }
-            catch (Exception e)
+            catch (NLua.Exceptions.LuaScriptException e)
             {
-                Logger.ErrorFormat("Couldn't open script {0}: {1}", Path, e.ToString());
+                ScriptingLogger.Error($"Error executing script {FullPath}: {e.ToString()}, full stacktrace follows:\n{e.StackTrace}");
                 Disabled = true;
                 CompilationError = e.ToString();
                 return false;
             }
 
-            scriptText = //ScriptProcessor.RestrictStdlib 
-                ScriptProcessor.HybrasylImports + scriptText;
-
-            Source =
-                Processor.Engine.CreateScriptSourceFromString(scriptText);
-
-            Name = System.IO.Path.GetFileName(Path).ToLower();
-
-            try
-            {
-                Compile();
-                Compiled.Execute(Scope);
-                Disabled = false;
-            }
-            catch (Exception e)
-            {
-                var pythonFrames = PythonOps.GetDynamicStackFrames(e);
-                var exceptionstring = Processor.Engine.GetService<ExceptionOperations>().FormatException(e);
-                Logger.ErrorFormat("script {0} encountered error, Python stack follows", Path);
-                Logger.ErrorFormat("{0}", exceptionstring);
-                Disabled = true;
-                CompilationError = exceptionstring;
-                return false;
-            }
             return true;
         }
 
         /// <summary>
-        /// Compile the script, using the global Hybrasyl engine.
+        /// Execute a JavaScript expression in the context of an associated world object.
+        /// Primarily used for dialog callbacks.
         /// </summary>
-        /// <returns>boolean indicating success or failure (might raise exception in the future)</returns>
-        public bool Compile()
-        {
-            if (Source == null) return false;
-            Compiled = Source.Compile();
-            return true;
-        }
-
-        /// <summary>
-        /// If the script has a Scriptable class (used for WorldObject hooks), instantiate it.
-        /// </summary>
-        public bool InstantiateScriptable()
-        {
-            // First, disable the script, then if we have an instance, delete it.
-            Disabled = true;
-
-            if (Instance != null)
-                Instance = null;
-
-            try
-            {
-                var klass = Scope.GetVariable("Scriptable");
-                Scope.SetVariable("world", Processor.World);
-                if (Associate != null)
-                {
-                    Scope.SetVariable("npc", Associate);
-                    Associate.Obj.ResetPursuits();
-                }
-                Instance = Processor.Engine.Operations.CreateInstance(klass);
-                Disabled = false;
-            }
-            catch (Exception e)
-            {
-                var pythonFrames = PythonOps.GetDynamicStackFrames(e);
-                var exceptionstring = Processor.Engine.GetService<ExceptionOperations>().FormatException(e);
-                Logger.ErrorFormat("script {0} encountered error, Python stack follows", Path);
-                Logger.ErrorFormat("{0}", exceptionstring);
-                Logger.ErrorFormat("script {0} now disabled", Path);
-                Disabled = true;
-                CompilationError = exceptionstring;
-                return false;
-            }
-            return true;
-        }
-
-        public bool ExecuteFunction(ScriptInvocation invocation, params object[] parameters)
+        /// <param name="expr">The javascript expression, in string form.</param>
+        /// <param name="invoker">The invoker (caller).</param>
+        /// <returns></returns>
+        public bool Execute(string expr, dynamic invoker)
         {
             if (Disabled)
                 return false;
 
-            if (!Processor.Engine.Operations.IsCallable(invocation.Function)) return false;
-            if (invocation.Invoker is User)
-            {
-                Scope.SetVariable("invoker", new HybrasylUser(invocation.Invoker as User));
-            }
-            else
-            {
-                Scope.SetVariable("invoker", new HybrasylWorldObject(invocation.Invoker as WorldObject));
-            }
-            if (invocation.Associate is WorldObject)
-            {
-                Scope.SetVariable("npc", new HybrasylWorldObject(invocation.Associate as WorldObject));
-            }
             try
             {
-                var ret = Processor.Engine.Operations.Invoke(invocation.Function, parameters);
-                if (ret is bool)
-                    return (bool)ret;
+                State["invoker"] = GetObjectWrapper(invoker);
+                State.DoString(expr);
             }
-            catch (Exception e)
+            catch (NLua.Exceptions.LuaScriptException e)
             {
-                var pythonFrames = PythonOps.GetDynamicStackFrames(e);
-                var exceptionstring = Processor.Engine.GetService<ExceptionOperations>().FormatException(e);
-                Logger.ErrorFormat("script {0} encountered error, Python stack follows", Path);
-                Logger.ErrorFormat("{0}", exceptionstring);
-                Logger.ErrorFormat("script {0} now disabled", Path);
-                LastRuntimeError = exceptionstring;
+                ScriptingLogger.Error($"{Name}: Error executing expression: {expr}: \n{e.ToString()} full stacktrace follows:\n{e.StackTrace}");
+                Disabled = true;
+                CompilationError = e.ToString();
                 return false;
             }
             return true;
+
+        }
+
+        public bool ExecuteFunction(string functionName, dynamic associate, dynamic invoker)
+        {
+            if (Disabled)
+                return false;
+
+            try
+            {
+                var luaFunction = State[functionName] as LuaFunction;
+                if (luaFunction != null)
+                {
+                    State["associate"] = GetObjectWrapper(associate);
+                    State["invoker"] = GetObjectWrapper(invoker);
+                    luaFunction.Call();
+                }
+                else
+                    return false;
+            }
+            catch (NLua.Exceptions.LuaScriptException e)
+            {
+                ScriptingLogger.Error($"{Name}: Error executing expression: {functionName} ({e.ToString()}) full stacktrace follows:\n{e.StackTrace}");
+                Disabled = true;
+                CompilationError = e.ToString();
+                return false;
+            }
+
+            return true;
+        }
+
+        public bool ExecuteFunction(string functionName, dynamic invoker)
+        {
+            if (Disabled)
+                return false;
+
+            try
+            {
+                var luaFunction = State[functionName] as LuaFunction;
+                if (luaFunction != null)
+                {
+                    State["invoker"] = GetObjectWrapper(invoker);
+                    luaFunction.Call();
+                }
+                else
+                    return false;
+            }
+            catch (NLua.Exceptions.LuaScriptException e)
+            {
+                ScriptingLogger.Error($"{Name}: Error executing function: {functionName} ({e.ToString()}) , full stacktrace follows:\n{e.StackTrace}");
+                Disabled = true;
+                CompilationError = e.ToString();
+                return false;
+            }
+
+            return true;
+
+        }
+
+        public bool ExecuteFunction(string functionName)
+        {
+            if (Disabled || !(Associate is HybrasylWorldObject))
+                return false;
+
+            try
+            {
+                var luaFunction = State[functionName] as LuaFunction;
+                if (luaFunction != null)
+                {
+                    luaFunction.Call();
+                }
+                else
+                    return false;
+            }
+            catch (NLua.Exceptions.LuaScriptException e)
+            {
+                ScriptingLogger.Error($"{Name}: Error executing function: {functionName} ({e.ToString()}) , full stacktrace follows:\n{e.StackTrace}");
+                Disabled = true;
+                CompilationError = e.ToString();
+                return false;
+            }
+
+            return true;
+
         }
 
         /// <summary>
@@ -217,62 +263,7 @@ namespace Hybrasyl.Scripting
         public bool AttachScriptable(WorldObject obj)
         {
             Associate = new HybrasylWorldObject(obj);
-            Logger.InfoFormat("Scriptable name: {0}", Instance.name);
             return true;
         }
-
-        /// <summary>
-        /// If the script has a Scriptable class and the given function exists, execute it.
-        /// </summary>
-        /// <param name="name"></param>
-        /// <param name="parameters">The parameters to pass to the function.</param>
-        public void ExecuteScriptableFunction(string name, params object[] parameters)
-        {
-            if (Disabled)
-                return;
-
-            Scope.SetVariable("world", Processor.World);
-            Scope.SetVariable("npc", Associate);
-
-            try
-            {
-                Processor.Engine.Operations.InvokeMember(Instance, name, parameters);
-            }
-            catch (System.NotImplementedException)
-            {
-                Logger.DebugFormat("script {0}: missing member {1}", Path, name);
-            }
-            catch (Exception e)
-            {
-                var pythonFrames = PythonOps.GetDynamicStackFrames(e);
-                var exceptionstring = Processor.Engine.GetService<ExceptionOperations>().FormatException(e);
-                Logger.ErrorFormat("script {0} encountered error, Python stack follows", Path);
-                Logger.ErrorFormat("{0}", exceptionstring);
-                Logger.ErrorFormat("script {0} now disabled");
-                LastRuntimeError = exceptionstring;
-            }
-        }
-
-        /// <summary>
-        /// Execute the script in the passed scope.
-        /// </summary>
-        /// <param name="scope">The ScriptScope the script will execute in.</param>
-        public void ExecuteScript(WorldObject caller = null)
-        {
-            dynamic resolvedCaller;
-
-            if (caller != null)
-            {
-                if (caller is User)
-                    resolvedCaller = new HybrasylUser(caller as User);
-                else
-                    resolvedCaller = new HybrasylWorldObject(caller);
-                Scope.SetVariable("npc", resolvedCaller);
-            }
-
-            Scope.SetVariable("world", Processor.World);
-            Compiled.Execute(Scope);
-        }
-
     }
 }

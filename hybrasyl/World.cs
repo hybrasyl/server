@@ -30,7 +30,6 @@ using Hybrasyl.Objects;
 using Hybrasyl.XML;
 using log4net;
 using log4net.Core;
-using Microsoft.Scripting.Utils;
 using Newtonsoft.Json;
 using StackExchange.Redis;
 using System;
@@ -764,7 +763,7 @@ namespace Hybrasyl
 
         public void CompileScripts()
         {
-            // Scan each directory for *.py files
+            // Scan each directory for *.lua files
             foreach (var dir in Constants.SCRIPT_DIRECTORIES)
             {
                 Logger.InfoFormat("Scanning script directory: {0}", dir);
@@ -780,14 +779,14 @@ namespace Hybrasyl
                 {
                     try
                     {
-                        if (Path.GetExtension(file) == ".py")
+                        if (Path.GetExtension(file) == ".lua")
                         {
                             var scriptname = Path.GetFileName(file);
                             Logger.InfoFormat("Loading script {0}\\{1}", dir, scriptname);
                             var script = new Script(file, ScriptProcessor);
                             ScriptProcessor.RegisterScript(script);
                             if (dir == "common")
-                                script.InstantiateScriptable();
+                                script.Run();
                         }
                     }
                     catch (Exception e)
@@ -2233,48 +2232,36 @@ namespace Hybrasyl
 
                             if (args.Count() >= 3)
                             {
-                                var script = ScriptProcessor.GetScript(args[2].Trim());
-                                if (script != null)
+                                Script script;
+                                if (ScriptProcessor.TryGetScript(args[2].Trim(), out script))
                                 {
                                     if (args[1].ToLower() == "reload")
                                     {
                                         script.Disabled = true;
-                                        if (script.Load())
+                                        if (script.Run())
                                         {
-                                            user.SendMessage(string.Format("Script {0}: reloaded", script.Name), 0x01);
-                                            if (script.InstantiateScriptable())
-                                                user.SendMessage(
-                                                    string.Format("Script {0}: instances recreated", script.Name), 0x01);
+                                            user.SendMessage($"Script {script.Name}: reloaded", 0x01);
+                                            script.Disabled = false;
                                         }
                                         else
                                         {
-                                            user.SendMessage(
-                                                string.Format("Script {0}: load error, consult status", script.Name), 0x01);
+                                            user.SendMessage($"Script {script.Name}: load error, check scripting log", 0x01);
                                         }
                                     }
                                     else if (args[1].ToLower() == "enable")
                                     {
                                         script.Disabled = false;
-                                        user.SendMessage(string.Format("Script {0}: enabled", script.Name), 0x01);
+                                        user.SendMessage($"Script {script.Name}: enabled", 0x01);
                                     }
                                     else if (args[1].ToLower() == "disable")
                                     {
                                         script.Disabled = true;
-                                        user.SendMessage(string.Format("Script {0}: disabled", script.Name), 0x01);
+                                        user.SendMessage($"Script {script.Name}: disabled", 0x01);
                                     }
                                     else if (args[1].ToLower() == "status")
                                     {
                                         var scriptStatus = string.Format("{0}:", script.Name);
                                         string errorSummary = "--- Error Summary ---\n";
-
-                                        if (script.Instance == null)
-                                            scriptStatus = string.Format("{0} not instantiated,", scriptStatus);
-                                        else
-                                            scriptStatus = string.Format("{0} instantiated,", scriptStatus);
-                                        if (script.Disabled)
-                                            scriptStatus = string.Format("{0} disabled", scriptStatus);
-                                        else
-                                            scriptStatus = string.Format("{0} enabled", scriptStatus);
 
                                         if (script.LastRuntimeError == string.Empty &&
                                             script.CompilationError == string.Empty)
@@ -2299,50 +2286,9 @@ namespace Hybrasyl
                                     user.SendMessage(string.Format("Script {0} not found!", args[2]), 0x01);
                                 }
                             }
-                            else if (args.Count() == 2)
-                            {
-                                if (args[1].ToLower() == "status")
-                                {
-                                    // Display status information for all NPCs
-                                    string statusReport = string.Empty;
-                                    string errorSummary = "--- Error Summary ---\n";
-
-                                    foreach (KeyValuePair<string, Script> entry in ScriptProcessor.Scripts)
-                                    {
-                                        var scriptStatus = string.Format("{0}:", entry.Key);
-                                        var scriptErrors = string.Format("{0}:", entry.Key);
-                                        if (entry.Value.Instance == null)
-                                            scriptStatus = string.Format("{0} not instantiated,", scriptStatus);
-                                        else
-                                            scriptStatus = string.Format("{0} instantiated,", scriptStatus);
-                                        if (entry.Value.Disabled)
-                                            scriptStatus = string.Format("{0} disabled", scriptStatus);
-                                        else
-                                            scriptStatus = string.Format("{0} enabled", scriptStatus);
-
-                                        if (entry.Value.LastRuntimeError == string.Empty &&
-                                            entry.Value.CompilationError == string.Empty)
-                                            scriptErrors = string.Format("{0} no errors", scriptErrors);
-                                        else
-                                        {
-                                            if (entry.Value.CompilationError != string.Empty)
-                                                scriptErrors = string.Format("{0} compilation error: {1}", scriptErrors,
-                                                    entry.Value.CompilationError);
-                                            if (entry.Value.LastRuntimeError != string.Empty)
-                                                scriptErrors = string.Format("{0} runtime error: {1}", scriptErrors,
-                                                    entry.Value.LastRuntimeError);
-                                        }
-                                        statusReport = string.Format("{0}\n{1}", statusReport, scriptStatus);
-                                        errorSummary = string.Format("{0}\n{1}", errorSummary, scriptErrors);
-                                    }
-                                    // Report to the end user
-                                    user.SendMessage(string.Format("{0}\n\n{1}", statusReport, errorSummary),
-                                        MessageTypes.SLATE_WITH_SCROLLBAR);
-                                }
-                            }
                         }
                         break;
-
+                       
                     case "/rollchar":
                         {
                             // /rollchar <class> <level>
@@ -4356,8 +4302,8 @@ namespace Hybrasyl
 
             if (obj is ItemObject)
             {
-                var itemscript = Game.World.ScriptProcessor.GetScript(obj.Name);
-                if (itemscript != null)
+                Script itemscript;
+                if (Game.World.ScriptProcessor.TryGetScript(obj.Name, out itemscript))
                 {
                     var clone = itemscript.Clone();
                     itemscript.AssociateScriptWithObject(obj);
@@ -4457,7 +4403,7 @@ namespace Hybrasyl
                             if (ActiveUsers.TryGetValue(clientMessage.ConnectionId, out user))
                             {
                                 // Check if the action is prohibited due to statuses
-                                MethodBase method = handler.GetMethod();
+                                MethodBase method = handler.GetMethodInfo();
                                 bool ignore = false;
                                 foreach (var prohibited in method.GetCustomAttributes(typeof(ProhibitedCondition), true))
                                 {

@@ -1,4 +1,3 @@
-=======
 # Hybrasyl Server
 
 [Project website](http://hybrasyl.com/) - [Bug tracker](https://hybrasyl.atlassian.net/secure/Dashboard.jspa)
