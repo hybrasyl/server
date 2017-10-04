@@ -56,7 +56,7 @@ namespace Hybrasyl
         {
             using (HttpClient client = new HttpClient())
             {
-                client.BaseAddress = new Uri("http://build.hybrasyl.com/api/news");
+                client.BaseAddress = new Uri($"http://{Game.Config.ApiEndpoints.RemoteAdminHost.BindAddress}/api/news");
 
                 var json = $"[{client.GetAsync(client.BaseAddress + "/GetMotd").Result.Content.ReadAsStringAsync().Result}]";
 

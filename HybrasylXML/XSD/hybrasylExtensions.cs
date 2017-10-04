@@ -45,7 +45,7 @@ namespace Hybrasyl.Items
                 }
                 return false;
             }
-        } 
+        }
 
         [XmlIgnore]
         public int MaximumStack => Properties.Stackable?.Max ?? 0;
@@ -135,10 +135,10 @@ namespace Hybrasyl.Items
                 {
                     if (Properties.Appearance.DisplaySprite > 0)
                     {
-                        return 31*Name.GetHashCode()*((Properties.Restrictions?.Gender.GetHashCode() ?? Gender.Neutral.GetHashCode()) + 1)*
+                        return 31 * Name.GetHashCode() * ((Properties.Restrictions?.Gender.GetHashCode() ?? Gender.Neutral.GetHashCode()) + 1) *
                                Properties.Appearance.DisplaySprite.GetHashCode();
                     }
-                    return 31*Name.GetHashCode()*((Properties.Restrictions?.Gender.GetHashCode() ?? Gender.Neutral.GetHashCode()) + 1);
+                    return 31 * Name.GetHashCode() * ((Properties.Restrictions?.Gender.GetHashCode() ?? Gender.Neutral.GetHashCode()) + 1);
                 }
             }
         }
@@ -166,12 +166,33 @@ namespace Hybrasyl.Castables
             {
                 unchecked
                 {
-                    return 31*(Name.GetHashCode() + 1);
+                    return 31 * (Name.GetHashCode() + 1);
                 }
             }
         }
 
         public byte CastableLevel { get; set; }
+
+        public byte GetMaxLevelByClass(Class castableClass)
+        {
+            switch (castableClass)
+            {
+                case Castables.Class.Peasant:
+                    return MaxLevel.Peasant;
+                case Castables.Class.Warrior:
+                    return MaxLevel.Warrior;
+                case Castables.Class.Rogue:
+                    return MaxLevel.Rogue;
+                case Castables.Class.Wizard:
+                    return MaxLevel.Wizard;
+                case Castables.Class.Priest:
+                    return MaxLevel.Priest;
+                case Castables.Class.Monk:
+                    return MaxLevel.Monk;
+            }
+
+            return 0;
+        }
     }
 }
 

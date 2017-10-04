@@ -208,7 +208,7 @@ namespace Hybrasyl
 
             //set up service endpoint for ControlService
 
-            var host = new WebServiceHost(typeof(ControlService), new Uri($"http://localhost:{Constants.ControlServicePort}/ControlService"));
+            var host = new WebServiceHost(typeof(ControlService), new Uri($"http://{Config.ApiEndpoints.ControlService.BindAddress}:{Config.ApiEndpoints.ControlService.Port}/ControlService"));
             
             //host.Open();
             Logger.InfoFormat($"Starting ControlService on port {Constants.ControlServicePort}");

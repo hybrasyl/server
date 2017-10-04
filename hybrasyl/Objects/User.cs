@@ -95,14 +95,14 @@ namespace Hybrasyl.Objects
         {
             return string.Concat(typeof(User).Name, ':', name.ToLower());
         }
-        
+
         public string StorageKey => string.Concat(GetType().Name, ':', Name.ToLower());
         private Client Client { get; set; }
 
         [JsonProperty]
         public Sex Sex { get; set; }
         //private account Account { get; set; }
-     
+
         [JsonProperty]
         public Enums.Class Class { get; set; }
         [JsonProperty]
@@ -116,7 +116,7 @@ namespace Hybrasyl.Objects
             =>
             !(Status.HasFlag(PlayerCondition.Asleep) ||
               Status.HasFlag(PlayerCondition.Frozen) || Status.HasFlag(PlayerCondition.Paralyzed));
-        
+
 
         public Mailbox Mailbox => World.GetMailbox(Name);
         public bool UnreadMail => Mailbox.HasUnreadMessages;
@@ -182,7 +182,8 @@ namespace Hybrasyl.Objects
 
         public Nation Nation
         {
-            get {
+            get
+            {
                 return _nation ?? World.DefaultNation;
             }
             set
@@ -228,18 +229,18 @@ namespace Hybrasyl.Objects
         /// </summary>
         public void Reindex()
         {
-            Legend.RegenerateIndex();    
+            Legend.RegenerateIndex();
         }
 
         public uint ExpToLevel
         {
             get
             {
-                var levelExp = (uint) Math.Pow(Level, 3)*250;
+                var levelExp = (uint)Math.Pow(Level, 3) * 250;
                 if (Level == Constants.MAX_LEVEL || Experience >= levelExp)
-                    return 0; 
-                            
-                return (uint) (Math.Pow(Level, 3) * 250 - Experience);
+                    return 0;
+
+                return (uint)(Math.Pow(Level, 3) * 250 - Experience);
             }
         }
 
@@ -288,9 +289,9 @@ namespace Hybrasyl.Objects
             }
         }
 
-        public string SinceLastLoginstring => SinceLastLogin < 86400 ? 
-            $"{Math.Floor(SinceLastLogin/3600)} hours, {Math.Floor(SinceLastLogin%3600/60)} minutes" : 
-            $"{Math.Floor(SinceLastLogin/86400)} days, {Math.Floor(SinceLastLogin%86400/3600)} hours, {Math.Floor(SinceLastLogin%86400%3600/60)} minutes";
+        public string SinceLastLoginstring => SinceLastLogin < 86400 ?
+            $"{Math.Floor(SinceLastLogin / 3600)} hours, {Math.Floor(SinceLastLogin % 3600 / 60)} minutes" :
+            $"{Math.Floor(SinceLastLogin / 86400)} days, {Math.Floor(SinceLastLogin % 86400 / 3600)} hours, {Math.Floor(SinceLastLogin % 86400 % 3600 / 60)} minutes";
 
         // Throttling checks for messaging
 
@@ -310,16 +311,16 @@ namespace Hybrasyl.Objects
             get { return Group != null; }
         }
 
-    	[JsonProperty]
+        [JsonProperty]
         public bool IsMuted { get; set; }
         [JsonProperty]
         public bool IsIgnoringWhispers { get; set; }
         [JsonProperty]
-	    public bool IsAtWorldMap { get; set; }
+        public bool IsAtWorldMap { get; set; }
 
         public void Enqueue(ServerPacket packet)
         {
-            Logger.DebugFormat("Sending {0:X2} to {1}", packet.Opcode,Name);
+            Logger.DebugFormat("Sending {0:X2} to {1}", packet.Opcode, Name);
             Client.Enqueue(packet);
         }
 
@@ -442,7 +443,7 @@ namespace Hybrasyl.Objects
 
         public virtual void SendStatusUpdate(IPlayerStatus status, bool remove = false)
         {
-            var statuspacket = new ServerPacketStructures.StatusBar {Icon = status.Icon};
+            var statuspacket = new ServerPacketStructures.StatusBar { Icon = status.Icon };
             var elapsed = DateTime.Now - status.Start;
             var remaining = status.Duration - elapsed.TotalSeconds;
             StatusBarColor color;
@@ -562,7 +563,7 @@ namespace Hybrasyl.Objects
                 RemoveEquipment(item.EquipmentSlot);
                 if (item.Perishable) continue;
                 if (item.Durability > 10)
-                    item.Durability = (uint) Math.Ceiling(item.Durability*0.90);
+                    item.Durability = (uint)Math.Ceiling(item.Durability * 0.90);
                 else
                     item.Durability = 0;
                 item.DeathPileOwner = Name;
@@ -582,14 +583,14 @@ namespace Hybrasyl.Objects
                     DeathPileTime = timeofdeath
                 };
                 World.Insert(newGold);
-                Map.AddGold(X,Y, newGold);
+                Map.AddGold(X, Y, newGold);
                 Gold = 0;
             }
 
             // Experience penalty
             if (Experience > 1000)
             {
-                var expPenalty = (uint) Math.Ceiling(Experience*0.05);
+                var expPenalty = (uint)Math.Ceiling(Experience * 0.05);
                 Experience -= expPenalty;
                 SendSystemMessage($"You lose {expPenalty} experience!");
             }
@@ -614,7 +615,7 @@ namespace Hybrasyl.Objects
             ToggleNearDeath();
             var bar = RemoveStatus(NearDeathStatus.Icon, false);
             Logger.Debug($"EndComa: {Name}: removestatus for coma is {bar}");
-            
+
             foreach (var status in _currentStatuses.Values)
             {
                 Logger.Debug($"EXTANT STATUSES: {status.Name} with duration {status.Duration}");
@@ -637,7 +638,7 @@ namespace Hybrasyl.Objects
             {
                 // Handle any weird cases where a map someone exited on was deleted, etc
                 // This "default" of Mileth should be set somewhere else
-                Teleport((ushort)500, (byte)50, (byte)50);              
+                Teleport((ushort)500, (byte)50, (byte)50);
             }
 
             Hp = 1;
@@ -677,7 +678,7 @@ namespace Hybrasyl.Objects
 
         public ushort VisibleWeight
         {
-            get { return (ushort) Math.Max(0, CurrentWeight); }
+            get { return (ushort)Math.Max(0, CurrentWeight); }
         }
 
         /**
@@ -692,12 +693,12 @@ namespace Hybrasyl.Objects
 
         public ushort MaximumWeight
         {
-            get { return (ushort) (BaseStr + Level/4 + 48); }
+            get { return (ushort)(BaseStr + Level / 4 + 48); }
         }
 
         public bool VerifyPassword(string password)
         {
-             return BCrypt.Net.BCrypt.Verify(password, Password.Hash);
+            return BCrypt.Net.BCrypt.Verify(password, Password.Hash);
         }
 
         public User()
@@ -741,11 +742,11 @@ namespace Hybrasyl.Objects
             MonsterSprite = ushort.MinValue;
             #endregion
         }
-        
-    /**
-     * Invites another user to this user's group. If this user isn't in a group,
-     * create a new one.
-     */
+
+        /**
+         * Invites another user to this user's group. If this user isn't in a group,
+         * create a new one.
+         */
 
         public bool InviteToGroup(User invitee)
         {
@@ -820,7 +821,7 @@ namespace Hybrasyl.Objects
                         int mpGain = 0;
                         int bonusHp = 0;
                         int bonusMp = 0;
-                        
+
                         double levelCircleModifier;  // Users get more Hp and Mp per level at higher Level "circles"
 
                         if (Level < LevelCircles.CIRCLE_1)
@@ -893,7 +894,7 @@ namespace Hybrasyl.Objects
                         // His hp and mp will increase further by a "bonus amount" that is accounted for by:
                         // - 50% Level circle
                         // - 50% Randomness
-                        
+
                         int bonusHpGain = (int)Math.Round(bonusHp * 0.5 * levelCircleModifier + bonusHp * 0.5 * random.NextDouble(), MidpointRounding.AwayFromZero);
                         int bonusMpGain = (int)Math.Round(bonusMp * 0.5 * levelCircleModifier + bonusMp * 0.5 * random.NextDouble(), MidpointRounding.AwayFromZero);
 
@@ -913,7 +914,7 @@ namespace Hybrasyl.Objects
                     Effect(50, 250);
                     UpdateAttributes(StatUpdateFlags.Full);
                 }
-            }        
+            }
 
             UpdateAttributes(StatUpdateFlags.Experience);
 
@@ -921,7 +922,7 @@ namespace Hybrasyl.Objects
 
         public void TakeExperience(uint exp)
         {
-            
+
         }
 
         public bool AssociateConnection(World world, long connectionId)
@@ -955,7 +956,7 @@ namespace Hybrasyl.Objects
         {
             Name = playername;
             Sex = sex;
-            Location = new Location {MapId = targetMap, WorldMap = false, X = targetX, Y = targetY};
+            Location = new Location { MapId = targetMap, WorldMap = false, X = targetX, Y = targetY };
             _initializeUser(playername);
         }
 
@@ -987,10 +988,10 @@ namespace Hybrasyl.Objects
 
             switch (toApply.EquipmentSlot)
             {
-                case (byte) ItemSlots.Necklace:
+                case (byte)ItemSlots.Necklace:
                     OffensiveElement = toApply.Element;
                     break;
-                case (byte) ItemSlots.Waist:
+                case (byte)ItemSlots.Waist:
                     DefensiveElement = toApply.Element;
                     break;
             }
@@ -1023,10 +1024,10 @@ namespace Hybrasyl.Objects
             BonusRegen -= toRemove.BonusRegen;
             switch (toRemove.EquipmentSlot)
             {
-                case (byte) ItemSlots.Necklace:
+                case (byte)ItemSlots.Necklace:
                     OffensiveElement = Enums.Element.None;
                     break;
-                case (byte) ItemSlots.Waist:
+                case (byte)ItemSlots.Waist:
                     DefensiveElement = Enums.Element.None;
                     break;
             }
@@ -1056,24 +1057,24 @@ namespace Hybrasyl.Objects
                 profilePacket.WriteByte(tuple.Item2);
             }
 
-            profilePacket.WriteByte((byte) GroupStatus);
+            profilePacket.WriteByte((byte)GroupStatus);
             profilePacket.WriteString8(Name);
-            profilePacket.WriteByte((byte) Nation.Flag); // This should pull from town / nation
+            profilePacket.WriteByte((byte)Nation.Flag); // This should pull from town / nation
             profilePacket.WriteString8(Guild.Title);
-            profilePacket.WriteByte((byte) (Grouping ? 1 : 0));
+            profilePacket.WriteByte((byte)(Grouping ? 1 : 0));
             profilePacket.WriteString8(Guild.Rank);
-            profilePacket.WriteString8(Hybrasyl.Constants.REVERSE_CLASSES[(int) Class]);
+            profilePacket.WriteString8(Hybrasyl.Constants.REVERSE_CLASSES[(int)Class]);
             profilePacket.WriteString8(Guild.Name);
-            profilePacket.WriteByte((byte) Legend.Count);
+            profilePacket.WriteByte((byte)Legend.Count);
             foreach (var mark in Legend.Where(mark => mark.Public))
             {
-                profilePacket.WriteByte((byte) mark.Icon);
-                profilePacket.WriteByte((byte) mark.Color);
+                profilePacket.WriteByte((byte)mark.Icon);
+                profilePacket.WriteByte((byte)mark.Color);
                 profilePacket.WriteString8(mark.Prefix);
                 profilePacket.WriteString8(mark.ToString());
             }
-            profilePacket.WriteUInt16((ushort) (PortraitData.Length + ProfileText.Length + 4));
-            profilePacket.WriteUInt16((ushort) PortraitData.Length);
+            profilePacket.WriteUInt16((ushort)(PortraitData.Length + ProfileText.Length + 4));
+            profilePacket.WriteUInt16((ushort)PortraitData.Length);
             profilePacket.Write(PortraitData);
             profilePacket.WriteString16(ProfileText);
 
@@ -1096,7 +1097,7 @@ namespace Hybrasyl.Objects
             }
 
         }
-    
+
         public void Save()
         {
             if (!IsSaving)
@@ -1271,7 +1272,7 @@ namespace Hybrasyl.Objects
             if (targetCreature is Merchant) return;
             if (targetCreature != null) Attack(castable, targetCreature);
             else Attack(castable);
-                
+
         }
 
         public void SendVisibleItem(ItemObject itemObject)
@@ -1296,7 +1297,7 @@ namespace Hybrasyl.Objects
             x07.WriteUInt16(creature.X);
             x07.WriteUInt16(creature.Y);
             x07.WriteUInt32(creature.Id);
-            x07.WriteUInt16((ushort) (creature.Sprite + 0x4000));
+            x07.WriteUInt16((ushort)(creature.Sprite + 0x4000));
             x07.WriteByte(0); // Unknown what this is
             x07.WriteByte(0);
             x07.WriteByte(0);
@@ -1308,7 +1309,7 @@ namespace Hybrasyl.Objects
             x07.DumpPacket();
             Enqueue(x07);
 
-            
+
         }
 
         public void SendUpdateToUser(Client client)
@@ -1333,7 +1334,7 @@ namespace Hybrasyl.Objects
                 Weapon = Equipment.Weapon?.DisplaySprite ?? 0,
                 Armor = (Equipment.Armor?.DisplaySprite ?? 0),
                 BodySpriteOffset = offset,
-                Boots = (byte) (Equipment.Boots?.DisplaySprite ?? 0),
+                Boots = (byte)(Equipment.Boots?.DisplaySprite ?? 0),
                 BootsColor = (byte)(Equipment.Boots?.Color ?? 0),
                 DisplayAsMonster = DisplayAsMonster,
                 FaceShape = FaceShape,
@@ -1357,7 +1358,7 @@ namespace Hybrasyl.Objects
             }.Packet());
         }
 
-  
+
 
         public override void SendId()
         {
@@ -1462,7 +1463,7 @@ namespace Hybrasyl.Objects
 
         public void SendSkillUpdate(Castable item, int slot)
         {
-            if(item == null)
+            if (item == null)
             {
                 SendClearSkill(slot);
                 return;
@@ -1472,11 +1473,8 @@ namespace Hybrasyl.Objects
             var x2C = new ServerPacket(0x2C);
             x2C.WriteByte((byte)slot);
             x2C.WriteUInt16((ushort)(item.Icon));
-            x2C.WriteString8(item.Name);
-            x2C.WriteByte(0); //current level
-            x2C.WriteByte((byte)100); //this will need to be updated
+            x2C.WriteString8(Class == Enums.Class.Peasant ? item.Name : $"{item.Name} (Lev:{item.CastableLevel}/{GetCastableMaxLevel(item)}");
             Enqueue(x2C);
-
         }
 
         public void SendSpellUpdate(Castable item, int slot)
@@ -1494,13 +1492,10 @@ namespace Hybrasyl.Objects
             var spellType = item.Intents[0].UseType;
             //var spellType = isClick ? 2 : 5;
             x17.WriteByte((byte)spellType); //spell type? how are we determining this?
-            x17.WriteString8(item.Name + " (" + item.CastableLevel + "/" + item.MaxLevel.Peasant + ")");
+            x17.WriteString8(Class == Enums.Class.Peasant ? item.Name : $"{item.Name} (Lev:{item.CastableLevel}/{GetCastableMaxLevel(item)}");
             x17.WriteString8(item.Name); //prompt? what is this?
             x17.WriteByte((byte)item.Lines);
-            x17.WriteByte(0); //current level
-            x17.WriteByte((byte)100); //this will need to be updated
             Enqueue(x17);
-
         }
 
         public void SetFlag(string flag, string value)
@@ -1591,11 +1586,11 @@ namespace Hybrasyl.Objects
             if (flags.HasFlag(StatUpdateFlags.Secondary))
             {
                 x08.WriteByte(0); //Unknown
-                x08.WriteByte((byte) (Status.HasFlag(PlayerCondition.Blinded) ? 0x08 : 0x00));
+                x08.WriteByte((byte)(Status.HasFlag(PlayerCondition.Blinded) ? 0x08 : 0x00));
                 x08.WriteByte(0); // Unknown
                 x08.WriteByte(0); // Unknown
                 x08.WriteByte(0); // Unknown
-                x08.WriteByte((byte) (Mailbox.HasUnreadMessages ? 0x10 : 0x00));
+                x08.WriteByte((byte)(Mailbox.HasUnreadMessages ? 0x10 : 0x00));
                 x08.WriteByte((byte)OffensiveElement);
                 x08.WriteByte((byte)DefensiveElement);
                 x08.WriteSByte(Mr);
@@ -1607,6 +1602,21 @@ namespace Hybrasyl.Objects
             Enqueue(x08);
         }
 
+        public int GetCastableMaxLevel(Castable castable)
+        {
+            if (IsMaster)
+            {
+                return 100;
+            }
+
+            var propertyInfo = castable.MaxLevel.GetType().GetProperty(Class.ToString());
+            if (propertyInfo != null)
+                return (int)(propertyInfo.GetValue(castable.MaxLevel, null));
+
+            
+            return 0;
+        }
+
 
         public User GetFacingUser()
         {
@@ -1615,23 +1625,23 @@ namespace Hybrasyl.Objects
             switch (Direction)
             {
                 case Direction.North:
-                    contents = Map.GetTileContents(X, Y-1);
+                    contents = Map.GetTileContents(X, Y - 1);
                     break;
                 case Direction.South:
-                    contents = Map.GetTileContents(X, Y+1);
+                    contents = Map.GetTileContents(X, Y + 1);
                     break;
                 case Direction.West:
-                    contents = Map.GetTileContents(X-1, Y);
+                    contents = Map.GetTileContents(X - 1, Y);
                     break;
                 case Direction.East:
-                    contents = Map.GetTileContents(X+1, Y);
+                    contents = Map.GetTileContents(X + 1, Y);
                     break;
                 default:
                     contents = new List<VisibleObject>();
                     break;
             }
 
-            return (User) contents.FirstOrDefault(y => y is User);
+            return (User)contents.FirstOrDefault(y => y is User);
         }
 
         /// <summary>
@@ -1844,7 +1854,7 @@ namespace Hybrasyl.Objects
         public void RecalculateBonuses()
         {
             foreach (var item in Equipment)
-                ApplyBonuses(item);            
+                ApplyBonuses(item);
         }
 
         public bool RemoveGold(uint amount)
@@ -1878,7 +1888,7 @@ namespace Hybrasyl.Objects
             // Quantity check - if we already have an ItemObject with the same name, will
             // adding the MaximumStack)
 
-            if(SkillBook.Contains(item.Id))
+            if (SkillBook.Contains(item.Id))
             {
                 SendSystemMessage("You already know this skill.");
                 return false;
@@ -1968,7 +1978,7 @@ namespace Hybrasyl.Objects
                     Map.Insert(itemObject, X, Y);
                     return false;
                 }
-                
+
                 // Merge stack and destroy "added" ItemObject
                 inventoryItem.Count += itemObject.Count;
                 itemObject.Count = 0;
@@ -2008,7 +2018,7 @@ namespace Hybrasyl.Objects
         {
             if (Inventory.Contains(itemName, quantity))
             {
-                var remaining = (int) quantity;
+                var remaining = (int)quantity;
                 var slots = Inventory.SlotOf(itemName);
                 foreach (var i in slots)
                 {
@@ -2181,7 +2191,7 @@ namespace Hybrasyl.Objects
                     var damageType = EnumUtil.ParseEnum<Enums.DamageType>(damage.Type.ToString(),
                         Enums.DamageType.Magical);
                     var dmg = rand.Next(Convert.ToInt32(simple.Min), Convert.ToInt32(simple.Max));
-                        //these need to be set to integers as attributes. note to fix.
+                    //these need to be set to integers as attributes. note to fix.
                     target.Damage(dmg, OffensiveElement, damageType, this);
                 }
                 else
@@ -2195,7 +2205,7 @@ namespace Hybrasyl.Objects
                     target.Damage(dmg, OffensiveElement, damageType, this);
                 }
                 //var dmg = rand.Next(Convert.ToInt32(simple.Min), Convert.ToInt32(simple.Max));
-                    //these need to be set to integers as attributes. note to fix.
+                //these need to be set to integers as attributes. note to fix.
                 //target.Damage(dmg, OffensiveElement, damage.Type, this);
             }
             else
@@ -2223,7 +2233,7 @@ namespace Hybrasyl.Objects
                         Random rand = new Random();
 
                         if (damage.Formula == null)
-                            //will need to be expanded. also will need to account for damage scripts
+                        //will need to be expanded. also will need to account for damage scripts
                         {
                             var simple = damage.Simple;
                             var damageType = EnumUtil.ParseEnum(damage.Type.ToString(), (Enums.DamageType)castObject.Effects.Damage.Type);
@@ -2258,11 +2268,11 @@ namespace Hybrasyl.Objects
 
                 try
                 {
-                    motion = castObject.Effects.Animations.OnCast.Player.SingleOrDefault(x => x.Class.Contains((Class) Class));
+                    motion = castObject.Effects.Animations.OnCast.Player.SingleOrDefault(x => x.Class.Contains((Class)Class));
                 }
                 catch (InvalidOperationException)
                 {
-                    motion = castObject.Effects.Animations.OnCast.Player.FirstOrDefault(x => x.Class.Contains((Class) Class));
+                    motion = castObject.Effects.Animations.OnCast.Player.FirstOrDefault(x => x.Class.Contains((Class)Class));
 
                     Logger.ErrorFormat("{1}: contains more than one motion for a class definition, using first one found!", castObject.Name);
                 }
@@ -2273,8 +2283,8 @@ namespace Hybrasyl.Objects
                 {
                     var playerAnimation = new ServerPacketStructures.PlayerAnimation()
                     {
-                        Animation = (byte) motion.Id,
-                        Speed = (ushort) motion.Speed,
+                        Animation = (byte)motion.Id,
+                        Speed = (ushort)motion.Speed,
                         UserId = Id
                     };
                     Enqueue(playerAnimation.Packet());
@@ -2295,143 +2305,143 @@ namespace Hybrasyl.Objects
                 foreach (var intent in intents)
                 {
                     var possibleTargets = new List<VisibleObject>();
-                    Rectangle rect = new Rectangle(0, 0, 0 ,0);
+                    Rectangle rect = new Rectangle(0, 0, 0, 0);
 
                     switch (intent.Direction)
                     {
                         case IntentDirection.Front:
-                        {
-                            switch (Direction)
                             {
-                                case Direction.North:
+                                switch (Direction)
                                 {
-                                    //facing north, attack north
-                                   rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
+                                    case Direction.North:
+                                        {
+                                            //facing north, attack north
+                                            rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
+                                        }
+                                        break;
+                                    case Direction.South:
+                                        {
+                                            //facing south, attack south
+                                            rect = new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
+                                        }
+                                        break;
+                                    case Direction.East:
+                                        {
+                                            //facing east, attack east
+                                            rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
+                                        }
+                                        break;
+                                    case Direction.West:
+                                        {
+                                            //facing west, attack west
+                                            rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
+                                        }
+                                        break;
                                 }
-                                    break;
-                                case Direction.South:
-                                {
-                                    //facing south, attack south
-                                    rect =new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
-                                }
-                                    break;
-                                case Direction.East:
-                                {
-                                    //facing east, attack east
-                                    rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
-                                }
-                                    break;
-                                case Direction.West:
-                                {
-                                    //facing west, attack west
-                                    rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
-                                }
-                                    break;
                             }
-                        }
                             break;
                         case IntentDirection.Back:
-                        {
-                            switch (Direction)
                             {
-                                case Direction.North:
+                                switch (Direction)
                                 {
-                                    //facing north, attack south
-                                    rect = new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
+                                    case Direction.North:
+                                        {
+                                            //facing north, attack south
+                                            rect = new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
+                                        }
+                                        break;
+                                    case Direction.South:
+                                        {
+                                            //facing south, attack north
+                                            rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
+                                        }
+                                        break;
+                                    case Direction.East:
+                                        {
+                                            //facing east, attack west
+                                            rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
+                                        }
+                                        break;
+                                    case Direction.West:
+                                        {
+                                            //facing west, attack east
+                                            rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
+                                        }
+                                        break;
                                 }
-                                    break;
-                                case Direction.South:
-                                {
-                                    //facing south, attack north
-                                    rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
-                                }
-                                    break;
-                                case Direction.East:
-                                {
-                                    //facing east, attack west
-                                    rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
-                                }
-                                    break;
-                                case Direction.West:
-                                {
-                                    //facing west, attack east
-                                    rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
-                                }
-                                    break;
                             }
-                        }
                             break;
                         case IntentDirection.Left:
-                        {
-                            switch (Direction)
                             {
-                                case Direction.North:
+                                switch (Direction)
                                 {
-                                    //facing north, attack west
-                                    rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
+                                    case Direction.North:
+                                        {
+                                            //facing north, attack west
+                                            rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
+                                        }
+                                        break;
+                                    case Direction.South:
+                                        {
+                                            //facing south, attack east
+                                            rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
+                                        }
+                                        break;
+                                    case Direction.East:
+                                        {
+                                            //facing east, attack north
+                                            rect = new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
+                                        }
+                                        break;
+                                    case Direction.West:
+                                        {
+                                            //facing west, attack south
+                                            rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
+                                        }
+                                        break;
                                 }
-                                    break;
-                                case Direction.South:
-                                {
-                                    //facing south, attack east
-                                    rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
-                                }
-                                    break;
-                                case Direction.East:
-                                {
-                                    //facing east, attack north
-                                    rect = new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
-                                }
-                                    break;
-                                case Direction.West:
-                                {
-                                    //facing west, attack south
-                                    rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
-                                }
-                                    break;
                             }
-                        }
                             break;
                         case IntentDirection.Right:
-                        {
-                            switch (Direction)
                             {
-                                case Direction.North:
+                                switch (Direction)
                                 {
-                                    //facing north, attack east
-                                   rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
+                                    case Direction.North:
+                                        {
+                                            //facing north, attack east
+                                            rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
+                                        }
+                                        break;
+                                    case Direction.South:
+                                        {
+                                            //facing south, attack west
+                                            rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
+                                        }
+                                        break;
+                                    case Direction.East:
+                                        {
+                                            //facing east, attack south
+                                            rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
+                                        }
+                                        break;
+                                    case Direction.West:
+                                        {
+                                            //facing west, attack north
+                                            rect = new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
+                                        }
+                                        break;
                                 }
-                                    break;
-                                case Direction.South:
-                                {
-                                    //facing south, attack west
-                                    rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
-                                }
-                                    break;
-                                case Direction.East:
-                                {
-                                    //facing east, attack south
-                                    rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
-                                }
-                                    break;
-                                case Direction.West:
-                                {
-                                    //facing west, attack north
-                                    rect = new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
-                                }
-                                    break;
                             }
-                        }
                             break;
                         case IntentDirection.Nearby:
-                        {
-                            //attack radius
-                            rect = new Rectangle(this.X - intent.Radius, this.Y - intent.Radius, intent.Radius * 2, intent.Radius * 2);
-                        }
+                            {
+                                //attack radius
+                                rect = new Rectangle(this.X - intent.Radius, this.Y - intent.Radius, intent.Radius * 2, intent.Radius * 2);
+                            }
                             break;
                     }
 
-                    if(!rect.IsEmpty) possibleTargets.AddRange(Map.EntityTree.GetObjects(rect).Where(obj => obj is Creature && obj != this && obj.GetType() != typeof(Merchant)));;
+                    if (!rect.IsEmpty) possibleTargets.AddRange(Map.EntityTree.GetObjects(rect).Where(obj => obj is Creature && obj != this && obj.GetType() != typeof(Merchant))); ;
 
                     var actualTargets = intent.MaxTargets > 0 ? possibleTargets.Take(intent.MaxTargets).OfType<Creature>().ToList() : possibleTargets.OfType<Creature>().ToList();
 
@@ -2463,7 +2473,7 @@ namespace Hybrasyl.Objects
                                 var effectAnimation = new ServerPacketStructures.EffectAnimation()
                                 {
                                     SourceId = this.Id,
-                                    Speed = (short) castObject.Effects.Animations.OnCast.Target.Speed,
+                                    Speed = (short)castObject.Effects.Animations.OnCast.Target.Speed,
                                     TargetId = target.Id,
                                     TargetAnimation = castObject.Effects.Animations.OnCast.Target.Id
                                 };
@@ -2525,24 +2535,24 @@ namespace Hybrasyl.Objects
                 switch (direction)
                 {
                     case Direction.East:
-                    {
-                        obj = Map.EntityTree.FirstOrDefault(x => x.X == X + 1 && x.Y == Y);
-                    }
+                        {
+                            obj = Map.EntityTree.FirstOrDefault(x => x.X == X + 1 && x.Y == Y);
+                        }
                         break;
                     case Direction.West:
-                    {
-                        obj = Map.EntityTree.FirstOrDefault(x => x.X == X - 1 && x.Y == Y);
-                    }
+                        {
+                            obj = Map.EntityTree.FirstOrDefault(x => x.X == X - 1 && x.Y == Y);
+                        }
                         break;
                     case Direction.North:
-                    {
-                        obj = Map.EntityTree.FirstOrDefault(x => x.X == X && x.Y == Y - 1);
-                    }
+                        {
+                            obj = Map.EntityTree.FirstOrDefault(x => x.X == X && x.Y == Y - 1);
+                        }
                         break;
                     case Direction.South:
-                    {
-                        obj = Map.EntityTree.FirstOrDefault(x => x.X == X && x.Y == Y + 1);
-                    }
+                        {
+                            obj = Map.EntityTree.FirstOrDefault(x => x.X == X && x.Y == Y + 1);
+                        }
                         break;
                     default:
                         throw new ArgumentOutOfRangeException(nameof(direction), direction, null);
@@ -2565,18 +2575,18 @@ namespace Hybrasyl.Objects
 
             foreach (var c in SkillBook)
             {
-                if (target != null && c.IsAssail && target.GetType() != typeof(Merchant) )
+                if (target != null && c.IsAssail && target.GetType() != typeof(Merchant))
                 {
                     Attack(direction, c, target);
                 }
             }
             //animation handled here as to not repeatedly send assails.
             var firstAssail = SkillBook.FirstOrDefault(x => x.IsAssail);
-            var motion = firstAssail?.Effects.Animations.OnCast.Player.FirstOrDefault(y => y.Class.Contains((Class) Class));
+            var motion = firstAssail?.Effects.Animations.OnCast.Player.FirstOrDefault(y => y.Class.Contains((Class)Class));
 
             var motionId = motion != null ? (byte)motion.Id : (byte)1;
-            var assail = new ServerPacketStructures.PlayerAnimation() {Animation = motionId , Speed = 20, UserId = this.Id};
-            var sound = new ServerPacketStructures.PlaySound() {Sound = firstAssail != null ? (byte)firstAssail.Effects.Sound.Id : (byte)1};
+            var assail = new ServerPacketStructures.PlayerAnimation() { Animation = motionId, Speed = 20, UserId = this.Id };
+            var sound = new ServerPacketStructures.PlaySound() { Sound = firstAssail != null ? (byte)firstAssail.Effects.Sound.Id : (byte)1 };
             Enqueue(assail.Packet());
             Enqueue(sound.Packet());
             SendAnimation(assail.Packet());
@@ -2619,19 +2629,19 @@ namespace Hybrasyl.Objects
         public void SendProfile()
         {
             var profilePacket = new ServerPacket(0x39);
-            profilePacket.WriteByte((byte) Nation.Flag); // citizenship
+            profilePacket.WriteByte((byte)Nation.Flag); // citizenship
             profilePacket.WriteString8(Guild.Rank);
             profilePacket.WriteString8(Guild.Title);
             profilePacket.WriteString8(GroupText);
             profilePacket.WriteBoolean(Grouping);
             profilePacket.WriteByte(0); // ??
-            profilePacket.WriteByte((byte) Class);
+            profilePacket.WriteByte((byte)Class);
             //            profilePacket.WriteByte(1); // ??
             profilePacket.WriteByte(0);
             profilePacket.WriteByte(0); // ??
-            profilePacket.WriteString8(IsMaster ? "Master" : Hybrasyl.Constants.REVERSE_CLASSES[(int) Class]);
+            profilePacket.WriteString8(IsMaster ? "Master" : Hybrasyl.Constants.REVERSE_CLASSES[(int)Class]);
             profilePacket.WriteString8(Guild.Name);
-            profilePacket.WriteByte((byte) Legend.Count);
+            profilePacket.WriteByte((byte)Legend.Count);
             foreach (var mark in Legend)
             {
                 profilePacket.WriteByte((byte)mark.Icon);
@@ -2673,7 +2683,7 @@ namespace Hybrasyl.Objects
 
         public void SendMotion(uint id, byte motion, short speed)
         {
-            Logger.InfoFormat("SendMotion id {0}, motion {1}, speed {2}", id,motion,speed);
+            Logger.InfoFormat("SendMotion id {0}, motion {1}, speed {2}", id, motion, speed);
             var x1A = new ServerPacket(0x1A);
             x1A.WriteUInt32(id);
             x1A.WriteByte(motion);
@@ -2709,7 +2719,7 @@ namespace Hybrasyl.Objects
         }
         public void SendEffect(short x, short y, ushort effect, short speed)
         {
-            Logger.InfoFormat("SendEffect: x {0}, y {1}, effect {2}, speed {3}", x,y,effect,speed);
+            Logger.InfoFormat("SendEffect: x {0}, y {1}, effect {2}, speed {3}", x, y, effect, speed);
             var x29 = new ServerPacket(0x29);
             x29.WriteUInt32(uint.MinValue);
             x29.WriteUInt16(effect);
@@ -2773,7 +2783,7 @@ namespace Hybrasyl.Objects
                 });
             }
             merchantSkills.SkillsCount = (ushort)skillsCount;
-            merchantSkills.Id = (ushort) MerchantMenuItem.LearnSkill;
+            merchantSkills.Id = (ushort)MerchantMenuItem.LearnSkill;
 
             var packet = new ServerPacketStructures.MerchantResponse()
             {
@@ -2909,7 +2919,7 @@ namespace Hybrasyl.Objects
         {
             var learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_choice");
             var skillDesc = castable.Descriptions.Single(x => x.Class.Contains((Class)Class) || x.Class.Contains(Castables.Class.Peasant));
-            var prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$SKILLDESC", skillDesc.Value );
+            var prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$SKILLDESC", skillDesc.Value);
 
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
@@ -2925,7 +2935,7 @@ namespace Hybrasyl.Objects
                 Text = "No"
             });
 
-            options.OptionsCount = (byte) options.Options.Count;
+            options.OptionsCount = (byte)options.Options.Count;
             var packet = new ServerPacketStructures.MerchantResponse()
             {
                 MerchantDialogType = MerchantDialogType.Options,
@@ -2950,7 +2960,7 @@ namespace Hybrasyl.Objects
         {
             var castable = PendingLearnableCastable;
             //now check requirements.
-            var classReq = castable.Requirements.Single(x => x.Class.Contains((Class) Class) || Class == Enums.Class.Peasant);
+            var classReq = castable.Requirements.Single(x => x.Class.Contains((Class)Class) || Class == Enums.Class.Peasant);
             String learnString = null;
             MerchantOptions options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
@@ -2979,9 +2989,9 @@ namespace Hybrasyl.Objects
                         prompt = learnString.Value.Replace("$SKILLNAME", preReq.Value).Replace("$PREREQ", preReq.Level.ToString());
                         break;
                     }
-                    else if(SkillBook.Contains(Game.World.WorldData.GetByIndex<Castable>(preReq.Value)))
+                    else if (SkillBook.Contains(Game.World.WorldData.GetByIndex<Castable>(preReq.Value)))
                     {
-                        var preReqSkill = SkillBook.Single(x=> x.Name == preReq.Value);
+                        var preReqSkill = SkillBook.Single(x => x.Name == preReq.Value);
                         if (preReqSkill.CastableLevel < preReq.Level)
                         {
                             learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_level");
@@ -3018,7 +3028,7 @@ namespace Hybrasyl.Objects
                     Id = (ushort)MerchantMenuItem.LearnSkillDisagree,
                     Text = "No"
                 });
-                
+
             }
 
             options.OptionsCount = (byte)options.Options.Count;
@@ -3392,12 +3402,12 @@ namespace Hybrasyl.Objects
                 var worldItem = Game.World.WorldData.GetByIndex<Item>(item.Name);
                 merchantItems.Items.Add(new MerchantShopItem()
                 {
-                    Tile = (ushort) (0x8000 + worldItem.Properties.Appearance.Sprite),
+                    Tile = (ushort)(0x8000 + worldItem.Properties.Appearance.Sprite),
                     Color = (byte)worldItem.Properties.Appearance.Color,
                     Description = worldItem.Properties.Vendor?.Description ?? "",
                     Name = worldItem.Name,
                     Price = worldItem.Properties.Physical.Value
-                    
+
                 });
                 itemsCount++;
             }
@@ -3434,7 +3444,7 @@ namespace Hybrasyl.Objects
 
                 var input = new MerchantInput();
 
-                input.Id = (ushort) MerchantMenuItem.BuyItemAccept;
+                input.Id = (ushort)MerchantMenuItem.BuyItemAccept;
 
 
                 var packet = new ServerPacketStructures.MerchantResponse()
@@ -3442,9 +3452,9 @@ namespace Hybrasyl.Objects
                     MerchantDialogType = MerchantDialogType.Input,
                     MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
                     ObjectId = merchant.Id,
-                    Tile1 = (ushort) (0x4000 + merchant.Sprite),
+                    Tile1 = (ushort)(0x4000 + merchant.Sprite),
                     Color1 = 0,
-                    Tile2 = (ushort) (0x4000 + merchant.Sprite),
+                    Tile2 = (ushort)(0x4000 + merchant.Sprite),
                     Color2 = 0,
                     PortraitType = 0,
                     Name = merchant.Name,
@@ -3481,7 +3491,7 @@ namespace Hybrasyl.Objects
             var prompt = string.Empty;
             var item = Game.World.WorldData.GetByIndex<Item>(PendingBuyableItem);
             var itemObj = Game.World.CreateItem(item.Id);
-            var reqGold = (uint) (itemObj.Value * quantity);
+            var reqGold = (uint)(itemObj.Value * quantity);
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
             if (quantity > 10) //TODO: merchants need to hold their current inventory count.
@@ -3609,7 +3619,7 @@ namespace Hybrasyl.Objects
                     Name = merchant.Name,
                     Text = prompt,
                     Input = input
-                    
+
                 };
                 Enqueue(packet.Packet());
             }
@@ -3640,7 +3650,7 @@ namespace Hybrasyl.Objects
         {
             PendingSellableQuantity = quantity;
             var item = Inventory[slot];
-            var offer = (uint) (Math.Round(item.Value * 0.10, 0) * quantity);
+            var offer = (uint)(Math.Round(item.Value * 0.10, 0) * quantity);
             PendingMerchantOffer = offer;
             String offerString = null;
             var options = new MerchantOptions();
@@ -3664,7 +3674,7 @@ namespace Hybrasyl.Objects
 
             if (prompt == string.Empty)
             {
-                if(!Inventory.Contains(item.Name, quantity))
+                if (!Inventory.Contains(item.Name, quantity))
                 {
                     offerString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_failure_quantity");
                     prompt = offerString.Value;
@@ -3776,9 +3786,9 @@ namespace Hybrasyl.Objects
             var prompt = string.Empty;
             if (parcelString != null) prompt = parcelString.Value ?? string.Empty;
 
-            var userItems = new UserInventoryItems {InventorySlots = new List<byte>()};
+            var userItems = new UserInventoryItems { InventorySlots = new List<byte>() };
             var itemsCount = 0;
-            for(byte i = 0; i<Inventory.Size; i++)
+            for (byte i = 0; i < Inventory.Size; i++)
             {
                 if (Inventory[i] == null) continue;
                 if (Inventory[i].Exchangeable && Inventory[i].Durability == Inventory[i].MaximumDurability)
@@ -3845,7 +3855,7 @@ namespace Hybrasyl.Objects
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
             //verify user has required items.
-            var parcelFee = (uint) Math.Round(itemObj.Value * .10, 0);
+            var parcelFee = (uint)Math.Round(itemObj.Value * .10, 0);
             if (!(Gold > parcelFee))
             {
                 parcelString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel_fail");
@@ -4030,9 +4040,9 @@ namespace Hybrasyl.Objects
             if (!Status.HasFlag(PlayerCondition.InExchange)) return;
             Enqueue(new ServerPacketStructures.Exchange
             {
-                Action=ExchangeActions.GoldUpdate,
-                Side =source,
-                Gold =gold
+                Action = ExchangeActions.GoldUpdate,
+                Side = source,
+                Gold = gold
             }.Packet());
         }
 
@@ -4046,7 +4056,7 @@ namespace Hybrasyl.Objects
             Enqueue(new ServerPacketStructures.Exchange
             {
                 Action = ExchangeActions.Cancel,
-                Side =source
+                Side = source
             }.Packet());
         }
 
@@ -4061,15 +4071,15 @@ namespace Hybrasyl.Objects
             Enqueue(new ServerPacketStructures.Exchange
             {
                 Action = ExchangeActions.Confirm,
-                Side =source
+                Side = source
             }.Packet());
         }
 
         public void SendInventory()
         {
-            for(byte i = 0; i<this.Inventory.Size; i++)
+            for (byte i = 0; i < this.Inventory.Size; i++)
             {
-                if(this.Inventory[i] != null)
+                if (this.Inventory[i] != null)
                 {
                     var x0F = new ServerPacket(0x0F);
                     x0F.WriteByte(i);
@@ -4098,13 +4108,7 @@ namespace Hybrasyl.Objects
             {
                 if (this.SkillBook[i] != null)
                 {
-                    var x2C = new ServerPacket(0x2C);
-                    x2C.WriteByte((byte)i);
-                    x2C.WriteUInt16((ushort)(SkillBook[i].Icon));
-                    x2C.WriteString8(SkillBook[i].Name);
-                    x2C.WriteByte(0); //current level
-                    x2C.WriteByte((byte)100); //this will need to be updated
-                    Enqueue(x2C);
+                    SendSkillUpdate(SkillBook[i], i);
                 }
             }
         }
@@ -4114,18 +4118,7 @@ namespace Hybrasyl.Objects
             {
                 if (this.SpellBook[i] != null)
                 {
-                    var x17 = new ServerPacket(0x17);
-                    x17.WriteByte((byte)i);
-                    x17.WriteUInt16((ushort)(SpellBook[i].Icon));
-                    var spellType = SpellBook[i].Intents[0].UseType;
-                    //var spellType = isClick ? 2 : 5;
-                    x17.WriteByte((byte)spellType); //spell type? how are we determining this?
-                    x17.WriteString8(SpellBook[i].Name + " (" + SpellBook[i].CastableLevel + "/" + 100 + ")"); //fortest
-                    x17.WriteString8(SpellBook[i].Name); //prompt? what is this?
-                    x17.WriteByte((byte)SpellBook[i].Lines);
-                    x17.WriteByte(0); //current level
-                    x17.WriteByte((byte)100); //this will need to be updated
-                    Enqueue(x17);
+                    SendSpellUpdate(SpellBook[i], i);
                 }
             }
         }
