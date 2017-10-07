@@ -41,12 +41,15 @@ namespace Hybrasyl
             public Script Script { get; private set; }
             public WorldObject Associate { get; private set; }
             public string PreDisplayCallback { get; private set; }
+            public bool CloseOnEnd { get; set; }
 
-            public DialogSequence(string sequenceName)
+            public DialogSequence(string sequenceName, bool closeOnEnd = false)
             {
                 Name = sequenceName;
                 Dialogs = new List<Dialog>();
                 Id = null;
+                CloseOnEnd = closeOnEnd;
+
             }
 
             /// <summary>
