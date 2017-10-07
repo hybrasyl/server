@@ -3644,6 +3644,25 @@ namespace Hybrasyl
                     }
                 }
 
+                // Did the user click next on the last dialog in a sequence?
+                // If so, either close the dialog or go to the main menu (main menu by 
+                // default
+
+                if (user.DialogState.ActiveDialogSequence.Dialogs.Count() == pursuitIndex)
+                {
+                    user.DialogState.EndDialog();
+                    if (user.DialogState.ActiveDialogSequence.CloseOnEnd)
+                    {
+                        Logger.DebugFormat("Sending close packet");
+                        var p = new ServerPacket(0x30);
+                        p.WriteByte(0x0A);
+                        p.WriteByte(0x00);
+                        user.Enqueue(p);
+                    }
+                    else
+                        clickTarget.DisplayPursuits(user);
+                }
+
                 // Is the active dialog an input or options dialog?
 
                 if (user.DialogState.ActiveDialog is OptionsDialog)
