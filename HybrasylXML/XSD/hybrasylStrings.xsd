@@ -1,0 +1,55 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:hyb="http://www.hybrasyl.com/XML/HybrasylCommon" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:strings="http://www.hybrasyl.com/XML/HybrasylStrings" targetNamespace="http://www.hybrasyl.com/XML/HybrasylStrings" elementFormDefault="qualified">
+
+  <xs:annotation>
+    <xs:documentation xml:lang="en">
+      Hybrasyl Project - Hybrasyl XML Schema - Common / Reused Types
+      This file is subject to the same licenses as Project Hybrasyl.
+      (C) 2017 Project Hybrasyl (info@hybrasyl.com)
+      Written by Michael Norris (norrism@hybrasyl.com)
+    </xs:documentation>
+  </xs:annotation>
+
+  <xs:import schemaLocation="hybrasylTypes.xsd" namespace="http://www.hybrasyl.com/XML/HybrasylCommon" />
+  <!--Separated for future expansion usage.-->
+  <xs:complexType name="String">
+    <xs:attribute name="Key" type="xs:string"/>
+    <xs:attribute name="Value" type="xs:string"/>
+  </xs:complexType>
+
+  <xs:complexType name="MerchantStrings">
+    <xs:sequence>
+      <xs:element name="String" type="strings:String" minOccurs="0" maxOccurs="unbounded" />
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="MonsterPhrases">
+    <xs:sequence>
+      <xs:element name="String" type="strings:String" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="NpcPhrases">
+    <xs:sequence>
+      <xs:element name="String" type="strings:String" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="CommonStrings">
+    <xs:sequence>
+      <xs:element name="String" type="strings:String" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="Strings">
+    <xs:sequence>
+      <xs:element name="Common" type="strings:CommonStrings" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="Merchant" type="strings:MerchantStrings" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="NpcSpeak" type="strings:NpcPhrases" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="MonsterSpeak" type="strings:MonsterPhrases" minOccurs="1" maxOccurs="1"/>
+    </xs:sequence>
+  </xs:complexType>
+  
+  <xs:element name="Strings" type="strings:Strings"/>
+  
+</xs:schema>

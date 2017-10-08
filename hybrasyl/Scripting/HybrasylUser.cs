@@ -109,6 +109,11 @@ namespace Hybrasyl.Scripting
             return User.Legend;
         }
 
+        public bool AddLegendMark(LegendIcon icon, LegendColor color, string text, string prefix=default(string), bool isPublic = true, int quantity = 0)
+        {
+            return AddLegendMark(icon, color, text, DateTime.Now, prefix, isPublic, quantity);
+        }
+
         public bool AddLegendMark(LegendIcon icon, LegendColor color, string text, DateTime created, string prefix = default(string), bool isPublic = true, int quantity = 0)
         {
             try

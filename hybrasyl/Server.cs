@@ -20,6 +20,7 @@
  *            Kyle Speck    <kojasou@hybrasyl.com>
  */
 
+using Hybrasyl.Enums;
 using log4net;
 using System;
 using System.Collections.Concurrent;
@@ -49,6 +50,8 @@ namespace Hybrasyl
         public int Port { get; private set; }
         public Socket Listener { get; private set; }
         public WorldPacketHandler[] PacketHandlers { get; private set; }
+        public Dictionary<byte, IPacketThrottle> Throttles { get; private set; }
+
         public ControlMessageHandler[] ControlMessageHandlers { get; private set; }
         public ConcurrentDictionary<uint, Redirect> ExpectedConnections { get; private set; }
 
@@ -67,10 +70,26 @@ namespace Hybrasyl
             Port = port;
             PacketHandlers = new WorldPacketHandler[256];
             ControlMessageHandlers = new ControlMessageHandler[64];
+            Throttles = new Dictionary<byte, IPacketThrottle>();
             ExpectedConnections = new ConcurrentDictionary<uint, Redirect>();
             for (int i = 0; i < 256; ++i)
                 PacketHandlers[i] = (c, p) => Logger.WarnFormat("Server: Unhandled opcode 0x{0:X2}", p.Opcode);
 
+        }
+
+        public void RegisterPacketThrottle(IPacketThrottle newThrottle)
+        {
+            Throttles[newThrottle.Opcode] = newThrottle;
+        }
+
+        public ThrottleResult PacketThrottleCheck(Client client, ClientPacket packet)
+        {
+            IPacketThrottle throttle;
+            if (Throttles.TryGetValue(packet.Opcode, out throttle))
+            {
+                return throttle.ProcessThrottle(new PacketThrottleData(client, packet));
+            }
+            return ThrottleResult.OK;
         }
 
         public void StartListening()
@@ -99,9 +118,12 @@ namespace Hybrasyl
                 //Logger.InfoFormat("GCM value: {0}", GlobalConnectionManifest.ConnectedClients.Count);
                 foreach (var client in GlobalConnectionManifest.ConnectedClients.Select(kvp => kvp.Value))
                 {
-                    ServerPacket packet;
-                    while (client.ClientState.SendBufferTake(out packet))
+                    try
                     {
+                        if (client.IsReceiving) continue;
+                        
+                        ServerPacket packet;
+                        if (!client.ClientState.SendBufferTake(out packet)) continue;
                         if (packet.ShouldEncrypt)
                         {
                             ++client.ServerOrdinal;
@@ -116,14 +138,54 @@ namespace Hybrasyl
                         }
                         var buffer = packet.ToArray();
 
-                        var byteData = (byte[])packet;
+                        var byteData = (byte[]) packet;
+                        if (client.ClientState.WorkSocket.Connected)
+                        {
+                            try
+                            {
+                                client.ClientState.WorkSocket.BeginSend(buffer, 0, buffer.Length, 0,
+                                new AsyncCallback(SendCallback), client.ClientState);
+                            }
+                            catch (SocketException e)
+                            {
+                                Logger.Fatal(e.Message);
+                                client.Disconnect();
+                            }
+                            
+                        }
 
-                        client.ClientState.WorkSocket.BeginSend(buffer, 0, buffer.Length, 0,
-                            new AsyncCallback(SendCallback), client.ClientState);
                     }
+                    catch (Exception e)
+                    {
+                       Logger.Fatal(e.Message);
+                    }
+                    
                 }
+                
                 Thread.Sleep(100);
             }
+        }
+
+       
+
+        public byte[] SendPacket(Client client, ServerPacket packet)
+        {
+            if (packet == null) return null;
+            if (packet.ShouldEncrypt)
+            {
+                ++client.ServerOrdinal;
+                packet.Ordinal = client.ServerOrdinal;
+
+                packet.GenerateFooter();
+                packet.Encrypt(client);
+            }
+            if (packet.TransmitDelay != 0)
+            {
+                Thread.Sleep(packet.TransmitDelay);
+            }
+            var buffer = packet.ToArray();
+
+            return buffer;
         }
 
         public virtual void AcceptConnection(IAsyncResult ar)
@@ -142,24 +204,24 @@ namespace Hybrasyl
                 x7E.WriteByte(0x1B);
                 x7E.WriteString("CONNECTED SERVER\n");
                 client.Enqueue(x7E);
-                Logger.InfoFormat("Lobby: AcceptConnection occuring");
-                Logger.InfoFormat("Lobby: cid is {0}", client.ConnectionId);
+                Logger.DebugFormat("Lobby: AcceptConnection occuring");
+                Logger.DebugFormat("Lobby: cid is {0}", client.ConnectionId);
             }
             else if (this is Login)
             {
-                Logger.InfoFormat("Login: AcceptConnection occuring");
-                Logger.InfoFormat("Login: cid is {0}", client.ConnectionId);
+                Logger.DebugFormat("Login: AcceptConnection occuring");
+                Logger.DebugFormat("Login: cid is {0}", client.ConnectionId);
             }
             else if (this is World)
             {
-                Logger.InfoFormat("World: AcceptConnection occuring");
-                Logger.InfoFormat("World: cid is {0}", client.ConnectionId);
+                Logger.DebugFormat("World: AcceptConnection occuring");
+                Logger.DebugFormat("World: cid is {0}", client.ConnectionId);
             }
             try
             {
                 handler.BeginReceive(client.ClientState.Buffer, 0, client.ClientState.Buffer.Length, 0,
                     new AsyncCallback(ReadCallback), client.ClientState);
-                Logger.InfoFormat("AcceptConnection returning");
+                Logger.DebugFormat("AcceptConnection returning");
                 clientSocket.BeginAccept(new AsyncCallback(AcceptConnection), clientSocket);
             }
             catch (SocketException)
@@ -169,11 +231,11 @@ namespace Hybrasyl
         }
 
         public void SendCallback(IAsyncResult ar)
-        {
+             {
 
             ClientState state = (ClientState) ar.AsyncState;
             Client client;
-            Logger.InfoFormat("EndSend");
+            Logger.DebugFormat("EndSend");
             try
             {
                 SocketError errorCode;
@@ -190,11 +252,12 @@ namespace Hybrasyl
                 {
                     Logger.ErrorFormat("cid {0}: disconnected");
                     client.Disconnect();
-                    return;
+                    throw new SocketException((int)errorCode);
                 }
             }
-            catch (SocketException)
+            catch (SocketException e)
             {
+                Logger.Fatal($"Error Code: {e.ErrorCode}, {e.Message}");
                 state.WorkSocket.Close();
             }
             catch (ObjectDisposedException)
@@ -204,18 +267,28 @@ namespace Hybrasyl
             }
         }
 
+        private void Send(ClientState handler, byte[] packet)
+        {
+            try
+            {
+                if (packet == null) return;
+                handler.WorkSocket.BeginSend(packet, 0, packet.Length, SocketFlags.None, new AsyncCallback(SendCallback), handler);
+            }
+            catch (Exception e)
+            {
+                Logger.Fatal(e.Message);
+                throw;
+            }
+
+        }
 
         public void ReadCallback(IAsyncResult ar)
         {
             ClientState state = (ClientState) ar.AsyncState;
             Client client;
-            SocketError errorCode;
+            SocketError errorCode = SocketError.SocketError;
             int bytesRead = 0;
 
-            if (this is Login)
-            {
-                Logger.InfoFormat("This is a login ReadCallback");
-            }
             try
             {
                 bytesRead = state.WorkSocket.EndReceive(ar, out errorCode);
@@ -223,9 +296,16 @@ namespace Hybrasyl
                 {
                     bytesRead = 0;
                 }
+                else if (errorCode == SocketError.NoData || errorCode == SocketError.AccessDenied ||
+                         errorCode == SocketError.Fault || errorCode == SocketError.InvalidArgument ||
+                         errorCode == SocketError.NoBufferSpaceAvailable)
+                {
+                    throw new SocketException((int) errorCode);
+                }
             }
-            catch (SocketException)
+            catch (SocketException e)
             {
+                Logger.Fatal($"ErrorCode: {e.ErrorCode}, {e.Message}");
                 state.WorkSocket.Close();
             }
             catch (ObjectDisposedException)
@@ -251,7 +331,7 @@ namespace Hybrasyl
 
             if (bytesRead > 0)
             {
-           
+
                 var inboundBytes = state.ReceiveBufferTake(bytesRead).ToArray();
                 if (inboundBytes[0] != 0xAA)
                 {
@@ -263,7 +343,6 @@ namespace Hybrasyl
                 {
                     while (inboundBytes.Length > 3)
                     {
-                        Logger.InfoFormat("Inside while loop");
                         var packetLength = ((int) inboundBytes[1] << 8) + (int) inboundBytes[2] + 3;
                         if (packetLength > inboundBytes.Length)
                         {
@@ -278,7 +357,7 @@ namespace Hybrasyl
                             // Also remove it from our local buffer...this seems kinda gross to me
                             inboundBytes =
                                 new List<byte>(inboundBytes).GetRange(packetLength,
-                                    inboundBytes.Length - packetLength)
+                                        inboundBytes.Length - packetLength)
                                     .ToArray();
 
                             if (receivedPacket.ShouldEncrypt)
@@ -291,42 +370,56 @@ namespace Hybrasyl
                             {
                                 if (this is Lobby)
                                 {
-                                    Logger.InfoFormat("Lobby: 0x{0:X2}", receivedPacket.Opcode);
+                                    Logger.DebugFormat("Lobby: 0x{0:X2}", receivedPacket.Opcode);
                                     var handler = (this as Lobby).PacketHandlers[receivedPacket.Opcode];
                                     handler.Invoke(client, receivedPacket);
-                                    Logger.InfoFormat("Lobby packet done");
+                                    if (!client.IsReceiving)
+                                    {
+                                        client.IsReceiving = true;
+                                        ServerPacket sendBuff;
+                                        state.SendBufferTake(out sendBuff);
+                                        Send(state, SendPacket(client, sendBuff));
+                                        client.IsReceiving = false;
+                                    }
+                                    Logger.DebugFormat("Lobby packet done");
                                     client.UpdateLastReceived();
                                 }
                                 else if (this is Login)
                                 {
-                                    Logger.InfoFormat("Login: 0x{0:X2}", receivedPacket.Opcode);
+                                    Logger.DebugFormat("Login: 0x{0:X2}", receivedPacket.Opcode);
                                     var handler = (this as Login).PacketHandlers[receivedPacket.Opcode];
                                     handler.Invoke(client, receivedPacket);
-                                    Logger.InfoFormat("Login packet done");
+                                    if (!client.IsReceiving)
+                                    {
+                                        client.IsReceiving = true;
+                                        ServerPacket sendBuff;
+                                        state.SendBufferTake(out sendBuff);
+                                        Send(state, SendPacket(client, sendBuff));
+                                        client.IsReceiving = false;
+                                    }
+                                    Logger.DebugFormat("Login packet done");
                                     client.UpdateLastReceived();
                                 }
                                 else
                                 {
                                     client.UpdateLastReceived(receivedPacket.Opcode != 0x45 &&
                                                               receivedPacket.Opcode != 0x75);
-                                    Logger.InfoFormat("Queuing: 0x{0:X2}", receivedPacket.Opcode);
+                                    Logger.DebugFormat("Queuing: 0x{0:X2}", receivedPacket.Opcode);
                                     // Check for throttling
-                                    ThrottleInfo throttleInfo = null;
-                                    if (client.Throttle.ContainsKey(receivedPacket.Opcode))
+                                    var throttleResult = PacketThrottleCheck(client, receivedPacket);
+                                    if (throttleResult == ThrottleResult.OK || throttleResult == ThrottleResult.ThrottleEnd || throttleResult == ThrottleResult.SquelchEnd)
                                     {
-                                        throttleInfo = client.Throttle[receivedPacket.Opcode];
+                                        World.MessageQueue.Add(new HybrasylClientMessage(receivedPacket,
+                                            client.ConnectionId));
                                     }
-                                    
-                                    if (throttleInfo == null || throttleInfo.IsThrottled == false)
+                                    if (!client.IsReceiving)
                                     {
-                                        if(throttleInfo != null) client.Throttle[receivedPacket.Opcode].Received();
-                                        World.MessageQueue.Add(new HybrasylClientMessage(receivedPacket, client.ConnectionId));
+                                        client.IsReceiving = true;
+                                        ServerPacket sendBuff;
+                                        state.SendBufferTake(out sendBuff);
+                                        Send(state, SendPacket(client, sendBuff));
+                                        client.IsReceiving = false;
                                     }
-                                    else
-                                    {
-                                        client.Throttle[receivedPacket.Opcode].TotalThrottled++;
-                                    }
-
                                 }
                             }
                             catch (Exception e)
@@ -340,26 +433,36 @@ namespace Hybrasyl
             }
             else
             {
-                Logger.DebugFormat("cid {0}: client is disconnected or corrupt packets received",
-                    client.ConnectionId);
-                client.Disconnect();
+                if (errorCode != SocketError.Success)
+                {
+                    Logger.DebugFormat("cid {0}: client is disconnected or corrupt packets received",
+                        client.ConnectionId);
+                    client.Disconnect();
+                }
                 return;
             }
+            ContinueReceiving(state, client);
 
+        }
+
+        private void ContinueReceiving(ClientState state, Client client)
+        {
             // Continue getting dem bytes
             try
             {
                 state.WorkSocket.BeginReceive(state.Buffer, 0, state.Buffer.Length, 0,
                     new AsyncCallback(this.ReadCallback), state);
-                Logger.InfoFormat("Triggering receive callback");
+                Logger.DebugFormat("Triggering receive callback");
             }
-            catch (ObjectDisposedException)
+            catch (ObjectDisposedException e)
             {
+                Logger.Fatal(e.Message);
                 //client.Disconnect();
                 state.WorkSocket.Close();
             }
-            catch (SocketException)
+            catch (SocketException e)
             {
+                Logger.Fatal(e.Message);
                 client.Disconnect();
             }
         }

@@ -29,7 +29,6 @@ using System.Drawing;
 using System.IO;
 using System.Text;
 using System.Threading;
-using Microsoft.Scripting.Runtime;
 using System.Linq;
 
 namespace Hybrasyl

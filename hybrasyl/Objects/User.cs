@@ -39,6 +39,7 @@ using System.Xml;
 using Hybrasyl.Items;
 using Class = Hybrasyl.Castables.Class;
 using Motion = Hybrasyl.Castables.Motion;
+using System.Globalization;
 
 namespace Hybrasyl.Objects
 {
@@ -260,9 +261,10 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                if (Game.Config.Access.Privileged != null)
+                if (Game.Config.Access?.Privileged != null)
                 {
-                    return IsExempt || Flags.ContainsKey("gamemaster") || Game.Config.Access.Privileged.Contains(Name);
+                    return IsExempt || Flags.ContainsKey("gamemaster") ||
+                        Game.Config.Access.Privileged.IndexOf(Name, 0, StringComparison.CurrentCultureIgnoreCase) != 1;
                 }
                 return IsExempt || Flags.ContainsKey("gamemaster");
             }
@@ -730,7 +732,7 @@ namespace Hybrasyl.Objects
 
             #region Appearance defaults
             RestPosition = RestPosition.Standing;
-            SkinColor = SkinColor.Flesh;
+            SkinColor = SkinColor.Basic;
             Transparent = false;
             FaceShape = 0;
             NameStyle = NameDisplayStyle.GreyHover;
@@ -999,31 +1001,6 @@ namespace Hybrasyl.Objects
                 BonusCon, BonusDex, BonusHit, BonusDmg, BonusAc,
                 BonusMr, BonusRegen, OffensiveElement, DefensiveElement);
 
-        }
-
-        /// <summary>
-        /// Check to see if a player is squelched, considering a given object
-        /// </summary>
-        /// <param name="opcode">The byte opcode to check</param>
-        /// <param name="obj">The object for comparison</param>
-        /// <returns></returns>
-        public bool CheckSquelch(byte opcode, object obj)
-        {
-            ThrottleInfo tinfo;
-            if (Client.Throttle.TryGetValue(opcode, out tinfo))
-            {
-                if (tinfo.IsSquelched(obj))
-                {
-                    if (tinfo.SquelchCount > tinfo.Throttle.DisconnectAfter)
-                    {
-                        Logger.WarnFormat("cid {0}: reached squelch count for {1}: disconnected", Client.ConnectionId,
-                            opcode);
-                        Client.Disconnect();
-                    }
-                    return true;
-                }
-            }
-            return false;
         }
 
         /// <summary>
@@ -1495,11 +1472,8 @@ namespace Hybrasyl.Objects
             var x2C = new ServerPacket(0x2C);
             x2C.WriteByte((byte)slot);
             x2C.WriteUInt16((ushort)(item.Icon));
-            x2C.WriteString8(item.Name);
-            x2C.WriteByte(0); //current level
-            x2C.WriteByte((byte)100); //this will need to be updated
+            x2C.WriteString8(Class == Enums.Class.Peasant ? item.Name : $"{item.Name} (Lev:{item.CastableLevel}/{GetCastableMaxLevel(item)}");
             Enqueue(x2C);
-
         }
 
         public void SendSpellUpdate(Castable item, int slot)
@@ -1517,13 +1491,10 @@ namespace Hybrasyl.Objects
             var spellType = item.Intents[0].UseType;
             //var spellType = isClick ? 2 : 5;
             x17.WriteByte((byte)spellType); //spell type? how are we determining this?
-            x17.WriteString8(item.Name + " (" + item.CastableLevel + "/" + item.MaxLevel.Peasant + ")");
+            x17.WriteString8(Class == Enums.Class.Peasant ? item.Name : $"{item.Name} (Lev:{item.CastableLevel}/{GetCastableMaxLevel(item)}");
             x17.WriteString8(item.Name); //prompt? what is this?
             x17.WriteByte((byte)item.Lines);
-            x17.WriteByte(0); //current level
-            x17.WriteByte((byte)100); //this will need to be updated
             Enqueue(x17);
-
         }
 
         public void SetFlag(string flag, string value)
@@ -1629,6 +1600,8 @@ namespace Hybrasyl.Objects
             }
             Enqueue(x08);
         }
+
+        public int GetCastableMaxLevel(Castable castable) => IsMaster ? 100 : castable.GetMaxLevelByClass((Castables.Class)Class);
 
 
         public User GetFacingUser()
@@ -3960,7 +3933,7 @@ namespace Hybrasyl.Objects
         public void SendRedirectAndLogoff(World world, Login login, string name)
         {
             GlobalConnectionManifest.DeregisterClient(Client);
-            Client.Redirect(new Redirect(Client, world, Game.Login, name, Client.EncryptionSeed, Client.EncryptionKey));
+            Client.Redirect(new Redirect(Client, world, Game.Login, name, Client.EncryptionSeed, Client.EncryptionKey), true);
         }
 
         public bool IsHeartbeatValid(byte a, byte b)
@@ -3983,7 +3956,7 @@ namespace Hybrasyl.Objects
             UpdateLogoffTime();
             Save();
             var redirect = new Redirect(Client, Game.World, Game.Login, "socket", Client.EncryptionSeed, Client.EncryptionKey);
-            Client.Redirect(redirect);
+            Client.Redirect(redirect, true);
         }
 
         public void SetEncryptionParameters(byte[] key, byte seed, string name)
@@ -4121,13 +4094,7 @@ namespace Hybrasyl.Objects
             {
                 if (this.SkillBook[i] != null)
                 {
-                    var x2C = new ServerPacket(0x2C);
-                    x2C.WriteByte((byte)i);
-                    x2C.WriteUInt16((ushort)(SkillBook[i].Icon));
-                    x2C.WriteString8(SkillBook[i].Name);
-                    x2C.WriteByte(0); //current level
-                    x2C.WriteByte((byte)100); //this will need to be updated
-                    Enqueue(x2C);
+                    SendSkillUpdate(SkillBook[i], i);
                 }
             }
         }
@@ -4137,18 +4104,7 @@ namespace Hybrasyl.Objects
             {
                 if (this.SpellBook[i] != null)
                 {
-                    var x17 = new ServerPacket(0x17);
-                    x17.WriteByte((byte)i);
-                    x17.WriteUInt16((ushort)(SpellBook[i].Icon));
-                    var spellType = SpellBook[i].Intents[0].UseType;
-                    //var spellType = isClick ? 2 : 5;
-                    x17.WriteByte((byte)spellType); //spell type? how are we determining this?
-                    x17.WriteString8(SpellBook[i].Name + " (" + SpellBook[i].CastableLevel + "/" + 100 + ")"); //fortest
-                    x17.WriteString8(SpellBook[i].Name); //prompt? what is this?
-                    x17.WriteByte((byte)SpellBook[i].Lines);
-                    x17.WriteByte(0); //current level
-                    x17.WriteByte((byte)100); //this will need to be updated
-                    Enqueue(x17);
+                    SendSpellUpdate(SpellBook[i], i);
                 }
             }
         }

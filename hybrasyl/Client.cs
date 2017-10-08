@@ -29,7 +29,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-using Microsoft.Scripting.Utils;
 
 namespace Hybrasyl
 {
@@ -55,13 +54,6 @@ namespace Hybrasyl
         }
 
         public byte[] Buffer => _buffer;
-        public void ReceiveBufferAdd(IEnumerable<byte> received)
-        {
-            lock (_buffer)
-            {
-                _buffer.AddRange(received);
-            }
-        }
 
         public IEnumerable<byte> ReceiveBufferTake(int range)
         {
@@ -129,13 +121,15 @@ namespace Hybrasyl
 
         public bool Connected => ClientState.Connected;
 
+        public bool IsReceiving { get; set; }
+
         public ClientState ClientState;
 
         public Socket Socket => ClientState.WorkSocket;
 
         private Server Server { get; set; }
 
-        public Dictionary<byte, ThrottleInfo> Throttle = new Dictionary<byte, ThrottleInfo>();
+        public Dictionary<byte, ThrottleInfo> ThrottleState = new Dictionary<byte, ThrottleInfo>();
 
         public long ConnectionId => ClientState.Id;
 
@@ -371,10 +365,6 @@ namespace Hybrasyl
             _lastReceived = DateTime.Now.Ticks;
             GlobalConnectionManifest.RegisterClient(this);
             ConnectedSince = DateTime.Now.Ticks;
-            foreach( var i in Constants.PACKET_THROTTLES.Keys)
-            {
-                Throttle.Add(i, new ThrottleInfo(i));
-            }
         }
 
         public void Disconnect()
@@ -415,13 +405,15 @@ namespace Hybrasyl
             ClientState.SendBufferAdd(packet);
         }
 
-        public void Redirect(Redirect redirect)
+        public void Redirect(Redirect redirect, bool isLogoff = false)
         {
             Logger.InfoFormat("Processing redirect");
             GlobalConnectionManifest.RegisterRedirect(this, redirect);
             Logger.InfoFormat("Redirect: cid {0}", this.ConnectionId);
-            //GlobalConnectionManifest.DeregisterClient(this);
-
+            if (isLogoff)
+            {
+                GlobalConnectionManifest.DeregisterClient(this);
+            }
             redirect.Destination.ExpectedConnections.TryAdd(redirect.Id, redirect);
 
             var endPoint = Socket.RemoteEndPoint as IPEndPoint;

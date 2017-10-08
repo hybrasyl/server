@@ -222,7 +222,7 @@ namespace Hybrasyl.Objects
                     
                 try
                 {
-                    invokeScript.ExecuteScriptableFunction("OnUse", new HybrasylWorldObject(this), new HybrasylUser(trigger));
+                    invokeScript.ExecuteFunction("OnUse", new HybrasylWorldObject(this), new HybrasylUser(trigger));
                 }
                 catch (Exception e)
                 {

@@ -101,12 +101,15 @@ namespace Hybrasyl
             Pink = 77
         }
 
+        /// <summary>
+        /// Skin colors for a user (player). Some of these are taken from translations.
+        /// </summary>
         public enum SkinColor : int
         {
-            Flesh = 0,
+            Basic = 0,
             White = 1,
             Cocoa = 2,
-            Green = 3,
+            Orc = 3,
             Yellow = 4,
             Tan = 5,
             Grey = 6,
@@ -114,6 +117,7 @@ namespace Hybrasyl
             Orange = 8,
             Purple = 9
         }
+
         public enum StatusBarColor : byte
         {
             Off = 0,
@@ -415,6 +419,18 @@ namespace Hybrasyl
             TwoDigit = 6,
             OneDigit = 7,
         }
+
+        public enum ThrottleResult : int
+        {
+            OK = 0,
+            Throttled = 1,
+            Squelched = 2,
+            Disconnect = 3,
+            ThrottleEnd = 4,
+            SquelchEnd = 5,
+            Error = 255
+        }
+
 
         public class EnumUtil
         {

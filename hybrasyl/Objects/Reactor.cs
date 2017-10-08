@@ -77,31 +77,31 @@ namespace Hybrasyl.Objects
         public void OnEntry(WorldObject obj)
         {
             if (Ready)
-                Script.ExecuteScriptableFunction("OnEntry", Script.GetObjectWrapper(obj));
+                Script.ExecuteFunction("OnEntry", Script.GetObjectWrapper(obj));
         }
 
         public void AoiEntry(WorldObject obj)
         {
             if (Ready)
-                Script.ExecuteScriptableFunction("OnAoiEntry", Script.GetObjectWrapper(obj));
+                Script.ExecuteFunction("OnAoiEntry", Script.GetObjectWrapper(obj));
         }
 
         public void OnLeave(WorldObject obj)
         {
             if (Ready)
-                Script.ExecuteScriptableFunction("OnLeave", Script.GetObjectWrapper(obj));
+                Script.ExecuteFunction("OnLeave", Script.GetObjectWrapper(obj));
         }
 
         public void AoiDeparture(WorldObject obj)
         {
             if (Ready)
-                Script.ExecuteScriptableFunction("OnAoiDeparture", Script.GetObjectWrapper(obj));
+                Script.ExecuteFunction("OnAoiDeparture", Script.GetObjectWrapper(obj));
         }
 
         public void OnDrop(WorldObject obj, WorldObject dropped)
         {
             if (Ready)
-                Script.ExecuteScriptableFunction("OnDrop", Script.GetObjectWrapper(obj),
+                Script.ExecuteFunction("OnDrop", Script.GetObjectWrapper(obj),
                     Script.GetObjectWrapper(dropped));
         }
     }
