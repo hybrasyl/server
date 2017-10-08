@@ -28,10 +28,11 @@ namespace Hybrasyl.Scripting
     public class HybrasylDialogSequence
     {
         internal DialogSequence Sequence { get; private set; }
+        
 
-        public HybrasylDialogSequence(string sequenceName)
+        public HybrasylDialogSequence(string sequenceName, bool closeOnEnd = false)
         {
-            Sequence = new DialogSequence(sequenceName);
+            Sequence = new DialogSequence(sequenceName, closeOnEnd);
         }
 
         public void AddDialog(HybrasylDialog scriptDialog)

@@ -41,12 +41,15 @@ namespace Hybrasyl
             public Script Script { get; private set; }
             public WorldObject Associate { get; private set; }
             public string PreDisplayCallback { get; private set; }
+            public bool CloseOnEnd { get; set; }
 
-            public DialogSequence(string sequenceName)
+            public DialogSequence(string sequenceName, bool closeOnEnd = false)
             {
                 Name = sequenceName;
                 Dialogs = new List<Dialog>();
                 Id = null;
+                CloseOnEnd = closeOnEnd;
+
             }
 
             /// <summary>
@@ -169,9 +172,11 @@ namespace Hybrasyl
 
             public bool HasNextDialog()
             {
-                // Only simple dialogs have next buttons; everything else requires alternate input
+                // Only simple dialogs have next buttons; everything else requires alternate input.
+                // In addition, if we are in the last dialog in a sequence, Next should return to 
+                // the main menu.
                 Logger.DebugFormat("index{0}, count{1}");
-                return (Index + 1 < Sequence.Dialogs.Count() && DialogType == DialogTypes.SIMPLE_DIALOG);
+                return (DialogType == DialogTypes.SIMPLE_DIALOG) && (Index <= Sequence.Dialogs.Count());
             }
 
             public ServerPacket GenerateBasePacket(User invoker, VisibleObject invokee)
