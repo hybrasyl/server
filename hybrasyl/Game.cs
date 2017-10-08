@@ -59,7 +59,7 @@ namespace Hybrasyl
         public static byte[] Notification { get; set; }
         public static uint NotificationCrc { get; set; }
         public static byte[] Collisions { get; set; }
-
+        public static string Motd { get; set; }
         public static int LogLevel { get; set; }
 
         public static AssemblyInfo Assemblyinfo  { get; set; }
@@ -208,7 +208,7 @@ namespace Hybrasyl
 
             //set up service endpoint for ControlService
 
-            var host = new WebServiceHost(typeof(ControlService), new Uri($"http://localhost:{Constants.ControlServicePort}/ControlService"));
+            var host = new WebServiceHost(typeof(ControlService), new Uri($"http://{Config.ApiEndpoints.ControlService.BindAddress}:{Config.ApiEndpoints.ControlService.Port}/ControlService"));
             
             //host.Open();
             Logger.InfoFormat($"Starting ControlService on port {Constants.ControlServicePort}");
@@ -346,6 +346,11 @@ namespace Hybrasyl
                     else
                     {
                         stipulationWriter.Write($"Welcome to Hybrasyl!\n\nThis is Hybrasyl (version {Assemblyinfo.Version}).\n\nFor more information please visit http://www.hybrasyl.com");
+                        if (string.IsNullOrEmpty(Motd))
+                        {
+                            Motd = ControlService.GetMotd();
+                        }
+                        stipulationWriter.Write($"\n\n{Motd}");
                     }
                 }
 

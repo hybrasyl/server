@@ -15,39 +15,42 @@ namespace Hybrasyl.Config
     using System.ComponentModel;
     using System.Xml;
     using System.Collections.Generic;
-    
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2046.0")]
+
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Config")]
-    [System.Xml.Serialization.XmlRootAttribute(Namespace="http://www.hybrasyl.com/XML/Config", IsNullable=false)]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Config")]
+    [System.Xml.Serialization.XmlRootAttribute(Namespace = "http://www.hybrasyl.com/XML/Config", IsNullable = false)]
     public partial class HybrasylConfig
     {
-        
+
         #region Private fields
         private LogConfig _logging;
-        
+
         private DataStore _dataStore;
-        
+
         private Network _network;
-        
+
+        private ApiEndpoints _apiEndpoints;
+
         private Access _access;
-        
+
         private List<GlobalBoard> _boards;
-        
+
         private Time _time;
-        
+
         private Handlers _handlers;
         #endregion
-        
+
         public HybrasylConfig()
         {
+            this._apiEndpoints = new ApiEndpoints();
             this._network = new Network();
             this._dataStore = new DataStore();
         }
-        
+
         public LogConfig Logging
         {
             get
@@ -59,7 +62,7 @@ namespace Hybrasyl.Config
                 this._logging = value;
             }
         }
-        
+
         public DataStore DataStore
         {
             get
@@ -71,7 +74,7 @@ namespace Hybrasyl.Config
                 this._dataStore = value;
             }
         }
-        
+
         public Network Network
         {
             get
@@ -83,7 +86,19 @@ namespace Hybrasyl.Config
                 this._network = value;
             }
         }
-        
+
+        public ApiEndpoints ApiEndpoints
+        {
+            get
+            {
+                return this._apiEndpoints;
+            }
+            set
+            {
+                this._apiEndpoints = value;
+            }
+        }
+
         public Access Access
         {
             get
@@ -95,8 +110,8 @@ namespace Hybrasyl.Config
                 this._access = value;
             }
         }
-        
-        [System.Xml.Serialization.XmlArrayItemAttribute("Board", IsNullable=false)]
+
+        [System.Xml.Serialization.XmlArrayItemAttribute("Board", IsNullable = false)]
         public List<GlobalBoard> Boards
         {
             get
@@ -108,7 +123,7 @@ namespace Hybrasyl.Config
                 this._boards = value;
             }
         }
-        
+
         public Time Time
         {
             get
@@ -120,7 +135,7 @@ namespace Hybrasyl.Config
                 this._time = value;
             }
         }
-        
+
         public Handlers Handlers
         {
             get
@@ -133,30 +148,30 @@ namespace Hybrasyl.Config
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2046.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Config")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Config")]
     public partial class LogConfig
     {
-        
+
         #region Private fields
         private string _type;
-        
+
         private string _target;
-        
+
         private LogLevel _level;
         #endregion
-        
+
         public LogConfig()
         {
             this._type = "file";
             this._target = "hybrasyl.log";
             this._level = LogLevel.Info;
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         [System.ComponentModel.DefaultValueAttribute("file")]
         public string Type
@@ -170,7 +185,7 @@ namespace Hybrasyl.Config
                 this._type = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         [System.ComponentModel.DefaultValueAttribute("hybrasyl.log")]
         public string Target
@@ -184,7 +199,7 @@ namespace Hybrasyl.Config
                 this._target = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         [System.ComponentModel.DefaultValueAttribute(LogLevel.Info)]
         public LogLevel Level
@@ -199,51 +214,51 @@ namespace Hybrasyl.Config
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2046.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
     [System.SerializableAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Config")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Config")]
     public enum LogLevel
     {
-        
+
         /// <remarks/>
         All,
-        
+
         /// <remarks/>
         Debug,
-        
+
         /// <remarks/>
         Info,
-        
+
         /// <remarks/>
         Warn,
-        
+
         /// <remarks/>
         Error,
-        
+
         /// <remarks/>
         Fatal,
-        
+
         /// <remarks/>
         None,
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2046.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Config")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Config")]
     public partial class DeathLegendMark
     {
-        
+
         #region Private fields
         private string _prefix;
-        
+
         private bool _increment;
-        
+
         private string _value;
         #endregion
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         public string Prefix
         {
@@ -256,7 +271,7 @@ namespace Hybrasyl.Config
                 this._prefix = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         public bool Increment
         {
@@ -269,7 +284,7 @@ namespace Hybrasyl.Config
                 this._increment = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlTextAttribute()]
         public string Value
         {
@@ -283,27 +298,27 @@ namespace Hybrasyl.Config
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2046.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Config")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Config")]
     public partial class DeathPenalty
     {
-        
+
         #region Private fields
         private uint _xp;
-        
+
         private uint _hp;
         #endregion
-        
+
         public DeathPenalty()
         {
             this._xp = ((uint)(5));
             this._hp = ((uint)(5));
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         [System.ComponentModel.DefaultValueAttribute(typeof(uint), "5")]
         public uint Xp
@@ -317,7 +332,7 @@ namespace Hybrasyl.Config
                 this._xp = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         [System.ComponentModel.DefaultValueAttribute(typeof(uint), "5")]
         public uint Hp
@@ -332,24 +347,24 @@ namespace Hybrasyl.Config
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2046.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Config")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Config")]
     public partial class DeathComa
     {
-        
+
         #region Private fields
         private string _timeout;
         #endregion
-        
+
         public DeathComa()
         {
             this._timeout = "30";
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         [System.ComponentModel.DefaultValueAttribute("30")]
         public string Timeout
@@ -364,23 +379,23 @@ namespace Hybrasyl.Config
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2046.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Config")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Config")]
     public partial class DeathMap
     {
-        
+
         #region Private fields
         private byte _x;
-        
+
         private byte _y;
-        
+
         private string _value;
         #endregion
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         public byte X
         {
@@ -393,7 +408,7 @@ namespace Hybrasyl.Config
                 this._x = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         public byte Y
         {
@@ -406,7 +421,7 @@ namespace Hybrasyl.Config
                 this._y = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlTextAttribute()]
         public string Value
         {
@@ -420,31 +435,31 @@ namespace Hybrasyl.Config
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2046.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Config")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Config")]
     public partial class Death
     {
-        
+
         #region Private fields
         private DeathMap _map;
-        
+
         private DeathComa _coma;
-        
+
         private DeathPenalty _penalty;
-        
+
         private DeathLegendMark _legendMark;
-        
+
         private bool _active;
-        
+
         private bool _perishable;
-        
+
         private bool _groupNotify;
         #endregion
-        
+
         public Death()
         {
             this._penalty = new DeathPenalty();
@@ -454,7 +469,7 @@ namespace Hybrasyl.Config
             this._perishable = true;
             this._groupNotify = true;
         }
-        
+
         public DeathMap Map
         {
             get
@@ -466,7 +481,7 @@ namespace Hybrasyl.Config
                 this._map = value;
             }
         }
-        
+
         public DeathComa Coma
         {
             get
@@ -478,7 +493,7 @@ namespace Hybrasyl.Config
                 this._coma = value;
             }
         }
-        
+
         public DeathPenalty Penalty
         {
             get
@@ -490,7 +505,7 @@ namespace Hybrasyl.Config
                 this._penalty = value;
             }
         }
-        
+
         public DeathLegendMark LegendMark
         {
             get
@@ -502,7 +517,7 @@ namespace Hybrasyl.Config
                 this._legendMark = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         [System.ComponentModel.DefaultValueAttribute(true)]
         public bool Active
@@ -516,7 +531,7 @@ namespace Hybrasyl.Config
                 this._active = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         [System.ComponentModel.DefaultValueAttribute(true)]
         public bool Perishable
@@ -530,7 +545,7 @@ namespace Hybrasyl.Config
                 this._perishable = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         [System.ComponentModel.DefaultValueAttribute(true)]
         public bool GroupNotify
@@ -545,19 +560,19 @@ namespace Hybrasyl.Config
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2046.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Config")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Config")]
     public partial class Handlers
     {
-        
+
         #region Private fields
         private Death _death;
         #endregion
-        
+
         public Death Death
         {
             get
@@ -570,29 +585,29 @@ namespace Hybrasyl.Config
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2046.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Config")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Config")]
     public partial class ServerStart
     {
-        
+
         #region Private fields
         private string _defaultAge;
-        
+
         private int _defaultYear;
-        
+
         private System.DateTime _value;
         #endregion
-        
+
         public ServerStart()
         {
             this._defaultAge = "Hybrasyl";
             this._defaultYear = 1;
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         [System.ComponentModel.DefaultValueAttribute("Hybrasyl")]
         public string DefaultAge
@@ -606,7 +621,7 @@ namespace Hybrasyl.Config
                 this._defaultAge = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         [System.ComponentModel.DefaultValueAttribute(1)]
         public int DefaultYear
@@ -620,7 +635,7 @@ namespace Hybrasyl.Config
                 this._defaultYear = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlTextAttribute()]
         public System.DateTime Value
         {
@@ -634,25 +649,25 @@ namespace Hybrasyl.Config
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2046.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Config")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Config")]
     public partial class HybrasylAge
     {
-        
+
         #region Private fields
         private string _name;
-        
+
         private System.DateTime _startDate;
-        
+
         private System.DateTime _endDate;
-        
+
         private int _startYear;
         #endregion
-        
+
         public string Name
         {
             get
@@ -664,7 +679,7 @@ namespace Hybrasyl.Config
                 this._name = value;
             }
         }
-        
+
         public System.DateTime StartDate
         {
             get
@@ -676,7 +691,7 @@ namespace Hybrasyl.Config
                 this._startDate = value;
             }
         }
-        
+
         public System.DateTime EndDate
         {
             get
@@ -688,7 +703,7 @@ namespace Hybrasyl.Config
                 this._endDate = value;
             }
         }
-        
+
         public int StartYear
         {
             get
@@ -701,24 +716,24 @@ namespace Hybrasyl.Config
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2046.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Config")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Config")]
     public partial class Time
     {
-        
+
         #region Private fields
         private List<HybrasylAge> _ages;
-        
+
         private System.DateTime _startDate;
-        
+
         private ServerStart _serverStart;
         #endregion
-        
-        [System.Xml.Serialization.XmlArrayItemAttribute("Age", IsNullable=false)]
+
+        [System.Xml.Serialization.XmlArrayItemAttribute("Age", IsNullable = false)]
         public List<HybrasylAge> Ages
         {
             get
@@ -730,7 +745,7 @@ namespace Hybrasyl.Config
                 this._ages = value;
             }
         }
-        
+
         public System.DateTime StartDate
         {
             get
@@ -742,7 +757,7 @@ namespace Hybrasyl.Config
                 this._startDate = value;
             }
         }
-        
+
         public ServerStart ServerStart
         {
             get
@@ -755,24 +770,24 @@ namespace Hybrasyl.Config
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2046.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Config")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Config")]
     public partial class GlobalBoardAccessList
     {
-        
+
         #region Private fields
         private List<string> _read;
-        
+
         private List<string> _write;
-        
+
         private List<string> _moderate;
         #endregion
-        
-        [System.Xml.Serialization.XmlElementAttribute("Read", DataType="token")]
+
+        [System.Xml.Serialization.XmlElementAttribute("Read", DataType = "token")]
         public List<string> Read
         {
             get
@@ -784,8 +799,8 @@ namespace Hybrasyl.Config
                 this._read = value;
             }
         }
-        
-        [System.Xml.Serialization.XmlElementAttribute("Write", DataType="token")]
+
+        [System.Xml.Serialization.XmlElementAttribute("Write", DataType = "token")]
         public List<string> Write
         {
             get
@@ -797,8 +812,8 @@ namespace Hybrasyl.Config
                 this._write = value;
             }
         }
-        
-        [System.Xml.Serialization.XmlElementAttribute("Moderate", DataType="token")]
+
+        [System.Xml.Serialization.XmlElementAttribute("Moderate", DataType = "token")]
         public List<string> Moderate
         {
             get
@@ -811,23 +826,23 @@ namespace Hybrasyl.Config
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2046.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Config")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Config")]
     public partial class GlobalBoard
     {
-        
+
         #region Private fields
         private GlobalBoardAccessList _accessList;
-        
+
         private string _name;
-        
+
         private string _displayName;
         #endregion
-        
+
         public GlobalBoardAccessList AccessList
         {
             get
@@ -839,8 +854,8 @@ namespace Hybrasyl.Config
                 this._accessList = value;
             }
         }
-        
-        [System.Xml.Serialization.XmlAttributeAttribute(DataType="token")]
+
+        [System.Xml.Serialization.XmlAttributeAttribute(DataType = "token")]
         public string Name
         {
             get
@@ -852,7 +867,7 @@ namespace Hybrasyl.Config
                 this._name = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         public string DisplayName
         {
@@ -866,19 +881,19 @@ namespace Hybrasyl.Config
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2046.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Config")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Config")]
     public partial class Access
     {
-        
+
         #region Private fields
         private string _privileged;
         #endregion
-        
+
         public string Privileged
         {
             get
@@ -891,26 +906,71 @@ namespace Hybrasyl.Config
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2046.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Config")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Config")]
+    public partial class ApiEndpoints
+    {
+
+        #region Private fields
+        private NetworkInfo _controlService;
+
+        private NetworkInfo _remoteAdminHost;
+        #endregion
+
+        public ApiEndpoints()
+        {
+            this._remoteAdminHost = new NetworkInfo();
+            this._controlService = new NetworkInfo();
+        }
+
+        public NetworkInfo ControlService
+        {
+            get
+            {
+                return this._controlService;
+            }
+            set
+            {
+                this._controlService = value;
+            }
+        }
+
+        public NetworkInfo RemoteAdminHost
+        {
+            get
+            {
+                return this._remoteAdminHost;
+            }
+            set
+            {
+                this._remoteAdminHost = value;
+            }
+        }
+    }
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.SerializableAttribute()]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.ComponentModel.DesignerCategoryAttribute("code")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Config")]
     public partial class NetworkInfo
     {
-        
+
         #region Private fields
         private string _bindAddress;
-        
+
         private ushort _port;
         #endregion
-        
+
         public NetworkInfo()
         {
             this._bindAddress = "127.0.0.1";
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         [System.ComponentModel.DefaultValueAttribute("127.0.0.1")]
         public string BindAddress
@@ -924,7 +984,7 @@ namespace Hybrasyl.Config
                 this._bindAddress = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         public ushort Port
         {
@@ -938,30 +998,30 @@ namespace Hybrasyl.Config
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2046.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Config")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Config")]
     public partial class Network
     {
-        
+
         #region Private fields
         private NetworkInfo _lobby;
-        
+
         private NetworkInfo _login;
-        
+
         private NetworkInfo _world;
         #endregion
-        
+
         public Network()
         {
             this._world = new NetworkInfo();
             this._login = new NetworkInfo();
             this._lobby = new NetworkInfo();
         }
-        
+
         public NetworkInfo Lobby
         {
             get
@@ -973,7 +1033,7 @@ namespace Hybrasyl.Config
                 this._lobby = value;
             }
         }
-        
+
         public NetworkInfo Login
         {
             get
@@ -985,7 +1045,7 @@ namespace Hybrasyl.Config
                 this._login = value;
             }
         }
-        
+
         public NetworkInfo World
         {
             get
@@ -998,35 +1058,35 @@ namespace Hybrasyl.Config
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2046.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Config")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Config")]
     public partial class DataStore
     {
-        
+
         #region Private fields
         private string _username;
-        
+
         private string _password;
-        
+
         private string _type;
-        
+
         private string _host;
-        
+
         private ushort _port;
         #endregion
-        
+
         public DataStore()
         {
             this._type = "redis";
             this._host = "localhost";
             this._port = ((ushort)(6379));
         }
-        
-        [System.Xml.Serialization.XmlElementAttribute(DataType="token")]
+
+        [System.Xml.Serialization.XmlElementAttribute(DataType = "token")]
         public string Username
         {
             get
@@ -1038,8 +1098,8 @@ namespace Hybrasyl.Config
                 this._username = value;
             }
         }
-        
-        [System.Xml.Serialization.XmlElementAttribute(DataType="token")]
+
+        [System.Xml.Serialization.XmlElementAttribute(DataType = "token")]
         public string Password
         {
             get
@@ -1051,8 +1111,8 @@ namespace Hybrasyl.Config
                 this._password = value;
             }
         }
-        
-        [System.Xml.Serialization.XmlAttributeAttribute(DataType="token")]
+
+        [System.Xml.Serialization.XmlAttributeAttribute(DataType = "token")]
         [System.ComponentModel.DefaultValueAttribute("redis")]
         public string Type
         {
@@ -1065,8 +1125,8 @@ namespace Hybrasyl.Config
                 this._type = value;
             }
         }
-        
-        [System.Xml.Serialization.XmlAttributeAttribute(DataType="token")]
+
+        [System.Xml.Serialization.XmlAttributeAttribute(DataType = "token")]
         [System.ComponentModel.DefaultValueAttribute("localhost")]
         public string Host
         {
@@ -1079,7 +1139,7 @@ namespace Hybrasyl.Config
                 this._host = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         [System.ComponentModel.DefaultValueAttribute(typeof(ushort), "6379")]
         public ushort Port

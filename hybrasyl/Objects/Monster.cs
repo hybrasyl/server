@@ -135,8 +135,9 @@ namespace Hybrasyl.Objects
         {
 
             var direction = (Rng.Next(0, 100) >= 50);
-            _variance = (direction == true ? Rng.NextDouble() * -1 : Rng.NextDouble()) * _spawn.Variance;
             _spawn = spawn;
+            _variance = (direction == true ? Rng.NextDouble() * -1 : Rng.NextDouble()) * _spawn.Variance;
+           
 
             Name = creature.Name;
             Sprite = creature.Sprite;

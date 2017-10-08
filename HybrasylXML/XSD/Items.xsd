@@ -27,51 +27,51 @@
       </xs:element>
     </xs:sequence>
   </xs:complexType>
-  
+
   <xs:complexType name="Appearance">
-          <xs:attribute name="Sprite" use="required" type="xs:unsignedShort" />
-          <xs:attribute name="EquipSprite" type="xs:unsignedShort" />
-          <xs:attribute name="DisplaySprite" type="xs:unsignedShort" />
-          <xs:attribute name="BodyStyle" default="Transparent" type="hyb:ItemBodyStyle" />
-          <xs:attribute name="Color" default="None" type="hyb:ItemColor" />
-        </xs:complexType>
-  
+    <xs:attribute name="Sprite" use="required" type="xs:unsignedShort" />
+    <xs:attribute name="EquipSprite" type="xs:unsignedShort" />
+    <xs:attribute name="DisplaySprite" type="xs:unsignedShort" />
+    <xs:attribute name="BodyStyle" default="Transparent" type="hyb:ItemBodyStyle" />
+    <xs:attribute name="Color" default="None" type="hyb:ItemColor" />
+  </xs:complexType>
+
   <xs:complexType name="Damage">
-          <xs:sequence>
-            <xs:element name="Small" minOccurs="1">
-              <xs:complexType>
-                <xs:attribute name="Min" default="0" type="xs:unsignedShort" />
-                <xs:attribute name="Max" default="0" type="xs:unsignedShort" />
-              </xs:complexType>
-            </xs:element>
-            <xs:element name="Large">
-              <xs:complexType>
-                <xs:attribute name="Min" default="0" type="xs:unsignedShort" />
-                <xs:attribute name="Max" default="0" type="xs:unsignedShort" />
-              </xs:complexType>
-            </xs:element>
-          </xs:sequence>
+    <xs:sequence>
+      <xs:element name="Small" minOccurs="1">
+        <xs:complexType>
+          <xs:attribute name="Min" default="0" type="xs:unsignedShort" />
+          <xs:attribute name="Max" default="0" type="xs:unsignedShort" />
         </xs:complexType>
-  
+      </xs:element>
+      <xs:element name="Large">
+        <xs:complexType>
+          <xs:attribute name="Min" default="0" type="xs:unsignedShort" />
+          <xs:attribute name="Max" default="0" type="xs:unsignedShort" />
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
   <xs:complexType name="Physical">
-          <xs:attribute name="Value" default="0" type="xs:unsignedInt" />
-          <xs:attribute name="Weight" default="1" type="xs:int" />
-          <xs:attribute name="Durability" default="1" type="xs:unsignedInt" />
-          <xs:attribute name="Perishable" type="xs:boolean" default="false" />
-          <xs:attribute name="Vendorable" type="xs:boolean" default="true" />
-          <xs:attribute name="Bound" type="xs:boolean" default="false" />
-        </xs:complexType>
-  
+    <xs:attribute name="Value" default="0" type="xs:unsignedInt" />
+    <xs:attribute name="Weight" default="1" type="xs:int" />
+    <xs:attribute name="Durability" default="1" type="xs:unsignedInt" />
+    <xs:attribute name="Perishable" type="xs:boolean" default="false" />
+    <xs:attribute name="Vendorable" type="xs:boolean" default="true" />
+    <xs:attribute name="Bound" type="xs:boolean" default="false" />
+  </xs:complexType>
+
   <xs:complexType name="RestrictionsLevel">
-          <xs:attribute name="Min" type="xs:unsignedByte" default="0" />
-          <xs:attribute name="Max" type="xs:unsignedByte" default="255" />
-        </xs:complexType>
+    <xs:attribute name="Min" type="xs:unsignedByte" default="0" />
+    <xs:attribute name="Max" type="xs:unsignedByte" default="255" />
+  </xs:complexType>
 
   <xs:complexType name="RestrictionsAb">
-          <xs:attribute name="Min" type="xs:unsignedByte" default="0" />
-          <xs:attribute name="Max" type="xs:unsignedByte" default="255" />
-        </xs:complexType>
-    
+    <xs:attribute name="Min" type="xs:unsignedByte" default="0" />
+    <xs:attribute name="Max" type="xs:unsignedByte" default="255" />
+  </xs:complexType>
+  
   <xs:complexType name="Restrictions">
     <xs:sequence>
       <xs:element name="Level" minOccurs="0" maxOccurs="1" type="items:RestrictionsLevel"/>
@@ -80,41 +80,41 @@
       <xs:element name="Gender" type="hyb:Gender" minOccurs="0" maxOccurs="1" default="Neutral" />
     </xs:sequence>
   </xs:complexType>
-  
+
   <xs:complexType name="Stackable">
-          <xs:attribute name="Max" use="required" type="xs:unsignedByte" />
+    <xs:attribute name="Max" use="required" type="xs:unsignedByte" />
   </xs:complexType>
-  
+
   <xs:complexType name="StatEffectsBase">
-                <xs:attribute name="Str" default="0" type="xs:byte" />
-                <xs:attribute name="Int" default="0" type="xs:byte" />
-                <xs:attribute name="Wis" default="0" type="xs:byte" />
-                <xs:attribute name="Con" default="0" type="xs:byte" />
-                <xs:attribute name="Dex" default="0" type="xs:byte" />
-                <xs:attribute name="Hp" default="0" type="xs:int" />
-                <xs:attribute name="Mp" default="0" type="xs:int" />
-              </xs:complexType>
-  
+    <xs:attribute name="Str" default="0" type="xs:byte" />
+    <xs:attribute name="Int" default="0" type="xs:byte" />
+    <xs:attribute name="Wis" default="0" type="xs:byte" />
+    <xs:attribute name="Con" default="0" type="xs:byte" />
+    <xs:attribute name="Dex" default="0" type="xs:byte" />
+    <xs:attribute name="Hp" default="0" type="xs:int" />
+    <xs:attribute name="Mp" default="0" type="xs:int" />
+  </xs:complexType>
+
   <xs:complexType name="StatEffectsCombat">
-                <xs:attribute name="Hit" default="0" type="xs:byte" />
-                <xs:attribute name="Dmg" default="0" type="xs:byte" />
-                <xs:attribute name="Ac" default="0" type="xs:byte" />
-                <xs:attribute name="Regen" default="0" type="xs:byte" />
-                <xs:attribute name="Mr" default="0" type="xs:byte" />
-              </xs:complexType>
-  
+    <xs:attribute name="Hit" default="0" type="xs:byte" />
+    <xs:attribute name="Dmg" default="0" type="xs:byte" />
+    <xs:attribute name="Ac" default="0" type="xs:byte" />
+    <xs:attribute name="Regen" default="0" type="xs:byte" />
+    <xs:attribute name="Mr" default="0" type="xs:byte" />
+  </xs:complexType>
+
   <xs:complexType name="StatEffectsElement">
-                <xs:attribute name="Offense" type="hyb:Element" default="None" />
-                <xs:attribute name="Defense" type="hyb:Element" default="None" />
-              </xs:complexType>
-    
+    <xs:attribute name="Offense" type="hyb:Element" default="None" />
+    <xs:attribute name="Defense" type="hyb:Element" default="None" />
+  </xs:complexType>
+
   <xs:complexType name="StatEffects">
-          <xs:sequence>
-            <xs:element name="Base" type="items:StatEffectsBase" minOccurs="0" maxOccurs="1"/>
-            <xs:element name="Combat" type="items:StatEffectsCombat" minOccurs="0" maxOccurs="1"/>
-            <xs:element name="Element" type="items:StatEffectsElement" minOccurs="0" maxOccurs="1"/>
-          </xs:sequence>
-        </xs:complexType>
+    <xs:sequence>
+      <xs:element name="Base" type="items:StatEffectsBase" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Combat" type="items:StatEffectsCombat" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Element" type="items:StatEffectsElement" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+  </xs:complexType>
 
   <!-- TODO: add effect script name to variants -->
   <xs:complexType name="VariantProperties">
@@ -139,62 +139,62 @@
       <xs:element name="Motion" type="items:Motion" minOccurs="1" maxOccurs="unbounded" />
     </xs:sequence>
   </xs:complexType>
-  
+
   <xs:complexType name="Equipment">
-          <xs:attribute name="Slot" use="required" type="hyb:EquipmentSlot" />
-          <xs:attribute name="Unique" type="xs:boolean" default="false" />
-          <xs:attribute name="WeaponType" type="hyb:WeaponType" />
-        </xs:complexType>
-  
+    <xs:attribute name="Slot" use="required" type="hyb:EquipmentSlot" />
+    <xs:attribute name="Unique" type="xs:boolean" default="false" />
+    <xs:attribute name="WeaponType" type="hyb:WeaponType" />
+  </xs:complexType>
+
   <xs:complexType name="Variants">
-          <xs:sequence>
-            <xs:element name="Name" minOccurs="0" maxOccurs="unbounded" type="hyb:String8" />
-            <xs:element name="Group" minOccurs="0" maxOccurs="unbounded" type="hyb:String8" />
-          </xs:sequence>
-        </xs:complexType>
-  
+    <xs:sequence>
+      <xs:element name="Name" minOccurs="0" maxOccurs="unbounded" type="hyb:String8" />
+      <xs:element name="Group" minOccurs="0" maxOccurs="unbounded" type="hyb:String8" />
+    </xs:sequence>
+  </xs:complexType>
+
   <xs:complexType name="Vendor">
-          <xs:sequence>
-            <xs:element name="Description" type="hyb:String8" default="item" />
-          </xs:sequence>
-          <xs:attribute name="ShopTab" type="xs:unsignedByte" use="required" />
-        </xs:complexType>
-  
+    <xs:sequence>
+      <xs:element name="Description" type="hyb:String8" default="item" />
+    </xs:sequence>
+    <xs:attribute name="ShopTab" type="hyb:String8" use="required" />
+  </xs:complexType>
+
   <xs:complexType name="ItemUseTeleport">
-                <xs:simpleContent>
-                  <xs:extension base="hyb:String8">
-                    <xs:attribute name="X" type="xs:unsignedByte" use="required" />
-                    <xs:attribute name="Y" type="xs:unsignedByte" use="required" />
-                  </xs:extension>
-                </xs:simpleContent>
-              </xs:complexType>
-  
+    <xs:simpleContent>
+      <xs:extension base="hyb:String8">
+        <xs:attribute name="X" type="xs:unsignedByte" use="required" />
+        <xs:attribute name="Y" type="xs:unsignedByte" use="required" />
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
   <xs:complexType name="ItemUsePlayerEffect">
-                <xs:attribute name="Gold" default="0" type="xs:int" />
-                <xs:attribute name="Hp" default="0" type="xs:int" />
-                <xs:attribute name="Mp" default="0" type="xs:int" />
-                <xs:attribute name="Xp" default="0" type="xs:int" />
-              </xs:complexType>
-  
+    <xs:attribute name="Gold" default="0" type="xs:int" />
+    <xs:attribute name="Hp" default="0" type="xs:int" />
+    <xs:attribute name="Mp" default="0" type="xs:int" />
+    <xs:attribute name="Xp" default="0" type="xs:int" />
+  </xs:complexType>
+
   <xs:complexType name="ItemUseEffect">
-                <xs:attribute name="Id" type="xs:unsignedShort" use="required" />
-                <xs:attribute name="Speed" type="xs:unsignedByte" default="100" />
-              </xs:complexType>
-  
+    <xs:attribute name="Id" type="xs:unsignedShort" use="required" />
+    <xs:attribute name="Speed" type="xs:unsignedByte" default="100" />
+  </xs:complexType>
+
   <xs:complexType name="ItemUseSound">
-                <xs:attribute name="Id" type="xs:unsignedByte" use="required" />
-              </xs:complexType>
-    
+    <xs:attribute name="Id" type="xs:unsignedByte" use="required" />
+  </xs:complexType>
+
   <xs:complexType name="Use">
-          <xs:sequence>
-            <xs:element name="Script" type="xs:string" minOccurs="0" maxOccurs="1" />
-            <xs:element name="Teleport" minOccurs="0" maxOccurs="1" type="items:ItemUseTeleport"/>
-            <xs:element name="PlayerEffect" minOccurs="0" maxOccurs="1" type="items:ItemUsePlayerEffect"/>
-            <xs:element name="Effect" minOccurs="0" maxOccurs="1" type="items:ItemUseEffect"/>
-            <xs:element name="Sound" minOccurs="0" maxOccurs="1" type="items:ItemUseSound"/>
-          </xs:sequence>
-          <xs:attribute name="Consumed" type="xs:boolean" default="true" />
-        </xs:complexType>
+    <xs:sequence>
+      <xs:element name="Script" type="xs:string" minOccurs="0" maxOccurs="1" />
+      <xs:element name="Teleport" minOccurs="0" maxOccurs="1" type="items:ItemUseTeleport"/>
+      <xs:element name="PlayerEffect" minOccurs="0" maxOccurs="1" type="items:ItemUsePlayerEffect"/>
+      <xs:element name="Effect" minOccurs="0" maxOccurs="1" type="items:ItemUseEffect"/>
+      <xs:element name="Sound" minOccurs="0" maxOccurs="1" type="items:ItemUseSound"/>
+    </xs:sequence>
+    <xs:attribute name="Consumed" type="xs:boolean" default="true" />
+  </xs:complexType>
 
   <xs:complexType name="ItemProperties">
     <xs:sequence>

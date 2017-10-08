@@ -34,6 +34,13 @@
     </xs:sequence>
   </xs:complexType>
 
+  <xs:complexType name="ApiEndpoints">
+    <xs:sequence>
+      <xs:element name="ControlService" type="config:NetworkInfo" />
+      <xs:element name="RemoteAdminHost" type="config:NetworkInfo" />
+    </xs:sequence>
+  </xs:complexType>
+
   <!-- Item colors -->
   <xs:simpleType name="LogLevel">
     <xs:restriction base="xs:token">
@@ -90,6 +97,7 @@
       <xs:element name="Logging" type="config:LogConfig" minOccurs="0" maxOccurs="1" />
       <xs:element name="DataStore" type="config:DataStore" minOccurs="1" maxOccurs="1" />
       <xs:element name="Network" type="config:Network" minOccurs="1" maxOccurs="1" />
+      <xs:element name="ApiEndpoints" type="config:ApiEndpoints" minOccurs="1" maxOccurs="1" />
       <xs:element name="Access" type="config:Access" minOccurs="0" maxOccurs="1" />
       <xs:element name="Boards" type="config:GlobalBoards" minOccurs="0" maxOccurs="1" />
       <xs:element name="Time" type="config:Time" minOccurs="0" maxOccurs="1"/>

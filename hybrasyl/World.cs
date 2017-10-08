@@ -118,7 +118,6 @@ namespace Hybrasyl
 
         public Dictionary<string, string> Portraits { get; set; }
         public Strings Strings { get; set; }
-
         public WorldDataStore WorldData { set; get;  }
       
         public Nation DefaultNation
@@ -764,7 +763,7 @@ namespace Hybrasyl
             foreach (var item in WorldData.Values<Item>())
             {
                 iteminfo0.Nodes.Add(new MetafileNode(item.Name, item.Properties.Restrictions?.Level?.Min ?? 1, (int)(item.Properties.Restrictions?.@Class ?? Items.Class.Peasant),
-                    item.Properties.Physical.Weight, item.Properties.Vendor?.ShopTab ?? 0, item.Properties.Vendor?.Description ?? string.Empty));
+                    item.Properties.Physical.Weight, item.Properties.Vendor?.ShopTab ?? string.Empty, item.Properties.Vendor?.Description ?? string.Empty));
             }
             WorldData.Set(iteminfo0.Name, iteminfo0.Compile());
 
@@ -3716,6 +3715,25 @@ namespace Hybrasyl
                         user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
                         return;
                     }
+                }
+
+                // Did the user click next on the last dialog in a sequence?
+                // If so, either close the dialog or go to the main menu (main menu by 
+                // default
+
+                if (user.DialogState.ActiveDialogSequence.Dialogs.Count() == pursuitIndex)
+                {
+                    user.DialogState.EndDialog();
+                    if (user.DialogState.ActiveDialogSequence.CloseOnEnd)
+                    {
+                        Logger.DebugFormat("Sending close packet");
+                        var p = new ServerPacket(0x30);
+                        p.WriteByte(0x0A);
+                        p.WriteByte(0x00);
+                        user.Enqueue(p);
+                    }
+                    else
+                        clickTarget.DisplayPursuits(user);
                 }
 
                 // Is the active dialog an input or options dialog?

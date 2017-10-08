@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using Hybrasyl.Enums;
+using Hybrasyl.Maps;
 using Hybrasyl.Objects;
 using log4net;
 
@@ -523,6 +525,374 @@ namespace Hybrasyl
                         packet.WriteByte(slot);
                     }
                 }
+
+                return packet;
+            }
+        }
+
+        internal partial class Turn
+        {
+            private readonly byte OpCode;
+
+            internal Turn()
+            {
+                OpCode = OpCodes.CreatureDirection;
+            }
+
+            internal uint Id { get; set; }
+            internal byte Direction { get; set; }
+
+            internal ServerPacket Packet()
+            {
+                ServerPacket packet = new ServerPacket(OpCode);
+                packet.WriteUInt32(Id);
+                packet.WriteByte(Direction);
+                return packet;
+            }
+        }
+
+        internal partial class PlayerProfile
+        {
+            private readonly byte OpCode;
+
+            internal PlayerProfile()
+            {
+                OpCode = OpCodes.SelfProfile;
+            }
+            internal User Player { get; set; }
+            internal byte NationFlag { get; set; }
+            internal string GuildRank { get; set; }
+            internal byte TitleCount { get; set; }
+            internal List<byte> TitleIds { get; set; }
+            internal byte CurrentTitle { get; set; }
+            internal UserGroup Group { get; set; }
+            internal bool IsGrouped { get; set; }
+            internal byte CanGroup { get; set; }
+            internal byte Class { get; set; }
+            internal string ClassName { get; set; }
+            internal ushort PlayerDisplay { get; set; }
+
+            internal ServerPacket Packet()
+            {
+                ServerPacket packet = new ServerPacket(OpCode);
+                packet.WriteByte(NationFlag);
+                packet.WriteString8(GuildRank);
+                packet.WriteByte(TitleCount);
+                foreach (var id in TitleIds)
+                {
+                    packet.WriteByte(id);
+                }
+                packet.WriteByte(CurrentTitle);
+                if (!IsGrouped) packet.WriteString8("No Group");
+                else
+                {
+                    var ret = "Group\n";
+                    foreach (var member in Group.Members)
+                    {
+                        ret += $"{member.Name}\n";
+                    }
+                    packet.WriteString8(ret);
+                }
+                packet.WriteByte(CanGroup);
+                packet.WriteByte(0x00);
+                packet.WriteByte(Class);
+                packet.WriteByte(0x01);
+                packet.WriteByte(0x00);
+                packet.WriteString8(Player.IsMaster ? "Master" : Player.Class.ToString());
+                packet.WriteString8(Player.Guild != null ? Player.Guild.Name : string.Empty);
+                packet.WriteByte((byte)(Player.Legend.Count > 255 ? 255 : Player.Legend.Count));
+                foreach (var mark in Player.Legend)
+                {
+                    packet.WriteByte((byte)mark.Icon);
+                    packet.WriteByte((byte)mark.Color);
+                    packet.WriteString8(mark.Prefix);
+                    packet.WriteString8(mark.Text);
+                }
+                packet.WriteByte(0x00);
+                packet.WriteUInt16(PlayerDisplay);
+                packet.WriteByte(0x02);
+                packet.WriteUInt32(0x00);
+                packet.WriteByte(0x00);
+                return packet;
+            }
+        }
+
+        internal partial class RemoveWorldObject
+        {
+            private readonly byte OpCode;
+
+            internal uint Id { get; set; }
+
+            internal RemoveWorldObject()
+            {
+                OpCode = OpCodes.RemoveWorldObject;
+            }
+
+            internal ServerPacket Packet()
+            {
+                ServerPacket packet = new ServerPacket(OpCode);
+                packet.WriteUInt32(Id);
+
+                return packet;
+            }
+        }
+
+        internal partial class Location
+        {
+            private readonly byte OpCode;
+
+            internal ushort X { get; set; }
+            internal ushort Y { get; set; }
+
+
+            internal Location()
+            {
+                OpCode = OpCodes.Location;
+            }
+
+            internal ServerPacket Packet()
+            {
+                ServerPacket packet = new ServerPacket(OpCode);
+                packet.WriteUInt16(X);
+                packet.WriteUInt16(Y);
+                packet.WriteUInt16(11);
+                packet.WriteUInt16(11);
+
+                return packet;
+            }
+        }
+        internal partial class UserId
+        {
+            private readonly byte OpCode;
+
+            internal User User { get; set; }
+
+            internal UserId()
+            {
+                OpCode = OpCodes.UserId;
+            }
+
+            internal ServerPacket Packet()
+            {
+                ServerPacket packet = new ServerPacket(OpCode);
+                packet.WriteUInt32(User.Id);
+                packet.WriteByte(0x01);
+                packet.WriteByte(213);
+                packet.WriteByte((byte)User.Class);
+                packet.WriteUInt16(0);
+
+                return packet;
+            }
+        }
+
+        internal partial class MapInfo
+        {
+            private readonly byte OpCode;
+
+            internal User User { get; set; }
+            internal MapInfo()
+            {
+                OpCode = OpCodes.MapInfo;
+            }
+
+            internal ServerPacket Packet()
+            {
+                ServerPacket packet = new ServerPacket(OpCode);
+                packet.WriteUInt16(User.Map.Id);
+                packet.WriteByte((byte)(User.Map.X % 256));
+                packet.WriteByte((byte)(User.Map.Y % 256));
+                byte flags = 0;
+                //if ((User.Map.Flags & MapFlags.Snow) == MapFlags.Snow)
+                //    flags |= 1;
+                //if ((User.Map.Flags & MapFlags.Rain) == MapFlags.Rain)
+                //    flags |= 2;
+                //if ((User.Map.Flags & MapFlags.NoMap) == MapFlags.NoMap)
+                //    flags |= 64;
+                //if ((User.Map.Flags & MapFlags.Winter) == MapFlags.Winter)
+                //    flags |= 128;
+                packet.WriteByte(flags);
+                packet.WriteByte((byte)(User.Map.X / 256));
+                packet.WriteByte((byte)(User.Map.Y / 256));
+                packet.WriteByte((byte)(User.Map.Checksum % 256));
+                packet.WriteByte((byte)(User.Map.Checksum / 256));
+                packet.WriteString8(User.Map.Name);
+
+                return packet;
+            }
+        }
+
+        internal partial class MapData
+        {
+            private readonly byte OpCode;
+
+            internal Map Map { get; set; }
+
+            internal MapData()
+            {
+                OpCode = OpCodes.MapData;
+            }
+
+            internal List<ServerPacket> Packets()
+            {
+                var ret = new List<ServerPacket>();
+                var tile = 0;
+                for (var row = 0; row < Map.Y; row++)
+                {
+                    ServerPacket packet = new ServerPacket(OpCode);
+
+                    packet.WriteUInt16((ushort) row);
+                    for (int column = 0; column < Map.X * 6; column += 2)
+                    {
+                        packet.WriteByte(Map.RawData[tile + 1]);
+                        packet.WriteByte(Map.RawData[tile]);
+                        tile += 2;
+                    }
+                    ret.Add(packet);
+                }
+                return ret;
+            }
+        }
+
+        internal partial class LoginMessage
+        {
+            private readonly byte OpCode;
+
+            internal byte Type { get; set; }
+            internal string Message { get; set; }
+
+            internal LoginMessage()
+            {
+                OpCode = OpCodes.LoginMessage;
+            }
+
+            internal ServerPacket Packet()
+            {
+                ServerPacket packet = new ServerPacket(OpCode);
+                packet.WriteByte(Type);
+                packet.WriteString8(Message);
+
+                return packet;
+            }
+        }
+
+        internal partial class SystemMessage
+        {
+            private readonly byte OpCode;
+
+            internal byte Type { get; set; }
+            internal string Message { get; set; }
+
+            internal SystemMessage()
+            {
+                OpCode = OpCodes.SystemMessage;
+            }
+
+            internal ServerPacket Packet()
+            {
+                ServerPacket packet = new ServerPacket(OpCode);
+                packet.WriteByte(Type);
+                packet.WriteString16(Message);
+                return packet;
+            }
+        }
+
+        internal partial class SpellAnimation
+        {
+            private readonly byte OpCode;
+
+            internal uint Id { get; set; }
+            internal uint SenderId { get; set; }
+            internal ushort AnimationId { get; set; }
+            internal ushort SenderAnimationId { get; set; }
+            internal ushort Speed { get; set; }
+            internal ushort X { get; set; }
+            internal ushort Y { get; set; }
+
+            internal SpellAnimation()
+            {
+                OpCode = OpCodes.SpellAnimation;
+            }
+
+            internal ServerPacket Packet()
+            {
+
+
+                ServerPacket packet = new ServerPacket(OpCode);
+                packet.WriteByte(0x00);
+                if (Id != 0)
+                {
+                    packet.WriteUInt32(Id);
+                    packet.WriteUInt32(SenderId == 0 ? Id : SenderId);
+                    packet.WriteUInt16(AnimationId);
+                    packet.WriteUInt16(SenderAnimationId == 0 ? ushort.MinValue : SenderAnimationId);
+                    packet.WriteUInt16(Speed);
+                    packet.WriteByte(0x00);
+                }
+                else
+                {
+                    packet.WriteUInt32(uint.MinValue);
+                    packet.WriteUInt16(AnimationId);
+                    packet.WriteUInt16(Speed);
+                    packet.WriteUInt16(X);
+                    packet.WriteUInt16(Y);
+                }
+                return packet;
+            }
+        }
+
+        internal partial class RemoveSpell
+        {
+            private readonly byte OpCode;
+
+            internal byte Slot { get; set; }
+            internal RemoveSpell()
+            {
+                OpCode = OpCodes.RemoveSpell;
+            }
+
+            internal ServerPacket Packet()
+            {
+                ServerPacket packet = new ServerPacket(OpCode);
+                packet.WriteByte(Slot);
+                packet.WriteByte(0x00);
+
+                return packet;
+            }
+        }
+
+        internal partial class RemoveSkill  
+        {
+            private readonly byte OpCode;
+
+            internal byte Slot { get; set; }
+            internal RemoveSkill()
+            {
+                OpCode = OpCodes.RemoveSkill;
+            }
+
+            internal ServerPacket Packet()
+            {
+                ServerPacket packet = new ServerPacket(OpCode);
+                packet.WriteByte(Slot);
+                packet.WriteByte(0x00);
+
+                return packet;
+            }
+        }
+
+        internal partial class Refresh
+        {
+            private readonly byte OpCode;
+
+            internal Refresh()
+            {
+                OpCode = OpCodes.Refresh;
+            }
+
+            internal ServerPacket Packet()
+            {
+                ServerPacket packet = new ServerPacket(OpCode);
+                packet.WriteByte(0x00);
 
                 return packet;
             }
