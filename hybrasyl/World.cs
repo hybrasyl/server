@@ -283,11 +283,7 @@ namespace Hybrasyl
 
             //Load strings
             foreach (var xml in Directory.GetFiles(LocalizationDirectory, "*.xml"))
-<<<<<<< HEAD
             {              
-=======
-            {
->>>>>>> d8180c9811e384210ea4b2a1f34a7eb7a22075c4
                 try
                 {
                     Strings = Serializer.Deserialize(XmlReader.Create(xml), new Strings());
@@ -335,11 +331,7 @@ namespace Hybrasyl
             Logger.InfoFormat("Maps: {0} maps loaded", WorldData.Count<Map>());
 
             // Load nations
-<<<<<<< HEAD
             foreach (var xml in Directory.GetFiles(NationDirectory, "*.xml"))
-=======
-            foreach (var xml in Directory.GetFiles(NationDirectory,"*.xml"))
->>>>>>> d8180c9811e384210ea4b2a1f34a7eb7a22075c4
             {
                 try
                 {
@@ -370,11 +362,7 @@ namespace Hybrasyl
             Logger.InfoFormat("National data: {0} nations loaded", WorldData.Count<Nation>());
 
             //Load Creatures
-<<<<<<< HEAD
             foreach (var xml in Directory.GetFiles(CreatureDirectory, "*.xml"))
-=======
-            foreach (var xml in Directory.GetFiles(CreatureDirectory,"*.xml"))
->>>>>>> d8180c9811e384210ea4b2a1f34a7eb7a22075c4
             {
                 try
                 {
@@ -391,11 +379,7 @@ namespace Hybrasyl
 
 
             //Load SpawnGroups
-<<<<<<< HEAD
             foreach (var xml in Directory.GetFiles(SpawnGroupDirectory, "*.xml"))
-=======
-            foreach (var xml in Directory.GetFiles(SpawnGroupDirectory,"*.xml"))
->>>>>>> d8180c9811e384210ea4b2a1f34a7eb7a22075c4
             {
                 try
                 {
@@ -413,11 +397,7 @@ namespace Hybrasyl
             }
 
             // Load worldmaps
-<<<<<<< HEAD
             foreach (var xml in Directory.GetFiles(WorldMapDirectory, "*.xml"))
-=======
-            foreach (var xml in Directory.GetFiles(WorldMapDirectory,"*.xml"))
->>>>>>> d8180c9811e384210ea4b2a1f34a7eb7a22075c4
             {
                 try
                 {
@@ -439,11 +419,7 @@ namespace Hybrasyl
             Logger.InfoFormat("World Maps: {0} world maps loaded", WorldData.Count<WorldMap>());
 
             // Load item variants
-<<<<<<< HEAD
             foreach (var xml in Directory.GetFiles(ItemVariantDirectory, "*.xml"))
-=======
-            foreach (var xml in Directory.GetFiles(ItemVariantDirectory,"*.xml"))
->>>>>>> d8180c9811e384210ea4b2a1f34a7eb7a22075c4
             {
                 try
                 {
@@ -461,11 +437,7 @@ namespace Hybrasyl
             Logger.InfoFormat("ItemObject variants: {0} variant sets loaded", WorldData.Values<VariantGroup>().Count());
 
             // Load items
-<<<<<<< HEAD
             foreach (var xml in Directory.GetFiles(ItemDirectory, "*.xml"))
-=======
-            foreach (var xml in Directory.GetFiles(ItemDirectory,"*.xml"))
->>>>>>> d8180c9811e384210ea4b2a1f34a7eb7a22075c4
             {
                 try
                 {
@@ -500,11 +472,7 @@ namespace Hybrasyl
                 }
             }
 
-<<<<<<< HEAD
             foreach (var xml in Directory.GetFiles(CastableDirectory, "*.xml"))
-=======
-            foreach (var xml in Directory.GetFiles(CastableDirectory,"*.xml"))
->>>>>>> d8180c9811e384210ea4b2a1f34a7eb7a22075c4
             {
                 try
                 {
