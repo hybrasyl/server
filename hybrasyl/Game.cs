@@ -206,14 +206,7 @@ namespace Hybrasyl
             LogLevel = Hybrasyl.Constants.DEFAULT_LOG_LEVEL;
             Assemblyinfo = new AssemblyInfo(Assembly.GetEntryAssembly());
 
-            //set up service endpoint for ControlService
-
-            var host = new WebServiceHost(typeof(ControlService), new Uri($"http://{Config.ApiEndpoints.ControlService.BindAddress}:{Config.ApiEndpoints.ControlService.Port}/ControlService"));
             
-            //host.Open();
-            Logger.InfoFormat($"Starting ControlService on port {Constants.ControlServicePort}");
-            
-
             Constants.DataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Hybrasyl");
 
             if (!Directory.Exists(Constants.DataDirectory))
@@ -273,6 +266,13 @@ namespace Hybrasyl
                 Console.WriteLine("Configuration has been written. Press any key to start the server.");
                 Console.ReadKey();
             }
+
+            //set up service endpoint for ControlService
+
+            var host = new WebServiceHost(typeof(ControlService), new Uri($"http://{Config.ApiEndpoints.ControlService?.BindAddress ?? "127.0.0.1"}:{Config.ApiEndpoints.ControlService?.Port ?? Constants.ControlServicePort}/ControlService"));
+
+            Logger.InfoFormat($"Starting ControlService on port {Config.ApiEndpoints.ControlService?.Port ?? Constants.ControlServicePort}");
+
             // Set default logging level
             ((log4net.Repository.Hierarchy.Hierarchy) LogManager.GetRepository()).Root.Level = Level.Info;
                 ((log4net.Repository.Hierarchy.Hierarchy) LogManager.GetRepository()).RaiseConfigurationChanged(

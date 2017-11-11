@@ -62,8 +62,8 @@ namespace Hybrasyl.Items
             get
             {
                 if (Properties.Equipment.WeaponType == WeaponType.None)
-                    return Properties.StatEffects?.Element?.Defense ?? Element.None;
-                return Properties.StatEffects?.Element?.Offense ?? Element.None;
+                    return Properties.StatModifiers?.Element?.Defense ?? Element.None;
+                return Properties.StatModifiers?.Element?.Offense ?? Element.None;
             }
         }
 
@@ -74,9 +74,9 @@ namespace Hybrasyl.Items
         public Use Use => Properties.Use;
 
         [XmlIgnore]
-        public int BonusHP => Properties.StatEffects.Base?.Hp ?? 0;
+        public int BonusHP => Properties.StatModifiers.Base?.Hp ?? 0;
         [XmlIgnore]
-        public int BonusMP => Properties.StatEffects.Base?.Mp ?? 0;
+        public int BonusMP => Properties.StatModifiers.Base?.Mp ?? 0;
 
         [XmlIgnore]
         public Class Class => Properties.Restrictions?.@Class ?? Class.Peasant;
@@ -84,29 +84,29 @@ namespace Hybrasyl.Items
         public Gender Gender => Properties.Restrictions?.Gender ?? Gender.Neutral;
 
         [XmlIgnore]
-        public int BonusHp => Properties.StatEffects?.@Base?.Hp ?? 0;
+        public int BonusHp => Properties.StatModifiers?.@Base?.Hp ?? 0;
         [XmlIgnore]
-        public int BonusMp => Properties.StatEffects?.@Base?.Mp ?? 0;
+        public int BonusMp => Properties.StatModifiers?.@Base?.Mp ?? 0;
         [XmlIgnore]
-        public sbyte BonusStr => Properties.StatEffects?.@Base?.Str ?? 0;
+        public sbyte BonusStr => Properties.StatModifiers?.@Base?.Str ?? 0;
         [XmlIgnore]
-        public sbyte BonusInt => Properties.StatEffects?.@Base.@Int ?? 0;
+        public sbyte BonusInt => Properties.StatModifiers?.@Base.@Int ?? 0;
         [XmlIgnore]
-        public sbyte BonusWis => Properties.StatEffects?.@Base?.Wis ?? 0;
+        public sbyte BonusWis => Properties.StatModifiers?.@Base?.Wis ?? 0;
         [XmlIgnore]
-        public sbyte BonusCon => Properties.StatEffects?.@Base?.Con ?? 0;
+        public sbyte BonusCon => Properties.StatModifiers?.@Base?.Con ?? 0;
         [XmlIgnore]
-        public sbyte BonusDex => Properties.StatEffects?.@Base?.Dex ?? 0;
+        public sbyte BonusDex => Properties.StatModifiers?.@Base?.Dex ?? 0;
         [XmlIgnore]
-        public sbyte BonusDmg => Properties.StatEffects?.Combat?.Dmg ?? 0;
+        public sbyte BonusDmg => Properties.StatModifiers?.Combat?.Dmg ?? 0;
         [XmlIgnore]
-        public sbyte BonusHit => Properties.StatEffects?.Combat?.Hit ?? 0;
+        public sbyte BonusHit => Properties.StatModifiers?.Combat?.Hit ?? 0;
         [XmlIgnore]
-        public sbyte BonusAc => Properties.StatEffects?.Combat?.Ac ?? 0;
+        public sbyte BonusAc => Properties.StatModifiers?.Combat?.Ac ?? 0;
         [XmlIgnore]
-        public sbyte BonusMr => Properties.StatEffects?.Combat?.Mr ?? 0;
+        public sbyte BonusMr => Properties.StatModifiers?.Combat?.Mr ?? 0;
         [XmlIgnore]
-        public sbyte BonusRegen => Properties.StatEffects?.Combat?.Regen ?? 0;
+        public sbyte BonusRegen => Properties.StatModifiers?.Combat?.Regen ?? 0;
 
         [XmlIgnore]
         public ushort MinLDamage => Properties.Damage?.Large.Min ?? 0;
@@ -121,7 +121,7 @@ namespace Hybrasyl.Items
         public Variant CurrentVariant { get; set; }
 
         [XmlIgnore]
-        public sbyte Regen => Properties.StatEffects?.Combat?.Regen ?? 0;
+        public sbyte Regen => Properties.StatModifiers?.Combat?.Regen ?? 0;
         #endregion
 
         [XmlIgnore]
@@ -177,6 +177,23 @@ namespace Hybrasyl.Castables
         {
             var maxLevelProperty = MaxLevel.GetType().GetProperty(castableClass.ToString());
             return (byte)(maxLevelProperty != null ? maxLevelProperty.GetValue(MaxLevel, null) : 0);
+        }
+    }   
+}
+
+namespace Hybrasyl.Statuses
+{
+    public partial class Status
+    {
+        public int Id
+        {
+            get
+            {
+                unchecked
+                {
+                    return 31 * (Name.GetHashCode() + 1);
+                }
+            }
         }
     }
 }

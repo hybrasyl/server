@@ -85,7 +85,7 @@
     <xs:attribute name="Max" use="required" type="xs:unsignedByte" />
   </xs:complexType>
 
-  <xs:complexType name="StatEffectsBase">
+  <xs:complexType name="StatModifierBase">
     <xs:attribute name="Str" default="0" type="xs:byte" />
     <xs:attribute name="Int" default="0" type="xs:byte" />
     <xs:attribute name="Wis" default="0" type="xs:byte" />
@@ -95,7 +95,7 @@
     <xs:attribute name="Mp" default="0" type="xs:int" />
   </xs:complexType>
 
-  <xs:complexType name="StatEffectsCombat">
+  <xs:complexType name="StatModifierCombat">
     <xs:attribute name="Hit" default="0" type="xs:byte" />
     <xs:attribute name="Dmg" default="0" type="xs:byte" />
     <xs:attribute name="Ac" default="0" type="xs:byte" />
@@ -103,16 +103,16 @@
     <xs:attribute name="Mr" default="0" type="xs:byte" />
   </xs:complexType>
 
-  <xs:complexType name="StatEffectsElement">
+  <xs:complexType name="StatModifierElement">
     <xs:attribute name="Offense" type="hyb:Element" default="None" />
     <xs:attribute name="Defense" type="hyb:Element" default="None" />
   </xs:complexType>
 
-  <xs:complexType name="StatEffects">
+  <xs:complexType name="StatModifiers">
     <xs:sequence>
-      <xs:element name="Base" type="items:StatEffectsBase" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="Combat" type="items:StatEffectsCombat" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="Element" type="items:StatEffectsElement" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Base" type="items:StatModifierBase" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Combat" type="items:StatModifierCombat" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Element" type="items:StatModifierElement" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
   </xs:complexType>
 
@@ -126,7 +126,7 @@
       <xs:element name="Restrictions" type="items:Restrictions" minOccurs="0" maxOccurs="1"/>
       <xs:element name="Script" minOccurs="0" maxOccurs="1" type="hyb:String8" />
       <xs:element name="Stackable" type="items:Stackable" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="StatEffects" type="items:StatEffects" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="StatModifiers" type="items:StatModifiers" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
   </xs:complexType>
   
@@ -204,7 +204,7 @@
       <xs:element name="Physical" minOccurs="1" maxOccurs="1" type="items:Physical">
       </xs:element>
       <xs:element name="Equipment" minOccurs="0" maxOccurs="1" type="items:Equipment"/>
-      <xs:element name="StatEffects" minOccurs="0" maxOccurs="1" type="items:StatEffects"/>
+      <xs:element name="StatModifiers" minOccurs="0" maxOccurs="1" type="items:StatModifiers"/>
       <xs:element name="Flags" minOccurs="0" maxOccurs="1" type="hyb:ItemFlags" />
       <xs:element name="Variants" minOccurs="0" maxOccurs="1" type="items:Variants"/>
 

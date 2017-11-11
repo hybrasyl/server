@@ -153,6 +153,7 @@ namespace Hybrasyl
 
         public static ConnectionMultiplexer DatastoreConnection => _lazyConnector.Value;
 
+        #region Path helpers
         public static string DataDirectory => Constants.DataDirectory;
 
         public static string MapFileDirectory => Path.Combine(DataDirectory, "world", "mapfiles");
@@ -160,6 +161,7 @@ namespace Hybrasyl
         public static string ScriptDirectory => Path.Combine(DataDirectory, "world", "scripts");
 
         public static string CastableDirectory => Path.Combine(DataDirectory, "world", "xml", "castables");
+        public static string StatusDirectory => Path.Combine(DataDirectory, "world", "xml", "statuses");
 
         public static string ItemDirectory => Path.Combine(DataDirectory, "world", "xml", "items");
 
@@ -178,6 +180,7 @@ namespace Hybrasyl
         public static string NpcsDirectory => Path.Combine(DataDirectory, "world", "xml", "npcs");
 
         public static string LocalizationDirectory => Path.Combine(DataDirectory, "world", "xml", "localization");
+        #endregion
 
         public static bool TryGetUser(string name, out User userobj)
         {
@@ -445,9 +448,9 @@ namespace Hybrasyl
                     Logger.DebugFormat("Items: loaded {0}, id {1}", newItem.Name, newItem.Id);
                     WorldData.SetWithIndex(newItem.Id, newItem,  newItem.Name);
                     // Handle some null cases; there's probably a nicer way to do this
-                    if (newItem.Properties.StatEffects.Combat == null) { newItem.Properties.StatEffects.Combat = new StatEffectsCombat(); }
-                    if (newItem.Properties.StatEffects.Element == null) { newItem.Properties.StatEffects.Element = new StatEffectsElement(); }
-                    if (newItem.Properties.StatEffects.Base == null) { newItem.Properties.StatEffects.Base = new StatEffectsBase(); }
+                    if (newItem.Properties.StatModifiers.Combat == null) { newItem.Properties.StatModifiers.Combat = new StatModifierCombat(); }
+                    if (newItem.Properties.StatModifiers.Element == null) { newItem.Properties.StatModifiers.Element = new StatModifierElement(); }
+                    if (newItem.Properties.StatModifiers.Base == null) { newItem.Properties.StatModifiers.Base = new StatModifierBase(); }
                     if (newItem.Properties.Variants != null)
                     {
                         foreach (var targetGroup in newItem.Properties.Variants.Group)
@@ -472,6 +475,21 @@ namespace Hybrasyl
                 }
             }
 
+            foreach (var xml in Directory.GetFiles(StatusDirectory, "*.xml"))
+            {
+                try
+                {
+                    string name = string.Empty;
+                    Statuses.Status newStatus = Serializer.Deserialize(XmlReader.Create(xml), new Statuses.Status());
+                    WorldData.SetWithIndex(newStatus.Id, newStatus, newStatus.Name);
+                    Logger.Debug($"Statuses: loaded {newStatus.Name}, id {newStatus.Id}");
+                }
+                catch (Exception e)
+                {
+                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, e);
+                }
+            
+            }
             foreach (var xml in Directory.GetFiles(CastableDirectory, "*.xml"))
             {
                 try
@@ -568,12 +586,12 @@ namespace Hybrasyl
             if (variantItem.Properties.Restrictions.Level is null)
                 variantItem.Properties.Restrictions.Level = new RestrictionsLevel();
 
-            if (variantItem.Properties.StatEffects is null)
-                variantItem.Properties.StatEffects = new StatEffects()
+            if (variantItem.Properties.StatModifiers is null)
+                variantItem.Properties.StatModifiers = new StatModifiers()
                 {
-                    Base = new StatEffectsBase(),
-                    Element = new StatEffectsElement(),
-                    Combat = new StatEffectsCombat()
+                    Base = new StatModifierBase(),
+                    Element = new StatModifierElement(),
+                    Combat = new StatModifierCombat()
                 };
 
             if (variantItem.Properties.Damage is null)
@@ -605,22 +623,22 @@ namespace Hybrasyl
                 case "consecratable":
                     {
                         if (variant.Properties.Restrictions?.Level != null) variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
-                        if (variant.Properties.StatEffects?.Base != null)
+                        if (variant.Properties.StatModifiers?.Base != null)
                         {
-                            variantItem.Properties.StatEffects.Base.Dex += variant.Properties.StatEffects.Base.Dex;
-                            variantItem.Properties.StatEffects.Base.Con += variant.Properties.StatEffects.Base.Con;
-                            variantItem.Properties.StatEffects.Base.Str += variant.Properties.StatEffects.Base.Str;
-                            variantItem.Properties.StatEffects.Base.Wis += variant.Properties.StatEffects.Base.Wis;
-                            variantItem.Properties.StatEffects.Base.Int += variant.Properties.StatEffects.Base.Int;
+                            variantItem.Properties.StatModifiers.Base.Dex += variant.Properties.StatModifiers.Base.Dex;
+                            variantItem.Properties.StatModifiers.Base.Con += variant.Properties.StatModifiers.Base.Con;
+                            variantItem.Properties.StatModifiers.Base.Str += variant.Properties.StatModifiers.Base.Str;
+                            variantItem.Properties.StatModifiers.Base.Wis += variant.Properties.StatModifiers.Base.Wis;
+                            variantItem.Properties.StatModifiers.Base.Int += variant.Properties.StatModifiers.Base.Int;
                         }
                         break;
                     }
                 case "elemental":
                     {
-                        if (variant.Properties.StatEffects?.Element != null)
+                        if (variant.Properties.StatModifiers?.Element != null)
                         { 
-                            variantItem.Properties.StatEffects.Element.Offense = variant.Properties.StatEffects.Element.Offense;
-                            variantItem.Properties.StatEffects.Element.Defense = variant.Properties.StatEffects.Element.Defense;
+                            variantItem.Properties.StatModifiers.Element.Offense = variant.Properties.StatModifiers.Element.Offense;
+                            variantItem.Properties.StatModifiers.Element.Defense = variant.Properties.StatModifiers.Element.Defense;
                         }
                         break;
                     }
@@ -630,23 +648,23 @@ namespace Hybrasyl
                         {
                             variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
                         }
-                        if (variant.Properties.StatEffects?.Combat != null)
+                        if (variant.Properties.StatModifiers?.Combat != null)
                         { 
-                            variantItem.Properties.StatEffects.Combat.Ac = (sbyte)(item.Properties.StatEffects.Combat.Ac + variant.Properties.StatEffects.Combat.Ac);
-                            variantItem.Properties.StatEffects.Combat.Dmg += variant.Properties.StatEffects.Combat.Dmg;
-                            variantItem.Properties.StatEffects.Combat.Hit += variant.Properties.StatEffects.Combat.Hit;
-                            variantItem.Properties.StatEffects.Combat.Mr += variant.Properties.StatEffects.Combat.Mr;
-                            variantItem.Properties.StatEffects.Combat.Regen += variant.Properties.StatEffects.Combat.Regen;
+                            variantItem.Properties.StatModifiers.Combat.Ac = (sbyte)(item.Properties.StatModifiers.Combat.Ac + variant.Properties.StatModifiers.Combat.Ac);
+                            variantItem.Properties.StatModifiers.Combat.Dmg += variant.Properties.StatModifiers.Combat.Dmg;
+                            variantItem.Properties.StatModifiers.Combat.Hit += variant.Properties.StatModifiers.Combat.Hit;
+                            variantItem.Properties.StatModifiers.Combat.Mr += variant.Properties.StatModifiers.Combat.Mr;
+                            variantItem.Properties.StatModifiers.Combat.Regen += variant.Properties.StatModifiers.Combat.Regen;
                         }
-                        if (variant.Properties.StatEffects?.Base != null)
+                        if (variant.Properties.StatModifiers?.Base != null)
                         {
-                            variantItem.Properties.StatEffects.Base.Dex += variant.Properties.StatEffects.Base.Dex;
-                            variantItem.Properties.StatEffects.Base.Str += variant.Properties.StatEffects.Base.Str;
-                            variantItem.Properties.StatEffects.Base.Wis += variant.Properties.StatEffects.Base.Wis;
-                            variantItem.Properties.StatEffects.Base.Con += variant.Properties.StatEffects.Base.Con;
-                            variantItem.Properties.StatEffects.Base.Int += variant.Properties.StatEffects.Base.Int;
-                            variantItem.Properties.StatEffects.Base.Hp += variant.Properties.StatEffects.Base.Hp;
-                            variantItem.Properties.StatEffects.Base.Mp += variant.Properties.StatEffects.Base.Mp;
+                            variantItem.Properties.StatModifiers.Base.Dex += variant.Properties.StatModifiers.Base.Dex;
+                            variantItem.Properties.StatModifiers.Base.Str += variant.Properties.StatModifiers.Base.Str;
+                            variantItem.Properties.StatModifiers.Base.Wis += variant.Properties.StatModifiers.Base.Wis;
+                            variantItem.Properties.StatModifiers.Base.Con += variant.Properties.StatModifiers.Base.Con;
+                            variantItem.Properties.StatModifiers.Base.Int += variant.Properties.StatModifiers.Base.Int;
+                            variantItem.Properties.StatModifiers.Base.Hp += variant.Properties.StatModifiers.Base.Hp;
+                            variantItem.Properties.StatModifiers.Base.Mp += variant.Properties.StatModifiers.Base.Mp;
                         }
                         break;
                     }
@@ -674,13 +692,13 @@ namespace Hybrasyl
                         {
                             variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
                         }
-                        if (variant.Properties.StatEffects?.Combat != null)
+                        if (variant.Properties.StatModifiers?.Combat != null)
                         { 
-                            variantItem.Properties.StatEffects.Combat.Ac = (sbyte)(item.Properties.StatEffects.Combat.Ac + variant.Properties.StatEffects.Combat.Ac);
-                            variantItem.Properties.StatEffects.Combat.Dmg += variant.Properties.StatEffects.Combat.Dmg;
-                            variantItem.Properties.StatEffects.Combat.Hit += variant.Properties.StatEffects.Combat.Hit;
-                            variantItem.Properties.StatEffects.Combat.Mr += variant.Properties.StatEffects.Combat.Mr;
-                            variantItem.Properties.StatEffects.Combat.Regen += variant.Properties.StatEffects.Combat.Regen;
+                            variantItem.Properties.StatModifiers.Combat.Ac = (sbyte)(item.Properties.StatModifiers.Combat.Ac + variant.Properties.StatModifiers.Combat.Ac);
+                            variantItem.Properties.StatModifiers.Combat.Dmg += variant.Properties.StatModifiers.Combat.Dmg;
+                            variantItem.Properties.StatModifiers.Combat.Hit += variant.Properties.StatModifiers.Combat.Hit;
+                            variantItem.Properties.StatModifiers.Combat.Mr += variant.Properties.StatModifiers.Combat.Mr;
+                            variantItem.Properties.StatModifiers.Combat.Regen += variant.Properties.StatModifiers.Combat.Regen;
                         }
                         break;
                     }

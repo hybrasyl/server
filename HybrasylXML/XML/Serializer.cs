@@ -25,6 +25,7 @@ using Hybrasyl.Nations;
 using System.Xml;
 using System.Xml.Serialization;
 using Castable = Hybrasyl.Castables.Castable;
+using Status = Hybrasyl.Statuses.Status;
 using Map = Hybrasyl.Maps.Map;
 using Npc = Hybrasyl.Creatures.Npc;
 
@@ -163,6 +164,19 @@ namespace Hybrasyl.XML
             {
                 var xContents = XmlSerial.Deserialize(reader);
                 contents = (Castable)xContents;
+            }
+            return contents;
+        }
+
+        public static Status Deserialize(XmlReader reader, Status contents = null)
+        {
+            if (contents == null) contents = new Status();
+            //reader.Settings.IgnoreWhitespace = false;
+            XmlSerializer XmlSerial = new XmlSerializer(contents.GetType());
+            if (XmlSerial.CanDeserialize(reader))
+            {
+                var xContents = XmlSerial.Deserialize(reader);
+                contents = (Status)xContents;
             }
             return contents;
         }
