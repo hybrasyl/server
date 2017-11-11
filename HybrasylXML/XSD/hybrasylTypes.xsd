@@ -117,8 +117,12 @@
               <xs:enumeration value="Charm" />
               <xs:enumeration value="IncreaseDamage" />
               <xs:enumeration value="ReduceDamage" />
-              <xs:enumeration value="ProhibitUsage" />
               <xs:enumeration value="AbsorbSpell" />
+              <xs:enumeration value="ProhibitItemUse" />
+              <xs:enumeration value="ProhibitEquipChange" />
+              <xs:enumeration value="ProhibitSpeech" />
+              <xs:enumeration value="ProhibitWhisper" />
+              <xs:enumeration value="ProhibitShout" />
             </xs:restriction>
           </xs:simpleType>
         </xs:list>
