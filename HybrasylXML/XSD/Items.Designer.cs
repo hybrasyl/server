@@ -95,7 +95,7 @@ namespace Hybrasyl.Items
 
         private Equipment _equipment;
 
-        private StatEffects _statEffects;
+        private StatModifiers _statModifiers;
 
         private ItemFlags _flags;
 
@@ -180,15 +180,15 @@ namespace Hybrasyl.Items
             }
         }
 
-        public StatEffects StatEffects
+        public StatModifiers StatModifiers
         {
             get
             {
-                return this._statEffects;
+                return this._statModifiers;
             }
             set
             {
-                this._statEffects = value;
+                this._statModifiers = value;
             }
         }
 
@@ -1250,7 +1250,7 @@ namespace Hybrasyl.Items
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
     [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Items")]
-    public partial class StatEffectsElement
+    public partial class StatModifierElement
     {
 
         #region Private fields
@@ -1259,7 +1259,7 @@ namespace Hybrasyl.Items
         private Element _defense;
         #endregion
 
-        public StatEffectsElement()
+        public StatModifierElement()
         {
             this._offense = Element.None;
             this._defense = Element.None;
@@ -1339,7 +1339,7 @@ namespace Hybrasyl.Items
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
     [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Items")]
-    public partial class StatEffectsCombat
+    public partial class StatModifierCombat
     {
 
         #region Private fields
@@ -1354,7 +1354,7 @@ namespace Hybrasyl.Items
         private sbyte _mr;
         #endregion
 
-        public StatEffectsCombat()
+        public StatModifierCombat()
         {
             this._hit = ((sbyte)(0));
             this._dmg = ((sbyte)(0));
@@ -1439,7 +1439,7 @@ namespace Hybrasyl.Items
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
     [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Items")]
-    public partial class StatEffectsBase
+    public partial class StatModifierBase
     {
 
         #region Private fields
@@ -1458,7 +1458,7 @@ namespace Hybrasyl.Items
         private int _mp;
         #endregion
 
-        public StatEffectsBase()
+        public StatModifierBase()
         {
             this._str = ((sbyte)(0));
             this._int = ((sbyte)(0));
@@ -1573,18 +1573,18 @@ namespace Hybrasyl.Items
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
     [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Items")]
-    public partial class StatEffects
+    public partial class StatModifiers
     {
 
         #region Private fields
-        private StatEffectsBase _base;
+        private StatModifierBase _base;
 
-        private StatEffectsCombat _combat;
+        private StatModifierCombat _combat;
 
-        private StatEffectsElement _element;
+        private StatModifierElement _element;
         #endregion
 
-        public StatEffectsBase Base
+        public StatModifierBase Base
         {
             get
             {
@@ -1596,7 +1596,7 @@ namespace Hybrasyl.Items
             }
         }
 
-        public StatEffectsCombat Combat
+        public StatModifierCombat Combat
         {
             get
             {
@@ -1608,7 +1608,7 @@ namespace Hybrasyl.Items
             }
         }
 
-        public StatEffectsElement Element
+        public StatModifierElement Element
         {
             get
             {
@@ -2230,7 +2230,7 @@ namespace Hybrasyl.Items
 
         private Stackable _stackable;
 
-        private StatEffects _statEffects;
+        private StatModifiers _statModifiers;
         #endregion
 
         public Appearance Appearance
@@ -2317,15 +2317,15 @@ namespace Hybrasyl.Items
             }
         }
 
-        public StatEffects StatEffects
+        public StatModifiers StatModifiers
         {
             get
             {
-                return this._statEffects;
+                return this._statModifiers;
             }
             set
             {
-                this._statEffects = value;
+                this._statModifiers = value;
             }
         }
     }
