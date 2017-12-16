@@ -93,6 +93,7 @@ ipch/
 *.vsp
 *.vspx
 *.sap
+*.sqlite
 
 # TFS 2012 Local Workspace
 $tf/
