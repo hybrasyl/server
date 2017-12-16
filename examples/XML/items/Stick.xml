@@ -18,6 +18,6 @@
     </Damage>
     <Restrictions>
       <Level Min="1"/>
-    </Restrictions>
-  </Properties>
+    </Restrictions>  
+</Properties>
 </Item>
