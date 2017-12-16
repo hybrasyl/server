@@ -1,70 +1,70 @@
 <?xml version="1.0"?>
-<VariantGroup xmlns="http://www.hybrasyl.com/XML/Items">
-  <Name>elemental</Name>
-  <Variant>
-    <Name>Fire</Name>
-    <Modifier>Fire</Modifier>
-    <Properties>
-      <Flags>Depositable Exchangeable Vendorable</Flags>
-      <Physical Value="400"/>
-      <StatModifiers>
-        <Element Offense="Fire" Defense="Fire"/>
-      </StatModifiers>
-    </Properties>
-  </Variant>
-  <Variant>
-    <Name>Water</Name>
-    <Modifier>Water</Modifier>
-    <Properties>
-      <Flags>Depositable Exchangeable Vendorable</Flags>
-      <Physical Value="400"/>
-      <StatModifiers>
-        <Element Offense="Water" Defense="Water"/>
-      </StatModifiers>
-    </Properties>
-  </Variant>
-  <Variant>
-    <Name>Wind</Name>
-    <Modifier>Wind</Modifier>
-    <Properties>
-      <Flags>Depositable Exchangeable Vendorable</Flags>
-      <Physical Value="400"/>
-      <StatModifiers>
-        <Element Offense="Wind" Defense="Wind"/>
-      </StatModifiers>
-    </Properties>
-  </Variant>
-  <Variant>
-    <Name>Earth</Name>
-    <Modifier>Earth</Modifier>
-    <Properties>
-      <Flags>Depositable Exchangeable Vendorable</Flags>
-      <Physical Value="400"/>
-      <StatModifiers>
-        <Element Offense="Earth" Defense="Earth"/>
-      </StatModifiers>
-    </Properties>
-  </Variant>
-  <Variant>
-    <Name>Light</Name>
-    <Modifier>Light</Modifier>
-    <Properties>
-      <Flags>Depositable Exchangeable Vendorable</Flags>
-      <Physical Value="1000"/>
-      <StatModifiers>
-        <Element Offense="Light" Defense="Light"/>
-      </StatModifiers>
-    </Properties>
-  </Variant>
-  <Variant>
-    <Name>Shadow</Name>
-    <Modifier>Shadow</Modifier>
-    <Properties>
-      <Flags>Depositable Exchangeable Vendorable</Flags>
-      <Physical Value="1000"/>
-      <StatModifiers>
-        <Element Offense="Dark" Defense="Dark"/>
-      </StatModifiers>
-    </Properties>
-  </Variant>
-</VariantGroup>
+<variantgroup xmlns="http://www.hybrasyl.com/XML/Items">
+  <name>elemental</name>
+  <variant>
+    <name>Fire</name>
+    <modifier>Fire</modifier>
+    <properties>
+      <flags>depositable exchangeable vendorable</flags>
+      <physical value="400"/>
+      <stateffects>
+        <element offense="fire" defense="fire"/>
+      </stateffects>
+    </properties>
+  </variant>
+  <variant>
+    <name>Water</name>
+    <modifier>Water</modifier>
+    <properties>
+      <flags>depositable exchangeable vendorable</flags>
+      <physical value="400"/>
+      <stateffects>
+        <element offense="water" defense="water"/>
+      </stateffects>
+    </properties>
+  </variant>
+  <variant>
+    <name>Wind</name>
+    <modifier>Wind</modifier>
+    <properties>
+      <flags>depositable exchangeable vendorable</flags>
+      <physical value="400"/>
+      <stateffects>
+        <element offense="wind" defense="wind"/>
+      </stateffects>
+    </properties>
+  </variant>
+  <variant>
+    <name>Earth</name>
+    <modifier>Earth</modifier>
+    <properties>
+      <flags>depositable exchangeable vendorable</flags>
+      <physical value="400"/>
+      <stateffects>
+        <element offense="earth" defense="earth"/>
+      </stateffects>
+    </properties>
+  </variant>
+  <variant>
+    <name>Light</name>
+    <modifier>Light</modifier>
+    <properties>
+      <flags>depositable exchangeable vendorable</flags>
+      <physical value="1000"/>
+      <stateffects>
+        <element offense="light" defense="light"/>
+      </stateffects>
+    </properties>
+  </variant>
+  <variant>
+    <name>Shadow</name>
+    <modifier>Shadow</modifier>
+    <properties>
+      <flags>depositable exchangeable vendorable</flags>
+      <physical value="1000"/>
+      <stateffects>
+        <element offense="dark" defense="dark"/>
+      </stateffects>
+    </properties>
+  </variant>
+</variantgroup>

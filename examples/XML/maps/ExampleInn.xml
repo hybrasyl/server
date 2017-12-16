@@ -16,6 +16,9 @@
     </Warp>
   </Warps>
   <Npcs>
-    <Npc Name="Inn Keeper" X="3" Y="3" Direction="0"/>
+    <Npc X="3" Y="3">
+      <Name>Riona</Name>
+      <Appearance Sprite="516" Direction="0"/>
+    </Npc>
   </Npcs>
 </Map>

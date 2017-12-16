@@ -6,10 +6,10 @@
     <Stackable Max="1"/>
     <Physical Value="100" Weight="3" Durability="1000" Perishable="false" Vendorable="false" Bound="false"/>
     <Equipment Slot="Weapon" Unique="false" WeaponType="OneHand"/>
-    <StatModifiers>
+    <StatEffects>
       <Base Str="0" Con="0" Int="0" Wis="0" Dex="0" Hp="0" Mp="0"/>
       <Combat Hit="0" Dmg="0" Ac="0" Regen="0" Mr="0"/>
-    </StatModifiers>
+    </StatEffects>
     <Flags>Depositable Tailorable Exchangeable</Flags>
     <Variants/>
     <Damage>
@@ -18,6 +18,6 @@
     </Damage>
     <Restrictions>
       <Level Min="1"/>
-    </Restrictions>  
-</Properties>
+    </Restrictions>
+  </Properties>
 </Item>

@@ -13,7 +13,10 @@
     </Warp>
   </Warps>
   <Npcs>
-    <Npc Name="Beggar" X="89" Y="49" Direction="2"/>
+    <Npc X="89" Y="49">
+      <Name>Beggar</Name>
+      <Appearance Sprite="21" Direction="2"/>
+    </Npc>
   </Npcs>
   <Signposts>
     <MessageBoard X="67" Y="17">
