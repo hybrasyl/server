@@ -1,8 +1,14 @@
 {
   "ExpandedNodes": [
     "",
+    "\\examples",
+    "\\examples\\XML",
+    "\\examples\\XML\\items",
+    "\\examples\\XML\\itemvariants",
+    "\\examples\\XML\\maps",
+    "\\examples\\XML\\npcs",
     "\\hybrasyl"
   ],
-  "SelectedNode": "\\hybrasyl\\Hybrasyl.sln",
+  "SelectedNode": "\\examples\\XML\\npcs\\ExampleBeggar.xml",
   "PreviewInSolutionExplorer": false
 }
