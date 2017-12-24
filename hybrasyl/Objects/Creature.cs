@@ -27,6 +27,7 @@ using Hybrasyl.Castables;
 using Hybrasyl.Enums;
 using log4net;
 using Newtonsoft.Json;
+using System.Collections.Generic;
 
 namespace Hybrasyl.Objects
 {
@@ -565,6 +566,19 @@ namespace Hybrasyl.Objects
         //public virtual bool AddEquipment(ItemObject item, byte slot, bool sendUpdate = true) { return false; }
         //public virtual bool RemoveEquipment(byte slot) { return false; }
 
+        public virtual void Heal(Castable castObject, List<Creature> targets)
+        {
+            foreach (Creature creature in targets)
+            {
+                if (AbsoluteImmortal || PhysicalImmortal) continue;
+                if (creature is Monster) continue;
+                if (creature is User || creature is Merchant)
+                {
+
+                }
+            }
+        }
+            /*
         public virtual void Heal(double heal, Creature healer = null)
         {
             if (AbsoluteImmortal || PhysicalImmortal)
@@ -578,6 +592,7 @@ namespace Hybrasyl.Objects
             SendDamageUpdate(this);
             if (this is User) { UpdateAttributes(StatUpdateFlags.Current); }
         }
+        */
 
         public virtual void RegenerateMp(double mp, Creature regenerator = null)
         {
