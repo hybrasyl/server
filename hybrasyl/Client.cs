@@ -35,7 +35,7 @@ namespace Hybrasyl
 {
     public class ClientState
     {
-        private const int BufferSize = 1024;
+        private const int BufferSize = 65600;
         private byte[] _buffer = new byte[BufferSize];
         public bool Recieving;
         private ConcurrentQueue<ServerPacket> _sendBuffer = new ConcurrentQueue<ServerPacket>();
@@ -95,7 +95,7 @@ namespace Hybrasyl
                 var ret = _buffer.Take(range);
                 var asList = _buffer.ToList();
                 asList.RemoveRange(0, range);
-                _buffer = new byte[1024];
+                _buffer = new byte[BufferSize];
                 Array.ConstrainedCopy(asList.ToArray(), 0, _buffer, 0, asList.ToArray().Length);
                 return ret;
             }
