@@ -1262,6 +1262,13 @@ namespace Hybrasyl.Objects
             var castable = SkillBook[slot];
 
             Attack(castable);
+
+            Client.Enqueue(new ServerPacketStructures.Cooldown()
+            {
+                Length = (uint)castable.Cooldown,
+                Pane = 1,
+                Slot = slot
+            }.Packet());;
         }
 
         internal void UseSpell(byte slot, uint target = 0)
@@ -1272,6 +1279,15 @@ namespace Hybrasyl.Objects
             if (targetCreature is Merchant) return;
             if (targetCreature != null) Attack(castable, targetCreature);
             else Attack(castable);
+
+            Client.Enqueue(new ServerPacketStructures.Cooldown()
+            {
+                Pane = 0,
+                Slot = slot,
+                Length = (uint)castable.Cooldown
+            }.Packet());
+
+
 
         }
 
