@@ -2155,6 +2155,7 @@ namespace Hybrasyl
                                 X = user.X,
                                 Y = user.Y
                             };
+
                             Game.World.WorldData.Get<Map>(500).InsertCreature(creature);
                             user.SendVisibleCreature(creature);
                         }
