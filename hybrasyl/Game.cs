@@ -373,32 +373,15 @@ namespace Hybrasyl
             _loginThread = new Thread(new ThreadStart(Login.StartListening));
             _worldThread = new Thread(new ThreadStart(World.StartListening));
 
-            _lobbySendThread = new Thread(new ThreadStart(Lobby.SendLoop));
-            _loginSendThread = new Thread(new ThreadStart(Login.SendLoop));
-            _worldSendThread = new Thread(new ThreadStart(World.SendLoop));
-
             _spawnThread = new Thread(_monolith.Start);
-
             _controlThread = new Thread(_monolithControl.Start);
-
-            //foreach (var control in _monolithControls)
-            //{
-            //    Task.Run(() =>
-            //    {
-            //        control.Start();
-            //    });
-            //}
 
             _lobbyThread.Start();
             _loginThread.Start();
             _worldThread.Start();
-
-            _lobbySendThread.Start();
-            _loginSendThread.Start();
-            _worldSendThread.Start();
-
             _spawnThread.Start();
             _controlThread.Start();
+
             while (true)
             {
                 if (!IsActive())
@@ -408,11 +391,14 @@ namespace Hybrasyl
                 }
                 Thread.Sleep(100);
             }
+
             Logger.Warn("Hybrasyl: all servers shutting down");
+
             // Server is shutting down. For Lobby and Login, this terminates the TCP listeners;
             // for World, this triggers a logoff for all logged in users and then terminates. After
             // termination, the queue consumer is stopped as well.
             // For a true restart we'll need to do a few other things; stop timers, etc.
+
             host.Close();
             Lobby.Shutdown();
             Login.Shutdown();
