@@ -116,7 +116,7 @@ namespace Hybrasyl
             lock (ReceiveLock)
             {
                 _buffer = new byte[BufferSize];
-                _receiveBuffer = new ConcurrentQueue<ClientPacket>;
+                _receiveBuffer = new ConcurrentQueue<ClientPacket>();
             }
         }
 
@@ -160,8 +160,6 @@ namespace Hybrasyl
                 return false;
             }
         }
-
-        public bool 
 
         public void ReceiveBufferAdd(ClientPacket packet)
         {
