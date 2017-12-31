@@ -1,0 +1,6 @@
+﻿<?xml version="1.0"?>
+<Npc xmlns="http://www.hybrasyl.com/XML/Creature">
+  <Name>Beggar</Name>
+  <DisplayName>Beggar</DisplayName>
+  <Appearance Sprite="21"/>
+</Npc>
