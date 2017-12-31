@@ -1,0 +1,6 @@
+﻿<?xml version="1.0"?>
+<Npc xmlns="http://www.hybrasyl.com/XML/Creature">
+  <Name>Inn Keeper</Name>
+  <DisplayName>Inn Keeper</DisplayName>
+  <Appearance Sprite="516"/>
+</Npc>
