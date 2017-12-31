@@ -31,19 +31,19 @@ namespace Hybrasyl
 
         public double Eval(string expression)
         {
-            List<string> tokens = GetTokens(expression);
-            Stack<double> operandStack = new Stack<double>();
-            Stack<string> operatorStack = new Stack<string>();
-            int tokenIndex = 0;
+            var tokens = GetTokens(expression);
+            var operandStack = new Stack<double>();
+            var operatorStack = new Stack<string>();
+            var tokenIndex = 0;
 
             MapTokens(ref tokens);
 
             while (tokenIndex < tokens.Count)
             {
-                string token = tokens[tokenIndex];
+                var token = tokens[tokenIndex];
                 if (token == "(")
                 {
-                    string subExpr = GetSubExpression(tokens, ref tokenIndex);
+                    var subExpr = GetSubExpression(tokens, ref tokenIndex);
                     operandStack.Push(Eval(subExpr));
                     continue;
                 }
@@ -56,9 +56,9 @@ namespace Hybrasyl
                 {
                     while (operatorStack.Count > 0 && Array.IndexOf(_operators, token) < Array.IndexOf(_operators, operatorStack.Peek()))
                     {
-                        string op = operatorStack.Pop();
-                        double arg2 = operandStack.Pop();
-                        double arg1 = operandStack.Pop();
+                        var op = operatorStack.Pop();
+                        var arg2 = operandStack.Pop();
+                        var arg1 = operandStack.Pop();
                         operandStack.Push(_operations[Array.IndexOf(_operators, op)](arg1, arg2));
                     }
                     operatorStack.Push(token);
@@ -71,9 +71,9 @@ namespace Hybrasyl
 
             while (operatorStack.Count > 0)
             {
-                string op = operatorStack.Pop();
-                double arg2 = operandStack.Pop();
-                double arg1 = operandStack.Pop();
+                var op = operatorStack.Pop();
+                var arg2 = operandStack.Pop();
+                var arg1 = operandStack.Pop();
                 operandStack.Push(_operations[Array.IndexOf(_operators, op)](arg1, arg2));
             }
             return Math.Round(operandStack.Pop(), 0); //probably a better way to do this, however this is what we come up with for now.
@@ -83,11 +83,11 @@ namespace Hybrasyl
 
         public List<string> GetTokens(string expression)
         {
-            string operators = "()^*/+-";
-            List<string> tokens = new List<string>();
-            StringBuilder sb = new StringBuilder();
+            var operators = "()^*/+-";
+            var tokens = new List<string>();
+            var sb = new StringBuilder();
 
-            foreach (char c in expression.Replace(" ", string.Empty))
+            foreach (var c in expression.Replace(" ", string.Empty))
             {
                 if (operators.IndexOf(c) >= 0)
                 {
@@ -112,12 +112,12 @@ namespace Hybrasyl
 
         public string GetSubExpression(List<string> tokens, ref int index)
         {
-            StringBuilder subExpr = new StringBuilder();
-            int parenlevels = 1;
+            var subExpr = new StringBuilder();
+            var parenlevels = 1;
             index += 1;
             while (index < tokens.Count && parenlevels > 0)
             {
-                string token = tokens[index];
+                var token = tokens[index];
                 if (tokens[index] == "(")
                 {
                     parenlevels += 1;
@@ -145,9 +145,9 @@ namespace Hybrasyl
 
         public bool MapTokens(ref List<string> tokens)
         {
-            for (int i = 0; i < tokens.Count; i++)
+            for (var i = 0; i < tokens.Count; i++)
             {
-                string s = tokens[i];
+                var s = tokens[i];
                 if (s.StartsWith("$"))
                 {
                     switch (s)
@@ -250,9 +250,9 @@ namespace Hybrasyl
                             break;
                         case "$CASTERWEAPONSDMG":
                             {
-                                Random rand = new Random();
-                                int mindmg = (int)_caster.Equipment.Weapon.MinSDamage;
-                                int maxdmg = (int)_caster.Equipment.Weapon.MaxSDamage;
+                                var rand = new Random();
+                                var mindmg = (int)_caster.Equipment.Weapon.MinSDamage;
+                                var maxdmg = (int)_caster.Equipment.Weapon.MaxSDamage;
                                 if (mindmg == 0) mindmg = 1;
                                 if (maxdmg == 0) maxdmg = 1;
                                 tokens[i] = rand.Next(mindmg, maxdmg).ToString();
@@ -270,9 +270,9 @@ namespace Hybrasyl
                             break;
                         case "$CASTERWEAPONLDMG":
                             {
-                                Random rand = new Random();
-                                int mindmg = (int)_caster.Equipment.Weapon.MinLDamage;
-                                int maxdmg = (int)_caster.Equipment.Weapon.MaxLDamage;
+                                var rand = new Random();
+                                var mindmg = (int)_caster.Equipment.Weapon.MinLDamage;
+                                var maxdmg = (int)_caster.Equipment.Weapon.MaxLDamage;
                                 if (mindmg == 0) mindmg = 1;
                                 if (maxdmg == 0) maxdmg = 1;
                                 tokens[i] = rand.Next(mindmg, maxdmg).ToString();
