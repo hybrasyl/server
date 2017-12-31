@@ -1054,14 +1054,9 @@ namespace Hybrasyl
                     user.ActiveExchange.CancelExchange(user);
                 ((IDictionary)ActiveUsersByName).Remove(user.Name);
                 user.Save();
-                user.UpdateLogoffTime();
-                user.Map.Remove(user);
-
-                if (user.Group != null)
-                {
-                    user.Group.Remove(user);
-                }
-
+                user.UpdateLogoffTime();              
+                user.Map?.Remove(user);
+                user.Group?.Remove(user);
                 Remove(user);
                 Logger.DebugFormat("cid {0}: {1} cleaned up successfully", user.Name);
                 DeleteUser(user.Name);
@@ -2138,16 +2133,17 @@ namespace Hybrasyl
                             Logger.DebugFormat("/skill Last argument is {0}", args.Last());
 
                             creatureName = string.Join(" ", args, 1, args.Length - 1);
+                            Game.World.WorldData.Get<Creature>("Bee");
 
                             Creature creature = new Creature()
                             {
                                 Sprite = 1,
                                 World = Game.World,
-                                Map = Game.World.WorldData.Get<Map>(500),
+                                Map = user.Map,
                                 Level = 1,
                                 DisplayText = "TestMob",
-                                BaseHp = 100,
-                                Hp = 100,
+                                BaseHp = 10000,
+                                Hp = 10000,
                                 BaseMp = 1,
                                 Name = "TestMob",
                                 Id = 90210,
@@ -2156,8 +2152,8 @@ namespace Hybrasyl
                                 BaseDex = 3,
                                 BaseInt = 3,
                                 BaseWis = 3,
-                                X = 50,
-                                Y = 51
+                                X = user.X,
+                                Y = user.Y
                             };
                             Game.World.WorldData.Get<Map>(500).InsertCreature(creature);
                             user.SendVisibleCreature(creature);
