@@ -44,6 +44,7 @@ namespace Hybrasyl
         public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         public bool Connected { get; set; }
+        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         public long Id { get; }
 
@@ -53,9 +54,16 @@ namespace Hybrasyl
             get
             {
                 System.Diagnostics.StackFrame frame = new System.Diagnostics.StackFrame(1);
+<<<<<<< Updated upstream
                 Logger.Debug($"Receive lock acquired by: {frame.GetMethod().Name} on thread {Thread.CurrentThread.ManagedThreadId}");
                 return _recvlock;
             }
+=======
+                Logger.Info($"Lock acquired by: {frame.GetMethod().Name} on thread {Thread.CurrentThread.ManagedThreadId}");
+                return _recvlock;
+            }
+
+>>>>>>> Stashed changes
         }
 
         private object _sendlock = new object();
@@ -64,9 +72,16 @@ namespace Hybrasyl
             get
             {
                 System.Diagnostics.StackFrame frame = new System.Diagnostics.StackFrame(1);
+<<<<<<< Updated upstream
                 Logger.Debug($"Send lock acquired by: {frame.GetMethod().Name} on thread {Thread.CurrentThread.ManagedThreadId}");
                 return _sendlock;
             }
+=======
+                Logger.Info($"Lock acquired by: {frame.GetMethod().Name} on thread {Thread.CurrentThread.ManagedThreadId}");
+                return _sendlock;
+            }
+
+>>>>>>> Stashed changes
         }
 
         public Socket WorkSocket { get; }
@@ -95,12 +110,38 @@ namespace Hybrasyl
                 var ret = _buffer.Take(range);
                 var asList = _buffer.ToList();
                 asList.RemoveRange(0, range);
+<<<<<<< Updated upstream
                 _buffer = new byte[BufferSize];
+=======
+                _buffer = new byte[1024];
+>>>>>>> Stashed changes
                 Array.ConstrainedCopy(asList.ToArray(), 0, _buffer, 0, asList.ToArray().Length);
                 return ret;
             }
         }
 
+<<<<<<< Updated upstream
+=======
+        public bool TryGetPacket(out ClientPacket packet)
+        {
+            packet = null;
+            lock (ReceiveLock)
+            {
+                if (_buffer.Length > 3 &&_buffer[0] == 0xAA)
+                {
+                    var packetLength = (_buffer[1] << 8) + _buffer[2] + 3;
+                    // Complete packet, pop it off and return it
+                    if (_buffer.Length >= packetLength)
+                    {
+                        packet = new ClientPacket(ReceiveBufferPop(packetLength).ToArray());
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+
+>>>>>>> Stashed changes
         public void SendBufferAdd(ServerPacket packet)
         {
             _sendBuffer.Enqueue(packet);
@@ -217,6 +258,10 @@ namespace Hybrasyl
         public string NewCharacterSalt { get; set; }
         public string NewCharacterPassword { get; set; }
 
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
         private int _heartbeatA = 0;
         private int _heartbeatB = 0;
         private long _byteHeartbeatSent = 0;
@@ -421,6 +466,10 @@ namespace Hybrasyl
             EncryptionKeyTable = new byte[1024];
             _lastReceived = DateTime.Now.Ticks;
             GlobalConnectionManifest.RegisterClient(this);
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
             ConnectedSince = DateTime.Now.Ticks;
         }
 
@@ -487,6 +536,7 @@ namespace Hybrasyl
 
         public void FlushReceiveBuffer()
         {
+<<<<<<< Updated upstream
             lock (ClientState.ReceiveLock)
             {
                 try
@@ -554,6 +604,12 @@ namespace Hybrasyl
 
             Logger.DebugFormat($"EndSend: SocketConnected: {state.WorkSocket.Connected}, IAsyncResult: Completed: {ar.IsCompleted}, CompletedSynchronously: {ar.CompletedSynchronously}");
 
+=======
+            ClientState state = (ClientState)ar.AsyncState;
+            Client client;
+            Logger.WarnFormat($"SocketConnected: {state.WorkSocket.Connected}, IAsyncResult: Completed: {ar.IsCompleted}, CompletedSynchronously: {ar.CompletedSynchronously}");
+            Logger.Info("EndSend");
+>>>>>>> Stashed changes
             try
             {
                 SocketError errorCode;

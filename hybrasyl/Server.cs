@@ -157,6 +157,9 @@ namespace Hybrasyl
             SocketError errorCode = SocketError.SocketError;
             int bytesRead = 0;
             ClientPacket receivedPacket;
+          
+            Logger.WarnFormat($"SocketConnected: {state.WorkSocket.Connected}, IAsyncResult: Completed: {ar.IsCompleted}, CompletedSynchronously: {ar.CompletedSynchronously}, queue size: {state.Buffer.Length}");
+            Logger.Info("Running read callback");
 
             Logger.Debug($"SocketConnected: {state.WorkSocket.Connected}, IAsyncResult: Completed: {ar.IsCompleted}, CompletedSynchronously: {ar.CompletedSynchronously}, queue size: {state.Buffer.Length}");
             Logger.Debug("Running read callback");
