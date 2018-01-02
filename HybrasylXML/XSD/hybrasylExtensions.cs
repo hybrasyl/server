@@ -133,11 +133,6 @@ namespace Hybrasyl.Items
             {
                 unchecked
                 {
-                    if (Properties.Appearance.DisplaySprite > 0)
-                    {
-                        return 31 * Name.GetHashCode() * ((Properties.Restrictions?.Gender.GetHashCode() ?? Gender.Neutral.GetHashCode()) + 1) *
-                               Properties.Appearance.DisplaySprite.GetHashCode();
-                    }
                     return 31 * Name.GetHashCode() * ((Properties.Restrictions?.Gender.GetHashCode() ?? Gender.Neutral.GetHashCode()) + 1);
                 }
             }
