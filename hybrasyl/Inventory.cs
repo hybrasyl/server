@@ -696,7 +696,7 @@ namespace Hybrasyl
             var slotsByte = new byte[slotsInt.Length];
             for(int i = 0; i < slotsInt.Length; i++)
             {
-                slotsByte[i] += 1;
+                slotsByte[i] = (byte)(slotsInt[i] + 1);
             }
             return slotsByte;
         }
