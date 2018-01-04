@@ -64,6 +64,16 @@
       <xs:element name="Unset" type="hyb:CreatureCondition"/>
     </xs:sequence>
   </xs:complexType>
+
+  <xs:complexType name="Messages">
+    <xs:sequence minOccurs="0" maxOccurs="1">
+      <xs:element name="Target" type="hyb:String8"/>
+      <xs:element name="Source" type="hyb:String8"/>
+      <xs:element name="Group" type="hyb:String8"/>
+      <xs:element name="Say" type="hyb:String8"/>
+      <xs:element name="Shout" type="hyb:String8"/>
+    </xs:sequence>
+  </xs:complexType>
   
   <xs:complexType name="ModifierEffect" >
     <xs:sequence minOccurs="0" maxOccurs="1">
@@ -73,7 +83,7 @@
           <xs:attribute name="Id" type="xs:unsignedByte" use="required" />
         </xs:complexType>
       </xs:element>
-      <xs:element name="Message" minOccurs="0" maxOccurs="1" type="hyb:String8"/>
+      <xs:element name="Messages" minOccurs="0" maxOccurs="1" type="status:Messages"/>
       <xs:element name="Heal" minOccurs="0" maxOccurs="1" type="actions:Heal" />
       <xs:element name="Damage" minOccurs="0" maxOccurs="1" type="actions:Damage" />
       <xs:element name="StatModifiers" minOccurs="0" maxOccurs="1" type="actions:StatModifiers" />

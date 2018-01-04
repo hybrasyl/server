@@ -81,6 +81,7 @@
     <Compile Include="Compression.cs" />
     <Compile Include="ControlService.cs" />
     <Compile Include="Objects\Creature.cs" />
+    <Compile Include="Objects\ConditionInfo.cs" />
     <Compile Include="Objects\Door.cs" />
     <Compile Include="Objects\Gold.cs" />
     <Compile Include="Objects\Monster.cs" />

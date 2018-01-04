@@ -155,8 +155,8 @@ namespace Hybrasyl.Objects
             BaseCon = VariantCon;
             BaseDex = VariantDex;
             _castables = spawn.Castables;
-            DefensiveElement = (Enums.Element) spawn.GetDefensiveElement();
-            DefensiveElement = (Enums.Element) spawn.GetOffensiveElement();
+            BaseDefensiveElement = (Enums.Element) spawn.GetDefensiveElement();
+            BaseDefensiveElement = (Enums.Element) spawn.GetOffensiveElement();
 
             //until intents are fixed, this is how this is going to be done.
             IsHostile = _random.Next(0, 7) < 2;
@@ -502,7 +502,7 @@ namespace Hybrasyl.Objects
 
                     foreach (var target in actualTargets)
                     {
-                        if (target is Monster || (target is User && ((User)target).Status.HasFlag(PlayerFlags.Pvp)))
+                        if (target is Monster || ((target as User).Condition?.PvpEnabled ?? false))
                         {
 
                             var rand = new Random();
@@ -545,10 +545,7 @@ namespace Hybrasyl.Objects
                 }
 
                 //TODO: DRY
-                
-                var sound = new ServerPacketStructures.PlaySound { Sound = (byte)castObject.Effects.Sound.Id };
-
-
+              
                 var playerAnimation = new ServerPacketStructures.PlayerAnimation()
                 {
                     Animation = (byte) 255,
@@ -559,7 +556,7 @@ namespace Hybrasyl.Objects
                 SendAnimation(playerAnimation.Packet());
                 
                 //Enqueue(sound.Packet());
-                PlaySound(sound.Packet());
+                PlaySound(castObject.Effects.Sound.Id);
                 //this is an attack skill
             }
             else
@@ -631,11 +628,10 @@ namespace Hybrasyl.Objects
             
             //animation handled here as to not repeatedly send assails.
             var assail = new ServerPacketStructures.PlayerAnimation() { Animation = 1, Speed = 20, UserId = this.Id };
-            var sound = new ServerPacketStructures.PlaySound() { Sound = (byte)1 };
             //Enqueue(assail.Packet());
             //Enqueue(sound.Packet());
             SendAnimation(assail.Packet());
-            PlaySound(sound.Packet());
+            PlaySound(1);
         }
 
 

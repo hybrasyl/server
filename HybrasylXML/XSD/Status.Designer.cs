@@ -35,6 +35,8 @@ namespace Hybrasyl.Statuses
 
         private Effects _effects;
 
+        private string _prohibitedMessage;
+
         private int _duration;
 
         private int _tick;
@@ -95,6 +97,18 @@ namespace Hybrasyl.Statuses
             set
             {
                 this._effects = value;
+            }
+        }
+
+        public string ProhibitedMessage
+        {
+            get
+            {
+                return this._prohibitedMessage;
+            }
+            set
+            {
+                this._prohibitedMessage = value;
             }
         }
 
@@ -941,6 +955,87 @@ namespace Hybrasyl.Statuses
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Status")]
+    public partial class Messages
+    {
+
+        #region Private fields
+        private string _target;
+
+        private string _source;
+
+        private string _group;
+
+        private string _say;
+
+        private string _shout;
+        #endregion
+
+        public string Target
+        {
+            get
+            {
+                return this._target;
+            }
+            set
+            {
+                this._target = value;
+            }
+        }
+
+        public string Source
+        {
+            get
+            {
+                return this._source;
+            }
+            set
+            {
+                this._source = value;
+            }
+        }
+
+        public string Group
+        {
+            get
+            {
+                return this._group;
+            }
+            set
+            {
+                this._group = value;
+            }
+        }
+
+        public string Say
+        {
+            get
+            {
+                return this._say;
+            }
+            set
+            {
+                this._say = value;
+            }
+        }
+
+        public string Shout
+        {
+            get
+            {
+                return this._shout;
+            }
+            set
+            {
+                this._shout = value;
+            }
+        }
+    }
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.SerializableAttribute()]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.ComponentModel.DesignerCategoryAttribute("code")]
     [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Actions")]
     public partial class Animation
     {
@@ -948,12 +1043,12 @@ namespace Hybrasyl.Statuses
         #region Private fields
         private ushort _id;
 
-        private ushort _speed;
+        private short _speed;
         #endregion
 
         public Animation()
         {
-            this._speed = ((ushort)(100));
+            this._speed = ((short)(100));
         }
 
         [System.Xml.Serialization.XmlAttributeAttribute()]
@@ -970,8 +1065,8 @@ namespace Hybrasyl.Statuses
         }
 
         [System.Xml.Serialization.XmlAttributeAttribute()]
-        [System.ComponentModel.DefaultValueAttribute(typeof(ushort), "100")]
-        public ushort Speed
+        [System.ComponentModel.DefaultValueAttribute(typeof(short), "100")]
+        public short Speed
         {
             get
             {
@@ -1042,7 +1137,7 @@ namespace Hybrasyl.Statuses
 
         private ModifierEffectSound _sound;
 
-        private string _message;
+        private Messages _messages;
 
         private Heal _heal;
 
@@ -1077,15 +1172,15 @@ namespace Hybrasyl.Statuses
             }
         }
 
-        public string Message
+        public Messages Messages
         {
             get
             {
-                return this._message;
+                return this._messages;
             }
             set
             {
-                this._message = value;
+                this._messages = value;
             }
         }
 

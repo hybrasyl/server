@@ -161,15 +161,9 @@ namespace Hybrasyl
             }
         }
 
-        public void ReceiveBufferAdd(ClientPacket packet)
-        {
-            _receiveBuffer.Enqueue(packet);
-        }
+        public void ReceiveBufferAdd(ClientPacket packet) => _receiveBuffer.Enqueue(packet);
 
-        public bool ReceiveBufferTake(out ClientPacket packet)
-        {
-            return _receiveBuffer.TryDequeue(out packet);
-        }
+        public bool ReceiveBufferTake(out ClientPacket packet) => _receiveBuffer.TryDequeue(out packet);
 
     }
 
