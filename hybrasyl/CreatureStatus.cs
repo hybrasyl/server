@@ -1,5 +1,4 @@
-﻿
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Hybrasyl.Castables;
 using Hybrasyl.Enums;
@@ -8,7 +7,6 @@ using Hybrasyl.Statuses;
 
 namespace Hybrasyl
 {
-
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
     public class Prohibited : Attribute
     {
@@ -77,9 +75,6 @@ namespace Hybrasyl
     {
 
         string Name { get; }
-        string OnTickMessage { get; }
-        string OnStartMessage { get;  }
-        string OnEndMessage { get; }
         string ActionProhibitedMessage { get; }
         int Duration { get; }
         int Tick { get; }
@@ -96,16 +91,19 @@ namespace Hybrasyl
         void OnTick();
         void OnEnd();
 
-        //int GetHashCode();
     }
 
-
-    public abstract class Status : ICreatureStatus
+    public class CreatureStatus : ICreatureStatus
     {
         public string Name => XMLStatus.Name;
+        public string CastableName => Castable?.Name ?? string.Empty;
         public ushort Icon => XMLStatus.Icon;
-        public int Tick => XMLStatus.Tick;
-        public int Duration => XMLStatus.Duration;
+        public int Tick => _durationOverride != -1 ? XMLStatus.Tick : _durationOverride;
+        public int Duration => _tickOverride != -1 ? XMLStatus.Duration : _durationOverride;
+
+        private int _durationOverride;
+        private int _tickOverride;
+
         protected Creature Target { get; set; }
         protected Creature Source { get; set; }
         protected User User => Target as User;
@@ -116,12 +114,34 @@ namespace Hybrasyl
 
         public DateTime LastTick { get; private set; }
 
-        protected Castable Castable { get; set; }
-        protected Statuses.Status XMLStatus  { get; set; }
+        public Castable Castable { get; set; }
+        public Status XMLStatus  { get; set; }
+        public string ActionProhibitedMessage { get; set; }
 
-        private void ProcessStartEffects() => ProcessFullEffects(XMLStatus.Effects?.OnApply);
-        private void ProcessTickEffects() => ProcessEffects(XMLStatus.Effects?.OnTick);
-        private void ProcessRemoveEffects() => ProcessFullEffects(XMLStatus.Effects?.OnRemove, true);
+        private void _processStart() => ProcessFullEffects(XMLStatus.Effects?.OnApply);
+        private void _processTick() => ProcessEffects(XMLStatus.Effects?.OnTick);
+        private void _processRemove() => ProcessFullEffects(XMLStatus.Effects?.OnRemove, true);
+
+        public void OnStart() => _processStart();
+        public void OnEnd() => _processRemove();
+        public void OnTick() => _processTick(); 
+
+        public bool Expired => (DateTime.Now - Start).TotalSeconds >= Duration;
+        public double Elapsed => (DateTime.Now - Start).TotalSeconds;
+        public double Remaining => Duration - Elapsed;
+
+        public double ElapsedSinceTick => (DateTime.Now - LastTick).TotalSeconds;
+
+        public CreatureStatus(Status xmlstatus, Creature target, Castable castable = null, 
+            int durationOverride = -1, int tickOverride = -1)
+        {
+            XMLStatus = xmlstatus;
+            Target = target;
+            Castable = castable;
+            Start = DateTime.Now;
+            _durationOverride = durationOverride;
+            _tickOverride = tickOverride;
+        }
 
         private void ProcessSFX(ModifierEffect effect)
         {
@@ -137,9 +157,22 @@ namespace Hybrasyl
                     // wtf is spelleffect? 
                 }
             }
-            if (effect.Message != string.Empty)
-                User?.SendSystemMessage(effect.Message);
+            // Message handling
+            if (effect.Messages != null)
+            {
+                if (effect.Messages.Target != null)
+                    User?.SendSystemMessage(effect.Messages.Target);
+                if (effect.Messages.Group != null)
+                    User?.Group.SendMessage(effect.Messages.Group);
+                if (effect.Messages.Source != null)
+                    (Source as User)?.SendSystemMessage(effect.Messages.Source);
+                if (effect.Messages.Say != null)
+                    User?.Say(effect.Messages.Say);
+                if (effect.Messages.Shout != null)
+                    User?.Say(effect.Messages.Shout);
+            }
         }
+
 
         private void ProcessConditions(ModifierEffect effect)
         {
@@ -200,7 +233,6 @@ namespace Hybrasyl
                 Target.DefensiveElementOverride = (Enums.Element)effect.OffensiveElement;
 
             }
-
         }
 
         private void ProcessDamageEffects(ModifierEffect effect)
@@ -225,91 +257,5 @@ namespace Hybrasyl
             ProcessDamageEffects(effect);
         }
 
-        public void OnStart() => ProcessStartEffects();
-        
-        public virtual void OnTick()
-        {
-            LastTick = DateTime.Now;
-            ProcessTickEffects();
-        }
-
-        public virtual void OnEnd() => ProcessRemoveEffects();
-    
-        public bool Expired => (DateTime.Now - Start).TotalSeconds >= Duration;
-
-        public double Elapsed => (DateTime.Now - Start).TotalSeconds;
-        public double Remaining => Duration - Elapsed;
-
-        public double ElapsedSinceTick => (DateTime.Now - LastTick).TotalSeconds;
-
-        public string OnTickMessage => XMLStatus.Effects?.OnApply?.Message ?? string.Empty;
-        public string OnStartMessage => XMLStatus.Effects?.OnApply?.Message ?? string.Empty;
-        public string OnEndMessage => XMLStatus.Effects?.OnRemove?.Message ?? string.Empty;
-        public string ActionProhibitedMessage { get; set; }
-
-        protected Status(Statuses.Status xmlstatus, Creature target, Castable castable)
-        {
-            XMLStatus = xmlstatus;
-            Target = target;
-            Castable = castable;
-            Start = DateTime.Now;
-        }
     }
-
-}
-
-internal class PlayerStatus : Status
-    { }
-
-    //internal class NearDeathStatus : PlayerStatus
-    //{
-    //    public new static ushort Icon = 24;
-    //    public new static string Name = "neardeath";
-    //    public static ushort OnTickEffect = 24;
-
-    //    public new const string ActionProhibitedMessage = "The life is draining from your body.";
-
-
-    //    public NearDeathStatus(User user, int duration, int tick) : base(user, duration, tick, Icon, Name)
-    //    {
-    //        OnStartMessage = "You are near death.";
-    //        OnEndMessage = "You have died!";
-    //    }
-
-    //    public override void OnStart()
-    //    {
-    //        base.OnStart();
-    //        User.ToggleNearDeath();
-    //        User.Group?.SendMessage($"{User.Name} is dying!");
-    //    }
-
-    //    public override void OnTick()
-    //    {
-    //        base.OnTick();
-    //        if (User.Status.HasFlag(PlayerCondition.InComa))
-    //            User.Effect(OnTickEffect, 120);
-    //        if (Remaining < 5)
-    //            User.Group?.SendMessage($"{User.Name}'s soul hangs by a thread!");
-    //    }
-
-    //    public override void OnEnd()
-    //    {
-    //        base.OnEnd();
-    //        User.OnDeath();
-    //    }
-    //}
-
-    ///*
-    //    internal class CastableStatus : PlayerEffect
-    //    {
-    //        private Script _script;
-
-    //        public CastableEffect(User user, Script script, int duration = 30000, int ticks = 1000)
-    //            : base(user, duration, ticks)
-    //        {
-    //            _script = script;
-    //            Icon = icon;
-    //        }
-    //    }
-    //    */
 }

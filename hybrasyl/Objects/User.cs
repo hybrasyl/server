@@ -40,6 +40,7 @@ using Hybrasyl.Items;
 using Class = Hybrasyl.Castables.Class;
 using Motion = Hybrasyl.Castables.Motion;
 using System.Globalization;
+using Hybrasyl.Statuses;
 
 namespace Hybrasyl.Objects
 {
@@ -471,7 +472,7 @@ namespace Hybrasyl.Objects
 
             // We are now quite dead, not mostly dead
 
-            Condition.ToggleNearDeath();
+            Condition.Comatose = false;
 
             // First: break everything that is breakable in the inventory
             for (byte i = 0; i <= Inventory.Size; ++i)
@@ -527,7 +528,7 @@ namespace Hybrasyl.Objects
             Mp = 0;
             UpdateAttributes(StatUpdateFlags.Full);
 
-            Condition.Dead();
+            Condition.Alive = false;
             Effect(76, 120);
             SendSystemMessage("Your items are ripped from your body.");
             Teleport("Chaotic Threshold", 10, 10);
@@ -541,7 +542,7 @@ namespace Hybrasyl.Objects
         public void EndComa()
         {
             if (!Condition.Comatose) return;
-            Condition.ToggleNearDeath();
+            Condition.Comatose = false;
             //var bar = RemoveStatus(NearDeathStatus.Icon, false);
             Logger.Debug($"EndComa: {Name}: removestatus for coma is hurp");
 
@@ -557,7 +558,7 @@ namespace Hybrasyl.Objects
         public void Resurrect()
         {
             // Teleport user to national spawn point
-            Condition.ToggleAlive();
+            Condition.Alive = true;
             if (Nation.SpawnPoints.Count != 0)
             {
                 var spawnpoint = Nation.RandomSpawnPoint;
@@ -951,10 +952,10 @@ namespace Hybrasyl.Objects
             switch (toRemove.EquipmentSlot)
             {
                 case (byte)ItemSlots.Necklace:
-                    OffensiveElement = Enums.Element.None;
+                    BaseOffensiveElement = Enums.Element.None;
                     break;
                 case (byte)ItemSlots.Waist:
-                    DefensiveElement = Enums.Element.None;
+                    BaseDefensiveElement = Enums.Element.None;
                     break;
             }
 
@@ -2097,8 +2098,10 @@ namespace Hybrasyl.Objects
             if (Hp == 0)
             {
                 Hp = 1;
-                if (Group != null)
-                    ApplyStatus(new NearDeathStatus(this, 30, 1));
+                if (Group != null) {
+                    if (World.WorldData.TryGetValue<Status>("coma", out Status comaStatus))
+                        ApplyStatus(new CreatureStatus(comaStatus, this));
+                }
                 else
                     OnDeath();
             }

@@ -221,7 +221,7 @@ namespace Hybrasyl.Objects
 
             foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>().Select(obj => obj))
             {
-                var nPacket = (ServerPacket) soundPacket.Clone();
+                var nPacket = (ServerPacket) soundPacket.Packet().Clone();
                 user.Enqueue(nPacket);
             }
         }

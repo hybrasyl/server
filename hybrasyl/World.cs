@@ -1542,28 +1542,6 @@ namespace Hybrasyl
                         }
                         break;
 
-                    case "/applystatus":
-                        {
-                            var status = args[1];
-                            if (status.ToLower() == "poison")
-                            {
-                                user.ApplyStatus(new PoisonStatus(user, 30, 1, 5));
-                            }
-                            if (status.ToLower() == "sleep")
-                            {
-                                user.ApplyStatus(new SleepStatus(user, 30, 1));
-                            }
-                            if (status.ToLower() == "paralyze")
-                            {
-                                user.ApplyStatus(new ParalyzeStatus(user, 30, 1));
-                            }
-                            if (status.ToLower() == "blind")
-                            {
-                                user.ApplyStatus(new BlindStatus(user, 30, 1));
-                            }
-                        }
-                        break;
-
                     case "/damage":
                         {
                             var dmg = double.Parse(args[1]);
@@ -2387,7 +2365,7 @@ namespace Hybrasyl
             }
             else
             {
-                if (user.Condition.Dead)
+                if (!user.Condition.Alive)
                 {
                     user.SendSystemMessage("Your voice is carried away by a sudden wind.");
                     return;
@@ -2413,7 +2391,7 @@ namespace Hybrasyl
             var target = packet.ReadUInt32();
 
             user.UseSpell(slot, target);
-            user.Condition.ToggleCasting();
+            user.Condition.Casting = true;
         }
 
         private void PacketHandler_0x0B_ClientExit(Object obj, ClientPacket packet)
@@ -3968,7 +3946,7 @@ namespace Hybrasyl
         private void PacketHandler_0x4D_BeginCasting(object obj, ClientPacket packet)
         {
             var user = (User) obj;
-            user.Condition.ToggleCasting();
+            user.Condition.Casting = true;
         }
 
         private void PacketHandler_0x4E_CastLine(object obj, ClientPacket packet)
