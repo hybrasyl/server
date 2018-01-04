@@ -1,0 +1,33 @@
+<Status Duration="30" Tick="1" Icon="24" Name="Coma">
+  <Category>Coma</Category>
+  <ProhibitedMessage>The life is draining from your body.</ProhibitedMessage>
+  <Effects>
+    <OnApply>
+      <Messages>
+        <Target>You are near death.</Target>
+        <Group>{User.Name} is dying!</Group>
+      </Messages>
+      <Conditions>
+         <Set condition="Coma"/>
+      </Conditions>
+    </OnApply>
+    <OnTick>
+      <Animations>
+	      <Target Id="24"/>
+      </Animations>
+      <Messages>
+        <Target>You are near death.</Target>
+        <Group>{User.Name}'s soul hangs by a thread!</Group>
+      </Messages>
+    </OnTick>
+    <OnRemove>
+      <Messages>
+        <Target>You have died!</Target>
+        <Group>{User.Name} has died!</Group>
+      </Messages>
+      <Conditions>
+        <UnSet condition="Coma"/>
+      </Conditions>
+    </OnRemove>
+  </Effects>
+</Status>

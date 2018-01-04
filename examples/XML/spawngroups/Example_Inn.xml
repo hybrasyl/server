@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SpawnGroup xmlns="http://www.hybrasyl.com/XML/Creature">
+  <Maps>
+    <Map Name="Example Inn" MinSpawn="2" MaxSpawn="6" Limit="0" Interval="60"/>
+  </Maps>
+  <Spawns>
+    <Spawn Base="Bee">
+      <Respawn Max="0" Percentage="0"/>
+      <Damage>
+        <Small/>
+        <Large/>
+      </Damage>
+      <Defense Ac="0"/>
+      <Stats Hp="119" Level="1" Str="3" Int="3" Wis="3" Con="3" Dex="3"/>
+      <Loot/>
+    </Spawn>
+  </Spawns>
+</SpawnGroup>

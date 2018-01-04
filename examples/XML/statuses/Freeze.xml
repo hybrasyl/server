@@ -1,0 +1,27 @@
+<Status Duration="30" Tick="1" Icon="50" Name="Freeze">
+  <Category>Freeze</Category>
+  <ProhibitedMessage>You cannot move!</ProhibitedMessage>
+  <Effects>
+    <OnApply>
+      <Messages>
+        <Target>You are in hibernation.</Target>
+      </Messages>
+      <Conditions>
+         <Set condition="Freeze"/>
+      </Conditions>
+    </OnApply>
+    <OnTick>
+      <Animations>
+	      <Target Id="40"/>
+      </Animations>
+    </OnTick>
+    <OnRemove>
+      <Messages>
+        <Target>Your body thaws.</Target>
+      </Messages>
+      <Conditions>
+        <UnSet condition="Freeze"/>
+      </Conditions>
+    </OnRemove>
+  </Effects>
+</Status>
