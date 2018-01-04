@@ -565,18 +565,15 @@ namespace Hybrasyl.Objects
         //public virtual bool AddEquipment(ItemObject item, byte slot, bool sendUpdate = true) { return false; }
         //public virtual bool RemoveEquipment(byte slot) { return false; }
 
-        public virtual void Heal(double heal, Creature healer = null)
+        public virtual void Heal(double heal, Creature target = null)
         {
-            if (AbsoluteImmortal || PhysicalImmortal)
-                return;
+            if (target == null) target = this;
+            if (target.AbsoluteImmortal || target.PhysicalImmortal) return;
+            if (target.Hp == target.MaximumHp) return;
 
-            if (Hp == MaximumHp || heal > MaximumHp)
-                return;
-
-            Hp = heal > uint.MaxValue ? MaximumHp : Math.Min(MaximumHp, (uint)(Hp + heal));
-
-            SendDamageUpdate(this);
-            if (this is User) { UpdateAttributes(StatUpdateFlags.Current); }
+            target.Hp = heal > uint.MaxValue ? target.MaximumHp : Math.Min(target.MaximumHp, (uint)(target.Hp + heal));
+            SendDamageUpdate(target);
+            if (target is User) { target.UpdateAttributes(StatUpdateFlags.Current); }
         }
 
         public virtual void RegenerateMp(double mp, Creature regenerator = null)
