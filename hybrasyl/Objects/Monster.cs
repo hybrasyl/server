@@ -339,7 +339,6 @@ namespace Hybrasyl.Objects
                     }
                 }
 
-                var sound = new ServerPacketStructures.PlaySound { Sound = (byte)castObject.Effects.Sound.Id }; 
                 var playerAnimation = new ServerPacketStructures.PlayerAnimation()
                 {
                     Animation = (byte)255,
@@ -348,7 +347,7 @@ namespace Hybrasyl.Objects
                 };
                 
                 SendAnimation(playerAnimation.Packet());
-                PlaySound(sound.Packet());
+                PlaySound(castObject.Effects.Sound.Id);
             }
         }
 
@@ -503,7 +502,7 @@ namespace Hybrasyl.Objects
 
                     foreach (var target in actualTargets)
                     {
-                        if (target is Monster || (target is User && ((User)target).Status.HasFlag(PlayerCondition.Pvp)))
+                        if (target is Monster || (target is User && ((User)target).Status.HasFlag(PlayerFlags.Pvp)))
                         {
 
                             var rand = new Random();

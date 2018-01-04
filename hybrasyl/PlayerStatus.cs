@@ -1,48 +1,90 @@
 ﻿
 using System;
+using System.Collections.Generic;
+using Hybrasyl.Castables;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
+using Hybrasyl.Statuses;
 
 namespace Hybrasyl
 {
 
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
-    public class ProhibitedCondition : System.Attribute
+    public class Prohibited : Attribute
     {
-        public PlayerCondition Condition { get; set; }
+        public List<PlayerFlags> Flags { get; set; }
+        public List<CreatureCondition> Conditions { get; set; }
 
-        public ProhibitedCondition(PlayerCondition requirement)
+        public Prohibited(params object[] prohibited)
         {
-            Condition = requirement;
+            Flags = new List<PlayerFlags>();
+            Conditions = new List<CreatureCondition>();
+
+            foreach (var parameter in prohibited)
+            {
+                if (parameter.GetType() == typeof(PlayerFlags))
+                    Flags.Add((PlayerFlags) parameter);
+                if (parameter.GetType() == typeof(CreatureCondition))
+                    Conditions.Add((CreatureCondition) parameter);
+            }
+        }
+
+        public bool Check(ConditionInfo condition)
+        {
+            foreach (var flag in Flags) 
+                if (condition.Flags.HasFlag(flag)) return false;
+
+            foreach (var cond in Conditions)
+                if (condition.Condition.HasFlag(cond)) return false;
+
+            return true;
         }
     }
 
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
-    public class RequiredCondition : System.Attribute
+    public class Required : Attribute
     {
-        public PlayerCondition Condition { get; set; }
-        public string ErrorMessage { get; set; }
+        public List<PlayerFlags> Flags { get; set; }
+        public List<CreatureCondition> Conditions { get; set; }
 
-        public RequiredCondition(PlayerCondition requirement)
+        public Required(params object[] prohibited)
         {
-            Condition = requirement;
+            Flags = new List<PlayerFlags>();
+            Conditions = new List<CreatureCondition>();
+
+            foreach (var parameter in prohibited)
+            {
+                if (parameter.GetType() == typeof(PlayerFlags))
+                    Flags.Add((PlayerFlags)parameter);
+                if (parameter.GetType() == typeof(CreatureCondition))
+                    Conditions.Add((CreatureCondition)parameter);
+            }
+        }
+
+        public bool Check(ConditionInfo condition)
+        {
+            foreach (var flag in Flags)
+                if (condition.Flags.HasFlag(flag)) return true;
+
+            foreach (var cond in Conditions)
+                if (condition.Condition.HasFlag(cond)) return true;
+
+            return false;
         }
     }
 
-
-    public interface IPlayerStatus
+    public interface ICreatureStatus
     {
 
         string Name { get; }
-        string OnTickMessage { get; set; }
-        string OnStartMessage { get; set; }
-        string OnEndMessage { get; set; }
-        string ActionProhibitedMessage { get; set; }
-        int Duration { get; set; }
-        int Tick { get; set; }
+        string OnTickMessage { get; }
+        string OnStartMessage { get;  }
+        string OnEndMessage { get; }
+        string ActionProhibitedMessage { get; }
+        int Duration { get; }
+        int Tick { get; }
         DateTime Start { get; }
         DateTime LastTick { get; }
-        Enums.PlayerCondition Conditions { get; set; }
         ushort Icon { get; }
 
         bool Expired { get; }
@@ -54,38 +96,139 @@ namespace Hybrasyl
         void OnTick();
         void OnEnd();
 
-        int GetHashCode();
+        //int GetHashCode();
     }
 
-    public abstract class PlayerStatus : IPlayerStatus
+
+    public abstract class Status : ICreatureStatus
     {
-        public string Name { get; set; }
-        public ushort Icon { get; }
-        public int Tick { get; set; }
-        public int Duration { get; set; }
-        protected User User { get; set; }
-        public Enums.PlayerCondition Conditions { get; set; }
+        public string Name => XMLStatus.Name;
+        public ushort Icon => XMLStatus.Icon;
+        public int Tick => XMLStatus.Tick;
+        public int Duration => XMLStatus.Duration;
+        protected Creature Target { get; set; }
+        protected Creature Source { get; set; }
+        protected User User => Target as User;
+
+        public Conditions ConditionChanges => XMLStatus.Effects?.OnApply?.Conditions;
 
         public DateTime Start { get; }
 
         public DateTime LastTick { get; private set; }
 
-        public virtual void OnStart()
+        protected Castable Castable { get; set; }
+        protected Statuses.Status XMLStatus  { get; set; }
+
+        private void ProcessStartEffects() => ProcessFullEffects(XMLStatus.Effects?.OnApply);
+        private void ProcessTickEffects() => ProcessEffects(XMLStatus.Effects?.OnTick);
+        private void ProcessRemoveEffects() => ProcessFullEffects(XMLStatus.Effects?.OnRemove, true);
+
+        private void ProcessSFX(ModifierEffect effect)
         {
-            if (OnStartMessage != string.Empty) User.SendSystemMessage(OnStartMessage);
-            var tickEffect = (ushort?)GetType().GetField("OnTickEffect").GetValue(null);
-            if (tickEffect == null) return;
-            if (!User.Status.HasFlag(PlayerCondition.InComa))
-                User.Effect((ushort)tickEffect, 120);
+            if (effect.Sound != null)
+                User?.PlaySound(effect.Sound.Id);
+            if (effect.Animations != null)
+            {
+                if (effect.Animations.Target != null)
+                    if (User == null && (User != null && !User.Condition.Comatose))
+                        Target.Effect(effect.Animations.Target.Id, effect.Animations.Target.Speed);
+                if (effect.Animations.SpellEffect != null)
+                {
+                    // wtf is spelleffect? 
+                }
+            }
+            if (effect.Message != string.Empty)
+                User?.SendSystemMessage(effect.Message);
         }
 
+        private void ProcessConditions(ModifierEffect effect)
+        {
+            if (effect.Conditions.Set != 0)
+                Target.Condition.Condition|= effect.Conditions.Set;
+            if (effect.Conditions.Unset != 0)
+                Target.Condition.Condition &= ~effect.Conditions.Unset;
+        }
+
+        private void ProcessStatModifiers(Statuses.StatModifiers effect, bool remove = false)
+        {
+            if (effect == null) return;
+
+            if (remove)
+            {
+                Target.BonusStr -= effect.Str;
+                Target.BonusInt -= effect.Int;
+                Target.BonusWis -= effect.Wis;
+                Target.BonusCon -= effect.Con;
+                Target.BonusDex -= effect.Dex;
+                Target.BonusHp -= effect.Hp;
+                Target.BonusMp -= effect.Mp;
+                Target.BonusHit -= effect.Hit;
+                Target.BonusDmg -= effect.Dmg;
+                Target.BonusAc -= effect.Ac;
+                Target.BonusRegen -= effect.Regen;
+                Target.BonusMr -= effect.Mr;
+                Target.BonusDamageModifier = effect.DamageModifier;
+                Target.BonusHealModifier = effect.HealModifier;
+                Target.BonusReflectChance -= effect.ReflectChance;
+                Target.BonusReflectIntensity -= effect.ReflectIntensity;
+                if (effect.OffensiveElement == (Statuses.Element) Target.OffensiveElementOverride)
+                    Target.OffensiveElementOverride = Enums.Element.None;
+                if (effect.DefensiveElement == (Statuses.Element)Target.DefensiveElementOverride)
+                    Target.DefensiveElementOverride = Enums.Element.None;
+                Target.BonusAc -= effect.Str;
+            }
+            else
+            {
+                Target.BonusStr += effect.Str;
+                Target.BonusInt += effect.Int;
+                Target.BonusWis += effect.Wis;
+                Target.BonusCon += effect.Con;
+                Target.BonusDex += effect.Dex;
+                Target.BonusHp += effect.Hp;
+                Target.BonusMp += effect.Mp;
+                Target.BonusHit += effect.Hit;
+                Target.BonusDmg += effect.Dmg;
+                Target.BonusAc += effect.Ac;
+                Target.BonusRegen += effect.Regen;
+                Target.BonusMr += effect.Mr;
+                Target.BonusDamageModifier = effect.DamageModifier;
+                Target.BonusHealModifier = effect.HealModifier;
+                Target.BonusReflectChance += effect.ReflectChance;
+                Target.BonusReflectIntensity += effect.ReflectIntensity;
+                Target.BonusAc += effect.Str;
+                Target.OffensiveElementOverride = (Enums.Element)effect.OffensiveElement;
+                Target.DefensiveElementOverride = (Enums.Element)effect.OffensiveElement;
+
+            }
+
+        }
+
+        private void ProcessDamageEffects(ModifierEffect effect)
+        {
+            // Handle damage and heal. This does nothing currently
+            Target.Heal(effect.Heal);
+            Target.Damage(effect.Damage);
+        }
+
+        private void ProcessFullEffects(ModifierEffect effect, bool RemoveStatBonuses=false)
+        {
+            ProcessConditions(effect);
+            // Stat modifiers are only effectively allowed on "start", for now
+            ProcessStatModifiers(XMLStatus.Effects?.OnApply?.StatModifiers, RemoveStatBonuses);
+            ProcessSFX(effect);
+            ProcessDamageEffects(effect);
+        }
+
+        public void OnStart() => ProcessStartEffects();
+        public void OnTick() => ProcessTickEffects();
         public virtual void OnTick()
         {
             LastTick = DateTime.Now;
+            ProcessTickEffects();
             if (OnTickMessage != string.Empty) User.SendSystemMessage(OnTickMessage);
-            var tickEffect = (ushort?) GetType().GetField("OnTickEffect").GetValue(null);
+            var tickEffect = (ushort?)GetType().GetField("OnTickEffect").GetValue(null);
             if (tickEffect == null) return;
-            if (!User.Status.HasFlag(PlayerCondition.InComa))
+            if (!User.Condition.Comatose)
                 User.Effect((ushort)tickEffect, 120);
         }
 
@@ -94,6 +237,7 @@ namespace Hybrasyl
             if (OnEndMessage != string.Empty) User.SendSystemMessage(OnEndMessage);
         }
 
+
         public bool Expired => (DateTime.Now - Start).TotalSeconds >= Duration;
 
         public double Elapsed => (DateTime.Now - Start).TotalSeconds;
@@ -101,211 +245,215 @@ namespace Hybrasyl
 
         public double ElapsedSinceTick => (DateTime.Now - LastTick).TotalSeconds;
 
-        public string OnTickMessage { get; set; }
-        public string OnStartMessage { get; set; }
-        public string OnEndMessage { get; set; }
+        public string OnTickMessage => XMLStatus.Effects?.OnApply?.Message ?? string.Empty;
+        public string OnStartMessage => XMLStatus.Effects?.OnApply?.Message ?? string.Empty;
+        public string OnEndMessage => XMLStatus.Effects?.OnRemove?.Message ?? string.Empty;
         public string ActionProhibitedMessage { get; set; }
 
-        protected PlayerStatus(User user, int duration, int tick, ushort icon, string name)
+        protected Status(Statuses.Status xmlstatus, Creature target, Castable castable)
         {
-            User = user;
-            Duration = duration;
-            Tick = tick;
-            Icon = icon;
-            Name = name;
-            Start = DateTime.Now;
-            OnTickMessage = string.Empty;
-            OnStartMessage = string.Empty;
-            OnEndMessage = string.Empty;
-
+            XMLStatus = xmlstatus;
+            Target = target;
+            Castable = castable;
         }
     }
 
-    internal class BlindStatus : PlayerStatus
+    internal class CreatureStatus : Status
     {
+        public CreatureStatus(Statuses.Status status, Creature target, Castable castable)
+        { }
+             
 
-        public new static ushort Icon = 3;
-        public new static string Name = "blind";
-        public new static string ActionProhibitedMessage = "You can't see well enough to do that.";
+}
 
-        public BlindStatus(User user, int duration, int tick) : base(user, duration, tick, Icon, Name)
-        {
-            OnStartMessage = "The world goes dark!";
-            OnEndMessage = "You can see again.";
-        }
+internal class PlayerStatus : Status
+    { }
 
-        public override void OnStart()
-        {
-            base.OnEnd();
-            User.ToggleBlind();
+    //internal class BlindStatus : PlayerStatus
+    //{
 
-        }
+    //    public new static ushort Icon = 3;
+    //    public new static string Name = "blind";
+    //    public new static string ActionProhibitedMessage = "You can't see well enough to do that.";
 
-        public override void OnEnd()
-        {
-            base.OnEnd();
-            User.ToggleBlind();
-        }
+    //    public BlindStatus(User user, int duration, int tick) : base(user, duration, tick, Icon, Name)
+    //    {
+    //        OnStartMessage = "The world goes dark!";
+    //        OnEndMessage = "You can see again.";
+    //    }
 
-    }
+    //    public override void OnStart()
+    //    {
+    //        base.OnEnd();
+    //        User.ToggleBlind();
 
-    internal class PoisonStatus : PlayerStatus
-    {
-        private new static ushort Icon = 97;
-        public new static string Name = "poison";
-        public static ushort OnTickEffect = 25;
+    //    }
 
-        public new const string ActionProhibitedMessage = "You double over in pain.";
+    //    public override void OnEnd()
+    //    {
+    //        base.OnEnd();
+    //        User.ToggleBlind();
+    //    }
 
-        private readonly double _damagePerTick;
+    //}
 
-        public PoisonStatus(User user, int duration, int tick, double damagePerTick) : base(user, duration, tick, Icon, Name)
-        {
-            OnStartMessage = "Poison";
-            OnTickMessage = "Poison is coursing through your veins.";
-            OnEndMessage = "You feel better.";
-            _damagePerTick = damagePerTick;
-        }
+    //internal class PoisonStatus : PlayerStatus
+    //{
+    //    private new static ushort Icon = 97;
+    //    public new static string Name = "poison";
+    //    public static ushort OnTickEffect = 25;
 
-        public override void OnTick()
-        {
-            base.OnTick();
-            if (_damagePerTick >= User.Hp)
-                User.Damage(User.Hp - 1);
-            else
-                User.Damage(_damagePerTick);
-        }
-    }
+    //    public new const string ActionProhibitedMessage = "You double over in pain.";
 
-    internal class ParalyzeStatus : PlayerStatus
-    {
-        public new static ushort Icon = 36;
-        public new static string Name = "paralyze";
-        public static ushort OnTickEffect = 41;
+    //    private readonly double _damagePerTick;
 
-        public new const string ActionProhibitedMessage = "You cannot move!";
+    //    public PoisonStatus(User user, int duration, int tick, double damagePerTick) : base(user, duration, tick, Icon, Name)
+    //    {
+    //        OnStartMessage = "Poison";
+    //        OnTickMessage = "Poison is coursing through your veins.";
+    //        OnEndMessage = "You feel better.";
+    //        _damagePerTick = damagePerTick;
+    //    }
 
-        public ParalyzeStatus(User user, int duration, int tick) : base(user, duration, tick, Icon, Name)
-        {
-            OnStartMessage = "Stunned!";
-            OnEndMessage = "You can move again.";
-        }
+    //    public override void OnTick()
+    //    {
+    //        base.OnTick();
+    //        if (_damagePerTick >= User.Hp)
+    //            User.Damage(User.Hp - 1);
+    //        else
+    //            User.Damage(_damagePerTick);
+    //    }
+    //}
 
-        public override void OnStart()
-        {
-            base.OnStart();
-            User.ToggleParalyzed();
-        }
-        public override void OnEnd()
-        {
-            base.OnEnd();
-            User.ToggleParalyzed();
-        }
+    //internal class ParalyzeStatus : PlayerStatus
+    //{
+    //    public new static ushort Icon = 36;
+    //    public new static string Name = "paralyze";
+    //    public static ushort OnTickEffect = 41;
 
-    }
+    //    public new const string ActionProhibitedMessage = "You cannot move!";
 
-    internal class FreezeStatus : PlayerStatus
-    {
-        public new static ushort Icon = 50;
-        public new static string Name = "freeze";
-        public static ushort OnTickEffect = 40;
+    //    public ParalyzeStatus(User user, int duration, int tick) : base(user, duration, tick, Icon, Name)
+    //    {
+    //        OnStartMessage = "Stunned!";
+    //        OnEndMessage = "You can move again.";
+    //    }
 
-        public new const string ActionProhibitedMessage = "You cannot move!";
+    //    public override void OnStart()
+    //    {
+    //        base.OnStart();
+    //        User.ToggleParalyzed();
+    //    }
+    //    public override void OnEnd()
+    //    {
+    //        base.OnEnd();
+    //        User.ToggleParalyzed();
+    //    }
 
-        public FreezeStatus(User user, int duration, int tick) : base(user, duration, tick, Icon, Name)
-        {
-            OnStartMessage = "You are in hibernation.";
-            OnEndMessage = "Your body thaws.";
-        }
+    //}
 
-        public override void OnStart()
-        {
-            base.OnStart();
-            User.ToggleFreeze();
-        }
-        public override void OnEnd()
-        {
-            base.OnEnd();
-            User.ToggleFreeze();
-        }
-    }
+    //internal class FreezeStatus : PlayerStatus
+    //{
+    //    public new static ushort Icon = 50;
+    //    public new static string Name = "freeze";
+    //    public static ushort OnTickEffect = 40;
 
-    internal class SleepStatus : PlayerStatus
-    {
-        public new static ushort Icon = 2;
-        public new static string Name = "sleep";
-        public static ushort OnTickEffect = 28;
+    //    public new const string ActionProhibitedMessage = "You cannot move!";
 
-        public new const string ActionProhibitedMessage = "You are too sleepy to even raise your hands!";
+    //    public FreezeStatus(User user, int duration, int tick) : base(user, duration, tick, Icon, Name)
+    //    {
+    //        OnStartMessage = "You are in hibernation.";
+    //        OnEndMessage = "Your body thaws.";
+    //    }
 
-        public SleepStatus(User user, int duration, int tick) : base(user, duration, tick, Icon, Name)
-        {
-            OnStartMessage = "You are asleep.";
-            OnEndMessage = "You awaken.";
-        }
+    //    public override void OnStart()
+    //    {
+    //        base.OnStart();
+    //        User.ToggleFreeze();
+    //    }
+    //    public override void OnEnd()
+    //    {
+    //        base.OnEnd();
+    //        User.ToggleFreeze();
+    //    }
+    //}
 
-        public override void OnStart()
-        {
-            base.OnStart();
-            User.ToggleAsleep();
-        }
+    //internal class SleepStatus : PlayerStatus
+    //{
+    //    public new static ushort Icon = 2;
+    //    public new static string Name = "sleep";
+    //    public static ushort OnTickEffect = 28;
+
+    //    public new const string ActionProhibitedMessage = "You are too sleepy to even raise your hands!";
+
+    //    public SleepStatus(User user, int duration, int tick) : base(user, duration, tick, Icon, Name)
+    //    {
+    //        OnStartMessage = "You are asleep.";
+    //        OnEndMessage = "You awaken.";
+    //    }
+
+    //    public override void OnStart()
+    //    {
+    //        base.OnStart();
+    //        User.ToggleAsleep();
+    //    }
       
-        public override void OnEnd()
-        {
-            base.OnEnd();
-            User.ToggleAsleep();
-        }
-    }
+    //    public override void OnEnd()
+    //    {
+    //        base.OnEnd();
+    //        User.ToggleAsleep();
+    //    }
+    //}
 
-    internal class NearDeathStatus : PlayerStatus
-    {
-        public new static ushort Icon = 24;
-        public new static string Name = "neardeath";
-        public static ushort OnTickEffect = 24;
+    //internal class NearDeathStatus : PlayerStatus
+    //{
+    //    public new static ushort Icon = 24;
+    //    public new static string Name = "neardeath";
+    //    public static ushort OnTickEffect = 24;
 
-        public new const string ActionProhibitedMessage = "The life is draining from your body.";
+    //    public new const string ActionProhibitedMessage = "The life is draining from your body.";
 
 
-        public NearDeathStatus(User user, int duration, int tick) : base(user, duration, tick, Icon, Name)
-        {
-            OnStartMessage = "You are near death.";
-            OnEndMessage = "You have died!";
-        }
+    //    public NearDeathStatus(User user, int duration, int tick) : base(user, duration, tick, Icon, Name)
+    //    {
+    //        OnStartMessage = "You are near death.";
+    //        OnEndMessage = "You have died!";
+    //    }
 
-        public override void OnStart()
-        {
-            base.OnStart();
-            User.ToggleNearDeath();
-            User.Group?.SendMessage($"{User.Name} is dying!");
-        }
+    //    public override void OnStart()
+    //    {
+    //        base.OnStart();
+    //        User.ToggleNearDeath();
+    //        User.Group?.SendMessage($"{User.Name} is dying!");
+    //    }
 
-        public override void OnTick()
-        {
-            base.OnTick();
-            if (User.Status.HasFlag(PlayerCondition.InComa))
-                User.Effect(OnTickEffect, 120);
-            if (Remaining < 5)
-                User.Group?.SendMessage($"{User.Name}'s soul hangs by a thread!");
-        }
+    //    public override void OnTick()
+    //    {
+    //        base.OnTick();
+    //        if (User.Status.HasFlag(PlayerCondition.InComa))
+    //            User.Effect(OnTickEffect, 120);
+    //        if (Remaining < 5)
+    //            User.Group?.SendMessage($"{User.Name}'s soul hangs by a thread!");
+    //    }
 
-        public override void OnEnd()
-        {
-            base.OnEnd();
-            User.OnDeath();
-        }
-    }
+    //    public override void OnEnd()
+    //    {
+    //        base.OnEnd();
+    //        User.OnDeath();
+    //    }
+    //}
 
-    /*
-        internal class CastableStatus : PlayerEffect
-        {
-            private Script _script;
+    ///*
+    //    internal class CastableStatus : PlayerEffect
+    //    {
+    //        private Script _script;
 
-            public CastableEffect(User user, Script script, int duration = 30000, int ticks = 1000)
-                : base(user, duration, ticks)
-            {
-                _script = script;
-                Icon = icon;
-            }
-        }
-        */
+    //        public CastableEffect(User user, Script script, int duration = 30000, int ticks = 1000)
+    //            : base(user, duration, ticks)
+    //        {
+    //            _script = script;
+    //            Icon = icon;
+    //        }
+    //    }
+    //    */
 }

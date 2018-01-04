@@ -109,15 +109,6 @@ namespace Hybrasyl.Objects
         public bool IsMaster { get; set; }
         public UserGroup Group { get; set; }
 
-        public bool Dead => !Status.HasFlag(PlayerCondition.Alive);
-        public bool IsCasting => Status.HasFlag(PlayerCondition.Casting);
-
-        public bool CanCast
-            =>
-            !(Status.HasFlag(PlayerCondition.Asleep) ||
-              Status.HasFlag(PlayerCondition.Frozen) || Status.HasFlag(PlayerCondition.Paralyzed));
-
-
         public Mailbox Mailbox => World.GetMailbox(Name);
         public bool UnreadMail => Mailbox.HasUnreadMessages;
 
@@ -176,7 +167,7 @@ namespace Hybrasyl.Objects
         [JsonProperty]
         public GuildMembership Guild { get; set; }
 
-        [JsonProperty] private ConcurrentDictionary<ushort, IPlayerStatus> _currentStatuses;
+        [JsonProperty] private ConcurrentDictionary<ushort, ICreatureStatus> _currentStatuses;
 
         private Nation _nation;
 
@@ -215,13 +206,7 @@ namespace Hybrasyl.Objects
 
         public Exchange ActiveExchange { get; set; }
 
-        [JsonProperty]
-        public PlayerCondition Status { get; set; }
-
-        public bool IsAvailableForExchange
-        {
-            get { return Status == Enums.PlayerCondition.Alive; }
-        }
+        public bool IsAvailableForExchange => Condition.NoFlags;
         #endregion
 
         /// <summary>
@@ -353,7 +338,7 @@ namespace Hybrasyl.Objects
         /// Apply a given status to a player.
         /// </summary>
         /// <param name="status">The status to apply to the player.</param>
-        public bool ApplyStatus(IPlayerStatus status)
+        public bool ApplyStatus(ICreatureStatus status)
         {
             if (!_currentStatuses.TryAdd(status.Icon, status)) return false;
             SendStatusUpdate(status);
@@ -366,7 +351,7 @@ namespace Hybrasyl.Objects
         /// </summary>
         /// <param name="status">The status to remove.</param>
         /// <param name="onEnd">Whether or not to run the onEnd event for the status removal.</param>
-        private void _removeStatus(IPlayerStatus status, bool onEnd = true)
+        private void _removeStatus(ICreatureStatus status, bool onEnd = true)
         {
             if (onEnd)
                 status.OnEnd();
@@ -381,13 +366,13 @@ namespace Hybrasyl.Objects
         /// <returns></returns>
         public bool RemoveStatus(ushort icon, bool onEnd = true)
         {
-            IPlayerStatus status;
+            ICreatureStatus status;
             if (!_currentStatuses.TryRemove(icon, out status)) return false;
             _removeStatus(status, onEnd);
             return true;
         }
 
-        public bool TryGetStatus(string name, out IPlayerStatus status)
+        public bool TryGetStatus(string name, out ICreatureStatus status)
         {
             status = _currentStatuses.Values.FirstOrDefault(s => s.Name == name);
             return status != null;
@@ -441,7 +426,7 @@ namespace Hybrasyl.Objects
         /// <param name="status">The status to update on the client side.</param>
         /// <param name="remove">Force removal of the status</param>
 
-        public virtual void SendStatusUpdate(IPlayerStatus status, bool remove = false)
+        public virtual void SendStatusUpdate(ICreatureStatus status, bool remove = false)
         {
             var statuspacket = new ServerPacketStructures.StatusBar { Icon = status.Icon };
             var elapsed = DateTime.Now - status.Start;
@@ -469,64 +454,7 @@ namespace Hybrasyl.Objects
             Enqueue(statuspacket.Packet());
         }
 
-        #region Toggles for statuses
-
-        /// <summary>
-        /// Toggle whether or not the user is frozen.
-        /// </summary>
-        public void ToggleFreeze()
-        {
-            Status ^= PlayerCondition.Frozen;
-        }
-
-        /// <summary>
-        /// Toggle whether or not the user is asleep.
-        /// </summary>
-        public void ToggleAsleep()
-        {
-            Status ^= PlayerCondition.Asleep;
-        }
-
-        /// <summary>
-        /// Toggle whether or not the user is blind.
-        /// </summary>
-        public void ToggleBlind()
-        {
-            Status ^= PlayerCondition.Blinded;
-            UpdateAttributes(StatUpdateFlags.Secondary);
-        }
-
-        /// <summary>
-        /// Toggle whether or not the user is paralyzed.
-        /// </summary>
-        public void ToggleParalyzed()
-        {
-            Status ^= PlayerCondition.Paralyzed;
-            UpdateAttributes(StatUpdateFlags.Secondary);
-        }
-
-        /// <summary>
-        /// Toggle whether or not the user is near death (in a coma).
-        /// </summary>
-        public void ToggleNearDeath()
-        {
-            if (Status.HasFlag(PlayerCondition.InComa))
-            {
-                Status &= ~PlayerCondition.InComa;
-                Group?.SendMessage($"{Name} has recovered!");
-            }
-            else
-                Status |= PlayerCondition.InComa;
-        }
-
-        /// <summary>
-        /// Toggle whether or not a user is alive.
-        /// </summary>
-        public void ToggleAlive()
-        {
-            Status ^= PlayerCondition.Alive;
-            UpdateAttributes(StatUpdateFlags.Secondary);
-        }
+  
 
         #endregion
 
@@ -542,7 +470,8 @@ namespace Hybrasyl.Objects
             RemoveAllStatuses();
 
             // We are now quite dead, not mostly dead
-            Status &= ~PlayerCondition.InComa;
+
+            Condition.ToggleNearDeath();
 
             // First: break everything that is breakable in the inventory
             for (byte i = 0; i <= Inventory.Size; ++i)
@@ -598,7 +527,7 @@ namespace Hybrasyl.Objects
             Mp = 0;
             UpdateAttributes(StatUpdateFlags.Full);
 
-            Status &= ~PlayerCondition.Alive;
+            Condition.Dead();
             Effect(76, 120);
             SendSystemMessage("Your items are ripped from your body.");
             Teleport("Chaotic Threshold", 10, 10);
@@ -611,10 +540,10 @@ namespace Hybrasyl.Objects
         /// </summary>
         public void EndComa()
         {
-            if (!Status.HasFlag(PlayerCondition.InComa)) return;
-            ToggleNearDeath();
-            var bar = RemoveStatus(NearDeathStatus.Icon, false);
-            Logger.Debug($"EndComa: {Name}: removestatus for coma is {bar}");
+            if (!Condition.Comatose) return;
+            Condition.ToggleNearDeath();
+            //var bar = RemoveStatus(NearDeathStatus.Icon, false);
+            Logger.Debug($"EndComa: {Name}: removestatus for coma is hurp");
 
             foreach (var status in _currentStatuses.Values)
             {
@@ -628,7 +557,7 @@ namespace Hybrasyl.Objects
         public void Resurrect()
         {
             // Teleport user to national spawn point
-            Status |= PlayerCondition.Alive;
+            Condition.ToggleAlive();
             if (Nation.SpawnPoints.Count != 0)
             {
                 var spawnpoint = Nation.RandomSpawnPoint;
@@ -658,8 +587,6 @@ namespace Hybrasyl.Objects
 
 
         }
-
-        #endregion
 
         public string GroupText
         {
@@ -701,7 +628,7 @@ namespace Hybrasyl.Objects
             return BCrypt.Net.BCrypt.Verify(password, Password.Hash);
         }
 
-        public User()
+        public User() : base()
         {
             _initializeUser();
         }
@@ -726,10 +653,9 @@ namespace Hybrasyl.Objects
             DialogState = new DialogState(this);
             UserFlags = new Dictionary<string, string>();
             UserSessionFlags = new Dictionary<string, string>();
-            Status = PlayerCondition.Alive;
             Group = null;
             Flags = new Dictionary<string, bool>();
-            _currentStatuses = new ConcurrentDictionary<ushort, IPlayerStatus>();
+            _currentStatuses = new ConcurrentDictionary<ushort, ICreatureStatus>();
 
             #region Appearance defaults
             RestPosition = RestPosition.Standing;
@@ -989,10 +915,10 @@ namespace Hybrasyl.Objects
             switch (toApply.EquipmentSlot)
             {
                 case (byte)ItemSlots.Necklace:
-                    OffensiveElement = toApply.Element;
+                    BaseOffensiveElement = toApply.Element;
                     break;
                 case (byte)ItemSlots.Waist:
-                    DefensiveElement = toApply.Element;
+                    BaseDefensiveElement = toApply.Element;
                     break;
             }
 
@@ -1331,7 +1257,7 @@ namespace Hybrasyl.Objects
         public void SendUpdateToUser(Client client)
         {
             var offset = Equipment.Armor?.BodyStyle ?? 0;
-            if (!Status.HasFlag(PlayerCondition.Alive))
+            if (!Condition.Alive)
                 offset += 0x20;
 
             Logger.Debug($"Offset is: {offset.ToString("X")}");
@@ -1602,7 +1528,7 @@ namespace Hybrasyl.Objects
             if (flags.HasFlag(StatUpdateFlags.Secondary))
             {
                 x08.WriteByte(0); //Unknown
-                x08.WriteByte((byte)(Status.HasFlag(PlayerCondition.Blinded) ? 0x08 : 0x00));
+                x08.WriteByte((byte)(Condition.Blinded ? 0x08 : 0x00));
                 x08.WriteByte(0); // Unknown
                 x08.WriteByte(0); // Unknown
                 x08.WriteByte(0); // Unknown
@@ -2166,7 +2092,7 @@ namespace Hybrasyl.Objects
         public override void Damage(double damage, Enums.Element element = Enums.Element.None,
             Enums.DamageType damageType = Enums.DamageType.Direct, Creature attacker = null)
         {
-            if (Status.HasFlag(PlayerCondition.InComa) || !Status.HasFlag(PlayerCondition.Alive)) return;
+            if (Condition.Comatose || !Condition.Alive) return;
             base.Damage(damage, element, damageType, attacker);
             if (Hp == 0)
             {
@@ -2295,7 +2221,7 @@ namespace Hybrasyl.Objects
 
                 }
                 Enqueue(sound.Packet());
-                PlaySound(sound.Packet());
+                PlaySound(castObject.Effects.Sound.Id);
             }
         }
 
@@ -2450,7 +2376,7 @@ namespace Hybrasyl.Objects
 
                     foreach (var target in actualTargets)
                     {
-                        if (target is Monster || (target is User && ((User)target).Status.HasFlag(PlayerCondition.Pvp)))
+                        if (target is Monster || (target is User && ((User)target).Condition.PvpEnabled))
                         {
 
                             var rand = new Random();
@@ -2520,7 +2446,7 @@ namespace Hybrasyl.Objects
                     SendAnimation(playerAnimation.Packet());
                 }
                 Enqueue(sound.Packet());
-                PlaySound(sound.Packet());
+                PlaySound(castObject.Effects.Sound.Id);
                 //this is an attack skill
             }
             else
@@ -2564,7 +2490,7 @@ namespace Hybrasyl.Objects
                 var monster = obj as Monster;
                 if (monster != null) target = monster;
                 var user = obj as User;
-                if (user != null && user.Status.HasFlag(PlayerCondition.Pvp))
+                if (user != null && user.Condition.PvpEnabled)
                 {
                     target = user;
                 }
@@ -2589,11 +2515,11 @@ namespace Hybrasyl.Objects
 
             var motionId = motion != null ? (byte)motion.Id : (byte)1;
             var assail = new ServerPacketStructures.PlayerAnimation() { Animation = motionId, Speed = 20, UserId = this.Id };
-            var sound = new ServerPacketStructures.PlaySound() { Sound = firstAssail != null ? (byte)firstAssail.Effects.Sound.Id : (byte)1 };
+            var soundId = firstAssail != null ? firstAssail.Effects.Sound.Id : (byte)1;
             Enqueue(assail.Packet());
-            Enqueue(sound.Packet());
+            PlaySound(soundId);
             SendAnimation(assail.Packet());
-            PlaySound(sound.Packet());
+            PlaySound(soundId);
         }
 
 
@@ -2707,6 +2633,7 @@ namespace Hybrasyl.Objects
             x29.WriteByte(0x00);
             Enqueue(x29);
         }
+
         public void SendEffect(uint targetId, ushort targetEffect, uint srcId, ushort srcEffect, short speed)
         {
             Logger.InfoFormat("SendEffect: targetId {0}, targetEffect {1}, srcId {2}, srcEffect {3}, speed {4}",
@@ -3989,7 +3916,7 @@ namespace Hybrasyl.Objects
         /// <param name="requestor">The user requesting the trade</param>
         public void SendExchangeInitiation(User requestor)
         {
-            if (!Status.HasFlag(PlayerCondition.InExchange) || !requestor.Status.HasFlag(PlayerCondition.InExchange)) return;
+            if (!Condition.InExchange || !requestor.Condition.InExchange) return;
             Enqueue(new ServerPacketStructures.Exchange
             {
                 Action = ExchangeActions.Initiate,
@@ -4004,7 +3931,7 @@ namespace Hybrasyl.Objects
         /// <param name="itemSlot">The ItemObject slot containing a stacked ItemObject that will be split (client side)</param>
         public void SendExchangeQuantityPrompt(byte itemSlot)
         {
-            if (!Status.HasFlag(PlayerCondition.InExchange)) return;
+            if (!Condition.InExchange) return;
             Enqueue(
                 new ServerPacketStructures.Exchange
                 {
@@ -4020,7 +3947,7 @@ namespace Hybrasyl.Objects
         /// <param name="source">Boolean indicating which "side" of the transaction will be updated (source / "left side" == true)</param>
         public void SendExchangeUpdate(ItemObject toAdd, byte slot, bool source = true)
         {
-            if (!Status.HasFlag(PlayerCondition.InExchange)) return;
+            if (!Condition.InExchange) return;
             var update = new ServerPacketStructures.Exchange
             {
                 Action = ExchangeActions.ItemUpdate,
@@ -4040,7 +3967,7 @@ namespace Hybrasyl.Objects
         /// <param name="source">Boolean indicating which "side" of the transaction will be updated (source / "left side" == true)</param>
         public void SendExchangeUpdate(uint gold, bool source = true)
         {
-            if (!Status.HasFlag(PlayerCondition.InExchange)) return;
+            if (!Condition.InExchange) return;
             Enqueue(new ServerPacketStructures.Exchange
             {
                 Action = ExchangeActions.GoldUpdate,
@@ -4055,7 +3982,7 @@ namespace Hybrasyl.Objects
         /// <param name="source">The "side" responsible for cancellation (source / "left side" == true)</param>
         public void SendExchangeCancellation(bool source = true)
         {
-            if (!Status.HasFlag(PlayerCondition.InExchange)) return;
+            if (!Condition.InExchange) return;
             Enqueue(new ServerPacketStructures.Exchange
             {
                 Action = ExchangeActions.Cancel,
@@ -4070,7 +3997,7 @@ namespace Hybrasyl.Objects
 
         public void SendExchangeConfirmation(bool source = true)
         {
-            if (!Status.HasFlag(PlayerCondition.InExchange)) return;
+            if (!Condition.InExchange) return;
             Enqueue(new ServerPacketStructures.Exchange
             {
                 Action = ExchangeActions.Confirm,

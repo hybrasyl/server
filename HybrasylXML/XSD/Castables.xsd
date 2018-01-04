@@ -93,7 +93,7 @@
       </xs:simpleType>
     </xs:attribute>
     <xs:attribute name="Id" type="xs:int"/>
-    <xs:attribute name="Speed" type="xs:int"/>
+    <xs:attribute name="Speed" type="xs:short"/>
   </xs:complexType>
 
   <xs:complexType name="MotionsList">
@@ -290,6 +290,7 @@
               <xs:enumeration value="Scaled" />
               <xs:enumeration value="Resistance" />
               <xs:enumeration value="Threat" />
+              <xs:enumeration value="Nonlethal"/>
             </xs:restriction>
           </xs:simpleType>
         </xs:list>
@@ -341,7 +342,7 @@
   <!-- Animation set -->
   <xs:complexType name="Animation">
     <xs:attribute name="Id" type="xs:unsignedShort" use="required" />
-    <xs:attribute name="Speed" type="xs:unsignedShort" use="optional" default="100" />
+    <xs:attribute name="Speed" type="xs:short" use="optional" default="100" />
   </xs:complexType>
 
   <!-- Effects type -->
@@ -394,6 +395,8 @@
     <xs:attribute name="DamageModifier" type="xs:float"/>
     <xs:attribute name="HealModifier" type="xs:float"/>
     <xs:attribute name="DamageType" type="hyb:DamageType"/>
+    <xs:attribute name="ReflectChance" type="xs:float"/>
+    <xs:attribute name="ReflectIntensity" type="xs:float"/>
   </xs:complexType>
 
   <!-- Restrictions on casting, such as types of equipment, or

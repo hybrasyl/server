@@ -575,6 +575,10 @@ namespace Hybrasyl.Castables
         private float _healModifier;
 
         private DamageType _damageType;
+
+        private float _reflectChance;
+
+        private float _reflectIntensity;
         #endregion
 
         public StatModifiers()
@@ -825,6 +829,32 @@ namespace Hybrasyl.Castables
                 this._damageType = value;
             }
         }
+
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        public float ReflectChance
+        {
+            get
+            {
+                return this._reflectChance;
+            }
+            set
+            {
+                this._reflectChance = value;
+            }
+        }
+
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        public float ReflectIntensity
+        {
+            get
+            {
+                return this._reflectIntensity;
+            }
+            set
+            {
+                this._reflectIntensity = value;
+            }
+        }
     }
 
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
@@ -1004,6 +1034,9 @@ namespace Hybrasyl.Castables
 
         /// <remarks/>
         Threat = 4,
+
+        /// <remarks/>
+        Nonlethal = 8,
     }
 
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
@@ -1140,12 +1173,12 @@ namespace Hybrasyl.Castables
         #region Private fields
         private ushort _id;
 
-        private ushort _speed;
+        private short _speed;
         #endregion
 
         public Animation()
         {
-            this._speed = ((ushort)(100));
+            this._speed = ((short)(100));
         }
 
         [System.Xml.Serialization.XmlAttributeAttribute()]
@@ -1162,8 +1195,8 @@ namespace Hybrasyl.Castables
         }
 
         [System.Xml.Serialization.XmlAttributeAttribute()]
-        [System.ComponentModel.DefaultValueAttribute(typeof(ushort), "100")]
-        public ushort Speed
+        [System.ComponentModel.DefaultValueAttribute(typeof(short), "100")]
+        public short Speed
         {
             get
             {
@@ -1189,7 +1222,7 @@ namespace Hybrasyl.Castables
 
         private int _id;
 
-        private int _speed;
+        private short _speed;
         #endregion
 
         public Motion()
@@ -1224,7 +1257,7 @@ namespace Hybrasyl.Castables
         }
 
         [System.Xml.Serialization.XmlAttributeAttribute()]
-        public int Speed
+        public short Speed
         {
             get
             {

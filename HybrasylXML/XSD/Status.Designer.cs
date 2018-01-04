@@ -35,11 +35,11 @@ namespace Hybrasyl.Statuses
 
         private Effects _effects;
 
-        private string _duration;
+        private int _duration;
 
-        private string _tick;
+        private int _tick;
 
-        private sbyte _icon;
+        private ushort _icon;
 
         private string _name;
         #endregion
@@ -99,7 +99,7 @@ namespace Hybrasyl.Statuses
         }
 
         [System.Xml.Serialization.XmlAttributeAttribute()]
-        public string Duration
+        public int Duration
         {
             get
             {
@@ -112,7 +112,7 @@ namespace Hybrasyl.Statuses
         }
 
         [System.Xml.Serialization.XmlAttributeAttribute()]
-        public string Tick
+        public int Tick
         {
             get
             {
@@ -125,7 +125,7 @@ namespace Hybrasyl.Statuses
         }
 
         [System.Xml.Serialization.XmlAttributeAttribute()]
-        public sbyte Icon
+        public ushort Icon
         {
             get
             {
@@ -160,18 +160,13 @@ namespace Hybrasyl.Statuses
     {
 
         #region Private fields
-        private CastRestriction _use;
+        private string _use;
 
-        private CastRestriction _receive;
+        private string _heal;
         #endregion
 
-        public CastRestrictions()
-        {
-            this._receive = new CastRestriction();
-            this._use = new CastRestriction();
-        }
-
-        public CastRestriction Use
+        [System.Xml.Serialization.XmlAttributeAttribute(DataType = "token")]
+        public string Use
         {
             get
             {
@@ -183,26 +178,18 @@ namespace Hybrasyl.Statuses
             }
         }
 
-        public CastRestriction Receive
+        [System.Xml.Serialization.XmlAttributeAttribute(DataType = "token")]
+        public string Heal
         {
             get
             {
-                return this._receive;
+                return this._heal;
             }
             set
             {
-                this._receive = value;
+                this._heal = value;
             }
         }
-    }
-
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
-    [System.SerializableAttribute()]
-    [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Status")]
-    public partial class CastRestriction
-    {
     }
 
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
@@ -303,25 +290,22 @@ namespace Hybrasyl.Statuses
         ReduceDamage = 65536,
 
         /// <remarks/>
-        ProhibitUsage = 131072,
+        AbsorbSpell = 131072,
 
         /// <remarks/>
-        AbsorbSpell = 262144,
+        ProhibitItemUse = 262144,
 
         /// <remarks/>
-        ProhibitItemUse = 524288,
+        ProhibitEquipChange = 524288,
 
         /// <remarks/>
-        ProhibitEquipChange = 1048576,
+        ProhibitSpeech = 1048576,
 
         /// <remarks/>
-        ProhibitSpeech = 2097152,
+        ProhibitWhisper = 2097152,
 
         /// <remarks/>
-        ProhibitWhisper = 4194304,
-
-        /// <remarks/>
-        ProhibitShout = 8388608,
+        ProhibitShout = 4194304,
     }
 
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
@@ -366,6 +350,10 @@ namespace Hybrasyl.Statuses
         private float _healModifier;
 
         private DamageType _damageType;
+
+        private float _reflectChance;
+
+        private float _reflectIntensity;
         #endregion
 
         public StatModifiers()
@@ -616,6 +604,32 @@ namespace Hybrasyl.Statuses
                 this._damageType = value;
             }
         }
+
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        public float ReflectChance
+        {
+            get
+            {
+                return this._reflectChance;
+            }
+            set
+            {
+                this._reflectChance = value;
+            }
+        }
+
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        public float ReflectIntensity
+        {
+            get
+            {
+                return this._reflectIntensity;
+            }
+            set
+            {
+                this._reflectIntensity = value;
+            }
+        }
     }
 
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
@@ -795,6 +809,9 @@ namespace Hybrasyl.Statuses
 
         /// <remarks/>
         Threat = 4,
+
+        /// <remarks/>
+        Nonlethal = 8,
     }
 
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
@@ -1025,6 +1042,8 @@ namespace Hybrasyl.Statuses
 
         private ModifierEffectSound _sound;
 
+        private string _message;
+
         private Heal _heal;
 
         private Damage _damage;
@@ -1055,6 +1074,18 @@ namespace Hybrasyl.Statuses
             set
             {
                 this._sound = value;
+            }
+        }
+
+        public string Message
+        {
+            get
+            {
+                return this._message;
+            }
+            set
+            {
+                this._message = value;
             }
         }
 

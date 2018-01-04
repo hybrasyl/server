@@ -215,11 +215,13 @@ namespace Hybrasyl.Objects
             }
         }
 
-        public virtual void PlaySound(ServerPacket packet)
+        public virtual void PlaySound(byte Id)
         {
+            var soundPacket = new ServerPacketStructures.PlaySound() { Sound = Id };
+
             foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>().Select(obj => obj))
             {
-                var nPacket = (ServerPacket)packet.Clone();
+                var nPacket = (ServerPacket) soundPacket.Clone();
                 user.Enqueue(nPacket);
             }
         }

@@ -22,10 +22,11 @@
       <xs:element name="CastRestrictions" type="status:CastRestrictions" minOccurs="0" maxOccurs="1"/>
       <xs:element name="Script" type="hyb:String8" />
       <xs:element name="Effects" type="status:Effects" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="ProhibitedMessage" type="hyb:String8" minOccurs="0" maxOccurs="1"/>
     </xs:all>
-    <xs:attribute name="Duration" use="optional" />
-    <xs:attribute name="Tick" use="optional"/>
-    <xs:attribute name="Icon" type="xs:byte" use="required"/>
+    <xs:attribute name="Duration" type="xs:int" use="optional" />
+    <xs:attribute name="Tick" type="xs:int" use="optional"/>
+    <xs:attribute name="Icon" type="xs:unsignedShort" use="required"/>
     <xs:attribute name="Name" type="hyb:String8" use="required"/>
   </xs:complexType>
 
@@ -38,14 +39,10 @@
   </xs:complexType>
 
   <xs:complexType name="CastRestrictions">
-    <xs:sequence minOccurs="0" maxOccurs="1">
-      <xs:element name="Use" type="status:CastRestriction"/>
-      <xs:element name="Receive" type="status:CastRestriction"/>
-    </xs:sequence>
+    <xs:attribute name="Use" type="xs:token"/>
+    <xs:attribute name="Heal" type="xs:token"/>
   </xs:complexType>
-
-  <xs:complexType name="CastRestriction"/>
-
+  
   <xs:complexType name="Effects">
     <xs:sequence minOccurs="0" maxOccurs="1">
       <xs:element name="OnApply" type="status:ModifierEffect" />
@@ -67,7 +64,7 @@
       <xs:element name="Unset" type="hyb:CreatureCondition"/>
     </xs:sequence>
   </xs:complexType>
-
+  
   <xs:complexType name="ModifierEffect" >
     <xs:sequence minOccurs="0" maxOccurs="1">
       <xs:element name="Animations" type="status:StatusAnimations" minOccurs="0" maxOccurs="1" />
@@ -76,6 +73,7 @@
           <xs:attribute name="Id" type="xs:unsignedByte" use="required" />
         </xs:complexType>
       </xs:element>
+      <xs:element name="Message" minOccurs="0" maxOccurs="1" type="hyb:String8"/>
       <xs:element name="Heal" minOccurs="0" maxOccurs="1" type="actions:Heal" />
       <xs:element name="Damage" minOccurs="0" maxOccurs="1" type="actions:Damage" />
       <xs:element name="StatModifiers" minOccurs="0" maxOccurs="1" type="actions:StatModifiers" />
@@ -83,7 +81,7 @@
     </xs:sequence>
   </xs:complexType>
 
-  <xs:element name="Status" type="status:Status" />
+  <xs:element name="Status" type="status:Status"/>
 
 </xs:schema>
 

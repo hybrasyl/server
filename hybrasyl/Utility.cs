@@ -125,14 +125,14 @@ namespace Hybrasyl
 
         public const string SPIRIT_FORBIDDEN = "Spirits cannot do that.";
 
-        public static Dictionary<PlayerCondition, string> STATUS_RESTRICTION_MESSAGES = new Dictionary
-            <PlayerCondition, string>
+        public static Dictionary<PlayerFlags, string> STATUS_RESTRICTION_MESSAGES = new Dictionary
+            <PlayerFlags, string>
         {
-            {PlayerCondition.InComa, NearDeathStatus.ActionProhibitedMessage},
-            {PlayerCondition.Asleep, SleepStatus.ActionProhibitedMessage},
-            {PlayerCondition.Frozen, FreezeStatus.ActionProhibitedMessage},
-            {PlayerCondition.Paralyzed, ParalyzeStatus.ActionProhibitedMessage},
-            {PlayerCondition.Alive, Constants.SPIRIT_FORBIDDEN}
+            {PlayerFlags.InComa, NearDeathStatus.ActionProhibitedMessage},
+            {PlayerFlags.Asleep, SleepStatus.ActionProhibitedMessage},
+            {PlayerFlags.Frozen, FreezeStatus.ActionProhibitedMessage},
+            {PlayerFlags.Paralyzed, ParalyzeStatus.ActionProhibitedMessage},
+            {PlayerFlags.Alive, Constants.SPIRIT_FORBIDDEN}
 
         };
         // Idle settings

@@ -51,6 +51,7 @@ using System.Xml.Schema;
 using Hybrasyl.Scripting;
 using Castable = Hybrasyl.Castables.Castable;
 using Creature = Hybrasyl.Objects.Creature;
+using Hybrasyl.Statuses;
 
 namespace Hybrasyl
 {
@@ -587,7 +588,7 @@ namespace Hybrasyl
                 variantItem.Properties.Restrictions.Level = new RestrictionsLevel();
 
             if (variantItem.Properties.StatModifiers is null)
-                variantItem.Properties.StatModifiers = new StatModifiers()
+                variantItem.Properties.StatModifiers = new Items.StatModifiers()
                 {
                     Base = new StatModifierBase(),
                     Element = new StatModifierElement(),
@@ -1317,10 +1318,7 @@ namespace Hybrasyl
             }
         }
 
-        [ProhibitedCondition(PlayerCondition.InComa)]
-        [ProhibitedCondition(PlayerCondition.Asleep)]
-        [ProhibitedCondition(PlayerCondition.Frozen)]
-        [ProhibitedCondition(PlayerCondition.Paralyzed)]
+        [Prohibited(CreatureCondition.Coma,CreatureCondition.Sleep,CreatureCondition.Freeze,CreatureCondition.Paralyze)]
         private void PacketHandler_0x06_Walk(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -1329,10 +1327,8 @@ namespace Hybrasyl
             user.Walk((Direction)direction);
         }
 
-        [ProhibitedCondition(PlayerCondition.InComa)]
-        [ProhibitedCondition(PlayerCondition.Asleep)]
-        [ProhibitedCondition(PlayerCondition.Frozen)]
-        [RequiredCondition(PlayerCondition.Alive)]
+        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+        [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x07_PickupItem(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -1420,10 +1416,8 @@ namespace Hybrasyl
             }
         }
 
-        [ProhibitedCondition(PlayerCondition.InComa)]
-        [ProhibitedCondition(PlayerCondition.Asleep)]
-        [ProhibitedCondition(PlayerCondition.Frozen)]
-        [RequiredCondition(PlayerCondition.Alive)]
+        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+        [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x08_DropItem(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -1536,15 +1530,15 @@ namespace Hybrasyl
                     case "/clearstatus":
                         {
                             user.RemoveAllStatuses();
-                            user.Status = PlayerCondition.Alive;
+                            user.Condition.ClearConditions();
                             user.SendSystemMessage("All statuses cleared.");
                         }
                         break;
 
-                    case "/clearconditions":
+                    case "/clearflags":
                         {
-                            user.Status = PlayerCondition.Alive;
-                            user.SendSystemMessage("Alive, conditions cleared");
+                            user.Condition.ClearFlags();
+                            user.SendSystemMessage("Alive, all flags cleared");
                         }
                         break;
 
@@ -1579,7 +1573,7 @@ namespace Hybrasyl
 
                     case "/condition":
                         {
-                            user.SendSystemMessage($"Status: {user.Status}");
+                            user.SendSystemMessage($"Flags: {user.Condition.Flags} Conditions: {user.Condition.Condition}");
                         }
                         break;
 
@@ -2393,7 +2387,7 @@ namespace Hybrasyl
             }
             else
             {
-                if (user.Dead)
+                if (user.Condition.Dead)
                 {
                     user.SendSystemMessage("Your voice is carried away by a sudden wind.");
                     return;
@@ -2410,11 +2404,8 @@ namespace Hybrasyl
             }
         }
 
-        [ProhibitedCondition(PlayerCondition.InComa)]
-        [ProhibitedCondition(PlayerCondition.Asleep)]
-        [ProhibitedCondition(PlayerCondition.Frozen)]
-        [ProhibitedCondition(PlayerCondition.Paralyzed)]
-        [RequiredCondition(PlayerCondition.Alive)]
+        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, CreatureCondition.Paralyze)]
+        [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x0F_UseSpell(object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -2422,7 +2413,7 @@ namespace Hybrasyl
             var target = packet.ReadUInt32();
 
             user.UseSpell(slot, target);
-            user.Status ^= PlayerCondition.Casting;
+            user.Condition.ToggleCasting();
         }
 
         private void PacketHandler_0x0B_ClientExit(Object obj, ClientPacket packet)
@@ -2496,7 +2487,7 @@ namespace Hybrasyl
             Insert(loginUser);
             Logger.DebugFormat("Elapsed time since login: {0}", loginUser.SinceLastLogin);
 
-            if (loginUser.Dead)
+            if (!loginUser.Condition.Alive)
             {
                 loginUser.Teleport("Chaotic Threshold", 10, 10);
             }
@@ -2533,7 +2524,7 @@ namespace Hybrasyl
             loginUser.Reindex();
         }
 
-        [ProhibitedCondition(PlayerCondition.Frozen)]
+        [Prohibited(CreatureCondition.Freeze)]
         private void PacketHandler_0x11_Turn(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -2542,10 +2533,7 @@ namespace Hybrasyl
             user.Turn((Direction)direction);
         }
 
-        [ProhibitedCondition(PlayerCondition.InComa)]
-        [ProhibitedCondition(PlayerCondition.Asleep)]
-        [ProhibitedCondition(PlayerCondition.Frozen)]
-        [ProhibitedCondition(PlayerCondition.Paralyzed)]
+        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, CreatureCondition.Paralyze)]
         private void PacketHandler_0x13_Attack(object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -2582,7 +2570,7 @@ namespace Hybrasyl
             me.Enqueue(listPacket);
         }
 
-        [RequiredCondition(PlayerCondition.Alive)]
+        [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x19_Whisper(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -2604,10 +2592,8 @@ namespace Hybrasyl
             }
         }
 
-        [ProhibitedCondition(PlayerCondition.InComa)]
-        [ProhibitedCondition(PlayerCondition.Asleep)]
-        [ProhibitedCondition(PlayerCondition.Frozen)]
-        [RequiredCondition(PlayerCondition.Alive)]
+        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+        [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x1C_UseItem(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -2761,10 +2747,8 @@ namespace Hybrasyl
             }
         }
 
-        [ProhibitedCondition(PlayerCondition.InComa)]
-        [ProhibitedCondition(PlayerCondition.Asleep)]
-        [ProhibitedCondition(PlayerCondition.Frozen)]
-        [RequiredCondition(PlayerCondition.Alive)]
+        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+        [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x1D_Emote(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -2776,10 +2760,8 @@ namespace Hybrasyl
             }
         }
 
-        [ProhibitedCondition(PlayerCondition.InComa)]
-        [ProhibitedCondition(PlayerCondition.Asleep)]
-        [ProhibitedCondition(PlayerCondition.Frozen)]
-        [RequiredCondition(PlayerCondition.Alive)]
+        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+        [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x24_DropGold(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -2848,8 +2830,8 @@ namespace Hybrasyl
          *    5) Send them a dialog and have them explicitly accept.
          *    6) If accepted, join group (see stage 0x03).
          */
-        [ProhibitedCondition(PlayerCondition.InComa)]
-        [RequiredCondition(PlayerCondition.Alive)]
+        [Prohibited(CreatureCondition.Coma)]
+        [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x2E_GroupRequest(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -2923,8 +2905,8 @@ namespace Hybrasyl
             }
         }
 
-        [ProhibitedCondition(PlayerCondition.InComa)]
-        [RequiredCondition(PlayerCondition.Alive)]
+        [Prohibited(CreatureCondition.Coma)]
+        [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x2F_GroupToggle(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -2943,10 +2925,8 @@ namespace Hybrasyl
             // are extra bytes coming through but not sure what purpose they serve.
         }
 
-        [ProhibitedCondition(PlayerCondition.InComa)]
-        [ProhibitedCondition(PlayerCondition.Asleep)]
-        [ProhibitedCondition(PlayerCondition.Frozen)]
-        [RequiredCondition(PlayerCondition.Alive)]
+        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+        [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x2A_DropGoldOnCreature(Object obj, ClientPacket packet)
         {
             var goldAmount = packet.ReadUInt32();
@@ -3002,10 +2982,8 @@ namespace Hybrasyl
             }
         }
 
-        [ProhibitedCondition(PlayerCondition.InComa)]
-        [ProhibitedCondition(PlayerCondition.Asleep)]
-        [ProhibitedCondition(PlayerCondition.Frozen)]
-        [RequiredCondition(PlayerCondition.Alive)]
+        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+        [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x29_DropItemOnCreature(Object obj, ClientPacket packet)
         {
             var itemSlot = packet.ReadByte();
@@ -3067,7 +3045,7 @@ namespace Hybrasyl
             }
         }
 
-        [RequiredCondition(PlayerCondition.Alive)]
+        [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x30_MoveUIElement(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -3116,10 +3094,8 @@ namespace Hybrasyl
             // Is the slot invalid? Does at least one of the slots contain an item?
         }
 
-        [ProhibitedCondition(PlayerCondition.InComa)]
-        [ProhibitedCondition(PlayerCondition.Asleep)]
-        [ProhibitedCondition(PlayerCondition.Frozen)]
-        [RequiredCondition(PlayerCondition.Alive)]
+        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+        [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x3B_AccessMessages(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -3501,12 +3477,8 @@ namespace Hybrasyl
             user.Enqueue(response);
         }
 
-
-        [ProhibitedCondition(PlayerCondition.InComa)]
-        [ProhibitedCondition(PlayerCondition.Asleep)]
-        [ProhibitedCondition(PlayerCondition.Frozen)]
-        [ProhibitedCondition(PlayerCondition.Paralyzed)]
-        [RequiredCondition(PlayerCondition.Alive)]
+        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, CreatureCondition.Paralyze)]
+        [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x3E_UseSkill(object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -3515,9 +3487,7 @@ namespace Hybrasyl
             user.UseSkill(slot);
         }
 
-        [ProhibitedCondition(PlayerCondition.InComa)]
-        [ProhibitedCondition(PlayerCondition.Asleep)]
-        [ProhibitedCondition(PlayerCondition.Frozen)]
+        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
         private void PacketHandler_0x3F_MapPointClick(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -3550,10 +3520,8 @@ namespace Hybrasyl
             user.Refresh();
         }
 
-        [ProhibitedCondition(PlayerCondition.InComa)]
-        [ProhibitedCondition(PlayerCondition.Asleep)]
-        [ProhibitedCondition(PlayerCondition.Frozen)]
-        [RequiredCondition(PlayerCondition.Alive)]
+        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+        [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x39_NPCMainMenu(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -3646,10 +3614,8 @@ namespace Hybrasyl
             }
         }
 
-        [ProhibitedCondition(PlayerCondition.InComa)]
-        [ProhibitedCondition(PlayerCondition.Asleep)]
-        [ProhibitedCondition(PlayerCondition.Frozen)]
-        [RequiredCondition(PlayerCondition.Alive)]
+        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+        [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x3A_DialogUse(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -3762,10 +3728,8 @@ namespace Hybrasyl
             }
         }
 
-        [ProhibitedCondition(PlayerCondition.InComa)]
-        [ProhibitedCondition(PlayerCondition.Asleep)]
-        [ProhibitedCondition(PlayerCondition.Frozen)]
-        [RequiredCondition(PlayerCondition.Alive)]
+        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+        [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x43_PointClick(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -3825,10 +3789,8 @@ namespace Hybrasyl
             }
         }
 
-        [ProhibitedCondition(PlayerCondition.InComa)]
-        [ProhibitedCondition(PlayerCondition.Asleep)]
-        [ProhibitedCondition(PlayerCondition.Frozen)]
-        [RequiredCondition(PlayerCondition.Alive)]
+        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+        [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x44_EquippedItemClick(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -3873,10 +3835,8 @@ namespace Hybrasyl
             }
         }
 
-        [ProhibitedCondition(PlayerCondition.InComa)]
-        [ProhibitedCondition(PlayerCondition.Asleep)]
-        [ProhibitedCondition(PlayerCondition.Frozen)]
-        [RequiredCondition(PlayerCondition.Alive)]
+        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+        [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x47_StatPoint(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -3913,10 +3873,8 @@ namespace Hybrasyl
             }
         }
 
-        [ProhibitedCondition(PlayerCondition.InComa)]
-        [ProhibitedCondition(PlayerCondition.Asleep)]
-        [ProhibitedCondition(PlayerCondition.Frozen)]
-        [RequiredCondition(PlayerCondition.Alive)]
+        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+        [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x4A_Trade(object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -4010,7 +3968,7 @@ namespace Hybrasyl
         private void PacketHandler_0x4D_BeginCasting(object obj, ClientPacket packet)
         {
             var user = (User) obj;
-            user.Status ^= PlayerCondition.Casting;
+            user.Condition.ToggleCasting();
         }
 
         private void PacketHandler_0x4E_CastLine(object obj, ClientPacket packet)
@@ -4018,7 +3976,7 @@ namespace Hybrasyl
             var user = (User) obj;
             var textLength = packet.ReadByte();
             var text = packet.Read(textLength);
-            if (!user.Status.HasFlag(PlayerCondition.Casting)) return;
+            if (!user.Condition.Casting) return;
             var x0D = new ServerPacketStructures.CastLine() {ChatType = 2, LineLength = textLength, LineText = Encoding.UTF8.GetString(text), TargetId = user.Id};
             var enqueue = x0D.Packet();
            
@@ -4447,6 +4405,7 @@ namespace Hybrasyl
             return result;
         }
 
+
         private void QueueConsumer()
         {
             while (!MessageQueue.IsCompleted)
@@ -4476,24 +4435,26 @@ namespace Hybrasyl
                         {
                             if (ActiveUsers.TryGetValue(clientMessage.ConnectionId, out user))
                             {
-                                // Check if the action is prohibited due to statuses
+                                // Check if the action is prohibited due to statuses or flags
                                 MethodBase method = handler.GetMethodInfo();
                                 bool ignore = false;
-                                foreach (var prohibited in method.GetCustomAttributes(typeof(ProhibitedCondition), true))
+
+                                foreach (var prohibited in method.GetCustomAttributes(typeof(Prohibited), true))
                                 {
-                                    var prohibitedCondition = prohibited as ProhibitedCondition;
+                                    var prohibitedCondition = prohibited as Prohibited;
                                     if (prohibitedCondition == null) continue;
-                                    Logger.InfoFormat($"{user.Status} : {prohibitedCondition.Condition} : {user.Status.HasFlag(prohibitedCondition.Condition)}");
-                                    if (!user.Status.HasFlag(prohibitedCondition.Condition)) continue;
-                                    user.SendSystemMessage(Constants.STATUS_RESTRICTION_MESSAGES[prohibitedCondition.Condition]);
+                                    if (prohibitedCondition.Check(user.Condition)) continue;
+                                    // TODO: fix this to be per-flag/status
+                                    user.SendSystemMessage("It cannot be done in your current state.");
                                     ignore = true;
                                 }
-                                foreach (var required in method.GetCustomAttributes(typeof(RequiredCondition), true))
+
+                                foreach (var required in method.GetCustomAttributes(typeof(Required), true))
                                 {
-                                    var requiredCondition = required as ProhibitedCondition;
+                                    var requiredCondition = required as Required;
                                     if (requiredCondition == null) continue;
-                                    if (user.Status.HasFlag(requiredCondition.Condition)) continue;
-                                    user.SendSystemMessage(Constants.STATUS_RESTRICTION_MESSAGES[requiredCondition.Condition]);
+                                    if (requiredCondition.Check(user.Condition)) continue;
+                                    user.SendSystemMessage("You cannot do that now.");
                                     ignore = true;
                                 }
 

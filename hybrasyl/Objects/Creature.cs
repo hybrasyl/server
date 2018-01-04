@@ -25,6 +25,7 @@ using System.Drawing;
 using System.Linq;
 using Hybrasyl.Castables;
 using Hybrasyl.Enums;
+using Hybrasyl.Statuses;
 using log4net;
 using Newtonsoft.Json;
 
@@ -73,6 +74,9 @@ namespace Hybrasyl.Objects
         public long BaseCon { get; set; }
 
         [JsonProperty]
+        public ConditionInfo Condition { get; set; }
+
+        [JsonProperty]
         public long BaseDex { get; set; }
 
         public long BonusHp { get; set; }
@@ -88,9 +92,115 @@ namespace Hybrasyl.Objects
         public long BonusMr { get; set; }
         public long BonusRegen { get; set; }
 
-        public Enums.Element OffensiveElement { get; set; }
-        public Enums.Element DefensiveElement { get; set; }
+        protected Enums.Element BaseOffensiveElement { get; set; }
+        protected Enums.Element BaseDefensiveElement { get; set; }
 
+        public Enums.Element OffensiveElement
+        {
+            get
+            {
+                return (OffensiveElementOverride == Enums.Element.None ? OffensiveElementOverride : BaseOffensiveElement);
+            }
+        }
+        public Enums.Element DefensiveElement
+        {
+            get
+            {
+                return (DefensiveElementOverride == Enums.Element.None ? DefensiveElementOverride : BaseDefensiveElement);
+            }
+        }
+
+        public Enums.Element OffensiveElementOverride { get; set; }
+        public Enums.Element DefensiveElementOverride { get; set; }
+
+        public Enums.DamageType? DamageTypeOverride { get; set; }
+
+        public double ReflectChance
+        {
+
+            get
+            {
+                var value = BaseReflectChance + BonusReflectChance;
+
+                if (value > 1.0)
+                    return 1.0;
+
+                if (value < 0)
+                    return 0;
+
+                return value;
+            }
+        }
+
+        [JsonProperty]
+        public double BaseReflectChance { get; set; }
+        [JsonProperty]
+        public double BonusReflectChance { get; set; }
+
+        public double ReflectIntensity
+        {
+
+            get
+            {
+                var value = BaseReflectChance + BonusReflectChance;
+
+                if (value < 0)
+                    return 0;
+
+                return value;
+            }
+        }
+
+        [JsonProperty]
+        public double BaseReflectIntensity { get; set; }
+        [JsonProperty]
+        public double BonusReflectIntensity { get; set; }
+
+        public bool IsReflected
+        {
+            get
+            {
+                Random rnd1 = new Random();
+                return (rnd1.NextDouble() >= ReflectChance);
+            }
+        }
+
+        public double HealModifier
+        {
+            get
+            {
+                var value = BaseHealModifier + BonusHealModifier;
+
+                if (value < 0)
+                    return 0;
+
+                return value;
+            }
+        }
+
+        [JsonProperty]
+        public double BaseHealModifier { get; set; }
+        [JsonProperty]
+        public double BonusHealModifier { get; set; }
+
+        public double DamageModifier
+        {
+            get
+            {
+                var value = BaseDamageModifier + BonusDamageModifier;
+
+                if (value < 0)
+                    return 0;
+
+                return value;
+            }
+        }
+
+        [JsonProperty]
+        public double BaseDamageModifier { get; set; }
+        [JsonProperty]
+        public double BonusDamageModifier { get; set; }
+   
         public ushort MapId { get; protected set; }
         public byte MapX { get; protected set; }
         public byte MapY { get; protected set; }
@@ -109,6 +219,14 @@ namespace Hybrasyl.Objects
             Gold = 0;
             Inventory = new Inventory(59);
             Equipment = new Inventory(18);
+            BaseDamageModifier = 1;
+            BonusDamageModifier = 0;
+            BaseHealModifier = 1;
+            BonusHealModifier = 0;
+            BaseReflectIntensity = 1;
+            BaseReflectChance = 0;
+            DamageTypeOverride = null;
+            Condition = new ConditionInfo(this);            
         }
 
         public override void OnClick(User invoker)
@@ -589,6 +707,14 @@ namespace Hybrasyl.Objects
 
             Mp = mp > uint.MaxValue ? MaximumMp : Math.Min(MaximumMp, (uint)(Mp + mp));
         }
+
+        //TODO: update with Agrus changes
+        public virtual void Damage(Statuses.Damage damage, Creature attacker = null)
+        { }
+
+        //TODO: update with Agrus changes
+        public virtual void Heal(Statuses.Heal heal, Creature healer = null)
+        { }
 
         public virtual void Damage(double damage, Enums.Element element = Enums.Element.None, Enums.DamageType damageType = Enums.DamageType.Direct, Creature attacker = null)
         {
