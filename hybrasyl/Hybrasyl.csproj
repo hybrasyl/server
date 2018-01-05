@@ -88,6 +88,7 @@
     <Compile Include="Objects\Signpost.cs" />
     <Compile Include="Objects\VisibleObject.cs" />
     <Compile Include="Objects\WorldObject.cs" />
+    <Compile Include="PacketHandlers.cs" />
     <Compile Include="PlayerStatus.cs" />
     <Compile Include="Legend.cs" />
     <Compile Include="Scripting\HybrasylDialog.cs" />
