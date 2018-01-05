@@ -80,6 +80,7 @@
     <Compile Include="Board.cs" />
     <Compile Include="Compression.cs" />
     <Compile Include="ControlService.cs" />
+    <Compile Include="NumberCruncher.cs" />
     <Compile Include="Objects\Creature.cs" />
     <Compile Include="Objects\ConditionInfo.cs" />
     <Compile Include="Objects\Door.cs" />

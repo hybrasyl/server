@@ -33,7 +33,7 @@ namespace Hybrasyl
                 if (condition.Flags.HasFlag(flag)) return false;
 
             foreach (var cond in Conditions)
-                if (condition.Condition.HasFlag(cond)) return false;
+                if (condition.Conditions.HasFlag(cond)) return false;
 
             return true;
         }
@@ -65,7 +65,7 @@ namespace Hybrasyl
                 if (condition.Flags.HasFlag(flag)) return true;
 
             foreach (var cond in Conditions)
-                if (condition.Condition.HasFlag(cond)) return true;
+                if (condition.Conditions.HasFlag(cond)) return true;
 
             return false;
         }
@@ -177,9 +177,9 @@ namespace Hybrasyl
         private void ProcessConditions(ModifierEffect effect)
         {
             if (effect.Conditions.Set != 0)
-                Target.Condition.Condition|= effect.Conditions.Set;
+                Target.Condition.Conditions|= effect.Conditions.Set;
             if (effect.Conditions.Unset != 0)
-                Target.Condition.Condition &= ~effect.Conditions.Unset;
+                Target.Condition.Conditions &= ~effect.Conditions.Unset;
         }
 
         private void ProcessStatModifiers(Statuses.StatModifiers effect, bool remove = false)

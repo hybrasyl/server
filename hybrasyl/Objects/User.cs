@@ -1066,6 +1066,7 @@ namespace Hybrasyl.Objects
             if (Map.Music != 0xFF && Map.Music != CurrentMusicTrack) SendMusic(Map.Music);
             if (!string.IsNullOrEmpty(Map.Message)) SendMessage(Map.Message, 18);
         }
+
         public override void SendLocation()
         {
             var x04 = new ServerPacket(0x04);
@@ -1187,162 +1188,73 @@ namespace Hybrasyl.Objects
         internal void UseSkill(byte slot)
         {
             var castable = SkillBook[slot];
-            if (canCast(castable))
+            if (UseCastable(castable))
             {
-                bool spellCast = false;
-                foreach (var tar in PossibleTargets(castable))
-                {
-                    bool canAttack = !(tar is Merchant || (tar is User && (!(tar as User).Status.HasFlag(PlayerCondition.Pvp))));
-                    if (canAttack)
-                    {
-                        Attack(castable, tar);
-                        spellCast = true;
-                    }
-                }
-                if (spellCast) CastingCost(castable);
-
                 Client.Enqueue(new ServerPacketStructures.Cooldown()
                 {
                     Length = (uint)castable.Cooldown,
                     Pane = 1,
                     Slot = slot
-                }.Packet()); ;
+                }.Packet());
             }
+            else
+                SendSystemMessage("It didn't work.");
         }
 
         internal void UseSpell(byte slot, uint target = 0)
         {
             var castable = SpellBook[slot];
             Creature targetCreature = Map.EntityTree.OfType<Creature>().SingleOrDefault(x => x.Id == target) ?? null;
-            if (canCast(castable))
+            if (UseCastable(castable, targetCreature))
             {
-                if(castable.Effects.Damage != null)
+                Client.Enqueue(new ServerPacketStructures.Cooldown()
                 {
-                    List<Creature> targets = new List<Creature>();
-                    bool spellCast = false;
-                    if (targetCreature != null)
-                    {
-                        targets.Add(targetCreature);
-                    }
-                    else
-                    {
-                        targets = PossibleTargets(castable);
-                    }
-
-                    foreach(var tar in targets)
-                    {
-                        bool canAttack = !(tar is Merchant || (tar is User && (!(tar as User).Status.HasFlag(PlayerCondition.Pvp))));
-                        if (canAttack)
-                        {
-                            Attack(castable, tar);
-                            spellCast = true;
-                        }
-                    }
-                    if(spellCast) CastingCost(castable);
-                }
-                else if(castable.Effects.Heal != null)
-                {
-                    List<Creature> targets = new List<Creature>();
-                    bool spellCast = false;
-                    if (targetCreature != null)
-                    {
-                        targets.Add(targetCreature);
-                    }
-                    else
-                    {
-                        targets = PossibleTargets(castable);
-                    }
-
-                    foreach (var tar in targets)
-                    {
-                        bool canHeal = !(tar is Monster);
-                        if (canHeal)
-                        {
-                            HealTarget(castable, tar);
-                            spellCast = true;
-                        }
-                    }
-                    if(spellCast) CastingCost(castable);
-                }
-                else
-                {
-                    this.SendSystemMessage("Having no objective in mind, the spell dissipates.");
-                }
+                    Length = (uint)castable.Cooldown,
+                    Pane = 1,
+                    Slot = slot
+                }.Packet());
             }
+            else
+                SendSystemMessage("It didn't work.");
         }
 
-        public bool canCast(Castable castable)
-        {
-            var costs = castable.CastCosts.CastCost;
-
-            if (double.TryParse(costs.Stat.Hp, out double hpCostPercent))
-            {
-                if (hpCostPercent != 0)
-                {
-                    uint reduceHp = (uint)Math.Ceiling(this.MaximumHp * hpCostPercent);
-                    if (reduceHp >= this.Hp) return false;
-                }
-            }
-
-            if (double.TryParse(costs.Stat.Mp, out double mpCostPercent))
-            {
-                if (mpCostPercent != 0)
-                {
-                    uint reduceMp = (uint)Math.Ceiling(this.MaximumMp * mpCostPercent);
-                    if (reduceMp > this.Mp) return false;
-                }
-            }
-
-            if (costs.Gold > this.Gold) return false;
-
-
-            if (costs.Items != null)
-            {
-                foreach (var item in costs.Items)
-                {
-                    if (item != null)
-                    {
-                        if (!(Inventory.Contains(item.Value, item.Quantity))) return false;
-                    }
-                }
-            }
-
-            return true;
-        }
-
-        public void CastingCost(Castable castable)
+        /// <summary>
+        /// Process the casting cost for a castable. If all requirements were not met, return false.
+        /// </summary>
+        /// <param name="castable">The castable that is being cast.</param>
+        /// <returns>True or false depending on success.</returns>
+        public bool ProcessCastingCost(Castable castable)
         {
             var costs = castable.CastCosts.CastCost;
             uint reduceHp = 0;
             uint reduceMp = 0;
             int removeNumItems = 0;
 
-            if (double.TryParse(costs.Stat.Hp, out double hpCostPercent))
-            {
-                if (hpCostPercent != 0)
-                {
-                    reduceHp = (uint)Math.Ceiling(this.MaximumHp * hpCostPercent);
-                }
-            }
+            // HP cost can be either a percentage (0.25) or a fixed amount (50)
+            if (costs.Stat.Hp.Contains('.'))
+                reduceHp = (uint) Math.Ceiling(Convert.ToDouble(costs.Stat.Hp) * this.MaximumHp);
+            else 
+                reduceHp = Convert.ToUInt32(costs.Stat.Hp);
 
-            if (double.TryParse(costs.Stat.Mp, out double mpCostPercent))
-            {
-                if (mpCostPercent != 0)
-                {
-                    reduceMp = (uint)Math.Ceiling(this.MaximumMp * mpCostPercent);
-                }
-            }
+            if (costs.Stat.Mp.Contains('.'))
+                reduceMp = (uint)Math.Ceiling(Convert.ToDouble(costs.Stat.Mp) * this.MaximumMp);
+            else
+                reduceMp = Convert.ToUInt32(costs.Stat.Mp);
 
+            
             if (costs.Items != null)
             {
                 foreach (var item in costs.Items)
                 {
-                    if (item != null)
-                    {
-                        if (Inventory.Contains(item.Value, item.Quantity)) removeNumItems++;
-                    }
+                    if (Inventory.Contains(item.Value, item.Quantity)) removeNumItems++;
                 }
             }
+
+            // Check that all requirements are met first. Note that a spell cannot be cast if its HP cost would result
+            // in the caster's HP being reduced to zero.
+            if (reduceHp > Hp || reduceMp >= Mp || costs.Gold > Gold || removeNumItems != costs.Items.Count) return false;
+
+            if (costs.Gold > this.Gold) return false;
 
             if (reduceHp != 0) this.Hp -= reduceHp;
             if (reduceMp != 0) this.Mp -= reduceMp;
@@ -1355,6 +1267,7 @@ namespace Hybrasyl.Objects
                 }                
             }
             UpdateAttributes(StatUpdateFlags.Current);
+            return true;
         }
 
         public void SendVisibleItem(ItemObject itemObject)
@@ -2247,535 +2160,52 @@ namespace Hybrasyl.Objects
             UpdateAttributes(StatUpdateFlags.Current);
         }
 
-        //below method might not be needed.
-        public override void Attack(Direction direction, Castable castObject = null, Creature target = null)
+        public override bool UseCastable(Castable castObject, Creature target = null)
         {
-            if (target != null)
-            {
-                var damage = castObject.Effects.Damage;
-
-                Random rand = new Random();
-
-                if (damage.Formula == null) //will need to be expanded. also will need to account for damage scripts
-                {
-                    var simple = damage.Simple;
-                    var damageType = EnumUtil.ParseEnum<Enums.DamageType>(damage.Type.ToString(),
-                        Enums.DamageType.Magical);
-                    var dmg = rand.Next(Convert.ToInt32(simple.Min), Convert.ToInt32(simple.Max));
-                    //these need to be set to integers as attributes. note to fix.
-                    target.Damage(dmg, OffensiveElement, damageType, this);
-                }
-                else
-                {
-                    var formula = damage.Formula;
-                    var damageType = EnumUtil.ParseEnum<Enums.DamageType>(damage.Type.ToString(),
-                        Enums.DamageType.Magical);
-                    FormulaParser parser = new FormulaParser(this, castObject, target);
-                    var dmg = parser.Eval(formula);
-                    if (dmg == 0) dmg = 1;
-                    target.Damage(dmg, OffensiveElement, damageType, this);
-                }
-                //var dmg = rand.Next(Convert.ToInt32(simple.Min), Convert.ToInt32(simple.Max));
-                //these need to be set to integers as attributes. note to fix.
-                //target.Damage(dmg, OffensiveElement, damage.Type, this);
-            }
-            else
-            {
-                //var formula = damage.Formula;
-            }
-        }
-
-        public override void Attack(Castable castObject, Creature target = null)
-        {
-            var direction = this.Direction;
-            if (target == null)
-            {
-                Attack(castObject);
-            }
-            else
-            {
-                var damage = castObject.Effects.Damage;
-                if (damage != null)
-                {
-                    //TODO: if a castable is targetable, does intent matter?
-                    var intents = castObject.Intents;
-                    foreach (var intent in intents)
-                    {
-                        Random rand = new Random();
-
-                        if (damage.Formula == null)
-                        //will need to be expanded. also will need to account for damage scripts
-                        {
-                            var simple = damage.Simple;
-                            var damageType = EnumUtil.ParseEnum(damage.Type.ToString(), (Enums.DamageType)castObject.Effects.Damage.Type);
-                            var dmg = rand.Next(Convert.ToInt32(simple.Min), Convert.ToInt32(simple.Max));
-                            //these need to be set to integers as attributes. note to fix.
-                            target.Damage(dmg, OffensiveElement, damageType, this);
-                        }
-                        else
-                        {
-                            var formula = damage.Formula;
-                            var damageType = EnumUtil.ParseEnum(damage.Type.ToString(), (Enums.DamageType)castObject.Effects.Damage.Type);
-                            var parser = new FormulaParser(this, castObject, target);
-                            var dmg = parser.Eval(formula);
-                            if (dmg == 0) dmg = 1;
-                            target.Damage(dmg, OffensiveElement, damageType, this);
-                        }
-
-                        if (castObject.Effects.Animations.OnCast.Target == null) continue;
-                        var effectAnimation = new ServerPacketStructures.EffectAnimation()
-                        {
-                            SourceId = this.Id,
-                            Speed = (short)castObject.Effects.Animations.OnCast.Target.Speed,
-                            TargetId = target.Id,
-                            TargetAnimation = castObject.Effects.Animations.OnCast.Target.Id
-                        };
-                        Enqueue(effectAnimation.Packet());
-                        SendAnimation(effectAnimation.Packet());
-                    }
-                }
-
-                Motion motion;
-
-                try
-                {
-                    motion = castObject.Effects.Animations.OnCast.Player.SingleOrDefault(x => x.Class.Contains((Class)Class));
-                }
-                catch (InvalidOperationException)
-                {
-                    motion = castObject.Effects.Animations.OnCast.Player.FirstOrDefault(x => x.Class.Contains((Class)Class));
-
-                    Logger.ErrorFormat("{1}: contains more than one motion for a class definition, using first one found!", castObject.Name);
-                }
-
-                var sound = new ServerPacketStructures.PlaySound { Sound = (byte)castObject.Effects.Sound.Id };
-
-                if (motion != null)
-                {
-                    var playerAnimation = new ServerPacketStructures.PlayerAnimation()
-                    {
-                        Animation = (byte)motion.Id,
-                        Speed = (ushort)motion.Speed,
-                        UserId = Id
-                    };
-                    Enqueue(playerAnimation.Packet());
-                    SendAnimation(playerAnimation.Packet());
-
-                }
-                Enqueue(sound.Packet());
-                PlaySound(castObject.Effects.Sound.Id);
-            }
-        }
-
-        public override void Attack(Castable castObject)
-        {
+            if (!Condition.CastingAllowed) return false;
             var damage = castObject.Effects.Damage;
-            if (damage != null)
+            List<Creature> targets;
+
+            if (target != null) 
+                targets = new List<Creature> { target };
+            else
+                targets = PossibleTargets(castObject);
+
+            var actualtargets = targets.Where(e => e is Monster || e.Condition.PvpEnabled);
+            
+            if (actualtargets.Count() == 0 || !ProcessCastingCost(castObject)) return false;
+
+            foreach (var tar in actualtargets)
             {
-                var intents = castObject.Intents;
-                foreach (var intent in intents)
+                if (tar is Monster || (tar is User && ((User)tar).Condition.PvpEnabled))
                 {
-                    var possibleTargets = new List<VisibleObject>();
-                    Rectangle rect = new Rectangle(0, 0, 0, 0);
 
-                    switch (intent.Direction)
+                    var rand = new Random();
+                    var damageOutput = NumberCruncher.CalculateDamage(castObject, tar, this);
+
+                    tar.Damage(damageOutput.Amount, OffensiveElement, damageOutput.Type, this);
+
+                    if (castObject.Effects.Animations.OnCast.Target == null) continue;
+                    
+                    var effectAnimation = new ServerPacketStructures.EffectAnimation()
                     {
-                        case IntentDirection.Front:
-                            {
-                                switch (Direction)
-                                {
-                                    case Direction.North:
-                                        {
-                                            //facing north, attack north
-                                            rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
-                                        }
-                                        break;
-                                    case Direction.South:
-                                        {
-                                            //facing south, attack south
-                                            rect = new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
-                                        }
-                                        break;
-                                    case Direction.East:
-                                        {
-                                            //facing east, attack east
-                                            rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
-                                        }
-                                        break;
-                                    case Direction.West:
-                                        {
-                                            //facing west, attack west
-                                            rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
-                                        }
-                                        break;
-                                }
-                            }
-                            break;
-                        case IntentDirection.Back:
-                            {
-                                switch (Direction)
-                                {
-                                    case Direction.North:
-                                        {
-                                            //facing north, attack south
-                                            rect = new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
-                                        }
-                                        break;
-                                    case Direction.South:
-                                        {
-                                            //facing south, attack north
-                                            rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
-                                        }
-                                        break;
-                                    case Direction.East:
-                                        {
-                                            //facing east, attack west
-                                            rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
-                                        }
-                                        break;
-                                    case Direction.West:
-                                        {
-                                            //facing west, attack east
-                                            rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
-                                        }
-                                        break;
-                                }
-                            }
-                            break;
-                        case IntentDirection.Left:
-                            {
-                                switch (Direction)
-                                {
-                                    case Direction.North:
-                                        {
-                                            //facing north, attack west
-                                            rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
-                                        }
-                                        break;
-                                    case Direction.South:
-                                        {
-                                            //facing south, attack east
-                                            rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
-                                        }
-                                        break;
-                                    case Direction.East:
-                                        {
-                                            //facing east, attack north
-                                            rect = new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
-                                        }
-                                        break;
-                                    case Direction.West:
-                                        {
-                                            //facing west, attack south
-                                            rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
-                                        }
-                                        break;
-                                }
-                            }
-                            break;
-                        case IntentDirection.Right:
-                            {
-                                switch (Direction)
-                                {
-                                    case Direction.North:
-                                        {
-                                            //facing north, attack east
-                                            rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
-                                        }
-                                        break;
-                                    case Direction.South:
-                                        {
-                                            //facing south, attack west
-                                            rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
-                                        }
-                                        break;
-                                    case Direction.East:
-                                        {
-                                            //facing east, attack south
-                                            rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
-                                        }
-                                        break;
-                                    case Direction.West:
-                                        {
-                                            //facing west, attack north
-                                            rect = new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
-                                        }
-                                        break;
-                                }
-                            }
-                            break;
-                        case IntentDirection.Nearby:
-                            {
-                                //attack radius
-                                rect = new Rectangle(this.X - intent.Radius, this.Y - intent.Radius, intent.Radius * 2, intent.Radius * 2);
-                            }
-                            break;
-                    }
-
-                    if (!rect.IsEmpty) possibleTargets.AddRange(Map.EntityTree.GetObjects(rect).Where(obj => obj is Creature && obj != this && obj.GetType() != typeof(Merchant))); ;
-
-                    var actualTargets = intent.MaxTargets > 0 ? possibleTargets.Take(intent.MaxTargets).OfType<Creature>().ToList() : possibleTargets.OfType<Creature>().ToList();
-
-                    foreach (var target in actualTargets)
-                    {
-                        if (target is Monster || (target is User && ((User)target).Condition.PvpEnabled))
-                        {
-
-                            var rand = new Random();
-
-                            if (damage.Formula == null) //will need to be expanded. also will need to account for damage scripts
-                            {
-                                var simple = damage.Simple;
-                                var damageType = EnumUtil.ParseEnum(damage.Type.ToString(), Enums.DamageType.Magical);
-                                var dmg = rand.Next(Convert.ToInt32(simple.Min), Convert.ToInt32(simple.Max));
-                                //these need to be set to integers as attributes. note to fix.
-                                target.Damage(dmg, OffensiveElement, damageType, this);
-                            }
-                            else
-                            {
-                                var formula = damage.Formula;
-                                var damageType = EnumUtil.ParseEnum(damage.Type.ToString(), Enums.DamageType.Magical);
-                                var parser = new FormulaParser(this, castObject, target);
-                                var dmg = parser.Eval(formula);
-                                if (dmg == 0) dmg = 1;
-                                target.Damage(dmg, OffensiveElement, damageType, this);
-
-                                if (castObject.Effects.Animations.OnCast.Target == null) continue;
-                                var effectAnimation = new ServerPacketStructures.EffectAnimation()
-                                {
-                                    SourceId = this.Id,
-                                    Speed = (short)castObject.Effects.Animations.OnCast.Target.Speed,
-                                    TargetId = target.Id,
-                                    TargetAnimation = castObject.Effects.Animations.OnCast.Target.Id
-                                };
-                                Enqueue(effectAnimation.Packet());
-                                SendAnimation(effectAnimation.Packet());
-                            }
-
-                        }
-                        else
-                        {
-                            //var formula = damage.Formula;
-                        }
-                        CastingCost(castObject);
-                    }
+                        SourceId = this.Id,
+                        Speed = (short)castObject.Effects.Animations.OnCast.Target.Speed,
+                        TargetId = tar.Id,
+                        TargetAnimation = castObject.Effects.Animations.OnCast.Target.Id
+                    };
+                    Enqueue(effectAnimation.Packet());
+                    SendAnimation(effectAnimation.Packet());
                 }
 
-                //TODO: DRY
                 Motion motion;
 
-                try
-                {
-                    motion = castObject.Effects.Animations.OnCast.Player.SingleOrDefault(x => x.Class.Contains((Class)Class));
-                }
-                catch (InvalidOperationException)
-                {
-                    motion = castObject.Effects.Animations.OnCast.Player.FirstOrDefault(x => x.Class.Contains((Class)Class));
-
-                    Logger.ErrorFormat("{1}: contains more than one motion for a class definition, using first one found!", castObject.Name);
-                }
-
-                var sound = new ServerPacketStructures.PlaySound { Sound = (byte)castObject.Effects.Sound.Id };
-
-                if (motion != null)
-                {
-                    var playerAnimation = new ServerPacketStructures.PlayerAnimation()
-                    {
-                        Animation = (byte)motion.Id,
-                        Speed = (ushort)(motion.Speed / 5), //handles the speed offset in this specific packet.
-                        UserId = Id
-                    };
-                    Enqueue(playerAnimation.Packet());
-                    SendAnimation(playerAnimation.Packet());
-                }
-                Enqueue(sound.Packet());
-                PlaySound(castObject.Effects.Sound.Id);
-                //this is an attack skill
+                if (castObject.TryGetMotion((Castables.Class)Class, out motion))
+                    SendMotion(Id, motion.Id, motion.Speed);
+                if (castObject.Effects.Sound != null)
+                    PlaySound(castObject.Effects.Sound.Id);
             }
-            else
-            {
-                //need to handle scripting
-            }
-        }
-
-        public List<Creature> PossibleTargets(Castable castable)
-        {
-            List<Creature> actualTargets = new List<Creature>();
-
-            var intents = castable.Intents;
-            foreach (var intent in intents)
-            {
-                var possibleTargets = new List<VisibleObject>();
-                Rectangle rect = new Rectangle(0, 0, 0, 0);
-
-                switch (intent.Direction)
-                {
-                    case IntentDirection.Front:
-                        {
-                            switch (Direction)
-                            {
-                                case Direction.North:
-                                    {
-                                        //facing north, attack north
-                                        rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
-                                    }
-                                    break;
-                                case Direction.South:
-                                    {
-                                        //facing south, attack south
-                                        rect = new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
-                                    }
-                                    break;
-                                case Direction.East:
-                                    {
-                                        //facing east, attack east
-                                        rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
-                                    }
-                                    break;
-                                case Direction.West:
-                                    {
-                                        //facing west, attack west
-                                        rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
-                                    }
-                                    break;
-                            }
-                        }
-                        break;
-                    case IntentDirection.Back:
-                        {
-                            switch (Direction)
-                            {
-                                case Direction.North:
-                                    {
-                                        //facing north, attack south
-                                        rect = new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
-                                    }
-                                    break;
-                                case Direction.South:
-                                    {
-                                        //facing south, attack north
-                                        rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
-                                    }
-                                    break;
-                                case Direction.East:
-                                    {
-                                        //facing east, attack west
-                                        rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
-                                    }
-                                    break;
-                                case Direction.West:
-                                    {
-                                        //facing west, attack east
-                                        rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
-                                    }
-                                    break;
-                            }
-                        }
-                        break;
-                    case IntentDirection.Left:
-                        {
-                            switch (Direction)
-                            {
-                                case Direction.North:
-                                    {
-                                        //facing north, attack west
-                                        rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
-                                    }
-                                    break;
-                                case Direction.South:
-                                    {
-                                        //facing south, attack east
-                                        rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
-                                    }
-                                    break;
-                                case Direction.East:
-                                    {
-                                        //facing east, attack north
-                                        rect = new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
-                                    }
-                                    break;
-                                case Direction.West:
-                                    {
-                                        //facing west, attack south
-                                        rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
-                                    }
-                                    break;
-                            }
-                        }
-                        break;
-                    case IntentDirection.Right:
-                        {
-                            switch (Direction)
-                            {
-                                case Direction.North:
-                                    {
-                                        //facing north, attack east
-                                        rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
-                                    }
-                                    break;
-                                case Direction.South:
-                                    {
-                                        //facing south, attack west
-                                        rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
-                                    }
-                                    break;
-                                case Direction.East:
-                                    {
-                                        //facing east, attack south
-                                        rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
-                                    }
-                                    break;
-                                case Direction.West:
-                                    {
-                                        //facing west, attack north
-                                        rect = new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
-                                    }
-                                    break;
-                            }
-                        }
-                        break;
-                    case IntentDirection.Nearby:
-                        {
-                            //attack radius
-                            rect = new Rectangle(this.X - intent.Radius, this.Y - intent.Radius, intent.Radius * 2, intent.Radius * 2);
-                        }
-                        break;
-                }
-
-                if (!rect.IsEmpty) possibleTargets.AddRange(Map.EntityTree.GetObjects(rect).Where(obj => obj is Creature && obj != this));
-                List<Creature> possible = intent.MaxTargets > 0 ? possibleTargets.Take(intent.MaxTargets).OfType<Creature>().ToList() : possibleTargets.OfType<Creature>().ToList();
-                if(possible != null && possible.Count > 0) actualTargets.AddRange(possible);
-            }
-            return actualTargets;
-        }
-
-        public void HealTarget(Castable castable, Creature target)
-        {
-            if (castable.Effects.Heal.Formula != null)
-            {
-                var heal = new FormulaParser(this, castable, target).Eval(castable.Effects.Heal.Formula);
-                Heal(heal, target);
-                
-                Motion motion = castable.Effects.Animations.OnCast.Player.SingleOrDefault(x => x.Class.Contains((Class)Class));
-                var playerAnimation = new ServerPacketStructures.PlayerAnimation()
-                {
-                    Animation = (byte)motion.Id,
-                    Speed = (ushort)motion.Speed,
-                    UserId = Id
-                };
-                Enqueue(playerAnimation.Packet());
-                SendAnimation(playerAnimation.Packet());
-
-                var targetAnimation = new ServerPacketStructures.EffectAnimation()
-                {
-                    SourceId = this.Id,
-                    Speed = (short)castable.Effects.Animations.OnCast.Target.Speed,
-                    TargetId = target.Id,
-                    TargetAnimation = castable.Effects.Animations.OnCast.Target.Id
-                };
-                Enqueue(targetAnimation.Packet());
-                SendAnimation(targetAnimation.Packet());
-            }            
+            return true;
         }
 
         public void AssailAttack(Direction direction, Creature target = null)
@@ -2829,7 +2259,7 @@ namespace Hybrasyl.Objects
             {
                 if (target != null && c.IsAssail && target.GetType() != typeof(Merchant))
                 {
-                    Attack(direction, c, target);
+                    //Attack(direction, c, target);
                 }
             }
             //animation handled here as to not repeatedly send assails.

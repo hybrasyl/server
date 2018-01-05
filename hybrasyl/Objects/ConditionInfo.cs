@@ -4,20 +4,21 @@ using Newtonsoft.Json;
 
 namespace Hybrasyl.Objects
 {
+    [JsonObject(MemberSerialization.OptIn)]
     public class ConditionInfo
     {
         public Creature Creature { get; set; }
         public User User => Creature as User;
 
         [JsonProperty]
-        public CreatureCondition Condition { get; set; }
+        public CreatureCondition Conditions { get; set; }
 
         [JsonProperty]
         public PlayerFlags Flags { get; set; }
 
         private void _initialize()
         {
-            Condition = 0;
+            Conditions = 0;
             Flags = PlayerFlags.Alive;
         }
         public ConditionInfo(Creature owner)
@@ -32,21 +33,34 @@ namespace Hybrasyl.Objects
             _initialize();
         }
 
-        public bool CanCast()
+        public bool CastingAllowed
         {
-            var conditionCheck = Condition.HasFlag(CreatureCondition.Sleep) ||
-            Condition.HasFlag(CreatureCondition.Freeze) ||
-            Condition.HasFlag(CreatureCondition.Paralyze) ||
-            Condition.HasFlag(CreatureCondition.Coma);
-
-            if (User != null)
+            get
             {
-                var flagCheck = Flags.HasFlag(PlayerFlags.InDialog) ||
-                Flags.HasFlag(PlayerFlags.InExchange) ||
-                Flags.HasFlag(PlayerFlags.AliveExchange);
-                return conditionCheck || flagCheck;
+                var conditionCheck = Asleep || Frozen || Paralyzed || Comatose;
+                 
+                if (User != null)
+                {
+                    var flagCheck = Flags.HasFlag(PlayerFlags.InDialog) ||
+                    Flags.HasFlag(PlayerFlags.InExchange) ||
+                    Flags.HasFlag(PlayerFlags.AliveExchange);
+                    return conditionCheck || flagCheck;
+                }
+                return conditionCheck;
             }
-            return conditionCheck;
+        }
+
+        public bool IsAttackable
+        {
+            get
+            {
+                if (User != null)
+                    return PvpEnabled;
+                else
+                // TODO: expand / refactor? We may want non-merchant mobs that can't be attacked?
+                    if (Creature is Merchant) return false;
+                return true;
+            }
         }
 
         public bool Alive
@@ -64,50 +78,50 @@ namespace Hybrasyl.Objects
 
         public bool Frozen
         {
-            get { return Condition.HasFlag(CreatureCondition.Freeze); }
+            get { return Conditions.HasFlag(CreatureCondition.Freeze); }
             set
             {
                 if (value == false)
-                    Condition &= ~CreatureCondition.Freeze;
+                    Conditions &= ~CreatureCondition.Freeze;
                 else
-                    Condition |= CreatureCondition.Freeze;
+                    Conditions |= CreatureCondition.Freeze;
             }
         }
 
         public bool Asleep
         {
-            get { return Condition.HasFlag(CreatureCondition.Sleep); }
+            get { return Conditions.HasFlag(CreatureCondition.Sleep); }
             set
             {
                 if (value == false)
-                    Condition &= ~CreatureCondition.Sleep;
+                    Conditions &= ~CreatureCondition.Sleep;
                 else
-                    Condition |= CreatureCondition.Freeze;
+                    Conditions |= CreatureCondition.Freeze;
             }
         }
 
         public bool Paralyzed
         {
-            get { return Condition.HasFlag(CreatureCondition.Paralyze); }
+            get { return Conditions.HasFlag(CreatureCondition.Paralyze); }
             set
             {
                 if (value == false)
-                    Condition &= ~CreatureCondition.Paralyze;
+                    Conditions &= ~CreatureCondition.Paralyze;
                 else
-                    Condition |= CreatureCondition.Paralyze;
+                    Conditions |= CreatureCondition.Paralyze;
                 User?.UpdateAttributes(StatUpdateFlags.Secondary);
             }
         }
 
         public bool Blinded
         {
-            get { return Condition.HasFlag(CreatureCondition.Blind); }
+            get { return Conditions.HasFlag(CreatureCondition.Blind); }
             set
             {
                 if (value == false)
-                    Condition &= ~CreatureCondition.Blind;
+                    Conditions &= ~CreatureCondition.Blind;
                 else
-                    Condition |= CreatureCondition.Blind;
+                    Conditions |= CreatureCondition.Blind;
                 User?.UpdateAttributes(StatUpdateFlags.Secondary);
             }
         }
@@ -123,7 +137,6 @@ namespace Hybrasyl.Objects
                     Flags |= PlayerFlags.Pvp;
             }
         }
-
 
         public bool Casting
         {
@@ -141,17 +154,17 @@ namespace Hybrasyl.Objects
 
         public bool Comatose
         {
-            get { return User != null ? Condition.HasFlag(CreatureCondition.Coma) : false; }
+            get { return User != null ? Conditions.HasFlag(CreatureCondition.Coma) : false; }
             set
             {
                 if (User == null) return;
                 if (value == false)
                 {
-                    Condition &= ~CreatureCondition.Coma;
+                    Conditions &= ~CreatureCondition.Coma;
                     User?.Group?.SendMessage($"{User.Name} has recovered!");
                 }
                 else
-                    Condition |= CreatureCondition.Coma;
+                    Conditions |= CreatureCondition.Coma;
             }
         }
 
@@ -170,7 +183,6 @@ namespace Hybrasyl.Objects
 
         public bool NoFlags => Flags == PlayerFlags.Alive;
 
-
         public void ClearFlags()
         {
             Flags = PlayerFlags.Alive;
@@ -178,7 +190,7 @@ namespace Hybrasyl.Objects
 
         public void ClearConditions()
         {
-            Condition = 0;
+            Conditions = 0;
         }
     }
 }

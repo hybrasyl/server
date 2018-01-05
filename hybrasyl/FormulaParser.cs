@@ -6,19 +6,19 @@ using Hybrasyl.Objects;
 
 namespace Hybrasyl
 {
+  
     internal class FormulaParser
     {
         private Creature _caster;
         private Castable _castable;
         private Creature _target;
+
         public FormulaParser(Creature caster, Castable castable, Creature target = null)
         {
             _caster = caster;
             _castable = castable;
             _target = target;
         }
-
-
 
         private string[] _operators = { "-", "+", "/", "*", "^" };
         private Func<double, double, double>[] _operations = {

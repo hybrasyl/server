@@ -1551,7 +1551,7 @@ namespace Hybrasyl
 
                     case "/condition":
                         {
-                            user.SendSystemMessage($"Flags: {user.Condition.Flags} Conditions: {user.Condition.Condition}");
+                            user.SendSystemMessage($"Flags: {user.Condition.Flags} Conditions: {user.Condition.Conditions}");
                         }
                         break;
 

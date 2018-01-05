@@ -20,6 +20,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Xml.Serialization;
 
@@ -173,7 +174,22 @@ namespace Hybrasyl.Castables
             var maxLevelProperty = MaxLevel.GetType().GetProperty(castableClass.ToString());
             return (byte)(maxLevelProperty != null ? maxLevelProperty.GetValue(MaxLevel, null) : 0);
         }
-    }   
+
+        public bool TryGetMotion(Class castClass, out Motion motion)
+        {
+            motion = null;
+            try
+            {
+                motion = Effects.Animations.OnCast.Player.SingleOrDefault(x => x.Class.Contains(castClass));
+            }
+            catch (InvalidOperationException)
+            {
+                motion = Effects.Animations.OnCast.Player.FirstOrDefault(x => x.Class.Contains(castClass));
+            }
+            if (motion != null) return true;
+            return false;
+        }
+    }
 }
 
 namespace Hybrasyl.Statuses

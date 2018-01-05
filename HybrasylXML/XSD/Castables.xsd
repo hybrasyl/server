@@ -92,7 +92,7 @@
         <xs:list itemType="hyb:Class" />
       </xs:simpleType>
     </xs:attribute>
-    <xs:attribute name="Id" type="xs:int"/>
+    <xs:attribute name="Id" type="xs:unsignedByte"/>
     <xs:attribute name="Speed" type="xs:short"/>
   </xs:complexType>
 
