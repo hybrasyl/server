@@ -426,14 +426,22 @@ namespace Hybrasyl.Castables
         #region Private fields
         private int _duration;
 
-        private int _intensity;
+        private float _intensity;
 
-        private int _speed;
+        private float _speed;
 
         private string _value;
         #endregion
 
+        public AddStatus()
+        {
+            this._duration = 0;
+            this._intensity = ((float)(1F));
+            this._speed = ((float)(1F));
+        }
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
+        [System.ComponentModel.DefaultValueAttribute(0)]
         public int Duration
         {
             get
@@ -447,7 +455,8 @@ namespace Hybrasyl.Castables
         }
 
         [System.Xml.Serialization.XmlAttributeAttribute()]
-        public int Intensity
+        [System.ComponentModel.DefaultValueAttribute(typeof(float), "1")]
+        public float Intensity
         {
             get
             {
@@ -460,7 +469,8 @@ namespace Hybrasyl.Castables
         }
 
         [System.Xml.Serialization.XmlAttributeAttribute()]
-        public int Speed
+        [System.ComponentModel.DefaultValueAttribute(typeof(float), "1")]
+        public float Speed
         {
             get
             {
@@ -2243,7 +2253,7 @@ namespace Hybrasyl.Castables
             this._target = new List<IntentTarget>();
             this._useType = SpellUseType.NoTarget;
             this._radius = ((byte)(0));
-            this._direction = IntentDirection.Front;
+            this._direction = IntentDirection.None;
             this._maxTargets = ((byte)(0));
         }
 
@@ -2276,7 +2286,7 @@ namespace Hybrasyl.Castables
         }
 
         [System.Xml.Serialization.XmlAttributeAttribute()]
-        [System.ComponentModel.DefaultValueAttribute(IntentDirection.Front)]
+        [System.ComponentModel.DefaultValueAttribute(IntentDirection.None)]
         public IntentDirection Direction
         {
             get
@@ -2353,6 +2363,9 @@ namespace Hybrasyl.Castables
     [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Actions")]
     public enum IntentDirection
     {
+
+        /// <remarks/>
+        None,
 
         /// <remarks/>
         Front,

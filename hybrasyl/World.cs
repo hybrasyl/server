@@ -1193,6 +1193,8 @@ namespace Hybrasyl
             var monster = (Monster) message.Arguments[0];
             var map = (Map) message.Arguments[1];
 
+            // Don't handle control messages for dead/removed mobs
+            if (!monster.Condition.Alive || monster.Id == 0) return; 
             if (monster.IsHostile)
             {
                 var entityTree = map.EntityTree.GetObjects(monster.GetViewport());
@@ -1878,13 +1880,13 @@ namespace Hybrasyl
                     case "/attr":
                         {
                             if (args.Length != 3)
-                            {
                                 return;
-                            }
+
                             byte newStat;
+
                             if (!Byte.TryParse(args[2], out newStat))
                             {
-                                user.SendSystemMessage("That's not a valid value for an attribute, chief.");
+                                user.SendSystemMessage($"That's not a valid value for {args[2]}, chief.");
                                 return;
                             }
 
@@ -1905,11 +1907,9 @@ namespace Hybrasyl
                                 case "wis":
                                     user.BaseWis = newStat;
                                     break;
-
                                 case "int":
                                     user.BaseInt = newStat;
                                     break;
-
                                 default:
                                     user.SendSystemMessage("Invalid attribute, sport.");
                                     break;
@@ -1917,7 +1917,17 @@ namespace Hybrasyl
                             user.UpdateAttributes(StatUpdateFlags.Stats);
                         }
                         break;
-
+                    case "/mp":
+                        {
+                            uint mp = 0;
+                            if (uint.TryParse(args[1], out mp))
+                            {
+                                user.Mp = mp;
+                                user.BaseMp = mp;
+                                user.UpdateAttributes(StatUpdateFlags.Full);
+                            }
+                        }
+                        break;
                     case "/guild":
                         {
                             var guild = string.Join(" ", args, 1, args.Length - 1);
@@ -4469,15 +4479,15 @@ namespace Hybrasyl
                     }
                     else if (message is HybrasylControlMessage)
                     {
-                        //   try
-                        // {
-                        var controlMessage = (HybrasylControlMessage)message;
-                        ControlMessageHandlers[controlMessage.Opcode].Invoke(controlMessage);
-                        //}
-                        //catch (Exception e)
-                        // {
-                        //   Logger.Error("Exception encountered in control message handler!", e);
-                        //}
+                        try
+                        {
+                            var controlMessage = (HybrasylControlMessage)message;
+                            ControlMessageHandlers[controlMessage.Opcode].Invoke(controlMessage);
+                        }
+                        catch (Exception e)
+                        {
+                           Logger.Error("Exception encountered in control message handler!", e);
+                        }
                     }
                 }
             }

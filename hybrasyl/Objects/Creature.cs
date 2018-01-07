@@ -235,153 +235,253 @@ namespace Hybrasyl.Objects
         {
         }
 
-        public virtual List<Creature> PossibleTargets(Castable castable)
+        public Creature GetDirectionalTarget(Direction direction)
+        {
+            VisibleObject obj;
+
+            switch (direction)
+            {
+                case Direction.East:
+                    {
+                        obj = Map.EntityTree.FirstOrDefault(x => x.X == X + 1 && x.Y == Y);
+                    }
+                    break;
+                case Direction.West:
+                    {
+                        obj = Map.EntityTree.FirstOrDefault(x => x.X == X - 1 && x.Y == Y);
+                    }
+                    break;
+                case Direction.North:
+                    {
+                        obj = Map.EntityTree.FirstOrDefault(x => x.X == X && x.Y == Y - 1);
+                    }
+                    break;
+                case Direction.South:
+                    {
+                        obj = Map.EntityTree.FirstOrDefault(x => x.X == X && x.Y == Y + 1);
+                    }
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(direction), direction, null);
+            }
+            if (obj is Creature) return obj as Creature;
+            return null;
+        }
+    
+        public virtual List<Creature> GetTargets(Castable castable, Creature target = null)
         {
             List<Creature> actualTargets = new List<Creature>();
 
+            /* INTENT HANDLING FOR TARGETING
+             * 
+             * This is particularly confusing so it is documented here.
+             * UseType=Target Radius=0 Direction=None -> exact clicked target 
+             * UseType=Target Radius=0 Direction=!None -> invalid
+             * UseType=Target Radius=>0 Direction=None -> rect centered on target 
+             * UseType=Target Radius>0 Direction=(anything but none) -> directional rect target based on click x/y
+             * UseType=NoTarget Radius=0 Direction=None -> self (wings of protection, maybe custom spells / mentoring / lore / etc)?
+             * UseType=NoTarget Radius>0 Direction=None -> rect from self in all directions
+             * UseType=NoTarget Radius>0 Direction=!None -> rect from self in specific direction
+             */
+
             var intents = castable.Intents;
+
             foreach (var intent in intents)
             {
                 var possibleTargets = new List<VisibleObject>();
-                Rectangle rect = new Rectangle(0, 0, 0, 0);
-
-                switch (intent.Direction)
+                if (intent.UseType == Castables.SpellUseType.NoTarget && intent.Target.Contains(IntentTarget.Group))
                 {
-                    case IntentDirection.Front:
-                        {
-                            switch (Direction)
+                    // Targeting group members
+                    var user = this as User;
+                    if (user != null && user.Group != null)
+                        possibleTargets.AddRange(user.Group.Members.Where(m => m.Map.Id == Map.Id && m.Distance(this) < intent.Radius));
+                }
+                else if (intent.UseType == Castables.SpellUseType.Target && intent.Radius == 0 && intent.Direction == IntentDirection.None)
+                {
+                    // Targeting the exact clicked target
+                    if (target == null)
+                        Logger.Error($"GetTargets: {castable.Name} - intent was for exact clicked target but no target was passed?");
+                    else
+                        // Heal spels can be cast on players, other spells can be cast on attackable creatures
+                        if ((castable.Effects?.Damage != null && target.Condition.IsAttackable) ||
+                        (castable.Effects?.Damage == null && target is User))
+                            possibleTargets.Add(target);
+                }
+                else if (intent.UseType == Castables.SpellUseType.NoTarget && intent.Radius == 0 && intent.Direction == IntentDirection.None)
+                {
+                    // Targeting self - which, currently, is only allowed for non-damaging spells
+                    if (castable.Effects?.Damage == null)
+                        possibleTargets.Add(this);
+                }
+                else
+                {
+                    // Area targeting, directional or otherwise
+
+                    Rectangle rect = new Rectangle(0, 0, 0, 0);
+                    byte X = this.X;
+                    byte Y = this.Y;
+
+                    // Handle area targeting with click target as the source
+                    if (intent.UseType == Castables.SpellUseType.Target)
+                    {
+                        X = target.X;
+                        Y = target.Y;
+                    }
+
+                    switch (intent.Direction)
+                    {
+                        case IntentDirection.Front:
                             {
-                                case Direction.North:
-                                    {
-                                        //facing north, attack north
-                                        rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
-                                    }
-                                    break;
-                                case Direction.South:
-                                    {
-                                        //facing south, attack south
-                                        rect = new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
-                                    }
-                                    break;
-                                case Direction.East:
-                                    {
-                                        //facing east, attack east
-                                        rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
-                                    }
-                                    break;
-                                case Direction.West:
-                                    {
-                                        //facing west, attack west
-                                        rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
-                                    }
-                                    break;
+                                switch (Direction)
+                                {
+                                    case Direction.North:
+                                        {
+                                            //facing north, attack north
+                                            rect = new Rectangle(X, Y - intent.Radius, 1, intent.Radius);
+                                        }
+                                        break;
+                                    case Direction.South:
+                                        {
+                                            //facing south, attack south
+                                            rect = new Rectangle(X, Y, 1, 1 + intent.Radius);
+                                        }
+                                        break;
+                                    case Direction.East:
+                                        {
+                                            //facing east, attack east
+                                            rect = new Rectangle(X, Y, 1 + intent.Radius, 1);
+                                        }
+                                        break;
+                                    case Direction.West:
+                                        {
+                                            //facing west, attack west
+                                            rect = new Rectangle(X - intent.Radius, Y, intent.Radius, 1);
+                                        }
+                                        break;
+                                }
                             }
-                        }
-                        break;
-                    case IntentDirection.Back:
-                        {
-                            switch (Direction)
+                            break;
+                        case IntentDirection.Back:
                             {
-                                case Direction.North:
-                                    {
-                                        //facing north, attack south
-                                        rect = new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
-                                    }
-                                    break;
-                                case Direction.South:
-                                    {
-                                        //facing south, attack north
-                                        rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
-                                    }
-                                    break;
-                                case Direction.East:
-                                    {
-                                        //facing east, attack west
-                                        rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
-                                    }
-                                    break;
-                                case Direction.West:
-                                    {
-                                        //facing west, attack east
-                                        rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
-                                    }
-                                    break;
+                                switch (Direction)
+                                {
+                                    case Direction.North:
+                                        {
+                                            //facing north, attack south
+                                            rect = new Rectangle(X, Y, 1, 1 + intent.Radius);
+                                        }
+                                        break;
+                                    case Direction.South:
+                                        {
+                                            //facing south, attack north
+                                            rect = new Rectangle(X, Y - intent.Radius, 1, intent.Radius);
+                                        }
+                                        break;
+                                    case Direction.East:
+                                        {
+                                            //facing east, attack west
+                                            rect = new Rectangle(X - intent.Radius, Y, intent.Radius, 1);
+                                        }
+                                        break;
+                                    case Direction.West:
+                                        {
+                                            //facing west, attack east
+                                            rect = new Rectangle(X, Y, 1 + intent.Radius, 1);
+                                        }
+                                        break;
+                                }
                             }
-                        }
-                        break;
-                    case IntentDirection.Left:
-                        {
-                            switch (Direction)
+                            break;
+                        case IntentDirection.Left:
                             {
-                                case Direction.North:
-                                    {
-                                        //facing north, attack west
-                                        rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
-                                    }
-                                    break;
-                                case Direction.South:
-                                    {
-                                        //facing south, attack east
-                                        rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
-                                    }
-                                    break;
-                                case Direction.East:
-                                    {
-                                        //facing east, attack north
-                                        rect = new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
-                                    }
-                                    break;
-                                case Direction.West:
-                                    {
-                                        //facing west, attack south
-                                        rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
-                                    }
-                                    break;
+                                switch (Direction)
+                                {
+                                    case Direction.North:
+                                        {
+                                            //facing north, attack west
+                                            rect = new Rectangle(X - intent.Radius, Y, intent.Radius, 1);
+                                        }
+                                        break;
+                                    case Direction.South:
+                                        {
+                                            //facing south, attack east
+                                            rect = new Rectangle(X, Y, 1 + intent.Radius, 1);
+                                        }
+                                        break;
+                                    case Direction.East:
+                                        {
+                                            //facing east, attack north
+                                            rect = new Rectangle(X, Y, 1, 1 + intent.Radius);
+                                        }
+                                        break;
+                                    case Direction.West:
+                                        {
+                                            //facing west, attack south
+                                            rect = new Rectangle(X, Y - intent.Radius, 1, intent.Radius);
+                                        }
+                                        break;
+                                }
                             }
-                        }
-                        break;
-                    case IntentDirection.Right:
-                        {
-                            switch (Direction)
+                            break;
+                        case IntentDirection.Right:
                             {
-                                case Direction.North:
-                                    {
-                                        //facing north, attack east
-                                        rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
-                                    }
-                                    break;
-                                case Direction.South:
-                                    {
-                                        //facing south, attack west
-                                        rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
-                                    }
-                                    break;
-                                case Direction.East:
-                                    {
-                                        //facing east, attack south
-                                        rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
-                                    }
-                                    break;
-                                case Direction.West:
-                                    {
-                                        //facing west, attack north
-                                        rect = new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
-                                    }
-                                    break;
+                                switch (Direction)
+                                {
+                                    case Direction.North:
+                                        {
+                                            //facing north, attack east
+                                            rect = new Rectangle(X, Y, 1 + intent.Radius, 1);
+                                        }
+                                        break;
+                                    case Direction.South:
+                                        {
+                                            //facing south, attack west
+                                            rect = new Rectangle(X - intent.Radius, Y, intent.Radius, 1);
+                                        }
+                                        break;
+                                    case Direction.East:
+                                        {
+                                            //facing east, attack south
+                                            rect = new Rectangle(X, Y - intent.Radius, 1, intent.Radius);
+                                        }
+                                        break;
+                                    case Direction.West:
+                                        {
+                                            //facing west, attack north
+                                            rect = new Rectangle(X, Y, 1, 1 + intent.Radius);
+                                        }
+                                        break;
+                                }
                             }
-                        }
-                        break;
-                    case IntentDirection.Nearby:
-                        {
-                            //attack radius
-                            rect = new Rectangle(this.X - intent.Radius, this.Y - intent.Radius, intent.Radius * 2, intent.Radius * 2);
-                        }
-                        break;
+                            break;
+                        case IntentDirection.Nearby:
+                        case IntentDirection.None:
+                            {
+                                //attack radius
+                                rect = new Rectangle(X - intent.Radius, Y - intent.Radius, Math.Max(intent.Radius, (byte)1), Math.Max(intent.Radius, (byte)1));
+                            }
+                            break;
+                    }
+
+                    if (!rect.IsEmpty)
+                    {
+                        var intersect = Map.EntityTree.GetObjects(Rect).Where(obj => obj is Creature && obj != this);
+                        // Disqualify targets based on intent
+                        // If we aren't targeting friendlies or pvp, remove all users entirely
+                        if (!intent.Target.Contains(IntentTarget.Friendly) && !intent.Target.Contains(IntentTarget.Pvp))
+                            intersect = intersect.Where(e => !(e is User));
+
+                        // If we aren't targeting hostiles, remove all monsters
+                        if (!intent.Target.Contains(IntentTarget.Hostile))
+                            intersect.Where(e => !(e is Monster || (e as Creature).Condition.PvpEnabled));
+                    }
+
                 }
 
-                if (!rect.IsEmpty) possibleTargets.AddRange(Map.EntityTree.GetObjects(rect).Where(obj => obj is Creature && obj != this));
                 List<Creature> possible = intent.MaxTargets > 0 ? possibleTargets.Take(intent.MaxTargets).OfType<Creature>().ToList() : possibleTargets.OfType<Creature>().ToList();
+
                 if (possible != null && possible.Count > 0) actualTargets.AddRange(possible);
+
             }
             return actualTargets;
         }
@@ -614,7 +714,7 @@ namespace Hybrasyl.Objects
             if (target != null)
                 targets = new List<Creature> { target };
             else
-                targets = PossibleTargets(castObject);
+                targets = GetTargets(castObject);
 
             if (castObject.Effects?.Damage != null)
                 actualtargets = targets.Where(e => e is Monster || e.Condition.PvpEnabled).ToList();
@@ -637,7 +737,7 @@ namespace Hybrasyl.Objects
                     }
                     else if (castObject.Effects?.Heal != null)
                     {
-                        var healOutput = NumberCruncher.CalculateHealing(castObject, tar, this);
+                        var healOutput = NumberCruncher.CalculateHeal(castObject, tar, this);
                         tar.Heal(healOutput, this);
                     }
                     else if (castObject.Statuses?.Add != null)
@@ -670,12 +770,12 @@ namespace Hybrasyl.Objects
         
         public void SendAnimation(ServerPacket packet)
         {
-            Logger.InfoFormat("SendAnimation");
-            Logger.InfoFormat("SendAnimation byte format is: {0}", BitConverter.ToString(packet.ToArray()));
+            Logger.DebugFormat("SendAnimation");
+            Logger.DebugFormat("SendAnimation byte format is: {0}", BitConverter.ToString(packet.ToArray()));
             foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>())
             {
                 var nPacket = (ServerPacket)packet.Clone();
-                Logger.InfoFormat("SendAnimation to {0}", user.Name);
+                Logger.DebugFormat("SendAnimation to {0}", user.Name);
                 user.Enqueue(nPacket);
 
             }
@@ -683,12 +783,12 @@ namespace Hybrasyl.Objects
 
         public void SendCastLine(ServerPacket packet)
         {
-            Logger.InfoFormat("SendCastLine");
-            Logger.InfoFormat($"SendCastLine byte format is: {BitConverter.ToString(packet.ToArray())}");
+            Logger.DebugFormat("SendCastLine");
+            Logger.DebugFormat($"SendCastLine byte format is: {BitConverter.ToString(packet.ToArray())}");
             foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>())
             {
                 var nPacket = (ServerPacket)packet.Clone();
-                Logger.InfoFormat($"SendCastLine to {user.Name}");
+                Logger.DebugFormat($"SendCastLine to {user.Name}");
                 user.Enqueue(nPacket);
 
             }
@@ -700,7 +800,7 @@ namespace Hybrasyl.Objects
         }
 
         public virtual bool Walk(Direction direction)
-        {
+        {           
             int oldX = X, oldY = Y, newX = X, newY = Y;
             Rectangle arrivingViewport = Rectangle.Empty;
             Rectangle departingViewport = Rectangle.Empty;
@@ -898,14 +998,6 @@ namespace Hybrasyl.Objects
 
             Mp = mp > uint.MaxValue ? MaximumMp : Math.Min(MaximumMp, (uint)(Mp + mp));
         }
-
-        //TODO: update with Agrus changes
-        public virtual void Damage(Statuses.Damage damage, Creature attacker = null)
-        { }
-
-        //TODO: update with Agrus changes
-        public virtual void Heal(Statuses.Heal heal, Creature healer = null)
-        { }
 
         public virtual void Damage(double damage, Enums.Element element = Enums.Element.None, Enums.DamageType damageType = Enums.DamageType.Direct, Creature attacker = null)
         {

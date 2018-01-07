@@ -132,7 +132,7 @@ namespace Hybrasyl
 
         public double ElapsedSinceTick => (DateTime.Now - LastTick).TotalSeconds;
 
-        public CreatureStatus(Status xmlstatus, Creature target, Castable castable = null, 
+        public CreatureStatus(Status xmlstatus, Creature target, Castable castable=null, 
             int durationOverride = -1, int tickOverride = -1)
         {
             XMLStatus = xmlstatus;
@@ -143,7 +143,7 @@ namespace Hybrasyl
             _tickOverride = tickOverride;
         }
 
-        private void ProcessSFX(ModifierEffect effect)
+        private void ProcessSfx(ModifierEffect effect)
         {
             if (effect.Sound != null)
                 User?.PlaySound(effect.Sound.Id);
@@ -154,7 +154,7 @@ namespace Hybrasyl
                         Target.Effect(effect.Animations.Target.Id, effect.Animations.Target.Speed);
                 if (effect.Animations.SpellEffect != null)
                 {
-                    // wtf is spelleffect? 
+                    Source.Effect(effect.Animations.SpellEffect.Id, effect.Animations.SpellEffect.Speed);
                 }
             }
             // Message handling
@@ -237,9 +237,13 @@ namespace Hybrasyl
 
         private void ProcessDamageEffects(ModifierEffect effect)
         {
-            // Handle damage and heal. This does nothing currently
-            Target.Heal(effect.Heal);
-            Target.Damage(effect.Damage);
+            if (Castable != null)
+            {
+                var heal = NumberCruncher.CalculateHeal(Castable, effect, Name, Target, Source);
+                var dmg = NumberCruncher.CalculateDamage(Castable, effect, Name, Target, Source);
+                if (heal != 0) Target.Heal(heal);
+                if (dmg.Amount != 0) Target.Damage(dmg.Amount, Enums.Element.None, dmg.Type);
+            }
         }
 
         private void ProcessFullEffects(ModifierEffect effect, bool RemoveStatBonuses=false)
@@ -247,13 +251,13 @@ namespace Hybrasyl
             // Stat modifiers and condition changes are only processed during start/remove
             ProcessConditions(effect);
             ProcessStatModifiers(XMLStatus.Effects?.OnApply?.StatModifiers, RemoveStatBonuses);
-            ProcessSFX(effect);
+            ProcessSfx(effect);
             ProcessDamageEffects(effect);
         }
 
         private void ProcessEffects(ModifierEffect effect)
         {
-            ProcessSFX(effect);
+            ProcessSfx(effect);
             ProcessDamageEffects(effect);
         }
 

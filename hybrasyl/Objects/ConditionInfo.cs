@@ -38,14 +38,9 @@ namespace Hybrasyl.Objects
             get
             {
                 var conditionCheck = Asleep || Frozen || Paralyzed || Comatose;
-                 
+
                 if (User != null)
-                {
-                    var flagCheck = Flags.HasFlag(PlayerFlags.InDialog) ||
-                    Flags.HasFlag(PlayerFlags.InExchange) ||
-                    Flags.HasFlag(PlayerFlags.AliveExchange);
-                    return conditionCheck || flagCheck;
-                }
+                    conditionCheck = conditionCheck || ((Flags & PlayerFlags.ProhibitCast) != 0);
                 return conditionCheck;
             }
         }

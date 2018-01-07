@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using Hybrasyl.Castables;
 using Hybrasyl.Objects;
+using log4net;
 
 namespace Hybrasyl
 {
@@ -12,6 +13,9 @@ namespace Hybrasyl
         private Creature _caster;
         private Castable _castable;
         private Creature _target;
+        public new static readonly ILog Logger =
+       LogManager.GetLogger(
+       System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         public FormulaParser(Creature caster, Castable castable, Creature target = null)
         {
@@ -31,6 +35,7 @@ namespace Hybrasyl
 
         public double Eval(string expression)
         {
+            Logger.Info($"FormulaParser: eval {expression}");
             var tokens = GetTokens(expression);
             var operandStack = new Stack<double>();
             var operatorStack = new Stack<string>();
@@ -75,6 +80,7 @@ namespace Hybrasyl
                 var arg2 = operandStack.Pop();
                 var arg1 = operandStack.Pop();
                 operandStack.Push(_operations[Array.IndexOf(_operators, op)](arg1, arg2));
+                Logger.Info($"FormulaParser: operatorStack: {arg1} {op} {arg2}");
             }
             return Math.Round(operandStack.Pop(), 0); //probably a better way to do this, however this is what we come up with for now.
         }

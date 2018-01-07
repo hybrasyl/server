@@ -351,7 +351,8 @@ namespace Hybrasyl
             InDialog = 0x40,
             Casting = 0x100,
             Pvp = 0x200,
-            AliveExchange = (Alive | InExchange)
+            AliveExchange = (Alive | InExchange),
+            ProhibitCast = (InExchange | InDialog | Casting)
         }
 
         [Flags]

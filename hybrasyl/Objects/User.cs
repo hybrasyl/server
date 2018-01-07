@@ -2162,41 +2162,65 @@ namespace Hybrasyl.Objects
 
         public override bool UseCastable(Castable castObject, Creature target = null)
         {
+            Logger.Info($"UseCastable: {Name} begin casting {castObject.Name} on target: {target?.Name ?? "no target"} CastingAllowed: {Condition.CastingAllowed}");
             if (!Condition.CastingAllowed) return false;
             var damage = castObject.Effects.Damage;
             List<Creature> targets;
 
-            if (target != null) 
-                targets = new List<Creature> { target };
-            else
-                targets = PossibleTargets(castObject);
+            targets = GetTargets(castObject, target);
+           
+            if (targets.Count() == 0 || !ProcessCastingCost(castObject)) return false;
 
-            var actualtargets = targets.Where(e => e is Monster || e.Condition.PvpEnabled);
-            
-            if (actualtargets.Count() == 0 || !ProcessCastingCost(castObject)) return false;
-
-            foreach (var tar in actualtargets)
+            foreach (var tar in targets)
             {
-                if (tar is Monster || (tar is User && ((User)tar).Condition.PvpEnabled))
+                if (castObject.Effects?.ScriptOverride == true)
                 {
-
-                    var rand = new Random();
-                    var damageOutput = NumberCruncher.CalculateDamage(castObject, tar, this);
-
-                    tar.Damage(damageOutput.Amount, OffensiveElement, damageOutput.Type, this);
-
-                    if (castObject.Effects.Animations.OnCast.Target == null) continue;
-                    
-                    var effectAnimation = new ServerPacketStructures.EffectAnimation()
-                    {
-                        SourceId = this.Id,
-                        Speed = (short)castObject.Effects.Animations.OnCast.Target.Speed,
-                        TargetId = tar.Id,
-                        TargetAnimation = castObject.Effects.Animations.OnCast.Target.Id
-                    };
-                    Enqueue(effectAnimation.Packet());
-                    SendAnimation(effectAnimation.Packet());
+                    // TODO: handle castables with scripting
+                    // DoStuff();
+                    continue;
                 }
+                if (castObject.Effects?.Damage != null) { 
+                    var damageOutput = NumberCruncher.CalculateDamage(castObject, tar, this);
+                    Logger.Info($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} damage: {damageOutput}");
+                    tar.Damage(damageOutput.Amount, OffensiveElement, damageOutput.Type, this);
+                }
+                // Note that we ignore castables with both damage and healing effects present - one or the other.
+                // A future improvement might be to allow more complex effects.
+                else if (castObject.Effects.Heal != null)
+                {
+                    var healOutput = NumberCruncher.CalculateHeal(castObject, tar, this);
+                    Logger.Info($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} healing: {healOutput}");
+                }
+                
+                // Handle statuses
+
+                foreach (var status in castObject.Effects.Statuses.Add)
+                {
+                    Status applyStatus;
+                    if (World.WorldData.TryGetValue<Status>(status.Value, out applyStatus))
+                    {
+                        Logger.Info($"UseCastable: {Name} casting {castObject.Name} - applying status {status.Value}");
+                        ApplyStatus(new CreatureStatus(applyStatus, tar, castObject));
+                    }
+                    else
+                        Logger.Warn($"UseCastable: {Name} casting {castObject.Name} - failed to add status {status.Value}, does not exist!");
+                }
+
+                foreach (var status in castObject.Effects.Statuses.Remove)
+                {
+                    Status applyStatus;
+                    if (World.WorldData.TryGetValue<Status>(status, out applyStatus))
+                    {
+                        Logger.Info($"UseCastable: {Name} casting {castObject.Name} - removing status {status}");
+                        RemoveStatus(applyStatus.Icon);
+                    }
+                    else
+                        Logger.Warn($"UseCastable: {Name} casting {castObject.Name} - failed to remove status {status}, does not exist!");
+
+                }
+
+                if (castObject.Effects.Animations.OnCast.Target == null) continue;
+                Effect(castObject.Effects.Animations.OnCast.Target.Id, castObject.Effects.Animations.OnCast.Target.Speed);
 
                 Motion motion;
 
@@ -2212,33 +2236,7 @@ namespace Hybrasyl.Objects
         {
             if (target == null)
             {
-                VisibleObject obj;
-
-                switch (direction)
-                {
-                    case Direction.East:
-                        {
-                            obj = Map.EntityTree.FirstOrDefault(x => x.X == X + 1 && x.Y == Y);
-                        }
-                        break;
-                    case Direction.West:
-                        {
-                            obj = Map.EntityTree.FirstOrDefault(x => x.X == X - 1 && x.Y == Y);
-                        }
-                        break;
-                    case Direction.North:
-                        {
-                            obj = Map.EntityTree.FirstOrDefault(x => x.X == X && x.Y == Y - 1);
-                        }
-                        break;
-                    case Direction.South:
-                        {
-                            obj = Map.EntityTree.FirstOrDefault(x => x.X == X && x.Y == Y + 1);
-                        }
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException(nameof(direction), direction, null);
-                }
+                var obj = GetDirectionalTarget(direction);
 
                 var monster = obj as Monster;
                 if (monster != null) target = monster;
@@ -2252,14 +2250,13 @@ namespace Hybrasyl.Objects
                 {
                     target = npc;
                 }
-                //try to get the creature we're facing and set it as the target.
             }
 
             foreach (var c in SkillBook)
             {
                 if (target != null && c.IsAssail && target.GetType() != typeof(Merchant))
                 {
-                    //Attack(direction, c, target);
+                    UseCastable(c, target);
                 }
             }
             //animation handled here as to not repeatedly send assails.

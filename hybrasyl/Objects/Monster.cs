@@ -68,8 +68,8 @@ namespace Hybrasyl.Objects
             var hitter = LastHitter as User;
             if (hitter == null) return; // Don't handle cases of MOB ON MOB COMBAT just yet
 
+            Condition.Alive = false; 
             hitter.ShareExperience(LootableXP);
-
             var golds = new Gold(LootableGold);
             World.Insert(golds);
             Map.Insert(golds, X, Y);
@@ -250,34 +250,7 @@ namespace Hybrasyl.Objects
         {
             if (target == null)
             {
-                VisibleObject obj;
-
-                switch (direction)
-                {
-                    case Direction.East:
-                        {
-                            obj = Map.EntityTree.FirstOrDefault(x => x.X == X + 1 && x.Y == Y);
-                        }
-                        break;
-                    case Direction.West:
-                        {
-                            obj = Map.EntityTree.FirstOrDefault(x => x.X == X - 1 && x.Y == Y);
-                        }
-                        break;
-                    case Direction.North:
-                        {
-                            obj = Map.EntityTree.FirstOrDefault(x => x.X == X && x.Y == Y - 1);
-                        }
-                        break;
-                    case Direction.South:
-                        {
-                            obj = Map.EntityTree.FirstOrDefault(x => x.X == X && x.Y == Y + 1);
-                        }
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException(nameof(direction), direction, null);
-                }
-
+                var obj = GetDirectionalTarget(direction);
                 var monster = obj as Monster;
                 if (monster != null) target = monster;
                 var user = obj as User;
@@ -293,10 +266,9 @@ namespace Hybrasyl.Objects
                 //try to get the creature we're facing and set it as the target.
             }
             
-            // Simple Damage here
-             Attack(direction, target);
-                
-            
+            // A monster's assail is just a straight attack, no skills involved.
+            SimpleAttack(target);
+                            
             //animation handled here as to not repeatedly send assails.
             var assail = new ServerPacketStructures.PlayerAnimation() { Animation = 1, Speed = 20, UserId = this.Id };
             //Enqueue(assail.Packet());
@@ -305,7 +277,12 @@ namespace Hybrasyl.Objects
             PlaySound(1);
         }
 
-
+        /// <summary>
+        /// A simple directional attack by a monster (equivalent of straight assail).
+        /// </summary>
+        /// <param name="direction"></param>
+        /// <param name="target"></param>
+        public void SimpleAttack(Creature target) => target?.Damage(_simpleDamage, OffensiveElement, Enums.DamageType.Physical, this);
 
         public override void ShowTo(VisibleObject obj)
         {
