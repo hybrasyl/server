@@ -19,7 +19,7 @@
   <xs:complexType name="Status">
     <xs:all minOccurs="0" maxOccurs="1">
       <xs:element name="Category" type="hyb:String8" minOccurs="0" maxOccurs="1" />
-      <xs:element name="CastRestrictions" type="status:CastRestrictions" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="CastRestriction" type="status:CastRestriction" minOccurs="0" maxOccurs="1"/>
       <xs:element name="Script" type="hyb:String8" />
       <xs:element name="Effects" type="status:Effects" minOccurs="0" maxOccurs="1"/>
       <xs:element name="ProhibitedMessage" type="hyb:String8" minOccurs="0" maxOccurs="1"/>
@@ -38,9 +38,9 @@
     </xs:simpleContent>
   </xs:complexType>
 
-  <xs:complexType name="CastRestrictions">
+  <xs:complexType name="CastRestriction">
     <xs:attribute name="Use" type="xs:token"/>
-    <xs:attribute name="Heal" type="xs:token"/>
+    <xs:attribute name="Receive" type="xs:token"/>
   </xs:complexType>
   
   <xs:complexType name="Effects">

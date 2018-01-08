@@ -186,6 +186,10 @@ namespace Hybrasyl.Castables
             {
                 motion = Effects.Animations.OnCast.Player.FirstOrDefault(x => x.Class.Contains(castClass));
             }
+            catch (NullReferenceException)
+            {
+                return false;
+            }           
             if (motion != null) return true;
             return false;
         }

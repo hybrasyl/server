@@ -17,7 +17,7 @@ namespace Hybrasyl.Statuses
     using System.Collections.Generic;
 
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -29,7 +29,7 @@ namespace Hybrasyl.Statuses
         #region Private fields
         private string _category;
 
-        private CastRestrictions _castRestrictions;
+        private CastRestriction _castRestriction;
 
         private string _script;
 
@@ -49,7 +49,7 @@ namespace Hybrasyl.Statuses
         public Status()
         {
             this._effects = new Effects();
-            this._castRestrictions = new CastRestrictions();
+            this._castRestriction = new CastRestriction();
         }
 
         public string Category
@@ -64,15 +64,15 @@ namespace Hybrasyl.Statuses
             }
         }
 
-        public CastRestrictions CastRestrictions
+        public CastRestriction CastRestriction
         {
             get
             {
-                return this._castRestrictions;
+                return this._castRestriction;
             }
             set
             {
-                this._castRestrictions = value;
+                this._castRestriction = value;
             }
         }
 
@@ -165,18 +165,18 @@ namespace Hybrasyl.Statuses
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
     [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Status")]
-    public partial class CastRestrictions
+    public partial class CastRestriction
     {
 
         #region Private fields
         private string _use;
 
-        private string _heal;
+        private string _receive;
         #endregion
 
         [System.Xml.Serialization.XmlAttributeAttribute(DataType = "token")]
@@ -193,20 +193,20 @@ namespace Hybrasyl.Statuses
         }
 
         [System.Xml.Serialization.XmlAttributeAttribute(DataType = "token")]
-        public string Heal
+        public string Receive
         {
             get
             {
-                return this._heal;
+                return this._receive;
             }
             set
             {
-                this._heal = value;
+                this._receive = value;
             }
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -246,7 +246,7 @@ namespace Hybrasyl.Statuses
     }
 
     [System.FlagsAttribute()]
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Xml.Serialization.XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/HybrasylCommon")]
     public enum CreatureCondition
@@ -322,7 +322,7 @@ namespace Hybrasyl.Statuses
         ProhibitShout = 4194304,
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -646,7 +646,7 @@ namespace Hybrasyl.Statuses
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Actions")]
     public enum Element
@@ -686,7 +686,7 @@ namespace Hybrasyl.Statuses
         Random,
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/HybrasylCommon")]
     public enum DamageType
@@ -705,7 +705,7 @@ namespace Hybrasyl.Statuses
         Elemental,
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -809,7 +809,7 @@ namespace Hybrasyl.Statuses
     }
 
     [System.FlagsAttribute()]
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Xml.Serialization.XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Actions")]
     public enum DamageFlags
@@ -828,7 +828,7 @@ namespace Hybrasyl.Statuses
         Nonlethal = 8,
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -877,7 +877,7 @@ namespace Hybrasyl.Statuses
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -951,7 +951,7 @@ namespace Hybrasyl.Statuses
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -1032,7 +1032,7 @@ namespace Hybrasyl.Statuses
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -1079,7 +1079,7 @@ namespace Hybrasyl.Statuses
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -1124,7 +1124,7 @@ namespace Hybrasyl.Statuses
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -1233,7 +1233,7 @@ namespace Hybrasyl.Statuses
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -1259,7 +1259,7 @@ namespace Hybrasyl.Statuses
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]

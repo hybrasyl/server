@@ -24,7 +24,7 @@ namespace Hybrasyl
         public static ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         // This is dumb, but it's a consequence of how xsd2code works
-        static private double _evalSimple(dynamic simple)
+        private static double _evalSimple(dynamic simple)
         {
             if (simple is Statuses.SimpleQuantity || simple is Castables.SimpleQuantity)
             {
@@ -34,7 +34,7 @@ namespace Hybrasyl
             throw new InvalidOperationException("Invalid type passed to _evalSimple");
         }
 
-        static private double _evalFormula(string formula, Castable castable, Creature target, Creature source)
+        private static double _evalFormula(string formula, Castable castable, Creature target, Creature source)
         {
             try
             {
@@ -47,7 +47,7 @@ namespace Hybrasyl
             }
         }
 
-        static public (Enums.DamageType Type, double Amount) CalculateDamage(Castable castable, Creature target, Creature source = null)
+        public static (Enums.DamageType Type, double Amount) CalculateDamage(Castable castable, Creature target, Creature source = null)
         {
             var rand = new Random();
             // Defaults
@@ -68,7 +68,7 @@ namespace Hybrasyl
             return (type, dmg);
         }
 
-        static public double CalculateHeal(Castable castable, Creature target, Creature source = null )
+        public static double CalculateHeal(Castable castable, Creature target, Creature source = null )
         {
             var rand = new Random();
             if (castable.Effects?.Heal?.Simple != null)
@@ -83,7 +83,7 @@ namespace Hybrasyl
             return 0;
         }
 
-        static public (Enums.DamageType Type, double Amount) CalculateDamage(Castable castable, ModifierEffect effect, string statusName, Creature target, Creature source = null)
+        public static (Enums.DamageType Type, double Amount) CalculateDamage(Castable castable, ModifierEffect effect, string statusName, Creature target, Creature source = null)
         {
             // Find the status first (we'll need intensity later)
             var statusAdd = castable.Statuses.Add.Where(e => e.Value == statusName).ToList();
@@ -110,7 +110,7 @@ namespace Hybrasyl
             return (type, dmg * statusAdd[0].Intensity);
         }
 
-        static public double CalculateHeal(Castable castable, ModifierEffect effect, string statusName, Creature target, Creature source = null)
+        public static double CalculateHeal(Castable castable, ModifierEffect effect, string statusName, Creature target, Creature source = null)
         {
             // Find the status first
             var statusAdd = castable.Statuses.Add.Where(e => e.Value == statusName).ToList();

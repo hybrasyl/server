@@ -3814,7 +3814,7 @@ namespace Hybrasyl
 
             if (!user.IsHeartbeatValid(byteA, byteB))
             {
-                Logger.InfoFormat("{0}: byte heartbeat not valid, disconnecting", user.Name);
+                Logger.WarnFormat("{0}: byte heartbeat not valid, disconnecting", user.Name);
                 user.SendRedirectAndLogoff(Game.World, Game.Login, user.Name);
             }
             else
@@ -4501,11 +4501,7 @@ namespace Hybrasyl
             if (ConsumerThread.IsAlive) return;
             ConsumerThread.Start();
             Logger.InfoFormat("Consumer thread: started");
-            //Start our secondary thread
-            //SecondaryConsumer = new Thread(QueueConsumer);
-            //if (SecondaryConsumer.IsAlive) return;
-            //SecondaryConsumer.Start();
-            //Logger.InfoFormat("Secondary Consumer thread: started");
+
         }
 
         public void StopQueueConsumer()

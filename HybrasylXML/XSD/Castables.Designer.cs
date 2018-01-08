@@ -55,7 +55,7 @@ namespace Hybrasyl.Castables
 
         private Book _book;
 
-        private List<Element> _element;
+        private Element _element;
 
         private byte _lines;
 
@@ -71,7 +71,6 @@ namespace Hybrasyl.Castables
         public Castable()
         {
             this._class = new List<Class>();
-            this._element = new List<Element>();
             this._statuses = new Statuses();
             this._effects = new Effects();
             this._restrictions = new Restrictions();
@@ -81,6 +80,7 @@ namespace Hybrasyl.Castables
             this._castCosts = new CastCostList();
             this._categories = new Categories();
             this._descriptions = new List<Description>();
+            this._element = Element.None;
             this._lines = ((byte)(0));
             this._cooldown = 0;
             this._isAssail = false;
@@ -262,7 +262,8 @@ namespace Hybrasyl.Castables
         }
 
         [System.Xml.Serialization.XmlAttributeAttribute()]
-        public List<Element> Element
+        [System.ComponentModel.DefaultValueAttribute(Element.None)]
+        public Element Element
         {
             get
             {

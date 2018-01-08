@@ -163,7 +163,7 @@
   <xs:complexType name="Intent">
     <xs:attribute name="UseType" type="actions:SpellUseType" default="NoTarget" use="optional"/>
     <xs:attribute name="Radius" type="xs:unsignedByte" default="0" />
-    <xs:attribute name="Direction" type="actions:IntentDirection" default="None" use="optional"/>
+    <xs:attribute name="Direction" type="actions:IntentDirection" default="None"/>
     <xs:attribute name="Target" type="actions:IntentTargetList" use="required" />
     <xs:attribute name="MaxTargets" type="xs:unsignedByte" default="0" />
   </xs:complexType>
@@ -463,11 +463,7 @@
     <xs:attribute name="Type" use="required" />
     <xs:attribute name="Icon" type="xs:unsignedByte" use="required" />
     <xs:attribute name="Book" type="actions:Book" use="required" />
-    <xs:attribute name="Element" use="optional">
-      <xs:simpleType>
-        <xs:list itemType="actions:Element" />
-      </xs:simpleType>
-    </xs:attribute>
+    <xs:attribute name="Element" default="None" type="actions:Element"/>
     <xs:attribute name="Lines" type="xs:unsignedByte" use="optional" default="0" />
     <xs:attribute name="Class" use="optional">
       <xs:simpleType>

@@ -21,6 +21,7 @@
  */
  
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
@@ -38,6 +39,8 @@ namespace Hybrasyl.Objects
         public new static readonly ILog Logger =
                LogManager.GetLogger(
                System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
+        private static readonly ILog ActivityLogger = LogManager.GetLogger("UserActivityLogger");
 
         [JsonProperty]
         public byte Level { get; set; }
@@ -77,6 +80,10 @@ namespace Hybrasyl.Objects
 
         [JsonProperty]
         public ConditionInfo Condition { get; set; }
+
+        [JsonProperty]
+        protected ConcurrentDictionary<ushort, ICreatureStatus> _currentStatuses;
+
 
         [JsonProperty]
         public long BaseDex { get; set; }
@@ -228,7 +235,8 @@ namespace Hybrasyl.Objects
             BaseReflectIntensity = 1;
             BaseReflectChance = 0;
             DamageTypeOverride = null;
-            Condition = new ConditionInfo(this);            
+            Condition = new ConditionInfo(this);
+            _currentStatuses = new ConcurrentDictionary<ushort, ICreatureStatus>();
         }
 
         public override void OnClick(User invoker)
@@ -243,27 +251,28 @@ namespace Hybrasyl.Objects
             {
                 case Direction.East:
                     {
-                        obj = Map.EntityTree.FirstOrDefault(x => x.X == X + 1 && x.Y == Y);
+                        obj = Map.EntityTree.FirstOrDefault(x => x.X == X + 1 && x.Y == Y && x is Creature);
                     }
                     break;
                 case Direction.West:
                     {
-                        obj = Map.EntityTree.FirstOrDefault(x => x.X == X - 1 && x.Y == Y);
+                        obj = Map.EntityTree.FirstOrDefault(x => x.X == X - 1 && x.Y == Y && x is Creature);
                     }
                     break;
                 case Direction.North:
                     {
-                        obj = Map.EntityTree.FirstOrDefault(x => x.X == X && x.Y == Y - 1);
+                        obj = Map.EntityTree.FirstOrDefault(x => x.X == X && x.Y == Y - 1 && x is Creature);
                     }
                     break;
                 case Direction.South:
                     {
-                        obj = Map.EntityTree.FirstOrDefault(x => x.X == X && x.Y == Y + 1);
+                        obj = Map.EntityTree.FirstOrDefault(x => x.X == X && x.Y == Y + 1 && x is Creature);
                     }
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(direction), direction, null);
             }
+
             if (obj is Creature) return obj as Creature;
             return null;
         }
@@ -305,7 +314,7 @@ namespace Hybrasyl.Objects
                         // Heal spels can be cast on players, other spells can be cast on attackable creatures
                         if ((castable.Effects?.Damage != null && target.Condition.IsAttackable) ||
                         (castable.Effects?.Damage == null && target is User))
-                            possibleTargets.Add(target);
+                        possibleTargets.Add(target);
                 }
                 else if (intent.UseType == Castables.SpellUseType.NoTarget && intent.Radius == 0 && intent.Direction == IntentDirection.None)
                 {
@@ -463,25 +472,43 @@ namespace Hybrasyl.Objects
                             break;
                     }
 
-                    if (!rect.IsEmpty)
-                    {
-                        var intersect = Map.EntityTree.GetObjects(Rect).Where(obj => obj is Creature && obj != this);
-                        // Disqualify targets based on intent
-                        // If we aren't targeting friendlies or pvp, remove all users entirely
-                        if (!intent.Target.Contains(IntentTarget.Friendly) && !intent.Target.Contains(IntentTarget.Pvp))
-                            intersect = intersect.Where(e => !(e is User));
+                    if (rect.IsEmpty) continue;
 
-                        // If we aren't targeting hostiles, remove all monsters
-                        if (!intent.Target.Contains(IntentTarget.Hostile))
-                            intersect.Where(e => !(e is Monster || (e as Creature).Condition.PvpEnabled));
-                    }
-
+                    possibleTargets.AddRange(Map.EntityTree.GetObjects(rect).Where(obj => obj is Creature && obj != this));
                 }
 
+                // Handle intent flags
+                if (this is Monster)
+                {
+                    // No hostile flag: remove users
+                    // No friendly flag: remove monsters
+                    // Group / pvp: do not apply here
+                    if (!intent.Target.Contains(IntentTarget.Friendly))
+                        possibleTargets = possibleTargets.Where(e => !(e is Monster)).ToList();
+                    if (!intent.Target.Contains(IntentTarget.Hostile))
+                        possibleTargets = possibleTargets.Where(e => !(e is User)).ToList();
+                }
+                else if (this is User)
+                {
+                    var user = this as User;
+                    // No hostile flag: remove monsters
+                    // No friendly flag: remove users with pvp disabled
+                    // No pvp: remove 
+                    // If we aren't targeting friendlies or pvp, remove all users entirely
+                    if (!intent.Target.Contains(IntentTarget.Pvp))
+                        possibleTargets = possibleTargets.Where(e => !(e is User && (e as Creature).Condition.PvpEnabled == true)).ToList();
+                    if (!intent.Target.Contains(IntentTarget.Friendly))
+                        possibleTargets = possibleTargets.Where(e => !(e is User && (e as Creature).Condition.PvpEnabled == false)).ToList();
+                    // If we aren't targeting hostiles, remove all monsters
+                    if (!intent.Target.Contains(IntentTarget.Hostile))
+                        possibleTargets = possibleTargets.Where(e => !(e is Monster)).ToList();
+                }
+
+                // Finally, add the targets to our list
+
                 List<Creature> possible = intent.MaxTargets > 0 ? possibleTargets.Take(intent.MaxTargets).OfType<Creature>().ToList() : possibleTargets.OfType<Creature>().ToList();
-
                 if (possible != null && possible.Count > 0) actualTargets.AddRange(possible);
-
+                else Logger.Info("No targets found");
             }
             return actualTargets;
         }
@@ -703,71 +730,182 @@ namespace Hybrasyl.Objects
         public bool MagicalImmortal { get; set; }
 
 
+        #region Status handling
+
+        /// <summary>
+        /// Apply a given status to a player.
+        /// </summary>
+        /// <param name="status">The status to apply to the player.</param>
+        public bool ApplyStatus(ICreatureStatus status)
+        {
+            if (!_currentStatuses.TryAdd(status.Icon, status)) return false;
+            if (this is User) (this as User).SendStatusUpdate(status);
+            status.OnStart();
+            return true;
+        }
+
+        /// <summary>
+        /// Remove a status from a client, firing the appropriate OnEnd events and removing the icon from the status bar.
+        /// </summary>
+        /// <param name="status">The status to remove.</param>
+        /// <param name="onEnd">Whether or not to run the onEnd event for the status removal.</param>
+        private void _removeStatus(ICreatureStatus status, bool onEnd = true)
+        {
+            if (onEnd)
+                status.OnEnd();
+            if (this is User) (this as User).SendStatusUpdate(status, false);
+        }
+
+        /// <summary>
+        /// Remove a status from a client.
+        /// </summary>
+        /// <param name="icon">The icon of the status we are removing.</param>
+        /// <param name="onEnd">Whether or not to run the onEnd effect for the status.</param>
+        /// <returns></returns>
+        public bool RemoveStatus(ushort icon, bool onEnd = true)
+        {
+            ICreatureStatus status;
+            if (!_currentStatuses.TryRemove(icon, out status)) return false;
+            _removeStatus(status, onEnd);
+            return true;
+        }
+
+        public bool TryGetStatus(string name, out ICreatureStatus status)
+        {
+            status = _currentStatuses.Values.FirstOrDefault(s => s.Name == name);
+            return status != null;
+        }
+
+        /// <summary>
+        /// Remove all statuses from a user.
+        /// </summary>
+        public void RemoveAllStatuses()
+        {
+            lock (_currentStatuses)
+            {
+                foreach (var status in _currentStatuses.Values)
+                {
+                    _removeStatus(status, false);
+                }
+
+                _currentStatuses.Clear();
+                Logger.Debug($"Current status count is {_currentStatuses.Count}");
+            }
+        }
+
+        /// <summary>
+        /// Process all the given status ticks for a creature's active statuses.
+        /// </summary>
+        public void ProcessStatusTicks()
+        {
+            foreach (var kvp in _currentStatuses)
+            {
+                Logger.DebugFormat("OnTick: {0}, {1}", Name, kvp.Value.Name);
+
+                if (kvp.Value.Expired)
+                {
+                    var removed = RemoveStatus(kvp.Key);
+                    Logger.DebugFormat($"Status {kvp.Value.Name} has expired: removal was {removed}");
+                }
+
+                if (kvp.Value.ElapsedSinceTick >= kvp.Value.Tick)
+                {
+                    kvp.Value.OnTick();
+                    if (this is User) (this as User).SendStatusUpdate(kvp.Value);
+                }
+            }
+        }
+
+        public int ActiveStatusCount => _currentStatuses.Count;
+
+        #endregion
+
         public virtual bool UseCastable(Castable castObject, Creature target = null)
         {
             // TODO: DRY if possible?
             if (!Condition.CastingAllowed) return false;
+            if (this is User) ActivityLogger.Info($"UseCastable: {Name} begin casting {castObject.Name} on target: {target?.Name ?? "no target"} CastingAllowed: {Condition.CastingAllowed}");
+
             var damage = castObject.Effects.Damage;
             List<Creature> targets;
-            List<Creature> actualtargets;
 
-            if (target != null)
-                targets = new List<Creature> { target };
-            else
-                targets = GetTargets(castObject);
+            targets = GetTargets(castObject, target);
 
-            if (castObject.Effects?.Damage != null)
-                actualtargets = targets.Where(e => e is Monster || e.Condition.PvpEnabled).ToList();
-            else if (castObject.Effects?.Heal != null)
-                actualtargets = targets.Where(e => (e is Monster) == false).ToList();
-            else
-                actualtargets = targets; // yech
+            if (targets.Count() == 0) return false;
 
-            if (actualtargets.Count() == 0) return false;
-
-            foreach (var tar in actualtargets)
+            foreach (var tar in targets)
             {
-                if (tar is Monster || (tar is User && ((User)tar).Condition.PvpEnabled))
+                if (castObject.Effects?.ScriptOverride == true)
                 {
-                    if (castObject.Effects?.Damage != null)
+                    // TODO: handle castables with scripting
+                    // DoStuff();
+                    continue;
+                }
+                if (castObject.Effects?.Damage != null)
+                {
+                    Enums.Element attackElement;
+                    var damageOutput = NumberCruncher.CalculateDamage(castObject, tar, this);
+                    if (castObject.Element == Castables.Element.Random)
                     {
-                        var damageOutput = NumberCruncher.CalculateDamage(castObject, tar, this);
-
-                        tar.Damage(damageOutput.Amount, OffensiveElement, damageOutput.Type, this);
+                        Random rnd = new Random();
+                        var Elements = Enum.GetValues(typeof(Enums.Element));
+                        attackElement = (Enums.Element)Elements.GetValue(rnd.Next(Elements.Length));
                     }
-                    else if (castObject.Effects?.Heal != null)
-                    {
-                        var healOutput = NumberCruncher.CalculateHeal(castObject, tar, this);
-                        tar.Heal(healOutput, this);
-                    }
-                    else if (castObject.Statuses?.Add != null)
-                    {
-
-                    }
-                    else if (castObject.Statuses?.Remove != null)
-                    {
-
-                    }
-                    if (castObject.Effects.Animations.OnCast.Target == null) continue;
-
-                    var effectAnimation = new ServerPacketStructures.EffectAnimation()
-                    {
-                        SourceId = this.Id,
-                        Speed = (short)castObject.Effects.Animations.OnCast.Target.Speed,
-                        TargetId = tar.Id,
-                        TargetAnimation = castObject.Effects.Animations.OnCast.Target.Id
-                    };
-                    SendAnimation(effectAnimation.Packet());
+                    else if (castObject.Element != Castables.Element.None)
+                        attackElement = (Enums.Element)castObject.Element;
+                    else
+                        attackElement = (OffensiveElementOverride == Enums.Element.None ? OffensiveElementOverride : OffensiveElement);
+                    if (this is User) ActivityLogger.Info($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} damage: {damageOutput}, element {attackElement}");
+                    tar.Damage(damageOutput.Amount, attackElement, damageOutput.Type, this);
+                }
+                // Note that we ignore castables with both damage and healing effects present - one or the other.
+                // A future improvement might be to allow more complex effects.
+                else if (castObject.Effects.Heal != null)
+                {
+                    var healOutput = NumberCruncher.CalculateHeal(castObject, tar, this);
+                    if (this is User) ActivityLogger.Info($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} healing: {healOutput}");
                 }
 
-                Motion motion;
+                // Handle statuses
+
+                foreach (var status in castObject.Effects.Statuses.Add)
+                {
+                    Status applyStatus;
+                    if (World.WorldData.TryGetValue<Status>(status.Value, out applyStatus))
+                    {
+                        ActivityLogger.Info($"UseCastable: {Name} casting {castObject.Name} - applying status {status.Value}");
+                        ApplyStatus(new CreatureStatus(applyStatus, tar, castObject));
+                    }
+                    else
+                        ActivityLogger.Error($"UseCastable: {Name} casting {castObject.Name} - failed to add status {status.Value}, does not exist!");
+                }
+
+                foreach (var status in castObject.Effects.Statuses.Remove)
+                {
+                    Status applyStatus;
+                    if (World.WorldData.TryGetValue<Status>(status, out applyStatus))
+                    {
+                        ActivityLogger.Error($"UseCastable: {Name} casting {castObject.Name} - removing status {status}");
+                        RemoveStatus(applyStatus.Icon);
+                    }
+                    else
+                        ActivityLogger.Error($"UseCastable: {Name} casting {castObject.Name} - failed to remove status {status}, does not exist!");
+
+                }
+
+                if (castObject.Effects?.Animations?.OnCast?.Target != null)
+                    tar.Effect(castObject.Effects.Animations.OnCast.Target.Id, castObject.Effects.Animations.OnCast.Target.Speed);
+
+                if (castObject.Effects?.Animations?.OnCast?.SpellEffect != null)
+                    Effect(castObject.Effects.Animations.OnCast.SpellEffect.Id, castObject.Effects.Animations.OnCast.SpellEffect.Speed);
 
                 if (castObject.Effects.Sound != null)
                     PlaySound(castObject.Effects.Sound.Id);
             }
             return true;
+
         }
-        
+
         public void SendAnimation(ServerPacket packet)
         {
             Logger.DebugFormat("SendAnimation");

@@ -86,7 +86,8 @@ namespace Hybrasyl
         double Elapsed { get; }
         double Remaining { get; }
         double ElapsedSinceTick { get; }
-
+        string UseCastRestrictions { get; }
+        string ReceiveCastRestrictions { get; }
         void OnStart();
         void OnTick();
         void OnEnd();
@@ -100,6 +101,8 @@ namespace Hybrasyl
         public ushort Icon => XMLStatus.Icon;
         public int Tick => _durationOverride != -1 ? XMLStatus.Tick : _durationOverride;
         public int Duration => _tickOverride != -1 ? XMLStatus.Duration : _durationOverride;
+        public string UseCastRestrictions => XMLStatus.CastRestriction?.Use ?? string.Empty;
+        public string ReceiveCastRestrictions => XMLStatus.CastRestriction?.Receive ?? string.Empty;
 
         private int _durationOverride;
         private int _tickOverride;
@@ -158,18 +161,18 @@ namespace Hybrasyl
                 }
             }
             // Message handling
-            if (effect.Messages != null)
+            if (effect.Messages != null && User != null)
             {
                 if (effect.Messages.Target != null)
-                    User?.SendSystemMessage(effect.Messages.Target);
+                    User.SendSystemMessage(string.Format(effect.Messages.Target, User.Name));
                 if (effect.Messages.Group != null)
-                    User?.Group.SendMessage(effect.Messages.Group);
+                    User.Group.SendMessage(string.Format(effect.Messages.Group, User.Name));
                 if (effect.Messages.Source != null)
-                    (Source as User)?.SendSystemMessage(effect.Messages.Source);
+                    (Source as User)?.SendSystemMessage(string.Format(effect.Messages.Source, User.Name));
                 if (effect.Messages.Say != null)
-                    User?.Say(effect.Messages.Say);
+                    User?.Say(string.Format(effect.Messages.Say, User.Name));
                 if (effect.Messages.Shout != null)
-                    User?.Say(effect.Messages.Shout);
+                    User?.Say(string.Format(effect.Messages.Shout, User.Name));
             }
         }
 

@@ -92,6 +92,8 @@ namespace Hybrasyl.Objects
                LogManager.GetLogger(
                System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
+        private static readonly ILog ActivityLogger = LogManager.GetLogger("UserActivityLogger");
+
         public static string GetStorageKey(string name)
         {
             return string.Concat(typeof(User).Name, ':', name.ToLower());
@@ -168,7 +170,8 @@ namespace Hybrasyl.Objects
         [JsonProperty]
         public GuildMembership Guild { get; set; }
 
-        [JsonProperty] private ConcurrentDictionary<ushort, ICreatureStatus> _currentStatuses;
+        public List<string> UseCastRestrictions => _currentStatuses.Select(e => e.Value.UseCastRestrictions).Where(e => e != string.Empty).ToList();
+        public List<string> ReceiveCastRestrictions => _currentStatuses.Select(e => e.Value.ReceiveCastRestrictions).Where(e => e != string.Empty).ToList();
 
         private Nation _nation;
 
@@ -333,93 +336,6 @@ namespace Hybrasyl.Objects
             Enqueue(removePacket);
         }
 
-        #region Status handling
-
-        /// <summary>
-        /// Apply a given status to a player.
-        /// </summary>
-        /// <param name="status">The status to apply to the player.</param>
-        public bool ApplyStatus(ICreatureStatus status)
-        {
-            if (!_currentStatuses.TryAdd(status.Icon, status)) return false;
-            SendStatusUpdate(status);
-            status.OnStart();
-            return true;
-        }
-
-        /// <summary>
-        /// Remove a status from a client, firing the appropriate OnEnd events and removing the icon from the status bar.
-        /// </summary>
-        /// <param name="status">The status to remove.</param>
-        /// <param name="onEnd">Whether or not to run the onEnd event for the status removal.</param>
-        private void _removeStatus(ICreatureStatus status, bool onEnd = true)
-        {
-            if (onEnd)
-                status.OnEnd();
-            SendStatusUpdate(status, true);
-        }
-
-        /// <summary>
-        /// Remove a status from a client.
-        /// </summary>
-        /// <param name="icon">The icon of the status we are removing.</param>
-        /// <param name="onEnd">Whether or not to run the onEnd effect for the status.</param>
-        /// <returns></returns>
-        public bool RemoveStatus(ushort icon, bool onEnd = true)
-        {
-            ICreatureStatus status;
-            if (!_currentStatuses.TryRemove(icon, out status)) return false;
-            _removeStatus(status, onEnd);
-            return true;
-        }
-
-        public bool TryGetStatus(string name, out ICreatureStatus status)
-        {
-            status = _currentStatuses.Values.FirstOrDefault(s => s.Name == name);
-            return status != null;
-        }
-
-        /// <summary>
-        /// Remove all statuses from a user.
-        /// </summary>
-        public void RemoveAllStatuses()
-        {
-            lock (_currentStatuses)
-            {
-                foreach (var status in _currentStatuses.Values)
-                {
-                    _removeStatus(status, false);
-                }
-
-                _currentStatuses.Clear();
-                Logger.Debug($"Current status count is {_currentStatuses.Count}");
-            }
-        }
-
-        /// <summary>
-        /// Process all the given status ticks for a user's active statuses.
-        /// </summary>
-        public void ProcessStatusTicks()
-        {
-            foreach (var kvp in _currentStatuses)
-            {
-                Logger.DebugFormat("OnTick: {0}, {1}", Name, kvp.Value.Name);
-
-                if (kvp.Value.Expired)
-                {
-                    var removed = RemoveStatus(kvp.Key);
-                    Logger.DebugFormat($"Status {kvp.Value.Name} has expired: removal was {removed}");
-                }
-
-                if (kvp.Value.ElapsedSinceTick >= kvp.Value.Tick)
-                {
-                    kvp.Value.OnTick();
-                    SendStatusUpdate(kvp.Value);
-                }
-            }
-        }
-
-        public int ActiveStatusCount => _currentStatuses.Count;
 
         /// <summary>T
         /// Send a status bar update to the client based on the state of a given status.
@@ -454,10 +370,6 @@ namespace Hybrasyl.Objects
             Logger.DebugFormat($"{Name} - status: {status.Name}, expired: {status.Expired}, remaining: {remaining}, duration: {status.Duration}");
             Enqueue(statuspacket.Packet());
         }
-
-  
-
-        #endregion
 
         /// <summary>
         /// Sadly, all things in this world must come to an end.
@@ -544,7 +456,7 @@ namespace Hybrasyl.Objects
             if (!Condition.Comatose) return;
             Condition.Comatose = false;
             //var bar = RemoveStatus(NearDeathStatus.Icon, false);
-            Logger.Debug($"EndComa: {Name}: removestatus for coma is hurp");
+            Logger.Debug($"EndComa: {Name}: removestatus for coma is fap ");
 
             foreach (var status in _currentStatuses.Values)
             {
@@ -1198,13 +1110,19 @@ namespace Hybrasyl.Objects
                 }.Packet());
             }
             else
-                SendSystemMessage("It didn't work.");
+                SendSystemMessage("Failed.");
         }
 
         internal void UseSpell(byte slot, uint target = 0)
         {
             var castable = SpellBook[slot];
             Creature targetCreature = Map.EntityTree.OfType<Creature>().SingleOrDefault(x => x.Id == target) ?? null;
+           
+            if (UseCastRestrictions.Contains(castable.Categories.Category.Value))
+            {
+                SendSystemMessage("You cannot cast that now.");
+                return;
+            }
             if (UseCastable(castable, targetCreature))
             {
                 Client.Enqueue(new ServerPacketStructures.Cooldown()
@@ -1215,7 +1133,7 @@ namespace Hybrasyl.Objects
                 }.Packet());
             }
             else
-                SendSystemMessage("It didn't work.");
+                SendSystemMessage("Failed.");
         }
 
         /// <summary>
@@ -2162,99 +2080,24 @@ namespace Hybrasyl.Objects
 
         public override bool UseCastable(Castable castObject, Creature target = null)
         {
-            Logger.Info($"UseCastable: {Name} begin casting {castObject.Name} on target: {target?.Name ?? "no target"} CastingAllowed: {Condition.CastingAllowed}");
-            if (!Condition.CastingAllowed) return false;
-            var damage = castObject.Effects.Damage;
-            List<Creature> targets;
-
-            targets = GetTargets(castObject, target);
-           
-            if (targets.Count() == 0 || !ProcessCastingCost(castObject)) return false;
-
-            foreach (var tar in targets)
+            if (!ProcessCastingCost(castObject)) return false;
+            if (base.UseCastable(castObject, target))
             {
-                if (castObject.Effects?.ScriptOverride == true)
-                {
-                    // TODO: handle castables with scripting
-                    // DoStuff();
-                    continue;
-                }
-                if (castObject.Effects?.Damage != null) { 
-                    var damageOutput = NumberCruncher.CalculateDamage(castObject, tar, this);
-                    Logger.Info($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} damage: {damageOutput}");
-                    tar.Damage(damageOutput.Amount, OffensiveElement, damageOutput.Type, this);
-                }
-                // Note that we ignore castables with both damage and healing effects present - one or the other.
-                // A future improvement might be to allow more complex effects.
-                else if (castObject.Effects.Heal != null)
-                {
-                    var healOutput = NumberCruncher.CalculateHeal(castObject, tar, this);
-                    Logger.Info($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} healing: {healOutput}");
-                }
-                
-                // Handle statuses
-
-                foreach (var status in castObject.Effects.Statuses.Add)
-                {
-                    Status applyStatus;
-                    if (World.WorldData.TryGetValue<Status>(status.Value, out applyStatus))
-                    {
-                        Logger.Info($"UseCastable: {Name} casting {castObject.Name} - applying status {status.Value}");
-                        ApplyStatus(new CreatureStatus(applyStatus, tar, castObject));
-                    }
-                    else
-                        Logger.Warn($"UseCastable: {Name} casting {castObject.Name} - failed to add status {status.Value}, does not exist!");
-                }
-
-                foreach (var status in castObject.Effects.Statuses.Remove)
-                {
-                    Status applyStatus;
-                    if (World.WorldData.TryGetValue<Status>(status, out applyStatus))
-                    {
-                        Logger.Info($"UseCastable: {Name} casting {castObject.Name} - removing status {status}");
-                        RemoveStatus(applyStatus.Icon);
-                    }
-                    else
-                        Logger.Warn($"UseCastable: {Name} casting {castObject.Name} - failed to remove status {status}, does not exist!");
-
-                }
-
-                if (castObject.Effects.Animations.OnCast.Target == null) continue;
-                Effect(castObject.Effects.Animations.OnCast.Target.Id, castObject.Effects.Animations.OnCast.Target.Speed);
-
-                Motion motion;
-
-                if (castObject.TryGetMotion((Castables.Class)Class, out motion))
+                // This may need to occur elsewhere, depends on how it looks in game
+                if (castObject.TryGetMotion((Class)Class, out Motion motion))
                     SendMotion(Id, motion.Id, motion.Speed);
-                if (castObject.Effects.Sound != null)
-                    PlaySound(castObject.Effects.Sound.Id);
             }
-            return true;
+            return false;
         }
 
         public void AssailAttack(Direction direction, Creature target = null)
         {
             if (target == null)
-            {
-                var obj = GetDirectionalTarget(direction);
+                target = GetDirectionalTarget(direction);
 
-                var monster = obj as Monster;
-                if (monster != null) target = monster;
-                var user = obj as User;
-                if (user != null && user.Condition.PvpEnabled)
-                {
-                    target = user;
-                }
-                var npc = obj as Merchant;
-                if (npc != null)
-                {
-                    target = npc;
-                }
-            }
-
-            foreach (var c in SkillBook)
+            foreach (var c in SkillBook.Where(c => c.IsAssail))
             {
-                if (target != null && c.IsAssail && target.GetType() != typeof(Merchant))
+                if (target != null && target.GetType() != typeof(Merchant))
                 {
                     UseCastable(c, target);
                 }
@@ -2362,7 +2205,7 @@ namespace Hybrasyl.Objects
 
         public void SendMotion(uint id, byte motion, short speed)
         {
-            Logger.InfoFormat("SendMotion id {0}, motion {1}, speed {2}", id, motion, speed);
+            Logger.DebugFormat("SendMotion id {0}, motion {1}, speed {2}", id, motion, speed);
             var x1A = new ServerPacket(0x1A);
             x1A.WriteUInt32(id);
             x1A.WriteByte(motion);
@@ -2373,7 +2216,7 @@ namespace Hybrasyl.Objects
 
         public void SendEffect(uint id, ushort effect, short speed)
         {
-            Logger.InfoFormat("SendEffect: id {0}, effect {1}, speed {2} ", id, effect, speed);
+            Logger.DebugFormat("SendEffect: id {0}, effect {1}, speed {2} ", id, effect, speed);
             var x29 = new ServerPacket(0x29);
             x29.WriteUInt32(id);
             x29.WriteUInt32(id);
@@ -2386,7 +2229,7 @@ namespace Hybrasyl.Objects
 
         public void SendEffect(uint targetId, ushort targetEffect, uint srcId, ushort srcEffect, short speed)
         {
-            Logger.InfoFormat("SendEffect: targetId {0}, targetEffect {1}, srcId {2}, srcEffect {3}, speed {4}",
+            Logger.DebugFormat("SendEffect: targetId {0}, targetEffect {1}, srcId {2}, srcEffect {3}, speed {4}",
                 targetId, targetEffect, srcId, srcEffect, speed);
             var x29 = new ServerPacket(0x29);
             x29.WriteUInt32(targetId);
@@ -2399,7 +2242,7 @@ namespace Hybrasyl.Objects
         }
         public void SendEffect(short x, short y, ushort effect, short speed)
         {
-            Logger.InfoFormat("SendEffect: x {0}, y {1}, effect {2}, speed {3}", x, y, effect, speed);
+            Logger.DebugFormat("SendEffect: x {0}, y {1}, effect {2}, speed {3}", x, y, effect, speed);
             var x29 = new ServerPacket(0x29);
             x29.WriteUInt32(uint.MinValue);
             x29.WriteUInt16(effect);
@@ -2421,7 +2264,7 @@ namespace Hybrasyl.Objects
 
         public void SendSound(byte sound)
         {
-            Logger.InfoFormat("SendSound {0}", sound);
+            Logger.DebugFormat("SendSound {0}", sound);
             var x19 = new ServerPacket(0x19);
             x19.WriteByte(sound);
             Enqueue(x19);
