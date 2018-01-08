@@ -13,14 +13,14 @@
     </OnApply>
     <OnTick>
       <Animations>
-	      <Target Id="25"/>
+	<Target Id="25"/>
       </Animations>
       <Damage>
- 	      <Flags>Nonlethal</Flags>
+ 	<Flags>Nonlethal</Flags>
         <Simple>50</Simple>
       </Damage>
       <Messages>
-        <Target>Poison is coursing through your veins.</Target>
+        <Target>You are poisoned.</Target>
       </Messages>
     </OnTick>
     <OnRemove>

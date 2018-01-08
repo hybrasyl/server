@@ -12,7 +12,7 @@
     </OnApply>
     <OnTick>
       <Animations>
-	      <Target Id="28"/>
+	<Target Id="28"/>
       </Animations>
     </OnTick>
     <OnRemove>

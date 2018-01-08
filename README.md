@@ -89,31 +89,20 @@ at runtime; XML is processed when the server starts up for actual world data
    TCP/6379, can be accessed from the server running Hybrasyl; you may need to
    grant access or open ports.
 
-2. Create some directories manually (we swear this will be automatically
-   handled soon). You’ll need the Hybrasyl data directory, which, for
-   convenience, is currently located at ```%MYDOCUMENTS%\Hybrasyl\world```.
-   You’ll need the following directories under `world`:
+2. Do one of the following:
 
-   | Location                   | Use | Status |
-   | -------------------------- | --- | ------ |
-   | `mapfiles`                   | Used to store *.map files. Map files  have a unique ID, which will be referred to in map XML. | Fully implemented |
-   | `scripts/castable`           | Scripts (*.py) that can be called by castables (skills and spells) to trigger actions. | Work in progress |
-   | `scripts/item`               | Scripts that can be called by items (e.g. on item use). |  Not implemented |
-   | `scripts/npc`                | Scripts that will be used by NPCs to interact with players (dialogs, etc.)  | Fully implemented |
-   | `scripts/reactor`            | Scripts that will be used by reactors (map tiles that respond to events). | Not implemented  |
-   | `scripts/startup`            | Scripts that will be run by Hybrasyl at startup. | Fully implemented |
-   | `xml/items`                  | Items in the game. | Fully implemented.  |
-   | `xml/castables`              | Castables (actions). | Work in progress. Basic support |
-   | `xml/itemvariants`           | Item variants (create modifiers on items, such as Really Cool Stick. | Fully implemented for known variants; custom variants will require coding work. |
-   | `xml/maps`                   | Maps, including signpost / messageboard locations, NPCs, etc. | Fully implemented.   | 
-   | `xml/nations`                | Nations (citizenship), including spawnpoints. | Fully implemented. |
-   | `xml/worldmaps`              | World maps (travelling between areas). | Fully implemented. |
+   1) Run the included powershell script (Prep.ps1) to create the Hybrasyl data directories.
+   Hybrasyl's data is currently located at ```%MYDOCUMENTS%\Hybrasyl\world```, normally
+   found at `C:\Users\<yourusername>\Documents\world`.
 
 3. Copy the
    [example XML data](https://github.com/hybrasyl/server/tree/master/examples/XML)
    (including subdirectories) from the examples directory into the `world\xml`
    directory. This will populate the world with enough to login as a user,
    wander around, and test functionality.
+   2) Unzip the file examples.zip into your My Documents folder.
+   
+
 
 ## Compiling the Game Server
 

@@ -4,7 +4,7 @@
   <Effects>
     <OnApply>
       <Messages>
-        <Target>You are in hibernation.</Target>
+        <Target>You are frozen, and cannot move.</Target>
       </Messages>
       <Conditions>
          <Set condition="Freeze"/>
@@ -12,7 +12,7 @@
     </OnApply>
     <OnTick>
       <Animations>
-	      <Target Id="40"/>
+	<Target Id="40"/>
       </Animations>
     </OnTick>
     <OnRemove>
