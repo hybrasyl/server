@@ -55,25 +55,22 @@ namespace Hybrasyl.Objects
         public bool CanCast { get; set; }
 
 
-        public Monster()
-        {
-
-        }
 
         public override void OnDeath()
         {
-            Shout("AAAAAAAAAAaaaaa!!!");
+            //Shout("AAAAAAAAAAaaaaa!!!");
             // Now that we're dead, award loot.
             // FIXME: Implement loot tables / full looting.
             var hitter = LastHitter as User;
             if (hitter == null) return; // Don't handle cases of MOB ON MOB COMBAT just yet
 
-            Condition.Alive = false; 
+            Condition.Alive = false;
+            Map.Remove(this);
+
             hitter.ShareExperience(LootableXP);
             var golds = new Gold(LootableGold);
             World.Insert(golds);
             Map.Insert(golds, X, Y);
-            Map.Remove(this);
             World.Remove(this);
         }
 
@@ -282,7 +279,7 @@ namespace Hybrasyl.Objects
         /// </summary>
         /// <param name="direction"></param>
         /// <param name="target"></param>
-        public void SimpleAttack(Creature target) => target?.Damage(_simpleDamage, OffensiveElement, Enums.DamageType.Physical, this);
+        public void SimpleAttack(Creature target) => target?.Damage(_simpleDamage, OffensiveElement, Enums.DamageType.Physical, DamageFlags.None, this);
 
         public override void ShowTo(VisibleObject obj)
         {

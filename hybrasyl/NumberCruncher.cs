@@ -47,92 +47,121 @@ namespace Hybrasyl
             }
         }
 
-        public static (Enums.DamageType Type, double Amount) CalculateDamage(Castable castable, Creature target, Creature source = null)
+        /// <summary>
+        /// Calculate the healing for a castable.
+        /// </summary>
+        /// <param name="castable">The castable to use for the calculation</param>
+        /// <param name="target">The target of the castable (i.e. the spell/skill target)</param>
+        /// <param name="source">The source of the castable (i.e. the caster)</param>
+        /// <returns></returns>
+        public static (double Amount, Enums.DamageType Type, Castables.DamageFlags Flags) CalculateDamage(Castable castable, Creature target, Creature source = null)
         {
             var rand = new Random();
             // Defaults
             double dmg = 1;
             var type = EnumUtil.ParseEnum(castable.Effects.Damage.Type.ToString(), Enums.DamageType.Magical);
 
-            if (!string.IsNullOrEmpty(castable.Effects?.Damage?.Formula))
-            {
-                var formula = castable.Effects.Damage.Formula;
-                dmg = _evalFormula(formula, castable, target, source);
-            }
-            else if (castable.Effects.Damage?.Simple != null)
+            if (castable.Effects?.Damage == null) return (dmg, type, Castables.DamageFlags.None);
+
+            if (castable.Effects.Damage.IsSimple)
             {
                 var simple = castable.Effects.Damage.Simple;
                 dmg = _evalSimple(simple);
             }
-        
-            return (type, dmg);
+            else
+            {
+                var formula = castable.Effects.Damage.Formula;
+                dmg = _evalFormula(formula, castable, target, source);
+            }
+
+            return (dmg * target.DamageModifier, type, castable.Effects.Damage.Flags);
         }
 
-        public static double CalculateHeal(Castable castable, Creature target, Creature source = null )
+        /// <summary>
+        /// Calculate the healing for a castable.
+        /// </summary>
+        /// <param name="castable">The castable to use for the calculation</param>
+        /// <param name="target">The target of the castable (i.e. the spell/skill target)</param>
+        /// <param name="source">The source of the castable (i.e. the caster), optional parameter</param>
+        /// <returns></returns>
+        public static double CalculateHeal(Castable castable, Creature target, Creature source = null)
         {
             var rand = new Random();
-            if (castable.Effects?.Heal?.Simple != null)
-            {
-                return _evalSimple(castable.Effects.Heal.Simple);
-            }
-            else if (!string.IsNullOrEmpty(castable.Effects?.Heal?.Formula))
-            {
-                var formula = castable.Effects.Heal.Formula;
-                return _evalFormula(formula, castable, target, source);
-            }
-            return 0;
+            double heal = 0;
+            if (castable.Effects?.Heal == null) return heal;
+
+            if (castable.Effects.Heal.IsSimple)
+                heal = _evalSimple(castable.Effects.Heal.Simple) * target.HealModifier;
+            else
+                heal = _evalFormula(castable.Effects.Heal.Formula, castable, target, source);
+            return heal * target.HealModifier;
         }
 
-        public static (Enums.DamageType Type, double Amount) CalculateDamage(Castable castable, ModifierEffect effect, string statusName, Creature target, Creature source = null)
-        {
-            // Find the status first (we'll need intensity later)
-            var statusAdd = castable.Statuses.Add.Where(e => e.Value == statusName).ToList();
 
+        /// <summary>
+        /// Calculate the damage for a status tick.
+        /// </summary>
+        /// <param name="castable">Castable responsible for the status</param>
+        /// <param name="effect">ModifierEffect structure for the status</param>
+        /// <param name="target">Target for the damage (e.g. the player or creature with the status)</param>
+        /// <param name="source">Original source of the status</param>
+        /// <param name="statusName">The name of the status</param>
+        /// <returns></returns>
+        public static (double Amount, Enums.DamageType Type, Castables.DamageFlags Flags) CalculateDamage(Castable castable, ModifierEffect effect, Creature target, Creature source, string statusName)
+        {
             // Defaults
             double dmg = 0;
+            var intensity = 1.0;
             var type = EnumUtil.ParseEnum(effect.Damage.Type.ToString(), Enums.DamageType.Magical);
+            var statusAdd = castable.Statuses.Add.Where(e => e.Value == statusName).ToList();
 
-            if (statusAdd.Count != 0)
+            if (effect?.Damage == null || statusAdd.Count == 0)
             {
-                if (effect.Damage != null)
-                {
-                    if (effect.Damage.Simple != null)
-                        dmg = _evalSimple(effect.Damage.Simple);
-                    else if (!string.IsNullOrEmpty(effect.Damage.Formula))
-                        dmg = _evalFormula(effect.Damage.Formula, castable, target, source);
-                }
+                Logger.Error($"CalculateDamage: castable {castable.Name}, status {statusName} - status not found in castable or damage effect not found?");
+                return (dmg, type, Castables.DamageFlags.None);
             }
+            intensity = statusAdd[0].Intensity;
+            if (effect.Damage.IsSimple)
+                dmg = _evalSimple(effect.Damage.Simple);
             else
-            {
-                Logger.Error($"CalculateDamage: castable {castable.Name}, status {statusName} - status not found in castable...?");
-            }
+                dmg = _evalFormula(effect.Damage.Formula, castable, target, source);
+            return (dmg * intensity * target.DamageModifier, type, (Castables.DamageFlags)effect.Damage.Flags);
 
-            return (type, dmg * statusAdd[0].Intensity);
+
         }
 
-        public static double CalculateHeal(Castable castable, ModifierEffect effect, string statusName, Creature target, Creature source = null)
+        /// <summary>
+        /// Calculate the healing for a status tick.
+        /// </summary>
+        /// <param name="castable">Castable responsible for the status</param>
+        /// <param name="effect">ModifierEffect structure for the status</param>
+        /// <param name="target">Target for the healing (e.g. the player or creature with the status)</param>
+        /// <param name="source">Original source of the status</param>
+        /// <param name="statusName">The name of the status</param>
+        /// <returns></returns>
+        public static double CalculateHeal(Castable castable, ModifierEffect effect, Creature target, Creature source, string statusName)
         {
-            // Find the status first
-            var statusAdd = castable.Statuses.Add.Where(e => e.Value == statusName).ToList();
             // Defaults
             double heal = 0;
+            var intensity = 1.0;
 
+            if (effect?.Heal == null) return heal;
+
+            var statusAdd = castable.Statuses.Add.Where(e => e.Value == statusName).ToList();
             if (statusAdd.Count != 0)
             {
-                if (effect.Heal != null)
-                {
-                    if (effect.Heal.Simple != null)
-                        heal = _evalSimple(effect.Heal.Simple);
-                    else if (!string.IsNullOrEmpty(effect.Heal.Formula))
-                        heal = _evalFormula(effect.Damage.Formula, castable, target, source);
-                }
+                intensity = statusAdd[0].Intensity;
+                if (effect.Heal.IsSimple)
+                    heal = _evalSimple(effect.Heal.Simple);
+                else 
+                    heal = _evalFormula(effect.Damage.Formula, castable, target, source);
             }
             else
             {
-                Logger.Error($"CalculateTickDamage: castable {castable.Name}, status {statusName} - status not found in castable...?");
+                Logger.Error($"CalculateHeal: castable {castable.Name}, status {statusName} - status not found in castable...?");
             }
 
-            return heal * statusAdd[0].Intensity;
+            return heal * intensity * target.HealModifier;
 
         }
 

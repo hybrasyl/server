@@ -40,7 +40,7 @@ namespace Hybrasyl.Objects
                LogManager.GetLogger(
                System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        private static readonly ILog ActivityLogger = LogManager.GetLogger("UserActivityLogger");
+        private static readonly ILog ActivityLogger = LogManager.GetLogger("UserActivityLog");
 
         [JsonProperty]
         public byte Level { get; set; }
@@ -178,12 +178,7 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                var value = BaseHealModifier + BonusHealModifier;
-
-                if (value < 0)
-                    return 0;
-
-                return value;
+                return BaseHealModifier + BonusHealModifier;
             }
         }
 
@@ -196,12 +191,7 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                var value = BaseDamageModifier + BonusDamageModifier;
-
-                if (value < 0)
-                    return 0;
-
-                return value;
+                return BaseDamageModifier + BonusDamageModifier;
             }
         }
 
@@ -346,7 +336,7 @@ namespace Hybrasyl.Objects
                                     case Direction.North:
                                         {
                                             //facing north, attack north
-                                            rect = new Rectangle(X, Y - intent.Radius, 1, intent.Radius);
+                                            rect = new Rectangle(X, Y - intent.Radius, 1,  intent.Radius);
                                         }
                                         break;
                                     case Direction.South:
@@ -467,15 +457,18 @@ namespace Hybrasyl.Objects
                         case IntentDirection.None:
                             {
                                 //attack radius
-                                rect = new Rectangle(X - intent.Radius, Y - intent.Radius, Math.Max(intent.Radius, (byte)1), Math.Max(intent.Radius, (byte)1));
+                                rect = new Rectangle(X - intent.Radius, Y - intent.Radius, Math.Max(intent.Radius, (byte)1)*2, Math.Max(intent.Radius, (byte)1)*2);
                             }
                             break;
                     }
-
+                    Logger.Info($"Rectangle: x: {X - intent.Radius} y: {Y - intent.Radius}, radius: {intent.Radius} - LOCATION: {rect.Location} TOP: {rect.Top}, BOTTOM: {rect.Bottom}, RIGHT: {rect.Right}, LEFT: {rect.Left}");
                     if (rect.IsEmpty) continue;
 
                     possibleTargets.AddRange(Map.EntityTree.GetObjects(rect).Where(obj => obj is Creature && obj != this));
                 }
+
+                // Remove merchants
+                possibleTargets = possibleTargets.Where(e => !(e is Merchant)).ToList();
 
                 // Handle intent flags
                 if (this is Monster)
@@ -822,7 +815,6 @@ namespace Hybrasyl.Objects
 
         public virtual bool UseCastable(Castable castObject, Creature target = null)
         {
-            // TODO: DRY if possible?
             if (!Condition.CastingAllowed) return false;
             if (this is User) ActivityLogger.Info($"UseCastable: {Name} begin casting {castObject.Name} on target: {target?.Name ?? "no target"} CastingAllowed: {Condition.CastingAllowed}");
 
@@ -833,6 +825,23 @@ namespace Hybrasyl.Objects
 
             if (targets.Count() == 0) return false;
 
+            // We do these next steps to ensure effects are displayed uniformly and as fast as possible
+            var deadMobs = new List<Creature>();
+            foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>().Select(obj => obj))
+            {
+                foreach (var id in targets.Select(e => e.Id))
+                {
+                    user.SendEffect(id, castObject.Effects.Animations.OnCast.Target.Id, castObject.Effects.Animations.OnCast.Target.Speed);
+                }
+            }
+
+            if (castObject.Effects?.Animations?.OnCast?.SpellEffect != null)
+                Effect(castObject.Effects.Animations.OnCast.SpellEffect.Id, castObject.Effects.Animations.OnCast.SpellEffect.Speed);
+
+            if (castObject.Effects.Sound != null)
+                PlaySound(castObject.Effects.Sound.Id);
+
+            ActivityLogger.Info($"UseCastable: {Name} casting {castObject.Name}, {targets.Count()} targets");
             foreach (var tar in targets)
             {
                 if (castObject.Effects?.ScriptOverride == true)
@@ -856,13 +865,16 @@ namespace Hybrasyl.Objects
                     else
                         attackElement = (OffensiveElementOverride == Enums.Element.None ? OffensiveElementOverride : OffensiveElement);
                     if (this is User) ActivityLogger.Info($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} damage: {damageOutput}, element {attackElement}");
-                    tar.Damage(damageOutput.Amount, attackElement, damageOutput.Type, this);
+
+                    tar.Damage(damageOutput.Amount, attackElement, damageOutput.Type, damageOutput.Flags, this, false);
+                    if (tar.Hp <= 0) { deadMobs.Add(tar); }
                 }
                 // Note that we ignore castables with both damage and healing effects present - one or the other.
                 // A future improvement might be to allow more complex effects.
                 else if (castObject.Effects.Heal != null)
                 {
                     var healOutput = NumberCruncher.CalculateHeal(castObject, tar, this);
+                    tar.Heal(healOutput, this);
                     if (this is User) ActivityLogger.Info($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} healing: {healOutput}");
                 }
 
@@ -871,7 +883,7 @@ namespace Hybrasyl.Objects
                 foreach (var status in castObject.Effects.Statuses.Add)
                 {
                     Status applyStatus;
-                    if (World.WorldData.TryGetValue<Status>(status.Value, out applyStatus))
+                    if (World.WorldData.TryGetValueByIndex<Status>(status.Value, out applyStatus))
                     {
                         ActivityLogger.Info($"UseCastable: {Name} casting {castObject.Name} - applying status {status.Value}");
                         ApplyStatus(new CreatureStatus(applyStatus, tar, castObject));
@@ -883,7 +895,7 @@ namespace Hybrasyl.Objects
                 foreach (var status in castObject.Effects.Statuses.Remove)
                 {
                     Status applyStatus;
-                    if (World.WorldData.TryGetValue<Status>(status, out applyStatus))
+                    if (World.WorldData.TryGetValueByIndex<Status>(status, out applyStatus))
                     {
                         ActivityLogger.Error($"UseCastable: {Name} casting {castObject.Name} - removing status {status}");
                         RemoveStatus(applyStatus.Icon);
@@ -892,18 +904,10 @@ namespace Hybrasyl.Objects
                         ActivityLogger.Error($"UseCastable: {Name} casting {castObject.Name} - failed to remove status {status}, does not exist!");
 
                 }
-
-                if (castObject.Effects?.Animations?.OnCast?.Target != null)
-                    tar.Effect(castObject.Effects.Animations.OnCast.Target.Id, castObject.Effects.Animations.OnCast.Target.Speed);
-
-                if (castObject.Effects?.Animations?.OnCast?.SpellEffect != null)
-                    Effect(castObject.Effects.Animations.OnCast.SpellEffect.Id, castObject.Effects.Animations.OnCast.SpellEffect.Speed);
-
-                if (castObject.Effects.Sound != null)
-                    PlaySound(castObject.Effects.Sound.Id);
             }
+            // Now flood away
+            foreach (var dead in deadMobs) dead.OnDeath();
             return true;
-
         }
 
         public void SendAnimation(ServerPacket packet)
@@ -1123,7 +1127,6 @@ namespace Hybrasyl.Objects
 
             Hp = heal > uint.MaxValue ? MaximumHp : Math.Min(MaximumHp, (uint)(Hp + heal));
             SendDamageUpdate(this);
-            if (this is User) { UpdateAttributes(StatUpdateFlags.Current); }
         }
 
         public virtual void RegenerateMp(double mp, Creature regenerator = null)
@@ -1137,7 +1140,7 @@ namespace Hybrasyl.Objects
             Mp = mp > uint.MaxValue ? MaximumMp : Math.Min(MaximumMp, (uint)(Mp + mp));
         }
 
-        public virtual void Damage(double damage, Enums.Element element = Enums.Element.None, Enums.DamageType damageType = Enums.DamageType.Direct, Creature attacker = null)
+        public virtual void Damage(double damage, Enums.Element element = Enums.Element.None, Enums.DamageType damageType = Enums.DamageType.Direct, Castables.DamageFlags damageFlags = Castables.DamageFlags.None, Creature attacker = null, bool onDeath = true)
         {
             if (damageType == Enums.DamageType.Physical && (AbsoluteImmortal || PhysicalImmortal))
                 return;
@@ -1158,16 +1161,18 @@ namespace Hybrasyl.Objects
 
             var normalized = (uint)damage;
 
-            if (normalized > Hp)
+            if (normalized > Hp && damageFlags.HasFlag(Castables.DamageFlags.Nonlethal))
+                normalized = Hp - 1;
+            else if (normalized > Hp)
                 normalized = Hp;
 
             Hp -= normalized;
 
             SendDamageUpdate(this);
-
+            
             OnReceiveDamage();
             
-            if (Hp == 0) OnDeath();
+            if (Hp == 0 && onDeath == true) OnDeath();
         }
 
         private void SendDamageUpdate(Creature creature)

@@ -27,6 +27,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Hybrasyl.Creatures;
+using Hybrasyl.Castables;
+using Hybrasyl.Enums;
 
 namespace Hybrasyl.Objects
 {
@@ -44,7 +46,10 @@ namespace Hybrasyl.Objects
             Ready = false;
             Inventory = new Dictionary<string, Item>();
         }
-        
+
+        // Currently, NPCs can not be healed or damaged in any way whatsoever
+        public override void Heal(double heal, Creature source = null) { return; }
+        public override void Damage(double damage, Enums.Element element = Enums.Element.None, Enums.DamageType damageType = Enums.DamageType.Direct, DamageFlags damageFlags = DamageFlags.None, Creature attacker = null, bool onDeath = true) { return; }
 
         public void OnSpawn()
         {
@@ -71,6 +76,7 @@ namespace Hybrasyl.Objects
 
         public override void AoiEntry(VisibleObject obj)
         {
+            base.AoiEntry(obj);
             if (Script != null)
             {
                 Script.ExecuteFunction("OnEntry", new HybrasylWorldObject(obj));
@@ -79,6 +85,7 @@ namespace Hybrasyl.Objects
 
         public override void AoiDeparture(VisibleObject obj)
         {
+            base.AoiDeparture(obj);
             if (Script != null)
             {
                 Script.ExecuteFunction("OnLeave", new HybrasylWorldObject(obj));

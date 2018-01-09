@@ -35,7 +35,6 @@ namespace Hybrasyl
 
         public double Eval(string expression)
         {
-            Logger.Info($"FormulaParser: eval {expression}");
             var tokens = GetTokens(expression);
             var operandStack = new Stack<double>();
             var operatorStack = new Stack<string>();
@@ -80,7 +79,6 @@ namespace Hybrasyl
                 var arg2 = operandStack.Pop();
                 var arg1 = operandStack.Pop();
                 operandStack.Push(_operations[Array.IndexOf(_operators, op)](arg1, arg2));
-                Logger.Info($"FormulaParser: operatorStack: {arg1} {op} {arg2}");
             }
             return Math.Round(operandStack.Pop(), 0); //probably a better way to do this, however this is what we come up with for now.
         }

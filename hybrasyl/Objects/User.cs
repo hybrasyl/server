@@ -315,12 +315,14 @@ namespace Hybrasyl.Objects
 
         public override void AoiEntry(VisibleObject obj)
         {
+            base.AoiEntry(obj);
             Logger.DebugFormat("Showing {0} to {1}", Name, obj.Name);
             obj.ShowTo(this);
         }
 
         public override void AoiDeparture(VisibleObject obj)
         {
+            base.AoiDeparture(obj);
             Logger.DebugFormat("Removing ItemObject with ID {0}", obj.Id);
             var removePacket = new ServerPacket(0x0E);
             removePacket.WriteUInt32(obj.Id);
@@ -376,6 +378,15 @@ namespace Hybrasyl.Objects
         /// </summary>
         public override void OnDeath()
         {
+            var handler = Game.Config.Handlers?.Death;
+            if (!(handler?.Active ?? true))
+            {
+                SendSystemMessage("Death disabled by server configuration");
+                Hp = 1;
+                UpdateAttributes(StatUpdateFlags.Full);
+                return;
+            }
+
             var timeofdeath = DateTime.Now;
             var looters = Group?.Members.Select(user => user.Name).ToList() ?? new List<string>();
 
@@ -392,7 +403,7 @@ namespace Hybrasyl.Objects
                 if (Inventory[i] == null) continue;
                 var theItem = Inventory[i];
                 RemoveItem(i);
-                if (theItem.Perishable) continue;
+                if (theItem.Perishable && (handler?.Perishable ?? true)) continue;
                 theItem.DeathPileOwner = Name;
                 theItem.DeathPileTime = timeofdeath;
                 theItem.DeathPileAllowedLooters = looters;
@@ -403,7 +414,7 @@ namespace Hybrasyl.Objects
             foreach (var item in Equipment)
             {
                 RemoveEquipment(item.EquipmentSlot);
-                if (item.Perishable) continue;
+                if (item.Perishable && (handler?.Perishable ?? true)) continue;
                 if (item.Durability > 10)
                     item.Durability = (uint)Math.Ceiling(item.Durability * 0.90);
                 else
@@ -430,21 +441,47 @@ namespace Hybrasyl.Objects
             }
 
             // Experience penalty
-            if (Experience > 1000)
-            {
-                var expPenalty = (uint)Math.Ceiling(Experience * 0.05);
-                Experience -= expPenalty;
-                SendSystemMessage($"You lose {expPenalty} experience!");
+            if (handler?.Penalty != null) {
+                if (Experience > 1000)
+                {
+                    uint expPenalty;
+                    if (handler.Penalty.Xp.Contains('.'))
+                        expPenalty = (uint)Math.Ceiling(Experience * Convert.ToDouble(handler.Penalty.Xp));
+                    else
+                        expPenalty = Convert.ToUInt32(handler.Penalty.Xp);
+                    Experience -= expPenalty;
+                    SendSystemMessage($"You lose {expPenalty} experience!");
+                }
+                if (BaseHp >= 51 && Level == 99)
+                {
+                    uint hpPenalty;
+
+                    if (handler.Penalty.Xp.Contains('.'))
+                        hpPenalty = (uint)Math.Ceiling(Experience * Convert.ToDouble(handler.Penalty.Hp));
+                    else
+                        hpPenalty = Convert.ToUInt32(handler.Penalty.Hp);
+
+                    BaseHp -= hpPenalty;
+                    SendSystemMessage($"You lose {hpPenalty} HP!");
+                }
             }
             Hp = 0;
             Mp = 0;
-            UpdateAttributes(StatUpdateFlags.Full);
-
             Condition.Alive = false;
+            UpdateAttributes(StatUpdateFlags.Full);
             Effect(76, 120);
             SendSystemMessage("Your items are ripped from your body.");
-            Teleport("Chaotic Threshold", 10, 10);
-            Group?.SendMessage($"{Name} has died!");
+
+            if (Game.Config.Handlers?.Death?.Map != null) {
+                Teleport(Game.Config.Handlers.Death.Map.Value,
+                    Game.Config.Handlers.Death.Map.X,
+                    Game.Config.Handlers.Death.Map.Y);
+            }
+
+            if (Game.Config.Handlers?.Death?.GroupNotify ?? true)
+                Group?.SendMessage($"{Name} has died!");
+            
+
         }
 
 
@@ -455,13 +492,9 @@ namespace Hybrasyl.Objects
         {
             if (!Condition.Comatose) return;
             Condition.Comatose = false;
-            //var bar = RemoveStatus(NearDeathStatus.Icon, false);
-            Logger.Debug($"EndComa: {Name}: removestatus for coma is fap ");
-
-            foreach (var status in _currentStatuses.Values)
-            {
-                Logger.Debug($"EXTANT STATUSES: {status.Name} with duration {status.Duration}");
-            }
+            var handler = Game.Config.Handlers?.Death;
+            if (handler?.Coma != null && Game.World.WorldData.TryGetValueByIndex(handler.Coma.Value, out Status status))
+                RemoveStatus(status.Icon, false);
         }
 
         /// <summary>
@@ -469,6 +502,7 @@ namespace Hybrasyl.Objects
         /// </summary>
         public void Resurrect()
         {
+            var handler = Game.Config.Handlers?.Death;
             // Teleport user to national spawn point
             Condition.Alive = true;
             if (Nation.SpawnPoints.Count != 0)
@@ -488,17 +522,19 @@ namespace Hybrasyl.Objects
 
             UpdateAttributes(StatUpdateFlags.Full);
 
-            LegendMark deathMark;
-
-            if (Legend.TryGetMark("scars", out deathMark))
+            if (handler.LegendMark != null)
             {
-                deathMark.AddQuantity(1);
+                LegendMark deathMark;
+
+                if (Legend.TryGetMark(handler.LegendMark.Prefix, out deathMark) && handler.LegendMark.Increment)
+                {
+                    deathMark.AddQuantity(1);
+                }
+                else
+                    Legend.AddMark(LegendIcon.Community, LegendColor.Orange, handler.LegendMark.Value, DateTime.Now, handler.LegendMark.Prefix, true,
+                        1);
+
             }
-            else
-                Legend.AddMark(LegendIcon.Community, LegendColor.Orange, "Scar of Sgrios", DateTime.Now, "scars", true,
-                    1);
-
-
         }
 
         public string GroupText
@@ -1100,6 +1136,11 @@ namespace Hybrasyl.Objects
         internal void UseSkill(byte slot)
         {
             var castable = SkillBook[slot];
+            if (castable.OnCooldown)
+            {
+                SendSystemMessage("You must wait longer to use that.");
+                return;
+            }
             if (UseCastable(castable))
             {
                 Client.Enqueue(new ServerPacketStructures.Cooldown()
@@ -1117,7 +1158,13 @@ namespace Hybrasyl.Objects
         {
             var castable = SpellBook[slot];
             Creature targetCreature = Map.EntityTree.OfType<Creature>().SingleOrDefault(x => x.Id == target) ?? null;
-           
+
+            if (castable.OnCooldown)
+            {
+                SendSystemMessage("You must wait longer to use that.");
+                return;
+            }
+
             if (UseCastRestrictions.Contains(castable.Categories.Category.Value))
             {
                 SendSystemMessage("You cannot cast that now.");
@@ -1125,6 +1172,7 @@ namespace Hybrasyl.Objects
             }
             if (UseCastable(castable, targetCreature))
             {
+                SpellBook[slot].LastCast = DateTime.Now;
                 Client.Enqueue(new ServerPacketStructures.Cooldown()
                 {
                     Length = (uint)castable.Cooldown,
@@ -1143,21 +1191,24 @@ namespace Hybrasyl.Objects
         /// <returns>True or false depending on success.</returns>
         public bool ProcessCastingCost(Castable castable)
         {
+            if (castable.CastCosts?.CastCost == null) return true;
+
             var costs = castable.CastCosts.CastCost;
             uint reduceHp = 0;
             uint reduceMp = 0;
             int removeNumItems = 0;
 
             // HP cost can be either a percentage (0.25) or a fixed amount (50)
-            if (costs.Stat.Hp.Contains('.'))
-                reduceHp = (uint) Math.Ceiling(Convert.ToDouble(costs.Stat.Hp) * this.MaximumHp);
-            else 
-                reduceHp = Convert.ToUInt32(costs.Stat.Hp);
-
-            if (costs.Stat.Mp.Contains('.'))
-                reduceMp = (uint)Math.Ceiling(Convert.ToDouble(costs.Stat.Mp) * this.MaximumMp);
-            else
-                reduceMp = Convert.ToUInt32(costs.Stat.Mp);
+            if (costs.Stat?.Hp != null)
+                if (costs.Stat.Hp.Contains('.'))
+                    reduceHp = (uint) Math.Ceiling(Convert.ToDouble(costs.Stat.Hp) * this.MaximumHp);
+                else 
+                    reduceHp = Convert.ToUInt32(costs.Stat.Hp);
+            if (costs.Stat?.Mp != null)
+                if (costs.Stat.Mp.Contains('.'))
+                    reduceMp = (uint)Math.Ceiling(Convert.ToDouble(costs.Stat.Mp) * this.MaximumMp);
+                else
+                    reduceMp = Convert.ToUInt32(costs.Stat.Mp);
 
             
             if (costs.Items != null)
@@ -1170,7 +1221,7 @@ namespace Hybrasyl.Objects
 
             // Check that all requirements are met first. Note that a spell cannot be cast if its HP cost would result
             // in the caster's HP being reduced to zero.
-            if (reduceHp > Hp || reduceMp >= Mp || costs.Gold > Gold || removeNumItems != costs.Items.Count) return false;
+            if (reduceHp > Hp || reduceMp >= Mp || costs.Gold > Gold || (removeNumItems != 0 && costs.Items.Count == removeNumItems)) return false;
 
             if (costs.Gold > this.Gold) return false;
 
@@ -1386,7 +1437,7 @@ namespace Hybrasyl.Objects
             var x2C = new ServerPacket(0x2C);
             x2C.WriteByte((byte)slot);
             x2C.WriteUInt16((ushort)(item.Icon));
-            x2C.WriteString8(Class == Enums.Class.Peasant ? item.Name : $"{item.Name} (Lev:{item.CastableLevel}/{GetCastableMaxLevel(item)}");
+            x2C.WriteString8(Class == Enums.Class.Peasant ? item.Name : $"{item.Name} (Lev:{item.CastableLevel}/{GetCastableMaxLevel(item)})");
             Enqueue(x2C);
         }
 
@@ -1405,7 +1456,7 @@ namespace Hybrasyl.Objects
             var spellType = item.Intents[0].UseType;
             //var spellType = isClick ? 2 : 5;
             x17.WriteByte((byte)spellType); //spell type? how are we determining this?
-            x17.WriteString8(Class == Enums.Class.Peasant ? item.Name : $"{item.Name} (Lev:{item.CastableLevel}/{GetCastableMaxLevel(item)}");
+            x17.WriteString8(Class == Enums.Class.Peasant ? item.Name : $"{item.Name} (Lev:{item.CastableLevel}/{GetCastableMaxLevel(item)})");
             x17.WriteString8(item.Name); //prompt? what is this?
             x17.WriteByte((byte)item.Lines);
             Enqueue(x17);
@@ -2061,22 +2112,36 @@ namespace Hybrasyl.Objects
         }
 
         public override void Damage(double damage, Enums.Element element = Enums.Element.None,
-            Enums.DamageType damageType = Enums.DamageType.Direct, Creature attacker = null)
+            Enums.DamageType damageType = Enums.DamageType.Direct, Castables.DamageFlags damageFlags = Castables.DamageFlags.None, Creature attacker = null, bool onDeath=true)
         {
             if (Condition.Comatose || !Condition.Alive) return;
-            base.Damage(damage, element, damageType, attacker);
+            base.Damage(damage, element, damageType, damageFlags, attacker);
             if (Hp == 0)
             {
-                Hp = 1;
                 if (Group != null) {
-                    if (World.WorldData.TryGetValue<Status>("coma", out Status comaStatus))
-                        ApplyStatus(new CreatureStatus(comaStatus, this));
+                    Hp = 1;
+                    var handler = Game.Config.Handlers?.Death?.Coma;
+                    if (handler != null && World.WorldData.TryGetValueByIndex(handler.Value, out Status status))
+                        ApplyStatus(new CreatureStatus(status, this));
+                    else
+                    {
+                        Logger.Warn("No coma handler or status found - user {Name} died!");
+                        OnDeath();
+                    }
                 }
                 else
                     OnDeath();
             }
             UpdateAttributes(StatUpdateFlags.Current);
         }
+
+        public override void Heal(double heal, Creature source = null)
+        {
+            base.Heal(heal, source);
+            if (this is User) { UpdateAttributes(StatUpdateFlags.Current); }
+        }
+
+
 
         public override bool UseCastable(Castable castObject, Creature target = null)
         {
@@ -2086,6 +2151,7 @@ namespace Hybrasyl.Objects
                 // This may need to occur elsewhere, depends on how it looks in game
                 if (castObject.TryGetMotion((Class)Class, out Motion motion))
                     SendMotion(Id, motion.Id, motion.Speed);
+                return true;
             }
             return false;
         }

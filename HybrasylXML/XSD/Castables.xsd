@@ -288,6 +288,7 @@
         <xs:list>
           <xs:simpleType>
             <xs:restriction base="xs:token">
+              <xs:enumeration value="None"/>
               <xs:enumeration value="Scaled" />
               <xs:enumeration value="Resistance" />
               <xs:enumeration value="Threat" />
@@ -308,8 +309,6 @@
         <xs:element name="Formula" type="hyb:String16" />
       </xs:sequence>
     </xs:sequence>
-    <xs:attribute name="TimeBased" type="xs:boolean"/>
-    <xs:attribute name="Duration" type="xs:unsignedInt" />
     <xs:attribute name="Type" type="hyb:DamageType" />
   </xs:complexType>
 
@@ -319,8 +318,6 @@
       <xs:element name="Simple" type="actions:SimpleQuantity" />
       <xs:element name="Formula" type="hyb:String16" />
     </xs:sequence>
-    <xs:attribute name="TimeBased" type="xs:boolean" />
-    <xs:attribute name="Duration" type="xs:unsignedInt" />
   </xs:complexType>
 
   <!-- Animations container element -->

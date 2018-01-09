@@ -154,6 +154,21 @@ namespace Hybrasyl.Items
 
 namespace Hybrasyl.Castables
 {
+    public partial class Heal
+    {
+        public bool IsSimple
+        {
+            get { return string.IsNullOrEmpty(Formula); }
+        }
+    }
+
+    public partial class Damage
+    {
+        public bool IsSimple
+        {
+            get { return string.IsNullOrEmpty(Formula); }
+        }
+    }
     public partial class Castable
     {
         public int Id
@@ -168,6 +183,18 @@ namespace Hybrasyl.Castables
         }
 
         public byte CastableLevel { get; set; }
+
+        public DateTime LastCast { get; set; }
+
+        public bool OnCooldown
+        {
+            get
+            {
+                if (Cooldown > 0)
+                    return (DateTime.Now - LastCast).Seconds > Cooldown;
+                return false;
+            }
+        }
 
         public byte GetMaxLevelByClass(Class castableClass)
         {
@@ -198,6 +225,22 @@ namespace Hybrasyl.Castables
 
 namespace Hybrasyl.Statuses
 {
+    public partial class Heal
+    {
+        public bool IsSimple
+        {
+            get { return string.IsNullOrEmpty(Formula); }
+        }
+    }
+
+    public partial class Damage
+    {
+        public bool IsSimple
+        {
+            get { return string.IsNullOrEmpty(Formula); }
+        }
+    }
+
     public partial class Status
     {
         public int Id

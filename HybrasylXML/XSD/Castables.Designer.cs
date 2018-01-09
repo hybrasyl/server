@@ -942,10 +942,6 @@ namespace Hybrasyl.Castables
 
         private string _formula;
 
-        private bool _timeBased;
-
-        private uint _duration;
-
         private DamageType _type;
         #endregion
 
@@ -991,32 +987,6 @@ namespace Hybrasyl.Castables
         }
 
         [System.Xml.Serialization.XmlAttributeAttribute()]
-        public bool TimeBased
-        {
-            get
-            {
-                return this._timeBased;
-            }
-            set
-            {
-                this._timeBased = value;
-            }
-        }
-
-        [System.Xml.Serialization.XmlAttributeAttribute()]
-        public uint Duration
-        {
-            get
-            {
-                return this._duration;
-            }
-            set
-            {
-                this._duration = value;
-            }
-        }
-
-        [System.Xml.Serialization.XmlAttributeAttribute()]
         public DamageType Type
         {
             get
@@ -1038,16 +1008,19 @@ namespace Hybrasyl.Castables
     {
 
         /// <remarks/>
-        Scaled = 1,
+        None = 1,
 
         /// <remarks/>
-        Resistance = 2,
+        Scaled = 2,
 
         /// <remarks/>
-        Threat = 4,
+        Resistance = 4,
 
         /// <remarks/>
-        Nonlethal = 8,
+        Threat = 8,
+
+        /// <remarks/>
+        Nonlethal = 16,
     }
 
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
@@ -1111,10 +1084,6 @@ namespace Hybrasyl.Castables
         private SimpleQuantity _simple;
 
         private string _formula;
-
-        private bool _timeBased;
-
-        private uint _duration;
         #endregion
 
         public Heal()
@@ -1143,32 +1112,6 @@ namespace Hybrasyl.Castables
             set
             {
                 this._formula = value;
-            }
-        }
-
-        [System.Xml.Serialization.XmlAttributeAttribute()]
-        public bool TimeBased
-        {
-            get
-            {
-                return this._timeBased;
-            }
-            set
-            {
-                this._timeBased = value;
-            }
-        }
-
-        [System.Xml.Serialization.XmlAttributeAttribute()]
-        public uint Duration
-        {
-            get
-            {
-                return this._duration;
-            }
-            set
-            {
-                this._duration = value;
             }
         }
     }

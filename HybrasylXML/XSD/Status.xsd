@@ -27,7 +27,7 @@
     <xs:attribute name="Duration" type="xs:int" use="optional" />
     <xs:attribute name="Tick" type="xs:int" use="optional"/>
     <xs:attribute name="Icon" type="xs:unsignedShort" use="required"/>
-    <xs:attribute name="Name" type="hyb:String8" use="required"/>
+    <xs:attribute name="Name" type="xs:string" use="required"/>
   </xs:complexType>
 
   <xs:complexType name="Category" >

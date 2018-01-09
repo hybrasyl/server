@@ -163,15 +163,15 @@ namespace Hybrasyl
             // Message handling
             if (effect.Messages != null && User != null)
             {
-                if (effect.Messages.Target != null)
+                if (effect.Messages?.Target != null)
                     User.SendSystemMessage(string.Format(effect.Messages.Target, User.Name));
-                if (effect.Messages.Group != null)
+                if (effect.Messages?.Group != null)
                     User.Group.SendMessage(string.Format(effect.Messages.Group, User.Name));
-                if (effect.Messages.Source != null)
+                if (effect.Messages?.Source != null)
                     (Source as User)?.SendSystemMessage(string.Format(effect.Messages.Source, User.Name));
-                if (effect.Messages.Say != null)
+                if (effect.Messages?.Say != null)
                     User?.Say(string.Format(effect.Messages.Say, User.Name));
-                if (effect.Messages.Shout != null)
+                if (effect.Messages?.Shout != null)
                     User?.Say(string.Format(effect.Messages.Shout, User.Name));
             }
         }
@@ -179,9 +179,9 @@ namespace Hybrasyl
 
         private void ProcessConditions(ModifierEffect effect)
         {
-            if (effect.Conditions.Set != 0)
+            if (effect.Conditions?.Set != null)
                 Target.Condition.Conditions|= effect.Conditions.Set;
-            if (effect.Conditions.Unset != 0)
+            if (effect.Conditions?.Unset != null)
                 Target.Condition.Conditions &= ~effect.Conditions.Unset;
         }
 
@@ -242,10 +242,16 @@ namespace Hybrasyl
         {
             if (Castable != null)
             {
-                var heal = NumberCruncher.CalculateHeal(Castable, effect, Name, Target, Source);
-                var dmg = NumberCruncher.CalculateDamage(Castable, effect, Name, Target, Source);
-                if (heal != 0) Target.Heal(heal);
-                if (dmg.Amount != 0) Target.Damage(dmg.Amount, Enums.Element.None, dmg.Type);
+                if (effect.Heal != null)
+                {
+                    var heal = NumberCruncher.CalculateHeal(Castable, effect, Target, Source, Name);
+                    if (heal != 0) Target.Heal(heal);
+                }
+                if (effect.Damage != null)
+                {
+                    var dmg = NumberCruncher.CalculateDamage(Castable, effect, Target, Source, Name);
+                    if (dmg.Amount != 0) Target.Damage(dmg.Amount, Enums.Element.None, dmg.Type);
+                }
             }
         }
 

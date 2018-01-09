@@ -108,7 +108,7 @@ namespace Hybrasyl
     {
         private static uint worldObjectID = 0;
 
-        public static DateTime StartDate => Game.Config.Time != null ? Game.Config.Time.StartDate : Game.StartDate;
+        public static DateTime StartDate => Game.Config.Time != null ? Game.Config.Time.ServerStart.Value : Game.StartDate;
 
         public new static ILog Logger =
             LogManager.GetLogger(
@@ -482,7 +482,7 @@ namespace Hybrasyl
                 {
                     string name = string.Empty;
                     Statuses.Status newStatus = Serializer.Deserialize(XmlReader.Create(xml), new Statuses.Status());
-                    WorldData.SetWithIndex(newStatus.Id, newStatus, newStatus.Name);
+                    WorldData.SetWithIndex(newStatus.Icon, newStatus, newStatus.Name);
                     Logger.Debug($"Statuses: loaded {newStatus.Name}, id {newStatus.Id}");
                 }
                 catch (Exception e)
@@ -491,6 +491,9 @@ namespace Hybrasyl
                 }
             
             }
+
+            Logger.InfoFormat("Statuses: {0} statuses loaded", WorldData.Values<Status>().Count());
+
             foreach (var xml in Directory.GetFiles(CastableDirectory, "*.xml"))
             {
                 try
@@ -505,6 +508,8 @@ namespace Hybrasyl
                     Logger.ErrorFormat("Error parsing {0}: {1}", xml, e);
                 }
             }
+
+            Logger.InfoFormat("Castables: {0} castables loaded", WorldData.Values<Castable>().Count());
 
             // Load data from Redis
             // Load mailboxes
@@ -1518,17 +1523,26 @@ namespace Hybrasyl
                      * will be distributed across a group if the user is in a group, or
                      * passed directly to them if they're not in a group.
                      */
+                    case "/basehp":
+                        {
+                            uint hp = 0;
+                            if (uint.TryParse(args[1], out hp))
+                            {
+                                user.BaseHp = hp;
+                                user.UpdateAttributes(StatUpdateFlags.Full);
+                            }
+                        }
+                        break;
                     case "/hp":
                         {
                             uint hp = 0;
                             if (uint.TryParse(args[1], out hp))
                             {
                                 user.Hp = hp;
-                                user.UpdateAttributes(StatUpdateFlags.Current);
+                                user.UpdateAttributes(StatUpdateFlags.Full);
                             }
                         }
                         break;
-
                     case "/clearstatus":
                         {
                             user.RemoveAllStatuses();

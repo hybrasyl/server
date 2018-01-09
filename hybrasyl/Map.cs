@@ -332,7 +332,7 @@ namespace Hybrasyl
             Remove(toRemove);
             Logger.DebugFormat("Removing creature {0} (id {1})", toRemove.Name, toRemove.Id);
         }
-        
+
         public void InsertReactor(/*reactor toinsert*/)
         {
             /*
