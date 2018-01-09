@@ -524,6 +524,9 @@ namespace Hybrasyl
                                 {
                                     World.MessageQueue.Add(new HybrasylClientMessage(packet, ConnectionId));
                                 }
+                                else
+                                    if (packet.Opcode == 0x06)
+                                        World.MessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.TriggerRefresh, ConnectionId));
                             }
 
                         }

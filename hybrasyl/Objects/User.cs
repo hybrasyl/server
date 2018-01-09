@@ -365,8 +365,6 @@ namespace Hybrasyl.Objects
             if (remove || status.Expired)
                 color = StatusBarColor.Off;
 
-            Logger.DebugFormat("StackTrace: '{0}'", Environment.StackTrace);
-
             statuspacket.BarColor = color;
             Logger.DebugFormat($"{Name} - status update - sending Icon: {statuspacket.Icon}, Color: {statuspacket.BarColor}");
             Logger.DebugFormat($"{Name} - status: {status.Name}, expired: {status.Expired}, remaining: {remaining}, duration: {status.Duration}");

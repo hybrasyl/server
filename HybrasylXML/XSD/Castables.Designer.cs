@@ -870,7 +870,7 @@ namespace Hybrasyl.Castables
 
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Actions")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/HybrasylCommon")]
     public enum Element
     {
 
@@ -1035,6 +1035,8 @@ namespace Hybrasyl.Castables
         private string _min;
 
         private string _max;
+
+        private string _value;
         #endregion
 
         public SimpleQuantity()
@@ -1068,6 +1070,19 @@ namespace Hybrasyl.Castables
             set
             {
                 this._max = value;
+            }
+        }
+
+        [System.Xml.Serialization.XmlTextAttribute(DataType = "nonNegativeInteger")]
+        public string Value
+        {
+            get
+            {
+                return this._value;
+            }
+            set
+            {
+                this._value = value;
             }
         }
     }
@@ -1240,6 +1255,13 @@ namespace Hybrasyl.Castables
         private Animation _target;
         #endregion
 
+        public AnimationGroup()
+        {
+            this._target = new Animation();
+            this._spellEffect = new Animation();
+            this._player = new List<Motion>();
+        }
+
         [System.Xml.Serialization.XmlArrayItemAttribute(IsNullable = false)]
         public List<Motion> Player
         {
@@ -1344,6 +1366,11 @@ namespace Hybrasyl.Castables
         public Effects()
         {
             this._statuses = new Statuses();
+            this._statModifiers = new StatModifiers();
+            this._damage = new Damage();
+            this._heal = new Heal();
+            this._sound = new EffectsSound();
+            this._animations = new SpellAnimations();
             this._scriptOverride = false;
         }
 

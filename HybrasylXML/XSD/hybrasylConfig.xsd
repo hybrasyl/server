@@ -9,6 +9,7 @@
       Written by Justin Baugh (baughj@hybrasyl.com)
     </xs:documentation>
   </xs:annotation>
+
   <xs:import schemaLocation="hybrasylTypes.xsd" namespace="http://www.hybrasyl.com/XML/HybrasylCommon" />
 
   <xs:complexType name="DataStore">
@@ -168,7 +169,8 @@
   <xs:complexType name="DeathComa">
     <xs:simpleContent>
       <xs:extension base="xs:string">
-        <xs:attribute name="Timeout" default="30" use="optional"/>
+        <xs:attribute name="Timeout" type="xs:int" default="30"/>
+        <xs:attribute name="Effect" type="xs:unsignedShort" default="24"/>
       </xs:extension>
     </xs:simpleContent>
   </xs:complexType>

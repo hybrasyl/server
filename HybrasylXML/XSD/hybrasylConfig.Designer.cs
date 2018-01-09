@@ -365,19 +365,22 @@ namespace Hybrasyl.Config
     {
 
         #region Private fields
-        private string _timeout;
+        private int _timeout;
+
+        private ushort _effect;
 
         private string _value;
         #endregion
 
         public DeathComa()
         {
-            this._timeout = "30";
+            this._timeout = 30;
+            this._effect = ((ushort)(24));
         }
 
         [System.Xml.Serialization.XmlAttributeAttribute()]
-        [System.ComponentModel.DefaultValueAttribute("30")]
-        public string Timeout
+        [System.ComponentModel.DefaultValueAttribute(30)]
+        public int Timeout
         {
             get
             {
@@ -386,6 +389,20 @@ namespace Hybrasyl.Config
             set
             {
                 this._timeout = value;
+            }
+        }
+
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        [System.ComponentModel.DefaultValueAttribute(typeof(ushort), "24")]
+        public ushort Effect
+        {
+            get
+            {
+                return this._effect;
+            }
+            set
+            {
+                this._effect = value;
             }
         }
 

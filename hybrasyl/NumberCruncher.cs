@@ -28,6 +28,8 @@ namespace Hybrasyl
         {
             if (simple is Statuses.SimpleQuantity || simple is Castables.SimpleQuantity)
             {
+                // Simple damage can either be expressed as a fixed value <Simple>50</Simple> or a min/max <Simple Min="50" Max="100"/>
+                if (!string.IsNullOrEmpty(simple.Value)) return Convert.ToInt32(simple.Value);
                 var rand = new Random();
                 return rand.Next(Convert.ToInt32(simple.Min), Convert.ToInt32(simple.Max));
             }
@@ -111,16 +113,13 @@ namespace Hybrasyl
         {
             // Defaults
             double dmg = 0;
-            var intensity = 1.0;
             var type = EnumUtil.ParseEnum(effect.Damage.Type.ToString(), Enums.DamageType.Magical);
-            var statusAdd = castable.Statuses.Add.Where(e => e.Value == statusName).ToList();
 
-            if (effect?.Damage == null || statusAdd.Count == 0)
-            {
-                Logger.Error($"CalculateDamage: castable {castable.Name}, status {statusName} - status not found in castable or damage effect not found?");
-                return (dmg, type, Castables.DamageFlags.None);
-            }
-            intensity = statusAdd[0].Intensity;
+            if (effect?.Damage == null) return (dmg, type, Castables.DamageFlags.None);
+
+            var statusAdd = castable?.Statuses?.Add?.Where(e => e.Value == statusName)?.ToList();
+            var intensity = statusAdd != null ? statusAdd[0].Intensity : 1;
+
             if (effect.Damage.IsSimple)
                 dmg = _evalSimple(effect.Damage.Simple);
             else
@@ -143,23 +142,16 @@ namespace Hybrasyl
         {
             // Defaults
             double heal = 0;
-            var intensity = 1.0;
 
             if (effect?.Heal == null) return heal;
 
-            var statusAdd = castable.Statuses.Add.Where(e => e.Value == statusName).ToList();
-            if (statusAdd.Count != 0)
-            {
-                intensity = statusAdd[0].Intensity;
-                if (effect.Heal.IsSimple)
-                    heal = _evalSimple(effect.Heal.Simple);
-                else 
-                    heal = _evalFormula(effect.Damage.Formula, castable, target, source);
-            }
+            var statusAdd = castable?.Statuses?.Add?.Where(e => e.Value == statusName)?.ToList();
+            var intensity = statusAdd != null ? statusAdd[0].Intensity : 1;
+
+            if (effect.Heal.IsSimple)
+                heal = _evalSimple(effect.Heal.Simple);
             else
-            {
-                Logger.Error($"CalculateHeal: castable {castable.Name}, status {statusName} - status not found in castable...?");
-            }
+                heal = _evalFormula(effect.Damage.Formula, castable, target, source);
 
             return heal * intensity * target.HealModifier;
 

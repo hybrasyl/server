@@ -483,7 +483,7 @@ namespace Hybrasyl
                     string name = string.Empty;
                     Statuses.Status newStatus = Serializer.Deserialize(XmlReader.Create(xml), new Statuses.Status());
                     WorldData.SetWithIndex(newStatus.Icon, newStatus, newStatus.Name);
-                    Logger.Debug($"Statuses: loaded {newStatus.Name}, id {newStatus.Id}");
+                    Logger.Warn($"Statuses: loaded {newStatus.Name}, id {newStatus.Id}");
                 }
                 catch (Exception e)
                 {
@@ -875,6 +875,7 @@ namespace Hybrasyl
             ControlMessageHandlers[ControlOpcodes.StatusTick] = ControlMessage_StatusTick;
             ControlMessageHandlers[ControlOpcodes.MonolithSpawn] = ControlMessage_SpawnMonster;
             ControlMessageHandlers[ControlOpcodes.MonolithControl] = ControlMessage_MonolithControl;
+            ControlMessageHandlers[ControlOpcodes.TriggerRefresh] = ControlMessage_TriggerRefresh;
         }
 
         public void SetPacketHandlers()
@@ -1191,6 +1192,12 @@ namespace Hybrasyl
             Logger.DebugFormat("monolith: spawning monster {0} on map {1}", monster.Name, map.Name);
             map.InsertCreature(monster);
         }
+        private void ControlMessage_TriggerRefresh(HybrasylControlMessage message)
+        {
+            var connectionId = (long) message.Arguments[0];
+            if (ActiveUsers.TryGetValue(connectionId, out User user))
+                user.Refresh();
+        }
 
         private void ControlMessage_MonolithControl(HybrasylControlMessage message)
         {
@@ -1342,9 +1349,6 @@ namespace Hybrasyl
             var slot = packet.ReadByte();
             var x = packet.ReadInt16();
             var y = packet.ReadInt16();
-
-            //var user = client.User;
-            //var map = user.Map;
 
             // Is the player within PICKUP_DISTANCE tiles of what they're trying to pick up?
             if (Math.Abs(x - user.X) > Constants.PICKUP_DISTANCE ||
@@ -1518,11 +1522,14 @@ namespace Hybrasyl
                             user.UpdateAttributes(StatUpdateFlags.Experience);
                             break;
                         }
-                    /**
-                     * Give the current user some amount of experience. This experience
-                     * will be distributed across a group if the user is in a group, or
-                     * passed directly to them if they're not in a group.
-                     */
+                    case "/status":
+                        {
+                            if (WorldData.TryGetValueByIndex(args[1], out Status status))
+                            {
+                                user.ApplyStatus(new CreatureStatus(status, user));
+                            }
+                        }
+                        break;
                     case "/basehp":
                         {
                             uint hp = 0;
@@ -1570,15 +1577,6 @@ namespace Hybrasyl
                             user.SendSystemMessage($"Flags: {user.Condition.Flags} Conditions: {user.Condition.Conditions}");
                         }
                         break;
-
-                    case "/status":
-                        {
-                            var icon = ushort.Parse(args[1]);
-
-                            user.Enqueue(new ServerPacketStructures.StatusBar { Icon = icon, BarColor = (StatusBarColor)Enum.Parse(typeof(StatusBarColor), args[2]) }.Packet());
-                        }
-                        break;
-
                     case "/exp":
                         {
                             uint amount = 0;

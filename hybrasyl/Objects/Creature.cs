@@ -734,6 +734,7 @@ namespace Hybrasyl.Objects
             if (!_currentStatuses.TryAdd(status.Icon, status)) return false;
             if (this is User) (this as User).SendStatusUpdate(status);
             status.OnStart();
+            UpdateAttributes(StatUpdateFlags.Full);
             return true;
         }
 
@@ -760,6 +761,7 @@ namespace Hybrasyl.Objects
             ICreatureStatus status;
             if (!_currentStatuses.TryRemove(icon, out status)) return false;
             _removeStatus(status, onEnd);
+            UpdateAttributes(StatUpdateFlags.Full);
             return true;
         }
 
@@ -1172,6 +1174,7 @@ namespace Hybrasyl.Objects
             
             OnReceiveDamage();
             
+            // TODO: Separate this out into a control message
             if (Hp == 0 && onDeath == true) OnDeath();
         }
 

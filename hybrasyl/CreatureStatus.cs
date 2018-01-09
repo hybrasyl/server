@@ -99,8 +99,8 @@ namespace Hybrasyl
         public string Name => XMLStatus.Name;
         public string CastableName => Castable?.Name ?? string.Empty;
         public ushort Icon => XMLStatus.Icon;
-        public int Tick => _durationOverride != -1 ? XMLStatus.Tick : _durationOverride;
-        public int Duration => _tickOverride != -1 ? XMLStatus.Duration : _durationOverride;
+        public int Tick => _durationOverride == -1 ? XMLStatus.Tick : _durationOverride;
+        public int Duration => _tickOverride == -1 ? XMLStatus.Duration : _durationOverride;
         public string UseCastRestrictions => XMLStatus.CastRestriction?.Use ?? string.Empty;
         public string ReceiveCastRestrictions => XMLStatus.CastRestriction?.Receive ?? string.Empty;
 
@@ -148,16 +148,19 @@ namespace Hybrasyl
 
         private void ProcessSfx(ModifierEffect effect)
         {
-            if (effect.Sound != null)
+            if (effect.Sound?.Id != null)
                 User?.PlaySound(effect.Sound.Id);
             if (effect.Animations != null)
             {
-                if (effect.Animations.Target != null)
-                    if (User == null && (User != null && !User.Condition.Comatose))
-                        Target.Effect(effect.Animations.Target.Id, effect.Animations.Target.Speed);
-                if (effect.Animations.SpellEffect != null)
+                if (effect.Animations.Target.Id != 0)
                 {
-                    Source.Effect(effect.Animations.SpellEffect.Id, effect.Animations.SpellEffect.Speed);
+                    var animation = effect.Animations.Target;
+                    if (Target is Monster || !Target.Condition.Comatose || (Target.Condition.Comatose && animation.Id == (Game.Config.Handlers?.Death?.Coma?.Effect ?? 24)))
+                        Target.Effect(effect.Animations.Target.Id, effect.Animations.Target.Speed);
+                }
+                if (effect.Animations.SpellEffect.Id != 0)
+                {
+                    Source?.Effect(effect.Animations.SpellEffect.Id, effect.Animations.SpellEffect.Speed);
                 }
             }
             // Message handling
@@ -240,18 +243,15 @@ namespace Hybrasyl
 
         private void ProcessDamageEffects(ModifierEffect effect)
         {
-            if (Castable != null)
+            if (effect.Heal != null)
             {
-                if (effect.Heal != null)
-                {
-                    var heal = NumberCruncher.CalculateHeal(Castable, effect, Target, Source, Name);
-                    if (heal != 0) Target.Heal(heal);
-                }
-                if (effect.Damage != null)
-                {
-                    var dmg = NumberCruncher.CalculateDamage(Castable, effect, Target, Source, Name);
-                    if (dmg.Amount != 0) Target.Damage(dmg.Amount, Enums.Element.None, dmg.Type);
-                }
+                var heal = NumberCruncher.CalculateHeal(Castable, effect, Target, Source, Name);
+                if (heal != 0) Target.Heal(heal);
+            }
+            if (effect.Damage != null)
+            {
+                var dmg = NumberCruncher.CalculateDamage(Castable, effect, Target, Source, Name);
+                if (dmg.Amount != 0) Target.Damage(dmg.Amount, Enums.Element.None, dmg.Type);
             }
         }
 
