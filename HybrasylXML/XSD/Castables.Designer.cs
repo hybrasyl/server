@@ -17,7 +17,7 @@ namespace Hybrasyl.Castables
     using System.Collections.Generic;
 
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -55,7 +55,7 @@ namespace Hybrasyl.Castables
 
         private Book _book;
 
-        private List<Element> _element;
+        private Element _element;
 
         private byte _lines;
 
@@ -71,7 +71,6 @@ namespace Hybrasyl.Castables
         public Castable()
         {
             this._class = new List<Class>();
-            this._element = new List<Element>();
             this._statuses = new Statuses();
             this._effects = new Effects();
             this._restrictions = new Restrictions();
@@ -81,6 +80,7 @@ namespace Hybrasyl.Castables
             this._castCosts = new CastCostList();
             this._categories = new Categories();
             this._descriptions = new List<Description>();
+            this._element = Element.None;
             this._lines = ((byte)(0));
             this._cooldown = 0;
             this._isAssail = false;
@@ -262,7 +262,8 @@ namespace Hybrasyl.Castables
         }
 
         [System.Xml.Serialization.XmlAttributeAttribute()]
-        public List<Element> Element
+        [System.ComponentModel.DefaultValueAttribute(Element.None)]
+        public Element Element
         {
             get
             {
@@ -344,7 +345,7 @@ namespace Hybrasyl.Castables
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -390,7 +391,7 @@ namespace Hybrasyl.Castables
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/HybrasylCommon")]
     public enum Class
@@ -415,7 +416,7 @@ namespace Hybrasyl.Castables
         Monk,
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -426,14 +427,22 @@ namespace Hybrasyl.Castables
         #region Private fields
         private int _duration;
 
-        private int _intensity;
+        private float _intensity;
 
-        private int _speed;
+        private float _speed;
 
         private string _value;
         #endregion
 
+        public AddStatus()
+        {
+            this._duration = 0;
+            this._intensity = ((float)(1F));
+            this._speed = ((float)(1F));
+        }
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
+        [System.ComponentModel.DefaultValueAttribute(0)]
         public int Duration
         {
             get
@@ -447,7 +456,8 @@ namespace Hybrasyl.Castables
         }
 
         [System.Xml.Serialization.XmlAttributeAttribute()]
-        public int Intensity
+        [System.ComponentModel.DefaultValueAttribute(typeof(float), "1")]
+        public float Intensity
         {
             get
             {
@@ -460,7 +470,8 @@ namespace Hybrasyl.Castables
         }
 
         [System.Xml.Serialization.XmlAttributeAttribute()]
-        public int Speed
+        [System.ComponentModel.DefaultValueAttribute(typeof(float), "1")]
+        public float Speed
         {
             get
             {
@@ -486,7 +497,7 @@ namespace Hybrasyl.Castables
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -533,7 +544,7 @@ namespace Hybrasyl.Castables
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -575,6 +586,10 @@ namespace Hybrasyl.Castables
         private float _healModifier;
 
         private DamageType _damageType;
+
+        private float _reflectChance;
+
+        private float _reflectIntensity;
         #endregion
 
         public StatModifiers()
@@ -825,11 +840,37 @@ namespace Hybrasyl.Castables
                 this._damageType = value;
             }
         }
+
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        public float ReflectChance
+        {
+            get
+            {
+                return this._reflectChance;
+            }
+            set
+            {
+                this._reflectChance = value;
+            }
+        }
+
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        public float ReflectIntensity
+        {
+            get
+            {
+                return this._reflectIntensity;
+            }
+            set
+            {
+                this._reflectIntensity = value;
+            }
+        }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Actions")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/HybrasylCommon")]
     public enum Element
     {
 
@@ -867,7 +908,7 @@ namespace Hybrasyl.Castables
         Random,
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/HybrasylCommon")]
     public enum DamageType
@@ -886,7 +927,7 @@ namespace Hybrasyl.Castables
         Elemental,
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -900,10 +941,6 @@ namespace Hybrasyl.Castables
         private SimpleQuantity _simple;
 
         private string _formula;
-
-        private bool _timeBased;
-
-        private uint _duration;
 
         private DamageType _type;
         #endregion
@@ -950,32 +987,6 @@ namespace Hybrasyl.Castables
         }
 
         [System.Xml.Serialization.XmlAttributeAttribute()]
-        public bool TimeBased
-        {
-            get
-            {
-                return this._timeBased;
-            }
-            set
-            {
-                this._timeBased = value;
-            }
-        }
-
-        [System.Xml.Serialization.XmlAttributeAttribute()]
-        public uint Duration
-        {
-            get
-            {
-                return this._duration;
-            }
-            set
-            {
-                this._duration = value;
-            }
-        }
-
-        [System.Xml.Serialization.XmlAttributeAttribute()]
         public DamageType Type
         {
             get
@@ -990,23 +1001,29 @@ namespace Hybrasyl.Castables
     }
 
     [System.FlagsAttribute()]
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Xml.Serialization.XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Actions")]
     public enum DamageFlags
     {
 
         /// <remarks/>
-        Scaled = 1,
+        None = 1,
 
         /// <remarks/>
-        Resistance = 2,
+        Scaled = 2,
 
         /// <remarks/>
-        Threat = 4,
+        Resistance = 4,
+
+        /// <remarks/>
+        Threat = 8,
+
+        /// <remarks/>
+        Nonlethal = 16,
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -1018,6 +1035,8 @@ namespace Hybrasyl.Castables
         private string _min;
 
         private string _max;
+
+        private string _value;
         #endregion
 
         public SimpleQuantity()
@@ -1053,9 +1072,22 @@ namespace Hybrasyl.Castables
                 this._max = value;
             }
         }
+
+        [System.Xml.Serialization.XmlTextAttribute(DataType = "nonNegativeInteger")]
+        public string Value
+        {
+            get
+            {
+                return this._value;
+            }
+            set
+            {
+                this._value = value;
+            }
+        }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -1067,10 +1099,6 @@ namespace Hybrasyl.Castables
         private SimpleQuantity _simple;
 
         private string _formula;
-
-        private bool _timeBased;
-
-        private uint _duration;
         #endregion
 
         public Heal()
@@ -1101,35 +1129,9 @@ namespace Hybrasyl.Castables
                 this._formula = value;
             }
         }
-
-        [System.Xml.Serialization.XmlAttributeAttribute()]
-        public bool TimeBased
-        {
-            get
-            {
-                return this._timeBased;
-            }
-            set
-            {
-                this._timeBased = value;
-            }
-        }
-
-        [System.Xml.Serialization.XmlAttributeAttribute()]
-        public uint Duration
-        {
-            get
-            {
-                return this._duration;
-            }
-            set
-            {
-                this._duration = value;
-            }
-        }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -1140,12 +1142,12 @@ namespace Hybrasyl.Castables
         #region Private fields
         private ushort _id;
 
-        private ushort _speed;
+        private short _speed;
         #endregion
 
         public Animation()
         {
-            this._speed = ((ushort)(100));
+            this._speed = ((short)(100));
         }
 
         [System.Xml.Serialization.XmlAttributeAttribute()]
@@ -1162,8 +1164,8 @@ namespace Hybrasyl.Castables
         }
 
         [System.Xml.Serialization.XmlAttributeAttribute()]
-        [System.ComponentModel.DefaultValueAttribute(typeof(ushort), "100")]
-        public ushort Speed
+        [System.ComponentModel.DefaultValueAttribute(typeof(short), "100")]
+        public short Speed
         {
             get
             {
@@ -1176,7 +1178,7 @@ namespace Hybrasyl.Castables
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -1187,9 +1189,9 @@ namespace Hybrasyl.Castables
         #region Private fields
         private List<Class> _class;
 
-        private int _id;
+        private byte _id;
 
-        private int _speed;
+        private short _speed;
         #endregion
 
         public Motion()
@@ -1211,7 +1213,7 @@ namespace Hybrasyl.Castables
         }
 
         [System.Xml.Serialization.XmlAttributeAttribute()]
-        public int Id
+        public byte Id
         {
             get
             {
@@ -1224,7 +1226,7 @@ namespace Hybrasyl.Castables
         }
 
         [System.Xml.Serialization.XmlAttributeAttribute()]
-        public int Speed
+        public short Speed
         {
             get
             {
@@ -1237,7 +1239,7 @@ namespace Hybrasyl.Castables
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -1252,6 +1254,13 @@ namespace Hybrasyl.Castables
 
         private Animation _target;
         #endregion
+
+        public AnimationGroup()
+        {
+            this._target = new Animation();
+            this._spellEffect = new Animation();
+            this._player = new List<Motion>();
+        }
 
         [System.Xml.Serialization.XmlArrayItemAttribute(IsNullable = false)]
         public List<Motion> Player
@@ -1291,7 +1300,7 @@ namespace Hybrasyl.Castables
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -1330,7 +1339,7 @@ namespace Hybrasyl.Castables
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -1357,6 +1366,11 @@ namespace Hybrasyl.Castables
         public Effects()
         {
             this._statuses = new Statuses();
+            this._statModifiers = new StatModifiers();
+            this._damage = new Damage();
+            this._heal = new Heal();
+            this._sound = new EffectsSound();
+            this._animations = new SpellAnimations();
             this._scriptOverride = false;
         }
 
@@ -1447,7 +1461,7 @@ namespace Hybrasyl.Castables
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -1473,7 +1487,7 @@ namespace Hybrasyl.Castables
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -1520,7 +1534,7 @@ namespace Hybrasyl.Castables
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/HybrasylCommon")]
     public enum WeaponType
@@ -1545,7 +1559,7 @@ namespace Hybrasyl.Castables
         None,
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/HybrasylCommon")]
     public enum EquipmentSlot
@@ -1615,7 +1629,7 @@ namespace Hybrasyl.Castables
         Ring,
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -1672,7 +1686,7 @@ namespace Hybrasyl.Castables
     }
 
     [System.Xml.Serialization.XmlIncludeAttribute(typeof(Requirement))]
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -1774,7 +1788,7 @@ namespace Hybrasyl.Castables
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -1823,7 +1837,7 @@ namespace Hybrasyl.Castables
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -1872,7 +1886,7 @@ namespace Hybrasyl.Castables
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -1919,7 +1933,7 @@ namespace Hybrasyl.Castables
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -2053,7 +2067,7 @@ namespace Hybrasyl.Castables
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -2084,7 +2098,7 @@ namespace Hybrasyl.Castables
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -2185,7 +2199,7 @@ namespace Hybrasyl.Castables
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -2210,7 +2224,7 @@ namespace Hybrasyl.Castables
             this._target = new List<IntentTarget>();
             this._useType = SpellUseType.NoTarget;
             this._radius = ((byte)(0));
-            this._direction = IntentDirection.Front;
+            this._direction = IntentDirection.None;
             this._maxTargets = ((byte)(0));
         }
 
@@ -2243,7 +2257,7 @@ namespace Hybrasyl.Castables
         }
 
         [System.Xml.Serialization.XmlAttributeAttribute()]
-        [System.ComponentModel.DefaultValueAttribute(IntentDirection.Front)]
+        [System.ComponentModel.DefaultValueAttribute(IntentDirection.None)]
         public IntentDirection Direction
         {
             get
@@ -2284,7 +2298,7 @@ namespace Hybrasyl.Castables
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Actions")]
     public enum SpellUseType
@@ -2315,11 +2329,14 @@ namespace Hybrasyl.Castables
         Onedigit,
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Actions")]
     public enum IntentDirection
     {
+
+        /// <remarks/>
+        None,
 
         /// <remarks/>
         Front,
@@ -2337,7 +2354,7 @@ namespace Hybrasyl.Castables
         Nearby,
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Actions")]
     public enum IntentTarget
@@ -2357,7 +2374,7 @@ namespace Hybrasyl.Castables
     }
 
     [System.Xml.Serialization.XmlIncludeAttribute(typeof(CastCost))]
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -2411,7 +2428,7 @@ namespace Hybrasyl.Castables
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -2460,7 +2477,7 @@ namespace Hybrasyl.Castables
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -2491,7 +2508,7 @@ namespace Hybrasyl.Castables
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -2521,7 +2538,7 @@ namespace Hybrasyl.Castables
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -2568,7 +2585,7 @@ namespace Hybrasyl.Castables
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -2598,7 +2615,7 @@ namespace Hybrasyl.Castables
         }
     }
 
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Actions")]
     public enum Book

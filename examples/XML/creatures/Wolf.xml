@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Creature xmlns="http://www.hybrasyl.com/XML/Creature" Sprite="2">
+  <Name>Wolf</Name>
+  <Description>All bark, no bite. Wait...reverse that.</Description>
+</Creature>

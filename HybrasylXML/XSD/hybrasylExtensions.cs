@@ -20,6 +20,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Xml.Serialization;
 
@@ -133,11 +134,6 @@ namespace Hybrasyl.Items
             {
                 unchecked
                 {
-                    if (Properties.Appearance.DisplaySprite > 0)
-                    {
-                        return 31 * Name.GetHashCode() * ((Properties.Restrictions?.Gender.GetHashCode() ?? Gender.Neutral.GetHashCode()) + 1) *
-                               Properties.Appearance.DisplaySprite.GetHashCode();
-                    }
                     return 31 * Name.GetHashCode() * ((Properties.Restrictions?.Gender.GetHashCode() ?? Gender.Neutral.GetHashCode()) + 1);
                 }
             }
@@ -158,6 +154,40 @@ namespace Hybrasyl.Items
 
 namespace Hybrasyl.Castables
 {
+    public partial class Heal
+    {
+        public bool IsSimple
+        {
+            get { return string.IsNullOrEmpty(Formula); }
+        }
+        
+        // temporary silliness due to xsd issues
+        public bool IsEmpty
+        {
+            get
+            {
+                return IsSimple && (string.IsNullOrEmpty(Simple.Value) && Simple.Min == "0" && Simple.Max == "0");
+            }
+        }
+    }
+
+    public partial class Damage
+    {
+        public bool IsSimple
+        {
+            get { return string.IsNullOrEmpty(Formula); }
+        }
+        // temporary silliness due to xsd issues
+        public bool IsEmpty
+        {
+            get
+            {
+                return IsSimple && (string.IsNullOrEmpty(Simple.Value) && Simple.Min == "0" && Simple.Max == "0");
+            }
+
+        }
+    }
+
     public partial class Castable
     {
         public int Id
@@ -173,16 +203,79 @@ namespace Hybrasyl.Castables
 
         public byte CastableLevel { get; set; }
 
+        public DateTime LastCast { get; set; }
+
+        public bool OnCooldown
+        {
+            get
+            {
+                return Cooldown > 0 ? (DateTime.Now - LastCast).Seconds < Cooldown : false;
+            }
+        }
+
         public byte GetMaxLevelByClass(Class castableClass)
         {
             var maxLevelProperty = MaxLevel.GetType().GetProperty(castableClass.ToString());
             return (byte)(maxLevelProperty != null ? maxLevelProperty.GetValue(MaxLevel, null) : 0);
         }
-    }   
+
+        public bool TryGetMotion(Class castClass, out Motion motion)
+        {
+            motion = null;
+            try
+            {
+                motion = Effects.Animations.OnCast.Player.SingleOrDefault(x => x.Class.Contains(castClass));
+            }
+            catch (InvalidOperationException)
+            {
+                motion = Effects.Animations.OnCast.Player.FirstOrDefault(x => x.Class.Contains(castClass));
+            }
+            catch (NullReferenceException)
+            {
+                return false;
+            }           
+            if (motion != null) return true;
+            return false;
+        }
+    }
 }
 
 namespace Hybrasyl.Statuses
 {
+    public partial class Heal
+    {
+        public bool IsSimple
+        {
+            get { return string.IsNullOrEmpty(Formula); }
+        }
+        public bool IsEmpty
+        {
+            get
+            {
+                return IsSimple && (string.IsNullOrEmpty(Simple.Value) && Simple.Min == "0" && Simple.Max == "0");
+            }
+
+        }
+
+    }
+
+    public partial class Damage
+    {
+        public bool IsSimple
+        {
+            get { return string.IsNullOrEmpty(Formula); }
+        }
+        public bool IsEmpty
+        {
+            get
+            {
+                return IsSimple && (string.IsNullOrEmpty(Simple.Value) && Simple.Min == "0" && Simple.Max == "0");
+            }
+
+        }
+
+    }
+
     public partial class Status
     {
         public int Id

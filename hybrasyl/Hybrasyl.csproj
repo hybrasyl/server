@@ -80,7 +80,9 @@
     <Compile Include="Board.cs" />
     <Compile Include="Compression.cs" />
     <Compile Include="ControlService.cs" />
+    <Compile Include="NumberCruncher.cs" />
     <Compile Include="Objects\Creature.cs" />
+    <Compile Include="Objects\ConditionInfo.cs" />
     <Compile Include="Objects\Door.cs" />
     <Compile Include="Objects\Gold.cs" />
     <Compile Include="Objects\Monster.cs" />
@@ -88,7 +90,7 @@
     <Compile Include="Objects\Signpost.cs" />
     <Compile Include="Objects\VisibleObject.cs" />
     <Compile Include="Objects\WorldObject.cs" />
-    <Compile Include="PlayerStatus.cs" />
+    <Compile Include="CreatureStatus.cs" />
     <Compile Include="Legend.cs" />
     <Compile Include="Scripting\HybrasylDialog.cs" />
     <Compile Include="Scripting\HybrasylDialogSequence.cs" />

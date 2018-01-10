@@ -161,15 +161,9 @@ namespace Hybrasyl
             }
         }
 
-        public void ReceiveBufferAdd(ClientPacket packet)
-        {
-            _receiveBuffer.Enqueue(packet);
-        }
+        public void ReceiveBufferAdd(ClientPacket packet) => _receiveBuffer.Enqueue(packet);
 
-        public bool ReceiveBufferTake(out ClientPacket packet)
-        {
-            return _receiveBuffer.TryDequeue(out packet);
-        }
+        public bool ReceiveBufferTake(out ClientPacket packet) => _receiveBuffer.TryDequeue(out packet);
 
     }
 
@@ -530,6 +524,9 @@ namespace Hybrasyl
                                 {
                                     World.MessageQueue.Add(new HybrasylClientMessage(packet, ConnectionId));
                                 }
+                                else
+                                    if (packet.Opcode == 0x06)
+                                        World.MessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.TriggerRefresh, ConnectionId));
                             }
 
                         }

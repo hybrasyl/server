@@ -154,9 +154,9 @@ namespace Hybrasyl
         {
             while (true)
             {
-                var mapsWithUsers = _maps.Where(x => x.EntityTree.GetAllObjects().OfType<User>().Any());
+                var mapsWithUsers = _maps.Where(x => x.Users.Count() > 0);
                 foreach (var map in mapsWithUsers)
-                {
+                {                   
                     var mobsToEval = from monsters in map.EntityTree.GetAllObjects().OfType<Monster>()
                         join users in map.EntityTree.GetAllObjects().OfType<User>() on monsters.Map equals users.Map
                         where monsters.GetViewport().IntersectsWith(users.GetViewport())

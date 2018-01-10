@@ -73,7 +73,7 @@ namespace Hybrasyl
             Throttles = new Dictionary<byte, IPacketThrottle>();
             ExpectedConnections = new ConcurrentDictionary<uint, Redirect>();
             for (int i = 0; i < 256; ++i)
-                PacketHandlers[i] = (c, p) => Logger.WarnFormat("Server: Unhandled opcode 0x{0:X2}", p.Opcode);
+                PacketHandlers[i] = (c, p) => Logger.DebugFormat("Server: Unhandled opcode 0x{0:X2}", p.Opcode);
 
         }
 
@@ -157,7 +157,7 @@ namespace Hybrasyl
             SocketError errorCode = SocketError.SocketError;
             int bytesRead = 0;
             ClientPacket receivedPacket;
-
+          
             Logger.Debug($"SocketConnected: {state.WorkSocket.Connected}, IAsyncResult: Completed: {ar.IsCompleted}, CompletedSynchronously: {ar.CompletedSynchronously}, queue size: {state.Buffer.Length}");
             Logger.Debug("Running read callback");
 

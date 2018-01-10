@@ -3,22 +3,26 @@ using System.Collections.Generic;
 using System.Text;
 using Hybrasyl.Castables;
 using Hybrasyl.Objects;
+using log4net;
 
 namespace Hybrasyl
 {
+  
     internal class FormulaParser
     {
         private Creature _caster;
         private Castable _castable;
         private Creature _target;
+        public new static readonly ILog Logger =
+       LogManager.GetLogger(
+       System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
         public FormulaParser(Creature caster, Castable castable, Creature target = null)
         {
             _caster = caster;
             _castable = castable;
             _target = target;
         }
-
-
 
         private string[] _operators = { "-", "+", "/", "*", "^" };
         private Func<double, double, double>[] _operations = {

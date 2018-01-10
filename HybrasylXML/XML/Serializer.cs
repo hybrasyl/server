@@ -28,9 +28,14 @@ using Castable = Hybrasyl.Castables.Castable;
 using Status = Hybrasyl.Statuses.Status;
 using Map = Hybrasyl.Maps.Map;
 using Npc = Hybrasyl.Creatures.Npc;
+using System;
 
 namespace Hybrasyl.XML
 {
+    public class Group
+    {
+        public string GroupName;
+    }
     public class Serializer : XMLBase
     {
         public static void Serialize(XmlWriter xWrite, Castable contents)
@@ -173,6 +178,11 @@ namespace Hybrasyl.XML
             if (contents == null) contents = new Status();
             //reader.Settings.IgnoreWhitespace = false;
             XmlSerializer XmlSerial = new XmlSerializer(contents.GetType());
+            //XmlSerial.UnknownAttribute += new XmlAttributeEventHandler(Serializer_Event);
+            //XmlSerial.UnknownElement += new XmlElementEventHandler(Serializer_Event);
+            //XmlSerial.UnknownNode += new XmlNodeEventHandler(Serializer_Event);
+            //XmlSerial.UnreferencedObject += new UnreferencedObjectEventHandler(Serializer_Event);
+
             if (XmlSerial.CanDeserialize(reader))
             {
                 var xContents = XmlSerial.Deserialize(reader);

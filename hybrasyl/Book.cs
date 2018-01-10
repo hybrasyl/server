@@ -22,6 +22,7 @@ namespace Hybrasyl
                 if (book[i] == null) continue;
                 itemInfo.Name = book[i].Name.ToLower();
                 itemInfo.Level = book[i].CastableLevel;
+                itemInfo.LastCast = book[i].LastCast;
                 output[i] = itemInfo;
             }
             var ja = JArray.FromObject(output);
@@ -56,7 +57,14 @@ namespace Hybrasyl
                     if (!TryGetValue(jArray[i], out item)) continue;
                     book[i] = Game.World.WorldData.Values<Castable>().SingleOrDefault(x => x.Name.ToLower() == (string)item.Name);
                     var castable = book[i];
-                    if (castable != null) castable.CastableLevel = (byte)item.Level;
+                    if (castable != null)
+                    {
+                        castable.CastableLevel = (byte)item.Level;
+                        if (item.GetType().GetProperty("LastCast") != null)
+                            castable.LastCast = (DateTime)item.LastCast;
+                        else
+                            castable.LastCast = DateTime.MinValue;
+                    }
                 }
                 return book;
             }
@@ -147,9 +155,6 @@ namespace Hybrasyl
         {
             return _itemIndex.ContainsKey(id);
         }
-
-        
-
         public int FindEmptyIndex()
         {
             for (var i = 0; i < Size; ++i)

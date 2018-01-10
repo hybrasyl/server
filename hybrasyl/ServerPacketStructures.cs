@@ -88,7 +88,6 @@ namespace Hybrasyl
             internal ServerPacket Packet()
             {
                 ServerPacket packet = new ServerPacket(OpCode);
-                Console.WriteLine(string.Format("uid: {0}, Animation: {1}, speed {2}", UserId, Animation, Speed));
                 packet.WriteUInt32(UserId);
                 packet.WriteByte(Animation);
                 packet.WriteUInt16(Speed);
@@ -206,7 +205,6 @@ namespace Hybrasyl
             internal ServerPacket Packet()
             {
                 ServerPacket packet = new ServerPacket(OpCode);
-                Console.WriteLine(string.Format("sound: {0}", Sound));
                 packet.WriteByte(Sound);
                 return packet;
             }

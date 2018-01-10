@@ -73,8 +73,9 @@ namespace Hybrasyl
         {
             return source.Map == target.Map && source.IsInViewport(target) &&
                    target.IsInViewport(source) &&
-                   source.Status == Enums.PlayerCondition.Alive &&
-                   target.Status == PlayerCondition.Alive && target.Distance(source) <= Constants.EXCHANGE_DISTANCE;
+                   source.Condition.NoFlags &&
+                   target.Condition.NoFlags && 
+                   target.Distance(source) <= Constants.EXCHANGE_DISTANCE;
 
         }
 
@@ -84,8 +85,8 @@ namespace Hybrasyl
             {
                 return _source.Map == _target.Map && _source.IsInViewport(_target) &&
                        _target.IsInViewport(_source) &&
-                       _source.Status.HasFlag(PlayerCondition.InExchange) &&
-                       _target.Status.HasFlag(PlayerCondition.InExchange) &&
+                       _source.Condition.InExchange &&
+                       _target.Condition.InExchange &&
                        _active;
             }
         }
@@ -261,8 +262,8 @@ namespace Hybrasyl
         {
             Logger.InfoFormat("Starting exchange between {0} and {1}", _source.Name, _target.Name);
             _active = true;
-            _source.Status |= PlayerCondition.InExchange;
-            _target.Status |= PlayerCondition.InExchange;
+            _source.Condition.InExchange = true;
+            _target.Condition.InExchange = true;
             _source.ActiveExchange = this;
             _target.ActiveExchange = this;
             // Send "open window" packet to both clients
@@ -291,8 +292,8 @@ namespace Hybrasyl
             _target.SendExchangeCancellation(requestor == _target);
             _source.ActiveExchange = null;
             _target.ActiveExchange = null;
-            _source.Status &= ~PlayerCondition.InExchange;
-            _target.Status &= ~PlayerCondition.InExchange;
+            _source.Condition.InExchange = false;
+            _target.Condition.InExchange = false;
             return true;
         }
 
@@ -316,8 +317,8 @@ namespace Hybrasyl
 
             _source.ActiveExchange = null;
             _target.ActiveExchange = null;
-            _source.Status &= ~PlayerCondition.InExchange;
-            _target.Status &= ~PlayerCondition.InExchange;
+            _source.Condition.InExchange = false;
+            _target.Condition.InExchange = false;
         }
 
         /// <summary>

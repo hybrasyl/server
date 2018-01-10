@@ -21,20 +21,26 @@
  */
  
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using Hybrasyl.Castables;
 using Hybrasyl.Enums;
+using Hybrasyl.Statuses;
 using log4net;
 using Newtonsoft.Json;
 
 namespace Hybrasyl.Objects
 {
+
     public class Creature : VisibleObject
     {
         public new static readonly ILog Logger =
                LogManager.GetLogger(
                System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
+        private static readonly ILog ActivityLogger = LogManager.GetLogger("UserActivityLog");
 
         [JsonProperty]
         public byte Level { get; set; }
@@ -73,6 +79,13 @@ namespace Hybrasyl.Objects
         public long BaseCon { get; set; }
 
         [JsonProperty]
+        public ConditionInfo Condition { get; set; }
+
+        [JsonProperty]
+        protected ConcurrentDictionary<ushort, ICreatureStatus> _currentStatuses;
+
+
+        [JsonProperty]
         public long BaseDex { get; set; }
 
         public long BonusHp { get; set; }
@@ -88,9 +101,105 @@ namespace Hybrasyl.Objects
         public long BonusMr { get; set; }
         public long BonusRegen { get; set; }
 
-        public Enums.Element OffensiveElement { get; set; }
-        public Enums.Element DefensiveElement { get; set; }
+        protected Enums.Element BaseOffensiveElement { get; set; }
+        protected Enums.Element BaseDefensiveElement { get; set; }
 
+        public Enums.Element OffensiveElement
+        {
+            get
+            {
+                return (OffensiveElementOverride == Enums.Element.None ? OffensiveElementOverride : BaseOffensiveElement);
+            }
+        }
+        public Enums.Element DefensiveElement
+        {
+            get
+            {
+                return (DefensiveElementOverride == Enums.Element.None ? DefensiveElementOverride : BaseDefensiveElement);
+            }
+        }
+
+        public Enums.Element OffensiveElementOverride { get; set; }
+        public Enums.Element DefensiveElementOverride { get; set; }
+
+        public Enums.DamageType? DamageTypeOverride { get; set; }
+
+        public double ReflectChance
+        {
+
+            get
+            {
+                var value = BaseReflectChance + BonusReflectChance;
+
+                if (value > 1.0)
+                    return 1.0;
+
+                if (value < 0)
+                    return 0;
+
+                return value;
+            }
+        }
+
+        [JsonProperty]
+        public double BaseReflectChance { get; set; }
+        [JsonProperty]
+        public double BonusReflectChance { get; set; }
+
+        public double ReflectIntensity
+        {
+
+            get
+            {
+                var value = BaseReflectChance + BonusReflectChance;
+
+                if (value < 0)
+                    return 0;
+
+                return value;
+            }
+        }
+
+        [JsonProperty]
+        public double BaseReflectIntensity { get; set; }
+        [JsonProperty]
+        public double BonusReflectIntensity { get; set; }
+
+        public bool IsReflected
+        {
+            get
+            {
+                Random rnd1 = new Random();
+                return (rnd1.NextDouble() >= ReflectChance);
+            }
+        }
+
+        public double HealModifier
+        {
+            get
+            {
+                return BaseHealModifier + BonusHealModifier;
+            }
+        }
+
+        [JsonProperty]
+        public double BaseHealModifier { get; set; }
+        [JsonProperty]
+        public double BonusHealModifier { get; set; }
+
+        public double DamageModifier
+        {
+            get
+            {
+                return BaseDamageModifier + BonusDamageModifier;
+            }
+        }
+
+        [JsonProperty]
+        public double BaseDamageModifier { get; set; }
+        [JsonProperty]
+        public double BonusDamageModifier { get; set; }
+   
         public ushort MapId { get; protected set; }
         public byte MapX { get; protected set; }
         public byte MapY { get; protected set; }
@@ -109,11 +218,294 @@ namespace Hybrasyl.Objects
             Gold = 0;
             Inventory = new Inventory(59);
             Equipment = new Inventory(18);
+            BaseDamageModifier = 1;
+            BonusDamageModifier = 0;
+            BaseHealModifier = 1;
+            BonusHealModifier = 0;
+            BaseReflectIntensity = 1;
+            BaseReflectChance = 0;
+            DamageTypeOverride = null;
+            Condition = new ConditionInfo(this);
+            _currentStatuses = new ConcurrentDictionary<ushort, ICreatureStatus>();
         }
 
         public override void OnClick(User invoker)
         {
         }
+
+        public Creature GetDirectionalTarget(Direction direction)
+        {
+            VisibleObject obj;
+
+            switch (direction)
+            {
+                case Direction.East:
+                    {
+                        obj = Map.EntityTree.FirstOrDefault(x => x.X == X + 1 && x.Y == Y && x is Creature);
+                    }
+                    break;
+                case Direction.West:
+                    {
+                        obj = Map.EntityTree.FirstOrDefault(x => x.X == X - 1 && x.Y == Y && x is Creature);
+                    }
+                    break;
+                case Direction.North:
+                    {
+                        obj = Map.EntityTree.FirstOrDefault(x => x.X == X && x.Y == Y - 1 && x is Creature);
+                    }
+                    break;
+                case Direction.South:
+                    {
+                        obj = Map.EntityTree.FirstOrDefault(x => x.X == X && x.Y == Y + 1 && x is Creature);
+                    }
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(direction), direction, null);
+            }
+
+            if (obj is Creature) return obj as Creature;
+            return null;
+        }
+    
+        public virtual List<Creature> GetTargets(Castable castable, Creature target = null)
+        {
+            List<Creature> actualTargets = new List<Creature>();
+
+            /* INTENT HANDLING FOR TARGETING
+             * 
+             * This is particularly confusing so it is documented here.
+             * UseType=Target Radius=0 Direction=None -> exact clicked target 
+             * UseType=Target Radius=0 Direction=!None -> invalid
+             * UseType=Target Radius=>0 Direction=None -> rect centered on target 
+             * UseType=Target Radius>0 Direction=(anything but none) -> directional rect target based on click x/y
+             * UseType=NoTarget Radius=0 Direction=None -> self (wings of protection, maybe custom spells / mentoring / lore / etc)?
+             * UseType=NoTarget Radius>0 Direction=None -> rect from self in all directions
+             * UseType=NoTarget Radius>0 Direction=!None -> rect from self in specific direction
+             */
+
+            var intents = castable.Intents;
+
+            foreach (var intent in intents)
+            {
+                var possibleTargets = new List<VisibleObject>();
+                if (intent.UseType == Castables.SpellUseType.NoTarget && intent.Target.Contains(IntentTarget.Group))
+                {
+                    // Targeting group members
+                    var user = this as User;
+                    if (user != null && user.Group != null)
+                        possibleTargets.AddRange(user.Group.Members.Where(m => m.Map.Id == Map.Id && m.Distance(this) < intent.Radius));
+                }
+                else if (intent.UseType == Castables.SpellUseType.Target && intent.Radius == 0 && intent.Direction == IntentDirection.None)
+                {
+                    // Targeting the exact clicked target
+                    if (target == null)
+                        Logger.Error($"GetTargets: {castable.Name} - intent was for exact clicked target but no target was passed?");
+                    else
+                        // Heal spels can be cast on players, other spells can be cast on attackable creatures
+                        if ((!castable.Effects.Damage.IsEmpty && target.Condition.IsAttackable) ||
+                        (castable.Effects.Damage.IsEmpty && target is User))
+                        possibleTargets.Add(target);
+                }
+                else if (intent.UseType == Castables.SpellUseType.NoTarget && intent.Radius == 0 && intent.Direction == IntentDirection.None)
+                {
+                    // Targeting self - which, currently, is only allowed for non-damaging spells
+                    if (castable.Effects.Damage.IsEmpty)
+                        possibleTargets.Add(this);
+                }
+                else
+                {
+                    // Area targeting, directional or otherwise
+
+                    Rectangle rect = new Rectangle(0, 0, 0, 0);
+                    byte X = this.X;
+                    byte Y = this.Y;
+
+                    // Handle area targeting with click target as the source
+                    if (intent.UseType == Castables.SpellUseType.Target)
+                    {
+                        X = target.X;
+                        Y = target.Y;
+                    }
+
+                    switch (intent.Direction)
+                    {
+                        case IntentDirection.Front:
+                            {
+                                switch (Direction)
+                                {
+                                    case Direction.North:
+                                        {
+                                            //facing north, attack north
+                                            rect = new Rectangle(X, Y - intent.Radius, 1,  intent.Radius);
+                                        }
+                                        break;
+                                    case Direction.South:
+                                        {
+                                            //facing south, attack south
+                                            rect = new Rectangle(X, Y, 1, 1 + intent.Radius);
+                                        }
+                                        break;
+                                    case Direction.East:
+                                        {
+                                            //facing east, attack east
+                                            rect = new Rectangle(X, Y, 1 + intent.Radius, 1);
+                                        }
+                                        break;
+                                    case Direction.West:
+                                        {
+                                            //facing west, attack west
+                                            rect = new Rectangle(X - intent.Radius, Y, intent.Radius, 1);
+                                        }
+                                        break;
+                                }
+                            }
+                            break;
+                        case IntentDirection.Back:
+                            {
+                                switch (Direction)
+                                {
+                                    case Direction.North:
+                                        {
+                                            //facing north, attack south
+                                            rect = new Rectangle(X, Y, 1, 1 + intent.Radius);
+                                        }
+                                        break;
+                                    case Direction.South:
+                                        {
+                                            //facing south, attack north
+                                            rect = new Rectangle(X, Y - intent.Radius, 1, intent.Radius);
+                                        }
+                                        break;
+                                    case Direction.East:
+                                        {
+                                            //facing east, attack west
+                                            rect = new Rectangle(X - intent.Radius, Y, intent.Radius, 1);
+                                        }
+                                        break;
+                                    case Direction.West:
+                                        {
+                                            //facing west, attack east
+                                            rect = new Rectangle(X, Y, 1 + intent.Radius, 1);
+                                        }
+                                        break;
+                                }
+                            }
+                            break;
+                        case IntentDirection.Left:
+                            {
+                                switch (Direction)
+                                {
+                                    case Direction.North:
+                                        {
+                                            //facing north, attack west
+                                            rect = new Rectangle(X - intent.Radius, Y, intent.Radius, 1);
+                                        }
+                                        break;
+                                    case Direction.South:
+                                        {
+                                            //facing south, attack east
+                                            rect = new Rectangle(X, Y, 1 + intent.Radius, 1);
+                                        }
+                                        break;
+                                    case Direction.East:
+                                        {
+                                            //facing east, attack north
+                                            rect = new Rectangle(X, Y, 1, 1 + intent.Radius);
+                                        }
+                                        break;
+                                    case Direction.West:
+                                        {
+                                            //facing west, attack south
+                                            rect = new Rectangle(X, Y - intent.Radius, 1, intent.Radius);
+                                        }
+                                        break;
+                                }
+                            }
+                            break;
+                        case IntentDirection.Right:
+                            {
+                                switch (Direction)
+                                {
+                                    case Direction.North:
+                                        {
+                                            //facing north, attack east
+                                            rect = new Rectangle(X, Y, 1 + intent.Radius, 1);
+                                        }
+                                        break;
+                                    case Direction.South:
+                                        {
+                                            //facing south, attack west
+                                            rect = new Rectangle(X - intent.Radius, Y, intent.Radius, 1);
+                                        }
+                                        break;
+                                    case Direction.East:
+                                        {
+                                            //facing east, attack south
+                                            rect = new Rectangle(X, Y - intent.Radius, 1, intent.Radius);
+                                        }
+                                        break;
+                                    case Direction.West:
+                                        {
+                                            //facing west, attack north
+                                            rect = new Rectangle(X, Y, 1, 1 + intent.Radius);
+                                        }
+                                        break;
+                                }
+                            }
+                            break;
+                        case IntentDirection.Nearby:
+                        case IntentDirection.None:
+                            {
+                                //attack radius
+                                rect = new Rectangle(X - intent.Radius, Y - intent.Radius, Math.Max(intent.Radius, (byte)1)*2, Math.Max(intent.Radius, (byte)1)*2);
+                            }
+                            break;
+                    }
+                    Logger.Info($"Rectangle: x: {X - intent.Radius} y: {Y - intent.Radius}, radius: {intent.Radius} - LOCATION: {rect.Location} TOP: {rect.Top}, BOTTOM: {rect.Bottom}, RIGHT: {rect.Right}, LEFT: {rect.Left}");
+                    if (rect.IsEmpty) continue;
+
+                    possibleTargets.AddRange(Map.EntityTree.GetObjects(rect).Where(obj => obj is Creature && obj != this));
+                }
+
+                // Remove merchants
+                possibleTargets = possibleTargets.Where(e => !(e is Merchant)).ToList();
+
+                // Handle intent flags
+                if (this is Monster)
+                {
+                    // No hostile flag: remove users
+                    // No friendly flag: remove monsters
+                    // Group / pvp: do not apply here
+                    if (!intent.Target.Contains(IntentTarget.Friendly))
+                        possibleTargets = possibleTargets.Where(e => !(e is Monster)).ToList();
+                    if (!intent.Target.Contains(IntentTarget.Hostile))
+                        possibleTargets = possibleTargets.Where(e => !(e is User)).ToList();
+                }
+                else if (this is User)
+                {
+                    var user = this as User;
+                    // No hostile flag: remove monsters
+                    // No friendly flag: remove users with pvp disabled
+                    // No pvp: remove 
+                    // If we aren't targeting friendlies or pvp, remove all users entirely
+                    if (!intent.Target.Contains(IntentTarget.Pvp))
+                        possibleTargets = possibleTargets.Where(e => !(e is User && (e as Creature).Condition.PvpEnabled == true)).ToList();
+                    if (!intent.Target.Contains(IntentTarget.Friendly))
+                        possibleTargets = possibleTargets.Where(e => !(e is User && (e as Creature).Condition.PvpEnabled == false)).ToList();
+                    // If we aren't targeting hostiles, remove all monsters
+                    if (!intent.Target.Contains(IntentTarget.Hostile))
+                        possibleTargets = possibleTargets.Where(e => !(e is Monster)).ToList();
+                }
+
+                // Finally, add the targets to our list
+
+                List<Creature> possible = intent.MaxTargets > 0 ? possibleTargets.Take(intent.MaxTargets).OfType<Creature>().ToList() : possibleTargets.OfType<Creature>().ToList();
+                if (possible != null && possible.Count > 0) actualTargets.AddRange(possible);
+                else Logger.Info("No targets found");
+            }
+            return actualTargets;
+        }
+
 
         // Restrict to (inclusive) range between [min, max]. Max is optional, and if its
         // not present then no upper limit will be enforced.
@@ -330,29 +722,204 @@ namespace Hybrasyl.Objects
         public bool PhysicalImmortal { get; set; }
         public bool MagicalImmortal { get; set; }
 
-        public virtual void Attack(Direction direction, Castable castObject, Creature target = null)
+
+        #region Status handling
+
+        /// <summary>
+        /// Apply a given status to a player.
+        /// </summary>
+        /// <param name="status">The status to apply to the player.</param>
+        public bool ApplyStatus(ICreatureStatus status)
         {
-            //do something?
+            if (!_currentStatuses.TryAdd(status.Icon, status)) return false;
+            if (this is User) (this as User).SendStatusUpdate(status);
+            status.OnStart();
+            UpdateAttributes(StatUpdateFlags.Full);
+            return true;
         }
 
-        public virtual void Attack(Castable castObject, Creature target)
+        /// <summary>
+        /// Remove a status from a client, firing the appropriate OnEnd events and removing the icon from the status bar.
+        /// </summary>
+        /// <param name="status">The status to remove.</param>
+        /// <param name="onEnd">Whether or not to run the onEnd event for the status removal.</param>
+        private void _removeStatus(ICreatureStatus status, bool onEnd = true)
         {
-            //do spell?
+            if (onEnd)
+                status.OnEnd();
+            if (this is User) (this as User).SendStatusUpdate(status, true);
         }
 
-        public virtual void Attack(Castable castObject)
+        /// <summary>
+        /// Remove a status from a client.
+        /// </summary>
+        /// <param name="icon">The icon of the status we are removing.</param>
+        /// <param name="onEnd">Whether or not to run the onEnd effect for the status.</param>
+        /// <returns></returns>
+        public bool RemoveStatus(ushort icon, bool onEnd = true)
         {
-            //do aoe?
+            ICreatureStatus status;
+            if (!_currentStatuses.TryRemove(icon, out status)) return false;
+            _removeStatus(status, onEnd);
+            UpdateAttributes(StatUpdateFlags.Full);
+            return true;
+        }
+
+        public bool TryGetStatus(string name, out ICreatureStatus status)
+        {
+            status = _currentStatuses.Values.FirstOrDefault(s => s.Name == name);
+            return status != null;
+        }
+
+        /// <summary>
+        /// Remove all statuses from a user.
+        /// </summary>
+        public void RemoveAllStatuses()
+        {
+            lock (_currentStatuses)
+            {
+                foreach (var status in _currentStatuses.Values)
+                {
+                    _removeStatus(status, false);
+                }
+
+                _currentStatuses.Clear();
+                Logger.Debug($"Current status count is {_currentStatuses.Count}");
+            }
+        }
+
+        /// <summary>
+        /// Process all the given status ticks for a creature's active statuses.
+        /// </summary>
+        public void ProcessStatusTicks()
+        {
+            foreach (var kvp in _currentStatuses)
+            {
+                Logger.DebugFormat("OnTick: {0}, {1}", Name, kvp.Value.Name);
+
+                if (kvp.Value.Expired)
+                {
+                    var removed = RemoveStatus(kvp.Key);
+                    Logger.DebugFormat($"Status {kvp.Value.Name} has expired: removal was {removed}");
+                }
+
+                if (kvp.Value.ElapsedSinceTick >= kvp.Value.Tick)
+                {
+                    kvp.Value.OnTick();
+                    if (this is User) (this as User).SendStatusUpdate(kvp.Value);
+                }
+            }
+        }
+
+        public int ActiveStatusCount => _currentStatuses.Count;
+
+        #endregion
+
+        public virtual bool UseCastable(Castable castObject, Creature target = null)
+        {
+            if (!Condition.CastingAllowed) return false;
+            if (this is User) ActivityLogger.Info($"UseCastable: {Name} begin casting {castObject.Name} on target: {target?.Name ?? "no target"} CastingAllowed: {Condition.CastingAllowed}");
+
+            var damage = castObject.Effects.Damage;
+            List<Creature> targets;
+
+            targets = GetTargets(castObject, target);
+
+            if (targets.Count() == 0) return false;
+
+            // We do these next steps to ensure effects are displayed uniformly and as fast as possible
+            var deadMobs = new List<Creature>();
+            foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>().Select(obj => obj))
+            {
+                foreach (var id in targets.Select(e => e.Id))
+                {
+                    user.SendEffect(id, castObject.Effects.Animations.OnCast.Target.Id, castObject.Effects.Animations.OnCast.Target.Speed);
+                }
+            }
+
+            if (castObject.Effects?.Animations?.OnCast?.SpellEffect != null)
+                Effect(castObject.Effects.Animations.OnCast.SpellEffect.Id, castObject.Effects.Animations.OnCast.SpellEffect.Speed);
+
+            if (castObject.Effects.Sound != null)
+                PlaySound(castObject.Effects.Sound.Id);
+
+            ActivityLogger.Info($"UseCastable: {Name} casting {castObject.Name}, {targets.Count()} targets");
+            foreach (var tar in targets)
+            {
+                if (castObject.Effects?.ScriptOverride == true)
+                {
+                    // TODO: handle castables with scripting
+                    // DoStuff();
+                    continue;
+                }
+                if (castObject.Effects?.Damage != null)
+                {
+                    Enums.Element attackElement;
+                    var damageOutput = NumberCruncher.CalculateDamage(castObject, tar, this);
+                    if (castObject.Element == Castables.Element.Random)
+                    {
+                        Random rnd = new Random();
+                        var Elements = Enum.GetValues(typeof(Enums.Element));
+                        attackElement = (Enums.Element)Elements.GetValue(rnd.Next(Elements.Length));
+                    }
+                    else if (castObject.Element != Castables.Element.None)
+                        attackElement = (Enums.Element)castObject.Element;
+                    else
+                        attackElement = (OffensiveElementOverride == Enums.Element.None ? OffensiveElementOverride : OffensiveElement);
+                    if (this is User) ActivityLogger.Info($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} damage: {damageOutput}, element {attackElement}");
+
+                    tar.Damage(damageOutput.Amount, attackElement, damageOutput.Type, damageOutput.Flags, this, false);
+                    if (tar.Hp <= 0) { deadMobs.Add(tar); }
+                }
+                // Note that we ignore castables with both damage and healing effects present - one or the other.
+                // A future improvement might be to allow more complex effects.
+                else if (castObject.Effects.Heal != null)
+                {
+                    var healOutput = NumberCruncher.CalculateHeal(castObject, tar, this);
+                    tar.Heal(healOutput, this);
+                    if (this is User) ActivityLogger.Info($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} healing: {healOutput}");
+                }
+
+                // Handle statuses
+
+                foreach (var status in castObject.Effects.Statuses.Add.Where(e => e.Value != null))
+                {
+                    Status applyStatus;
+                    if (World.WorldData.TryGetValueByIndex<Status>(status.Value, out applyStatus))
+                    {
+                        ActivityLogger.Info($"UseCastable: {Name} casting {castObject.Name} - applying status {status.Value}");
+                        ApplyStatus(new CreatureStatus(applyStatus, tar, castObject));
+                    }
+                    else
+                        ActivityLogger.Error($"UseCastable: {Name} casting {castObject.Name} - failed to add status {status.Value}, does not exist!");
+                }
+
+                foreach (var status in castObject.Effects.Statuses.Remove)
+                {
+                    Status applyStatus;
+                    if (World.WorldData.TryGetValueByIndex<Status>(status, out applyStatus))
+                    {
+                        ActivityLogger.Error($"UseCastable: {Name} casting {castObject.Name} - removing status {status}");
+                        RemoveStatus(applyStatus.Icon);
+                    }
+                    else
+                        ActivityLogger.Error($"UseCastable: {Name} casting {castObject.Name} - failed to remove status {status}, does not exist!");
+
+                }
+            }
+            // Now flood away
+            foreach (var dead in deadMobs) dead.OnDeath();
+            return true;
         }
 
         public void SendAnimation(ServerPacket packet)
         {
-            Logger.InfoFormat("SendAnimation");
-            Logger.InfoFormat("SendAnimation byte format is: {0}", BitConverter.ToString(packet.ToArray()));
+            Logger.DebugFormat("SendAnimation");
+            Logger.DebugFormat("SendAnimation byte format is: {0}", BitConverter.ToString(packet.ToArray()));
             foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>())
             {
                 var nPacket = (ServerPacket)packet.Clone();
-                Logger.InfoFormat("SendAnimation to {0}", user.Name);
+                Logger.DebugFormat("SendAnimation to {0}", user.Name);
                 user.Enqueue(nPacket);
 
             }
@@ -360,12 +927,12 @@ namespace Hybrasyl.Objects
 
         public void SendCastLine(ServerPacket packet)
         {
-            Logger.InfoFormat("SendCastLine");
-            Logger.InfoFormat($"SendCastLine byte format is: {BitConverter.ToString(packet.ToArray())}");
+            Logger.DebugFormat("SendCastLine");
+            Logger.DebugFormat($"SendCastLine byte format is: {BitConverter.ToString(packet.ToArray())}");
             foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>())
             {
                 var nPacket = (ServerPacket)packet.Clone();
-                Logger.InfoFormat($"SendCastLine to {user.Name}");
+                Logger.DebugFormat($"SendCastLine to {user.Name}");
                 user.Enqueue(nPacket);
 
             }
@@ -377,7 +944,7 @@ namespace Hybrasyl.Objects
         }
 
         public virtual bool Walk(Direction direction)
-        {
+        {           
             int oldX = X, oldY = Y, newX = X, newY = Y;
             Rectangle arrivingViewport = Rectangle.Empty;
             Rectangle departingViewport = Rectangle.Empty;
@@ -475,8 +1042,6 @@ namespace Hybrasyl.Objects
             Y = (byte)newY;
             Direction = direction;
 
-
-
             // Objects in the common viewport receive a "walk" (0x0C) packet
             // Objects in the arriving viewport receive a "show to" (0x33) packet
             // Objects in the departing viewport receive a "remove object" (0x0E) packet
@@ -557,23 +1122,13 @@ namespace Hybrasyl.Objects
             }
         }
 
-        //public virtual bool AddItem(ItemObject item, bool updateWeight = true) { return false; }
-        //public virtual bool AddItem(ItemObject item, int slot, bool updateWeight = true) { return false; }
-        //public virtual bool RemoveItem(int slot, bool updateWeight = true) { return false; }
-        //public virtual bool RemoveItem(int slot, int count, bool updateWeight = true) { return false; }
-        //public virtual bool AddEquipment(ItemObject item) { return false; }
-        //public virtual bool AddEquipment(ItemObject item, byte slot, bool sendUpdate = true) { return false; }
-        //public virtual bool RemoveEquipment(byte slot) { return false; }
-
-        public virtual void Heal(double heal, Creature target = null)
+        public virtual void Heal(double heal, Creature source = null)
         {
-            if (target == null) target = this;
-            if (target.AbsoluteImmortal || target.PhysicalImmortal) return;
-            if (target.Hp == target.MaximumHp) return;
+            if (AbsoluteImmortal || PhysicalImmortal) return;
+            if (Hp == MaximumHp) return;
 
-            target.Hp = heal > uint.MaxValue ? target.MaximumHp : Math.Min(target.MaximumHp, (uint)(target.Hp + heal));
-            SendDamageUpdate(target);
-            if (target is User) { target.UpdateAttributes(StatUpdateFlags.Current); }
+            Hp = heal > uint.MaxValue ? MaximumHp : Math.Min(MaximumHp, (uint)(Hp + heal));
+            SendDamageUpdate(this);
         }
 
         public virtual void RegenerateMp(double mp, Creature regenerator = null)
@@ -587,7 +1142,7 @@ namespace Hybrasyl.Objects
             Mp = mp > uint.MaxValue ? MaximumMp : Math.Min(MaximumMp, (uint)(Mp + mp));
         }
 
-        public virtual void Damage(double damage, Enums.Element element = Enums.Element.None, Enums.DamageType damageType = Enums.DamageType.Direct, Creature attacker = null)
+        public virtual void Damage(double damage, Enums.Element element = Enums.Element.None, Enums.DamageType damageType = Enums.DamageType.Direct, Castables.DamageFlags damageFlags = Castables.DamageFlags.None, Creature attacker = null, bool onDeath = true)
         {
             if (damageType == Enums.DamageType.Physical && (AbsoluteImmortal || PhysicalImmortal))
                 return;
@@ -608,16 +1163,19 @@ namespace Hybrasyl.Objects
 
             var normalized = (uint)damage;
 
-            if (normalized > Hp)
+            if (normalized > Hp && damageFlags.HasFlag(Castables.DamageFlags.Nonlethal))
+                normalized = Hp - 1;
+            else if (normalized > Hp)
                 normalized = Hp;
 
             Hp -= normalized;
 
             SendDamageUpdate(this);
-
+            
             OnReceiveDamage();
             
-            if (Hp == 0) OnDeath();
+            // TODO: Separate this out into a control message
+            if (Hp == 0 && onDeath == true) OnDeath();
         }
 
         private void SendDamageUpdate(Creature creature)

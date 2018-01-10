@@ -46,20 +46,27 @@ namespace Hybrasyl.Objects
         public List<string> DeathPileAllowedLooters { get; set; }
         public DateTime? DeathPileTime { get; set; }
 
+        public HashSet<User> viewportUsers { get; private set; }
+
         public VisibleObject()
         {
             DisplayText = string.Empty;
             DeathPileAllowedLooters = new List<string>();
             DeathPileOwner = string.Empty;
             DeathPileTime = null;
+            viewportUsers = new HashSet<User>();
         }
 
         public virtual void AoiEntry(VisibleObject obj)
         {
+            if (obj is User)
+                viewportUsers.Add(obj as User);
         }
 
         public virtual void AoiDeparture(VisibleObject obj)
         {
+            if (obj is User)
+                viewportUsers.Remove(obj as User);
         }
 
         public bool CanBeLooted(string username, out string error)
@@ -168,40 +175,34 @@ namespace Hybrasyl.Objects
 
         public virtual void Say(string message)
         {
-            foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
+            foreach (var user in viewportUsers)
             {
-                if (obj is User)
-                {
-                    var user = obj as User;
-                    var x0D = new ServerPacket(0x0D);
-                    x0D.WriteByte(0x00);
-                    x0D.WriteUInt32(Id);
-                    x0D.WriteString8($"{Name}: {message}");
-                    user.Enqueue(x0D);
-                }
+                var x0D = new ServerPacket(0x0D);
+                x0D.WriteByte(0x00);
+                x0D.WriteUInt32(Id);
+                x0D.WriteString8($"{Name}: {message}");
+                user.Enqueue(x0D);
             }
         }
 
         public virtual void Shout(string message)
         {
-            foreach (var obj in Map.EntityTree.GetObjects(GetShoutViewport()))
+            foreach (var obj in Map.EntityTree.GetObjects(GetShoutViewport()).Where(e => e is User))
             {
-                if (obj is User)
-                {
-                    var user = obj as User;
-                    var x0D = new ServerPacket(0x0D);
-                    x0D.WriteByte(0x01);
-                    x0D.WriteUInt32(Id);
-                    x0D.WriteString8($"{Name}! {message}");
+                var user = obj as User;
+                var x0D = new ServerPacket(0x0D);
+                x0D.WriteByte(0x01);
+                x0D.WriteUInt32(Id);
+                x0D.WriteString8($"{Name}! {message}");
 
-                    user.Enqueue(x0D);
-                }
+                user.Enqueue(x0D);
+
             }
         }
 
         public virtual void Effect(short x, short y, ushort effect, short speed)
         {
-            foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>().Select(obj => obj))
+            foreach (var user in viewportUsers)
             {
                 user.SendEffect(x, y, effect, speed);
             }
@@ -209,17 +210,19 @@ namespace Hybrasyl.Objects
 
         public virtual void Effect(ushort effect, short speed)
         {
-            foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>().Select(obj => obj))
+            foreach (var user in viewportUsers)
             {
                 user.SendEffect(Id, effect, speed);
             }
         }
 
-        public virtual void PlaySound(ServerPacket packet)
+        public virtual void PlaySound(byte Id)
         {
-            foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>().Select(obj => obj))
+            var soundPacket = new ServerPacketStructures.PlaySound() { Sound = Id };
+
+            foreach (var user in viewportUsers)
             {
-                var nPacket = (ServerPacket)packet.Clone();
+                var nPacket = (ServerPacket) soundPacket.Packet().Clone();
                 user.Enqueue(nPacket);
             }
         }

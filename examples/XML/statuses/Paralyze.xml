@@ -1,0 +1,28 @@
+<Status Duration="30" Tick="1" Icon="97" Name="Paralyze">
+  <Category>Paralyze</Category>
+  <ProhibitedMessage>You cannot move!</ProhibitedMessage>
+  <CastRestrictions Use="Heal" Receive="Heal"/>
+  <Effects>
+    <OnApply>
+      <Messages>
+        <Target>You are paralyzed!</Target>
+      </Messages>
+      <Conditions>
+        <Set condition="Paralyze"/>
+      </Conditions>
+    </OnApply>
+    <OnTick>
+      <Animations>
+	<Target Id="41"/>
+      </Animations>
+    </OnTick>
+    <OnRemove>
+      <Messages>
+        <Target>You can move again.</Target>
+      </Messages>
+      <Conditions>
+        <UnSet condition="Paralyze"/>
+      </Conditions>
+    </OnRemove>
+  </Effects>
+</Status>

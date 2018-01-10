@@ -9,6 +9,7 @@
       Written by Justin Baugh (baughj@hybrasyl.com)
     </xs:documentation>
   </xs:annotation>
+
   <xs:import schemaLocation="hybrasylTypes.xsd" namespace="http://www.hybrasyl.com/XML/HybrasylCommon" />
 
   <xs:complexType name="DataStore">
@@ -108,7 +109,6 @@
   <xs:complexType name="Time">
     <xs:sequence>
       <xs:element name="Ages" type="config:HybrasylAges" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="StartDate" type="xs:dateTime" minOccurs="0" maxOccurs="1"/>
       <xs:element name="ServerStart" type="config:ServerStart" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
   </xs:complexType>
@@ -167,19 +167,24 @@
   </xs:complexType>
   
   <xs:complexType name="DeathComa">
-    <xs:attribute name="Timeout" default="30" use="optional"/>  
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="Timeout" type="xs:int" default="30"/>
+        <xs:attribute name="Effect" type="xs:unsignedShort" default="24"/>
+      </xs:extension>
+    </xs:simpleContent>
   </xs:complexType>
   
   <xs:complexType name="DeathPenalty">
-    <xs:attribute name="Xp" type="xs:unsignedInt" default="5" use="optional"/>
-    <xs:attribute name="Hp" type="xs:unsignedInt" default="5" use="optional"/>
+    <xs:attribute name="Xp" type="xs:string" default="0.05"/>
+    <xs:attribute name="Hp" type="xs:string" default="0.05"/>
   </xs:complexType>
 
   <xs:complexType name="DeathLegendMark">
     <xs:simpleContent>
       <xs:extension base="hyb:String8">
-        <xs:attribute name="Prefix" type="hyb:String8" use="required"/>
-        <xs:attribute name="Increment" type="xs:boolean" use="required"/>
+        <xs:attribute name="Prefix" type="hyb:String8" default="deaths"/>
+        <xs:attribute name="Increment" type="xs:boolean" default="true"/>
       </xs:extension>
     </xs:simpleContent>
   </xs:complexType>

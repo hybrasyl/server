@@ -60,7 +60,7 @@ namespace Hybrasyl
         {
             if (_dataStore.ContainsKey(typeof(T)))
             {
-                return (T) _dataStore[typeof(T)][key.ToString()];
+                return (T) _dataStore[typeof(T)][key.ToString().ToLower()];
             }
             return default(T);
         }
@@ -93,8 +93,8 @@ namespace Hybrasyl
         {
             tresult = default(T);
             var sub = GetSubStore<T>();
-            if (!sub.ContainsKey(key.ToString())) return false;
-            tresult = (T) sub[key.ToString()];
+            if (!sub.ContainsKey(key.ToString().ToLower())) return false;
+            tresult = (T) sub[key.ToString().ToLower()];
             return true;
         }
 
@@ -121,7 +121,7 @@ namespace Hybrasyl
         /// <param name="key">The key to be used for the object</param>
         /// <param name="value">The actual object to be stored</param>
         /// <returns>Boolean indicating success</returns>
-        public bool Set<T>(dynamic key, T value) => GetSubStore<T>().TryAdd(key.ToString(), value);
+        public bool Set<T>(dynamic key, T value) => GetSubStore<T>().TryAdd(key.ToString().ToLower(), value);
 
         /// <summary>
         /// Store an object in the datastore with the given key and index key.
@@ -131,8 +131,7 @@ namespace Hybrasyl
         /// <param name="value">The actual object to be stored</param>
         /// <param name="index">The index key for the object</param>
         /// <returns>Boolean indicating success</returns>
-        public bool SetWithIndex<T>(dynamic key, T value, dynamic index) => GetSubStore<T>().TryAdd(key.ToString(), value) &&
-            GetSubIndex<T>().TryAdd(index, value);
+        public bool SetWithIndex<T>(dynamic key, T value, dynamic index) => GetSubStore<T>().TryAdd(key.ToString().ToLower(), value) && GetSubIndex<T>().TryAdd(index, value);
    
 
         /// <summary>
@@ -155,7 +154,7 @@ namespace Hybrasyl
         /// <typeparam name="T">The type to check</typeparam>
         /// <param name="key">The key to check</param>
         /// <returns>Boolean indicating whether or not the key exists</returns>
-        public bool ContainsKey<T>(dynamic key) => GetSubStore<T>().ContainsKey(key.ToString());
+        public bool ContainsKey<T>(dynamic key) => GetSubStore<T>().ContainsKey(key.ToString().ToLower());
 
         /// <summary>
         /// Return a count of typed objects in the datastore.

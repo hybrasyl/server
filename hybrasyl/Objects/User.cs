@@ -40,6 +40,7 @@ using Hybrasyl.Items;
 using Class = Hybrasyl.Castables.Class;
 using Motion = Hybrasyl.Castables.Motion;
 using System.Globalization;
+using Hybrasyl.Statuses;
 
 namespace Hybrasyl.Objects
 {
@@ -91,6 +92,8 @@ namespace Hybrasyl.Objects
                LogManager.GetLogger(
                System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
+        private static readonly ILog ActivityLogger = LogManager.GetLogger("UserActivityLogger");
+
         public static string GetStorageKey(string name)
         {
             return string.Concat(typeof(User).Name, ':', name.ToLower());
@@ -108,15 +111,6 @@ namespace Hybrasyl.Objects
         [JsonProperty]
         public bool IsMaster { get; set; }
         public UserGroup Group { get; set; }
-
-        public bool Dead => !Status.HasFlag(PlayerCondition.Alive);
-        public bool IsCasting => Status.HasFlag(PlayerCondition.Casting);
-
-        public bool CanCast
-            =>
-            !(Status.HasFlag(PlayerCondition.Asleep) ||
-              Status.HasFlag(PlayerCondition.Frozen) || Status.HasFlag(PlayerCondition.Paralyzed));
-
 
         public Mailbox Mailbox => World.GetMailbox(Name);
         public bool UnreadMail => Mailbox.HasUnreadMessages;
@@ -176,7 +170,8 @@ namespace Hybrasyl.Objects
         [JsonProperty]
         public GuildMembership Guild { get; set; }
 
-        [JsonProperty] private ConcurrentDictionary<ushort, IPlayerStatus> _currentStatuses;
+        public List<string> UseCastRestrictions => _currentStatuses.Select(e => e.Value.UseCastRestrictions).Where(e => e != string.Empty).ToList();
+        public List<string> ReceiveCastRestrictions => _currentStatuses.Select(e => e.Value.ReceiveCastRestrictions).Where(e => e != string.Empty).ToList();
 
         private Nation _nation;
 
@@ -215,13 +210,7 @@ namespace Hybrasyl.Objects
 
         public Exchange ActiveExchange { get; set; }
 
-        [JsonProperty]
-        public PlayerCondition Status { get; set; }
-
-        public bool IsAvailableForExchange
-        {
-            get { return Status == Enums.PlayerCondition.Alive; }
-        }
+        public bool IsAvailableForExchange => Condition.NoFlags;
         #endregion
 
         /// <summary>
@@ -326,12 +315,14 @@ namespace Hybrasyl.Objects
 
         public override void AoiEntry(VisibleObject obj)
         {
+            base.AoiEntry(obj);
             Logger.DebugFormat("Showing {0} to {1}", Name, obj.Name);
             obj.ShowTo(this);
         }
 
         public override void AoiDeparture(VisibleObject obj)
         {
+            base.AoiDeparture(obj);
             Logger.DebugFormat("Removing ItemObject with ID {0}", obj.Id);
             var removePacket = new ServerPacket(0x0E);
             removePacket.WriteUInt32(obj.Id);
@@ -347,93 +338,6 @@ namespace Hybrasyl.Objects
             Enqueue(removePacket);
         }
 
-        #region Status handling
-
-        /// <summary>
-        /// Apply a given status to a player.
-        /// </summary>
-        /// <param name="status">The status to apply to the player.</param>
-        public bool ApplyStatus(IPlayerStatus status)
-        {
-            if (!_currentStatuses.TryAdd(status.Icon, status)) return false;
-            SendStatusUpdate(status);
-            status.OnStart();
-            return true;
-        }
-
-        /// <summary>
-        /// Remove a status from a client, firing the appropriate OnEnd events and removing the icon from the status bar.
-        /// </summary>
-        /// <param name="status">The status to remove.</param>
-        /// <param name="onEnd">Whether or not to run the onEnd event for the status removal.</param>
-        private void _removeStatus(IPlayerStatus status, bool onEnd = true)
-        {
-            if (onEnd)
-                status.OnEnd();
-            SendStatusUpdate(status, true);
-        }
-
-        /// <summary>
-        /// Remove a status from a client.
-        /// </summary>
-        /// <param name="icon">The icon of the status we are removing.</param>
-        /// <param name="onEnd">Whether or not to run the onEnd effect for the status.</param>
-        /// <returns></returns>
-        public bool RemoveStatus(ushort icon, bool onEnd = true)
-        {
-            IPlayerStatus status;
-            if (!_currentStatuses.TryRemove(icon, out status)) return false;
-            _removeStatus(status, onEnd);
-            return true;
-        }
-
-        public bool TryGetStatus(string name, out IPlayerStatus status)
-        {
-            status = _currentStatuses.Values.FirstOrDefault(s => s.Name == name);
-            return status != null;
-        }
-
-        /// <summary>
-        /// Remove all statuses from a user.
-        /// </summary>
-        public void RemoveAllStatuses()
-        {
-            lock (_currentStatuses)
-            {
-                foreach (var status in _currentStatuses.Values)
-                {
-                    _removeStatus(status, false);
-                }
-
-                _currentStatuses.Clear();
-                Logger.Debug($"Current status count is {_currentStatuses.Count}");
-            }
-        }
-
-        /// <summary>
-        /// Process all the given status ticks for a user's active statuses.
-        /// </summary>
-        public void ProcessStatusTicks()
-        {
-            foreach (var kvp in _currentStatuses)
-            {
-                Logger.DebugFormat("OnTick: {0}, {1}", Name, kvp.Value.Name);
-
-                if (kvp.Value.Expired)
-                {
-                    var removed = RemoveStatus(kvp.Key);
-                    Logger.DebugFormat($"Status {kvp.Value.Name} has expired: removal was {removed}");
-                }
-
-                if (kvp.Value.ElapsedSinceTick >= kvp.Value.Tick)
-                {
-                    kvp.Value.OnTick();
-                    SendStatusUpdate(kvp.Value);
-                }
-            }
-        }
-
-        public int ActiveStatusCount => _currentStatuses.Count;
 
         /// <summary>T
         /// Send a status bar update to the client based on the state of a given status.
@@ -441,7 +345,7 @@ namespace Hybrasyl.Objects
         /// <param name="status">The status to update on the client side.</param>
         /// <param name="remove">Force removal of the status</param>
 
-        public virtual void SendStatusUpdate(IPlayerStatus status, bool remove = false)
+        public virtual void SendStatusUpdate(ICreatureStatus status, bool remove = false)
         {
             var statuspacket = new ServerPacketStructures.StatusBar { Icon = status.Icon };
             var elapsed = DateTime.Now - status.Start;
@@ -461,80 +365,26 @@ namespace Hybrasyl.Objects
             if (remove || status.Expired)
                 color = StatusBarColor.Off;
 
-            Logger.DebugFormat("StackTrace: '{0}'", Environment.StackTrace);
-
             statuspacket.BarColor = color;
             Logger.DebugFormat($"{Name} - status update - sending Icon: {statuspacket.Icon}, Color: {statuspacket.BarColor}");
             Logger.DebugFormat($"{Name} - status: {status.Name}, expired: {status.Expired}, remaining: {remaining}, duration: {status.Duration}");
             Enqueue(statuspacket.Packet());
         }
 
-        #region Toggles for statuses
-
-        /// <summary>
-        /// Toggle whether or not the user is frozen.
-        /// </summary>
-        public void ToggleFreeze()
-        {
-            Status ^= PlayerCondition.Frozen;
-        }
-
-        /// <summary>
-        /// Toggle whether or not the user is asleep.
-        /// </summary>
-        public void ToggleAsleep()
-        {
-            Status ^= PlayerCondition.Asleep;
-        }
-
-        /// <summary>
-        /// Toggle whether or not the user is blind.
-        /// </summary>
-        public void ToggleBlind()
-        {
-            Status ^= PlayerCondition.Blinded;
-            UpdateAttributes(StatUpdateFlags.Secondary);
-        }
-
-        /// <summary>
-        /// Toggle whether or not the user is paralyzed.
-        /// </summary>
-        public void ToggleParalyzed()
-        {
-            Status ^= PlayerCondition.Paralyzed;
-            UpdateAttributes(StatUpdateFlags.Secondary);
-        }
-
-        /// <summary>
-        /// Toggle whether or not the user is near death (in a coma).
-        /// </summary>
-        public void ToggleNearDeath()
-        {
-            if (Status.HasFlag(PlayerCondition.InComa))
-            {
-                Status &= ~PlayerCondition.InComa;
-                Group?.SendMessage($"{Name} has recovered!");
-            }
-            else
-                Status |= PlayerCondition.InComa;
-        }
-
-        /// <summary>
-        /// Toggle whether or not a user is alive.
-        /// </summary>
-        public void ToggleAlive()
-        {
-            Status ^= PlayerCondition.Alive;
-            UpdateAttributes(StatUpdateFlags.Secondary);
-        }
-
-        #endregion
-
         /// <summary>
         /// Sadly, all things in this world must come to an end.
         /// </summary>
         public override void OnDeath()
         {
+            var handler = Game.Config.Handlers?.Death;
+            if (!(handler?.Active ?? true))
+            {
+                SendSystemMessage("Death disabled by server configuration");
+                Hp = 1;
+                UpdateAttributes(StatUpdateFlags.Full);
+                return;
+            }
+
             var timeofdeath = DateTime.Now;
             var looters = Group?.Members.Select(user => user.Name).ToList() ?? new List<string>();
 
@@ -542,7 +392,8 @@ namespace Hybrasyl.Objects
             RemoveAllStatuses();
 
             // We are now quite dead, not mostly dead
-            Status &= ~PlayerCondition.InComa;
+
+            Condition.Comatose = false;
 
             // First: break everything that is breakable in the inventory
             for (byte i = 0; i <= Inventory.Size; ++i)
@@ -550,7 +401,7 @@ namespace Hybrasyl.Objects
                 if (Inventory[i] == null) continue;
                 var theItem = Inventory[i];
                 RemoveItem(i);
-                if (theItem.Perishable) continue;
+                if (theItem.Perishable && (handler?.Perishable ?? true)) continue;
                 theItem.DeathPileOwner = Name;
                 theItem.DeathPileTime = timeofdeath;
                 theItem.DeathPileAllowedLooters = looters;
@@ -561,7 +412,7 @@ namespace Hybrasyl.Objects
             foreach (var item in Equipment)
             {
                 RemoveEquipment(item.EquipmentSlot);
-                if (item.Perishable) continue;
+                if (item.Perishable && (handler?.Perishable ?? true)) continue;
                 if (item.Durability > 10)
                     item.Durability = (uint)Math.Ceiling(item.Durability * 0.90);
                 else
@@ -588,21 +439,47 @@ namespace Hybrasyl.Objects
             }
 
             // Experience penalty
-            if (Experience > 1000)
-            {
-                var expPenalty = (uint)Math.Ceiling(Experience * 0.05);
-                Experience -= expPenalty;
-                SendSystemMessage($"You lose {expPenalty} experience!");
+            if (handler?.Penalty != null) {
+                if (Experience > 1000)
+                {
+                    uint expPenalty;
+                    if (handler.Penalty.Xp.Contains('.'))
+                        expPenalty = (uint)Math.Ceiling(Experience * Convert.ToDouble(handler.Penalty.Xp));
+                    else
+                        expPenalty = Convert.ToUInt32(handler.Penalty.Xp);
+                    Experience -= expPenalty;
+                    SendSystemMessage($"You lose {expPenalty} experience!");
+                }
+                if (BaseHp >= 51 && Level == 99)
+                {
+                    uint hpPenalty;
+
+                    if (handler.Penalty.Xp.Contains('.'))
+                        hpPenalty = (uint)Math.Ceiling(Experience * Convert.ToDouble(handler.Penalty.Hp));
+                    else
+                        hpPenalty = Convert.ToUInt32(handler.Penalty.Hp);
+
+                    BaseHp -= hpPenalty;
+                    SendSystemMessage($"You lose {hpPenalty} HP!");
+                }
             }
             Hp = 0;
             Mp = 0;
+            Condition.Alive = false;
             UpdateAttributes(StatUpdateFlags.Full);
-
-            Status &= ~PlayerCondition.Alive;
             Effect(76, 120);
             SendSystemMessage("Your items are ripped from your body.");
-            Teleport("Chaotic Threshold", 10, 10);
-            Group?.SendMessage($"{Name} has died!");
+
+            if (Game.Config.Handlers?.Death?.Map != null) {
+                Teleport(Game.Config.Handlers.Death.Map.Value,
+                    Game.Config.Handlers.Death.Map.X,
+                    Game.Config.Handlers.Death.Map.Y);
+            }
+
+            if (Game.Config.Handlers?.Death?.GroupNotify ?? true)
+                Group?.SendMessage($"{Name} has died!");
+            
+
         }
 
 
@@ -611,15 +488,11 @@ namespace Hybrasyl.Objects
         /// </summary>
         public void EndComa()
         {
-            if (!Status.HasFlag(PlayerCondition.InComa)) return;
-            ToggleNearDeath();
-            var bar = RemoveStatus(NearDeathStatus.Icon, false);
-            Logger.Debug($"EndComa: {Name}: removestatus for coma is {bar}");
-
-            foreach (var status in _currentStatuses.Values)
-            {
-                Logger.Debug($"EXTANT STATUSES: {status.Name} with duration {status.Duration}");
-            }
+            if (!Condition.Comatose) return;
+            Condition.Comatose = false;
+            var handler = Game.Config.Handlers?.Death;
+            if (handler?.Coma != null && Game.World.WorldData.TryGetValueByIndex(handler.Coma.Value, out Status status))
+                RemoveStatus(status.Icon, false);
         }
 
         /// <summary>
@@ -627,8 +500,9 @@ namespace Hybrasyl.Objects
         /// </summary>
         public void Resurrect()
         {
+            var handler = Game.Config.Handlers?.Death;
             // Teleport user to national spawn point
-            Status |= PlayerCondition.Alive;
+            Condition.Alive = true;
             if (Nation.SpawnPoints.Count != 0)
             {
                 var spawnpoint = Nation.RandomSpawnPoint;
@@ -646,20 +520,20 @@ namespace Hybrasyl.Objects
 
             UpdateAttributes(StatUpdateFlags.Full);
 
-            LegendMark deathMark;
-
-            if (Legend.TryGetMark("scars", out deathMark))
+            if (handler.LegendMark != null)
             {
-                deathMark.AddQuantity(1);
+                LegendMark deathMark;
+
+                if (Legend.TryGetMark(handler.LegendMark.Prefix, out deathMark) && handler.LegendMark.Increment)
+                {
+                    deathMark.AddQuantity(1);
+                }
+                else
+                    Legend.AddMark(LegendIcon.Community, LegendColor.Orange, handler.LegendMark.Value, DateTime.Now, handler.LegendMark.Prefix, true,
+                        1);
+
             }
-            else
-                Legend.AddMark(LegendIcon.Community, LegendColor.Orange, "Scar of Sgrios", DateTime.Now, "scars", true,
-                    1);
-
-
         }
-
-        #endregion
 
         public string GroupText
         {
@@ -701,7 +575,7 @@ namespace Hybrasyl.Objects
             return BCrypt.Net.BCrypt.Verify(password, Password.Hash);
         }
 
-        public User()
+        public User() : base()
         {
             _initializeUser();
         }
@@ -726,10 +600,9 @@ namespace Hybrasyl.Objects
             DialogState = new DialogState(this);
             UserFlags = new Dictionary<string, string>();
             UserSessionFlags = new Dictionary<string, string>();
-            Status = PlayerCondition.Alive;
             Group = null;
             Flags = new Dictionary<string, bool>();
-            _currentStatuses = new ConcurrentDictionary<ushort, IPlayerStatus>();
+            _currentStatuses = new ConcurrentDictionary<ushort, ICreatureStatus>();
 
             #region Appearance defaults
             RestPosition = RestPosition.Standing;
@@ -989,10 +862,10 @@ namespace Hybrasyl.Objects
             switch (toApply.EquipmentSlot)
             {
                 case (byte)ItemSlots.Necklace:
-                    OffensiveElement = toApply.Element;
+                    BaseOffensiveElement = toApply.Element;
                     break;
                 case (byte)ItemSlots.Waist:
-                    DefensiveElement = toApply.Element;
+                    BaseDefensiveElement = toApply.Element;
                     break;
             }
 
@@ -1025,10 +898,10 @@ namespace Hybrasyl.Objects
             switch (toRemove.EquipmentSlot)
             {
                 case (byte)ItemSlots.Necklace:
-                    OffensiveElement = Enums.Element.None;
+                    BaseOffensiveElement = Enums.Element.None;
                     break;
                 case (byte)ItemSlots.Waist:
-                    DefensiveElement = Enums.Element.None;
+                    BaseDefensiveElement = Enums.Element.None;
                     break;
             }
 
@@ -1139,6 +1012,7 @@ namespace Hybrasyl.Objects
             if (Map.Music != 0xFF && Map.Music != CurrentMusicTrack) SendMusic(Map.Music);
             if (!string.IsNullOrEmpty(Map.Message)) SendMessage(Map.Message, 18);
         }
+
         public override void SendLocation()
         {
             var x04 = new ServerPacket(0x04);
@@ -1260,162 +1134,94 @@ namespace Hybrasyl.Objects
         internal void UseSkill(byte slot)
         {
             var castable = SkillBook[slot];
-            if (canCast(castable))
+            if (castable.OnCooldown)
             {
-                bool spellCast = false;
-                foreach (var tar in PossibleTargets(castable))
-                {
-                    bool canAttack = !(tar is Merchant || (tar is User && (!(tar as User).Status.HasFlag(PlayerCondition.Pvp))));
-                    if (canAttack)
-                    {
-                        Attack(castable, tar);
-                        spellCast = true;
-                    }
-                }
-                if (spellCast) CastingCost(castable);
-
+                SendSystemMessage("You must wait longer to use that.");
+                return;
+            }
+            if (UseCastable(castable))
+            {
                 Client.Enqueue(new ServerPacketStructures.Cooldown()
                 {
                     Length = (uint)castable.Cooldown,
                     Pane = 1,
                     Slot = slot
-                }.Packet()); ;
+                }.Packet());
             }
+            else
+                SendSystemMessage("Failed.");
         }
 
         internal void UseSpell(byte slot, uint target = 0)
         {
             var castable = SpellBook[slot];
             Creature targetCreature = Map.EntityTree.OfType<Creature>().SingleOrDefault(x => x.Id == target) ?? null;
-            if (canCast(castable))
+
+            if (castable.OnCooldown)
             {
-                if(castable.Effects.Damage != null)
-                {
-                    List<Creature> targets = new List<Creature>();
-                    bool spellCast = false;
-                    if (targetCreature != null)
-                    {
-                        targets.Add(targetCreature);
-                    }
-                    else
-                    {
-                        targets = PossibleTargets(castable);
-                    }
-
-                    foreach(var tar in targets)
-                    {
-                        bool canAttack = !(tar is Merchant || (tar is User && (!(tar as User).Status.HasFlag(PlayerCondition.Pvp))));
-                        if (canAttack)
-                        {
-                            Attack(castable, tar);
-                            spellCast = true;
-                        }
-                    }
-                    if(spellCast) CastingCost(castable);
-                }
-                else if(castable.Effects.Heal != null)
-                {
-                    List<Creature> targets = new List<Creature>();
-                    bool spellCast = false;
-                    if (targetCreature != null)
-                    {
-                        targets.Add(targetCreature);
-                    }
-                    else
-                    {
-                        targets = PossibleTargets(castable);
-                    }
-
-                    foreach (var tar in targets)
-                    {
-                        bool canHeal = !(tar is Monster);
-                        if (canHeal)
-                        {
-                            HealTarget(castable, tar);
-                            spellCast = true;
-                        }
-                    }
-                    if(spellCast) CastingCost(castable);
-                }
-                else
-                {
-                    this.SendSystemMessage("Having no objective in mind, the spell dissipates.");
-                }
+                SendSystemMessage("You must wait longer to use that.");
+                return;
             }
+
+            if (UseCastRestrictions.Contains(castable.Categories.Category.Value))
+            {
+                SendSystemMessage("You cannot cast that now.");
+                return;
+            }
+            if (UseCastable(castable, targetCreature))
+            {
+                SpellBook[slot].LastCast = DateTime.Now;
+                Client.Enqueue(new ServerPacketStructures.Cooldown()
+                {
+                    Length = (uint)castable.Cooldown,
+                    Pane = 0,
+                    Slot = slot
+                }.Packet());
+            }
+            else
+                SendSystemMessage("Failed.");
         }
 
-        public bool canCast(Castable castable)
+        /// <summary>
+        /// Process the casting cost for a castable. If all requirements were not met, return false.
+        /// </summary>
+        /// <param name="castable">The castable that is being cast.</param>
+        /// <returns>True or false depending on success.</returns>
+        public bool ProcessCastingCost(Castable castable)
         {
-            var costs = castable.CastCosts.CastCost;
+            if (castable.CastCosts?.CastCost == null) return true;
 
-            if (double.TryParse(costs.Stat.Hp, out double hpCostPercent))
-            {
-                if (hpCostPercent != 0)
-                {
-                    uint reduceHp = (uint)Math.Ceiling(this.MaximumHp * hpCostPercent);
-                    if (reduceHp >= this.Hp) return false;
-                }
-            }
-
-            if (double.TryParse(costs.Stat.Mp, out double mpCostPercent))
-            {
-                if (mpCostPercent != 0)
-                {
-                    uint reduceMp = (uint)Math.Ceiling(this.MaximumMp * mpCostPercent);
-                    if (reduceMp > this.Mp) return false;
-                }
-            }
-
-            if (costs.Gold > this.Gold) return false;
-
-
-            if (costs.Items != null)
-            {
-                foreach (var item in costs.Items)
-                {
-                    if (item != null)
-                    {
-                        if (!(Inventory.Contains(item.Value, item.Quantity))) return false;
-                    }
-                }
-            }
-
-            return true;
-        }
-
-        public void CastingCost(Castable castable)
-        {
             var costs = castable.CastCosts.CastCost;
             uint reduceHp = 0;
             uint reduceMp = 0;
             int removeNumItems = 0;
 
-            if (double.TryParse(costs.Stat.Hp, out double hpCostPercent))
-            {
-                if (hpCostPercent != 0)
-                {
-                    reduceHp = (uint)Math.Ceiling(this.MaximumHp * hpCostPercent);
-                }
-            }
+            // HP cost can be either a percentage (0.25) or a fixed amount (50)
+            if (costs.Stat?.Hp != null)
+                if (costs.Stat.Hp.Contains('.'))
+                    reduceHp = (uint) Math.Ceiling(Convert.ToDouble(costs.Stat.Hp) * this.MaximumHp);
+                else 
+                    reduceHp = Convert.ToUInt32(costs.Stat.Hp);
+            if (costs.Stat?.Mp != null)
+                if (costs.Stat.Mp.Contains('.'))
+                    reduceMp = (uint)Math.Ceiling(Convert.ToDouble(costs.Stat.Mp) * this.MaximumMp);
+                else
+                    reduceMp = Convert.ToUInt32(costs.Stat.Mp);
 
-            if (double.TryParse(costs.Stat.Mp, out double mpCostPercent))
-            {
-                if (mpCostPercent != 0)
-                {
-                    reduceMp = (uint)Math.Ceiling(this.MaximumMp * mpCostPercent);
-                }
-            }
-
+            
             if (costs.Items != null)
             {
                 foreach (var item in costs.Items)
                 {
-                    if (item != null)
-                    {
-                        if (Inventory.Contains(item.Value, item.Quantity)) removeNumItems++;
-                    }
+                    if (Inventory.Contains(item.Value, item.Quantity)) removeNumItems++;
                 }
             }
+
+            // Check that all requirements are met first. Note that a spell cannot be cast if its HP cost would result
+            // in the caster's HP being reduced to zero.
+            if (reduceHp > Hp || reduceMp >= Mp || costs.Gold > Gold || (removeNumItems != 0 && costs.Items.Count == removeNumItems)) return false;
+
+            if (costs.Gold > this.Gold) return false;
 
             if (reduceHp != 0) this.Hp -= reduceHp;
             if (reduceMp != 0) this.Mp -= reduceMp;
@@ -1428,6 +1234,7 @@ namespace Hybrasyl.Objects
                 }                
             }
             UpdateAttributes(StatUpdateFlags.Current);
+            return true;
         }
 
         public void SendVisibleItem(ItemObject itemObject)
@@ -1470,7 +1277,7 @@ namespace Hybrasyl.Objects
         public void SendUpdateToUser(Client client)
         {
             var offset = Equipment.Armor?.BodyStyle ?? 0;
-            if (!Status.HasFlag(PlayerCondition.Alive))
+            if (!Condition.Alive)
                 offset += 0x20;
 
             Logger.Debug($"Offset is: {offset.ToString("X")}");
@@ -1628,7 +1435,7 @@ namespace Hybrasyl.Objects
             var x2C = new ServerPacket(0x2C);
             x2C.WriteByte((byte)slot);
             x2C.WriteUInt16((ushort)(item.Icon));
-            x2C.WriteString8(Class == Enums.Class.Peasant ? item.Name : $"{item.Name} (Lev:{item.CastableLevel}/{GetCastableMaxLevel(item)}");
+            x2C.WriteString8(Class == Enums.Class.Peasant ? item.Name : $"{item.Name} (Lev:{item.CastableLevel}/{GetCastableMaxLevel(item)})");
             Enqueue(x2C);
         }
 
@@ -1647,7 +1454,7 @@ namespace Hybrasyl.Objects
             var spellType = item.Intents[0].UseType;
             //var spellType = isClick ? 2 : 5;
             x17.WriteByte((byte)spellType); //spell type? how are we determining this?
-            x17.WriteString8(Class == Enums.Class.Peasant ? item.Name : $"{item.Name} (Lev:{item.CastableLevel}/{GetCastableMaxLevel(item)}");
+            x17.WriteString8(Class == Enums.Class.Peasant ? item.Name : $"{item.Name} (Lev:{item.CastableLevel}/{GetCastableMaxLevel(item)})");
             x17.WriteString8(item.Name); //prompt? what is this?
             x17.WriteByte((byte)item.Lines);
             Enqueue(x17);
@@ -1741,7 +1548,7 @@ namespace Hybrasyl.Objects
             if (flags.HasFlag(StatUpdateFlags.Secondary))
             {
                 x08.WriteByte(0); //Unknown
-                x08.WriteByte((byte)(Status.HasFlag(PlayerCondition.Blinded) ? 0x08 : 0x00));
+                x08.WriteByte((byte)(Condition.Blinded ? 0x08 : 0x00));
                 x08.WriteByte(0); // Unknown
                 x08.WriteByte(0); // Unknown
                 x08.WriteByte(0); // Unknown
@@ -2303,604 +2110,60 @@ namespace Hybrasyl.Objects
         }
 
         public override void Damage(double damage, Enums.Element element = Enums.Element.None,
-            Enums.DamageType damageType = Enums.DamageType.Direct, Creature attacker = null)
+            Enums.DamageType damageType = Enums.DamageType.Direct, Castables.DamageFlags damageFlags = Castables.DamageFlags.None, Creature attacker = null, bool onDeath=true)
         {
-            if (Status.HasFlag(PlayerCondition.InComa) || !Status.HasFlag(PlayerCondition.Alive)) return;
-            base.Damage(damage, element, damageType, attacker);
+            if (Condition.Comatose || !Condition.Alive) return;
+            base.Damage(damage, element, damageType, damageFlags, attacker);
             if (Hp == 0)
             {
-                Hp = 1;
-                if (Group != null)
-                    ApplyStatus(new NearDeathStatus(this, 30, 1));
+                if (Group != null) {
+                    Hp = 1;
+                    var handler = Game.Config.Handlers?.Death?.Coma;
+                    if (handler != null && World.WorldData.TryGetValueByIndex(handler.Value, out Status status))
+                        ApplyStatus(new CreatureStatus(status, this));
+                    else
+                    {
+                        Logger.Warn("No coma handler or status found - user {Name} died!");
+                        OnDeath();
+                    }
+                }
                 else
                     OnDeath();
             }
             UpdateAttributes(StatUpdateFlags.Current);
         }
 
-        //below method might not be needed.
-        public override void Attack(Direction direction, Castable castObject = null, Creature target = null)
+        public override void Heal(double heal, Creature source = null)
         {
-            if (target != null)
-            {
-                var damage = castObject.Effects.Damage;
-
-                Random rand = new Random();
-
-                if (damage.Formula == null) //will need to be expanded. also will need to account for damage scripts
-                {
-                    var simple = damage.Simple;
-                    var damageType = EnumUtil.ParseEnum<Enums.DamageType>(damage.Type.ToString(),
-                        Enums.DamageType.Magical);
-                    var dmg = rand.Next(Convert.ToInt32(simple.Min), Convert.ToInt32(simple.Max));
-                    //these need to be set to integers as attributes. note to fix.
-                    target.Damage(dmg, OffensiveElement, damageType, this);
-                }
-                else
-                {
-                    var formula = damage.Formula;
-                    var damageType = EnumUtil.ParseEnum<Enums.DamageType>(damage.Type.ToString(),
-                        Enums.DamageType.Magical);
-                    FormulaParser parser = new FormulaParser(this, castObject, target);
-                    var dmg = parser.Eval(formula);
-                    if (dmg == 0) dmg = 1;
-                    target.Damage(dmg, OffensiveElement, damageType, this);
-                }
-                //var dmg = rand.Next(Convert.ToInt32(simple.Min), Convert.ToInt32(simple.Max));
-                //these need to be set to integers as attributes. note to fix.
-                //target.Damage(dmg, OffensiveElement, damage.Type, this);
-            }
-            else
-            {
-                //var formula = damage.Formula;
-            }
+            base.Heal(heal, source);
+            if (this is User) { UpdateAttributes(StatUpdateFlags.Current); }
         }
 
-        public override void Attack(Castable castObject, Creature target = null)
+
+
+        public override bool UseCastable(Castable castObject, Creature target = null)
         {
-            var direction = this.Direction;
-            if (target == null)
+            if (!ProcessCastingCost(castObject)) return false;
+            if (base.UseCastable(castObject, target))
             {
-                Attack(castObject);
+                // This may need to occur elsewhere, depends on how it looks in game
+                if (castObject.TryGetMotion((Class)Class, out Motion motion))
+                    SendMotion(Id, motion.Id, motion.Speed);
+                return true;
             }
-            else
-            {
-                var damage = castObject.Effects.Damage;
-                if (damage != null)
-                {
-                    //TODO: if a castable is targetable, does intent matter?
-                    var intents = castObject.Intents;
-                    foreach (var intent in intents)
-                    {
-                        Random rand = new Random();
-
-                        if (damage.Formula == null)
-                        //will need to be expanded. also will need to account for damage scripts
-                        {
-                            var simple = damage.Simple;
-                            var damageType = EnumUtil.ParseEnum(damage.Type.ToString(), (Enums.DamageType)castObject.Effects.Damage.Type);
-                            var dmg = rand.Next(Convert.ToInt32(simple.Min), Convert.ToInt32(simple.Max));
-                            //these need to be set to integers as attributes. note to fix.
-                            target.Damage(dmg, OffensiveElement, damageType, this);
-                        }
-                        else
-                        {
-                            var formula = damage.Formula;
-                            var damageType = EnumUtil.ParseEnum(damage.Type.ToString(), (Enums.DamageType)castObject.Effects.Damage.Type);
-                            var parser = new FormulaParser(this, castObject, target);
-                            var dmg = parser.Eval(formula);
-                            if (dmg == 0) dmg = 1;
-                            target.Damage(dmg, OffensiveElement, damageType, this);
-                        }
-
-                        if (castObject.Effects.Animations.OnCast.Target == null) continue;
-                        var effectAnimation = new ServerPacketStructures.EffectAnimation()
-                        {
-                            SourceId = this.Id,
-                            Speed = (short)castObject.Effects.Animations.OnCast.Target.Speed,
-                            TargetId = target.Id,
-                            TargetAnimation = castObject.Effects.Animations.OnCast.Target.Id
-                        };
-                        Enqueue(effectAnimation.Packet());
-                        SendAnimation(effectAnimation.Packet());
-                    }
-                }
-
-                Motion motion;
-
-                try
-                {
-                    motion = castObject.Effects.Animations.OnCast.Player.SingleOrDefault(x => x.Class.Contains((Class)Class));
-                }
-                catch (InvalidOperationException)
-                {
-                    motion = castObject.Effects.Animations.OnCast.Player.FirstOrDefault(x => x.Class.Contains((Class)Class));
-
-                    Logger.ErrorFormat("{1}: contains more than one motion for a class definition, using first one found!", castObject.Name);
-                }
-
-                var sound = new ServerPacketStructures.PlaySound { Sound = (byte)castObject.Effects.Sound.Id };
-
-                if (motion != null)
-                {
-                    var playerAnimation = new ServerPacketStructures.PlayerAnimation()
-                    {
-                        Animation = (byte)motion.Id,
-                        Speed = (ushort)motion.Speed,
-                        UserId = Id
-                    };
-                    Enqueue(playerAnimation.Packet());
-                    SendAnimation(playerAnimation.Packet());
-
-                }
-                Enqueue(sound.Packet());
-                PlaySound(sound.Packet());
-            }
-        }
-
-        public override void Attack(Castable castObject)
-        {
-            var damage = castObject.Effects.Damage;
-            if (damage != null)
-            {
-                var intents = castObject.Intents;
-                foreach (var intent in intents)
-                {
-                    var possibleTargets = new List<VisibleObject>();
-                    Rectangle rect = new Rectangle(0, 0, 0, 0);
-
-                    switch (intent.Direction)
-                    {
-                        case IntentDirection.Front:
-                            {
-                                switch (Direction)
-                                {
-                                    case Direction.North:
-                                        {
-                                            //facing north, attack north
-                                            rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
-                                        }
-                                        break;
-                                    case Direction.South:
-                                        {
-                                            //facing south, attack south
-                                            rect = new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
-                                        }
-                                        break;
-                                    case Direction.East:
-                                        {
-                                            //facing east, attack east
-                                            rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
-                                        }
-                                        break;
-                                    case Direction.West:
-                                        {
-                                            //facing west, attack west
-                                            rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
-                                        }
-                                        break;
-                                }
-                            }
-                            break;
-                        case IntentDirection.Back:
-                            {
-                                switch (Direction)
-                                {
-                                    case Direction.North:
-                                        {
-                                            //facing north, attack south
-                                            rect = new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
-                                        }
-                                        break;
-                                    case Direction.South:
-                                        {
-                                            //facing south, attack north
-                                            rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
-                                        }
-                                        break;
-                                    case Direction.East:
-                                        {
-                                            //facing east, attack west
-                                            rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
-                                        }
-                                        break;
-                                    case Direction.West:
-                                        {
-                                            //facing west, attack east
-                                            rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
-                                        }
-                                        break;
-                                }
-                            }
-                            break;
-                        case IntentDirection.Left:
-                            {
-                                switch (Direction)
-                                {
-                                    case Direction.North:
-                                        {
-                                            //facing north, attack west
-                                            rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
-                                        }
-                                        break;
-                                    case Direction.South:
-                                        {
-                                            //facing south, attack east
-                                            rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
-                                        }
-                                        break;
-                                    case Direction.East:
-                                        {
-                                            //facing east, attack north
-                                            rect = new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
-                                        }
-                                        break;
-                                    case Direction.West:
-                                        {
-                                            //facing west, attack south
-                                            rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
-                                        }
-                                        break;
-                                }
-                            }
-                            break;
-                        case IntentDirection.Right:
-                            {
-                                switch (Direction)
-                                {
-                                    case Direction.North:
-                                        {
-                                            //facing north, attack east
-                                            rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
-                                        }
-                                        break;
-                                    case Direction.South:
-                                        {
-                                            //facing south, attack west
-                                            rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
-                                        }
-                                        break;
-                                    case Direction.East:
-                                        {
-                                            //facing east, attack south
-                                            rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
-                                        }
-                                        break;
-                                    case Direction.West:
-                                        {
-                                            //facing west, attack north
-                                            rect = new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
-                                        }
-                                        break;
-                                }
-                            }
-                            break;
-                        case IntentDirection.Nearby:
-                            {
-                                //attack radius
-                                rect = new Rectangle(this.X - intent.Radius, this.Y - intent.Radius, intent.Radius * 2, intent.Radius * 2);
-                            }
-                            break;
-                    }
-
-                    if (!rect.IsEmpty) possibleTargets.AddRange(Map.EntityTree.GetObjects(rect).Where(obj => obj is Creature && obj != this && obj.GetType() != typeof(Merchant))); ;
-
-                    var actualTargets = intent.MaxTargets > 0 ? possibleTargets.Take(intent.MaxTargets).OfType<Creature>().ToList() : possibleTargets.OfType<Creature>().ToList();
-
-                    foreach (var target in actualTargets)
-                    {
-                        if (target is Monster || (target is User && ((User)target).Status.HasFlag(PlayerCondition.Pvp)))
-                        {
-
-                            var rand = new Random();
-
-                            if (damage.Formula == null) //will need to be expanded. also will need to account for damage scripts
-                            {
-                                var simple = damage.Simple;
-                                var damageType = EnumUtil.ParseEnum(damage.Type.ToString(), Enums.DamageType.Magical);
-                                var dmg = rand.Next(Convert.ToInt32(simple.Min), Convert.ToInt32(simple.Max));
-                                //these need to be set to integers as attributes. note to fix.
-                                target.Damage(dmg, OffensiveElement, damageType, this);
-                            }
-                            else
-                            {
-                                var formula = damage.Formula;
-                                var damageType = EnumUtil.ParseEnum(damage.Type.ToString(), Enums.DamageType.Magical);
-                                var parser = new FormulaParser(this, castObject, target);
-                                var dmg = parser.Eval(formula);
-                                if (dmg == 0) dmg = 1;
-                                target.Damage(dmg, OffensiveElement, damageType, this);
-
-                                if (castObject.Effects.Animations.OnCast.Target == null) continue;
-                                var effectAnimation = new ServerPacketStructures.EffectAnimation()
-                                {
-                                    SourceId = this.Id,
-                                    Speed = (short)castObject.Effects.Animations.OnCast.Target.Speed,
-                                    TargetId = target.Id,
-                                    TargetAnimation = castObject.Effects.Animations.OnCast.Target.Id
-                                };
-                                Enqueue(effectAnimation.Packet());
-                                SendAnimation(effectAnimation.Packet());
-                            }
-
-                        }
-                        else
-                        {
-                            //var formula = damage.Formula;
-                        }
-                        CastingCost(castObject);
-                    }
-                }
-
-                //TODO: DRY
-                Motion motion;
-
-                try
-                {
-                    motion = castObject.Effects.Animations.OnCast.Player.SingleOrDefault(x => x.Class.Contains((Class)Class));
-                }
-                catch (InvalidOperationException)
-                {
-                    motion = castObject.Effects.Animations.OnCast.Player.FirstOrDefault(x => x.Class.Contains((Class)Class));
-
-                    Logger.ErrorFormat("{1}: contains more than one motion for a class definition, using first one found!", castObject.Name);
-                }
-
-                var sound = new ServerPacketStructures.PlaySound { Sound = (byte)castObject.Effects.Sound.Id };
-
-                if (motion != null)
-                {
-                    var playerAnimation = new ServerPacketStructures.PlayerAnimation()
-                    {
-                        Animation = (byte)motion.Id,
-                        Speed = (ushort)(motion.Speed / 5), //handles the speed offset in this specific packet.
-                        UserId = Id
-                    };
-                    Enqueue(playerAnimation.Packet());
-                    SendAnimation(playerAnimation.Packet());
-                }
-                Enqueue(sound.Packet());
-                PlaySound(sound.Packet());
-                //this is an attack skill
-            }
-            else
-            {
-                //need to handle scripting
-            }
-        }
-
-        public List<Creature> PossibleTargets(Castable castable)
-        {
-            List<Creature> actualTargets = new List<Creature>();
-
-            var intents = castable.Intents;
-            foreach (var intent in intents)
-            {
-                var possibleTargets = new List<VisibleObject>();
-                Rectangle rect = new Rectangle(0, 0, 0, 0);
-
-                switch (intent.Direction)
-                {
-                    case IntentDirection.Front:
-                        {
-                            switch (Direction)
-                            {
-                                case Direction.North:
-                                    {
-                                        //facing north, attack north
-                                        rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
-                                    }
-                                    break;
-                                case Direction.South:
-                                    {
-                                        //facing south, attack south
-                                        rect = new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
-                                    }
-                                    break;
-                                case Direction.East:
-                                    {
-                                        //facing east, attack east
-                                        rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
-                                    }
-                                    break;
-                                case Direction.West:
-                                    {
-                                        //facing west, attack west
-                                        rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
-                                    }
-                                    break;
-                            }
-                        }
-                        break;
-                    case IntentDirection.Back:
-                        {
-                            switch (Direction)
-                            {
-                                case Direction.North:
-                                    {
-                                        //facing north, attack south
-                                        rect = new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
-                                    }
-                                    break;
-                                case Direction.South:
-                                    {
-                                        //facing south, attack north
-                                        rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
-                                    }
-                                    break;
-                                case Direction.East:
-                                    {
-                                        //facing east, attack west
-                                        rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
-                                    }
-                                    break;
-                                case Direction.West:
-                                    {
-                                        //facing west, attack east
-                                        rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
-                                    }
-                                    break;
-                            }
-                        }
-                        break;
-                    case IntentDirection.Left:
-                        {
-                            switch (Direction)
-                            {
-                                case Direction.North:
-                                    {
-                                        //facing north, attack west
-                                        rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
-                                    }
-                                    break;
-                                case Direction.South:
-                                    {
-                                        //facing south, attack east
-                                        rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
-                                    }
-                                    break;
-                                case Direction.East:
-                                    {
-                                        //facing east, attack north
-                                        rect = new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
-                                    }
-                                    break;
-                                case Direction.West:
-                                    {
-                                        //facing west, attack south
-                                        rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
-                                    }
-                                    break;
-                            }
-                        }
-                        break;
-                    case IntentDirection.Right:
-                        {
-                            switch (Direction)
-                            {
-                                case Direction.North:
-                                    {
-                                        //facing north, attack east
-                                        rect = new Rectangle(this.X, this.Y, 1 + intent.Radius, 1);
-                                    }
-                                    break;
-                                case Direction.South:
-                                    {
-                                        //facing south, attack west
-                                        rect = new Rectangle(this.X - intent.Radius, this.Y, intent.Radius, 1);
-                                    }
-                                    break;
-                                case Direction.East:
-                                    {
-                                        //facing east, attack south
-                                        rect = new Rectangle(this.X, this.Y - intent.Radius, 1, intent.Radius);
-                                    }
-                                    break;
-                                case Direction.West:
-                                    {
-                                        //facing west, attack north
-                                        rect = new Rectangle(this.X, this.Y, 1, 1 + intent.Radius);
-                                    }
-                                    break;
-                            }
-                        }
-                        break;
-                    case IntentDirection.Nearby:
-                        {
-                            //attack radius
-                            rect = new Rectangle(this.X - intent.Radius, this.Y - intent.Radius, intent.Radius * 2, intent.Radius * 2);
-                        }
-                        break;
-                }
-
-                if (!rect.IsEmpty) possibleTargets.AddRange(Map.EntityTree.GetObjects(rect).Where(obj => obj is Creature && obj != this));
-                List<Creature> possible = intent.MaxTargets > 0 ? possibleTargets.Take(intent.MaxTargets).OfType<Creature>().ToList() : possibleTargets.OfType<Creature>().ToList();
-                if(possible != null && possible.Count > 0) actualTargets.AddRange(possible);
-            }
-            return actualTargets;
-        }
-
-        public void HealTarget(Castable castable, Creature target)
-        {
-            if (castable.Effects.Heal.Formula != null)
-            {
-                var heal = new FormulaParser(this, castable, target).Eval(castable.Effects.Heal.Formula);
-                Heal(heal, target);
-                
-                Motion motion = castable.Effects.Animations.OnCast.Player.SingleOrDefault(x => x.Class.Contains((Class)Class));
-                var playerAnimation = new ServerPacketStructures.PlayerAnimation()
-                {
-                    Animation = (byte)motion.Id,
-                    Speed = (ushort)motion.Speed,
-                    UserId = Id
-                };
-                Enqueue(playerAnimation.Packet());
-                SendAnimation(playerAnimation.Packet());
-
-                var targetAnimation = new ServerPacketStructures.EffectAnimation()
-                {
-                    SourceId = this.Id,
-                    Speed = (short)castable.Effects.Animations.OnCast.Target.Speed,
-                    TargetId = target.Id,
-                    TargetAnimation = castable.Effects.Animations.OnCast.Target.Id
-                };
-                Enqueue(targetAnimation.Packet());
-                SendAnimation(targetAnimation.Packet());
-            }            
+            return false;
         }
 
         public void AssailAttack(Direction direction, Creature target = null)
         {
             if (target == null)
+                target = GetDirectionalTarget(direction);
+
+            foreach (var c in SkillBook.Where(c => c.IsAssail))
             {
-                VisibleObject obj;
-
-                switch (direction)
+                if (target != null && target.GetType() != typeof(Merchant))
                 {
-                    case Direction.East:
-                        {
-                            obj = Map.EntityTree.FirstOrDefault(x => x.X == X + 1 && x.Y == Y);
-                        }
-                        break;
-                    case Direction.West:
-                        {
-                            obj = Map.EntityTree.FirstOrDefault(x => x.X == X - 1 && x.Y == Y);
-                        }
-                        break;
-                    case Direction.North:
-                        {
-                            obj = Map.EntityTree.FirstOrDefault(x => x.X == X && x.Y == Y - 1);
-                        }
-                        break;
-                    case Direction.South:
-                        {
-                            obj = Map.EntityTree.FirstOrDefault(x => x.X == X && x.Y == Y + 1);
-                        }
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException(nameof(direction), direction, null);
-                }
-
-                var monster = obj as Monster;
-                if (monster != null) target = monster;
-                var user = obj as User;
-                if (user != null && user.Status.HasFlag(PlayerCondition.Pvp))
-                {
-                    target = user;
-                }
-                var npc = obj as Merchant;
-                if (npc != null)
-                {
-                    target = npc;
-                }
-                //try to get the creature we're facing and set it as the target.
-            }
-
-            foreach (var c in SkillBook)
-            {
-                if (target != null && c.IsAssail && target.GetType() != typeof(Merchant))
-                {
-                    Attack(direction, c, target);
+                    UseCastable(c, target);
                 }
             }
             //animation handled here as to not repeatedly send assails.
@@ -2909,11 +2172,11 @@ namespace Hybrasyl.Objects
 
             var motionId = motion != null ? (byte)motion.Id : (byte)1;
             var assail = new ServerPacketStructures.PlayerAnimation() { Animation = motionId, Speed = 20, UserId = this.Id };
-            var sound = new ServerPacketStructures.PlaySound() { Sound = firstAssail != null ? (byte)firstAssail.Effects.Sound.Id : (byte)1 };
+            var soundId = firstAssail != null ? firstAssail.Effects.Sound.Id : (byte)1;
             Enqueue(assail.Packet());
-            Enqueue(sound.Packet());
+            PlaySound(soundId);
             SendAnimation(assail.Packet());
-            PlaySound(sound.Packet());
+            PlaySound(soundId);
         }
 
 
@@ -3006,7 +2269,7 @@ namespace Hybrasyl.Objects
 
         public void SendMotion(uint id, byte motion, short speed)
         {
-            Logger.InfoFormat("SendMotion id {0}, motion {1}, speed {2}", id, motion, speed);
+            Logger.DebugFormat("SendMotion id {0}, motion {1}, speed {2}", id, motion, speed);
             var x1A = new ServerPacket(0x1A);
             x1A.WriteUInt32(id);
             x1A.WriteByte(motion);
@@ -3017,7 +2280,7 @@ namespace Hybrasyl.Objects
 
         public void SendEffect(uint id, ushort effect, short speed)
         {
-            Logger.InfoFormat("SendEffect: id {0}, effect {1}, speed {2} ", id, effect, speed);
+            Logger.DebugFormat("SendEffect: id {0}, effect {1}, speed {2} ", id, effect, speed);
             var x29 = new ServerPacket(0x29);
             x29.WriteUInt32(id);
             x29.WriteUInt32(id);
@@ -3027,9 +2290,10 @@ namespace Hybrasyl.Objects
             x29.WriteByte(0x00);
             Enqueue(x29);
         }
+
         public void SendEffect(uint targetId, ushort targetEffect, uint srcId, ushort srcEffect, short speed)
         {
-            Logger.InfoFormat("SendEffect: targetId {0}, targetEffect {1}, srcId {2}, srcEffect {3}, speed {4}",
+            Logger.DebugFormat("SendEffect: targetId {0}, targetEffect {1}, srcId {2}, srcEffect {3}, speed {4}",
                 targetId, targetEffect, srcId, srcEffect, speed);
             var x29 = new ServerPacket(0x29);
             x29.WriteUInt32(targetId);
@@ -3042,7 +2306,7 @@ namespace Hybrasyl.Objects
         }
         public void SendEffect(short x, short y, ushort effect, short speed)
         {
-            Logger.InfoFormat("SendEffect: x {0}, y {1}, effect {2}, speed {3}", x, y, effect, speed);
+            Logger.DebugFormat("SendEffect: x {0}, y {1}, effect {2}, speed {3}", x, y, effect, speed);
             var x29 = new ServerPacket(0x29);
             x29.WriteUInt32(uint.MinValue);
             x29.WriteUInt16(effect);
@@ -3064,7 +2328,7 @@ namespace Hybrasyl.Objects
 
         public void SendSound(byte sound)
         {
-            Logger.InfoFormat("SendSound {0}", sound);
+            Logger.DebugFormat("SendSound {0}", sound);
             var x19 = new ServerPacket(0x19);
             x19.WriteByte(sound);
             Enqueue(x19);
@@ -4309,7 +3573,7 @@ namespace Hybrasyl.Objects
         /// <param name="requestor">The user requesting the trade</param>
         public void SendExchangeInitiation(User requestor)
         {
-            if (!Status.HasFlag(PlayerCondition.InExchange) || !requestor.Status.HasFlag(PlayerCondition.InExchange)) return;
+            if (!Condition.InExchange || !requestor.Condition.InExchange) return;
             Enqueue(new ServerPacketStructures.Exchange
             {
                 Action = ExchangeActions.Initiate,
@@ -4324,7 +3588,7 @@ namespace Hybrasyl.Objects
         /// <param name="itemSlot">The ItemObject slot containing a stacked ItemObject that will be split (client side)</param>
         public void SendExchangeQuantityPrompt(byte itemSlot)
         {
-            if (!Status.HasFlag(PlayerCondition.InExchange)) return;
+            if (!Condition.InExchange) return;
             Enqueue(
                 new ServerPacketStructures.Exchange
                 {
@@ -4340,7 +3604,7 @@ namespace Hybrasyl.Objects
         /// <param name="source">Boolean indicating which "side" of the transaction will be updated (source / "left side" == true)</param>
         public void SendExchangeUpdate(ItemObject toAdd, byte slot, bool source = true)
         {
-            if (!Status.HasFlag(PlayerCondition.InExchange)) return;
+            if (!Condition.InExchange) return;
             var update = new ServerPacketStructures.Exchange
             {
                 Action = ExchangeActions.ItemUpdate,
@@ -4360,7 +3624,7 @@ namespace Hybrasyl.Objects
         /// <param name="source">Boolean indicating which "side" of the transaction will be updated (source / "left side" == true)</param>
         public void SendExchangeUpdate(uint gold, bool source = true)
         {
-            if (!Status.HasFlag(PlayerCondition.InExchange)) return;
+            if (!Condition.InExchange) return;
             Enqueue(new ServerPacketStructures.Exchange
             {
                 Action = ExchangeActions.GoldUpdate,
@@ -4375,7 +3639,7 @@ namespace Hybrasyl.Objects
         /// <param name="source">The "side" responsible for cancellation (source / "left side" == true)</param>
         public void SendExchangeCancellation(bool source = true)
         {
-            if (!Status.HasFlag(PlayerCondition.InExchange)) return;
+            if (!Condition.InExchange) return;
             Enqueue(new ServerPacketStructures.Exchange
             {
                 Action = ExchangeActions.Cancel,
@@ -4390,7 +3654,7 @@ namespace Hybrasyl.Objects
 
         public void SendExchangeConfirmation(bool source = true)
         {
-            if (!Status.HasFlag(PlayerCondition.InExchange)) return;
+            if (!Condition.InExchange) return;
             Enqueue(new ServerPacketStructures.Exchange
             {
                 Action = ExchangeActions.Confirm,

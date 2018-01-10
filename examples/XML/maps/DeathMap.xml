@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<Map xmlns="http://www.hybrasyl.com/XML/Maps" Id="300" X="30" Y="30">
+  <Name>Death Map</Name>
+  <Npcs>
+    <Npc Name="Resurrector" X="12" Y="6" Direction="0"/>
+  </Npcs>
+</Map>
