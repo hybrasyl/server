@@ -1526,7 +1526,7 @@ namespace Hybrasyl
                         {
                             if (WorldData.TryGetValueByIndex(args[1], out Status status))
                             {
-                                user.ApplyStatus(new CreatureStatus(status, user));
+                                user.ApplyStatus(new CreatureStatus(status, user, null));
                             }
                         }
                         break;

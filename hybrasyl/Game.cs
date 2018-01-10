@@ -73,11 +73,6 @@ namespace Hybrasyl
         private static Thread _lobbyThread;
         private static Thread _loginThread;
         private static Thread _worldThread;
-
-        private static Thread _lobbySendThread;
-        private static Thread _loginSendThread;
-        private static Thread _worldSendThread;
-
         private static Thread _spawnThread;
         private static Thread _controlThread;
 

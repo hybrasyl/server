@@ -2120,7 +2120,7 @@ namespace Hybrasyl.Objects
                     Hp = 1;
                     var handler = Game.Config.Handlers?.Death?.Coma;
                     if (handler != null && World.WorldData.TryGetValueByIndex(handler.Value, out Status status))
-                        ApplyStatus(new CreatureStatus(status, this));
+                        ApplyStatus(new CreatureStatus(status, this, null));
                     else
                     {
                         Logger.Warn("No coma handler or status found - user {Name} died!");
