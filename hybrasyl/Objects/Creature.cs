@@ -302,14 +302,14 @@ namespace Hybrasyl.Objects
                         Logger.Error($"GetTargets: {castable.Name} - intent was for exact clicked target but no target was passed?");
                     else
                         // Heal spels can be cast on players, other spells can be cast on attackable creatures
-                        if ((castable.Effects?.Damage != null && target.Condition.IsAttackable) ||
-                        (castable.Effects?.Damage == null && target is User))
+                        if ((!castable.Effects.Damage.IsEmpty && target.Condition.IsAttackable) ||
+                        (castable.Effects.Damage.IsEmpty && target is User))
                         possibleTargets.Add(target);
                 }
                 else if (intent.UseType == Castables.SpellUseType.NoTarget && intent.Radius == 0 && intent.Direction == IntentDirection.None)
                 {
                     // Targeting self - which, currently, is only allowed for non-damaging spells
-                    if (castable.Effects?.Damage == null)
+                    if (castable.Effects.Damage.IsEmpty)
                         possibleTargets.Add(this);
                 }
                 else
@@ -747,7 +747,7 @@ namespace Hybrasyl.Objects
         {
             if (onEnd)
                 status.OnEnd();
-            if (this is User) (this as User).SendStatusUpdate(status, false);
+            if (this is User) (this as User).SendStatusUpdate(status, true);
         }
 
         /// <summary>
@@ -882,7 +882,7 @@ namespace Hybrasyl.Objects
 
                 // Handle statuses
 
-                foreach (var status in castObject.Effects.Statuses.Add)
+                foreach (var status in castObject.Effects.Statuses.Add.Where(e => e.Value != null))
                 {
                     Status applyStatus;
                     if (World.WorldData.TryGetValueByIndex<Status>(status.Value, out applyStatus))

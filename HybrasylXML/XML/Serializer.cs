@@ -173,53 +173,15 @@ namespace Hybrasyl.XML
             return contents;
         }
 
-        static private void Serializer_Event(object sender, XmlAttributeEventArgs e)
-        {
-            Console.WriteLine("Unknown Attribute");
-            Console.WriteLine("\t" + e.Attr.Name + " " + e.Attr.InnerXml);
-            Console.WriteLine("\t LineNumber: " + e.LineNumber);
-            Console.WriteLine("\t LinePosition: " + e.LinePosition);
-            Console.WriteLine(sender.ToString());
-        }
-
-        static private void Serializer_Event(object sender, XmlElementEventArgs e)
-        {
-            Console.WriteLine("Unknown Element");
-            Console.WriteLine("\t" + e.Element.Name + " " + e.Element.InnerXml);
-            Console.WriteLine("\t LineNumber: " + e.LineNumber);
-            Console.WriteLine("\t LinePosition: " + e.LinePosition);
-            Console.WriteLine("\t Expected Elements: " + e.ExpectedElements);
-            
-        }
-        static private void Serializer_Event(object sender, XmlNodeEventArgs e)
-        {
-            Console.WriteLine
-             ("UnknownNode Name: {0}", e.Name);
-            Console.WriteLine
-            ("UnknownNode LocalName: {0}", e.LocalName);
-            Console.WriteLine
-            ("UnknownNode Namespace URI: {0}", e.NamespaceURI);
-            Console.WriteLine
-            ("UnknownNode Text: {0}", e.Text);
-
-            XmlNodeType myNodeType = e.NodeType;
-            Console.WriteLine("NodeType: {0}", myNodeType);
-        }
-        static private void Serializer_Event(object sender, UnreferencedObjectEventArgs e)
-        {
-            Console.WriteLine(e);
-            Console.WriteLine(sender.ToString());
-        }
-
         public static Status Deserialize(XmlReader reader, Status contents = null)
         {
             if (contents == null) contents = new Status();
             //reader.Settings.IgnoreWhitespace = false;
             XmlSerializer XmlSerial = new XmlSerializer(contents.GetType());
-            XmlSerial.UnknownAttribute += new XmlAttributeEventHandler(Serializer_Event);
-            XmlSerial.UnknownElement += new XmlElementEventHandler(Serializer_Event);
-            XmlSerial.UnknownNode += new XmlNodeEventHandler(Serializer_Event);
-            XmlSerial.UnreferencedObject += new UnreferencedObjectEventHandler(Serializer_Event);
+            //XmlSerial.UnknownAttribute += new XmlAttributeEventHandler(Serializer_Event);
+            //XmlSerial.UnknownElement += new XmlElementEventHandler(Serializer_Event);
+            //XmlSerial.UnknownNode += new XmlNodeEventHandler(Serializer_Event);
+            //XmlSerial.UnreferencedObject += new UnreferencedObjectEventHandler(Serializer_Event);
 
             if (XmlSerial.CanDeserialize(reader))
             {

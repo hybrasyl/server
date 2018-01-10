@@ -160,6 +160,15 @@ namespace Hybrasyl.Castables
         {
             get { return string.IsNullOrEmpty(Formula); }
         }
+        
+        // temporary silliness due to xsd issues
+        public bool IsEmpty
+        {
+            get
+            {
+                return IsSimple && (string.IsNullOrEmpty(Simple.Value) && Simple.Min == "0" && Simple.Max == "0");
+            }
+        }
     }
 
     public partial class Damage
@@ -168,7 +177,17 @@ namespace Hybrasyl.Castables
         {
             get { return string.IsNullOrEmpty(Formula); }
         }
+        // temporary silliness due to xsd issues
+        public bool IsEmpty
+        {
+            get
+            {
+                return IsSimple && (string.IsNullOrEmpty(Simple.Value) && Simple.Min == "0" && Simple.Max == "0");
+            }
+
+        }
     }
+
     public partial class Castable
     {
         public int Id
@@ -231,6 +250,15 @@ namespace Hybrasyl.Statuses
         {
             get { return string.IsNullOrEmpty(Formula); }
         }
+        public bool IsEmpty
+        {
+            get
+            {
+                return IsSimple && (string.IsNullOrEmpty(Simple.Value) && Simple.Min == "0" && Simple.Max == "0");
+            }
+
+        }
+
     }
 
     public partial class Damage
@@ -239,6 +267,15 @@ namespace Hybrasyl.Statuses
         {
             get { return string.IsNullOrEmpty(Formula); }
         }
+        public bool IsEmpty
+        {
+            get
+            {
+                return IsSimple && (string.IsNullOrEmpty(Simple.Value) && Simple.Min == "0" && Simple.Max == "0");
+            }
+
+        }
+
     }
 
     public partial class Status

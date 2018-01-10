@@ -152,13 +152,13 @@ namespace Hybrasyl
                 User?.PlaySound(effect.Sound.Id);
             if (effect.Animations != null)
             {
-                if (effect.Animations.Target.Id != 0)
+                if (effect.Animations?.Target?.Id != 0)
                 {
                     var animation = effect.Animations.Target;
                     if (Target is Monster || !Target.Condition.Comatose || (Target.Condition.Comatose && animation.Id == (Game.Config.Handlers?.Death?.Coma?.Effect ?? 24)))
                         Target.Effect(effect.Animations.Target.Id, effect.Animations.Target.Speed);
                 }
-                if (effect.Animations.SpellEffect.Id != 0)
+                if (effect.Animations?.SpellEffect?.Id != 0)
                 {
                     Source?.Effect(effect.Animations.SpellEffect.Id, effect.Animations.SpellEffect.Speed);
                 }
@@ -243,12 +243,12 @@ namespace Hybrasyl
 
         private void ProcessDamageEffects(ModifierEffect effect)
         {
-            if (effect.Heal != null)
+            if (!effect.Heal.IsEmpty)
             {
                 var heal = NumberCruncher.CalculateHeal(Castable, effect, Target, Source, Name);
                 if (heal != 0) Target.Heal(heal);
             }
-            if (effect.Damage != null)
+            if (!effect.Damage.IsEmpty)
             {
                 var dmg = NumberCruncher.CalculateDamage(Castable, effect, Target, Source, Name);
                 if (dmg.Amount != 0) Target.Damage(dmg.Amount, Enums.Element.None, dmg.Type);

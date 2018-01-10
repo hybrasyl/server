@@ -131,7 +131,6 @@
     </xs:restriction>
   </xs:simpleType>
 
-
   <!-- Damage flags type -->
   <xs:simpleType name="DamageFlags">
     <xs:restriction>
