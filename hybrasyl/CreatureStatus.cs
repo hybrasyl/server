@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Hybrasyl.Castables;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
@@ -135,15 +136,34 @@ namespace Hybrasyl
 
         public double ElapsedSinceTick => (DateTime.Now - LastTick).TotalSeconds;
 
-        public CreatureStatus(Status xmlstatus, Creature target, Castable castable=null, 
-            int durationOverride = -1, int tickOverride = -1)
+        private void _init(Status xmlstatus, Creature target, Castable castable)
         {
             XMLStatus = xmlstatus;
             Target = target;
             Castable = castable;
+
+        }
+        public CreatureStatus(Status xmlstatus, Creature target, Castable castable = null,
+            int durationOverride = -1, int tickOverride = -1)
+        {
+            _init(xmlstatus, target, castable);
             Start = DateTime.Now;
             _durationOverride = durationOverride;
             _tickOverride = tickOverride;
+        }
+
+        public CreatureStatus(Status xmlstatus, Creature target, Castable castable = null)
+        {
+            _init(xmlstatus, target, castable);
+            Start = DateTime.Now;
+
+            var addList = castable?.Statuses.Add.Where(e => e.Value == xmlstatus.Name);
+            if (addList?.Count() > 0)
+            {
+                var addObj = addList.First();
+                _durationOverride = addObj.Duration * xmlstatus.Duration;
+                _tickOverride = (int) Math.Floor(addObj.Speed * xmlstatus.Tick);
+            }
         }
 
         private void ProcessSfx(ModifierEffect effect)

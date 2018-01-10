@@ -1174,7 +1174,7 @@ namespace Hybrasyl.Objects
                 Client.Enqueue(new ServerPacketStructures.Cooldown()
                 {
                     Length = (uint)castable.Cooldown,
-                    Pane = 1,
+                    Pane = 0,
                     Slot = slot
                 }.Packet());
             }

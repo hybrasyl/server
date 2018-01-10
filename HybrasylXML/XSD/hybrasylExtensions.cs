@@ -209,9 +209,7 @@ namespace Hybrasyl.Castables
         {
             get
             {
-                if (Cooldown > 0)
-                    return (DateTime.Now - LastCast).Seconds > Cooldown;
-                return false;
+                return Cooldown > 0 ? (DateTime.Now - LastCast).Seconds < Cooldown : false;
             }
         }
 
