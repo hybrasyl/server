@@ -1,6 +1,6 @@
 # Hybrasyl Server
 
-[Project website](http://hybrasyl.com/) - [Bug tracker](https://hybrasyl.atlassian.net/secure/Dashboard.jspa)
+[Project website](http://hybrasyl.com/) - [Bug tracker](https://hybrasyl.atlassian.net/secure/Dashboard.jspa) - [Punchlist](https://github.com/hybrasyl/server/wiki/Hybrasyl-Punchlist)
 
 Welcome to Project Hybrasyl! Our aim is to create a well-documented and
 exceptionally accurate DOOMVAS v1 emulator (example:
@@ -18,7 +18,8 @@ features!
 
 Hybrasyl is a work in progress. A lot of the functionality you would expect
 from a playable game is not yet implemented. You can see what's currently in
-the works on the [bug tracker](https://hybrasyl.atlassian.net/), or check out
+the works on the [bug tracker](https://hybrasyl.atlassian.net/), look at our current
+[TODO/punchlist](https://github.com/hybrasyl/server/wiki/Hybrasyl-Punchlist) or check out
 recent [project news](https://www.hybrasyl.com/).
 
 The instructions in this document will guide you in setting up and running the
@@ -30,30 +31,12 @@ you to log in but not enough to come close to playing a real game.
 It is our hope to release a content editor at some point in the future to make
 the process of adding content to a server much easier.
 
-## A Note on Licensing
-
-**Please note that Hybrasyl Server, along with most of its components, is
-  licensed under the GNU Affero General Public License, version 3 (AGPLv3)**.
-  This means that, if you use this software to run a server that other users
-  can connect to, you are required by the license to release the corresponding
-  source code, which means that any and all modifications you make to the
-  server software are also licensed under the AGPLv3.
-  [Read more at gnu.org](http://www.gnu.org/licenses/why-affero-gpl.en.html).
-
-By using this license for Hybrasyl, our intent is to foster a vibrant community
-whose development and progress are open and available to all.
-
-*Please note: these restrictions do not apply to in-game Python scripts and/or
- world data you may create for your server*. Whether or not you distribute that
- content is up to you.
-
 ## Requirements
 
-You will need four things to compile and use Hybrasyl:
+You will need three things to compile and use Hybrasyl:
 
 * [Hybrasyl Launcher](https://github.com/hybrasyl/launcher)
 * [Redis](https://github.com/MSOpenTech/redis/releases)
-* Hybrasyl SDK (as of August 2017, the needed SDK is included in the server repository. Easy!)
 * [Dark Ages Client](https://www.darkages.com)
 
 ## Terminology and key concepts
@@ -89,20 +72,21 @@ at runtime; XML is processed when the server starts up for actual world data
    TCP/6379, can be accessed from the server running Hybrasyl; you may need to
    grant access or open ports.
 
-2. Do one of the following:
+2. Do _one_ of the following. Either:
+   * Run the included powershell script (`Prep.ps1`) included in the `examples` directory 
+   to create the Hybrasyl data directories. Hybrasyl's data is currently located at ```%MYDOCUMENTS\Hybrasyl\world```, normally found at `C:\Users\<yourusername>\Documents\world`.
 
-   1) Run the included powershell script (Prep.ps1) to create the Hybrasyl data directories.
-   Hybrasyl's data is currently located at ```%MYDOCUMENTS%\Hybrasyl\world```, normally
-   found at `C:\Users\<yourusername>\Documents\world`.
-
-3. Copy the
-   [example XML data](https://github.com/hybrasyl/server/tree/master/examples/XML)
-   (including subdirectories) from the examples directory into the `world\xml`
-   directory. This will populate the world with enough to login as a user,
-   wander around, and test functionality.
-   2) Unzip the file examples.zip into your My Documents folder.
+	* Copy the [example XML and scripting data](https://github.com/hybrasyl/server/tree/master/examples/XML)
+   (including subdirectories) from the examples directory into the `world\xml` directory. This 
+   will populate the world with enough to login as a user,wander around, and test functionality.
    
-
+   **_or_**
+   
+   * Unzip the included `examples.zip` into your Hybrasyl folder.
+ 
+3. Examine the Hybrasyl configuration in the Hybrasyl data directory, `config.xml`. In particular, 
+   you will want to add the name of your character to `<Privileged>`, which will allow 
+   them to use any slash command.  
 
 ## Compiling the Game Server
 
@@ -110,31 +94,25 @@ The process for compiling Hybrasyl is detailed below.
 
 1. Install
    [Microsoft Visual Studio](https://www.visualstudio.com/en-us/downloads/visual-studio-2015-downloads-vs.aspx).
-   The Community Edition is free and capable of compiling all the needed projects (server, launcher and sdk).
-2. Install [IronPython](http://ironpython.codeplex.com/downloads/get/970325).
-   Hybrasyl currently uses Python for all of its scripting.
-3. Clone the [launcher](https://github.com/hybrasyl/launcher),
-   [server](https://github.com/hybrasyl/server), and
-   [sdk](https://github.com/hybrasyl/sdk) repositories to your local machine
-   using a [git client](https://git-scm.com/downloads/guis). Make sure you
-   clone them into separate directories.
-5. Open the Hybrasyl Server solution (`Hybrasyl.sln`) in Visual Studio and
+   The Community Edition is free and capable of compiling all the needed projects (server, launcher).
+2. Clone the [launcher](https://github.com/hybrasyl/launcher) and 
+   [server](https://github.com/hybrasyl/server) repositories to your local machine
+   using a [git client](https://git-scm.com/downloads/guis), or with Visual Studio's built-in integration. 
+   Make sure you clone them into separate directories. 
+3. Open the Hybrasyl Server solution (`Hybrasyl.sln`) in Visual Studio and
    update all NuGet packages (just building it will do this). The SDK for
    XML is now included in server to make this process (as well as making changes) 
    easier.
-6. Build Hybrasyl. The default settings should be adequate for most system
+4. Build Hybrasyl. The default settings should be adequate for most system
    setups, assuming you've updated and installed all NuGet packages (which
    should occur automatically).
-7. Copy `lod136.map` and `lod500.map` from your Dark Ages directory (or an
-   online archive) into `My Documents\Hybrasyl\world\mapfiles` (the directory you
-   created above).
-8. Run `Hybrasyl.exe` either from within Visual Studio or as a standalone
+5. Copy `lod136.map`, `lod500.map`, and `lod300.map` from your Dark Ages directory (or an
+   online archive) into `My Documents\Hybrasyl\world\mapfiles` (which should exist, if you followed the 
+   directions above).
+6. Run `Hybrasyl.exe` either from within Visual Studio or as a standalone
    executable in the `hybrasyl\bin\Debug` folder of your git checkout. This
-   should launch the server and run you through a first-launch configuration
-   wizard. Here's you'll need to point the game server at Redis;
-   make sure you provide the right hostname and that the ports are open.
-   You can change any of Hybrasyl’s settings later by editing `config.xml`
-   in `My Documents\Hybrasyl`.
+   should launch the server. You can change any of Hybrasyl’s settings by 
+   editing `config.xml` in `My Documents\Hybrasyl`.
 
 Now that your setup is complete, you should be able to use the
 [released version of the launcher](https://www.hybrasyl.com/files/Hybrasyl_Launcher_Installer.msi)
@@ -164,17 +142,13 @@ You should find your Aisling in an inn and ready to explore the world.
 
 * There are a number of admin flags that can be used for common tasks like
   creating items, teleporting, or changing level and class. Certain flags
-  require that you be registered as a game master. You can update `config.xml`
-  to add your character as a privileged user (GM) by adding the following stanza:
-  ```xml
-  <access>
-    <privileged>MyUser</privileged>
-  </access>
-  ```
-
+  require that you be registered as a game master.
+  
 * Try typing `/item Stick` when you log in to add a stick to your inventory. 
   You can add any item that is a valid Item XML file in `xml/items` in your
   `world` directory.
+  
+* You can learn skills and spells by using `/spell`, for instance, `/spell Assail`.
 
 * Warps are links between locations on the map. You can add or remove warps
   in a map file (e.g. `xml/maps/ExampleVillage.xml`).
@@ -197,6 +171,23 @@ them**.
 We also maintain two Google Groups, one
 [for developers](https://groups.google.com/forum/#!forum/hybrasyl-devel) and
 one [for users](https://groups.google.com/forum/#!forum/hybrasyl-users).
+
+## A Note on Licensing
+
+**Please note that Hybrasyl Server, along with most of its components, is
+  licensed under the GNU Affero General Public License, version 3 (AGPLv3)**.
+  This means that, if you use this software to run a server that other users
+  can connect to, you are required by the license to release the corresponding
+  source code, which means that any and all modifications you make to the
+  server software are also licensed under the AGPLv3.
+  [Read more at gnu.org](http://www.gnu.org/licenses/why-affero-gpl.en.html).
+
+By using this license for Hybrasyl, our intent is to foster a vibrant community
+whose development and progress are open and available to all.
+
+*Please note: these restrictions do not apply to in-game Python scripts and/or
+ world data you may create for your server*. Whether or not you distribute that
+ content is up to you.
 
 ## Contributing
 
