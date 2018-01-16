@@ -568,7 +568,7 @@ namespace Hybrasyl.Objects
             }
             // Now flood away
             foreach (var dead in deadMobs)
-                World.MessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.HandleDeath, dead));
+                World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.HandleDeath, dead));
 
             return true;
         }

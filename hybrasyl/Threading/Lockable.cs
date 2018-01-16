@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Hybrasyl.Threading
 {
-    class Lockable<T>
+    public class Lockable<T>
     {
         private T _value;
         private object _lock = new object();

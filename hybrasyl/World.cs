@@ -109,6 +109,7 @@ namespace Hybrasyl
     {
         private static uint worldObjectID = 0;
 
+        private object _lock = new object();
         public static DateTime StartDate => Game.Config.Time != null ? Game.Config.Time.ServerStart.Value : Game.StartDate;
 
         public new static ILog Logger =
@@ -1068,7 +1069,6 @@ namespace Hybrasyl
                 if (user.ActiveExchange != null)
                     user.ActiveExchange.CancelExchange(user);
                 ((IDictionary)ActiveUsersByName).Remove(user.Name);
-                user.Save();
                 user.UpdateLogoffTime();
                 user.Map?.Remove(user);
                 user.Group?.Remove(user);
@@ -1225,11 +1225,9 @@ namespace Hybrasyl
             if (!monster.Condition.Alive || monster.Id == 0) return; 
             if (monster.IsHostile)
             {
-                var entityTree = map.EntityTree.GetObjects(monster.GetViewport());
-                var hasPlayer = entityTree.Any(x => x is User);
-
-                if (hasPlayer)
+                if (map.Users.Count > 0)
                 {
+                    var entityTree = map.EntityTree.GetObjects(monster.GetViewport());
                     //get players
                     var players = entityTree.OfType<User>();
 
@@ -2233,7 +2231,7 @@ namespace Hybrasyl
                             var password = args[1];
                             if (string.Equals(password, Constants.ShutdownPassword))
                             {
-                                MessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.ShutdownServer, user.Name));
+                                ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.ShutdownServer, user.Name));
                             }
                         }
                         break;
@@ -3381,7 +3379,7 @@ namespace Hybrasyl
                                     response.WriteBoolean(true); // Post was successful
                                     response.WriteString8("Your letter was sent.");
                                     Logger.InfoFormat("mail: {0} sent message to {1}", user.Name, recipientUser.Name);
-                                    MessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MailNotifyUser,
+                                    ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MailNotifyUser,
                                         recipientUser.Name));
                                 }
                                 else
@@ -4292,8 +4290,8 @@ namespace Hybrasyl
             {
                 AddUser((User)obj);
             }
-
-            ++worldObjectID;
+            
+            lock (_lock) { ++worldObjectID; }
             obj.Id = worldObjectID;
             obj.World = this;
             obj.SendId();
@@ -4308,7 +4306,10 @@ namespace Hybrasyl
                 }
             }
 
-            Objects.Add(worldObjectID, obj);
+            lock (_lock)
+            {
+                Objects.Add(worldObjectID, obj);
+            }
         }
 
         public void Remove(WorldObject obj)
@@ -4317,13 +4318,12 @@ namespace Hybrasyl
             {
                 DeleteUser(obj.Name);
             }
-            Objects.Remove(obj.Id);
+            lock (_lock)
+            {
+                Objects.Remove(obj.Id);
+            }
             obj.World = null;
             obj.Id = 0;
-        }
-
-        public void Update()
-        {
         }
 
         public ItemObject CreateItem(int id, int quantity = 1)
@@ -4393,69 +4393,67 @@ namespace Hybrasyl
 
                 if (message != null)
                 {
-                    if (message is HybrasylClientMessage)
+                    var clientMessage = (HybrasylClientMessage)message;
+                    var handler = PacketHandlers[clientMessage.Packet.Opcode];
+                    try
                     {
-                        var clientMessage = (HybrasylClientMessage)message;
-                        var handler = PacketHandlers[clientMessage.Packet.Opcode];
-                        try
+                        if (ActiveUsers.TryGetValue(clientMessage.ConnectionId, out user))
                         {
-                            if (ActiveUsers.TryGetValue(clientMessage.ConnectionId, out user))
+                            // Check if the action is prohibited due to statuses or flags
+                            MethodBase method = handler.GetMethodInfo();
+                            bool ignore = false;
+
+                            foreach (var prohibited in method.GetCustomAttributes(typeof(Prohibited), true))
                             {
-                                // Check if the action is prohibited due to statuses or flags
-                                MethodBase method = handler.GetMethodInfo();
-                                bool ignore = false;
-
-                                foreach (var prohibited in method.GetCustomAttributes(typeof(Prohibited), true))
-                                {
-                                    var prohibitedCondition = prohibited as Prohibited;
-                                    if (prohibitedCondition == null) continue;
-                                    if (prohibitedCondition.Check(user.Condition)) continue;
-                                    // TODO: fix this to be per-flag/status
-                                    user.SendSystemMessage("It cannot be done in your current state.");
-                                    ignore = true;
-                                }
-
-                                foreach (var required in method.GetCustomAttributes(typeof(Required), true))
-                                {
-                                    var requiredCondition = required as Required;
-                                    if (requiredCondition == null) continue;
-                                    if (requiredCondition.Check(user.Condition)) continue;
-                                    user.SendSystemMessage("You cannot do that now.");
-                                    ignore = true;
-                                }
-
-                                // If we are in an exchange, we should only receive exchange packets and the
-                                // occasional heartbeat. If we receive anything else, just kill the exchange.
-                                if (user.ActiveExchange != null && (clientMessage.Packet.Opcode != 0x4a &&
-                                    clientMessage.Packet.Opcode != 0x45 && clientMessage.Packet.Opcode != 0x75))
-                                    user.ActiveExchange.CancelExchange(user);
-                                if (ignore)
-                                {
-                                    if (clientMessage.Packet.Opcode == 0x06) user.Refresh();
-                                    continue;
-                                }
-                                // Last but not least, invoke the handler
-                                handler.Invoke(user, clientMessage.Packet);
+                                var prohibitedCondition = prohibited as Prohibited;
+                                if (prohibitedCondition == null) continue;
+                                if (prohibitedCondition.Check(user.Condition)) continue;
+                                // TODO: fix this to be per-flag/status
+                                user.SendSystemMessage("It cannot be done in your current state.");
+                                ignore = true;
                             }
-                            else if (clientMessage.Packet.Opcode == 0x10) // Handle special case of join world
+
+                            foreach (var required in method.GetCustomAttributes(typeof(Required), true))
                             {
-                                PacketHandlers[0x10].Invoke(clientMessage.ConnectionId, clientMessage.Packet);
+                                var requiredCondition = required as Required;
+                                if (requiredCondition == null) continue;
+                                if (requiredCondition.Check(user.Condition)) continue;
+                                user.SendSystemMessage("You cannot do that now.");
+                                ignore = true;
                             }
-                            else
+
+                            // If we are in an exchange, we should only receive exchange packets and the
+                            // occasional heartbeat. If we receive anything else, just kill the exchange.
+                            if (user.ActiveExchange != null && (clientMessage.Packet.Opcode != 0x4a &&
+                                clientMessage.Packet.Opcode != 0x45 && clientMessage.Packet.Opcode != 0x75))
+                                user.ActiveExchange.CancelExchange(user);
+                            if (ignore)
                             {
-                                // We received a packet for a dead connection...?
-                                Logger.WarnFormat(
-                                    "Connection ID {0}: received packet, but seems to be dead connection?",
-                                    clientMessage.ConnectionId);
+                                if (clientMessage.Packet.Opcode == 0x06) user.Refresh();
                                 continue;
                             }
+                            // Last but not least, invoke the handler
+                            handler.Invoke(user, clientMessage.Packet);
                         }
-                        catch (Exception e)
+                        else if (clientMessage.Packet.Opcode == 0x10) // Handle special case of join world
                         {
-                            Logger.Error("Exception encountered in packet handler!", e);
+                            PacketHandlers[0x10].Invoke(clientMessage.ConnectionId, clientMessage.Packet);
+                        }
+                        else
+                        {
+                            // We received a packet for a dead connection...?
+                            Logger.WarnFormat(
+                                "Connection ID {0}: received packet, but seems to be dead connection?",
+                                clientMessage.ConnectionId);
+                            continue;
                         }
                     }
+                    catch (Exception e)
+                    {
+                        Logger.Error("Exception encountered in packet handler!", e);
+                    }
                 }
+                
             }
             Logger.WarnFormat("Message queue is complete..?");
         }

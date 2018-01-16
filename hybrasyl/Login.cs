@@ -115,7 +115,7 @@ namespace Hybrasyl
                 {
                     Logger.InfoFormat("cid {0}: {1} logging on again, disconnecting previous connection",
                         client.ConnectionId, name);
-                    World.MessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.LogoffUser, name));
+                    World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.LogoffUser, name));
                 }
 
                 Logger.DebugFormat("cid {0} ({1}): logging in", client.ConnectionId, name);

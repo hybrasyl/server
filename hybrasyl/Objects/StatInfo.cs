@@ -58,7 +58,7 @@ namespace Hybrasyl.Objects
         // Publicly accessible getters/setters, relying on the lockables
         #region accessors
 
-        [JsonProperty] 
+        [JsonProperty]
         public Enums.Element BaseOffensiveElement { get { return _baseOffensiveElement.Value; } set { _baseOffensiveElement.Value = value; } }
         [JsonProperty]
         public Enums.Element BaseDefensiveElement { get { return _baseDefensiveElement.Value; } set { _baseDefensiveElement.Value = value; } }
@@ -69,7 +69,7 @@ namespace Hybrasyl.Objects
         [JsonProperty]
         public byte Level { get { return _level.Value; } set { _level.Value = value; } }
         [JsonProperty]
-        public uint Experience { get { return _experience.Value; } set { _experience.Value = value; } }       
+        public uint Experience { get { return _experience.Value; } set { _experience.Value = value; } }
         [JsonProperty]
         public byte Ability { get { return _ability.Value; } set { _ability.Value = value; } }
         [JsonProperty]
@@ -384,12 +384,11 @@ namespace Hybrasyl.Objects
             }
         }
 
-        public bool IsReflected =>_random.Value.NextDouble() >= ReflectChance;
+        public bool IsReflected => _random.Value.NextDouble() >= ReflectChance;
 
         public double HealModifier => BaseHealModifier + BonusHealModifier;
         public double DamageModifier => BaseDamageModifier + BonusDamageModifier;
     }
     #endregion
-
 
 }

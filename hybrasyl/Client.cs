@@ -421,7 +421,7 @@ namespace Hybrasyl
         public void Disconnect()
         {
             GlobalConnectionManifest.DeregisterClient(this);
-            World.MessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.CleanupUser, ConnectionId));
+            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.CleanupUser, ConnectionId));
             ClientState.Dispose();
 
         }
@@ -526,7 +526,7 @@ namespace Hybrasyl
                                 }
                                 else
                                     if (packet.Opcode == 0x06)
-                                        World.MessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.TriggerRefresh, ConnectionId));
+                                        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.TriggerRefresh, ConnectionId));
                             }
 
                         }

@@ -24,6 +24,7 @@
 using Hybrasyl.Enums;
 using Hybrasyl.Items;
 using Hybrasyl.Scripting;
+using Hybrasyl.Threading;
 using System;
 
 namespace Hybrasyl.Objects
@@ -202,9 +203,21 @@ namespace Hybrasyl.Objects
             return Template.Variants[variantId];
         }
 
-        public int Count { get; set; }
+        private Lockable<int> _count { get; set; }
+        public int Count
+        {
+            get { return _count.Value; }
+            set { _count.Value = value; }
+        }
 
-        public uint Durability { get; set; }
+        private Lockable<uint> _durability { get; set; }
+
+        public uint Durability
+        {
+            get { return _durability.Value; }
+            set { _durability.Value = value; }
+        }
+
 
         public void Invoke(User trigger)
         {

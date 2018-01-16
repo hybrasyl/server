@@ -152,6 +152,7 @@ namespace Hybrasyl
     public class Map
     {
         public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+        private object _lock = new object();
 
         public ushort Id { get; set; }
         public byte X { get; set; }
@@ -310,7 +311,10 @@ namespace Hybrasyl
 
         public List<VisibleObject> GetTileContents(int x, int y)
         {
-            return EntityTree.GetObjects(new Rectangle(x, y, 1, 1));
+            lock (_lock)
+            {
+                return EntityTree.GetObjects(new Rectangle(x, y, 1, 1));
+            }
         }
 
         public void InsertNpc(Merchant toInsert)
@@ -421,39 +425,42 @@ namespace Hybrasyl
 
         public void Insert(VisibleObject obj, byte x, byte y, bool updateClient = true)
         {
-            if (Objects.Add(obj))
+            lock (_lock)
             {
-                obj.Map = this;
-                obj.X = x;
-                obj.Y = y;
-
-                EntityTree.Add(obj);
-
-                var user = obj as User;
-                if (user != null)
+                if (Objects.Add(obj))
                 {
-                    if (updateClient)
+                    obj.Map = this;
+                    obj.X = x;
+                    obj.Y = y;
+
+                    EntityTree.Add(obj);
+
+                    var user = obj as User;
+                    if (user != null)
                     {
-                        obj.SendMapInfo();
-                        obj.SendLocation();
+                        if (updateClient)
+                        {
+                            obj.SendMapInfo();
+                            obj.SendLocation();
+                        }
+                        Users.Add(user.Name, user);
                     }
-                    Users.Add(user.Name, user);
+
+                    var value = obj as Objects.Reactor;
+                    if (value != null)
+                    {
+                        Reactors.Add(new Tuple<byte, byte>((byte)x, (byte)y), value);
+                    }
+
+                    var affectedObjects = EntityTree.GetObjects(obj.GetViewport());
+
+                    foreach (var target in affectedObjects)
+                    {
+                        target.AoiEntry(obj);
+                        obj.AoiEntry(target);
+                    }
+
                 }
-
-                var value = obj as Objects.Reactor;
-                if (value != null)
-                {
-                    Reactors.Add(new Tuple<byte, byte>((byte)x,(byte)y), value);
-                }
-
-                var affectedObjects = EntityTree.GetObjects(obj.GetViewport());
-
-                foreach (var target in affectedObjects)
-                {
-                    target.AoiEntry(obj);
-                    obj.AoiEntry(target);
-                }
-
             }
         }
 
@@ -570,35 +577,38 @@ namespace Hybrasyl
 
         public void Remove(VisibleObject obj)
         {
-            if (Objects.Remove(obj))
+            lock (_lock)
             {
-                EntityTree.Remove(obj);
-
-                if (obj is User)
+                if (Objects.Remove(obj))
                 {
-                    var user = obj as User;
-                    Users.Remove(user.Name);
-                    if (user.ActiveExchange != null)
-                        user.ActiveExchange.CancelExchange(user);
+                    EntityTree.Remove(obj);
+
+                    if (obj is User)
+                    {
+                        var user = obj as User;
+                        Users.Remove(user.Name);
+                        if (user.ActiveExchange != null)
+                            user.ActiveExchange.CancelExchange(user);
+                    }
+
+                    var affectedObjects = EntityTree.GetObjects(obj.GetViewport());
+
+                    foreach (var target in affectedObjects)
+                    {
+                        // If the target of a Remove is a player, we insert a 2s delay to allow the animation
+                        // frame to complete.
+                        if (target is User)
+                            ((User)target).AoiDeparture(obj, 250);
+                        else
+                            target.AoiDeparture(obj);
+
+                        obj.AoiDeparture(target);
+                    }
+
+                    obj.Map = null;
+                    obj.X = 0;
+                    obj.Y = 0;
                 }
-
-                var affectedObjects = EntityTree.GetObjects(obj.GetViewport());
-
-                foreach (var target in affectedObjects)
-                {
-                    // If the target of a Remove is a player, we insert a 2s delay to allow the animation
-                    // frame to complete.
-                    if (target is User)
-                        ((User)target).AoiDeparture(obj, 250);
-                    else
-                        target.AoiDeparture(obj);
-
-                    obj.AoiDeparture(target);
-                }
-
-                obj.Map = null;
-                obj.X = 0;
-                obj.Y = 0;
             }
         }
 
@@ -615,8 +625,11 @@ namespace Hybrasyl
             gold.X = (byte)x;
             gold.Y = (byte)y;
             gold.Map = this;
-            EntityTree.Add(gold);
-            Objects.Add(gold);
+            lock (_lock)
+            {
+                EntityTree.Add(gold);
+                Objects.Add(gold);
+            }
             NotifyNearbyAoiEntry(gold);
         }
 
@@ -633,8 +646,11 @@ namespace Hybrasyl
             itemObject.X = (byte)x;
             itemObject.Y = (byte)y;
             itemObject.Map = this;
-            EntityTree.Add(itemObject);
-            Objects.Add(itemObject);
+            lock (_lock)
+            {
+                EntityTree.Add(itemObject);
+                Objects.Add(itemObject);
+            }
             NotifyNearbyAoiEntry(itemObject);
         }
 
@@ -643,8 +659,11 @@ namespace Hybrasyl
             // Remove the gold from the world at the specified location.
             Logger.DebugFormat("Removing {0} qty {1} id {2}", gold.Name, gold.Amount, gold.Id);
             NotifyNearbyAoiDeparture(gold);
-            EntityTree.Remove(gold);
-            Objects.Remove(gold);
+            lock (_lock)
+            {
+                EntityTree.Remove(gold);
+                Objects.Remove(gold);
+            }
             World.Remove(gold);
         }
 
@@ -653,8 +672,11 @@ namespace Hybrasyl
             // Remove the ItemObject from the world at the specified location.
             Logger.DebugFormat("Removing {0} qty {1} id {2}", itemObject.Name, itemObject.Count, itemObject.Id);
             NotifyNearbyAoiDeparture(itemObject);
-            EntityTree.Remove(itemObject);
-            Objects.Remove(itemObject);
+            lock (_lock)
+            {
+                EntityTree.Remove(itemObject);
+                Objects.Remove(itemObject);
+            }
         }
 
 

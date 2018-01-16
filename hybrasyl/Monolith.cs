@@ -132,7 +132,7 @@ namespace Hybrasyl
         }
         private static void SpawnMonster(Monster monster, Map map)
         {
-            World.MessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MonolithSpawn, monster, map));
+            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MonolithSpawn, monster, map));
             //Game.World.Maps[mapId].InsertCreature(monster);
             //Logger.DebugFormat("Spawning monster: {0} at {1}, {2}", monster.Name, (int) monster.X, (int) monster.Y);
         }
@@ -180,7 +180,7 @@ namespace Hybrasyl
             var mapPlayers = mapTree.Any(x => x is User);
             if (!mapPlayers) return;
 
-            World.MessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MonolithControl, monster, map));
+            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MonolithControl, monster, map));
 
         }
     }

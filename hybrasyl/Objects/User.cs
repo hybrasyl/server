@@ -86,7 +86,7 @@ namespace Hybrasyl.Objects
     public class User : Creature
     {
 
-        public bool IsSaving { get; set; }
+        private object _serializeLock = new object();
 
         public new static readonly ILog Logger =
                LogManager.GetLogger(
@@ -972,9 +972,8 @@ namespace Hybrasyl.Objects
 
         public void Save()
         {
-            if (!IsSaving)
+            lock (_serializeLock)
             {
-                IsSaving = true;
                 // Save location
                 if (IsAtWorldMap)
                     Location.WorldMap = true;
@@ -987,7 +986,6 @@ namespace Hybrasyl.Objects
 
                 var cache = World.DatastoreConnection.GetDatabase();
                 cache.Set(GetStorageKey(Name), JsonConvert.SerializeObject(this, new JsonSerializerSettings() { PreserveReferencesHandling = PreserveReferencesHandling.All }));
-                IsSaving = false;
             }
         }
 
@@ -1958,12 +1956,12 @@ namespace Hybrasyl.Objects
                 if (updateWeight) UpdateAttributes(StatUpdateFlags.Primary);
                 return true;
             }
-
             return false;
         }
 
         public bool RemoveItem(string itemName, byte quantity = 0x01, bool updateWeight = true)
         {
+           
             if (Inventory.Contains(itemName, quantity))
             {
                 var remaining = (int)quantity;
@@ -3553,10 +3551,10 @@ namespace Hybrasyl.Objects
 
         public void Logoff()
         {
-            UpdateLogoffTime();
-            Save();
-            var redirect = new Redirect(Client, Game.World, Game.Login, "socket", Client.EncryptionSeed, Client.EncryptionKey);
-            Client.Redirect(redirect, true);
+                UpdateLogoffTime();
+                Save();
+                var redirect = new Redirect(Client, Game.World, Game.Login, "socket", Client.EncryptionSeed, Client.EncryptionKey);
+                Client.Redirect(redirect, true);
         }
 
         public void SetEncryptionParameters(byte[] key, byte seed, string name)

@@ -39,7 +39,7 @@ namespace Hybrasyl
         {
             if (key == Constants.ShutdownPassword)
             {
-                World.MessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.ShutdownServer, "build"));
+                World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.ShutdownServer, "build"));
                 return "Shutdown ControlMessage sent to Server.";
             }
             return "Shutdown ControlMessage not queued.";
