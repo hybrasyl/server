@@ -52,6 +52,7 @@ using Hybrasyl.Scripting;
 using Castable = Hybrasyl.Castables.Castable;
 using Creature = Hybrasyl.Objects.Creature;
 using Hybrasyl.Statuses;
+using Hybrasyl.Messaging;
 
 namespace Hybrasyl
 {
@@ -140,11 +141,12 @@ namespace Hybrasyl
         public ScriptProcessor ScriptProcessor { get; set; }
 
         public static BlockingCollection<HybrasylMessage> MessageQueue;
+        public static BlockingCollection<HybrasylMessage> ControlMessageQueue;
         public static ConcurrentDictionary<long, User> ActiveUsers { get; private set; }
         public ConcurrentDictionary<string, long> ActiveUsersByName { get; set; }
 
         private Thread ConsumerThread { get; set; }
-        
+        private Thread ControlConsumerThread { get; set; }
 
         public Login Login { get; private set; }
 
@@ -228,6 +230,7 @@ namespace Hybrasyl
 
             ScriptProcessor = new ScriptProcessor(this);
             MessageQueue = new BlockingCollection<HybrasylMessage>(new ConcurrentQueue<HybrasylMessage>());
+            ControlMessageQueue = new BlockingCollection<HybrasylMessage>(new ConcurrentQueue<HybrasylMessage>());
             ActiveUsers = new ConcurrentDictionary<long, User>();
             ActiveUsersByName = new ConcurrentDictionary<string, long>();
 
@@ -866,58 +869,63 @@ namespace Hybrasyl
 
         public void SetControlMessageHandlers()
         {
-            ControlMessageHandlers[ControlOpcodes.CleanupUser] = ControlMessage_CleanupUser;
-            ControlMessageHandlers[ControlOpcodes.SaveUser] = ControlMessage_SaveUser;
-            ControlMessageHandlers[ControlOpcodes.ShutdownServer] = ControlMessage_ShutdownServer;
-            ControlMessageHandlers[ControlOpcodes.RegenUser] = ControlMessage_RegenerateUser;
-            ControlMessageHandlers[ControlOpcodes.LogoffUser] = ControlMessage_LogoffUser;
-            ControlMessageHandlers[ControlOpcodes.MailNotifyUser] = ControlMessage_MailNotifyUser;
-            ControlMessageHandlers[ControlOpcodes.StatusTick] = ControlMessage_StatusTick;
-            ControlMessageHandlers[ControlOpcodes.MonolithSpawn] = ControlMessage_SpawnMonster;
-            ControlMessageHandlers[ControlOpcodes.MonolithControl] = ControlMessage_MonolithControl;
-            ControlMessageHandlers[ControlOpcodes.TriggerRefresh] = ControlMessage_TriggerRefresh;
+            // ST: secondary threads
+            // PT: primary thread
+            ControlMessageHandlers[ControlOpcodes.CleanupUser] = ControlMessage_CleanupUser; // PT
+            ControlMessageHandlers[ControlOpcodes.SaveUser] = ControlMessage_SaveUser; // ST + user lock
+            ControlMessageHandlers[ControlOpcodes.ShutdownServer] = ControlMessage_ShutdownServer; // ST/PT
+            ControlMessageHandlers[ControlOpcodes.RegenUser] = ControlMessage_RegenerateUser; // ST + creature lock
+            ControlMessageHandlers[ControlOpcodes.LogoffUser] = ControlMessage_LogoffUser; // PT
+            ControlMessageHandlers[ControlOpcodes.MailNotifyUser] = ControlMessage_MailNotifyUser; // ST + creature lock
+            ControlMessageHandlers[ControlOpcodes.StatusTick] = ControlMessage_StatusTick; // ST + creature lock
+            ControlMessageHandlers[ControlOpcodes.MonolithSpawn] = ControlMessage_SpawnMonster; // ST + map lock?
+            ControlMessageHandlers[ControlOpcodes.MonolithControl] = ControlMessage_MonolithControl; // ST + map lock?
+            ControlMessageHandlers[ControlOpcodes.TriggerRefresh] = ControlMessage_TriggerRefresh; // ST
+            ControlMessageHandlers[ControlOpcodes.HandleDeath] = ControlMessage_HandleDeath; // ST + user/map locks
         }
 
         public void SetPacketHandlers()
         {
-            PacketHandlers[0x05] = PacketHandler_0x05_RequestMap;
-            PacketHandlers[0x06] = PacketHandler_0x06_Walk;
-            PacketHandlers[0x07] = PacketHandler_0x07_PickupItem;
-            PacketHandlers[0x08] = PacketHandler_0x08_DropItem;
-            PacketHandlers[0x0B] = PacketHandler_0x0B_ClientExit;
-            PacketHandlers[0x0E] = PacketHandler_0x0E_Talk;
-            PacketHandlers[0x0F] = PacketHandler_0x0F_UseSpell;
-            PacketHandlers[0x10] = PacketHandler_0x10_ClientJoin;
-            PacketHandlers[0x11] = PacketHandler_0x11_Turn;
-            PacketHandlers[0x13] = PacketHandler_0x13_Attack;
-            PacketHandlers[0x18] = PacketHandler_0x18_ShowPlayerList;
-            PacketHandlers[0x19] = PacketHandler_0x19_Whisper;
-            PacketHandlers[0x1C] = PacketHandler_0x1C_UseItem;
-            PacketHandlers[0x1D] = PacketHandler_0x1D_Emote;
-            PacketHandlers[0x24] = PacketHandler_0x24_DropGold;
-            PacketHandlers[0x29] = PacketHandler_0x29_DropItemOnCreature;
-            PacketHandlers[0x2A] = PacketHandler_0x2A_DropGoldOnCreature;
-            PacketHandlers[0x2D] = PacketHandler_0x2D_PlayerInfo;
-            PacketHandlers[0x2E] = PacketHandler_0x2E_GroupRequest;
-            PacketHandlers[0x2F] = PacketHandler_0x2F_GroupToggle;
-            PacketHandlers[0x30] = PacketHandler_0x30_MoveUIElement;
-            PacketHandlers[0x38] = PacketHandler_0x38_Refresh;
-            PacketHandlers[0x39] = PacketHandler_0x39_NPCMainMenu;
-            PacketHandlers[0x3A] = PacketHandler_0x3A_DialogUse;
-            PacketHandlers[0x3B] = PacketHandler_0x3B_AccessMessages;
-            PacketHandlers[0x3E] = PacketHandler_0x3E_UseSkill;
-            PacketHandlers[0x3F] = PacketHandler_0x3F_MapPointClick;
-            PacketHandlers[0x43] = PacketHandler_0x43_PointClick;
-            PacketHandlers[0x44] = PacketHandler_0x44_EquippedItemClick;
-            PacketHandlers[0x45] = PacketHandler_0x45_ByteHeartbeat;
-            PacketHandlers[0x47] = PacketHandler_0x47_StatPoint;
-            PacketHandlers[0x4a] = PacketHandler_0x4A_Trade;
-            PacketHandlers[0x4D] = PacketHandler_0x4D_BeginCasting;
-            PacketHandlers[0x4E] = PacketHandler_0x4E_CastLine;
-            PacketHandlers[0x4F] = PacketHandler_0x4F_ProfileTextPortrait;
-            PacketHandlers[0x75] = PacketHandler_0x75_TickHeartbeat;
-            PacketHandlers[0x79] = PacketHandler_0x79_Status;
-            PacketHandlers[0x7B] = PacketHandler_0x7B_RequestMetafile;
+            // ST: secondary threads
+            // PT: primary thread
+            PacketHandlers[0x05] = PacketHandler_0x05_RequestMap; // ST
+            PacketHandlers[0x06] = PacketHandler_0x06_Walk;  // ST + map lock
+            PacketHandlers[0x07] = PacketHandler_0x07_PickupItem; // ST + map lock
+            PacketHandlers[0x08] = PacketHandler_0x08_DropItem; // ST + map lock
+            PacketHandlers[0x0B] = PacketHandler_0x0B_ClientExit; // primary thread 
+            PacketHandlers[0x0E] = PacketHandler_0x0E_Talk; // ST
+            PacketHandlers[0x0F] = PacketHandler_0x0F_UseSpell; // PT
+            PacketHandlers[0x10] = PacketHandler_0x10_ClientJoin; // PT
+            PacketHandlers[0x11] = PacketHandler_0x11_Turn; // ST + user lock
+            PacketHandlers[0x13] = PacketHandler_0x13_Attack; // PT
+            PacketHandlers[0x18] = PacketHandler_0x18_ShowPlayerList; // ST
+            PacketHandlers[0x19] = PacketHandler_0x19_Whisper; // ST
+            PacketHandlers[0x1C] = PacketHandler_0x1C_UseItem; // PT
+            PacketHandlers[0x1D] = PacketHandler_0x1D_Emote; // ST
+            PacketHandlers[0x24] = PacketHandler_0x24_DropGold; // ST + map lock
+            PacketHandlers[0x29] = PacketHandler_0x29_DropItemOnCreature; // ST + map/user lock
+            PacketHandlers[0x2A] = PacketHandler_0x2A_DropGoldOnCreature; // ST + map/user lock
+            PacketHandlers[0x2D] = PacketHandler_0x2D_PlayerInfo; // ST
+            PacketHandlers[0x2E] = PacketHandler_0x2E_GroupRequest; // PT
+            PacketHandlers[0x2F] = PacketHandler_0x2F_GroupToggle; // PT
+            PacketHandlers[0x30] = PacketHandler_0x30_MoveUIElement; // ST + user lock
+            PacketHandlers[0x38] = PacketHandler_0x38_Refresh; // ST
+            PacketHandlers[0x39] = PacketHandler_0x39_NPCMainMenu; // PT
+            PacketHandlers[0x3A] = PacketHandler_0x3A_DialogUse; // PT
+            PacketHandlers[0x3B] = PacketHandler_0x3B_AccessMessages; // ST
+            PacketHandlers[0x3E] = PacketHandler_0x3E_UseSkill; // PT
+            PacketHandlers[0x3F] = PacketHandler_0x3F_MapPointClick; // ST
+            PacketHandlers[0x43] = PacketHandler_0x43_PointClick; // ST?
+            PacketHandlers[0x44] = PacketHandler_0x44_EquippedItemClick; // PT
+            PacketHandlers[0x45] = PacketHandler_0x45_ByteHeartbeat; // ST
+            PacketHandlers[0x47] = PacketHandler_0x47_StatPoint; // ST + user lock
+            PacketHandlers[0x4a] = PacketHandler_0x4A_Trade; // PT
+            PacketHandlers[0x4D] = PacketHandler_0x4D_BeginCasting; // PT
+            PacketHandlers[0x4E] = PacketHandler_0x4E_CastLine; // PT
+            PacketHandlers[0x4F] = PacketHandler_0x4F_ProfileTextPortrait; // ST
+            PacketHandlers[0x75] = PacketHandler_0x75_TickHeartbeat; // ST + user lock
+            PacketHandlers[0x79] = PacketHandler_0x79_Status; // ST
+            PacketHandlers[0x7B] = PacketHandler_0x7B_RequestMetafile; // ST
         }
 
         public void SetMerchantMenuHandlers()
@@ -1061,7 +1069,7 @@ namespace Hybrasyl
                     user.ActiveExchange.CancelExchange(user);
                 ((IDictionary)ActiveUsersByName).Remove(user.Name);
                 user.Save();
-                user.UpdateLogoffTime();              
+                user.UpdateLogoffTime();
                 user.Map?.Remove(user);
                 user.Group?.Remove(user);
                 Remove(user);
@@ -1082,24 +1090,25 @@ namespace Hybrasyl
             {
                 uint hpRegen = 0;
                 uint mpRegen = 0;
-                double fixedRegenBuff = Math.Min(user.Regen * 0.0015, 0.15);
+                double fixedRegenBuff = Math.Min(user.Stats.Regen * 0.0015, 0.15);
                 fixedRegenBuff = Math.Max(fixedRegenBuff, 0.125);
-                if (user.Hp != user.MaximumHp)
+                if (user.Stats.Hp != user.Stats.MaximumHp)
                 {
-                    hpRegen = (uint)Math.Min(user.MaximumHp * (0.1 * Math.Max(user.Con, (user.Con - user.Level)) * 0.01),
-                        user.MaximumHp * 0.20);
-                    hpRegen = hpRegen + (uint)(fixedRegenBuff * user.MaximumHp);
+                    hpRegen = (uint)Math.Min(user.Stats.MaximumHp * (0.1 * Math.Max(user.Stats.Con, (user.Stats.Con - user.Stats.Level)) * 0.01),
+                        user.Stats.MaximumHp * 0.20);
+                    hpRegen = hpRegen + (uint)(fixedRegenBuff * user.Stats.MaximumHp);
                 }
-                if (user.Mp != user.MaximumMp)
+                if (user.Stats.Mp != user.Stats.MaximumMp)
                 {
-                    mpRegen = (uint)Math.Min(user.MaximumMp * (0.1 * Math.Max(user.Int, (user.Int - user.Level)) * 0.01),
-                        user.MaximumMp * 0.20);
-                    mpRegen = mpRegen + (uint)(fixedRegenBuff * user.MaximumMp);
+                    mpRegen = (uint)Math.Min(user.Stats.MaximumMp * (0.1 * Math.Max(user.Stats.Int, (user.Stats.Int - user.Stats.Level)) * 0.01),
+                        user.Stats.MaximumMp * 0.20);
+                    mpRegen = mpRegen + (uint)(fixedRegenBuff * user.Stats.MaximumMp);
                 }
                 Logger.DebugFormat("User {0}: regen HP {1}, MP {2}", user.Name,
                     hpRegen, mpRegen);
-                user.Hp = Math.Min(user.Hp + hpRegen, user.MaximumHp);
-                user.Mp = Math.Min(user.Mp + mpRegen, user.MaximumMp);
+
+                user.Stats.Hp = Math.Min(user.Stats.Hp + hpRegen, user.Stats.MaximumHp);
+                user.Stats.Mp = Math.Min(user.Stats.Mp + mpRegen, user.Stats.MaximumMp);
                 user.UpdateAttributes(StatUpdateFlags.Current);
             }
         }
@@ -1197,6 +1206,13 @@ namespace Hybrasyl
             var connectionId = (long) message.Arguments[0];
             if (ActiveUsers.TryGetValue(connectionId, out User user))
                 user.Refresh();
+        }
+
+        private void ControlMessage_HandleDeath(HybrasylControlMessage message)
+        {
+            var creature = (Creature)message.Arguments[0];
+            if (creature is User) { (creature as User).OnDeath(); }
+            if (creature is Monster) { (creature as Monster).OnDeath(); }
         }
 
         private void ControlMessage_MonolithControl(HybrasylControlMessage message)
@@ -1507,21 +1523,16 @@ namespace Hybrasyl
             {
                 var args = message.Split(' ');
 
+                var currentAssembly = GetType().GetTypeInfo().Assembly;
+                var f = currentAssembly.DefinedTypes.Where(type => type.ImplementedInterfaces.Any(inter => inter == typeof(IChatCommand))).ToList();
                 #region world's biggest switch statement
 
                 switch (args[0].ToLower())
                 {
                     case "/gold":
                         {
-                            uint amount;
-
-                            if (args.Length != 2 || !uint.TryParse(args[1], out amount))
-                                break;
-
-                            user.Gold = amount;
-                            user.UpdateAttributes(StatUpdateFlags.Experience);
-                            break;
                         }
+                        break;
                     case "/status":
                         {
                             if (WorldData.TryGetValueByIndex(args[1], out Status status))
@@ -1532,12 +1543,7 @@ namespace Hybrasyl
                         break;
                     case "/basehp":
                         {
-                            uint hp = 0;
-                            if (uint.TryParse(args[1], out hp))
-                            {
-                                user.BaseHp = hp;
-                                user.UpdateAttributes(StatUpdateFlags.Full);
-                            }
+                          
                         }
                         break;
                     case "/hp":
@@ -1545,7 +1551,7 @@ namespace Hybrasyl
                             uint hp = 0;
                             if (uint.TryParse(args[1], out hp))
                             {
-                                user.Hp = hp;
+                                user.Stats.Hp = hp;
                                 user.UpdateAttributes(StatUpdateFlags.Full);
                             }
                         }
@@ -1590,8 +1596,8 @@ namespace Hybrasyl
                     case "/expreset":
                         {
                             user.LevelPoints = 0;
-                            user.Level = 1;
-                            user.Experience = 0;
+                            user.Stats.Level = 1;
+                            user.Stats.Experience = 0;
                             user.UpdateAttributes(StatUpdateFlags.Full);
                         }
                         break;
@@ -1882,7 +1888,7 @@ namespace Hybrasyl
                                 user.SendMessage("That's not a valid level, champ.", 0x1);
                             else
                             {
-                                user.Level = newLevel > Constants.MAX_LEVEL ? (byte)Constants.MAX_LEVEL : newLevel;
+                                user.Stats.Level = newLevel > Constants.MAX_LEVEL ? (byte)Constants.MAX_LEVEL : newLevel;
                                 user.UpdateAttributes(StatUpdateFlags.Full);
                                 user.SendMessage(string.Format("Level changed to {0}", newLevel), 0x1);
                             }
@@ -1891,42 +1897,7 @@ namespace Hybrasyl
 
                     case "/attr":
                         {
-                            if (args.Length != 3)
-                                return;
-
-                            byte newStat;
-
-                            if (!Byte.TryParse(args[2], out newStat))
-                            {
-                                user.SendSystemMessage($"That's not a valid value for {args[2]}, chief.");
-                                return;
-                            }
-
-                            switch (args[1].ToLower())
-                            {
-                                case "str":
-                                    user.BaseStr = newStat;
-                                    break;
-
-                                case "con":
-                                    user.BaseCon = newStat;
-                                    break;
-
-                                case "dex":
-                                    user.BaseDex = newStat;
-                                    break;
-
-                                case "wis":
-                                    user.BaseWis = newStat;
-                                    break;
-                                case "int":
-                                    user.BaseInt = newStat;
-                                    break;
-                                default:
-                                    user.SendSystemMessage("Invalid attribute, sport.");
-                                    break;
-                            }
-                            user.UpdateAttributes(StatUpdateFlags.Stats);
+                
                         }
                         break;
                     case "/mp":
@@ -1934,8 +1905,8 @@ namespace Hybrasyl
                             uint mp = 0;
                             if (uint.TryParse(args[1], out mp))
                             {
-                                user.Mp = mp;
-                                user.BaseMp = mp;
+                                user.Stats.Mp = mp;
+                                user.Stats.BaseMp = mp;
                                 user.UpdateAttributes(StatUpdateFlags.Full);
                             }
                         }
@@ -2134,21 +2105,16 @@ namespace Hybrasyl
                                 Sprite = 1,
                                 World = Game.World,
                                 Map = user.Map,
-                                Level = 1,
+
                                 DisplayText = "TestMob",
-                                BaseHp = 10000,
-                                Hp = 10000,
-                                BaseMp = 1,
                                 Name = "TestMob",
                                 Id = 90210,
-                                BaseStr = 3,
-                                BaseCon = 3,
-                                BaseDex = 3,
-                                BaseInt = 3,
-                                BaseWis = 3,
                                 X = user.X,
                                 Y = user.Y
                             };
+                            creature.Stats.BaseHp = 10000;
+                            creature.Stats.Hp = 10000;
+
                             Game.World.WorldData.Get<Map>(500).InsertCreature(creature);
                             user.SendVisibleCreature(creature);
                         }
@@ -2367,17 +2333,17 @@ namespace Hybrasyl
 
                                 var testUser = new User(this, new Client());
                                 testUser.Map = new Map();
-                                testUser.BaseHp = 50;
-                                testUser.BaseMp = 50;
+                                testUser.Stats.BaseHp = 50;
+                                testUser.Stats.BaseMp = 50;
                                 testUser.Class = (Enums.Class)Enum.Parse(typeof(Enums.Class), args[1]);
-                                testUser.Level = 1;
+                                testUser.Stats.Level = 1;
 
-                                while (testUser.Level < level)
+                                while (testUser.Stats.Level < level)
                                 {
                                     testUser.GiveExperience(testUser.ExpToLevel);
                                 }
 
-                                user.SendMessage(string.Format("{0}, Level {1}, Hp: {2}, Mp: {3}", testUser.Class, testUser.Level, testUser.BaseHp, testUser.BaseMp), 0x01);
+                                user.SendMessage(string.Format("{0}, Level {1}, Hp: {2}, Mp: {3}", testUser.Class, testUser.Stats.Level, testUser.Stats.BaseHp, testUser.Stats.BaseMp), 0x01);
                             }
                         }
                         break;
@@ -2545,7 +2511,7 @@ namespace Hybrasyl
             var me = (User)obj;
 
             var list = from user in WorldData.Values<User>()
-                       orderby user.IsMaster descending, user.Level descending, user.BaseHp + user.BaseMp * 2 descending, user.Name ascending
+                       orderby user.IsMaster descending, user.Stats.Level descending, user.Stats.BaseHp + user.Stats.BaseMp * 2 descending, user.Name ascending
                        select user;
 
             var listPacket = new ServerPacket(0x36);
@@ -2554,7 +2520,7 @@ namespace Hybrasyl
 
             foreach (var user in list)
             {
-                int levelDifference = Math.Abs((int)user.Level - me.Level);
+                int levelDifference = Math.Abs((int)user.Stats.Level - me.Stats.Level);
 
                 listPacket.WriteByte((byte)user.Class);
                 // TODO: GUILD SUPPORT
@@ -3845,23 +3811,23 @@ namespace Hybrasyl
                 switch (packet.ReadByte())
                 {
                     case 0x01:
-                        user.BaseStr++;
+                        user.Stats.BaseStr++;
                         break;
 
                     case 0x04:
-                        user.BaseInt++;
+                        user.Stats.BaseInt++;
                         break;
 
                     case 0x08:
-                        user.BaseWis++;
+                        user.Stats.BaseWis++;
                         break;
 
                     case 0x10:
-                        user.BaseCon++;
+                        user.Stats.BaseCon++;
                         break;
 
                     case 0x02:
-                        user.BaseDex++;
+                        user.Stats.BaseDex++;
                         break;
 
                     default:
@@ -4489,21 +4455,43 @@ namespace Hybrasyl
                             Logger.Error("Exception encountered in packet handler!", e);
                         }
                     }
-                    else if (message is HybrasylControlMessage)
-                    {
-                        try
-                        {
-                            var controlMessage = (HybrasylControlMessage)message;
-                            ControlMessageHandlers[controlMessage.Opcode].Invoke(controlMessage);
-                        }
-                        catch (Exception e)
-                        {
-                           Logger.Error("Exception encountered in control message handler!", e);
-                        }
-                    }
                 }
             }
             Logger.WarnFormat("Message queue is complete..?");
+        }
+
+
+        public void ControlQueueConsumer()
+        {
+            while (!ControlMessageQueue.IsCompleted)
+            {
+                if (StopToken.IsCancellationRequested)
+                    return;
+                // Process messages.
+                HybrasylMessage message;
+                try
+                {
+                    message = ControlMessageQueue.Take();
+                }
+                catch (InvalidOperationException)
+                {
+                    Logger.ErrorFormat("QUEUE CONSUMER: EXCEPTION RAISED");
+                    continue;
+                }
+
+                if (message is HybrasylControlMessage)
+                {
+                    try
+                    {
+                        var controlMessage = (HybrasylControlMessage)message;
+                        ControlMessageHandlers[controlMessage.Opcode].Invoke(controlMessage);
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.Error("Exception encountered in control message handler!", e);
+                    }
+                }
+            }
         }
 
         public void StartQueueConsumer()
@@ -4516,11 +4504,18 @@ namespace Hybrasyl
 
         }
 
-        public void StopQueueConsumer()
+        public void StartControlConsumers()
         {
-            // Mark the message queue as not accepting additions, which will result in thread termination
-            MessageQueue.CompleteAdding();
+            ControlConsumerThread = new Thread(ControlQueueConsumer);
+            if (ControlConsumerThread.IsAlive) return;
+            ControlConsumerThread.Start();
+            Logger.Info("Control consumer thread: started");
         }
+
+        // Mark the message queue as not accepting additions, which will result in thread termination
+        public void StopQueueConsumer() =>    MessageQueue.CompleteAdding();
+        public void StopControlConsumers() => ControlMessageQueue.CompleteAdding();
+
 
         public void StartTimers()
         {

@@ -65,6 +65,8 @@ namespace Hybrasyl
         public const int MonolithSpawn = 8;
         public const int MonolithControl = 9;
         public const int TriggerRefresh = 10;
+        public const int HandleDeath = 11;
+
     }
 
     static class ServerTypes

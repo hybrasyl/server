@@ -225,11 +225,11 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                var levelExp = (uint)Math.Pow(Level, 3) * 250;
-                if (Level == Constants.MAX_LEVEL || Experience >= levelExp)
+                var levelExp = (uint)Math.Pow(Stats.Level, 3) * 250;
+                if (Stats.Level == Constants.MAX_LEVEL || Stats.Experience >= levelExp)
                     return 0;
 
-                return (uint)(Math.Pow(Level, 3) * 250 - Experience);
+                return (uint)(Math.Pow(Stats.Level, 3) * 250 - Stats.Experience);
             }
         }
 
@@ -380,7 +380,7 @@ namespace Hybrasyl.Objects
             if (!(handler?.Active ?? true))
             {
                 SendSystemMessage("Death disabled by server configuration");
-                Hp = 1;
+                Stats.Hp = 1;
                 UpdateAttributes(StatUpdateFlags.Full);
                 return;
             }
@@ -440,31 +440,31 @@ namespace Hybrasyl.Objects
 
             // Experience penalty
             if (handler?.Penalty != null) {
-                if (Experience > 1000)
+                if (Stats.Experience > 1000)
                 {
                     uint expPenalty;
                     if (handler.Penalty.Xp.Contains('.'))
-                        expPenalty = (uint)Math.Ceiling(Experience * Convert.ToDouble(handler.Penalty.Xp));
+                        expPenalty = (uint)Math.Ceiling(Stats.Experience * Convert.ToDouble(handler.Penalty.Xp));
                     else
                         expPenalty = Convert.ToUInt32(handler.Penalty.Xp);
-                    Experience -= expPenalty;
+                    Stats.Experience -= expPenalty;
                     SendSystemMessage($"You lose {expPenalty} experience!");
                 }
-                if (BaseHp >= 51 && Level == 99)
+                if (Stats.BaseHp >= 51 && Stats.Level == 99)
                 {
                     uint hpPenalty;
 
                     if (handler.Penalty.Xp.Contains('.'))
-                        hpPenalty = (uint)Math.Ceiling(Experience * Convert.ToDouble(handler.Penalty.Hp));
+                        hpPenalty = (uint)Math.Ceiling(Stats.Experience * Convert.ToDouble(handler.Penalty.Hp));
                     else
                         hpPenalty = Convert.ToUInt32(handler.Penalty.Hp);
 
-                    BaseHp -= hpPenalty;
+                    Stats.BaseHp -= hpPenalty;
                     SendSystemMessage($"You lose {hpPenalty} HP!");
                 }
             }
-            Hp = 0;
-            Mp = 0;
+            Stats.Hp = 0;
+            Stats.Mp = 0;
             Condition.Alive = false;
             UpdateAttributes(StatUpdateFlags.Full);
             Effect(76, 120);
@@ -515,8 +515,8 @@ namespace Hybrasyl.Objects
                 Teleport((ushort)500, (byte)50, (byte)50);
             }
 
-            Hp = 1;
-            Mp = 1;
+            Stats.Hp = 1;
+            Stats.Mp = 1;
 
             UpdateAttributes(StatUpdateFlags.Full);
 
@@ -567,7 +567,7 @@ namespace Hybrasyl.Objects
 
         public ushort MaximumWeight
         {
-            get { return (ushort)(BaseStr + Level / 4 + 48); }
+            get { return (ushort)(Stats.BaseStr + Stats.Level / 4 + 48); }
         }
 
         public bool VerifyPassword(string password)
@@ -658,13 +658,13 @@ namespace Hybrasyl.Objects
         public void GiveExperience(uint exp)
         {
             Client.SendMessage($"{exp} experience!", MessageTypes.SYSTEM);
-            if (Level == Constants.MAX_LEVEL || exp < ExpToLevel)
+            if (Stats.Level == Constants.MAX_LEVEL || exp < ExpToLevel)
             {
-                if (uint.MaxValue - Experience >= exp)
-                    Experience += exp;
+                if (uint.MaxValue - Stats.Experience >= exp)
+                    Stats.Experience += exp;
                 else
                 {
-                    Experience = uint.MaxValue;
+                    Stats.Experience = uint.MaxValue;
                     SendSystemMessage("You cannot gain any more experience.");
                 }
             }
@@ -675,17 +675,17 @@ namespace Hybrasyl.Objects
                 var levelsGained = 0;
                 Random random = new Random();
 
-                while (exp > 0 && Level < 99)
+                while (exp > 0 && Stats.Level < 99)
                 {
                     uint expChunk = Math.Min(exp, ExpToLevel);
 
                     exp -= expChunk;
-                    Experience += expChunk;
+                    Stats.Experience += expChunk;
 
                     if (ExpToLevel == 0)
                     {
                         levelsGained++;
-                        Level++;
+                        Stats.Level++;
                         LevelPoints = LevelPoints + 2;
 
                         #region Add Hp and Mp for each level gained
@@ -697,19 +697,19 @@ namespace Hybrasyl.Objects
 
                         double levelCircleModifier;  // Users get more Hp and Mp per level at higher Level "circles"
 
-                        if (Level < LevelCircles.CIRCLE_1)
+                        if (Stats.Level < LevelCircles.CIRCLE_1)
                         {
                             levelCircleModifier = StatGainConstants.LEVEL_CIRCLE_GAIN_MODIFIER_0;
                         }
-                        else if (Level < LevelCircles.CIRCLE_2)
+                        else if (Stats.Level < LevelCircles.CIRCLE_2)
                         {
                             levelCircleModifier = StatGainConstants.LEVEL_CIRCLE_GAIN_MODIFIER_1;
                         }
-                        else if (Level < LevelCircles.CIRCLE_3)
+                        else if (Stats.Level < LevelCircles.CIRCLE_3)
                         {
                             levelCircleModifier = StatGainConstants.LEVEL_CIRCLE_GAIN_MODIFIER_2;
                         }
-                        else if (Level < LevelCircles.CIRCLE_4)
+                        else if (Stats.Level < LevelCircles.CIRCLE_4)
                         {
                             levelCircleModifier = StatGainConstants.LEVEL_CIRCLE_GAIN_MODIFIER_3;
                         }
@@ -771,15 +771,15 @@ namespace Hybrasyl.Objects
                         int bonusHpGain = (int)Math.Round(bonusHp * 0.5 * levelCircleModifier + bonusHp * 0.5 * random.NextDouble(), MidpointRounding.AwayFromZero);
                         int bonusMpGain = (int)Math.Round(bonusMp * 0.5 * levelCircleModifier + bonusMp * 0.5 * random.NextDouble(), MidpointRounding.AwayFromZero);
 
-                        BaseHp += (hpGain + bonusHpGain);
-                        BaseMp += (mpGain + bonusMpGain);
+                        Stats.BaseHp += (hpGain + bonusHpGain);
+                        Stats.BaseMp += (mpGain + bonusMpGain);
 
                         #endregion
                     }
                 }
                 // If a user has just become level 99, add the remainder exp to their box
-                if (Level == 99)
-                    Experience += exp;
+                if (Stats.Level == 99)
+                    Stats.Experience += exp;
 
                 if (levelsGained > 0)
                 {
@@ -846,34 +846,34 @@ namespace Hybrasyl.Objects
                 toApply.BonusCon, toApply.BonusDex, toApply.BonusHit, toApply.BonusDmg, toApply.BonusAc,
                 toApply.BonusMr, toApply.BonusRegen);
 
-            BonusHp += toApply.BonusHp;
-            BonusMp += toApply.BonusMp;
-            BonusStr += toApply.BonusStr;
-            BonusInt += toApply.BonusInt;
-            BonusWis += toApply.BonusWis;
-            BonusCon += toApply.BonusCon;
-            BonusDex += toApply.BonusDex;
-            BonusHit += toApply.BonusHit;
-            BonusDmg += toApply.BonusDmg;
-            BonusAc += toApply.BonusAc;
-            BonusMr += toApply.BonusMr;
-            BonusRegen += toApply.BonusRegen;
+            Stats.BonusHp += toApply.BonusHp;
+            Stats.BonusMp += toApply.BonusMp;
+            Stats.BonusStr += toApply.BonusStr;
+            Stats.BonusInt += toApply.BonusInt;
+            Stats.BonusWis += toApply.BonusWis;
+            Stats.BonusCon += toApply.BonusCon;
+            Stats.BonusDex += toApply.BonusDex;
+            Stats.BonusHit += toApply.BonusHit;
+            Stats.BonusDmg += toApply.BonusDmg;
+            Stats.BonusAc += toApply.BonusAc;
+            Stats.BonusMr += toApply.BonusMr;
+            Stats.BonusRegen += toApply.BonusRegen;
 
             switch (toApply.EquipmentSlot)
             {
                 case (byte)ItemSlots.Necklace:
-                    BaseOffensiveElement = toApply.Element;
+                    Stats.BaseOffensiveElement = toApply.Element;
                     break;
                 case (byte)ItemSlots.Waist:
-                    BaseDefensiveElement = toApply.Element;
+                    Stats.BaseDefensiveElement = toApply.Element;
                     break;
             }
 
             Logger.DebugFormat(
                 "Player {0}: stats now {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11}, {12}, {13}",
-                BonusHp, BonusHp, BonusStr, BonusInt, BonusWis,
-                BonusCon, BonusDex, BonusHit, BonusDmg, BonusAc,
-                BonusMr, BonusRegen, OffensiveElement, DefensiveElement);
+                Stats.BonusHp, Stats.BonusHp, Stats.BonusStr, Stats.BonusInt, Stats.BonusWis,
+                Stats.BonusCon, Stats.BonusDex, Stats.BonusHit, Stats.BonusDmg, Stats.BonusAc,
+                Stats.BonusMr, Stats.BonusRegen, Stats.OffensiveElement, Stats.DefensiveElement);
 
         }
 
@@ -883,28 +883,27 @@ namespace Hybrasyl.Objects
         /// <param name="toRemove"></param>
         public void RemoveBonuses(ItemObject toRemove)
         {
-            BonusHp -= toRemove.BonusHp;
-            BonusMp -= toRemove.BonusMp;
-            BonusStr -= toRemove.BonusStr;
-            BonusInt -= toRemove.BonusInt;
-            BonusWis -= toRemove.BonusWis;
-            BonusCon -= toRemove.BonusCon;
-            BonusDex -= toRemove.BonusDex;
-            BonusHit -= toRemove.BonusHit;
-            BonusDmg -= toRemove.BonusDmg;
-            BonusAc -= toRemove.BonusAc;
-            BonusMr -= toRemove.BonusMr;
-            BonusRegen -= toRemove.BonusRegen;
+            Stats.BonusHp -= toRemove.BonusHp;
+            Stats.BonusMp -= toRemove.BonusMp;
+            Stats.BonusStr -= toRemove.BonusStr;
+            Stats.BonusInt -= toRemove.BonusInt;
+            Stats.BonusWis -= toRemove.BonusWis;
+            Stats.BonusCon -= toRemove.BonusCon;
+            Stats.BonusDex -= toRemove.BonusDex;
+            Stats.BonusHit -= toRemove.BonusHit;
+            Stats.BonusDmg -= toRemove.BonusDmg;
+            Stats.BonusAc -= toRemove.BonusAc;
+            Stats.BonusMr -= toRemove.BonusMr;
+            Stats.BonusRegen -= toRemove.BonusRegen;
             switch (toRemove.EquipmentSlot)
             {
                 case (byte)ItemSlots.Necklace:
-                    BaseOffensiveElement = Enums.Element.None;
+                    Stats.BaseOffensiveElement = Enums.Element.None;
                     break;
                 case (byte)ItemSlots.Waist:
-                    BaseDefensiveElement = Enums.Element.None;
+                    Stats.BaseDefensiveElement = Enums.Element.None;
                     break;
             }
-
         }
 
         public override void OnClick(User invoker)
@@ -1199,12 +1198,12 @@ namespace Hybrasyl.Objects
             // HP cost can be either a percentage (0.25) or a fixed amount (50)
             if (costs.Stat?.Hp != null)
                 if (costs.Stat.Hp.Contains('.'))
-                    reduceHp = (uint) Math.Ceiling(Convert.ToDouble(costs.Stat.Hp) * this.MaximumHp);
+                    reduceHp = (uint) Math.Ceiling(Convert.ToDouble(costs.Stat.Hp) * Stats.MaximumHp);
                 else 
                     reduceHp = Convert.ToUInt32(costs.Stat.Hp);
             if (costs.Stat?.Mp != null)
                 if (costs.Stat.Mp.Contains('.'))
-                    reduceMp = (uint)Math.Ceiling(Convert.ToDouble(costs.Stat.Mp) * this.MaximumMp);
+                    reduceMp = (uint)Math.Ceiling(Convert.ToDouble(costs.Stat.Mp) * Stats.MaximumMp);
                 else
                     reduceMp = Convert.ToUInt32(costs.Stat.Mp);
 
@@ -1219,12 +1218,12 @@ namespace Hybrasyl.Objects
 
             // Check that all requirements are met first. Note that a spell cannot be cast if its HP cost would result
             // in the caster's HP being reduced to zero.
-            if (reduceHp > Hp || reduceMp >= Mp || costs.Gold > Gold || (removeNumItems != 0 && costs.Items.Count == removeNumItems)) return false;
+            if (reduceHp > Stats.Hp || reduceMp >= Stats.Mp || costs.Gold > Gold || (removeNumItems != 0 && costs.Items.Count == removeNumItems)) return false;
 
             if (costs.Gold > this.Gold) return false;
 
-            if (reduceHp != 0) this.Hp -= reduceHp;
-            if (reduceMp != 0) this.Mp -= reduceMp;
+            if (reduceHp != 0) Stats.Hp -= reduceHp;
+            if (reduceMp != 0) Stats.Mp -= reduceMp;
             if ((int)costs.Gold > 0 ) this.RemoveGold(new Gold(costs.Gold));
             if (removeNumItems > 0)
             {
@@ -1508,15 +1507,15 @@ namespace Hybrasyl.Objects
             if (flags.HasFlag(StatUpdateFlags.Primary))
             {
                 x08.Write(new byte[] { 1, 0, 0 });
-                x08.WriteByte(Level);
-                x08.WriteByte(Ability);
-                x08.WriteUInt32(MaximumHp);
-                x08.WriteUInt32(MaximumMp);
-                x08.WriteByte(Str);
-                x08.WriteByte(Int);
-                x08.WriteByte(Wis);
-                x08.WriteByte(Con);
-                x08.WriteByte(Dex);
+                x08.WriteByte(Stats.Level);
+                x08.WriteByte(Stats.Ability);
+                x08.WriteUInt32(Stats.MaximumHp);
+                x08.WriteUInt32(Stats.MaximumMp);
+                x08.WriteByte(Stats.Str);
+                x08.WriteByte(Stats.Int);
+                x08.WriteByte(Stats.Wis);
+                x08.WriteByte(Stats.Con);
+                x08.WriteByte(Stats.Dex);
                 if (LevelPoints > 0)
                 {
                     x08.WriteByte(1);
@@ -1533,14 +1532,14 @@ namespace Hybrasyl.Objects
             }
             if (flags.HasFlag(StatUpdateFlags.Current))
             {
-                x08.WriteUInt32(Hp);
-                x08.WriteUInt32(Mp);
+                x08.WriteUInt32(Stats.Hp);
+                x08.WriteUInt32(Stats.Mp);
             }
             if (flags.HasFlag(StatUpdateFlags.Experience))
             {
-                x08.WriteUInt32(Experience);
+                x08.WriteUInt32(Stats.Experience);
                 x08.WriteUInt32(ExpToLevel);
-                x08.WriteUInt32(AbilityExp);
+                x08.WriteUInt32(Stats.AbilityExp);
                 x08.WriteUInt32(0); // Next AB
                 x08.WriteUInt32(0); // "GP"
                 x08.WriteUInt32(Gold);
@@ -1553,13 +1552,13 @@ namespace Hybrasyl.Objects
                 x08.WriteByte(0); // Unknown
                 x08.WriteByte(0); // Unknown
                 x08.WriteByte((byte)(Mailbox.HasUnreadMessages ? 0x10 : 0x00));
-                x08.WriteByte((byte)OffensiveElement);
-                x08.WriteByte((byte)DefensiveElement);
-                x08.WriteSByte(Mr);
+                x08.WriteByte((byte)Stats.OffensiveElement);
+                x08.WriteByte((byte)Stats.DefensiveElement);
+                x08.WriteSByte(Stats.Mr);
                 x08.WriteByte(0);
-                x08.WriteSByte(Ac);
-                x08.WriteByte(Dmg);
-                x08.WriteByte(Hit);
+                x08.WriteSByte(Stats.Ac);
+                x08.WriteByte(Stats.Dmg);
+                x08.WriteByte(Stats.Hit);
             }
             Enqueue(x08);
         }
@@ -1688,13 +1687,13 @@ namespace Hybrasyl.Objects
                 // Is this user entering a forbidden (by level or otherwise) warp?
                 if (isWarp)
                 {
-                    if (targetWarp.MinimumLevel > Level)
+                    if (targetWarp.MinimumLevel > Stats.Level)
                     {
                         Client.SendMessage("You're too afraid to even approach it!", 3);
                         Refresh();
                         return false;
                     }
-                    else if (targetWarp.MaximumLevel < Level)
+                    else if (targetWarp.MaximumLevel < Stats.Level)
                     {
                         Client.SendMessage("Your honor forbids you from entering.", 3);
                         Refresh();
@@ -2114,10 +2113,10 @@ namespace Hybrasyl.Objects
         {
             if (Condition.Comatose || !Condition.Alive) return;
             base.Damage(damage, element, damageType, damageFlags, attacker);
-            if (Hp == 0)
+            if (Stats.Hp == 0)
             {
                 if (Group != null) {
-                    Hp = 1;
+                    Stats.Hp = 1;
                     var handler = Game.Config.Handlers?.Death?.Coma;
                     if (handler != null && World.WorldData.TryGetValueByIndex(handler.Value, out Status status))
                         ApplyStatus(new CreatureStatus(status, this, null));
@@ -2552,14 +2551,14 @@ namespace Hybrasyl.Objects
             MerchantOptions options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
             var prompt = string.Empty;
-            if (classReq.Level.Min > Level)
+            if (classReq.Level.Min > Stats.Level)
             {
                 learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_player_level");
                 prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$LEVEL", classReq.Level.Min.ToString());
             }
             if (classReq.Physical != null)
             {
-                if (Str < classReq.Physical.Str || Int < classReq.Physical.Int || Wis < classReq.Physical.Wis || Con < classReq.Physical.Con || Dex < classReq.Physical.Dex)
+                if (Stats.Str < classReq.Physical.Str || Stats.Int < classReq.Physical.Int || Stats.Wis < classReq.Physical.Wis || Stats.Con < classReq.Physical.Con || Stats.Dex < classReq.Physical.Dex)
                 {
                     learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_stats");
                     var statStr = $"\n[STR {classReq.Physical.Str} INT {classReq.Physical.Int} WIS {classReq.Physical.Wis} CON {classReq.Physical.Con} DEX {classReq.Physical.Dex}]";
@@ -2810,14 +2809,14 @@ namespace Hybrasyl.Objects
             MerchantOptions options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
             var prompt = string.Empty;
-            if (classReq.Level.Min > Level)
+            if (classReq.Level.Min > Stats.Level)
             {
                 learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_player_level");
                 prompt = learnString.Value.Replace("$SPELLNAME", castable.Name).Replace("$LEVEL", classReq.Level.Min.ToString());
             }
             if (classReq.Physical != null)
             {
-                if (Str < classReq.Physical.Str || Int < classReq.Physical.Int || Wis < classReq.Physical.Wis || Con < classReq.Physical.Con || Dex < classReq.Physical.Dex)
+                if (Stats.Str < classReq.Physical.Str || Stats.Int < classReq.Physical.Int || Stats.Wis < classReq.Physical.Wis || Stats.Con < classReq.Physical.Con || Stats.Dex < classReq.Physical.Dex)
                 {
                     learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_stats");
                     var statStr = $"\n[STR {classReq.Physical.Str} INT {classReq.Physical.Int} WIS {classReq.Physical.Wis} CON {classReq.Physical.Con} DEX {classReq.Physical.Dex}]";

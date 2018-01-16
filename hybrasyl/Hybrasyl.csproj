@@ -80,14 +80,18 @@
     <Compile Include="Board.cs" />
     <Compile Include="Compression.cs" />
     <Compile Include="ControlService.cs" />
+    <Compile Include="Messaging\Command.cs" />
+    <Compile Include="Messaging\Stats.cs" />
     <Compile Include="NumberCruncher.cs" />
     <Compile Include="Objects\Creature.cs" />
     <Compile Include="Objects\ConditionInfo.cs" />
     <Compile Include="Objects\Door.cs" />
+    <Compile Include="Objects\ElementInfo.cs" />
     <Compile Include="Objects\Gold.cs" />
     <Compile Include="Objects\Monster.cs" />
     <Compile Include="Objects\Reactor.cs" />
     <Compile Include="Objects\Signpost.cs" />
+    <Compile Include="Objects\StatInfo.cs" />
     <Compile Include="Objects\VisibleObject.cs" />
     <Compile Include="Objects\WorldObject.cs" />
     <Compile Include="CreatureStatus.cs" />
@@ -100,6 +104,7 @@
     <Compile Include="Scripting\HybrasylWorldObject.cs" />
     <Compile Include="Scripting\Script.cs" />
     <Compile Include="Scripting\ScriptProcessor.cs" />
+    <Compile Include="Threading\Class1.cs" />
     <Compile Include="Throttle.cs" />
     <Compile Include="Time.cs" />
     <Compile Include="Client.cs" />

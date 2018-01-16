@@ -64,7 +64,7 @@ namespace Hybrasyl.Objects
 
             // Check level / AB
 
-            if (userobj.Level < Level || (Ability != 0 && userobj.Ability < Ability))
+            if (userobj.Stats.Level < Level || (Ability != 0 && userobj.Stats.Ability < Ability))
             {
                 message = "You require more insight.";
                 return false;
