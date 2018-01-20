@@ -1367,8 +1367,6 @@ namespace Hybrasyl.Castables
         {
             this._statuses = new Statuses();
             this._statModifiers = new StatModifiers();
-            this._damage = new Damage();
-            this._heal = new Heal();
             this._sound = new EffectsSound();
             this._animations = new SpellAnimations();
             this._scriptOverride = false;
