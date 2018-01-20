@@ -70,8 +70,9 @@ namespace Hybrasyl.Objects
 
             hitter.ShareExperience(LootableXP);
             var golds = new Gold(LootableGold);
+            var itemLoot = LootableItems;
             var deathPileTime = DateTime.Now;
-            foreach(var item in LootableItems)
+            foreach(var item in itemLoot)
             {
                 item.DeathPileAllowedLooters = DeathPileAllowedLooters;
                 item.DeathPileTime = deathPileTime;
