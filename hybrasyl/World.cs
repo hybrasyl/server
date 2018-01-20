@@ -1407,6 +1407,8 @@ namespace Hybrasyl
 
                     Logger.DebugFormat("Removing {0}, qty {1} from {2}@{3},{4}",
                         item.Name, item.Count, user.Map.Name, x, y);
+                    item.DeathPileTime = null;
+                    item.DeathPileAllowedLooters = null;
                     user.Map.Remove(item);
                     user.SendItemUpdate(existingItem, existingSlot);
 
@@ -1416,13 +1418,17 @@ namespace Hybrasyl
                         user.Map.Insert(item, user.X, user.Y);
                         user.SendMessage(string.Format("You can't carry any more {0}.", item.Name), 3);
                     }
+                    Update();
                 }
                 else
                 {
                     Logger.DebugFormat("Removing {0}, qty {1} from {2}@{3},{4}",
                         item.Name, item.Count, user.Map.Name, x, y);
+                    item.DeathPileTime = null;
+                    item.DeathPileAllowedLooters = null;
                     user.Map.Remove(item);
                     user.AddItem(item, slot);
+                    Update();
                 }
             }
         }
