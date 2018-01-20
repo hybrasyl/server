@@ -854,6 +854,14 @@ namespace Hybrasyl.Objects
                 }
                 if (castObject.Effects?.Damage != null)
                 {
+                    if (tar.DeathPileAllowedLooters.Count != 0 && !(tar.DeathPileAllowedLooters.Contains(Name))) continue;
+                    if (this is User && !tar.DeathPileAllowedLooters.Contains(Name))
+                    {
+                        var theUser = this as User;
+                        if (theUser.Grouped) tar.DeathPileAllowedLooters = theUser.Group.Members.Select(user => user.Name).ToList();
+                        else tar.DeathPileAllowedLooters.Add(theUser.Name);
+                    }
+
                     Enums.Element attackElement;
                     var damageOutput = NumberCruncher.CalculateDamage(castObject, tar, this);
                     if (castObject.Element == Castables.Element.Random)
@@ -908,7 +916,11 @@ namespace Hybrasyl.Objects
                 }
             }
             // Now flood away
-            foreach (var dead in deadMobs) dead.OnDeath();
+            foreach (var dead in deadMobs)
+            {
+                if (dead is Monster) (dead as Monster).OnDeath();
+                else dead.OnDeath();
+            }
             return true;
         }
 
