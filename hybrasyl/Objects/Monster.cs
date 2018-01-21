@@ -68,6 +68,17 @@ namespace Hybrasyl.Objects
 
             hitter.ShareExperience(LootableXP);
             var golds = new Gold(LootableGold);
+            var monsterDeathPileTime = DateTime.Now;
+            foreach(var item in LootableItems)
+            {
+                item.MonsterDeathPileAllowedLooters = MonsterDeathPileAllowedLooters;
+                item.MonsterDeathPileTime = monsterDeathPileTime;
+                World.Insert(item);
+                Map.Insert(item, X, Y);
+            }
+            golds.MonsterDeathPileAllowedLooters = MonsterDeathPileAllowedLooters;
+            golds.MonsterDeathPileTime = monsterDeathPileTime;
+
             World.Insert(golds);
             Map.Insert(golds, X, Y);
             Map.Remove(this);

@@ -46,6 +46,9 @@ namespace Hybrasyl.Objects
         public List<string> DeathPileAllowedLooters { get; set; }
         public DateTime? DeathPileTime { get; set; }
 
+        public List<string> MonsterDeathPileAllowedLooters { get; set; }
+        public DateTime? MonsterDeathPileTime { get; set; }
+
         public HashSet<User> viewportUsers { get; private set; }
 
         public VisibleObject()
@@ -54,6 +57,8 @@ namespace Hybrasyl.Objects
             DeathPileAllowedLooters = new List<string>();
             DeathPileOwner = string.Empty;
             DeathPileTime = null;
+            MonsterDeathPileAllowedLooters = new List<string>();
+            MonsterDeathPileTime = null;
             viewportUsers = new HashSet<User>();
         }
 
@@ -78,13 +83,23 @@ namespace Hybrasyl.Objects
                 error = "You can't do that.";
                 return false;
             }
-            // Check if the item is part of a death pile
-            if (DeathPileTime == null) return true;
-            if (DeathPileOwner == username) return true;
-            if (DeathPileAllowedLooters.Contains(username) &&
-                (DateTime.Now - DeathPileTime.Value).TotalSeconds > Constants.DEATHPILE_GROUP_TIMEOUT) return true;
-            if ((DateTime.Now - DeathPileTime.Value).TotalSeconds > Constants.DEATHPILE_RANDO_TIMEOUT) return true;
-            error = "These items are cursed.";
+            // Check if the item is part of monster loot pile
+            if (MonsterDeathPileAllowedLooters.Count > 0 && MonsterDeathPileTime != null)
+            {
+                if (MonsterDeathPileAllowedLooters.Contains(username)) return true;
+                if ((DateTime.Now - MonsterDeathPileTime.Value).TotalSeconds > Constants.MONSTER_LOOT_DROP_RANDO_TIMEOUT) return true;
+                error = "These items do not belong to you.";
+            }
+            else
+            {
+                // Check if the item is part of a death pile
+                if (DeathPileTime == null) return true;
+                if (DeathPileOwner == username) return true;
+                if (DeathPileAllowedLooters.Contains(username) &&
+                    (DateTime.Now - DeathPileTime.Value).TotalSeconds > Constants.DEATHPILE_GROUP_TIMEOUT) return true;
+                if ((DateTime.Now - DeathPileTime.Value).TotalSeconds > Constants.DEATHPILE_RANDO_TIMEOUT) return true;
+                error = "These items are cursed.";
+            }
             return false;
         }
 

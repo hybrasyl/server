@@ -854,6 +854,16 @@ namespace Hybrasyl.Objects
                 }
                 if (castObject.Effects?.Damage != null)
                 {
+                    if(this is User)
+                    {
+                        if (tar.MonsterDeathPileAllowedLooters.Count > 0 && !(tar.MonsterDeathPileAllowedLooters.Contains(Name))) continue;
+                        else if (tar.MonsterDeathPileAllowedLooters.Count == 0)
+                        {                            
+                            var theUser = this as User;
+                            if (theUser.Grouped) tar.MonsterDeathPileAllowedLooters = theUser.Group.Members.Select(user => user.Name).ToList();
+                            else tar.MonsterDeathPileAllowedLooters.Add(theUser.Name);
+                        }
+                    }
                     Enums.Element attackElement;
                     var damageOutput = NumberCruncher.CalculateDamage(castObject, tar, this);
                     if (castObject.Element == Castables.Element.Random)
