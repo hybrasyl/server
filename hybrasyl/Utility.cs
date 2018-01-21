@@ -109,6 +109,9 @@ namespace Hybrasyl
         public const int DEATHPILE_GROUP_TIMEOUT = 0; // Group/self can pick up deathpile immediately
         public const int DEATHPILE_RANDO_TIMEOUT = 900; // Randos can pick up death piles after 15 minutes
 
+        // Monster loot drop timeouts (how long someone has to wait until they can loot someone elses monster loot)
+        public const int MONSTER_LOOT_DROP_RANDO_TIMEOUT = 60; //Randos can pick up loot after 1 minute
+
         // Heartbeat controls
         // Every BYTE_HEARTBEAT_INTERVAL and TICK_HEARTBEAT_INTERVAL seconds, Hybrasyl sends 0x3B and 0x68 
         // heartbeat packets to clients.
