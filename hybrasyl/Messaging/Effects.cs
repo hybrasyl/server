@@ -16,7 +16,7 @@ namespace Hybrasyl.Messaging
         public new static string HelpText = "Displays the specified motion (player animation) with an optional speed.";
         public new static bool Privileged = false;
 
-        public new ChatCommandResult Run(User user, params string[] args)
+        public new static ChatCommandResult Run(User user, params string[] args)
         {
             short speed = 20;
             if (byte.TryParse(args[0], out byte motion))
@@ -37,7 +37,7 @@ namespace Hybrasyl.Messaging
         public new static string HelpText = "Displays the specified effect (animation).";
         public new static bool Privileged = false;
 
-        public new ChatCommandResult Run(User user, params string[] args)
+        public new static ChatCommandResult Run(User user, params string[] args)
         {
             short speed = 20;
             if (byte.TryParse(args[0], out byte effect))
@@ -57,9 +57,9 @@ namespace Hybrasyl.Messaging
         public new static string ArgumentText = "<byte sound>";
         public new static string HelpText = "Plays the specified sound effect.";
         public new static bool Privileged = false;
-        public new ChatCommandResult Run(User user, params string[] args)
+        public new static ChatCommandResult Run(User user, params string[] args)
         {
-            if (byte.TryParse(args[1], out byte sound))
+            if (byte.TryParse(args[0], out byte sound))
             {
                 user.SendSound(sound);
                 return Success($"Played sound {sound}.");
@@ -77,9 +77,9 @@ namespace Hybrasyl.Messaging
         public new static string HelpText = "Plays the specified background music.";
         public new static bool Privileged = false;
 
-        public new ChatCommandResult Run(User user, params string[] args)
+        public new static ChatCommandResult Run(User user, params string[] args)
         {
-            if (byte.TryParse(args[1], out byte track))
+            if (byte.TryParse(args[0], out byte track))
             {
                 user.Map.Music = track;
                 foreach (var mapuser in user.Map.Users.Values)
@@ -100,12 +100,12 @@ namespace Hybrasyl.Messaging
         public new static bool Privileged = false;
 
 
-        public new ChatCommandResult Run(User user, params string[] args)
+        public new static ChatCommandResult Run(User user, params string[] args)
         {
             if (Game.World.WorldData.TryGetValueByIndex(args[0], out Item template))
             {
                 var item = Game.World.CreateItem(template.Id);
-                if (int.TryParse(args[1], out int count) && count <= item.MaximumStack)
+                if (args.Length == 2 && int.TryParse(args[1], out int count) && count <= item.MaximumStack)
                     item.Count = count;
                 else
                     item.Count = item.MaximumStack;
@@ -124,7 +124,7 @@ namespace Hybrasyl.Messaging
         public new static string HelpText = "Send a map message to everyone on the current map.";
         public new static bool Privileged = false;
 
-        public new ChatCommandResult Run(User user, params string[] args)
+        public new static ChatCommandResult Run(User user, params string[] args)
         {
             user.Map.Message = args[0];
             foreach (var mapuser in user.Map.Users.Values)
@@ -142,7 +142,7 @@ namespace Hybrasyl.Messaging
         public new static string HelpText = "Send a map message to everyone on the current map.";
         public new static bool Privileged = false;
 
-        public new ChatCommandResult Run(User user, params string[] args)
+        public new static ChatCommandResult Run(User user, params string[] args)
         {
             user.Map.Message = args[0];
             foreach (var connectedUser in World.ActiveUsers)

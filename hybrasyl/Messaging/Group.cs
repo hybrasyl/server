@@ -11,7 +11,7 @@ namespace Hybrasyl.Messaging
         public new static string HelpText = "Invite the specified player to your group.";
         public new static bool Privileged = false;
 
-        public new ChatCommandResult Run(User user, params string[] args)
+        public new static ChatCommandResult Run(User user, params string[] args)
         {
             User newMember = Game.World.FindUser(args[0]);
             if (newMember == null)
@@ -28,7 +28,7 @@ namespace Hybrasyl.Messaging
         public new static string HelpText = "Leave your group.";
         public new static bool Privileged = false;
 
-        public new ChatCommandResult Run(User user, params string[] args)
+        public new static ChatCommandResult Run(User user, params string[] args)
         {
             if (user.Group != null)
             {
