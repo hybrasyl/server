@@ -42,6 +42,8 @@ namespace Hybrasyl.Objects
 
         private Spawn _spawn;
 
+        private MonsterLoot spawnLoot;
+
         private uint _simpleDamage => Convert.ToUInt32(Rng.Next(_spawn.Damage.Min, _spawn.Damage.Max) * _variance);
 
         private List<Creatures.Castable> _castables;
@@ -68,6 +70,17 @@ namespace Hybrasyl.Objects
 
             hitter.ShareExperience(LootableXP);
             var golds = new Gold(LootableGold);
+            var deathPileTime = DateTime.Now;
+            foreach(var item in LootableItems)
+            {
+                item.DeathPileAllowedLooters = DeathPileAllowedLooters;
+                item.DeathPileTime = deathPileTime;
+                World.Insert(item);
+                Map.Insert(item, X, Y);
+            }
+            golds.DeathPileAllowedLooters = DeathPileAllowedLooters;
+            golds.DeathPileTime = deathPileTime;
+
             World.Insert(golds);
             Map.Insert(golds, X, Y);
             Map.Remove(this);
@@ -125,9 +138,9 @@ namespace Hybrasyl.Objects
         public uint VariantMp => CalculateVariance(_spawn.Stats.Mp);
 
 
-        public uint LootableXP => CalculateVariance((uint)Rng.Next((int)(_spawn.Loot.Xp?.Min ?? 1), (int)(_spawn.Loot.Gold?.Max ?? 1)));
-        public uint LootableGold => CalculateVariance((uint)Rng.Next((int)(_spawn.Loot.Gold?.Min ?? 1),(int)(_spawn.Loot.Gold?.Max ?? 1)));
-
+        public uint LootableXP => CalculateVariance((uint)Rng.Next((int)(_spawn.Loot.Xp?.Min ?? 1), (int)(_spawn.Loot.Xp?.Max ?? 1)));
+        public uint LootableGold => CalculateVariance(spawnLoot.LootableGold());
+        public List<ItemObject> LootableItems => spawnLoot.LootableItems();
 
         public Monster(Hybrasyl.Creatures.Creature creature, Spawn spawn, int map)
         {
@@ -135,7 +148,8 @@ namespace Hybrasyl.Objects
             var direction = (Rng.Next(0, 100) >= 50);
             _spawn = spawn;
             _variance = (direction == true ? Rng.NextDouble() * -1 : Rng.NextDouble()) * _spawn.Variance;
-           
+
+            spawnLoot = new MonsterLoot(_spawn);
 
             Name = creature.Name;
             Sprite = creature.Sprite;
@@ -310,6 +324,89 @@ namespace Hybrasyl.Objects
         {
             return this.MemberwiseClone();
         }
-    }
 
+        private class MonsterLoot
+        {
+            private static Random Rng = new Random();
+            private Spawn _spawn;
+            private List<Creatures.LootTable> spawnLootTable = new List<Creatures.LootTable>();
+
+
+            public MonsterLoot(Spawn spawn)
+            {
+                this._spawn = spawn;
+                if (_spawn.Loot.Table != null)
+                {
+                    foreach (var lootTab in _spawn.Loot.Table)
+                    {
+                        for (int i = 0; i < lootTab.Rolls; i++)
+                        {
+                            var next = Rng.NextDouble();
+                            if (lootTab.Chance >= next)
+                            {
+                                spawnLootTable.Add(lootTab);
+                                continue;
+                            }
+                        }
+                    }
+                }
+                if (_spawn.Loot.Set != null)
+                {
+                    foreach(var lootTab in _spawn.Loot.Set)
+                    {
+
+                    }
+                }
+            }
+
+            public uint LootableGold()
+            {
+                uint lootableGold = 0;
+
+                if (_spawn.Loot.Gold != null)
+                {
+                    lootableGold += ((uint)Rng.Next((int)(_spawn.Loot.Gold?.Min ?? 0), (int)(_spawn.Loot.Gold?.Max ?? 0)));
+                }
+                if (_spawn.Loot.Table != null)
+                {
+                    foreach (var table in spawnLootTable)
+                    {
+                        lootableGold += ((uint)Rng.Next((int)(table.Gold?.Min ?? 0), (int)(table.Gold?.Max ?? 0))); ;
+                    }
+                }
+                return lootableGold;
+            }
+
+            public List<ItemObject> LootableItems()
+            {
+                List<ItemObject> lootableItems = new List<ItemObject>();
+
+                if (spawnLootTable.Count > 0)
+                {
+                    foreach (var items in spawnLootTable)
+                    {
+                        foreach (var item in items.Items.Items)
+                        {
+                            for (int i = 0; i < items.Items.Rolls; i++)
+                            {
+                                if (items.Items.Chance >= Rng.NextDouble())
+                                {
+                                    foreach (var template in Game.World.WorldData.Values<Hybrasyl.Items.Item>())
+                                    {
+                                        if (template.Name.Equals(item.Value, StringComparison.CurrentCultureIgnoreCase))
+                                        {
+                                            ItemObject lootItem = Game.World.CreateItem(template.Id);
+                                            lootableItems.Add(lootItem);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                return lootableItems;
+            }
+        }
+    }    
 }

@@ -82,8 +82,8 @@ namespace Hybrasyl.Objects
             if (DeathPileTime == null) return true;
             if (DeathPileOwner == username) return true;
             if (DeathPileAllowedLooters.Contains(username) &&
-                (DateTime.Now - DeathPileTime.Value).Seconds > Constants.DEATHPILE_GROUP_TIMEOUT) return true;
-            if ((DateTime.Now - DeathPileTime.Value).Seconds > Constants.DEATHPILE_RANDO_TIMEOUT) return true;
+                (DateTime.Now - DeathPileTime.Value).TotalSeconds > Constants.DEATHPILE_GROUP_TIMEOUT) return true;
+            if ((DateTime.Now - DeathPileTime.Value).TotalSeconds > Constants.DEATHPILE_RANDO_TIMEOUT) return true;
             error = "These items are cursed.";
             return false;
         }

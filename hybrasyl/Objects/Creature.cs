@@ -302,8 +302,8 @@ namespace Hybrasyl.Objects
                         Logger.Error($"GetTargets: {castable.Name} - intent was for exact clicked target but no target was passed?");
                     else
                         // Heal spels can be cast on players, other spells can be cast on attackable creatures
-                        if ((!castable.Effects.Damage.IsEmpty && target.Condition.IsAttackable) ||
-                        (castable.Effects.Damage.IsEmpty && target is User))
+                        if ((castable.Effects.Damage != null && target.Condition.IsAttackable) ||
+                        (castable.Effects.Heal != null && target is User))
                         possibleTargets.Add(target);
                 }
                 else if (intent.UseType == Castables.SpellUseType.NoTarget && intent.Radius == 0 && intent.Direction == IntentDirection.None)
@@ -820,10 +820,7 @@ namespace Hybrasyl.Objects
             if (!Condition.CastingAllowed) return false;
             if (this is User) ActivityLogger.Info($"UseCastable: {Name} begin casting {castObject.Name} on target: {target?.Name ?? "no target"} CastingAllowed: {Condition.CastingAllowed}");
 
-            var damage = castObject.Effects.Damage;
-            List<Creature> targets;
-
-            targets = GetTargets(castObject, target);
+            List<Creature> targets = GetTargets(castObject, target);
 
             if (targets.Count() == 0) return false;
 
@@ -854,6 +851,14 @@ namespace Hybrasyl.Objects
                 }
                 if (castObject.Effects?.Damage != null)
                 {
+                    if (tar.DeathPileAllowedLooters.Count != 0 && !(tar.DeathPileAllowedLooters.Contains(Name))) continue;
+                    if (this is User && !tar.DeathPileAllowedLooters.Contains(Name))
+                    {
+                        var theUser = this as User;
+                        if (theUser.Grouped) tar.DeathPileAllowedLooters = theUser.Group.Members.Select(user => user.Name).ToList();
+                        else tar.DeathPileAllowedLooters.Add(theUser.Name);
+                    }
+
                     Enums.Element attackElement;
                     var damageOutput = NumberCruncher.CalculateDamage(castObject, tar, this);
                     if (castObject.Element == Castables.Element.Random)
@@ -908,7 +913,11 @@ namespace Hybrasyl.Objects
                 }
             }
             // Now flood away
-            foreach (var dead in deadMobs) dead.OnDeath();
+            foreach (var dead in deadMobs)
+            {
+                if (dead is Monster) (dead as Monster).OnDeath();
+                else dead.OnDeath();
+            }
             return true;
         }
 
