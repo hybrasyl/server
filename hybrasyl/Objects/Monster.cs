@@ -125,9 +125,29 @@ namespace Hybrasyl.Objects
         public uint VariantMp => CalculateVariance(_spawn.Stats.Mp);
 
 
-        public uint LootableXP => CalculateVariance((uint)Rng.Next((int)(_spawn.Loot.Xp?.Min ?? 1), (int)(_spawn.Loot.Gold?.Max ?? 1)));
-        public uint LootableGold => CalculateVariance((uint)Rng.Next((int)(_spawn.Loot.Gold?.Min ?? 1),(int)(_spawn.Loot.Gold?.Max ?? 1)));
+        public uint LootableXP => CalculateVariance((uint)Rng.Next((int)(_spawn.Loot.Xp?.Min ?? 1), (int)(_spawn.Loot.Xp?.Max ?? 1)));
+        public uint LootableGold => CalculateVariance(_spawn.LootableGold());
+        public List<ItemObject> LootableItems
+        {
+            get
+            {
+                var worldItems = Game.World.WorldData.Values<Hybrasyl.Items.Item>();
+                var lootableItems = new List<ItemObject>();
 
+                foreach (var item in _spawn.LootableItems())
+                {
+                    foreach (var itemTemplate in worldItems)
+                    {
+                        if (itemTemplate.Name.Equals(item.Value, StringComparison.CurrentCultureIgnoreCase))
+                        {
+                            lootableItems.Add(Game.World.CreateItem(itemTemplate.Id));
+                        }
+                    }
+                }
+
+                return lootableItems;
+            }
+        }
 
         public Monster(Hybrasyl.Creatures.Creature creature, Spawn spawn, int map)
         {
