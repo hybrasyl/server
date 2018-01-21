@@ -50,10 +50,6 @@ namespace Hybrasyl.Objects
         [JsonProperty]
         protected ConcurrentDictionary<ushort, ICreatureStatus> _currentStatuses;
 
-        public ushort MapId { get; protected set; }
-        public byte MapX { get; protected set; }
-        public byte MapY { get; protected set; }
-
         [JsonProperty]
         public uint Gold { get; set; }
 

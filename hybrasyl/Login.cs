@@ -167,14 +167,19 @@ namespace Hybrasyl
             if (sex > 2)
                 sex = 2;
 
+            // Try to get our map
+            // TODO: replace with XML config for start map, x, y
+            Map map;
+            if (!Game.World.WorldData.TryGetValue(136, out map))
+                map = Game.World.WorldData.GetDictionary<Map>().First().Value;
             if (!Game.World.PlayerExists(client.NewCharacterName))
             {
                 var newPlayer = new User();
                 newPlayer.Name = client.NewCharacterName;
                 newPlayer.Sex = (Sex) sex;
                 newPlayer.Location.Direction = Direction.South;
-                newPlayer.Location.MapId = 136;
-                newPlayer.Location.X = 10;
+                newPlayer.Location.Map = map;
+                newPlayer.Location.X = 10; 
                 newPlayer.Location.Y = 10;
                 newPlayer.HairColor = hairColor;
                 newPlayer.HairStyle = hairStyle;

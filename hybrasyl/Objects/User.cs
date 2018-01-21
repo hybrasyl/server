@@ -54,16 +54,6 @@ namespace Hybrasyl.Objects
     }
 
     [JsonObject]
-    public class Location
-    {
-        public ushort MapId { get; set; }
-        public Direction Direction { get; set; }
-        public byte X { get; set; }
-        public byte Y { get; set; }
-        public bool WorldMap { get; set; }
-    }
-
-    [JsonObject]
     public class PasswordInfo
     {
         public string Hash { get; set; }
@@ -111,7 +101,7 @@ namespace Hybrasyl.Objects
         [JsonProperty]
         public bool IsMaster { get; set; }
         public UserGroup Group { get; set; }
-
+        
         public Mailbox Mailbox => World.GetMailbox(Name);
         public bool UnreadMail => Mailbox.HasUnreadMessages;
 
@@ -140,8 +130,6 @@ namespace Hybrasyl.Objects
 
         #region User metadata
         // Some structs helping us to define various metadata 
-        [JsonProperty]
-        public Location Location { get; set; }
         [JsonProperty]
         public LoginInfo Login { get; set; }
         [JsonProperty]
@@ -305,7 +293,7 @@ namespace Hybrasyl.Objects
         [JsonProperty]
         public bool IsIgnoringWhispers { get; set; }
         [JsonProperty]
-        public bool IsAtWorldMap { get; set; }
+        public bool IsAtWorldMap { get { return Location.WorldMap; } set { Location.WorldMap = value; } }
 
         public void Enqueue(ServerPacket packet)
         {
@@ -589,7 +577,7 @@ namespace Hybrasyl.Objects
             IsAtWorldMap = false;
             Login = new LoginInfo();
             Password = new PasswordInfo();
-            Location = new Location();
+            Location = new LocationInfo();
             Legend = new Legend();
             Guild = new GuildMembership();
             LastSaid = string.Empty;
@@ -825,14 +813,6 @@ namespace Hybrasyl.Objects
             _initializeUser(playername);
         }
 
-        public User(string playername, Sex sex, ushort targetMap, byte targetX, byte targetY)
-        {
-            Name = playername;
-            Sex = sex;
-            Location = new Location { MapId = targetMap, WorldMap = false, X = targetX, Y = targetY };
-            _initializeUser(playername);
-        }
-
         /// <summary>
         /// Given a specified ItemObject, apply the given bonuses to the player.
         /// </summary>
@@ -974,16 +954,6 @@ namespace Hybrasyl.Objects
         {
             lock (_serializeLock)
             {
-                // Save location
-                if (IsAtWorldMap)
-                    Location.WorldMap = true;
-                else if (Map != null)
-                {
-                    Location.MapId = Map.Id;
-                    Location.X = X;
-                    Location.Y = Y;
-                }
-
                 var cache = World.DatastoreConnection.GetDatabase();
                 cache.Set(GetStorageKey(Name), JsonConvert.SerializeObject(this, new JsonSerializerSettings() { PreserveReferencesHandling = PreserveReferencesHandling.All }));
             }

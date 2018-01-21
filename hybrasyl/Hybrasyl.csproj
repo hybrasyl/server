@@ -95,6 +95,7 @@
     <Compile Include="Objects\ConditionInfo.cs" />
     <Compile Include="Objects\Door.cs" />
     <Compile Include="Objects\Gold.cs" />
+    <Compile Include="Objects\LocationInfo.cs" />
     <Compile Include="Objects\Monster.cs" />
     <Compile Include="Objects\Reactor.cs" />
     <Compile Include="Objects\Signpost.cs" />

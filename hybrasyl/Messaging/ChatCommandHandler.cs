@@ -93,7 +93,7 @@ namespace Hybrasyl.Messaging
 
                 var splitArgs = QuotesRegex.Split(args).Select(e => e.Replace("\"", "")).ToArray();
 
-                if (!handler.argCount.Contains(splitArgs.Length))
+                if (!handler.argCount.Contains(splitArgs.Length) && (splitArgs.Length != 1 && splitArgs[0] != ""))
                 {
                     var argText = (string) handler.Type.GetField("ArgumentText", BindingFlags.Public | BindingFlags.Static).GetValue(null);
                     user.SendSystemMessage($"Usage: {command} {argText}");
@@ -107,6 +107,9 @@ namespace Hybrasyl.Messaging
                 }
                 else
                     UserLogger.Info($"{user.Name}: executing command {command} {args}");
+
+                if (splitArgs.Length == 1 && string.IsNullOrEmpty(splitArgs[0]))
+                    splitArgs = new string[0];
 
                 var wtf = handler.Type.GetMethod("Run", BindingFlags.Public | BindingFlags.Static);
 

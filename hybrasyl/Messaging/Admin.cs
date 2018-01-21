@@ -2,6 +2,7 @@
 using Hybrasyl.Objects;
 using Hybrasyl.Scripting;
 using System;
+using System.Collections.Generic;
 using System.Net;
 
 namespace Hybrasyl.Messaging
@@ -25,8 +26,8 @@ namespace Hybrasyl.Messaging
             if (target.IsExempt)
                 return Fail($"User {user.Name} is exempt from your meddling");
 
-            target.Teleport(user.Map.Id, user.MapX, user.MapY);
-            return Fail("No such status was found (Missing XML file?)");
+            target.Teleport(user.Location.MapId, user.Location.X, user.Location.Y);
+            return Success($"User {user.Name} has been summoned.");
         }
     }
 
@@ -49,8 +50,7 @@ namespace Hybrasyl.Messaging
             else
                 target.Logoff();
 
-            target.Teleport(user.Map.Id, user.MapX, user.MapY);
-            return Success("User {target.Name} was kicked.");
+            return Success($"User {target.Name} was kicked.");
         }
 
     }
@@ -131,7 +131,7 @@ namespace Hybrasyl.Messaging
             else
                 target.IsMuted = true;
 
-            return Success("User {target.Name} was muted.");
+            return Success($"User {target.Name} was muted.");
         }
 
     }
@@ -155,7 +155,7 @@ namespace Hybrasyl.Messaging
             else
                 target.IsMuted = false;
 
-            return Success("User {target.Name} was unmuted.");
+            return Success($"User {target.Name} was unmuted.");
         }
 
     }
@@ -249,39 +249,6 @@ namespace Hybrasyl.Messaging
         }
     }
 
-    class RollcharCommand : ChatCommand
-    {
-        public new static string Command = "rollchar";
-        public new static string ArgumentText = "<string class> <byte level>";
-        public new static string HelpText = "Simulate a new character with the specified class and level, and show resulting HP/MP.";
-        public new static bool Privileged = true;
-
-        public new static ChatCommandResult Run(User user, params string[] args)
-        {
-            if (!Enum.IsDefined(typeof(Enums.Class), args[1]))
-                return Fail($"Invalid class {args[0]}");
-
-            if (!byte.TryParse(args[2], out byte level) || level < 1 || level > Constants.MAX_LEVEL)
-                return Fail("Invalid level: must be between 1 and {Constants.MAX_LEVEL}");
-
-            // Create a fake User, and level them up to the desired level
-
-            var testUser = new User();
-            testUser.Map = new Map();
-            testUser.Stats.BaseHp = 50;
-            testUser.Stats.BaseMp = 50;
-            testUser.Class = (Enums.Class)Enum.Parse(typeof(Enums.Class), args[1]);
-            testUser.Stats.Level = 1;
-
-            while (testUser.Stats.Level < level)
-            {
-                testUser.GiveExperience(testUser.ExpToLevel);
-            }
-
-            return Success($"{testUser.Class}, Level {testUser.Stats.Level}, Hp: {testUser.Stats.BaseHp}, Mp: {testUser.Stats.BaseMp}");
-        }
-    }
-
     class TeleportCommand : ChatCommand
     {
         public new static string Command = "teleport";
@@ -301,13 +268,13 @@ namespace Hybrasyl.Messaging
                 else
                 {
                     var target = Game.World.WorldData.Get<User>(args[1]);
-                    user.Teleport(target.MapId, target.X, target.Y);
-                    return Success($"Teleported to {target.Name} - {target.Map.Name} ({target.X},{target.Y})");
+                    user.Teleport(target.Location.MapId, target.Location.X, target.Location.Y);
+                    return Success($"Teleported to {target.Name} - {target.Map.Name} ({target.Location.X},{target.Location.Y})");
                 }
             }
             else
             {
-                if (ushort.TryParse(args[0], out ushort mapnum) && !byte.TryParse(args[1], out byte x) && !byte.TryParse(args[2], out byte y))
+                if (ushort.TryParse(args[0], out ushort mapnum) && byte.TryParse(args[1], out byte x) && byte.TryParse(args[2], out byte y))
                 {
 
                     if (Game.World.WorldData.ContainsKey<Map>(mapnum))
@@ -361,6 +328,7 @@ namespace Hybrasyl.Messaging
             if (Game.World.WorldData.TryGetValue(args[0], out Creatures.Creature creature))
             {
                 Spawn spawn = new Spawn();
+                spawn.Castables = new List<Castable>();
                 spawn.Stats.Hp = 100;
                 spawn.Stats.Mp = 100;
                 spawn.Stats.Str = 3;
@@ -368,10 +336,16 @@ namespace Hybrasyl.Messaging
                 spawn.Stats.Wis = 3;
                 spawn.Stats.Con = 3;
                 spawn.Stats.Dex = 3;
-                spawn.Loot.Xp.Min = 1;
-                spawn.Loot.Xp.Max = 1;
-                spawn.Loot.Gold.Min = 1;
-                spawn.Loot.Gold.Min = 1;
+                spawn.Loot.Xp = new LootXp            
+                {
+                    Min = 1,
+                    Max = 1
+                };
+                spawn.Loot.Gold = new LootGold
+                {
+                    Min = 1,
+                    Max = 1
+                };
                 if (args.Length >= 2)
                     spawn.Stats.Hp = uint.Parse(args[1]);
                 if (args.Length >= 3)
@@ -396,7 +370,8 @@ namespace Hybrasyl.Messaging
                     spawn.Loot.Gold.Min = byte.Parse(args[9]);
                     spawn.Loot.Gold.Max = byte.Parse(args[9]);
                 }
-                Monster newMob = new Monster(creature, spawn, user.MapId);
+                Monster newMob = new Monster(creature, spawn, user.Location.MapId);
+                user.World.Insert(newMob);
                 user.Map.Insert(newMob, user.X, user.Y);
                 return Success($"{creature.Name} spawned.");
             }

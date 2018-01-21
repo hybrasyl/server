@@ -607,8 +607,6 @@ namespace Hybrasyl
                     }
 
                     obj.Map = null;
-                    obj.X = 0;
-                    obj.Y = 0;
                 }
             }
         }
