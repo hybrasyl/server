@@ -245,7 +245,7 @@ namespace Hybrasyl.Messaging
                     return Success($"{scriptStatus}\n\n{errorSummary}", MessageTypes.SLATE_WITH_SCROLLBAR);
                 }
             }
-            return Fail("Script {args[1].Trim()}: not found.");
+            return Fail($"Script {args[1].Trim()}: not found.");
         }
     }
 
@@ -261,13 +261,13 @@ namespace Hybrasyl.Messaging
 
             if (args.Length == 1)
             {
-                if (!Game.World.WorldData.ContainsKey<User>(args[1]))
+                if (!Game.World.WorldData.ContainsKey<User>(args[0]))
                 {
                     return Fail("That player cannot be found");
                 }
                 else
                 {
-                    var target = Game.World.WorldData.Get<User>(args[1]);
+                    var target = Game.World.WorldData.Get<User>(args[0]);
                     user.Teleport(target.Location.MapId, target.Location.X, target.Location.Y);
                     return Success($"Teleported to {target.Name} - {target.Map.Name} ({target.Location.X},{target.Location.Y})");
                 }

@@ -30,7 +30,7 @@ namespace Hybrasyl.Messaging
                 var hybrasylTime = HybrasylTime.FromString(args[1]);
                 return Success($"{args[1]} is {hybrasylTime.ToString()}.");
             }
-            else if (args[1].ToLower() == "terran")
+            else if (args[0].ToLower() == "terran")
             {
                 if (DateTime.TryParse(args[1], out DateTime time))
                 {

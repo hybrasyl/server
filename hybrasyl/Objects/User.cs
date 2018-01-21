@@ -319,6 +319,7 @@ namespace Hybrasyl.Objects
 
         public void AoiDeparture(VisibleObject obj, int transmitDelay)
         {
+            base.AoiDeparture(obj);
             Logger.DebugFormat("Removing ItemObject with ID {0}", obj.Id);
             var removePacket = new ServerPacket(0x0E);
             removePacket.TransmitDelay = transmitDelay;
