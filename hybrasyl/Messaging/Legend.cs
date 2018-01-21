@@ -36,7 +36,7 @@ namespace Hybrasyl.Messaging
 
     class LegendclearCommand : ChatCommand
     {
-        public new static string Command = "legend";
+        public new static string Command = "legendclear";
         public new static string ArgumentText = "none";
         public new static string HelpText = "Clear your legend. WARNING: Not reversible.";
         public new static bool Privileged = false;

@@ -40,12 +40,13 @@ namespace Hybrasyl.Messaging
                             allowedArgcounts.Add(option.Count(e => e == '<'));
                         else
                         {
-                            // Brackets found
-                            allowedArgcounts.Add(split.Sum(e => e.Count(f => f == '<')));
                             // Now get the bracket contents
+
                             foreach (Group group in ArgsRegex.Match(argtext).Groups)
                             {
-                                allowedArgcounts.Add(group.Value.Sum(e => e.ToString().Count(f => f == '<')));
+                                var baseopt = argtext.Remove(argtext.IndexOf(group.Value)).Count(e => e == '<');
+                                allowedArgcounts.Add(baseopt + group.Value.Count(e => e == '<'));
+                                allowedArgcounts.Add(baseopt);
                             }
                         }
 
