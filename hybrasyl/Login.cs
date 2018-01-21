@@ -145,8 +145,9 @@ namespace Hybrasyl
         private void PacketHandler_0x04_CreateB(Client client, ClientPacket packet)
         {
             if (string.IsNullOrEmpty(client.NewCharacterName) || string.IsNullOrEmpty(client.NewCharacterPassword))
+            {
                 return;
-
+            }
             var hairStyle = packet.ReadByte();
             var sex = packet.ReadByte();
             var hairColor = packet.ReadByte();

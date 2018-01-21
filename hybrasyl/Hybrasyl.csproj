@@ -80,8 +80,16 @@
     <Compile Include="Board.cs" />
     <Compile Include="Compression.cs" />
     <Compile Include="ControlService.cs" />
-    <Compile Include="Messaging\Command.cs" />
+    <Compile Include="Messaging\ChatCommandHandler.cs" />
+    <Compile Include="Messaging\ChatCommand.cs" />
+    <Compile Include="Messaging\Admin.cs" />
+    <Compile Include="Messaging\Effects.cs" />
+    <Compile Include="Messaging\Group.cs" />
+    <Compile Include="Messaging\Info.cs" />
+    <Compile Include="Messaging\Legend.cs" />
+    <Compile Include="Messaging\Statuses.cs" />
     <Compile Include="Messaging\Stats.cs" />
+    <Compile Include="Messaging\Time.cs" />
     <Compile Include="NumberCruncher.cs" />
     <Compile Include="Objects\Creature.cs" />
     <Compile Include="Objects\ConditionInfo.cs" />

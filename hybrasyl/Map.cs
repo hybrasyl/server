@@ -595,10 +595,11 @@ namespace Hybrasyl
 
                     foreach (var target in affectedObjects)
                     {
-                        // If the target of a Remove is a player, we insert a 2s delay to allow the animation
-                        // frame to complete.
+                        // If the target of a Remove is a player, we insert a 250ms delay to allow the animation
+                        // frame to complete, or a slight delay to allow a kill animation to finish animating.
+                        // Yes, this is a thing we do.
                         if (target is User)
-                            ((User)target).AoiDeparture(obj, 250);
+                            ((User)target).AoiDeparture(obj, obj is User ? 250 : 100);
                         else
                             target.AoiDeparture(obj);
 

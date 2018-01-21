@@ -141,9 +141,15 @@
   <xs:complexType name="Handlers">
     <xs:sequence>
       <xs:element name="Death" minOccurs="0" maxOccurs="1" type="config:Death" />
+      <xs:element name="Chat" minOccurs="0" maxOccurs="1" type="config:Chat"/>
     </xs:sequence>
   </xs:complexType>
-  
+
+  <xs:complexType name="Chat">
+    <xs:attribute name="CommandsEnabled" type="xs:boolean" default="true"/>
+    <xs:attribute name="CommandPrefix" type="xs:string" default="/"/>
+  </xs:complexType>
+
   <xs:complexType name="Death">
     <xs:sequence>
       <xs:element name="Map" type="config:DeathMap" minOccurs="1" maxOccurs="1"/>

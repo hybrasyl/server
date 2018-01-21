@@ -288,7 +288,7 @@ namespace Hybrasyl
             return hybrasylTime;
         }
 
-        public static HybrasylTime Fromstring(string hybrasyldate)
+        public static HybrasylTime FromString(string hybrasyldate)
         {
             // Supported formats:
             // <Age> <Year>, [<cardinal> moon, <cardinal> sun, HH:MM (a.m. | p.m.)]

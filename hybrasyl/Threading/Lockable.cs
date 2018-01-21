@@ -23,7 +23,7 @@ namespace Hybrasyl.Threading
             {
                 lock (_lock)
                 {
-                    _value = Value;
+                    _value = value;
                 }
             }
         }

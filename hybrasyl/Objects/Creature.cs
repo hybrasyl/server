@@ -49,7 +49,7 @@ namespace Hybrasyl.Objects
 
         [JsonProperty]
         protected ConcurrentDictionary<ushort, ICreatureStatus> _currentStatuses;
-   
+
         public ushort MapId { get; protected set; }
         public byte MapX { get; protected set; }
         public byte MapY { get; protected set; }
@@ -488,11 +488,11 @@ namespace Hybrasyl.Objects
 
             // We do these next steps to ensure effects are displayed uniformly and as fast as possible
             var deadMobs = new List<Creature>();
-            foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>().Select(obj => obj))
+            foreach (var tar in targets)
             {
-                foreach (var id in targets.Select(e => e.Id))
+                foreach (var user in tar.viewportUsers)
                 {
-                    user.SendEffect(id, castObject.Effects.Animations.OnCast.Target.Id, castObject.Effects.Animations.OnCast.Target.Speed);
+                    user.SendEffect(tar.Id, castObject.Effects.Animations.OnCast.Target.Id, castObject.Effects.Animations.OnCast.Target.Speed);
                 }
             }
 

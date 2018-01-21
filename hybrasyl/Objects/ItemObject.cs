@@ -277,8 +277,8 @@ namespace Hybrasyl.Objects
         {
             World = world;
             TemplateId = id;
-            Durability = MaximumDurability;
-            Count = 1;
+            _durability = new Lockable<uint>(MaximumDurability);
+            _count = new Lockable<int>(1);
         }
 
         // Simple copy constructor for an ItemObject, mostly used when we split a stack and it results

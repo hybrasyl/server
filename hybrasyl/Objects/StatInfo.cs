@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 
 namespace Hybrasyl.Objects
 {
+    [JsonObject(MemberSerialization.OptIn)]
     public class StatInfo
     {
         // The actual lockable private properties
@@ -122,20 +123,46 @@ namespace Hybrasyl.Objects
 
         public StatInfo(bool defaultAttr = true)
         {
-            _random.Value = new Random();
-            Level = 1;
-            Experience = 0;
-            AbilityExp = 0;
-            Ability = 0;
-            Hp = 50;
-            Mp = 50;
-            BaseHp = 50;
-            BaseMp = 50;
-            BaseStr = defaultAttr ? 3 : 0;
-            BaseInt = defaultAttr ? 3 : 0;
-            BaseWis = defaultAttr ? 3 : 0;
-            BaseCon = defaultAttr ? 3 : 0;
-            BaseDex = defaultAttr ? 3 : 0;
+            // TODO: DRY
+            _level = new Lockable<byte>(1);
+            _experience = new Lockable<uint>(0);
+            _ability = new Lockable<byte>(0);
+            _abilityExp = new Lockable<uint>(0);
+            _hp = new Lockable<uint>(50);
+            _mp = new Lockable<uint>(50);
+            _baseHp = new Lockable<long>(50);
+            _baseMp = new Lockable<long>(50);
+            _baseStr = new Lockable<long>(defaultAttr ? 3 : 0);
+            _baseInt = new Lockable<long>(defaultAttr ? 3 : 0);
+            _baseWis = new Lockable<long>(defaultAttr ? 3 : 0);
+            _baseCon = new Lockable<long>(defaultAttr ? 3 : 0);
+            _baseDex = new Lockable<long>(defaultAttr ? 3 : 0);
+            _bonusHp = new Lockable<long>(0);
+            _bonusMp = new Lockable<long>(0);
+            _bonusStr = new Lockable<long>(0);
+            _bonusInt = new Lockable<long>(0);
+            _bonusWis = new Lockable<long>(0);
+            _bonusCon = new Lockable<long>(0);
+            _bonusDex = new Lockable<long>(0);
+            _bonusDmg = new Lockable<long>(0);
+            _bonusHit = new Lockable<long>(0);
+            _bonusAc = new Lockable<long>(0);
+            _bonusMr = new Lockable<long>(0);
+            _bonusRegen = new Lockable<long>(0);
+            _baseOffensiveElement = new Lockable<Enums.Element>(Enums.Element.None);
+            _baseDefensiveElement = new Lockable<Enums.Element>(Enums.Element.None);
+            _offensiveElementOverride = new Lockable<Enums.Element>(Enums.Element.None);
+            _defensiveElementOverride = new Lockable<Enums.Element>(Enums.Element.None);
+            _baseReflectChance = new Lockable<double>(0);
+            _bonusReflectChance = new Lockable<double>(0);
+            _damageTypeOverride = new Lockable<Enums.DamageType?>(null);
+            _baseReflectIntensity = new Lockable<double>(1);
+            _bonusReflectIntensity = new Lockable<double>(0);
+            _baseHealModifier = new Lockable<double>(1);
+            _bonusHealModifier = new Lockable<double>(0);
+            _baseDamageModifier = new Lockable<double>(1);
+            _bonusDamageModifier = new Lockable<double>(0);
+            _random = new Lockable<Random>(new Random());
         }
 
         #region Accessors for base stats

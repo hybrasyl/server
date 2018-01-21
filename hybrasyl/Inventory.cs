@@ -634,7 +634,9 @@ namespace Hybrasyl
         public Inventory(int size)
         {
             _itemsObject = new Lockable<ItemObject[]>(new ItemObject[size]);
-            Size = size;
+            _size = new Lockable<int>(size);
+            _count = new Lockable<int>(0);
+            _weight = new Lockable<int>(0);
             _inventoryIndex = new ConcurrentDictionary<int, List<ItemObject>>();
         }
 

@@ -507,7 +507,7 @@ namespace Hybrasyl
                             }
                             else if (Server is Login)
                             {
-                                Logger.DebugFormat("Login: 0x{0:X2}", packet.Opcode);
+                                Logger.Info($"Login: 0x{packet.Opcode:X2}");
                                 var handler = (Server as Login).PacketHandlers[packet.Opcode];
                                 handler.Invoke(this, packet);
                                 Logger.DebugFormat("Login packet done");
@@ -517,7 +517,7 @@ namespace Hybrasyl
                             {
                                 UpdateLastReceived(packet.Opcode != 0x45 &&
                                                           packet.Opcode != 0x75);
-                                Logger.DebugFormat("Queuing: 0x{0:X2}", packet.Opcode);
+                                Logger.Info($"Queuing: 0x{packet.Opcode:X2}");
                                 // Check for throttling
                                 var throttleResult = Server.PacketThrottleCheck(this, packet);
                                 if (throttleResult == ThrottleResult.OK || throttleResult == ThrottleResult.ThrottleEnd || throttleResult == ThrottleResult.SquelchEnd)
