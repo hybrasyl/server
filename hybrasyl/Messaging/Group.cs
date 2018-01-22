@@ -3,7 +3,6 @@
 
 namespace Hybrasyl.Messaging
 {
-
     class GroupCommand : ChatCommand
     {
         public new static string Command = "group";
@@ -13,8 +12,7 @@ namespace Hybrasyl.Messaging
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
-            User newMember = Game.World.FindUser(args[0]);
-            if (newMember == null)
+            if (!Game.World.TryGetActiveUser(args[0], out User newMember))
                 return Fail($"The user {args[0]} could not be found");
             user.InviteToGroup(newMember);
             return Success($"{args[0]} invited to your group.");

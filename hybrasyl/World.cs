@@ -191,7 +191,7 @@ namespace Hybrasyl
         public static string LocalizationDirectory => Path.Combine(DataDirectory, "world", "xml", "localization");
         #endregion
 
-        public static bool TryGetUser(string name, out User userobj)
+        public static bool TryGetUser(string name, out User userobj) 
         {
             var jsonstring = (string)DatastoreConnection.GetDatabase().Get(User.GetStorageKey(name));
             if (jsonstring == null)
@@ -1046,20 +1046,11 @@ namespace Hybrasyl
 
         #endregion Set Handlers
 
-        public void DeleteUser(string username)
-        {
-            WorldData.Remove<User>(username);
-        }
+        public void DeleteUser(string username) => WorldData.Remove<User>(username);
 
-        public void AddUser(User userobj)
-        {
-            WorldData.Set(userobj.Name, userobj);
-        }
+        public void AddUser(User userobj) => WorldData.Set(userobj.Name, userobj);
 
-        public User FindUser(string username)
-        {
-            return WorldData.Get<User>(username);
-        }
+        public bool TryGetActiveUser(string name, out User user) => WorldData.TryGetValue(name, out user);
 
         public override void Shutdown()
         {
@@ -1688,7 +1679,7 @@ namespace Hybrasyl
             {
                 loginUser.SendSystemMessage($"It has been {loginUser.SinceLastLoginstring} since your last login.");
             }
-            loginUser.SendSystemMessage(HybrasylTime.Now().ToString());
+            loginUser.SendSystemMessage(HybrasylTime.Now.ToString());
             loginUser.Reindex();
         }
 
@@ -2008,7 +1999,9 @@ namespace Hybrasyl
             //   0x02 = user is sending initial request to invitee
             //   0x03 = invitee responds with a "yes"
             byte stage = packet.ReadByte();
-            User partner = FindUser(packet.ReadString8());
+
+            if (!TryGetUser(packet.ReadString8(), out User partner))
+                return;
 
             // TODO: currently leaving five bytes on the table here. There's probably some
             // additional work that needs to happen though I haven't been able to determine

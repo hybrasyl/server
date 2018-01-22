@@ -1001,12 +1001,33 @@ namespace Hybrasyl.Objects
             Client.SendMessage(string.Format("{0}> {1}", charname, message), 0x0);
         }
 
+        public bool CanTalkTo(User target, out string msg)
+        {
+            // First, maake sure a) we can send a message and b) the target is not ignoring whispers.
+            if (IsMuted)
+            {
+                msg = "A strange voice says, \"Not for you.\"";
+                return false;
+            }
+
+            if (target.IsIgnoringWhispers)
+            {
+                msg = "Sadly, that Aisling cannot hear whispers.";
+                return false;
+            }
+
+            msg = string.Empty;
+            return true;
+        }
         public void SendWhisper(string charname, string message)
         {
-            var target = World.FindUser(charname);
-            string err = string.Empty;
+            if (!World.TryGetActiveUser(charname, out User target))
+            {
+                SendSystemMessage("That Aisling is not in Temuair.");
+                return;
+            }
 
-            if (CanTalkTo(target, out err))
+            if (CanTalkTo(target, out string err))
             {
                 // To implement: ACLs (ignore list)
                 // To implement: loggging?
@@ -1043,31 +1064,6 @@ namespace Hybrasyl.Objects
                     }
                 }
             }
-        }
-
-        public bool CanTalkTo(User target, out string msg)
-        {
-            // First, maake sure a) we can send a message and b) the target is not ignoring whispers.
-            if (IsMuted)
-            {
-                msg = "A strange voice says, \"Not for you.\"";
-                return false;
-            }
-
-            if (target == null)
-            {
-                msg = "That Aisling is not in Temuair.";
-                return false;
-            }
-
-            if (target.IsIgnoringWhispers)
-            {
-                msg = "Sadly, that Aisling cannot hear whispers.";
-                return false;
-            }
-
-            msg = string.Empty;
-            return true;
         }
 
         public override void ShowTo(VisibleObject obj)
