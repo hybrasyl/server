@@ -311,7 +311,7 @@ namespace Hybrasyl.Creatures
 
     public partial class Spawn
     {
-        protected static Random Rng = new Random();
+        protected Random Rng;
         private List<LootTable> _spawnLootTable
         {
             get

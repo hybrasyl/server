@@ -83,9 +83,8 @@ namespace Hybrasyl.Objects
             // Check if the item is part of a death pile or recent monster dropped items
             if (ItemDropTime == null) return true;
             if (DeathPileOwner == username) return true;
-            if (ItemDropAllowedLooters.Contains(username) &&
-                (DateTime.Now - ItemDropTime.Value).TotalSeconds > Constants.DEATHPILE_GROUP_TIMEOUT) return true;
-            if ((DateTime.Now - ItemDropTime.Value).TotalSeconds > Constants.DEATHPILE_RANDO_TIMEOUT) return true;
+            if (ItemDropAllowedLooters.Contains(username) && (DateTime.Now - ItemDropTime.Value).TotalSeconds > Constants.DEATHPILE_GROUP_TIMEOUT) return true;
+            if ((!DeathPileOwner.Equals(string.Empty)) && (DateTime.Now - ItemDropTime.Value).TotalSeconds > Constants.DEATHPILE_RANDO_TIMEOUT) return true;
             if (DeathPileOwner.Equals(string.Empty) && (DateTime.Now - ItemDropTime.Value).TotalSeconds > Constants.MONSTER_LOOT_DROP_RANDO_TIMEOUT) return true;
             error = "These items are cursed.";
 

@@ -56,6 +56,7 @@ namespace Hybrasyl.Creatures
             this._damage = new Damage();
             this._respawn = new Respawn();
             this._variance = ((float)(1F));
+            Rng = new Random();
         }
         
         public CreatureScript Script
