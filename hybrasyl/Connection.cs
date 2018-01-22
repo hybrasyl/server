@@ -69,7 +69,7 @@ namespace Hybrasyl
             {
                 ((IDictionary)WorldClients).Remove(client.ConnectionId);
                 // This will also handle removing the user from WorldClients if necessary
-                World.MessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.CleanupUser, client.ConnectionId));
+                World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.CleanupUser, client.ConnectionId));
             }
         }
     }

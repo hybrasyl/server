@@ -103,7 +103,7 @@ namespace Hybrasyl
 
         public static bool ValidAge(string age)
         {
-            return Game.Config.Time.Ages.First(a => a.Name == age) != null || DefaultAge == age;
+            return (Game.Config.Time?.Ages?.Where(a => a.Name == age).Count() > 0) || DefaultAge == age;
         }
 
         public override string ToString()
@@ -131,22 +131,22 @@ namespace Hybrasyl
                 var now = DateTime.Now;
                 if (Game.Config.Time.Ages.Count == 0)
                     return DefaultAge;
-                var currentAge = Game.Config.Time.Ages.First(age => age.DateInAge(now));
-                return currentAge == null ? DefaultAge : currentAge.Name;
+                var currentAge = Game.Config.Time.Ages?.Where(age => age.DateInAge(now));
+                return currentAge.Count() == 0 ? DefaultAge : currentAge.First().Name;
             }
         }
 
-        public static int CurrentYear => Now().Year;
+        public static int CurrentYear => Now.Year;
 
         public static int FirstYearInAge(string age)
         {
             if (!ValidAge(age))
                 throw new ArgumentException("Age is unknown to server; check time/age configuration in config.xml", age);
 
-            var theAge = Game.Config.Time.Ages.First(a => a.Name == age);
-            if (theAge == null)
+            var theAge = Game.Config.Time?.Ages?.Where(a => a.Name == age);
+            if (theAge.Count() == 0)
                 return DefaultYear;
-            return theAge.StartYear != 1 ? 1 : theAge.StartYear;
+            return theAge.First().StartYear != 1 ? 1 : theAge.First().StartYear;
         }
 
         static HybrasylTime()
@@ -219,48 +219,51 @@ namespace Hybrasyl
 
         }
 
-        public static HybrasylTime Now()
+        public static HybrasylTime Now
         {
-            var hybrasylTime = new HybrasylTime();
-            var terranNow = DateTime.Now;
-            var timeElapsed = DateTime.Now.Ticks - World.StartDate.Ticks;
-
-            if (Game.Config.Time != null && Game.Config.Time.Ages.Count > 0)
+            get
             {
-                var currentAge = Game.Config.Time.Ages.First(age => age.DateInAge(terranNow));
-                if (currentAge == null)
+                var hybrasylTime = new HybrasylTime();
+                var terranNow = DateTime.Now;
+                var timeElapsed = DateTime.Now.Ticks - World.StartDate.Ticks;
+
+                if (Game.Config.Time != null && Game.Config.Time.Ages.Count > 0)
                 {
-                    // Age configuration is screwy, simply return default age
-                    Logger.ErrorFormat("Age configuration is nonsensical, using default age");
+                    var currentAge = Game.Config.Time.Ages.First(age => age.DateInAge(terranNow));
+                    if (currentAge == null)
+                    {
+                        // Age configuration is screwy, simply return default age
+                        Logger.ErrorFormat("Age configuration is nonsensical, using default age");
+                    }
+                    else
+                    {
+                        // Calculate the time that has passed from the start of the current age, to now
+                        timeElapsed = terranNow.Ticks - currentAge.StartDate.Ticks;
+                        hybrasylTime.Age = currentAge.Name;
+                        if (currentAge.StartYear != 1)
+                            hybrasylTime.Year = currentAge.StartYear;
+                    }
                 }
                 else
                 {
-                    // Calculate the time that has passed from the start of the current age, to now
-                    timeElapsed = terranNow.Ticks - currentAge.StartDate.Ticks;
-                    hybrasylTime.Age = currentAge.Name;
-                    if (currentAge.StartYear != 1)
-                        hybrasylTime.Year = currentAge.StartYear;
+                    hybrasylTime.Age = Game.Config.Time != null && Game.Config.Time.ServerStart.DefaultAge != string.Empty
+                        ? Game.Config.Time.ServerStart.DefaultAge
+                        : DefaultAge;
+
+                    if (Game.Config.Time != null && Game.Config.Time.ServerStart.DefaultYear != 1)
+                        hybrasylTime.Year += Game.Config.Time.ServerStart.DefaultYear;
                 }
+
+                hybrasylTime.AdvanceDateFromTerranTicks(timeElapsed);
+
+                return hybrasylTime;
             }
-            else
-            {
-                hybrasylTime.Age =  Game.Config.Time != null && Game.Config.Time.ServerStart.DefaultAge != string.Empty
-                    ? Game.Config.Time.ServerStart.DefaultAge
-                    : DefaultAge;
-
-                if (Game.Config.Time != null && Game.Config.Time.ServerStart.DefaultYear != 1)
-                    hybrasylTime.Year += Game.Config.Time.ServerStart.DefaultYear;
-            }
-
-            hybrasylTime.AdvanceDateFromTerranTicks(timeElapsed);
-
-            return hybrasylTime;
         }
 
         public static DateTime ConvertToTerran(HybrasylTime hybrasyltime)
         {
-            var thisAge = Game.Config.Time.Ages.First(age => age.Name == hybrasyltime.Age);
-            return thisAge != null ? new DateTime(thisAge.StartDate.Ticks + hybrasyltime.TerranTicks) : new DateTime(World.StartDate.Ticks + hybrasyltime.TerranTicks);
+            var thisAge = Game.Config.Time?.Ages?.Where(age => age.Name == hybrasyltime.Age);
+            return thisAge.Count() > 0 ? new DateTime(thisAge.First().StartDate.Ticks + hybrasyltime.TerranTicks) : new DateTime(World.StartDate.Ticks + hybrasyltime.TerranTicks);
         }
 
         public static HybrasylTime ConvertToHybrasyl(DateTime datetime)
@@ -288,7 +291,7 @@ namespace Hybrasyl
             return hybrasylTime;
         }
 
-        public static HybrasylTime Fromstring(string hybrasyldate)
+        public static HybrasylTime FromString(string hybrasyldate)
         {
             // Supported formats:
             // <Age> <Year>, [<cardinal> moon, <cardinal> sun, HH:MM (a.m. | p.m.)]

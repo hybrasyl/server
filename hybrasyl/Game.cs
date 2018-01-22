@@ -360,6 +360,7 @@ namespace Hybrasyl
 
             World.StartTimers();
             World.StartQueueConsumer();
+            World.StartControlConsumers();
 
             ToggleActive();
             StartDate = DateTime.Now;
@@ -384,7 +385,7 @@ namespace Hybrasyl
                     CancellationTokenSource.Cancel();
                     break;
                 }
-                Thread.Sleep(100);
+                Thread.Sleep(5);
             }
 
             Logger.Warn("Hybrasyl: all servers shutting down");
@@ -399,6 +400,7 @@ namespace Hybrasyl
             Login.Shutdown();
             World.Shutdown();
             World.StopQueueConsumer();
+            World.StopControlConsumers();
             Logger.WarnFormat("Hybrasyl {0}: shutdown complete.", Assemblyinfo.Version);
             Environment.Exit(0);
 

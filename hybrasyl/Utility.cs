@@ -65,6 +65,8 @@ namespace Hybrasyl
         public const int MonolithSpawn = 8;
         public const int MonolithControl = 9;
         public const int TriggerRefresh = 10;
+        public const int HandleDeath = 11;
+
     }
 
     static class ServerTypes
@@ -149,21 +151,21 @@ namespace Hybrasyl
         public const int DIALOG_SEQUENCE_HARDCODED = 65280;
 
         public static Dictionary<string, int> CLASSES = new Dictionary<string, int> {
-        {"Peasant", 0},
-        {"Warrior", 1},
-        {"Rogue", 2},
-        {"Wizard", 3},
-        {"Priest", 4},
-        {"Monk", 5}
+        {"peasant", 0},
+        {"warrior", 1},
+        {"rogue", 2},
+        {"wizard", 3},
+        {"priest", 4},
+        {"monk", 5}
         };
 
         public static Dictionary<int, string> REVERSE_CLASSES = new Dictionary<int, string> {
-                  {0, "Peasant"},
-                  {1, "Warrior"},
-                  {2, "Rogue"},
-                  {3, "Wizard"},
-                  {4, "Priest"},
-                  {5, "Monk"}
+                  {0, "peasant"},
+                  {1, "warrior"},
+                  {2, "rogue"},
+                  {3, "wizard"},
+                  {4, "priest"},
+                  {5, "monk"}
 
         };
 

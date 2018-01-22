@@ -43,166 +43,12 @@ namespace Hybrasyl.Objects
         private static readonly ILog ActivityLogger = LogManager.GetLogger("UserActivityLog");
 
         [JsonProperty]
-        public byte Level { get; set; }
-
-        [JsonProperty]
-        public uint Experience { get; set; }
-
-        [JsonProperty]
-        public byte Ability { get; set; }
-
-        [JsonProperty]
-        public uint AbilityExp { get; set; }
-
-        [JsonProperty]
-        public uint Hp { get; set; }
-
-        [JsonProperty]
-        public uint Mp { get; set; }
-
-        [JsonProperty]
-        public long BaseHp { get; set; }
-
-        [JsonProperty]
-        public long BaseMp { get; set; }
-
-        [JsonProperty]
-        public long BaseStr { get; set; }
-
-        [JsonProperty]
-        public long BaseInt { get; set; }
-
-        [JsonProperty]
-        public long BaseWis { get; set; }
-
-        [JsonProperty]
-        public long BaseCon { get; set; }
-
+        public StatInfo Stats { get; set; }
         [JsonProperty]
         public ConditionInfo Condition { get; set; }
 
         [JsonProperty]
         protected ConcurrentDictionary<ushort, ICreatureStatus> _currentStatuses;
-
-
-        [JsonProperty]
-        public long BaseDex { get; set; }
-
-        public long BonusHp { get; set; }
-        public long BonusMp { get; set; }
-        public long BonusStr { get; set; }
-        public long BonusInt { get; set; }
-        public long BonusWis { get; set; }
-        public long BonusCon { get; set; }
-        public long BonusDex { get; set; }
-        public long BonusDmg { get; set; }
-        public long BonusHit { get; set; }
-        public long BonusAc { get; set; }
-        public long BonusMr { get; set; }
-        public long BonusRegen { get; set; }
-
-        protected Enums.Element BaseOffensiveElement { get; set; }
-        protected Enums.Element BaseDefensiveElement { get; set; }
-
-        public Enums.Element OffensiveElement
-        {
-            get
-            {
-                return (OffensiveElementOverride == Enums.Element.None ? OffensiveElementOverride : BaseOffensiveElement);
-            }
-        }
-        public Enums.Element DefensiveElement
-        {
-            get
-            {
-                return (DefensiveElementOverride == Enums.Element.None ? DefensiveElementOverride : BaseDefensiveElement);
-            }
-        }
-
-        public Enums.Element OffensiveElementOverride { get; set; }
-        public Enums.Element DefensiveElementOverride { get; set; }
-
-        public Enums.DamageType? DamageTypeOverride { get; set; }
-
-        public double ReflectChance
-        {
-
-            get
-            {
-                var value = BaseReflectChance + BonusReflectChance;
-
-                if (value > 1.0)
-                    return 1.0;
-
-                if (value < 0)
-                    return 0;
-
-                return value;
-            }
-        }
-
-        [JsonProperty]
-        public double BaseReflectChance { get; set; }
-        [JsonProperty]
-        public double BonusReflectChance { get; set; }
-
-        public double ReflectIntensity
-        {
-
-            get
-            {
-                var value = BaseReflectChance + BonusReflectChance;
-
-                if (value < 0)
-                    return 0;
-
-                return value;
-            }
-        }
-
-        [JsonProperty]
-        public double BaseReflectIntensity { get; set; }
-        [JsonProperty]
-        public double BonusReflectIntensity { get; set; }
-
-        public bool IsReflected
-        {
-            get
-            {
-                Random rnd1 = new Random();
-                return (rnd1.NextDouble() >= ReflectChance);
-            }
-        }
-
-        public double HealModifier
-        {
-            get
-            {
-                return BaseHealModifier + BonusHealModifier;
-            }
-        }
-
-        [JsonProperty]
-        public double BaseHealModifier { get; set; }
-        [JsonProperty]
-        public double BonusHealModifier { get; set; }
-
-        public double DamageModifier
-        {
-            get
-            {
-                return BaseDamageModifier + BonusDamageModifier;
-            }
-        }
-
-        [JsonProperty]
-        public double BaseDamageModifier { get; set; }
-        [JsonProperty]
-        public double BonusDamageModifier { get; set; }
-   
-        public ushort MapId { get; protected set; }
-        public byte MapX { get; protected set; }
-        public byte MapY { get; protected set; }
 
         [JsonProperty]
         public uint Gold { get; set; }
@@ -218,13 +64,7 @@ namespace Hybrasyl.Objects
             Gold = 0;
             Inventory = new Inventory(59);
             Equipment = new Inventory(18);
-            BaseDamageModifier = 1;
-            BonusDamageModifier = 0;
-            BaseHealModifier = 1;
-            BonusHealModifier = 0;
-            BaseReflectIntensity = 1;
-            BaseReflectChance = 0;
-            DamageTypeOverride = null;
+            Stats = new StatInfo();
             Condition = new ConditionInfo(this);
             _currentStatuses = new ConcurrentDictionary<ushort, ICreatureStatus>();
         }
@@ -519,191 +359,6 @@ namespace Hybrasyl.Objects
                 return start;
         }
 
-        public uint MaximumHp
-        {
-            get
-            {
-                var value = BaseHp + BonusHp;
-
-                if (value > uint.MaxValue)
-                    return uint.MaxValue;
-
-                if (value < uint.MinValue)
-                    return 1;
-
-                return (uint)BindToRange(value, StatLimitConstants.MIN_BASE_HPMP, StatLimitConstants.MAX_BASE_HPMP);
-            }
-        }
-
-        public uint MaximumMp
-        {
-            get
-            {
-                var value = BaseMp + BonusMp;
-
-                if (value > uint.MaxValue)
-                    return uint.MaxValue;
-
-                if (value < uint.MinValue)
-                    return 1;
-
-                return (uint)BindToRange(value, StatLimitConstants.MIN_BASE_HPMP, StatLimitConstants.MAX_BASE_HPMP);
-            }
-        }
-
-        public byte Str
-        {
-            get
-            {
-                var value = BaseStr + BonusStr;
-
-                if (value > byte.MaxValue)
-                    return byte.MaxValue;
-
-                if (value < byte.MinValue)
-                    return byte.MinValue;
-
-                return (byte)BindToRange(value, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
-            }
-        }
-
-        public byte Int
-        {
-            get
-            {
-                var value = BaseInt + BonusInt;
-
-                if (value > byte.MaxValue)
-                    return byte.MaxValue;
-
-                if (value < byte.MinValue)
-                    return byte.MinValue;
-
-                return (byte)BindToRange(value, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
-            }
-        }
-
-        public byte Wis
-        {
-            get
-            {
-                var value = BaseWis + BonusWis;
-
-                if (value > byte.MaxValue)
-                    return byte.MaxValue;
-
-                if (value < byte.MinValue)
-                    return byte.MinValue;
-
-                return (byte)BindToRange(value, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
-            }
-        }
-
-        public byte Con
-        {
-            get
-            {
-                var value = BaseCon + BonusCon;
-
-                if (value > byte.MaxValue)
-                    return byte.MaxValue;
-
-                if (value < byte.MinValue)
-                    return byte.MinValue;
-
-                return (byte)BindToRange(value, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
-            }
-        }
-
-        public byte Dex
-        {
-            get
-            {
-                var value = BaseDex + BonusDex;
-
-                if (value > byte.MaxValue)
-                    return byte.MaxValue;
-
-                if (value < byte.MinValue)
-                    return byte.MinValue;
-
-                return (byte)BindToRange(value, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
-            }
-        }
-
-        public byte Dmg
-        {
-            get
-            {
-                if (BonusDmg > byte.MaxValue)
-                    return byte.MaxValue;
-
-                if (BonusDmg < byte.MinValue)
-                    return byte.MinValue;
-
-                return (byte)BindToRange(BonusDmg, StatLimitConstants.MIN_DMG, StatLimitConstants.MAX_DMG);
-            }
-        }
-
-        public byte Hit
-        {
-            get
-            {
-                if (BonusHit > byte.MaxValue)
-                    return byte.MaxValue;
-
-                if (BonusHit < byte.MinValue)
-                    return byte.MinValue;
-
-                return (byte)BindToRange(BonusHit, StatLimitConstants.MIN_HIT, StatLimitConstants.MAX_HIT);
-            }
-        }
-
-        public sbyte Ac
-        {
-            get
-            {
-                Logger.DebugFormat("BonusAc is {0}", BonusAc);
-                var value = 100 - Level / 3 + BonusAc;
-
-                if (value > sbyte.MaxValue)
-                    return sbyte.MaxValue;
-
-                if (value < sbyte.MinValue)
-                    return sbyte.MinValue;
-
-                return (sbyte)BindToRange(value, StatLimitConstants.MIN_AC, StatLimitConstants.MAX_AC);
-            }
-        }
-
-        public sbyte Mr
-        {
-            get
-            {
-                if (BonusMr > sbyte.MaxValue)
-                    return sbyte.MaxValue;
-
-                if (BonusMr < sbyte.MinValue)
-                    return sbyte.MinValue;
-
-                return (sbyte)BindToRange(BonusMr, StatLimitConstants.MIN_MR, StatLimitConstants.MAX_MR);
-            }
-        }
-
-        public sbyte Regen
-        {
-            get
-            {
-                if (BonusRegen > sbyte.MaxValue)
-                    return sbyte.MaxValue;
-
-                if (BonusRegen < sbyte.MinValue)
-                    return sbyte.MinValue;
-
-                return (sbyte)BonusRegen;
-            }
-        }
-
         private uint _mLastHitter;
 
         public Creature LastHitter
@@ -829,11 +484,11 @@ namespace Hybrasyl.Objects
 
             // We do these next steps to ensure effects are displayed uniformly and as fast as possible
             var deadMobs = new List<Creature>();
-            foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>().Select(obj => obj))
+            foreach (var tar in targets)
             {
-                foreach (var id in targets.Select(e => e.Id))
+                foreach (var user in tar.viewportUsers)
                 {
-                    user.SendEffect(id, castObject.Effects.Animations.OnCast.Target.Id, castObject.Effects.Animations.OnCast.Target.Speed);
+                    user.SendEffect(tar.Id, castObject.Effects.Animations.OnCast.Target.Id, castObject.Effects.Animations.OnCast.Target.Speed);
                 }
             }
 
@@ -865,11 +520,11 @@ namespace Hybrasyl.Objects
                     else if (castObject.Element != Castables.Element.None)
                         attackElement = (Enums.Element)castObject.Element;
                     else
-                        attackElement = (OffensiveElementOverride == Enums.Element.None ? OffensiveElementOverride : OffensiveElement);
+                        attackElement = (Stats.OffensiveElementOverride == Enums.Element.None ? Stats.OffensiveElementOverride : Stats.OffensiveElement);
                     if (this is User) ActivityLogger.Info($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} damage: {damageOutput}, element {attackElement}");
 
                     tar.Damage(damageOutput.Amount, attackElement, damageOutput.Type, damageOutput.Flags, this, false);
-                    if (tar.Hp <= 0) { deadMobs.Add(tar); }
+                    if (tar.Stats.Hp <= 0) { deadMobs.Add(tar); }
                 }
                 // Note that we ignore castables with both damage and healing effects present - one or the other.
                 // A future improvement might be to allow more complex effects.
@@ -908,7 +563,9 @@ namespace Hybrasyl.Objects
                 }
             }
             // Now flood away
-            foreach (var dead in deadMobs) dead.OnDeath();
+            foreach (var dead in deadMobs)
+                World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.HandleDeath, dead));
+
             return true;
         }
 
@@ -1013,13 +670,13 @@ namespace Hybrasyl.Objects
                 // Is this user entering a forbidden (by level or otherwise) warp?
                 if (isWarp)
                 {
-                    if (targetWarp.MinimumLevel > Level)
+                    if (targetWarp.MinimumLevel > Stats.Level)
                     {
 
                         Refresh();
                         return false;
                     }
-                    else if (targetWarp.MaximumLevel < Level)
+                    else if (targetWarp.MaximumLevel < Stats.Level)
                     {
 
                         Refresh();
@@ -1125,9 +782,9 @@ namespace Hybrasyl.Objects
         public virtual void Heal(double heal, Creature source = null)
         {
             if (AbsoluteImmortal || PhysicalImmortal) return;
-            if (Hp == MaximumHp) return;
+            if (Stats.Hp == Stats.MaximumHp) return;
 
-            Hp = heal > uint.MaxValue ? MaximumHp : Math.Min(MaximumHp, (uint)(Hp + heal));
+            Stats.Hp = heal > uint.MaxValue ? Stats.MaximumHp : Math.Min(Stats.MaximumHp, (uint)(Stats.Hp + heal));
             SendDamageUpdate(this);
         }
 
@@ -1136,10 +793,10 @@ namespace Hybrasyl.Objects
             if (AbsoluteImmortal)
                 return;
 
-            if (Mp == MaximumMp || mp > MaximumMp)
+            if (Stats.Mp == Stats.MaximumMp || mp > Stats.MaximumMp)
                 return;
 
-            Mp = mp > uint.MaxValue ? MaximumMp : Math.Min(MaximumMp, (uint)(Mp + mp));
+            Stats.Mp = mp > uint.MaxValue ? Stats.MaximumMp : Math.Min(Stats.MaximumMp, (uint)(Stats.Mp + mp));
         }
 
         public virtual void Damage(double damage, Enums.Element element = Enums.Element.None, Enums.DamageType damageType = Enums.DamageType.Direct, Castables.DamageFlags damageFlags = Castables.DamageFlags.None, Creature attacker = null, bool onDeath = true)
@@ -1152,7 +809,7 @@ namespace Hybrasyl.Objects
 
             if (damageType != Enums.DamageType.Direct)
             {
-                double armor = Ac * -1 + 100;
+                double armor = Stats.Ac * -1 + 100;
                 var resist = Game.ElementTable[(int)element, 0];
                 var reduction = damage * (armor / (armor + 50));
                 damage = (damage - reduction) * resist;
@@ -1163,24 +820,24 @@ namespace Hybrasyl.Objects
 
             var normalized = (uint)damage;
 
-            if (normalized > Hp && damageFlags.HasFlag(Castables.DamageFlags.Nonlethal))
-                normalized = Hp - 1;
-            else if (normalized > Hp)
-                normalized = Hp;
+            if (normalized > Stats.Hp && damageFlags.HasFlag(Castables.DamageFlags.Nonlethal))
+                normalized = Stats.Hp - 1;
+            else if (normalized > Stats.Hp)
+                normalized = Stats.Hp;
 
-            Hp -= normalized;
+            Stats.Hp -= normalized;
 
             SendDamageUpdate(this);
             
             OnReceiveDamage();
             
             // TODO: Separate this out into a control message
-            if (Hp == 0 && onDeath == true) OnDeath();
+            if (Stats.Hp == 0 && onDeath == true) OnDeath();
         }
 
         private void SendDamageUpdate(Creature creature)
         {
-            var percent = ((creature.Hp / (double)creature.MaximumHp) * 100);
+            var percent = ((creature.Stats.Hp / (double)creature.Stats.MaximumHp) * 100);
             var healthbar = new ServerPacketStructures.HealthBar() { CurrentPercent = (byte)percent, ObjId = creature.Id };
 
             foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>())

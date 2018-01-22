@@ -214,49 +214,49 @@ namespace Hybrasyl
 
             if (remove)
             {
-                Target.BonusStr -= effect.Str;
-                Target.BonusInt -= effect.Int;
-                Target.BonusWis -= effect.Wis;
-                Target.BonusCon -= effect.Con;
-                Target.BonusDex -= effect.Dex;
-                Target.BonusHp -= effect.Hp;
-                Target.BonusMp -= effect.Mp;
-                Target.BonusHit -= effect.Hit;
-                Target.BonusDmg -= effect.Dmg;
-                Target.BonusAc -= effect.Ac;
-                Target.BonusRegen -= effect.Regen;
-                Target.BonusMr -= effect.Mr;
-                Target.BonusDamageModifier = effect.DamageModifier;
-                Target.BonusHealModifier = effect.HealModifier;
-                Target.BonusReflectChance -= effect.ReflectChance;
-                Target.BonusReflectIntensity -= effect.ReflectIntensity;
-                if (effect.OffensiveElement == (Statuses.Element) Target.OffensiveElementOverride)
-                    Target.OffensiveElementOverride = Enums.Element.None;
-                if (effect.DefensiveElement == (Statuses.Element)Target.DefensiveElementOverride)
-                    Target.DefensiveElementOverride = Enums.Element.None;
-                Target.BonusAc -= effect.Str;
+                Target.Stats.BonusStr -= effect.Str;
+                Target.Stats.BonusInt -= effect.Int;
+                Target.Stats.BonusWis -= effect.Wis;
+                Target.Stats.BonusCon -= effect.Con;
+                Target.Stats.BonusDex -= effect.Dex;
+                Target.Stats.BonusHp -= effect.Hp;
+                Target.Stats.BonusMp -= effect.Mp;
+                Target.Stats.BonusHit -= effect.Hit;
+                Target.Stats.BonusDmg -= effect.Dmg;
+                Target.Stats.BonusAc -= effect.Ac;
+                Target.Stats.BonusRegen -= effect.Regen;
+                Target.Stats.BonusMr -= effect.Mr;
+                Target.Stats.BonusDamageModifier = effect.DamageModifier;
+                Target.Stats.BonusHealModifier = effect.HealModifier;
+                Target.Stats.BonusReflectChance -= effect.ReflectChance;
+                Target.Stats.BonusReflectIntensity -= effect.ReflectIntensity;
+                if (effect.OffensiveElement == (Statuses.Element) Target.Stats.OffensiveElementOverride)
+                    Target.Stats.OffensiveElementOverride = Enums.Element.None;
+                if (effect.DefensiveElement == (Statuses.Element)Target.Stats.DefensiveElementOverride)
+                    Target.Stats.DefensiveElementOverride = Enums.Element.None;
+                Target.Stats.BonusAc -= effect.Str;
             }
             else
             {
-                Target.BonusStr += effect.Str;
-                Target.BonusInt += effect.Int;
-                Target.BonusWis += effect.Wis;
-                Target.BonusCon += effect.Con;
-                Target.BonusDex += effect.Dex;
-                Target.BonusHp += effect.Hp;
-                Target.BonusMp += effect.Mp;
-                Target.BonusHit += effect.Hit;
-                Target.BonusDmg += effect.Dmg;
-                Target.BonusAc += effect.Ac;
-                Target.BonusRegen += effect.Regen;
-                Target.BonusMr += effect.Mr;
-                Target.BonusDamageModifier = effect.DamageModifier;
-                Target.BonusHealModifier = effect.HealModifier;
-                Target.BonusReflectChance += effect.ReflectChance;
-                Target.BonusReflectIntensity += effect.ReflectIntensity;
-                Target.BonusAc += effect.Str;
-                Target.OffensiveElementOverride = (Enums.Element)effect.OffensiveElement;
-                Target.DefensiveElementOverride = (Enums.Element)effect.OffensiveElement;
+                Target.Stats.BonusStr += effect.Str;
+                Target.Stats.BonusInt += effect.Int;
+                Target.Stats.BonusWis += effect.Wis;
+                Target.Stats.BonusCon += effect.Con;
+                Target.Stats.BonusDex += effect.Dex;
+                Target.Stats.BonusHp += effect.Hp;
+                Target.Stats.BonusMp += effect.Mp;
+                Target.Stats.BonusHit += effect.Hit;
+                Target.Stats.BonusDmg += effect.Dmg;
+                Target.Stats.BonusAc += effect.Ac;
+                Target.Stats.BonusRegen += effect.Regen;
+                Target.Stats.BonusMr += effect.Mr;
+                Target.Stats.BonusDamageModifier = effect.DamageModifier;
+                Target.Stats.BonusHealModifier = effect.HealModifier;
+                Target.Stats.BonusReflectChance += effect.ReflectChance;
+                Target.Stats.BonusReflectIntensity += effect.ReflectIntensity;
+                Target.Stats.BonusAc += effect.Str;
+                Target.Stats.OffensiveElementOverride = (Enums.Element)effect.OffensiveElement;
+                Target.Stats.DefensiveElementOverride = (Enums.Element)effect.OffensiveElement;
 
             }
         }

@@ -115,7 +115,7 @@ namespace Hybrasyl
                 {
                     Logger.InfoFormat("cid {0}: {1} logging on again, disconnecting previous connection",
                         client.ConnectionId, name);
-                    World.MessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.LogoffUser, name));
+                    World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.LogoffUser, name));
                 }
 
                 Logger.DebugFormat("cid {0} ({1}): logging in", client.ConnectionId, name);
@@ -145,8 +145,9 @@ namespace Hybrasyl
         private void PacketHandler_0x04_CreateB(Client client, ClientPacket packet)
         {
             if (string.IsNullOrEmpty(client.NewCharacterName) || string.IsNullOrEmpty(client.NewCharacterPassword))
+            {
                 return;
-
+            }
             var hairStyle = packet.ReadByte();
             var sex = packet.ReadByte();
             var hairColor = packet.ReadByte();
@@ -166,34 +167,24 @@ namespace Hybrasyl
             if (sex > 2)
                 sex = 2;
 
+            // Try to get our map
+            // TODO: replace with XML config for start map, x, y
+            Map map;
+            if (!Game.World.WorldData.TryGetValue(136, out map))
+                map = Game.World.WorldData.GetDictionary<Map>().First().Value;
             if (!Game.World.PlayerExists(client.NewCharacterName))
             {
                 var newPlayer = new User();
                 newPlayer.Name = client.NewCharacterName;
                 newPlayer.Sex = (Sex) sex;
                 newPlayer.Location.Direction = Direction.South;
-                newPlayer.Location.MapId = 136;
-                newPlayer.Location.X = 10;
+                newPlayer.Location.Map = map;
+                newPlayer.Location.X = 10; 
                 newPlayer.Location.Y = 10;
                 newPlayer.HairColor = hairColor;
                 newPlayer.HairStyle = hairStyle;
                 newPlayer.Class = Class.Peasant;
-                newPlayer.Level = 1;
-                newPlayer.Experience = 1;
-                newPlayer.Level = 1;
-                newPlayer.Experience = 0;
-                newPlayer.AbilityExp = 0;
                 newPlayer.Gold = 0;
-                newPlayer.Ability = 0;
-                newPlayer.Hp = 50;
-                newPlayer.Mp = 50;
-                newPlayer.BaseHp = 50;
-                newPlayer.BaseMp = 50;
-                newPlayer.BaseStr = 3;
-                newPlayer.BaseInt = 3;
-                newPlayer.BaseWis = 3;
-                newPlayer.BaseCon = 3;
-                newPlayer.BaseDex = 3;
                 newPlayer.Login.CreatedTime = DateTime.Now;
                 newPlayer.Password.Hash = client.NewCharacterPassword;
                 newPlayer.Password.LastChanged = DateTime.Now;

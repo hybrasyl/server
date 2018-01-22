@@ -43,19 +43,19 @@ namespace Hybrasyl.Scripting
 
         public uint Hp
         {
-            get { return User.Hp; }
+            get { return User.Stats.Hp; }
             set {
-                User.Hp = value;
+                User.Stats.Hp = value;
                 User.UpdateAttributes(StatUpdateFlags.Current);
             }
         }
 
         public uint Mp
         {
-            get { return User.Mp; }
+            get { return User.Stats.Mp; }
             set
             {
-                User.Mp = value;
+                User.Stats.Mp = value;
                 User.UpdateAttributes(StatUpdateFlags.Current);
             }
         }
@@ -205,7 +205,7 @@ namespace Hybrasyl.Scripting
 
         public void HealToFull()
         {
-            User.Heal(User.MaximumHp);
+            User.Heal(User.Stats.MaximumHp);
         }
 
         public void Heal(int heal)
@@ -253,7 +253,7 @@ namespace Hybrasyl.Scripting
 
         public bool TakeExperience(int exp)
         {
-            User.Experience -= (uint)exp;
+            User.Stats.Experience -= (uint)exp;
             SystemMessage($"Your world spins as your insight leaves you ((-{exp} experience!))");
             User.UpdateAttributes(StatUpdateFlags.Experience);
             return true;

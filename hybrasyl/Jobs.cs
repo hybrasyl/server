@@ -85,7 +85,7 @@ namespace Hybrasyl
                         // randomly have a packet occupying shitloads of CPU time blocking
                         // everything else.
 
-                        World.MessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.SaveUser, client.Key));
+                        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.SaveUser, client.Key));
                     }
                     Logger.Debug("Job complete");
                 }
@@ -261,7 +261,7 @@ namespace Hybrasyl
                                 Logger.InfoFormat("{0} (connection id {1}: heartbeat expired, disconnecting",
                                     user.Name, connectionId);
                                 GlobalConnectionManifest.DeregisterClient(client);
-                                World.MessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.CleanupUser, connectionId));
+                                World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.CleanupUser, connectionId));
                             }
                         }
                     }
@@ -285,7 +285,7 @@ namespace Hybrasyl
             {
                 foreach (var connId in GlobalConnectionManifest.WorldClients.Keys)
                 {
-                    World.MessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.RegenUser, connId));
+                    World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.RegenUser, connId));
                 }
             }
         }
@@ -306,7 +306,7 @@ namespace Hybrasyl
                     User user;
                     if (World.ActiveUsers.TryGetValue(connectionId, out user))
                     {
-                        World.MessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.StatusTick, user.Name));
+                        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.StatusTick, user.Name));
                     }
                 }
                 Logger.Debug("Status tick job ending");
