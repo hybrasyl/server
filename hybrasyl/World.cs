@@ -1421,11 +1421,9 @@ namespace Hybrasyl
                 {
                     Logger.DebugFormat("Removing {0}, qty {1} from {2}@{3},{4}",
                         item.Name, item.Count, user.Map.Name, x, y);
-                    item.DeathPileAllowedLooters = new List<string>();
                     item.DeathPileOwner = string.Empty;
-                    item.DeathPileTime = null;
-                    item.MonsterDeathPileAllowedLooters = new List<string>();
-                    item.MonsterDeathPileTime = null;
+                    item.ItemDropAllowedLooters = new List<string>();
+                    item.ItemDropTime = null;
                     user.Map.Remove(item);
                     user.AddItem(item, slot);
                 }

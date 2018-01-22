@@ -64,20 +64,23 @@ namespace Hybrasyl.Objects
             var hitter = LastHitter as User;
             if (hitter == null) return; // Don't handle cases of MOB ON MOB COMBAT just yet
 
+            if (hitter.Grouped) ItemDropAllowedLooters = hitter.Group.Members.Select(user => user.Name).ToList();
+            else ItemDropAllowedLooters.Add(hitter.Name);
+
             Condition.Alive = false;
 
             hitter.ShareExperience(LootableXP);
             var golds = new Gold(LootableGold);
-            var monsterDeathPileTime = DateTime.Now;
+            var itemDropTime = DateTime.Now;
             foreach(var item in LootableItems)
             {
-                item.MonsterDeathPileAllowedLooters = MonsterDeathPileAllowedLooters;
-                item.MonsterDeathPileTime = monsterDeathPileTime;
+                item.ItemDropAllowedLooters = ItemDropAllowedLooters;
+                item.ItemDropTime = itemDropTime;
                 World.Insert(item);
                 Map.Insert(item, X, Y);
             }
-            golds.MonsterDeathPileAllowedLooters = MonsterDeathPileAllowedLooters;
-            golds.MonsterDeathPileTime = monsterDeathPileTime;
+            golds.ItemDropAllowedLooters = ItemDropAllowedLooters;
+            golds.ItemDropTime = itemDropTime;
 
             World.Insert(golds);
             Map.Insert(golds, X, Y);

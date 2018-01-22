@@ -43,22 +43,18 @@ namespace Hybrasyl.Objects
         public string DisplayText { get; set; }
 
         public string DeathPileOwner { get; set; }
-        public List<string> DeathPileAllowedLooters { get; set; }
-        public DateTime? DeathPileTime { get; set; }
 
-        public List<string> MonsterDeathPileAllowedLooters { get; set; }
-        public DateTime? MonsterDeathPileTime { get; set; }
+        public List<string> ItemDropAllowedLooters { get; set; }
+        public DateTime? ItemDropTime { get; set; }
 
         public HashSet<User> viewportUsers { get; private set; }
 
         public VisibleObject()
         {
             DisplayText = string.Empty;
-            DeathPileAllowedLooters = new List<string>();
             DeathPileOwner = string.Empty;
-            DeathPileTime = null;
-            MonsterDeathPileAllowedLooters = new List<string>();
-            MonsterDeathPileTime = null;
+            ItemDropAllowedLooters = new List<string>();
+            ItemDropTime = null;
             viewportUsers = new HashSet<User>();
         }
 
@@ -83,23 +79,16 @@ namespace Hybrasyl.Objects
                 error = "You can't do that.";
                 return false;
             }
-            // Check if the item is part of monster loot pile
-            if (MonsterDeathPileAllowedLooters.Count > 0 && MonsterDeathPileTime != null)
-            {
-                if (MonsterDeathPileAllowedLooters.Contains(username)) return true;
-                if ((DateTime.Now - MonsterDeathPileTime.Value).TotalSeconds > Constants.MONSTER_LOOT_DROP_RANDO_TIMEOUT) return true;
-                error = "These items do not belong to you.";
-            }
-            else
-            {
-                // Check if the item is part of a death pile
-                if (DeathPileTime == null) return true;
-                if (DeathPileOwner == username) return true;
-                if (DeathPileAllowedLooters.Contains(username) &&
-                    (DateTime.Now - DeathPileTime.Value).TotalSeconds > Constants.DEATHPILE_GROUP_TIMEOUT) return true;
-                if ((DateTime.Now - DeathPileTime.Value).TotalSeconds > Constants.DEATHPILE_RANDO_TIMEOUT) return true;
-                error = "These items are cursed.";
-            }
+
+            // Check if the item is part of a death pile or recent monster dropped items
+            if (ItemDropTime == null) return true;
+            if (DeathPileOwner == username) return true;
+            if (ItemDropAllowedLooters.Contains(username) &&
+                (DateTime.Now - ItemDropTime.Value).TotalSeconds > Constants.DEATHPILE_GROUP_TIMEOUT) return true;
+            if ((DateTime.Now - ItemDropTime.Value).TotalSeconds > Constants.DEATHPILE_RANDO_TIMEOUT) return true;
+            if (DeathPileOwner.Equals(string.Empty) && (DateTime.Now - ItemDropTime.Value).TotalSeconds > Constants.MONSTER_LOOT_DROP_RANDO_TIMEOUT) return true;
+            error = "These items are cursed.";
+
             return false;
         }
 

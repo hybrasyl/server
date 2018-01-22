@@ -704,7 +704,20 @@ namespace Hybrasyl.Objects
             }
         }
 
+        private uint _mFirstHitter;
         private uint _mLastHitter;
+
+        public Creature FirstHitter
+        {
+            get
+            {
+                return Game.World.Objects.ContainsKey(_mFirstHitter) ? (Creature)Game.World.Objects[_mFirstHitter] : null;
+            }
+            set
+            {
+                _mFirstHitter = value?.Id ?? 0;
+            }
+        }
 
         public Creature LastHitter
         {
@@ -818,6 +831,7 @@ namespace Hybrasyl.Objects
         public virtual bool UseCastable(Castable castObject, Creature target = null)
         {
             if (!Condition.CastingAllowed) return false;
+            
             if (this is User) ActivityLogger.Info($"UseCastable: {Name} begin casting {castObject.Name} on target: {target?.Name ?? "no target"} CastingAllowed: {Condition.CastingAllowed}");
 
             var damage = castObject.Effects.Damage;
@@ -854,16 +868,6 @@ namespace Hybrasyl.Objects
                 }
                 if (castObject.Effects?.Damage != null)
                 {
-                    if(this is User)
-                    {
-                        if (tar.MonsterDeathPileAllowedLooters.Count > 0 && !(tar.MonsterDeathPileAllowedLooters.Contains(Name))) continue;
-                        else if (tar.MonsterDeathPileAllowedLooters.Count == 0)
-                        {                            
-                            var theUser = this as User;
-                            if (theUser.Grouped) tar.MonsterDeathPileAllowedLooters = theUser.Group.Members.Select(user => user.Name).ToList();
-                            else tar.MonsterDeathPileAllowedLooters.Add(theUser.Name);
-                        }
-                    }
                     Enums.Element attackElement;
                     var damageOutput = NumberCruncher.CalculateDamage(castObject, tar, this);
                     if (castObject.Element == Castables.Element.Random)
@@ -1154,6 +1158,14 @@ namespace Hybrasyl.Objects
 
         public virtual void Damage(double damage, Enums.Element element = Enums.Element.None, Enums.DamageType damageType = Enums.DamageType.Direct, Castables.DamageFlags damageFlags = Castables.DamageFlags.None, Creature attacker = null, bool onDeath = true)
         {
+            var attackerUser = attacker as User;
+            if(attackerUser != null)
+            {
+                if (FirstHitter == null) { _mFirstHitter = attacker.Id; }
+                else if (!Game.World.ActiveUsersByName.ContainsKey(attackerUser.Name)) _mFirstHitter = attacker.Id;
+                else if (FirstHitter != attackerUser && (!(attackerUser.Grouped ? attackerUser.Group.Members.Contains(attackerUser) : false))) return;
+            }            
+
             if (damageType == Enums.DamageType.Physical && (AbsoluteImmortal || PhysicalImmortal))
                 return;
 

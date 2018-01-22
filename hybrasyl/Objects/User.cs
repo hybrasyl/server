@@ -403,8 +403,8 @@ namespace Hybrasyl.Objects
                 RemoveItem(i);
                 if (theItem.Perishable && (handler?.Perishable ?? true)) continue;
                 theItem.DeathPileOwner = Name;
-                theItem.DeathPileTime = timeofdeath;
-                theItem.DeathPileAllowedLooters = looters;
+                theItem.ItemDropTime = timeofdeath;
+                theItem.ItemDropAllowedLooters = looters;
                 Map.AddItem(X, Y, theItem);
             }
 
@@ -418,8 +418,8 @@ namespace Hybrasyl.Objects
                 else
                     item.Durability = 0;
                 item.DeathPileOwner = Name;
-                item.DeathPileTime = timeofdeath;
-                item.DeathPileAllowedLooters = looters;
+                item.ItemDropTime = timeofdeath;
+                item.ItemDropAllowedLooters = looters;
 
                 Map.AddItem(X, Y, item);
             }
@@ -429,9 +429,9 @@ namespace Hybrasyl.Objects
             {
                 var newGold = new Gold(Gold)
                 {
-                    DeathPileAllowedLooters = looters,
+                    ItemDropAllowedLooters = looters,
                     DeathPileOwner = Name,
-                    DeathPileTime = timeofdeath
+                    ItemDropTime = timeofdeath
                 };
                 World.Insert(newGold);
                 Map.AddGold(X, Y, newGold);
