@@ -24,6 +24,7 @@
 using Hybrasyl.Enums;
 using Hybrasyl.Items;
 using Hybrasyl.Scripting;
+using Hybrasyl.Threading;
 using System;
 
 namespace Hybrasyl.Objects
@@ -64,7 +65,7 @@ namespace Hybrasyl.Objects
 
             // Check level / AB
 
-            if (userobj.Level < Level || (Ability != 0 && userobj.Ability < Ability))
+            if (userobj.Stats.Level < Level || (Ability != 0 && userobj.Stats.Ability < Ability))
             {
                 message = "You require more insight.";
                 return false;
@@ -202,9 +203,21 @@ namespace Hybrasyl.Objects
             return Template.Variants[variantId];
         }
 
-        public int Count { get; set; }
+        private Lockable<int> _count { get; set; }
+        public int Count
+        {
+            get { return _count.Value; }
+            set { _count.Value = value; }
+        }
 
-        public uint Durability { get; set; }
+        private Lockable<uint> _durability { get; set; }
+
+        public uint Durability
+        {
+            get { return _durability.Value; }
+            set { _durability.Value = value; }
+        }
+
 
         public void Invoke(User trigger)
         {
@@ -264,8 +277,8 @@ namespace Hybrasyl.Objects
         {
             World = world;
             TemplateId = id;
-            Durability = MaximumDurability;
-            Count = 1;
+            _durability = new Lockable<uint>(MaximumDurability);
+            _count = new Lockable<int>(1);
         }
 
         // Simple copy constructor for an ItemObject, mostly used when we split a stack and it results

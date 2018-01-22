@@ -26,9 +26,11 @@ using System.Drawing;
 using System.Linq;
 using Hybrasyl.Enums;
 using log4net;
+using Newtonsoft.Json;
 
 namespace Hybrasyl.Objects
 {
+
     public class VisibleObject : WorldObject
     {
         public static Random _random = new Random();
@@ -36,8 +38,13 @@ namespace Hybrasyl.Objects
                LogManager.GetLogger(
                System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        public Map Map { get; set; }
-        public Direction Direction { get; set; }
+        [JsonProperty]
+        public LocationInfo Location { get; set; }
+        // TODO: Clean these up later and simply use Location instead
+        public Map Map { get { return Location.Map; } set { Location.Map = value; } }
+        public Direction Direction { get { return Location.Direction; } set { Location.Direction = value; } }
+        public override byte X { get { return Location.X; } set { Location.X = value; } }
+        public override byte Y { get { return Location.Y; } set { Location.Y = value; } }
         public ushort Sprite { get; set; }
         public string Portrait { get; set; }
         public string DisplayText { get; set; }
@@ -56,6 +63,7 @@ namespace Hybrasyl.Objects
             ItemDropAllowedLooters = new List<string>();
             ItemDropTime = null;
             viewportUsers = new HashSet<User>();
+            Location = new LocationInfo();
         }
 
         public virtual void AoiEntry(VisibleObject obj)

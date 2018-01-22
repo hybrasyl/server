@@ -156,20 +156,21 @@ namespace Hybrasyl.Objects
             Sprite = creature.Sprite;
             World = Game.World;
             Map = Game.World.WorldData.Get<Map>(map);
-            Level = spawn.Stats.Level;
-            BaseHp = VariantHp;
-            Hp = VariantHp;
-            BaseMp = VariantMp;
-            Mp = VariantMp;
+            Stats.Level = spawn.Stats.Level;
+            Stats.BaseHp = VariantHp;
+            Stats.Hp = VariantHp;
+            Stats.BaseMp = VariantMp;
+            Stats.Mp = VariantMp;
             DisplayText = creature.Description;
-            BaseStr = VariantStr;
-            BaseInt = VariantInt;
-            BaseWis = VariantWis;
-            BaseCon = VariantCon;
-            BaseDex = VariantDex;
+            Stats.BaseStr = VariantStr;
+            Stats.BaseInt = VariantInt;
+            Stats.BaseWis = VariantWis;
+            Stats.BaseCon = VariantCon;
+            Stats.BaseDex = VariantDex;
             _castables = spawn.Castables;
-            BaseDefensiveElement = (Enums.Element) spawn.GetDefensiveElement();
-            BaseDefensiveElement = (Enums.Element) spawn.GetOffensiveElement();
+
+            Stats.BaseDefensiveElement = (Enums.Element) spawn.GetDefensiveElement();
+            Stats.BaseDefensiveElement = (Enums.Element) spawn.GetOffensiveElement();
             LootableItems = new List<ItemObject>();
 
             //until intents are fixed, this is how this is going to be done.
@@ -296,7 +297,7 @@ namespace Hybrasyl.Objects
         /// </summary>
         /// <param name="direction"></param>
         /// <param name="target"></param>
-        public void SimpleAttack(Creature target) => target?.Damage(_simpleDamage, OffensiveElement, Enums.DamageType.Physical, DamageFlags.None, this);
+        public void SimpleAttack(Creature target) => target?.Damage(_simpleDamage, Stats.OffensiveElement, Enums.DamageType.Physical, DamageFlags.None, this);
 
         public override void ShowTo(VisibleObject obj)
         {

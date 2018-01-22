@@ -52,6 +52,7 @@ using Hybrasyl.Scripting;
 using Castable = Hybrasyl.Castables.Castable;
 using Creature = Hybrasyl.Objects.Creature;
 using Hybrasyl.Statuses;
+using Hybrasyl.Messaging;
 
 namespace Hybrasyl
 {
@@ -103,11 +104,13 @@ namespace Hybrasyl
             }
         }
     }
+   
 
     public class World : Server
     {
         private static uint worldObjectID = 0;
 
+        private object _lock = new object();
         public static DateTime StartDate => Game.Config.Time != null ? Game.Config.Time.ServerStart.Value : Game.StartDate;
 
         public new static ILog Logger =
@@ -140,11 +143,12 @@ namespace Hybrasyl
         public ScriptProcessor ScriptProcessor { get; set; }
 
         public static BlockingCollection<HybrasylMessage> MessageQueue;
+        public static BlockingCollection<HybrasylMessage> ControlMessageQueue;
         public static ConcurrentDictionary<long, User> ActiveUsers { get; private set; }
         public ConcurrentDictionary<string, long> ActiveUsersByName { get; set; }
 
         private Thread ConsumerThread { get; set; }
-        
+        private Thread ControlConsumerThread { get; set; }
 
         public Login Login { get; private set; }
 
@@ -153,6 +157,10 @@ namespace Hybrasyl
         private static Lazy<ConnectionMultiplexer> _lazyConnector;
 
         public static ConnectionMultiplexer DatastoreConnection => _lazyConnector.Value;
+
+        public static ChatCommandHandler CommandHandler;
+
+        public bool DebugEnabled { get; set; }
 
         #region Path helpers
         public static string DataDirectory => Constants.DataDirectory;
@@ -185,7 +193,7 @@ namespace Hybrasyl
         public static string LocalizationDirectory => Path.Combine(DataDirectory, "world", "xml", "localization");
         #endregion
 
-        public static bool TryGetUser(string name, out User userobj)
+        public static bool TryGetUser(string name, out User userobj) 
         {
             var jsonstring = (string)DatastoreConnection.GetDatabase().Get(User.GetStorageKey(name));
             if (jsonstring == null)
@@ -230,6 +238,7 @@ namespace Hybrasyl
 
             ScriptProcessor = new ScriptProcessor(this);
             MessageQueue = new BlockingCollection<HybrasylMessage>(new ConcurrentQueue<HybrasylMessage>());
+            ControlMessageQueue = new BlockingCollection<HybrasylMessage>(new ConcurrentQueue<HybrasylMessage>());
             ActiveUsers = new ConcurrentDictionary<long, User>();
             ActiveUsersByName = new ConcurrentDictionary<string, long>();
 
@@ -248,8 +257,21 @@ namespace Hybrasyl
 
             _lazyConnector = new Lazy<ConnectionMultiplexer>(() => ConnectionMultiplexer.Connect(datastoreConfig));
             _random = new Random();
+            CommandHandler = new ChatCommandHandler();
+            DebugEnabled = false;
         }
 
+        public bool ToggleDebug()
+        {
+            DebugEnabled = !DebugEnabled;
+            if (DebugEnabled)
+                ((log4net.Repository.Hierarchy.Hierarchy)LogManager.GetRepository()).Root.Level = Level.Debug;
+            else
+                ((log4net.Repository.Hierarchy.Hierarchy)LogManager.GetRepository()).Root.Level = Level.Info;
+
+            ((log4net.Repository.Hierarchy.Hierarchy)LogManager.GetRepository()).RaiseConfigurationChanged(EventArgs.Empty);
+            return DebugEnabled;
+        }
         public bool InitWorld()
         {
             if (!LoadData())
@@ -886,58 +908,63 @@ namespace Hybrasyl
 
         public void SetControlMessageHandlers()
         {
-            ControlMessageHandlers[ControlOpcodes.CleanupUser] = ControlMessage_CleanupUser;
-            ControlMessageHandlers[ControlOpcodes.SaveUser] = ControlMessage_SaveUser;
-            ControlMessageHandlers[ControlOpcodes.ShutdownServer] = ControlMessage_ShutdownServer;
-            ControlMessageHandlers[ControlOpcodes.RegenUser] = ControlMessage_RegenerateUser;
-            ControlMessageHandlers[ControlOpcodes.LogoffUser] = ControlMessage_LogoffUser;
-            ControlMessageHandlers[ControlOpcodes.MailNotifyUser] = ControlMessage_MailNotifyUser;
-            ControlMessageHandlers[ControlOpcodes.StatusTick] = ControlMessage_StatusTick;
-            ControlMessageHandlers[ControlOpcodes.MonolithSpawn] = ControlMessage_SpawnMonster;
-            ControlMessageHandlers[ControlOpcodes.MonolithControl] = ControlMessage_MonolithControl;
-            ControlMessageHandlers[ControlOpcodes.TriggerRefresh] = ControlMessage_TriggerRefresh;
+            // ST: secondary threads
+            // PT: primary thread
+            ControlMessageHandlers[ControlOpcodes.CleanupUser] = ControlMessage_CleanupUser; // PT
+            ControlMessageHandlers[ControlOpcodes.SaveUser] = ControlMessage_SaveUser; // ST + user lock
+            ControlMessageHandlers[ControlOpcodes.ShutdownServer] = ControlMessage_ShutdownServer; // ST/PT
+            ControlMessageHandlers[ControlOpcodes.RegenUser] = ControlMessage_RegenerateUser; // ST + creature lock
+            ControlMessageHandlers[ControlOpcodes.LogoffUser] = ControlMessage_LogoffUser; // PT
+            ControlMessageHandlers[ControlOpcodes.MailNotifyUser] = ControlMessage_MailNotifyUser; // ST + creature lock
+            ControlMessageHandlers[ControlOpcodes.StatusTick] = ControlMessage_StatusTick; // ST + creature lock
+            ControlMessageHandlers[ControlOpcodes.MonolithSpawn] = ControlMessage_SpawnMonster; // ST + map lock?
+            ControlMessageHandlers[ControlOpcodes.MonolithControl] = ControlMessage_MonolithControl; // ST + map lock?
+            ControlMessageHandlers[ControlOpcodes.TriggerRefresh] = ControlMessage_TriggerRefresh; // ST
+            ControlMessageHandlers[ControlOpcodes.HandleDeath] = ControlMessage_HandleDeath; // ST + user/map locks
         }
 
         public void SetPacketHandlers()
         {
-            PacketHandlers[0x05] = PacketHandler_0x05_RequestMap;
-            PacketHandlers[0x06] = PacketHandler_0x06_Walk;
-            PacketHandlers[0x07] = PacketHandler_0x07_PickupItem;
-            PacketHandlers[0x08] = PacketHandler_0x08_DropItem;
-            PacketHandlers[0x0B] = PacketHandler_0x0B_ClientExit;
-            PacketHandlers[0x0E] = PacketHandler_0x0E_Talk;
-            PacketHandlers[0x0F] = PacketHandler_0x0F_UseSpell;
-            PacketHandlers[0x10] = PacketHandler_0x10_ClientJoin;
-            PacketHandlers[0x11] = PacketHandler_0x11_Turn;
-            PacketHandlers[0x13] = PacketHandler_0x13_Attack;
-            PacketHandlers[0x18] = PacketHandler_0x18_ShowPlayerList;
-            PacketHandlers[0x19] = PacketHandler_0x19_Whisper;
-            PacketHandlers[0x1C] = PacketHandler_0x1C_UseItem;
-            PacketHandlers[0x1D] = PacketHandler_0x1D_Emote;
-            PacketHandlers[0x24] = PacketHandler_0x24_DropGold;
-            PacketHandlers[0x29] = PacketHandler_0x29_DropItemOnCreature;
-            PacketHandlers[0x2A] = PacketHandler_0x2A_DropGoldOnCreature;
-            PacketHandlers[0x2D] = PacketHandler_0x2D_PlayerInfo;
-            PacketHandlers[0x2E] = PacketHandler_0x2E_GroupRequest;
-            PacketHandlers[0x2F] = PacketHandler_0x2F_GroupToggle;
-            PacketHandlers[0x30] = PacketHandler_0x30_MoveUIElement;
-            PacketHandlers[0x38] = PacketHandler_0x38_Refresh;
-            PacketHandlers[0x39] = PacketHandler_0x39_NPCMainMenu;
-            PacketHandlers[0x3A] = PacketHandler_0x3A_DialogUse;
-            PacketHandlers[0x3B] = PacketHandler_0x3B_AccessMessages;
-            PacketHandlers[0x3E] = PacketHandler_0x3E_UseSkill;
-            PacketHandlers[0x3F] = PacketHandler_0x3F_MapPointClick;
-            PacketHandlers[0x43] = PacketHandler_0x43_PointClick;
-            PacketHandlers[0x44] = PacketHandler_0x44_EquippedItemClick;
-            PacketHandlers[0x45] = PacketHandler_0x45_ByteHeartbeat;
-            PacketHandlers[0x47] = PacketHandler_0x47_StatPoint;
-            PacketHandlers[0x4a] = PacketHandler_0x4A_Trade;
-            PacketHandlers[0x4D] = PacketHandler_0x4D_BeginCasting;
-            PacketHandlers[0x4E] = PacketHandler_0x4E_CastLine;
-            PacketHandlers[0x4F] = PacketHandler_0x4F_ProfileTextPortrait;
-            PacketHandlers[0x75] = PacketHandler_0x75_TickHeartbeat;
-            PacketHandlers[0x79] = PacketHandler_0x79_Status;
-            PacketHandlers[0x7B] = PacketHandler_0x7B_RequestMetafile;
+            // ST: secondary threads
+            // PT: primary thread
+            PacketHandlers[0x05] = PacketHandler_0x05_RequestMap; // ST
+            PacketHandlers[0x06] = PacketHandler_0x06_Walk;  // ST + map lock
+            PacketHandlers[0x07] = PacketHandler_0x07_PickupItem; // ST + map lock
+            PacketHandlers[0x08] = PacketHandler_0x08_DropItem; // ST + map lock
+            PacketHandlers[0x0B] = PacketHandler_0x0B_ClientExit; // primary thread 
+            PacketHandlers[0x0E] = PacketHandler_0x0E_Talk; // ST
+            PacketHandlers[0x0F] = PacketHandler_0x0F_UseSpell; // PT
+            PacketHandlers[0x10] = PacketHandler_0x10_ClientJoin; // PT
+            PacketHandlers[0x11] = PacketHandler_0x11_Turn; // ST + user lock
+            PacketHandlers[0x13] = PacketHandler_0x13_Attack; // PT
+            PacketHandlers[0x18] = PacketHandler_0x18_ShowPlayerList; // ST
+            PacketHandlers[0x19] = PacketHandler_0x19_Whisper; // ST
+            PacketHandlers[0x1C] = PacketHandler_0x1C_UseItem; // PT
+            PacketHandlers[0x1D] = PacketHandler_0x1D_Emote; // ST
+            PacketHandlers[0x24] = PacketHandler_0x24_DropGold; // ST + map lock
+            PacketHandlers[0x29] = PacketHandler_0x29_DropItemOnCreature; // ST + map/user lock
+            PacketHandlers[0x2A] = PacketHandler_0x2A_DropGoldOnCreature; // ST + map/user lock
+            PacketHandlers[0x2D] = PacketHandler_0x2D_PlayerInfo; // ST
+            PacketHandlers[0x2E] = PacketHandler_0x2E_GroupRequest; // PT
+            PacketHandlers[0x2F] = PacketHandler_0x2F_GroupToggle; // PT
+            PacketHandlers[0x30] = PacketHandler_0x30_MoveUIElement; // ST + user lock
+            PacketHandlers[0x38] = PacketHandler_0x38_Refresh; // ST
+            PacketHandlers[0x39] = PacketHandler_0x39_NPCMainMenu; // PT
+            PacketHandlers[0x3A] = PacketHandler_0x3A_DialogUse; // PT
+            PacketHandlers[0x3B] = PacketHandler_0x3B_AccessMessages; // ST
+            PacketHandlers[0x3E] = PacketHandler_0x3E_UseSkill; // PT
+            PacketHandlers[0x3F] = PacketHandler_0x3F_MapPointClick; // ST
+            PacketHandlers[0x43] = PacketHandler_0x43_PointClick; // ST?
+            PacketHandlers[0x44] = PacketHandler_0x44_EquippedItemClick; // PT
+            PacketHandlers[0x45] = PacketHandler_0x45_ByteHeartbeat; // ST
+            PacketHandlers[0x47] = PacketHandler_0x47_StatPoint; // ST + user lock
+            PacketHandlers[0x4a] = PacketHandler_0x4A_Trade; // PT
+            PacketHandlers[0x4D] = PacketHandler_0x4D_BeginCasting; // PT
+            PacketHandlers[0x4E] = PacketHandler_0x4E_CastLine; // PT
+            PacketHandlers[0x4F] = PacketHandler_0x4F_ProfileTextPortrait; // ST
+            PacketHandlers[0x75] = PacketHandler_0x75_TickHeartbeat; // ST + user lock
+            PacketHandlers[0x79] = PacketHandler_0x79_Status; // ST
+            PacketHandlers[0x7B] = PacketHandler_0x7B_RequestMetafile; // ST
         }
 
         public void SetMerchantMenuHandlers()
@@ -1039,20 +1066,11 @@ namespace Hybrasyl
 
         #endregion Set Handlers
 
-        public void DeleteUser(string username)
-        {
-            WorldData.Remove<User>(username);
-        }
+        public void DeleteUser(string username) => WorldData.Remove<User>(username);
 
-        public void AddUser(User userobj)
-        {
-            WorldData.Set(userobj.Name, userobj);
-        }
+        public void AddUser(User userobj) => WorldData.Set(userobj.Name, userobj);
 
-        public User FindUser(string username)
-        {
-            return WorldData.Get<User>(username);
-        }
+        public bool TryGetActiveUser(string name, out User user) => WorldData.TryGetValue(name, out user);
 
         public override void Shutdown()
         {
@@ -1080,8 +1098,7 @@ namespace Hybrasyl
                 if (user.ActiveExchange != null)
                     user.ActiveExchange.CancelExchange(user);
                 ((IDictionary)ActiveUsersByName).Remove(user.Name);
-                user.Save();
-                user.UpdateLogoffTime();              
+                user.UpdateLogoffTime();
                 user.Map?.Remove(user);
                 user.Group?.Remove(user);
                 Remove(user);
@@ -1102,24 +1119,25 @@ namespace Hybrasyl
             {
                 uint hpRegen = 0;
                 uint mpRegen = 0;
-                double fixedRegenBuff = Math.Min(user.Regen * 0.0015, 0.15);
+                double fixedRegenBuff = Math.Min(user.Stats.Regen * 0.0015, 0.15);
                 fixedRegenBuff = Math.Max(fixedRegenBuff, 0.125);
-                if (user.Hp != user.MaximumHp)
+                if (user.Stats.Hp != user.Stats.MaximumHp)
                 {
-                    hpRegen = (uint)Math.Min(user.MaximumHp * (0.1 * Math.Max(user.Con, (user.Con - user.Level)) * 0.01),
-                        user.MaximumHp * 0.20);
-                    hpRegen = hpRegen + (uint)(fixedRegenBuff * user.MaximumHp);
+                    hpRegen = (uint)Math.Min(user.Stats.MaximumHp * (0.1 * Math.Max(user.Stats.Con, (user.Stats.Con - user.Stats.Level)) * 0.01),
+                        user.Stats.MaximumHp * 0.20);
+                    hpRegen = hpRegen + (uint)(fixedRegenBuff * user.Stats.MaximumHp);
                 }
-                if (user.Mp != user.MaximumMp)
+                if (user.Stats.Mp != user.Stats.MaximumMp)
                 {
-                    mpRegen = (uint)Math.Min(user.MaximumMp * (0.1 * Math.Max(user.Int, (user.Int - user.Level)) * 0.01),
-                        user.MaximumMp * 0.20);
-                    mpRegen = mpRegen + (uint)(fixedRegenBuff * user.MaximumMp);
+                    mpRegen = (uint)Math.Min(user.Stats.MaximumMp * (0.1 * Math.Max(user.Stats.Int, (user.Stats.Int - user.Stats.Level)) * 0.01),
+                        user.Stats.MaximumMp * 0.20);
+                    mpRegen = mpRegen + (uint)(fixedRegenBuff * user.Stats.MaximumMp);
                 }
                 Logger.DebugFormat("User {0}: regen HP {1}, MP {2}", user.Name,
                     hpRegen, mpRegen);
-                user.Hp = Math.Min(user.Hp + hpRegen, user.MaximumHp);
-                user.Mp = Math.Min(user.Mp + mpRegen, user.MaximumMp);
+
+                user.Stats.Hp = Math.Min(user.Stats.Hp + hpRegen, user.Stats.MaximumHp);
+                user.Stats.Mp = Math.Min(user.Stats.Mp + mpRegen, user.Stats.MaximumMp);
                 user.UpdateAttributes(StatUpdateFlags.Current);
             }
         }
@@ -1219,6 +1237,13 @@ namespace Hybrasyl
                 user.Refresh();
         }
 
+        private void ControlMessage_HandleDeath(HybrasylControlMessage message)
+        {
+            var creature = (Creature)message.Arguments[0];
+            if (creature is User) { (creature as User).OnDeath(); }
+            if (creature is Monster) { (creature as Monster).OnDeath(); }
+        }
+
         private void ControlMessage_MonolithControl(HybrasylControlMessage message)
         {
 
@@ -1226,14 +1251,12 @@ namespace Hybrasyl
             var map = (Map) message.Arguments[1];
 
             // Don't handle control messages for dead/removed mobs
-            if (!monster.Condition.Alive || monster.Id == 0) return; 
+            if (!monster.Condition.Alive || monster.Id == 0 || monster.Map == null) return; 
             if (monster.IsHostile)
             {
-                var entityTree = map.EntityTree.GetObjects(monster.GetViewport());
-                var hasPlayer = entityTree.Any(x => x is User);
-
-                if (hasPlayer)
+                if (map.Users.Count > 0)
                 {
+                    var entityTree = map.EntityTree.GetObjects(monster.GetViewport());
                     //get players
                     var players = entityTree.OfType<User>();
 
@@ -1441,9 +1464,6 @@ namespace Hybrasyl
                 {
                     Logger.DebugFormat("Removing {0}, qty {1} from {2}@{3},{4}",
                         item.Name, item.Count, user.Map.Name, x, y);
-                    item.DeathPileOwner = string.Empty;
-                    item.ItemDropAllowedLooters = new List<string>();
-                    item.ItemDropTime = null;
                     user.Map.Remove(item);
                     user.AddItem(item, slot);
                 }
@@ -1525,888 +1545,24 @@ namespace Hybrasyl
             var user = (User)obj;
             var isShout = packet.ReadByte();
             var message = packet.ReadString8();
+            var cmdPrefix = Game.Config.Handlers?.Chat?.CommandPrefix ?? "/";
 
-            if (message.StartsWith("/"))
+            string argString;
+            string cmd;
+            if (message.StartsWith(cmdPrefix) && (Game.Config.Handlers?.Chat?.CommandsEnabled ?? true))
             {
-                var args = message.Split(' ');
-
-                #region world's biggest switch statement
-
-                switch (args[0].ToLower())
-                {
-                    case "/gold":
-                        {
-                            uint amount;
-
-                            if (args.Length != 2 || !uint.TryParse(args[1], out amount))
-                                break;
-
-                            user.Gold = amount;
-                            user.UpdateAttributes(StatUpdateFlags.Experience);
-                            break;
-                        }
-                    case "/status":
-                        {
-                            if (WorldData.TryGetValueByIndex(args[1], out Status status))
-                            {
-                                user.ApplyStatus(new CreatureStatus(status, user, null));
-                            }
-                        }
-                        break;
-                    case "/basehp":
-                        {
-                            uint hp = 0;
-                            if (uint.TryParse(args[1], out hp))
-                            {
-                                user.BaseHp = hp;
-                                user.UpdateAttributes(StatUpdateFlags.Full);
-                            }
-                        }
-                        break;
-                    case "/hp":
-                        {
-                            uint hp = 0;
-                            if (uint.TryParse(args[1], out hp))
-                            {
-                                user.Hp = hp;
-                                user.UpdateAttributes(StatUpdateFlags.Full);
-                            }
-                        }
-                        break;
-                    case "/clearstatus":
-                        {
-                            user.RemoveAllStatuses();
-                            user.Condition.ClearConditions();
-                            user.SendSystemMessage("All statuses cleared.");
-                        }
-                        break;
-
-                    case "/clearflags":
-                        {
-                            user.Condition.ClearFlags();
-                            user.SendSystemMessage("Alive, all flags cleared");
-                        }
-                        break;
-
-                    case "/damage":
-                        {
-                            var dmg = double.Parse(args[1]);
-                            user.Damage(dmg);
-                        }
-                        break;
-
-                    case "/condition":
-                        {
-                            user.SendSystemMessage($"Flags: {user.Condition.Flags} Conditions: {user.Condition.Conditions}");
-                        }
-                        break;
-                    case "/exp":
-                        {
-                            uint amount = 0;
-                            if (args.Length == 2 && uint.TryParse(args[1], out amount))
-                            {
-                                user.ShareExperience(amount);
-                            }
-                        }
-                        break;
-                    /* Reset a user to level 1, with no level points and no experience. */
-                    case "/expreset":
-                        {
-                            user.LevelPoints = 0;
-                            user.Level = 1;
-                            user.Experience = 0;
-                            user.UpdateAttributes(StatUpdateFlags.Full);
-                        }
-                        break;
-
-                    case "/group":
-                        User newMember = FindUser(args[1]);
-
-                        if (newMember == null)
-                        {
-                            user.SendMessage("Unknown user in group request.", MessageTypes.SYSTEM);
-                            break;
-                        }
-
-                        user.InviteToGroup(newMember);
-                        break;
-
-                    case "/ungroup":
-                        if (user.Group != null)
-                        {
-                            user.Group.Remove(user);
-                        }
-                        break;
-
-                    case "/summon":
-                        {
-                            if (!user.IsPrivileged)
-                                return;
-
-                            if (args.Length == 2)
-                            {
-                                if (!WorldData.ContainsKey<User>(args[1]))
-                                {
-                                    user.SendMessage("User not logged in.", MessageTypes.SYSTEM);
-                                    return;
-                                }
-                                var target = WorldData.Get<User>(args[1]);
-                                if (target.IsExempt)
-                                    user.SendMessage("Access denied.", MessageTypes.SYSTEM);
-                                else
-                                {
-                                    target.Teleport(user.Map.Id, user.MapX, user.MapY);
-                                    Logger.InfoFormat("GM activity: {0} summoned {1}", user.Name, target.Name);
-                                }
-                            }
-                        }
-                        break;
-
-                    case "/nation":
-                        {
-                            if (args.Length == 2)
-                            {
-                                if (WorldData.ContainsKey<Nation>(args[1]))
-                                {
-                                    user.Nation = WorldData.Get<Nation>(args[1]);
-                                    user.SendSystemMessage($"Citizenship set to {args[1]}");
-                                }
-                            }
-                        }
-                        break;
-
-                    case "/kick":
-                        {
-                            if (!user.IsPrivileged)
-                                return;
-
-                            if (args.Length == 2)
-                            {
-                                if (!WorldData.ContainsKey<User>(args[1]))
-                                {
-                                    user.SendMessage("User not logged in.", MessageTypes.SYSTEM);
-                                    return;
-                                }
-                                var target = WorldData.Get<User>(args[1]);
-                                if (target.IsExempt)
-                                    user.SendMessage("Access denied.", MessageTypes.SYSTEM);
-                                else
-                                    target.Logoff();
-                                Logger.InfoFormat("GM activity: {0} kicked {1}",
-                                    user.Name, target.Name);
-                            }
-                        }
-                        break;
-
-                    case "/teleport":
-                        {
-                            ushort number = ushort.MaxValue;
-                            byte x = user.X, y = user.Y;
-
-                            if (args.Length == 2)
-                            {
-                                if (!ushort.TryParse(args[1], out number))
-                                {
-                                    if (!WorldData.ContainsKey<User>(args[1]))
-                                    {
-                                        user.SendMessage("Invalid map number or user name", 3);
-                                        return;
-                                    }
-                                    else
-                                    {
-                                        var target = WorldData.Get<User>(args[1]);
-                                        number = target.Map.Id;
-                                        x = target.X;
-                                        y = target.Y;
-                                    }
-                                }
-                            }
-                            else if (args.Length == 4)
-                            {
-                                ushort.TryParse(args[1], out number);
-                                byte.TryParse(args[2], out x);
-                                byte.TryParse(args[3], out y);
-                            }
-
-                            if (WorldData.ContainsKey<Map>(number))
-                            {
-                                var map = WorldData.Get<Map>(number);
-                                if (x < map.X && y < map.Y) user.Teleport(number, x, y);
-                                else user.SendMessage("Invalid x/y", 3);
-                            }
-                            else user.SendMessage("Invalid map number", 3);
-                        }
-                        break;
-
-                    case "/motion":
-                        {
-                            byte motion;
-                            short speed = 20;
-                            if (args.Length > 1 && byte.TryParse(args[1], out motion))
-                            {
-                                if (args.Length > 2) short.TryParse(args[2], out speed);
-                                user.Motion(motion, speed);
-                            }
-                        }
-                        break;
-
-                    case "/maplist":
-                        {
-                            // This is an extremely expensive slash command
-                            var searchstring = "";
-                            if (args.Length == 1)
-                            {
-                                user.SendMessage("Usage:   /maplist <searchterm>\nExample: /maplist Mileth - show maps with Mileth in the title\n",
-                                    MessageTypes.SLATE);
-                                return;
-                            }
-                            else if (args.Length == 2)
-                                searchstring = args[1];
-                            else
-                                searchstring = string.Join(" ", args, 1, args.Length - 1);
-
-                            Regex searchTerm;
-                            try
-                            {
-                                Logger.InfoFormat("Search term was {0}", searchstring);
-                                searchTerm = new Regex(string.Format("{0}", searchstring));
-                            }
-                            catch
-                            {
-                                user.SendMessage("Invalid search. Try again or send no options for help.",
-                                    MessageTypes.SYSTEM);
-                                return;
-                            }
-
-                            var queryMaps = from amap in WorldData.Values<Map>()
-                                            where searchTerm.IsMatch(amap.Name)
-                                            select amap;
-                            var result = queryMaps.Aggregate("",
-                                (current, map) => current + string.Format("{0} - {1}\n", map.Id, map.Name));
-
-                            if (result.Length > 65400)
-                                result = string.Format("{0}\n(Results truncated)", result.Substring(0, 65400));
-
-                            user.SendMessage(string.Format("Search Results\n---------------\n\n{0}",
-                                result),
-                                MessageTypes.SLATE_WITH_SCROLLBAR);
-                        }
-                        break;
-
-                    case "/unreadmail":
-                        {
-                            user.SendSystemMessage(user.UnreadMail ? "Unread mail." : "No unread mail.");
-                        }
-                        break;
-
-                    case "/effect":
-                        {
-                            ushort effect;
-                            short speed = 100;
-                            if (args.Length > 1 && ushort.TryParse(args[1], out effect))
-                            {
-                                if (args.Length > 2) short.TryParse(args[2], out speed);
-                                user.Effect(effect, speed);
-                            }
-                        }
-                        break;
-
-                    case "/sound":
-                        {
-                            byte sound;
-                            if (args.Length > 1 && byte.TryParse(args[1], out sound))
-                            {
-                                user.SendSound(sound);
-                            }
-                        }
-                        break;
-
-                    case "/music":
-                        {
-                            byte track;
-                            if (args.Length > 1 && byte.TryParse(args[1], out track))
-                            {
-                                user.Map.Music = track;
-                                foreach (var mapuser in user.Map.Users.Values)
-                                {
-                                    mapuser.SendMusic(track);
-                                }
-                            }
-                        }
-                        break;
-
-                    case "/mapmsg":
-                        {
-                            if (args.Length > 1)
-                            {
-                                var mapmsg = string.Join(" ", args, 1, args.Length - 1);
-                                user.Map.Message = mapmsg;
-                                foreach (var mapuser in user.Map.Users.Values)
-                                {
-                                    mapuser.SendMessage(mapmsg, 18);
-                                }
-                            }
-                        }
-                        break;
-
-                    case "/worldmsg":
-                        {
-                            if (args.Length > 1)
-                            {
-                                var msg = string.Join(" ", args, 1, args.Length - 1);
-                                foreach (var connectedUser in ActiveUsers)
-                                {
-                                    connectedUser.Value.SendWorldMessage(user.Name, msg);
-                                }
-                            }
-                        }
-                        break;
-
-                    case "/class":
-                        {
-                            var className = string.Join(" ", args, 1, args.Length - 1);
-                            int classValue;
-                            if (Hybrasyl.Constants.CLASSES.TryGetValue(className, out classValue))
-                            {
-                                user.Class = (Hybrasyl.Enums.Class)Hybrasyl.Constants.CLASSES[className];
-                                user.SendMessage(string.Format("Class set to {0}", className.ToLower()), 0x1);
-                            }
-                            else
-                            {
-                                user.SendMessage("I know nothing about that class. Try again.", 0x1);
-                            }
-                        }
-                        break;
-
-                    case "/legend":
-                        {
-                            var icon = (LegendIcon)Enum.Parse(typeof(LegendIcon), args[1]);
-                            var color = (LegendColor)Enum.Parse(typeof(LegendColor), args[2]);
-                            var quantity = int.Parse(args[3]);
-                            var datetime = DateTime.Parse(args[4]);
-
-                            var legend = string.Join(" ", args, 5, args.Length - 5);
-                            user.Legend.AddMark(icon, color, legend, datetime, string.Empty, true, quantity);
-                        }
-                        break;
-
-                    case "/legendclear":
-                        {
-                            user.Legend.Clear();
-                            user.SendSystemMessage("Legend has been cleared.");
-                        }
-                        break;
-
-                    case "/level":
-                        {
-                            byte newLevel;
-                            var level = string.Join(" ", args, 1, args.Length - 1);
-                            if (!Byte.TryParse(level, out newLevel))
-                                user.SendMessage("That's not a valid level, champ.", 0x1);
-                            else
-                            {
-                                user.Level = newLevel > Constants.MAX_LEVEL ? (byte)Constants.MAX_LEVEL : newLevel;
-                                user.UpdateAttributes(StatUpdateFlags.Full);
-                                user.SendMessage(string.Format("Level changed to {0}", newLevel), 0x1);
-                            }
-                        }
-                        break;
-
-                    case "/attr":
-                        {
-                            if (args.Length != 3)
-                                return;
-
-                            byte newStat;
-
-                            if (!Byte.TryParse(args[2], out newStat))
-                            {
-                                user.SendSystemMessage($"That's not a valid value for {args[2]}, chief.");
-                                return;
-                            }
-
-                            switch (args[1].ToLower())
-                            {
-                                case "str":
-                                    user.BaseStr = newStat;
-                                    break;
-
-                                case "con":
-                                    user.BaseCon = newStat;
-                                    break;
-
-                                case "dex":
-                                    user.BaseDex = newStat;
-                                    break;
-
-                                case "wis":
-                                    user.BaseWis = newStat;
-                                    break;
-                                case "int":
-                                    user.BaseInt = newStat;
-                                    break;
-                                default:
-                                    user.SendSystemMessage("Invalid attribute, sport.");
-                                    break;
-                            }
-                            user.UpdateAttributes(StatUpdateFlags.Stats);
-                        }
-                        break;
-                    case "/mp":
-                        {
-                            uint mp = 0;
-                            if (uint.TryParse(args[1], out mp))
-                            {
-                                user.Mp = mp;
-                                user.BaseMp = mp;
-                                user.UpdateAttributes(StatUpdateFlags.Full);
-                            }
-                        }
-                        break;
-                    case "/guild":
-                        {
-                            var guild = string.Join(" ", args, 1, args.Length - 1);
-                            // TODO: GUILD SUPPORT
-                            //user.guild = guild;
-                            user.SendMessage(string.Format("Guild changed to {0}", guild), 0x1);
-                        }
-                        break;
-
-                    case "/guildrank":
-                        {
-                            var guildrank = string.Join(" ", args, 1, args.Length - 1);
-                            // TODO: GUILD SUPPORT
-                            //user.GuildRank = guildrank;
-                            user.SendMessage(string.Format("Guild rank changed to {0}", guildrank), 0x1);
-                        }
-                        break;
-
-                    case "/title":
-                        {
-                            var title = string.Join(" ", args, 1, args.Length - 1);
-                            // TODO: TITLE SUPPORT
-                            //user.Title = title;
-                            user.SendMessage(string.Format("Title changed to {0}", title), 0x1);
-                        }
-                        break;
-
-                    case "/debug":
-                        {
-                            if (!user.IsPrivileged)
-                                return;
-                            user.SendMessage("Debugging enabled", 3);
-                            ((log4net.Repository.Hierarchy.Hierarchy)LogManager.GetRepository()).Root.Level = Level.Debug;
-                            ((log4net.Repository.Hierarchy.Hierarchy)LogManager.GetRepository()).RaiseConfigurationChanged(
-                                EventArgs.Empty);
-                            Logger.InfoFormat("Debugging enabled by admin command");
-                        }
-                        break;
-
-                    case "/nodebug":
-                        {
-                            if (!user.IsPrivileged)
-                                return;
-                            user.SendMessage("Debugging disabled", 3);
-                            ((log4net.Repository.Hierarchy.Hierarchy)LogManager.GetRepository()).Root.Level = Level.Info;
-                            ((log4net.Repository.Hierarchy.Hierarchy)LogManager.GetRepository()).RaiseConfigurationChanged(
-                                EventArgs.Empty);
-                            Logger.InfoFormat("Debugging disabled by admin command");
-                        }
-                        break;
-
-                    case "/gcm":
-                        {
-                            if (!user.IsPrivileged)
-                                return;
-
-                            var gcmContents = "Contents of Global Connection Manifest\n";
-                            var userContents = "Contents of User Dictionary\n";
-                            var ActiveUserContents = "Contents of ActiveUsers Concurrent Dictionary\n";
-                            foreach (var pair in GlobalConnectionManifest.ConnectedClients)
-                            {
-                                var serverType = string.Empty;
-                                switch (pair.Value.ServerType)
-                                {
-                                    case ServerTypes.Lobby:
-                                        serverType = "Lobby";
-                                        break;
-
-                                    case ServerTypes.Login:
-                                        serverType = "Login";
-                                        break;
-
-                                    default:
-                                        serverType = "World";
-                                        break;
-                                }
-                                try
-                                {
-                                    gcmContents = gcmContents + string.Format("{0}:{1} - {2}:{3}\n", pair.Key,
-                                        ((IPEndPoint)pair.Value.Socket.RemoteEndPoint).Address.ToString(),
-                                        ((IPEndPoint)pair.Value.Socket.RemoteEndPoint).Port, serverType);
-                                }
-                                catch
-                                {
-                                    gcmContents = gcmContents + string.Format("{0}:{1} disposed\n", pair.Key, serverType);
-                                }
-                            }
-                            foreach (var tehuser in WorldData.Values<User>())
-                            {
-                                userContents = userContents + tehuser.Name + "\n";
-                            }
-                            foreach (var tehotheruser in ActiveUsersByName)
-                            {
-                                ActiveUserContents = ActiveUserContents +
-                                                     string.Format("{0}: {1}\n", tehotheruser.Value, tehotheruser.Key);
-                            }
-
-                            // Report to the end user
-                            user.SendMessage(
-                                string.Format("{0}\n\n{1}\n\n{2}", gcmContents, userContents, ActiveUserContents),
-                                MessageTypes.SLATE_WITH_SCROLLBAR);
-                        }
-                        break;
-
-                    case "/item":
-                        {
-                            int count;
-                            string itemName;
-
-                            Logger.DebugFormat("/item: Last argument is {0}", args.Last());
-                            Regex integer = new Regex(@"^\d+$");
-
-                            if (integer.IsMatch(args.Last()))
-                            {
-                                count = Convert.ToInt32(args.Last());
-                                itemName = string.Join(" ", args, 1, args.Length - 2);
-                                Logger.InfoFormat("Admin command: Creating item {0} with count {1}", itemName, count);
-                            }
-                            else
-                            {
-                                count = 1;
-                                itemName = string.Join(" ", args, 1, args.Length - 1);
-                            }
-
-                            // HURR O(N) IS MY FRIEND
-                            // change this to use itemcatalog pls
-                            foreach (var template in WorldData.Values<Item>())
-                            {
-                                if (template.Name.Equals(itemName, StringComparison.CurrentCultureIgnoreCase))
-                                {
-                                    var item = CreateItem(template.Id);
-                                    if (count > item.MaximumStack)
-                                        item.Count = item.MaximumStack;
-                                    else
-                                        item.Count = count;
-                                    Insert(item);
-                                    user.AddItem(item);
-                                }
-                            }
-                        }
-                        break;
-
-                    case "/magicval":
-                        {
-                            var valueName = args[1];
-                            var value = args[2];
-                            var property = typeof(User).GetProperty(valueName);
-                            property.SetValue(user, Convert.ToByte(value));
-                            user.SendSystemMessage(string.Format("Magic value {0} set to {1}", valueName, value));
-                            user.UpdateAttributes(StatUpdateFlags.Full);
-                        }
-                        break;
-
-                    case "/skill":
-                        {
-                            string skillName;
-
-                            Logger.DebugFormat("/skill: Last argument is {0}", args.Last());
-                            Regex integer = new Regex(@"^\d+$");
-
-                            skillName = string.Join(" ", args, 1, args.Length - 1);
-
-                            Castable skill = WorldData.GetByIndex<Castable>(skillName);
-                            user.AddSkill(skill);
-                        }
-                        break;
-
-                    case "/spell":
-                        {
-                            string spellName;
-
-                            Logger.DebugFormat("/skill: Last argument is {0}", args.Last());
-                            Regex integer = new Regex(@"^\d+$");
-
-                            spellName = string.Join(" ", args, 1, args.Length - 1);
-
-                            Castable spell = WorldData.GetByIndex<Castable>(spellName);
-                            user.AddSpell(spell);
-                        }
-                        break;
-
-                    case "/spawn":
-                        {
-                            string creatureName;
-                            Logger.DebugFormat("/skill Last argument is {0}", args.Last());
-
-                            creatureName = string.Join(" ", args, 1, args.Length - 1);
-                            Game.World.WorldData.Get<Creature>("Bee");
-
-                            Creature creature = new Creature()
-                            {
-                                Sprite = 1,
-                                World = Game.World,
-                                Map = user.Map,
-                                Level = 1,
-                                DisplayText = "TestMob",
-                                BaseHp = 10000,
-                                Hp = 10000,
-                                BaseMp = 1,
-                                Name = "TestMob",
-                                Id = 90210,
-                                BaseStr = 3,
-                                BaseCon = 3,
-                                BaseDex = 3,
-                                BaseInt = 3,
-                                BaseWis = 3,
-                                X = user.X,
-                                Y = user.Y
-                            };
-                            Game.World.WorldData.Get<Map>(500).InsertCreature(creature);
-                            user.SendVisibleCreature(creature);
-                        }
-                        break;
-
-                    case "/master":
-                        {
-                            //if (!user.IsPrivileged)
-                            //    return;
-
-                            user.IsMaster = !user.IsMaster;
-                            user.SendMessage(user.IsMaster ? "Mastership granted" : "Mastership removed", 3);
-                        }
-                        break;
-
-                    case "/mute":
-                        {
-                            if (!user.IsPrivileged)
-                                return;
-                            var charTarget = string.Join(" ", args, 1, args.Length - 1);
-                            var userObj = FindUser(charTarget);
-                            if (userObj != null)
-                            {
-                                userObj.IsMuted = true;
-                                userObj.Save();
-                                user.SendMessage(string.Format("{0} is now muted.", userObj.Name), 0x1);
-                            }
-                            else
-                            {
-                                user.SendMessage("That Aisling is not in Temuair.", 0x01);
-                            }
-                        }
-                        break;
-
-                    case "/time":
-                        {
-                            var time = HybrasylTime.Now();
-                            user.SendMessage(time.ToString(), 0x1);
-                        }
-                        break;
-
-                    case "/timeconvert":
-                        {
-                            var target = args[1].ToLower();
-                            Logger.DebugFormat("timeconvert: {0}", target);
-
-                            if (target == "aisling")
-                            {
-                                try
-                                {
-                                    var datestring = string.Join(" ", args, 2, args.Length - 2);
-                                    var hybrasylTime = HybrasylTime.Fromstring(datestring);
-                                    user.SendSystemMessage(HybrasylTime.ConvertToTerran(hybrasylTime).ToString("o"));
-                                }
-                                catch (Exception)
-                                {
-                                    user.SendSystemMessage("Your Aisling time could not be parsed!");
-                                }
-                            }
-                            else if (target == "terran")
-                            {
-                                try
-                                {
-                                    var datestring = string.Join(" ", args, 2, args.Length - 2);
-                                    var dateTime = DateTime.Parse(datestring);
-                                    var hybrasylTime = HybrasylTime.ConvertToHybrasyl(dateTime);
-                                    user.SendSystemMessage(hybrasylTime.ToString());
-                                }
-                                catch (Exception)
-                                {
-                                    user.SendSystemMessage(
-                                        "Your terran time couldn't be parsed, or, you know, something else was wrong");
-                                }
-                            }
-                            else
-                            {
-                                user.SendSystemMessage("Usage: /timeconvert (aisling|terran) <date>");
-                            }
-                        }
-                        break;
-
-                    case "/unmute":
-                        {
-                            if (!user.IsPrivileged)
-                                return;
-                            var charTarget = string.Join(" ", args, 1, args.Length - 1);
-                            var userObj = FindUser(charTarget);
-                            if (userObj != null)
-                            {
-                                userObj.IsMuted = false;
-                                userObj.Save();
-                                user.SendMessage(string.Format("{0} is now unmuted.", userObj.Name), 0x1);
-                            }
-                            else
-                            {
-                                user.SendMessage("That Aisling is not in Temuair.", 0x01);
-                            }
-                        }
-                        break;
-
-                    case "/reload":
-                        {
-                            if (!user.IsPrivileged)
-                                return;
-                            // Do nothing here for now
-                            // This should reload warps, worldwarps, "item templates", worldmaps, and world map points.
-                            // This should obviously use the new ControlMessage stuff.
-                            user.SendMessage("This feature is not currently implemented.", 0x01);
-                        }
-                        break;
-
-                    case "/shutdown":
-                        {
-                            if (!user.IsPrivileged)
-                                return;
-                            var password = args[1];
-                            if (string.Equals(password, Constants.ShutdownPassword))
-                            {
-                                MessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.ShutdownServer, user.Name));
-                            }
-                        }
-                        break;
-
-                    case "/scripting":
-                        {
-                            if (!user.IsPrivileged)
-                                return;
-                            // Valid scripting commands
-                            // /scripting (reload|disable|enable|status) [scriptname]
-
-                            if (args.Count() >= 3)
-                            {
-                                Script script;
-                                if (ScriptProcessor.TryGetScript(args[2].Trim(), out script))
-                                {
-                                    if (args[1].ToLower() == "reload")
-                                    {
-                                        script.Disabled = true;
-                                        if (script.Run())
-                                        {
-                                            user.SendMessage($"Script {script.Name}: reloaded", 0x01);
-                                            script.Disabled = false;
-                                        }
-                                        else
-                                        {
-                                            user.SendMessage($"Script {script.Name}: load error, check scripting log", 0x01);
-                                        }
-                                    }
-                                    else if (args[1].ToLower() == "enable")
-                                    {
-                                        script.Disabled = false;
-                                        user.SendMessage($"Script {script.Name}: enabled", 0x01);
-                                    }
-                                    else if (args[1].ToLower() == "disable")
-                                    {
-                                        script.Disabled = true;
-                                        user.SendMessage($"Script {script.Name}: disabled", 0x01);
-                                    }
-                                    else if (args[1].ToLower() == "status")
-                                    {
-                                        var scriptStatus = string.Format("{0}:", script.Name);
-                                        string errorSummary = "--- Error Summary ---\n";
-
-                                        if (script.LastRuntimeError == string.Empty &&
-                                            script.CompilationError == string.Empty)
-                                            errorSummary = string.Format("{0} no errors", errorSummary);
-                                        else
-                                        {
-                                            if (script.CompilationError != string.Empty)
-                                                errorSummary = string.Format("{0} compilation error: {1}", errorSummary,
-                                                    script.CompilationError);
-                                            if (script.LastRuntimeError != string.Empty)
-                                                errorSummary = string.Format("{0} runtime error: {1}", errorSummary,
-                                                    script.LastRuntimeError);
-                                        }
-
-                                        // Report to the end user
-                                        user.SendMessage(string.Format("{0}\n\n{1}", scriptStatus, errorSummary),
-                                            MessageTypes.SLATE_WITH_SCROLLBAR);
-                                    }
-                                }
-                                else
-                                {
-                                    user.SendMessage(string.Format("Script {0} not found!", args[2]), 0x01);
-                                }
-                            }
-                        }
-                        break;
-                       
-                    case "/rollchar":
-                        {
-                            // /rollchar <class> <level>
-                            // Allows you to "roll a new character" of the desired Class and Level, to see his resulting HP and MP.
-
-                            if (!user.IsPrivileged)
-                                return;
-
-                            string errorMessage = "Command format is: /rollchar <class> <level>";
-                            byte level = 1;
-
-                            if (args.Length != 3)
-                            {
-                                user.SendMessage(errorMessage, 0x1);
-                            }
-                            else if (!Enum.IsDefined(typeof(Enums.Class), args[1]))
-                            {
-                                user.SendMessage("Invalid class. " + errorMessage, 0x1);
-                            }
-                            else if (!byte.TryParse(args[2], out level) || level < 1 || level > Constants.MAX_LEVEL)
-                            {
-                                user.SendMessage("Invalid level. " + errorMessage, 0x1);
-                            }
-                            else
-                            {
-                                // Create a fake User, and level him up to the desired level
-
-                                var testUser = new User(this, new Client());
-                                testUser.Map = new Map();
-                                testUser.BaseHp = 50;
-                                testUser.BaseMp = 50;
-                                testUser.Class = (Enums.Class)Enum.Parse(typeof(Enums.Class), args[1]);
-                                testUser.Level = 1;
-
-                                while (testUser.Level < level)
-                                {
-                                    testUser.GiveExperience(testUser.ExpToLevel);
-                                }
-
-                                user.SendMessage(string.Format("{0}, Level {1}, Hp: {2}, Mp: {3}", testUser.Class, testUser.Level, testUser.BaseHp, testUser.BaseMp), 0x01);
-                            }
-                        }
-                        break;
-
-                        #endregion world's biggest switch statement
-                }
+                // Strip prefix first
+                var prefixRemoved = message.Remove(0, message.IndexOf(cmdPrefix) + cmdPrefix.Length);
+                if (message.IndexOf(' ') != -1)
+                    cmd = prefixRemoved.Remove(message.IndexOf(' ') - 1);
+                else
+                    cmd = prefixRemoved;
+                if (cmd.Length + cmdPrefix.Length != message.Length)
+                    argString = prefixRemoved.Remove(prefixRemoved.IndexOf(cmd), cmd.Length).Trim();
+                else
+                    argString = string.Empty;
+                Logger.Info($"{cmd}: {argString}");
+                CommandHandler.Handle(user, cmd, argString);
             }
             else
             {
@@ -2417,13 +1573,9 @@ namespace Hybrasyl
                 }
 
                 if (isShout == 1)
-                {
                     user.Shout(message);
-                }
                 else
-                {
                     user.Say(message);
-                }
             }
         }
 
@@ -2543,7 +1695,7 @@ namespace Hybrasyl
             {
                 loginUser.SendSystemMessage($"It has been {loginUser.SinceLastLoginstring} since your last login.");
             }
-            loginUser.SendSystemMessage(HybrasylTime.Now().ToString());
+            loginUser.SendSystemMessage(HybrasylTime.Now.ToString());
             loginUser.Reindex();
         }
 
@@ -2568,7 +1720,7 @@ namespace Hybrasyl
             var me = (User)obj;
 
             var list = from user in WorldData.Values<User>()
-                       orderby user.IsMaster descending, user.Level descending, user.BaseHp + user.BaseMp * 2 descending, user.Name ascending
+                       orderby user.IsMaster descending, user.Stats.Level descending, user.Stats.BaseHp + user.Stats.BaseMp * 2 descending, user.Name ascending
                        select user;
 
             var listPacket = new ServerPacket(0x36);
@@ -2577,7 +1729,7 @@ namespace Hybrasyl
 
             foreach (var user in list)
             {
-                int levelDifference = Math.Abs((int)user.Level - me.Level);
+                int levelDifference = Math.Abs((int)user.Stats.Level - me.Stats.Level);
 
                 listPacket.WriteByte((byte)user.Class);
                 // TODO: GUILD SUPPORT
@@ -2863,7 +2015,9 @@ namespace Hybrasyl
             //   0x02 = user is sending initial request to invitee
             //   0x03 = invitee responds with a "yes"
             byte stage = packet.ReadByte();
-            User partner = FindUser(packet.ReadString8());
+
+            if (!TryGetUser(packet.ReadString8(), out User partner))
+                return;
 
             // TODO: currently leaving five bytes on the table here. There's probably some
             // additional work that needs to happen though I haven't been able to determine
@@ -3438,7 +2592,7 @@ namespace Hybrasyl
                                     response.WriteBoolean(true); // Post was successful
                                     response.WriteString8("Your letter was sent.");
                                     Logger.InfoFormat("mail: {0} sent message to {1}", user.Name, recipientUser.Name);
-                                    MessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MailNotifyUser,
+                                    ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MailNotifyUser,
                                         recipientUser.Name));
                                 }
                                 else
@@ -3868,23 +3022,23 @@ namespace Hybrasyl
                 switch (packet.ReadByte())
                 {
                     case 0x01:
-                        user.BaseStr++;
+                        user.Stats.BaseStr++;
                         break;
 
                     case 0x04:
-                        user.BaseInt++;
+                        user.Stats.BaseInt++;
                         break;
 
                     case 0x08:
-                        user.BaseWis++;
+                        user.Stats.BaseWis++;
                         break;
 
                     case 0x10:
-                        user.BaseCon++;
+                        user.Stats.BaseCon++;
                         break;
 
                     case 0x02:
-                        user.BaseDex++;
+                        user.Stats.BaseDex++;
                         break;
 
                     default:
@@ -4349,8 +3503,8 @@ namespace Hybrasyl
             {
                 AddUser((User)obj);
             }
-
-            ++worldObjectID;
+            
+            lock (_lock) { ++worldObjectID; }
             obj.Id = worldObjectID;
             obj.World = this;
             obj.SendId();
@@ -4365,7 +3519,10 @@ namespace Hybrasyl
                 }
             }
 
-            Objects.Add(worldObjectID, obj);
+            lock (_lock)
+            {
+                Objects.Add(worldObjectID, obj);
+            }
         }
 
         public void Remove(WorldObject obj)
@@ -4374,13 +3531,12 @@ namespace Hybrasyl
             {
                 DeleteUser(obj.Name);
             }
-            Objects.Remove(obj.Id);
+            lock (_lock)
+            {
+                Objects.Remove(obj.Id);
+            }
             obj.World = null;
             obj.Id = 0;
-        }
-
-        public void Update()
-        {
         }
 
         public ItemObject CreateItem(int id, int quantity = 1)
@@ -4449,84 +3605,104 @@ namespace Hybrasyl
                 }
 
                 if (message != null)
-                {
-                    if (message is HybrasylClientMessage)
+                {                   
+                    var clientMessage = (HybrasylClientMessage)message;
+                    var handler = PacketHandlers[clientMessage.Packet.Opcode];
+                    try
                     {
-                        var clientMessage = (HybrasylClientMessage)message;
-                        var handler = PacketHandlers[clientMessage.Packet.Opcode];
-                        try
+                        if (ActiveUsers.TryGetValue(clientMessage.ConnectionId, out user))
                         {
-                            if (ActiveUsers.TryGetValue(clientMessage.ConnectionId, out user))
+                            // Check if the action is prohibited due to statuses or flags
+                            MethodBase method = handler.GetMethodInfo();
+                            bool ignore = false;
+
+                            foreach (var prohibited in method.GetCustomAttributes(typeof(Prohibited), true))
                             {
-                                // Check if the action is prohibited due to statuses or flags
-                                MethodBase method = handler.GetMethodInfo();
-                                bool ignore = false;
-
-                                foreach (var prohibited in method.GetCustomAttributes(typeof(Prohibited), true))
-                                {
-                                    var prohibitedCondition = prohibited as Prohibited;
-                                    if (prohibitedCondition == null) continue;
-                                    if (prohibitedCondition.Check(user.Condition)) continue;
-                                    // TODO: fix this to be per-flag/status
-                                    user.SendSystemMessage("It cannot be done in your current state.");
-                                    ignore = true;
-                                }
-
-                                foreach (var required in method.GetCustomAttributes(typeof(Required), true))
-                                {
-                                    var requiredCondition = required as Required;
-                                    if (requiredCondition == null) continue;
-                                    if (requiredCondition.Check(user.Condition)) continue;
-                                    user.SendSystemMessage("You cannot do that now.");
-                                    ignore = true;
-                                }
-
-                                // If we are in an exchange, we should only receive exchange packets and the
-                                // occasional heartbeat. If we receive anything else, just kill the exchange.
-                                if (user.ActiveExchange != null && (clientMessage.Packet.Opcode != 0x4a &&
-                                    clientMessage.Packet.Opcode != 0x45 && clientMessage.Packet.Opcode != 0x75))
-                                    user.ActiveExchange.CancelExchange(user);
-                                if (ignore)
-                                {
-                                    if (clientMessage.Packet.Opcode == 0x06) user.Refresh();
-                                    continue;
-                                }
-                                // Last but not least, invoke the handler
-                                handler.Invoke(user, clientMessage.Packet);
+                                var prohibitedCondition = prohibited as Prohibited;
+                                if (prohibitedCondition == null) continue;
+                                if (prohibitedCondition.Check(user.Condition)) continue;
+                                // TODO: fix this to be per-flag/status
+                                user.SendSystemMessage("It cannot be done in your current state.");
+                                ignore = true;
                             }
-                            else if (clientMessage.Packet.Opcode == 0x10) // Handle special case of join world
+
+                            foreach (var required in method.GetCustomAttributes(typeof(Required), true))
                             {
-                                PacketHandlers[0x10].Invoke(clientMessage.ConnectionId, clientMessage.Packet);
+                                var requiredCondition = required as Required;
+                                if (requiredCondition == null) continue;
+                                if (requiredCondition.Check(user.Condition)) continue;
+                                user.SendSystemMessage("You cannot do that now.");
+                                ignore = true;
                             }
-                            else
+
+                            // If we are in an exchange, we should only receive exchange packets and the
+                            // occasional heartbeat. If we receive anything else, just kill the exchange.
+                            if (user.ActiveExchange != null && (clientMessage.Packet.Opcode != 0x4a &&
+                                clientMessage.Packet.Opcode != 0x45 && clientMessage.Packet.Opcode != 0x75))
+                                user.ActiveExchange.CancelExchange(user);
+                            if (ignore)
                             {
-                                // We received a packet for a dead connection...?
-                                Logger.WarnFormat(
-                                    "Connection ID {0}: received packet, but seems to be dead connection?",
-                                    clientMessage.ConnectionId);
+                                if (clientMessage.Packet.Opcode == 0x06) user.Refresh();
                                 continue;
                             }
+                            // Last but not least, invoke the handler
+                            handler.Invoke(user, clientMessage.Packet);
                         }
-                        catch (Exception e)
+                        else if (clientMessage.Packet.Opcode == 0x10) // Handle special case of join world
                         {
-                            Logger.Error("Exception encountered in packet handler!", e);
+                            PacketHandlers[0x10].Invoke(clientMessage.ConnectionId, clientMessage.Packet);
+                        }
+                        else
+                        {
+                            // We received a packet for a dead connection...?
+                            Logger.WarnFormat(
+                                "Connection ID {0}: received packet, but seems to be dead connection?",
+                                clientMessage.ConnectionId);
+                            continue;
                         }
                     }
-                    else if (message is HybrasylControlMessage)
+                    catch (Exception e)
                     {
-                        try
-                        {
-                            var controlMessage = (HybrasylControlMessage)message;
-                            ControlMessageHandlers[controlMessage.Opcode].Invoke(controlMessage);
-                        }
-                        catch (Exception e)
-                        {
-                           Logger.Error("Exception encountered in control message handler!", e);
-                        }
+                        Logger.Error("Exception encountered in packet handler!", e);
+                    }
+                }
+                
+            }
+            Logger.WarnFormat("Message queue is complete..?");
+        }
+
+
+        public void ControlQueueConsumer()
+        {
+            while (!ControlMessageQueue.IsCompleted)
+            {
+                if (StopToken.IsCancellationRequested)
+                    return;
+                // Process messages.
+                HybrasylMessage message;
+                try
+                {
+                    message = ControlMessageQueue.Take();
+                }
+                catch (InvalidOperationException)
+                {
+                    Logger.ErrorFormat("QUEUE CONSUMER: EXCEPTION RAISED");
+                    continue;
+                }
+
+                if (message is HybrasylControlMessage)
+                {
+                    try
+                    {
+                        var controlMessage = (HybrasylControlMessage)message;
+                        ControlMessageHandlers[controlMessage.Opcode].Invoke(controlMessage);                       
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.Error("Exception encountered in control message handler!", e);
                     }
                 }
             }
-            Logger.WarnFormat("Message queue is complete..?");
         }
 
         public void StartQueueConsumer()
@@ -4539,11 +3715,18 @@ namespace Hybrasyl
 
         }
 
-        public void StopQueueConsumer()
+        public void StartControlConsumers()
         {
-            // Mark the message queue as not accepting additions, which will result in thread termination
-            MessageQueue.CompleteAdding();
+            ControlConsumerThread = new Thread(ControlQueueConsumer);
+            if (ControlConsumerThread.IsAlive) return;
+            ControlConsumerThread.Start();
+            Logger.Info("Control consumer thread: started");
         }
+
+        // Mark the message queue as not accepting additions, which will result in thread termination
+        public void StopQueueConsumer() =>    MessageQueue.CompleteAdding();
+        public void StopControlConsumers() => ControlMessageQueue.CompleteAdding();
+
 
         public void StartTimers()
         {

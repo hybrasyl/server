@@ -76,7 +76,7 @@ namespace Hybrasyl
                 dmg = _evalFormula(formula, castable, target, source);
             }
 
-            return (dmg * target.DamageModifier, type, castable.Effects.Damage.Flags);
+            return (dmg * target.Stats.DamageModifier, type, castable.Effects.Damage.Flags);
         }
 
         /// <summary>
@@ -93,10 +93,10 @@ namespace Hybrasyl
             if (castable.Effects?.Heal == null) return heal;
 
             if (castable.Effects.Heal.IsSimple)
-                heal = _evalSimple(castable.Effects.Heal.Simple) * target.HealModifier;
+                heal = _evalSimple(castable.Effects.Heal.Simple) * target.Stats.HealModifier;
             else
                 heal = _evalFormula(castable.Effects.Heal.Formula, castable, target, source);
-            return heal * target.HealModifier;
+            return heal * target.Stats.HealModifier;
         }
 
 
@@ -124,7 +124,7 @@ namespace Hybrasyl
                 dmg = _evalSimple(effect.Damage.Simple);
             else
                 dmg = _evalFormula(effect.Damage.Formula, castable, target, source);
-            return (dmg * intensity * target.DamageModifier, type, (Castables.DamageFlags)effect.Damage.Flags);
+            return (dmg * intensity * target.Stats.DamageModifier, type, (Castables.DamageFlags)effect.Damage.Flags);
 
 
         }
@@ -153,7 +153,7 @@ namespace Hybrasyl
             else
                 heal = _evalFormula(effect.Damage.Formula, castable, target, source);
 
-            return heal * intensity * target.HealModifier;
+            return heal * intensity * target.Stats.HealModifier;
 
         }
 

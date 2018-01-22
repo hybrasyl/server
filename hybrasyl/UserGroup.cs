@@ -49,6 +49,8 @@ namespace Hybrasyl
 
         private DistributionFunc ExperienceDistributionFunc;
 
+        private object _lock = new object();
+
         public UserGroup(User founder)
         {
             Members = new List<User>();
@@ -97,10 +99,13 @@ namespace Hybrasyl
                 member.SendMessage(user.Name + " has joined your group.", MessageTypes.SYSTEM);
             }
 
-            Members.Add(user);
-            user.Group = this;
-            ClassCount[user.Class]++;
-            MaxMembers = (uint) Math.Max(MaxMembers, Members.Count);
+            lock (_lock)
+            {
+                Members.Add(user);
+                user.Group = this;
+                ClassCount[user.Class]++;
+                MaxMembers = (uint)Math.Max(MaxMembers, Members.Count);
+            }
 
             // Send a distinct message to the new user.
             user.SendMessage("You've joined a group.", MessageTypes.SYSTEM);
@@ -109,10 +114,12 @@ namespace Hybrasyl
 
         public void Remove(User user)
         {
-            Members.Remove(user);
-            user.Group = null;
-            ClassCount[user.Class]--;
-
+            lock (_lock)
+            {
+                Members.Remove(user);
+                user.Group = null;
+                ClassCount[user.Class]--;
+            }
             // If this has ever been a true group from a user's perspective, talk about it. Otherwise
             // don't send user-facing messages.
             if (MaxMembers > 1)

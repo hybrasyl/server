@@ -248,6 +248,55 @@ namespace Hybrasyl.Config
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
     [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Config")]
+    public partial class Chat
+    {
+
+        #region Private fields
+        private bool _commandsEnabled;
+
+        private string _commandPrefix;
+        #endregion
+
+        public Chat()
+        {
+            this._commandsEnabled = true;
+            this._commandPrefix = "/";
+        }
+
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        [System.ComponentModel.DefaultValueAttribute(true)]
+        public bool CommandsEnabled
+        {
+            get
+            {
+                return this._commandsEnabled;
+            }
+            set
+            {
+                this._commandsEnabled = value;
+            }
+        }
+
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        [System.ComponentModel.DefaultValueAttribute("/")]
+        public string CommandPrefix
+        {
+            get
+            {
+                return this._commandPrefix;
+            }
+            set
+            {
+                this._commandPrefix = value;
+            }
+        }
+    }
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
+    [System.SerializableAttribute()]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.ComponentModel.DesignerCategoryAttribute("code")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Config")]
     public partial class DeathLegendMark
     {
 
@@ -611,6 +660,8 @@ namespace Hybrasyl.Config
 
         #region Private fields
         private Death _death;
+
+        private Chat _chat;
         #endregion
 
         public Death Death
@@ -622,6 +673,18 @@ namespace Hybrasyl.Config
             set
             {
                 this._death = value;
+            }
+        }
+
+        public Chat Chat
+        {
+            get
+            {
+                return this._chat;
+            }
+            set
+            {
+                this._chat = value;
             }
         }
     }

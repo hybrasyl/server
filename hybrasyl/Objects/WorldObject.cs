@@ -46,8 +46,8 @@ namespace Hybrasyl.Objects
 
         public bool HasMoved { get; set; }
 
-        public byte X { get; set; }
-        public byte Y { get; set; }
+        public virtual byte X { get; set; }
+        public virtual byte Y { get; set; }
         public uint Id { get; set; }
 
         [JsonProperty]
