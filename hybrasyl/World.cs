@@ -418,6 +418,8 @@ namespace Hybrasyl
                 }
             }
 
+            Logger.InfoFormat("Loot Sets: {0} loot sets loaded", WorldData.Count<LootSet>());
+
             // Load worldmaps
             foreach (var xml in Directory.GetFiles(WorldMapDirectory, "*.xml"))
             {
