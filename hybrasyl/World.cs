@@ -176,6 +176,8 @@ namespace Hybrasyl
 
         public static string SpawnGroupDirectory => Path.Combine(DataDirectory, "world", "xml", "spawngroups");
 
+        public static string LootSetDirectory => Path.Combine(DataDirectory, "world", "xml", "lootsets");
+
         public static string ItemVariantDirectory => Path.Combine(DataDirectory, "world", "xml", "itemvariants");
 
         public static string NpcsDirectory => Path.Combine(DataDirectory, "world", "xml", "npcs");
@@ -393,6 +395,22 @@ namespace Hybrasyl
                     WorldData.Set(spawnGroup.GetHashCode(), spawnGroup);
 
 
+                }
+                catch (Exception e)
+                {
+                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, e);
+                }
+            }
+
+            //Load LootSets
+            foreach (var xml in Directory.GetFiles(LootSetDirectory, "*.xml"))
+            {
+                try
+                {
+                    var lootSet = Serializer.Deserialize(XmlReader.Create(xml), new LootSet());
+
+                    Logger.DebugFormat("LootSets: loaded {0}", lootSet.Name);
+                    WorldData.Set(lootSet.GetHashCode(), lootSet);
                 }
                 catch (Exception e)
                 {

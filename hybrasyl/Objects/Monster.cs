@@ -140,28 +140,9 @@ namespace Hybrasyl.Objects
 
 
         public uint LootableXP => CalculateVariance((uint)Rng.Next((int)(_spawn.Loot.Xp?.Min ?? 1), (int)(_spawn.Loot.Xp?.Max ?? 1)));
-        public uint LootableGold => CalculateVariance(_spawn.LootableGold());
-        public List<ItemObject> LootableItems
-        {
-            get
-            {
-                var worldItems = Game.World.WorldData.Values<Hybrasyl.Items.Item>();
-                var lootableItems = new List<ItemObject>();
-
-                foreach (var item in _spawn.LootableItems())
-                {
-                    foreach (var itemTemplate in worldItems)
-                    {
-                        if (itemTemplate.Name.Equals(item.Value, StringComparison.CurrentCultureIgnoreCase))
-                        {
-                            lootableItems.Add(Game.World.CreateItem(itemTemplate.Id));
-                        }
-                    }
-                }
-
-                return lootableItems;
-            }
-        }
+        public uint LootableGold { get; set; }
+            
+        public List<ItemObject> LootableItems { get; set; }
 
         public Monster(Hybrasyl.Creatures.Creature creature, Spawn spawn, int map)
         {
@@ -189,6 +170,7 @@ namespace Hybrasyl.Objects
             _castables = spawn.Castables;
             BaseDefensiveElement = (Enums.Element) spawn.GetDefensiveElement();
             BaseDefensiveElement = (Enums.Element) spawn.GetOffensiveElement();
+            LootableItems = new List<ItemObject>();
 
             //until intents are fixed, this is how this is going to be done.
             IsHostile = _random.Next(0, 7) < 2;

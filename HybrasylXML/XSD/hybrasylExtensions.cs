@@ -312,32 +312,6 @@ namespace Hybrasyl.Creatures
     public partial class Spawn
     {
         protected Random Rng;
-        private List<LootTable> _spawnLootTable
-        {
-            get
-            {
-                var spawnLootTable = new List<LootTable>();
-                if(Loot.Table != null)
-                {
-                    foreach(var lootTbl in Loot.Table)
-                    {
-                        for(int i = 0; i < lootTbl.Rolls; i++)
-                        {
-                            if(lootTbl.Chance >= Rng.NextDouble())
-                            {
-                                spawnLootTable.Add(lootTbl);
-                                continue;
-                            }
-                        }
-                    }
-                }
-                if(Loot.Set != null)
-                {
-                    
-                }
-                return spawnLootTable;
-            }
-        }
 
         /// <summary>
         /// Calculate a specific offensive element for a spawn from its list of elements.
@@ -367,54 +341,6 @@ namespace Hybrasyl.Creatures
 
             // Only deal with "base" elements for right now
             return (Element)Rng.Next(1, 4);
-        }
-
-        /// <summary>
-        /// Calculate the total amount of lootable gold based on the base amount plus any additional from the loot table(s).
-        /// </summary>
-        /// <returns>Gold uint</returns>
-        public uint LootableGold()
-        {
-            uint lootableGold = 0;
-
-            if(Loot.Gold != null)
-            {
-                lootableGold += ((uint)Rng.Next((int)(Loot.Gold?.Min ?? 0), (int)(Loot.Gold?.Max ?? 0)));
-            }
-            if(Loot.Table != null)
-            {
-                _spawnLootTable.ForEach(x => lootableGold += ((uint)Rng.Next((int)(x.Gold?.Min ?? 0), (int)(x.Gold?.Max ?? 0))));
-            }
-
-            return lootableGold;
-        }
-
-        /// <summary>
-        /// Creates a list of LootItems from the LootTables
-        /// </summary>
-        /// <returns>List of LootItems</returns>
-        public List<LootItem> LootableItems()
-        {
-            List<LootItem> lootableItems = new List<LootItem>();
-
-            if(_spawnLootTable.Count > 0)
-            {
-                foreach(var table in _spawnLootTable)
-                {
-                    foreach(var item in table.Items.Items)
-                    {
-                        for(int i = 0; i < table.Items.Rolls; i++)
-                        {
-                            if(table.Items.Chance >= Rng.NextDouble())
-                            {
-                                lootableItems.Add(item);
-                            }
-                        }
-                    }
-                }
-            }
-
-            return lootableItems;
         }
     }
     public partial class Map
