@@ -192,10 +192,17 @@ namespace Hybrasyl
                 client.Disconnect();
             }
 
-            // TODO: improve / refactor
-            while (client.ClientState.TryGetPacket(out receivedPacket))
+            try
             {
-                client.Enqueue(receivedPacket);
+                // TODO: improve / refactor
+                while (client.ClientState.TryGetPacket(out receivedPacket))
+                {
+                    client.Enqueue(receivedPacket);
+                }
+            }
+            catch (Exception e)
+            {
+                Logger.Error($"ReadCallback error: {e.Message}");
             }
             ContinueReceiving(state, client);
         }
