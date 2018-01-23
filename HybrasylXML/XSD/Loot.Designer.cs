@@ -15,28 +15,28 @@ namespace Hybrasyl
     using System.ComponentModel;
     using System.Xml;
     using System.Collections.Generic;
-    
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Loot")]
-    [System.Xml.Serialization.XmlRootAttribute(Namespace="http://www.hybrasyl.com/XML/Loot", IsNullable=false)]
+    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Loot")]
+    [System.Xml.Serialization.XmlRootAttribute(Namespace = "http://www.hybrasyl.com/XML/Loot", IsNullable = false)]
     public partial class LootSet
     {
-        
+
         #region Private fields
         private List<LootTable> _table;
-        
+
         private string _name;
         #endregion
-        
+
         public LootSet()
         {
             this._table = new List<LootTable>();
         }
-        
+
         [System.Xml.Serialization.XmlElementAttribute("Table")]
         public List<LootTable> Table
         {
@@ -49,7 +49,7 @@ namespace Hybrasyl
                 this._table = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         public string Name
         {
@@ -63,30 +63,31 @@ namespace Hybrasyl
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Loot")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Loot")]
     public partial class LootTable
     {
-        
+
         #region Private fields
         private LootTableItemList _items;
-        
+
         private LootTableGold _gold;
-        
+
         private int _rolls;
-        
+
         private double _chance;
         #endregion
-        
+
         public LootTable()
         {
             this._gold = new LootTableGold();
+            this._rolls = 1;
         }
-        
+
         public LootTableItemList Items
         {
             get
@@ -98,7 +99,7 @@ namespace Hybrasyl
                 this._items = value;
             }
         }
-        
+
         public LootTableGold Gold
         {
             get
@@ -110,8 +111,9 @@ namespace Hybrasyl
                 this._gold = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
+        [System.ComponentModel.DefaultValueAttribute(1)]
         public int Rolls
         {
             get
@@ -123,7 +125,7 @@ namespace Hybrasyl
                 this._rolls = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         public double Chance
         {
@@ -137,29 +139,30 @@ namespace Hybrasyl
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Loot")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Loot")]
     public partial class LootTableItemList
     {
-        
+
         #region Private fields
         private List<LootItem> _items;
-        
+
         private int _rolls;
-        
+
         private double _chance;
         #endregion
-        
+
         public LootTableItemList()
         {
             this._items = new List<LootItem>();
+            this._rolls = 1;
         }
-        
-        [System.Xml.Serialization.XmlArrayItemAttribute("Item", IsNullable=false)]
+
+        [System.Xml.Serialization.XmlArrayItemAttribute("Item", IsNullable = false)]
         public List<LootItem> Items
         {
             get
@@ -171,8 +174,9 @@ namespace Hybrasyl
                 this._items = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
+        [System.ComponentModel.DefaultValueAttribute(1)]
         public int Rolls
         {
             get
@@ -184,7 +188,7 @@ namespace Hybrasyl
                 this._rolls = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         public double Chance
         {
@@ -198,29 +202,29 @@ namespace Hybrasyl
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Loot")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Loot")]
     public partial class LootItem
     {
-        
+
         #region Private fields
         private int _min;
-        
+
         private int _max;
-        
+
         private bool _unique;
-        
+
         private bool _always;
-        
+
         private List<string> _variants;
-        
+
         private string _value;
         #endregion
-        
+
         public LootItem()
         {
             this._variants = new List<string>();
@@ -229,7 +233,7 @@ namespace Hybrasyl
             this._unique = false;
             this._always = false;
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         [System.ComponentModel.DefaultValueAttribute(1)]
         public int Min
@@ -243,7 +247,7 @@ namespace Hybrasyl
                 this._min = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         [System.ComponentModel.DefaultValueAttribute(1)]
         public int Max
@@ -257,7 +261,7 @@ namespace Hybrasyl
                 this._max = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         [System.ComponentModel.DefaultValueAttribute(false)]
         public bool Unique
@@ -271,7 +275,7 @@ namespace Hybrasyl
                 this._unique = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         [System.ComponentModel.DefaultValueAttribute(false)]
         public bool Always
@@ -285,7 +289,7 @@ namespace Hybrasyl
                 this._always = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         public List<string> Variants
         {
@@ -298,7 +302,7 @@ namespace Hybrasyl
                 this._variants = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlTextAttribute()]
         public string Value
         {
@@ -312,22 +316,29 @@ namespace Hybrasyl
             }
         }
     }
-    
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2102.0")]
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Loot")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Loot")]
     public partial class LootTableGold
     {
-        
+
         #region Private fields
         private int _min;
-        
+
         private int _max;
         #endregion
-        
+
+        public LootTableGold()
+        {
+            this._min = 0;
+            this._max = 0;
+        }
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
+        [System.ComponentModel.DefaultValueAttribute(0)]
         public int Min
         {
             get
@@ -339,8 +350,9 @@ namespace Hybrasyl
                 this._min = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
+        [System.ComponentModel.DefaultValueAttribute(0)]
         public int Max
         {
             get

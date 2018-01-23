@@ -39,13 +39,13 @@
     <xs:sequence>
       <xs:element name="Items" type="loot:LootTableItems" minOccurs="1" maxOccurs="1"/>
     </xs:sequence>
-    <xs:attribute name="Rolls" type="xs:int"/>
+    <xs:attribute name="Rolls" type="xs:int" default="1"/>
     <xs:attribute name="Chance" type="xs:double"/>
   </xs:complexType>
 
   <xs:complexType name="LootTableGold">
-    <xs:attribute name="Min" type="xs:int"/>
-    <xs:attribute name="Max" type="xs:int"/>
+    <xs:attribute name="Min" type="xs:int" default="0"/>
+    <xs:attribute name="Max" type="xs:int" default="0"/>
   </xs:complexType>
 
   <xs:complexType name="LootTable">
@@ -53,7 +53,7 @@
       <xs:element name="Items" minOccurs="0" maxOccurs="1" type="loot:LootTableItemList"/>
       <xs:element name="Gold" minOccurs="1" maxOccurs="1" type="loot:LootTableGold"/>
     </xs:sequence>
-    <xs:attribute name="Rolls" type="xs:int"/>
+    <xs:attribute name="Rolls" type="xs:int" default="1"/>
     <xs:attribute name="Chance" type="xs:double"/>
   </xs:complexType>
 
