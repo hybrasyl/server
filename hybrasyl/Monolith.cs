@@ -243,17 +243,10 @@ namespace Hybrasyl
         public uint LootableGold()
         {
             uint lootableGold = 0;
-            var spawnLootGold = _spawn.Loot.Gold;
 
-            if (spawnLootGold != null)
-            {
-                lootableGold += ((uint)_rng.Next((int)(spawnLootGold?.Min ?? 0), (int)(spawnLootGold?.Max ?? 0)));
-            }
-            if (_spawn.Loot.Table != null || _spawn.Loot.Set != null)
-            {
-                _spawnLootTable.ForEach(lootTable => lootableGold += ((uint)_rng.Next((int)(lootTable.Gold?.Min ?? 0), (int)(lootTable.Gold?.Max ?? 0))));
-            }
-
+            lootableGold += ((uint)_rng.Next((int)(_spawn.Loot.Gold?.Min ?? 0), (int)(_spawn.Loot.Gold?.Max ?? 0)));
+            _spawnLootTable.ForEach(lootTable => lootableGold += ((uint)_rng.Next((int)(lootTable.Gold?.Min ?? 0), (int)(lootTable.Gold?.Max ?? 0))));
+            
             return lootableGold;
         }
 
