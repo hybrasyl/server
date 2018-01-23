@@ -5,23 +5,23 @@ develop code for the project.
 
 ## [Hybrasyl Server](https://github.com/hybrasyl/server)
 
-* [Justin Baugh](@baughj)
-* [Pete Lukich](@plukich)
-* [Cameron Moseley](@moseleyc)
-* [Michael Norris](@norrismiv)
-* [Luke Segars](@anyweez)
-* [Kyle Speck](@kojasou)
+* [Justin Baugh](https://github.com/baughj)
+* [Pete Lukich](https://github.com/plukich)
+* [Cameron Moseley](https://github.com/moseleyc)
+* [Michael Norris](https://github.com/norrismiv)
+* [Luke Segars](https://github.com/anyweez)
+* [Kyle Speck](https://github.com/kojasou)
 
 ## [Hybrasyl Launcher](https://github.com/hybrasyl/launcher)
 
-* [Justin Baugh](@baughj)
-* [Michael Norris](@norrismiv)
+* [Justin Baugh](https://github.com/baughj)
+* [Michael Norris](https://github.com/norrismiv)
 
 ## World Data & Content Engineering
 
-* [Justin Baugh](@baughj)
-* [Thomas Cole](@caeldeth)
-* [Mark Nix](@fluffguck)
-* [Michael Norris](@norrismiv)
-* [Shadowoffice](@shadowoffice)
+* [Justin Baugh](https://github.com/baughj)
+* [Thomas Cole](https://github.com/caeldeth)
+* [Mark Nix](https://github.com/fluffguck)
+* [Michael Norris](https://github.com/norrismiv)
+* [Shadowoffice](https://github.com/shadowoffice)
 
