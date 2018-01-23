@@ -311,7 +311,7 @@ namespace Hybrasyl.Creatures
 
     public partial class Spawn
     {
-        protected Random Rng;
+        protected Random Rng = new Random();
 
         /// <summary>
         /// Calculate a specific offensive element for a spawn from its list of elements.
