@@ -1,23 +1,27 @@
 # Hybrasyl Contributors
 
-This is a list of all the contributors who have given their time and effort to develop code for the project.
+This is a list of all the contributors who have given their time and effort to
+develop code for the project.
 
-## Hybrasyl Server
+## [Hybrasyl Server](https://github.com/hybrasyl/server)
 
-* Justin Baugh <baughj at hybrasyl dot com>
-* Pete Lukich
-* Michael Norris <norrismiv at gmail dot com>
-* Luke Segars
-* Kyle Speck <kojasou at gmail dot com>
+* [Justin Baugh](@baughj)
+* [Pete Lukich](@plukich)
+* [Cameron Moseley](@moseleyc)
+* [Michael Norris](@norrismiv)
+* [Luke Segars](@anyweez)
+* [Kyle Speck](@kojasou)
 
-## Hybrasyl Launcher
+## [Hybrasyl Launcher](https://github.com/hybrasyl/launcher)
 
-* Justin Baugh <baughj at hybrasyl dot com>
-* Michael Norris <norrismiv at gmail dot com>
+* [Justin Baugh](@baughj)
+* [Michael Norris](@norrismiv)
 
-## SDK (Integration Libraries)
+## World Data & Content Engineering
 
-* Justin Baugh <baughj at hybrasyl.com>
-* Michael Norris <norrismiv at gmail.com>
-
+* [Justin Baugh](@baughj)
+* [Thomas Cole](@caeldeth)
+* [Mark Nix](@fluffguck)
+* [Michael Norris](@norrismiv)
+* [Shadowoffice](@shadowoffice)
 
