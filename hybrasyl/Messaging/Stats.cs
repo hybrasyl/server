@@ -89,8 +89,8 @@ namespace Hybrasyl.Messaging
     class AttrCommand : ChatCommand
     {
         public new static string Command = "attr";
-        public new static string ArgumentText = "<string attribute (str|wis|int|con|dex)> <byte value>";
-        public new static string HelpText = "Set a specified attribute to the given byte value.";
+        public new static string ArgumentText = "<string attribute> <byte value>";
+        public new static string HelpText = "Set a specified attribute (str/con etc) to the given byte value.";
         public new static bool Privileged = false;
 
         public new static ChatCommandResult Run(User user, params string[] args)
