@@ -394,6 +394,7 @@ namespace Hybrasyl.Objects
                 theItem.DeathPileOwner = Name;
                 theItem.ItemDropTime = timeofdeath;
                 theItem.ItemDropAllowedLooters = looters;
+                theItem.ItemDropType = ItemDropType.UserDeathPile;
                 Map.AddItem(X, Y, theItem);
             }
 
@@ -409,6 +410,7 @@ namespace Hybrasyl.Objects
                 item.DeathPileOwner = Name;
                 item.ItemDropTime = timeofdeath;
                 item.ItemDropAllowedLooters = looters;
+                item.ItemDropType = ItemDropType.UserDeathPile;
 
                 Map.AddItem(X, Y, item);
             }

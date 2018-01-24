@@ -1437,6 +1437,12 @@ namespace Hybrasyl
                     user.SendMessage(string.Format("You can't carry any more of those.", item.Name), 3);
                     return;
                 }
+
+                item.DeathPileOwner = string.Empty;
+                item.ItemDropAllowedLooters = new List<string>();
+                item.ItemDropTime = null;
+                item.ItemDropType = ItemDropType.Normal;
+
                 if (item.Stackable && user.Inventory.Contains(item.TemplateId))
                 {
                     byte existingSlot = user.Inventory.SlotOf(item.TemplateId);

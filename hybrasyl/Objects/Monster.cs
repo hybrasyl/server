@@ -74,11 +74,13 @@ namespace Hybrasyl.Objects
             var itemDropTime = DateTime.Now;
             foreach(var item in LootableItems)
             {
+                item.ItemDropType = ItemDropType.MonsterLootPile;
                 item.ItemDropAllowedLooters = ItemDropAllowedLooters;
                 item.ItemDropTime = itemDropTime;
                 World.Insert(item);
                 Map.Insert(item, X, Y);
             }
+            golds.ItemDropType = ItemDropType.MonsterLootPile;
             golds.ItemDropAllowedLooters = ItemDropAllowedLooters;
             golds.ItemDropTime = itemDropTime;
 

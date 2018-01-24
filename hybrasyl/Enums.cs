@@ -341,6 +341,13 @@ namespace Hybrasyl
             Claw
         }
 
+        public enum ItemDropType
+        {
+            Normal,
+            UserDeathPile,
+            MonsterLootPile            
+        }
+
         #endregion
 
         [Flags]
