@@ -58,7 +58,10 @@ namespace Hybrasyl
             {
                 using (HttpClient client = new HttpClient())
                 {
-                    client.BaseAddress = new Uri($"http://{Game.Config.ApiEndpoints.RemoteAdminHost.BindAddress}/api/news");
+                    if (Game.Config?.ApiEndpoints?.RemoteAdminHost?.Port != 0)
+                        client.BaseAddress = new Uri($"{Game.Config.ApiEndpoints.RemoteAdminHost.Url}:{Game.Config.ApiEndpoints.RemoteAdminHost.Port}/api/news");
+                    else
+                        client.BaseAddress = new Uri($"{Game.Config.ApiEndpoints.RemoteAdminHost.Url}/api/news");
 
                     var json = $"[{client.GetAsync(client.BaseAddress + "/GetMotd").Result.Content.ReadAsStringAsync().Result}]";
 
@@ -66,9 +69,9 @@ namespace Hybrasyl
                     return motd[0].Data[0].Message;
                 }
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                return "There was an error fetching the MOTD.";
+                return $"There was an error fetching the MOTD.";
             }
         }
     }

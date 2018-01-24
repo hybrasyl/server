@@ -27,6 +27,11 @@
     <xs:attribute name="Port" type="xs:unsignedShort" use="required" />
   </xs:complexType>
 
+  <xs:complexType name="TargetUrl">
+    <xs:attribute name="Url" type="xs:anyURI"/>
+    <xs:attribute name="Port" type="xs:unsignedShort"/>
+   </xs:complexType>
+  
   <xs:complexType name="Network">
     <xs:sequence>
       <xs:element name="Lobby" type="config:NetworkInfo" />
@@ -38,7 +43,7 @@
   <xs:complexType name="ApiEndpoints">
     <xs:sequence>
       <xs:element name="ControlService" type="config:NetworkInfo" />
-      <xs:element name="RemoteAdminHost" type="config:NetworkInfo" />
+      <xs:element name="RemoteAdminHost" type="config:TargetUrl" />
     </xs:sequence>
   </xs:complexType>
 

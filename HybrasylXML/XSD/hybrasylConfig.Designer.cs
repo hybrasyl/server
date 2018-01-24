@@ -1001,18 +1001,59 @@ namespace Hybrasyl.Config
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
     [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Config")]
+    public partial class TargetUrl
+    {
+
+        #region Private fields
+        private string _url;
+
+        private ushort _port;
+        #endregion
+
+        [System.Xml.Serialization.XmlAttributeAttribute(DataType = "anyURI")]
+        public string Url
+        {
+            get
+            {
+                return this._url;
+            }
+            set
+            {
+                this._url = value;
+            }
+        }
+
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        public ushort Port
+        {
+            get
+            {
+                return this._port;
+            }
+            set
+            {
+                this._port = value;
+            }
+        }
+    }
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
+    [System.SerializableAttribute()]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.ComponentModel.DesignerCategoryAttribute("code")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Config")]
     public partial class ApiEndpoints
     {
 
         #region Private fields
         private NetworkInfo _controlService;
 
-        private NetworkInfo _remoteAdminHost;
+        private TargetUrl _remoteAdminHost;
         #endregion
 
         public ApiEndpoints()
         {
-            this._remoteAdminHost = new NetworkInfo();
+            this._remoteAdminHost = new TargetUrl();
             this._controlService = new NetworkInfo();
         }
 
@@ -1028,7 +1069,7 @@ namespace Hybrasyl.Config
             }
         }
 
-        public NetworkInfo RemoteAdminHost
+        public TargetUrl RemoteAdminHost
         {
             get
             {
