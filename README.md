@@ -108,8 +108,13 @@ The process for compiling Hybrasyl is detailed below.
    should occur automatically).
 5. Copy `lod136.map`, `lod500.map`, and `lod300.map` from your Dark Ages directory (or an
    online archive) into `My Documents\Hybrasyl\world\mapfiles` (which should exist, if you followed the 
-   directions above).
-6. Run `Hybrasyl.exe` either from within Visual Studio or as a standalone
+   directions above).  
+6. Give the control service permission to bind to port 4949 (the
+   default, this can be changed in config.xml): `netsh http add urlacl
+   url=http://+:4949/ user=YOURMACHINENAME\YOURUSERNAME`. Substitute
+   your Windows machine name and your username in the command above;
+   e.g. `user=LOURES\baughj`.
+7. Run `Hybrasyl.exe` either from within Visual Studio or as a standalone
    executable in the `hybrasyl\bin\Debug` folder of your git checkout. This
    should launch the server. You can change any of Hybrasyl’s settings by 
    editing `config.xml` in `My Documents\Hybrasyl`.
