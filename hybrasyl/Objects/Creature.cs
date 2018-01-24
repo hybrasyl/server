@@ -67,6 +67,7 @@ namespace Hybrasyl.Objects
             Stats = new StatInfo();
             Condition = new ConditionInfo(this);
             _currentStatuses = new ConcurrentDictionary<ushort, ICreatureStatus>();
+            LastHitTime = DateTime.MinValue;
         }
 
         public override void OnClick(User invoker)
@@ -359,21 +360,10 @@ namespace Hybrasyl.Objects
                 return start;
         }
 
-        private uint _mFirstHitter;
+        public DateTime LastHitTime { get; private set; }
+        public Creature FirstHitter { get; private set; }
+
         private uint _mLastHitter;
-
-        public Creature FirstHitter
-        {
-            get
-            {
-                return Game.World.Objects.ContainsKey(_mFirstHitter) ? (Creature)Game.World.Objects[_mFirstHitter] : null;
-            }
-            set
-            {
-                _mFirstHitter = value?.Id ?? 0;
-            }
-        }
-
         public Creature LastHitter
         {
             get
@@ -815,13 +805,13 @@ namespace Hybrasyl.Objects
 
         public virtual void Damage(double damage, Enums.Element element = Enums.Element.None, Enums.DamageType damageType = Enums.DamageType.Direct, Castables.DamageFlags damageFlags = Castables.DamageFlags.None, Creature attacker = null, bool onDeath = true)
         {
-            var attackerUser = attacker as User;
-            if(attackerUser != null)
+            if (attacker is User)
             {
-                if (FirstHitter == null) { _mFirstHitter = attacker.Id; }
-                else if (!Game.World.ActiveUsersByName.ContainsKey(attackerUser.Name)) _mFirstHitter = attacker.Id;
-                else if (FirstHitter != attackerUser && (!(attackerUser.Grouped ? attackerUser.Group.Members.Contains(attackerUser) : false))) return;
-            }            
+                if (FirstHitter == null || !Game.World.ActiveUsersByName.ContainsKey(FirstHitter.Name) || ((DateTime.Now - LastHitTime).TotalSeconds > Constants.MONSTER_TAGGING_TIMEOUT)) FirstHitter = attacker;
+                if (attacker != FirstHitter && !((FirstHitter as User).Group?.Members.Contains(attacker) ?? false)) return;
+            }
+
+            LastHitTime = DateTime.Now;
 
             if (damageType == Enums.DamageType.Physical && (AbsoluteImmortal || PhysicalImmortal))
                 return;
