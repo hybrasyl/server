@@ -375,3 +375,44 @@ namespace Hybrasyl.Nations
         }
     }
 }
+
+namespace Hybrasyl
+{
+    partial class LootTable
+    {
+
+        /// <summary>
+        /// Used to Convert Hybrasyl.LootTable to Creatures.LootTable
+        /// </summary>
+        /// <returns>Creatures.LootTable</returns>
+        public Creatures.LootTable ConvertLootTable()
+        {
+            var newLootTable = new Creatures.LootTable();
+            newLootTable.Items = new Creatures.LootTableItemList();
+            newLootTable.Items.Items = new List<Creatures.LootItem>();
+
+            newLootTable.Chance = this.Chance;
+            newLootTable.Gold.Min = this.Gold.Min;
+            newLootTable.Gold.Max = this.Gold.Max;
+            newLootTable.Items.Chance = this.Items.Chance;
+
+            foreach (var items in this.Items.Items)
+            {
+                var newLootItem = new Creatures.LootItem();
+                newLootItem.Always = items.Always;
+                newLootItem.Max = items.Max;
+                newLootItem.Min = items.Min;
+                newLootItem.Unique = items.Unique;
+                newLootItem.Value = items.Value;
+                newLootItem.Variants = items.Variants;
+
+                newLootTable.Items.Items.Add(newLootItem);
+            }
+
+            newLootTable.Items.Rolls = this.Items.Rolls;
+            newLootTable.Rolls = this.Rolls;
+
+            return newLootTable;
+        }
+    }
+}

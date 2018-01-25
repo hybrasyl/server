@@ -190,7 +190,7 @@ namespace Hybrasyl
                             {
                                 if (importTable.Chance >= _rng.NextDouble())
                                 {
-                                    spawnLootTable.Add(ConvertLootTable(importTable));
+                                    spawnLootTable.Add(importTable.ConvertLootTable());
                                     continue;
                                 }
                             }
@@ -200,41 +200,6 @@ namespace Hybrasyl
 
             }
             return spawnLootTable;
-        }
-
-        /// <summary>
-        /// Used to Convert Hybrasyl.LootTable to Creatures.LootTable
-        /// </summary>
-        /// <param name="lootTableToConvert">Hybrasyl.LootTable to Convert</param>
-        /// <returns>Creatures.LootTable</returns>
-        private Creatures.LootTable ConvertLootTable(Hybrasyl.LootTable lootTableToConvert)
-        {
-            var newLootTable = new Creatures.LootTable();
-            newLootTable.Items = new Creatures.LootTableItemList();
-            newLootTable.Items.Items = new List<Creatures.LootItem>();
-
-            newLootTable.Chance = lootTableToConvert.Chance;
-            newLootTable.Gold.Min = lootTableToConvert.Gold.Min;
-            newLootTable.Gold.Max = lootTableToConvert.Gold.Max;
-            newLootTable.Items.Chance = lootTableToConvert.Items.Chance;
-
-            foreach(var items in lootTableToConvert.Items.Items)
-            {
-                var newLootItem = new Creatures.LootItem();
-                newLootItem.Always = items.Always;
-                newLootItem.Max = items.Max;
-                newLootItem.Min = items.Min;
-                newLootItem.Unique = items.Unique;
-                newLootItem.Value = items.Value;
-                newLootItem.Variants = items.Variants;
-
-                newLootTable.Items.Items.Add(newLootItem);
-            }
-            
-            newLootTable.Items.Rolls = lootTableToConvert.Items.Rolls;
-            newLootTable.Rolls = lootTableToConvert.Rolls;
-
-            return newLootTable;
         }
 
         /// <summary>
