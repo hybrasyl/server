@@ -275,7 +275,7 @@ namespace Hybrasyl
                             creaturesLootItem.AddRange(alwaysItems);
                         }
 
-                        var worldItemTemplates = Game.World.WorldData.Values<Hybrasyl.Items.Item>();
+                        var worldItemTemplates = Game.World.WorldData.Values<Items.Item>();
 
 
                         foreach (var item in creaturesLootItem)

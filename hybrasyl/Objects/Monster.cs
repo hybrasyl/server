@@ -146,7 +146,7 @@ namespace Hybrasyl.Objects
             
         public List<ItemObject> LootableItems { get; set; }
 
-        public Monster(Hybrasyl.Creatures.Creature creature, Spawn spawn, int map)
+        public Monster(Creatures.Creature creature, Spawn spawn, int map)
         {
 
             var direction = (Rng.Next(0, 100) >= 50);
