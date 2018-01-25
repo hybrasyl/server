@@ -622,6 +622,8 @@ namespace Hybrasyl
             var variantItem = item.Clone();
 
             variantItem.Name = $"{variant.Modifier} {item.Name}";
+            variantItem.ParentItem = item;
+            variantItem.IsVariant = true;
             Logger.Debug($"Processing variant: {variantItem.Name}");
             variantItem.Properties.Flags = variant.Properties.Flags;
                     

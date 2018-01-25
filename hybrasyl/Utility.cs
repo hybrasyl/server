@@ -387,6 +387,14 @@ namespace Hybrasyl
             }
         } // end TypeExtensions
 
+        public static class StringExtensions
+        {
+            public static bool Contains(this string source, string toCheck, StringComparison comparision)
+            {
+                return source?.IndexOf(toCheck, comparision) >= 0;
+            }
+        }
+
     } // end Namespace:Utility
 
 }// end Namespace: Hybrasyl
