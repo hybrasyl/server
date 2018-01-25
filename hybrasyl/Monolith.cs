@@ -32,6 +32,7 @@ using System.Linq;
  using Hybrasyl.Enums;
  using Creature = Hybrasyl.Creatures.Creature;
 using Hybrasyl.Utility;
+using Hybrasyl.Loot;
 
 namespace Hybrasyl
 {
@@ -149,7 +150,7 @@ namespace Hybrasyl
         private static Random _rng = new Random();
 
         private Spawn _spawn;        
-        private List<Hybrasyl.Creatures.LootTable> _spawnLootTable;
+        private List<Creatures.LootTable> _spawnLootTable;
 
         public SpawnLoot(Spawn spawn)
         {
@@ -157,9 +158,9 @@ namespace Hybrasyl
             _spawnLootTable = CreateSpawnLootTable();
         }
 
-        private List<Hybrasyl.Creatures.LootTable> CreateSpawnLootTable()
+        private List<Creatures.LootTable> CreateSpawnLootTable()
         {
-            var spawnLootTable = new List<Hybrasyl.Creatures.LootTable>();
+            var spawnLootTable = new List<Creatures.LootTable>();
             if (_spawn.Loot.Table != null)
             {
                 foreach (var lootTbl in _spawn.Loot.Table)
@@ -190,7 +191,7 @@ namespace Hybrasyl
                             {
                                 if (importTable.Chance >= _rng.NextDouble())
                                 {
-                                    spawnLootTable.Add(importTable.ConvertLootTable());
+                                    spawnLootTable.Add((Creatures.LootTable) importTable);
                                     continue;
                                 }
                             }

@@ -238,6 +238,7 @@ namespace Hybrasyl.Castables
             return false;
         }
     }
+
 }
 
 namespace Hybrasyl.Statuses
@@ -307,8 +308,40 @@ namespace Hybrasyl.Config
 
 namespace Hybrasyl.Creatures
 {
+    public partial class LootTable
+    {
+        public static explicit operator LootTable(Loot.LootTable table)
+        {
+            var ret = new LootTable();
+            ret.Items = new LootTableItemList();
+            ret.Items.Items = new List<LootItem>();
 
+            ret.Chance = table.Chance;
+            ret.Gold.Min = table.Gold.Min;
+            ret.Gold.Max = table.Gold.Max;
+            ret.Items.Chance = table.Items.Chance;
 
+            foreach (var items in table.Items.Items)
+            {
+                var newLootItem = new LootItem();
+                newLootItem.Always = items.Always;
+                newLootItem.Max = items.Max;
+                newLootItem.Min = items.Min;
+                newLootItem.Unique = items.Unique;
+                newLootItem.Value = items.Value;
+                newLootItem.Variants = items.Variants;
+
+                ret.Items.Items.Add(newLootItem);
+            }
+
+            ret.Items.Rolls = table.Items.Rolls;
+            ret.Rolls = table.Rolls;
+
+            return ret;
+        }
+    }
+    
+    
     public partial class Spawn
     {
         protected Random Rng = new Random();
@@ -376,43 +409,3 @@ namespace Hybrasyl.Nations
     }
 }
 
-namespace Hybrasyl
-{
-    partial class LootTable
-    {
-
-        /// <summary>
-        /// Used to Convert Hybrasyl.LootTable to Creatures.LootTable
-        /// </summary>
-        /// <returns>Creatures.LootTable</returns>
-        public Creatures.LootTable ConvertLootTable()
-        {
-            var newLootTable = new Creatures.LootTable();
-            newLootTable.Items = new Creatures.LootTableItemList();
-            newLootTable.Items.Items = new List<Creatures.LootItem>();
-
-            newLootTable.Chance = this.Chance;
-            newLootTable.Gold.Min = this.Gold.Min;
-            newLootTable.Gold.Max = this.Gold.Max;
-            newLootTable.Items.Chance = this.Items.Chance;
-
-            foreach (var items in this.Items.Items)
-            {
-                var newLootItem = new Creatures.LootItem();
-                newLootItem.Always = items.Always;
-                newLootItem.Max = items.Max;
-                newLootItem.Min = items.Min;
-                newLootItem.Unique = items.Unique;
-                newLootItem.Value = items.Value;
-                newLootItem.Variants = items.Variants;
-
-                newLootTable.Items.Items.Add(newLootItem);
-            }
-
-            newLootTable.Items.Rolls = this.Items.Rolls;
-            newLootTable.Rolls = this.Rolls;
-
-            return newLootTable;
-        }
-    }
-}

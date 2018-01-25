@@ -53,6 +53,7 @@ using Castable = Hybrasyl.Castables.Castable;
 using Creature = Hybrasyl.Objects.Creature;
 using Hybrasyl.Statuses;
 using Hybrasyl.Messaging;
+using Hybrasyl.Loot;
 
 namespace Hybrasyl
 {
