@@ -244,32 +244,39 @@ namespace Hybrasyl
                         var creaturesLootItem = new List<Creatures.LootItem>();
                         var alwaysItems = new List<Creatures.LootItem>();
                         var possibleItems = new List<Creatures.LootItem>(table.Items.Items);
-                        var randomIndex = _rng.Next(0, table.Items.Items.Count);
-
+                        
                         //first determine all "Always" items
                         foreach(var item in possibleItems)
                         {
                             if (item.Always)
                             {
                                 alwaysItems.Add(item);
-                                possibleItems.Remove(item);
                             }
                         }
+                        possibleItems.RemoveAll(item => alwaysItems.Contains(item));
 
                         //then get all other items, taking into account unique items only drop once
-                        while(numberOfItemsToGet > 0)
+                        while (numberOfItemsToGet > 0)
                         {
-                            var item = possibleItems.ElementAt(randomIndex);
-
-                            if (item.Unique)
+                            if(possibleItems.Count > 0)
                             {
-                                possibleItems.Remove(item);
-                                creaturesLootItem.Add(item);
-                                numberOfItemsToGet--;
+                                var randomIndex = _rng.Next(0, possibleItems.Count);
+                                var item = possibleItems.ElementAt(randomIndex);
+
+                                if (item.Unique)
+                                {
+                                    possibleItems.Remove(item);
+                                    creaturesLootItem.Add(item);
+                                    numberOfItemsToGet--;
+                                }
+                                else
+                                {
+                                    creaturesLootItem.Add(item);
+                                    numberOfItemsToGet--;
+                                }
                             }
                             else
                             {
-                                creaturesLootItem.Add(item);
                                 numberOfItemsToGet--;
                             }
                             creaturesLootItem.AddRange(alwaysItems);
