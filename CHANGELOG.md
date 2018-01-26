@@ -4,6 +4,42 @@
  generally add fairly significant features, whereas ones without are primarily
  for bugfixing and other updates.*
 
+# Hybrasyl Server 0.6.0 ("Bruce")
+
+*Released: January 25, 2018* - [View this release on GitHub](https://github.com/hybrasyl/server/releases/tag/0.6.0)
+
+### Features
+
+* Full status support (poison, sleep, buff/debuff, etc) added
+* Castable support is now complete, with the notable exception of scripted castables
+* Loot tables / loot sets implemented
+* NPCs now support learning/forgetting skills/spells, selling/buying items, and sending/receiving parcels
+* Support for elemental damage has been implemented
+* Lua scripting is now supported (IronPython has been removed entirely)
+* Cooldowns for castables have been implemented
+* Many, many, many XSD/XML updates
+* Fix packet throttling implementation
+* Full support for monster spawning with variance (stronger or weaker monster) support
+* Add support for heal/damage modifiers, reflect chance / intensity, element overrides (offensive/defensive)
+* Monsters now support a rudimentary AI for moving and attacking
+* Improved chat command support with a rudimentary plugin architecture. Also, `/help` now works!
+* Begin to add support for multithreaded game logic / packet handling (controlmessages only, currently)
+* Add a secondary HTTP listener for API calls for service requests (shutdown/restart server, etc)
+
+### Bug Fixes
+
+* All extant network bugs should be fixed - assail not working, desynched sounds, etc
+* When a significant number of monsters die simultaneously (>15) on a crowded map, a burst of server-wide lag could occur
+
+### Other
+
+* For ease of maintenance and use, the XML/XSD code has been integrated back into the main solution
+* Refactor how packet handling is done with flags and player conditions
+* Hybrasyl now targets 64-bit .NET 4.7
+* Death handling now uses XML config values as opposed to relying on any hardcoded configuration
+* Added a lot more packets to the new packet structure
+
+
 # Hybrasyl Server 0.5.5 ("Devlin")
 
 *Released: December 20, 2016* - [View this release on GitHub](https://github.com/hybrasyl/server/releases/tag/0.5.5)
