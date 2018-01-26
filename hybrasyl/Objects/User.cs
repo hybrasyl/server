@@ -1160,7 +1160,7 @@ namespace Hybrasyl.Objects
             var costs = castable.CastCosts.CastCost;
             uint reduceHp = 0;
             uint reduceMp = 0;
-            int removeNumItems = 0;
+            bool hasItemCost = true;
 
             // HP cost can be either a percentage (0.25) or a fixed amount (50)
             if (costs.Stat?.Hp != null)
@@ -1179,26 +1179,21 @@ namespace Hybrasyl.Objects
             {
                 foreach (var item in costs.Items)
                 {
-                    if (Inventory.Contains(item.Value, item.Quantity)) removeNumItems++;
+                    if (!Inventory.Contains(item.Value, item.Quantity)) hasItemCost = false;
                 }
             }
 
             // Check that all requirements are met first. Note that a spell cannot be cast if its HP cost would result
             // in the caster's HP being reduced to zero.
-            if (reduceHp > Stats.Hp || reduceMp >= Stats.Mp || costs.Gold > Gold || (removeNumItems != 0 && costs.Items.Count == removeNumItems)) return false;
+            if (reduceHp > Stats.Hp || reduceMp >= Stats.Mp || costs.Gold > Gold || !hasItemCost) return false;
 
             if (costs.Gold > this.Gold) return false;
 
             if (reduceHp != 0) Stats.Hp -= reduceHp;
             if (reduceMp != 0) Stats.Mp -= reduceMp;
             if ((int)costs.Gold > 0 ) this.RemoveGold(new Gold(costs.Gold));
-            if (removeNumItems > 0)
-            {
-                foreach(var item in costs.Items)
-                {
-                    RemoveItem(item.Value, item.Quantity);
-                }                
-            }
+            costs.Items?.ForEach(item => RemoveItem(item.Value, item.Quantity));
+
             UpdateAttributes(StatUpdateFlags.Current);
             return true;
         }
