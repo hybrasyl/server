@@ -53,6 +53,7 @@ using Castable = Hybrasyl.Castables.Castable;
 using Creature = Hybrasyl.Objects.Creature;
 using Hybrasyl.Statuses;
 using Hybrasyl.Messaging;
+using Hybrasyl.Loot;
 
 namespace Hybrasyl
 {
@@ -183,6 +184,8 @@ namespace Hybrasyl
         public static string CreatureDirectory => Path.Combine(DataDirectory, "world", "xml", "creatures");
 
         public static string SpawnGroupDirectory => Path.Combine(DataDirectory, "world", "xml", "spawngroups");
+
+        public static string LootSetDirectory => Path.Combine(DataDirectory, "world", "xml", "lootsets");
 
         public static string ItemVariantDirectory => Path.Combine(DataDirectory, "world", "xml", "itemvariants");
 
@@ -422,6 +425,24 @@ namespace Hybrasyl
                 }
             }
 
+            //Load LootSets
+            foreach (var xml in Directory.GetFiles(LootSetDirectory, "*.xml"))
+            {
+                try
+                {
+                    var lootSet = Serializer.Deserialize(XmlReader.Create(xml), new LootSet());
+
+                    Logger.DebugFormat("LootSets: loaded {0}", lootSet.Name);
+                    WorldData.Set(lootSet.GetHashCode(), lootSet);
+                }
+                catch (Exception e)
+                {
+                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, e);
+                }
+            }
+
+            Logger.InfoFormat("Loot Sets: {0} loot sets loaded", WorldData.Count<LootSet>());
+
             // Load worldmaps
             foreach (var xml in Directory.GetFiles(WorldMapDirectory, "*.xml"))
             {
@@ -602,6 +623,8 @@ namespace Hybrasyl
             var variantItem = item.Clone();
 
             variantItem.Name = $"{variant.Modifier} {item.Name}";
+            variantItem.ParentItem = item;
+            variantItem.IsVariant = true;
             Logger.Debug($"Processing variant: {variantItem.Name}");
             variantItem.Properties.Flags = variant.Properties.Flags;
                     
@@ -1417,6 +1440,12 @@ namespace Hybrasyl
                     user.SendMessage(string.Format("You can't carry any more of those.", item.Name), 3);
                     return;
                 }
+
+                item.DeathPileOwner = string.Empty;
+                item.ItemDropAllowedLooters = new List<string>();
+                item.ItemDropTime = null;
+                item.ItemDropType = ItemDropType.Normal;
+
                 if (item.Stackable && user.Inventory.Contains(item.TemplateId))
                 {
                     byte existingSlot = user.Inventory.SlotOf(item.TemplateId);

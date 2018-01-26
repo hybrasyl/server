@@ -18,6 +18,7 @@ New-Item -force -ItemType directory -Path $mydocuments\Hybrasyl\world\xml\creatu
 New-Item -force -ItemType directory -Path $mydocuments\Hybrasyl\world\xml\items
 New-Item -force -ItemType directory -Path $mydocuments\Hybrasyl\world\xml\itemvariants
 New-Item -force -ItemType directory -Path $mydocuments\Hybrasyl\world\xml\localization
+New-Item -Force -ItemType directory -Path $mydocuments\Hybrasyl\world\xml\lootsets
 New-Item -force -ItemType directory -Path $mydocuments\Hybrasyl\world\xml\maps
 New-Item -force -ItemType directory -Path $mydocuments\Hybrasyl\world\xml\nations
 New-Item -force -ItemType directory -Path $mydocuments\Hybrasyl\world\xml\npcs

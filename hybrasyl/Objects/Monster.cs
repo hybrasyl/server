@@ -64,10 +64,26 @@ namespace Hybrasyl.Objects
             var hitter = LastHitter as User;
             if (hitter == null) return; // Don't handle cases of MOB ON MOB COMBAT just yet
 
+            if (hitter.Grouped) ItemDropAllowedLooters = hitter.Group.Members.Select(user => user.Name).ToList();
+            else ItemDropAllowedLooters.Add(hitter.Name);
+
             Condition.Alive = false;
 
             hitter.ShareExperience(LootableXP);
             var golds = new Gold(LootableGold);
+            var itemDropTime = DateTime.Now;
+            foreach(var item in LootableItems)
+            {
+                item.ItemDropType = ItemDropType.MonsterLootPile;
+                item.ItemDropAllowedLooters = ItemDropAllowedLooters;
+                item.ItemDropTime = itemDropTime;
+                World.Insert(item);
+                Map.Insert(item, X, Y);
+            }
+            golds.ItemDropType = ItemDropType.MonsterLootPile;
+            golds.ItemDropAllowedLooters = ItemDropAllowedLooters;
+            golds.ItemDropTime = itemDropTime;
+
             World.Insert(golds);
             Map.Insert(golds, X, Y);
             Map.Remove(this);
@@ -125,11 +141,12 @@ namespace Hybrasyl.Objects
         public uint VariantMp => CalculateVariance(_spawn.Stats.Mp);
 
 
-        public uint LootableXP => CalculateVariance((uint)Rng.Next((int)(_spawn.Loot.Xp?.Min ?? 1), (int)(_spawn.Loot.Gold?.Max ?? 1)));
-        public uint LootableGold => CalculateVariance((uint)Rng.Next((int)(_spawn.Loot.Gold?.Min ?? 1),(int)(_spawn.Loot.Gold?.Max ?? 1)));
+        public uint LootableXP => CalculateVariance((uint)Rng.Next((int)(_spawn.Loot.Xp?.Min ?? 1), (int)(_spawn.Loot.Xp?.Max ?? 1)));
+        public uint LootableGold { get; set; }
+            
+        public List<ItemObject> LootableItems { get; set; }
 
-
-        public Monster(Hybrasyl.Creatures.Creature creature, Spawn spawn, int map)
+        public Monster(Creatures.Creature creature, Spawn spawn, int map)
         {
 
             var direction = (Rng.Next(0, 100) >= 50);
@@ -153,8 +170,10 @@ namespace Hybrasyl.Objects
             Stats.BaseCon = VariantCon;
             Stats.BaseDex = VariantDex;
             _castables = spawn.Castables;
+
             Stats.BaseDefensiveElement = (Enums.Element) spawn.GetDefensiveElement();
             Stats.BaseDefensiveElement = (Enums.Element) spawn.GetOffensiveElement();
+            LootableItems = new List<ItemObject>();
 
             //until intents are fixed, this is how this is going to be done.
             IsHostile = _random.Next(0, 7) < 2;

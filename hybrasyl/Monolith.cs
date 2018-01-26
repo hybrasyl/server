@@ -31,6 +31,8 @@ using System.Linq;
  using Hybrasyl.Creatures;
  using Hybrasyl.Enums;
  using Creature = Hybrasyl.Creatures.Creature;
+using Hybrasyl.Utility;
+using Hybrasyl.Loot;
 
 namespace Hybrasyl
 {
@@ -119,6 +121,11 @@ namespace Hybrasyl
                         mob.X = (byte)xcoord;
                         mob.Y = (byte)ycoord;
                         mob.Id = Convert.ToUInt32(_random.Next(0, int.MaxValue - 1));
+
+                        var newSpawnLoot = new SpawnLoot(spawn);
+                        mob.LootableGold = newSpawnLoot.LootableGold();
+                        mob.LootableItems = newSpawnLoot.LootableItems();
+
                         SpawnMonster(mob, spawnMap);
                     }
                 }
@@ -135,6 +142,188 @@ namespace Hybrasyl
             World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MonolithSpawn, monster, map));
             //Game.World.Maps[mapId].InsertCreature(monster);
             //Logger.DebugFormat("Spawning monster: {0} at {1}, {2}", monster.Name, (int) monster.X, (int) monster.Y);
+        }
+    }
+
+    internal class SpawnLoot
+    {
+        private static Random _rng = new Random();
+
+        private Spawn _spawn;        
+        private List<Creatures.LootTable> _spawnLootTable;
+
+        public SpawnLoot(Spawn spawn)
+        {
+            _spawn = spawn;
+            _spawnLootTable = CreateSpawnLootTable();
+        }
+
+        private List<Creatures.LootTable> CreateSpawnLootTable()
+        {
+            var spawnLootTable = new List<Creatures.LootTable>();
+            if (_spawn.Loot.Table != null)
+            {
+                foreach (var lootTbl in _spawn.Loot.Table)
+                {
+                    for (int i = 0; i < lootTbl.Rolls; i++)
+                    {
+                        if (lootTbl.Chance >= _rng.NextDouble())
+                        {
+                            spawnLootTable.Add(lootTbl);
+                            continue;
+                        }
+                    }
+                }
+            }
+            if (_spawn.Loot.Set != null)
+            {
+                var lootSets = Game.World.WorldData.Values<LootSet>();
+                foreach (var set in _spawn.Loot.Set)
+                {
+                    var lootImportName = set.Name;
+                    var lootImportSet = lootSets.Where(lootSet => lootSet.Name == lootImportName);
+
+                    foreach (var importSet in lootImportSet)
+                    {
+                        foreach (var importTable in importSet.Table)
+                        {
+                            for (int i = 0; i < importTable.Rolls; i++)
+                            {
+                                if (importTable.Chance >= _rng.NextDouble())
+                                {
+                                    spawnLootTable.Add((Creatures.LootTable) importTable);
+                                    continue;
+                                }
+                            }
+                        }
+                    }
+                }
+
+            }
+            return spawnLootTable;
+        }
+
+        /// <summary>
+        /// Calculate the total amount of lootable gold based on the base amount plus any additional from the loot table(s).
+        /// </summary>
+        /// <returns>Gold uint</returns>
+        public uint LootableGold()
+        {
+            uint lootableGold = 0;
+            if(((_spawn.Loot.Gold?.Min ?? 0) < (_spawn.Loot.Gold?.Max ?? 0))) lootableGold += ((uint)_rng.Next((int)(_spawn.Loot.Gold?.Min ?? 0), (int)(_spawn.Loot.Gold?.Max ?? 0)));
+            _spawnLootTable.ForEach(lootTable => { if (lootTable.Gold.Min < lootTable.Gold.Max) { lootableGold += ((uint)_rng.Next((int)(lootTable.Gold.Min), (int)(lootTable.Gold.Max))); } });
+            
+            return lootableGold;
+        }
+
+        /// <summary>
+        /// Creates a list of LootItems from the LootTables
+        /// </summary>
+        /// <returns>List of LootItems</returns>
+        public List<ItemObject> LootableItems()
+        {
+            List<ItemObject> lootableItems = new List<ItemObject>();
+
+            if(_spawnLootTable.Count > 0)
+            {
+                foreach(var table in _spawnLootTable)
+                {
+                    var numberOfItemsToGet = 0;
+                    for(int i = 0; i < table.Items.Rolls; i++)
+                    {
+                        if(table.Items.Chance >= _rng.NextDouble())
+                        {
+                            numberOfItemsToGet++;
+                        }
+                    }
+
+                    if(numberOfItemsToGet > 0)
+                    {
+                        //now get the number of random items
+
+                        var creaturesLootItem = new List<Creatures.LootItem>();
+                        var alwaysItems = new List<Creatures.LootItem>();
+                        var possibleItems = new List<Creatures.LootItem>(table.Items.Items);
+                        
+                        //first determine all "Always" items
+                        foreach(var item in possibleItems)
+                        {
+                            if (item.Always)
+                            {
+                                alwaysItems.Add(item);
+                            }
+                        }
+                        possibleItems.RemoveAll(item => alwaysItems.Contains(item));
+
+                        //then get all other items, taking into account unique items only drop once
+                        while (numberOfItemsToGet > 0)
+                        {
+                            if(possibleItems.Count > 0)
+                            {
+                                var randomIndex = _rng.Next(0, possibleItems.Count);
+                                var item = possibleItems.ElementAt(randomIndex);
+
+                                if (item.Unique)
+                                {
+                                    possibleItems.Remove(item);
+                                    creaturesLootItem.Add(item);
+                                    numberOfItemsToGet--;
+                                }
+                                else
+                                {
+                                    creaturesLootItem.Add(item);
+                                    numberOfItemsToGet--;
+                                }
+                            }
+                            else
+                            {
+                                numberOfItemsToGet--;
+                            }
+                            creaturesLootItem.AddRange(alwaysItems);
+                        }
+
+                        var worldItemTemplates = Game.World.WorldData.Values<Items.Item>();
+
+
+                        foreach (var item in creaturesLootItem)
+                        {
+                            var possibleItemTemplate = worldItemTemplates.Where(x => (x.IsVariant == true && x.ParentItem.Name == item.Value) || x.Name.Equals(item.Value));
+                            var itemVariants = new List<string>(item.Variants);
+                            itemVariants.Add("normal");
+                            var randomVariant = _rng.Next(0, itemVariants.Count);
+                            var randomItemVariant = itemVariants.ElementAt(randomVariant);
+
+                            //Check that Min is less than Max, otherwise only generate one
+                            int randomQty;
+                            if (item.Min < item.Max && item.Unique == false) randomQty = _rng.Next(item.Min, item.Max);
+                            else randomQty = 1;
+
+                            if (randomItemVariant.Equals("normal"))
+                            {
+                                foreach (var itemTemplate in possibleItemTemplate)
+                                {
+                                    if (itemTemplate.Name.Equals(item.Value, StringComparison.CurrentCultureIgnoreCase))
+                                    {
+                                        lootableItems.Add(Game.World.CreateItem(itemTemplate.Id, randomQty));
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                foreach (var itemTemplate in possibleItemTemplate)
+                                {
+                                    if (itemTemplate.Name.Contains(randomItemVariant, StringComparison.CurrentCultureIgnoreCase))
+                                    {
+                                        lootableItems.Add(Game.World.CreateItem(itemTemplate.Id, randomQty));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            return lootableItems;
         }
     }
 

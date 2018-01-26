@@ -238,6 +238,7 @@ namespace Hybrasyl.Castables
             return false;
         }
     }
+
 }
 
 namespace Hybrasyl.Statuses
@@ -307,11 +308,43 @@ namespace Hybrasyl.Config
 
 namespace Hybrasyl.Creatures
 {
+    public partial class LootTable
+    {
+        public static explicit operator LootTable(Loot.LootTable table)
+        {
+            var ret = new LootTable();
+            ret.Items = new LootTableItemList();
+            ret.Items.Items = new List<LootItem>();
 
+            ret.Chance = table.Chance;
+            ret.Gold.Min = table.Gold.Min;
+            ret.Gold.Max = table.Gold.Max;
+            ret.Items.Chance = table.Items.Chance;
 
+            foreach (var items in table.Items.Items)
+            {
+                var newLootItem = new LootItem();
+                newLootItem.Always = items.Always;
+                newLootItem.Max = items.Max;
+                newLootItem.Min = items.Min;
+                newLootItem.Unique = items.Unique;
+                newLootItem.Value = items.Value;
+                newLootItem.Variants = items.Variants;
+
+                ret.Items.Items.Add(newLootItem);
+            }
+
+            ret.Items.Rolls = table.Items.Rolls;
+            ret.Rolls = table.Rolls;
+
+            return ret;
+        }
+    }
+    
+    
     public partial class Spawn
     {
-        protected static Random Rng = new Random();
+        protected Random Rng = new Random();
 
         /// <summary>
         /// Calculate a specific offensive element for a spawn from its list of elements.
@@ -342,8 +375,6 @@ namespace Hybrasyl.Creatures
             // Only deal with "base" elements for right now
             return (Element)Rng.Next(1, 4);
         }
-
-
     }
     public partial class Map
     {
@@ -377,3 +408,4 @@ namespace Hybrasyl.Nations
         }
     }
 }
+

@@ -111,6 +111,12 @@ namespace Hybrasyl
         public const int DEATHPILE_GROUP_TIMEOUT = 0; // Group/self can pick up deathpile immediately
         public const int DEATHPILE_RANDO_TIMEOUT = 900; // Randos can pick up death piles after 15 minutes
 
+        // Monster loot drop timeouts (how long someone has to wait until they can loot someone elses monster loot)
+        public const int MONSTER_LOOT_DROP_RANDO_TIMEOUT = 60; //Randos can pick up loot after 1 minute
+
+        // Monster tagging timeout
+        public const int MONSTER_TAGGING_TIMEOUT = 300;
+        
         // Heartbeat controls
         // Every BYTE_HEARTBEAT_INTERVAL and TICK_HEARTBEAT_INTERVAL seconds, Hybrasyl sends 0x3B and 0x68 
         // heartbeat packets to clients.
@@ -380,6 +386,14 @@ namespace Hybrasyl
                 value is long || value is ulong;
             }
         } // end TypeExtensions
+
+        public static class StringExtensions
+        {
+            public static bool Contains(this string source, string toCheck, StringComparison comparision)
+            {
+                return source?.IndexOf(toCheck, comparision) >= 0;
+            }
+        }
 
     } // end Namespace:Utility
 

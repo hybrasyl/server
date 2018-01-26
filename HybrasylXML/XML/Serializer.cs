@@ -29,6 +29,7 @@ using Status = Hybrasyl.Statuses.Status;
 using Map = Hybrasyl.Maps.Map;
 using Npc = Hybrasyl.Creatures.Npc;
 using System;
+using Hybrasyl.Loot;
 
 namespace Hybrasyl.XML
 {

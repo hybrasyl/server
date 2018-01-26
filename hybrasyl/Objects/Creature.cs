@@ -67,6 +67,7 @@ namespace Hybrasyl.Objects
             Stats = new StatInfo();
             Condition = new ConditionInfo(this);
             _currentStatuses = new ConcurrentDictionary<ushort, ICreatureStatus>();
+            LastHitTime = DateTime.MinValue;
         }
 
         public override void OnClick(User invoker)
@@ -359,8 +360,10 @@ namespace Hybrasyl.Objects
                 return start;
         }
 
-        private uint _mLastHitter;
+        public DateTime LastHitTime { get; private set; }
+        public Creature FirstHitter { get; private set; }
 
+        private uint _mLastHitter;
         public Creature LastHitter
         {
             get
@@ -473,6 +476,7 @@ namespace Hybrasyl.Objects
         public virtual bool UseCastable(Castable castObject, Creature target = null)
         {
             if (!Condition.CastingAllowed) return false;
+            
             if (this is User) ActivityLogger.Info($"UseCastable: {Name} begin casting {castObject.Name} on target: {target?.Name ?? "no target"} CastingAllowed: {Condition.CastingAllowed}");
 
             var damage = castObject.Effects.Damage;
@@ -801,6 +805,14 @@ namespace Hybrasyl.Objects
 
         public virtual void Damage(double damage, Enums.Element element = Enums.Element.None, Enums.DamageType damageType = Enums.DamageType.Direct, Castables.DamageFlags damageFlags = Castables.DamageFlags.None, Creature attacker = null, bool onDeath = true)
         {
+            if (attacker is User && this is Monster)
+            {
+                if (FirstHitter == null || !Game.World.ActiveUsersByName.ContainsKey(FirstHitter.Name) || ((DateTime.Now - LastHitTime).TotalSeconds > Constants.MONSTER_TAGGING_TIMEOUT)) FirstHitter = attacker;
+                if (attacker != FirstHitter && !((FirstHitter as User).Group?.Members.Contains(attacker) ?? false)) return;
+            }
+
+            LastHitTime = DateTime.Now;
+
             if (damageType == Enums.DamageType.Physical && (AbsoluteImmortal || PhysicalImmortal))
                 return;
 

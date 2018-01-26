@@ -50,19 +50,21 @@ namespace Hybrasyl.Objects
         public string DisplayText { get; set; }
 
         public string DeathPileOwner { get; set; }
-        public List<string> DeathPileAllowedLooters { get; set; }
-        public DateTime? DeathPileTime { get; set; }
+        public List<string> ItemDropAllowedLooters { get; set; }
+        public DateTime? ItemDropTime { get; set; }
+        public ItemDropType ItemDropType { get; set; }
 
         public HashSet<User> viewportUsers { get; private set; }
 
         public VisibleObject()
         {
             DisplayText = string.Empty;
-            DeathPileAllowedLooters = new List<string>();
             DeathPileOwner = string.Empty;
-            DeathPileTime = null;
+            ItemDropAllowedLooters = new List<string>();
+            ItemDropTime = null;
             viewportUsers = new HashSet<User>();
             Location = new LocationInfo();
+            ItemDropType = ItemDropType.Normal;
         }
 
         public virtual void AoiEntry(VisibleObject obj)
@@ -86,13 +88,25 @@ namespace Hybrasyl.Objects
                 error = "You can't do that.";
                 return false;
             }
-            // Check if the item is part of a death pile
-            if (DeathPileTime == null) return true;
-            if (DeathPileOwner == username) return true;
-            if (DeathPileAllowedLooters.Contains(username) &&
-                (DateTime.Now - DeathPileTime.Value).Seconds > Constants.DEATHPILE_GROUP_TIMEOUT) return true;
-            if ((DateTime.Now - DeathPileTime.Value).Seconds > Constants.DEATHPILE_RANDO_TIMEOUT) return true;
+
+
+            var timeDropDifference = (DateTime.Now - ItemDropTime.Value).TotalSeconds;
+
+            // Check if the item is a normal dropped item, monster loot or deathpile
+            if (ItemDropType == ItemDropType.Normal) { return true; }
+            else if (ItemDropType == ItemDropType.MonsterLootPile)
+            {
+                if (ItemDropAllowedLooters.Contains(username)) return true;
+                if (timeDropDifference > Constants.MONSTER_LOOT_DROP_RANDO_TIMEOUT) return true;
+            }
+            else // (ItemDropType == ItemDropType.UserDeathPile)
+            {
+                if (DeathPileOwner.Equals(username)) return true;
+                if (ItemDropAllowedLooters.Contains(username) && timeDropDifference > Constants.DEATHPILE_GROUP_TIMEOUT) return true;
+                if (timeDropDifference > Constants.DEATHPILE_RANDO_TIMEOUT) return true;
+            }
             error = "These items are cursed.";
+
             return false;
         }
 
