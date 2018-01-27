@@ -1185,7 +1185,7 @@ namespace Hybrasyl.Objects
 
             // Check that all requirements are met first. Note that a spell cannot be cast if its HP cost would result
             // in the caster's HP being reduced to zero.
-            if (reduceHp > Stats.Hp || reduceMp >= Stats.Mp || costs.Gold > Gold || !hasItemCost) return false;
+            if (reduceHp >= Stats.Hp || reduceMp > Stats.Mp || costs.Gold > Gold || !hasItemCost) return false;
 
             if (costs.Gold > this.Gold) return false;
 
