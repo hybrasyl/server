@@ -2130,10 +2130,8 @@ namespace Hybrasyl.Objects
                 // This may need to occur elsewhere, depends on how it looks in game
                 if (castObject.TryGetMotion((Class)Class, out Motion motion))
                     SendMotion(Id, motion.Id, motion.Speed);
-                Condition.Casting = false;
                 return true;
             }
-            Condition.Casting = false;
             return false;
         }
 
@@ -2159,7 +2157,7 @@ namespace Hybrasyl.Objects
             Enqueue(assail.Packet());
             PlaySound(soundId);
             SendAnimation(assail.Packet());
-            PlaySound(soundId);           
+            PlaySound(soundId);
         }
 
 

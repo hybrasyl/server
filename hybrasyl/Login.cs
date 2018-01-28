@@ -130,7 +130,7 @@ namespace Hybrasyl
                     client.ConnectionId, name);
                 client.Redirect(redirect);
                 loginUser.Login.LastLogin = DateTime.Now;
-                loginUser.Login.LastLoginFrom = ((IPEndPoint) client.Socket.RemoteEndPoint).Address.ToString();          
+                loginUser.Login.LastLoginFrom = ((IPEndPoint) client.Socket.RemoteEndPoint).Address.ToString();
                 loginUser.Save();
             }
             else
