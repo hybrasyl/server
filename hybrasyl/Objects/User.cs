@@ -570,6 +570,14 @@ namespace Hybrasyl.Objects
         public User() : base()
         {
             _initializeUser();
+            if (Statuses != null)
+            {
+                foreach (var status in Statuses)
+                {
+                    Logger.Info($"yo: {status.Name}, {status.Remaining}");
+                }
+            }
+          
         }
 
         private void _initializeUser(string playername = "")
@@ -595,6 +603,7 @@ namespace Hybrasyl.Objects
             Group = null;
             Flags = new Dictionary<string, bool>();
             _currentStatuses = new ConcurrentDictionary<ushort, ICreatureStatus>();
+            Statuses = new List<StatusInfo>();
           
             #region Appearance defaults
             RestPosition = RestPosition.Standing;
@@ -959,6 +968,8 @@ namespace Hybrasyl.Objects
             lock (_serializeLock)
             {
                 var cache = World.DatastoreConnection.GetDatabase();
+                if (Statuses.Count == 0)
+                    Statuses = _currentStatuses.Values.Select(e => e.Info).ToList();
                 cache.Set(GetStorageKey(Name), JsonConvert.SerializeObject(this, new JsonSerializerSettings() { PreserveReferencesHandling = PreserveReferencesHandling.All }));
             }
         }
@@ -2090,7 +2101,7 @@ namespace Hybrasyl.Objects
                     Stats.Hp = 1;
                     var handler = Game.Config.Handlers?.Death?.Coma;
                     if (handler != null && World.WorldData.TryGetValueByIndex(handler.Value, out Status status))
-                        ApplyStatus(new CreatureStatus(status, this, null));
+                        ApplyStatus(new CreatureStatus(status, this, attacker, null));
                     else
                     {
                         Logger.Warn("No coma handler or status found - user {Name} died!");

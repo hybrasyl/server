@@ -47,8 +47,10 @@ namespace Hybrasyl.Objects
         [JsonProperty]
         public ConditionInfo Condition { get; set; }
 
-        [JsonProperty]
         protected ConcurrentDictionary<ushort, ICreatureStatus> _currentStatuses;
+
+        [JsonProperty]
+        public List<StatusInfo> Statuses;
 
         [JsonProperty]
         public uint Gold { get; set; }
@@ -547,7 +549,7 @@ namespace Hybrasyl.Objects
                     if (World.WorldData.TryGetValueByIndex<Status>(status.Value, out applyStatus))
                     {
                         ActivityLogger.Info($"UseCastable: {Name} casting {castObject.Name} - applying status {status.Value}");
-                        ApplyStatus(new CreatureStatus(applyStatus, tar, castObject));
+                        ApplyStatus(new CreatureStatus(applyStatus, tar, this, castObject));
                     }
                     else
                         ActivityLogger.Error($"UseCastable: {Name} casting {castObject.Name} - failed to add status {status.Value}, does not exist!");

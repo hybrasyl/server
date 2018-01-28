@@ -5,6 +5,8 @@ using Hybrasyl.Castables;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
 using Hybrasyl.Statuses;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Hybrasyl
 {
@@ -71,11 +73,12 @@ namespace Hybrasyl
             return false;
         }
     }
-
+    
     public interface ICreatureStatus
     {
 
         string Name { get; }
+        string CastableName { get; }
         string ActionProhibitedMessage { get; }
         int Duration { get; }
         int Tick { get; }
@@ -83,6 +86,9 @@ namespace Hybrasyl
         DateTime LastTick { get; }
         ushort Icon { get; }
 
+        StatusInfo Info { get; }
+        Creature Target { get; }
+        Creature Source { get; }
         bool Expired { get; }
         double Elapsed { get; }
         double Remaining { get; }
@@ -93,6 +99,13 @@ namespace Hybrasyl
         void OnTick();
         void OnEnd();
 
+    }
+   
+    public class StatusInfo
+    {
+        public string Name;
+        public string CastableName;
+        public double Remaining;
     }
 
     public class CreatureStatus : ICreatureStatus
@@ -105,11 +118,13 @@ namespace Hybrasyl
         public string UseCastRestrictions => XMLStatus.CastRestriction?.Use ?? string.Empty;
         public string ReceiveCastRestrictions => XMLStatus.CastRestriction?.Receive ?? string.Empty;
 
+        public StatusInfo Info => new StatusInfo() { Name = Name, CastableName = CastableName, Remaining = Remaining };
+
         private int _durationOverride;
         private int _tickOverride;
 
-        protected Creature Target { get; set; }
-        protected Creature Source { get; set; }
+        public Creature Target { get; }
+        public Creature Source { get; }
         protected User User => Target as User;
 
         public Conditions ConditionChanges => XMLStatus.Effects?.OnApply?.Conditions;
@@ -136,25 +151,24 @@ namespace Hybrasyl
 
         public double ElapsedSinceTick => (DateTime.Now - LastTick).TotalSeconds;
 
-        private void _init(Status xmlstatus, Creature target, Castable castable)
-        {
-            XMLStatus = xmlstatus;
-            Target = target;
-            Castable = castable;
-
-        }
-        public CreatureStatus(Status xmlstatus, Creature target, Castable castable = null,
+        public CreatureStatus(Status xmlstatus, Creature target, Creature source=null, Castable castable = null,
             int durationOverride = -1, int tickOverride = -1)
         {
-            _init(xmlstatus, target, castable);
+            Target = target;
+            Source = source;
+            XMLStatus = xmlstatus;
+            Castable = castable;
             Start = DateTime.Now;
             _durationOverride = durationOverride;
             _tickOverride = tickOverride;
         }
 
-        public CreatureStatus(Status xmlstatus, Creature target, Castable castable = null)
+        public CreatureStatus(Status xmlstatus, Creature target, Creature source=null, Castable castable = null)
         {
-            _init(xmlstatus, target, castable);
+            Target = target;
+            Source = source;
+            XMLStatus = xmlstatus;
+            Castable = castable;
             Start = DateTime.Now;
 
             var addList = castable?.Effects.Statuses.Add.Where(e => e.Value == xmlstatus.Name);
@@ -168,7 +182,7 @@ namespace Hybrasyl
 
         private void ProcessSfx(ModifierEffect effect)
         {
-            if (effect.Sound?.Id != null)
+            if (effect.Sound?.Id != 0)
                 User?.PlaySound(effect.Sound.Id);
             if (effect.Animations != null)
             {

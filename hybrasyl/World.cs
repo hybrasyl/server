@@ -1668,6 +1668,16 @@ namespace Hybrasyl
             loginUser.SendSpells();
             loginUser.SetCitizenship();
 
+            foreach (var status in loginUser.Statuses)
+            {
+                if (WorldData.TryGetValueByIndex(status.Name, out Status xmlstatus) &&
+                    WorldData.TryGetValueByIndex(status.CastableName, out Castable castable))
+                {
+                    loginUser.ApplyStatus(new CreatureStatus(xmlstatus, loginUser, null, castable, (int)status.Remaining));
+                }
+            }
+            loginUser.Statuses.Clear();
+
             Insert(loginUser);
             Logger.DebugFormat("Elapsed time since login: {0}", loginUser.SinceLastLogin);
 

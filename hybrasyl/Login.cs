@@ -29,6 +29,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using StackExchange.Redis;
+using Hybrasyl.Statuses;
 
 namespace Hybrasyl
 {
@@ -129,7 +130,7 @@ namespace Hybrasyl
                     client.ConnectionId, name);
                 client.Redirect(redirect);
                 loginUser.Login.LastLogin = DateTime.Now;
-                loginUser.Login.LastLoginFrom = ((IPEndPoint) client.Socket.RemoteEndPoint).Address.ToString();
+                loginUser.Login.LastLoginFrom = ((IPEndPoint) client.Socket.RemoteEndPoint).Address.ToString();          
                 loginUser.Save();
             }
             else

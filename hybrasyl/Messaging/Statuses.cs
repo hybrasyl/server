@@ -21,7 +21,7 @@ namespace Hybrasyl.Messaging
         {
             if (Game.World.WorldData.TryGetValueByIndex(args[0], out Status status))
             {
-                user.ApplyStatus(new CreatureStatus(status, user, null));
+                user.ApplyStatus(new CreatureStatus(status, user, null, null));
                 return Success();
             }
             return Fail("No such status was found. Missing XML file perhaps?");
