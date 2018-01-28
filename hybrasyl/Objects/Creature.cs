@@ -484,7 +484,7 @@ namespace Hybrasyl.Objects
 
             targets = GetTargets(castObject, target);
 
-            if (targets.Count() == 0) return false;
+            if (targets.Count() == 0 && castObject.IsAssail == false) return false;
 
             // We do these next steps to ensure effects are displayed uniformly and as fast as possible
             var deadMobs = new List<Creature>();

@@ -33,7 +33,7 @@ namespace Hybrasyl.Castables
 
         private Categories _categories;
 
-        private CastCostList _castCosts;
+        private List<CastCost> _castCosts;
 
         private List<Intent> _intents;
 
@@ -46,8 +46,6 @@ namespace Hybrasyl.Castables
         private Effects _effects;
 
         private string _script;
-
-        private Statuses _statuses;
 
         private string _type;
 
@@ -71,13 +69,12 @@ namespace Hybrasyl.Castables
         public Castable()
         {
             this._class = new List<Class>();
-            this._statuses = new Statuses();
             this._effects = new Effects();
             this._restrictions = new Restrictions();
             this._requirements = new List<Requirement>();
             this._maxLevel = new MaxLevel();
             this._intents = new List<Intent>();
-            this._castCosts = new CastCostList();
+            this._castCosts = new List<CastCost>();
             this._categories = new Categories();
             this._descriptions = new List<Description>();
             this._element = Element.None;
@@ -124,7 +121,8 @@ namespace Hybrasyl.Castables
             }
         }
 
-        public CastCostList CastCosts
+        [System.Xml.Serialization.XmlArrayItemAttribute(IsNullable = false)]
+        public List<CastCost> CastCosts
         {
             get
             {
@@ -207,18 +205,6 @@ namespace Hybrasyl.Castables
             set
             {
                 this._script = value;
-            }
-        }
-
-        public Statuses Statuses
-        {
-            get
-            {
-                return this._statuses;
-            }
-            set
-            {
-                this._statuses = value;
             }
         }
 
@@ -2504,36 +2490,6 @@ namespace Hybrasyl.Castables
             set
             {
                 this._class = value;
-            }
-        }
-    }
-
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
-    [System.SerializableAttribute()]
-    [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Actions")]
-    public partial class CastCostList
-    {
-
-        #region Private fields
-        private CastCost _castCost;
-        #endregion
-
-        public CastCostList()
-        {
-            this._castCost = new CastCost();
-        }
-
-        public CastCost CastCost
-        {
-            get
-            {
-                return this._castCost;
-            }
-            set
-            {
-                this._castCost = value;
             }
         }
     }

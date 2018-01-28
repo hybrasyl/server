@@ -261,6 +261,7 @@ namespace Hybrasyl.Objects
             var castable = World.WorldData.Get<Castable>(creatureCastable.Value);
             if (target is Merchant) return;
             UseCastable(castable, target);
+            Condition.Casting = false;
         }
 
         public void AssailAttack(Direction direction, Creature target = null)

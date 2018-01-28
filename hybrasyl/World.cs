@@ -1728,7 +1728,7 @@ namespace Hybrasyl
         {
             var me = (User)obj;
 
-            var list = from user in WorldData.Values<User>()
+            var list = from user in ActiveUsers.Values
                        orderby user.IsMaster descending, user.Stats.Level descending, user.Stats.BaseHp + user.Stats.BaseMp * 2 descending, user.Name ascending
                        select user;
 

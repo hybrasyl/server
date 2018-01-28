@@ -353,11 +353,11 @@ namespace Hybrasyl
         [Flags]
         public enum PlayerFlags : int
         {
-            Alive = 0x01,
-            InExchange = 0x20,
-            InDialog = 0x40,
-            Casting = 0x100,
-            Pvp = 0x200,
+            Alive = 1,
+            InExchange = 2,
+            InDialog = 4,
+            Casting = 8,
+            Pvp = 16,
             AliveExchange = (Alive | InExchange),
             ProhibitCast = (InExchange | InDialog | Casting)
         }
