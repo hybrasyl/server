@@ -103,20 +103,20 @@ namespace Hybrasyl
    
     public class StatusInfo
     {
-        public string Name;
-        public string CastableName;
-        public double Remaining;
+        public string Name { get; set; }
+        public string CastableName { get; set; }
+        public double Remaining { get; set; }
     }
 
     public class CreatureStatus : ICreatureStatus
     {
-        public string Name => XMLStatus.Name;
+        public string Name => XmlStatus.Name;
         public string CastableName => Castable?.Name ?? string.Empty;
-        public ushort Icon => XMLStatus.Icon;
-        public int Tick => _durationOverride == -1 ? XMLStatus.Tick : _durationOverride;
-        public int Duration => _tickOverride == -1 ? XMLStatus.Duration : _durationOverride;
-        public string UseCastRestrictions => XMLStatus.CastRestriction?.Use ?? string.Empty;
-        public string ReceiveCastRestrictions => XMLStatus.CastRestriction?.Receive ?? string.Empty;
+        public ushort Icon => XmlStatus.Icon;
+        public int Tick => _durationOverride == -1 ? XmlStatus.Tick : _durationOverride;
+        public int Duration => _tickOverride == -1 ? XmlStatus.Duration : _durationOverride;
+        public string UseCastRestrictions => XmlStatus.CastRestriction?.Use ?? string.Empty;
+        public string ReceiveCastRestrictions => XmlStatus.CastRestriction?.Receive ?? string.Empty;
 
         public StatusInfo Info => new StatusInfo() { Name = Name, CastableName = CastableName, Remaining = Remaining };
 
@@ -127,19 +127,19 @@ namespace Hybrasyl
         public Creature Source { get; }
         protected User User => Target as User;
 
-        public Conditions ConditionChanges => XMLStatus.Effects?.OnApply?.Conditions;
+        public Conditions ConditionChanges => XmlStatus.Effects?.OnApply?.Conditions;
 
         public DateTime Start { get; }
 
         public DateTime LastTick { get; private set; }
 
         public Castable Castable { get; set; }
-        public Status XMLStatus  { get; set; }
+        public Status XmlStatus  { get; set; }
         public string ActionProhibitedMessage { get; set; }
 
-        private void _processStart() => ProcessFullEffects(XMLStatus.Effects?.OnApply);
-        private void _processTick() => ProcessEffects(XMLStatus.Effects?.OnTick);
-        private void _processRemove() => ProcessFullEffects(XMLStatus.Effects?.OnRemove, true);
+        private void _processStart() => ProcessFullEffects(XmlStatus.Effects?.OnApply);
+        private void _processTick() => ProcessEffects(XmlStatus.Effects?.OnTick);
+        private void _processRemove() => ProcessFullEffects(XmlStatus.Effects?.OnRemove, true);
 
         public void OnStart() => _processStart();
         public void OnEnd() => _processRemove();
@@ -156,7 +156,7 @@ namespace Hybrasyl
         {
             Target = target;
             Source = source;
-            XMLStatus = xmlstatus;
+            XmlStatus = xmlstatus;
             Castable = castable;
             Start = DateTime.Now;
             _durationOverride = durationOverride;
@@ -167,7 +167,7 @@ namespace Hybrasyl
         {
             Target = target;
             Source = source;
-            XMLStatus = xmlstatus;
+            XmlStatus = xmlstatus;
             Castable = castable;
             Start = DateTime.Now;
 
@@ -293,7 +293,7 @@ namespace Hybrasyl
         {
             // Stat modifiers and condition changes are only processed during start/remove
             ProcessConditions(effect);
-            ProcessStatModifiers(XMLStatus.Effects?.OnApply?.StatModifiers, RemoveStatBonuses);
+            ProcessStatModifiers(XmlStatus.Effects?.OnApply?.StatModifiers, RemoveStatBonuses);
             ProcessSfx(effect);
             ProcessDamageEffects(effect);
         }
