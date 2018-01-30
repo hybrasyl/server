@@ -3518,12 +3518,17 @@ namespace Hybrasyl.Objects
             return Client.IsHeartbeatExpired();
         }
 
-        public void Logoff()
+        public void Logoff(bool disconnect = false)
         {
-                UpdateLogoffTime();
-                Save();
+            UpdateLogoffTime();
+            Save();
+            if (!disconnect)
+            {
                 var redirect = new Redirect(Client, Game.World, Game.Login, "socket", Client.EncryptionSeed, Client.EncryptionKey);
                 Client.Redirect(redirect, true);
+            }
+            else
+                Client.Socket.Disconnect(true);
         }
 
         public void SetEncryptionParameters(byte[] key, byte seed, string name)

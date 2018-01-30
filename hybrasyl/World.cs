@@ -1079,10 +1079,11 @@ namespace Hybrasyl
         {
             Logger.WarnFormat("Shutdown initiated, disconnecting {0} active users", ActiveUsers.Count);
 
+            Active = false;
             foreach (var connection in ActiveUsers)
             {
                 var user = connection.Value;
-                user.Logoff();
+                user.Logoff(true);
             }
             Listener.Close();
             Logger.Warn("Shutdown complete");
@@ -1172,7 +1173,7 @@ namespace Hybrasyl
             {
                 var user = connection.Value;
                 user.SendMessage("Chaos is rising up. Please re-enter in a few minutes.",
-                    Hybrasyl.MessageTypes.SYSTEM_WITH_OVERHEAD);
+                    MessageTypes.SYSTEM_WITH_OVERHEAD);
             }
 
             // Actually shut down the server. This terminates the listener loop in Game.
@@ -1728,7 +1729,7 @@ namespace Hybrasyl
         {
             var me = (User)obj;
 
-            var list = from user in WorldData.Values<User>()
+            var list = from user in ActiveUsers.Values
                        orderby user.IsMaster descending, user.Stats.Level descending, user.Stats.BaseHp + user.Stats.BaseMp * 2 descending, user.Name ascending
                        select user;
 

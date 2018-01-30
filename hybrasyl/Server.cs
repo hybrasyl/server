@@ -57,7 +57,7 @@ namespace Hybrasyl
 
         public CancellationToken StopToken { get; set; }
 
-        public bool Active { get; private set; }
+        public bool Active { get; protected set; }
 
         public static ManualResetEvent AllDone = new ManualResetEvent(false);
 
@@ -96,12 +96,16 @@ namespace Hybrasyl
         {
             Listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             Listener.Bind(new IPEndPoint(IPAddress.Any, Port));
+            Active = true;
             Listener.Listen(100);
             Logger.InfoFormat("Starting TcpListener: {0}:{1}", IPAddress.Any.ToString(), Port);
             while (true)
             {
                 if (StopToken.IsCancellationRequested)
+                {
+                    Active = false;
                     return;
+                }
                 AllDone.Reset();
                 Listener.BeginAccept(new AsyncCallback(AcceptConnection), Listener);
                 AllDone.WaitOne();
@@ -112,8 +116,19 @@ namespace Hybrasyl
         {
             // TODO: @norrismiv async callbacks+inheritance? and/or can these callbacks suck less?
             AllDone.Set();
-            Socket clientSocket = (Socket) ar.AsyncState;
-            Socket handler = clientSocket.EndAccept(ar);
+            if (!Active) return;
+            Socket handler;
+            Socket clientSocket;
+            try
+            {
+                clientSocket = (Socket)ar.AsyncState;
+                handler = clientSocket.EndAccept(ar);
+            }
+            catch (ObjectDisposedException e)
+            {
+                Logger.Error($"Disposed socket {e.Message}");
+                return;
+            }
             Client client = new Client(handler, this);
             Clients.TryAdd(handler.Handle, client);
             GlobalConnectionManifest.RegisterClient(client);
