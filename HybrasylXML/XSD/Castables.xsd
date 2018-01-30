@@ -364,7 +364,7 @@
       <xs:element name="Heal" minOccurs="0" maxOccurs="1" type="actions:Heal" />
       <xs:element name="Damage" minOccurs="0" maxOccurs="1" type="actions:Damage" />
       <xs:element name="StatModifiers" minOccurs="0" maxOccurs="1" type="actions:StatModifiers" />
-      <xs:element name="Statuses" minOccurs="0" maxOccurs="0" type="actions:Statuses" />
+      <xs:element name="Statuses" minOccurs="0" maxOccurs="1" type="actions:Statuses" />
     </xs:all>
     <xs:attribute name="ScriptOverride" type="xs:boolean" default="false"/>
   </xs:complexType>
