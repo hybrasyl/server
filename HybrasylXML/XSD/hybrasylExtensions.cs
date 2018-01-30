@@ -222,20 +222,19 @@ namespace Hybrasyl.Castables
         public bool TryGetMotion(Class castClass, out Motion motion)
         {
             motion = null;
-            try
-            {
-                motion = Effects.Animations.OnCast.Player.SingleOrDefault(x => x.Class.Contains(castClass));
-            }
-            catch (InvalidOperationException)
-            {
-                motion = Effects.Animations.OnCast.Player.FirstOrDefault(x => x.Class.Contains(castClass));
-            }
-            catch (NullReferenceException)
-            {
+
+            if (Effects?.Animations?.OnCast?.Player == null) return false;
+
+            var m = Effects.Animations.OnCast.Player.Where(e => e.Class.Contains(castClass));
+            if (m.Count() == 0)
+                m = Effects.Animations.OnCast.Player.Where(e => e.Class.Count == 0);
+
+            if (m.Count() == 0)
                 return false;
-            }           
-            if (motion != null) return true;
-            return false;
+            else
+                motion = m.First();
+
+            return true;
         }
     }
 

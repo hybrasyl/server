@@ -484,7 +484,7 @@ namespace Hybrasyl.Objects
 
             targets = GetTargets(castObject, target);
 
-            if (targets.Count() == 0) return false;
+            if (targets.Count() == 0 && castObject.IsAssail == false) return false;
 
             // We do these next steps to ensure effects are displayed uniformly and as fast as possible
             var deadMobs = new List<Creature>();
@@ -511,7 +511,7 @@ namespace Hybrasyl.Objects
                     // DoStuff();
                     continue;
                 }
-                if (castObject.Effects?.Damage != null)
+                if (!castObject.Effects.Damage.IsEmpty)
                 {
                     Enums.Element attackElement;
                     var damageOutput = NumberCruncher.CalculateDamage(castObject, tar, this);
@@ -532,7 +532,7 @@ namespace Hybrasyl.Objects
                 }
                 // Note that we ignore castables with both damage and healing effects present - one or the other.
                 // A future improvement might be to allow more complex effects.
-                else if (castObject.Effects.Heal != null)
+                else if (!castObject.Effects.Heal.IsEmpty)
                 {
                     var healOutput = NumberCruncher.CalculateHeal(castObject, tar, this);
                     tar.Heal(healOutput, this);

@@ -117,7 +117,7 @@ namespace Hybrasyl
 
             if (effect?.Damage == null) return (dmg, type, Castables.DamageFlags.None);
 
-            var statusAdd = castable?.Statuses?.Add?.Where(e => e.Value == statusName)?.ToList();
+            var statusAdd = castable?.Effects?.Statuses?.Add?.Where(e => e.Value == statusName)?.ToList();
             var intensity = statusAdd != null ? statusAdd[0].Intensity : 1;
 
             if (effect.Damage.IsSimple)
@@ -145,7 +145,7 @@ namespace Hybrasyl
 
             if (effect?.Heal == null) return heal;
 
-            var statusAdd = castable?.Statuses?.Add?.Where(e => e.Value == statusName)?.ToList();
+            var statusAdd = castable?.Effects?.Statuses?.Add?.Where(e => e.Value == statusName)?.ToList();
             var intensity = statusAdd != null ? statusAdd[0].Intensity : 1;
 
             if (effect.Heal.IsSimple)

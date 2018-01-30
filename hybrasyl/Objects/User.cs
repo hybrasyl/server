@@ -45,6 +45,7 @@ using Hybrasyl.Statuses;
 namespace Hybrasyl.Objects
 {
 
+
     [JsonObject]
     public class GuildMembership
     {
@@ -75,7 +76,6 @@ namespace Hybrasyl.Objects
     [JsonObject(MemberSerialization.OptIn)]
     public class User : Creature
     {
-
         private object _serializeLock = new object();
 
         public new static readonly ILog Logger =
@@ -101,6 +101,7 @@ namespace Hybrasyl.Objects
         [JsonProperty]
         public bool IsMaster { get; set; }
         public UserGroup Group { get; set; }
+
         
         public Mailbox Mailbox => World.GetMailbox(Name);
         public bool UnreadMail => Mailbox.HasUnreadMessages;
@@ -594,7 +595,7 @@ namespace Hybrasyl.Objects
             Group = null;
             Flags = new Dictionary<string, bool>();
             _currentStatuses = new ConcurrentDictionary<ushort, ICreatureStatus>();
-
+          
             #region Appearance defaults
             RestPosition = RestPosition.Standing;
             SkinColor = SkinColor.Basic;
@@ -1155,12 +1156,20 @@ namespace Hybrasyl.Objects
         /// <returns>True or false depending on success.</returns>
         public bool ProcessCastingCost(Castable castable)
         {
-            if (castable.CastCosts?.CastCost == null) return true;
+            if (castable.CastCosts.Count == 0) return true;
 
-            var costs = castable.CastCosts.CastCost;
+            var costStruct = castable.CastCosts.Where(e => e.Class.Contains((Class)Class));
+
+            if (costStruct.Count() == 0)
+                costStruct = castable.CastCosts.Where(e => e.Class.Count == 0);
+
+            if (costStruct.Count() == 0)
+                return true;
+
             uint reduceHp = 0;
             uint reduceMp = 0;
-            int removeNumItems = 0;
+            bool hasItemCost = true;
+            var costs = costStruct.First();
 
             // HP cost can be either a percentage (0.25) or a fixed amount (50)
             if (costs.Stat?.Hp != null)
@@ -1179,26 +1188,21 @@ namespace Hybrasyl.Objects
             {
                 foreach (var item in costs.Items)
                 {
-                    if (Inventory.Contains(item.Value, item.Quantity)) removeNumItems++;
+                    if (!Inventory.Contains(item.Value, item.Quantity)) hasItemCost = false;
                 }
             }
 
             // Check that all requirements are met first. Note that a spell cannot be cast if its HP cost would result
             // in the caster's HP being reduced to zero.
-            if (reduceHp > Stats.Hp || reduceMp >= Stats.Mp || costs.Gold > Gold || (removeNumItems != 0 && costs.Items.Count == removeNumItems)) return false;
+            if (reduceHp >= Stats.Hp || reduceMp > Stats.Mp || costs.Gold > Gold || !hasItemCost) return false;
 
             if (costs.Gold > this.Gold) return false;
 
             if (reduceHp != 0) Stats.Hp -= reduceHp;
             if (reduceMp != 0) Stats.Mp -= reduceMp;
             if ((int)costs.Gold > 0 ) this.RemoveGold(new Gold(costs.Gold));
-            if (removeNumItems > 0)
-            {
-                foreach(var item in costs.Items)
-                {
-                    RemoveItem(item.Value, item.Quantity);
-                }                
-            }
+            costs.Items?.ForEach(item => RemoveItem(item.Value, item.Quantity));
+
             UpdateAttributes(StatUpdateFlags.Current);
             return true;
         }
@@ -2115,8 +2119,10 @@ namespace Hybrasyl.Objects
                 // This may need to occur elsewhere, depends on how it looks in game
                 if (castObject.TryGetMotion((Class)Class, out Motion motion))
                     SendMotion(Id, motion.Id, motion.Speed);
+                Condition.Casting = false;
                 return true;
             }
+            Condition.Casting = false;
             return false;
         }
 
@@ -2142,7 +2148,7 @@ namespace Hybrasyl.Objects
             Enqueue(assail.Packet());
             PlaySound(soundId);
             SendAnimation(assail.Packet());
-            PlaySound(soundId);
+            PlaySound(soundId);           
         }
 
 

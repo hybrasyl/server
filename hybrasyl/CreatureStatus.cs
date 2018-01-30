@@ -157,11 +157,11 @@ namespace Hybrasyl
             _init(xmlstatus, target, castable);
             Start = DateTime.Now;
 
-            var addList = castable?.Statuses.Add.Where(e => e.Value == xmlstatus.Name);
+            var addList = castable?.Effects.Statuses.Add.Where(e => e.Value == xmlstatus.Name);
             if (addList?.Count() > 0)
             {
                 var addObj = addList.First();
-                _durationOverride = addObj.Duration * xmlstatus.Duration;
+                _durationOverride = addObj.Duration != 0 ? addObj.Duration : xmlstatus.Duration;
                 _tickOverride = (int) Math.Floor(addObj.Speed * xmlstatus.Tick);
             }
         }

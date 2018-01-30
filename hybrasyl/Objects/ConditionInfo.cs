@@ -40,8 +40,8 @@ namespace Hybrasyl.Objects
                 var conditionCheck = Asleep || Frozen || Paralyzed || Comatose;
 
                 if (User != null)
-                    conditionCheck = conditionCheck || ((Flags & PlayerFlags.ProhibitCast) != 0);
-                return conditionCheck;
+                    conditionCheck = conditionCheck || Flags.HasFlag(PlayerFlags.ProhibitCast);
+                return !conditionCheck;
             }
         }
 
@@ -127,7 +127,7 @@ namespace Hybrasyl.Objects
             set
             {
                 if (value == false)
-                    Flags &= PlayerFlags.Pvp;
+                    Flags &= ~PlayerFlags.Pvp;
                 else
                     Flags |= PlayerFlags.Pvp;
             }
@@ -139,7 +139,7 @@ namespace Hybrasyl.Objects
             set
             {
                 if (value == false)
-                    Flags &= PlayerFlags.Casting;
+                    Flags &= ~PlayerFlags.Casting;
                 else
                     Flags |= PlayerFlags.Casting;
             }

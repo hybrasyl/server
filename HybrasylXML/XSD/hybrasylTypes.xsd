@@ -190,12 +190,16 @@
 
   <xs:simpleType name="IntentType">
     <xs:restriction base="xs:token">
-      <xs:enumeration value="Hostile"/> <!-- Hostile to players and can be attacked -->
-      <xs:enumeration value="Passive"/> <!-- Passive to players and cannot be attacked -->
-      <xs:enumeration value="Neutral"/> <!-- Passive to players and can be attacked -->
+      <xs:enumeration value="Hostile"/>
+      <!-- Hostile to players and can be attacked -->
+      <xs:enumeration value="Passive"/>
+      <!-- Passive to players and cannot be attacked -->
+      <xs:enumeration value="Neutral"/>
+      <!-- Passive to players and can be attacked -->
+
     </xs:restriction>
   </xs:simpleType>
-
+  
   <xs:simpleType name="WeaponType">
     <xs:restriction base="xs:token">
       <xs:enumeration value="OneHand" />

@@ -38,7 +38,6 @@ namespace Hybrasyl.Messaging
                         var split = ArgsRegex.Split(option);
                         if (split.Count() == 1)
                         {
-                            Logger.Info($"{command}: option foreach, {option}, argcount {option.Count(e => e == '<')}");
                             allowedArgcounts.Add(option.Count(e => e == '<'));
                         }
                         else
