@@ -71,4 +71,21 @@ namespace Hybrasyl.Messaging
         public new static ChatCommandResult Run(User user, params string[] args) => Success($"Flags: {user.Condition.Flags} Conditions: {user.Condition.Conditions}");
     }
 
+    class StatusesCommand : ChatCommand
+    {
+        public new static string Command = "statuses";
+        public new static string ArgumentText = "none";
+        public new static string HelpText = "Display information about current statuses.";
+        public new static bool Privileged = false;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            user.Save();
+            string statusReport = string.Empty;
+            foreach (var status in user.Statuses)
+                statusReport = $"{statusReport}{status.Name}: {status.Remaining} seconds remaining, tick every {status.Tick} seconds\n";
+            user.SendMessage(statusReport, MessageTypes.SLATE_WITH_SCROLLBAR);
+            return Success();
+        }
+    }
 }

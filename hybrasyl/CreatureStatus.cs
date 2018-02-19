@@ -5,6 +5,7 @@ using Hybrasyl.Castables;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
 using Hybrasyl.Statuses;
+using log4net;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -74,14 +75,13 @@ namespace Hybrasyl
         }
     }
     
+    
     public interface ICreatureStatus
     {
-
         string Name { get; }
-        string CastableName { get; }
         string ActionProhibitedMessage { get; }
-        int Duration { get; }
-        int Tick { get; }
+        double Duration { get; }
+        double Tick { get; }
         DateTime Start { get; }
         DateTime LastTick { get; }
         ushort Icon { get; }
@@ -99,29 +99,51 @@ namespace Hybrasyl
         void OnTick();
         void OnEnd();
 
+        SimpleStatusEffect OnStartEffect { get; }
+        SimpleStatusEffect OnTickEffect { get; }
+        SimpleStatusEffect OnEndEffect { get; }
     }
-   
+
     public class StatusInfo
     {
         public string Name { get; set; }
-        public string CastableName { get; set; }
+        public SimpleStatusEffect OnStartEffect { get; set; }
+        public SimpleStatusEffect OnTickEffect { get; set; }
+        public SimpleStatusEffect OnEndEffect { get; set; }
         public double Remaining { get; set; }
+        public double Tick { get; set; }
+    }
+
+    public class SimpleStatusEffect
+    {
+        double Heal { get; set; }
+        DamageOutput Damage { get; set; }
+
+        public SimpleStatusEffect(double heal, DamageOutput damage)
+        {
+            Heal = heal;
+            Damage = damage;
+        }
     }
 
     public class CreatureStatus : ICreatureStatus
     {
+        public static readonly ILog Logger =
+           LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
+        private static readonly ILog ActivityLogger = LogManager.GetLogger("UserActivityLogger");
+
         public string Name => XmlStatus.Name;
-        public string CastableName => Castable?.Name ?? string.Empty;
         public ushort Icon => XmlStatus.Icon;
-        public int Tick => _durationOverride == -1 ? XmlStatus.Tick : _durationOverride;
-        public int Duration => _tickOverride == -1 ? XmlStatus.Duration : _durationOverride;
+        public double Tick => _tickOverride == -1 ? XmlStatus.Tick : _tickOverride;
+        public double Duration => _durationOverride == -1 ? XmlStatus.Duration : _durationOverride;
         public string UseCastRestrictions => XmlStatus.CastRestriction?.Use ?? string.Empty;
         public string ReceiveCastRestrictions => XmlStatus.CastRestriction?.Receive ?? string.Empty;
 
-        public StatusInfo Info => new StatusInfo() { Name = Name, CastableName = CastableName, Remaining = Remaining };
+        public StatusInfo Info => new StatusInfo() { Name = Name, OnStartEffect = OnStartEffect, OnEndEffect = OnEndEffect, OnTickEffect = OnTickEffect, Remaining = Remaining, Tick = Tick};
 
-        private int _durationOverride;
-        private int _tickOverride;
+        private double _durationOverride;
+        private double _tickOverride;
 
         public Creature Target { get; }
         public Creature Source { get; }
@@ -134,16 +156,16 @@ namespace Hybrasyl
         public DateTime LastTick { get; private set; }
 
         public Castable Castable { get; set; }
-        public Status XmlStatus  { get; set; }
+        public Status XmlStatus { get; set; }
         public string ActionProhibitedMessage { get; set; }
-
-        private void _processStart() => ProcessFullEffects(XmlStatus.Effects?.OnApply);
-        private void _processTick() => ProcessEffects(XmlStatus.Effects?.OnTick);
-        private void _processRemove() => ProcessFullEffects(XmlStatus.Effects?.OnRemove, true);
 
         public void OnStart() => _processStart();
         public void OnEnd() => _processRemove();
-        public void OnTick() => _processTick(); 
+        public void OnTick() => _processTick();
+
+        public SimpleStatusEffect OnTickEffect { get; }
+        public SimpleStatusEffect OnStartEffect { get; }
+        public SimpleStatusEffect OnEndEffect { get; }
 
         public bool Expired => (DateTime.Now - Start).TotalSeconds >= Duration;
         public double Elapsed => (DateTime.Now - Start).TotalSeconds;
@@ -151,32 +173,47 @@ namespace Hybrasyl
 
         public double ElapsedSinceTick => (DateTime.Now - LastTick).TotalSeconds;
 
-        public CreatureStatus(Status xmlstatus, Creature target, Creature source=null, Castable castable = null,
-            int durationOverride = -1, int tickOverride = -1)
+        public CreatureStatus(Status xmlstatus, Creature target, Castable castable = null, Creature source=null, int durationOverride = -1, int tickOverride = -1)
         {
             Target = target;
-            Source = source;
             XmlStatus = xmlstatus;
-            Castable = castable;
             Start = DateTime.Now;
             _durationOverride = durationOverride;
             _tickOverride = tickOverride;
+            // Calculate damage/heal effects. Note that a castable MUST be passed here for a status 
+            // to have damage effects as the castable itself has fields we need to access 
+            // (intensity, etc) in order to do damage calculations.
+
+            if (castable != null)
+            {
+                var start = CalculateNumericEffects(castable, xmlstatus.Effects.OnApply, source);
+                var tick = CalculateNumericEffects(castable, xmlstatus.Effects.OnTick, source);
+                var end = CalculateNumericEffects(castable, xmlstatus.Effects.OnRemove, source);
+                OnStartEffect = new SimpleStatusEffect(start.Heal, start.Damage);
+                OnTickEffect = new SimpleStatusEffect(tick.Heal, tick.Damage);
+                OnEndEffect = new SimpleStatusEffect(end.Heal, end.Damage);
+            }
         }
 
-        public CreatureStatus(Status xmlstatus, Creature target, Creature source=null, Castable castable = null)
+        public CreatureStatus(StatusInfo serialized, Creature target)
         {
             Target = target;
-            Source = source;
-            XmlStatus = xmlstatus;
-            Castable = castable;
-            Start = DateTime.Now;
-
-            var addList = castable?.Effects.Statuses.Add.Where(e => e.Value == xmlstatus.Name);
-            if (addList?.Count() > 0)
+            if (!string.IsNullOrEmpty(serialized.Name))
             {
-                var addObj = addList.First();
-                _durationOverride = addObj.Duration != 0 ? addObj.Duration : xmlstatus.Duration;
-                _tickOverride = (int) Math.Floor(addObj.Speed * xmlstatus.Tick);
+                if (Game.World.WorldData.TryGetValueByIndex(serialized.Name, out Status status))
+                {
+                    XmlStatus = status;
+                    Start = DateTime.Now;
+                    _durationOverride = serialized.Remaining;
+                    _tickOverride = serialized.Tick;
+                    OnTickEffect = serialized.OnTickEffect;
+                    OnEndEffect = serialized.OnEndEffect;
+                    OnStartEffect = serialized.OnStartEffect;
+                }
+                else
+                {
+                    throw new ArgumentException($"Serialized status {serialized.Name} does not exist or could not be found");
+                }
             }
         }
 
@@ -217,7 +254,7 @@ namespace Hybrasyl
         private void ProcessConditions(ModifierEffect effect)
         {
             if (effect.Conditions?.Set != null)
-                Target.Condition.Conditions|= effect.Conditions.Set;
+                Target.Condition.Conditions |= effect.Conditions.Set;
             if (effect.Conditions?.Unset != null)
                 Target.Condition.Conditions &= ~effect.Conditions.Unset;
         }
@@ -244,7 +281,7 @@ namespace Hybrasyl
                 Target.Stats.BonusHealModifier = effect.HealModifier;
                 Target.Stats.BonusReflectChance -= effect.ReflectChance;
                 Target.Stats.BonusReflectIntensity -= effect.ReflectIntensity;
-                if (effect.OffensiveElement == (Statuses.Element) Target.Stats.OffensiveElementOverride)
+                if (effect.OffensiveElement == (Statuses.Element)Target.Stats.OffensiveElementOverride)
                     Target.Stats.OffensiveElementOverride = Enums.Element.None;
                 if (effect.DefensiveElement == (Statuses.Element)Target.Stats.DefensiveElementOverride)
                     Target.Stats.DefensiveElementOverride = Enums.Element.None;
@@ -275,33 +312,54 @@ namespace Hybrasyl
             }
         }
 
-        private void ProcessDamageEffects(ModifierEffect effect)
+        private (double Heal, DamageOutput Damage) CalculateNumericEffects(Castable castable, ModifierEffect effect, Creature source)
         {
+            double heal = 0;
+            DamageOutput dmg = new DamageOutput();
             if (!effect.Heal.IsEmpty)
             {
-                var heal = NumberCruncher.CalculateHeal(Castable, effect, Target, Source, Name);
-                if (heal != 0) Target.Heal(heal);
+                heal = NumberCruncher.CalculateHeal(castable, effect, Target, source, Name);
             }
             if (!effect.Damage.IsEmpty)
             {
-                var dmg = NumberCruncher.CalculateDamage(Castable, effect, Target, Source, Name);
-                if (dmg.Amount != 0) Target.Damage(dmg.Amount, Enums.Element.None, dmg.Type);
+                dmg = NumberCruncher.CalculateDamage(Castable, effect, Target, Source, Name);
+               //      if (dmg.Amount != 0) Target.Damage(dmg.Amount, Enums.Element.None, dmg.Type);
             }
+            return (heal, dmg);
         }
 
-        private void ProcessFullEffects(ModifierEffect effect, bool RemoveStatBonuses=false)
+        private void ProcessNumericEffects(SimpleStatusEffect effect)
+        {
+
+        }
+        private void ProcessFullEffects(ModifierEffect effect, bool RemoveStatBonuses = false)
         {
             // Stat modifiers and condition changes are only processed during start/remove
             ProcessConditions(effect);
             ProcessStatModifiers(XmlStatus.Effects?.OnApply?.StatModifiers, RemoveStatBonuses);
             ProcessSfx(effect);
-            ProcessDamageEffects(effect);
         }
 
         private void ProcessEffects(ModifierEffect effect)
         {
             ProcessSfx(effect);
-            ProcessDamageEffects(effect);
+        }
+        private void _processStart() {
+            ProcessFullEffects(XmlStatus.Effects?.OnApply);
+            ProcessNumericEffects(OnStartEffect);
+
+        } 
+
+        private void _processTick()
+        {
+            ProcessEffects(XmlStatus.Effects.OnTick);
+            ProcessNumericEffects(OnTickEffect);
+        }
+
+        private void _processRemove()
+        {
+            ProcessFullEffects(XmlStatus.Effects?.OnRemove, true);
+            ProcessNumericEffects(OnEndEffect);
         }
 
     }

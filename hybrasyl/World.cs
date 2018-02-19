@@ -197,12 +197,15 @@ namespace Hybrasyl
         public static bool TryGetUser(string name, out User userobj) 
         {
             var jsonstring = (string)DatastoreConnection.GetDatabase().Get(User.GetStorageKey(name));
+            JsonSerializerSettings settings = new JsonSerializerSettings();
+            settings.ObjectCreationHandling = ObjectCreationHandling.Replace;
+
             if (jsonstring == null)
             {
                 userobj = null;
                 return false;
             }
-            userobj = JsonConvert.DeserializeObject<User>(jsonstring);
+            userobj = JsonConvert.DeserializeObject<User>(jsonstring, settings);
             if (userobj == null)
             {
                 Logger.FatalFormat("{0}: JSON object could not be deserialized!", name);
@@ -1667,17 +1670,8 @@ namespace Hybrasyl
             loginUser.SendEquipment();
             loginUser.SendSkills();
             loginUser.SendSpells();
+            loginUser.SendStatuses();
             loginUser.SetCitizenship();
-
-            foreach (var status in loginUser.Statuses)
-            {
-                if (WorldData.TryGetValueByIndex(status.Name, out Status xmlstatus) &&
-                    WorldData.TryGetValueByIndex(status.CastableName, out Castable castable))
-                {
-                    loginUser.ApplyStatus(new CreatureStatus(xmlstatus, loginUser, null, castable, (int)status.Remaining));
-                }
-            }
-            loginUser.Statuses.Clear();
 
             Insert(loginUser);
             Logger.DebugFormat("Elapsed time since login: {0}", loginUser.SinceLastLogin);

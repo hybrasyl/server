@@ -90,7 +90,8 @@ namespace Hybrasyl.Objects
         }
 
         public string StorageKey => string.Concat(GetType().Name, ':', Name.ToLower());
-        private Client Client { get; set; }
+
+        private Client Client;
 
         [JsonProperty]
         public Sex Sex { get; set; }
@@ -282,6 +283,8 @@ namespace Hybrasyl.Objects
         public long LastMailboxMessageSent { get; set; }
         public Dictionary<string, bool> Flags { get; private set; }
 
+        private Queue<ServerPacket> LoginQueue { get; set; }
+
         public DateTime LastAttack { get; set; }
 
         public bool Grouped
@@ -299,7 +302,10 @@ namespace Hybrasyl.Objects
         public void Enqueue(ServerPacket packet)
         {
             Logger.DebugFormat("Sending {0:X2} to {1}", packet.Opcode, Name);
-            Client.Enqueue(packet);
+            if (Client == null)
+                LoginQueue.Enqueue(packet);
+            else
+                Client.Enqueue(packet);
         }
 
         public override void AoiEntry(VisibleObject obj)
@@ -569,15 +575,7 @@ namespace Hybrasyl.Objects
 
         public User() : base()
         {
-            _initializeUser();
-            if (Statuses != null)
-            {
-                foreach (var status in Statuses)
-                {
-                    Logger.Info($"yo: {status.Name}, {status.Remaining}");
-                }
-            }
-          
+            _initializeUser();         
         }
 
         private void _initializeUser(string playername = "")
@@ -603,7 +601,6 @@ namespace Hybrasyl.Objects
             Group = null;
             Flags = new Dictionary<string, bool>();
             _currentStatuses = new ConcurrentDictionary<ushort, ICreatureStatus>();
-            Statuses = new List<StatusInfo>();
           
             #region Appearance defaults
             RestPosition = RestPosition.Standing;
@@ -967,9 +964,7 @@ namespace Hybrasyl.Objects
         {
             lock (_serializeLock)
             {
-                var cache = World.DatastoreConnection.GetDatabase();
-                if (Statuses.Count == 0)
-                    Statuses = _currentStatuses.Values.Select(e => e.Info).ToList();
+                var cache = World.DatastoreConnection.GetDatabase();           
                 cache.Set(GetStorageKey(Name), JsonConvert.SerializeObject(this, new JsonSerializerSettings() { PreserveReferencesHandling = PreserveReferencesHandling.All }));
             }
         }
@@ -2101,7 +2096,7 @@ namespace Hybrasyl.Objects
                     Stats.Hp = 1;
                     var handler = Game.Config.Handlers?.Death?.Coma;
                     if (handler != null && World.WorldData.TryGetValueByIndex(handler.Value, out Status status))
-                        ApplyStatus(new CreatureStatus(status, this, attacker, null));
+                        ApplyStatus(new CreatureStatus(status, this, null, attacker));
                     else
                     {
                         Logger.Warn("No coma handler or status found - user {Name} died!");
@@ -3694,6 +3689,12 @@ namespace Hybrasyl.Objects
                     SendSpellUpdate(SpellBook[i], i);
                 }
             }
+        }
+
+        public void SendStatuses()
+        {
+            foreach (var status in _currentStatuses)
+                SendStatusUpdate(status.Value);
         }
 
 

@@ -42,15 +42,38 @@ namespace Hybrasyl.Objects
 
         private static readonly ILog ActivityLogger = LogManager.GetLogger("UserActivityLog");
 
-        [JsonProperty]
+        [JsonProperty(Order = 2)]
         public StatInfo Stats { get; set; }
-        [JsonProperty]
+        [JsonProperty(Order = 3)]
         public ConditionInfo Condition { get; set; }
 
         protected ConcurrentDictionary<ushort, ICreatureStatus> _currentStatuses;
 
         [JsonProperty]
-        public List<StatusInfo> Statuses;
+        public List<StatusInfo> Statuses
+        {
+            get
+            {
+                if (_currentStatuses.Count > 0)
+                    return _currentStatuses.Values.Select(e => e.Info).ToList();
+                else
+                    return new List<StatusInfo>();
+            }
+            set
+            {
+                foreach (var status in value)
+                {
+                    try
+                    {
+                        ApplyStatus(new CreatureStatus(status, this), false);
+                    }
+                    catch (ArgumentException e)
+                    {
+                        Logger.Error($"Serialized status error: target {Name}, status {status.Name}: {e.ToString()}");
+                    }
+                }
+            }
+        }
 
         [JsonProperty]
         public uint Gold { get; set; }
@@ -389,12 +412,13 @@ namespace Hybrasyl.Objects
         /// Apply a given status to a player.
         /// </summary>
         /// <param name="status">The status to apply to the player.</param>
-        public bool ApplyStatus(ICreatureStatus status)
+        public bool ApplyStatus(ICreatureStatus status, bool sendUpdates = true)
         {
             if (!_currentStatuses.TryAdd(status.Icon, status)) return false;
-            if (this is User) (this as User).SendStatusUpdate(status);
+            if (this is User && sendUpdates) (this as User).SendStatusUpdate(status);
             status.OnStart();
-            UpdateAttributes(StatUpdateFlags.Full);
+            if (sendUpdates)
+                UpdateAttributes(StatUpdateFlags.Full);
             return true;
         }
 
@@ -549,7 +573,7 @@ namespace Hybrasyl.Objects
                     if (World.WorldData.TryGetValueByIndex<Status>(status.Value, out applyStatus))
                     {
                         ActivityLogger.Info($"UseCastable: {Name} casting {castObject.Name} - applying status {status.Value}");
-                        ApplyStatus(new CreatureStatus(applyStatus, tar, this, castObject));
+                        ApplyStatus(new CreatureStatus(applyStatus, tar, castObject));
                     }
                     else
                         ActivityLogger.Error($"UseCastable: {Name} casting {castObject.Name} - failed to add status {status.Value}, does not exist!");
