@@ -95,7 +95,7 @@ namespace Hybrasyl
         double ElapsedSinceTick { get; }
         string UseCastRestrictions { get; }
         string ReceiveCastRestrictions { get; }
-        void OnStart();
+        void OnStart(bool displaySfx = true);
         void OnTick();
         void OnEnd();
 
@@ -159,7 +159,7 @@ namespace Hybrasyl
         public Status XmlStatus { get; set; }
         public string ActionProhibitedMessage { get; set; }
 
-        public void OnStart() => _processStart();
+        public void OnStart(bool displaySfx = true) => _processStart(displaySfx);
         public void OnEnd() => _processRemove();
         public void OnTick() => _processTick();
 
@@ -332,23 +332,25 @@ namespace Hybrasyl
         {
 
         }
-        private void ProcessFullEffects(ModifierEffect effect, bool RemoveStatBonuses = false)
+        private void ProcessFullEffects(ModifierEffect effect, bool RemoveStatBonuses = false, bool displaySfx = true)
         {
             // Stat modifiers and condition changes are only processed during start/remove
             ProcessConditions(effect);
             ProcessStatModifiers(XmlStatus.Effects?.OnApply?.StatModifiers, RemoveStatBonuses);
-            ProcessSfx(effect);
+            if (displaySfx)
+                ProcessSfx(effect);
         }
 
         private void ProcessEffects(ModifierEffect effect)
         {
             ProcessSfx(effect);
         }
-        private void _processStart() {
-            ProcessFullEffects(XmlStatus.Effects?.OnApply);
-            ProcessNumericEffects(OnStartEffect);
 
-        } 
+        private void _processStart(bool displaySfx)
+        {
+            ProcessFullEffects(XmlStatus.Effects?.OnApply, false, displaySfx);
+            ProcessNumericEffects(OnStartEffect);
+        }
 
         private void _processTick()
         {

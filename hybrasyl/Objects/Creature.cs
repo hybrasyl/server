@@ -415,10 +415,12 @@ namespace Hybrasyl.Objects
         public bool ApplyStatus(ICreatureStatus status, bool sendUpdates = true)
         {
             if (!_currentStatuses.TryAdd(status.Icon, status)) return false;
-            if (this is User && sendUpdates) (this as User).SendStatusUpdate(status);
-            status.OnStart();
-            if (sendUpdates)
+            if (this is User && sendUpdates)
+            {
+                (this as User).SendStatusUpdate(status);
                 UpdateAttributes(StatUpdateFlags.Full);
+            }
+            status.OnStart(sendUpdates);               
             return true;
         }
 
