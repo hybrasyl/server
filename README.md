@@ -17,8 +17,8 @@ almost always online - production will be online once we implement more
 features!
 
 Hybrasyl is a work in progress. A lot of the functionality you would expect
-from a playable game is not yet implemented. You can see what's currently in
-the works on the [bug tracker](https://hybrasyl.atlassian.net/), look at our current
+from a playable game is not yet implemented. You can see open issues in our GitHub 
+[issue tracker](https://github.com/hybrasyl/server/issues), look at our current
 [TODO/punchlist](https://github.com/hybrasyl/server/wiki/Hybrasyl-Punchlist) or check out
 recent [project news](https://www.hybrasyl.com/).
 
