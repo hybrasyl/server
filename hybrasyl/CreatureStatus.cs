@@ -135,15 +135,12 @@ namespace Hybrasyl
 
         public string Name => XmlStatus.Name;
         public ushort Icon => XmlStatus.Icon;
-        public double Tick => _tickOverride == -1 ? XmlStatus.Tick : _tickOverride;
-        public double Duration => _durationOverride == -1 ? XmlStatus.Duration : _durationOverride;
+        public double Tick { get; }
+        public double Duration { get; }
         public string UseCastRestrictions => XmlStatus.CastRestriction?.Use ?? string.Empty;
         public string ReceiveCastRestrictions => XmlStatus.CastRestriction?.Receive ?? string.Empty;
 
         public StatusInfo Info => new StatusInfo() { Name = Name, OnStartEffect = OnStartEffect, OnEndEffect = OnEndEffect, OnTickEffect = OnTickEffect, Remaining = Remaining, Tick = Tick};
-
-        private double _durationOverride;
-        private double _tickOverride;
 
         public Creature Target { get; }
         public Creature Source { get; }
@@ -173,13 +170,14 @@ namespace Hybrasyl
 
         public double ElapsedSinceTick => (DateTime.Now - LastTick).TotalSeconds;
 
-        public CreatureStatus(Status xmlstatus, Creature target, Castable castable = null, Creature source=null, int durationOverride = -1, int tickOverride = -1)
+        public CreatureStatus(Status xmlstatus, Creature target, Castable castable = null, Creature source = null, int duration = -1, int tickFrequency = -1)
         {
             Target = target;
             XmlStatus = xmlstatus;
             Start = DateTime.Now;
-            _durationOverride = durationOverride;
-            _tickOverride = tickOverride;
+            Duration = duration == -1 ? xmlstatus.Duration : duration;
+            Tick = tickFrequency == -1 ? xmlstatus.Tick : duration;
+
             // Calculate damage/heal effects. Note that a castable MUST be passed here for a status 
             // to have damage effects as the castable itself has fields we need to access 
             // (intensity, etc) in order to do damage calculations.
@@ -203,9 +201,9 @@ namespace Hybrasyl
                 if (Game.World.WorldData.TryGetValueByIndex(serialized.Name, out Status status))
                 {
                     XmlStatus = status;
-                    Start = DateTime.Now;
-                    _durationOverride = serialized.Remaining;
-                    _tickOverride = serialized.Tick;
+                    Start = DateTime.Now;               
+                    Duration = serialized.Remaining;
+                    Tick = serialized.Tick;
                     OnTickEffect = serialized.OnTickEffect;
                     OnEndEffect = serialized.OnEndEffect;
                     OnStartEffect = serialized.OnStartEffect;
@@ -285,7 +283,6 @@ namespace Hybrasyl
                     Target.Stats.OffensiveElementOverride = Enums.Element.None;
                 if (effect.DefensiveElement == (Statuses.Element)Target.Stats.DefensiveElementOverride)
                     Target.Stats.DefensiveElementOverride = Enums.Element.None;
-                Target.Stats.BonusAc -= effect.Str;
             }
             else
             {
@@ -305,10 +302,8 @@ namespace Hybrasyl
                 Target.Stats.BonusHealModifier = effect.HealModifier;
                 Target.Stats.BonusReflectChance += effect.ReflectChance;
                 Target.Stats.BonusReflectIntensity += effect.ReflectIntensity;
-                Target.Stats.BonusAc += effect.Str;
                 Target.Stats.OffensiveElementOverride = (Enums.Element)effect.OffensiveElement;
                 Target.Stats.DefensiveElementOverride = (Enums.Element)effect.OffensiveElement;
-
             }
         }
 
@@ -354,6 +349,7 @@ namespace Hybrasyl
 
         private void _processTick()
         {
+            LastTick = DateTime.Now;
             ProcessEffects(XmlStatus.Effects.OnTick);
             ProcessNumericEffects(OnTickEffect);
         }

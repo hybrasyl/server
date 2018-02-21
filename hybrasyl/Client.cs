@@ -360,7 +360,7 @@ namespace Hybrasyl
                 byteSpan.TotalSeconds > Constants.REAP_HEARTBEAT_INTERVAL)
             {
                 // DON'T FEAR THE REAPER
-                Logger.InfoFormat("cid {0}: heartbeat expired");
+                Logger.InfoFormat("cid {0}: heartbeat expired",ConnectionId);
                 return true;
             }
             return false;

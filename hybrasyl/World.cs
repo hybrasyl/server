@@ -1670,7 +1670,7 @@ namespace Hybrasyl
             loginUser.SendEquipment();
             loginUser.SendSkills();
             loginUser.SendSpells();
-            loginUser.SendStatuses();
+            loginUser.ReapplyStatuses();
             loginUser.SetCitizenship();
 
             Insert(loginUser);

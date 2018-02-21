@@ -50,31 +50,8 @@ namespace Hybrasyl.Objects
         protected ConcurrentDictionary<ushort, ICreatureStatus> _currentStatuses;
 
         [JsonProperty]
-        public List<StatusInfo> Statuses
-        {
-            get
-            {
-                if (_currentStatuses.Count > 0)
-                    return _currentStatuses.Values.Select(e => e.Info).ToList();
-                else
-                    return new List<StatusInfo>();
-            }
-            set
-            {
-                foreach (var status in value)
-                {
-                    try
-                    {
-                        ApplyStatus(new CreatureStatus(status, this), false);
-                    }
-                    catch (ArgumentException e)
-                    {
-                        Logger.Error($"Serialized status error: target {Name}, status {status.Name}: {e.ToString()}");
-                    }
-                }
-            }
-        }
-
+        public List<StatusInfo> Statuses { get; set; }
+       
         [JsonProperty]
         public uint Gold { get; set; }
 
@@ -93,6 +70,7 @@ namespace Hybrasyl.Objects
             Condition = new ConditionInfo(this);
             _currentStatuses = new ConcurrentDictionary<ushort, ICreatureStatus>();
             LastHitTime = DateTime.MinValue;
+            Statuses = new List<StatusInfo>();
         }
 
         public override void OnClick(User invoker)
@@ -418,9 +396,10 @@ namespace Hybrasyl.Objects
             if (this is User && sendUpdates)
             {
                 (this as User).SendStatusUpdate(status);
-                UpdateAttributes(StatUpdateFlags.Full);
             }
-            status.OnStart(sendUpdates);               
+            status.OnStart(sendUpdates);
+            if (sendUpdates)
+                UpdateAttributes(StatUpdateFlags.Full);
             return true;
         }
 

@@ -964,7 +964,9 @@ namespace Hybrasyl.Objects
         {
             lock (_serializeLock)
             {
-                var cache = World.DatastoreConnection.GetDatabase();           
+                var cache = World.DatastoreConnection.GetDatabase();
+                if (Statuses.Count == 0)
+                    Statuses = _currentStatuses.Values.Select(e => e.Info).ToList();
                 cache.Set(GetStorageKey(Name), JsonConvert.SerializeObject(this, new JsonSerializerSettings() { PreserveReferencesHandling = PreserveReferencesHandling.All }));
             }
         }
@@ -3691,10 +3693,12 @@ namespace Hybrasyl.Objects
             }
         }
 
-        public void SendStatuses()
+        public void ReapplyStatuses()
         {
-            foreach (var status in _currentStatuses)
-                SendStatusUpdate(status.Value);
+            foreach (var status in Statuses)
+                ApplyStatus(new CreatureStatus(status, this));
+            UpdateAttributes(StatUpdateFlags.Full);
+            Statuses.Clear();
         }
 
 
