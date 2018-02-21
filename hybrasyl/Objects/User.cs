@@ -41,6 +41,7 @@ using Class = Hybrasyl.Castables.Class;
 using Motion = Hybrasyl.Castables.Motion;
 using System.Globalization;
 using Hybrasyl.Statuses;
+using Hybrasyl.Utility;
 
 namespace Hybrasyl.Objects
 {
@@ -90,7 +91,8 @@ namespace Hybrasyl.Objects
         }
 
         public string StorageKey => string.Concat(GetType().Name, ':', Name.ToLower());
-        private Client Client { get; set; }
+
+        private Client Client;
 
         [JsonProperty]
         public Sex Sex { get; set; }
@@ -282,6 +284,8 @@ namespace Hybrasyl.Objects
         public long LastMailboxMessageSent { get; set; }
         public Dictionary<string, bool> Flags { get; private set; }
 
+        private Queue<ServerPacket> LoginQueue { get; set; }
+
         public DateTime LastAttack { get; set; }
 
         public bool Grouped
@@ -299,7 +303,10 @@ namespace Hybrasyl.Objects
         public void Enqueue(ServerPacket packet)
         {
             Logger.DebugFormat("Sending {0:X2} to {1}", packet.Opcode, Name);
-            Client.Enqueue(packet);
+            if (Client == null)
+                LoginQueue.Enqueue(packet);
+            else
+                Client.Enqueue(packet);
         }
 
         public override void AoiEntry(VisibleObject obj)
@@ -569,7 +576,7 @@ namespace Hybrasyl.Objects
 
         public User() : base()
         {
-            _initializeUser();
+            _initializeUser();         
         }
 
         private void _initializeUser(string playername = "")
@@ -919,7 +926,7 @@ namespace Hybrasyl.Objects
             profilePacket.WriteString8(Guild.Title);
             profilePacket.WriteByte((byte)(Grouping ? 1 : 0));
             profilePacket.WriteString8(Guild.Rank);
-            profilePacket.WriteString8(Hybrasyl.Constants.REVERSE_CLASSES[(int)Class]);
+            profilePacket.WriteString8(Constants.REVERSE_CLASSES[(int)Class].Capitalize());
             profilePacket.WriteString8(Guild.Name);
             profilePacket.WriteByte((byte)Legend.Count);
             foreach (var mark in Legend.Where(mark => mark.Public))
@@ -959,6 +966,8 @@ namespace Hybrasyl.Objects
             lock (_serializeLock)
             {
                 var cache = World.DatastoreConnection.GetDatabase();
+                if (Statuses.Count == 0)
+                    Statuses = CurrentStatusInfo;
                 cache.Set(GetStorageKey(Name), JsonConvert.SerializeObject(this, new JsonSerializerSettings() { PreserveReferencesHandling = PreserveReferencesHandling.All }));
             }
         }
@@ -1158,35 +1167,35 @@ namespace Hybrasyl.Objects
         {
             if (castable.CastCosts.Count == 0) return true;
 
-            var costStruct = castable.CastCosts.Where(e => e.Class.Contains((Class)Class));
+            var costs = castable.CastCosts.Where(e => e.Class.Contains((Class)Class));
 
-            if (costStruct.Count() == 0)
-                costStruct = castable.CastCosts.Where(e => e.Class.Count == 0);
+            if (costs.Count() == 0)
+                costs = castable.CastCosts.Where(e => e.Class.Count == 0);
 
-            if (costStruct.Count() == 0)
+            if (costs.Count() == 0)
                 return true;
 
             uint reduceHp = 0;
             uint reduceMp = 0;
             bool hasItemCost = true;
-            var costs = costStruct.First();
+            var castcosts = costs.First();
 
             // HP cost can be either a percentage (0.25) or a fixed amount (50)
-            if (costs.Stat?.Hp != null)
-                if (costs.Stat.Hp.Contains('.'))
-                    reduceHp = (uint) Math.Ceiling(Convert.ToDouble(costs.Stat.Hp) * Stats.MaximumHp);
+            if (castcosts.Stat?.Hp != null)
+                if (castcosts.Stat.Hp.Contains('.'))
+                    reduceHp = (uint) Math.Ceiling(Convert.ToDouble(castcosts.Stat.Hp) * Stats.MaximumHp);
                 else 
-                    reduceHp = Convert.ToUInt32(costs.Stat.Hp);
-            if (costs.Stat?.Mp != null)
-                if (costs.Stat.Mp.Contains('.'))
-                    reduceMp = (uint)Math.Ceiling(Convert.ToDouble(costs.Stat.Mp) * Stats.MaximumMp);
+                    reduceHp = Convert.ToUInt32(castcosts.Stat.Hp);
+            if (castcosts.Stat?.Mp != null)
+                if (castcosts.Stat.Mp.Contains('.'))
+                    reduceMp = (uint)Math.Ceiling(Convert.ToDouble(castcosts.Stat.Mp) * Stats.MaximumMp);
                 else
-                    reduceMp = Convert.ToUInt32(costs.Stat.Mp);
+                    reduceMp = Convert.ToUInt32(castcosts.Stat.Mp);
 
             
-            if (costs.Items != null)
+            if (castcosts.Items != null)
             {
-                foreach (var item in costs.Items)
+                foreach (var item in castcosts.Items)
                 {
                     if (!Inventory.Contains(item.Value, item.Quantity)) hasItemCost = false;
                 }
@@ -1194,14 +1203,14 @@ namespace Hybrasyl.Objects
 
             // Check that all requirements are met first. Note that a spell cannot be cast if its HP cost would result
             // in the caster's HP being reduced to zero.
-            if (reduceHp >= Stats.Hp || reduceMp > Stats.Mp || costs.Gold > Gold || !hasItemCost) return false;
+            if (reduceHp >= Stats.Hp || reduceMp > Stats.Mp || castcosts.Gold > Gold || !hasItemCost) return false;
 
-            if (costs.Gold > this.Gold) return false;
+            if (castcosts.Gold > this.Gold) return false;
 
             if (reduceHp != 0) Stats.Hp -= reduceHp;
             if (reduceMp != 0) Stats.Mp -= reduceMp;
-            if ((int)costs.Gold > 0 ) this.RemoveGold(new Gold(costs.Gold));
-            costs.Items?.ForEach(item => RemoveItem(item.Value, item.Quantity));
+            if ((int)castcosts.Gold > 0 ) this.RemoveGold(new Gold(castcosts.Gold));
+            castcosts.Items?.ForEach(item => RemoveItem(item.Value, item.Quantity));
 
             UpdateAttributes(StatUpdateFlags.Current);
             return true;
@@ -2090,7 +2099,7 @@ namespace Hybrasyl.Objects
                     Stats.Hp = 1;
                     var handler = Game.Config.Handlers?.Death?.Coma;
                     if (handler != null && World.WorldData.TryGetValueByIndex(handler.Value, out Status status))
-                        ApplyStatus(new CreatureStatus(status, this, null));
+                        ApplyStatus(new CreatureStatus(status, this, null, attacker));
                     else
                     {
                         Logger.Warn("No coma handler or status found - user {Name} died!");
@@ -2119,10 +2128,8 @@ namespace Hybrasyl.Objects
                 // This may need to occur elsewhere, depends on how it looks in game
                 if (castObject.TryGetMotion((Class)Class, out Motion motion))
                     SendMotion(Id, motion.Id, motion.Speed);
-                Condition.Casting = false;
                 return true;
             }
-            Condition.Casting = false;
             return false;
         }
 
@@ -2148,7 +2155,7 @@ namespace Hybrasyl.Objects
             Enqueue(assail.Packet());
             PlaySound(soundId);
             SendAnimation(assail.Packet());
-            PlaySound(soundId);           
+            PlaySound(soundId);
         }
 
 
@@ -3685,6 +3692,14 @@ namespace Hybrasyl.Objects
                     SendSpellUpdate(SpellBook[i], i);
                 }
             }
+        }
+
+        public void ReapplyStatuses()
+        {
+            foreach (var status in Statuses)
+                ApplyStatus(new CreatureStatus(status, this));
+            UpdateAttributes(StatUpdateFlags.Full);
+            Statuses.Clear();
         }
 
 

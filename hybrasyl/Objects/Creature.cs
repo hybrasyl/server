@@ -42,13 +42,17 @@ namespace Hybrasyl.Objects
 
         private static readonly ILog ActivityLogger = LogManager.GetLogger("UserActivityLog");
 
-        [JsonProperty]
+        [JsonProperty(Order = 2)]
         public StatInfo Stats { get; set; }
-        [JsonProperty]
+        [JsonProperty(Order = 3)]
         public ConditionInfo Condition { get; set; }
 
-        [JsonProperty]
         protected ConcurrentDictionary<ushort, ICreatureStatus> _currentStatuses;
+
+        [JsonProperty]
+        public List<StatusInfo> Statuses { get; set; }
+
+        public List<StatusInfo> CurrentStatusInfo => _currentStatuses.Values.Select(e => e.Info).ToList();
 
         [JsonProperty]
         public uint Gold { get; set; }
@@ -68,6 +72,7 @@ namespace Hybrasyl.Objects
             Condition = new ConditionInfo(this);
             _currentStatuses = new ConcurrentDictionary<ushort, ICreatureStatus>();
             LastHitTime = DateTime.MinValue;
+            Statuses = new List<StatusInfo>();
         }
 
         public override void OnClick(User invoker)
@@ -387,12 +392,16 @@ namespace Hybrasyl.Objects
         /// Apply a given status to a player.
         /// </summary>
         /// <param name="status">The status to apply to the player.</param>
-        public bool ApplyStatus(ICreatureStatus status)
+        public bool ApplyStatus(ICreatureStatus status, bool sendUpdates = true)
         {
             if (!_currentStatuses.TryAdd(status.Icon, status)) return false;
-            if (this is User) (this as User).SendStatusUpdate(status);
-            status.OnStart();
-            UpdateAttributes(StatUpdateFlags.Full);
+            if (this is User && sendUpdates)
+            {
+                (this as User).SendStatusUpdate(status);
+            }
+            status.OnStart(sendUpdates);
+            if (sendUpdates)
+                UpdateAttributes(StatUpdateFlags.Full);
             return true;
         }
 
@@ -569,7 +578,7 @@ namespace Hybrasyl.Objects
             // Now flood away
             foreach (var dead in deadMobs)
                 World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.HandleDeath, dead));
-
+            Condition.Casting = false;
             return true;
         }
 

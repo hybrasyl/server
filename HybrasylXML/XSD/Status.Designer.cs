@@ -15,43 +15,44 @@ namespace Hybrasyl.Statuses
     using System.ComponentModel;
     using System.Xml;
     using System.Collections.Generic;
-    
-    
+
+
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Status")]
-    [System.Xml.Serialization.XmlRootAttribute(Namespace="http://www.hybrasyl.com/XML/Status", IsNullable=false)]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Status")]
+    [System.Xml.Serialization.XmlRootAttribute(Namespace = "http://www.hybrasyl.com/XML/Status", IsNullable = false)]
     public partial class Status
     {
-        
+
         #region Private fields
         private string _category;
-        
+
         private CastRestriction _castRestriction;
-        
+
         private Effects _effects;
-        
+
         private string _prohibitedMessage;
-        
+
         private string _script;
-        
+
         private int _duration;
-        
+
         private int _tick;
-        
+
         private ushort _icon;
-        
+
         private string _name;
         #endregion
-        
+
         public Status()
         {
             this._effects = new Effects();
             this._castRestriction = new CastRestriction();
+            this._tick = 1;
         }
-        
+
         public string Category
         {
             get
@@ -63,7 +64,7 @@ namespace Hybrasyl.Statuses
                 this._category = value;
             }
         }
-        
+
         public CastRestriction CastRestriction
         {
             get
@@ -75,7 +76,7 @@ namespace Hybrasyl.Statuses
                 this._castRestriction = value;
             }
         }
-        
+
         public Effects Effects
         {
             get
@@ -87,7 +88,7 @@ namespace Hybrasyl.Statuses
                 this._effects = value;
             }
         }
-        
+
         public string ProhibitedMessage
         {
             get
@@ -99,7 +100,7 @@ namespace Hybrasyl.Statuses
                 this._prohibitedMessage = value;
             }
         }
-        
+
         public string Script
         {
             get
@@ -111,7 +112,7 @@ namespace Hybrasyl.Statuses
                 this._script = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         public int Duration
         {
@@ -124,8 +125,9 @@ namespace Hybrasyl.Statuses
                 this._duration = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
+        [System.ComponentModel.DefaultValueAttribute(1)]
         public int Tick
         {
             get
@@ -137,7 +139,7 @@ namespace Hybrasyl.Statuses
                 this._tick = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         public ushort Icon
         {
@@ -150,7 +152,7 @@ namespace Hybrasyl.Statuses
                 this._icon = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         public string Name
         {
@@ -164,22 +166,22 @@ namespace Hybrasyl.Statuses
             }
         }
     }
-    
+
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Status")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Status")]
     public partial class CastRestriction
     {
-        
+
         #region Private fields
         private string _use;
-        
+
         private string _receive;
         #endregion
-        
-        [System.Xml.Serialization.XmlAttributeAttribute(DataType="token")]
+
+        [System.Xml.Serialization.XmlAttributeAttribute(DataType = "token")]
         public string Use
         {
             get
@@ -191,8 +193,8 @@ namespace Hybrasyl.Statuses
                 this._use = value;
             }
         }
-        
-        [System.Xml.Serialization.XmlAttributeAttribute(DataType="token")]
+
+        [System.Xml.Serialization.XmlAttributeAttribute(DataType = "token")]
         public string Receive
         {
             get
@@ -205,21 +207,21 @@ namespace Hybrasyl.Statuses
             }
         }
     }
-    
+
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Status")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Status")]
     public partial class Conditions
     {
-        
+
         #region Private fields
         private CreatureCondition _set;
-        
+
         private CreatureCondition _unset;
         #endregion
-        
+
         public CreatureCondition Set
         {
             get
@@ -231,7 +233,7 @@ namespace Hybrasyl.Statuses
                 this._set = value;
             }
         }
-        
+
         public CreatureCondition Unset
         {
             get
@@ -244,132 +246,132 @@ namespace Hybrasyl.Statuses
             }
         }
     }
-    
+
     [System.FlagsAttribute()]
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/HybrasylCommon")]
+    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/HybrasylCommon")]
     public enum CreatureCondition
     {
-        
+
         /// <remarks/>
         Freeze = 1,
-        
+
         /// <remarks/>
         Sleep = 2,
-        
+
         /// <remarks/>
         Paralyze = 4,
-        
+
         /// <remarks/>
         Blind = 8,
-        
+
         /// <remarks/>
         Coma = 16,
-        
+
         /// <remarks/>
         Poison = 32,
-        
+
         /// <remarks/>
         Mist = 64,
-        
+
         /// <remarks/>
         Regen = 128,
-        
+
         /// <remarks/>
         Sight = 256,
-        
+
         /// <remarks/>
         Invisible = 512,
-        
+
         /// <remarks/>
         Mute = 1024,
-        
+
         /// <remarks/>
         ReflectPhysical = 2048,
-        
+
         /// <remarks/>
         ReflectMagical = 4096,
-        
+
         /// <remarks/>
         Invulnerable = 8192,
-        
+
         /// <remarks/>
         Charm = 16384,
-        
+
         /// <remarks/>
         IncreaseDamage = 32768,
-        
+
         /// <remarks/>
         ReduceDamage = 65536,
-        
+
         /// <remarks/>
         AbsorbSpell = 131072,
-        
+
         /// <remarks/>
         ProhibitItemUse = 262144,
-        
+
         /// <remarks/>
         ProhibitEquipChange = 524288,
-        
+
         /// <remarks/>
         ProhibitSpeech = 1048576,
-        
+
         /// <remarks/>
         ProhibitWhisper = 2097152,
-        
+
         /// <remarks/>
         ProhibitShout = 4194304,
     }
-    
+
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Status")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Status")]
     public partial class StatModifiers
     {
-        
+
         #region Private fields
         private sbyte _str;
-        
+
         private sbyte _int;
-        
+
         private sbyte _wis;
-        
+
         private sbyte _con;
-        
+
         private sbyte _dex;
-        
+
         private int _hp;
-        
+
         private int _mp;
-        
+
         private sbyte _hit;
-        
+
         private sbyte _dmg;
-        
+
         private sbyte _ac;
-        
+
         private sbyte _regen;
-        
+
         private sbyte _mr;
-        
+
         private Element _offensiveElement;
-        
+
         private Element _defensiveElement;
-        
+
         private float _damageModifier;
-        
+
         private float _healModifier;
-        
+
         private DamageType _damageType;
-        
+
         private float _reflectChance;
-        
+
         private float _reflectIntensity;
         #endregion
-        
+
         public StatModifiers()
         {
             this._str = ((sbyte)(0));
@@ -385,7 +387,7 @@ namespace Hybrasyl.Statuses
             this._regen = ((sbyte)(0));
             this._mr = ((sbyte)(0));
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         [System.ComponentModel.DefaultValueAttribute(typeof(sbyte), "0")]
         public sbyte Str
@@ -399,7 +401,7 @@ namespace Hybrasyl.Statuses
                 this._str = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         [System.ComponentModel.DefaultValueAttribute(typeof(sbyte), "0")]
         public sbyte Int
@@ -413,7 +415,7 @@ namespace Hybrasyl.Statuses
                 this._int = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         [System.ComponentModel.DefaultValueAttribute(typeof(sbyte), "0")]
         public sbyte Wis
@@ -427,7 +429,7 @@ namespace Hybrasyl.Statuses
                 this._wis = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         [System.ComponentModel.DefaultValueAttribute(typeof(sbyte), "0")]
         public sbyte Con
@@ -441,7 +443,7 @@ namespace Hybrasyl.Statuses
                 this._con = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         [System.ComponentModel.DefaultValueAttribute(typeof(sbyte), "0")]
         public sbyte Dex
@@ -455,7 +457,7 @@ namespace Hybrasyl.Statuses
                 this._dex = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         [System.ComponentModel.DefaultValueAttribute(0)]
         public int Hp
@@ -469,7 +471,7 @@ namespace Hybrasyl.Statuses
                 this._hp = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         [System.ComponentModel.DefaultValueAttribute(0)]
         public int Mp
@@ -483,7 +485,7 @@ namespace Hybrasyl.Statuses
                 this._mp = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         [System.ComponentModel.DefaultValueAttribute(typeof(sbyte), "0")]
         public sbyte Hit
@@ -497,7 +499,7 @@ namespace Hybrasyl.Statuses
                 this._hit = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         [System.ComponentModel.DefaultValueAttribute(typeof(sbyte), "0")]
         public sbyte Dmg
@@ -511,7 +513,7 @@ namespace Hybrasyl.Statuses
                 this._dmg = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         [System.ComponentModel.DefaultValueAttribute(typeof(sbyte), "0")]
         public sbyte Ac
@@ -525,7 +527,7 @@ namespace Hybrasyl.Statuses
                 this._ac = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         [System.ComponentModel.DefaultValueAttribute(typeof(sbyte), "0")]
         public sbyte Regen
@@ -539,7 +541,7 @@ namespace Hybrasyl.Statuses
                 this._regen = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         [System.ComponentModel.DefaultValueAttribute(typeof(sbyte), "0")]
         public sbyte Mr
@@ -553,7 +555,7 @@ namespace Hybrasyl.Statuses
                 this._mr = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         public Element OffensiveElement
         {
@@ -566,7 +568,7 @@ namespace Hybrasyl.Statuses
                 this._offensiveElement = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         public Element DefensiveElement
         {
@@ -579,7 +581,7 @@ namespace Hybrasyl.Statuses
                 this._defensiveElement = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         public float DamageModifier
         {
@@ -592,7 +594,7 @@ namespace Hybrasyl.Statuses
                 this._damageModifier = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         public float HealModifier
         {
@@ -605,7 +607,7 @@ namespace Hybrasyl.Statuses
                 this._healModifier = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         public DamageType DamageType
         {
@@ -618,7 +620,7 @@ namespace Hybrasyl.Statuses
                 this._damageType = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         public float ReflectChance
         {
@@ -631,7 +633,7 @@ namespace Hybrasyl.Statuses
                 this._reflectChance = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         public float ReflectIntensity
         {
@@ -645,89 +647,89 @@ namespace Hybrasyl.Statuses
             }
         }
     }
-    
+
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/HybrasylCommon")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/HybrasylCommon")]
     public enum Element
     {
-        
+
         /// <remarks/>
         None,
-        
+
         /// <remarks/>
         Fire,
-        
+
         /// <remarks/>
         Water,
-        
+
         /// <remarks/>
         Wind,
-        
+
         /// <remarks/>
         Earth,
-        
+
         /// <remarks/>
         Light,
-        
+
         /// <remarks/>
         Dark,
-        
+
         /// <remarks/>
         Wood,
-        
+
         /// <remarks/>
         Metal,
-        
+
         /// <remarks/>
         Undead,
-        
+
         /// <remarks/>
         Random,
     }
-    
+
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/HybrasylCommon")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/HybrasylCommon")]
     public enum DamageType
     {
-        
+
         /// <remarks/>
         Direct,
-        
+
         /// <remarks/>
         Physical,
-        
+
         /// <remarks/>
         Magical,
-        
+
         /// <remarks/>
         Elemental,
     }
-    
+
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Status")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Status")]
     public partial class Damage
     {
-        
+
         #region Private fields
         private DamageFlags _flags;
-        
+
         private SimpleQuantity _simple;
-        
+
         private string _formula;
-        
+
         private DamageType _type;
         #endregion
-        
+
         public Damage()
         {
             this._simple = new SimpleQuantity();
         }
-        
+
         public DamageFlags Flags
         {
             get
@@ -739,7 +741,7 @@ namespace Hybrasyl.Statuses
                 this._flags = value;
             }
         }
-        
+
         public SimpleQuantity Simple
         {
             get
@@ -751,7 +753,7 @@ namespace Hybrasyl.Statuses
                 this._simple = value;
             }
         }
-        
+
         public string Formula
         {
             get
@@ -763,7 +765,7 @@ namespace Hybrasyl.Statuses
                 this._formula = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         public DamageType Type
         {
@@ -777,53 +779,53 @@ namespace Hybrasyl.Statuses
             }
         }
     }
-    
+
     [System.FlagsAttribute()]
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Status")]
+    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Status")]
     public enum DamageFlags
     {
-        
+
         /// <remarks/>
         None = 1,
-        
+
         /// <remarks/>
         Scaled = 2,
-        
+
         /// <remarks/>
         Resistance = 4,
-        
+
         /// <remarks/>
         Threat = 8,
-        
+
         /// <remarks/>
         Nonlethal = 16,
     }
-    
+
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Status")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Status")]
     public partial class SimpleQuantity
     {
-        
+
         #region Private fields
         private string _min;
-        
+
         private string _max;
-        
+
         private string _value;
         #endregion
-        
+
         public SimpleQuantity()
         {
             this._min = "0";
             this._max = "0";
         }
-        
-        [System.Xml.Serialization.XmlAttributeAttribute(DataType="nonNegativeInteger")]
+
+        [System.Xml.Serialization.XmlAttributeAttribute(DataType = "nonNegativeInteger")]
         [System.ComponentModel.DefaultValueAttribute("0")]
         public string Min
         {
@@ -836,8 +838,8 @@ namespace Hybrasyl.Statuses
                 this._min = value;
             }
         }
-        
-        [System.Xml.Serialization.XmlAttributeAttribute(DataType="nonNegativeInteger")]
+
+        [System.Xml.Serialization.XmlAttributeAttribute(DataType = "nonNegativeInteger")]
         [System.ComponentModel.DefaultValueAttribute("0")]
         public string Max
         {
@@ -850,8 +852,8 @@ namespace Hybrasyl.Statuses
                 this._max = value;
             }
         }
-        
-        [System.Xml.Serialization.XmlTextAttribute(DataType="nonNegativeInteger")]
+
+        [System.Xml.Serialization.XmlTextAttribute(DataType = "nonNegativeInteger")]
         public string Value
         {
             get
@@ -864,26 +866,26 @@ namespace Hybrasyl.Statuses
             }
         }
     }
-    
+
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Status")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Status")]
     public partial class Heal
     {
-        
+
         #region Private fields
         private SimpleQuantity _simple;
-        
+
         private string _formula;
         #endregion
-        
+
         public Heal()
         {
             this._simple = new SimpleQuantity();
         }
-        
+
         public SimpleQuantity Simple
         {
             get
@@ -895,7 +897,7 @@ namespace Hybrasyl.Statuses
                 this._simple = value;
             }
         }
-        
+
         public string Formula
         {
             get
@@ -908,27 +910,27 @@ namespace Hybrasyl.Statuses
             }
         }
     }
-    
+
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Status")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Status")]
     public partial class Messages
     {
-        
+
         #region Private fields
         private string _target;
-        
+
         private string _source;
-        
+
         private string _group;
-        
+
         private string _say;
-        
+
         private string _shout;
         #endregion
-        
+
         public string Target
         {
             get
@@ -940,7 +942,7 @@ namespace Hybrasyl.Statuses
                 this._target = value;
             }
         }
-        
+
         public string Source
         {
             get
@@ -952,7 +954,7 @@ namespace Hybrasyl.Statuses
                 this._source = value;
             }
         }
-        
+
         public string Group
         {
             get
@@ -964,7 +966,7 @@ namespace Hybrasyl.Statuses
                 this._group = value;
             }
         }
-        
+
         public string Say
         {
             get
@@ -976,7 +978,7 @@ namespace Hybrasyl.Statuses
                 this._say = value;
             }
         }
-        
+
         public string Shout
         {
             get
@@ -989,26 +991,26 @@ namespace Hybrasyl.Statuses
             }
         }
     }
-    
+
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Status")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Status")]
     public partial class Animation
     {
-        
+
         #region Private fields
         private ushort _id;
-        
+
         private short _speed;
         #endregion
-        
+
         public Animation()
         {
             this._speed = ((short)(100));
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         public ushort Id
         {
@@ -1021,7 +1023,7 @@ namespace Hybrasyl.Statuses
                 this._id = value;
             }
         }
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         [System.ComponentModel.DefaultValueAttribute(typeof(short), "100")]
         public short Speed
@@ -1036,27 +1038,27 @@ namespace Hybrasyl.Statuses
             }
         }
     }
-    
+
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Status")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Status")]
     public partial class StatusAnimations
     {
-        
+
         #region Private fields
         private Animation _target;
-        
+
         private Animation _spellEffect;
         #endregion
-        
+
         public StatusAnimations()
         {
             this._spellEffect = new Animation();
             this._target = new Animation();
         }
-        
+
         public Animation Target
         {
             get
@@ -1068,7 +1070,7 @@ namespace Hybrasyl.Statuses
                 this._target = value;
             }
         }
-        
+
         public Animation SpellEffect
         {
             get
@@ -1081,31 +1083,31 @@ namespace Hybrasyl.Statuses
             }
         }
     }
-    
+
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Status")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Status")]
     public partial class ModifierEffect
     {
-        
+
         #region Private fields
         private StatusAnimations _animations;
-        
+
         private ModifierEffectSound _sound;
-        
+
         private Messages _messages;
-        
+
         private Heal _heal;
-        
+
         private Damage _damage;
-        
+
         private StatModifiers _statModifiers;
-        
+
         private Conditions _conditions;
         #endregion
-        
+
         public ModifierEffect()
         {
             this._conditions = new Conditions();
@@ -1116,7 +1118,7 @@ namespace Hybrasyl.Statuses
             this._sound = new ModifierEffectSound();
             this._animations = new StatusAnimations();
         }
-        
+
         public StatusAnimations Animations
         {
             get
@@ -1128,7 +1130,7 @@ namespace Hybrasyl.Statuses
                 this._animations = value;
             }
         }
-        
+
         public ModifierEffectSound Sound
         {
             get
@@ -1140,7 +1142,7 @@ namespace Hybrasyl.Statuses
                 this._sound = value;
             }
         }
-        
+
         public Messages Messages
         {
             get
@@ -1152,7 +1154,7 @@ namespace Hybrasyl.Statuses
                 this._messages = value;
             }
         }
-        
+
         public Heal Heal
         {
             get
@@ -1164,7 +1166,7 @@ namespace Hybrasyl.Statuses
                 this._heal = value;
             }
         }
-        
+
         public Damage Damage
         {
             get
@@ -1176,7 +1178,7 @@ namespace Hybrasyl.Statuses
                 this._damage = value;
             }
         }
-        
+
         public StatModifiers StatModifiers
         {
             get
@@ -1188,7 +1190,7 @@ namespace Hybrasyl.Statuses
                 this._statModifiers = value;
             }
         }
-        
+
         public Conditions Conditions
         {
             get
@@ -1201,19 +1203,19 @@ namespace Hybrasyl.Statuses
             }
         }
     }
-    
+
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Status")]
+    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType = true, Namespace = "http://www.hybrasyl.com/XML/Status")]
     public partial class ModifierEffectSound
     {
-        
+
         #region Private fields
         private byte _id;
         #endregion
-        
+
         [System.Xml.Serialization.XmlAttributeAttribute()]
         public byte Id
         {
@@ -1227,30 +1229,30 @@ namespace Hybrasyl.Statuses
             }
         }
     }
-    
+
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.2556.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Status")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Status")]
     public partial class Effects
     {
-        
+
         #region Private fields
         private ModifierEffect _onApply;
-        
+
         private ModifierEffect _onTick;
-        
+
         private ModifierEffect _onRemove;
         #endregion
-        
+
         public Effects()
         {
             this._onRemove = new ModifierEffect();
             this._onTick = new ModifierEffect();
             this._onApply = new ModifierEffect();
         }
-        
+
         public ModifierEffect OnApply
         {
             get
@@ -1262,7 +1264,7 @@ namespace Hybrasyl.Statuses
                 this._onApply = value;
             }
         }
-        
+
         public ModifierEffect OnTick
         {
             get
@@ -1274,7 +1276,7 @@ namespace Hybrasyl.Statuses
                 this._onTick = value;
             }
         }
-        
+
         public ModifierEffect OnRemove
         {
             get
