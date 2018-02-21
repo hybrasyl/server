@@ -80,9 +80,8 @@ namespace Hybrasyl.Messaging
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
-            user.Save();
             string statusReport = string.Empty;
-            foreach (var status in user.Statuses)
+            foreach (var status in user.CurrentStatusInfo)
                 statusReport = $"{statusReport}{status.Name}: {status.Remaining} seconds remaining, tick every {status.Tick} seconds\n";
             user.SendMessage(statusReport, MessageTypes.SLATE_WITH_SCROLLBAR);
             return Success();

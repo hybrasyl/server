@@ -358,7 +358,6 @@ namespace Hybrasyl
                 }
             }
         }
-
         /// <summary>
         /// Extension methods for the Type class
         /// </summary>
@@ -392,6 +391,15 @@ namespace Hybrasyl
             public static bool Contains(this string source, string toCheck, StringComparison comparision)
             {
                 return source?.IndexOf(toCheck, comparision) >= 0;
+            }
+            public static string Capitalize(this string s)
+            {
+                if (string.IsNullOrEmpty(s))
+                    return string.Empty;
+
+                char[] a = s.ToCharArray();
+                a[0] = char.ToUpper(a[0]);
+                return new string(a);
             }
         }
 

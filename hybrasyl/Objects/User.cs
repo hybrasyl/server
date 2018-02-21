@@ -41,6 +41,7 @@ using Class = Hybrasyl.Castables.Class;
 using Motion = Hybrasyl.Castables.Motion;
 using System.Globalization;
 using Hybrasyl.Statuses;
+using Hybrasyl.Utility;
 
 namespace Hybrasyl.Objects
 {
@@ -925,7 +926,7 @@ namespace Hybrasyl.Objects
             profilePacket.WriteString8(Guild.Title);
             profilePacket.WriteByte((byte)(Grouping ? 1 : 0));
             profilePacket.WriteString8(Guild.Rank);
-            profilePacket.WriteString8(Hybrasyl.Constants.REVERSE_CLASSES[(int)Class]);
+            profilePacket.WriteString8(Constants.REVERSE_CLASSES[(int)Class].Capitalize());
             profilePacket.WriteString8(Guild.Name);
             profilePacket.WriteByte((byte)Legend.Count);
             foreach (var mark in Legend.Where(mark => mark.Public))
@@ -966,7 +967,7 @@ namespace Hybrasyl.Objects
             {
                 var cache = World.DatastoreConnection.GetDatabase();
                 if (Statuses.Count == 0)
-                    Statuses = _currentStatuses.Values.Select(e => e.Info).ToList();
+                    Statuses = CurrentStatusInfo;
                 cache.Set(GetStorageKey(Name), JsonConvert.SerializeObject(this, new JsonSerializerSettings() { PreserveReferencesHandling = PreserveReferencesHandling.All }));
             }
         }

@@ -51,7 +51,9 @@ namespace Hybrasyl.Objects
 
         [JsonProperty]
         public List<StatusInfo> Statuses { get; set; }
-       
+
+        public List<StatusInfo> CurrentStatusInfo => _currentStatuses.Values.Select(e => e.Info).ToList();
+
         [JsonProperty]
         public uint Gold { get; set; }
 
