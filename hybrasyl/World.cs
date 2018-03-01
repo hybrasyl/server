@@ -197,12 +197,15 @@ namespace Hybrasyl
         public static bool TryGetUser(string name, out User userobj) 
         {
             var jsonstring = (string)DatastoreConnection.GetDatabase().Get(User.GetStorageKey(name));
+            JsonSerializerSettings settings = new JsonSerializerSettings();
+            settings.ObjectCreationHandling = ObjectCreationHandling.Replace;
+
             if (jsonstring == null)
             {
                 userobj = null;
                 return false;
             }
-            userobj = JsonConvert.DeserializeObject<User>(jsonstring);
+            userobj = JsonConvert.DeserializeObject<User>(jsonstring, settings);
             if (userobj == null)
             {
                 Logger.FatalFormat("{0}: JSON object could not be deserialized!", name);
@@ -1667,6 +1670,7 @@ namespace Hybrasyl
             loginUser.SendEquipment();
             loginUser.SendSkills();
             loginUser.SendSpells();
+            loginUser.ReapplyStatuses();
             loginUser.SetCitizenship();
 
             Insert(loginUser);

@@ -50,7 +50,7 @@ namespace Hybrasyl.Objects
         public virtual byte Y { get; set; }
         public uint Id { get; set; }
 
-        [JsonProperty]
+        [JsonProperty(Order = 0)]
         public string Name { get; set; }
 
         public Script Script { get; set; }

@@ -16,21 +16,11 @@ namespace Hybrasyl.Objects
         [JsonProperty]
         public PlayerFlags Flags { get; set; }
 
-        private void _initialize()
-        {
-            Conditions = 0;
-            Flags = PlayerFlags.Alive;
-        }
-        public ConditionInfo(Creature owner)
+        public ConditionInfo(Creature owner, CreatureCondition condition = 0, PlayerFlags flags=PlayerFlags.Alive)
         {
             Creature = owner;
-            _initialize();
-        }
-
-        public ConditionInfo(User user)
-        {
-            Creature = User as Creature;
-            _initialize();
+            Conditions = condition;
+            Flags = flags;
         }
 
         public bool CastingAllowed
