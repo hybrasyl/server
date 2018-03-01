@@ -366,7 +366,7 @@ namespace Hybrasyl
         public bool Load()
         {
             IsWall = new bool[X, Y];
-            var filename = Path.Combine(World.MapFileDirectory, $"lod{Id}.map");
+            var filename = Path.Combine(GameFolders.Instance.MapFileDirectory, $"lod{Id}.map");
 
             if (File.Exists(filename))
             {

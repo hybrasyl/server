@@ -27,6 +27,7 @@ using System.ComponentModel;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Hybrasyl.Enums;
+using System.IO;
 
 namespace Hybrasyl
 {
@@ -278,6 +279,116 @@ namespace Hybrasyl
         public const int NOTICE = 5;
         public const int INFO = 6;
         public const int DEBUG = 7;
+    }
+
+    class GameFolders
+    {
+        private static GameFolders instance;
+
+        private GameFolders() {}
+
+        public static GameFolders Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    instance = new GameFolders();
+                }
+                return instance;
+            }
+        }
+        //Adjusted for ease of future changes, if needed
+        private string _dataDirectory => Constants.DataDirectory;
+        private string _worldFileDirectory => Path.Combine(_dataDirectory, "world");
+        private string _mapFileDirectory => Path.Combine(_worldFileDirectory, "mapfiles");
+        private string _scriptsFileDirectory => Path.Combine(_worldFileDirectory, "scripts");
+        private string _xmlFileDirectory => Path.Combine(_worldFileDirectory, "xml");
+
+        public string MapFileDirectory => Path.Combine(_mapFileDirectory);
+
+        #region ScriptsFolders
+        public string ScriptCastableDirectory => Path.Combine(_scriptsFileDirectory, "castable");
+
+        public string ScriptCommonDirectory => Path.Combine(_scriptsFileDirectory, "common");
+
+        public string ScriptItemDirectory => Path.Combine(_scriptsFileDirectory, "item");
+
+        public string ScriptNpcDirectory => Path.Combine(_scriptsFileDirectory, "npc");
+
+        public string ScriptReactorDirectory => Path.Combine(_scriptsFileDirectory, "reactor");
+
+        public string ScriptStartupDirectory => Path.Combine(_scriptsFileDirectory, "startup");
+        #endregion
+
+        #region XmlFolders
+        public string XmlCastableDirectory => Path.Combine(_xmlFileDirectory, "castables");
+
+        public string XmlStatusDirectory => Path.Combine(_xmlFileDirectory, "statuses");
+
+        public string XmlItemDirectory => Path.Combine(_xmlFileDirectory, "items");
+
+        public string XmlNationDirectory => Path.Combine(_xmlFileDirectory, "nations");
+
+        public string XmlMapDirectory => Path.Combine(_xmlFileDirectory, "maps");
+
+        public string XmlWorldMapDirectory => Path.Combine(_xmlFileDirectory, "worldmaps");
+
+        public string XmlCreatureDirectory => Path.Combine(_xmlFileDirectory, "creatures");
+
+        public string XmlSpawnGroupDirectory => Path.Combine(_xmlFileDirectory, "spawngroups");
+
+        public string XmlLootSetDirectory => Path.Combine(_xmlFileDirectory, "lootsets");
+
+        public string XmlItemVariantDirectory => Path.Combine(_xmlFileDirectory, "itemvariants");
+
+        public string XmlNpcsDirectory => Path.Combine(_xmlFileDirectory, "npcs");
+
+        public string XmlLocalizationDirectory => Path.Combine(_xmlFileDirectory, "localization");
+        #endregion
+
+        public string[] DataSubFolders()
+        {
+            string[] dataSubFolders = new string[]
+                {
+                    MapFileDirectory,
+
+                    ScriptCastableDirectory,
+                    ScriptCommonDirectory,
+                    ScriptItemDirectory,
+                    ScriptNpcDirectory,
+                    ScriptReactorDirectory,
+                    ScriptStartupDirectory,
+
+                    XmlCastableDirectory,
+                    XmlStatusDirectory,
+                    XmlItemDirectory,
+                    XmlItemVariantDirectory,
+                    XmlNationDirectory,
+                    XmlMapDirectory,
+                    XmlWorldMapDirectory,
+                    XmlCreatureDirectory,
+                    XmlSpawnGroupDirectory,
+                    XmlLootSetDirectory,
+                    XmlNpcsDirectory,
+                    XmlLocalizationDirectory
+                };
+            return dataSubFolders;
+        }
+
+        public string[] ScriptSubFolders()
+        {
+            string[] scriptSubFolders = new string[]
+                {
+                    ScriptCastableDirectory,
+                    ScriptCommonDirectory,
+                    ScriptItemDirectory,
+                    ScriptNpcDirectory,
+                    ScriptReactorDirectory,
+                    ScriptStartupDirectory,
+                };
+            return scriptSubFolders;
+        }
     }
 
     namespace Utility

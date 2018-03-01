@@ -201,27 +201,35 @@ namespace Hybrasyl
             LogLevel = Hybrasyl.Constants.DEFAULT_LOG_LEVEL;
             Assemblyinfo = new AssemblyInfo(Assembly.GetEntryAssembly());
 
-            
             Constants.DataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Hybrasyl");
+            
 
-            if (!Directory.Exists(Constants.DataDirectory))
+            if (Directory.Exists(Constants.DataDirectory))
             {
-                Logger.InfoFormat("Creating data directory {0}", Constants.DataDirectory);
-                try
+                var foldersCreatedOrExist = true;
+                foreach (var folder in GameFolders.Instance.DataSubFolders())
                 {
-                    // Create the various directories we need
-                    Directory.CreateDirectory(Constants.DataDirectory);
-                    Directory.CreateDirectory(Path.Combine(Constants.DataDirectory, "maps"));
-                    Directory.CreateDirectory(Path.Combine(Constants.DataDirectory, "scripts"));
-                    Directory.CreateDirectory(Path.Combine(Constants.DataDirectory, "world"));
+                    try
+                    {
+                        Directory.CreateDirectory(folder);
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.ErrorFormat("Can't create data directory: {1} - {0}", e.ToString(), folder);
+                        foldersCreatedOrExist = false;
+                    }                    
                 }
-                catch (Exception e)
+                if (!foldersCreatedOrExist)
                 {
-                    Logger.ErrorFormat("Can't create data directory: {0}", e.ToString());
                     return;
                 }
             }
-            
+            else
+            {
+                Logger.ErrorFormat(@"Hybrasyl main data folder does not exist and/or cannot be created.");
+                return;
+            }
+
             var hybconfig = Path.Combine(Constants.DataDirectory, "config.xml");
        
             if (File.Exists(hybconfig))
