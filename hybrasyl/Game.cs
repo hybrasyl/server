@@ -264,7 +264,8 @@ namespace Hybrasyl
 
             //set up service endpoint for ControlService
 
-            var host = new WebServiceHost(typeof(ControlService), new Uri($"http://{Config.ApiEndpoints.ControlService?.BindAddress ?? "127.0.0.1"}:{Config.ApiEndpoints.ControlService?.Port ?? Constants.ControlServicePort}/ControlService"));
+            var port = Config.ApiEndpoints.ControlService?.Port == 0 ? Constants.ControlServicePort : Config.ApiEndpoints.ControlService.Port;
+            var host = new WebServiceHost(typeof(ControlService), new Uri($"http://{Config.ApiEndpoints.ControlService?.BindAddress ?? "127.0.0.1"}:{port}/ControlService"));
             host.Open();
             Logger.InfoFormat($"Starting ControlService on port {Config.ApiEndpoints.ControlService?.Port ?? Constants.ControlServicePort}");
 
@@ -395,13 +396,14 @@ namespace Hybrasyl
             // termination, the queue consumer is stopped as well.
             // For a true restart we'll need to do a few other things; stop timers, etc.
 
-            host.Close();
             Lobby.Shutdown();
             Login.Shutdown();
             World.Shutdown();
+            Thread.Sleep(5000);
             World.StopQueueConsumer();
             World.StopControlConsumers();
             Logger.WarnFormat("Hybrasyl {0}: shutdown complete.", Assemblyinfo.Version);
+            host.Close();
             Environment.Exit(0);
 
         }

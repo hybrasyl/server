@@ -197,12 +197,15 @@ namespace Hybrasyl
         public static bool TryGetUser(string name, out User userobj) 
         {
             var jsonstring = (string)DatastoreConnection.GetDatabase().Get(User.GetStorageKey(name));
+            JsonSerializerSettings settings = new JsonSerializerSettings();
+            settings.ObjectCreationHandling = ObjectCreationHandling.Replace;
+
             if (jsonstring == null)
             {
                 userobj = null;
                 return false;
             }
-            userobj = JsonConvert.DeserializeObject<User>(jsonstring);
+            userobj = JsonConvert.DeserializeObject<User>(jsonstring, settings);
             if (userobj == null)
             {
                 Logger.FatalFormat("{0}: JSON object could not be deserialized!", name);
@@ -1079,10 +1082,11 @@ namespace Hybrasyl
         {
             Logger.WarnFormat("Shutdown initiated, disconnecting {0} active users", ActiveUsers.Count);
 
+            Active = false;
             foreach (var connection in ActiveUsers)
             {
                 var user = connection.Value;
-                user.Logoff();
+                user.Logoff(true);
             }
             Listener.Close();
             Logger.Warn("Shutdown complete");
@@ -1172,7 +1176,7 @@ namespace Hybrasyl
             {
                 var user = connection.Value;
                 user.SendMessage("Chaos is rising up. Please re-enter in a few minutes.",
-                    Hybrasyl.MessageTypes.SYSTEM_WITH_OVERHEAD);
+                    MessageTypes.SYSTEM_WITH_OVERHEAD);
             }
 
             // Actually shut down the server. This terminates the listener loop in Game.
@@ -1666,6 +1670,7 @@ namespace Hybrasyl
             loginUser.SendEquipment();
             loginUser.SendSkills();
             loginUser.SendSpells();
+            loginUser.ReapplyStatuses();
             loginUser.SetCitizenship();
 
             Insert(loginUser);
@@ -1728,7 +1733,7 @@ namespace Hybrasyl
         {
             var me = (User)obj;
 
-            var list = from user in WorldData.Values<User>()
+            var list = from user in ActiveUsers.Values
                        orderby user.IsMaster descending, user.Stats.Level descending, user.Stats.BaseHp + user.Stats.BaseMp * 2 descending, user.Name ascending
                        select user;
 

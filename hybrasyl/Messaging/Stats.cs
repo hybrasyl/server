@@ -226,10 +226,10 @@ namespace Hybrasyl.Messaging
         public new static ChatCommandResult Run(User user, params string[] args)
         {
             var cls = args[0].ToLower();
-            if (Constants.CLASSES.TryGetValue(args[0], out int classValue))
+            if (Constants.CLASSES.TryGetValue(args[0].ToLower(), out int classValue))
             {
                 user.Class = (Enums.Class)classValue;
-                return Success("Class changed to {args[0]}.");
+                return Success($"Class changed to {args[0]}.");
             }
             return Fail("I know nothing about that class");
 

@@ -213,7 +213,7 @@
 
   <xs:complexType name="CastCostList">
     <xs:sequence>
-      <xs:element name="CastCost" type="actions:CastCost"/>
+      <xs:element name="CastCost" type="actions:CastCost"  minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
   </xs:complexType>
 
@@ -364,7 +364,7 @@
       <xs:element name="Heal" minOccurs="0" maxOccurs="1" type="actions:Heal" />
       <xs:element name="Damage" minOccurs="0" maxOccurs="1" type="actions:Damage" />
       <xs:element name="StatModifiers" minOccurs="0" maxOccurs="1" type="actions:StatModifiers" />
-      <xs:element name="Statuses" minOccurs="0" maxOccurs="0" type="actions:Statuses" />
+      <xs:element name="Statuses" minOccurs="0" maxOccurs="1" type="actions:Statuses" />
     </xs:all>
     <xs:attribute name="ScriptOverride" type="xs:boolean" default="false"/>
   </xs:complexType>
@@ -415,7 +415,7 @@
       <xs:extension base="hyb:String8">
         <xs:attribute name="Duration" use="optional" default="0" type="xs:int"/>
         <xs:attribute name="Intensity" use="optional" default="1.0" type="xs:float"/>
-        <xs:attribute name="Speed" default="1.0" use="optional" type="xs:float"/>
+        <xs:attribute name="Speed" default="1.0" type="xs:float"/>
       </xs:extension>
     </xs:simpleContent>
   </xs:complexType>
@@ -440,7 +440,6 @@
       <xs:element name="Restrictions" type="actions:Restrictions" minOccurs="0" maxOccurs="1" />
       <xs:element name="Effects" type="actions:Effects" minOccurs="0" maxOccurs="1" />
       <xs:element name="Script" type="xs:string" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="Statuses" type="actions:Statuses" minOccurs="0" maxOccurs="1"/>
     </xs:all>
     <!-- Castable attributes -->
     <xs:attribute name="Type" use="required" />

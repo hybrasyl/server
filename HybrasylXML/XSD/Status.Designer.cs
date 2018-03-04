@@ -50,6 +50,7 @@ namespace Hybrasyl.Statuses
         {
             this._effects = new Effects();
             this._castRestriction = new CastRestriction();
+            this._tick = 1;
         }
 
         public string Category
@@ -126,6 +127,7 @@ namespace Hybrasyl.Statuses
         }
 
         [System.Xml.Serialization.XmlAttributeAttribute()]
+        [System.ComponentModel.DefaultValueAttribute(1)]
         public int Tick
         {
             get
