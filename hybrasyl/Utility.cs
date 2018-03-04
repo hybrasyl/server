@@ -281,7 +281,7 @@ namespace Hybrasyl
         public const int DEBUG = 7;
     }
 
-    class GameFolders
+    public static class GameFolders
     {
         //Adjusted for ease of future changes, if needed
         private static string _dataDirectory { get; set; }
