@@ -283,7 +283,6 @@ namespace Hybrasyl
 
     public static class GameFolders
     {
-        //Adjusted for ease of future changes, if needed
         private static string _dataDirectory { get; set; }
         private static string _worldFileDirectory => Path.Combine(_dataDirectory, "world");
         private static string _mapFileDirectory => Path.Combine(_worldFileDirectory, "mapfiles");
