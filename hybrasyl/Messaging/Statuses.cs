@@ -21,7 +21,7 @@ namespace Hybrasyl.Messaging
         {
             if (Game.World.WorldData.TryGetValueByIndex(args[0], out Status status))
             {
-                user.ApplyStatus(new CreatureStatus(status, user, null));
+                user.ApplyStatus(new CreatureStatus(status, user, null, null));
                 return Success();
             }
             return Fail("No such status was found. Missing XML file perhaps?");
@@ -71,4 +71,20 @@ namespace Hybrasyl.Messaging
         public new static ChatCommandResult Run(User user, params string[] args) => Success($"Flags: {user.Condition.Flags} Conditions: {user.Condition.Conditions}");
     }
 
+    class StatusesCommand : ChatCommand
+    {
+        public new static string Command = "statuses";
+        public new static string ArgumentText = "none";
+        public new static string HelpText = "Display information about current statuses.";
+        public new static bool Privileged = false;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            string statusReport = string.Empty;
+            foreach (var status in user.CurrentStatusInfo)
+                statusReport = $"{statusReport}{status.Name}: {status.Remaining} seconds remaining, tick every {status.Tick} seconds\n";
+            user.SendMessage(statusReport, MessageTypes.SLATE_WITH_SCROLLBAR);
+            return Success();
+        }
+    }
 }

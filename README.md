@@ -9,16 +9,16 @@ exceptionally accurate DOOMVAS v1 emulator (example:
 sometime.
 
 This document is intended for developers; if you're interested in using a
-released version of Hybrasyl server, please check the
-[Github releases page](https://www.hybrasyl.com/releases) of the project
-website. We do not currently provide installer packages, although that is in
+released version of Hybrasyl server, please check our 
+[Github releases page](https://github.com/hybrasyl/server/releases). We do 
+not currently provide installer packages, although that is in
 the works. Generally, if you use the Hybrasyl launcher, our staging server is
 almost always online - production will be online once we implement more
 features!
 
 Hybrasyl is a work in progress. A lot of the functionality you would expect
-from a playable game is not yet implemented. You can see what's currently in
-the works on the [bug tracker](https://hybrasyl.atlassian.net/), look at our current
+from a playable game is not yet implemented. You can see open issues in our GitHub 
+[issue tracker](https://github.com/hybrasyl/server/issues), look at our current
 [TODO/punchlist](https://github.com/hybrasyl/server/wiki/Hybrasyl-Punchlist) or check out
 recent [project news](https://www.hybrasyl.com/).
 

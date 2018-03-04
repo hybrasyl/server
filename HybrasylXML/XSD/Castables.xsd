@@ -213,7 +213,7 @@
 
   <xs:complexType name="CastCostList">
     <xs:sequence>
-      <xs:element name="CastCost" type="actions:CastCost"  minOccurs="1" maxOccurs="unbounded"/>
+      <xs:element name="CastCost" type="actions:CastCost"  minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
   </xs:complexType>
 
@@ -413,8 +413,8 @@
   <xs:complexType name="AddStatus">
     <xs:simpleContent>
       <xs:extension base="hyb:String8">
-        <xs:attribute name="Duration"  default="0" type="xs:int"/>
-        <xs:attribute name="Intensity" default="1.0" type="xs:float"/>
+        <xs:attribute name="Duration" use="optional" default="0" type="xs:int"/>
+        <xs:attribute name="Intensity" use="optional" default="1.0" type="xs:float"/>
         <xs:attribute name="Speed" default="1.0" type="xs:float"/>
       </xs:extension>
     </xs:simpleContent>

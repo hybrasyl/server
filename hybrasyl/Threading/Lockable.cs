@@ -36,5 +36,17 @@ namespace Hybrasyl.Threading
         {
             return value.Value;
         }
+
+        public static Lockable<T> operator -(Lockable<T> a, Lockable<T> b) => new Lockable<T>(Difference(a.Value, b.Value));
+        
+        public static Lockable<T> operator +(Lockable<T> a, Lockable<T> b) => new Lockable<T>(Sum(a.Value, b.Value));
+
+        public static Lockable<T> operator *(Lockable<T> a, Lockable<T> b) => new Lockable<T>(Product(a.Value, b.Value));
+
+        private static T Sum(T a, T b) => (dynamic)a + (dynamic)b;
+
+        private static T Difference(T a, T b) => (dynamic)a - (dynamic)b;
+
+        private static T Product(T a, T b) => (dynamic)a * (dynamic)b;
     }
 }

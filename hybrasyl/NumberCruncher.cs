@@ -12,12 +12,19 @@ using Hybrasyl.Statuses;
 namespace Hybrasyl
 {
 
+    // A simple class to hold damage output along with flags / element, which we use elsewhere (specifically statuses)
+    public class DamageOutput
+    {
+        public double Amount { get; set; }
+        public Enums.DamageType Type { get; set; }
+        public Castables.DamageFlags Flags { get; set; }
+        public Enums.Element Element { get; set; }
+    }
     /// <summary>
     /// This class is used to do a variety of numerical calculations, in order to consolidate those into
     /// one place. Specifically, healing and damage, are handled here.
     /// </summary>
-    /// 
-
+    ///
     static class NumberCruncher
     {
 
@@ -50,20 +57,20 @@ namespace Hybrasyl
         }
 
         /// <summary>
-        /// Calculate the healing for a castable.
+        /// Calculate the damage for a castable.
         /// </summary>
         /// <param name="castable">The castable to use for the calculation</param>
         /// <param name="target">The target of the castable (i.e. the spell/skill target)</param>
         /// <param name="source">The source of the castable (i.e. the caster)</param>
         /// <returns></returns>
-        public static (double Amount, Enums.DamageType Type, Castables.DamageFlags Flags) CalculateDamage(Castable castable, Creature target, Creature source = null)
+        public static DamageOutput CalculateDamage(Castable castable, Creature target, Creature source = null)
         {
             var rand = new Random();
             // Defaults
             double dmg = 1;
             var type = EnumUtil.ParseEnum(castable.Effects.Damage.Type.ToString(), Enums.DamageType.Magical);
 
-            if (castable.Effects?.Damage == null) return (dmg, type, Castables.DamageFlags.None);
+            if (castable.Effects?.Damage == null) return new DamageOutput() { Amount = dmg, Type = type, Flags = Castables.DamageFlags.None, Element = (Enums.Element) castable.Element }; 
 
             if (castable.Effects.Damage.IsSimple)
             {
@@ -75,8 +82,9 @@ namespace Hybrasyl
                 var formula = castable.Effects.Damage.Formula;
                 dmg = _evalFormula(formula, castable, target, source);
             }
-
-            return (dmg * target.Stats.DamageModifier, type, castable.Effects.Damage.Flags);
+            return new DamageOutput() { Amount = dmg * target.Stats.DamageModifier,
+                Type = type, Flags = castable.Effects.Damage.Flags,
+                Element = (Enums.Element) castable.Element };
         }
 
         /// <summary>
@@ -109,13 +117,13 @@ namespace Hybrasyl
         /// <param name="source">Original source of the status</param>
         /// <param name="statusName">The name of the status</param>
         /// <returns></returns>
-        public static (double Amount, Enums.DamageType Type, Castables.DamageFlags Flags) CalculateDamage(Castable castable, ModifierEffect effect, Creature target, Creature source, string statusName)
+        public static DamageOutput CalculateDamage(Castable castable, ModifierEffect effect, Creature target, Creature source, string statusName)
         {
             // Defaults
             double dmg = 0;
             var type = EnumUtil.ParseEnum(effect.Damage.Type.ToString(), Enums.DamageType.Magical);
 
-            if (effect?.Damage == null) return (dmg, type, Castables.DamageFlags.None);
+            if (effect?.Damage == null) return new DamageOutput() { Amount = dmg, Type = type, Flags = Castables.DamageFlags.None, Element = (Enums.Element)castable.Element };
 
             var statusAdd = castable?.Effects?.Statuses?.Add?.Where(e => e.Value == statusName)?.ToList();
             var intensity = statusAdd != null ? statusAdd[0].Intensity : 1;
@@ -124,9 +132,8 @@ namespace Hybrasyl
                 dmg = _evalSimple(effect.Damage.Simple);
             else
                 dmg = _evalFormula(effect.Damage.Formula, castable, target, source);
-            return (dmg * intensity * target.Stats.DamageModifier, type, (Castables.DamageFlags)effect.Damage.Flags);
 
-
+            return new DamageOutput() { Amount = (dmg*intensity*target.Stats.DamageModifier), Type = type, Flags = (Castables.DamageFlags) effect.Damage.Flags, Element = (Enums.Element)castable.Element };
         }
 
         /// <summary>
