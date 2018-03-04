@@ -3668,9 +3668,10 @@ namespace Hybrasyl.Objects
 
         public void SendEquipment()
         {
-            foreach (var item in Equipment)
+            for (byte i=0; i < Equipment.Size; i++)
             {
-                SendEquipItem(item, item.EquipmentSlot);
+                if (Equipment[i] != null)
+                    SendEquipItem(Equipment[i], i);
             }
         }
         public void SendSkills()
