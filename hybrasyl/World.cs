@@ -283,7 +283,7 @@ namespace Hybrasyl
             // refactored later, but it is way too much work to do now (e.g. maps, etc).
 
             //Load strings
-            foreach (var xml in Directory.GetFiles(GameFolders.Instance.XmlLocalizationDirectory, "*.xml"))
+            foreach (var xml in Directory.GetFiles(GameFolders.XmlLocalizationDirectory, "*.xml"))
             {              
                 try
                 {
@@ -297,7 +297,7 @@ namespace Hybrasyl
             }
 
             //Load NPCs
-            foreach (var xml in Directory.GetFiles(GameFolders.Instance.XmlNpcsDirectory, "*.xml"))
+            foreach (var xml in Directory.GetFiles(GameFolders.XmlNpcsDirectory, "*.xml"))
             {
                 try
                 {
@@ -312,7 +312,7 @@ namespace Hybrasyl
             }
 
             // Load maps
-            foreach (var xml in Directory.GetFiles(GameFolders.Instance.XmlMapDirectory, "*.xml"))
+            foreach (var xml in Directory.GetFiles(GameFolders.XmlMapDirectory, "*.xml"))
             {
                 try
                 {
@@ -332,7 +332,7 @@ namespace Hybrasyl
             Logger.InfoFormat("Maps: {0} maps loaded", WorldData.Count<Map>());
 
             // Load nations
-            foreach (var xml in Directory.GetFiles(GameFolders.Instance.XmlNationDirectory, "*.xml"))
+            foreach (var xml in Directory.GetFiles(GameFolders.XmlNationDirectory, "*.xml"))
             {
                 try
                 {
@@ -363,7 +363,7 @@ namespace Hybrasyl
             Logger.InfoFormat("National data: {0} nations loaded", WorldData.Count<Nation>());
 
             //Load Creatures
-            foreach (var xml in Directory.GetFiles(GameFolders.Instance.XmlCreatureDirectory, "*.xml"))
+            foreach (var xml in Directory.GetFiles(GameFolders.XmlCreatureDirectory, "*.xml"))
             {
                 try
                 {
@@ -380,7 +380,7 @@ namespace Hybrasyl
 
 
             //Load SpawnGroups
-            foreach (var xml in Directory.GetFiles(GameFolders.Instance.XmlSpawnGroupDirectory, "*.xml"))
+            foreach (var xml in Directory.GetFiles(GameFolders.XmlSpawnGroupDirectory, "*.xml"))
             {
                 try
                 {
@@ -398,7 +398,7 @@ namespace Hybrasyl
             }
 
             //Load LootSets
-            foreach (var xml in Directory.GetFiles(GameFolders.Instance.XmlLootSetDirectory, "*.xml"))
+            foreach (var xml in Directory.GetFiles(GameFolders.XmlLootSetDirectory, "*.xml"))
             {
                 try
                 {
@@ -416,7 +416,7 @@ namespace Hybrasyl
             Logger.InfoFormat("Loot Sets: {0} loot sets loaded", WorldData.Count<LootSet>());
 
             // Load worldmaps
-            foreach (var xml in Directory.GetFiles(GameFolders.Instance.XmlWorldMapDirectory, "*.xml"))
+            foreach (var xml in Directory.GetFiles(GameFolders.XmlWorldMapDirectory, "*.xml"))
             {
                 try
                 {
@@ -438,7 +438,7 @@ namespace Hybrasyl
             Logger.InfoFormat("World Maps: {0} world maps loaded", WorldData.Count<WorldMap>());
 
             // Load item variants
-            foreach (var xml in Directory.GetFiles(GameFolders.Instance.XmlItemVariantDirectory, "*.xml"))
+            foreach (var xml in Directory.GetFiles(GameFolders.XmlItemVariantDirectory, "*.xml"))
             {
                 try
                 {
@@ -456,7 +456,7 @@ namespace Hybrasyl
             Logger.InfoFormat("ItemObject variants: {0} variant sets loaded", WorldData.Values<VariantGroup>().Count());
 
             // Load items
-            foreach (var xml in Directory.GetFiles(GameFolders.Instance.XmlItemDirectory, "*.xml"))
+            foreach (var xml in Directory.GetFiles(GameFolders.XmlItemDirectory, "*.xml"))
             {
                 try
                 {
@@ -491,7 +491,7 @@ namespace Hybrasyl
                 }
             }
 
-            foreach (var xml in Directory.GetFiles(GameFolders.Instance.XmlStatusDirectory, "*.xml"))
+            foreach (var xml in Directory.GetFiles(GameFolders.XmlStatusDirectory, "*.xml"))
             {
                 try
                 {
@@ -509,7 +509,7 @@ namespace Hybrasyl
 
             Logger.InfoFormat("Statuses: {0} statuses loaded", WorldData.Values<Status>().Count());
 
-            foreach (var xml in Directory.GetFiles(GameFolders.Instance.XmlCastableDirectory, "*.xml"))
+            foreach (var xml in Directory.GetFiles(GameFolders.XmlCastableDirectory, "*.xml"))
             {
                 try
                 {
@@ -846,7 +846,7 @@ namespace Hybrasyl
         public void CompileScripts()
         {
             // Scan each directory for *.lua files
-            foreach (var dir in GameFolders.Instance.ScriptSubFolders())
+            foreach (var dir in GameFolders.ScriptSubFolders)
             {
                 Logger.InfoFormat("Scanning script directory: {0}", dir);
                 if (!Directory.Exists(dir))

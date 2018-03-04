@@ -202,12 +202,12 @@ namespace Hybrasyl
             Assemblyinfo = new AssemblyInfo(Assembly.GetEntryAssembly());
 
             Constants.DataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Hybrasyl");
-            
+            GameFolders.Init(Constants.DataDirectory);
 
             if (Directory.Exists(Constants.DataDirectory))
             {
                 var foldersCreatedOrExist = true;
-                foreach (var folder in GameFolders.Instance.DataSubFolders())
+                foreach (var folder in GameFolders.DataSubFolders)
                 {
                     try
                     {

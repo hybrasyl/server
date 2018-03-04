@@ -283,73 +283,60 @@ namespace Hybrasyl
 
     class GameFolders
     {
-        private static GameFolders instance;
-
-        private GameFolders() {}
-
-        public static GameFolders Instance
-        {
-            get
-            {
-                if (instance == null)
-                {
-                    instance = new GameFolders();
-                }
-                return instance;
-            }
-        }
         //Adjusted for ease of future changes, if needed
-        private string _dataDirectory => Constants.DataDirectory;
-        private string _worldFileDirectory => Path.Combine(_dataDirectory, "world");
-        private string _mapFileDirectory => Path.Combine(_worldFileDirectory, "mapfiles");
-        private string _scriptsFileDirectory => Path.Combine(_worldFileDirectory, "scripts");
-        private string _xmlFileDirectory => Path.Combine(_worldFileDirectory, "xml");
+        private static string _dataDirectory { get; set; }
+        private static string _worldFileDirectory => Path.Combine(_dataDirectory, "world");
+        private static string _mapFileDirectory => Path.Combine(_worldFileDirectory, "mapfiles");
+        private static string _scriptsFileDirectory => Path.Combine(_worldFileDirectory, "scripts");
+        private static string _xmlFileDirectory => Path.Combine(_worldFileDirectory, "xml");
 
-        public string MapFileDirectory => Path.Combine(_mapFileDirectory);
+        public static string MapFileDirectory => Path.Combine(_mapFileDirectory);
 
         #region ScriptsFolders
-        public string ScriptCastableDirectory => Path.Combine(_scriptsFileDirectory, "castable");
+        public static string ScriptCastableDirectory => Path.Combine(_scriptsFileDirectory, "castable");
 
-        public string ScriptCommonDirectory => Path.Combine(_scriptsFileDirectory, "common");
+        public static string ScriptCommonDirectory => Path.Combine(_scriptsFileDirectory, "common");
 
-        public string ScriptItemDirectory => Path.Combine(_scriptsFileDirectory, "item");
+        public static string ScriptItemDirectory => Path.Combine(_scriptsFileDirectory, "item");
 
-        public string ScriptNpcDirectory => Path.Combine(_scriptsFileDirectory, "npc");
+        public static string ScriptNpcDirectory => Path.Combine(_scriptsFileDirectory, "npc");
 
-        public string ScriptReactorDirectory => Path.Combine(_scriptsFileDirectory, "reactor");
+        public static string ScriptReactorDirectory => Path.Combine(_scriptsFileDirectory, "reactor");
 
-        public string ScriptStartupDirectory => Path.Combine(_scriptsFileDirectory, "startup");
+        public static string ScriptStartupDirectory => Path.Combine(_scriptsFileDirectory, "startup");
         #endregion
 
         #region XmlFolders
-        public string XmlCastableDirectory => Path.Combine(_xmlFileDirectory, "castables");
+        public static string XmlCastableDirectory => Path.Combine(_xmlFileDirectory, "castables");
 
-        public string XmlStatusDirectory => Path.Combine(_xmlFileDirectory, "statuses");
+        public static string XmlStatusDirectory => Path.Combine(_xmlFileDirectory, "statuses");
 
-        public string XmlItemDirectory => Path.Combine(_xmlFileDirectory, "items");
+        public static string XmlItemDirectory => Path.Combine(_xmlFileDirectory, "items");
 
-        public string XmlNationDirectory => Path.Combine(_xmlFileDirectory, "nations");
+        public static string XmlNationDirectory => Path.Combine(_xmlFileDirectory, "nations");
 
-        public string XmlMapDirectory => Path.Combine(_xmlFileDirectory, "maps");
+        public static string XmlMapDirectory => Path.Combine(_xmlFileDirectory, "maps");
 
-        public string XmlWorldMapDirectory => Path.Combine(_xmlFileDirectory, "worldmaps");
+        public static string XmlWorldMapDirectory => Path.Combine(_xmlFileDirectory, "worldmaps");
 
-        public string XmlCreatureDirectory => Path.Combine(_xmlFileDirectory, "creatures");
+        public static string XmlCreatureDirectory => Path.Combine(_xmlFileDirectory, "creatures");
 
-        public string XmlSpawnGroupDirectory => Path.Combine(_xmlFileDirectory, "spawngroups");
+        public static string XmlSpawnGroupDirectory => Path.Combine(_xmlFileDirectory, "spawngroups");
 
-        public string XmlLootSetDirectory => Path.Combine(_xmlFileDirectory, "lootsets");
+        public static string XmlLootSetDirectory => Path.Combine(_xmlFileDirectory, "lootsets");
 
-        public string XmlItemVariantDirectory => Path.Combine(_xmlFileDirectory, "itemvariants");
+        public static string XmlItemVariantDirectory => Path.Combine(_xmlFileDirectory, "itemvariants");
 
-        public string XmlNpcsDirectory => Path.Combine(_xmlFileDirectory, "npcs");
+        public static string XmlNpcsDirectory => Path.Combine(_xmlFileDirectory, "npcs");
 
-        public string XmlLocalizationDirectory => Path.Combine(_xmlFileDirectory, "localization");
+        public static string XmlLocalizationDirectory => Path.Combine(_xmlFileDirectory, "localization");
         #endregion
 
-        public string[] DataSubFolders()
+        public static string[] DataSubFolders 
         {
-            string[] dataSubFolders = new string[]
+            get
+            {
+                return new string[]
                 {
                     MapFileDirectory,
 
@@ -373,12 +360,14 @@ namespace Hybrasyl
                     XmlNpcsDirectory,
                     XmlLocalizationDirectory
                 };
-            return dataSubFolders;
+            }            
         }
 
-        public string[] ScriptSubFolders()
+        public static string[] ScriptSubFolders
         {
-            string[] scriptSubFolders = new string[]
+            get
+            {
+                return new string[]
                 {
                     ScriptCastableDirectory,
                     ScriptCommonDirectory,
@@ -387,7 +376,12 @@ namespace Hybrasyl
                     ScriptReactorDirectory,
                     ScriptStartupDirectory,
                 };
-            return scriptSubFolders;
+            }            
+        }
+
+        public static void Init(string baseDir)
+        {
+            _dataDirectory = baseDir;
         }
     }
 
