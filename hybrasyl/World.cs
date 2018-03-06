@@ -846,7 +846,7 @@ namespace Hybrasyl
         public void CompileScripts()
         {
             // Scan each directory for *.lua files
-            foreach (var dir in GameFolders.ScriptSubFolders)
+            foreach (var dir in GameFolders.ScriptSubFolders())
             {
                 Logger.InfoFormat("Scanning script directory: {0}", dir);
                 if (!Directory.Exists(dir))

@@ -331,51 +331,31 @@ namespace Hybrasyl
         public static string XmlLocalizationDirectory => Path.Combine(_xmlFileDirectory, "localization");
         #endregion
 
-        public static string[] DataSubFolders 
+        public static string[] GetAllDataSubFolders()
         {
-            get
+
+            var properties = typeof(GameFolders).GetProperties();
+            string[] propertyValues = new string[properties.Length];
+            for (int i = 0; i < properties.Length; i++)
             {
-                return new string[]
-                {
-                    MapFileDirectory,
+                var property = properties[i];
+                propertyValues[i] = (string)(property.GetValue(property));
+            }
 
-                    ScriptCastableDirectory,
-                    ScriptCommonDirectory,
-                    ScriptItemDirectory,
-                    ScriptNpcDirectory,
-                    ScriptReactorDirectory,
-                    ScriptStartupDirectory,
-
-                    XmlCastableDirectory,
-                    XmlStatusDirectory,
-                    XmlItemDirectory,
-                    XmlItemVariantDirectory,
-                    XmlNationDirectory,
-                    XmlMapDirectory,
-                    XmlWorldMapDirectory,
-                    XmlCreatureDirectory,
-                    XmlSpawnGroupDirectory,
-                    XmlLootSetDirectory,
-                    XmlNpcsDirectory,
-                    XmlLocalizationDirectory
-                };
-            }            
+            return propertyValues;
         }
 
-        public static string[] ScriptSubFolders
+        public static string[] ScriptSubFolders()
         {
-            get
+            return new string[]
             {
-                return new string[]
-                {
-                    ScriptCastableDirectory,
-                    ScriptCommonDirectory,
-                    ScriptItemDirectory,
-                    ScriptNpcDirectory,
-                    ScriptReactorDirectory,
-                    ScriptStartupDirectory,
-                };
-            }            
+                ScriptCastableDirectory,
+                ScriptCommonDirectory,
+                ScriptItemDirectory,
+                ScriptNpcDirectory,
+                ScriptReactorDirectory,
+                ScriptStartupDirectory,
+            };
         }
 
         public static void Init(string baseDir)

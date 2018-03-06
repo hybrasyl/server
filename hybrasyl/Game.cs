@@ -207,7 +207,7 @@ namespace Hybrasyl
             if (Directory.Exists(Constants.DataDirectory))
             {
                 var foldersCreatedOrExist = true;
-                foreach (var folder in GameFolders.DataSubFolders)
+                foreach (var folder in GameFolders.GetAllDataSubFolders())
                 {
                     try
                     {
