@@ -22,9 +22,11 @@
 
 
 using Hybrasyl.Objects;
+using MoonSharp.Interpreter;
 
 namespace Hybrasyl.Scripting
 {
+    [MoonSharpUserData]
     public class HybrasylWorldObject
     {
         internal WorldObject Obj { get; set; }

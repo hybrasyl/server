@@ -21,14 +21,15 @@
  */
  
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Hybrasyl.Objects;
 using log4net;
-using NLua;
+using MoonSharp.Interpreter;
 
 namespace Hybrasyl.Scripting
 {
-
+    [MoonSharpUserData]
     public class ScriptLogger
     {
         private static readonly ILog ScriptingLogger = LogManager.GetLogger("ScriptingLog");
@@ -54,14 +55,15 @@ namespace Hybrasyl.Scripting
         public string Name { get; set; }
         public string FullPath { get; private set; }
 
-        public Lua State { get; private set; }
         public ScriptProcessor Processor { get; set; }
-        public LuaFunction Compiled { get; private set; }
+        public MoonSharp.Interpreter.Script Compiled { get; private set; }
         public HybrasylWorldObject Associate { get; private set; }
 
         public bool Disabled { get; set; }
         public string CompilationError { get; private set; }
         public string LastRuntimeError { get; private set; }
+
+        private HashSet<String> _FunctionIndex { get; set; }
 
         public Script Clone()
         {
@@ -74,20 +76,19 @@ namespace Hybrasyl.Scripting
         {
             FullPath = path;
             Name = Path.GetFileName(path);
-            Compiled = null;
+            Compiled = new MoonSharp.Interpreter.Script(CoreModules.Preset_SoftSandbox);
             RawSource = string.Empty;
             Processor = processor;
             Disabled = false;
             CompilationError = string.Empty;
             LastRuntimeError = string.Empty;
-            State = new Lua();
-            PrepareState();
+            _FunctionIndex = new HashSet<String>();
         }
 
         public void AssociateScriptWithObject(WorldObject obj)
         {
             Associate = new HybrasylWorldObject(obj);
-            State["associate"] = Associate;
+            Compiled.Globals.Set("associate", UserData.Create(Associate));
             obj.Script = this;
         }
 
@@ -99,29 +100,13 @@ namespace Hybrasyl.Scripting
         }
 
         /// <summary>
-        /// Prepare a script's Lua state for executing Hybrasyl scripting code, adding needed host object and type references.
-        /// </summary>
-        public void PrepareState()
-        {
-            State.LoadCLRPackage();
-            State.DoString(@"Scripting = CLRPackage('Hybrasyl', 'Hybrasyl.Scripting')");
-            State.DoString(@"Enums = CLRPackage('Hybrasyl', 'Hybrasyl.Enums')");
-            State["world"] = Processor.World;
-            State["logger"] = new ScriptLogger(Name);
-            // Prohibit future imports from other .NET assemblies
-            State.DoString(@"import = function() end");
-            State.DoString(@"CLRPackage = function() end");
-        }
-
-        /// <summary>
         /// Check to see if a script implements a given function.
         /// </summary>
         /// <param name="name">The function name to check</param>
         /// <returns></returns>
         public bool HasFunction(string name)
         {
-            var luaFunction = State[name] as LuaFunction;
-            return luaFunction != null;
+            return Compiled.Globals.Get(name) != DynValue.Nil;
         }
 
         /// <summary>
@@ -132,9 +117,12 @@ namespace Hybrasyl.Scripting
         {
             try
             {
-                State.DoFile(FullPath);
+                UserData.RegisterAssembly();
+                Compiled.DoFile(FullPath);
+                Compiled.Globals.Set("world", UserData.Create(Processor.World));
+                Compiled.Globals.Set("logger", UserData.Create(new ScriptLogger(Name)));
             }
-            catch (NLua.Exceptions.LuaScriptException e)
+            catch (ScriptRuntimeException e)
             {
                 ScriptingLogger.Error($"Error executing script {FullPath}: {e.ToString()}, full stacktrace follows:\n{e.StackTrace}");
                 Disabled = true;
@@ -159,10 +147,10 @@ namespace Hybrasyl.Scripting
 
             try
             {
-                State["invoker"] = GetObjectWrapper(invoker);
-                State.DoString(expr);
+                Compiled.Globals.Set("invoker", UserData.Create(invoker));
+                Compiled.DoString(expr);
             }
-            catch (NLua.Exceptions.LuaScriptException e)
+            catch (ScriptRuntimeException e)
             {
                 ScriptingLogger.Error($"{Name}: Error executing expression: {expr}: \n{e.ToString()} full stacktrace follows:\n{e.StackTrace}");
                 Disabled = true;
@@ -180,17 +168,16 @@ namespace Hybrasyl.Scripting
 
             try
             {
-                var luaFunction = State[functionName] as LuaFunction;
-                if (luaFunction != null)
+                if (HasFunction(functionName))
                 {
-                    State["associate"] = GetObjectWrapper(associate);
-                    State["invoker"] = GetObjectWrapper(invoker);
-                    luaFunction.Call();
+                    Compiled.Globals.Set("associate", UserData.Create(associate));
+                    Compiled.Globals.Set("invoker", UserData.Create(invoker));
+                    Compiled.Call(Compiled.Globals[functionName]);
                 }
                 else
                     return false;
             }
-            catch (NLua.Exceptions.LuaScriptException e)
+            catch (ScriptRuntimeException e)
             {
                 ScriptingLogger.Error($"{Name}: Error executing expression: {functionName} ({e.ToString()}) full stacktrace follows:\n{e.StackTrace}");
                 Disabled = true;
@@ -208,16 +195,15 @@ namespace Hybrasyl.Scripting
 
             try
             {
-                var luaFunction = State[functionName] as LuaFunction;
-                if (luaFunction != null)
+                if (HasFunction(functionName))
                 {
-                    State["invoker"] = GetObjectWrapper(invoker);
-                    luaFunction.Call();
+                    Compiled.Globals.Set("invoker", UserData.Create(invoker));
+                    Compiled.Call(Compiled.Globals[functionName]);
                 }
                 else
                     return false;
             }
-            catch (NLua.Exceptions.LuaScriptException e)
+            catch (ScriptRuntimeException e)
             {
                 ScriptingLogger.Error($"{Name}: Error executing function: {functionName} ({e.ToString()}) , full stacktrace follows:\n{e.StackTrace}");
                 Disabled = true;
@@ -236,15 +222,12 @@ namespace Hybrasyl.Scripting
 
             try
             {
-                var luaFunction = State[functionName] as LuaFunction;
-                if (luaFunction != null)
-                {
-                    luaFunction.Call();
-                }
+                if (HasFunction(functionName))
+                    Compiled.Call(Compiled.Globals[functionName]);
                 else
                     return false;
             }
-            catch (NLua.Exceptions.LuaScriptException e)
+            catch (ScriptRuntimeException e)
             {
                 ScriptingLogger.Error($"{Name}: Error executing function: {functionName} ({e.ToString()}) , full stacktrace follows:\n{e.StackTrace}");
                 Disabled = true;

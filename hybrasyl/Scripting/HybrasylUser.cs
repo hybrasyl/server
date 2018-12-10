@@ -28,10 +28,11 @@ using Hybrasyl.Enums;
 using Hybrasyl.Items;
 using Hybrasyl.Objects;
 using log4net;
+using MoonSharp.Interpreter;
 
 namespace Hybrasyl.Scripting
 {
-
+    [MoonSharpUserData]
     public class HybrasylUser
     {
         public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);

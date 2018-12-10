@@ -22,12 +22,14 @@
 
 using Hybrasyl.Dialogs;
 using log4net;
+using MoonSharp.Interpreter;
 using System.Collections;
 using System.Collections.Specialized;
 
 namespace Hybrasyl.Scripting
 {
 
+    [MoonSharpUserData]
     public class HybrasylDialogOptions
     {
         public OrderedDictionary Options;
@@ -43,6 +45,7 @@ namespace Hybrasyl.Scripting
         }
     }
 
+    [MoonSharpUserData]
     public class HybrasylWorld
     {
         private static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);

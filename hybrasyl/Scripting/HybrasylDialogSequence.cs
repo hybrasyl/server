@@ -21,10 +21,11 @@
  */
  
  using Hybrasyl.Dialogs;
+using MoonSharp.Interpreter;
 
 namespace Hybrasyl.Scripting
 {
-
+    [MoonSharpUserData]
     public class HybrasylDialogSequence
     {
         internal DialogSequence Sequence { get; private set; }
