@@ -83,7 +83,6 @@ namespace Hybrasyl.Scripting
             CompilationError = string.Empty;
             LastRuntimeError = string.Empty;
             _FunctionIndex = new HashSet<String>();
-            PrepareState();
         }
 
         public void AssociateScriptWithObject(WorldObject obj)
@@ -98,23 +97,6 @@ namespace Hybrasyl.Scripting
             if (obj is User)
                 return new HybrasylUser(obj as User);
             return new HybrasylWorldObject(obj);
-        }
-
-        /// <summary>
-        /// Prepare a script's Lua state for executing Hybrasyl scripting code, adding needed host object and type references.
-        /// </summary>
-        public void PrepareState()
-        {
-
-            // Create index of functions
-         //   State.LoadCLRPackage();
-           // State.DoString(@"Scripting = CLRPackage('Hybrasyl', 'Hybrasyl.Scripting')");
-            //State.DoString(@"Enums = CLRPackage('Hybrasyl', 'Hybrasyl.Enums')");
-            //State["world"] = Processor.World;
-            //State["logger"] = new ScriptLogger(Name);
-            // Prohibit future imports from other .NET assemblies
-            //State.DoString(@"import = function() end");
-            //State.DoString(@"CLRPackage = function() end");
         }
 
         /// <summary>
