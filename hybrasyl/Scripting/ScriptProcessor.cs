@@ -22,7 +22,6 @@
  
 using System.Collections.Generic;
 using log4net;
-using NLua;
 
 namespace Hybrasyl.Scripting
 {

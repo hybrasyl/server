@@ -20,9 +20,11 @@
  * 
  */
 
+using MoonSharp.Interpreter;
+
 namespace Hybrasyl.Scripting
 {
-
+    [MoonSharpUserData]
     public class HybrasylMap
     {
         private Map Map { get; set; }
