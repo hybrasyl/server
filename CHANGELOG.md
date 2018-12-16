@@ -4,9 +4,9 @@
  generally add fairly significant features, whereas ones without are primarily
  for bugfixing and other updates.*
 
-# Hybrasyl Server 0.6.2
+# Hybrasyl Server 0.7.0
 
-*Released: TBD* - 0.6.2 is the current release being worked on.
+*Released: TBD* - 0.7.0 is the current release being worked on.
 
 ### Bug Fixes
 
