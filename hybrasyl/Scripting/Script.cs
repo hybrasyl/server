@@ -88,6 +88,11 @@ namespace Hybrasyl.Scripting
         public void AssociateScriptWithObject(WorldObject obj)
         {
             Associate = new HybrasylWorldObject(obj);
+            if (obj is VisibleObject)
+            { 
+                var visibleObject = obj as VisibleObject;
+                Compiled.Globals.Set("map", UserData.Create(new HybrasylMap(visibleObject.Map)));
+            }
             Compiled.Globals.Set("associate", UserData.Create(Associate));
             obj.Script = this;
         }
@@ -134,7 +139,7 @@ namespace Hybrasyl.Scripting
         }
 
         /// <summary>
-        /// Execute a JavaScript expression in the context of an associated world object.
+        /// Execute a Lua expression in the context of an associated world object.
         /// Primarily used for dialog callbacks.
         /// </summary>
         /// <param name="expr">The javascript expression, in string form.</param>
@@ -152,8 +157,8 @@ namespace Hybrasyl.Scripting
             }
             catch (ScriptRuntimeException e)
             {
-                ScriptingLogger.Error($"{Name}: Error executing expression: {expr}: \n{e.ToString()} full stacktrace follows:\n{e.StackTrace}");
-                Disabled = true;
+                ScriptingLogger.Error($"{Name}: Error executing expression: {expr}: \n{e.DecoratedMessage} full stacktrace follows:\n{e.StackTrace}");
+                //Disabled = true;
                 CompilationError = e.ToString();
                 return false;
             }
@@ -161,7 +166,7 @@ namespace Hybrasyl.Scripting
 
         }
 
-        public bool ExecuteFunction(string functionName, dynamic associate, dynamic invoker)
+        public bool ExecuteFunction(string functionName, dynamic invoker, dynamic target)
         {
             if (Disabled)
                 return false;
@@ -170,8 +175,8 @@ namespace Hybrasyl.Scripting
             {
                 if (HasFunction(functionName))
                 {
-                    Compiled.Globals.Set("associate", UserData.Create(associate));
                     Compiled.Globals.Set("invoker", UserData.Create(invoker));
+                    Compiled.Globals.Set("target", UserData.Create(target));
                     Compiled.Call(Compiled.Globals[functionName]);
                 }
                 else
@@ -179,8 +184,8 @@ namespace Hybrasyl.Scripting
             }
             catch (ScriptRuntimeException e)
             {
-                ScriptingLogger.Error($"{Name}: Error executing expression: {functionName} ({e.ToString()}) full stacktrace follows:\n{e.StackTrace}");
-                Disabled = true;
+                ScriptingLogger.Error($"{Name}: Error executing expression: {functionName} ({e.DecoratedMessage}) full stacktrace follows:\n{e.StackTrace}");
+                //Disabled = true;
                 CompilationError = e.ToString();
                 return false;
             }
@@ -205,8 +210,8 @@ namespace Hybrasyl.Scripting
             }
             catch (ScriptRuntimeException e)
             {
-                ScriptingLogger.Error($"{Name}: Error executing function: {functionName} ({e.ToString()}) , full stacktrace follows:\n{e.StackTrace}");
-                Disabled = true;
+                ScriptingLogger.Error($"{Name}: Error executing function: {functionName} ({e.DecoratedMessage}) , full stacktrace follows:\n\n{e.StackTrace}");
+                //Disabled = true;
                 CompilationError = e.ToString();
                 return false;
             }
@@ -229,8 +234,8 @@ namespace Hybrasyl.Scripting
             }
             catch (ScriptRuntimeException e)
             {
-                ScriptingLogger.Error($"{Name}: Error executing function: {functionName} ({e.ToString()}) , full stacktrace follows:\n{e.StackTrace}");
-                Disabled = true;
+                ScriptingLogger.Error($"{Name}: Error executing function: {functionName} ({e.DecoratedMessage}) , full stacktrace follows:\n{e.StackTrace}");
+                //Disabled = true;
                 CompilationError = e.ToString();
                 return false;
             }

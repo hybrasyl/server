@@ -31,6 +31,19 @@ namespace Hybrasyl.Scripting
     {
         internal WorldObject Obj { get; set; }
 
+        public string Name
+        {
+            get
+            {
+                if (Obj is ItemObject)
+                    return (Obj as ItemObject).Name;
+                else
+                    return Name;
+            }
+        }
+        public byte X => Obj.X;
+        public byte Y => Obj.Y;
+
         public HybrasylWorldObject(WorldObject obj)
         {
             Obj = obj;
@@ -38,9 +51,9 @@ namespace Hybrasyl.Scripting
 
         public void DisplayPursuits(dynamic invoker)
         {
-            if (Obj is Merchant)
+            if (Obj is Merchant || Obj is Reactor)
             {
-                var merchant = Obj as Merchant;
+                var merchant = Obj as VisibleObject;
                 if (invoker is HybrasylUser)
                 {
                     var hybUser = (HybrasylUser)invoker;
@@ -82,11 +95,18 @@ namespace Hybrasyl.Scripting
             Game.World.RegisterGlobalSequence(globalSequence.Sequence);
         }
 
+        /// <summary>
+        /// Calculate the Manhattan distance between ourselves and a target object.
+        /// </summary>
+        /// <param name="target">The target object</param>
+        /// <returns></returns>
+        public int Distance(HybrasylWorldObject target) => Obj.Distance(target.Obj);
+
         public void Say(string message)
         {
-            if (Obj is Creature)
+            if (Obj is VisibleObject)
             {
-                var creature = Obj as Creature;
+                var creature = Obj as VisibleObject;
                 creature.Say(message);
             }
         }

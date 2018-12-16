@@ -108,5 +108,11 @@ namespace Hybrasyl.Scripting
             dialog.SetCallbackHandler(callback);
             return new HybrasylDialog(dialog);
         }
+
+        public HybrasylSpawn NewSpawn(string creaturename, string spawnname)
+        {
+            var spawn = new HybrasylSpawn(creaturename, spawnname);
+            return spawn;
+        }
     }
 }

@@ -435,6 +435,14 @@ namespace Hybrasyl
             Error = 255
         }
 
+        public enum MonsterType
+        {
+            Normal,
+            Nonsolid,
+            Merchant,
+            Guardian,
+            Reactor
+        }
 
         public class EnumUtil
         {

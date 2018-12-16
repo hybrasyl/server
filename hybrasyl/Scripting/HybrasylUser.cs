@@ -41,6 +41,8 @@ namespace Hybrasyl.Scripting
         internal HybrasylWorld World { get; set; }
         internal HybrasylMap Map { get; set; }
         public string Name => User.Name;
+        public byte X => User.X;
+        public byte Y => User.Y;
 
         public uint Hp
         {
@@ -220,6 +222,13 @@ namespace Hybrasyl.Scripting
             User.Damage((double)damage, element, damageType);
         }
 
+        public bool GiveItem(HybrasylWorldObject obj)
+        {
+            if (obj.Obj is ItemObject)
+                return User.AddItem(obj.Obj as ItemObject);
+            return false;
+        }
+
         public bool GiveItem(string name)
         {
             // Does the item exist?
@@ -319,5 +328,11 @@ namespace Hybrasyl.Scripting
             User.DialogState.ActiveDialog.ShowTo(User, associate);
         }
 
+        /// <summary>
+        /// Calculate the Manhattan distance between ourselves and a target object.
+        /// </summary>
+        /// <param name="target">The target object</param>
+        /// <returns></returns>
+        public int Distance(HybrasylWorldObject target) => User.Distance(target.Obj);
     }
 }

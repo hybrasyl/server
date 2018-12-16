@@ -271,6 +271,9 @@ namespace Hybrasyl
             foreach (var reactorElement in newMap.Reactors)
             {
                 // TODO: implement reactor loading support
+                var reactor = new Reactor(reactorElement.X, reactorElement.Y, this, 
+                    reactorElement.Script, reactorElement.Description, reactorElement.Blocking);
+                InsertReactor(reactor);
             }
             if (newMap.Signs != null) {
                 foreach (var postElement in newMap.Signs.Signposts)
@@ -337,14 +340,12 @@ namespace Hybrasyl
             Logger.DebugFormat("Removing creature {0} (id {1})", toRemove.Name, toRemove.Id);
         }
 
-        public void InsertReactor(/*reactor toinsert*/)
+        public void InsertReactor(Reactor toInsert)
         {
-            /*
-            var reactor = new Reactor(toinsert);
-            World.Insert(reactor);
-            Insert(reactor, reactor.X, reactor.Y);
-            reactor.OnSpawn();
-             */
+            World.Insert(toInsert);
+            Insert(toInsert, toInsert.X, toInsert.Y);
+            Reactors[new Tuple<byte, byte>(toInsert.X, toInsert.Y)] = toInsert;
+            toInsert.OnSpawn();
         }
 
         public void InsertSignpost(Objects.Signpost post)
@@ -444,12 +445,6 @@ namespace Hybrasyl
                             obj.SendLocation();
                         }
                         Users.Add(user.Name, user);
-                    }
-
-                    var value = obj as Objects.Reactor;
-                    if (value != null)
-                    {
-                        Reactors.Add(new Tuple<byte, byte>((byte)x, (byte)y), value);
                     }
 
                     var affectedObjects = EntityTree.GetObjects(obj.GetViewport());

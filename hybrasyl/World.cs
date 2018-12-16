@@ -349,8 +349,6 @@ namespace Hybrasyl
                 {
                     Maps.Map newMap = Serializer.Deserialize(XmlReader.Create(xml), new Maps.Map());
                     var map = new Map(newMap, this);
-                    //Maps.Add(map.Id, map);
-                    //MapCatalog.Add(map.Name, map);
                     WorldData.SetWithIndex(map.Id, map, map.Name);
                     Logger.DebugFormat("Maps: Loaded {0}", map.Name);
                 }
@@ -369,7 +367,6 @@ namespace Hybrasyl
                 {
                     var newNation = Serializer.Deserialize(XmlReader.Create(xml), new Nation());
                     Logger.DebugFormat("Nations: Loaded {0}", newNation.Name);
-                    //Nations.Add(newNation.Name, newNation);
                     WorldData.Set(newNation.Name, newNation);
                 }
                 catch (Exception e)
@@ -1425,6 +1422,27 @@ namespace Hybrasyl
                 return;
             }
 
+            // Are we picking up an item from a reactor tile? 
+            // If so, we remove the item from the map and pass it onto the reactor
+            // for handling. Note that if the reactor does something stupid, the
+            // item is probably going to be lost forever. 
+            // We do it this way to provide maximum flexibility to scripts 
+            // (for instance: a reactor that destroys items outright, or damages them
+            // before being picked up, etc)
+            Reactor reactor;
+            var coordinates = new Tuple<byte, byte>((byte)x, (byte)y);
+            if (user.Map.Reactors.TryGetValue(coordinates, out reactor))
+            {
+                // Remove the item from the map
+                if (pickupObject is Gold)
+                    user.Map.RemoveGold(pickupObject as Gold);
+                else
+                    user.Map.Remove(pickupObject as ItemObject);
+                // Hopefully the reactor will DTRT
+                reactor.OnTake(user, pickupObject);
+                return;
+            }
+
             // If the add is successful, remove the item from the map quadtree
             if (pickupObject is Gold)
             {
@@ -1542,8 +1560,11 @@ namespace Hybrasyl
                 user.RemoveItem(slot);
             }
 
+            // This is a normal item, not part of a loot anything
+            toDrop.ItemDropTime = DateTime.Now;
+            toDrop.ItemDropType = ItemDropType.Normal;
             // Are we dropping an item onto a reactor?
-            Objects.Reactor reactor;
+            Reactor reactor;
             var coordinates = new Tuple<byte, byte>((byte)x, (byte)y);
             if (user.Map.Reactors.TryGetValue(coordinates, out reactor))
             {
@@ -1986,6 +2007,10 @@ namespace Hybrasyl
             user.RemoveGold(amount);
 
             Insert(toDrop);
+
+            // This is a normal item, not part of a loot/death pile
+            toDrop.ItemDropTime = DateTime.Now;
+            toDrop.ItemDropType = ItemDropType.Normal;
 
             // Are we dropping an item onto a reactor?
             Objects.Reactor reactor;

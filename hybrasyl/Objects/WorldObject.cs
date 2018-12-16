@@ -66,6 +66,11 @@ namespace Hybrasyl.Objects
         {
         }
 
+        public virtual int Distance(WorldObject obj)
+        {
+            return Point.Distance(obj.X, obj.Y, X, Y);
+        }
+
         public void ResetPursuits()
         {
             Pursuits = new List<DialogSequence>();

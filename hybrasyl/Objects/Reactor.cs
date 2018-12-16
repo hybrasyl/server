@@ -20,7 +20,8 @@
  * 
  */
 
- using Hybrasyl.Scripting;
+using Hybrasyl.Enums;
+using Hybrasyl.Scripting;
 
 namespace Hybrasyl.Objects
 {
@@ -29,80 +30,120 @@ namespace Hybrasyl.Objects
         //private reactor _reactor;
         private HybrasylWorldObject _world;
 
-        public bool Ready;
-
-        public Reactor(/* reactor reactor*/)
+        public bool Ready
         {
-            /*
-            _reactor = reactor;
-            _world = new HybrasylWorldObject(this);
-            X = (byte)_reactor.map_x;
-            Y = (byte)_reactor.map_y;
-            Ready = false;
-            Script = null;
-             */
+            get
+            {
+                if (!_ready)
+                    OnSpawn();
+                return _ready;
+
+            }
+            set
+            {
+                _ready = value;
+            }
+        }
+        public bool Blocking;
+        public string Description;
+        public string ScriptName;
+        private bool _ready = false;
+
+        public Reactor(byte x, byte y, Map map, string scriptName, string description = null, bool blocking = true) : base()
+        {
+            X = x;
+            Y = y;
+            Map = map;
+            Description = description;
+            ScriptName = scriptName;
+            Blocking = blocking;
         }
 
         public void OnSpawn()
         {
-            // Do we have a script?
-            /*
-                        Script thescript;
-                        if (_reactor.script_name == string.Empty)
-                            Game.World.ScriptProcessor.TryGetScript(_reactor.name, out thescript);
-                        else
-                            Game.World.ScriptProcessor.TryGetScript(_reactor.script_name, out thescript);
-
-                        if (thescript == null)
-                        {
-                            Logger.WarnFormat("reactor {0}: script not found", _reactor.name);
-                            return;
-                        }
-
-                        Script = thescript;
-
-                        Script.AssociateScriptWithObject(this);
-
-                        if (!Script.InstantiateScriptable())
-                        {
-                            Logger.WarnFormat("reactor {0}: script instantiation failed", _reactor.name);
-                            return;
-                        }
-
-                        Script.ExecuteScriptableFunction("OnSpawn");
-                        Ready = true;
-             */
+            Script myScript;
+            if (Game.World.ScriptProcessor.TryGetScript(ScriptName, out myScript))
+            {
+                Script = myScript;
+                Script.AssociateScriptWithObject(this);
+                _ready = Script.Run();
+            }
+            // Now run our actual OnSpawn function
+            if (_ready)
+                Script.ExecuteFunction("OnSpawn");
         }
 
-        public void OnEntry(WorldObject obj)
+        public virtual void OnEntry(VisibleObject obj)
         {
             if (Ready)
                 Script.ExecuteFunction("OnEntry", Script.GetObjectWrapper(obj));
         }
 
-        public void AoiEntry(WorldObject obj)
+        public override void AoiEntry(VisibleObject obj)
         {
+            base.AoiEntry(obj);
             if (Ready)
-                Script.ExecuteFunction("OnAoiEntry", Script.GetObjectWrapper(obj));
+                Script.ExecuteFunction("AoiEntry", Script.GetObjectWrapper(obj));
         }
 
-        public void OnLeave(WorldObject obj)
+        public virtual void OnLeave(VisibleObject obj)
         {
-            if (Ready)
+            if (Ready && Script.HasFunction("OnLeave"))
                 Script.ExecuteFunction("OnLeave", Script.GetObjectWrapper(obj));
         }
 
-        public void AoiDeparture(WorldObject obj)
+        public override void AoiDeparture(VisibleObject obj)
         {
+            base.AoiDeparture(obj);
             if (Ready)
-                Script.ExecuteFunction("OnAoiDeparture", Script.GetObjectWrapper(obj));
+                Script.ExecuteFunction("AoiDeparture", Script.GetObjectWrapper(obj));
         }
 
-        public void OnDrop(WorldObject obj, WorldObject dropped)
+        public virtual void OnDrop(VisibleObject obj, VisibleObject dropped)
         {
             if (Ready)
                 Script.ExecuteFunction("OnDrop", Script.GetObjectWrapper(obj),
                     Script.GetObjectWrapper(dropped));
+        }
+
+
+        public void OnMove(VisibleObject obj)
+        {
+            if (Ready)
+                Script.ExecuteFunction("OnMove", Script.GetObjectWrapper(obj));
+        }
+
+        public void OnTake(VisibleObject obj, VisibleObject taken)
+        {
+            if (Ready)
+                Script.ExecuteFunction("OnTake", Script.GetObjectWrapper(obj),
+                    Script.GetObjectWrapper(taken));
+        }
+
+        public override void ShowTo(VisibleObject obj)
+        {
+            if (obj is User)
+            {
+                // TODO: improve, this isn't sufficient to work with Say/Shout currently
+                var user = obj as User;
+                var p = new ServerPacket(0x07);
+                p.WriteUInt16(1);
+                p.WriteUInt16(X);
+                p.WriteUInt16(Y);
+                p.WriteUInt32(Id);
+                p.WriteUInt16(0);
+                p.WriteByte(0); // random 1                                                                                                                                                                                                
+                p.WriteByte(0); // random 2                                                                                                                                                                                                
+                p.WriteByte(0); // random 3                                                                                                                                                                                                
+                p.WriteByte(0); // unknown a                                                                                                                                                                                               
+                p.WriteByte((byte)Direction);
+                p.WriteByte(0); // unknown b                                                                                                                                                                                               
+                p.WriteByte(0);
+                p.WriteByte(0); // unknown d                                                                                                                                                                                               
+                p.WriteByte((byte) MonsterType.Reactor);
+                p.WriteString8(Name);
+                user.Enqueue(p);
+            }
         }
     }
 
