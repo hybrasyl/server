@@ -68,6 +68,9 @@ namespace Hybrasyl.Objects
                 Script.AssociateScriptWithObject(this);
                 _ready = Script.Run();
             }
+            // Now run our actual OnSpawn function
+            if (_ready)
+                Script.ExecuteFunction("OnSpawn");
         }
 
         public virtual void OnEntry(VisibleObject obj)

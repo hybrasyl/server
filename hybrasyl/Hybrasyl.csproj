@@ -97,6 +97,7 @@
     <Compile Include="Objects\WorldObject.cs" />
     <Compile Include="CreatureStatus.cs" />
     <Compile Include="Legend.cs" />
+    <Compile Include="Scripting\HybrasylSpawn.cs" />
     <Compile Include="Scripting\HybrasylDialog.cs" />
     <Compile Include="Scripting\HybrasylDialogSequence.cs" />
     <Compile Include="Scripting\HybrasylMap.cs" />

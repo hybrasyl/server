@@ -29,7 +29,7 @@ namespace Hybrasyl.Scripting
     [MoonSharpUserData]
     public class HybrasylMap
     {
-        private Map Map { get; set; }
+        internal Map Map { get; set; }
 
         public HybrasylMap(Map map)
         {
@@ -47,6 +47,16 @@ namespace Hybrasyl.Scripting
                 Map.Insert(obj.Obj as ItemObject, (byte) x, (byte) y);
         }
 
+        public void SpawnMonster(string creatureName, HybrasylSpawn spawn, int x, int y)
+        {
+            if (Game.World.WorldData.TryGetValue(creatureName, out Creatures.Creature creature))
+            {
+                var baseMob = new Monster(creature, spawn.Spawn, Map.Id);
+                baseMob.X = (byte)x;
+                baseMob.Y = (byte)y;
+                World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MonolithSpawn, baseMob, Map));
+            }
+        }
     }
 
 }

@@ -52,7 +52,8 @@ namespace Hybrasyl.Objects
         public DateTime LastAction { get; set; }
         public bool IsHostile { get; set; }
         public bool ShouldWander { get; set; }
-        public bool CanCast { get; set; }
+        public bool CanCast => _spawn.Castables.Count > 0;
+
 
 
 
@@ -178,7 +179,6 @@ namespace Hybrasyl.Objects
             //until intents are fixed, this is how this is going to be done.
             IsHostile = _random.Next(0, 7) < 2;
             ShouldWander = IsHostile == false;
-            CanCast = spawn.Castables.Count > 0;
         }
 
         public Creature Target

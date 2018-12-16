@@ -51,9 +51,9 @@ namespace Hybrasyl.Scripting
 
         public void DisplayPursuits(dynamic invoker)
         {
-            if (Obj is Merchant)
+            if (Obj is Merchant || Obj is Reactor)
             {
-                var merchant = Obj as Merchant;
+                var merchant = Obj as VisibleObject;
                 if (invoker is HybrasylUser)
                 {
                     var hybUser = (HybrasylUser)invoker;

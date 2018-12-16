@@ -41,6 +41,8 @@ namespace Hybrasyl.Scripting
         internal HybrasylWorld World { get; set; }
         internal HybrasylMap Map { get; set; }
         public string Name => User.Name;
+        public byte X => User.X;
+        public byte Y => User.Y;
 
         public uint Hp
         {

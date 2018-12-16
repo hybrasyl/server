@@ -157,7 +157,7 @@ namespace Hybrasyl.Scripting
             }
             catch (ScriptRuntimeException e)
             {
-                ScriptingLogger.Error($"{Name}: Error executing expression: {expr}: \n{e.ToString()} full stacktrace follows:\n{e.StackTrace}");
+                ScriptingLogger.Error($"{Name}: Error executing expression: {expr}: \n{e.DecoratedMessage} full stacktrace follows:\n{e.StackTrace}");
                 //Disabled = true;
                 CompilationError = e.ToString();
                 return false;
@@ -184,7 +184,7 @@ namespace Hybrasyl.Scripting
             }
             catch (ScriptRuntimeException e)
             {
-                ScriptingLogger.Error($"{Name}: Error executing expression: {functionName} ({e.ToString()}) full stacktrace follows:\n{e.StackTrace}");
+                ScriptingLogger.Error($"{Name}: Error executing expression: {functionName} ({e.DecoratedMessage}) full stacktrace follows:\n{e.StackTrace}");
                 //Disabled = true;
                 CompilationError = e.ToString();
                 return false;
@@ -210,7 +210,7 @@ namespace Hybrasyl.Scripting
             }
             catch (ScriptRuntimeException e)
             {
-                ScriptingLogger.Error($"{Name}: Error executing function: {functionName} ({e.ToString()}) , full stacktrace follows:\n{e.StackTrace}");
+                ScriptingLogger.Error($"{Name}: Error executing function: {functionName} ({e.DecoratedMessage}) , full stacktrace follows:\n\n{e.StackTrace}");
                 //Disabled = true;
                 CompilationError = e.ToString();
                 return false;
@@ -234,7 +234,7 @@ namespace Hybrasyl.Scripting
             }
             catch (ScriptRuntimeException e)
             {
-                ScriptingLogger.Error($"{Name}: Error executing function: {functionName} ({e.ToString()}) , full stacktrace follows:\n{e.StackTrace}");
+                ScriptingLogger.Error($"{Name}: Error executing function: {functionName} ({e.DecoratedMessage}) , full stacktrace follows:\n{e.StackTrace}");
                 //Disabled = true;
                 CompilationError = e.ToString();
                 return false;
