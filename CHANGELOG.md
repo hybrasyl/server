@@ -17,22 +17,21 @@
 * Reactors (map tiles that can react to nearby events) implemented.
 * MoonScript now used instead of nLua.
 
-
 # Hybrasyl Server 0.6.1 
 
 *Released: March 4, 2018* - [View this release on GitHub](https://github.com/hybrasyl/server/releases/tag/0.6.1)
 
 ### Bug Fixes
 
-[Fixed] #129: Staves / rings displayed incorrectly after relogging
-[Fixed] #130: Can't assail without casting a spell first
-[Fixed] #138: Who list shows users who are not logged in
-[Fixed] #140: Server start error due to incorrect port numbers for control service
-[Fixed] #142: Minor bug fixes to casting
-[Fixed] #143: Statuses not working under certain XML conditions / clean up XML definitions
-[Fixed] #144: Status duration calculated incorrectly
-[Fixed] #146: Statuses cannot be serialized
-[Fixed] #147: Inappropriate sound effects played for statuses which have no sound effects
+[Fixed] #129: Staves / rings displayed incorrectly after relogging  
+[Fixed] #130: Can't assail without casting a spell first  
+[Fixed] #138: Who list shows users who are not logged in  
+[Fixed] #140: Server start error due to incorrect port numbers for control service  
+[Fixed] #142: Minor bug fixes to casting  
+[Fixed] #143: Statuses not working under certain XML conditions / clean up XML definitions  
+[Fixed] #144: Status duration calculated incorrectly  
+[Fixed] #146: Statuses cannot be serialized  
+[Fixed] #147: Inappropriate sound effects played for statuses which have no sound effects  
 
 # Hybrasyl Server 0.6.0 ("Bruce")
 
