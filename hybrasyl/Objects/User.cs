@@ -1609,7 +1609,6 @@ namespace Hybrasyl.Objects
             Rectangle departingViewport = Rectangle.Empty;
             Rectangle commonViewport = Rectangle.Empty;
             var halfViewport = Constants.VIEWPORT_SIZE / 2;
-            Warp targetWarp;
 
             switch (direction)
             {
@@ -1641,7 +1640,9 @@ namespace Hybrasyl.Objects
                     departingViewport = new Rectangle(oldX - halfViewport, oldY - halfViewport, 1, Constants.VIEWPORT_SIZE);
                     break;
             }
-            var isWarp = Map.Warps.TryGetValue(new Tuple<byte, byte>((byte)newX, (byte)newY), out targetWarp);
+            var isWarp = Map.Warps.TryGetValue(new Tuple<byte, byte>((byte)newX, (byte)newY), out Warp targetWarp);
+            var isReactor = Map.Reactors.TryGetValue(new Tuple<byte, byte>((byte)newX, (byte)newY), out Reactor newReactor);
+            var wasReactor = Map.Reactors.TryGetValue(new Tuple<byte, byte>((byte)oldX, (byte)oldY), out Reactor oldReactor);
 
             // Now that we know where we are going, perform some sanity checks.
             // Is the player trying to walk into a wall, or off the map?
@@ -1679,6 +1680,12 @@ namespace Hybrasyl.Objects
                         Refresh();
                         return false;
                     }
+                }
+                // Is the user trying to move into a reactor tile with blocking (meaning the reactor can't be "walked" on)?
+                if (isReactor && newReactor.Blocking)
+                {
+                    Client.SendMessage("Your path is blocked!", 3);
+                    Refresh();
                 }
             }
 
@@ -1730,6 +1737,12 @@ namespace Hybrasyl.Objects
                     x0C.WriteByte(0x00);
                     user.Enqueue(x0C);
                 }
+                // Reactors receive an OnMove event
+                if (obj != this && obj is Reactor)
+                {
+                    var reactor = obj as Reactor;
+                    reactor.OnMove(this);
+                }
             }
 
             foreach (var obj in Map.EntityTree.GetObjects(arrivingViewport))
@@ -1748,6 +1761,12 @@ namespace Hybrasyl.Objects
             {
                 return targetWarp.Use(this);
             }
+
+            // Handle stepping onto a reactor, leaving a reactor, or both
+            if (isReactor)
+                newReactor.OnEntry(this);
+            if (wasReactor)
+                oldReactor.OnLeave(this);
 
             HasMoved = true;
             Map.EntityTree.Move(this);

@@ -153,9 +153,6 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="hybrasyl.ico" />
-    <Content Include="lua52.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
     <Content Include="Properties\NuGet.exe" />
   </ItemGroup>
   <ItemGroup>

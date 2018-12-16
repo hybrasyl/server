@@ -89,6 +89,9 @@ namespace Hybrasyl.Objects
                 return false;
             }
 
+            if (ItemDropTime == null)
+                // Item was inserted by the system, a script, or some other mechanism
+                return true;
 
             var timeDropDifference = (DateTime.Now - ItemDropTime.Value).TotalSeconds;
 
@@ -190,33 +193,35 @@ namespace Hybrasyl.Objects
         {
         }
 
-        public virtual int Distance(VisibleObject obj)
-        {
-            return Point.Distance(obj.X, obj.Y, X, Y);
-        }
-
-        public virtual void Say(string message)
+        public virtual void Say(string message, string from="")
         {
             foreach (var user in viewportUsers)
             {
                 var x0D = new ServerPacket(0x0D);
                 x0D.WriteByte(0x00);
                 x0D.WriteUInt32(Id);
-                x0D.WriteString8($"{Name}: {message}");
+                if (!string.IsNullOrEmpty(from)) 
+                    x0D.WriteString8($"{from}: {message}");
+                else
+                    x0D.WriteString8($"{Name}: {message}");
+                Logger.InfoFormat("Saying to {0}", user.Name);
                 user.Enqueue(x0D);
             }
         }
 
-        public virtual void Shout(string message)
+        public virtual void Shout(string message, string from="")
         {
-            foreach (var obj in Map.EntityTree.GetObjects(GetShoutViewport()).Where(e => e is User))
+            foreach (var obj in viewportUsers)
             {
                 var user = obj as User;
                 var x0D = new ServerPacket(0x0D);
                 x0D.WriteByte(0x01);
                 x0D.WriteUInt32(Id);
-                x0D.WriteString8($"{Name}! {message}");
-
+                if (!string.IsNullOrEmpty(from))
+                    x0D.WriteString8($"{from}! {message}");
+                else
+                    x0D.WriteString8($"{Name}: {message}");
+                Logger.InfoFormat("Shouting to {0}", user.Name);
                 user.Enqueue(x0D);
 
             }

@@ -20,6 +20,7 @@
  * 
  */
 
+using Hybrasyl.Objects;
 using MoonSharp.Interpreter;
 
 namespace Hybrasyl.Scripting
@@ -34,9 +35,15 @@ namespace Hybrasyl.Scripting
             Map = map;
         }
 
-        public bool DropItem(string name, int x = -1, int y = -1)
+        public bool CreateItem(string name, int x = -1, int y = -1)
         {
             return false;
+        }
+
+        public void DropItem(HybrasylWorldObject obj, int x, int y)
+        {
+            if (obj.Obj is ItemObject)
+                Map.Insert(obj.Obj as ItemObject, (byte) x, (byte) y);
         }
 
     }
