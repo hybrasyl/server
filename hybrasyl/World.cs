@@ -236,6 +236,7 @@ namespace Hybrasyl
             Objects = new Dictionary<uint, WorldObject>();
             Portraits = new Dictionary<string, string>();
 
+            GlobalSequences = new List<DialogSequence>();
             GlobalSequencesCatalog = new Dictionary<string, DialogSequence>();
             ItemCatalog = new Dictionary<Tuple<Sex, string>, Item>();
             //MapCatalog = new Dictionary<string, Map>();
@@ -2881,26 +2882,9 @@ namespace Hybrasyl
                     }
                 }
 
-                // Did the user click next on the last dialog in a sequence?
-                // If so, either close the dialog or go to the main menu (main menu by 
-                // default
-
-                if (user.DialogState.ActiveDialogSequence.Dialogs.Count() == pursuitIndex)
-                {
-                    user.DialogState.EndDialog();
-                    if (user.DialogState.ActiveDialogSequence.CloseOnEnd)
-                    {
-                        Logger.DebugFormat("Sending close packet");
-                        var p = new ServerPacket(0x30);
-                        p.WriteByte(0x0A);
-                        p.WriteByte(0x00);
-                        user.Enqueue(p);
-                    }
-                    else
-                        clickTarget.DisplayPursuits(user);
-                }
-
                 // Is the active dialog an input or options dialog?
+                // If so, we handle that first, as the response / callback / handler 
+                // needs to be able to handle the response.
 
                 if (user.DialogState.ActiveDialog is OptionsDialog)
                 {
@@ -2917,28 +2901,84 @@ namespace Hybrasyl
                     var dialog = user.DialogState.ActiveDialog as TextDialog;
                     dialog.HandleResponse(user, response, clickTarget);
                 }
+                // TODO: implement FunctionDialog handling here?
+
+                if (user.DialogState.ActiveDialog is null)
+                {
+                    // The response handler could have closed the dialog, or done Goddess knows what
+                    // to the state. We check here, and if the dialog state is null (the result of
+                    // calling EndDialog() we send a close packet.
+                    user.SendCloseDialog();
+                    return;
+                }            
+
+                // Regular ol' dialog.
+                //
+                // Did the user click next on the last dialog in a sequence?
+                // If the last dialog is a JumpDialog or FunctionDialog, just ShowTo it; it'll handle the rest.
+                // Otherwise, either close the dialog or go to the main menu (main menu by 
+                // default).
+
+                if (user.DialogState.ActiveDialogSequence.Dialogs.Count() == pursuitIndex)
+                {
+                    if (user.DialogState.ActiveDialog is JumpDialog)
+                    {
+                        user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
+                        return;
+                    }
+                    if (user.DialogState.ActiveDialog is FunctionDialog)
+                    {
+                        // If a FunctionDialog is the last function, always close
+                        user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
+                        Logger.DebugFormat("Sending close packet");
+                        user.SendCloseDialog();
+                        return;
+                    }
+                    if (user.DialogState.ActiveDialogSequence.CloseOnEnd)
+                    {
+                        Logger.DebugFormat("Sending close packet");
+                        user.SendCloseDialog();
+                    }
+                    else
+                        clickTarget.DisplayPursuits(user);
+                    // Either way down here, reset the dialog state since we're done with the sequence
+                    user.DialogState.EndDialog();
+                    return;
+                }
 
                 // Did the handling of a response result in our active dialog sequence changing? If so, exit.
 
                 if (user.DialogState.CurrentPursuitId != pursuitID)
                 {
-                    Logger.DebugFormat("Dialog has changed, exiting");
+                    Logger.ErrorFormat("Dialog has changed, exiting");
                     return;
                 }
 
+                // TODO: improve this logic
+                // Handle function dialogs in between us and the next real dialog (or the end)
                 if (user.DialogState.SetDialogIndex(clickTarget, pursuitID, pursuitIndex))
                 {
+                    while (user.DialogState.ActiveDialog is FunctionDialog)
+                    {
+                        // ShowTo and go
+                        user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
+                        pursuitIndex++;
+                        if (!user.DialogState.SetDialogIndex(clickTarget, pursuitID, pursuitIndex))
+                        {
+                            // We're at the end of our rope
+                            user.SendCloseDialog();
+                            return;
+                        }
+                    }
                     Logger.DebugFormat("Pursuit index is now {0}", pursuitIndex);
+
                     user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
                     return;
                 }
                 else
                 {
                     Logger.DebugFormat("Sending close packet");
-                    var p = new ServerPacket(0x30);
-                    p.WriteByte(0x0A);
-                    p.WriteByte(0x00);
-                    user.Enqueue(p);
+                    user.SendCloseDialog();
                     user.DialogState.EndDialog();
                 }
             }

@@ -44,6 +44,8 @@ namespace Hybrasyl.Scripting
         public byte X => User.X;
         public byte Y => User.Y;
 
+        public Sex Sex => User.Sex;
+
         public uint Hp
         {
             get { return User.Stats.Hp; }
@@ -144,12 +146,15 @@ namespace Hybrasyl.Scripting
             return true;
         }
 
-        public void SetSessionFlag(string flag, dynamic value)
+        public void SetSessionCookie(string cookieName, dynamic value)
         {
             try
             {
-                User.SetSessionFlag(flag, value.ToString());
-                Logger.DebugFormat("{0} - set session flag {1} to {2}", User.Name, flag, value.tostring());
+                if (value.GetType() == typeof(string))
+                    User.SetSessionCookie(cookieName, value);
+                else
+                    User.SetSessionCookie(cookieName, value.ToString());
+                Logger.DebugFormat("{0} - set session cookie {1} to {2}", User.Name, cookieName, value);
             }
             catch (Exception e)
             {
@@ -157,11 +162,15 @@ namespace Hybrasyl.Scripting
             }
         }
 
-        public void SetFlag(string flag, dynamic value)
-        {
+        public void SetCookie(string cookieName, dynamic value)
+        { 
             try
             {
-                User.SetFlag(flag, value.ToString());
+                if (value.GetType() == typeof(string))
+                    User.SetSessionCookie(cookieName, value);
+                else
+                    User.SetCookie(cookieName, value.ToString());
+                Logger.DebugFormat("{0} - set cookie {1} to {2}", User.Name, cookieName, value);
             }
             catch (Exception e)
             {
@@ -170,15 +179,14 @@ namespace Hybrasyl.Scripting
 
         }
 
-        public string GetSessionFlag(string flag)
-        {
-            return User.GetSessionFlag(flag);
-        }
+        public string GetSessionCookie(string cookieName) => User.GetSessionCookie(cookieName);
 
-        public string GetFlag(string flag)
-        {
-            return User.GetFlag(flag);
-        }
+        public string GetCookie(string cookieName) => User.GetCookie(cookieName);
+
+        public bool HasCookie(string cookieName) => User.HasCookie(cookieName);
+        public bool HasSessionCookie(string cookieName) => User.HasSessionCookie(cookieName);
+        public bool DeleteCookie(string cookieName) => User.DeleteCookie(cookieName);
+        public bool DeleteSessionCookie(string cookieName) => User.DeleteSessionCookie(cookieName);
 
         public void DisplayEffect(ushort effect, short speed = 100, bool global = true)
         {
@@ -229,25 +237,22 @@ namespace Hybrasyl.Scripting
             return false;
         }
 
-        public bool GiveItem(string name)
+        public bool GiveItem(string name, int count = 1)
         {
             // Does the item exist?
-            Item theitem;
-            if (Game.World.ItemCatalog.TryGetValue(new Tuple<Sex, string>(User.Sex, name), out theitem) ||
-                Game.World.ItemCatalog.TryGetValue(new Tuple<Sex, string>(Sex.Neutral, name), out theitem))
+            if (Game.World.WorldData.TryGetValueByIndex(name, out Item template))
             {
-                Logger.DebugFormat("giving item {0} to {1}", name, User.Name);
-                var itemobj = Game.World.CreateItem(theitem.Id);
-                Game.World.Insert(itemobj);
-                User.AddItem(itemobj);
+                var item = Game.World.CreateItem(template.Id);
+                if (count > 1)
+                    item.Count = count;
+                else
+                    item.Count = item.MaximumStack;
+                Game.World.Insert(item);
+                User.AddItem(item);
                 return true;
             }
-            else
-            {
-                Logger.DebugFormat("item {0} cannot be found", name);
-            }
             return false;
-        }
+        }    
 
         public bool TakeItem(string name)
         {
@@ -275,7 +280,6 @@ namespace Hybrasyl.Scripting
             User.SendMessage(message, Hybrasyl.MessageTypes.SYSTEM_WITH_OVERHEAD);
         }
 
-
         public void Whisper(string name, string message)
         {
             User.SendWhisper(name, message);
@@ -298,6 +302,8 @@ namespace Hybrasyl.Scripting
 
         }
 
+        public void EndDialog() => User.DialogState.EndDialog();
+
         public void StartSequence(string sequenceName, HybrasylWorldObject associateOverride = null)
         {
             DialogSequence sequence;
@@ -309,18 +315,19 @@ namespace Hybrasyl.Scripting
 
             // Use the local catalog for sequences first, then consult the global catalog
 
-            if (!associate.SequenceCatalog.TryGetValue(sequenceName, out sequence))
+            if (!associate.SequenceCatalog.TryGetValue(sequenceName, out sequence) && !Game.World.GlobalSequencesCatalog.TryGetValue(sequenceName, out sequence))
             {
-                if (!User.World.GlobalSequencesCatalog.TryGetValue(sequenceName, out sequence))
-                {
-                    Logger.ErrorFormat("called from {0}: sequence name {1} cannot be found!",
-                        associate.Name, sequenceName);
-                    // To be safe, end all dialogs and basically abort
-                    User.DialogState.EndDialog();
-                    return;
-                }
+                Logger.ErrorFormat("called from {0}: sequence name {1} cannot be found!",
+                    associate.Name, sequenceName);
+                // To be safe, terminate all dialog state
+                User.DialogState.EndDialog();
+                if (associate is Merchant)
+                    // If the user was previously talking to a merchant, and we can't find a sequence,
+                    // simply display the main menu again. If it's a reactor....oh well.
+                    associate.DisplayPursuits(User);
+                return;
             }
-
+            
             // sequence should now be our target sequence, let's end the current state and start a new one
 
             User.DialogState.EndDialog();

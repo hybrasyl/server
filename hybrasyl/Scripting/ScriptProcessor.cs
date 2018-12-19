@@ -21,7 +21,9 @@
  */
  
 using System.Collections.Generic;
+using Hybrasyl.Enums;
 using log4net;
+using MoonSharp.Interpreter;
 
 namespace Hybrasyl.Scripting
 {
@@ -37,6 +39,11 @@ namespace Hybrasyl.Scripting
         {
             Scripts = new Dictionary<string, Script>();
             World = new HybrasylWorld(world);
+            // Register UserData types for MoonScript
+            UserData.RegisterAssembly();
+            UserData.RegisterType<Sex>();
+            UserData.RegisterType<LegendIcon>();
+            UserData.RegisterType<LegendColor>();
         }
 
         public bool TryGetScript(string scriptName, out Script script)

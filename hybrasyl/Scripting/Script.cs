@@ -23,6 +23,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Hybrasyl.Enums;
 using Hybrasyl.Objects;
 using log4net;
 using MoonSharp.Interpreter;
@@ -104,6 +105,30 @@ namespace Hybrasyl.Scripting
             return new HybrasylWorldObject(obj);
         }
 
+        public bool Reload()
+        {
+            Compiled = new MoonSharp.Interpreter.Script(CoreModules.Preset_SoftSandbox);
+            return Run();
+        }
+
+        /// <summary>
+        /// Function to dynamically make the right UserData wrapper for a given object.
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        public dynamic GetUserDataValue(dynamic obj)
+        {
+            if (obj is User)
+                return UserData.Create(new HybrasylUser(obj as User));
+            else if (obj is World)
+                return UserData.Create(new HybrasylWorld(obj as World));
+            else if (obj is Map)
+                return UserData.Create(new HybrasylMap(obj as Map));
+            else if (obj is WorldObject)
+                return UserData.Create(new HybrasylWorldObject(obj as WorldObject));
+            return UserData.Create(obj); 
+        }
+
         /// <summary>
         /// Check to see if a script implements a given function.
         /// </summary>
@@ -122,14 +147,16 @@ namespace Hybrasyl.Scripting
         {
             try
             {
-                UserData.RegisterAssembly();
+                Compiled.Globals["Sex"] = UserData.CreateStatic<Sex>();
+                Compiled.Globals["LegendIcon"] = UserData.CreateStatic<LegendIcon>();
+                Compiled.Globals["LegendColor"] = UserData.CreateStatic<LegendColor>();
                 Compiled.DoFile(FullPath);
                 Compiled.Globals.Set("world", UserData.Create(Processor.World));
                 Compiled.Globals.Set("logger", UserData.Create(new ScriptLogger(Name)));
             }
             catch (ScriptRuntimeException e)
             {
-                ScriptingLogger.Error($"Error executing script {FullPath}: {e.ToString()}, full stacktrace follows:\n{e.StackTrace}");
+                ScriptingLogger.Error($"Error executing script {FullPath}: {e.DecoratedMessage}, full stacktrace follows:\n{e.StackTrace}");
                 Disabled = true;
                 CompilationError = e.ToString();
                 return false;
@@ -138,6 +165,16 @@ namespace Hybrasyl.Scripting
             return true;
         }
 
+        /// <summary>
+        /// Set a value to be used by a script. Note that we only support interop with strings here.
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="value"></param>
+        public void SetGlobalValue(string name, string value)
+        {
+            var v = DynValue.NewString(value);
+            Compiled.Globals.Set(name, v);
+        }
         /// <summary>
         /// Execute a Lua expression in the context of an associated world object.
         /// Primarily used for dialog callbacks.
@@ -152,8 +189,9 @@ namespace Hybrasyl.Scripting
 
             try
             {
-                Compiled.Globals.Set("invoker", UserData.Create(invoker));
-                Compiled.DoString(expr);
+                Compiled.Globals.Set("invoker", GetUserDataValue(invoker));
+                // We pass Compiled.Globals here to make sure that the updated table (with new variables) makes it over
+                Compiled.DoString(expr, Compiled.Globals);
             }
             catch (ScriptRuntimeException e)
             {
@@ -163,7 +201,25 @@ namespace Hybrasyl.Scripting
                 return false;
             }
             return true;
+        }
 
+        public DynValue ExecuteAndReturn(string expr, dynamic invoker)
+        {
+            if (Disabled)
+                return DynValue.Nil;
+
+            try
+            {
+                Compiled.Globals.Set("invoker", GetUserDataValue(invoker));
+                return Compiled.DoString(expr);
+            }
+            catch (ScriptRuntimeException e)
+            {
+                ScriptingLogger.Error($"{Name}: Error executing expression: {expr}: \n{e.DecoratedMessage} full stacktrace follows:\n{e.StackTrace}");
+                //Disabled = true;
+                CompilationError = e.ToString();
+                return DynValue.Nil;
+            }
         }
 
         public bool ExecuteFunction(string functionName, dynamic invoker, dynamic target)
@@ -175,8 +231,8 @@ namespace Hybrasyl.Scripting
             {
                 if (HasFunction(functionName))
                 {
-                    Compiled.Globals.Set("invoker", UserData.Create(invoker));
-                    Compiled.Globals.Set("target", UserData.Create(target));
+                    Compiled.Globals.Set("invoker", GetUserDataValue(invoker));
+                    Compiled.Globals.Set("target", GetUserDataValue(target));
                     Compiled.Call(Compiled.Globals[functionName]);
                 }
                 else
@@ -202,7 +258,7 @@ namespace Hybrasyl.Scripting
             {
                 if (HasFunction(functionName))
                 {
-                    Compiled.Globals.Set("invoker", UserData.Create(invoker));
+                    Compiled.Globals.Set("invoker", GetUserDataValue(invoker));
                     Compiled.Call(Compiled.Globals[functionName]);
                 }
                 else

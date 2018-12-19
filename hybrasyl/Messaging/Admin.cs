@@ -249,6 +249,84 @@ namespace Hybrasyl.Messaging
         }
     }
 
+    class DeleteSessionCookie : ChatCommand
+    {
+        public new static string Command = "deletesessioncookie";
+        public new static string ArgumentText = "<string cookie> | <string playername> <string cookie>";
+        public new static string HelpText = "Clear (delete) a given session (transient) scripting cookie. This is useful when working with scripts that modify player state.";
+        public new static bool Privileged = true;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            if (args.Length == 1)
+            {
+                user.DeleteSessionCookie(args[0]);
+                return Success($"Session flag {args[0]} deleted.");
+            }
+            else
+            {
+                var target = Game.World.WorldData.Get<User>(args[0]);
+
+                if (target.IsExempt)
+                    return Fail($"User {target.Name} is exempt from your meddling.");
+                else
+                    target.DeleteSessionCookie(args[1]);
+                return Success($"Player {target.Name}: flag {args[1]} removed.");
+            }
+        }
+    }
+
+    class DeleteCookie : ChatCommand
+    {
+        public new static string Command = "deletecookie";
+        public new static string ArgumentText = "<string cookie> | <string playername> <string cookie>";
+        public new static string HelpText = "Clear (delete) a given scripting cookie. This is useful when working with scripts that modify player state.";
+        public new static bool Privileged = true;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            if (args.Length == 1)
+            {
+                user.DeleteCookie(args[0]);
+                return Success($"Session flag {args[0]} deleted.");
+            }
+            else
+            {
+                var target = Game.World.WorldData.Get<User>(args[0]);
+
+                if (target.IsExempt)
+                    return Fail($"User {target.Name} is exempt from your meddling.");
+                else
+                    target.DeleteCookie(args[1]);
+                return Success($"Player {target.Name}: flag {args[1]} removed.");
+            }
+        }
+    }
+
+    class ReloadnpcCommand : ChatCommand
+    {
+        public new static string Command = "reloadnpc";
+        public new static string ArgumentText = "<string npcname>";
+        public new static string HelpText = "Reload the given NPC (dump the script and reload from disk)";
+        public new static bool Privileged = true;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            if (Game.World.WorldData.TryGetValue(args[0], out Merchant merchant))
+            {
+                if (Game.World.ScriptProcessor.TryGetScript(merchant.Name, out Script script))
+                {
+                    script.Reload();
+                    merchant.Ready = false; // Force reload next time NPC processes an interaction
+                    return Success($"NPC {args[0]} - script {script.Name} reloaded. Clicking should re-run OnSpawn.");
+                }
+                else return Fail("NPC found but script not found...?");
+            }
+            else return Fail($"NPC {args[0]} not found.");
+
+        }
+    }
+
     class TeleportCommand : ChatCommand
     {
         public new static string Command = "teleport";
