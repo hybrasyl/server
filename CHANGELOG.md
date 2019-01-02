@@ -14,8 +14,19 @@
 
 ### Features
 
-* Reactors (map tiles that can react to nearby events) implemented.
+* Reactors (map tiles that can react to nearby events, such as dropped
+  items or a player or monster moving into the tile) implemented.
 * MoonScript now used instead of nLua.
+* JumpDialogs and FunctionDialogs added. Jump dialogs can be used in
+  an NPC dialog tree to start new sequences or jump to different
+  dialogs. Function dialogs can be used to run arbitrary Lua scripting
+  code in between two dialogs (potentially to take an action - such as
+  spawning a monster, dropping an item, starting a dialog, etc).
+* Hybrasyl time system reworked a bit (simplified). Legend marks
+  updated to support "timestamp" and "creation" date; timestamp being
+  what is displayed in the legend.
+* Scripting support improved and extended as was needed to support
+  various beginning game NPCs.
 
 # Hybrasyl Server 0.6.1 
 
