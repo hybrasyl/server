@@ -59,35 +59,24 @@ namespace Hybrasyl
 {
     public static class SampleStackExchangeRedisExtensions
     {
-        public static T Get<T>(this IDatabase cache, string key)
-        {
-            return Deserialize<T>(cache.StringGet(key));
-        }
+        public static T Get<T>(this IDatabase cache, string key) => Deserialize<T>(cache.StringGet(key));
 
-        public static object Get(this IDatabase cache, string key)
-        {
-            return Deserialize<object>(cache.StringGet(key));
-        }
+        public static object Get(this IDatabase cache, string key) => Deserialize<object>(cache.StringGet(key));
 
-        public static void Set(this IDatabase cache, string key, object value)
-        {
-            cache.StringSet(key, Serialize(value));
-        }
+        public static void Set(this IDatabase cache, string key, object value) => cache.StringSet(key, Serialize(value));
 
-        private static byte[] Serialize(object o)
+        private static byte[] Serialize(object o, ObjectCreationHandling handling = ObjectCreationHandling.Replace, 
+            PreserveReferencesHandling refHandling = PreserveReferencesHandling.All)
         {
             if (o == null)
             {
                 return null;
             }
+            JsonSerializerSettings settings = new JsonSerializerSettings();
+            settings.ObjectCreationHandling = handling;
+            settings.PreserveReferencesHandling = refHandling;
 
-            System.Runtime.Serialization.Formatters.Binary.BinaryFormatter binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
-            using (MemoryStream memoryStream = new MemoryStream())
-            {
-                binaryFormatter.Serialize(memoryStream, o);
-                byte[] objectDataAsStream = memoryStream.ToArray();
-                return objectDataAsStream;
-            }
+            return Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(o, settings));
         }
 
         private static T Deserialize<T>(byte[] stream)
@@ -96,13 +85,7 @@ namespace Hybrasyl
             {
                 return default(T);
             }
-
-            System.Runtime.Serialization.Formatters.Binary.BinaryFormatter binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
-            using (MemoryStream memoryStream = new MemoryStream(stream))
-            {
-                T result = (T)binaryFormatter.Deserialize(memoryStream);
-                return result;
-            }
+            return JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(stream));
         }
     }
    
@@ -196,16 +179,9 @@ namespace Hybrasyl
 
         public static bool TryGetUser(string name, out User userobj) 
         {
-            var jsonstring = (string)DatastoreConnection.GetDatabase().Get(User.GetStorageKey(name));
-            JsonSerializerSettings settings = new JsonSerializerSettings();
-            settings.ObjectCreationHandling = ObjectCreationHandling.Replace;
+//            userobj = JsonConvert.DeserializeObject<User>(jsonstring, settings);
+            userobj = DatastoreConnection.GetDatabase().Get<User>(User.GetStorageKey(name));
 
-            if (jsonstring == null)
-            {
-                userobj = null;
-                return false;
-            }
-            userobj = JsonConvert.DeserializeObject<User>(jsonstring, settings);
             if (userobj == null)
             {
                 Logger.FatalFormat("{0}: JSON object could not be deserialized!", name);
@@ -561,8 +537,7 @@ namespace Hybrasyl
             foreach (var key in server.Keys(pattern: "Hybrasyl.Mailbox*"))
             {
                 Logger.InfoFormat("Loading mailbox at {0}", key);
-                var jsonstring = (string)World.DatastoreConnection.GetDatabase().Get(key);
-                var mailbox = JsonConvert.DeserializeObject<Mailbox>(jsonstring);
+                var mailbox = DatastoreConnection.GetDatabase().Get<Mailbox>(key);
                 var name = key.ToString().Split(':')[1].ToLower();
                 if (name == string.Empty)
                 {
@@ -577,8 +552,7 @@ namespace Hybrasyl
             foreach (var key in server.Keys(pattern: "Hybrasyl.Board*"))
             {
                 Logger.InfoFormat("Loading board at {0}", key);
-                var jsonstring = (string)World.DatastoreConnection.GetDatabase().Get(key);
-                var messageboard = JsonConvert.DeserializeObject<Board>(jsonstring);
+                var messageboard = DatastoreConnection.GetDatabase().Get<Board>(key);
                 var name = key.ToString().Split(':')[1];
                 if (name == string.Empty)
                 {
@@ -1694,6 +1668,7 @@ namespace Hybrasyl
             loginUser.SendSpells();
             loginUser.ReapplyStatuses();
             loginUser.SetCitizenship();
+            loginUser.ChrysalisMark();
 
             Insert(loginUser);
             Logger.DebugFormat("Elapsed time since login: {0}", loginUser.SinceLastLogin);

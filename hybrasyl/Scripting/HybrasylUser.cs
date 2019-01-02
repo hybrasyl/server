@@ -55,6 +55,8 @@ namespace Hybrasyl.Scripting
             }
         }
 
+        public int Level { get => User.Stats.Level; }
+
         public uint Mp
         {
             get { return User.Stats.Mp; }
@@ -114,16 +116,20 @@ namespace Hybrasyl.Scripting
             return User.Legend;
         }
 
-        public bool AddLegendMark(LegendIcon icon, LegendColor color, string text, string prefix=default(string), bool isPublic = true, int quantity = 0)
+        public bool AddLegendMark(LegendIcon icon, LegendColor color, string text, string prefix=default(string), bool isPublic = true, 
+            int quantity = 0, bool displaySeason=true, bool displayTimestamp=true)
         {
-            return AddLegendMark(icon, color, text, DateTime.Now, prefix, isPublic, quantity);
+            return AddLegendMark(icon, color, text, DateTime.Now, prefix, isPublic, quantity, displaySeason, displayTimestamp);
         }
 
-        public bool AddLegendMark(LegendIcon icon, LegendColor color, string text, DateTime created, string prefix = default(string), bool isPublic = true, int quantity = 0)
+        public bool AddLegendMark(LegendIcon icon, LegendColor color, string text, HybrasylTime timestamp, string prefix) => User.Legend.AddMark(icon, color, text, timestamp.TerranDateTime, prefix);
+
+        public bool AddLegendMark(LegendIcon icon, LegendColor color, string text, DateTime timestamp, string prefix = default(string), 
+            bool isPublic = true, int quantity = 0, bool displaySeason=true, bool displayTimestamp=true)
         {
             try
             {
-                return User.Legend.AddMark(icon, color, text, created, prefix, isPublic, quantity);
+                return User.Legend.AddMark(icon, color, text, timestamp, prefix, isPublic, quantity, displaySeason, displayTimestamp);
             }
             catch (ArgumentException)
             {
@@ -167,7 +173,7 @@ namespace Hybrasyl.Scripting
             try
             {
                 if (value.GetType() == typeof(string))
-                    User.SetSessionCookie(cookieName, value);
+                    User.SetCookie(cookieName, value);
                 else
                     User.SetCookie(cookieName, value.ToString());
                 Logger.DebugFormat("{0} - set cookie {1} to {2}", User.Name, cookieName, value);
@@ -268,6 +274,8 @@ namespace Hybrasyl.Scripting
 
         public bool TakeExperience(int exp)
         {
+            if ((uint)exp > User.Stats.Experience)
+                return false;
             User.Stats.Experience -= (uint)exp;
             SystemMessage($"Your world spins as your insight leaves you ((-{exp} experience!))");
             User.UpdateAttributes(StatUpdateFlags.Experience);

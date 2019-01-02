@@ -239,6 +239,16 @@ namespace Hybrasyl.Objects
             }
         }
 
+        public void ChrysalisMark()
+        {
+            // TODO: move to config
+            if (!Legend.TryGetMark("CHR", out LegendMark mark))
+            {
+                // Create initial mark of Deoch
+                Legend.AddMark(LegendIcon.Community, LegendColor.White, "Chaos Age Aisling", "CHR", true);
+            }
+        }
+
         public bool IsPrivileged
         {
             get
@@ -979,7 +989,7 @@ namespace Hybrasyl.Objects
                 var cache = World.DatastoreConnection.GetDatabase();
                 if (Statuses.Count == 0)
                     Statuses = CurrentStatusInfo;
-                cache.Set(GetStorageKey(Name), JsonConvert.SerializeObject(this, new JsonSerializerSettings() { PreserveReferencesHandling = PreserveReferencesHandling.All }));
+                cache.Set(GetStorageKey(Name), this);
             }
         }
 
@@ -1458,6 +1468,15 @@ namespace Hybrasyl.Objects
         public void SetSessionCookie(string cookieName, string value)
         {
             UserSessionCookies[cookieName] = value;
+        }
+
+        public IReadOnlyDictionary<string, string> GetCookies()
+        {
+            return UserCookies;
+        }
+        public IReadOnlyDictionary<string, string> GetSessionCookies()
+        {
+            return UserSessionCookies;
         }
 
         public string GetCookie(string cookieName)
@@ -2240,7 +2259,7 @@ namespace Hybrasyl.Objects
             //            profilePacket.WriteByte(1); // ??
             profilePacket.WriteByte(0);
             profilePacket.WriteByte(0); // ??
-            profilePacket.WriteString8(IsMaster ? "Master" : Hybrasyl.Constants.REVERSE_CLASSES[(int)Class]);
+            profilePacket.WriteString8(IsMaster ? "Master" : Hybrasyl.Constants.REVERSE_CLASSES[(int)Class].Capitalize());
             profilePacket.WriteString8(Guild.Name);
             profilePacket.WriteByte((byte)Legend.Count);
             foreach (var mark in Legend)

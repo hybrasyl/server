@@ -74,16 +74,13 @@ namespace Hybrasyl.Scripting
         }
 
         public int CurrentInGameYear => HybrasylTime.CurrentYear;
-        public string CurrentInGameAge => HybrasylTime.CurrentAge;
+        public string CurrentInGameAge => HybrasylTime.CurrentAgeName;
 
-        public string InGameTimeFromDelta(int years=0, int months=0, int days=0)
+        public HybrasylTime CurrentTime()
         {
-            var now = DateTime.Now;
-            var elapsed = new TimeSpan(years * 365 + months * 30 + days, 0, 0, 0);
-            var ht = HybrasylTime.ConvertToHybrasyl(now - elapsed);
-            return $"{ht.Age} {ht.Year}";
+            var ht = HybrasylTime.Now;
+            return ht;
         }
-
 
         public HybrasylDialogOptions NewDialogOptions() => new HybrasylDialogOptions();
 

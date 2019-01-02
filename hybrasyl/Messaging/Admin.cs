@@ -8,6 +8,23 @@ using System.Net;
 namespace Hybrasyl.Messaging
 {
     // Various admin commands are implemented here.
+    
+    class ShowCookies : ChatCommand
+    {
+        public new static string Command = "showcookies";
+        public new static string ArgumentText = "<string playername>";
+        public new static string HelpText = "Show permanent and session cookies set for a specified player";
+        public new static bool Privileged = true;
+
+        public new static ChatCommandResult Run(User user, params string [] args)
+        {
+            if (Game.World.WorldData.TryGetValue<User>(args[0], out User target))
+            {
+                return Success($"User {target.Name} Cookies\n\n{target.GetCookies()}\n\nSession Cookies\n\n{target.GetSessionCookies()}", MessageTypes.SLATE_WITH_SCROLLBAR);
+            }
+            return Fail($"User {args[0]} not logged in");
+        }
+    }
 
     class SummonCommand : ChatCommand
     {

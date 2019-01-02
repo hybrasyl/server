@@ -19,7 +19,8 @@
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
  */
- 
+
+using System;
 using System.Collections.Generic;
 using Hybrasyl.Enums;
 using log4net;
@@ -44,6 +45,10 @@ namespace Hybrasyl.Scripting
             UserData.RegisterType<Sex>();
             UserData.RegisterType<LegendIcon>();
             UserData.RegisterType<LegendColor>();
+            UserData.RegisterType<LegendMark>();
+            UserData.RegisterType<DateTime>();
+            UserData.RegisterType<TimeSpan>();
+            
         }
 
         public bool TryGetScript(string scriptName, out Script script)

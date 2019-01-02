@@ -46,7 +46,7 @@ namespace Hybrasyl
             if (IsSaving) return;
             IsSaving = true;
             var cache = World.DatastoreConnection.GetDatabase();
-            cache.Set(StorageKey, JsonConvert.SerializeObject(this));
+            cache.Set(StorageKey, this);
             IsSaving = false;
         }
 
