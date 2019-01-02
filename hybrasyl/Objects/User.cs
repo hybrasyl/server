@@ -196,8 +196,9 @@ namespace Hybrasyl.Objects
         public DialogState DialogState { get; set; }
 
         [JsonProperty]
-        private Dictionary<string, string> UserFlags { get; set; }
-        private Dictionary<string, string> UserSessionFlags { get; set; }
+        private Dictionary<string, string> UserCookies { get; set; }
+        // These are SESSION ONLY, they persist until logout / disconnect
+        private Dictionary<string, string> UserSessionCookies { get; set; }
 
         public Exchange ActiveExchange { get; set; }
 
@@ -235,6 +236,16 @@ namespace Hybrasyl.Objects
             {
                 Nation theNation;
                 Nation = World.WorldData.TryGetValue(Citizenship, out theNation) ? theNation : World.DefaultNation;
+            }
+        }
+
+        public void ChrysalisMark()
+        {
+            // TODO: move to config
+            if (!Legend.TryGetMark("CHR", out LegendMark mark))
+            {
+                // Create initial mark of Deoch
+                Legend.AddMark(LegendIcon.Community, LegendColor.White, "Chaos Age Aisling", "CHR", true);
             }
         }
 
@@ -335,6 +346,16 @@ namespace Hybrasyl.Objects
             Enqueue(removePacket);
         }
 
+        /// <summary>
+        /// Send a close dialog packet to the client. This will terminate any open dialog.
+        /// </summary>
+        public void SendCloseDialog()
+        {
+            var p = new ServerPacket(0x30);
+            p.WriteByte(0x0A);
+            p.WriteByte(0x00);
+            Enqueue(p);
+        }
 
         /// <summary>T
         /// Send a status bar update to the client based on the state of a given status.
@@ -597,8 +618,8 @@ namespace Hybrasyl.Objects
             PortraitData = new byte[0];
             ProfileText = string.Empty;
             DialogState = new DialogState(this);
-            UserFlags = new Dictionary<string, string>();
-            UserSessionFlags = new Dictionary<string, string>();
+            UserCookies = new Dictionary<string, string>();
+            UserSessionCookies = new Dictionary<string, string>();
             Group = null;
             Flags = new Dictionary<string, bool>();
             _currentStatuses = new ConcurrentDictionary<ushort, ICreatureStatus>();
@@ -968,7 +989,7 @@ namespace Hybrasyl.Objects
                 var cache = World.DatastoreConnection.GetDatabase();
                 if (Statuses.Count == 0)
                     Statuses = CurrentStatusInfo;
-                cache.Set(GetStorageKey(Name), JsonConvert.SerializeObject(this, new JsonSerializerSettings() { PreserveReferencesHandling = PreserveReferencesHandling.All }));
+                cache.Set(GetStorageKey(Name), this);
             }
         }
 
@@ -1439,36 +1460,51 @@ namespace Hybrasyl.Objects
             Enqueue(x17);
         }
 
-        public void SetFlag(string flag, string value)
+        public void SetCookie(string cookieName, string value)
         {
-            UserFlags[flag] = value;
+            UserCookies[cookieName] = value;
         }
 
-        public void SetSessionFlag(string flag, string value)
+        public void SetSessionCookie(string cookieName, string value)
         {
-            UserSessionFlags[flag] = value;
+            UserSessionCookies[cookieName] = value;
         }
 
-        public string GetFlag(string flag)
+        public IReadOnlyDictionary<string, string> GetCookies()
+        {
+            return UserCookies;
+        }
+        public IReadOnlyDictionary<string, string> GetSessionCookies()
+        {
+            return UserSessionCookies;
+        }
+
+        public string GetCookie(string cookieName)
         {
             string value;
-            if (UserFlags.TryGetValue(flag, out value))
+            if (UserCookies.TryGetValue(cookieName, out value))
             {
                 return value;
             }
-            return string.Empty;
+            return null;
         }
 
-
-        public string GetSessionFlag(string flag)
+        public string GetSessionCookie(string cookieName)
         {
             string value;
-            if (UserSessionFlags.TryGetValue(flag, out value))
+            if (UserSessionCookies.TryGetValue(cookieName, out value))
             {
                 return value;
             }
-            return string.Empty;
+            return null;
         }
+
+        public bool HasCookie(string cookieName) => UserCookies.Keys.Contains(cookieName);
+        public bool HasSessionCookie(string cookieName) => UserSessionCookies.Keys.Contains(cookieName);
+
+        public bool DeleteCookie(string cookieName) => UserCookies.Remove(cookieName);
+        public bool DeleteSessionCookie(string cookieName) => UserSessionCookies.Remove(cookieName);
+
 
         public override void UpdateAttributes(StatUpdateFlags flags)
         {
@@ -2223,7 +2259,7 @@ namespace Hybrasyl.Objects
             //            profilePacket.WriteByte(1); // ??
             profilePacket.WriteByte(0);
             profilePacket.WriteByte(0); // ??
-            profilePacket.WriteString8(IsMaster ? "Master" : Hybrasyl.Constants.REVERSE_CLASSES[(int)Class]);
+            profilePacket.WriteString8(IsMaster ? "Master" : Hybrasyl.Constants.REVERSE_CLASSES[(int)Class].Capitalize());
             profilePacket.WriteString8(Guild.Name);
             profilePacket.WriteByte((byte)Legend.Count);
             foreach (var mark in Legend)

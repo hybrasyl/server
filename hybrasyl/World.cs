@@ -59,35 +59,24 @@ namespace Hybrasyl
 {
     public static class SampleStackExchangeRedisExtensions
     {
-        public static T Get<T>(this IDatabase cache, string key)
-        {
-            return Deserialize<T>(cache.StringGet(key));
-        }
+        public static T Get<T>(this IDatabase cache, string key) => Deserialize<T>(cache.StringGet(key));
 
-        public static object Get(this IDatabase cache, string key)
-        {
-            return Deserialize<object>(cache.StringGet(key));
-        }
+        public static object Get(this IDatabase cache, string key) => Deserialize<object>(cache.StringGet(key));
 
-        public static void Set(this IDatabase cache, string key, object value)
-        {
-            cache.StringSet(key, Serialize(value));
-        }
+        public static void Set(this IDatabase cache, string key, object value) => cache.StringSet(key, Serialize(value));
 
-        private static byte[] Serialize(object o)
+        private static byte[] Serialize(object o, ObjectCreationHandling handling = ObjectCreationHandling.Replace, 
+            PreserveReferencesHandling refHandling = PreserveReferencesHandling.All)
         {
             if (o == null)
             {
                 return null;
             }
+            JsonSerializerSettings settings = new JsonSerializerSettings();
+            settings.ObjectCreationHandling = handling;
+            settings.PreserveReferencesHandling = refHandling;
 
-            System.Runtime.Serialization.Formatters.Binary.BinaryFormatter binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
-            using (MemoryStream memoryStream = new MemoryStream())
-            {
-                binaryFormatter.Serialize(memoryStream, o);
-                byte[] objectDataAsStream = memoryStream.ToArray();
-                return objectDataAsStream;
-            }
+            return Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(o, settings));
         }
 
         private static T Deserialize<T>(byte[] stream)
@@ -96,13 +85,7 @@ namespace Hybrasyl
             {
                 return default(T);
             }
-
-            System.Runtime.Serialization.Formatters.Binary.BinaryFormatter binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
-            using (MemoryStream memoryStream = new MemoryStream(stream))
-            {
-                T result = (T)binaryFormatter.Deserialize(memoryStream);
-                return result;
-            }
+            return JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(stream));
         }
     }
    
@@ -196,16 +179,9 @@ namespace Hybrasyl
 
         public static bool TryGetUser(string name, out User userobj) 
         {
-            var jsonstring = (string)DatastoreConnection.GetDatabase().Get(User.GetStorageKey(name));
-            JsonSerializerSettings settings = new JsonSerializerSettings();
-            settings.ObjectCreationHandling = ObjectCreationHandling.Replace;
+//            userobj = JsonConvert.DeserializeObject<User>(jsonstring, settings);
+            userobj = DatastoreConnection.GetDatabase().Get<User>(User.GetStorageKey(name));
 
-            if (jsonstring == null)
-            {
-                userobj = null;
-                return false;
-            }
-            userobj = JsonConvert.DeserializeObject<User>(jsonstring, settings);
             if (userobj == null)
             {
                 Logger.FatalFormat("{0}: JSON object could not be deserialized!", name);
@@ -236,6 +212,7 @@ namespace Hybrasyl
             Objects = new Dictionary<uint, WorldObject>();
             Portraits = new Dictionary<string, string>();
 
+            GlobalSequences = new List<DialogSequence>();
             GlobalSequencesCatalog = new Dictionary<string, DialogSequence>();
             ItemCatalog = new Dictionary<Tuple<Sex, string>, Item>();
             //MapCatalog = new Dictionary<string, Map>();
@@ -560,8 +537,7 @@ namespace Hybrasyl
             foreach (var key in server.Keys(pattern: "Hybrasyl.Mailbox*"))
             {
                 Logger.InfoFormat("Loading mailbox at {0}", key);
-                var jsonstring = (string)World.DatastoreConnection.GetDatabase().Get(key);
-                var mailbox = JsonConvert.DeserializeObject<Mailbox>(jsonstring);
+                var mailbox = DatastoreConnection.GetDatabase().Get<Mailbox>(key);
                 var name = key.ToString().Split(':')[1].ToLower();
                 if (name == string.Empty)
                 {
@@ -576,8 +552,7 @@ namespace Hybrasyl
             foreach (var key in server.Keys(pattern: "Hybrasyl.Board*"))
             {
                 Logger.InfoFormat("Loading board at {0}", key);
-                var jsonstring = (string)World.DatastoreConnection.GetDatabase().Get(key);
-                var messageboard = JsonConvert.DeserializeObject<Board>(jsonstring);
+                var messageboard = DatastoreConnection.GetDatabase().Get<Board>(key);
                 var name = key.ToString().Split(':')[1];
                 if (name == string.Empty)
                 {
@@ -1693,6 +1668,7 @@ namespace Hybrasyl
             loginUser.SendSpells();
             loginUser.ReapplyStatuses();
             loginUser.SetCitizenship();
+            loginUser.ChrysalisMark();
 
             Insert(loginUser);
             Logger.DebugFormat("Elapsed time since login: {0}", loginUser.SinceLastLogin);
@@ -2881,26 +2857,9 @@ namespace Hybrasyl
                     }
                 }
 
-                // Did the user click next on the last dialog in a sequence?
-                // If so, either close the dialog or go to the main menu (main menu by 
-                // default
-
-                if (user.DialogState.ActiveDialogSequence.Dialogs.Count() == pursuitIndex)
-                {
-                    user.DialogState.EndDialog();
-                    if (user.DialogState.ActiveDialogSequence.CloseOnEnd)
-                    {
-                        Logger.DebugFormat("Sending close packet");
-                        var p = new ServerPacket(0x30);
-                        p.WriteByte(0x0A);
-                        p.WriteByte(0x00);
-                        user.Enqueue(p);
-                    }
-                    else
-                        clickTarget.DisplayPursuits(user);
-                }
-
                 // Is the active dialog an input or options dialog?
+                // If so, we handle that first, as the response / callback / handler 
+                // needs to be able to handle the response.
 
                 if (user.DialogState.ActiveDialog is OptionsDialog)
                 {
@@ -2917,28 +2876,84 @@ namespace Hybrasyl
                     var dialog = user.DialogState.ActiveDialog as TextDialog;
                     dialog.HandleResponse(user, response, clickTarget);
                 }
+                // TODO: implement FunctionDialog handling here?
+
+                if (user.DialogState.ActiveDialog is null)
+                {
+                    // The response handler could have closed the dialog, or done Goddess knows what
+                    // to the state. We check here, and if the dialog state is null (the result of
+                    // calling EndDialog() we send a close packet.
+                    user.SendCloseDialog();
+                    return;
+                }            
+
+                // Regular ol' dialog.
+                //
+                // Did the user click next on the last dialog in a sequence?
+                // If the last dialog is a JumpDialog or FunctionDialog, just ShowTo it; it'll handle the rest.
+                // Otherwise, either close the dialog or go to the main menu (main menu by 
+                // default).
+
+                if (user.DialogState.ActiveDialogSequence.Dialogs.Count() == pursuitIndex)
+                {
+                    if (user.DialogState.ActiveDialog is JumpDialog)
+                    {
+                        user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
+                        return;
+                    }
+                    if (user.DialogState.ActiveDialog is FunctionDialog)
+                    {
+                        // If a FunctionDialog is the last function, always close
+                        user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
+                        Logger.DebugFormat("Sending close packet");
+                        user.SendCloseDialog();
+                        return;
+                    }
+                    if (user.DialogState.ActiveDialogSequence.CloseOnEnd)
+                    {
+                        Logger.DebugFormat("Sending close packet");
+                        user.SendCloseDialog();
+                    }
+                    else
+                        clickTarget.DisplayPursuits(user);
+                    // Either way down here, reset the dialog state since we're done with the sequence
+                    user.DialogState.EndDialog();
+                    return;
+                }
 
                 // Did the handling of a response result in our active dialog sequence changing? If so, exit.
 
                 if (user.DialogState.CurrentPursuitId != pursuitID)
                 {
-                    Logger.DebugFormat("Dialog has changed, exiting");
+                    Logger.ErrorFormat("Dialog has changed, exiting");
                     return;
                 }
 
+                // TODO: improve this logic
+                // Handle function dialogs in between us and the next real dialog (or the end)
                 if (user.DialogState.SetDialogIndex(clickTarget, pursuitID, pursuitIndex))
                 {
+                    while (user.DialogState.ActiveDialog is FunctionDialog)
+                    {
+                        // ShowTo and go
+                        user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
+                        pursuitIndex++;
+                        if (!user.DialogState.SetDialogIndex(clickTarget, pursuitID, pursuitIndex))
+                        {
+                            // We're at the end of our rope
+                            user.SendCloseDialog();
+                            return;
+                        }
+                    }
                     Logger.DebugFormat("Pursuit index is now {0}", pursuitIndex);
+
                     user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
                     return;
                 }
                 else
                 {
                     Logger.DebugFormat("Sending close packet");
-                    var p = new ServerPacket(0x30);
-                    p.WriteByte(0x0A);
-                    p.WriteByte(0x00);
-                    user.Enqueue(p);
+                    user.SendCloseDialog();
                     user.DialogState.EndDialog();
                 }
             }

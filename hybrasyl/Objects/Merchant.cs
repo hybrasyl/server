@@ -59,6 +59,8 @@ namespace Hybrasyl.Objects
             {
                 Script = script;
                 Script.AssociateScriptWithObject(this);
+                // Clear existing pursuits, in case the OnSpawn crashes / has a bug
+                ResetPursuits();
                 Ready = Script.ExecuteFunction("OnSpawn");
             }
         }

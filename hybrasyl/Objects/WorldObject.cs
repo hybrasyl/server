@@ -111,7 +111,9 @@ namespace Hybrasyl.Objects
         public virtual void RegisterDialogSequence(DialogSequence sequence)
         {
             sequence.Id = (uint)(Constants.DIALOG_SEQUENCE_PURSUITS + DialogSequences.Count);
+            sequence.AssociateSequence(this);
             DialogSequences.Add(sequence);
+
             if (SequenceCatalog.ContainsKey(sequence.Name))
             {
                 Logger.WarnFormat("Dialog sequence {0} is being overwritten", sequence.Name);
@@ -119,6 +121,7 @@ namespace Hybrasyl.Objects
 
             }
             SequenceCatalog.Add(sequence.Name, sequence);
+            
         }
 
         public List<DialogSequence> Pursuits;

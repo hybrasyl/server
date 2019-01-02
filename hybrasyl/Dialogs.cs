@@ -26,11 +26,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Hybrasyl.Scripting;
+using MoonSharp.Interpreter;
 
 namespace Hybrasyl
 {
     namespace Dialogs
-    {       
+    {
         public class DialogSequence
         {
             static readonly ILog Logger = LogManager.GetLogger(typeof(DialogSequence));
@@ -38,7 +39,7 @@ namespace Hybrasyl
             public List<Dialog> Dialogs { get; private set; }
             public string Name { get; private set; }
             public uint? Id { get; set; }
-            public Script Script { get; private set; }
+            public Scripting.Script Script { get; private set; }
             public WorldObject Associate { get; private set; }
             public string PreDisplayCallback { get; private set; }
             public bool CloseOnEnd { get; set; }
@@ -53,11 +54,11 @@ namespace Hybrasyl
             }
 
             /// <summary>
-            /// 
+            /// Show a dialog sequence to a user.
             /// </summary>
-            /// <param name="invoker"></param>
-            /// <param name="target"></param>
-            /// <param name="runCheck"></param>
+            /// <param name="invoker">The user who will receive the dialog.</param>
+            /// <param name="target">A target of the dialog; generally an associate (NPC/reactor tile)</param>
+            /// <param name="runCheck">Whether or not to run any pre display checks before displaying the sequence</param>
             public void ShowTo(User invoker, VisibleObject target = null, bool runCheck = true)
             {
                 // Either we must have an associate already known to us, one must be passed, or we must have a script defined
@@ -68,16 +69,10 @@ namespace Hybrasyl
                     return;
                 }
                 if (PreDisplayCallback != null && runCheck)
-                {/*
-                    var invocation = new ScriptInvocation();
-                    invocation.Function = PreDisplayCallback;
-                    invocation.Invoker = invoker;
-                    invocation.Associate = target == null ? Associate : target;
-                    if (Script != null)
-                        invocation.Script = Script;
-
-                    if (invocation.Execute())
-                        Dialogs.First().ShowTo(invoker, target);*/
+                {
+                    var ret = Script.ExecuteAndReturn(PreDisplayCallback, invoker);
+                    if (ret == DynValue.True)
+                        Dialogs.First().ShowTo(invoker, target);
                 }
                 else
                 {
@@ -104,6 +99,19 @@ namespace Hybrasyl
             {
                 PreDisplayCallback = check;
             }
+
+            /// <summary>
+            /// Skip to the specified index in a dialog sequence.
+            /// </summary>
+            /// <param name="index"></param>
+            /// <param name="invoker"></param>
+            /// <param name="target"></param>
+            public void ShowByIndex(int index, User invoker, VisibleObject target = null)
+            {
+                if (index >= Dialogs.Count)
+                    return;
+                Dialogs[index].ShowTo(invoker, target);
+            }
         }
 
         public class DialogOption
@@ -113,27 +121,36 @@ namespace Hybrasyl
 
             public string CallbackFunction { get; private set; }
 
-            public DialogOption(string option, string callback = null, Dialog parentdialog = null)
+            public JumpDialog JumpDialog { get; set; }
+
+            public DialogOption(string option, string callback, Dialog parentdialog = null)
             {
                 OptionText = option;
                 CallbackFunction = callback;
                 ParentDialog = parentdialog;
             }
 
+            public DialogOption(string option, JumpDialog jumpTo, Dialog parentdialog = null)
+            {
+                OptionText = option;
+                JumpDialog = jumpTo;
+                ParentDialog = parentdialog;
+            }
         }
 
         public class Dialog
         {
             public static readonly ILog Logger = LogManager.GetLogger(typeof(Dialog));
+            protected static readonly ILog ScriptingLogger = LogManager.GetLogger("ScriptingLog");
 
             protected ushort DialogType;
             public DialogSequence Sequence { get; private set; }
             public int Index;
-            public string DisplayText { get; protected set; }
-            public string CallbackExpression { get; protected set; }
+            public string DisplayText { get; set; }
+            public string CallbackExpression { get; set; }
             public ushort DisplaySprite { get; set; }
 
-            public Dialog(int dialogType, string displayText = null, string callbackFunction="")
+            public Dialog(int dialogType, string displayText = null, string callbackFunction = "")
             {
                 DialogType = (ushort)dialogType;
                 DisplayText = displayText;
@@ -190,13 +207,13 @@ namespace Hybrasyl
 
                 if (invokee is Creature)
                 {
-                    var creature = (Creature) invokee;
-                    sprite = (ushort) (0x4000 + creature.Sprite);
+                    var creature = (Creature)invokee;
+                    sprite = (ushort)(0x4000 + creature.Sprite);
                     objType = 1;
                 }
                 else if (invokee is ItemObject)
                 {
-                    var item = (ItemObject) invokee;
+                    var item = (ItemObject)invokee;
                     objType = 2;
                     sprite = (ushort)(0x8000 + item.Sprite);
                     color = item.Color;
@@ -246,26 +263,72 @@ namespace Hybrasyl
         }
 
         /// <summary>
-        /// This is a derived class which allows a script to insert an arbitrary function (e.g. an effect display, teleport, etc) into a dialog sequence.
-        /// Its ShowTo is responsible for carrying out the action. In this way, FunctionDialogs can be used exactly the same as all other dialog types.
+        /// A JumpDialog is a dialog that actually starts a new sequence. It's particularly useful for when you want a selected option to start a new
+        /// conversational fork without resorting to using a FunctionDialog.
         /// </summary>
-        class FunctionDialog : Dialog
+        public class JumpDialog : Dialog
         {
-            protected string Function;
+            protected string NextSequence;
 
-            public FunctionDialog(string function)
-                : base(DialogTypes.FUNCTION_DIALOG)
+            public JumpDialog(string nextSequence) : base(DialogTypes.JUMP_DIALOG)
             {
-                Function = function;
+                NextSequence = nextSequence;
             }
 
             public override void ShowTo(User invoker, VisibleObject invokee)
             {
-                return;
+                // Start the sequence in question
+                // Look for a local (tied to NPC/reactor) sequence first, then consult the global catalog
+                DialogSequence sequence;
+                // Depending on how this was registered, it may not have an associate; thankfully we always
+                // get a hint of one from the 0x3A packet
+                var associate = Sequence?.Associate is null ? invokee : Sequence.Associate;
+                if (associate.SequenceCatalog.TryGetValue(NextSequence, out sequence) || Game.World.GlobalSequencesCatalog.TryGetValue(NextSequence, out sequence))
+                {
+                    sequence.ShowTo(invoker, invokee);
+                    // End previous sequence
+                    invoker.DialogState.EndDialog();
+                    invoker.DialogState.StartDialog(invokee, sequence);
+                }
+                else
+                {
+                    // We terminate our dialog state if we encounter an error
+                    invoker.DialogState.EndDialog();
+                    invoker.SendSystemMessage($"{invokee.Name} seems confused ((scripting error!))...");
+                    ScriptingLogger.Error($"JumpDialog: sequence {NextSequence} not found!");
+                }
+            }
+
+
+        }
+        /// <summary>
+        /// This is a derived class which allows a script to insert an arbitrary function (e.g. an effect display, teleport, etc) into a dialog sequence.
+        /// Its ShowTo is responsible for carrying out the action. In this way, FunctionDialogs can be used exactly the same as all other dialog types.
+        /// For the purposes of the client, the FunctionDialog is a "hidden" dialog; it runs its command and then calls the next dialog (if any) from its sequence.
+        /// </summary>
+        public class FunctionDialog : Dialog
+        {
+            protected string Expression;
+
+            public FunctionDialog(string luaExpr)
+                : base(DialogTypes.FUNCTION_DIALOG)
+            {
+                Expression = luaExpr;
+            }
+
+            public override void ShowTo(User invoker, VisibleObject invokee)
+            {
+                if (Expression != null)
+                {
+                    VisibleObject associate = invokee == null ? Sequence.Associate as VisibleObject : invokee;
+                    associate.Script.Execute(Expression, invoker);
+                }
+                // Skip to next dialog in sequence
+                Sequence.ShowByIndex(Index + 1, invoker, invokee);               
             }
         }
 
-        class SimpleDialog : Dialog
+        public class SimpleDialog : Dialog
         {
             public SimpleDialog(string displayText)
                 : base(DialogTypes.SIMPLE_DIALOG, displayText)
@@ -280,7 +343,7 @@ namespace Hybrasyl
 
         }
 
-        class InputDialog : Dialog
+        public class InputDialog : Dialog
         {
             protected string Handler { get; private set; }
 
@@ -296,9 +359,10 @@ namespace Hybrasyl
             }
         }
 
-        class OptionsDialog : InputDialog
+        public class OptionsDialog : InputDialog
         {
             protected List<DialogOption> Options { get; private set; }
+            public int OptionCount => Options.Count;
 
             public OptionsDialog(string displayText)
                 : base(DialogTypes.OPTIONS_DIALOG, displayText)
@@ -326,17 +390,41 @@ namespace Hybrasyl
                 Options.Add(new DialogOption(option, callback));
             }
 
+            public void AddDialogOption(string option, JumpDialog jumpTo)
+            {
+                Options.Add(new DialogOption(option, jumpTo));
+            }
+
             public void HandleResponse(WorldObject invoker, int optionSelected, WorldObject associateOverride = null)
             {
                 WorldObject Associate;
                 string Expression = string.Empty;
+
+                // Quick sanity check
+                if (optionSelected < 0 || optionSelected > Options.Count)
+                {
+                    Logger.Error($"Option dialog response: invalid player selection {optionSelected}, aborting");
+                    if (invoker is User)
+                    {
+                        var user = invoker as User;
+                        user.DialogState.EndDialog();
+                        user.SendCloseDialog();
+                    }
+                    return;
+                }
 
                 if (Sequence.Associate != null)
                     Associate = Sequence.Associate;
                 else
                     Associate = associateOverride;
 
-                
+                // Note that client is 1-indexed for responses
+                if (Options[optionSelected - 1].JumpDialog != null)
+                {
+                    // Use jump dialog first
+                    Options[optionSelected - 1].JumpDialog.ShowTo(invoker as User, Associate as VisibleObject);
+                    return;
+                }
                 // If the individual options don't have callbacks, use the dialog callback instead.
                 if (Handler != null && Options[optionSelected - 1].CallbackFunction == null)
                 {
@@ -346,7 +434,11 @@ namespace Hybrasyl
                 {
                     Expression = Options[optionSelected - 1].CallbackFunction;
                 }
-                
+                // Regardless of what handler we use, make sure the script can see the value.
+                // We pass everything as string to not make UserData barf, as it can't handle dynamics.
+                // For option dialogs we pass both the "number" selected, and the actual text of the button pressed.
+                Associate.Script.SetGlobalValue("player_selection", optionSelected.ToString());
+                Associate.Script.SetGlobalValue("player_response", Options[optionSelected - 1].OptionText);
                 Associate.Script.Execute(Expression, invoker);
                 
             }
@@ -392,11 +484,9 @@ namespace Hybrasyl
                     }
 
                     var Associate = associateOverride == null ? Sequence.Associate : associateOverride;
-                    // Expand this in the future, for right now we simply replace %RESPONSE% with whatever the user put into the text box
-                    var Expression = System.String.Copy(Handler);
-                    Expression = Expression.Replace("%RESPONSE%", response);
-
-                    Associate.Script.Execute(Expression, invoker);
+                    // Make sure the script can see the response
+                    Associate.Script.SetGlobalValue("player_response", response);
+                    Associate.Script.Execute(Handler, invoker);
 
                 }
             }

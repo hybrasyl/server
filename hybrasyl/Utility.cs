@@ -256,6 +256,7 @@ namespace Hybrasyl
         public const int SIMPLE_DIALOG = 0;
         public const int OPTIONS_DIALOG = 2;
         public const int INPUT_DIALOG = 4;
+        public const int JUMP_DIALOG = 8;
     }
 
     static class MessageTypes

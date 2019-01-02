@@ -128,12 +128,10 @@
   </xs:complexType>
 
   <xs:complexType name="HybrasylAge">
-    <xs:sequence>
-      <xs:element name="Name" type="hyb:String5" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="StartDate" type="xs:dateTime" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="EndDate" type="xs:dateTime" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="StartYear" type="xs:int" minOccurs="0" maxOccurs="1"/>
-    </xs:sequence>
+    <xs:attribute name="Name" type="hyb:String5" use="required"/>
+    <xs:attribute name="StartDate" type="xs:dateTime" use="required"/>
+    <xs:attribute name="EndDate" type="xs:dateTime" use="optional"/>
+    <xs:attribute name="StartYear" type="xs:int" default="1"/>
   </xs:complexType>
   
   <xs:complexType name="HybrasylAges">

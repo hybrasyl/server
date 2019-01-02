@@ -8,6 +8,23 @@ using System.Net;
 namespace Hybrasyl.Messaging
 {
     // Various admin commands are implemented here.
+    
+    class ShowCookies : ChatCommand
+    {
+        public new static string Command = "showcookies";
+        public new static string ArgumentText = "<string playername>";
+        public new static string HelpText = "Show permanent and session cookies set for a specified player";
+        public new static bool Privileged = true;
+
+        public new static ChatCommandResult Run(User user, params string [] args)
+        {
+            if (Game.World.WorldData.TryGetValue<User>(args[0], out User target))
+            {
+                return Success($"User {target.Name} Cookies\n\n{target.GetCookies()}\n\nSession Cookies\n\n{target.GetSessionCookies()}", MessageTypes.SLATE_WITH_SCROLLBAR);
+            }
+            return Fail($"User {args[0]} not logged in");
+        }
+    }
 
     class SummonCommand : ChatCommand
     {
@@ -246,6 +263,84 @@ namespace Hybrasyl.Messaging
                 }
             }
             return Fail($"Script {args[1].Trim()}: not found.");
+        }
+    }
+
+    class DeleteSessionCookie : ChatCommand
+    {
+        public new static string Command = "deletesessioncookie";
+        public new static string ArgumentText = "<string cookie> | <string playername> <string cookie>";
+        public new static string HelpText = "Clear (delete) a given session (transient) scripting cookie. This is useful when working with scripts that modify player state.";
+        public new static bool Privileged = true;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            if (args.Length == 1)
+            {
+                user.DeleteSessionCookie(args[0]);
+                return Success($"Session flag {args[0]} deleted.");
+            }
+            else
+            {
+                var target = Game.World.WorldData.Get<User>(args[0]);
+
+                if (target.IsExempt)
+                    return Fail($"User {target.Name} is exempt from your meddling.");
+                else
+                    target.DeleteSessionCookie(args[1]);
+                return Success($"Player {target.Name}: flag {args[1]} removed.");
+            }
+        }
+    }
+
+    class DeleteCookie : ChatCommand
+    {
+        public new static string Command = "deletecookie";
+        public new static string ArgumentText = "<string cookie> | <string playername> <string cookie>";
+        public new static string HelpText = "Clear (delete) a given scripting cookie. This is useful when working with scripts that modify player state.";
+        public new static bool Privileged = true;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            if (args.Length == 1)
+            {
+                user.DeleteCookie(args[0]);
+                return Success($"Session flag {args[0]} deleted.");
+            }
+            else
+            {
+                var target = Game.World.WorldData.Get<User>(args[0]);
+
+                if (target.IsExempt)
+                    return Fail($"User {target.Name} is exempt from your meddling.");
+                else
+                    target.DeleteCookie(args[1]);
+                return Success($"Player {target.Name}: flag {args[1]} removed.");
+            }
+        }
+    }
+
+    class ReloadnpcCommand : ChatCommand
+    {
+        public new static string Command = "reloadnpc";
+        public new static string ArgumentText = "<string npcname>";
+        public new static string HelpText = "Reload the given NPC (dump the script and reload from disk)";
+        public new static bool Privileged = true;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            if (Game.World.WorldData.TryGetValue(args[0], out Merchant merchant))
+            {
+                if (Game.World.ScriptProcessor.TryGetScript(merchant.Name, out Script script))
+                {
+                    script.Reload();
+                    merchant.Ready = false; // Force reload next time NPC processes an interaction
+                    return Success($"NPC {args[0]} - script {script.Name} reloaded. Clicking should re-run OnSpawn.");
+                }
+                else return Fail("NPC found but script not found...?");
+            }
+            else return Fail($"NPC {args[0]} not found.");
+
         }
     }
 

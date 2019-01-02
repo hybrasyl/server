@@ -31,6 +31,7 @@ namespace Hybrasyl.Scripting
     {
         internal Dialog Dialog { get; set; }
         internal DialogSequence Sequence { get; set; }
+        internal System.Type DialogType => Dialog.GetType();
 
         public HybrasylDialog(Dialog dialog)
         {
@@ -52,6 +53,13 @@ namespace Hybrasyl.Scripting
             Sequence = sequence;
             sequence.AddDialog(Dialog);
         }
+
+        public void AttachCallback(string luaExpr)
+        {
+            Dialog.CallbackExpression = luaExpr;
+        }
+
+
 
     }
 }

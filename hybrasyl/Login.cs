@@ -193,8 +193,7 @@ namespace Hybrasyl
                 newPlayer.Nation = Game.World.DefaultNation;
 
                 IDatabase cache = World.DatastoreConnection.GetDatabase();
-                var myPerson = JsonConvert.SerializeObject(newPlayer);
-                cache.Set(User.GetStorageKey(newPlayer.Name), myPerson);
+                cache.Set(User.GetStorageKey(newPlayer.Name), newPlayer);
 
 //                    Logger.ErrorFormat("Error saving new player!");
   //                  Logger.ErrorFormat(e.ToString());
