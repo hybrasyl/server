@@ -400,7 +400,7 @@ namespace Hybrasyl
             internal ushort Tile2 { get; set; }
             internal byte Color2 { get; set; } //affect item only
             internal byte PortraitType { get; set; } //portrait style. 0 = anime 1 = sprite
-            internal byte NameLength { get; set; }
+            internal byte NameLength => Convert.ToByte(Name.Length);
             internal string Name { get; set; }
             internal ushort TextLength { get; set; }
             internal string Text { get; set; }
@@ -487,7 +487,6 @@ namespace Hybrasyl
                     foreach (var skill in Skills.Skills)
                     {
                         packet.WriteByte(skill.IconType);
-                        packet.WriteByte(0);
                         packet.WriteByte(skill.Icon);
                         packet.WriteByte(skill.Color);
                         packet.WriteString8(skill.Name);
@@ -500,7 +499,6 @@ namespace Hybrasyl
                     foreach (var spell in Spells.Spells)
                     {
                         packet.WriteByte(spell.IconType);
-                        packet.WriteByte(0);
                         packet.WriteUInt16(spell.Icon);
                         packet.WriteByte(spell.Color);
                         packet.WriteString8(spell.Name);

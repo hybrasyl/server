@@ -319,7 +319,6 @@ namespace Hybrasyl.Objects
                 optionsCount++;
 
             }
-            options.OptionsCount = (byte)optionsCount;
         
             var packet =new ServerPacketStructures.MerchantResponse()
             {

@@ -2389,21 +2389,21 @@ namespace Hybrasyl.Objects
 
             var merchantSkills = new MerchantSkills();
             merchantSkills.Skills = new List<MerchantSkill>();
-            var skillsCount = 0;
+
             foreach (var skill in merchant.Roles.Train.Where(x => x.Type == "Skill").OrderBy(y => y.Name))
             {
-                if (SkillBook.Contains(Game.World.WorldData.GetByIndex<Castable>(skill.Name))) continue;
-                skillsCount++;
-                var worldSkill = Game.World.WorldData.GetByIndex<Castable>(skill.Name);
-                merchantSkills.Skills.Add(new MerchantSkill()
+                if (Game.World.WorldData.TryGetValueByIndex(skill.Name, out Castable result))
                 {
-                    IconType = 3,
-                    Icon = worldSkill.Icon,
-                    Color = 1,
-                    Name = worldSkill.Name
-                });
+                    if (SkillBook.Contains(result)) continue;
+                    merchantSkills.Skills.Add(new MerchantSkill()
+                    {
+                        IconType = 3,
+                        Icon = result.Icon,
+                        Color = 1,
+                        Name = result.Name
+                    });
+                }
             }
-            merchantSkills.SkillsCount = (ushort)skillsCount;
             merchantSkills.Id = (ushort)MerchantMenuItem.LearnSkill;
 
             var packet = new ServerPacketStructures.MerchantResponse()
@@ -2459,7 +2459,6 @@ namespace Hybrasyl.Objects
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
 
-            options.OptionsCount = (byte)options.Options.Count;
             var packet = new ServerPacketStructures.MerchantResponse()
             {
                 MerchantDialogType = MerchantDialogType.Options,
@@ -2515,7 +2514,6 @@ namespace Hybrasyl.Objects
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
 
-            options.OptionsCount = (byte)options.Options.Count;
             var packet = new ServerPacketStructures.MerchantResponse()
             {
                 MerchantDialogType = MerchantDialogType.Options,
@@ -2556,7 +2554,6 @@ namespace Hybrasyl.Objects
                 Text = "No"
             });
 
-            options.OptionsCount = (byte)options.Options.Count;
             var packet = new ServerPacketStructures.MerchantResponse()
             {
                 MerchantDialogType = MerchantDialogType.Options,
@@ -2652,7 +2649,6 @@ namespace Hybrasyl.Objects
 
             }
 
-            options.OptionsCount = (byte)options.Options.Count;
 
             var packet = new ServerPacketStructures.MerchantResponse()
             {
@@ -2759,21 +2755,21 @@ namespace Hybrasyl.Objects
 
             var merchantSpells = new MerchantSpells();
             merchantSpells.Spells = new List<MerchantSpell>();
-            var spellsCount = 0;
             foreach (var spell in merchant.Roles.Train.Where(x => x.Type == "Spell").OrderBy(y => y.Name))
             {
-                if (SpellBook.Contains(Game.World.WorldData.GetByIndex<Castable>(spell.Name))) continue;
-                spellsCount++;
-                var worldSpell = Game.World.WorldData.GetByIndex<Castable>(spell.Name);
-                merchantSpells.Spells.Add(new MerchantSpell()
+                // Verify the spell exists first
+                if (Game.World.WorldData.TryGetValueByIndex(spell.Name, out Castable result))
                 {
-                    IconType = 2,
-                    Icon = worldSpell.Icon,
-                    Color = 1,
-                    Name = worldSpell.Name
-                });
+                    if (SpellBook.Contains(result)) continue;
+                    merchantSpells.Spells.Add(new MerchantSpell()
+                    {
+                        IconType = 2,
+                        Icon = result.Icon,
+                        Color = 1,
+                        Name = result.Name
+                    });
+                }
             }
-            merchantSpells.SpellsCount = (ushort)spellsCount;
             merchantSpells.Id = (ushort)MerchantMenuItem.LearnSpell;
 
             var packet = new ServerPacketStructures.MerchantResponse()
@@ -2814,7 +2810,6 @@ namespace Hybrasyl.Objects
                 Text = "No"
             });
 
-            options.OptionsCount = (byte)options.Options.Count;
             var packet = new ServerPacketStructures.MerchantResponse()
             {
                 MerchantDialogType = MerchantDialogType.Options,
@@ -2910,7 +2905,6 @@ namespace Hybrasyl.Objects
 
             }
 
-            options.OptionsCount = (byte)options.Options.Count;
 
             var packet = new ServerPacketStructures.MerchantResponse()
             {
@@ -3032,7 +3026,6 @@ namespace Hybrasyl.Objects
                 });
                 itemsCount++;
             }
-            merchantItems.ItemsCount = (ushort)itemsCount;
             merchantItems.Id = (ushort)MerchantMenuItem.BuyItemQuantity;
 
 
@@ -3154,7 +3147,6 @@ namespace Hybrasyl.Objects
             }
             else
             {
-                options.OptionsCount = (byte)options.Options.Count;
 
                 var packet = new ServerPacketStructures.MerchantResponse()
                 {
@@ -3195,7 +3187,6 @@ namespace Hybrasyl.Objects
                     itemsCount++;
                 }
             }
-            inventoryItems.InventorySlotsCount = (byte)itemsCount;
 
             var packet = new ServerPacketStructures.MerchantResponse()
             {
@@ -3322,7 +3313,6 @@ namespace Hybrasyl.Objects
 
             }
 
-            options.OptionsCount = (byte)options.Options.Count;
 
             var packet = new ServerPacketStructures.MerchantResponse()
             {
@@ -3360,7 +3350,6 @@ namespace Hybrasyl.Objects
 
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
-            options.OptionsCount = 0;
 
             var packet = new ServerPacketStructures.MerchantResponse()
             {
@@ -3418,7 +3407,6 @@ namespace Hybrasyl.Objects
                     itemsCount++;
                 }
             }
-            userItems.InventorySlotsCount = (byte)itemsCount;
             userItems.Id = (ushort)MerchantMenuItem.SendParcelRecipient;
 
 

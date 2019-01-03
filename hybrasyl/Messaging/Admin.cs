@@ -201,7 +201,7 @@ namespace Hybrasyl.Messaging
         {
             if (string.Equals(args[0], Constants.ShutdownPassword))
                 World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.ShutdownServer, user.Name));
-            return Success("Server will begin shutting down.");
+            return Success("Chaos is rising up. Please re-enter in a few minutes");
         }
     }
 
