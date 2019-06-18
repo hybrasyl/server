@@ -196,7 +196,7 @@ namespace Hybrasyl
             XmlConfigurator.Configure(logRepository, new FileInfo("Log4Net.config"));
 
             // Make our window nice and big
-            Console.SetWindowSize(140, 36);
+            //Console.SetWindowSize(140, 36);  //Removed for cross-platform compatibility
             LogLevel = Hybrasyl.Constants.DEFAULT_LOG_LEVEL;
             Assemblyinfo = new AssemblyInfo(Assembly.GetEntryAssembly());
 
@@ -274,7 +274,7 @@ namespace Hybrasyl
                 EventArgs.Empty);
             
             // Set console buffer, so we can scroll back a bunch
-            Console.BufferHeight = Int16.MaxValue - 1;
+            // Console.BufferHeight = Int16.MaxValue - 1; //Removed for cross-platform compatibility.
 
             Logger.InfoFormat("Hybrasyl {0} starting.", Assemblyinfo.Version);
             Logger.InfoFormat("{0} - this program is licensed under the GNU AGPL, version 3.", Assemblyinfo.Copyright);
