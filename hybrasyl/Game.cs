@@ -31,6 +31,7 @@ using System.Text;
 using System.Threading;
 using System.Xml;
 using Hybrasyl.XML;
+using log4net.Config;
 using log4net.Core;
 using AssemblyInfo = Hybrasyl.Utility.AssemblyInfo;
 
@@ -190,6 +191,10 @@ namespace Hybrasyl
 
         public static void Main(string[] args)
         {
+            //log4net configure
+            var logRepository = LogManager.GetRepository(Assembly.GetEntryAssembly());
+            XmlConfigurator.Configure(logRepository, new FileInfo("Log4Net.config"));
+
             // Make our window nice and big
             Console.SetWindowSize(140, 36);
             LogLevel = Hybrasyl.Constants.DEFAULT_LOG_LEVEL;

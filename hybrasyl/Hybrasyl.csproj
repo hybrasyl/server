@@ -26,4 +26,10 @@
     <EmbeddedResource Include="Resources\sotp.dat" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Log4Net.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
