@@ -21,6 +21,7 @@
  */
 
 
+using System.Reflection;
 using Hybrasyl.Objects;
 using log4net;
 using MoonSharp.Interpreter;
@@ -33,7 +34,7 @@ namespace Hybrasyl.Scripting
         internal WorldObject Obj { get; set; }
 
         private static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-        private static readonly ILog ScriptingLogger = LogManager.GetLogger("ScriptingLog");
+        private static readonly ILog ScriptingLogger = LogManager.GetLogger(Assembly.GetEntryAssembly(),"ScriptingLog");
 
 
         public string Name

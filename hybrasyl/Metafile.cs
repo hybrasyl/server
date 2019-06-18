@@ -86,20 +86,20 @@ namespace Hybrasyl
 
             using (var metaFileStream = new MemoryStream())
             {
-                using (var metaFileWriter = new BinaryWriter(metaFileStream, Encoding.GetEncoding(949), true))
+                using (var metaFileWriter = new BinaryWriter(metaFileStream, Encoding.ASCII, true))
                 {
                     metaFileWriter.Write((byte)(file.Nodes.Count / 256));
                     metaFileWriter.Write((byte)(file.Nodes.Count % 256));
                     foreach (var node in file.Nodes)
                     {
-                        buffer = Encoding.GetEncoding(949).GetBytes(node.Text);
+                        buffer = Encoding.ASCII.GetBytes(node.Text);
                         metaFileWriter.Write((byte)buffer.Length);
                         metaFileWriter.Write(buffer);
                         metaFileWriter.Write((byte)(node.Properties.Count / 256));
                         metaFileWriter.Write((byte)(node.Properties.Count % 256));
                         foreach (var property in node.Properties)
                         {
-                            buffer = Encoding.GetEncoding(949).GetBytes(property);
+                            buffer = Encoding.ASCII.GetBytes(property);
                             metaFileWriter.Write((byte)(buffer.Length / 256));
                             metaFileWriter.Write((byte)(buffer.Length % 256));
                             metaFileWriter.Write(buffer);

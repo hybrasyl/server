@@ -13,8 +13,8 @@ namespace Hybrasyl.Messaging
     public class ChatCommandHandler
     {
         private Dictionary<string, (Type Type, List<int> argCount)> _associates = new Dictionary<string, (Type, List<int>)>();
-        private static readonly ILog UserLogger = LogManager.GetLogger("UserActivityLogger");
-        private static readonly ILog GmLogger = LogManager.GetLogger("GmActivityLogger");
+        private static readonly ILog UserLogger = LogManager.GetLogger(Assembly.GetEntryAssembly(),"UserActivityLogger");
+        private static readonly ILog GmLogger = LogManager.GetLogger(Assembly.GetEntryAssembly(),"GmActivityLogger");
         public static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         private static readonly Regex QuotesRegex = new Regex(" (?=(?:[^\"]*\"[^\"]*\")*(?![^\"]*\"))");
         private static readonly Regex ArgsRegex = new Regex("(\\[[a-zA-Z\\<\\> ]*\\])");

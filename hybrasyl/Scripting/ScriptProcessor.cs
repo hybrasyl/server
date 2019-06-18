@@ -22,6 +22,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using Hybrasyl.Enums;
 using log4net;
 using MoonSharp.Interpreter;
@@ -31,7 +32,7 @@ namespace Hybrasyl.Scripting
     public class ScriptProcessor
     {
         public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-        private static readonly ILog ScriptingLogger = LogManager.GetLogger("ScriptingLog");
+        private static readonly ILog ScriptingLogger = LogManager.GetLogger(Assembly.GetEntryAssembly(),"ScriptingLog");
 
         public Dictionary<string, Script> Scripts { get; private set; }
         public HybrasylWorld World { get; private set; }
@@ -41,7 +42,7 @@ namespace Hybrasyl.Scripting
             Scripts = new Dictionary<string, Script>();
             World = new HybrasylWorld(world);
             // Register UserData types for MoonScript
-            UserData.RegisterAssembly();
+            UserData.RegisterAssembly(typeof(Game).Assembly);
             UserData.RegisterType<Sex>();
             UserData.RegisterType<LegendIcon>();
             UserData.RegisterType<LegendColor>();

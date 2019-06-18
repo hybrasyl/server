@@ -71,7 +71,7 @@ namespace Hybrasyl
 
         public byte[] GetBytes()
         {
-            var buffer = Encoding.GetEncoding(949).GetBytes(Name);
+            var buffer = Encoding.ASCII.GetBytes(Name);
             Logger.DebugFormat("buffer is {0} and Name is {1}", BitConverter.ToString(buffer), Name);
 
             // X quadrant, offset, Y quadrant, offset, length of the name, the name, plus a 64-bit(?!) ID
@@ -130,7 +130,7 @@ namespace Hybrasyl
             // Returns the representation of the worldmap as an array of bytes, 
             // suitable to passing to a map packet.
 
-            var buffer = Encoding.GetEncoding(949).GetBytes(ClientMap);
+            var buffer = Encoding.ASCII.GetBytes(ClientMap);
             var bytes = new List<Byte> {(byte) ClientMap.Length};
 
             bytes.AddRange(buffer);

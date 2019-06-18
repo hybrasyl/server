@@ -1,78 +1,75 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Net;
-using System.Net.Http;
 using System.ServiceModel;
-using System.ServiceModel.Activation;
-using System.ServiceModel.Web;
-using System.Text;
-using System.Threading.Tasks;
+
 using Hybrasyl.Objects;
-using Newtonsoft.Json.Linq;
-using StackExchange.Redis;
 
 namespace Hybrasyl
 {
     [ServiceContract]
     public interface IControlService
     {
-        [OperationContract]
-        [WebGet(UriTemplate = "/Shutdown/{key}")]
-        string Shutdown(string key);
+        //TODO: Rework for .net core
+        //[OperationContract]
+        //[WebGet(UriTemplate = "/Shutdown/{key}")]
+        //string Shutdown(string key);
 
-        [OperationContract]
-        [WebGet(UriTemplate = "/CurrentUsers")]
-        List<string> CurrentUsers();
+        //[OperationContract]
+        //[WebGet(UriTemplate = "/CurrentUsers")]
+        //List<string> CurrentUsers();
 
-        [OperationContract]
-        [WebGet(UriTemplate = "/User/{name}")]
-        User User(string name);
+        //[OperationContract]
+        //[WebGet(UriTemplate = "/User/{name}")]
+        //User User(string name);
 
     }
 
-    [ServiceBehavior(InstanceContextMode = InstanceContextMode.Single, ConcurrencyMode = ConcurrencyMode.Single, IncludeExceptionDetailInFaults = true)]
-    [AspNetCompatibilityRequirements(RequirementsMode = AspNetCompatibilityRequirementsMode.Allowed)]
-    public class ControlService : IControlService
-    {
-        public string Shutdown(string key)
-        {
-            if (key == Constants.ShutdownPassword)
-            {
-                World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.ShutdownServer, "build"));
-                return "Shutdown ControlMessage sent to Server.";
-            }
-            return "Shutdown ControlMessage not queued.";
-        }
+    //TODO: Rework for .net core
 
-        public List<string> CurrentUsers() => World.ActiveUsers.Select(x => x.Value.Name).ToList();
+    //[ServiceBehavior(InstanceContextMode = InstanceContextMode.Single, ConcurrencyMode = ConcurrencyMode.Single, IncludeExceptionDetailInFaults = true)]
+    //[AspNetCompatibilityRequirements(RequirementsMode = AspNetCompatibilityRequirementsMode.Allowed)]
+    //public class ControlService : IControlService
+    //{
+    //    public string Shutdown(string key)
+    //    {
+    //        if (key == Constants.ShutdownPassword)
+    //        {
+    //            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.ShutdownServer, "build"));
+    //            return "Shutdown ControlMessage sent to Server.";
+    //        }
+    //        return "Shutdown ControlMessage not queued.";
+    //    }
 
-        public User User(string name)
-        {
-            return World.ActiveUsers.All(x => x.Value.Name != name) ? null : World.ActiveUsers.Single(x => x.Value.Name == name).Value;
-        }
+    //    public List<string> CurrentUsers() => World.ActiveUsers.Select(x => x.Value.Name).ToList();
 
-        public static string GetMotd()
-        {
-            try
-            {
-                using (HttpClient client = new HttpClient())
-                {
-                    if (Game.Config?.ApiEndpoints?.RemoteAdminHost?.Port != 0)
-                        client.BaseAddress = new Uri($"{Game.Config.ApiEndpoints.RemoteAdminHost.Url}:{Game.Config.ApiEndpoints.RemoteAdminHost.Port}/api/news");
-                    else
-                        client.BaseAddress = new Uri($"{Game.Config.ApiEndpoints.RemoteAdminHost.Url}/api/news");
+    //    public User User(string name)
+    //    {
+    //        return World.ActiveUsers.All(x => x.Value.Name != name) ? null : World.ActiveUsers.Single(x => x.Value.Name == name).Value;
+    //    }
 
-                    var json = $"[{client.GetAsync(client.BaseAddress + "/GetMotd").Result.Content.ReadAsStringAsync().Result}]";
+    //    public static string GetMotd()
+    //    {
+    //        //TODO: Rework
+    //        //try
+    //        //{
+    //        //    using (HttpClient client = new HttpClient())
+    //        //    {
+    //        //        if (Game.Config?.ApiEndpoints?.RemoteAdminHost?.Port != 0)
+    //        //            client.BaseAddress = new Uri($"{Game.Config.ApiEndpoints.RemoteAdminHost.Url}:{Game.Config.ApiEndpoints.RemoteAdminHost.Port}/api/news");
+    //        //        else
+    //        //            client.BaseAddress = new Uri($"{Game.Config.ApiEndpoints.RemoteAdminHost.Url}/api/news");
 
-                    dynamic motd = JArray.Parse(json);
-                    return motd[0].Data[0].Message;
-                }
-            }
-            catch (Exception e)
-            {
-                return $"There was an error fetching the MOTD.";
-            }
-        }
-    }
+    //        //        var json = $"[{client.GetAsync(client.BaseAddress + "/GetMotd").Result.Content.ReadAsStringAsync().Result}]";
+
+    //        //        dynamic motd = JArray.Parse(json);
+    //        //        return motd[0].Data[0].Message;
+    //        //    }
+    //        //}
+    //        //catch (Exception e)
+    //        //{
+    //        //    return $"There was an error fetching the MOTD.";
+    //        //}
+    //        return "Genric MOTD.";
+    //    }
+    //}
 }

@@ -13,7 +13,7 @@ namespace Hybrasyl
         private Creature _caster;
         private Castable _castable;
         private Creature _target;
-        public new static readonly ILog Logger =
+        public static readonly ILog Logger =
        LogManager.GetLogger(
        System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
