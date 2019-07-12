@@ -38,7 +38,7 @@ namespace Hybrasyl.Objects
         //public npc Data;
         public NpcRoleList Roles { get; set; }
         public MerchantJob Jobs { get; set; }
-        public Dictionary<string, Item> Inventory { get; private set; }
+        public new Dictionary<string, Item> Inventory { get; private set; }
 
         public Merchant()
             : base()

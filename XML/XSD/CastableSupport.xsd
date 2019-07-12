@@ -1,0 +1,8 @@
+﻿<xs:schema elementFormDefault="unqualified"
+           xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:hyb="http://www.hybrasyl.com/XML/HybrasylCommon">
+
+  <xs:import namespace="http://www.hybrasyl.com/XML/HybrasylCommon" schemaLocation="hybrasylTypes.xsd"/>
+
+
+</xs:schema>

@@ -23,6 +23,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
 using log4net;
@@ -33,7 +34,7 @@ namespace Hybrasyl.Scripting
     [MoonSharpUserData]
     public class ScriptLogger
     {
-        private static readonly ILog ScriptingLogger = LogManager.GetLogger("ScriptingLog");
+        private static readonly ILog ScriptingLogger = LogManager.GetLogger(Assembly.GetEntryAssembly(),"ScriptingLog");
         
         public string ScriptName { get; set; }
 
@@ -50,7 +51,7 @@ namespace Hybrasyl.Scripting
     public class Script
     {
         private static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-        private static readonly ILog ScriptingLogger = LogManager.GetLogger("ScriptingLog");
+        private static readonly ILog ScriptingLogger = LogManager.GetLogger(Assembly.GetEntryAssembly(),"ScriptingLog");
 
         public string RawSource { get; set; }
         public string Name { get; set; }

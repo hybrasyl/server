@@ -19,24 +19,19 @@
  *            Kyle Speck    <kojasou@hybrasyl.com>
  */
 
-using Hybrasyl.Properties;
 using Hybrasyl.Config;
 using log4net;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Security.Cryptography;
-using System.ServiceModel;
-using System.ServiceModel.Description;
-using System.ServiceModel.Web;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Xml;
 using Hybrasyl.XML;
+using log4net.Config;
 using log4net.Core;
 using AssemblyInfo = Hybrasyl.Utility.AssemblyInfo;
 
@@ -196,8 +191,12 @@ namespace Hybrasyl
 
         public static void Main(string[] args)
         {
+            //log4net configure
+            var logRepository = LogManager.GetRepository(Assembly.GetEntryAssembly());
+            XmlConfigurator.Configure(logRepository, new FileInfo("Log4Net.config"));
+
             // Make our window nice and big
-            Console.SetWindowSize(140, 36);
+            //Console.SetWindowSize(140, 36);  //Removed for cross-platform compatibility
             LogLevel = Hybrasyl.Constants.DEFAULT_LOG_LEVEL;
             Assemblyinfo = new AssemblyInfo(Assembly.GetEntryAssembly());
 
@@ -254,7 +253,7 @@ namespace Hybrasyl
                             e.ToString());
 
 
-                   }
+                    }
                 }
                 // Write out our configuration
                 XML.Serializer.Serialize(new XmlTextWriter(hybconfig, null), Config);
@@ -264,18 +263,18 @@ namespace Hybrasyl
 
             //set up service endpoint for ControlService
 
-            var port = Config.ApiEndpoints.ControlService?.Port == 0 ? Constants.ControlServicePort : Config.ApiEndpoints.ControlService.Port;
-            var host = new WebServiceHost(typeof(ControlService), new Uri($"http://{Config.ApiEndpoints.ControlService?.BindAddress ?? "127.0.0.1"}:{port}/ControlService"));
-            host.Open();
-            Logger.InfoFormat($"Starting ControlService on port {Config.ApiEndpoints.ControlService?.Port ?? Constants.ControlServicePort}");
+            //var port = Config.ApiEndpoints.ControlService?.Port == 0 ? Constants.ControlServicePort : Config.ApiEndpoints.ControlService.Port;
+            //var host = new WebServiceHost(typeof(ControlService), new Uri($"http://{Config.ApiEndpoints.ControlService?.BindAddress ?? "127.0.0.1"}:{port}/ControlService"));
+            //host.Open();
+            //Logger.InfoFormat($"Starting ControlService on port {Config.ApiEndpoints.ControlService?.Port ?? Constants.ControlServicePort}");
 
             // Set default logging level
-            ((log4net.Repository.Hierarchy.Hierarchy) LogManager.GetRepository()).Root.Level = Level.Info;
-                ((log4net.Repository.Hierarchy.Hierarchy) LogManager.GetRepository()).RaiseConfigurationChanged(
+            ((log4net.Repository.Hierarchy.Hierarchy) LogManager.GetRepository(Assembly.GetEntryAssembly())).Root.Level = Level.Info;
+                ((log4net.Repository.Hierarchy.Hierarchy) LogManager.GetRepository(Assembly.GetEntryAssembly())).RaiseConfigurationChanged(
                 EventArgs.Empty);
             
             // Set console buffer, so we can scroll back a bunch
-            Console.BufferHeight = Int16.MaxValue - 1;
+            // Console.BufferHeight = Int16.MaxValue - 1; //Removed for cross-platform compatibility.
 
             Logger.InfoFormat("Hybrasyl {0} starting.", Assemblyinfo.Version);
             Logger.InfoFormat("{0} - this program is licensed under the GNU AGPL, version 3.", Assemblyinfo.Copyright);
@@ -310,14 +309,14 @@ namespace Hybrasyl
 
             using (var multiServerTableStream = new MemoryStream())
             {
-                using (var multiServerTableWriter = new BinaryWriter(multiServerTableStream, Encoding.GetEncoding(949), true))
+                using (var multiServerTableWriter = new BinaryWriter(multiServerTableStream, Encoding.ASCII, true))
                 {
                     multiServerTableWriter.Write((byte)1);
                     multiServerTableWriter.Write((byte)1);
                     multiServerTableWriter.Write(addressBytes);
                     multiServerTableWriter.Write((byte)(2611 / 256));
                     multiServerTableWriter.Write((byte)(2611 % 256));
-                    multiServerTableWriter.Write(Encoding.GetEncoding(949).GetBytes("Hybrasyl;Hybrasyl Production\0"));
+                    multiServerTableWriter.Write(Encoding.ASCII.GetBytes("Hybrasyl;Hybrasyl Production\0"));
                 }
 
                 ServerTableCrc = ~Crc32.Calculate(multiServerTableStream.ToArray());
@@ -331,7 +330,7 @@ namespace Hybrasyl
 
             using (var stipulationStream = new MemoryStream())
             {
-                using (var stipulationWriter = new StreamWriter(stipulationStream, Encoding.GetEncoding(949), 1024, true))
+                using (var stipulationWriter = new StreamWriter(stipulationStream, Encoding.ASCII, 1024, true))
                 {
                     var serverMsgFileName = Path.Combine(Constants.DataDirectory, "server.msg");
 
@@ -344,7 +343,9 @@ namespace Hybrasyl
                         stipulationWriter.Write($"Welcome to Hybrasyl!\n\nThis is Hybrasyl (version {Assemblyinfo.Version}).\n\nFor more information please visit http://www.hybrasyl.com");
                         if (string.IsNullOrEmpty(Motd))
                         {
-                            Motd = ControlService.GetMotd();
+                            //TODO: Rework for .net core
+                            //Motd = ControlService.GetMotd();
+                            Motd = "Generic MOTD.";
                         }
                         stipulationWriter.Write($"\n\n{Motd}");
                     }
@@ -403,7 +404,7 @@ namespace Hybrasyl
             World.StopQueueConsumer();
             World.StopControlConsumers();
             Logger.WarnFormat("Hybrasyl {0}: shutdown complete.", Assemblyinfo.Version);
-            host.Close();
+            //host.Close();
             Environment.Exit(0);
 
         }
@@ -411,7 +412,13 @@ namespace Hybrasyl
         private static void LoadCollisions()
         {
             var assembly = Assembly.GetExecutingAssembly();
-            Collisions = Resources.sotp;
+            var sotp = assembly.GetManifestResourceStream("Hybrasyl.Resources.sotp.dat");
+            using (var ms = new MemoryStream())
+            {
+                sotp.CopyTo(ms);
+                Collisions = ms.ToArray();
+            }
+            //Collisions = Resources.sotp;
             //using (var stream = assembly.GetManifestResourceStream("Hybrasyl.Resources.sotp.dat"))
             //{
             //    int length = (int)stream.Length;

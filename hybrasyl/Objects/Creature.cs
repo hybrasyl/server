@@ -25,6 +25,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Reflection;
 using Hybrasyl.Castables;
 using Hybrasyl.Enums;
 using Hybrasyl.Statuses;
@@ -40,7 +41,7 @@ namespace Hybrasyl.Objects
                LogManager.GetLogger(
                System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        private static readonly ILog ActivityLogger = LogManager.GetLogger("UserActivityLog");
+        private static readonly ILog ActivityLogger = LogManager.GetLogger(Assembly.GetEntryAssembly(),"UserActivityLog");
 
         [JsonProperty(Order = 2)]
         public StatInfo Stats { get; set; }

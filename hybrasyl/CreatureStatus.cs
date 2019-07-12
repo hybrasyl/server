@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using Hybrasyl.Castables;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
@@ -131,7 +132,7 @@ namespace Hybrasyl
         public static readonly ILog Logger =
            LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        private static readonly ILog ActivityLogger = LogManager.GetLogger("UserActivityLogger");
+        private static readonly ILog ActivityLogger = LogManager.GetLogger(Assembly.GetEntryAssembly(),"UserActivityLogger");
 
         public string Name => XmlStatus.Name;
         public ushort Icon => XmlStatus.Icon;

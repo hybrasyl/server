@@ -20,10 +20,8 @@
  *            Kyle Speck    <kojasou@hybrasyl.com>
  */
 
-using System.Runtime.Serialization;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
-using Hybrasyl.Properties;
 using log4net;
 using System;
 using System.Collections;
@@ -31,7 +29,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System.Reflection;
 using Hybrasyl.Items;
 using System.Collections.Concurrent;
 using Hybrasyl.Threading;

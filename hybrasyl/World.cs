@@ -246,11 +246,11 @@ namespace Hybrasyl
         {
             DebugEnabled = !DebugEnabled;
             if (DebugEnabled)
-                ((log4net.Repository.Hierarchy.Hierarchy)LogManager.GetRepository()).Root.Level = Level.Debug;
+                ((log4net.Repository.Hierarchy.Hierarchy)LogManager.GetRepository(Assembly.GetEntryAssembly())).Root.Level = Level.Debug;
             else
-                ((log4net.Repository.Hierarchy.Hierarchy)LogManager.GetRepository()).Root.Level = Level.Info;
+                ((log4net.Repository.Hierarchy.Hierarchy)LogManager.GetRepository(Assembly.GetEntryAssembly())).Root.Level = Level.Info;
 
-            ((log4net.Repository.Hierarchy.Hierarchy)LogManager.GetRepository()).RaiseConfigurationChanged(EventArgs.Empty);
+            ((log4net.Repository.Hierarchy.Hierarchy)LogManager.GetRepository(Assembly.GetEntryAssembly())).RaiseConfigurationChanged(EventArgs.Empty);
             return DebugEnabled;
         }
         public bool InitWorld()
@@ -1761,9 +1761,9 @@ namespace Hybrasyl
         {
             var user = (User)obj;
             var size = packet.ReadByte();
-            var target = Encoding.GetEncoding(949).GetString(packet.Read(size));
+            var target = Encoding.ASCII.GetString(packet.Read(size));
             var msgsize = packet.ReadByte();
-            var message = Encoding.GetEncoding(949).GetString(packet.Read(msgsize));
+            var message = Encoding.ASCII.GetString(packet.Read(msgsize));
 
             // "!!" is the special character sequence for group whisper. If this is the
             // target, the message should be sent as a group whisper instead of a standard

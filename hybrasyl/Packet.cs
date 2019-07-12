@@ -575,7 +575,7 @@ namespace Hybrasyl
 
             _position += length + 1;
 
-            return Encoding.GetEncoding(949).GetString(buffer);
+            return Encoding.ASCII.GetString(buffer);
         }
         public string ReadString16()
         {
@@ -592,7 +592,7 @@ namespace Hybrasyl
 
             _position += length + 2;
 
-            return Encoding.GetEncoding(949).GetString(buffer);
+            return Encoding.ASCII.GetString(buffer);
         }
 
         public void GenerateDialogHeader()
@@ -817,7 +817,7 @@ namespace Hybrasyl
         public void WriteStringWithLength(string value)
         {
             WriteByte((byte)value.Length);
-            var buffer = Encoding.GetEncoding(949).GetBytes(value);
+            var buffer = Encoding.ASCII.GetBytes(value);
             if (_position + buffer.Length > Data.Length)
             {
                 Array.Resize(ref Data, _position + buffer.Length);
@@ -828,7 +828,7 @@ namespace Hybrasyl
 
         public void WriteString(string value)
         {
-            var buffer = Encoding.GetEncoding(949).GetBytes(value);
+            var buffer = Encoding.ASCII.GetBytes(value);
             if (_position + buffer.Length > Data.Length)
             {
                 Array.Resize(ref Data, _position + buffer.Length);
@@ -839,7 +839,7 @@ namespace Hybrasyl
         public void WriteString8(string value)
         {
             value = value ?? string.Empty;
-            var buffer = Encoding.GetEncoding(949).GetBytes(value);
+            var buffer = Encoding.ASCII.GetBytes(value);
             if (_position + 1 + buffer.Length > Data.Length)
             {
                 Array.Resize(ref Data, _position + 1 + buffer.Length);
@@ -850,7 +850,7 @@ namespace Hybrasyl
         }
         public void WriteString16(string value)
         {
-            var buffer = Encoding.GetEncoding(949).GetBytes(value);
+            var buffer = Encoding.ASCII.GetBytes(value);
             if (_position + 2 + buffer.Length > Data.Length)
             {
                 Array.Resize(ref Data, _position + 2 + buffer.Length);

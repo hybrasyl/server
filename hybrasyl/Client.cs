@@ -629,7 +629,7 @@ namespace Hybrasyl
             var x03 = new ServerPacket(0x03);
             x03.Write(addressBytes);
             x03.WriteUInt16((ushort)redirect.Destination.Port);
-            x03.WriteByte((byte)(redirect.EncryptionKey.Length + Encoding.GetEncoding(949).GetBytes(redirect.Name).Length + 7));
+            x03.WriteByte((byte)(redirect.EncryptionKey.Length + Encoding.ASCII.GetBytes(redirect.Name).Length + 7));
             x03.WriteByte(redirect.EncryptionSeed);
             x03.WriteByte((byte)redirect.EncryptionKey.Length);
             x03.Write(redirect.EncryptionKey);

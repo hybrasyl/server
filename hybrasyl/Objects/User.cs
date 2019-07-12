@@ -33,13 +33,10 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.Remoting.Channels;
 using System.Text;
-using System.Xml;
 using Hybrasyl.Items;
 using Class = Hybrasyl.Castables.Class;
 using Motion = Hybrasyl.Castables.Motion;
-using System.Globalization;
 using Hybrasyl.Statuses;
 using Hybrasyl.Utility;
 
@@ -83,7 +80,7 @@ namespace Hybrasyl.Objects
                LogManager.GetLogger(
                System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        private static readonly ILog ActivityLogger = LogManager.GetLogger("UserActivityLogger");
+        private static readonly ILog ActivityLogger = LogManager.GetLogger(Assembly.GetEntryAssembly(), "UserActivityLogger");
 
         public static string GetStorageKey(string name)
         {

@@ -19,7 +19,7 @@ namespace Hybrasyl
     internal class ServerPacketStructures
     {
 
-        public new static readonly ILog Logger =
+        public static readonly ILog Logger =
             LogManager.GetLogger(
                 System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 

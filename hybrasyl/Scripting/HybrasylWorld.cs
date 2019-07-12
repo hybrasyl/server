@@ -26,6 +26,7 @@ using MoonSharp.Interpreter;
 using System;
 using System.Collections;
 using System.Collections.Specialized;
+using System.Reflection;
 
 namespace Hybrasyl.Scripting
 {
@@ -34,7 +35,7 @@ namespace Hybrasyl.Scripting
     public class HybrasylDialogOptions
     {
         public OrderedDictionary Options;
-        private static readonly ILog ScriptingLogger = LogManager.GetLogger("ScriptingLog");
+        private static readonly ILog ScriptingLogger = LogManager.GetLogger(Assembly.GetEntryAssembly(),"ScriptingLog");
 
         public HybrasylDialogOptions()
         {
@@ -59,7 +60,7 @@ namespace Hybrasyl.Scripting
     public class HybrasylWorld
     {
         private static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-        private static readonly ILog ScriptingLogger = LogManager.GetLogger("ScriptingLog");
+        private static readonly ILog ScriptingLogger = LogManager.GetLogger(Assembly.GetEntryAssembly(),"ScriptingLog");
 
         internal World World { get; set; }
 

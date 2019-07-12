@@ -25,6 +25,7 @@ using log4net;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using Hybrasyl.Scripting;
 using MoonSharp.Interpreter;
 
@@ -141,7 +142,7 @@ namespace Hybrasyl
         public class Dialog
         {
             public static readonly ILog Logger = LogManager.GetLogger(typeof(Dialog));
-            protected static readonly ILog ScriptingLogger = LogManager.GetLogger("ScriptingLog");
+            protected static readonly ILog ScriptingLogger = LogManager.GetLogger(Assembly.GetEntryAssembly(),"ScriptingLog");
 
             protected ushort DialogType;
             public DialogSequence Sequence { get; private set; }
