@@ -187,6 +187,7 @@ namespace Hybrasyl
                 newPlayer.Class = Class.Peasant;
                 newPlayer.Gold = 0;
                 newPlayer.Login.CreatedTime = DateTime.Now;
+                newPlayer.Login.FirstLogin = true;
                 newPlayer.Password.Hash = client.NewCharacterPassword;
                 newPlayer.Password.LastChanged = DateTime.Now;
                 newPlayer.Password.LastChangedFrom = ((IPEndPoint) client.Socket.RemoteEndPoint).Address.ToString();

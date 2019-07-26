@@ -77,7 +77,7 @@ namespace Hybrasyl.Scripting
         public Script(string path, ScriptProcessor processor)
         {
             FullPath = path;
-            Name = Path.GetFileName(path);
+            Name = Path.GetFileName(path).ToLower();
             Compiled = new MoonSharp.Interpreter.Script(CoreModules.Preset_SoftSandbox);
             RawSource = string.Empty;
             Processor = processor;
@@ -151,9 +151,10 @@ namespace Hybrasyl.Scripting
                 Compiled.Globals["Sex"] = UserData.CreateStatic<Sex>();
                 Compiled.Globals["LegendIcon"] = UserData.CreateStatic<LegendIcon>();
                 Compiled.Globals["LegendColor"] = UserData.CreateStatic<LegendColor>();
-                Compiled.DoFile(FullPath);
+                Compiled.Globals["Class"] = UserData.CreateStatic<Class>();
                 Compiled.Globals.Set("world", UserData.Create(Processor.World));
                 Compiled.Globals.Set("logger", UserData.Create(new ScriptLogger(Name)));
+                Compiled.DoFile(FullPath);
             }
             catch (ScriptRuntimeException e)
             {

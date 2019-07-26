@@ -108,6 +108,18 @@ namespace Hybrasyl.Scripting
         /// <returns></returns>
         public int Distance(HybrasylWorldObject target) => Obj.Distance(target.Obj);
 
+        public void SetNpcDisplaySprite(int displaySprite)
+        {
+            if (Obj is VisibleObject)
+                ((VisibleObject) Obj).DialogSprite = (ushort)(0x4000 + displaySprite);
+        }
+
+        public void SetItemDisplaySprite(int displaySprite)
+        {
+            if (Obj is VisibleObject)
+                ((VisibleObject)Obj).DialogSprite = (ushort)(0x4000 + displaySprite);
+        }
+
         public void Say(string message)
         {
             if (Obj is VisibleObject)

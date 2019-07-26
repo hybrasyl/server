@@ -26,6 +26,7 @@ using System.Drawing;
 using System.Linq;
 using Hybrasyl.Enums;
 using log4net;
+using MoonSharp.Interpreter;
 using Newtonsoft.Json;
 
 namespace Hybrasyl.Objects
@@ -315,6 +316,14 @@ namespace Hybrasyl.Objects
             foreach (var pursuit in Pursuits)
             {
                 Logger.DebugFormat("Pursuit {0}, id {1}", pursuit.Name, pursuit.Id);
+                if (pursuit.MenuCheckExpression != string.Empty)
+                {
+                    var ret = Script.ExecuteAndReturn(pursuit.MenuCheckExpression, this);
+                    // If the menu check expression returns anything other than true, we don't include the 
+                    // pursuit on the main menu that is sent to the user
+                    if (ret != DynValue.True)
+                        continue;
+                }
                 options.Options.Add(new MerchantDialogOption { Id = (ushort)pursuit.Id.Value, Text = pursuit.Name} );
                 optionsCount++;
 
@@ -325,11 +334,11 @@ namespace Hybrasyl.Objects
                 MerchantDialogType = MerchantDialogType.Options,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
                 ObjectId = Id,
-                Tile1 = (ushort)(0x4000 + Sprite),
+                Tile1 = (ushort)(Sprite),
                 Color1 = 0,
-                Tile2 = (ushort)(0x4000 + Sprite),
+                Tile2 = (ushort)(Sprite),
                 Color2 = 0,
-                PortraitType = 0,
+                PortraitType = 1,
                 Name = Name,
                 Text = greeting?.Value ?? string.Empty,
                 Options = options

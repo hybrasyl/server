@@ -69,6 +69,7 @@ namespace Hybrasyl.Objects
         public string LastLoginFrom { get; set; }
         public Int64 LoginFailureCount { get; set; }
         public DateTime CreatedTime { get; set; }
+        public bool FirstLogin { get; set; }
     }
 
     [JsonObject(MemberSerialization.OptIn)]
@@ -191,6 +192,10 @@ namespace Hybrasyl.Objects
 
 
         public DialogState DialogState { get; set; }
+
+        // Used by reactors and certain other objects to set an associate, so that functions called
+        // from Lua later know who to "consult" for dialogs / etc.
+        public VisibleObject LastAssociate { get; set; }
 
         [JsonProperty]
         private Dictionary<string, string> UserCookies { get; set; }
@@ -520,6 +525,7 @@ namespace Hybrasyl.Objects
             var handler = Game.Config.Handlers?.Death;
             // Teleport user to national spawn point
             Condition.Alive = true;
+
             if (Nation.SpawnPoints.Count != 0)
             {
                 var spawnpoint = Nation.RandomSpawnPoint;
@@ -594,7 +600,8 @@ namespace Hybrasyl.Objects
 
         public User() : base()
         {
-            _initializeUser();         
+            _initializeUser();
+            LastAssociate = null;
         }
 
         private void _initializeUser(string playername = "")
@@ -2144,22 +2151,23 @@ namespace Hybrasyl.Objects
             Enums.DamageType damageType = Enums.DamageType.Direct, Castables.DamageFlags damageFlags = Castables.DamageFlags.None, Creature attacker = null, bool onDeath=true)
         {
             if (Condition.Comatose || !Condition.Alive) return;
-            base.Damage(damage, element, damageType, damageFlags, attacker);
+            base.Damage(damage, element, damageType, damageFlags, attacker, false); // We handle ondeath for users here
             if (Stats.Hp == 0)
             {
-                if (Group != null) {
-                    Stats.Hp = 1;
-                    var handler = Game.Config.Handlers?.Death?.Coma;
-                    if (handler != null && World.WorldData.TryGetValueByIndex(handler.Value, out Status status))
-                        ApplyStatus(new CreatureStatus(status, this, null, attacker));
-                    else
+                    if (Group != null)
                     {
-                        Logger.Warn("No coma handler or status found - user {Name} died!");
-                        OnDeath();
+                        Stats.Hp = 1;
+                        var handler = Game.Config.Handlers?.Death?.Coma;
+                        if (handler != null && World.WorldData.TryGetValueByIndex(handler.Value, out Status status))
+                            ApplyStatus(new CreatureStatus(status, this, null, attacker));
+                        else
+                        {
+                            Logger.Warn("No coma handler or status found - user {Name} died!");
+                            OnDeath();
+                        }
                     }
-                }
-                else
-                    OnDeath();
+                    else
+                        OnDeath();
             }
             UpdateAttributes(StatUpdateFlags.Current);
         }
@@ -2412,7 +2420,7 @@ namespace Hybrasyl.Objects
                 Color1 = 0,
                 Tile2 = (ushort)(0x4000 + merchant.Sprite),
                 Color2 = 0,
-                PortraitType = 0,
+                PortraitType = Convert.ToByte(string.IsNullOrEmpty(Portrait)),
                 Name = merchant.Name,
                 Text = prompt,
                 Skills = merchantSkills

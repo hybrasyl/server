@@ -68,6 +68,10 @@ namespace Hybrasyl.Objects
                 Script.AssociateScriptWithObject(this);
                 _ready = Script.Run();
             }
+            else
+            {
+                Logger.Error($"{Map}: reactor at {X},{Y}: reactor script {ScriptName} not found!");
+            }
             // Now run our actual OnSpawn function
             if (_ready)
                 Script.ExecuteFunction("OnSpawn");
@@ -75,6 +79,8 @@ namespace Hybrasyl.Objects
 
         public virtual void OnEntry(VisibleObject obj)
         {
+            if (obj is User)
+                ((User)obj).LastAssociate = this;
             if (Ready)
                 Script.ExecuteFunction("OnEntry", Script.GetObjectWrapper(obj));
         }
@@ -90,6 +96,8 @@ namespace Hybrasyl.Objects
         {
             if (Ready && Script.HasFunction("OnLeave"))
                 Script.ExecuteFunction("OnLeave", Script.GetObjectWrapper(obj));
+            if (obj is User)
+                ((User)obj).LastAssociate = null;
         }
 
         public override void AoiDeparture(VisibleObject obj)

@@ -40,12 +40,12 @@ namespace Hybrasyl.Scripting
 
         public void SetNpcDisplaySprite(int displaySprite)
         {
-            Dialog.DisplaySprite = (ushort)(0x4000 + displaySprite);
+            Dialog.Sprite = (ushort)(0x4000 + displaySprite);
         }
 
         public void SetItemDisplaySprite(int displaySprite)
         {
-            Dialog.DisplaySprite = (ushort)(0x8000 + displaySprite);
+            Dialog.Sprite = (ushort)(0x8000 + displaySprite);
         }
 
         public void AssociateDialogWithSequence(DialogSequence sequence)

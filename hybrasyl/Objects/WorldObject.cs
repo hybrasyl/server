@@ -55,6 +55,7 @@ namespace Hybrasyl.Objects
 
         public Script Script { get; set; }
         public World World { get; set; }
+        public ushort DialogSprite { get; set; }
 
         public WorldObject()
         {

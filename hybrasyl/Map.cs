@@ -347,7 +347,6 @@ namespace Hybrasyl
             World.Insert(toInsert);
             Insert(toInsert, toInsert.X, toInsert.Y);
             Reactors[new Tuple<byte, byte>(toInsert.X, toInsert.Y)] = toInsert;
-            toInsert.OnSpawn();
         }
 
         public void InsertSignpost(Objects.Signpost post)

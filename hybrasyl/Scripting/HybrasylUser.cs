@@ -23,6 +23,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Hybrasyl.Castables;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
 using Hybrasyl.Items;
@@ -43,6 +44,7 @@ namespace Hybrasyl.Scripting
         public string Name => User.Name;
         public byte X => User.X;
         public byte Y => User.Y;
+
 
         public Sex Sex => User.Sex;
 
@@ -111,6 +113,11 @@ namespace Hybrasyl.Scripting
             return User.Legend.TryGetMark(prefix, out mark) ? mark : (object)null;
         }
 
+        public void ChangeClass(Enums.Class newClass)
+        {
+            User.Class = newClass;
+            User.UpdateAttributes(StatUpdateFlags.Full);
+        }
         public Legend GetLegend()
         {
             return User.Legend;
@@ -236,6 +243,15 @@ namespace Hybrasyl.Scripting
             User.Damage((double)damage, element, damageType);
         }
 
+        public void Damage(int damage, bool fatal=true)
+        {
+            if (fatal)
+                User.Damage((double)damage, Enums.Element.None, Enums.DamageType.Direct, Castables.DamageFlags.Nonlethal);
+            else
+                User.Damage((double)damage, Enums.Element.None, Enums.DamageType.Direct);
+
+        }
+
         public bool GiveItem(HybrasylWorldObject obj)
         {
             if (obj.Obj is ItemObject)
@@ -282,6 +298,16 @@ namespace Hybrasyl.Scripting
             return true;
         }
 
+        public bool AddSkill(string skillname)
+        {
+            if (Game.World.WorldData.TryGetValue(skillname, out Castable result))
+            {
+                User.AddSkill(result);
+                return true;
+            }
+            return false;
+        }
+
         public void SystemMessage(string message)
         {
             // This is a typical client "orange message"
@@ -314,16 +340,30 @@ namespace Hybrasyl.Scripting
 
         public void StartSequence(string sequenceName, HybrasylWorldObject associateOverride = null)
         {
-            DialogSequence sequence;
-            VisibleObject associate;
+            DialogSequence sequence = null;
+            VisibleObject associate = null;
             Logger.DebugFormat("{0} starting sequence {1}", User.Name, sequenceName);
 
             // If we're using a new associate, we will consult that to find our sequence
-            associate = associateOverride == null ? User.DialogState.Associate as VisibleObject : associateOverride.Obj as VisibleObject;
+            if (associateOverride == null)
+                if (User.DialogState.Associate != null)
+                    associate = User.DialogState.Associate as VisibleObject;
+                else if (User.LastAssociate != null)
+                    associate = User.LastAssociate;
+            else
+                associate = associateOverride.Obj as VisibleObject;
 
             // Use the local catalog for sequences first, then consult the global catalog
+            if (associate == null)
+            {
+                Logger.Warn($"Sequence {sequenceName}: no associate found, you better hope this is a very simple dialog sequence with no callbacks");
+                Game.World.GlobalSequencesCatalog.TryGetValue(sequenceName, out sequence);
+            }
+            else {
+                associate.SequenceCatalog.TryGetValue(sequenceName, out sequence);
+            }
 
-            if (!associate.SequenceCatalog.TryGetValue(sequenceName, out sequence) && !Game.World.GlobalSequencesCatalog.TryGetValue(sequenceName, out sequence))
+            if (sequence == null)
             {
                 Logger.ErrorFormat("called from {0}: sequence name {1} cannot be found!",
                     associate.Name, sequenceName);

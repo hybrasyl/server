@@ -336,7 +336,7 @@ namespace Hybrasyl.Config
             nextAge = Ages.FirstOrDefault(a => a.DateInAge(after));
             return nextAge != null;
         }
-    
+
 
         public HybrasylAge GetAgeFromTerranDatetime(DateTime datetime)
         {
@@ -360,8 +360,16 @@ namespace Hybrasyl.Config
         }
 
     }
-}
 
+    public partial class NewPlayer
+    {
+        public StartMap GetStartMap()
+        {
+            StartMaps.OrderBy(x => Guid.NewGuid()).FirstOrDefault();
+            return StartMaps.First();
+        }
+    }
+}
 namespace Hybrasyl.Creatures
 {
     public partial class LootTable

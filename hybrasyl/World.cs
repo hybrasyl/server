@@ -255,13 +255,13 @@ namespace Hybrasyl
         }
         public bool InitWorld()
         {
+            CompileScripts(); // We compile scripts first so that all future operations requiring scripts work
             if (!LoadData())
             {
                 Logger.Fatal("There were errors loading basic world data. Hybrasyl has halted.");
                 Logger.Fatal("Please fix the errors and try to restart the server again.");
                 return false;
             }
-            CompileScripts();
             LoadMetafiles();
             SetPacketHandlers();
             SetControlMessageHandlers();
@@ -1676,6 +1676,14 @@ namespace Hybrasyl
             if (!loginUser.Condition.Alive)
             {
                 loginUser.Teleport("Chaotic Threshold", 10, 10);
+            }
+            else if (loginUser.Login.FirstLogin)
+            {
+                StartMap startmap = Game.Config.Handlers.NewPlayer.GetStartMap();
+                loginUser.Login.FirstLogin = false;
+                if (WorldData.TryGetValueByIndex(startmap.Value, out Map map))
+                    loginUser.Teleport(map.Id, startmap.X, startmap.Y);
+                else loginUser.Teleport((ushort)500, (byte)50, (byte)(50));
             }
             else if(loginUser.Nation.SpawnPoints.Count != 0 &&
                 loginUser.SinceLastLogin > Hybrasyl.Constants.NATION_SPAWN_TIMEOUT)
@@ -3267,6 +3275,7 @@ namespace Hybrasyl
                 foreach (var metafile in WorldData.Values<CompiledMetafile>())
                 {
                     x6F.WriteString8(metafile.Name);
+                    Logger.Info($"Responding 6F: adding {metafile.Name}, checksum {metafile.Checksum}");
                     x6F.WriteUInt32(metafile.Checksum);
                 }
                 user.Enqueue(x6F);

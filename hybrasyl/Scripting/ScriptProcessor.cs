@@ -23,6 +23,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Hybrasyl.Enums;
 using log4net;
 using MoonSharp.Interpreter;
@@ -54,13 +55,17 @@ namespace Hybrasyl.Scripting
 
         public bool TryGetScript(string scriptName, out Script script)
         {
-            // Try to find "name.lua" or "name"
-            if (Scripts.TryGetValue($"{scriptName.ToLower()}.lua", out script) ||
-                Scripts.TryGetValue(scriptName.ToLower(), out script))
-            {
+            script = null;
+            // Note that a request for RiOnA.lua == Riona == riona as long as
+            // riona exists
+            var target = scriptName.ToLower();
+            target = Regex.Replace(target, ".lua$", "");
+            if (Scripts.TryGetValue(target, out script))
                 return true;
-            }
-            return false;
+            else if (Scripts.TryGetValue($"{target}.lua", out script))
+                return true;
+
+            return false;               
         }
 
         public bool RegisterScript(Script script)

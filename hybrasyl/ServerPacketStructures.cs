@@ -393,7 +393,7 @@ namespace Hybrasyl
             internal MerchantDialogType MerchantDialogType { get; set; }
             internal MerchantDialogObjectType MerchantDialogObjectType { get; set; }
             internal uint ObjectId { get; set; }
-            private byte Unknow4 = 1;
+            private byte Unknow4 = 2;
             internal ushort Tile1 { get; set; }
             internal byte Color1 { get; set; } //affect items only
             internal byte Unknow7 = 1;
@@ -430,13 +430,13 @@ namespace Hybrasyl
                 packet.WriteByte((byte)MerchantDialogType);
                 packet.WriteByte((byte)MerchantDialogObjectType);
                 packet.WriteUInt32(ObjectId);
-                packet.WriteByte(Unknow4);
+                packet.WriteByte(1);
                 packet.WriteUInt16(Tile1);
-                packet.WriteByte(Color1);
-                packet.WriteByte(Unknow7);
-                packet.WriteUInt16(Tile2);
-                packet.WriteByte(Color2);
-                packet.WriteByte(PortraitType);
+                packet.WriteByte(1);
+                packet.WriteByte(1);
+                packet.WriteUInt16(Tile1);
+                packet.WriteByte(1);
+                packet.WriteByte(1);
                 packet.WriteString8(Name);
                 packet.WriteString16(Text);
                 if (MerchantDialogType == MerchantDialogType.Options)

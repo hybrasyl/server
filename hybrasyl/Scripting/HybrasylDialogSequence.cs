@@ -22,6 +22,7 @@
  
  using Hybrasyl.Dialogs;
 using MoonSharp.Interpreter;
+using System;
 
 namespace Hybrasyl.Scripting
 {
@@ -41,9 +42,24 @@ namespace Hybrasyl.Scripting
             scriptDialog.AssociateDialogWithSequence(Sequence);
         }
 
-        public void AddCheck(dynamic check)
+        public void AddDisplayCallback(string check)
         {
             Sequence.AddPreDisplayCallback(check);
+        }
+
+        public void AddMenuCheckExpression(string check)
+        {
+            Sequence.AddMenuCheckExpression(check);
+        }
+
+        public void SetNpcDisplaySprite(int displaySprite)
+        {
+            Sequence.Sprite = (ushort)(0x4000 + displaySprite);
+        }
+
+        public void SetItemDisplaySprite(int displaySprite)
+        {
+            Sequence.Sprite = (ushort)(0x8000 + displaySprite);
         }
     }
 }

@@ -248,6 +248,93 @@ namespace Hybrasyl.Config
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
     [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Config")]
+    public partial class StartMap
+    {
+
+        #region Private fields
+        private byte _x;
+
+        private byte _y;
+
+        private string _value;
+        #endregion
+
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        public byte X
+        {
+            get
+            {
+                return this._x;
+            }
+            set
+            {
+                this._x = value;
+            }
+        }
+
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        public byte Y
+        {
+            get
+            {
+                return this._y;
+            }
+            set
+            {
+                this._y = value;
+            }
+        }
+
+        [System.Xml.Serialization.XmlTextAttribute()]
+        public string Value
+        {
+            get
+            {
+                return this._value;
+            }
+            set
+            {
+                this._value = value;
+            }
+        }
+    }
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.3056.0")]
+    [System.SerializableAttribute()]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.ComponentModel.DesignerCategoryAttribute("code")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Config")]
+    public partial class NewPlayer
+    {
+
+        #region Private fields
+        private List<StartMap> _startMaps;
+        #endregion
+
+        public NewPlayer()
+        {
+            this._startMaps = new List<StartMap>();
+        }
+
+        [System.Xml.Serialization.XmlArrayItemAttribute(IsNullable = false)]
+        public List<StartMap> StartMaps
+        {
+            get
+            {
+                return this._startMaps;
+            }
+            set
+            {
+                this._startMaps = value;
+            }
+        }
+    }
+
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.7.3056.0")]
+    [System.SerializableAttribute()]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.ComponentModel.DesignerCategoryAttribute("code")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://www.hybrasyl.com/XML/Config")]
     public partial class Chat
     {
 
@@ -662,6 +749,8 @@ namespace Hybrasyl.Config
         private Death _death;
 
         private Chat _chat;
+
+        private NewPlayer _newPlayer;
         #endregion
 
         public Death Death
@@ -685,6 +774,18 @@ namespace Hybrasyl.Config
             set
             {
                 this._chat = value;
+            }
+        }
+
+        public NewPlayer NewPlayer
+        {
+            get
+            {
+                return this._newPlayer;
+            }
+            set
+            {
+                this._newPlayer = value;
             }
         }
     }

@@ -43,7 +43,10 @@ namespace Hybrasyl
             public Scripting.Script Script { get; private set; }
             public WorldObject Associate { get; private set; }
             public string PreDisplayCallback { get; private set; }
+            public string MenuCheckExpression { get; private set; }
             public bool CloseOnEnd { get; set; }
+
+            public ushort Sprite { get; set; }
 
             public DialogSequence(string sequenceName, bool closeOnEnd = false)
             {
@@ -51,7 +54,9 @@ namespace Hybrasyl
                 Dialogs = new List<Dialog>();
                 Id = null;
                 CloseOnEnd = closeOnEnd;
-
+                PreDisplayCallback = string.Empty;
+                MenuCheckExpression = string.Empty;
+                Sprite = ushort.MaxValue;
             }
 
             /// <summary>
@@ -69,7 +74,7 @@ namespace Hybrasyl
                     // Need better error handling here
                     return;
                 }
-                if (PreDisplayCallback != null && runCheck)
+                if (!string.IsNullOrEmpty(PreDisplayCallback) && runCheck)
                 {
                     var ret = Script.ExecuteAndReturn(PreDisplayCallback, invoker);
                     if (ret == DynValue.True)
@@ -99,6 +104,11 @@ namespace Hybrasyl
             public void AddPreDisplayCallback(string check)
             {
                 PreDisplayCallback = check;
+            }
+
+            public void AddMenuCheckExpression(string check)
+            {
+                MenuCheckExpression = check;
             }
 
             /// <summary>
@@ -149,14 +159,27 @@ namespace Hybrasyl
             public int Index;
             public string DisplayText { get; set; }
             public string CallbackExpression { get; set; }
-            public ushort DisplaySprite { get; set; }
+            private ushort _sprite { get; set; }
+            public ushort Sprite
+            {
+                get
+                {
+                    if (_sprite == ushort.MaxValue)
+                        return Sequence?.Associate?.DialogSprite ?? Sequence?.Sprite ?? 0;
+                    return _sprite;
+                }
+                set
+                {
+                    _sprite = value;
+                }
+            }
 
             public Dialog(int dialogType, string displayText = null, string callbackFunction = "")
             {
                 DialogType = (ushort)dialogType;
                 DisplayText = displayText;
                 CallbackExpression = callbackFunction;
-                DisplaySprite = 0;
+                _sprite = ushort.MaxValue; // Client only uses about ~1000 of these values
             }
 
             // Any Dialog can have a callback function which can be used to process dialog responses, or
@@ -193,8 +216,8 @@ namespace Hybrasyl
                 // Only simple dialogs have next buttons; everything else requires alternate input.
                 // In addition, if we are in the last dialog in a sequence, Next should return to 
                 // the main menu.
-                Logger.DebugFormat("index{0}, count{1}");
-                return (DialogType == DialogTypes.SIMPLE_DIALOG) && (Index <= Sequence.Dialogs.Count());
+                Logger.Debug($"index {Index}, count {Sequence.Dialogs.Count()}");
+                return (DialogType == DialogTypes.SIMPLE_DIALOG) && (Index + 1 < Sequence.Dialogs.Count());
             }
 
             public ServerPacket GenerateBasePacket(User invoker, VisibleObject invokee)
@@ -224,8 +247,8 @@ namespace Hybrasyl
                     objType = 4;
                 }
 
-                if (DisplaySprite != 0)
-                    sprite = DisplaySprite;
+                if (Sprite != 0)
+                    sprite = Sprite;
 
                 dialogPacket.WriteByte(objType);
                 dialogPacket.WriteUInt32(invokee.Id);

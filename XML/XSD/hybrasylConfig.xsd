@@ -145,6 +145,7 @@
     <xs:sequence>
       <xs:element name="Death" minOccurs="0" maxOccurs="1" type="config:Death" />
       <xs:element name="Chat" minOccurs="0" maxOccurs="1" type="config:Chat"/>
+      <xs:element name="NewPlayer" minOccurs="1" maxOccurs="1" type="config:NewPlayer"/>
     </xs:sequence>
   </xs:complexType>
 
@@ -197,6 +198,27 @@
       </xs:extension>
     </xs:simpleContent>
   </xs:complexType>
-  
-  <xs:element name="HybrasylConfig" type="config:HybrasylConfig" />
+
+  <xs:complexType name="NewPlayer">
+    <xs:sequence>
+      <xs:element name="StartMaps" minOccurs="1" maxOccurs="1" type="config:StartMaps"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="StartMaps">
+    <xs:sequence>
+      <xs:element name="StartMap" minOccurs="1" maxOccurs="unbounded" type="config:StartMap"/>
+    </xs:sequence>
+  </xs:complexType>
+     
+  <xs:complexType name="StartMap">
+    <xs:simpleContent>
+      <xs:extension base="hyb:String8">
+        <xs:attribute name="X" type="xs:unsignedByte" use="required"/>
+        <xs:attribute name="Y" type="xs:unsignedByte" use="required"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+<xs:element name="HybrasylConfig" type="config:HybrasylConfig" />
 </xs:schema>

@@ -813,7 +813,7 @@ namespace Hybrasyl.Objects
             Stats.Mp = mp > uint.MaxValue ? Stats.MaximumMp : Math.Min(Stats.MaximumMp, (uint)(Stats.Mp + mp));
         }
 
-        public virtual void Damage(double damage, Enums.Element element = Enums.Element.None, Enums.DamageType damageType = Enums.DamageType.Direct, Castables.DamageFlags damageFlags = Castables.DamageFlags.None, Creature attacker = null, bool onDeath = true)
+        public virtual void Damage(double damage, Enums.Element element = Enums.Element.None, Enums.DamageType damageType = Enums.DamageType.Direct, Castables.DamageFlags damageFlags = Castables.DamageFlags.None, Creature attacker = null, bool onDeath=true)
         {
             if (attacker is User && this is Monster)
             {
@@ -854,7 +854,8 @@ namespace Hybrasyl.Objects
             OnReceiveDamage();
             
             // TODO: Separate this out into a control message
-            if (Stats.Hp == 0 && onDeath == true) OnDeath();
+            if (Stats.Hp == 0 && onDeath)
+                OnDeath();
         }
 
         private void SendDamageUpdate(Creature creature)
