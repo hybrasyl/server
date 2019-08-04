@@ -120,7 +120,6 @@ The process for compiling Hybrasyl is detailed below.
    executable in the `hybrasyl\bin\Debug\netcoreapp2.2\publish` folder of your git checkout. This
    should launch the server. You can change any of Hybrasyl’s settings by 
    editing `config.xml` in `%userprofile%\documents\Hybrasyl`.
-8. 
 
 Now that your setup is complete, you should be able to use the
 [released version of the launcher](https://www.hybrasyl.com/files/Hybrasyl_Launcher_Installer.msi)
