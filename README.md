@@ -105,7 +105,9 @@ The process for compiling Hybrasyl is detailed below.
    easier.
 4. Build Hybrasyl. The default settings should be adequate for most system
    setups, assuming you've updated and installed all NuGet packages (which
-   should occur automatically).
+   should occur automatically) while running inside Visual Studio. Should you
+   choose to compile an executable (`.exe`), run the following from the command line:
+   `dotnet publish -c Debug -r win10-x64`
 5. Copy `lod136.map`, `lod500.map`, and `lod300.map` from your Dark Ages directory (or an
    online archive) into `My Documents\Hybrasyl\world\mapfiles` (which should exist, if you followed the 
    directions above).  
@@ -115,9 +117,10 @@ The process for compiling Hybrasyl is detailed below.
    your Windows machine name and your username in the command above;
    e.g. `user=LOURES\baughj`.
 7. Run `Hybrasyl.exe` either from within Visual Studio or as a standalone
-   executable in the `hybrasyl\bin\Debug` folder of your git checkout. This
+   executable in the `hybrasyl\bin\Debug\netcoreapp2.2\publish` folder of your git checkout. This
    should launch the server. You can change any of Hybrasyl’s settings by 
-   editing `config.xml` in `My Documents\Hybrasyl`.
+   editing `config.xml` in `%userprofile%\documents\Hybrasyl`.
+8. 
 
 Now that your setup is complete, you should be able to use the
 [released version of the launcher](https://www.hybrasyl.com/files/Hybrasyl_Launcher_Installer.msi)
