@@ -1679,11 +1679,17 @@ namespace Hybrasyl
             }
             else if (loginUser.Login.FirstLogin)
             {
-                StartMap startmap = Game.Config.Handlers.NewPlayer.GetStartMap();
-                loginUser.Login.FirstLogin = false;
-                if (WorldData.TryGetValueByIndex(startmap.Value, out Map map))
-                    loginUser.Teleport(map.Id, startmap.X, startmap.Y);
-                else loginUser.Teleport((ushort)500, (byte)50, (byte)(50));
+                NewPlayer handler = Game.Config.Handlers?.NewPlayer;
+                if (handler != null)
+                {
+                    StartMap startmap = handler.GetStartMap();
+                    loginUser.Login.FirstLogin = false;
+                    if (WorldData.TryGetValueByIndex(startmap.Value, out Map map))
+                        loginUser.Teleport(map.Id, startmap.X, startmap.Y);
+                    else loginUser.Teleport((ushort)500, (byte)50, (byte)(50));
+                }
+                // Fall back to defaults if config doesn't exist
+                loginUser.Teleport((ushort)500, (byte)50, (byte)50);
             }
             else if(loginUser.Nation.SpawnPoints.Count != 0 &&
                 loginUser.SinceLastLogin > Hybrasyl.Constants.NATION_SPAWN_TIMEOUT)
