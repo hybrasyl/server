@@ -276,6 +276,7 @@ namespace Hybrasyl
                 var reactor = new Reactor(reactorElement.X, reactorElement.Y, this, 
                     reactorElement.Script, reactorElement.Description, reactorElement.Blocking);
                 InsertReactor(reactor);
+                Logger.Info($"{reactor.Id} placed in {reactor.Map.Name}, description was {reactor.Description}");
             }
             if (newMap.Signs != null) {
                 foreach (var postElement in newMap.Signs.Signposts)

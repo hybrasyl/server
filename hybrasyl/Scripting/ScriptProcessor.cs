@@ -52,13 +52,13 @@ namespace Hybrasyl.Scripting
             _scripts = new Dictionary<string, List<Script>>();            
         }
 
+        // "Ri OnA.lua" => riona
+        private string SanitizeName(string scriptName) => Regex.Replace(scriptName.ToLower(), ".lua$", "").Replace(@"\s+", "");
+
         private bool TryGetScriptInstances(string scriptName, out List<Script> scriptList)
         {
-            if (_scripts.TryGetValue(scriptName, out scriptList))
-            {
-                return true;
-            }
-            else if (_scripts.TryGetValue($"{scriptName}.lua", out scriptList))
+            scriptList = null;
+            if (_scripts.TryGetValue(SanitizeName(scriptName), out scriptList))
             {
                 return true;
             }
@@ -70,11 +70,10 @@ namespace Hybrasyl.Scripting
             script = null;
             // Note that a request for RiOnA.lua == Riona == riona as long as
             // riona exists
-            var target = scriptName.ToLower();
-            target = Regex.Replace(target, ".lua$", "");
-            if (TryGetScriptInstances(scriptName, out List<Script> s))
+            if (TryGetScriptInstances(SanitizeName(scriptName), out List<Script> s))
             {
                 script = s[0].Clone();
+                return true;
             }
             return false;
         }
@@ -82,18 +81,17 @@ namespace Hybrasyl.Scripting
         public void RegisterScript(Script script)
         {
             script.Run();
-            if (!_scripts.ContainsKey(script.Name))
+            var target = SanitizeName(script.Name);
+            if (!TryGetScriptInstances(target, out List<Script> scriptList))
             {
-                _scripts[script.Name] = new List<Script>();
+                _scripts[target] = new List<Script>();
             }
-            _scripts[script.Name].Add(script);
+            _scripts[target].Add(script);
         }
 
         public bool Reload(string scriptName)
         {
-            var target = scriptName.ToLower();
-            target = Regex.Replace(target, ".lua$", "");
-            if (TryGetScriptInstances(target, out List<Script> s))
+            if (TryGetScriptInstances(SanitizeName(scriptName), out List<Script> s))
             {
                 foreach (var instance in s)
                 {

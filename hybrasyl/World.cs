@@ -273,7 +273,7 @@ namespace Hybrasyl
 
         internal void RegisterGlobalSequence(DialogSequence sequence)
         {
-            sequence.Id = (uint)GlobalSequences.Count();
+            sequence.Id = UInt16.MaxValue - (uint)GlobalSequences.Count();
             GlobalSequences.Add(sequence);
             GlobalSequencesCatalog.Add(sequence.Name, sequence);
         }
@@ -1680,16 +1680,25 @@ namespace Hybrasyl
             else if (loginUser.Login.FirstLogin)
             {
                 NewPlayer handler = Game.Config.Handlers?.NewPlayer;
+                var targetmap = WorldData.First<Map>();
                 if (handler != null)
                 {
                     StartMap startmap = handler.GetStartMap();
                     loginUser.Login.FirstLogin = false;
                     if (WorldData.TryGetValueByIndex(startmap.Value, out Map map))
                         loginUser.Teleport(map.Id, startmap.X, startmap.Y);
-                    else loginUser.Teleport((ushort)500, (byte)50, (byte)(50));
+                    else
+                    {
+                        // Teleport user to the center of the first known map and hope for the best
+                        loginUser.Teleport(targetmap.Id, (byte)(targetmap.X / 2), (byte)(targetmap.Y / 2));
+                        Logger.Error($"{loginUser.Name} first login: map {startmap.Value} not found, using first available map {targetmap.Name}. Safety not guaranteed.");
+                    }
                 }
-                // Fall back to defaults if config doesn't exist
-                loginUser.Teleport((ushort)500, (byte)50, (byte)50);
+                else
+                {
+                    loginUser.Teleport(targetmap.Id, (byte)(targetmap.X / 2), (byte)(targetmap.Y / 2));
+                    Logger.Error($"{loginUser.Name} first login: start map config missing, using first available map {targetmap.Name}. Safety not guaranteed.");
+                }
             }
             else if(loginUser.Nation.SpawnPoints.Count != 0 &&
                 loginUser.SinceLastLogin > Hybrasyl.Constants.NATION_SPAWN_TIMEOUT)
