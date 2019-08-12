@@ -31,7 +31,7 @@ namespace Hybrasyl.Objects
 {
     public class ItemObject : VisibleObject
     {
-        public int TemplateId { get; private set; }
+        public string TemplateId { get; private set; }
 
         /// <summary>
         /// Check to see if a specified user can equip an ItemObject. Returns a boolean indicating whether
@@ -273,7 +273,7 @@ namespace Hybrasyl.Objects
             }
         }
 
-        public ItemObject(int id, World world)
+        public ItemObject(string id, World world)
         {
             World = world;
             TemplateId = id;

@@ -3617,7 +3617,7 @@ namespace Hybrasyl
             obj.Id = 0;
         }
 
-        public ItemObject CreateItem(int id, int quantity = 1)
+        public ItemObject CreateItem(string id, int quantity = 1)
         {
             if (WorldData.ContainsKey<Item>(id))
             {
