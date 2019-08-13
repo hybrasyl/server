@@ -23,11 +23,14 @@ using System.IO;
 using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Xml.Serialization;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Hybrasyl.Items
 {
     public partial class Item
     {
+        public static SHA256CryptoServiceProvider sha = new SHA256CryptoServiceProvider();
         [XmlIgnore]
         public bool IsVariant { get; set; }
 
@@ -128,14 +131,13 @@ namespace Hybrasyl.Items
         [XmlIgnore]
         public Dictionary<int, Item> Variants { get; set; }
 
-        public int Id
+        public string Id
         {
             get
             {
-                unchecked
-                {
-                    return 31 * Name.GetHashCode() * ((Properties.Restrictions?.Gender.GetHashCode() ?? Gender.Neutral.GetHashCode()) + 1);
-                }
+                var rawhash = $"{Name.Normalize()}:{Properties.Restrictions?.Gender.ToString().Normalize() ?? Gender.Neutral.ToString().Normalize()}";
+                var hash = sha.ComputeHash(Encoding.ASCII.GetBytes(rawhash));
+                return string.Concat(hash.Select(b => b.ToString("x2"))).Substring(0, 8);
             }
         }
 

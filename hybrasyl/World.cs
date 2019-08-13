@@ -273,7 +273,7 @@ namespace Hybrasyl
 
         internal void RegisterGlobalSequence(DialogSequence sequence)
         {
-            sequence.Id = (uint)GlobalSequences.Count();
+            sequence.Id = UInt16.MaxValue - (uint)GlobalSequences.Count();
             GlobalSequences.Add(sequence);
             GlobalSequencesCatalog.Add(sequence.Name, sequence);
         }
@@ -1679,11 +1679,26 @@ namespace Hybrasyl
             }
             else if (loginUser.Login.FirstLogin)
             {
-                StartMap startmap = Game.Config.Handlers.NewPlayer.GetStartMap();
-                loginUser.Login.FirstLogin = false;
-                if (WorldData.TryGetValueByIndex(startmap.Value, out Map map))
-                    loginUser.Teleport(map.Id, startmap.X, startmap.Y);
-                else loginUser.Teleport((ushort)500, (byte)50, (byte)(50));
+                NewPlayer handler = Game.Config.Handlers?.NewPlayer;
+                var targetmap = WorldData.First<Map>();
+                if (handler != null)
+                {
+                    StartMap startmap = handler.GetStartMap();
+                    loginUser.Login.FirstLogin = false;
+                    if (WorldData.TryGetValueByIndex(startmap.Value, out Map map))
+                        loginUser.Teleport(map.Id, startmap.X, startmap.Y);
+                    else
+                    {
+                        // Teleport user to the center of the first known map and hope for the best
+                        loginUser.Teleport(targetmap.Id, (byte)(targetmap.X / 2), (byte)(targetmap.Y / 2));
+                        Logger.Error($"{loginUser.Name} first login: map {startmap.Value} not found, using first available map {targetmap.Name}. Safety not guaranteed.");
+                    }
+                }
+                else
+                {
+                    loginUser.Teleport(targetmap.Id, (byte)(targetmap.X / 2), (byte)(targetmap.Y / 2));
+                    Logger.Error($"{loginUser.Name} first login: start map config missing, using first available map {targetmap.Name}. Safety not guaranteed.");
+                }
             }
             else if(loginUser.Nation.SpawnPoints.Count != 0 &&
                 loginUser.SinceLastLogin > Hybrasyl.Constants.NATION_SPAWN_TIMEOUT)
@@ -3602,7 +3617,7 @@ namespace Hybrasyl
             obj.Id = 0;
         }
 
-        public ItemObject CreateItem(int id, int quantity = 1)
+        public ItemObject CreateItem(string id, int quantity = 1)
         {
             if (WorldData.ContainsKey<Item>(id))
             {

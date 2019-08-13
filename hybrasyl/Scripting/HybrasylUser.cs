@@ -328,10 +328,10 @@ namespace Hybrasyl.Scripting
             DialogSequence newSequence;
             if (User.World.GlobalSequencesCatalog.TryGetValue(sequenceName, out newSequence))
             {
-                newSequence.ShowTo(User, (VisibleObject)associate.Obj);
                 // End previous sequence
                 User.DialogState.EndDialog();
                 User.DialogState.StartDialog(associate.Obj as VisibleObject, newSequence);
+                newSequence.ShowTo(User, (VisibleObject)associate.Obj);
             }
 
         }

@@ -422,7 +422,7 @@ namespace Hybrasyl
         private object _lock = new object();
 
         private Lockable<ItemObject[]> _itemsObject;
-        private ConcurrentDictionary<int, List<ItemObject>> _inventoryIndex;
+        private ConcurrentDictionary<string, List<ItemObject>> _inventoryIndex;
 
         public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
@@ -608,7 +608,7 @@ namespace Hybrasyl
             }
         }
 
-        public bool TryGetValue(string name, out ItemObject itemObject)
+        public bool TryGetValueByName(string name, out ItemObject itemObject)
         {
             itemObject = null;
             List<ItemObject> itemList;
@@ -619,7 +619,7 @@ namespace Hybrasyl
             return true;
         }
 
-        public bool TryGetValue(int templateId, out ItemObject itemObject)
+        public bool TryGetValue(string templateId, out ItemObject itemObject)
         {
             itemObject = null;
             List<ItemObject> itemList;
@@ -634,15 +634,15 @@ namespace Hybrasyl
             _size = new Lockable<int>(size);
             _count = new Lockable<int>(0);
             _weight = new Lockable<int>(0);
-            _inventoryIndex = new ConcurrentDictionary<int, List<ItemObject>>();
+            _inventoryIndex = new ConcurrentDictionary<string, List<ItemObject>>();
         }
 
-        public bool Contains(int id)
+        public bool Contains(string id)
         {
             return _inventoryIndex.ContainsKey(id);
         }
 
-        public bool Contains(string name)
+        public bool ContainsName(string name)
         {
             Item theItem = Game.World.WorldData.GetByIndex<Item>(name);
             return _inventoryIndex.ContainsKey(theItem.Id);
@@ -682,7 +682,7 @@ namespace Hybrasyl
             return (byte)(FindEmptyIndex() + 1);
         }
 
-        public int IndexOf(int id)
+        public int IndexOf(string id)
         {
             for (var i = 0; i < Size; ++i)
             {
@@ -692,7 +692,7 @@ namespace Hybrasyl
             return -1;
         }
 
-        public int[] IndexOf(string name)
+        public int[] IndexByName(string name)
         {
             var indices = new List<int>();
             for (var i = 0; i < Size; i++)
@@ -703,13 +703,13 @@ namespace Hybrasyl
             return indices.ToArray();
         }
 
-        public byte SlotOf(int id)
+        public byte SlotOf(string id)
         {
             return (byte)(IndexOf(id) + 1);
         }
-        public byte[] SlotOf(string name)
+        public byte[] SlotByName(string name)
         {
-            var slotsInt = IndexOf(name);
+            var slotsInt = IndexByName(name);
             var slotsByte = new byte[slotsInt.Length];
             for(int i = 0; i < slotsInt.Length; i++)
             {
@@ -718,12 +718,12 @@ namespace Hybrasyl
             return slotsByte;
         }
 
-        public ItemObject Find(int id)
+        public ItemObject Find(string id)
         {
             return _inventoryIndex.ContainsKey(id) ? _inventoryIndex[id].First() : null;
         }
 
-        public ItemObject Find(string name)
+        public ItemObject FindByName(string name)
         {
             Item theItem;
             return Game.World.TryGetItemTemplate(name, out theItem) && _inventoryIndex.ContainsKey(theItem.Id)

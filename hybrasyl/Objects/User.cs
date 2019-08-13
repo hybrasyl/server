@@ -1969,7 +1969,7 @@ namespace Hybrasyl.Objects
                 // Merge stack and destroy "added" ItemObject
                 inventoryItem.Count += itemObject.Count;
                 itemObject.Count = 0;
-                SendItemUpdate(inventoryItem, Inventory.SlotOf(inventoryItem.Name).First());
+                SendItemUpdate(inventoryItem, Inventory.SlotByName(inventoryItem.Name).First());
                 World.Remove(itemObject);
                 return true;
             }
@@ -2006,7 +2006,7 @@ namespace Hybrasyl.Objects
             if (Inventory.Contains(itemName, quantity))
             {
                 var remaining = (int)quantity;
-                var slots = Inventory.SlotOf(itemName);
+                var slots = Inventory.SlotByName(itemName);
                 foreach (var i in slots)
                 {
                     if (remaining > 0)
@@ -3130,7 +3130,7 @@ namespace Hybrasyl.Objects
                 var hasItem = Inventory.Contains(itemObj.Name);
                 if (hasItem)
                 {
-                    if (itemObj.Stackable) IncreaseItem(Inventory.SlotOf(itemObj.Name).First(), quantity);
+                    if (itemObj.Stackable) IncreaseItem(Inventory.SlotByName(itemObj.Name).First(), quantity);
                     else
                     {
                         AddItem(itemObj);
@@ -3141,7 +3141,7 @@ namespace Hybrasyl.Objects
                     if (itemObj.Stackable)
                     {
                         AddItem(itemObj);
-                        IncreaseItem(Inventory.SlotOf(itemObj.Name).First(), quantity - 1);
+                        IncreaseItem(Inventory.SlotByName(itemObj.Name).First(), quantity - 1);
                     }
                     else
                     {
