@@ -30,7 +30,7 @@ namespace Hybrasyl.Items
 {
     public partial class Item
     {
-        public static SHA1 sha = new SHA1CryptoServiceProvider();
+        public static SHA256CryptoServiceProvider sha = new SHA256CryptoServiceProvider();
         [XmlIgnore]
         public bool IsVariant { get; set; }
 

@@ -714,7 +714,7 @@ namespace Hybrasyl.Objects
             Direction = direction;
 
             // Objects in the common viewport receive a "walk" (0x0C) packet
-            // Objects in the arriving viewport receive a "show to" (_) packet
+            // Objects in the arriving viewport receive a "show to" (0x33) packet
             // Objects in the departing viewport receive a "remove object" (0x0E) packet
 
             foreach (var obj in Map.EntityTree.GetObjects(commonViewport))
