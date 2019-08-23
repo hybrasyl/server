@@ -1,21 +1,15 @@
 ﻿using Hybrasyl.Objects;
-using log4net;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace Hybrasyl.Messaging
 {
     public class ChatCommandHandler
     {
         private Dictionary<string, (Type Type, List<int> argCount)> _associates = new Dictionary<string, (Type, List<int>)>();
-        private static readonly ILog UserLogger = LogManager.GetLogger(Assembly.GetEntryAssembly(),"UserActivityLogger");
-        private static readonly ILog GmLogger = LogManager.GetLogger(Assembly.GetEntryAssembly(),"GmActivityLogger");
-        public static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         private static readonly Regex QuotesRegex = new Regex(" (?=(?:[^\"]*\"[^\"]*\")*(?![^\"]*\"))");
         private static readonly Regex ArgsRegex = new Regex("(\\[[a-zA-Z\\<\\> ]*\\])");
 
@@ -55,11 +49,11 @@ namespace Hybrasyl.Messaging
                     }
                     // int argcount = ((string)x.GetField("ArgumentText", BindingFlags.Public | BindingFlags.Static).GetValue(null)).Count(e => e == '<');
                     _associates.Add(command, (x, allowedArgcounts));
-                    Logger.Info($"{command} registered");
+                    GameLog.Info($"{command} registered");
                 }
                 catch (Exception e)
                 {
-                    Logger.Warn($"{x.Name}: could not be loaded - {e}");
+                    GameLog.Warning($"{x.Name}: could not be loaded - {e}");
                 }
             }
         }
@@ -89,7 +83,7 @@ namespace Hybrasyl.Messaging
                 if (priv && !user.IsPrivileged)
                 {
                     user.SendSystemMessage("Failed: Access denied (command is privileged)");
-                    UserLogger.Error($"{user.Name}: denied attempt to use privileged command {command}");
+                    GameLog.UserActivityError($"{user.Name}: denied attempt to use privileged command {command}");
                     return;
                 }
 
@@ -108,10 +102,10 @@ namespace Hybrasyl.Messaging
                 if (user.IsPrivileged)
                 {
                     var type = (priv == true ? "privileged" : "unprivileged");
-                    GmLogger.Warn($"{user.Name}: executing {type} command {command} {args}");
+                    GameLog.Warning($"{user.Name}: executing {type} command {command} {args}");
                 }
                 else
-                    UserLogger.Info($"{user.Name}: executing command {command} {args}");
+                    GameLog.Info($"{user.Name}: executing command {command} {args}");
 
 
                 var wtf = handler.Type.GetMethod("Run", BindingFlags.Public | BindingFlags.Static);

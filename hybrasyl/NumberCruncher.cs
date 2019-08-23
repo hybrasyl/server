@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using log4net;
+using Serilog;
 using Hybrasyl.Statuses;
 
 namespace Hybrasyl
@@ -27,8 +27,6 @@ namespace Hybrasyl
     ///
     static class NumberCruncher
     {
-
-        public static ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         // This is dumb, but it's a consequence of how xsd2code works
         private static double _evalSimple(dynamic simple)
@@ -51,7 +49,7 @@ namespace Hybrasyl
             }
             catch (Exception e)
             {
-                Logger.Error($"NumberCruncher formula error: castable {castable.Name}, target {target.Name}, source {source?.Name ?? "no source"}: {formula}, error: {e}");
+                GameLog.Error($"NumberCruncher formula error: castable {castable.Name}, target {target.Name}, source {source?.Name ?? "no source"}: {formula}, error: {e}");
                 return 0;
             }
         }

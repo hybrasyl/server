@@ -20,7 +20,7 @@
  *            Kyle Speck    <kojasou@hybrasyl.com>
  */
 
-using log4net;
+
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -335,27 +335,25 @@ namespace Hybrasyl
         /// </summary>
         public static class PrettyPrinter
         {
-            public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
             /// <summary>
             /// Pretty print an object, which is essentially a dump of its properties, at the moment.
             /// </summary>
             /// <param name="obj">The object to be pretty printed, using Hybrasyl.Utility.Logger.</param>
             public static void PrettyPrint(object obj)
             {
-                Logger.DebugFormat("object dump follows");
+                GameLog.DebugFormat("object dump follows");
                 try
                 {
                     foreach (PropertyDescriptor descriptor in TypeDescriptor.GetProperties(obj))
                     {
                         string name = descriptor.Name;
                         object value = descriptor.GetValue(obj);
-                        Logger.DebugFormat("{0} = {1}", name, value);
+                        GameLog.DebugFormat("{0} = {1}", name, value);
                     }
                 }
                 catch (Exception e)
                 {
-                    Logger.ErrorFormat("Couldn't pretty print: {0}", e.ToString());
+                    GameLog.ErrorFormat("Couldn't pretty print: {0}", e.ToString());
                 }
             }
         }

@@ -20,7 +20,7 @@
  */
 
 using Hybrasyl.Config;
-using log4net;
+using Hybrasyl.Enums;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -31,15 +31,16 @@ using System.Text;
 using System.Threading;
 using System.Xml;
 using Hybrasyl.XML;
-using log4net.Config;
-using log4net.Core;
+using Serilog;
 using AssemblyInfo = Hybrasyl.Utility.AssemblyInfo;
+using Serilog.Core;
+using Serilog.Events;
+using Serilog.Core.Enrichers;
 
 namespace Hybrasyl
 {
     public static class Game
     {
-        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         public static readonly object SyncObj = new object();
         public static IPAddress IpAddress;
@@ -57,7 +58,7 @@ namespace Hybrasyl
         public static string Motd { get; set; }
         public static int LogLevel { get; set; }
 
-        public static AssemblyInfo Assemblyinfo  { get; set; }
+        public static AssemblyInfo Assemblyinfo { get; set; }
         private static long Active = 0;
 
         private static Monolith _monolith;
@@ -70,6 +71,8 @@ namespace Hybrasyl
         private static Thread _worldThread;
         private static Thread _spawnThread;
         private static Thread _controlThread;
+
+        public static LoggingLevelSwitch LevelSwitch;
 
         public static DateTime StartDate { get; set; }
 
@@ -90,6 +93,29 @@ namespace Hybrasyl
             if (Interlocked.Read(ref Active) == 0)
                 return false;
             return true;
+        }
+
+        public static void CurrentDomain_ProcessExit(object sender, EventArgs e) => Shutdown();
+
+        public static void Shutdown()
+        {
+            Log.Warning("Hybrasyl: all servers shutting down");
+
+            // Server is shutting down. For Lobby and Login, this terminates the TCP listeners;
+            // for World, this triggers a logoff for all logged in users and then terminates. After
+            // termination, the queue consumer is stopped as well.
+            // For a true restart we'll need to do a few other things; stop timers, etc.
+
+            CancellationTokenSource.Cancel();
+            Lobby.Shutdown();
+            Login.Shutdown();
+            World.Shutdown();
+            Thread.Sleep(5000);
+            World.StopQueueConsumer();
+            World.StopControlConsumers();
+            Log.Warning("Hybrasyl {Version}: shutdown complete.", Assemblyinfo.Version);
+            //host.Close();
+            Environment.Exit(0);
         }
 
         public static HybrasylConfig GatherConfig()
@@ -191,36 +217,47 @@ namespace Hybrasyl
 
         public static void Main(string[] args)
         {
-            //log4net configure
-            var logRepository = LogManager.GetRepository(Assembly.GetEntryAssembly());
-            XmlConfigurator.Configure(logRepository, new FileInfo("Log4Net.config"));
-
             // Make our window nice and big
             //Console.SetWindowSize(140, 36);  //Removed for cross-platform compatibility
-            LogLevel = Hybrasyl.Constants.DEFAULT_LOG_LEVEL;
             Assemblyinfo = new AssemblyInfo(Assembly.GetEntryAssembly());
 
-            
+            // Set our exit handler
+            AppDomain.CurrentDomain.ProcessExit += new EventHandler(CurrentDomain_ProcessExit);
+
             Constants.DataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Hybrasyl");
 
             if (!Directory.Exists(Constants.DataDirectory))
             {
-                Logger.InfoFormat("Creating data directory {0}", Constants.DataDirectory);
-                try
-                {
-                    // Create the various directories we need
-                    Directory.CreateDirectory(Constants.DataDirectory);
-                    Directory.CreateDirectory(Path.Combine(Constants.DataDirectory, "maps"));
-                    Directory.CreateDirectory(Path.Combine(Constants.DataDirectory, "scripts"));
-                    Directory.CreateDirectory(Path.Combine(Constants.DataDirectory, "world"));
-                }
-                catch (Exception e)
-                {
-                    Logger.ErrorFormat("Can't create data directory: {0}", e.ToString());
-                    return;
-                }
+                Log.Information("Creating data directory {Directory}", Constants.DataDirectory);
             }
-            
+            try
+            {
+                // Ensure at least the world and logs directory exist 
+                Directory.CreateDirectory(Constants.DataDirectory);
+                Directory.CreateDirectory(Path.Combine(Constants.DataDirectory, "world"));
+                Directory.CreateDirectory(Path.Combine(Constants.DataDirectory, "logs"));
+            }
+            catch (Exception e)
+            {
+                Log.Fatal("Can't create data directory: {Directory}", e.ToString());
+                return;
+            }
+
+            // Configure logging 
+
+            // Default is info
+            LevelSwitch = new LoggingLevelSwitch();
+            LevelSwitch.MinimumLevel = LogEventLevel.Information;
+
+            // We log every LogType defined in our enumeration to its own file. Only the "general" type is sent to the console.
+            var log = new LoggerConfiguration().MinimumLevel.ControlledBy(LevelSwitch).Enrich.WithThreadId().Enrich.WithExceptionData().
+                WriteTo.Map("LogType", "General", (name, wt) => wt.File($"{Path.Combine(Constants.DataDirectory, "logs")}/log-{name}.log", rollingInterval: RollingInterval.Day)).
+                WriteTo.Logger(lc => lc.Filter.ByIncludingOnly(GameLog.IsGeneralEvent).WriteTo.Console())
+                .CreateLogger();
+
+            Log.Logger = log;
+            Log.Information("Hybrasyl log begin");
+
             var hybconfig = Path.Combine(Constants.DataDirectory, "config.xml");
        
             if (File.Exists(hybconfig))
@@ -229,11 +266,11 @@ namespace Hybrasyl
                 try
                 {
                     Config = Serializer.Deserialize(XmlReader.Create(hybconfig), new HybrasylConfig());
-                    Logger.Info("Configuration file loaded.");
+                    Log.Information("Configuration file loaded.");
                 }
                 catch (Exception e)
                 {
-                    Logger.ErrorFormat("The config file {0} could not be parsed: {1}", hybconfig, e);
+                    Log.Error("The config file {ConfigFile} could not be parsed: {ParseError}", hybconfig, e.Message);
                 }
 
             }
@@ -249,8 +286,8 @@ namespace Hybrasyl
                     }
                     catch (Exception e)
                     {
-                        Logger.ErrorFormat("Some of the values you entered were invalid. Try again. Error was: {0}",
-                            e.ToString());
+                        Log.Error("Some of the values you entered were invalid. Try again. Error was: {ParseError}",
+                            e.Message);
 
 
                     }
@@ -266,18 +303,14 @@ namespace Hybrasyl
             //var port = Config.ApiEndpoints.ControlService?.Port == 0 ? Constants.ControlServicePort : Config.ApiEndpoints.ControlService.Port;
             //var host = new WebServiceHost(typeof(ControlService), new Uri($"http://{Config.ApiEndpoints.ControlService?.BindAddress ?? "127.0.0.1"}:{port}/ControlService"));
             //host.Open();
-            //Logger.InfoFormat($"Starting ControlService on port {Config.ApiEndpoints.ControlService?.Port ?? Constants.ControlServicePort}");
+            //GameLog.InfoFormat($"Starting ControlService on port {Config.ApiEndpoints.ControlService?.Port ?? Constants.ControlServicePort}");
 
-            // Set default logging level
-            ((log4net.Repository.Hierarchy.Hierarchy) LogManager.GetRepository(Assembly.GetEntryAssembly())).Root.Level = Level.Info;
-                ((log4net.Repository.Hierarchy.Hierarchy) LogManager.GetRepository(Assembly.GetEntryAssembly())).RaiseConfigurationChanged(
-                EventArgs.Empty);
-            
+
             // Set console buffer, so we can scroll back a bunch
             // Console.BufferHeight = Int16.MaxValue - 1; //Removed for cross-platform compatibility.
 
-            Logger.InfoFormat("Hybrasyl {0} starting.", Assemblyinfo.Version);
-            Logger.InfoFormat("{0} - this program is licensed under the GNU AGPL, version 3.", Assemblyinfo.Copyright);
+            Log.Information("Hybrasyl {Version} starting.", Assemblyinfo.Version);
+            Log.Information("{Copyright} - this program is licensed under the GNU AGPL, version 3.", Assemblyinfo.Copyright);
 
             LoadCollisions();
 
@@ -294,11 +327,10 @@ namespace Hybrasyl
 
             _monolith = new Monolith();
             _monolithControl = new MonolithControl();
-            
-        
+                    
             if (!World.InitWorld())
             {
-                Logger.FatalFormat("Hybrasyl cannot continue loading. Press any key to exit.");
+                GameLog.Fatal("Hybrasyl cannot continue loading. Fatal error while loading world data. Press any key to exit.");
                 Console.ReadKey();
                 Environment.Exit(1);
             }
@@ -390,22 +422,7 @@ namespace Hybrasyl
                 Thread.Sleep(5);
             }
 
-            Logger.Warn("Hybrasyl: all servers shutting down");
-
-            // Server is shutting down. For Lobby and Login, this terminates the TCP listeners;
-            // for World, this triggers a logoff for all logged in users and then terminates. After
-            // termination, the queue consumer is stopped as well.
-            // For a true restart we'll need to do a few other things; stop timers, etc.
-
-            Lobby.Shutdown();
-            Login.Shutdown();
-            World.Shutdown();
-            Thread.Sleep(5000);
-            World.StopQueueConsumer();
-            World.StopControlConsumers();
-            Logger.WarnFormat("Hybrasyl {0}: shutdown complete.", Assemblyinfo.Version);
-            //host.Close();
-            Environment.Exit(0);
+            Shutdown();
 
         }
 

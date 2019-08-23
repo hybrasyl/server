@@ -25,22 +25,19 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Hybrasyl.Enums;
-using log4net;
+using Serilog;
 using MoonSharp.Interpreter;
 
 namespace Hybrasyl.Scripting
 {
     public class ScriptProcessor
     {
-        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-        private static readonly ILog ScriptingLogger = LogManager.GetLogger(Assembly.GetEntryAssembly(),"ScriptingLog");
 
-        public Dictionary<string, Script> Scripts { get; private set; }
+        private Dictionary<string, List<Script>> _scripts { get; set; }
         public HybrasylWorld World { get; private set; }
 
         public ScriptProcessor(World world)
         {
-            Scripts = new Dictionary<string, Script>();
             World = new HybrasylWorld(world);
             // Register UserData types for MoonScript
             UserData.RegisterAssembly(typeof(Game).Assembly);
@@ -50,35 +47,56 @@ namespace Hybrasyl.Scripting
             UserData.RegisterType<LegendMark>();
             UserData.RegisterType<DateTime>();
             UserData.RegisterType<TimeSpan>();
-            
+            _scripts = new Dictionary<string, List<Script>>();            
         }
 
+        // "Ri OnA.lua" => riona
+        private string SanitizeName(string scriptName) => Regex.Replace(scriptName.ToLower().Normalize(), ".lua$", "");
+
+        private bool TryGetScriptInstances(string scriptName, out List<Script> scriptList)
+        {
+            scriptList = null;
+            if (_scripts.TryGetValue(SanitizeName(scriptName), out scriptList))
+            {
+                return true;
+            }
+            return false;
+        }
         public bool TryGetScript(string scriptName, out Script script)
         {
             script = null;
-            // Note that a request for RiOnA.lua == Riona == riona as long as
-            // riona exists
-            var target = scriptName.ToLower();
-            target = Regex.Replace(target, ".lua$", "");
-            if (Scripts.TryGetValue(target, out script))
+            if (TryGetScriptInstances(scriptName, out List<Script> s))
+            {
+                script = s[0].Clone();
                 return true;
-            else if (Scripts.TryGetValue($"{target}.lua", out script))
-                return true;
-
-            return false;               
+            }
+            return false;
         }
 
-        public bool RegisterScript(Script script)
+        public void RegisterScript(Script script)
         {
             script.Run();
-            Scripts[script.Name] = script;
-            return true;
+            var name = SanitizeName(script.Name);
+            if (!_scripts.ContainsKey(name))
+            {
+                _scripts[name] = new List<Script>();
+            }
+            _scripts[name].Add(script);
         }
 
-        public bool DeregisterScript(string scriptname)
+
+        public bool DeregisterScript(string scriptName)
         {
-            Scripts[scriptname] = null;
-            return true;
+            if (TryGetScriptInstances(scriptName, out List<Script> s))
+            {
+                foreach (var instance in s)
+                {
+                    instance.Reload();
+                    GameLog.ScriptingInfo($"Reloading instance of {scriptName}: associate was {instance.Associate?.Name ?? "None"}");
+                }
+                return true;
+            }
+            return false;
         }
     }
 }

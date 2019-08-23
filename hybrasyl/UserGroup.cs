@@ -24,7 +24,7 @@ using Hybrasyl.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using log4net;
+using Serilog;
 
 namespace Hybrasyl
 {
@@ -35,10 +35,7 @@ namespace Hybrasyl
 
     public class UserGroup
     {
-        public static readonly ILog Logger =
-            LogManager.GetLogger(
-                System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
+ 
         // Group-related info
         public List<User> Members { get; private set; }
         public DateTime CreatedOn { get; private set; }
@@ -60,7 +57,7 @@ namespace Hybrasyl
                 ClassCount[cl] = 0;
             }
 
-            Logger.InfoFormat("Creating new group with {0} as founder.", founder.Name);
+            GameLog.InfoFormat("Creating new group with {0} as founder.", founder.Name);
             // Distribute full experience to everyone with a bonus if a member of each
             // class is present.
             ExperienceDistributionFunc = Distribution_AllClassBonus;

@@ -22,7 +22,7 @@
 
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
-using log4net;
+using Serilog;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -38,8 +38,6 @@ namespace Hybrasyl
 
     public class Exchange
     {
-        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
         private Inventory _sourceItems;
         private Inventory _targetItems;
         private uint _sourceGold;
@@ -188,7 +186,7 @@ namespace Hybrasyl
             }
             else
             {
-                Logger.WarnFormat("exchange: Hijinx occuring: participants are {0} and {1}",
+                GameLog.WarningFormat("exchange: Hijinx occuring: participants are {0} and {1}",
                     _source.Name, _target.Name);
                 _active = false;
                 return false;
@@ -259,7 +257,7 @@ namespace Hybrasyl
 
         public bool StartExchange()
         {
-            Logger.InfoFormat("Starting exchange between {0} and {1}", _source.Name, _target.Name);
+            GameLog.InfoFormat("Starting exchange between {0} and {1}", _source.Name, _target.Name);
             _active = true;
             _source.Condition.InExchange = true;
             _target.Condition.InExchange = true;
@@ -302,7 +300,7 @@ namespace Hybrasyl
         /// <returns></returns>
         public void PerformExchange()
         {
-            Logger.Info("Performing exchange");
+            GameLog.Info("Performing exchange");
             foreach (var item in _sourceItems)
             {
                 _target.AddItem(item);
@@ -328,19 +326,19 @@ namespace Hybrasyl
         {
             if (_source == requestor)
             {
-                Logger.InfoFormat("Exchange: source ({0}) confirmed", _source.Name);
+                GameLog.InfoFormat("Exchange: source ({0}) confirmed", _source.Name);
                 _sourceConfirmed = true;
                 _target.SendExchangeConfirmation(false);
             }
             if (_target == requestor)
             {
-                Logger.InfoFormat("Exchange: target ({0}) confirmed", _target.Name);
+                GameLog.InfoFormat("Exchange: target ({0}) confirmed", _target.Name);
                 _targetConfirmed = true;
                 _source.SendExchangeConfirmation(false);
             }
             if (_sourceConfirmed && _targetConfirmed)
             {
-                Logger.Info("Exchange: Both sides confirmed");
+                GameLog.Info("Exchange: Both sides confirmed");
                 _source.SendExchangeConfirmation();
                 _target.SendExchangeConfirmation();
                 PerformExchange();
@@ -377,19 +375,21 @@ namespace Hybrasyl
 
             for (byte i = 0; i < jArray.Count; i++)
             {
-                Item itmType = null;
                 dynamic item;
                 if (TryGetValue(jArray[i], out item))
                 {
-                    itmType = Game.World.WorldData.Get<Item>(item.Id);
                     //itmType = Game.World.WorldData.Values<Item>().Where(x => x.Name == (string)item.FirstOrDefault().Value).FirstOrDefault().Name;
-                    if (itmType != null)
+                    if (Game.World.WorldData.TryGetValue<Item>(item.Id, out Item itemTemplate)) 
                     {
-                        inv[i] = new ItemObject(itmType.Id, Game.World)
+                        inv[i] = new ItemObject(itemTemplate.Id, Game.World)
                         {
                             Count = item.Count ?? 1
                         };
                             //this will need to be expanded later based on ItemObject properties being saved back to the database.
+                    }
+                    else
+                    {
+                        GameLog.Error($"Inventory deserializer error: item {item.Id} not found in index, skipping");
                     }
                 }
             }
@@ -423,8 +423,6 @@ namespace Hybrasyl
 
         private Lockable<ItemObject[]> _itemsObject;
         private ConcurrentDictionary<int, List<ItemObject>> _inventoryIndex;
-
-        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         private Lockable<int> _size { get; set; }
         private Lockable<int> _count { get; set; }

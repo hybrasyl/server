@@ -34,6 +34,14 @@ namespace Hybrasyl
             return _dataStore[typeof(T)];
         }
 
+        public T First<T>()
+        {
+            if (_dataStore.ContainsKey(typeof(T)))
+                return (T)_dataStore[typeof(T)].First().Value;
+            else
+                return default;
+        }
+
         /// <summary>
         /// Get a subindex for the given type T.
         /// </summary>
@@ -110,6 +118,13 @@ namespace Hybrasyl
             var sub = GetSubIndex<T>();
             if (!sub.ContainsKey(key)) return false;
             tresult = (T)sub[key];
+
+            if (!sub.ContainsKey(key.ToString().Normalize()))
+            {
+                GameLog.Error($"TryGetValueByIndex: type {typeof(T)}: key {key.ToString().Normalize()} not found");
+                return false;
+            }
+            tresult = (T)sub[key.ToString().Normalize()];
             return true;
         }
 

@@ -52,7 +52,8 @@ namespace Hybrasyl
             if (!string.IsNullOrEmpty(mark.Prefix) && _legendIndex.ContainsKey(mark.Prefix))
                 throw new ArgumentException("A legend mark's prefix must be unique for a given character");
             _legend.Add(mark.Timestamp, mark);
-            _legendIndex[mark.Prefix] = mark;
+            if (mark.Prefix != null)
+                _legendIndex[mark.Prefix] = mark;
             return true;
         }
 

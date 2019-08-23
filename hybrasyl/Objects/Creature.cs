@@ -29,7 +29,7 @@ using System.Reflection;
 using Hybrasyl.Castables;
 using Hybrasyl.Enums;
 using Hybrasyl.Statuses;
-using log4net;
+using Serilog;
 using Newtonsoft.Json;
 
 namespace Hybrasyl.Objects
@@ -37,11 +37,6 @@ namespace Hybrasyl.Objects
 
     public class Creature : VisibleObject
     {
-        public new static readonly ILog Logger =
-               LogManager.GetLogger(
-               System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
-        private static readonly ILog ActivityLogger = LogManager.GetLogger(Assembly.GetEntryAssembly(),"UserActivityLog");
 
         [JsonProperty(Order = 2)]
         public StatInfo Stats { get; set; }
@@ -146,7 +141,7 @@ namespace Hybrasyl.Objects
                 {
                     // Targeting the exact clicked target
                     if (target == null)
-                        Logger.Error($"GetTargets: {castable.Name} - intent was for exact clicked target but no target was passed?");
+                        GameLog.Error($"GetTargets: {castable.Name} - intent was for exact clicked target but no target was passed?");
                     else
                         // Heal spels can be cast on players, other spells can be cast on attackable creatures
                         if ((!castable.Effects.Damage.IsEmpty && target.Condition.IsAttackable) ||
@@ -308,7 +303,7 @@ namespace Hybrasyl.Objects
                             }
                             break;
                     }
-                    Logger.Info($"Rectangle: x: {X - intent.Radius} y: {Y - intent.Radius}, radius: {intent.Radius} - LOCATION: {rect.Location} TOP: {rect.Top}, BOTTOM: {rect.Bottom}, RIGHT: {rect.Right}, LEFT: {rect.Left}");
+                    GameLog.Info($"Rectangle: x: {X - intent.Radius} y: {Y - intent.Radius}, radius: {intent.Radius} - LOCATION: {rect.Location} TOP: {rect.Top}, BOTTOM: {rect.Bottom}, RIGHT: {rect.Right}, LEFT: {rect.Left}");
                     if (rect.IsEmpty) continue;
 
                     possibleTargets.AddRange(Map.EntityTree.GetObjects(rect).Where(obj => obj is Creature && obj != this));
@@ -348,7 +343,7 @@ namespace Hybrasyl.Objects
 
                 List<Creature> possible = intent.MaxTargets > 0 ? possibleTargets.Take(intent.MaxTargets).OfType<Creature>().ToList() : possibleTargets.OfType<Creature>().ToList();
                 if (possible != null && possible.Count > 0) actualTargets.AddRange(possible);
-                else Logger.Info("No targets found");
+                else GameLog.Info("No targets found");
             }
             return actualTargets;
         }
@@ -452,7 +447,7 @@ namespace Hybrasyl.Objects
                 }
 
                 _currentStatuses.Clear();
-                Logger.Debug($"Current status count is {_currentStatuses.Count}");
+                GameLog.Debug($"Current status count is {_currentStatuses.Count}");
             }
         }
 
@@ -463,12 +458,12 @@ namespace Hybrasyl.Objects
         {
             foreach (var kvp in _currentStatuses)
             {
-                Logger.DebugFormat("OnTick: {0}, {1}", Name, kvp.Value.Name);
+                GameLog.DebugFormat("OnTick: {0}, {1}", Name, kvp.Value.Name);
 
                 if (kvp.Value.Expired)
                 {
                     var removed = RemoveStatus(kvp.Key);
-                    Logger.DebugFormat($"Status {kvp.Value.Name} has expired: removal was {removed}");
+                    GameLog.DebugFormat($"Status {kvp.Value.Name} has expired: removal was {removed}");
                 }
 
                 if (kvp.Value.ElapsedSinceTick >= kvp.Value.Tick)
@@ -487,7 +482,7 @@ namespace Hybrasyl.Objects
         {
             if (!Condition.CastingAllowed) return false;
             
-            if (this is User) ActivityLogger.Info($"UseCastable: {Name} begin casting {castObject.Name} on target: {target?.Name ?? "no target"} CastingAllowed: {Condition.CastingAllowed}");
+            if (this is User) GameLog.UserActivityInfo($"UseCastable: {Name} begin casting {castObject.Name} on target: {target?.Name ?? "no target"} CastingAllowed: {Condition.CastingAllowed}");
 
             var damage = castObject.Effects.Damage;
             List<Creature> targets;
@@ -512,7 +507,7 @@ namespace Hybrasyl.Objects
             if (castObject.Effects.Sound != null)
                 PlaySound(castObject.Effects.Sound.Id);
 
-            ActivityLogger.Info($"UseCastable: {Name} casting {castObject.Name}, {targets.Count()} targets");
+            GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name}, {targets.Count()} targets");
             foreach (var tar in targets)
             {
                 if (castObject.Effects?.ScriptOverride == true)
@@ -535,7 +530,7 @@ namespace Hybrasyl.Objects
                         attackElement = (Enums.Element)castObject.Element;
                     else
                         attackElement = (Stats.OffensiveElementOverride == Enums.Element.None ? Stats.OffensiveElementOverride : Stats.OffensiveElement);
-                    if (this is User) ActivityLogger.Info($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} damage: {damageOutput}, element {attackElement}");
+                    if (this is User) GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} damage: {damageOutput}, element {attackElement}");
 
                     tar.Damage(damageOutput.Amount, attackElement, damageOutput.Type, damageOutput.Flags, this, false);
                     if (tar.Stats.Hp <= 0) { deadMobs.Add(tar); }
@@ -546,7 +541,7 @@ namespace Hybrasyl.Objects
                 {
                     var healOutput = NumberCruncher.CalculateHeal(castObject, tar, this);
                     tar.Heal(healOutput, this);
-                    if (this is User) ActivityLogger.Info($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} healing: {healOutput}");
+                    if (this is User) GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} healing: {healOutput}");
                 }
 
                 // Handle statuses
@@ -556,11 +551,11 @@ namespace Hybrasyl.Objects
                     Status applyStatus;
                     if (World.WorldData.TryGetValueByIndex<Status>(status.Value, out applyStatus))
                     {
-                        ActivityLogger.Info($"UseCastable: {Name} casting {castObject.Name} - applying status {status.Value}");
+                        GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - applying status {status.Value}");
                         ApplyStatus(new CreatureStatus(applyStatus, tar, castObject));
                     }
                     else
-                        ActivityLogger.Error($"UseCastable: {Name} casting {castObject.Name} - failed to add status {status.Value}, does not exist!");
+                        GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name} - failed to add status {status.Value}, does not exist!");
                 }
 
                 foreach (var status in castObject.Effects.Statuses.Remove)
@@ -568,11 +563,11 @@ namespace Hybrasyl.Objects
                     Status applyStatus;
                     if (World.WorldData.TryGetValueByIndex<Status>(status, out applyStatus))
                     {
-                        ActivityLogger.Error($"UseCastable: {Name} casting {castObject.Name} - removing status {status}");
+                        GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name} - removing status {status}");
                         RemoveStatus(applyStatus.Icon);
                     }
                     else
-                        ActivityLogger.Error($"UseCastable: {Name} casting {castObject.Name} - failed to remove status {status}, does not exist!");
+                        GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name} - failed to remove status {status}, does not exist!");
 
                 }
             }
@@ -585,12 +580,12 @@ namespace Hybrasyl.Objects
 
         public void SendAnimation(ServerPacket packet)
         {
-            Logger.DebugFormat("SendAnimation");
-            Logger.DebugFormat("SendAnimation byte format is: {0}", BitConverter.ToString(packet.ToArray()));
+            GameLog.DebugFormat("SendAnimation");
+            GameLog.DebugFormat("SendAnimation byte format is: {0}", BitConverter.ToString(packet.ToArray()));
             foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>())
             {
                 var nPacket = (ServerPacket)packet.Clone();
-                Logger.DebugFormat("SendAnimation to {0}", user.Name);
+                GameLog.DebugFormat("SendAnimation to {0}", user.Name);
                 user.Enqueue(nPacket);
 
             }
@@ -598,12 +593,12 @@ namespace Hybrasyl.Objects
 
         public void SendCastLine(ServerPacket packet)
         {
-            Logger.DebugFormat("SendCastLine");
-            Logger.DebugFormat($"SendCastLine byte format is: {BitConverter.ToString(packet.ToArray())}");
+            GameLog.DebugFormat("SendCastLine");
+            GameLog.DebugFormat($"SendCastLine byte format is: {BitConverter.ToString(packet.ToArray())}");
             foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>())
             {
                 var nPacket = (ServerPacket)packet.Clone();
-                Logger.DebugFormat($"SendCastLine to {user.Name}");
+                GameLog.DebugFormat($"SendCastLine to {user.Name}");
                 user.Enqueue(nPacket);
 
             }
@@ -673,10 +668,10 @@ namespace Hybrasyl.Objects
                 // Is the player trying to walk into an occupied tile?
                 foreach (var obj in Map.GetTileContents((byte)newX, (byte)newY))
                 {
-                    Logger.DebugFormat("Collsion check: found obj {0}", obj.Name);
+                    GameLog.DebugFormat("Collsion check: found obj {0}", obj.Name);
                     if (obj is Creature)
                     {
-                        Logger.DebugFormat("Walking prohibited: found {0}", obj.Name);
+                        GameLog.DebugFormat("Walking prohibited: found {0}", obj.Name);
                         Refresh();
                         return false;
                     }
@@ -703,10 +698,10 @@ namespace Hybrasyl.Objects
 
             commonViewport = new Rectangle(oldX - halfViewport, oldY - halfViewport, Constants.VIEWPORT_SIZE, Constants.VIEWPORT_SIZE);
             commonViewport.Intersect(new Rectangle(newX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE, Constants.VIEWPORT_SIZE));
-            Logger.DebugFormat("Moving from {0},{1} to {2},{3}", oldX, oldY, newX, newY);
-            Logger.DebugFormat("Arriving viewport is a rectangle starting at {0}, {1}", arrivingViewport.X, arrivingViewport.Y);
-            Logger.DebugFormat("Departing viewport is a rectangle starting at {0}, {1}", departingViewport.X, departingViewport.Y);
-            Logger.DebugFormat("Common viewport is a rectangle starting at {0}, {1} of size {2}, {3}", commonViewport.X,
+            GameLog.DebugFormat("Moving from {0},{1} to {2},{3}", oldX, oldY, newX, newY);
+            GameLog.DebugFormat("Arriving viewport is a rectangle starting at {0}, {1}", arrivingViewport.X, arrivingViewport.Y);
+            GameLog.DebugFormat("Departing viewport is a rectangle starting at {0}, {1}", departingViewport.X, departingViewport.Y);
+            GameLog.DebugFormat("Common viewport is a rectangle starting at {0}, {1} of size {2}, {3}", commonViewport.X,
                 commonViewport.Y, commonViewport.Width, commonViewport.Height);
 
             X = (byte)newX;
@@ -723,7 +718,7 @@ namespace Hybrasyl.Objects
                 {
 
                     var user = obj as User;
-                    Logger.DebugFormat("Sending walk packet for {0} to {1}", Name, user.Name);
+                    GameLog.DebugFormat("Sending walk packet for {0} to {1}", Name, user.Name);
                     var x0C = new ServerPacket(0x0C);
                     x0C.WriteUInt32(Id);
                     x0C.WriteUInt16((byte)oldX);

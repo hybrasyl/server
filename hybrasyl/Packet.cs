@@ -20,7 +20,7 @@
  *            Kyle Speck    <kojasou@hybrasyl.com>
  */
 
-using log4net;
+using Serilog;
 using System;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
@@ -37,7 +37,6 @@ namespace Hybrasyl
     [Serializable]
     public abstract class Packet
     {
-        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         protected static byte[][] SaltTable = new byte[][]
     {
@@ -271,8 +270,8 @@ namespace Hybrasyl
         public void DumpPacket()
         {
             // Dump the packet to the console.
-            Logger.DebugFormat("Dumping packet:");
-            Logger.DebugFormat(BitConverter.ToString(Data));
+            GameLog.DebugFormat("Dumping packet:");
+            GameLog.DebugFormat(BitConverter.ToString(Data));
         }
 
         public byte[] ToArray()

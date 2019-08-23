@@ -21,13 +21,12 @@
  */
 
 using Hybrasyl.Objects;
-using log4net;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Hybrasyl.Scripting;
 using MoonSharp.Interpreter;
+using Serilog;
 
 namespace Hybrasyl
 {
@@ -35,8 +34,6 @@ namespace Hybrasyl
     {
         public class DialogSequence
         {
-            static readonly ILog Logger = LogManager.GetLogger(typeof(DialogSequence));
-
             public List<Dialog> Dialogs { get; private set; }
             public string Name { get; private set; }
             public uint? Id { get; set; }
@@ -70,7 +67,7 @@ namespace Hybrasyl
                 // Either we must have an associate already known to us, one must be passed, or we must have a script defined
                 if (Associate == null && target == null && Script == null)
                 {
-                    Logger.ErrorFormat("DialogSequence {0} has no known associate or script...?", Name);
+                    Log.Error("DialogSequence {0} has no known associate or script...?", Name);
                     // Need better error handling here
                     return;
                 }
@@ -151,8 +148,6 @@ namespace Hybrasyl
 
         public class Dialog
         {
-            public static readonly ILog Logger = LogManager.GetLogger(typeof(Dialog));
-            protected static readonly ILog ScriptingLogger = LogManager.GetLogger(Assembly.GetEntryAssembly(),"ScriptingLog");
 
             protected ushort DialogType;
             public DialogSequence Sequence { get; private set; }
@@ -201,7 +196,7 @@ namespace Hybrasyl
 
             public bool HasPrevDialog()
             {
-                Logger.DebugFormat("index {0}, count {1}", Index, Sequence.Dialogs.Count());
+                Log.Debug("Dialog index {Index}, count {Count}", Index, Sequence.Dialogs.Count());
                 // Don't allow prev buttons after either input or options dialogs
                 if (Index != 0)
                 {
@@ -216,7 +211,7 @@ namespace Hybrasyl
                 // Only simple dialogs have next buttons; everything else requires alternate input.
                 // In addition, if we are in the last dialog in a sequence, Next should return to 
                 // the main menu.
-                Logger.Debug($"index {Index}, count {Sequence.Dialogs.Count()}");
+                Log.Debug("Dialog index {Index}, count {Count}", Index, Sequence.Dialogs.Count());
                 return (DialogType == DialogTypes.SIMPLE_DIALOG) && (Index + 1 < Sequence.Dialogs.Count());
             }
 
@@ -253,13 +248,13 @@ namespace Hybrasyl
                 dialogPacket.WriteByte(objType);
                 dialogPacket.WriteUInt32(invokee.Id);
                 dialogPacket.WriteByte(0); // Unknown value
-                Logger.DebugFormat("Sprite is {0}", sprite);
+                Log.Debug("Sprite is {Sprite}", sprite);
                 dialogPacket.WriteUInt16(sprite);
                 dialogPacket.WriteByte(color);
                 dialogPacket.WriteByte(0); // Unknown value
                 dialogPacket.WriteUInt16(sprite);
                 dialogPacket.WriteByte(color);
-                Logger.DebugFormat("Dialog group id {0}, index {1}", Sequence.Id, Index);
+                Log.Debug("Dialog group id {SequenceId}, index {Index}", Sequence.Id, Index);
                 dialogPacket.WriteUInt16((ushort)Sequence.Id);
                 dialogPacket.WriteUInt16((ushort)Index);
 
@@ -309,17 +304,17 @@ namespace Hybrasyl
                 var associate = Sequence?.Associate is null ? invokee : Sequence.Associate;
                 if (associate.SequenceCatalog.TryGetValue(NextSequence, out sequence) || Game.World.GlobalSequencesCatalog.TryGetValue(NextSequence, out sequence))
                 {
-                    sequence.ShowTo(invoker, invokee);
                     // End previous sequence
                     invoker.DialogState.EndDialog();
                     invoker.DialogState.StartDialog(invokee, sequence);
+                    sequence.ShowTo(invoker, invokee);
                 }
                 else
                 {
                     // We terminate our dialog state if we encounter an error
                     invoker.DialogState.EndDialog();
                     invoker.SendSystemMessage($"{invokee.Name} seems confused ((scripting error!))...");
-                    ScriptingLogger.Error($"JumpDialog: sequence {NextSequence} not found!");
+                    Log.Error("JumpDialog: sequence {NextSequence} not found!", NextSequence);
                 }
             }
 
@@ -362,6 +357,7 @@ namespace Hybrasyl
             {
                 var dialogPacket = base.GenerateBasePacket(invoker, invokee);
                 invoker.Enqueue(dialogPacket);
+                GameLog.Debug("Sending packet to {Invoker}", invoker.Name);
                 RunCallback(invoker, invokee);
             }
 
@@ -427,7 +423,7 @@ namespace Hybrasyl
                 // Quick sanity check
                 if (optionSelected < 0 || optionSelected > Options.Count)
                 {
-                    Logger.Error($"Option dialog response: invalid player selection {optionSelected}, aborting");
+                    Log.Error("Option dialog response: invalid player selection {OptionSelected}, aborting", optionSelected);
                     if (invoker is User)
                     {
                         var user = invoker as User;
@@ -484,7 +480,7 @@ namespace Hybrasyl
 
             public override void ShowTo(User invoker, VisibleObject invokee)
             {
-                Logger.DebugFormat("active for input dialog: {0}, {1}, {2}", TopCaption, InputLength, BottomCaption);
+                Log.Debug("active for input dialog: {TopCaption}, {InputLength}, {BottomCaption}", TopCaption, InputLength, BottomCaption);
                 var dialogPacket = base.GenerateBasePacket(invoker, invokee);
                 dialogPacket.WriteString8(TopCaption);
                 dialogPacket.WriteByte((byte)InputLength);
@@ -495,14 +491,14 @@ namespace Hybrasyl
 
             public void HandleResponse(WorldObject invoker, string response, WorldObject associateOverride = null)
             {
-                Logger.DebugFormat("Response {0} from player {1}", response, invoker.Name);
+                Log.Debug("Response {Response} from player {Invoker}", response, invoker.Name);
 
                 if (Handler != string.Empty)
                 {
                     // Either we must have an associate already known to us, one must be passed, or we must have a script defined
                     if (Sequence.Associate == null && associateOverride == null && Sequence.Script == null)
                     {
-                        Logger.ErrorFormat("InputDialog has no known associate or script...?");
+                        Log.Error("InputDialog has no known associate or script...?");
                         // Need better error handling here
                         return;
                     }
@@ -519,8 +515,6 @@ namespace Hybrasyl
 
         public class DialogState
         {
-            public static readonly ILog Logger = LogManager.GetLogger(typeof(DialogState));
-
             internal WorldObject Associate { get; private set; }
             internal Dialog ActiveDialog { get; private set; }
             internal DialogSequence ActiveDialogSequence { get; private set; }
@@ -593,7 +587,7 @@ namespace Hybrasyl
             {
                 if (dialogStart.Id == null)
                 {
-                    Logger.ErrorFormat("Can't start a dialog with a null dialog ID: {0}", dialogStart.Name);
+                    Log.Error("Can't start a dialog with a null dialog ID: {DialogName}", dialogStart.Name);
                     return false;
                 }
                 if (!InDialog)
@@ -631,7 +625,7 @@ namespace Hybrasyl
                 if (target != Associate || pursuitId != CurrentPursuitId ||
                     target.Map.Id != User.Map.Id || !InDialog)
                 {
-                    Logger.DebugFormat("{0}: Failed check", User.Name);
+                    Log.Debug("{Username}: Failed dialog sanity check", User.Name);
                     return false;
                 }
 
@@ -640,16 +634,16 @@ namespace Hybrasyl
                     newIndex < (ActiveDialogSequence.Dialogs.Count()))
                 {
                     // Next
-                    Logger.DebugFormat("Advancing one dialog");
+                    Log.Debug("Advancing one dialog");
                     ActiveDialog = ActiveDialogSequence.Dialogs[ActiveDialog.Index + 1];
-                    Logger.DebugFormat("Active dialog is type {0}", ActiveDialog.GetType());
+                    Log.Debug("Active dialog is type {Type}", ActiveDialog.GetType());
                     return true;
                 }
                 else if (newIndex == (ActiveDialog.Index - 1) &&
                     newIndex >= 0)
                 {
                     // Previous
-                    Logger.DebugFormat("Rewinding one dialog");
+                    Log.Debug("Rewinding one dialog");
                     ActiveDialog = ActiveDialogSequence.Dialogs[ActiveDialog.Index - 1];
                     return true;
                 }

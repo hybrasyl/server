@@ -26,15 +26,18 @@ using System.IO;
 using System.Reflection;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
-using log4net;
 using MoonSharp.Interpreter;
+using Serilog;
 
 namespace Hybrasyl.Scripting
 {
+    /// <summary>
+    /// A logging class that can be used by scripts natively in Lua.
+    /// </summary>
     [MoonSharpUserData]
+    
     public class ScriptLogger
     {
-        private static readonly ILog ScriptingLogger = LogManager.GetLogger(Assembly.GetEntryAssembly(),"ScriptingLog");
         
         public string ScriptName { get; set; }
 
@@ -43,19 +46,17 @@ namespace Hybrasyl.Scripting
             ScriptName = name;
         }
 
-        public void Info(string message) => ScriptingLogger.Info($"{ScriptName} : {message}");
-
-        public void Error(string message) => ScriptingLogger.Error($"{ScriptName} : {message}");
+        public void Info(string message) => Log.Information("{ScriptName} : {Message}", ScriptName, message);
+        public void Error(string message) => Log.Error("{ScriptName} : {Message}", ScriptName, message);
     }
 
     public class Script
     {
-        private static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-        private static readonly ILog ScriptingLogger = LogManager.GetLogger(Assembly.GetEntryAssembly(),"ScriptingLog");
 
         public string RawSource { get; set; }
         public string Name { get; set; }
         public string FullPath { get; private set; }
+        public string FileName => Path.GetFileName(FullPath);
 
         public ScriptProcessor Processor { get; set; }
         public MoonSharp.Interpreter.Script Compiled { get; private set; }
@@ -156,11 +157,13 @@ namespace Hybrasyl.Scripting
                 Compiled.Globals.Set("logger", UserData.Create(new ScriptLogger(Name)));
                 Compiled.DoFile(FullPath);
             }
-            catch (ScriptRuntimeException e)
+            catch (Exception ex) when (ex is InterpreterException)
             {
-                ScriptingLogger.Error($"Error executing script {FullPath}: {e.DecoratedMessage}, full stacktrace follows:\n{e.StackTrace}");
+                GameLog.ScriptingError("{Function}: Error executing script {FileName}: {Message}",
+                                MethodBase.GetCurrentMethod().Name, FileName, 
+                                (ex as InterpreterException).DecoratedMessage);
                 Disabled = true;
-                CompilationError = e.ToString();
+                CompilationError = ex.ToString();
                 return false;
             }
 
@@ -195,11 +198,13 @@ namespace Hybrasyl.Scripting
                 // We pass Compiled.Globals here to make sure that the updated table (with new variables) makes it over
                 Compiled.DoString(expr, Compiled.Globals);
             }
-            catch (ScriptRuntimeException e)
+            catch (Exception ex) when (ex is InterpreterException)
             {
-                ScriptingLogger.Error($"{Name}: Error executing expression: {expr}: \n{e.DecoratedMessage} full stacktrace follows:\n{e.StackTrace}");
+                GameLog.ScriptingError("{Function}: Error executing expression {expr} in {FileName} (invoker {Invoker}): {Message}",
+                    MethodBase.GetCurrentMethod().Name, expr, FileName, (invoker as WorldObject).Name,
+                    (ex as InterpreterException).DecoratedMessage);
                 //Disabled = true;
-                CompilationError = e.ToString();
+                CompilationError = ex.ToString();
                 return false;
             }
             return true;
@@ -215,11 +220,13 @@ namespace Hybrasyl.Scripting
                 Compiled.Globals.Set("invoker", GetUserDataValue(invoker));
                 return Compiled.DoString(expr);
             }
-            catch (ScriptRuntimeException e)
+            catch (Exception ex) when (ex is InterpreterException)
             {
-                ScriptingLogger.Error($"{Name}: Error executing expression: {expr}: \n{e.DecoratedMessage} full stacktrace follows:\n{e.StackTrace}");
-                //Disabled = true;
-                CompilationError = e.ToString();
+                GameLog.ScriptingError("{Function}: Error executing expression: {expr} in {FileName} (invoker {Invoker}): {Message}",
+                    MethodBase.GetCurrentMethod().Name, expr, FileName, (invoker as WorldObject).Name,
+                    (ex as InterpreterException).DecoratedMessage);
+                 //Disabled = true;
+                CompilationError = ex.ToString();
                 return DynValue.Nil;
             }
         }
@@ -240,14 +247,15 @@ namespace Hybrasyl.Scripting
                 else
                     return false;
             }
-            catch (ScriptRuntimeException e)
+            catch (Exception ex) when (ex is InterpreterException)
             {
-                ScriptingLogger.Error($"{Name}: Error executing expression: {functionName} ({e.DecoratedMessage}) full stacktrace follows:\n{e.StackTrace}");
+                GameLog.ScriptingError("{Function}: Error executing function {ScriptFunction} in {FileName} (invoker {Invoker}): {Message}",
+                    MethodBase.GetCurrentMethod().Name, functionName, FileName, (invoker as WorldObject).Name,
+                    (ex as InterpreterException).DecoratedMessage);
                 //Disabled = true;
-                CompilationError = e.ToString();
+                CompilationError = ex.ToString();
                 return false;
             }
-
             return true;
         }
 
@@ -266,11 +274,12 @@ namespace Hybrasyl.Scripting
                 else
                     return false;
             }
-            catch (ScriptRuntimeException e)
+            catch (Exception ex) when (ex is InterpreterException)
             {
-                ScriptingLogger.Error($"{Name}: Error executing function: {functionName} ({e.DecoratedMessage}) , full stacktrace follows:\n\n{e.StackTrace}");
-                //Disabled = true;
-                CompilationError = e.ToString();
+                GameLog.ScriptingError("{Function}: Error executing script function {ScriptFunction} in {FileName} (invoker {Invoker}): {Message}",
+                    MethodBase.GetCurrentMethod().Name, functionName, (invoker as WorldObject).Name, FileName,
+                    (ex as InterpreterException).DecoratedMessage);
+                CompilationError = ex.ToString();
                 return false;
             }
 
@@ -290,11 +299,12 @@ namespace Hybrasyl.Scripting
                 else
                     return false;
             }
-            catch (ScriptRuntimeException e)
+            catch (Exception ex) when (ex is InterpreterException)
             {
-                ScriptingLogger.Error($"{Name}: Error executing function: {functionName} ({e.DecoratedMessage}) , full stacktrace follows:\n{e.StackTrace}");
-                //Disabled = true;
-                CompilationError = e.ToString();
+                GameLog.ScriptingError("{Function}: Error executing script function {ScriptFunction} in {FileName}: {Message}",
+                    MethodBase.GetCurrentMethod().Name, functionName, FileName,
+                    (ex as InterpreterException).DecoratedMessage);
+                CompilationError = ex.ToString();
                 return false;
             }
 

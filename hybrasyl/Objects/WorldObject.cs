@@ -27,7 +27,7 @@ using System.Drawing;
 using C3;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Scripting;
-using log4net;
+using Serilog;
 using Newtonsoft.Json;
 
 namespace Hybrasyl.Objects
@@ -35,10 +35,6 @@ namespace Hybrasyl.Objects
     [JsonObject(MemberSerialization.OptIn)]
     public class WorldObject : IQuadStorable
     {
-        public static readonly ILog Logger =
-               LogManager.GetLogger(
-               System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
         /// <summary>
         /// The rectangle that defines the object's boundaries.
         /// </summary>
@@ -96,7 +92,7 @@ namespace Hybrasyl.Objects
 
             if (SequenceCatalog.ContainsKey(pursuit.Name))
             {
-                Logger.WarnFormat("Pursuit {0} is being overwritten", pursuit.Name);
+                GameLog.WarningFormat("Pursuit {0} is being overwritten", pursuit.Name);
                 SequenceCatalog.Remove(pursuit.Name);
 
             }
@@ -117,7 +113,7 @@ namespace Hybrasyl.Objects
 
             if (SequenceCatalog.ContainsKey(sequence.Name))
             {
-                Logger.WarnFormat("Dialog sequence {0} is being overwritten", sequence.Name);
+                GameLog.WarningFormat("Dialog sequence {0} is being overwritten", sequence.Name);
                 SequenceCatalog.Remove(sequence.Name);
 
             }

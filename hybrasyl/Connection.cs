@@ -20,7 +20,6 @@
  *
  */
 
-using log4net;
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -31,7 +30,6 @@ namespace Hybrasyl
 
     public static class GlobalConnectionManifest
     {
-        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         private static long _connectionId = 0;
         public static long GetNewConnectionId()
         {
@@ -63,7 +61,7 @@ namespace Hybrasyl
         public static void DeregisterClient(Client client)
         {
             ((IDictionary) ConnectedClients).Remove(client.ConnectionId);
-                Logger.InfoFormat("Deregistering {0}", client.ConnectionId);
+                GameLog.InfoFormat("Deregistering {0}", client.ConnectionId);
             // Send a control message to clean up after World users; Lobby and Login handle themselves
             if (client.ServerType == ServerTypes.World)
             {
@@ -76,8 +74,6 @@ namespace Hybrasyl
 
     public class HybrasylMessage
     {
-        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
         public Int64 Ticks { get; private set; }
         // Maybe this can be like, idk, function name or something? Thread context? Whatever?
         public string Sender { get; private set; }

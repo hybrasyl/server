@@ -41,12 +41,12 @@ namespace Hybrasyl
         public Login(int port)
             : base(port)
         {
-            Logger.InfoFormat("LoginConstructor: port is {0}", port);
+            GameLog.InfoFormat("LoginConstructor: port is {0}", port);
 
             PacketHandlers = new LoginPacketHandler[256];
 
             for (int i = 0; i < 256; ++i)
-                PacketHandlers[i] = (c, p) => Logger.WarnFormat("Login: Unhandled opcode 0x{0:X2}", p.Opcode);
+                PacketHandlers[i] = (c, p) => GameLog.WarningFormat("Login: Unhandled opcode 0x{0:X2}", p.Opcode);
 
             PacketHandlers[0x02] = PacketHandler_0x02_CreateA;
             PacketHandlers[0x03] = PacketHandler_0x03_Login;
@@ -98,35 +98,35 @@ namespace Hybrasyl
         {
             var name = packet.ReadString8();
             var password = packet.ReadString8();
-            Logger.DebugFormat("cid {0}: Login request for {1}", client.ConnectionId, name);
+            GameLog.DebugFormat("cid {0}: Login request for {1}", client.ConnectionId, name);
 
             User loginUser;
 
             if (!World.TryGetUser(name, out loginUser))
             {
                 client.LoginMessage("That character does not exist", 3);
-                Logger.InfoFormat("cid {0}: attempt to login as nonexistent character {1}", client.ConnectionId, name);
+                GameLog.InfoFormat("cid {0}: attempt to login as nonexistent character {1}", client.ConnectionId, name);
 
             }
             else if (loginUser.VerifyPassword(password))
             {
-                Logger.DebugFormat("cid {0}: password verified for {1}", client.ConnectionId, name);
+                GameLog.DebugFormat("cid {0}: password verified for {1}", client.ConnectionId, name);
 
                 if (Game.World.ActiveUsersByName.ContainsKey(name))
                 {
-                    Logger.InfoFormat("cid {0}: {1} logging on again, disconnecting previous connection",
+                    GameLog.InfoFormat("cid {0}: {1} logging on again, disconnecting previous connection",
                         client.ConnectionId, name);
                     World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.LogoffUser, name));
                 }
 
-                Logger.DebugFormat("cid {0} ({1}): logging in", client.ConnectionId, name);
+                GameLog.DebugFormat("cid {0} ({1}): logging in", client.ConnectionId, name);
                 client.LoginMessage("\0", 0);
                 client.SendMessage("Welcome to Hybrasyl!", 3);
-                Logger.DebugFormat("cid {0} ({1}): sending redirect to world", client.ConnectionId, name);
+                GameLog.DebugFormat("cid {0} ({1}): sending redirect to world", client.ConnectionId, name);
 
                 var redirect = new Redirect(client, this, Game.World, name, client.EncryptionSeed,
                     client.EncryptionKey);
-                Logger.InfoFormat("cid {0} ({1}): login successful, redirecting to world server",
+                GameLog.InfoFormat("cid {0} ({1}): login successful, redirecting to world server",
                     client.ConnectionId, name);
                 client.Redirect(redirect);
                 loginUser.Login.LastLogin = DateTime.Now;
@@ -135,7 +135,7 @@ namespace Hybrasyl
             }
             else
             {
-                Logger.WarnFormat("cid {0} ({1}): password incorrect", client.ConnectionId, name);
+                GameLog.WarningFormat("cid {0} ({1}): password incorrect", client.ConnectionId, name);
                 client.LoginMessage("Incorrect password", 3);
                 loginUser.Login.LastLoginFailure = DateTime.Now;
                 loginUser.Login.LoginFailureCount++;
@@ -196,8 +196,8 @@ namespace Hybrasyl
                 IDatabase cache = World.DatastoreConnection.GetDatabase();
                 cache.Set(User.GetStorageKey(newPlayer.Name), newPlayer);
 
-//                    Logger.ErrorFormat("Error saving new player!");
-  //                  Logger.ErrorFormat(e.ToString());
+//                    GameLog.ErrorFormat("Error saving new player!");
+  //                  GameLog.ErrorFormat(e.ToString());
     //                client.LoginMessage("Unknown error. Contact admin@hybrasyl.com", 3);
       //          }
                 client.LoginMessage("\0", 0);
@@ -250,7 +250,7 @@ namespace Hybrasyl
             if (!World.TryGetUser(name, out player))
             {
                 client.LoginMessage(GetPasswordError(0x0E), 0x0E);
-                Logger.InfoFormat("cid {0}: Password change attempt on nonexistent player {1}", client.ConnectionId, name);
+                GameLog.InfoFormat("cid {0}: Password change attempt on nonexistent player {1}", client.ConnectionId, name);
                 return;
 
             }
@@ -268,19 +268,19 @@ namespace Hybrasyl
                     player.Save();
                     // Let the user know the good news.
                     client.LoginMessage("Your password has been changed successfully.", 0x0);
-                    Logger.InfoFormat("Password successfully changed for `{0}`", name);
+                    GameLog.InfoFormat("Password successfully changed for `{0}`", name);
                 }
                 else
                 {
                     client.LoginMessage(GetPasswordError(err), err);
-                    Logger.ErrorFormat("Invalid new password proposed during password change attempt for `{0}`", name);
+                    GameLog.ErrorFormat("Invalid new password proposed during password change attempt for `{0}`", name);
                 }
             }
                 // The current password is incorrect. Don't allow any changes to happen.
             else
             {
                 client.LoginMessage(GetPasswordError(0x0F), 0x0F);
-                Logger.ErrorFormat("Invalid current password during password change attempt for `{0}`", name);
+                GameLog.ErrorFormat("Invalid current password during password change attempt for `{0}`", name);
             }
         }
         

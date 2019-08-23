@@ -23,7 +23,7 @@
 
 using System.Reflection;
 using Hybrasyl.Objects;
-using log4net;
+using Serilog;
 using MoonSharp.Interpreter;
 
 namespace Hybrasyl.Scripting
@@ -32,10 +32,6 @@ namespace Hybrasyl.Scripting
     public class HybrasylWorldObject
     {
         internal WorldObject Obj { get; set; }
-
-        private static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-        private static readonly ILog ScriptingLogger = LogManager.GetLogger(Assembly.GetEntryAssembly(),"ScriptingLog");
-
 
         public string Name
         {
@@ -86,12 +82,11 @@ namespace Hybrasyl.Scripting
             }
         }
 
-
         public void RegisterSequence(HybrasylDialogSequence hybrasylSequence)
         {
             if (hybrasylSequence is null)
             {
-                ScriptingLogger.Error("RegisterSequence called with null/nil value. Check Lua");
+                GameLog.Error("RegisterSequence called with null/nil value. Check Lua");
                 return;       
             }
             if (Obj is VisibleObject && !(Obj is User))

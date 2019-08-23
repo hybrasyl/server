@@ -24,7 +24,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Hybrasyl.Config;
-using log4net;
+using Serilog;
 using MoonSharp.Interpreter;
 
 namespace Hybrasyl
@@ -40,10 +40,6 @@ namespace Hybrasyl
     [MoonSharpUserData]
     public class HybrasylTime
     {
-        public static ILog Logger =
-            LogManager.GetLogger(
-                System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
         public string AgeName => Age.Name;
         public HybrasylAge Age => Game.Config.Time.GetAgeFromTerranDatetime(TerranDateTime);
 

@@ -1,5 +1,5 @@
 ﻿using Hybrasyl.Objects;
-using log4net;
+
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -108,7 +108,6 @@ namespace Hybrasyl
     /// </summary>
     public abstract class Throttle : IThrottle
     {
-        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         public int Interval { get; set; }
         public int SquelchCount { get; set; }    
         public int SquelchInterval { get; set; }
@@ -140,22 +139,22 @@ namespace Hybrasyl
 
         public void OnThrottleStart(IThrottleTrigger trigger)
         {
-            Logger.Debug($"Client {trigger.Id}: throttled");
+            GameLog.Debug($"Client {trigger.Id}: throttled");
         }
 
         public void OnThrottleStop(IThrottleTrigger trigger)
         {
-            Logger.Debug($"Client {trigger.Id}: throttle expired");
+            GameLog.Debug($"Client {trigger.Id}: throttle expired");
         }
 
         public void OnSquelchStart(IThrottleTrigger trigger)
         {
-            Logger.Debug($"Client {trigger.Id}: squelched");
+            GameLog.Debug($"Client {trigger.Id}: squelched");
         }
 
         public void OnSquelchStop(IThrottleTrigger trigger)
         {
-            Logger.Debug($"Client {trigger.Id}: squelch expired");
+            GameLog.Debug($"Client {trigger.Id}: squelch expired");
         }
 
         public void OnDisconnectThreshold(IThrottleTrigger trigger)
@@ -225,20 +224,20 @@ namespace Hybrasyl
             try
             {
                 DateTime rightnow = DateTime.Now;
-                Logger.Warn($"Right now is {rightnow}");
+                GameLog.Warning($"Right now is {rightnow}");
                 var transmitInterval = (rightnow - info.LastReceived);
                 var acceptedInterval = (rightnow - info.LastAccepted);
                 info.PreviousReceived = info.LastReceived;
                 info.LastReceived = rightnow;
                 info.TotalReceived++;
-                Logger.Debug($"Begin: PA: {info.PreviousAccepted} LA: {info.LastAccepted} AInterval is {acceptedInterval.TotalMilliseconds} TInterval {transmitInterval.TotalMilliseconds}");
+                GameLog.Debug($"Begin: PA: {info.PreviousAccepted} LA: {info.LastAccepted} AInterval is {acceptedInterval.TotalMilliseconds} TInterval {transmitInterval.TotalMilliseconds}");
 
                 if (info.Throttled)
                 {
                     result = ThrottleResult.Throttled;
                     if (acceptedInterval.TotalMilliseconds >= ThrottleDuration && acceptedInterval.TotalMilliseconds >= Interval)
                     {
-                        Logger.Error($"Unthrottled: {acceptedInterval.TotalMilliseconds} > {ThrottleDuration} and {Interval}");
+                        GameLog.Error($"Unthrottled: {acceptedInterval.TotalMilliseconds} > {ThrottleDuration} and {Interval}");
                         info.Throttled = false;
                         info.TotalThrottled = 0;
                         result = ThrottleResult.ThrottleEnd;
@@ -249,7 +248,7 @@ namespace Hybrasyl
                     else
                     {
                         info.TotalThrottled++;
-                        Logger.Error($"Throttled, count is {info.TotalThrottled}");
+                        GameLog.Error($"Throttled, count is {info.TotalThrottled}");
 
                         result = ThrottleResult.Throttled;
                         if (ThrottleDisconnectThreshold > 0 && info.TotalThrottled > ThrottleDisconnectThreshold)
@@ -263,7 +262,7 @@ namespace Hybrasyl
                 {
                     if (acceptedInterval.TotalMilliseconds <= Interval && info.LastAccepted != DateTime.MinValue)
                     {
-                        Logger.Debug($"TInterval {transmitInterval}, AInterval {acceptedInterval} - maximum is {Interval}, throttled");
+                        GameLog.Debug($"TInterval {transmitInterval}, AInterval {acceptedInterval} - maximum is {Interval}, throttled");
                         info.Throttled = true;
                         OnThrottleStart(new ClientTrigger(client));
                         result = ThrottleResult.Throttled;
@@ -274,7 +273,7 @@ namespace Hybrasyl
                         info.LastAccepted = rightnow;
                         info.TotalAccepted++;
                         result = ThrottleResult.OK;
-                        Logger.Debug($"Packet accepted, PA: {info.PreviousAccepted} LA: {info.LastAccepted}");
+                        GameLog.Debug($"Packet accepted, PA: {info.PreviousAccepted} LA: {info.LastAccepted}");
                     }
                 }
             }
@@ -288,7 +287,7 @@ namespace Hybrasyl
         public void OnDisconnectThreshold(IClientTrigger trigger)
         {
             trigger.Client.SendMessage("You have been automatically disconnected due to server abuse. Goodbye!", MessageTypes.SYSTEM_WITH_OVERHEAD);
-            Logger.Warn($"Client {trigger.Id}: disconnected due to packet spam");
+            GameLog.Warning($"Client {trigger.Id}: disconnected due to packet spam");
             trigger.Client.Disconnect();
 
         }
