@@ -400,6 +400,8 @@ namespace Hybrasyl
                 a[0] = char.ToUpper(a[0]);
                 return new string(a);
             }
+            public static string Normalize(string key) => Regex.Replace(key.ToLower(), @"\s+", "");
+
         }
 
     } // end Namespace:Utility

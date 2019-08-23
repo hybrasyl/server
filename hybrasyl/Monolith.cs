@@ -334,6 +334,7 @@ namespace Hybrasyl
         {
             while (true)
             {
+                // Ignore processing if no one is logged in, what's the point
                 var mapsWithUsers = _maps.Where(x => x.Users.Count() > 0);
                 foreach (var map in mapsWithUsers)
                 {                   

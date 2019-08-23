@@ -262,7 +262,7 @@ namespace Hybrasyl
 
         internal void RegisterGlobalSequence(DialogSequence sequence)
         {
-            sequence.Id = (uint)GlobalSequences.Count();
+            sequence.Id = UInt16.MaxValue - (uint)GlobalSequences.Count();
             GlobalSequences.Add(sequence);
             GlobalSequencesCatalog.Add(sequence.Name, sequence);
         }
@@ -3610,7 +3610,7 @@ namespace Hybrasyl
             obj.Id = 0;
         }
 
-        public ItemObject CreateItem(int id, int quantity = 1)
+        public ItemObject CreateItem(string id, int quantity = 1)
         {
             if (WorldData.ContainsKey<Item>(id))
             {

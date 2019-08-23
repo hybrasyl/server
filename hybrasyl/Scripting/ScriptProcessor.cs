@@ -33,8 +33,8 @@ namespace Hybrasyl.Scripting
     public class ScriptProcessor
     {
 
-        private Dictionary<string, List<Script>> _scripts { get; set; }
         public HybrasylWorld World { get; private set; }
+        public Dictionary<string, List<Script>> _scripts { get; private set; }
 
         public ScriptProcessor(World world)
         {
@@ -66,6 +66,8 @@ namespace Hybrasyl.Scripting
         {
             script = null;
             if (TryGetScriptInstances(scriptName, out List<Script> s))
+            // Note that a request for RiOnA.lua == Riona == riona as long as
+            // riona exists
             {
                 script = s[0].Clone();
                 return true;
@@ -84,10 +86,20 @@ namespace Hybrasyl.Scripting
             _scripts[name].Add(script);
         }
 
-
         public bool DeregisterScript(string scriptName)
         {
             if (TryGetScriptInstances(scriptName, out List<Script> s))
+            var target = SanitizeName(script.Name);
+            if (!TryGetScriptInstances(target, out List<Script> scriptList))
+            {
+                _scripts[target] = new List<Script>();
+            }
+            _scripts[target].Add(script);
+        }
+
+        public bool Reload(string scriptName)
+        {
+            if (TryGetScriptInstances(SanitizeName(scriptName), out List<Script> s))
             {
                 foreach (var instance in s)
                 {
