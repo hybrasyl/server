@@ -251,7 +251,7 @@ namespace Hybrasyl
 
             // We log every LogType defined in our enumeration to its own file. Only the "general" type is sent to the console.
             var log = new LoggerConfiguration().MinimumLevel.ControlledBy(LevelSwitch).Enrich.WithThreadId().Enrich.WithExceptionData().
-                WriteTo.Map("LogType", "General", (name, wt) => wt.File($"{Path.Combine(Constants.DataDirectory, "logs")}/log-{name}.log", rollingInterval: RollingInterval.Day)).
+                WriteTo.Map("LogType", "General", (name, wt) => wt.File($"{Path.Combine(Constants.DataDirectory, "logs")}/{name}-.log", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 90, rollOnFileSizeLimit: true)).
                 WriteTo.Logger(lc => lc.Filter.ByIncludingOnly(GameLog.IsGeneralEvent).WriteTo.Console())
                 .CreateLogger();
 
