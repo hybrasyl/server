@@ -88,13 +88,12 @@ namespace Hybrasyl.Scripting
 
         public bool DeregisterScript(string scriptName)
         {
-            if (TryGetScriptInstances(scriptName, out List<Script> s))
-            var target = SanitizeName(script.Name);
-            if (!TryGetScriptInstances(target, out List<Script> scriptList))
+            if (TryGetScriptInstances(scriptName, out List<Script> scriptList))
             {
-                _scripts[target] = new List<Script>();
+                _scripts[scriptName] = new List<Script>();
+                return true;
             }
-            _scripts[target].Add(script);
+            return false;
         }
 
         public bool Reload(string scriptName)

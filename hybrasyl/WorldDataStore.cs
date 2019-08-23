@@ -1,5 +1,4 @@
-﻿using log4net;
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,7 +11,6 @@ namespace Hybrasyl
     {
         private ConcurrentDictionary<Type, ConcurrentDictionary<string, dynamic>> _dataStore;
         private ConcurrentDictionary<Type, ConcurrentDictionary<dynamic, dynamic>> _index;
-        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         /// <summary>
         /// Normalize keys by converting to lowercase and removing whitespace (this means that 
@@ -44,14 +42,6 @@ namespace Hybrasyl
             }
             _dataStore.TryAdd(typeof(T), new ConcurrentDictionary<string, dynamic>());
             return _dataStore[typeof(T)];
-        }
-
-        public T First<T>()
-        {
-            if (_dataStore.ContainsKey(typeof(T)))
-                return (T)_dataStore[typeof(T)].First().Value;
-            else
-                return default;
         }
 
         /// <summary>
