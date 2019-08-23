@@ -223,7 +223,7 @@ namespace Hybrasyl.Objects
         {
             // Run through all the different potential uses. We allow combinations of any
             // use specified in the item XML.
-            Logger.InfoFormat($"User {trigger.Name}: used item {Name}");
+            GameLog.InfoFormat($"User {trigger.Name}: used item {Name}");
             if (Use.Script != null)
             {
                 Script invokeScript;
@@ -240,7 +240,7 @@ namespace Hybrasyl.Objects
                 catch (Exception e)
                 {
                     trigger.SendSystemMessage("It doesn't work.");
-                    Logger.ErrorFormat($"User {trigger.Name}, item {Name}: exception {e}");
+                    GameLog.ErrorFormat($"User {trigger.Name}, item {Name}: exception {e}");
                 }              
             }            
             if (Use.Effect != null)

@@ -6,7 +6,6 @@ using Hybrasyl.Castables;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
 using Hybrasyl.Statuses;
-using log4net;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -129,11 +128,6 @@ namespace Hybrasyl
 
     public class CreatureStatus : ICreatureStatus
     {
-        public static readonly ILog Logger =
-           LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
-        private static readonly ILog ActivityLogger = LogManager.GetLogger(Assembly.GetEntryAssembly(),"UserActivityLogger");
-
         public string Name => XmlStatus.Name;
         public ushort Icon => XmlStatus.Icon;
         public double Tick { get; }

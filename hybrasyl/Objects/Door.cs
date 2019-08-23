@@ -20,14 +20,12 @@
  * 
  */
  
- using log4net;
+using Serilog;
 
 namespace Hybrasyl.Objects
 {
     public class Door : VisibleObject
     {
-        public new static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
         public bool Closed { get; set; }
         public bool IsLeftRight { get; set; }
         public bool UpdateCollision { get; set; }

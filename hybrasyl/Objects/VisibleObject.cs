@@ -25,7 +25,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using Hybrasyl.Enums;
-using log4net;
+using Serilog;
 using MoonSharp.Interpreter;
 using Newtonsoft.Json;
 
@@ -35,9 +35,6 @@ namespace Hybrasyl.Objects
     public class VisibleObject : WorldObject
     {
         public static Random _random = new Random();
-        public new static readonly ILog Logger =
-               LogManager.GetLogger(
-               System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         [JsonProperty]
         public LocationInfo Location { get; set; }
@@ -143,11 +140,11 @@ namespace Hybrasyl.Objects
         public virtual void Show()
         {
             var withinViewport = Map.EntityTree.GetObjects(GetViewport());
-            Logger.DebugFormat("WithinViewport contains {0} objects", withinViewport.Count);
+            GameLog.DebugFormat("WithinViewport contains {0} objects", withinViewport.Count);
 
             foreach (var obj in withinViewport)
             {
-                Logger.DebugFormat("Object type is {0} and its name is {1}", obj.GetType(), obj.Name);
+                GameLog.DebugFormat("Object type is {0} and its name is {1}", obj.GetType(), obj.Name);
                 obj.AoiEntry(this);
             }
         }
@@ -173,7 +170,7 @@ namespace Hybrasyl.Objects
         {
             if (!World.WorldData.ContainsKey<Map>(mapid)) return;
             Map?.Remove(this);
-            Logger.DebugFormat("Teleporting {0} to {1}.", Name, World.WorldData.Get<Map>(mapid).Name);
+            GameLog.DebugFormat("Teleporting {0} to {1}.", Name, World.WorldData.Get<Map>(mapid).Name);
             World.WorldData.Get<Map>(mapid).Insert(this, x, y);
         }
 
@@ -182,7 +179,7 @@ namespace Hybrasyl.Objects
             Map targetMap;
             if (!World.WorldData.TryGetValueByIndex(name, out targetMap)) return;
             Map?.Remove(this);
-            Logger.DebugFormat("Teleporting {0} to {1}.", Name, targetMap.Name);
+            GameLog.DebugFormat("Teleporting {0} to {1}.", Name, targetMap.Name);
             targetMap.Insert(this, x, y);
         }
 
@@ -205,7 +202,7 @@ namespace Hybrasyl.Objects
                     x0D.WriteString8($"{from}: {message}");
                 else
                     x0D.WriteString8($"{Name}: {message}");
-                Logger.InfoFormat("Saying to {0}", user.Name);
+                GameLog.InfoFormat("Saying to {0}", user.Name);
                 user.Enqueue(x0D);
             }
         }
@@ -222,7 +219,7 @@ namespace Hybrasyl.Objects
                     x0D.WriteString8($"{from}! {message}");
                 else
                     x0D.WriteString8($"{Name}: {message}");
-                Logger.InfoFormat("Shouting to {0}", user.Name);
+                GameLog.InfoFormat("Shouting to {0}", user.Name);
                 user.Enqueue(x0D);
 
             }
@@ -315,14 +312,17 @@ namespace Hybrasyl.Objects
 
             foreach (var pursuit in Pursuits)
             {
-                Logger.DebugFormat("Pursuit {0}, id {1}", pursuit.Name, pursuit.Id);
+                GameLog.DebugFormat("Pursuit {0}, id {1}", pursuit.Name, pursuit.Id);
                 if (pursuit.MenuCheckExpression != string.Empty)
                 {
-                    var ret = Script.ExecuteAndReturn(pursuit.MenuCheckExpression, this);
+                    var ret = Script.ExecuteAndReturn(pursuit.MenuCheckExpression, invoker);
                     // If the menu check expression returns anything other than true, we don't include the 
                     // pursuit on the main menu that is sent to the user
-                    if (ret != DynValue.True)
+                    if (!ret.CastToBool())
+                    {
+                        GameLog.ScriptingDebug($"{pursuit.MenuCheckExpression} evaluated to {ret}");
                         continue;
+                    }
                 }
                 options.Options.Add(new MerchantDialogOption { Id = (ushort)pursuit.Id.Value, Text = pursuit.Name} );
                 optionsCount++;

@@ -25,15 +25,13 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Hybrasyl.Enums;
-using log4net;
+using Serilog;
 using MoonSharp.Interpreter;
 
 namespace Hybrasyl.Scripting
 {
     public class ScriptProcessor
     {
-        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-        private static readonly ILog ScriptingLogger = LogManager.GetLogger(Assembly.GetEntryAssembly(),"ScriptingLog");
 
         public HybrasylWorld World { get; private set; }
         public Dictionary<string, List<Script>> _scripts { get; private set; }
@@ -64,13 +62,12 @@ namespace Hybrasyl.Scripting
             }
             return false;
         }
-
         public bool TryGetScript(string scriptName, out Script script)
         {
             script = null;
+            if (TryGetScriptInstances(scriptName, out List<Script> s))
             // Note that a request for RiOnA.lua == Riona == riona as long as
             // riona exists
-            if (TryGetScriptInstances(SanitizeName(scriptName), out List<Script> s))
             {
                 script = s[0].Clone();
                 return true;
@@ -81,12 +78,22 @@ namespace Hybrasyl.Scripting
         public void RegisterScript(Script script)
         {
             script.Run();
-            var target = SanitizeName(script.Name);
-            if (!TryGetScriptInstances(target, out List<Script> scriptList))
+            var name = SanitizeName(script.Name);
+            if (!_scripts.ContainsKey(name))
             {
-                _scripts[target] = new List<Script>();
+                _scripts[name] = new List<Script>();
             }
-            _scripts[target].Add(script);
+            _scripts[name].Add(script);
+        }
+
+        public bool DeregisterScript(string scriptName)
+        {
+            if (TryGetScriptInstances(scriptName, out List<Script> scriptList))
+            {
+                _scripts[scriptName] = new List<Script>();
+                return true;
+            }
+            return false;
         }
 
         public bool Reload(string scriptName)
@@ -96,7 +103,7 @@ namespace Hybrasyl.Scripting
                 foreach (var instance in s)
                 {
                     instance.Reload();
-                    Logger.Info($"Reloading instance of {scriptName}: associate was {instance.Associate?.Name ?? "None"}");
+                    GameLog.ScriptingInfo($"Reloading instance of {scriptName}: associate was {instance.Associate?.Name ?? "None"}");
                 }
                 return true;
             }

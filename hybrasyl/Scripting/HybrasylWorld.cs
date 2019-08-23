@@ -21,7 +21,6 @@
  */
 
 using Hybrasyl.Dialogs;
-using log4net;
 using MoonSharp.Interpreter;
 using System;
 using System.Collections;
@@ -35,7 +34,6 @@ namespace Hybrasyl.Scripting
     public class HybrasylDialogOptions
     {
         public OrderedDictionary Options;
-        private static readonly ILog ScriptingLogger = LogManager.GetLogger(Assembly.GetEntryAssembly(),"ScriptingLog");
 
         public HybrasylDialogOptions()
         {
@@ -52,15 +50,13 @@ namespace Hybrasyl.Scripting
             if (nextDialog.DialogType == typeof(JumpDialog))
                 Options.Add(option, nextDialog);
             else
-                ScriptingLogger.Error($"Dialog option {option}: unsupported dialog type {nextDialog.DialogType.Name}");
+                GameLog.Error($"Dialog option {option}: unsupported dialog type {nextDialog.DialogType.Name}");
         }
     }
 
     [MoonSharpUserData]
     public class HybrasylWorld
     {
-        private static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-        private static readonly ILog ScriptingLogger = LogManager.GetLogger(Assembly.GetEntryAssembly(),"ScriptingLog");
 
         internal World World { get; set; }
 
@@ -71,7 +67,7 @@ namespace Hybrasyl.Scripting
 
         public void WriteLog(string message)
         {
-            ScriptingLogger.Info(message);
+            GameLog.Info(message);
         }
 
         public int CurrentInGameYear => HybrasylTime.CurrentYear;
@@ -90,7 +86,7 @@ namespace Hybrasyl.Scripting
             var dialogSequence = new HybrasylDialogSequence(sequenceName);
             foreach (var entry in list)
             {
-                Logger.InfoFormat("Type is {0}", entry.GetType().ToString());
+                GameLog.InfoFormat("Type is {0}", entry.GetType().ToString());
                 if (entry is HybrasylDialog)
                 {
                     var newdialog = entry as HybrasylDialog;
@@ -99,7 +95,7 @@ namespace Hybrasyl.Scripting
                 }
                 else
                 {
-                    ScriptingLogger.Error($"Unknown parameter type {entry.GetType()} passed to NewDialogSequence, ignored");
+                    GameLog.Error($"Unknown parameter type {entry.GetType()} passed to NewDialogSequence, ignored");
                 }
             }
             return dialogSequence;
@@ -135,16 +131,16 @@ namespace Hybrasyl.Scripting
                         // Dialog jump
                         dialog.AddDialogOption(entry.Key as string, hd.Dialog as JumpDialog);
                     else
-                        ScriptingLogger.Error("Unknown dialog type {0} in NewOptionsDialog - only JumpDialog is allowed currently");
+                        GameLog.Error("Unknown dialog type {0} in NewOptionsDialog - only JumpDialog is allowed currently");
                 }
                 else if (entry.Value is null)
                     // This is JUST an option, with no callback or jump dialog. The dialog handler will process the option itself.
                     dialog.AddDialogOption(entry.Key as string);
                 else
-                    ScriptingLogger.Error($"Unknown type {entry.Value.GetType().Name} passed as argument to NewOptionsDialog call");
+                    GameLog.Error($"Unknown type {entry.Value.GetType().Name} passed as argument to NewOptionsDialog call");
             }
             if (dialog.OptionCount == 0)
-                ScriptingLogger.Warn($"OptionsDialog with no options created. This dialog WILL NOT render. DisplayText follows: {displayText}");
+                GameLog.Warning($"OptionsDialog with no options created. This dialog WILL NOT render. DisplayText follows: {displayText}");
             dialog.SetInputHandler(handler);
             dialog.SetCallbackHandler(callback);
             return new HybrasylDialog(dialog);

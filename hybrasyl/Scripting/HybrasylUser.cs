@@ -28,7 +28,7 @@ using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
 using Hybrasyl.Items;
 using Hybrasyl.Objects;
-using log4net;
+using Serilog;
 using MoonSharp.Interpreter;
 
 namespace Hybrasyl.Scripting
@@ -36,14 +36,13 @@ namespace Hybrasyl.Scripting
     [MoonSharpUserData]
     public class HybrasylUser
     {
-        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
         internal User User { get; set; }
         internal HybrasylWorld World { get; set; }
         internal HybrasylMap Map { get; set; }
         public string Name => User.Name;
         public byte X => User.X;
         public byte Y => User.Y;
+        public Enums.Class Class => User.Class;
 
 
         public Sex Sex => User.Sex;
@@ -113,10 +112,39 @@ namespace Hybrasyl.Scripting
             return User.Legend.TryGetMark(prefix, out mark) ? mark : (object)null;
         }
 
-        public void ChangeClass(Enums.Class newClass)
+        public void ChangeClass(Enums.Class newClass, string oathGiver)
         {
             User.Class = newClass;
             User.UpdateAttributes(StatUpdateFlags.Full);
+            LegendIcon icon;
+            string legendtext;
+            // this is annoying af
+            switch (newClass)
+            {
+                case Enums.Class.Monk:
+                    icon = LegendIcon.Monk;
+                    legendtext = $"Monk by oath of {oathGiver}";
+                    break;
+                case Enums.Class.Priest:
+                    icon = LegendIcon.Priest;
+                    legendtext = $"Priest by oath of {oathGiver}";
+                    break;
+                case Enums.Class.Rogue:
+                    icon = LegendIcon.Rogue;
+                    legendtext = $"Rogue by oath of {oathGiver}";
+                    break;
+                case Enums.Class.Warrior:
+                    icon = LegendIcon.Warrior;
+                    legendtext = $"Warrior by oath of {oathGiver}";
+                    break;
+                case Enums.Class.Wizard:
+                    icon = LegendIcon.Wizard;
+                    legendtext = $"Monk by oath of {oathGiver}";
+                    break;
+                default:
+                    throw new ArgumentException("Invalid class");
+            }
+            User.Legend.AddMark(icon, LegendColor.White, legendtext, "CLS");
         }
         public Legend GetLegend()
         {
@@ -140,7 +168,7 @@ namespace Hybrasyl.Scripting
             }
             catch (ArgumentException)
             {
-                Logger.ErrorFormat("Legend mark: {0}: duplicate prefix {1}", User.Name, prefix);
+                GameLog.ErrorFormat("Legend mark: {0}: duplicate prefix {1}", User.Name, prefix);
             }
             return false;
         }
@@ -167,11 +195,11 @@ namespace Hybrasyl.Scripting
                     User.SetSessionCookie(cookieName, value);
                 else
                     User.SetSessionCookie(cookieName, value.ToString());
-                Logger.DebugFormat("{0} - set session cookie {1} to {2}", User.Name, cookieName, value);
+                GameLog.DebugFormat("{0} - set session cookie {1} to {2}", User.Name, cookieName, value);
             }
             catch (Exception e)
             {
-                Logger.WarnFormat("{0}: value could not be converted to string? {1}", User.Name, e.ToString());
+                GameLog.WarningFormat("{0}: value could not be converted to string? {1}", User.Name, e.ToString());
             }
         }
 
@@ -183,11 +211,11 @@ namespace Hybrasyl.Scripting
                     User.SetCookie(cookieName, value);
                 else
                     User.SetCookie(cookieName, value.ToString());
-                Logger.DebugFormat("{0} - set cookie {1} to {2}", User.Name, cookieName, value);
+                GameLog.DebugFormat("{0} - set cookie {1} to {2}", User.Name, cookieName, value);
             }
             catch (Exception e)
             {
-                Logger.WarnFormat("{0}: value could not be converted to string? {1}", User.Name, e.ToString());
+                GameLog.WarningFormat("{0}: value could not be converted to string? {1}", User.Name, e.ToString());
             }
 
         }
@@ -314,6 +342,8 @@ namespace Hybrasyl.Scripting
             User.SendMessage(message, Hybrasyl.MessageTypes.SYSTEM_WITH_OVERHEAD);
         }
 
+        public bool IsPeasant() => User.Class == Enums.Class.Peasant;
+
         public void Whisper(string name, string message)
         {
             User.SendWhisper(name, message);
@@ -342,21 +372,23 @@ namespace Hybrasyl.Scripting
         {
             DialogSequence sequence = null;
             VisibleObject associate = null;
-            Logger.DebugFormat("{0} starting sequence {1}", User.Name, sequenceName);
+            GameLog.DebugFormat("{0} starting sequence {1}", User.Name, sequenceName);
 
             // If we're using a new associate, we will consult that to find our sequence
             if (associateOverride == null)
+            {
                 if (User.DialogState.Associate != null)
                     associate = User.DialogState.Associate as VisibleObject;
                 else if (User.LastAssociate != null)
                     associate = User.LastAssociate;
+            }
             else
                 associate = associateOverride.Obj as VisibleObject;
 
             // Use the local catalog for sequences first, then consult the global catalog
             if (associate == null)
             {
-                Logger.Warn($"Sequence {sequenceName}: no associate found, you better hope this is a very simple dialog sequence with no callbacks");
+                GameLog.Warning($"Sequence {sequenceName}: no associate found, you better hope this is a very simple dialog sequence with no callbacks");
                 Game.World.GlobalSequencesCatalog.TryGetValue(sequenceName, out sequence);
             }
             else {
@@ -365,7 +397,7 @@ namespace Hybrasyl.Scripting
 
             if (sequence == null)
             {
-                Logger.ErrorFormat("called from {0}: sequence name {1} cannot be found!",
+                GameLog.ErrorFormat("called from {0}: sequence name {1} cannot be found!",
                     associate.Name, sequenceName);
                 // To be safe, terminate all dialog state
                 User.DialogState.EndDialog();

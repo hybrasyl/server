@@ -1,5 +1,4 @@
-﻿using log4net;
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,7 +11,6 @@ namespace Hybrasyl
     {
         private ConcurrentDictionary<Type, ConcurrentDictionary<string, dynamic>> _dataStore;
         private ConcurrentDictionary<Type, ConcurrentDictionary<dynamic, dynamic>> _index;
-        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         /// <summary>
         /// Normalize keys by converting to lowercase and removing whitespace (this means that 
@@ -128,9 +126,10 @@ namespace Hybrasyl
         {
             tresult = default(T);
             var sub = GetSubIndex<T>();
+
             if (!sub.ContainsKey(key.ToString().Normalize()))
             {
-                Logger.Error($"TryGetValueByIndex: type {typeof(T)}: key {key.ToString().Normalize()} not found");
+                GameLog.Error($"TryGetValueByIndex: type {typeof(T)}: key {key.ToString().Normalize()} not found");
                 return false;
             }
             tresult = (T)sub[key.ToString().Normalize()];

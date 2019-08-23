@@ -1,5 +1,4 @@
 using Hybrasyl.Castables;
-using log4net;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -92,7 +91,6 @@ namespace Hybrasyl
     {
         private Castable[] _items;
         private Dictionary<int, Castable> _itemIndex;
-        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         public bool IsFull => Count == Size;
 

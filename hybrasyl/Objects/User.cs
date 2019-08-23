@@ -25,7 +25,6 @@ using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
 using Hybrasyl.Castables;
 using Hybrasyl.Nations;
-using log4net;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
@@ -76,12 +75,6 @@ namespace Hybrasyl.Objects
     public class User : Creature
     {
         private object _serializeLock = new object();
-
-        public new static readonly ILog Logger =
-               LogManager.GetLogger(
-               System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
-        private static readonly ILog ActivityLogger = LogManager.GetLogger(Assembly.GetEntryAssembly(), "UserActivityLogger");
 
         public static string GetStorageKey(string name)
         {
@@ -315,7 +308,7 @@ namespace Hybrasyl.Objects
 
         public void Enqueue(ServerPacket packet)
         {
-            Logger.DebugFormat("Sending {0:X2} to {1}", packet.Opcode, Name);
+            GameLog.DebugFormat("Sending {0:X2} to {1}", packet.Opcode, Name);
             if (Client == null)
                 LoginQueue.Enqueue(packet);
             else
@@ -325,14 +318,14 @@ namespace Hybrasyl.Objects
         public override void AoiEntry(VisibleObject obj)
         {
             base.AoiEntry(obj);
-            Logger.DebugFormat("Showing {0} to {1}", Name, obj.Name);
+            GameLog.DebugFormat("Showing {0} to {1}", Name, obj.Name);
             obj.ShowTo(this);
         }
 
         public override void AoiDeparture(VisibleObject obj)
         {
             base.AoiDeparture(obj);
-            Logger.DebugFormat("Removing ItemObject with ID {0}", obj.Id);
+            GameLog.DebugFormat("Removing ItemObject with ID {0}", obj.Id);
             var removePacket = new ServerPacket(0x0E);
             removePacket.WriteUInt32(obj.Id);
             Enqueue(removePacket);
@@ -341,7 +334,7 @@ namespace Hybrasyl.Objects
         public void AoiDeparture(VisibleObject obj, int transmitDelay)
         {
             base.AoiDeparture(obj);
-            Logger.DebugFormat("Removing ItemObject with ID {0}", obj.Id);
+            GameLog.DebugFormat("Removing ItemObject with ID {0}", obj.Id);
             var removePacket = new ServerPacket(0x0E);
             removePacket.TransmitDelay = transmitDelay;
             removePacket.WriteUInt32(obj.Id);
@@ -386,8 +379,8 @@ namespace Hybrasyl.Objects
                 color = StatusBarColor.Off;
 
             statuspacket.BarColor = color;
-            Logger.DebugFormat($"{Name} - status update - sending Icon: {statuspacket.Icon}, Color: {statuspacket.BarColor}");
-            Logger.DebugFormat($"{Name} - status: {status.Name}, expired: {status.Expired}, remaining: {remaining}, duration: {status.Duration}");
+            GameLog.DebugFormat($"{Name} - status update - sending Icon: {statuspacket.Icon}, Color: {statuspacket.BarColor}");
+            GameLog.DebugFormat($"{Name} - status: {status.Name}, expired: {status.Expired}, remaining: {remaining}, duration: {status.Duration}");
             Enqueue(statuspacket.Packet());
         }
 
@@ -857,7 +850,7 @@ namespace Hybrasyl.Objects
         {
             // Given an ItemObject, set our bonuses appropriately.
             // We might want to do this with reflection eventually?
-            Logger.DebugFormat("Bonuses are: {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11}",
+            GameLog.DebugFormat("Bonuses are: {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11}",
                 toApply.BonusHp, toApply.BonusHp, toApply.BonusStr, toApply.BonusInt, toApply.BonusWis,
                 toApply.BonusCon, toApply.BonusDex, toApply.BonusHit, toApply.BonusDmg, toApply.BonusAc,
                 toApply.BonusMr, toApply.BonusRegen);
@@ -885,7 +878,7 @@ namespace Hybrasyl.Objects
                     break;
             }
 
-            Logger.DebugFormat(
+            GameLog.DebugFormat(
                 "Player {0}: stats now {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11}, {12}, {13}",
                 Stats.BonusHp, Stats.BonusHp, Stats.BonusStr, Stats.BonusInt, Stats.BonusWis,
                 Stats.BonusCon, Stats.BonusDex, Stats.BonusHit, Stats.BonusDmg, Stats.BonusAc,
@@ -974,13 +967,13 @@ namespace Hybrasyl.Objects
         {
             try
             {
-                Logger.DebugFormat("Setting property value {0} to {1}", info.Name, value.ToString());
+                GameLog.DebugFormat("Setting property value {0} to {1}", info.Name, value.ToString());
                 info.SetValue(instance, Convert.ChangeType(value, info.PropertyType));
             }
             catch (Exception e)
             {
-                Logger.ErrorFormat("Exception trying to set {0} to {1}", info.Name, value.ToString());
-                Logger.ErrorFormat(e.ToString());
+                GameLog.ErrorFormat("Exception trying to set {0} to {1}", info.Name, value.ToString());
+                GameLog.ErrorFormat(e.ToString());
                 throw;
             }
 
@@ -1120,7 +1113,7 @@ namespace Hybrasyl.Objects
 
         public void SendVisibleGold(Gold gold)
         {
-            Logger.DebugFormat("Sending add visible ItemObject packet");
+            GameLog.DebugFormat("Sending add visible ItemObject packet");
             var x07 = new ServerPacket(0x07);
             x07.WriteUInt16(1);
             x07.WriteUInt16(gold.X);
@@ -1243,7 +1236,7 @@ namespace Hybrasyl.Objects
 
         public void SendVisibleItem(ItemObject itemObject)
         {
-            Logger.DebugFormat("Sending add visible ItemObject packet");
+            GameLog.DebugFormat("Sending add visible ItemObject packet");
             var x07 = new ServerPacket(0x07);
             x07.WriteUInt16(1); // Anything but 0x0001 does nothing or makes client crash
             x07.WriteUInt16(itemObject.X);
@@ -1257,7 +1250,7 @@ namespace Hybrasyl.Objects
 
         public void SendVisibleCreature(Creature creature)
         {
-            Logger.DebugFormat("Sending add visible creature packet");
+            GameLog.DebugFormat("Sending add visible creature packet");
             var x07 = new ServerPacket(0x07);
             x07.WriteUInt16(1); // Anything but 0x0001 does nothing or makes client crash
             x07.WriteUInt16(creature.X);
@@ -1284,7 +1277,7 @@ namespace Hybrasyl.Objects
             if (!Condition.Alive)
                 offset += 0x20;
 
-            Logger.Debug($"Offset is: {offset.ToString("X")}");
+            GameLog.Debug($"Offset is: {offset.ToString("X")}");
             // Figure out what we're sending as the "helmet"
             var helmet = Equipment.Helmet?.DisplaySprite ?? HairStyle;
             helmet = Equipment.DisplayHelm?.DisplaySprite ?? helmet;
@@ -1412,7 +1405,7 @@ namespace Hybrasyl.Objects
                 return;
             }
 
-            Logger.DebugFormat("Adding {0} qty {1} to slot {2}",
+            GameLog.DebugFormat("Adding {0} qty {1} to slot {2}",
                 itemObject.Name, itemObject.Count, slot);
             var x0F = new ServerPacket(0x0F);
             x0F.WriteByte((byte)slot);
@@ -1434,7 +1427,7 @@ namespace Hybrasyl.Objects
                 SendClearSkill(slot);
                 return;
             }
-            Logger.DebugFormat("Adding skill {0} to slot {2}",
+            GameLog.DebugFormat("Adding skill {0} to slot {2}",
                 item.Name, slot);
             var x2C = new ServerPacket(0x2C);
             x2C.WriteByte((byte)slot);
@@ -1450,7 +1443,7 @@ namespace Hybrasyl.Objects
                 SendClearSpell(slot);
                 return;
             }
-            Logger.DebugFormat("Adding spell {0} to slot {2}",
+            GameLog.DebugFormat("Adding spell {0} to slot {2}",
                 item.Name, slot);
             var x17 = new ServerPacket(0x17);
             x17.WriteByte((byte)slot);
@@ -1697,10 +1690,10 @@ namespace Hybrasyl.Objects
                 // Is the player trying to walk into an occupied tile?
                 foreach (var obj in Map.GetTileContents((byte)newX, (byte)newY))
                 {
-                    Logger.DebugFormat("Collsion check: found obj {0}", obj.Name);
+                    GameLog.DebugFormat("Collsion check: found obj {0}", obj.Name);
                     if (obj is Creature)
                     {
-                        Logger.DebugFormat("Walking prohibited: found {0}", obj.Name);
+                        GameLog.DebugFormat("Walking prohibited: found {0}", obj.Name);
                         Refresh();
                         return false;
                     }
@@ -1733,10 +1726,10 @@ namespace Hybrasyl.Objects
 
             commonViewport = new Rectangle(oldX - halfViewport, oldY - halfViewport, Constants.VIEWPORT_SIZE, Constants.VIEWPORT_SIZE);
             commonViewport.Intersect(new Rectangle(newX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE, Constants.VIEWPORT_SIZE));
-            Logger.DebugFormat("Moving from {0},{1} to {2},{3}", oldX, oldY, newX, newY);
-            Logger.DebugFormat("Arriving viewport is a rectangle starting at {0}, {1}", arrivingViewport.X, arrivingViewport.Y);
-            Logger.DebugFormat("Departing viewport is a rectangle starting at {0}, {1}", departingViewport.X, departingViewport.Y);
-            Logger.DebugFormat("Common viewport is a rectangle starting at {0}, {1} of size {2}, {3}", commonViewport.X,
+            GameLog.DebugFormat("Moving from {0},{1} to {2},{3}", oldX, oldY, newX, newY);
+            GameLog.DebugFormat("Arriving viewport is a rectangle starting at {0}, {1}", arrivingViewport.X, arrivingViewport.Y);
+            GameLog.DebugFormat("Departing viewport is a rectangle starting at {0}, {1}", departingViewport.X, departingViewport.Y);
+            GameLog.DebugFormat("Common viewport is a rectangle starting at {0}, {1} of size {2}, {3}", commonViewport.X,
                 commonViewport.Y, commonViewport.Width, commonViewport.Height);
 
             X = (byte)newX;
@@ -1768,7 +1761,7 @@ namespace Hybrasyl.Objects
                 {
 
                     var user = obj as User;
-                    Logger.DebugFormat("Sending walk packet for {0} to {1}", Name, user.Name);
+                    GameLog.DebugFormat("Sending walk packet for {0} to {1}", Name, user.Name);
                     var x0C = new ServerPacket(0x0C);
                     x0C.WriteUInt32(Id);
                     x0C.WriteUInt16((byte)oldX);
@@ -1825,7 +1818,7 @@ namespace Hybrasyl.Objects
                 return false;
             }
 
-            Logger.DebugFormat("Attempting to add {0} gold", amount);
+            GameLog.DebugFormat("Attempting to add {0} gold", amount);
 
             Gold += amount;
 
@@ -1846,11 +1839,11 @@ namespace Hybrasyl.Objects
 
         public bool RemoveGold(uint amount)
         {
-            Logger.DebugFormat("Removing {0} gold", amount);
+            GameLog.DebugFormat("Removing {0} gold", amount);
 
             if (Gold < amount)
             {
-                Logger.ErrorFormat("I don't have {0} gold. I only have {1}", amount, Gold);
+                GameLog.ErrorFormat("I don't have {0} gold. I only have {1}", amount, Gold);
                 return false;
             }
 
@@ -1881,12 +1874,12 @@ namespace Hybrasyl.Objects
                 return false;
             }
 
-            Logger.DebugFormat("Attempting to add skill to skillbook slot {0}", slot);
+            GameLog.DebugFormat("Attempting to add skill to skillbook slot {0}", slot);
 
 
             if (!SkillBook.Insert(slot, item))
             {
-                Logger.DebugFormat("Slot was invalid or not null");
+                GameLog.DebugFormat("Slot was invalid or not null");
                 return false;
             }
 
@@ -1915,12 +1908,12 @@ namespace Hybrasyl.Objects
                 return false;
             }
 
-            Logger.DebugFormat("Attempting to add spell to spellbook slot {0}", slot);
+            GameLog.DebugFormat("Attempting to add spell to spellbook slot {0}", slot);
 
 
             if (!SpellBook.Insert(slot, item))
             {
-                Logger.DebugFormat("Slot was invalid or not null");
+                GameLog.DebugFormat("Slot was invalid or not null");
                 return false;
             }
 
@@ -1974,12 +1967,12 @@ namespace Hybrasyl.Objects
                 return true;
             }
 
-            Logger.DebugFormat("Attempting to add ItemObject to inventory slot {0}", slot);
+            GameLog.DebugFormat("Attempting to add ItemObject to inventory slot {0}", slot);
 
 
             if (!Inventory.Insert(slot, itemObject))
             {
-                Logger.DebugFormat("Slot was invalid or not null");
+                GameLog.DebugFormat("Slot was invalid or not null");
                 Map.Insert(itemObject, X, Y);
                 return false;
             }
@@ -2065,11 +2058,11 @@ namespace Hybrasyl.Objects
 
         public bool AddEquipment(ItemObject itemObject, byte slot, bool sendUpdate = true)
         {
-            Logger.DebugFormat("Adding equipment to slot {0}", slot);
+            GameLog.DebugFormat("Adding equipment to slot {0}", slot);
 
             if (!Equipment.Insert(slot, itemObject))
             {
-                Logger.DebugFormat("Slot wasn't null, aborting");
+                GameLog.DebugFormat("Slot wasn't null, aborting");
                 return false;
             }
 
@@ -2162,7 +2155,7 @@ namespace Hybrasyl.Objects
                             ApplyStatus(new CreatureStatus(status, this, null, attacker));
                         else
                         {
-                            Logger.Warn("No coma handler or status found - user {Name} died!");
+                            GameLog.Warning("No coma handler or status found - user {Name} died!");
                             OnDeath();
                         }
                     }
@@ -2308,7 +2301,7 @@ namespace Hybrasyl.Objects
 
         public void SendMotion(uint id, byte motion, short speed)
         {
-            Logger.DebugFormat("SendMotion id {0}, motion {1}, speed {2}", id, motion, speed);
+            GameLog.DebugFormat("SendMotion id {0}, motion {1}, speed {2}", id, motion, speed);
             var x1A = new ServerPacket(0x1A);
             x1A.WriteUInt32(id);
             x1A.WriteByte(motion);
@@ -2319,7 +2312,7 @@ namespace Hybrasyl.Objects
 
         public void SendEffect(uint id, ushort effect, short speed)
         {
-            Logger.DebugFormat("SendEffect: id {0}, effect {1}, speed {2} ", id, effect, speed);
+            GameLog.DebugFormat("SendEffect: id {0}, effect {1}, speed {2} ", id, effect, speed);
             var x29 = new ServerPacket(0x29);
             x29.WriteUInt32(id);
             x29.WriteUInt32(id);
@@ -2332,7 +2325,7 @@ namespace Hybrasyl.Objects
 
         public void SendEffect(uint targetId, ushort targetEffect, uint srcId, ushort srcEffect, short speed)
         {
-            Logger.DebugFormat("SendEffect: targetId {0}, targetEffect {1}, srcId {2}, srcEffect {3}, speed {4}",
+            GameLog.DebugFormat("SendEffect: targetId {0}, targetEffect {1}, srcId {2}, srcEffect {3}, speed {4}",
                 targetId, targetEffect, srcId, srcEffect, speed);
             var x29 = new ServerPacket(0x29);
             x29.WriteUInt32(targetId);
@@ -2345,7 +2338,7 @@ namespace Hybrasyl.Objects
         }
         public void SendEffect(short x, short y, ushort effect, short speed)
         {
-            Logger.DebugFormat("SendEffect: x {0}, y {1}, effect {2}, speed {3}", x, y, effect, speed);
+            GameLog.DebugFormat("SendEffect: x {0}, y {1}, effect {2}, speed {3}", x, y, effect, speed);
             var x29 = new ServerPacket(0x29);
             x29.WriteUInt32(uint.MinValue);
             x29.WriteUInt16(effect);
@@ -2367,7 +2360,7 @@ namespace Hybrasyl.Objects
 
         public void SendSound(byte sound)
         {
-            Logger.DebugFormat("SendSound {0}", sound);
+            GameLog.DebugFormat("SendSound {0}", sound);
             var x19 = new ServerPacket(0x19);
             x19.WriteByte(sound);
             Enqueue(x19);

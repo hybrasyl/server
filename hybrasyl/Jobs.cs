@@ -21,7 +21,7 @@
  */
 
 using Hybrasyl.Objects;
-using log4net;
+using Serilog;
 using System;
 
 using System.Linq;
@@ -67,17 +67,13 @@ namespace Hybrasyl
 
         public static class CheckpointerJob
         {
-            public static readonly ILog Logger =
-                LogManager.GetLogger(
-                    System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
             public static readonly int Interval = 300;
 
             public static void Execute(object obj, ElapsedEventArgs args)
             {
                 try
                 {
-                    Logger.Debug("Job starting");
+                    GameLog.Debug("Job starting");
                     foreach (var client in GlobalConnectionManifest.WorldClients)
                     {
                         // Insert a "save client" message onto the queue for each client.
@@ -87,21 +83,17 @@ namespace Hybrasyl
 
                         World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.SaveUser, client.Key));
                     }
-                    Logger.Debug("Job complete");
+                    GameLog.Debug("Job complete");
                 }
                 catch (Exception e)
                 {
-                    Logger.Error("Exception occured in job:", e);
+                    GameLog.Error("Exception occured in job:", e);
                 }
             }
         }
 
         public static class MailboxCleanupJob
         {
-            public static readonly ILog Logger =
-                LogManager.GetLogger(
-                    System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
             // Clean up mailboxes once an hour
             public static readonly int Interval = 3600;
 
@@ -109,7 +101,7 @@ namespace Hybrasyl
             {
                 try
                 {
-                    Logger.Debug("Job starting");
+                    GameLog.Debug("Job starting");
 
                     var now = DateTime.Now.Ticks;
                     foreach (var mailbox in Game.World.WorldData.Values<Mailbox>().Where(mb => mb.Full))
@@ -122,7 +114,7 @@ namespace Hybrasyl
                         }
                         catch (MessageStoreLocked)
                         {
-                            Logger.ErrorFormat("{0}: mailbox locked during cleanup...?", mailbox.Name);
+                            GameLog.ErrorFormat("{0}: mailbox locked during cleanup...?", mailbox.Name);
                         }
                     }
                     foreach (var board in Game.World.WorldData.Values<Board>().Where(mb => mb.Full))
@@ -135,23 +127,20 @@ namespace Hybrasyl
                         }
                         catch (MessageStoreLocked)
                         {
-                            Logger.ErrorFormat("{0}: board locked during cleanup...?", board.Name);
+                            GameLog.ErrorFormat("{0}: board locked during cleanup...?", board.Name);
                         }
                     }
-                    Logger.Debug("Job complete");
+                    GameLog.Debug("Job complete");
                 }
                 catch (Exception e)
                 {
-                    Logger.Error("Exception occured in job:", e);
+                    GameLog.Error("Exception occured in job:", e);
                 }
             }
         }
 
         public static class IdleDetectionJob
         {
-            public static readonly ILog Logger =
-                LogManager.GetLogger(
-                    System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
             public static readonly int Interval = 60;
 
@@ -159,27 +148,24 @@ namespace Hybrasyl
             {
                 try
                 {
-                    Logger.Debug("Job starting");
+                    GameLog.Debug("Job starting");
 
                     var now = DateTime.Now.Ticks;
                     foreach (var client in GlobalConnectionManifest.WorldClients.Values)
                     {
                         client.CheckIdle();
                     }
-                    Logger.Debug("Job complete");
+                    GameLog.Debug("Job complete");
                 }
                 catch (Exception e)
                 {
-                    Logger.Error("Exception occured in job:", e);
+                    GameLog.Error("Exception occured in job:", e);
                 }
             }
         }
 
         public static class ByteHeartbeatJob
         {
-            public static readonly ILog Logger =
-                LogManager.GetLogger(
-                    System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
             public static readonly int Interval = Constants.BYTE_HEARTBEAT_INTERVAL;
 
@@ -187,7 +173,7 @@ namespace Hybrasyl
             {
                 try
                 {
-                    Logger.Debug("Job starting");
+                    GameLog.Debug("Job starting");
 
                     var rnd = new Random();
                     foreach (var client in GlobalConnectionManifest.WorldClients.Values)
@@ -195,20 +181,17 @@ namespace Hybrasyl
                         // Send the 0x3B heartbeat to logged in clients
                         client.SendByteHeartbeat();
                     }
-                    Logger.Debug("Job complete");
+                    GameLog.Debug("Job complete");
                 }
                 catch (Exception e)
                 {
-                    Logger.Error("Exception occured in job:", e);
+                    GameLog.Error("Exception occured in job:", e);
                 }
             }
         }
 
         public static class TickHeartbeatJob
         {
-            public static readonly ILog Logger =
-                LogManager.GetLogger(
-                    System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
             public static readonly int Interval = Constants.TICK_HEARTBEAT_INTERVAL;
 
@@ -216,18 +199,18 @@ namespace Hybrasyl
             {
                 try
                 {
-                    Logger.Debug("Job starting");
+                    GameLog.Debug("Job starting");
 
                     var rnd = new Random();
                     foreach (var client in GlobalConnectionManifest.WorldClients.Values)
                     {
                         client.SendTickHeartbeat();
                     }
-                    Logger.Debug("Job complete");
+                    GameLog.Debug("Job complete");
                 }
                 catch (Exception e)
                 {
-                    Logger.Error("Exception occured in job:", e);
+                    GameLog.Error("Exception occured in job:", e);
                 }
             }
         }
@@ -238,15 +221,12 @@ namespace Hybrasyl
         /// </summary>
         public static class HeartbeatReaperJob
         {
-            public static readonly ILog Logger =
-                LogManager.GetLogger(
-                    System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
             public static readonly int Interval = Constants.REAP_HEARTBEAT_INTERVAL;
 
             public static void Execute(object obj, ElapsedEventArgs args)
             {
-                Logger.Debug("Job starting");
+                GameLog.Debug("Job starting");
                 try
                 {
                     foreach (var connection in GlobalConnectionManifest.WorldClients)
@@ -258,7 +238,7 @@ namespace Hybrasyl
                         {
                             if (client.IsHeartbeatExpired())
                             {
-                                Logger.InfoFormat("{0} (connection id {1}: heartbeat expired, disconnecting",
+                                GameLog.InfoFormat("{0} (connection id {1}: heartbeat expired, disconnecting",
                                     user.Name, connectionId);
                                 GlobalConnectionManifest.DeregisterClient(client);
                                 World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.CleanupUser, connectionId));
@@ -268,17 +248,13 @@ namespace Hybrasyl
                 }
                 catch (Exception e)
                 {
-                    Logger.ErrorFormat("Exception occurred in job:", e);
+                    GameLog.ErrorFormat("Exception occurred in job:", e);
                 }
             }
         }
 
         public static class RegenerationJob
         {
-            public static readonly ILog Logger =
-                LogManager.GetLogger(
-                    System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
             public static readonly int Interval = 25;
 
             public static void Execute(object obj, ElapsedEventArgs args)
@@ -292,15 +268,11 @@ namespace Hybrasyl
 
         public static class StatusTickJob
         {
-            public static readonly ILog Logger =
-                LogManager.GetLogger(
-                    System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
             public static readonly int Interval = 1;
 
             public static void Execute(object obj, ElapsedEventArgs args)
             {
-                Logger.Debug("Status tick job starting");
+                GameLog.Debug("Status tick job starting");
                 foreach (var connectionId in GlobalConnectionManifest.WorldClients.Keys)
                 {
                     User user;
@@ -309,22 +281,18 @@ namespace Hybrasyl
                         World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.StatusTick, user.Name));
                     }
                 }
-                Logger.Debug("Status tick job ending");
+                GameLog.Debug("Status tick job ending");
 
             }
         }
 
         public static class AutoSnoreJob
         {
-            public static readonly ILog Logger =
-                LogManager.GetLogger(
-                    System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
             public static readonly int Interval = 10;
 
             public static void Execute(object obj, ElapsedEventArgs args)
             {
-                Logger.Debug("Job starting");
+                GameLog.Debug("Job starting");
                 try
                 {
                     // FIXME: make this more efficient / don't break our own conventions
@@ -342,18 +310,18 @@ namespace Hybrasyl
                             }
                             else
                             {
-                                Logger.WarnFormat(
+                                GameLog.WarningFormat(
                                     "Connection id {0} marked as idle but no corresponding user found...?",
                                     connectionId);
                             }
                         }
                     }
 
-                    Logger.Debug("Job complete");
+                    GameLog.Debug("Job complete");
                 }
                 catch (Exception e)
                 {
-                    Logger.Error("Exception occured in job:", e);
+                    GameLog.Error("Exception occured in job:", e);
                 }
             }
         }

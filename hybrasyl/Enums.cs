@@ -219,6 +219,14 @@ namespace Hybrasyl
 
         #endregion
 
+        public enum LogType : int
+        {
+            General = 0,
+            Scripting = 1,
+            GmActivity = 2,
+            UserActivity = 3
+        }
+
         public enum UserStatus : byte
         {
             Awake = 0,

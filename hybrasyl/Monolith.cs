@@ -20,19 +20,15 @@
  * 
  */
 
- using Hybrasyl.Objects;
-using log4net;
+using Hybrasyl.Objects;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Linq;
- using System.Runtime.CompilerServices;
- using System.Threading;
- using System.Threading.Tasks;
- using Hybrasyl.Creatures;
- using Hybrasyl.Enums;
- using Creature = Hybrasyl.Creatures.Creature;
-using Hybrasyl.Utility;
+using System.Threading;
+using Creature = Hybrasyl.Creatures.Creature;
 using Hybrasyl.Loot;
+using Hybrasyl.Creatures;
 
 namespace Hybrasyl
 {
@@ -42,11 +38,8 @@ namespace Hybrasyl
         private static readonly ManualResetEvent AcceptDone = new ManualResetEvent(false);
         private static Random _random;
 
-        public static readonly ILog Logger =
-            LogManager.GetLogger(
-                System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        private IEnumerable<SpawnGroup> _spawnGroups => Game.World.WorldData.Values<SpawnGroup>();
+        private IEnumerable<Creatures.SpawnGroup> _spawnGroups => Game.World.WorldData.Values<SpawnGroup>();
         private IEnumerable<Map> _maps => Game.World.WorldData.Values<Map>();
         private IEnumerable<Creature> _creatures => Game.World.WorldData.Values<Creature>();
 
@@ -65,7 +58,7 @@ namespace Hybrasyl
                     var mapObject = Game.World.WorldData.Values<Map>().SingleOrDefault(x => x.Name == spawnmap.Name);
                     if (mapObject is null)
                     {
-                        //Logger.Error($"Spawngroup {spawngroup.Filename} references non-existent map {spawnmap.Name}, disabling");
+                        //GameLog.Error($"Spawngroup {spawngroup.Filename} references non-existent map {spawnmap.Name}, disabling");
                         spawnmap.Disabled = true;
                         continue;
                     }
@@ -131,7 +124,7 @@ namespace Hybrasyl
                 }
                 catch (Exception e)
                 {
-                    //Logger.Error($"Spawngroup {spawnGroup.Filename}: disabled map {map.Name} due to error {e.ToString()}");
+                    //GameLog.Error($"Spawngroup {spawnGroup.Filename}: disabled map {map.Name} due to error {e.ToString()}");
                     map.Disabled = true;
                     continue;
                 }
@@ -141,7 +134,7 @@ namespace Hybrasyl
         {
             World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MonolithSpawn, monster, map));
             //Game.World.Maps[mapId].InsertCreature(monster);
-            //Logger.DebugFormat("Spawning monster: {0} at {1}, {2}", monster.Name, (int) monster.X, (int) monster.Y);
+            //GameLog.DebugFormat("Spawning monster: {0} at {1}, {2}", monster.Name, (int) monster.X, (int) monster.Y);
         }
     }
 
@@ -329,8 +322,6 @@ namespace Hybrasyl
 
     internal class MonolithControl
     {
-        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
         private IEnumerable<Map> _maps => Game.World.WorldData.Values<Map>();
         private static Random _random;
 

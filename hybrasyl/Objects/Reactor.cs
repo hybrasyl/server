@@ -70,7 +70,7 @@ namespace Hybrasyl.Objects
             }
             else
             {
-                Logger.Error($"{Map}: reactor at {X},{Y}: reactor script {ScriptName} not found!");
+                GameLog.Error($"{Map}: reactor at {X},{Y}: reactor script {ScriptName} not found!");
             }
             // Now run our actual OnSpawn function
             if (_ready)

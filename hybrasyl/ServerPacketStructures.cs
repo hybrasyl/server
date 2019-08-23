@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Hybrasyl.Enums;
 using Hybrasyl.Maps;
 using Hybrasyl.Objects;
-using log4net;
+
 
 namespace Hybrasyl
 {
@@ -18,11 +18,7 @@ namespace Hybrasyl
 
     internal class ServerPacketStructures
     {
-
-        public static readonly ILog Logger =
-            LogManager.GetLogger(
-                System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
+        
         internal partial class UseSkill
         {
             private byte OpCode;
@@ -339,7 +335,7 @@ namespace Hybrasyl
                 packet.WriteByte((byte) Direction);
                 packet.WriteUInt32(Id);
                 packet.WriteUInt16(Helmet);
-                Logger.InfoFormat($"Sex is {Sex}");
+                GameLog.InfoFormat($"Sex is {Sex}");
                 if (!DisplayAsMonster)
                 {
                     packet.WriteByte((byte) (((byte) Sex*16) + BodySpriteOffset));
