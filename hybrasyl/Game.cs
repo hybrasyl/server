@@ -226,6 +226,20 @@ namespace Hybrasyl
             AppDomain.CurrentDomain.ProcessExit += new EventHandler(CurrentDomain_ProcessExit);
 
             Constants.DataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Hybrasyl");
+            
+            try
+            {
+                // Ensure at least the world and logs directory exist 
+                Directory.CreateDirectory(Constants.DataDirectory);
+                Directory.CreateDirectory(Path.Combine(Constants.DataDirectory, "world"));
+                Directory.CreateDirectory(Path.Combine(Constants.DataDirectory, "logs"));
+            }
+            catch (Exception e)
+            {
+                Log.Fatal("Can't create data directory: {Directory}", e.ToString());
+                return;
+            }
+
             GameFolders.Init(Constants.DataDirectory);
 
             if (Directory.Exists(Constants.DataDirectory))
@@ -239,30 +253,18 @@ namespace Hybrasyl
                     }
                     catch (Exception e)
                     {
-                        Log.Fatal("Can't create data directory: {1} - {0}", e.ToString(), folder);
+                        Log.Error("Can't create data directory: {1} - {0}", e.ToString(), folder);
                         foldersCreatedOrExist = false;
                     }
                 }
-                if(!foldersCreatedOrExist)
+                if (!foldersCreatedOrExist)
                 {
                     return;
                 }
             }
             else
             {
-                Log.Fatal(@"Hybrasyl main data folder does not exist and/or cannot be created.");
-                return;
-            }
-            try
-            {
-                // Ensure at least the world and logs directory exist 
-                Directory.CreateDirectory(Constants.DataDirectory);
-                Directory.CreateDirectory(Path.Combine(Constants.DataDirectory, "world"));
-                Directory.CreateDirectory(Path.Combine(Constants.DataDirectory, "logs"));
-            }
-            catch (Exception e)
-            {
-                Log.Fatal("Can't create data directory: {Directory}", e.ToString());
+                Log.Error(@"Hybrasyl main data folder does not exist and/or cannot be created.");
                 return;
             }
 
