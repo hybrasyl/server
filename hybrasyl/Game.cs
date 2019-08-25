@@ -36,6 +36,7 @@ using AssemblyInfo = Hybrasyl.Utility.AssemblyInfo;
 using Serilog.Core;
 using Serilog.Events;
 using Serilog.Core.Enrichers;
+using Hybrasyl.Utility;
 
 namespace Hybrasyl
 {
@@ -225,10 +226,32 @@ namespace Hybrasyl
             AppDomain.CurrentDomain.ProcessExit += new EventHandler(CurrentDomain_ProcessExit);
 
             Constants.DataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Hybrasyl");
+            GameFolders.Init(Constants.DataDirectory);
 
-            if (!Directory.Exists(Constants.DataDirectory))
+            if (Directory.Exists(Constants.DataDirectory))
             {
-                Log.Information("Creating data directory {Directory}", Constants.DataDirectory);
+                var foldersCreatedOrExist = true;
+                foreach (var folder in GameFolders.GetAllDataSubFolders())
+                {
+                    try
+                    {
+                        Directory.CreateDirectory(folder);
+                    }
+                    catch (Exception e)
+                    {
+                        Log.Fatal("Can't create data directory: {1} - {0}", e.ToString(), folder);
+                        foldersCreatedOrExist = false;
+                    }
+                }
+                if(!foldersCreatedOrExist)
+                {
+                    return;
+                }
+            }
+            else
+            {
+                Log.Fatal(@"Hybrasyl main data folder does not exist and/or cannot be created.");
+                return;
             }
             try
             {

@@ -24,6 +24,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Hybrasyl.Enums;
@@ -402,6 +403,88 @@ namespace Hybrasyl
             }
             public static string Normalize(string key) => Regex.Replace(key.ToLower(), @"\s+", "");
 
+        }
+
+        public class GameFolders
+        {
+            private static string _dataDirectory { get; set; }
+            private static string _worldFileDirectory => Path.Combine(_dataDirectory, "world");
+            private static string _mapFileDirectory => Path.Combine(_worldFileDirectory, "mapfiles");
+            private static string _scriptsFileDirectory => Path.Combine(_worldFileDirectory, "scripts");
+            private static string _xmlFileDirectory => Path.Combine(_worldFileDirectory, "xml");
+
+            public static string MapFileDirectory => Path.Combine(_mapFileDirectory);
+
+            #region ScriptsFolders
+            public static string ScriptCastableDirectory => Path.Combine(_scriptsFileDirectory, "castable");
+
+            public static string ScriptCommonDirectory => Path.Combine(_scriptsFileDirectory, "common");
+
+            public static string ScriptItemDirectory => Path.Combine(_scriptsFileDirectory, "item");
+
+            public static string ScriptNpcDirectory => Path.Combine(_scriptsFileDirectory, "npc");
+
+            public static string ScriptReactorDirectory => Path.Combine(_scriptsFileDirectory, "reactor");
+
+            public static string ScriptStartupDirectory => Path.Combine(_scriptsFileDirectory, "startup");
+            #endregion
+
+            #region XmlFolders
+            public static string XmlCastableDirectory => Path.Combine(_xmlFileDirectory, "castables");
+
+            public static string XmlStatusDirectory => Path.Combine(_xmlFileDirectory, "statuses");
+
+            public static string XmlItemDirectory => Path.Combine(_xmlFileDirectory, "items");
+
+            public static string XmlNationDirectory => Path.Combine(_xmlFileDirectory, "nations");
+
+            public static string XmlMapDirectory => Path.Combine(_xmlFileDirectory, "maps");
+
+            public static string XmlWorldMapDirectory => Path.Combine(_xmlFileDirectory, "worldmaps");
+
+            public static string XmlCreatureDirectory => Path.Combine(_xmlFileDirectory, "creatures");
+
+            public static string XmlSpawnGroupDirectory => Path.Combine(_xmlFileDirectory, "spawngroups");
+
+            public static string XmlLootSetDirectory => Path.Combine(_xmlFileDirectory, "lootsets");
+
+            public static string XmlItemVariantDirectory => Path.Combine(_xmlFileDirectory, "itemvariants");
+
+            public static string XmlNpcsDirectory => Path.Combine(_xmlFileDirectory, "npcs");
+
+            public static string XmlLocalizationDirectory => Path.Combine(_xmlFileDirectory, "localization");
+            #endregion
+
+            public static string[] GetAllDataSubFolders()
+            {
+                var properties = typeof(GameFolders).GetProperties();
+                string[] propertyValues = new string[properties.Length];
+                for(int i = 0; i < properties.Length; i++)
+                {
+                    var property = properties[i];
+                    propertyValues[i] = (string)(property.GetValue(property));
+                }
+
+                return propertyValues;
+            }
+
+            public static string[] ScriptSubFolders()
+            {
+                return new string[]
+                {
+                    ScriptCastableDirectory,
+                    ScriptCommonDirectory,
+                    ScriptItemDirectory,
+                    ScriptNpcDirectory,
+                    ScriptReactorDirectory,
+                    ScriptStartupDirectory,
+                };
+            }
+
+            public static void Init(string baseDir)
+            {
+                _dataDirectory = baseDir;
+            }
         }
 
     } // end Namespace:Utility
