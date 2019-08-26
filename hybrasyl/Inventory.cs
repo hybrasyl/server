@@ -634,7 +634,7 @@ namespace Hybrasyl
             _weight = new Lockable<int>(0);
             _inventoryIndex = new ConcurrentDictionary<string, List<ItemObject>>();
         }
-
+        
         public bool Contains(string id)
         {
             return _inventoryIndex.ContainsKey(id);
@@ -642,29 +642,39 @@ namespace Hybrasyl
 
         public bool ContainsName(string name)
         {
-            Item theItem = Game.World.WorldData.GetByIndex<Item>(name);
-            return _inventoryIndex.ContainsKey(theItem.Id);
+            // TODO: revisit this later
+            var itemList = Game.World.WorldData.FindItem(name);
+            if (itemList.Count == 0)
+                return false;
+            foreach (var item in itemList)
+                if (_inventoryIndex.ContainsKey(item.Id))
+                    return true;
+            return false;
         }
 
         public bool Contains(string name, int quantity)
         {
-            Item theItem = Game.World.WorldData.GetByIndex<Item>(name); 
-            
-            var hasItem = _inventoryIndex.ContainsKey(theItem.Id);
-            if (!hasItem) return false;
-            var inv = _inventoryIndex.Where(x=> x.Key == theItem.Id).ToList();
+            var itemList = Game.World.WorldData.FindItem(name);
+            if (itemList.Count == 0)
+                return false;
 
-            var quant = 0;
-            foreach (var itm in inv)
+            foreach (var item in itemList)
             {
-                quant += itm.Value.Count;
+                if (!_inventoryIndex.ContainsKey(item.Id))
+                    continue;
+
+                var quant = 0;
+
+                foreach (var itm in _inventoryIndex.Where(x => x.Key == item.Id).ToList())
+                {
+                    quant += itm.Value.Count;
+                }
+                var hasQuantity = quant >= quantity;
+                if (quant >= quantity)
+                    return true;
             }
-
-            var hasQuantity = quant >= quantity;
-            return hasQuantity;
+            return false;
         }
-
-
 
         public int FindEmptyIndex()
         {

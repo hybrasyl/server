@@ -153,6 +153,7 @@ namespace Hybrasyl.Scripting
                 Compiled.Globals["LegendIcon"] = UserData.CreateStatic<LegendIcon>();
                 Compiled.Globals["LegendColor"] = UserData.CreateStatic<LegendColor>();
                 Compiled.Globals["Class"] = UserData.CreateStatic<Class>();
+                Compiled.Globals["utility"] = typeof(HybrasylUtility);
                 Compiled.Globals.Set("world", UserData.Create(Processor.World));
                 Compiled.Globals.Set("logger", UserData.Create(new ScriptLogger(Name)));
                 Compiled.DoFile(FullPath);
@@ -194,6 +195,7 @@ namespace Hybrasyl.Scripting
 
             try
             {
+                Compiled.Globals["utility"] = typeof(HybrasylUtility);
                 Compiled.Globals.Set("invoker", GetUserDataValue(invoker));
                 // We pass Compiled.Globals here to make sure that the updated table (with new variables) makes it over
                 Compiled.DoString(expr, Compiled.Globals);
@@ -217,6 +219,7 @@ namespace Hybrasyl.Scripting
 
             try
             {
+                Compiled.Globals["utility"] = typeof(HybrasylUtility);
                 Compiled.Globals.Set("invoker", GetUserDataValue(invoker));
                 return Compiled.DoString(expr);
             }
@@ -240,6 +243,7 @@ namespace Hybrasyl.Scripting
             {
                 if (HasFunction(functionName))
                 {
+                    Compiled.Globals["utility"] = typeof(HybrasylUtility);
                     Compiled.Globals.Set("invoker", GetUserDataValue(invoker));
                     Compiled.Globals.Set("target", GetUserDataValue(target));
                     Compiled.Call(Compiled.Globals[functionName]);
@@ -268,6 +272,7 @@ namespace Hybrasyl.Scripting
             {
                 if (HasFunction(functionName))
                 {
+                    Compiled.Globals["utility"] = typeof(HybrasylUtility);
                     Compiled.Globals.Set("invoker", GetUserDataValue(invoker));
                     Compiled.Call(Compiled.Globals[functionName]);
                 }
@@ -295,7 +300,10 @@ namespace Hybrasyl.Scripting
             try
             {
                 if (HasFunction(functionName))
+                {
+                    Compiled.Globals["utility"] = typeof(HybrasylUtility);
                     Compiled.Call(Compiled.Globals[functionName]);
+                }
                 else
                     return false;
             }

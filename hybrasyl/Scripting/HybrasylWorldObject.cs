@@ -82,6 +82,39 @@ namespace Hybrasyl.Scripting
             }
         }
 
+        /// <summary>
+        /// Set a value in an object's ephemeral store. The store lasts for the
+        /// lifetime of the object (for mobs, until they're killed; for NPCs, most likely
+        /// until server restart, for players, while they're logged in).
+        /// </summary>
+        /// <param name="key">The key we will store</param>
+        /// <param name="value">The value (dynamic) we want to store</param>
+        public void StoreValue(string key, dynamic value)
+        {
+            if (Obj.EphemeralStore.TryGetValue(key, out dynamic oldValue))
+                Obj.EphemeralStore.TryUpdate(key, value, oldValue);
+            else
+                Obj.EphemeralStore.TryAdd(key, value);
+        }
+
+        /// <summary>
+        /// Remove the specified key from the object's ephemeral store.
+        /// </summary>
+        /// <param name="key"></param>
+        public void ClearValue(string key) => Obj.EphemeralStore.TryRemove(key, out _);
+        
+        /// <summary>
+        /// Get the value of a specified key from the object's ephemeral store.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <returns></returns>
+        public dynamic GetValue(string key)
+        {
+            if (Obj.EphemeralStore.TryGetValue(key, out dynamic value))
+                return value;
+            else return DynValue.Nil;
+        }
+
         public void RegisterSequence(HybrasylDialogSequence hybrasylSequence)
         {
             if (hybrasylSequence is null)

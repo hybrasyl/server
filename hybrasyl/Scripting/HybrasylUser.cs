@@ -30,6 +30,7 @@ using Hybrasyl.Items;
 using Hybrasyl.Objects;
 using Serilog;
 using MoonSharp.Interpreter;
+using System.Reflection;
 
 namespace Hybrasyl.Scripting
 {
@@ -302,10 +303,25 @@ namespace Hybrasyl.Scripting
                 return true;
             }
             return false;
-        }    
+        }
 
         public bool TakeItem(string name)
         {
+            if (User.Inventory.ContainsName(name))
+            {
+                // Find the first instance of the specified item and remove it
+                var slots = User.Inventory.SlotByName(name);
+                if (slots.Length == 0)
+                {
+                    GameLog.ScriptingWarning("{Function}: User had {item} a moment ago but now it's gone...?",
+                        MethodInfo.GetCurrentMethod().Name, User.Name, name);
+                    return false;
+                }
+                GameLog.ScriptingDebug("{Function}: A script removed {item} from {User}'s inventory ",
+                    MethodInfo.GetCurrentMethod().Name, User.Name, name); return User.Inventory.Remove(slots.First());
+            }
+            GameLog.ScriptingDebug("{Function}: User {User} doesn't have {item}",
+                MethodInfo.GetCurrentMethod().Name, User.Name, name);
             return false;
         }
 
@@ -366,7 +382,11 @@ namespace Hybrasyl.Scripting
 
         }
 
-        public void EndDialog() => User.DialogState.EndDialog();
+        public void EndDialog()
+        {
+            User.DialogState.EndDialog();
+            User.SendCloseDialog();
+        }
 
         public void StartSequence(string sequenceName, HybrasylWorldObject associateOverride = null)
         {

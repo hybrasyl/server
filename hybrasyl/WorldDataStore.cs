@@ -2,7 +2,10 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
+using Hybrasyl.Items;
 using Hybrasyl.Utility;
 
 namespace Hybrasyl
@@ -11,6 +14,7 @@ namespace Hybrasyl
     {
         private ConcurrentDictionary<Type, ConcurrentDictionary<string, dynamic>> _dataStore;
         private ConcurrentDictionary<Type, ConcurrentDictionary<dynamic, dynamic>> _index;
+        public static SHA256CryptoServiceProvider sha = new SHA256CryptoServiceProvider();
 
         /// <summary>
         /// Normalize keys by converting to lowercase and removing whitespace (this means that 
@@ -94,7 +98,7 @@ namespace Hybrasyl
         {
             if (_index.ContainsKey(typeof(T)))
             {
-                return (T) _index[typeof(T)][key.ToString.Normalize()];
+                return (T) _index[typeof(T)][key.ToString().Normalize()];
             }
             return default(T);
         }
@@ -202,6 +206,27 @@ namespace Hybrasyl
         {
             dynamic ignored;
             return GetSubStore<T>().TryRemove(key.ToString().Normalize(), out ignored);
+        }
+
+        // Convenience finder functions below for various non-generic types.
+        // This can probably be further genericized, moving forward.
+
+        /// <summary>
+        /// Find all iterations (genders) of a given item name, if it exists.
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public List<Item> FindItem(string name)
+        {
+            var ret = new List<Item>();
+            foreach (var gender in Enum.GetValues(typeof(Enums.Sex)))
+            {
+                var rawhash = $"{name.Normalize()}:{gender.ToString().Normalize()}";
+                var hash = sha.ComputeHash(Encoding.ASCII.GetBytes(rawhash));
+                if (TryGetValue<Item>(string.Concat(hash.Select(b => b.ToString("x2"))).Substring(0, 8), out Item result))
+                    ret.Add(result);
+            }
+            return ret;
         }
 
     }

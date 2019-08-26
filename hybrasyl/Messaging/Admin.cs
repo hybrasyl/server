@@ -20,7 +20,35 @@ namespace Hybrasyl.Messaging
         {
             if (Game.World.WorldData.TryGetValue<User>(args[0], out User target))
             {
-                return Success($"User {target.Name} Cookies\n\n{target.GetCookies()}\n\nSession Cookies\n\n{target.GetSessionCookies()}", MessageTypes.SLATE_WITH_SCROLLBAR);
+                string cookies = $"User {target.Name} Cookie List\n\n---Permanent Cookies---\n";
+                foreach (var cookie in target.GetCookies())
+                    cookies = $"{cookies}\n{cookie.Key} : {cookie.Value}\n";
+                cookies = $"{cookies}\n---Session Cookies---\n";
+                foreach (var cookie in target.GetSessionCookies())
+                    cookies = $"{cookies}\n{cookie.Key} : {cookie.Value}\n";
+                return Success($"{cookies}", MessageTypes.SLATE_WITH_SCROLLBAR);
+            }
+            return Fail($"User {args[0]} not logged in");
+        }
+    }
+
+    class ClearCookie : ChatCommand
+    {
+        public new static string Command = "clearcookie";
+        public new static string ArgumentText = "<string playername> <string cookie>";
+        public new static string HelpText = "Clear a given (permament) cookie for a specified player";
+        public new static bool Privileged = true;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            if (Game.World.WorldData.TryGetValue<User>(args[0], out User target))
+            {
+                if (target.HasCookie(args[1]))
+                {
+                    target.DeleteCookie(args[1]);
+                    return Success($"User {target.Name}: cookie {args[1]} deleted");
+                }
+                else return Fail($"User {args[0]} doesn't have cookie {args[1]}");
             }
             return Fail($"User {args[0]} not logged in");
         }
@@ -335,6 +363,7 @@ namespace Hybrasyl.Messaging
                 {
                     script.Reload();
                     merchant.Ready = false; // Force reload next time NPC processes an interaction
+                    merchant.Say("...What? What happened?");
                     return Success($"NPC {args[0]} - script {script.Name} reloaded. Clicking should re-run OnSpawn.");
                 }
                 else return Fail("NPC found but script not found...?");
