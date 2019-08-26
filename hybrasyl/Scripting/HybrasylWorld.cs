@@ -40,10 +40,7 @@ namespace Hybrasyl.Scripting
             Options = new OrderedDictionary();
         }
 
-        public void AddOption(string option, string luaExpr=null)
-        {
-            Options.Add(option, luaExpr);
-        }
+        public void AddOption(string option, string luaExpr = null) => Options.Add(option, luaExpr);
 
         public void AddOption(string option, HybrasylDialog nextDialog)
         {
@@ -52,6 +49,8 @@ namespace Hybrasyl.Scripting
             else
                 GameLog.Error($"Dialog option {option}: unsupported dialog type {nextDialog.DialogType.Name}");
         }
+
+        public void AddOption(string option, HybrasylDialogSequence sequence) => Options.Add(option, sequence);
     }
 
     [MoonSharpUserData]
@@ -108,6 +107,73 @@ namespace Hybrasyl.Scripting
             return new HybrasylDialog(dialog);
         }
 
+        /// <summary>
+        /// Create a new dialog sequence consisting of a bunch of simple text dialogs.
+        /// </summary>
+        /// <param name="sequenceName">The name of the constructed sequence.</param>
+        /// <param name="textList">A string array of dialog lines that will be used to construct each dialog in the sequence.</param>
+        /// <returns>The constructed dialog seqeunce</returns>
+        public HybrasylDialogSequence NewSimpleDialogSequence(string sequenceName, params string[] textList)
+        {
+            var sequence = new DialogSequence(sequenceName);
+            foreach (var entry in textList)
+            {
+                sequence.AddDialog(new SimpleDialog(entry));
+            }
+            return new HybrasylDialogSequence(sequence);
+        }
+
+        /// <summary>
+        /// Create a new dialog sequence consisting of a simple dialog and a jump to a new sequence. Useful 
+        /// for a lot of dialogs where you need to display one dialog and go back to the main menu.
+        /// </summary>
+        /// <param name="simpleDialog">Text for the simple dialog.</param>
+        /// <param name="jumpTarget">The new sequence to start after the user hits next on the simple dialog.</param>
+        /// <param name="callback">An optional Lua callback expression that will be attached to the simple dialog.</param>
+        /// <param name="name">An optional name to give the dialog sequence.</param>
+        /// <returns>The constructed dialog sequence</returns>
+        public HybrasylDialogSequence NewTextAndJumpDialog(string simpleDialog, string jumpTarget, string callback = "", string name = null)
+        {
+            DialogSequence sequence;
+            if (name == null)
+                sequence = new DialogSequence(Guid.NewGuid().ToString());
+            else
+                sequence = new DialogSequence(name);
+            var dialog = new SimpleDialog(simpleDialog);
+
+            if (!string.IsNullOrEmpty(callback))
+                dialog.CallbackExpression = callback;
+
+            sequence.AddDialog(dialog);
+            sequence.AddDialog(new JumpDialog(jumpTarget));
+            return new HybrasylDialogSequence(sequence);
+        }
+
+        /// <summary>
+        /// Another convenience function to generate an "end" sequence where the user must hit close (e.g. a dialog end). 
+        /// This is useful to make a jumpable end to a previous dialog option.
+        /// </summary>
+        /// <param name="simpleDialog">The text of the simple dialog.</param>
+        /// <param name="callback">An optional Lua callback expression that will be attached to the simple dialog.</param>
+        /// <param name="name">An optional name to give the dialog sequence.</param>
+        /// <returns>The constructed dialog sequence</returns>
+        public HybrasylDialogSequence NewEndSequence(string simpleDialog, string callback = "", string name = null)
+        {
+            DialogSequence sequence;
+            if (name == null)
+                sequence = new DialogSequence(Guid.NewGuid().ToString());
+            else
+                sequence = new DialogSequence(name);
+
+            var dialog = new SimpleDialog(simpleDialog);
+
+            if (!string.IsNullOrEmpty(callback))
+                dialog.CallbackExpression = callback;
+
+            sequence.AddDialog(dialog);
+            return new HybrasylDialogSequence(sequence);
+        }
+    
         public HybrasylDialog NewTextDialog(string displayText, string topCaption, string bottomCaption, int inputLength = 254, string callback="", string handler="")
         {
             var dialog = new TextDialog(displayText, topCaption, bottomCaption, inputLength);
@@ -136,6 +202,11 @@ namespace Hybrasyl.Scripting
                 else if (entry.Value is null)
                     // This is JUST an option, with no callback or jump dialog. The dialog handler will process the option itself.
                     dialog.AddDialogOption(entry.Key as string);
+                else if (entry.Value is HybrasylDialogSequence)
+                {
+                    var hds = entry.Value as HybrasylDialogSequence;
+                    dialog.AddDialogOption(entry.Key as string, hds.Sequence);
+                }
                 else
                     GameLog.Error($"Unknown type {entry.Value.GetType().Name} passed as argument to NewOptionsDialog call");
             }

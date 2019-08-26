@@ -130,6 +130,7 @@ namespace Hybrasyl
             public string CallbackFunction { get; private set; }
 
             public JumpDialog JumpDialog { get; set; }
+            public DialogSequence overrideSequence { get; set; }
 
             public DialogOption(string option, string callback, Dialog parentdialog = null)
             {
@@ -144,6 +145,14 @@ namespace Hybrasyl
                 JumpDialog = jumpTo;
                 ParentDialog = parentdialog;
             }
+
+            public DialogOption(string option, DialogSequence sequence)
+            {
+                OptionText = option;
+                overrideSequence = sequence;
+            }
+
+
         }
 
         public class Dialog
@@ -302,6 +311,14 @@ namespace Hybrasyl
                 // Depending on how this was registered, it may not have an associate; thankfully we always
                 // get a hint of one from the 0x3A packet
                 var associate = Sequence?.Associate is null ? invokee : Sequence.Associate;
+                if (NextSequence.ToLower().Trim() == "mainmenu")
+                {
+                    // Return to main menu (pursuits)
+                    invoker.DialogState.EndDialog();
+                    if (associate is VisibleObject)
+                        (associate as VisibleObject).DisplayPursuits(invoker);
+                    return; 
+                }
                 if (associate.SequenceCatalog.TryGetValue(NextSequence, out sequence) || Game.World.GlobalSequencesCatalog.TryGetValue(NextSequence, out sequence))
                 {
                     // End previous sequence
@@ -415,11 +432,15 @@ namespace Hybrasyl
                 Options.Add(new DialogOption(option, jumpTo));
             }
 
+            public void AddDialogOption(string option, DialogSequence sequence)
+            {
+                Options.Add(new DialogOption(option, sequence));
+            }
+
             public void HandleResponse(WorldObject invoker, int optionSelected, WorldObject associateOverride = null)
             {
                 WorldObject Associate;
                 string Expression = string.Empty;
-
                 // Quick sanity check
                 if (optionSelected < 0 || optionSelected > Options.Count)
                 {
@@ -437,13 +458,29 @@ namespace Hybrasyl
                     Associate = Sequence.Associate;
                 else
                     Associate = associateOverride;
-
                 // Note that client is 1-indexed for responses
+                // If we have a JumpDialog, handle that first
+
                 if (Options[optionSelected - 1].JumpDialog != null)
                 {
                     // Use jump dialog first
                     Options[optionSelected - 1].JumpDialog.ShowTo(invoker as User, Associate as VisibleObject);
                     return;
+                }
+
+                // If the response is a sequence, start it
+                if (Options[optionSelected - 1].overrideSequence != null)
+                {
+                    var sequence = Options[optionSelected - 1].overrideSequence;
+                    if (invoker is User)
+                    {
+                        var user = invoker as User;
+                        // We lazily set this because an option / dialog can be constructed in a variety of places
+                        if (sequence.Associate == null)
+                            Associate.RegisterDialogSequence(sequence);
+                        user.DialogState.TransitionDialog(Associate as VisibleObject, Options[optionSelected - 1].overrideSequence);
+                        sequence.ShowTo(user, Associate as VisibleObject);
+                    }
                 }
                 // If the individual options don't have callbacks, use the dialog callback instead.
                 if (Handler != null && Options[optionSelected - 1].CallbackFunction == null)
@@ -531,6 +568,8 @@ namespace Hybrasyl
                 }
             }
 
+            public uint? PreviousPursuitId;
+
             public int CurrentPursuitIndex
             {
                 get
@@ -569,6 +608,7 @@ namespace Hybrasyl
                 ActiveDialog = null;
                 ActiveDialogSequence = null;
                 User = user;
+                PreviousPursuitId = null;
             }
 
             public void RunCallback(User target, VisibleObject associate)
@@ -598,6 +638,27 @@ namespace Hybrasyl
                     return true;
                 }
                 return false;
+            }
+
+            /// <summary>
+            /// Transition between two dialog sequences. This allows us to start a new sequence from an option or
+            /// a response handler, and validate where we've come from.
+            /// </summary>
+            /// <param name="target">A VisibleObject that is the target of the dialog sequence</param>
+            /// <param name="dialogStart">The dialog sequence to which we will transition.</param>
+            /// <returns></returns>
+            public bool TransitionDialog(VisibleObject target, DialogSequence dialogStart)
+            {
+                if (!InDialog)
+                {
+                    Log.Error("Transition can only occur from an active dialog");
+                    return false;
+                }
+                Associate = target;
+                PreviousPursuitId = CurrentPursuitId;
+                ActiveDialogSequence = dialogStart;
+                ActiveDialog = dialogStart.Dialogs.First();
+                return true;
             }
 
             /// <summary>

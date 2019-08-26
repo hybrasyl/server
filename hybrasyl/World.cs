@@ -2936,6 +2936,15 @@ namespace Hybrasyl
                     return;
                 }
 
+                // Are we transitioning between two dialog sequences? If so, show the first dialog from
+                // the new sequence and make sure we clear the previous state.
+                if (user.DialogState.PreviousPursuitId == pursuitID)
+                {
+                    user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
+                    user.DialogState.PreviousPursuitId = null;
+                    return;
+                }
+
                 // Did the handling of a response result in our active dialog sequence changing? If so, exit.
 
                 if (user.DialogState.CurrentPursuitId != pursuitID)
@@ -3734,7 +3743,7 @@ namespace Hybrasyl
                     }
                     catch (Exception e)
                     {
-                        GameLog.Error("Exception encountered in packet handler!", e);
+                        GameLog.Error(e, "{Opcode}: Unhandled exception encountered in packet handler!", clientMessage.Packet.Opcode);
                     }
                 }
                 

@@ -29,6 +29,7 @@ using Hybrasyl.Dialogs;
 using Hybrasyl.Scripting;
 using Serilog;
 using Newtonsoft.Json;
+using System.Collections.Concurrent;
 
 namespace Hybrasyl.Objects
 {
@@ -53,10 +54,13 @@ namespace Hybrasyl.Objects
         public World World { get; set; }
         public ushort DialogSprite { get; set; }
 
+        public ConcurrentDictionary<string, dynamic> EphemeralStore { get; set; }
+
         public WorldObject()
         {
             Name = string.Empty;
             ResetPursuits();
+            EphemeralStore = new ConcurrentDictionary<string, dynamic>();
         }
 
         public virtual void SendId()
