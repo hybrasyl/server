@@ -426,13 +426,13 @@ namespace Hybrasyl
                 packet.WriteByte((byte)MerchantDialogType);
                 packet.WriteByte((byte)MerchantDialogObjectType);
                 packet.WriteUInt32(ObjectId);
-                packet.WriteByte(1);
+                packet.WriteByte(2);
                 packet.WriteUInt16(Tile1);
+                packet.WriteByte(0);
                 packet.WriteByte(1);
+                packet.WriteByte(2);
                 packet.WriteByte(1);
-                packet.WriteUInt16(Tile1);
-                packet.WriteByte(1);
-                packet.WriteByte(1);
+                packet.WriteByte(0);
                 packet.WriteString8(Name);
                 packet.WriteString16(Text);
                 if (MerchantDialogType == MerchantDialogType.Options)

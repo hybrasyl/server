@@ -27,6 +27,8 @@ using Hybrasyl.Scripting;
 using MoonSharp.Interpreter;
 using Serilog;
 using System;
+using System.Text.RegularExpressions;
+using System.Reflection;
 
 namespace Hybrasyl
 {
@@ -158,12 +160,61 @@ namespace Hybrasyl
         public class Dialog
         {
 
+            private static string _tokenRegex = @"\{\{(?<token>[A-Za-z0-9_-]+)\}\}";
+            private Regex _regex;
+
             protected ushort DialogType;
             public DialogSequence Sequence { get; private set; }
             public int Index;
-            public string DisplayText { get; set; }
+
+            public string DisplayText
+            {
+                get => _evaluateText();
+                set => _displayText = value;
+            }
+
             public string CallbackExpression { get; set; }
             private ushort _sprite { get; set; }
+
+            private string _displayText { get; set; }
+
+            /// <summary>
+            /// Using the sequence associate or an override, evaluate the display text and replace
+            /// {{foo}} tokens with values from the ephemeral store.
+            /// </summary>
+            /// <returns>An evaluated string</returns>
+            private string _evaluateText(WorldObject AssociateOverride = null)
+            {
+                var matches = _regex.Matches(_displayText);
+
+                if (matches.Count == 0)
+                    return _displayText;
+
+                var associate = AssociateOverride == null ? Sequence.Associate : AssociateOverride;
+
+                if (associate == null)
+                    return _displayText;
+
+                var ret = _displayText;
+                foreach (Match match in matches)
+                {
+                    GroupCollection groups = match.Groups;
+                    if (associate.TryGetEphemeral(groups["token"].Value, out dynamic value))
+                    {
+                        ret = ret.Replace("{{" + groups["token"] + "}}", value.ToString());
+                        GameLog.ScriptingInfo("{Function}: {Name}: token {Token} replaced with {String}",
+                            MethodInfo.GetCurrentMethod().Name, associate.Name, groups["token"], value);
+                    }
+                    else
+                    {
+                        GameLog.ScriptingError("{Function}: {Name}: {Butts} template script references {Token} which could not be evaluated",
+                            MethodInfo.GetCurrentMethod().Name, associate.Name, groups["token"].Value, groups["token"]);
+                        continue;
+                    }
+                }
+                return ret;              
+            }
+
             public ushort Sprite
             {
                 get
@@ -184,6 +235,7 @@ namespace Hybrasyl
                 DisplayText = displayText;
                 CallbackExpression = callbackFunction;
                 _sprite = ushort.MaxValue; // Client only uses about ~1000 of these values
+                _regex = new Regex(_tokenRegex, RegexOptions.Compiled);
             }
 
             // Any Dialog can have a callback function which can be used to process dialog responses, or
@@ -274,7 +326,7 @@ namespace Hybrasyl
                 dialogPacket.WriteString8(invokee.Name);
                 if (DisplayText != null)
                 {
-                    dialogPacket.WriteString16(DisplayText);
+                    dialogPacket.WriteString16(_evaluateText(invokee));
                 }
                 return dialogPacket;
             }

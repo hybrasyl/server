@@ -674,7 +674,7 @@ namespace Hybrasyl
         public override bool ShouldEncrypt => Opcode != 0x00 && Opcode != 0x03 && Opcode != 0x7E;//&& Opcode != 0x0D;
 
         public override bool UseDefaultKey => Opcode == 0x01 || Opcode == 0x02 || Opcode == 0x0A || Opcode == 0x56 || Opcode == 0x60
-                                              || Opcode == 0x62 || Opcode == 0x66 || Opcode == 0x6F;
+                                              || Opcode == 0x62 || Opcode == 0x66; //(|| Opcode == 0x6F;)
 
         public override EncryptMethod EncryptMethod
         {

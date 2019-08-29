@@ -89,28 +89,27 @@ namespace Hybrasyl.Scripting
         /// </summary>
         /// <param name="key">The key we will store</param>
         /// <param name="value">The value (dynamic) we want to store</param>
-        public void StoreValue(string key, dynamic value)
+        public void SetEphemeral(string key, dynamic value)
         {
-            if (Obj.EphemeralStore.TryGetValue(key, out dynamic oldValue))
-                Obj.EphemeralStore.TryUpdate(key, value, oldValue);
-            else
-                Obj.EphemeralStore.TryAdd(key, value);
+            Obj.SetEphemeral(key, value);
+            GameLog.ScriptingInfo("{Function}: {Name}, stored key {Key} with value {Value}",
+                    MethodInfo.GetCurrentMethod().Name, Obj.Name, key, value);
         }
 
         /// <summary>
         /// Remove the specified key from the object's ephemeral store.
         /// </summary>
         /// <param name="key"></param>
-        public void ClearValue(string key) => Obj.EphemeralStore.TryRemove(key, out _);
+        public void ClearEphemeral(string key) => Obj.ClearEphemeral(key);
         
         /// <summary>
         /// Get the value of a specified key from the object's ephemeral store.
         /// </summary>
         /// <param name="key"></param>
         /// <returns></returns>
-        public dynamic GetValue(string key)
+        public dynamic GetEphemeral(string key)
         {
-            if (Obj.EphemeralStore.TryGetValue(key, out dynamic value))
+            if (Obj.TryGetEphemeral(key, out dynamic value))
                 return value;
             else return DynValue.Nil;
         }

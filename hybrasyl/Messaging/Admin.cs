@@ -3,6 +3,7 @@ using Hybrasyl.Objects;
 using Hybrasyl.Scripting;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 
 namespace Hybrasyl.Messaging
@@ -31,6 +32,28 @@ namespace Hybrasyl.Messaging
             return Fail($"User {args[0]} not logged in");
         }
     }
+
+    class DumpMetadata : ChatCommand
+    {
+        public new static string Command = "dumpmetadata";
+        public new static string ArgumentText = "<string metadatafile>";
+        public new static string HelpText = "Dump (in hex) a metadata file ";
+        public new static bool Privileged = true;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            if (Game.World.WorldData.ContainsKey<CompiledMetafile>(args[0]))
+            {
+                var file = Game.World.WorldData.Get<CompiledMetafile>(args[0]);
+                var filepath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Hybrasyl");
+                File.WriteAllBytes($"{filepath}\\{args[0]}.mdf", file.Data);
+                return Success($"{filepath}\\{args[0]}.mdf written to disk");
+            }
+            return Fail("Look chief idk about all that");
+        }
+    }
+    
+
 
     class ClearCookie : ChatCommand
     {
@@ -75,6 +98,99 @@ namespace Hybrasyl.Messaging
             return Fail($"User {args[0]} not logged in");
         }
     }
+
+    class SetCookie : ChatCommand
+    {
+        public new static string Command = "setcookie";
+        public new static string ArgumentText = "<string playername> <string cookie> <string value>";
+        public new static string HelpText = "Set a given (permament) cookie for a specified player";
+        public new static bool Privileged = true;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            if (Game.World.WorldData.TryGetValue<User>(args[0], out User target))
+            {
+                target.SetCookie(args[1], args[2]);
+                return Success($"User {target.Name}: cookie {args[1]} set");
+            }
+            return Fail($"User {args[0]} not logged in");
+        }
+    }
+
+    class ShowEphemeral : ChatCommand
+    {
+        public new static string Command = "showephemeral";
+        public new static string ArgumentText = "<string mundane>";
+        public new static string HelpText = "Show ephemeral values set for a specified mundane";
+        public new static bool Privileged = true;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            if (Game.World.WorldData.TryGetValue(args[0], out Merchant merchant))
+            {
+                string ephemerals = $"Mundane {merchant.Name} Ephemeral Store\n\n";
+                foreach (var kv in merchant.GetEphemeralValues())
+                    ephemerals = $"{ephemerals}\n{kv.Item1} : {kv.Item2}\n";
+                return Success($"{ephemerals}", MessageTypes.SLATE_WITH_SCROLLBAR);
+            }
+            return Fail($"Mundane {args[0]} could not be found");
+        }
+    }
+
+    class SetEphemeral : ChatCommand
+    {
+        public new static string Command = "setephemeral";
+        public new static string ArgumentText = "<string mundane> <string key> <string value>";
+        public new static string HelpText = "Set a given ephemeral store value for a specified mundane";
+        public new static bool Privileged = true;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            if (Game.World.WorldData.TryGetValue(args[0], out Merchant merchant))
+            {
+                merchant.SetEphemeral(args[1], args[2]);
+                return Success($"{merchant.Name}: {args[1]} set to {args[2]}");
+            }
+            else return Fail($"NPC {args[0]} not found.");
+        }
+    }
+
+    class ClearEphemeral : ChatCommand
+    {
+        public new static string Command = "clearephemeral";
+        public new static string ArgumentText = "<string mundane> <string key>";
+        public new static string HelpText = "Clear a given ephemeral store value for a specified mundane";
+        public new static bool Privileged = true;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            if (Game.World.WorldData.TryGetValue(args[0], out Merchant merchant))
+            {
+                merchant.ClearEphemeral(args[1]);
+                return Success($"{merchant.Name}: {args[1]} set to {args[2]}");
+            }
+            else return Fail($"NPC {args[0]} not found.");
+        }
+    }
+
+    class SetSessionCookie : ChatCommand
+    {
+        public new static string Command = "setcookie";
+        public new static string ArgumentText = "<string playername> <string cookie> <string value>";
+        public new static string HelpText = "Set a given (permament) cookie for a specified player";
+        public new static bool Privileged = true;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            if (Game.World.WorldData.TryGetValue<User>(args[0], out User target))
+            {
+                target.SetCookie(args[1], args[2]);
+                return Success($"User {target.Name}: cookie {args[1]} set");
+            }
+            return Fail($"User {args[0]} not logged in");
+        }
+    }
+
 
     class SummonCommand : ChatCommand
     {
@@ -313,60 +429,6 @@ namespace Hybrasyl.Messaging
                 }
             }
             return Fail($"Script {args[1].Trim()}: not found.");
-        }
-    }
-
-    class DeleteSessionCookie : ChatCommand
-    {
-        public new static string Command = "deletesessioncookie";
-        public new static string ArgumentText = "<string cookie> | <string playername> <string cookie>";
-        public new static string HelpText = "Clear (delete) a given session (transient) scripting cookie. This is useful when working with scripts that modify player state.";
-        public new static bool Privileged = true;
-
-        public new static ChatCommandResult Run(User user, params string[] args)
-        {
-            if (args.Length == 1)
-            {
-                user.DeleteSessionCookie(args[0]);
-                return Success($"Session flag {args[0]} deleted.");
-            }
-            else
-            {
-                var target = Game.World.WorldData.Get<User>(args[0]);
-
-                if (target.IsExempt)
-                    return Fail($"User {target.Name} is exempt from your meddling.");
-                else
-                    target.DeleteSessionCookie(args[1]);
-                return Success($"Player {target.Name}: flag {args[1]} removed.");
-            }
-        }
-    }
-
-    class DeleteCookie : ChatCommand
-    {
-        public new static string Command = "deletecookie";
-        public new static string ArgumentText = "<string cookie> | <string playername> <string cookie>";
-        public new static string HelpText = "Clear (delete) a given scripting cookie. This is useful when working with scripts that modify player state.";
-        public new static bool Privileged = true;
-
-        public new static ChatCommandResult Run(User user, params string[] args)
-        {
-            if (args.Length == 1)
-            {
-                user.DeleteCookie(args[0]);
-                return Success($"Session flag {args[0]} deleted.");
-            }
-            else
-            {
-                var target = Game.World.WorldData.Get<User>(args[0]);
-
-                if (target.IsExempt)
-                    return Fail($"User {target.Name} is exempt from your meddling.");
-                else
-                    target.DeleteCookie(args[1]);
-                return Success($"Player {target.Name}: flag {args[1]} removed.");
-            }
         }
     }
 

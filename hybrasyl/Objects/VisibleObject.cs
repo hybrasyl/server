@@ -328,8 +328,8 @@ namespace Hybrasyl.Objects
                 optionsCount++;
 
             }
-        
-            var packet =new ServerPacketStructures.MerchantResponse()
+
+            var packet = new ServerPacketStructures.MerchantResponse()
             {
                 MerchantDialogType = MerchantDialogType.Options,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -338,11 +338,12 @@ namespace Hybrasyl.Objects
                 Color1 = 0,
                 Tile2 = (ushort)(Sprite),
                 Color2 = 0,
-                PortraitType = 1,
+                PortraitType = (byte) (string.IsNullOrEmpty(merchant.Portrait) ? 1 : 0),
                 Name = Name,
                 Text = greeting?.Value ?? string.Empty,
                 Options = options
             };
+            
 
             invoker.Enqueue(packet.Packet());
         }

@@ -816,7 +816,9 @@ namespace Hybrasyl
                 if (npc.Appearance.Portrait != null)
                 {
                     npcillust.Nodes.Add(new MetafileNode(npc.Name, npc.Appearance.Portrait /* portrait filename */));
+                    GameLog.Info("metafile: set {Name} to {Portrait}", npc.Name, npc.Appearance.Portrait);
                 }
+                GameLog.Info("metafile: {Name} missing");
             }
             WorldData.Set(npcillust.Name, npcillust.Compile());
 
@@ -3303,7 +3305,7 @@ namespace Hybrasyl
                 if (WorldData.ContainsKey<CompiledMetafile>(name))
                 {
                     var file = WorldData.Get<CompiledMetafile>(name);
-
+                    GameLog.Info($"Responding 6f notall: sending {file.Name}, checksum {file.Checksum}");
                     var x6F = new ServerPacket(0x6F);
                     x6F.WriteBoolean(all);
                     x6F.WriteString8(file.Name);

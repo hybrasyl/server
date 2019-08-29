@@ -666,6 +666,21 @@ namespace Hybrasyl
         };
         #endregion
 
+
+        public static uint ComputeChecksum(byte[] filedata)
+        {
+            var hash = uint.MaxValue;
+            byte data;
+
+            for (var i = 0; i < filedata.Length; ++i)
+            {
+                data = (byte)(filedata[i] ^ (hash & 0xFF));
+                hash = crc32Table[data] ^ (hash >> 0x8);
+            }
+
+            return ~hash;
+        }
+
         public static uint Calculate(byte[] data)
         {
             uint crc = 0xFFFFFFFF;

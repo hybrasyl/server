@@ -77,6 +77,8 @@ namespace Hybrasyl
         public Metafile Source { get; private set; }
         public uint Checksum { get; private set; }
         public byte[] Data { get; private set; }
+
+        public byte[] Decompressed { get; private set; }
         public CompiledMetafile(Metafile file)
         {
             Name = file.Name;
@@ -86,20 +88,20 @@ namespace Hybrasyl
 
             using (var metaFileStream = new MemoryStream())
             {
-                using (var metaFileWriter = new BinaryWriter(metaFileStream, Encoding.ASCII, true))
+                using (var metaFileWriter = new BinaryWriter(metaFileStream, CodePagesEncodingProvider.Instance.GetEncoding(949), true))
                 {
                     metaFileWriter.Write((byte)(file.Nodes.Count / 256));
                     metaFileWriter.Write((byte)(file.Nodes.Count % 256));
                     foreach (var node in file.Nodes)
                     {
-                        buffer = Encoding.ASCII.GetBytes(node.Text);
+                        buffer = CodePagesEncodingProvider.Instance.GetEncoding(949).GetBytes(node.Text);
                         metaFileWriter.Write((byte)buffer.Length);
                         metaFileWriter.Write(buffer);
                         metaFileWriter.Write((byte)(node.Properties.Count / 256));
                         metaFileWriter.Write((byte)(node.Properties.Count % 256));
                         foreach (var property in node.Properties)
                         {
-                            buffer = Encoding.ASCII.GetBytes(property);
+                            buffer = CodePagesEncodingProvider.Instance.GetEncoding(949).GetBytes(property);
                             metaFileWriter.Write((byte)(buffer.Length / 256));
                             metaFileWriter.Write((byte)(buffer.Length % 256));
                             metaFileWriter.Write(buffer);
@@ -108,6 +110,17 @@ namespace Hybrasyl
                 }
 
                 Checksum = ~Crc32.Calculate(metaFileStream.ToArray());
+                metaFileStream.Seek(0, SeekOrigin.Begin);
+                var DeanChecksum = Crc32.ComputeChecksum(metaFileStream.ToArray());
+                metaFileStream.Seek(0, SeekOrigin.Begin);
+                if (DeanChecksum != Checksum)
+                {
+                    GameLog.Error("SOMETHING IS FUCKIN FUCKY GUY");
+                }
+                else
+                {
+                    GameLog.Info("EVERYTHING A OK. IM CATBUG");
+                }
 
                 using (var compressedMetaFileStream = new MemoryStream())
                 {
@@ -118,3 +131,4 @@ namespace Hybrasyl
         }
     }
 }
+
