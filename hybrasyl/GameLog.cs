@@ -154,5 +154,17 @@ namespace Hybrasyl
         public static void ScriptingDebug(Exception ex, string messageTemplate, params object[] propertyValues) => LogWithException(ex, LogEventLevel.Debug, LogType.Scripting, messageTemplate, propertyValues);
         public static void ScriptingFatal(Exception ex, string messageTemplate, params object[] propertyValues) => LogWithException(ex, LogEventLevel.Fatal, LogType.Scripting, messageTemplate, propertyValues);
 
+        // Spawn activity logs
+        public static void SpawnError(string messageTemplate, params object[] propertyValues) => Log(LogEventLevel.Error, LogType.Spawn, messageTemplate, propertyValues);
+        public static void SpawnInfo(string messageTemplate, params object[] propertyValues) => Log(LogEventLevel.Information, LogType.Spawn, messageTemplate, propertyValues);
+        public static void SpawnWarning(string messageTemplate, params object[] propertyValues) => Log(LogEventLevel.Warning, LogType.Spawn, messageTemplate, propertyValues);
+        public static void SpawnDebug(string messageTemplate, params object[] propertyValues) => Log(LogEventLevel.Debug, LogType.Spawn, messageTemplate, propertyValues);
+        public static void SpawnFatal(string messageTemplate, params object[] propertyValues) => Log(LogEventLevel.Fatal, LogType.Spawn, messageTemplate, propertyValues);
+        public static void SpawnError(Exception ex, string messageTemplate, params object[] propertyValues) => LogWithException(ex, LogEventLevel.Error, LogType.Spawn, messageTemplate, propertyValues);
+        public static void SpawnInfo(Exception ex, string messageTemplate, params object[] propertyValues) => LogWithException(ex, LogEventLevel.Information, LogType.Spawn, messageTemplate, propertyValues);
+        public static void SpawnWarning(Exception ex, string messageTemplate, params object[] propertyValues) => LogWithException(ex, LogEventLevel.Warning, LogType.Spawn, messageTemplate, propertyValues);
+        public static void SpawnDebug(Exception ex, string messageTemplate, params object[] propertyValues) => LogWithException(ex, LogEventLevel.Debug, LogType.Spawn, messageTemplate, propertyValues);
+        public static void SpawnFatal(Exception ex, string messageTemplate, params object[] propertyValues) => LogWithException(ex, LogEventLevel.Fatal, LogType.Spawn, messageTemplate, propertyValues);
+
     }
 }

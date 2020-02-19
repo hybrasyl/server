@@ -71,7 +71,9 @@ namespace Hybrasyl.Scripting
         public Script Clone()
         {
             var clone = new Script(FullPath, Processor);
-            clone.Run();
+            // A clone doesn't need to run OnLoad again, which is guaranteed to be evaluated 
+            // only once per script (aka this.Compiled) lifetime
+            clone.Run(false);
             return clone;
         }
 
@@ -144,8 +146,9 @@ namespace Hybrasyl.Scripting
         /// <summary>
         /// Load the script from disk and execute it.
         /// </summary>
+        /// <param name="onLoad">Whether or not to execute OnLoad() if it exists in the script.</param>
         /// <returns>boolean indicating whether the script was reloaded or not</returns>
-        public bool Run()
+        public bool Run(bool onLoad=true)
         {
             try
             {
@@ -156,7 +159,10 @@ namespace Hybrasyl.Scripting
                 Compiled.Globals["utility"] = typeof(HybrasylUtility);
                 Compiled.Globals.Set("world", UserData.Create(Processor.World));
                 Compiled.Globals.Set("logger", UserData.Create(new ScriptLogger(Name)));
+                Compiled.Globals.Set("this_script", DynValue.NewString(Name));
                 Compiled.DoFile(FullPath);
+                if (onLoad)
+                    ExecuteFunction("OnLoad");               
             }
             catch (Exception ex) when (ex is InterpreterException)
             {
@@ -187,8 +193,9 @@ namespace Hybrasyl.Scripting
         /// </summary>
         /// <param name="expr">The javascript expression, in string form.</param>
         /// <param name="invoker">The invoker (caller).</param>
+        /// <param name="source">Optionally, the source of the script call, invocation or dialog</param>
         /// <returns></returns>
-        public bool Execute(string expr, dynamic invoker)
+        public bool Execute(string expr, dynamic invoker, dynamic source = null)
         {
             if (Disabled)
                 return false;
@@ -197,6 +204,9 @@ namespace Hybrasyl.Scripting
             {
                 Compiled.Globals["utility"] = typeof(HybrasylUtility);
                 Compiled.Globals.Set("invoker", GetUserDataValue(invoker));
+                if (source != null)
+                   Compiled.Globals.Set("source", GetUserDataValue(source));
+
                 // We pass Compiled.Globals here to make sure that the updated table (with new variables) makes it over
                 Compiled.DoString(expr, Compiled.Globals);
             }
@@ -234,7 +244,7 @@ namespace Hybrasyl.Scripting
             }
         }
 
-        public bool ExecuteFunction(string functionName, dynamic invoker, dynamic target)
+        public bool ExecuteFunction(string functionName, dynamic invoker, dynamic source, dynamic scriptItem=null)
         {
             if (Disabled)
                 return false;
@@ -245,7 +255,9 @@ namespace Hybrasyl.Scripting
                 {
                     Compiled.Globals["utility"] = typeof(HybrasylUtility);
                     Compiled.Globals.Set("invoker", GetUserDataValue(invoker));
-                    Compiled.Globals.Set("target", GetUserDataValue(target));
+                    Compiled.Globals.Set("source", GetUserDataValue(source));
+                    if (scriptItem != null)
+                        Compiled.Globals.Set("item", GetUserDataValue(scriptItem));
                     Compiled.Call(Compiled.Globals[functionName]);
                 }
                 else
@@ -277,7 +289,11 @@ namespace Hybrasyl.Scripting
                     Compiled.Call(Compiled.Globals[functionName]);
                 }
                 else
+                {
+                    GameLog.ScriptingError("{Function}: function {ScriptFunction} in {FileName} did not exist?", MethodBase.GetCurrentMethod().Name,
+                        functionName, FileName);
                     return false;
+                }
             }
             catch (Exception ex) when (ex is InterpreterException)
             {
@@ -294,7 +310,7 @@ namespace Hybrasyl.Scripting
 
         public bool ExecuteFunction(string functionName)
         {
-            if (Disabled || !(Associate is HybrasylWorldObject))
+            if (Disabled)
                 return false;
 
             try

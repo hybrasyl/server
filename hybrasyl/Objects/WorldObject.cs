@@ -55,7 +55,7 @@ namespace Hybrasyl.Objects
         public ushort DialogSprite { get; set; }
 
         private Dictionary<string, dynamic> _ephemeralStore { get; set; }
-        private object _storeLock { get; set; }
+        private readonly object _storeLock = new object();
 
         public void SetEphemeral(string key, dynamic value)
         {

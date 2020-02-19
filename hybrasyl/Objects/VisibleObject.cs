@@ -47,6 +47,9 @@ namespace Hybrasyl.Objects
         public string Portrait { get; set; }
         public string DisplayText { get; set; }
 
+        // Whether or not to allow a ghost (a dead player) to interact with this object
+        public bool AllowDead { get; set; }
+
         public string DeathPileOwner { get; set; }
         public List<string> ItemDropAllowedLooters { get; set; }
         public DateTime? ItemDropTime { get; set; }
@@ -63,6 +66,7 @@ namespace Hybrasyl.Objects
             viewportUsers = new HashSet<User>();
             Location = new LocationInfo();
             ItemDropType = ItemDropType.Normal;
+            AllowDead = false;
         }
 
         public virtual void AoiEntry(VisibleObject obj)
@@ -334,16 +338,15 @@ namespace Hybrasyl.Objects
                 MerchantDialogType = MerchantDialogType.Options,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
                 ObjectId = Id,
-                Tile1 = (ushort)(Sprite),
+                Tile1 = (ushort)(0x4000 + Sprite),
                 Color1 = 0,
-                Tile2 = (ushort)(Sprite),
+                Tile2 = (ushort)(0x4000 + Sprite),
                 Color2 = 0,
-                PortraitType = (byte) (string.IsNullOrEmpty(merchant.Portrait) ? 1 : 0),
+                PortraitType = 1,
                 Name = Name,
                 Text = greeting?.Value ?? string.Empty,
                 Options = options
             };
-            
 
             invoker.Enqueue(packet.Packet());
         }

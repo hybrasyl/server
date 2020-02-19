@@ -31,6 +31,7 @@ using Hybrasyl.Enums;
 using Hybrasyl.Statuses;
 using Serilog;
 using Newtonsoft.Json;
+using Hybrasyl.Scripting;
 
 namespace Hybrasyl.Objects
 {
@@ -71,9 +72,8 @@ namespace Hybrasyl.Objects
             Statuses = new List<StatusInfo>();
         }
 
-        public override void OnClick(User invoker)
-        {
-        }
+        public override void OnClick(User invoker) =>
+            invoker.SendSystemMessage(Name);
 
         public Creature GetDirectionalTarget(Direction direction)
         {
@@ -323,7 +323,7 @@ namespace Hybrasyl.Objects
                     if (!intent.Target.Contains(IntentTarget.Hostile))
                         possibleTargets = possibleTargets.Where(e => !(e is User)).ToList();
                 }
-                else if (this is User)
+                else if (this is User && intent.UseType != Castables.SpellUseType.NoTarget)
                 {
                     var user = this as User;
                     // No hostile flag: remove monsters
@@ -490,24 +490,40 @@ namespace Hybrasyl.Objects
             targets = GetTargets(castObject, target);
 
             if (targets.Count() == 0 && castObject.IsAssail == false) return false;
-
+            
             // We do these next steps to ensure effects are displayed uniformly and as fast as possible
             var deadMobs = new List<Creature>();
-            foreach (var tar in targets)
+            if (castObject.Effects?.Animations?.OnCast != null)
             {
-                foreach (var user in tar.viewportUsers)
+                foreach (var tar in targets)
                 {
-                    user.SendEffect(tar.Id, castObject.Effects.Animations.OnCast.Target.Id, castObject.Effects.Animations.OnCast.Target.Speed);
+                    foreach (var user in tar.viewportUsers)
+                    {
+                        user.SendEffect(tar.Id, castObject.Effects.Animations.OnCast.Target.Id, castObject.Effects.Animations.OnCast.Target.Speed);
+                    }
                 }
+                if (castObject.Effects?.Animations?.OnCast?.SpellEffect != null)
+                    Effect(castObject.Effects.Animations.OnCast.SpellEffect.Id, castObject.Effects.Animations.OnCast.SpellEffect.Speed);
             }
 
-            if (castObject.Effects?.Animations?.OnCast?.SpellEffect != null)
-                Effect(castObject.Effects.Animations.OnCast.SpellEffect.Id, castObject.Effects.Animations.OnCast.SpellEffect.Speed);
-
-            if (castObject.Effects.Sound != null)
+            if (castObject.Effects?.Sound != null)
                 PlaySound(castObject.Effects.Sound.Id);
 
             GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name}, {targets.Count()} targets");
+
+            if (!string.IsNullOrEmpty(castObject.Script))
+            {
+                // If a script is defined we fire it immediately, and let it handle targeting / etc
+                if (Game.World.ScriptProcessor.TryGetScript(castObject.Script, out Script script))
+                    return script.ExecuteFunction("OnUse", this);
+                else
+                {
+                    GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name}: castable script {castObject.Script} missing");
+                    return false;
+                }
+
+            }
+
             foreach (var tar in targets)
             {
                 if (castObject.Effects?.ScriptOverride == true)

@@ -85,11 +85,10 @@ namespace Hybrasyl.Scripting
         }
         public uint Exp
         {
-            get => Spawn.Loot.Xp.Max;
+            get => Spawn.Loot.Xp;
             set
             {
-                Spawn.Loot.Xp.Max = value;
-                Spawn.Loot.Xp.Min = value;
+                Spawn.Loot.Xp = value;
             }
         }
         public uint Gold
@@ -160,7 +159,6 @@ namespace Hybrasyl.Scripting
             Spawn.Loot.Table.Add(new Creatures.LootTable());
             Spawn.Loot = new Creatures.LootList();
             Spawn.Loot.Gold = new Creatures.LootGold();
-            Spawn.Loot.Xp = new Creatures.LootXp();
         }
     }
 }

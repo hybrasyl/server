@@ -25,6 +25,7 @@ using System.Reflection;
 using Hybrasyl.Objects;
 using Serilog;
 using MoonSharp.Interpreter;
+using Hybrasyl.Dialogs;
 
 namespace Hybrasyl.Scripting
 {
@@ -32,6 +33,17 @@ namespace Hybrasyl.Scripting
     public class HybrasylWorldObject
     {
         internal WorldObject Obj { get; set; }
+
+        // TODO: determine a better way to do this in lua via moonsharp
+        public string Type
+        {
+            get
+            {
+                if (Obj is Merchant) return "merchant";
+                else if (Obj is Reactor) return "reactor";
+                return "idk";
+            }
+        }
 
         public string Name
         {
@@ -145,6 +157,20 @@ namespace Hybrasyl.Scripting
         {
             if (Obj is VisibleObject)
                 ((VisibleObject)Obj).DialogSprite = (ushort)(0x4000 + displaySprite);
+        }
+
+        public bool RequestDialog(string player, string sequence, bool requireLocal = true)
+        {
+            
+            DialogSequence seq;
+            if (Game.World.TryGetActiveUser(player, out User user))
+            {
+                if (Obj.SequenceCatalog.TryGetValue(sequence, out seq) ||
+                    Game.World.GlobalSequences.TryGetValue(sequence, out seq))
+                    // TODO: fix this awful object hierarchy nonsense
+                    return Game.World.TryAsyncDialog(Obj as VisibleObject, user, seq);
+            }
+            return false;
         }
 
         public void Say(string message)

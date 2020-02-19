@@ -245,6 +245,7 @@ namespace Hybrasyl
                     Sprite = npcTemplate.Appearance.Sprite,
                     Direction = (Enums.Direction)npcElement.Direction,
                     Portrait = npcTemplate.Appearance.Portrait,
+                    AllowDead = npcTemplate.AllowDead
                 };
                 if (npcTemplate.Roles != null)
                 {
@@ -267,9 +268,9 @@ namespace Hybrasyl
 
             foreach (var reactorElement in newMap.Reactors)
             {
-                // TODO: implement reactor loading support
                 var reactor = new Reactor(reactorElement.X, reactorElement.Y, this, 
                     reactorElement.Script, reactorElement.Description, reactorElement.Blocking);
+                reactor.AllowDead = reactorElement.AllowDead;
                 InsertReactor(reactor);
                 GameLog.Debug($"{reactor.Id} placed in {reactor.Map.Name}, description was {reactor.Description}");
             }

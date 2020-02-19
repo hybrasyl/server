@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of Project Hybrasyl.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -63,17 +63,15 @@ namespace Hybrasyl
                         continue;
                     }
                     spawnmap.Id = mapObject.Id;
-                    spawnmap.LastSpawn = DateTime.Now;
                 }
             }
 
             while (true)
             {
                 foreach (var spawnGroup in _spawnGroups)
-                {
                     Spawn(spawnGroup);
-                    Thread.Sleep(100);
-                }
+                Thread.Sleep(250);
+
             }
         }
     
@@ -85,15 +83,26 @@ namespace Hybrasyl
                 try
                 {
                     var spawnMap = Game.World.WorldData.Get<Map>(map.Id);
+                    GameLog.SpawnInfo("Spawn: calculating {0}", spawnMap.Name);
                     var monsterList = spawnMap.Objects.OfType<Monster>().ToList();
                     var monsterCount = monsterList.Count;
 
-                    if (monsterCount > map.Limit) continue;
-                    if (!(map.LastSpawn.AddSeconds(map.Interval) < DateTime.Now)) continue;
+                    if (monsterCount > map.Limit)
+                    {
+                        GameLog.SpawnInfo($"Spawn: {map.Name}: mob count {monsterCount}, limit is {map.Limit}");
+                        continue;
+                    }
+                    if (!(map.LastSpawn.AddSeconds(map.Interval) < DateTime.Now))
+                    {
+                        GameLog.SpawnInfo($"Spawn: {map.Name}: last spawn {map.LastSpawn}, interval {map.Interval}");
+                        continue;
+                    }
 
                     map.LastSpawn = DateTime.Now;
 
                     var thisSpawn = _random.Next(map.MinSpawn, map.MaxSpawn);
+
+                    GameLog.SpawnInfo($"Spawn: {map.Name} spawning {thisSpawn} mobs ");
 
                     for (var i = 0; i < thisSpawn; i++)
                     {
@@ -119,12 +128,13 @@ namespace Hybrasyl
                         mob.LootableGold = newSpawnLoot.LootableGold();
                         mob.LootableItems = newSpawnLoot.LootableItems();
 
+                        GameLog.SpawnInfo($"Spawn: spawning {mob.Name} on {spawnMap.Name}");
                         SpawnMonster(mob, spawnMap);
                     }
                 }
                 catch (Exception e)
                 {
-                    //GameLog.Error($"Spawngroup {spawnGroup.Filename}: disabled map {map.Name} due to error {e.ToString()}");
+                    GameLog.SpawnError($"Spawngroup {spawnGroup.Filename}: disabled map {map.Name} due to error {e.ToString()}");
                     map.Disabled = true;
                     continue;
                 }
@@ -134,7 +144,7 @@ namespace Hybrasyl
         {
             World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MonolithSpawn, monster, map));
             //Game.World.Maps[mapId].InsertCreature(monster);
-            //GameLog.DebugFormat("Spawning monster: {0} at {1}, {2}", monster.Name, (int) monster.X, (int) monster.Y);
+            GameLog.SpawnInfo("Spawning monster: {0} {1} at {2}, {3}", map.Name, monster.Name, (int) monster.X, (int) monster.Y);
         }
     }
 
@@ -216,105 +226,111 @@ namespace Hybrasyl
         public List<ItemObject> LootableItems()
         {
             List<ItemObject> lootableItems = new List<ItemObject>();
+            List<Creatures.LootTable> lootTables = new List<Creatures.LootTable>();
 
-            if(_spawnLootTable.Count > 0)
-            {
-                foreach(var table in _spawnLootTable)
-                {
-                    var numberOfItemsToGet = 0;
-                    for(int i = 0; i < table.Items.Rolls; i++)
-                    {
-                        if(table.Items.Chance >= _rng.NextDouble())
-                        {
-                            numberOfItemsToGet++;
-                        }
-                    }
+            // Calculate all "active" loot tables
+           // foreach (var set in _spawn.Loot.Set)
+                // TODO: reimplement
+               
 
-                    if(numberOfItemsToGet > 0)
-                    {
-                        //now get the number of random items
+            //if (_spawnLootTable.Count > 0)
+            //{
+            //    foreach(var table in _spawnLootTable)
+            //    {
+            //        var numberOfItemsToGet = 0;
+            //        for(int i = 0; i < table.Rolls; i++)
+            //        {
+            //            if(table.Rolls.Chance >= _rng.NextDouble())
+            //            {
+            //                lootTables.Add((Loot.LootTable) table);
+            //            }
+            //        }
 
-                        var creaturesLootItem = new List<Creatures.LootItem>();
-                        var alwaysItems = new List<Creatures.LootItem>();
-                        var possibleItems = new List<Creatures.LootItem>(table.Items.Items);
+            //        if(numberOfItemsToGet > 0)
+            //        {
+            //            //now get the number of random items
+
+            //            var creaturesLootItem = new List<Creatures.LootItem>();
+            //            var alwaysItems = new List<Creatures.LootItem>();
+            //            var possibleItems = new List<Creatures.LootItem>(table.Items.Items);
                         
-                        //first determine all "Always" items
-                        foreach(var item in possibleItems)
-                        {
-                            if (item.Always)
-                            {
-                                alwaysItems.Add(item);
-                            }
-                        }
-                        possibleItems.RemoveAll(item => alwaysItems.Contains(item));
+            //            //first determine all "Always" items
+            //            foreach(var item in possibleItems)
+            //            {
+            //                if (item.Always)
+            //                {
+            //                    alwaysItems.Add(item);
+            //                }
+            //            }
+            //            possibleItems.RemoveAll(item => alwaysItems.Contains(item));
 
-                        //then get all other items, taking into account unique items only drop once
-                        while (numberOfItemsToGet > 0)
-                        {
-                            if(possibleItems.Count > 0)
-                            {
-                                var randomIndex = _rng.Next(0, possibleItems.Count);
-                                var item = possibleItems.ElementAt(randomIndex);
+            //            //then get all other items, taking into account unique items only drop once
+            //            while (numberOfItemsToGet > 0)
+            //            {
+            //                if(possibleItems.Count > 0)
+            //                {
+            //                    var randomIndex = _rng.Next(0, possibleItems.Count);
+            //                    var item = possibleItems.ElementAt(randomIndex);
 
-                                if (item.Unique)
-                                {
-                                    possibleItems.Remove(item);
-                                    creaturesLootItem.Add(item);
-                                    numberOfItemsToGet--;
-                                }
-                                else
-                                {
-                                    creaturesLootItem.Add(item);
-                                    numberOfItemsToGet--;
-                                }
-                            }
-                            else
-                            {
-                                numberOfItemsToGet--;
-                            }
-                            creaturesLootItem.AddRange(alwaysItems);
-                        }
+            //                    if (item.Unique)
+            //                    {
+            //                        possibleItems.Remove(item);
+            //                        creaturesLootItem.Add(item);
+            //                        numberOfItemsToGet--;
+            //                    }
+            //                    else
+            //                    {
+            //                        creaturesLootItem.Add(item);
+            //                        numberOfItemsToGet--;
+            //                    }
+            //                }
+            //                else
+            //                {
+            //                    numberOfItemsToGet--;
+            //                }
+            //                creaturesLootItem.AddRange(alwaysItems);
+            //            }
 
-                        var worldItemTemplates = Game.World.WorldData.Values<Items.Item>();
+            //            var worldItemTemplates = Game.World.WorldData.Values<Items.Item>();
 
 
-                        foreach (var item in creaturesLootItem)
-                        {
-                            var possibleItemTemplate = worldItemTemplates.Where(x => (x.IsVariant == true && x.ParentItem.Name == item.Value) || x.Name.Equals(item.Value));
-                            var itemVariants = new List<string>(item.Variants);
-                            itemVariants.Add("normal");
-                            var randomVariant = _rng.Next(0, itemVariants.Count);
-                            var randomItemVariant = itemVariants.ElementAt(randomVariant);
+            //            foreach (var item in creaturesLootItem)
+            //            {
+            //                var possibleItemTemplate = worldItemTemplates.Where(x => (x.IsVariant == true && x.ParentItem.Name == item.Value) || x.Name.Equals(item.Value));
+            //                var itemVariants = new List<string>(item.Variants);
+            //                itemVariants.Add("normal");
+            //                var randomVariant = _rng.Next(0, itemVariants.Count);
+            //                var randomItemVariant = itemVariants.ElementAt(randomVariant);
 
-                            //Check that Min is less than Max, otherwise only generate one
-                            int randomQty;
-                            if (item.Min < item.Max && item.Unique == false) randomQty = _rng.Next(item.Min, item.Max);
-                            else randomQty = 1;
+            //                //Check that Min is less than Max, otherwise only generate one
+            //                int randomQty;
+            //                if (item.Min < item.Max && item.Unique == false) randomQty = _rng.Next(item.Min, item.Max);
+            //                else randomQty = 1;
 
-                            if (randomItemVariant.Equals("normal"))
-                            {
-                                foreach (var itemTemplate in possibleItemTemplate)
-                                {
-                                    if (itemTemplate.Name.Equals(item.Value, StringComparison.CurrentCultureIgnoreCase))
-                                    {
-                                        lootableItems.Add(Game.World.CreateItem(itemTemplate.Id, randomQty));
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                foreach (var itemTemplate in possibleItemTemplate)
-                                {
-                                    if (itemTemplate.Name.Contains(randomItemVariant, StringComparison.CurrentCultureIgnoreCase))
-                                    {
-                                        lootableItems.Add(Game.World.CreateItem(itemTemplate.Id, randomQty));
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            //                if (randomItemVariant.Equals("normal"))
+            //                {
+            //                    foreach (var itemTemplate in possibleItemTemplate)
+            //                    {
+            //                        if (itemTemplate.Name.Equals(item.Value, StringComparison.CurrentCultureIgnoreCase))
+            //                        {
+            //                            lootableItems.Add(Game.World.CreateItem(itemTemplate.Id, randomQty));
+            //                        }
+            //                    }
+            //                }
+            //                else
+            //                {
+            //                    foreach (var itemTemplate in possibleItemTemplate)
+            //                    {
+            //                        if (itemTemplate.Name.Contains(randomItemVariant, StringComparison.CurrentCultureIgnoreCase))
+            //                        {
+            //                            lootableItems.Add(Game.World.CreateItem(itemTemplate.Id, randomQty));
+            //                        }
+            //                    }
+            //                }
+            //            }
+            //        }
+            //    }
+            //}
 
             return lootableItems;
         }

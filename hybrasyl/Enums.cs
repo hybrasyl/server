@@ -224,7 +224,8 @@ namespace Hybrasyl
             General = 0,
             Scripting = 1,
             GmActivity = 2,
-            UserActivity = 3
+            UserActivity = 3,
+            Spawn = 4
         }
 
         public enum UserStatus : byte
@@ -366,6 +367,7 @@ namespace Hybrasyl
             InDialog = 4,
             Casting = 8,
             Pvp = 16,
+            InBoard = 32,
             AliveExchange = (Alive | InExchange),
             ProhibitCast = (InExchange | InDialog | Casting)
         }

@@ -44,6 +44,7 @@
     <xs:attribute name="X" type="xs:unsignedByte" use="required" />
     <xs:attribute name="Y" type="xs:unsignedByte" use="required" />
     <xs:attribute name="Blocking" default="false" type="xs:boolean" />
+    <xs:attribute name="AllowDead" default="false" type="xs:boolean" />
   </xs:complexType>
 
   <!-- Signpost subelements -->

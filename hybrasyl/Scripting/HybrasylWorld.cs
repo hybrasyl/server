@@ -21,6 +21,7 @@
  */
 
 using Hybrasyl.Dialogs;
+using Hybrasyl.Objects;
 using MoonSharp.Interpreter;
 using System;
 using System.Collections;
@@ -78,6 +79,15 @@ namespace Hybrasyl.Scripting
             return ht;
         }
 
+        public HybrasylUser GetUser(string username)
+        {
+            if (Game.World.TryGetActiveUser(username, out User user))
+            {
+                return new HybrasylUser(user);
+            }
+            return null;
+        }
+
         public HybrasylDialogOptions NewDialogOptions() => new HybrasylDialogOptions();
 
         public HybrasylDialogSequence NewDialogSequence(string sequenceName, params object[] list)
@@ -85,7 +95,6 @@ namespace Hybrasyl.Scripting
             var dialogSequence = new HybrasylDialogSequence(sequenceName);
             foreach (var entry in list)
             {
-                GameLog.InfoFormat("Type is {0}", entry.GetType().ToString());
                 if (entry is HybrasylDialog)
                 {
                     var newdialog = entry as HybrasylDialog;

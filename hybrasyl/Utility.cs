@@ -66,7 +66,7 @@ namespace Hybrasyl
         public const int MonolithControl = 9;
         public const int TriggerRefresh = 10;
         public const int HandleDeath = 11;
-
+        public const int DialogRequest = 12;
     }
 
     static class ServerTypes
@@ -94,6 +94,9 @@ namespace Hybrasyl
         // Manhattan distance between the user performing an action (killing a monster, etc) and other
         // users in the group in order to be eligible for sharing.
         public const int GROUP_SHARING_DISTANCE = 20;
+
+        // Manhattan distance between two players required for an asynchronous dialog request
+        public const int ASYNC_DIALOG_DISTANCE = 10;
 
         public static string DataDirectory;
 
@@ -151,9 +154,13 @@ namespace Hybrasyl
         // Dialog sequence IDs between 1 and DIALOG_SEQUENCE_SHARED are processed as 
         // "shared" (globally available) sequences; sequence IDs between DIALOG_SEQUENCE_SHARED
         // and DIALOG_SEQUENCE_PURSUITS are pursuits (main menu options); IDs above 
-        // DIALOG_SEQUENCE_PURSUITS are local to the object in question.
+        // DIALOG_SEQUENCE_PURSUITS are local to the object in question. 
+        // DIALOG_SEQUENCE_ASYNC -> Special ID - e.g. a *singular* ID - reserved for asynchronous dialogs 
+        // (these are effectively individual dialog  sessions that are managed by the server between two participants)
+        // DIALOG_SEQUENCE_HARDCODED -> dialogs reserved for internal (e.g. C#) implementations, such as merchant stores, etc
         public const int DIALOG_SEQUENCE_SHARED = 5000;
         public const int DIALOG_SEQUENCE_PURSUITS = 5100;
+        public const int DIALOG_SEQUENCE_ASYNC = 65000;
         public const int DIALOG_SEQUENCE_HARDCODED = 65280;
 
         public static Dictionary<string, int> CLASSES = new Dictionary<string, int> {
@@ -284,6 +291,81 @@ namespace Hybrasyl
     namespace Utility
     {
 
+
+        public class MultiIndexDictionary<TKey1, TKey2, TValue>
+        {
+            private Dictionary<TKey1, KeyValuePair<TKey2, TValue>> _dict1;
+            private Dictionary<TKey2, KeyValuePair<TKey1, TValue>> _dict2;
+
+            public MultiIndexDictionary()
+            {
+                _dict1 = new Dictionary<TKey1, KeyValuePair<TKey2, TValue>>();
+                _dict2 = new Dictionary<TKey2, KeyValuePair<TKey1, TValue>>();
+            }
+
+            public void Add(TKey1 k1, TKey2 k2, TValue value)
+            {
+                _dict1.Add(k1, new KeyValuePair<TKey2, TValue>(k2, value));
+                _dict2.Add(k2, new KeyValuePair<TKey1, TValue>(k1, value));
+            }
+
+            public void Clear()
+            {
+                _dict1 = new Dictionary<TKey1, KeyValuePair<TKey2, TValue>>();
+                _dict2 = new Dictionary<TKey2, KeyValuePair<TKey1, TValue>>();
+            }
+
+            public int Count => _dict1.Count;
+
+            public bool ContainsKey(TKey1 k1) => _dict1.ContainsKey(k1);
+
+            public bool ContainsKey(TKey2 k2) => _dict2.ContainsKey(k2);
+         
+            public bool Remove(TKey1 k1)
+            {
+                if (_dict1.ContainsKey(k1))
+                {
+                    var k2obj = _dict1[k1];
+                    return _dict1.Remove(k1) && _dict2.Remove(k2obj.Key);
+                }
+                else
+                    return false;
+            }
+
+            public bool Remove(TKey2 k2)
+            {
+                if (_dict2.ContainsKey(k2))
+                {
+                    var k1obj = _dict2[k2];
+                    return _dict2.Remove(k2) && _dict1.Remove(k1obj.Key);
+                }
+                else
+                    return false;
+            }
+
+            public bool TryGetValue(TKey1 k1, out TValue value)
+            {
+                value = default;
+                if (_dict1.TryGetValue(k1,out KeyValuePair<TKey2, TValue> kvp))
+                {
+                    value = kvp.Value;
+                    return true;
+                }
+                return false;
+            }
+
+            public bool TryGetValue(TKey2 k2, out TValue value)
+            {
+                value = default;
+                if (_dict2.TryGetValue(k2, out KeyValuePair<TKey1,TValue> kvp))
+                {
+                    value = kvp.Value;
+                    return true;
+                }
+                return false;
+            }
+
+        }
         /// <summary>
         /// A class to allow easy grabbing of assembly info; we use this in various places to
         /// display uniform version / copyright info.

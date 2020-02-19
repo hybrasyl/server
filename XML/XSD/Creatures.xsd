@@ -154,9 +154,9 @@
     <xs:sequence>
       <xs:element name="Set" type="creature:LootImport" minOccurs="0" maxOccurs="unbounded"/>
       <xs:element name="Table" type="loot:LootTable" minOccurs="0" maxOccurs="unbounded"/>
-      <xs:element name="Xp" type="creature:LootXp" minOccurs="0" maxOccurs="1"/>
       <xs:element name="Gold" type="creature:LootGold" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
+    <xs:attribute name="Xp" type="xs:unsignedInt" default="0" use="optional"/>
   </xs:complexType>
 
   <!-- Imported loot table-->
@@ -283,6 +283,7 @@
         </xs:complexType>
       </xs:element>
       <xs:element name="Roles" type="creature:NpcRoleList" minOccurs="0" maxOccurs="1" />
+      <xs:element name="AllowDead" type="xs:boolean" minOccurs="0" maxOccurs="1"/>
       <xs:element name="Inventory" minOccurs="0" maxOccurs="1">
         <xs:complexType>
           <xs:sequence minOccurs="0" maxOccurs="1">

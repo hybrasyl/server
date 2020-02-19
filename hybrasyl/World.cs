@@ -25,12 +25,16 @@ using Hybrasyl.Creatures;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
 using Hybrasyl.Items;
+using Hybrasyl.Loot;
+using Hybrasyl.Messaging;
 using Hybrasyl.Nations;
 using Hybrasyl.Objects;
+using Hybrasyl.Scripting;
+using Hybrasyl.Statuses;
+using Hybrasyl.Utility;
 using Hybrasyl.XML;
-using Serilog;
-using Serilog.Core;
 using Newtonsoft.Json;
+using Serilog;
 using StackExchange.Redis;
 using System;
 using System.Collections;
@@ -45,12 +49,8 @@ using System.Threading;
 using System.Timers;
 using System.Xml;
 using System.Xml.Schema;
-using Hybrasyl.Scripting;
 using Castable = Hybrasyl.Castables.Castable;
 using Creature = Hybrasyl.Objects.Creature;
-using Hybrasyl.Statuses;
-using Hybrasyl.Messaging;
-using Hybrasyl.Loot;
 
 namespace Hybrasyl
 {
@@ -108,8 +108,7 @@ namespace Hybrasyl
             }
         }
 
-        public List<DialogSequence> GlobalSequences { get; set; }
-        public Dictionary<string, DialogSequence> GlobalSequencesCatalog { get; set; }
+        public MultiIndexDictionary<uint, string, DialogSequence> GlobalSequences { get; set; }
         private Dictionary<MerchantMenuItem, MerchantMenuHandler> merchantMenuHandlers;
 
         public Dictionary<Tuple<Sex, string>, Item> ItemCatalog { get; set; }
@@ -121,6 +120,8 @@ namespace Hybrasyl
         public static BlockingCollection<HybrasylMessage> ControlMessageQueue;
         public static ConcurrentDictionary<long, User> ActiveUsers { get; private set; }
         public ConcurrentDictionary<string, long> ActiveUsersByName { get; set; }
+
+        public ConcurrentDictionary<Tuple<UInt32, UInt32>, AsyncDialogRequest> ActiveAsyncDialogs { get; set; }
 
         private Thread ConsumerThread { get; set; }
         private Thread ControlConsumerThread { get; set; }
@@ -203,16 +204,16 @@ namespace Hybrasyl
             Objects = new Dictionary<uint, WorldObject>();
             Portraits = new Dictionary<string, string>();
 
-            GlobalSequences = new List<DialogSequence>();
-            GlobalSequencesCatalog = new Dictionary<string, DialogSequence>();
+            GlobalSequences = new MultiIndexDictionary<uint, string, DialogSequence>();
             ItemCatalog = new Dictionary<Tuple<Sex, string>, Item>();
-            //MapCatalog = new Dictionary<string, Map>();
 
             ScriptProcessor = new ScriptProcessor(this);
             MessageQueue = new BlockingCollection<HybrasylMessage>(new ConcurrentQueue<HybrasylMessage>());
             ControlMessageQueue = new BlockingCollection<HybrasylMessage>(new ConcurrentQueue<HybrasylMessage>());
             ActiveUsers = new ConcurrentDictionary<long, User>();
             ActiveUsersByName = new ConcurrentDictionary<string, long>();
+
+            ActiveAsyncDialogs = new ConcurrentDictionary<Tuple<UInt32, UInt32>, AsyncDialogRequest>();
 
             WorldData = new WorldDataStore();
 
@@ -262,9 +263,14 @@ namespace Hybrasyl
 
         internal void RegisterGlobalSequence(DialogSequence sequence)
         {
-            sequence.Id = UInt16.MaxValue - (uint)GlobalSequences.Count();
-            GlobalSequences.Add(sequence);
-            GlobalSequencesCatalog.Add(sequence.Name, sequence);
+            if (GlobalSequences.Count > Constants.DIALOG_SEQUENCE_SHARED)
+            {
+                GameLog.Error($"Maximum number of global sequences exceeded - registation request for {sequence.Name} ignored!");
+                return;
+            }
+            sequence.Id = (uint)GlobalSequences.Count + 1;
+            // Global sequences obviously always have IDs
+            GlobalSequences.Add((uint)sequence.Id, sequence.Name, sequence);
         }
 
         public bool PlayerExists(string name)
@@ -371,7 +377,7 @@ namespace Hybrasyl
                 }
             }
 
-
+            GameLog.InfoFormat("Creatures: {0} creatures loaded", WorldData.Count<Creature>());
 
             //Load SpawnGroups
             foreach (var xml in Directory.GetFiles(SpawnGroupDirectory, "*.xml"))
@@ -380,16 +386,18 @@ namespace Hybrasyl
                 {
                     var spawnGroup = Serializer.Deserialize(XmlReader.Create(xml), new SpawnGroup());
                     spawnGroup.Filename = Path.GetFileName(xml);
-                    GameLog.DebugFormat("SpawnGroup: loaded {0}", spawnGroup.GetHashCode());
+                    GameLog.InfoFormat("SpawnGroup: loaded {0}", spawnGroup.Filename);
                     WorldData.Set(spawnGroup.GetHashCode(), spawnGroup);
 
 
                 }
                 catch (Exception e)
                 {
-                    GameLog.ErrorFormat("Error parsing {0}: {1}", xml, e);
+                    GameLog.ErrorFormat("SpawnGroup: Error parsing {0}: {1}", xml, e);
                 }
             }
+
+            GameLog.InfoFormat("Spawngroups: {0} spawngroups loaded", WorldData.Count<SpawnGroup>());
 
             //Load LootSets
             foreach (var xml in Directory.GetFiles(LootSetDirectory, "*.xml"))
@@ -818,7 +826,6 @@ namespace Hybrasyl
                     npcillust.Nodes.Add(new MetafileNode(npc.Name, npc.Appearance.Portrait /* portrait filename */));
                     GameLog.Info("metafile: set {Name} to {Portrait}", npc.Name, npc.Appearance.Portrait);
                 }
-                GameLog.Info("metafile: {Name} missing");
             }
             WorldData.Set(npcillust.Name, npcillust.Compile());
 
@@ -890,6 +897,7 @@ namespace Hybrasyl
             ControlMessageHandlers[ControlOpcodes.MonolithControl] = ControlMessage_MonolithControl; // ST + map lock?
             ControlMessageHandlers[ControlOpcodes.TriggerRefresh] = ControlMessage_TriggerRefresh; // ST
             ControlMessageHandlers[ControlOpcodes.HandleDeath] = ControlMessage_HandleDeath; // ST + user/map locks
+            ControlMessageHandlers[ControlOpcodes.DialogRequest] = ControlMessage_DialogRequest;
         }
 
         public void SetPacketHandlers()
@@ -1041,6 +1049,32 @@ namespace Hybrasyl
 
         public bool TryGetActiveUser(string name, out User user) => WorldData.TryGetValue(name, out user);
 
+        public bool TryAsyncDialog(VisibleObject invoker, User invokee, DialogSequence startSequence)
+        {
+            var request = new AsyncDialogRequest(startSequence, invoker, invokee);
+            if (request.CheckRequest())
+            {
+                var key = new Tuple<UInt32, UInt32>(invoker.Id, invokee.Id);
+                if (ActiveAsyncDialogs.TryAdd(key, request))
+                {
+                    ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.DialogRequest, request));
+                    return true;
+                }
+                else
+                {
+                    Log.Error($"Async dialog: enqueue request failed for {invoker.Name} -> {invokee.Name}, already exists?");
+                    return false;
+                }
+            }
+            else
+                Log.Warning($"Async dialog: request denied for {invoker.Name} -> {invokee.Name}, status checks failed");
+            return false;
+        }
+
+        public void CompleteAsyncDialog(AsyncDialogRequest request)
+        {
+
+        }
         public override void Shutdown()
         {
             GameLog.WarningFormat("Shutdown initiated, disconnecting {0} active users", ActiveUsers.Count);
@@ -1207,6 +1241,12 @@ namespace Hybrasyl
                 user.Refresh();
         }
 
+        private void ControlMessage_DialogRequest(HybrasylControlMessage message)
+        {
+            var asyncDialog = (AsyncDialogRequest)message.Arguments[0];
+            asyncDialog.ShowTo();
+        }
+
         private void ControlMessage_HandleDeath(HybrasylControlMessage message)
         {
             var creature = (Creature)message.Arguments[0];
@@ -1351,6 +1391,7 @@ namespace Hybrasyl
             var user = (User)obj;
             var direction = packet.ReadByte();
             if (direction > 3) return;
+            user.Condition.Casting = false;
             user.Walk((Direction)direction);
         }
 
@@ -1586,9 +1627,8 @@ namespace Hybrasyl
             var user = (User)obj;
             var slot = packet.ReadByte();
             var target = packet.ReadUInt32();
-
             user.UseSpell(slot, target);
-            user.Condition.Casting = true;
+            user.Condition.Casting = false;
         }
 
         private void PacketHandler_0x0B_ClientExit(Object obj, ClientPacket packet)
@@ -1617,6 +1657,13 @@ namespace Hybrasyl
                 Remove(user);
                 DeleteUser(user.Name);
                 user.SendRedirectAndLogoff(this, Game.Login, user.Name);
+
+                // Remove any active async dialog sessions
+                foreach (var dialog in ActiveAsyncDialogs.Keys.Where(key => key.Item1 == user.Id || key.Item2 == user.Id))
+                {
+                    if (ActiveAsyncDialogs.TryRemove(dialog, out AsyncDialogRequest request))
+                        request.End();
+                }  
 
                 if (ActiveUsersByName.TryRemove(user.Name, out connectionId))
                 {
@@ -1660,6 +1707,9 @@ namespace Hybrasyl
             loginUser.ReapplyStatuses();
             loginUser.SetCitizenship();
             loginUser.ChrysalisMark();
+
+            // Clear conditions and dialog states
+            loginUser.Condition.Casting = false;
 
             Insert(loginUser);
             GameLog.DebugFormat("Elapsed time since login: {0}", loginUser.SinceLastLogin);
@@ -1730,6 +1780,7 @@ namespace Hybrasyl
             var user = (User)obj;
             var direction = packet.ReadByte();
             if (direction > 3) return;
+            user.Condition.Casting = false;
             user.Turn((Direction)direction);
         }
 
@@ -2308,6 +2359,9 @@ namespace Hybrasyl
             var response = new ServerPacket(0x31);
             var action = packet.ReadByte();
 
+            // The moment we get a 3B packet, we assume a user is "in a board"
+            user.Condition.Flags = user.Condition.Flags | PlayerFlags.InBoard;
+
             switch (action)
             {
                 case 0x01:
@@ -2723,6 +2777,7 @@ namespace Hybrasyl
         private void PacketHandler_0x38_Refresh(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
+            user.Condition.Casting = false;
             user.Refresh();
         }
 
@@ -2754,11 +2809,7 @@ namespace Hybrasyl
                 if (pursuitId < Constants.DIALOG_SEQUENCE_SHARED)
                 {
                     // Does the sequence exist in the global catalog?
-                    try
-                    {
-                        pursuit = Game.World.GlobalSequences[pursuitId];
-                    }
-                    catch
+                    if (!GlobalSequences.TryGetValue(pursuitId, out pursuit))
                     {
                         GameLog.ErrorFormat("{0}: pursuit ID {1} doesn't exist in the global catalog?",
                             wobj.Name, pursuitId);
@@ -2838,12 +2889,45 @@ namespace Hybrasyl
             GameLog.DebugFormat("active dialog via state object: pursuitID {0}, pursuitIndex {1}",
                 user.DialogState.CurrentPursuitId, user.DialogState.CurrentPursuitIndex);
 
+            AsyncDialogRequest request = null;
+            VisibleObject source = null;
+
+            // Is this an async dialog session (either one in progress, or one starting)
+            if (objectID == UInt32.MaxValue)
+            {
+                // TODO: optimize
+                var asynckeys = ActiveAsyncDialogs.Keys.Where(key => key.Item1 == user.Id || key.Item2 == user.Id);
+                if (asynckeys.Count() == 1)
+                {
+                    if (!ActiveAsyncDialogs.TryGetValue(asynckeys.First(), out request))
+                    {
+                        GameLog.Error("WARNING: {Name}: Async count was nonzero but session could not be found", user.Name);
+                        return;
+                    }
+                    // If we are processing an asynchronous dialog request, make sure the source is set
+                    // to the other side of the session so it can be sent to callbacks
+                    source = request.Invokee.Name == user.Name ? request.Invoker : request.Invokee;
+                }
+                else if (asynckeys.Count() > 1)
+                {
+                    GameLog.Fatal("WARNING: Multiple async sessions for {Name} detected", user.Name);
+                    return;
+                }             
+            }
+
             if (pursuitID == user.DialogState.CurrentPursuitId && pursuitIndex == user.DialogState.CurrentPursuitIndex)
             {
                 // If we get a packet back with the same index and ID, the dialog has been closed.
                 GameLog.DebugFormat("Dialog closed, resetting dialog state");
-                user.DialogState.EndDialog();
-                return;
+                user.ClearDialogState();
+
+                // Check for open async dialogs that need to be closed. The async dialog session will be removed as well,
+                // but only if it's complete (both sides have clicked "Close" at some point)
+                if (request != null)
+                    // Close our side of the session
+                    request.Close(user.Id);
+                else
+                    return;
             }
 
             if ((pursuitIndex > user.DialogState.CurrentPursuitIndex + 1) ||
@@ -2855,9 +2939,10 @@ namespace Hybrasyl
 
             WorldObject wobj;
 
-            if (user.World.Objects.TryGetValue(objectID, out wobj))
+            if (user.World.Objects.TryGetValue(objectID, out wobj) || objectID == UInt32.MaxValue)
             {
                 VisibleObject clickTarget = wobj as VisibleObject;
+
                 // Was the previous button clicked? Handle that first
                 if (pursuitIndex == user.DialogState.CurrentPursuitIndex - 1)
                 {
@@ -2873,39 +2958,63 @@ namespace Hybrasyl
 
                 // Is the active dialog an input or options dialog?
                 // If so, we handle that first, as the response / callback / handler 
-                // needs to be able to handle the response.
+                // needs to be able to handle the response (which chould change the active sequence),
+                // and then we need to potentially display the next dialog in sequence.
+
+                var currPursuitId = user.DialogState.CurrentPursuitId;
+                var currPursuitIndex = user.DialogState.CurrentPursuitIndex;
+                var currMerchantId = user.DialogState.CurrentMerchantId;
 
                 if (user.DialogState.ActiveDialog is OptionsDialog)
                 {
                     var paramsLength = packet.ReadByte();
                     var option = packet.ReadByte();
                     var dialog = user.DialogState.ActiveDialog as OptionsDialog;
-                    dialog.HandleResponse(user, option, clickTarget);
-                    return;
+
+                    // If an error occurred in handling the response, it's generally safest to 
+                    // simply bail out 
+                    if (!dialog.HandleResponse(user, option, clickTarget, source))
+                    {
+                        user.ClearDialogState();
+                        return;
+                    }
+
+                    // Did the response cause the current sequence or dialog id to change? 
+                    // If so, simply return; otherwise, continue to process next dialog                   
+                    if (user.DialogState.CurrentMerchantId != currMerchantId || 
+                        user.DialogState.CurrentPursuitId != currPursuitId ||
+                        user.DialogState.CurrentPursuitIndex != currPursuitIndex)
+                        return;
                 }
 
+                // This logic is effectively identical to OptionsDialog
                 if (user.DialogState.ActiveDialog is TextDialog)
                 {
                     var paramsLength = packet.ReadByte();
                     var response = packet.ReadString8();
                     var dialog = user.DialogState.ActiveDialog as TextDialog;
-                    dialog.HandleResponse(user, response, clickTarget);
-                    return;
+                    if (!dialog.HandleResponse(user, response, clickTarget, source))
+                    {
+                        user.ClearDialogState();
+                        return;
+                    }
+                    if (user.DialogState.CurrentMerchantId != currMerchantId ||
+                        user.DialogState.CurrentPursuitId != currPursuitId ||
+                        user.DialogState.CurrentPursuitIndex != currPursuitIndex)
+                        return;
                 }
-                // TODO: implement FunctionDialog handling here?
-
+               
                 if (user.DialogState.ActiveDialog is null)
                 {
                     // The response handler could have closed the dialog, or done Goddess knows what
                     // to the state. We check here, and if the dialog state is null (the result of
                     // calling EndDialog() we send a close packet.
-                    user.SendCloseDialog();
+                    user.ClearDialogState();
                     return;
                 }            
 
-                // Regular ol' dialog.
-                //
                 // Did the user click next on the last dialog in a sequence?
+                //
                 // If the last dialog is a JumpDialog or FunctionDialog, just ShowTo it; it'll handle the rest.
                 // Otherwise, either close the dialog or go to the main menu (main menu by 
                 // default).
@@ -2928,13 +3037,23 @@ namespace Hybrasyl
                     if (user.DialogState.ActiveDialogSequence.CloseOnEnd)
                     {
                         GameLog.DebugFormat("Sending close packet");
-                        user.SendCloseDialog();
+                        user.ClearDialogState();
                         return;
                     }
                     else
-                        clickTarget.DisplayPursuits(user);
+                    {
+                        // If this is an NPC or reactor (and has a click target), then display main menu
+                        if (clickTarget != null)
+                            clickTarget.DisplayPursuits(user);
+                    }
                     // Either way down here, reset the dialog state since we're done with the sequence
                     user.DialogState.EndDialog();
+                    // If this is an asynchronous dialog, and we've reached here, also close the dialog
+                    if (request != null)
+                    {
+                        request.Close(user.Id);
+                        user.SendCloseDialog();
+                    }
                     return;
                 }
 
@@ -2986,12 +3105,15 @@ namespace Hybrasyl
         }
 
         [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
-        [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x43_PointClick(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
             var clickType = packet.ReadByte();
             Rectangle commonViewport = user.GetViewport();
+            
+            // N.B. We handle dead checks here rather than at the Required attribute level due to some 
+            // edge cases
+
             // User has clicked an X,Y point
             if (clickType == 3)
             {
@@ -3002,10 +3124,15 @@ namespace Hybrasyl
 
                 if (user.Map.Doors.ContainsKey(coords))
                 {
+                    if (!user.Condition.Alive)
+                    {
+                        user.SendSystemMessage("You try, but your hands pass right through it.");
+                        return;
+                    }
                     if (user.Map.Doors[coords].Closed)
-                        user.SendMessage("It's open.", 0x1);
+                        user.SendSystemMessage("It's open.");
                     else
-                        user.SendMessage("It's closed.", 0x1);
+                        user.SendSystemMessage("It's closed.");
 
                     user.Map.ToggleDoors(x, y);
                 }
@@ -3030,13 +3157,16 @@ namespace Hybrasyl
 
                 if (user.World.Objects.TryGetValue(entityId, out clickTarget))
                 {
-                    if (clickTarget is User || clickTarget is Merchant)
+                    Type type = clickTarget.GetType();
+                    MethodInfo methodInfo = type.GetMethod("OnClick");
+                    user.LastAssociate = clickTarget as VisibleObject;
+                    // Certain NPCs can be "spoken to" even when dead
+                    if (user.LastAssociate is Merchant && (!user.Condition.Alive && !user.LastAssociate.AllowDead))
                     {
-                        Type type = clickTarget.GetType();
-                        MethodInfo methodInfo = type.GetMethod("OnClick");
-                        user.LastAssociate = clickTarget as VisibleObject;
-                        methodInfo.Invoke(clickTarget, new[] { user });
+                        user.SendSystemMessage("You cannot do that now.");
+                        return;
                     }
+                    methodInfo.Invoke(clickTarget, new[] { user });
                 }
             }
             else
@@ -3239,7 +3369,7 @@ namespace Hybrasyl
             var enqueue = x0D.Packet();
            
             user.SendCastLine(enqueue);
-
+            
         }
 
         private void PacketHandler_0x4F_ProfileTextPortrait(Object obj, ClientPacket packet)
@@ -3653,19 +3783,6 @@ namespace Hybrasyl
             return ItemCatalog.TryGetValue(neutralKey, out item) || ItemCatalog.TryGetValue(femaleKey, out item) || ItemCatalog.TryGetValue(maleKey, out item);
         }
 
-        public object ScriptMethod(string name, params object[] args)
-        {
-            object result = null;
-        
-            if (WorldData.ContainsKey<MethodInfo>(name))
-            {
-                var method = WorldData.Get<MethodInfo>(name);
-                result = method.Invoke(null, args);
-            }
-
-            return result;
-        }
-
 
         private void QueueConsumer()
         {
@@ -3727,7 +3844,12 @@ namespace Hybrasyl
                                 if (clientMessage.Packet.Opcode == 0x06) user.Refresh();
                                 continue;
                             }
+                            // Handle board usage
+                            if (user.Condition.Flags.HasFlag(PlayerFlags.InDialog) && clientMessage.Packet.Opcode != 0x3b &&
+                                clientMessage.Packet.Opcode != 0x45 && clientMessage.Packet.Opcode != 0x75)
+                                user.Condition.Flags = user.Condition.Flags & ~PlayerFlags.InDialog;
                             // Last but not least, invoke the handler
+
                             handler.Invoke(user, clientMessage.Packet);
                         }
                         else if (clientMessage.Packet.Opcode == 0x10) // Handle special case of join world

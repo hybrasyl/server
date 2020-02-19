@@ -544,11 +544,7 @@ namespace Hybrasyl.Messaging
                 spawn.Stats.Wis = 3;
                 spawn.Stats.Con = 3;
                 spawn.Stats.Dex = 3;
-                spawn.Loot.Xp = new LootXp            
-                {
-                    Min = 1,
-                    Max = 1
-                };
+                spawn.Loot.Xp = 1;
                 spawn.Loot.Gold = new LootGold
                 {
                     Min = 1,
@@ -570,13 +566,12 @@ namespace Hybrasyl.Messaging
                     spawn.Stats.Dex = byte.Parse(args[7]);
                 if (args.Length >= 9)
                 {
-                    spawn.Loot.Xp.Min = byte.Parse(args[8]);
-                    spawn.Loot.Xp.Max = byte.Parse(args[8]);
+                    spawn.Loot.Xp = UInt32.Parse(args[8]);
                 }
                 if (args.Length >= 10)
                 {
-                    spawn.Loot.Gold.Min = byte.Parse(args[9]);
-                    spawn.Loot.Gold.Max = byte.Parse(args[9]);
+                    spawn.Loot.Gold.Min = UInt32.Parse(args[9]);
+                    spawn.Loot.Gold.Max = UInt32.Parse(args[9]);
                 }
                 Monster newMob = new Monster(creature, spawn, user.Location.MapId);
                 user.World.Insert(newMob);

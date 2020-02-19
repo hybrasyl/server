@@ -142,7 +142,8 @@ namespace Hybrasyl.Objects
         public uint VariantMp => CalculateVariance(_spawn.Stats.Mp);
 
 
-        public uint LootableXP => CalculateVariance((uint)Rng.Next((int)(_spawn.Loot.Xp?.Min ?? 1), (int)(_spawn.Loot.Xp?.Max ?? 1)));
+        public uint LootableXP => _spawn.Loot.Xp; 
+
         public uint LootableGold { get; set; }
             
         public List<ItemObject> LootableItems { get; set; }

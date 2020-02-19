@@ -122,7 +122,7 @@ namespace Hybrasyl.Objects
         public byte HairColor { get; set; }
         #endregion
 
-        #region User metadata
+        #region User 
         // Some structs helping us to define various metadata 
         [JsonProperty]
         public LoginInfo Login { get; set; }
@@ -350,6 +350,15 @@ namespace Hybrasyl.Objects
             p.WriteByte(0x0A);
             p.WriteByte(0x00);
             Enqueue(p);
+        }
+
+        /// <summary>
+        /// Close any active dialogs and clear all dialog state.
+        /// </summary>
+        public void ClearDialogState()
+        {
+            DialogState.EndDialog();
+            SendCloseDialog();
         }
 
         /// <summary>T

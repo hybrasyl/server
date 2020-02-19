@@ -45,6 +45,9 @@ namespace Hybrasyl.Scripting
         public byte Y => User.Y;
         public Enums.Class Class => User.Class;
 
+        // TODO: determine a better way to do this in lua via moonsharp
+        public string Type => "player";
+
 
         public Sex Sex => User.Sex;
 
@@ -140,7 +143,7 @@ namespace Hybrasyl.Scripting
                     break;
                 case Enums.Class.Wizard:
                     icon = LegendIcon.Wizard;
-                    legendtext = $"Monk by oath of {oathGiver}";
+                    legendtext = $"Wizard by oath of {oathGiver}";
                     break;
                 default:
                     throw new ArgumentException("Invalid class");
@@ -188,6 +191,37 @@ namespace Hybrasyl.Scripting
             return true;
         }
 
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sequence">The sequence name to start</param>
+        /// <param name="target">The </param>
+        /// <returns></returns>
+        public bool RequestDialog(string sequence, string invoker="")
+        {
+            DialogSequence sequenceObj = null;
+            VisibleObject invokerObj = null;
+
+            if (Game.World.TryGetActiveUser(invoker, out User user))
+                invokerObj = user as VisibleObject;
+            else if (Game.World.WorldData.TryGetValue<Merchant>(invoker, out Merchant merchant))
+                invokerObj = merchant as VisibleObject;
+
+            if (invokerObj != null)
+                invokerObj.SequenceCatalog.TryGetValue(sequence, out sequenceObj);
+
+            if (sequenceObj == null)
+                // Try global catalog
+                Game.World.GlobalSequences.TryGetValue(sequence, out sequenceObj);
+
+            if (invokerObj != null && sequenceObj != null)
+                return Game.World.TryAsyncDialog(invokerObj, User, sequenceObj);
+
+            GameLog.Warning($"invoker {invoker} or sequence {sequence} not found");
+            return false;
+        }
+           
         public void SetSessionCookie(string cookieName, dynamic value)
         {
             try
@@ -369,19 +403,6 @@ namespace Hybrasyl.Scripting
         {
         }
 
-        public void StartDialogSequence(string sequenceName, HybrasylWorldObject associate)
-        {
-            DialogSequence newSequence;
-            if (User.World.GlobalSequencesCatalog.TryGetValue(sequenceName, out newSequence))
-            {
-                // End previous sequence
-                User.DialogState.EndDialog();
-                User.DialogState.StartDialog(associate.Obj as VisibleObject, newSequence);
-                newSequence.ShowTo(User, (VisibleObject)associate.Obj);
-            }
-
-        }
-
         public void EndDialog()
         {
             User.DialogState.EndDialog();
@@ -394,7 +415,10 @@ namespace Hybrasyl.Scripting
             VisibleObject associate = null;
             GameLog.DebugFormat("{0} starting sequence {1}", User.Name, sequenceName);
 
-            // If we're using a new associate, we will consult that to find our sequence
+            // First: is this a global sequence?
+            Game.World.GlobalSequences.TryGetValue(sequenceName, out sequence);
+
+            // Next: what object are we associated with?
             if (associateOverride == null)
             {
                 if (User.DialogState.Associate != null)
@@ -405,30 +429,26 @@ namespace Hybrasyl.Scripting
             else
                 associate = associateOverride.Obj as VisibleObject;
 
-            // Use the local catalog for sequences first, then consult the global catalog
-            if (associate == null)
-            {
-                GameLog.Warning($"Sequence {sequenceName}: no associate found, you better hope this is a very simple dialog sequence with no callbacks");
-                Game.World.GlobalSequencesCatalog.TryGetValue(sequenceName, out sequence);
-            }
-            else {
+            // If we didn't get a sequence before, try with our associate
+            if (sequence == null && associate != null)
                 associate.SequenceCatalog.TryGetValue(sequenceName, out sequence);
-            }
 
+            // We should hopefully have a sequence now...
             if (sequence == null)
             {
                 GameLog.ErrorFormat("called from {0}: sequence name {1} cannot be found!",
-                    associate.Name, sequenceName);
+                    associate?.Name ?? "globalsequence", sequenceName);
                 // To be safe, terminate all dialog state
                 User.DialogState.EndDialog();
+                // If the user was previously talking to a merchant, and we can't find a sequence,
+                // simply display the main menu again. If it's a reactor....oh well.
                 if (associate is Merchant)
-                    // If the user was previously talking to a merchant, and we can't find a sequence,
-                    // simply display the main menu again. If it's a reactor....oh well.
                     associate.DisplayPursuits(User);
                 return;
             }
-            
-            // sequence should now be our target sequence, let's end the current state and start a new one
+
+            // If we're here, sequence should now be our target sequence, 
+            // let's end the current state and start a new one
 
             User.DialogState.EndDialog();
             User.DialogState.StartDialog(associate, sequence);
