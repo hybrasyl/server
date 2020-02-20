@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<xs:schema xmlns:hyb="http://www.hybrasyl.com/XML/HybrasylCommon" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:loot="http://www.hybrasyl.com/XML/Loot" targetNamespace="http://www.hybrasyl.com/XML/Loot" elementFormDefault="qualified">
+<xs:schema xmlns:hyb="http://www.hybrasyl.com/XML/Common" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:loot="http://www.hybrasyl.com/XML/Loot" targetNamespace="http://www.hybrasyl.com/XML/Loot" elementFormDefault="qualified">
 
   <xs:annotation>
     <xs:documentation xml:lang="en">
@@ -10,7 +10,7 @@
     </xs:documentation>
   </xs:annotation>
 
-  <xs:import schemaLocation="hybrasylTypes.xsd" namespace="http://www.hybrasyl.com/XML/HybrasylCommon" />
+  <xs:import schemaLocation="Common.xsd" namespace="http://www.hybrasyl.com/XML/Common" />
 
   <!-- An item defined in a loot table-->
   <xs:complexType name="LootItem">

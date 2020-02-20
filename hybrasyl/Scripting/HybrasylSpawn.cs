@@ -20,16 +20,17 @@
  * 
  */
 
-using Hybrasyl.Castables;
+using Hybrasyl.Xml.Castable;
 using Hybrasyl.Objects;
 using MoonSharp.Interpreter;
+using Hybrasyl.Xml.Loot;
 
 namespace Hybrasyl.Scripting
 {
     [MoonSharpUserData]
     public class HybrasylSpawn
     {
-        internal Creatures.Spawn Spawn;
+        internal Xml.Creature.Spawn Spawn;
 
         // Expose fields that can be used by scripting
 
@@ -120,7 +121,7 @@ namespace Hybrasyl.Scripting
                 {
                     // We only support editing the first loot table via scripting. If you don't like that,
                     // please feel free to implement the functionality on your own and make a PR.
-                    var lootItem = new Creatures.LootItem();
+                    var lootItem = new LootItem();
                     lootItem.Value = item;
                     lootItem.Min = min;
                     lootItem.Max = max;
@@ -134,7 +135,7 @@ namespace Hybrasyl.Scripting
             if (Game.World.WorldData.TryGetValue(item, out Castable theCastable))
             {
                 // Add a castable to our casting list
-                var castInstruction = new Creatures.Castable();
+                var castInstruction = new Xml.Creature.Castable();
                 castInstruction.Chance = (float)chance;
                 castInstruction.Cooldown = cooldown;
                 castInstruction.Value = item;
@@ -146,7 +147,7 @@ namespace Hybrasyl.Scripting
         public HybrasylSpawn(string creature, string spawnName, byte level = 3, byte str = 3,
             byte intel = 3, byte wis = 3, byte con = 3, byte dex = 3)
         {
-            Spawn = new Creatures.Spawn();
+            Spawn = new Xml.Creature.Spawn();
             Level = level;
             Str = str;
             Int = intel;
@@ -154,11 +155,11 @@ namespace Hybrasyl.Scripting
             Con = con;
             Dex = dex;
             // Populate a default, empty loot table, with default xp/gold settings
-            Spawn.Loot.Table = new System.Collections.Generic.List<Creatures.LootTable>();
-            Spawn.Castables = new System.Collections.Generic.List<Creatures.Castable>();
-            Spawn.Loot.Table.Add(new Creatures.LootTable());
-            Spawn.Loot = new Creatures.LootList();
-            Spawn.Loot.Gold = new Creatures.LootGold();
+            Spawn.Loot.Table = new System.Collections.Generic.List<LootTable>();
+            Spawn.Castables = new System.Collections.Generic.List<Xml.Creature.Castable>();
+            Spawn.Loot.Table.Add(new LootTable());
+            Spawn.Loot = new Xml.Creature.LootList();
+            Spawn.Loot.Gold = new Xml.Creature.LootGold();
         }
     }
 }

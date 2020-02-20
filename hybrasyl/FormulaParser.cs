@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using Hybrasyl.Castables;
+using Hybrasyl.Xml.Castable;
 using Hybrasyl.Objects;
 
 namespace Hybrasyl

@@ -22,14 +22,13 @@
 
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
-using Serilog;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Hybrasyl.Items;
+using Hybrasyl.Xml.Item;
 using System.Collections.Concurrent;
 using Hybrasyl.Threading;
 

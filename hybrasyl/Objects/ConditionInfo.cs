@@ -1,5 +1,5 @@
 ﻿using Hybrasyl.Enums;
-using Hybrasyl.Statuses;
+using Hybrasyl.Xml.Common;
 using Newtonsoft.Json;
 
 namespace Hybrasyl.Objects

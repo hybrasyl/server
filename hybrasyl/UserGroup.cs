@@ -20,11 +20,10 @@
  */
 
 using Hybrasyl.Objects;
-using Hybrasyl.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Serilog;
+using Hybrasyl.Xml.Common;
 
 namespace Hybrasyl
 {
@@ -143,11 +142,11 @@ namespace Hybrasyl
 
         public bool ContainsAllClasses()
         {
-            return (ClassCount[Enums.Class.Monk] > 0 &&
-                    ClassCount[Enums.Class.Priest] > 0 &&
-                    ClassCount[Enums.Class.Rogue] > 0 &&
-                    ClassCount[Enums.Class.Warrior] > 0 &&
-                    ClassCount[Enums.Class.Wizard] > 0);
+            return (ClassCount[Class.Monk] > 0 &&
+                    ClassCount[Class.Priest] > 0 &&
+                    ClassCount[Class.Rogue] > 0 &&
+                    ClassCount[Class.Warrior] > 0 &&
+                    ClassCount[Class.Wizard] > 0);
         }
 
         /**

@@ -23,7 +23,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using Hybrasyl.Config;
+using Hybrasyl.Xml.ServerConfig;
 using Serilog;
 using MoonSharp.Interpreter;
 

@@ -25,13 +25,12 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.Reflection;
-using Hybrasyl.Castables;
+using XmlCastable = Hybrasyl.Xml.Castable.Castable;
 using Hybrasyl.Enums;
-using Hybrasyl.Statuses;
-using Serilog;
+using Hybrasyl.Xml.Status;
 using Newtonsoft.Json;
 using Hybrasyl.Scripting;
+using Hybrasyl.Xml.Common;
 
 namespace Hybrasyl.Objects
 {
@@ -109,7 +108,7 @@ namespace Hybrasyl.Objects
             return null;
         }
     
-        public virtual List<Creature> GetTargets(Castable castable, Creature target = null)
+        public virtual List<Creature> GetTargets(XmlCastable castable, Creature target = null)
         {
             List<Creature> actualTargets = new List<Creature>();
 
@@ -130,14 +129,14 @@ namespace Hybrasyl.Objects
             foreach (var intent in intents)
             {
                 var possibleTargets = new List<VisibleObject>();
-                if (intent.UseType == Castables.SpellUseType.NoTarget && intent.Target.Contains(IntentTarget.Group))
+                if (intent.UseType == SpellUseType.NoTarget && intent.Target.Contains(IntentTarget.Group))
                 {
                     // Targeting group members
                     var user = this as User;
                     if (user != null && user.Group != null)
                         possibleTargets.AddRange(user.Group.Members.Where(m => m.Map.Id == Map.Id && m.Distance(this) < intent.Radius));
                 }
-                else if (intent.UseType == Castables.SpellUseType.Target && intent.Radius == 0 && intent.Direction == IntentDirection.None)
+                else if (intent.UseType == SpellUseType.Target && intent.Radius == 0 && intent.Direction == IntentDirection.None)
                 {
                     // Targeting the exact clicked target
                     if (target == null)
@@ -148,7 +147,7 @@ namespace Hybrasyl.Objects
                         (castable.Effects.Damage.IsEmpty && target is User))
                         possibleTargets.Add(target);
                 }
-                else if (intent.UseType == Castables.SpellUseType.NoTarget && intent.Radius == 0 && intent.Direction == IntentDirection.None)
+                else if (intent.UseType == SpellUseType.NoTarget && intent.Radius == 0 && intent.Direction == IntentDirection.None)
                 {
                     // Targeting self - which, currently, is only allowed for non-damaging spells
                     if (castable.Effects.Damage.IsEmpty)
@@ -163,7 +162,7 @@ namespace Hybrasyl.Objects
                     byte Y = this.Y;
 
                     // Handle area targeting with click target as the source
-                    if (intent.UseType == Castables.SpellUseType.Target)
+                    if (intent.UseType == SpellUseType.Target)
                     {
                         X = target.X;
                         Y = target.Y;
@@ -323,7 +322,7 @@ namespace Hybrasyl.Objects
                     if (!intent.Target.Contains(IntentTarget.Hostile))
                         possibleTargets = possibleTargets.Where(e => !(e is User)).ToList();
                 }
-                else if (this is User && intent.UseType != Castables.SpellUseType.NoTarget)
+                else if (this is User && intent.UseType != SpellUseType.NoTarget)
                 {
                     var user = this as User;
                     // No hostile flag: remove monsters
@@ -478,7 +477,7 @@ namespace Hybrasyl.Objects
 
         #endregion
 
-        public virtual bool UseCastable(Castable castObject, Creature target = null)
+        public virtual bool UseCastable(XmlCastable castObject, Creature target = null)
         {
             if (!Condition.CastingAllowed) return false;
             
@@ -534,18 +533,18 @@ namespace Hybrasyl.Objects
                 }
                 if (!castObject.Effects.Damage.IsEmpty)
                 {
-                    Enums.Element attackElement;
+                    Element attackElement;
                     var damageOutput = NumberCruncher.CalculateDamage(castObject, tar, this);
-                    if (castObject.Element == Castables.Element.Random)
+                    if (castObject.Element == Element.Random)
                     {
                         Random rnd = new Random();
-                        var Elements = Enum.GetValues(typeof(Enums.Element));
-                        attackElement = (Enums.Element)Elements.GetValue(rnd.Next(Elements.Length));
+                        var Elements = Enum.GetValues(typeof(Element));
+                        attackElement = (Element)Elements.GetValue(rnd.Next(Elements.Length));
                     }
-                    else if (castObject.Element != Castables.Element.None)
-                        attackElement = (Enums.Element)castObject.Element;
+                    else if (castObject.Element != Element.None)
+                        attackElement = castObject.Element;
                     else
-                        attackElement = (Stats.OffensiveElementOverride == Enums.Element.None ? Stats.OffensiveElementOverride : Stats.OffensiveElement);
+                        attackElement = (Stats.OffensiveElementOverride == Element.None ? Stats.OffensiveElementOverride : Stats.OffensiveElement);
                     if (this is User) GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} damage: {damageOutput}, element {attackElement}");
 
                     tar.Damage(damageOutput.Amount, attackElement, damageOutput.Type, damageOutput.Flags, this, false);
@@ -824,7 +823,7 @@ namespace Hybrasyl.Objects
             Stats.Mp = mp > uint.MaxValue ? Stats.MaximumMp : Math.Min(Stats.MaximumMp, (uint)(Stats.Mp + mp));
         }
 
-        public virtual void Damage(double damage, Enums.Element element = Enums.Element.None, Enums.DamageType damageType = Enums.DamageType.Direct, Castables.DamageFlags damageFlags = Castables.DamageFlags.None, Creature attacker = null, bool onDeath=true)
+        public virtual void Damage(double damage, Element element = Element.None, DamageType damageType = DamageType.Direct, DamageFlags damageFlags = DamageFlags.None, Creature attacker = null, bool onDeath=true)
         {
             if (attacker is User && this is Monster)
             {
@@ -834,13 +833,13 @@ namespace Hybrasyl.Objects
 
             LastHitTime = DateTime.Now;
 
-            if (damageType == Enums.DamageType.Physical && (AbsoluteImmortal || PhysicalImmortal))
+            if (damageType == DamageType.Physical && (AbsoluteImmortal || PhysicalImmortal))
                 return;
 
-            if (damageType == Enums.DamageType.Magical && (AbsoluteImmortal || MagicalImmortal))
+            if (damageType == DamageType.Magical && (AbsoluteImmortal || MagicalImmortal))
                 return;
 
-            if (damageType != Enums.DamageType.Direct)
+            if (damageType != DamageType.Direct)
             {
                 double armor = Stats.Ac * -1 + 100;
                 var resist = Game.ElementTable[(int)element, 0];
@@ -853,7 +852,7 @@ namespace Hybrasyl.Objects
 
             var normalized = (uint)damage;
 
-            if (normalized > Stats.Hp && damageFlags.HasFlag(Castables.DamageFlags.Nonlethal))
+            if (normalized > Stats.Hp && damageFlags.HasFlag(DamageFlags.Nonlethal))
                 normalized = Stats.Hp - 1;
             else if (normalized > Stats.Hp)
                 normalized = Stats.Hp;

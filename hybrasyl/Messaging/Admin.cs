@@ -1,4 +1,4 @@
-﻿using Hybrasyl.Creatures;
+﻿using Hybrasyl.Xml.Creature;
 using Hybrasyl.Objects;
 using Hybrasyl.Scripting;
 using System;
@@ -533,7 +533,7 @@ namespace Hybrasyl.Messaging
         public new static ChatCommandResult Run(User user, params string[] args)
         {
 
-            if (Game.World.WorldData.TryGetValue(args[0], out Creatures.Creature creature))
+            if (Game.World.WorldData.TryGetValue(args[0], out Xml.Creature.Creature creature))
             {
                 Spawn spawn = new Spawn();
                 spawn.Castables = new List<Castable>();

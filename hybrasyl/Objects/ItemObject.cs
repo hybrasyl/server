@@ -22,7 +22,8 @@
 
 
 using Hybrasyl.Enums;
-using Hybrasyl.Items;
+using Hybrasyl.Xml.Item;
+using Hybrasyl.Xml.Common;
 using Hybrasyl.Scripting;
 using Hybrasyl.Threading;
 using System;
@@ -49,7 +50,7 @@ namespace Hybrasyl.Objects
 
             // Check gender
 
-            if (Sex != 0 && (Sex != userobj.Sex))
+            if (Gender != 0 && (Gender != userobj.Gender))
             {
                 message = "You conclude this garment would look much better on someone else.";
                 return false;
@@ -57,9 +58,9 @@ namespace Hybrasyl.Objects
 
             // Check class
 
-            if (userobj.Class != Class && Class != Enums.Class.Peasant)
+            if (userobj.Class != Class && Class != Class.Peasant)
             {
-                message = userobj.Class == Enums.Class.Peasant ? "Perhaps one day you'll know how to use such things." : "Your path has forbidden itself from using such vulgar implements.";
+                message = userobj.Class == Class.Peasant ? "Perhaps one day you'll know how to use such things." : "Your path has forbidden itself from using such vulgar implements.";
                 return false;
             }
 
@@ -79,7 +80,7 @@ namespace Hybrasyl.Objects
 
             // Check if user is equipping a shield while holding a two-handed weapon
 
-            if (EquipmentSlot == ClientItemSlots.Shield && userobj.Equipment.Weapon != null && userobj.Equipment.Weapon.WeaponType == Items.WeaponType.TwoHand)
+            if (EquipmentSlot == ClientItemSlots.Shield && userobj.Equipment.Weapon != null && userobj.Equipment.Weapon.WeaponType == WeaponType.TwoHand)
             {
                 message = "You can't equip a shield with a two-handed weapon.";
                 return false;
@@ -87,7 +88,7 @@ namespace Hybrasyl.Objects
 
             // Check if user is equipping a two-handed weapon while holding a shield
 
-            if (EquipmentSlot == ClientItemSlots.Weapon && (WeaponType == Items.WeaponType.TwoHand || WeaponType == Items.WeaponType.Staff) && userobj.Equipment.Shield != null)
+            if (EquipmentSlot == ClientItemSlots.Weapon && (WeaponType == WeaponType.TwoHand || WeaponType == WeaponType.Staff) && userobj.Equipment.Shield != null)
             {
                 message = "You can't equip a two-handed weapon with a shield.";
                 return false;
@@ -143,8 +144,8 @@ namespace Hybrasyl.Objects
 
         public byte Level => Template.Level;
         public byte Ability => Template.Ability;
-        public Enums.Class Class => (Enums.Class)(Template.Class);
-        public Sex Sex => (Sex)Template.Gender;
+        public Class Class => Template.Class;
+        public Gender Gender => Template.Gender;
 
         public int BonusHp => Template.BonusHp;
         public int BonusMp => Template.BonusMp;
@@ -162,7 +163,7 @@ namespace Hybrasyl.Objects
 
         public byte BodyStyle => Convert.ToByte(Template.Properties.Appearance.BodyStyle);
 
-        public Enums.Element Element => (Enums.Element)Template.Element;
+        public Element Element => (Element)Template.Element;
 
         public ushort MinLDamage => Template.MinLDamage;
         public ushort MaxLDamage => Template.MaxLDamage;

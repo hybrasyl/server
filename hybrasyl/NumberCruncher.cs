@@ -1,13 +1,10 @@
-﻿using Hybrasyl.Castables;
+﻿using XmlCastable = Hybrasyl.Xml.Castable.Castable;
 using Hybrasyl.Objects;
 using Hybrasyl.Enums;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Serilog;
-using Hybrasyl.Statuses;
+using Hybrasyl.Xml.Status;
+using Hybrasyl.Xml.Common;
 
 namespace Hybrasyl
 {
@@ -16,9 +13,9 @@ namespace Hybrasyl
     public class DamageOutput
     {
         public double Amount { get; set; }
-        public Enums.DamageType Type { get; set; }
-        public Castables.DamageFlags Flags { get; set; }
-        public Enums.Element Element { get; set; }
+        public DamageType Type { get; set; }
+        public DamageFlags Flags { get; set; }
+        public Element Element { get; set; }
     }
     /// <summary>
     /// This class is used to do a variety of numerical calculations, in order to consolidate those into
@@ -31,7 +28,7 @@ namespace Hybrasyl
         // This is dumb, but it's a consequence of how xsd2code works
         private static double _evalSimple(dynamic simple)
         {
-            if (simple is Statuses.SimpleQuantity || simple is Castables.SimpleQuantity)
+            if (simple is SimpleQuantity)
             {
                 // Simple damage can either be expressed as a fixed value <Simple>50</Simple> or a min/max <Simple Min="50" Max="100"/>
                 if (!string.IsNullOrEmpty(simple.Value)) return Convert.ToInt32(simple.Value);
@@ -41,7 +38,7 @@ namespace Hybrasyl
             throw new InvalidOperationException("Invalid type passed to _evalSimple");
         }
 
-        private static double _evalFormula(string formula, Castable castable, Creature target, Creature source)
+        private static double _evalFormula(string formula, XmlCastable castable, Creature target, Creature source)
         {
             try
             {
@@ -61,14 +58,14 @@ namespace Hybrasyl
         /// <param name="target">The target of the castable (i.e. the spell/skill target)</param>
         /// <param name="source">The source of the castable (i.e. the caster)</param>
         /// <returns></returns>
-        public static DamageOutput CalculateDamage(Castable castable, Creature target, Creature source = null)
+        public static DamageOutput CalculateDamage(XmlCastable castable, Creature target, Creature source = null)
         {
             var rand = new Random();
             // Defaults
             double dmg = 1;
-            var type = EnumUtil.ParseEnum(castable.Effects.Damage.Type.ToString(), Enums.DamageType.Magical);
+            var type = castable.Effects?.Damage?.Type ?? DamageType.Magical;
 
-            if (castable.Effects?.Damage == null) return new DamageOutput() { Amount = dmg, Type = type, Flags = Castables.DamageFlags.None, Element = (Enums.Element) castable.Element }; 
+            if (castable.Effects?.Damage == null) return new DamageOutput() { Amount = dmg, Type = type, Flags = DamageFlags.None, Element = castable.Element }; 
 
             if (castable.Effects.Damage.IsSimple)
             {
@@ -82,7 +79,7 @@ namespace Hybrasyl
             }
             return new DamageOutput() { Amount = dmg * target.Stats.DamageModifier,
                 Type = type, Flags = castable.Effects.Damage.Flags,
-                Element = (Enums.Element) castable.Element };
+                Element = castable.Element };
         }
 
         /// <summary>
@@ -92,7 +89,7 @@ namespace Hybrasyl
         /// <param name="target">The target of the castable (i.e. the spell/skill target)</param>
         /// <param name="source">The source of the castable (i.e. the caster), optional parameter</param>
         /// <returns></returns>
-        public static double CalculateHeal(Castable castable, Creature target, Creature source = null)
+        public static double CalculateHeal(XmlCastable castable, Creature target, Creature source = null)
         {
             var rand = new Random();
             double heal = 0;
@@ -115,13 +112,13 @@ namespace Hybrasyl
         /// <param name="source">Original source of the status</param>
         /// <param name="statusName">The name of the status</param>
         /// <returns></returns>
-        public static DamageOutput CalculateDamage(Castable castable, ModifierEffect effect, Creature target, Creature source, string statusName)
+        public static DamageOutput CalculateDamage(XmlCastable castable, ModifierEffect effect, Creature target, Creature source, string statusName)
         {
             // Defaults
             double dmg = 0;
-            var type = EnumUtil.ParseEnum(effect.Damage.Type.ToString(), Enums.DamageType.Magical);
+            var type = effect.Damage?.Type ?? DamageType.Magical;
 
-            if (effect?.Damage == null) return new DamageOutput() { Amount = dmg, Type = type, Flags = Castables.DamageFlags.None, Element = (Enums.Element)castable.Element };
+            if (effect?.Damage == null) return new DamageOutput() { Amount = dmg, Type = type, Flags = DamageFlags.None, Element = castable.Element };
 
             var statusAdd = castable?.Effects?.Statuses?.Add?.Where(e => e.Value == statusName)?.ToList();
             var intensity = statusAdd != null ? statusAdd[0].Intensity : 1;
@@ -131,7 +128,7 @@ namespace Hybrasyl
             else
                 dmg = _evalFormula(effect.Damage.Formula, castable, target, source);
 
-            return new DamageOutput() { Amount = (dmg*intensity*target.Stats.DamageModifier), Type = type, Flags = (Castables.DamageFlags) effect.Damage.Flags, Element = (Enums.Element)castable.Element };
+            return new DamageOutput() { Amount = (dmg*intensity*target.Stats.DamageModifier), Type = type, Flags = effect.Damage.Flags, Element = castable.Element };
         }
 
         /// <summary>
@@ -143,7 +140,7 @@ namespace Hybrasyl
         /// <param name="source">Original source of the status</param>
         /// <param name="statusName">The name of the status</param>
         /// <returns></returns>
-        public static double CalculateHeal(Castable castable, ModifierEffect effect, Creature target, Creature source, string statusName)
+        public static double CalculateHeal(XmlCastable castable, ModifierEffect effect, Creature target, Creature source, string statusName)
         {
             // Defaults
             double heal = 0;

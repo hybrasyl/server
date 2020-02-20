@@ -1,4 +1,4 @@
-using Hybrasyl.Castables;
+using Hybrasyl.Xml.Castable;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;

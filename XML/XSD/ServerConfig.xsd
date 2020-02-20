@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<xs:schema xmlns:hyb="http://www.hybrasyl.com/XML/HybrasylCommon" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:config="http://www.hybrasyl.com/XML/Config" targetNamespace="http://www.hybrasyl.com/XML/Config" elementFormDefault="qualified">
+<xs:schema xmlns:hyb="http://www.hybrasyl.com/XML/Common" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:config="http://www.hybrasyl.com/XML/ServerConfig" targetNamespace="http://www.hybrasyl.com/XML/ServerConfig" elementFormDefault="qualified">
 
   <xs:annotation>
     <xs:documentation xml:lang="en">
@@ -10,7 +10,7 @@
     </xs:documentation>
   </xs:annotation>
 
-  <xs:import schemaLocation="hybrasylTypes.xsd" namespace="http://www.hybrasyl.com/XML/HybrasylCommon" />
+  <xs:import schemaLocation="Common.xsd" namespace="http://www.hybrasyl.com/XML/Common" />
 
   <xs:complexType name="DataStore">
     <xs:sequence>
@@ -47,7 +47,6 @@
     </xs:sequence>
   </xs:complexType>
 
-  <!-- Item colors -->
   <xs:simpleType name="LogLevel">
     <xs:restriction base="xs:token">
       <xs:enumeration value="All" />
@@ -98,7 +97,7 @@
     <xs:attribute name="Level" type="config:LogLevel" default="Info" />
   </xs:complexType>
 
-  <xs:complexType name="HybrasylConfig">
+  <xs:complexType name="ServerConfig">
     <xs:sequence>
       <xs:element name="Logging" type="config:LogConfig" minOccurs="0" maxOccurs="1" />
       <xs:element name="DataStore" type="config:DataStore" minOccurs="1" maxOccurs="1" />
@@ -220,5 +219,5 @@
     </xs:simpleContent>
   </xs:complexType>
 
-<xs:element name="HybrasylConfig" type="config:HybrasylConfig" />
+<xs:element name="ServerConfig" type="config:ServerConfig" />
 </xs:schema>

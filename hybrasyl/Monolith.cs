@@ -21,14 +21,12 @@
  */
 
 using Hybrasyl.Objects;
-using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using Creature = Hybrasyl.Creatures.Creature;
-using Hybrasyl.Loot;
-using Hybrasyl.Creatures;
+using XmlCreature = Hybrasyl.Xml.Creature.Creature;
+using Hybrasyl.Xml;
 
 namespace Hybrasyl
 {
@@ -39,9 +37,9 @@ namespace Hybrasyl
         private static Random _random;
 
 
-        private IEnumerable<Creatures.SpawnGroup> _spawnGroups => Game.World.WorldData.Values<SpawnGroup>();
+        private IEnumerable<Xml.Creature.SpawnGroup> _spawnGroups => Game.World.WorldData.Values<Xml.Creature.SpawnGroup>();
         private IEnumerable<Map> _maps => Game.World.WorldData.Values<Map>();
-        private IEnumerable<Creature> _creatures => Game.World.WorldData.Values<Creature>();
+        private IEnumerable<XmlCreature> _creatures => Game.World.WorldData.Values<XmlCreature>();
 
 
         internal Monolith()
@@ -76,7 +74,7 @@ namespace Hybrasyl
         }
     
 
-        public void Spawn(SpawnGroup spawnGroup)
+        public void Spawn(Xml.Creature.SpawnGroup spawnGroup)
         {
             foreach (var map in spawnGroup.Maps.Where(x => x.Disabled != true))
             {
@@ -152,18 +150,18 @@ namespace Hybrasyl
     {
         private static Random _rng = new Random();
 
-        private Spawn _spawn;        
-        private List<Creatures.LootTable> _spawnLootTable;
+        private Xml.Creature.Spawn _spawn;        
+        private List<Xml.Loot.LootTable> _spawnLootTable;
 
-        public SpawnLoot(Spawn spawn)
+        public SpawnLoot(Xml.Creature.Spawn spawn)
         {
             _spawn = spawn;
             _spawnLootTable = CreateSpawnLootTable();
         }
 
-        private List<Creatures.LootTable> CreateSpawnLootTable()
+        private List<Xml.Loot.LootTable> CreateSpawnLootTable()
         {
-            var spawnLootTable = new List<Creatures.LootTable>();
+            var spawnLootTable = new List<Xml.Loot.LootTable>();
             if (_spawn.Loot.Table != null)
             {
                 foreach (var lootTbl in _spawn.Loot.Table)
@@ -180,7 +178,7 @@ namespace Hybrasyl
             }
             if (_spawn.Loot.Set != null)
             {
-                var lootSets = Game.World.WorldData.Values<LootSet>();
+                var lootSets = Game.World.WorldData.Values<Xml.Loot.LootSet>();
                 foreach (var set in _spawn.Loot.Set)
                 {
                     var lootImportName = set.Name;
@@ -194,7 +192,7 @@ namespace Hybrasyl
                             {
                                 if (importTable.Chance >= _rng.NextDouble())
                                 {
-                                    spawnLootTable.Add((Creatures.LootTable) importTable);
+                                    spawnLootTable.Add((Xml.Loot.LootTable) importTable);
                                     continue;
                                 }
                             }
@@ -226,7 +224,7 @@ namespace Hybrasyl
         public List<ItemObject> LootableItems()
         {
             List<ItemObject> lootableItems = new List<ItemObject>();
-            List<Creatures.LootTable> lootTables = new List<Creatures.LootTable>();
+            List<Xml.Loot.LootTable> lootTables = new List<Xml.Loot.LootTable>();
 
             // Calculate all "active" loot tables
            // foreach (var set in _spawn.Loot.Set)

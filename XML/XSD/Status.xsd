@@ -1,55 +1,24 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 
-<xs:schema xmlns:hyb="http://www.hybrasyl.com/XML/HybrasylCommon"
+<xs:schema xmlns:hyb="http://www.hybrasyl.com/XML/Common"
            xmlns:xs="http://www.w3.org/2001/XMLSchema"
            xmlns:status="http://www.hybrasyl.com/XML/Status"
-           xmlns:actions="http://www.hybrasyl.com/XML/Actions"
            targetNamespace="http://www.hybrasyl.com/XML/Status" elementFormDefault="qualified">
   <xs:annotation>
     <xs:documentation xml:lang="en">
-      Hybrasyl Project - Hybrasyl XML Schema - Actions (Skills / Spells)
+      Hybrasyl Project - Hybrasyl XML Schema - Statuses
       This file is subject to the same licenses as Project Hybrasyl.
       (C) 2015-2017 Project Hybrasyl (info@hybrasyl.com)
     </xs:documentation>
   </xs:annotation>
   
-  <xs:import namespace="http://www.hybrasyl.com/XML/HybrasylCommon" schemaLocation="hybrasylTypes.xsd"/>
-
-  <!-- Shared types used by statuses and castables -->
-  <!-- Generic type for expressing a simple quantity, either rnd(Min/Max) or a specific value -->
-  <xs:complexType name="SimpleQuantity">
-    <xs:simpleContent>
-      <xs:extension base="xs:nonNegativeInteger">
-        <xs:attribute name="Min" default="0" type="xs:nonNegativeInteger" />
-        <xs:attribute name="Max" default="0" type="xs:nonNegativeInteger" />
-      </xs:extension>
-    </xs:simpleContent>
-  </xs:complexType>
-
-  <!-- Damage flags type -->
-  <xs:simpleType name="DamageFlags">
-    <xs:restriction>
-      <xs:simpleType>
-        <xs:list>
-          <xs:simpleType>
-            <xs:restriction base="xs:token">
-              <xs:enumeration value="None"/>
-              <xs:enumeration value="Scaled" />
-              <xs:enumeration value="Resistance" />
-              <xs:enumeration value="Threat" />
-              <xs:enumeration value="Nonlethal"/>
-            </xs:restriction>
-          </xs:simpleType>
-        </xs:list>
-      </xs:simpleType>
-    </xs:restriction>
-  </xs:simpleType>
+  <xs:import namespace="http://www.hybrasyl.com/XML/Common" schemaLocation="Common.xsd"/>
 
   <!-- Damage effects type -->
   <xs:complexType name="Damage">
     <xs:all>
-      <xs:element name="Flags" type="status:DamageFlags" />
-      <xs:element name="Simple" type="status:SimpleQuantity" />
+      <xs:element name="Flags" type="hyb:DamageFlags" />
+      <xs:element name="Simple" type="hyb:SimpleQuantity" />
       <xs:element name="Formula" type="xs:string" />
     </xs:all>
     <xs:attribute name="Type" type="hyb:DamageType" />
@@ -58,7 +27,7 @@
   <!-- Heal effects type -->
   <xs:complexType name="Heal">
     <xs:sequence minOccurs="0" maxOccurs="1">
-      <xs:element name="Simple" type="status:SimpleQuantity" />
+      <xs:element name="Simple" type="hyb:SimpleQuantity" />
       <xs:element name="Formula" type="xs:string" />
     </xs:sequence>
   </xs:complexType>
@@ -67,29 +36,6 @@
   <xs:complexType name="Animation">
     <xs:attribute name="Id" type="xs:unsignedShort" use="required" />
     <xs:attribute name="Speed" type="xs:short" use="optional" default="100" />
-  </xs:complexType>
-
-  <!-- Stat effects (buffs or debuffs) container element -->
-  <xs:complexType name="StatModifiers">
-    <xs:attribute name="Str" default="0" type="xs:byte" />
-    <xs:attribute name="Int" default="0" type="xs:byte" />
-    <xs:attribute name="Wis" default="0" type="xs:byte" />
-    <xs:attribute name="Con" default="0" type="xs:byte" />
-    <xs:attribute name="Dex" default="0" type="xs:byte" />
-    <xs:attribute name="Hp" default="0" type="xs:int" />
-    <xs:attribute name="Mp" default="0" type="xs:int" />
-    <xs:attribute name="Hit" default="0" type="xs:byte" />
-    <xs:attribute name="Dmg" default="0" type="xs:byte" />
-    <xs:attribute name="Ac" default="0" type="xs:byte" />
-    <xs:attribute name="Regen" default="0" type="xs:byte" />
-    <xs:attribute name="Mr" default="0" type="xs:byte" />
-    <xs:attribute name="OffensiveElement" type="hyb:Element"/>
-    <xs:attribute name="DefensiveElement" type="hyb:Element"/>
-    <xs:attribute name="DamageModifier" type="xs:float"/>
-    <xs:attribute name="HealModifier" type="xs:float"/>
-    <xs:attribute name="DamageType" type="hyb:DamageType"/>
-    <xs:attribute name="ReflectChance" type="xs:float"/>
-    <xs:attribute name="ReflectIntensity" type="xs:float"/>
   </xs:complexType>
 
   <xs:complexType name="Status">
@@ -154,7 +100,7 @@
       <xs:element name="Messages" minOccurs="0" type="status:Messages"/>
       <xs:element name="Heal" minOccurs="0" type="status:Heal" />
       <xs:element name="Damage" minOccurs="0" type="status:Damage" />
-      <xs:element name="StatModifiers" minOccurs="0" type="status:StatModifiers" />
+      <xs:element name="StatModifiers" minOccurs="0" type="hyb:StatModifiers" />
       <xs:element name="Conditions" minOccurs="0" type="status:Conditions"/>
     </xs:all>
   </xs:complexType>

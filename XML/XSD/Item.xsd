@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<xs:schema xmlns:hyb="http://www.hybrasyl.com/XML/HybrasylCommon" 
-           xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:items="http://www.hybrasyl.com/XML/Items" targetNamespace="http://www.hybrasyl.com/XML/Items" elementFormDefault="qualified">
+<xs:schema xmlns:hyb="http://www.hybrasyl.com/XML/Common" 
+           xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:items="http://www.hybrasyl.com/XML/Item" targetNamespace="http://www.hybrasyl.com/XML/Item" elementFormDefault="qualified">
 
   <xs:annotation>
     <xs:documentation xml:lang="en">
@@ -11,7 +11,7 @@
     </xs:documentation>
   </xs:annotation>
 
-  <xs:import schemaLocation="hybrasylTypes.xsd" namespace="http://www.hybrasyl.com/XML/HybrasylCommon" />
+  <xs:import schemaLocation="Common.xsd" namespace="http://www.hybrasyl.com/XML/Common" />
 
   <xs:complexType name="CastModifiers">
     <xs:sequence>
@@ -109,7 +109,7 @@
     <xs:attribute name="Defense" type="hyb:Element" default="None" />
   </xs:complexType>
 
-  <xs:complexType name="StatModifiers">
+  <xs:complexType name="ItemStatModifiers">
     <xs:sequence>
       <xs:element name="Base" type="items:StatModifierBase" minOccurs="0" maxOccurs="1"/>
       <xs:element name="Combat" type="items:StatModifierCombat" minOccurs="0" maxOccurs="1"/>
@@ -127,7 +127,7 @@
       <xs:element name="Restrictions" type="items:Restrictions" minOccurs="0" maxOccurs="1"/>
       <xs:element name="Script" minOccurs="0" maxOccurs="1" type="hyb:String8" />
       <xs:element name="Stackable" type="items:Stackable" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="StatModifiers" type="items:StatModifiers" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="StatModifiers" type="items:ItemStatModifiers" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
   </xs:complexType>
   
@@ -205,7 +205,7 @@
       <xs:element name="Physical" minOccurs="1" maxOccurs="1" type="items:Physical">
       </xs:element>
       <xs:element name="Equipment" minOccurs="0" maxOccurs="1" type="items:Equipment"/>
-      <xs:element name="StatModifiers" minOccurs="0" maxOccurs="1" type="items:StatModifiers"/>
+      <xs:element name="StatModifiers" minOccurs="0" maxOccurs="1" type="items:ItemStatModifiers"/>
       <xs:element name="Flags" minOccurs="0" maxOccurs="1" type="hyb:ItemFlags" />
       <xs:element name="Variants" minOccurs="0" maxOccurs="1" type="items:Variants"/>
 

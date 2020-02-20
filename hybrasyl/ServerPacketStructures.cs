@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using Hybrasyl.Enums;
-using Hybrasyl.Maps;
+using Hybrasyl.Xml.Map;
 using Hybrasyl.Objects;
-
+using Hybrasyl.Xml.Common;
 
 namespace Hybrasyl
 {
@@ -283,7 +283,7 @@ namespace Hybrasyl
             #region Appearance
 
             internal string Name { get; set; }
-            internal Sex Sex { get; set; }
+            internal Gender Gender { get; set; }
             internal ushort Helmet { get; set; }
             internal byte BodySpriteOffset { get; set; }
             internal ushort Armor { get; set; }
@@ -335,10 +335,10 @@ namespace Hybrasyl
                 packet.WriteByte((byte) Direction);
                 packet.WriteUInt32(Id);
                 packet.WriteUInt16(Helmet);
-                GameLog.InfoFormat($"Sex is {Sex}");
+                GameLog.InfoFormat($"Gender is {Gender}");
                 if (!DisplayAsMonster)
                 {
-                    packet.WriteByte((byte) (((byte) Sex*16) + BodySpriteOffset));
+                    packet.WriteByte((byte) (((byte) Gender*16) + BodySpriteOffset));
                     packet.WriteUInt16(Armor);
                     packet.WriteByte(Boots);
                     packet.WriteUInt16(Armor);

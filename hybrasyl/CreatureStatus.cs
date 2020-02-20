@@ -1,13 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using Hybrasyl.Castables;
+using Hybrasyl.Xml.Castable;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
-using Hybrasyl.Statuses;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using Hybrasyl.Xml.Status;
+using Hybrasyl.Xml.Common;
 
 namespace Hybrasyl
 {
@@ -252,7 +249,7 @@ namespace Hybrasyl
                 Target.Condition.Conditions &= ~effect.Conditions.Unset;
         }
 
-        private void ProcessStatModifiers(Statuses.StatModifiers effect, bool remove = false)
+        private void ProcessStatModifiers(StatModifiers effect, bool remove = false)
         {
             if (effect == null) return;
 
@@ -274,10 +271,10 @@ namespace Hybrasyl
                 Target.Stats.BonusHealModifier = effect.HealModifier;
                 Target.Stats.BonusReflectChance -= effect.ReflectChance;
                 Target.Stats.BonusReflectIntensity -= effect.ReflectIntensity;
-                if (effect.OffensiveElement == (Statuses.Element)Target.Stats.OffensiveElementOverride)
-                    Target.Stats.OffensiveElementOverride = Enums.Element.None;
-                if (effect.DefensiveElement == (Statuses.Element)Target.Stats.DefensiveElementOverride)
-                    Target.Stats.DefensiveElementOverride = Enums.Element.None;
+                if (effect.OffensiveElement == Target.Stats.OffensiveElementOverride)
+                    Target.Stats.OffensiveElementOverride = Element.None;
+                if (effect.DefensiveElement == Target.Stats.DefensiveElementOverride)
+                    Target.Stats.DefensiveElementOverride = Element.None;
             }
             else
             {
@@ -297,8 +294,8 @@ namespace Hybrasyl
                 Target.Stats.BonusHealModifier = effect.HealModifier;
                 Target.Stats.BonusReflectChance += effect.ReflectChance;
                 Target.Stats.BonusReflectIntensity += effect.ReflectIntensity;
-                Target.Stats.OffensiveElementOverride = (Enums.Element)effect.OffensiveElement;
-                Target.Stats.DefensiveElementOverride = (Enums.Element)effect.OffensiveElement;
+                Target.Stats.OffensiveElementOverride = effect.OffensiveElement;
+                Target.Stats.DefensiveElementOverride = effect.OffensiveElement;
             }
         }
 
@@ -313,7 +310,7 @@ namespace Hybrasyl
             if (!effect.Damage.IsEmpty)
             {
                 dmg = NumberCruncher.CalculateDamage(Castable, effect, Target, Source, Name);
-               //      if (dmg.Amount != 0) Target.Damage(dmg.Amount, Enums.Element.None, dmg.Type);
+               //      if (dmg.Amount != 0) Target.Damage(dmg.Amount, Element.None, dmg.Type);
             }
             return (heal, dmg);
         }

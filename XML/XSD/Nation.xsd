@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<xs:schema xmlns:hyb="http://www.hybrasyl.com/XML/HybrasylCommon" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:nations="http://www.hybrasyl.com/XML/Nations" targetNamespace="http://www.hybrasyl.com/XML/Nations" elementFormDefault="qualified">
+<xs:schema xmlns:hyb="http://www.hybrasyl.com/XML/Common" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:nation="http://www.hybrasyl.com/XML/Nation" targetNamespace="http://www.hybrasyl.com/XML/Nation" elementFormDefault="qualified">
 
   <xs:annotation>
     <xs:documentation xml:lang="en">
@@ -10,11 +10,11 @@
     </xs:documentation>
   </xs:annotation>
 
-  <xs:import schemaLocation="hybrasylTypes.xsd" namespace="http://www.hybrasyl.com/XML/HybrasylCommon" />
+  <xs:import schemaLocation="Common.xsd" namespace="http://www.hybrasyl.com/XML/Common" />
 
   <xs:complexType name="SpawnPoints">
     <xs:sequence>
-      <xs:element name="SpawnPoint" minOccurs="1" maxOccurs="unbounded" type="nations:SpawnPoint">
+      <xs:element name="SpawnPoint" minOccurs="1" maxOccurs="unbounded" type="nation:SpawnPoint">
       </xs:element>
     </xs:sequence>
   </xs:complexType>
@@ -42,13 +42,13 @@
       <xs:sequence>
         <xs:element name="Name" type="hyb:String8" minOccurs="1" maxOccurs="1" />
         <xs:element name="Description" type="hyb:String8" minOccurs="0" maxOccurs="1" />
-        <xs:element name="SpawnPoints" type="nations:SpawnPoints" minOccurs="0" maxOccurs="1" />
+        <xs:element name="SpawnPoints" type="nation:SpawnPoints" minOccurs="0" maxOccurs="1" />
       </xs:sequence>
       <xs:attribute name="Flag" type="xs:unsignedByte" use="required" />
       <xs:attribute name="Default" type="xs:boolean" default="false"/>
     </xs:complexType>
   </xs:element>
   
-  <xs:element name="Territory" type="nations:Territory"/>
+  <xs:element name="Territory" type="nation:Territory"/>
   
 </xs:schema>

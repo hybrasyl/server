@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<xs:schema xmlns:loot="http://www.hybrasyl.com/XML/Loot" xmlns:hyb="http://www.hybrasyl.com/XML/HybrasylCommon" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:creature="http://www.hybrasyl.com/XML/Creature" targetNamespace="http://www.hybrasyl.com/XML/Creature" elementFormDefault="qualified">
+<xs:schema xmlns:loot="http://www.hybrasyl.com/XML/Loot" xmlns:hyb="http://www.hybrasyl.com/XML/Common" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:creature="http://www.hybrasyl.com/XML/Creature" targetNamespace="http://www.hybrasyl.com/XML/Creature" elementFormDefault="qualified">
 
   <xs:annotation>
     <xs:documentation xml:lang="en">
@@ -10,7 +10,7 @@
     </xs:documentation>
   </xs:annotation>
 
-  <xs:import schemaLocation="hybrasylTypes.xsd" namespace="http://www.hybrasyl.com/XML/HybrasylCommon" />
+  <xs:import schemaLocation="Common.xsd" namespace="http://www.hybrasyl.com/XML/Common" />
   <xs:import schemaLocation="Loot.xsd" namespace="http://www.hybrasyl.com/XML/Loot"/>
 
   <!-- Base definition for a monster -->

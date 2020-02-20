@@ -27,6 +27,7 @@ using System.Text.RegularExpressions;
 using Hybrasyl.Enums;
 using Serilog;
 using MoonSharp.Interpreter;
+using Hybrasyl.Xml.Common;
 
 namespace Hybrasyl.Scripting
 {
@@ -41,7 +42,7 @@ namespace Hybrasyl.Scripting
             World = new HybrasylWorld(world);
             // Register UserData types for MoonScript
             UserData.RegisterAssembly(typeof(Game).Assembly);
-            UserData.RegisterType<Sex>();
+            UserData.RegisterType<Gender>();
             UserData.RegisterType<LegendIcon>();
             UserData.RegisterType<LegendColor>();
             UserData.RegisterType<LegendMark>();

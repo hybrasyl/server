@@ -28,6 +28,7 @@ using Hybrasyl.Enums;
 using Serilog;
 using MoonSharp.Interpreter;
 using Newtonsoft.Json;
+using Hybrasyl.Xml.Common;
 
 namespace Hybrasyl.Objects
 {

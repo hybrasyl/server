@@ -1,11 +1,5 @@
-﻿using Hybrasyl.Enums;
-using Hybrasyl.Objects;
-using Hybrasyl.Statuses;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Hybrasyl.Objects;
+using Hybrasyl.Xml.Status;
 
 namespace Hybrasyl.Messaging
 {

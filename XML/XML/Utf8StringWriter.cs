@@ -20,7 +20,7 @@
 using System.IO;
 using System.Text;
 
-namespace Hybrasyl.XML
+namespace Hybrasyl.Xml
 {
     public class Utf8StringWriter : StringWriter
     {

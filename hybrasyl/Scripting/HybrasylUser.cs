@@ -23,12 +23,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Hybrasyl.Castables;
+using Hybrasyl.Xml.Castable;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
-using Hybrasyl.Items;
+using Hybrasyl.Xml.Common;
+using Hybrasyl.Xml.Item;
 using Hybrasyl.Objects;
-using Serilog;
 using MoonSharp.Interpreter;
 using System.Reflection;
 
@@ -43,13 +43,13 @@ namespace Hybrasyl.Scripting
         public string Name => User.Name;
         public byte X => User.X;
         public byte Y => User.Y;
-        public Enums.Class Class => User.Class;
+        public Class Class => User.Class;
 
         // TODO: determine a better way to do this in lua via moonsharp
         public string Type => "player";
 
 
-        public Sex Sex => User.Sex;
+        public Gender Gender => User.Gender;
 
         public uint Hp
         {
@@ -116,7 +116,7 @@ namespace Hybrasyl.Scripting
             return User.Legend.TryGetMark(prefix, out mark) ? mark : (object)null;
         }
 
-        public void ChangeClass(Enums.Class newClass, string oathGiver)
+        public void ChangeClass(Class newClass, string oathGiver)
         {
             User.Class = newClass;
             User.UpdateAttributes(StatUpdateFlags.Full);
@@ -125,23 +125,23 @@ namespace Hybrasyl.Scripting
             // this is annoying af
             switch (newClass)
             {
-                case Enums.Class.Monk:
+                case Class.Monk:
                     icon = LegendIcon.Monk;
                     legendtext = $"Monk by oath of {oathGiver}";
                     break;
-                case Enums.Class.Priest:
+                case Class.Priest:
                     icon = LegendIcon.Priest;
                     legendtext = $"Priest by oath of {oathGiver}";
                     break;
-                case Enums.Class.Rogue:
+                case Class.Rogue:
                     icon = LegendIcon.Rogue;
                     legendtext = $"Rogue by oath of {oathGiver}";
                     break;
-                case Enums.Class.Warrior:
+                case Class.Warrior:
                     icon = LegendIcon.Warrior;
                     legendtext = $"Warrior by oath of {oathGiver}";
                     break;
-                case Enums.Class.Wizard:
+                case Class.Wizard:
                     icon = LegendIcon.Wizard;
                     legendtext = $"Wizard by oath of {oathGiver}";
                     break;
@@ -297,21 +297,21 @@ namespace Hybrasyl.Scripting
 
         public void Heal(int heal)
         {
-            User.Heal((double)heal);
+            User.Heal(heal);
         }
 
-        public void Damage(int damage, Enums.Element element = Enums.Element.None,
-           Enums.DamageType damageType = Enums.DamageType.Direct)
+        public void Damage(int damage, Element element = Element.None,
+           DamageType damageType = DamageType.Direct)
         {
-            User.Damage((double)damage, element, damageType);
+            User.Damage(damage, element, damageType);
         }
 
         public void Damage(int damage, bool fatal=true)
         {
             if (fatal)
-                User.Damage((double)damage, Enums.Element.None, Enums.DamageType.Direct, Castables.DamageFlags.Nonlethal);
+                User.Damage(damage, Element.None, DamageType.Direct, DamageFlags.Nonlethal);
             else
-                User.Damage((double)damage, Enums.Element.None, Enums.DamageType.Direct);
+                User.Damage(damage, Element.None, DamageType.Direct);
 
         }
 
@@ -392,7 +392,7 @@ namespace Hybrasyl.Scripting
             User.SendMessage(message, Hybrasyl.MessageTypes.SYSTEM_WITH_OVERHEAD);
         }
 
-        public bool IsPeasant() => User.Class == Enums.Class.Peasant;
+        public bool IsPeasant() => User.Class == Class.Peasant;
 
         public void Whisper(string name, string message)
         {

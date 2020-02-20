@@ -20,19 +20,12 @@
  *            Kyle Speck    <kojasou@hybrasyl.com>
  */
 
-using Hybrasyl.Config;
-using Hybrasyl.Creatures;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
-using Hybrasyl.Items;
-using Hybrasyl.Loot;
 using Hybrasyl.Messaging;
-using Hybrasyl.Nations;
 using Hybrasyl.Objects;
 using Hybrasyl.Scripting;
-using Hybrasyl.Statuses;
 using Hybrasyl.Utility;
-using Hybrasyl.XML;
 using Newtonsoft.Json;
 using Serilog;
 using StackExchange.Redis;
@@ -49,8 +42,22 @@ using System.Threading;
 using System.Timers;
 using System.Xml;
 using System.Xml.Schema;
-using Castable = Hybrasyl.Castables.Castable;
-using Creature = Hybrasyl.Objects.Creature;
+using Hybrasyl.Xml.Common;
+using Hybrasyl.Xml.String;
+using Hybrasyl.Xml.Nation;
+using Hybrasyl.Xml.Item;
+using Hybrasyl.Xml.ServerConfig;
+using Hybrasyl.Xml.Loot;
+
+
+// Conflicts between duplicate class names in existing object hierarchy and
+// xml are handled here
+
+using XmlMap = Hybrasyl.Xml.Map.Map;
+using XmlCreature = Hybrasyl.Xml.Creature.Creature;
+using XmlStatus = Hybrasyl.Xml.Status.Status;
+using XmlCastable = Hybrasyl.Xml.Castable.Castable;
+using XmlNpc = Hybrasyl.Xml.Creature.Npc;
 
 namespace Hybrasyl
 {
@@ -111,7 +118,7 @@ namespace Hybrasyl
         public MultiIndexDictionary<uint, string, DialogSequence> GlobalSequences { get; set; }
         private Dictionary<MerchantMenuItem, MerchantMenuHandler> merchantMenuHandlers;
 
-        public Dictionary<Tuple<Sex, string>, Item> ItemCatalog { get; set; }
+        public Dictionary<Tuple<Gender, string>, Item> ItemCatalog { get; set; }
        // public Dictionary<string, Map> MapCatalog { get; set; }
 
         public ScriptProcessor ScriptProcessor { get; set; }
@@ -205,7 +212,7 @@ namespace Hybrasyl
             Portraits = new Dictionary<string, string>();
 
             GlobalSequences = new MultiIndexDictionary<uint, string, DialogSequence>();
-            ItemCatalog = new Dictionary<Tuple<Sex, string>, Item>();
+            ItemCatalog = new Dictionary<Tuple<Gender, string>, Item>();
 
             ScriptProcessor = new ScriptProcessor(this);
             MessageQueue = new BlockingCollection<HybrasylMessage>(new ConcurrentQueue<HybrasylMessage>());
@@ -290,7 +297,7 @@ namespace Hybrasyl
             {              
                 try
                 {
-                    Strings = Serializer.Deserialize(XmlReader.Create(xml), new Strings());
+                    Strings = Strings.LoadFromFile(xml);
                     GameLog.Debug("Localization strings loaded.");
                 }
                 catch (Exception e)
@@ -304,7 +311,7 @@ namespace Hybrasyl
             {
                 try
                 {
-                    var npc = Serializer.Deserialize(XmlReader.Create(xml), new Creatures.Npc());
+                    var npc = XmlNpc.LoadFromFile(xml);
                     GameLog.Debug($"NPCs: loaded {npc.Name}");
                     WorldData.Set(npc.Name, npc);
                 }
@@ -319,7 +326,7 @@ namespace Hybrasyl
             {
                 try
                 {
-                    Maps.Map newMap = Serializer.Deserialize(XmlReader.Create(xml), new Maps.Map());
+                    XmlMap newMap = XmlMap.LoadFromFile(xml);
                     var map = new Map(newMap, this);
                     WorldData.SetWithIndex(map.Id, map, map.Name);
                     GameLog.DebugFormat("Maps: Loaded {0}", map.Name);
@@ -337,7 +344,7 @@ namespace Hybrasyl
             {
                 try
                 {
-                    var newNation = Serializer.Deserialize(XmlReader.Create(xml), new Nation());
+                    var newNation = Nation.LoadFromFile(xml);
                     GameLog.DebugFormat("Nations: Loaded {0}", newNation.Name);
                     WorldData.Set(newNation.Name, newNation);
                 }
@@ -367,7 +374,7 @@ namespace Hybrasyl
             {
                 try
                 {
-                    var creature = Serializer.Deserialize(XmlReader.Create(xml), new Creatures.Creature());
+                    var creature = XmlCreature.LoadFromFile(xml);
                     GameLog.DebugFormat("Creatures: loaded {0}", creature.Name);
                     WorldData.Set(creature.Name, creature);
                 }
@@ -377,14 +384,14 @@ namespace Hybrasyl
                 }
             }
 
-            GameLog.InfoFormat("Creatures: {0} creatures loaded", WorldData.Count<Creature>());
+            GameLog.InfoFormat("Creatures: {0} creatures loaded", WorldData.Count<XmlCreature>());
 
             //Load SpawnGroups
             foreach (var xml in Directory.GetFiles(SpawnGroupDirectory, "*.xml"))
             {
                 try
                 {
-                    var spawnGroup = Serializer.Deserialize(XmlReader.Create(xml), new SpawnGroup());
+                    var spawnGroup = Xml.Creature.SpawnGroup.LoadFromFile(xml);
                     spawnGroup.Filename = Path.GetFileName(xml);
                     GameLog.InfoFormat("SpawnGroup: loaded {0}", spawnGroup.Filename);
                     WorldData.Set(spawnGroup.GetHashCode(), spawnGroup);
@@ -397,14 +404,14 @@ namespace Hybrasyl
                 }
             }
 
-            GameLog.InfoFormat("Spawngroups: {0} spawngroups loaded", WorldData.Count<SpawnGroup>());
+            GameLog.InfoFormat("Spawngroups: {0} spawngroups loaded", WorldData.Count<Xml.Creature.SpawnGroup>());
 
             //Load LootSets
             foreach (var xml in Directory.GetFiles(LootSetDirectory, "*.xml"))
             {
                 try
                 {
-                    var lootSet = Serializer.Deserialize(XmlReader.Create(xml), new LootSet());
+                    var lootSet = LootSet.LoadFromFile(xml);
 
                     GameLog.DebugFormat("LootSets: loaded {0}", lootSet.Name);
                     WorldData.Set(lootSet.GetHashCode(), lootSet);
@@ -422,7 +429,7 @@ namespace Hybrasyl
             {
                 try
                 {
-                    Maps.WorldMap newWorldMap = Serializer.Deserialize(XmlReader.Create(xml), new Maps.WorldMap());
+                    Xml.Map.WorldMap newWorldMap = Xml.Map.WorldMap.LoadFromFile(xml);
                     var worldmap = new WorldMap(newWorldMap);
                     WorldData.Set(worldmap.Name, worldmap);
                     foreach (var point in worldmap.Points)
@@ -444,7 +451,7 @@ namespace Hybrasyl
             {
                 try
                 {
-                    Items.VariantGroup newGroup = Serializer.Deserialize(XmlReader.Create(xml), new Items.VariantGroup());
+                    VariantGroup newGroup = VariantGroup.LoadFromFile(xml);
                     GameLog.DebugFormat("Item variants: loaded {0}", newGroup.Name);
                     WorldData.Set(newGroup.Name, newGroup);
 
@@ -462,7 +469,7 @@ namespace Hybrasyl
             {
                 try
                 {
-                    Item newItem = Serializer.Deserialize(XmlReader.Create(xml), new Item());
+                    Item newItem = Item.LoadFromFile(xml);
                     GameLog.DebugFormat("Items: loaded {0}, id {1}", newItem.Name, newItem.Id);
                     WorldData.SetWithIndex(newItem.Id, newItem,  newItem.Name);
                     // Handle some null cases; there's probably a nicer way to do this
@@ -482,7 +489,7 @@ namespace Hybrasyl
                                     GameLog.ErrorFormat("Item already exists with Key {0} : {1}. Cannot add {2}", variantItem.Id, WorldData.Get<Item>(variantItem.Id).Name, variantItem.Name);
                                 }
                                 WorldData.SetWithIndex(variantItem.Id, variantItem,
-                                     new Tuple<Sex, string>(Sex.Neutral, variantItem.Name));
+                                     new Tuple<Gender, string>(Gender.Neutral, variantItem.Name));
                             }
                         }
                     }
@@ -498,7 +505,7 @@ namespace Hybrasyl
                 try
                 {
                     string name = string.Empty;
-                    Statuses.Status newStatus = Serializer.Deserialize(XmlReader.Create(xml), new Statuses.Status());
+                    XmlStatus newStatus = XmlStatus.LoadFromFile(xml);
                     WorldData.SetWithIndex(newStatus.Icon, newStatus, newStatus.Name);
                     GameLog.Warning($"Statuses: loaded {newStatus.Name}, id {newStatus.Id}");
                 }
@@ -509,14 +516,14 @@ namespace Hybrasyl
             
             }
 
-            GameLog.InfoFormat("Statuses: {0} statuses loaded", WorldData.Values<Status>().Count());
+            GameLog.InfoFormat("Statuses: {0} statuses loaded", WorldData.Values<XmlStatus>().Count());
 
             foreach (var xml in Directory.GetFiles(CastableDirectory, "*.xml"))
             {
                 try
                 {
                     string name = string.Empty;
-                    Castables.Castable newCastable = Serializer.Deserialize(XmlReader.Create(xml), new Castables.Castable());
+                    XmlCastable newCastable = XmlCastable.LoadFromFile(xml);
                     WorldData.SetWithIndex(newCastable.Id, newCastable, newCastable.Name);
                     GameLog.DebugFormat("Castables: loaded {0}, id {1}", newCastable.Name, newCastable.Id);
                 }
@@ -526,7 +533,7 @@ namespace Hybrasyl
                 }
             }
 
-            GameLog.InfoFormat("Castables: {0} castables loaded", WorldData.Values<Castable>().Count());
+            GameLog.InfoFormat("Castables: {0} castables loaded", WorldData.Values<XmlCastable>().Count());
 
             // Load data from Redis
             // Load mailboxes
@@ -590,7 +597,7 @@ namespace Hybrasyl
             return true;
         }
 
-        public Item ResolveVariant(Item item, Items.Variant variant, string variantGroup)
+        public Item ResolveVariant(Item item, Variant variant, string variantGroup)
         {
             var variantItem = item.Clone();
 
@@ -610,7 +617,7 @@ namespace Hybrasyl
                 variantItem.Properties.Restrictions.Level = new RestrictionsLevel();
 
             if (variantItem.Properties.StatModifiers is null)
-                variantItem.Properties.StatModifiers = new Items.StatModifiers()
+                variantItem.Properties.StatModifiers = new Xml.Item.ItemStatModifiers()
                 {
                     Base = new StatModifierBase(),
                     Element = new StatModifierElement(),
@@ -619,7 +626,7 @@ namespace Hybrasyl
 
             if (variantItem.Properties.Damage is null)
             {
-                variantItem.Properties.Damage = new Items.Damage()
+                variantItem.Properties.Damage = new Xml.Item.Damage()
                 {
                     Large = new DamageLarge(),
                     Small = new DamageSmall()
@@ -634,7 +641,7 @@ namespace Hybrasyl
 
             if (item.Properties.Damage is null)
             {
-                item.Properties.Damage = new Items.Damage()
+                item.Properties.Damage = new Xml.Item.Damage()
                 {
                     Large = new DamageLarge(),
                     Small = new DamageSmall()
@@ -771,7 +778,7 @@ namespace Hybrasyl
             // TODO: split items into multiple ItemInfo files (DA does ~700 each)
             foreach (var item in WorldData.Values<Item>())
             {
-                iteminfo0.Nodes.Add(new MetafileNode(item.Name, item.Properties.Restrictions?.Level?.Min ?? 1, (int)(item.Properties.Restrictions?.@Class ?? Items.Class.Peasant),
+                iteminfo0.Nodes.Add(new MetafileNode(item.Name, item.Properties.Restrictions?.Level?.Min ?? 1, (int)(item.Properties.Restrictions?.Class ?? Class.Peasant),
                     item.Properties.Physical.Weight, item.Properties.Vendor?.ShopTab ?? string.Empty, item.Properties.Vendor?.Description ?? string.Empty));
             }
             WorldData.Set(iteminfo0.Name, iteminfo0.Compile());
@@ -784,7 +791,7 @@ namespace Hybrasyl
             {
                 var sclass = new Metafile("SClass" + i);
                 sclass.Nodes.Add("Skill");
-                foreach (var skill in WorldData.Values<Castable>().Where(x => x.Type.Contains("skill")))
+                foreach (var skill in WorldData.Values<Xml.Castable.Castable>().Where(x => x.Type.Contains("skill")))
                 // placeholder; change to skills where class == i, are learnable from trainer, and sort by level
                 {
                     sclass.Nodes.Add(new MetafileNode(skill.Name,
@@ -798,7 +805,7 @@ namespace Hybrasyl
                 }
                 sclass.Nodes.Add("Skill_End");
                 sclass.Nodes.Add("Spell");
-                foreach (var spell in WorldData.Values<Castable>().Where(x => x.Type.Contains("spell")))
+                foreach (var spell in WorldData.Values<Xml.Castable.Castable>().Where(x => x.Type.Contains("spell")))
                 // placeholder; change to skills where class == i, are learnable from trainer, and sort by level
                 {
                     sclass.Nodes.Add(new MetafileNode(spell.Name,
@@ -819,7 +826,7 @@ namespace Hybrasyl
             #region NPCIllust
 
             var npcillust = new Metafile("NPCIllust");
-            foreach (var npc in WorldData.Values<Npc>()) // change to merchants that have a portrait rather than all
+            foreach (var npc in WorldData.Values<XmlNpc>()) // change to merchants that have a portrait rather than all
             {
                 if (npc.Appearance.Portrait != null)
                 {
@@ -1249,7 +1256,7 @@ namespace Hybrasyl
 
         private void ControlMessage_HandleDeath(HybrasylControlMessage message)
         {
-            var creature = (Creature)message.Arguments[0];
+            var creature = (Objects.Creature)message.Arguments[0];
             if (creature is User) { (creature as User).OnDeath(); }
             if (creature is Monster) { (creature as Monster).OnDeath(); }
         }
@@ -2224,10 +2231,10 @@ namespace Hybrasyl
                     exchange.StartExchange();
                     exchange.AddGold(user, goldAmount);
                 }
-                else if (target is Creature && user.IsInViewport((VisibleObject)target))
+                else if (target is Objects.Creature && user.IsInViewport((VisibleObject)target))
                 {
                     // Give gold to Creature and go about our lives
-                    var creature = (Creature)target;
+                    var creature = (Objects.Creature)target;
                     creature.Gold += goldAmount;
                     user.Gold -= goldAmount;
                     user.UpdateAttributes(StatUpdateFlags.Stats);
@@ -3614,7 +3621,7 @@ namespace Hybrasyl
         private void MerchantMenuHandler_LearnSkill(User user, Merchant merchant, ClientPacket packet)
         {
             var skillName = packet.ReadString8(); //skill name
-            var skill = WorldData.GetByIndex<Castable>(skillName);
+            var skill = WorldData.GetByIndex<Xml.Castable.Castable>(skillName);
             user.ShowLearnSkill(merchant, skill);
         }
         private void MerchantMenuHandler_LearnSkillAccept(User user, Merchant merchant, ClientPacket packet)
@@ -3640,7 +3647,7 @@ namespace Hybrasyl
         private void MerchantMenuHandler_LearnSpell(User user, Merchant merchant, ClientPacket packet)
         {
             var spellName = packet.ReadString8();
-            var spell = WorldData.GetByIndex<Castable>(spellName);
+            var spell = WorldData.GetByIndex<XmlCastable>(spellName);
             user.ShowLearnSpell(merchant, spell);
         }
         private void MerchantMenuHandler_LearnSpellAccept(User user, Merchant merchant, ClientPacket packet)
@@ -3767,18 +3774,18 @@ namespace Hybrasyl
             }
         }
 
-        public bool TryGetItemTemplate(string name, Sex itemSex, out Item item)
+        public bool TryGetItemTemplate(string name, Gender itemGender, out Item item)
         {
-            var itemKey = new Tuple<Sex, string>(itemSex, name);
+            var itemKey = new Tuple<Gender, string>(itemGender, name);
             return ItemCatalog.TryGetValue(itemKey, out item);
         }
 
         public bool TryGetItemTemplate(string name, out Item item)
         {
             // This is kinda gross
-            var neutralKey = new Tuple<Sex, string>(Sex.Neutral, name);
-            var femaleKey = new Tuple<Sex, string>(Sex.Female, name);
-            var maleKey = new Tuple<Sex, string>(Sex.Male, name);
+            var neutralKey = new Tuple<Gender, string>(Gender.Neutral, name);
+            var femaleKey = new Tuple<Gender, string>(Gender.Female, name);
+            var maleKey = new Tuple<Gender, string>(Gender.Male, name);
 
             return ItemCatalog.TryGetValue(neutralKey, out item) || ItemCatalog.TryGetValue(femaleKey, out item) || ItemCatalog.TryGetValue(maleKey, out item);
         }

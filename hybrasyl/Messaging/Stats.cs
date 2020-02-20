@@ -1,12 +1,9 @@
-﻿using Hybrasyl.Creatures;
-using Hybrasyl.Enums;
-using Hybrasyl.Nations;
+﻿using Hybrasyl.Enums;
+using Hybrasyl.Xml.Nation;
 using Hybrasyl.Objects;
+using Hybrasyl.Xml.Castable;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Hybrasyl.Xml.Common;
 
 namespace Hybrasyl.Messaging
 {
@@ -228,7 +225,7 @@ namespace Hybrasyl.Messaging
             var cls = args[0].ToLower();
             if (Constants.CLASSES.TryGetValue(args[0].ToLower(), out int classValue))
             {
-                user.Class = (Enums.Class)classValue;
+                user.Class = (Class)classValue;
                 return Success($"Class changed to {args[0]}.");
             }
             return Fail("I know nothing about that class");
@@ -265,7 +262,7 @@ namespace Hybrasyl.Messaging
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
-            if (Game.World.WorldData.TryGetValueByIndex(args[0], out Castables.Castable castable))
+            if (Game.World.WorldData.TryGetValueByIndex(args[0], out Castable castable))
             {
                 user.AddSkill(castable);
                 return Success($"{castable.Name} added to skillbook.");
@@ -284,7 +281,7 @@ namespace Hybrasyl.Messaging
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
-            if (Game.World.WorldData.TryGetValueByIndex(args[0], out Castables.Castable castable))
+            if (Game.World.WorldData.TryGetValueByIndex(args[0], out Castable castable))
             {
                 user.AddSpell(castable);
                 return Success($"{castable.Name} added to spellbook.");

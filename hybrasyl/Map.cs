@@ -31,6 +31,8 @@ using System.Text;
 using System.Threading;
 using System.Linq;
 
+using XmlNpc = Hybrasyl.Xml.Creature.Npc;
+
 namespace Hybrasyl
 {
 
@@ -100,7 +102,7 @@ namespace Hybrasyl
         public List<MapPoint> Points { get; set; }
         public World World { get; set; }
 
-        public WorldMap(Maps.WorldMap newWorldMap)
+        public WorldMap(Xml.Map.WorldMap newWorldMap)
         {
             Points = new List<MapPoint>();
             Name = newWorldMap.Name;
@@ -179,7 +181,7 @@ namespace Hybrasyl
         /// </summary>
         /// <param name="newMap">An XSD.Map object representing the XML map file.</param>
         /// <param name="theWorld">A world object where the map will be placed</param>
-        public Map(Maps.Map newMap, World theWorld)
+        public Map(Xml.Map.Map newMap, World theWorld)
         {
             Init();
             World = theWorld;
@@ -231,7 +233,7 @@ namespace Hybrasyl
 
             foreach (var npcElement in newMap.Npcs)
             {
-                var npcTemplate = World.WorldData.Get<Creatures.Npc>(npcElement.Name);
+                var npcTemplate = World.WorldData.Get<XmlNpc>(npcElement.Name);
                 if (npcTemplate == null)
                 {
                     GameLog.Error("map ${Name}: NPC ${npcElement.Name} is missing, will not be loaded");
@@ -243,7 +245,7 @@ namespace Hybrasyl
                     Y = npcElement.Y,
                     Name = npcElement.Name,
                     Sprite = npcTemplate.Appearance.Sprite,
-                    Direction = (Enums.Direction)npcElement.Direction,
+                    Direction = (Xml.Common.Direction) npcElement.Direction,
                     Portrait = npcTemplate.Appearance.Portrait,
                     AllowDead = npcTemplate.AllowDead
                 };
@@ -277,14 +279,14 @@ namespace Hybrasyl
             if (newMap.Signs != null) {
                 foreach (var postElement in newMap.Signs.Signposts)
                 {
-                    var signpostElement = postElement as Maps.Signpost;
+                    var signpostElement = postElement as Xml.Map.Signpost;
                     var signpost = new Objects.Signpost(signpostElement.X, signpostElement.Y, signpostElement.Message);
                     InsertSignpost(signpost);
 
                 }
                 foreach (var postElement in newMap.Signs.MessageBoards)
                 {
-                    var boardElement = postElement as Maps.MessageBoard;
+                    var boardElement = postElement as Xml.Map.MessageBoard;
                     var board = new Objects.Signpost(boardElement.X, boardElement.Y, string.Empty, true, boardElement.Name);
                     InsertSignpost(board);
                     GameLog.InfoFormat("{0}: {1} - messageboard loaded", this.Name, board.Name);

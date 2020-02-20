@@ -4,9 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.RegularExpressions;
-using Hybrasyl.Items;
-using Hybrasyl.Utility;
+using Hybrasyl.Xml.Common;
 
 namespace Hybrasyl
 {
@@ -216,14 +214,14 @@ namespace Hybrasyl
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
-        public List<Item> FindItem(string name)
+        public List<Xml.Item.Item> FindItem(string name)
         {
-            var ret = new List<Item>();
-            foreach (var gender in Enum.GetValues(typeof(Enums.Sex)))
+            var ret = new List<Xml.Item.Item>();
+            foreach (var gender in Enum.GetValues(typeof(Gender)))
             {
                 var rawhash = $"{name.Normalize()}:{gender.ToString().Normalize()}";
                 var hash = sha.ComputeHash(Encoding.ASCII.GetBytes(rawhash));
-                if (TryGetValue<Item>(string.Concat(hash.Select(b => b.ToString("x2"))).Substring(0, 8), out Item result))
+                if (TryGetValue(string.Concat(hash.Select(b => b.ToString("x2"))).Substring(0, 8), out Xml.Item.Item result))
                     ret.Add(result);
             }
             return ret;

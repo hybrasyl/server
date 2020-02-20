@@ -19,7 +19,7 @@
  *            Kyle Speck    <kojasou@hybrasyl.com>
  */
 
-using Hybrasyl.Config;
+using Hybrasyl.Xml.ServerConfig;
 using Hybrasyl.Enums;
 using System;
 using System.Collections.Generic;
@@ -30,7 +30,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Xml;
-using Hybrasyl.XML;
+using Hybrasyl.Xml;
 using Serilog;
 using AssemblyInfo = Hybrasyl.Utility.AssemblyInfo;
 using Serilog.Core;
@@ -64,7 +64,7 @@ namespace Hybrasyl
         private static Monolith _monolith;
         private static MonolithControl _monolithControl;
 
-        public static HybrasylConfig Config { get; private set; }
+        public static ServerConfig Config { get; private set; }
 
         private static Thread _lobbyThread;
         private static Thread _loginThread;
@@ -118,9 +118,9 @@ namespace Hybrasyl
             Environment.Exit(0);
         }
 
-        public static HybrasylConfig GatherConfig()
+        public static ServerConfig GatherConfig()
         {
-            Config = new HybrasylConfig();
+            Config = new ServerConfig();
             Console.ForegroundColor = ConsoleColor.Green;
             Console.Write("Welcome to Project Hybrasyl: this is Hybrasyl server {0}\n\n", Assemblyinfo.Version);
             Console.ForegroundColor = ConsoleColor.White;
@@ -262,17 +262,17 @@ namespace Hybrasyl
        
             if (File.Exists(hybconfig))
             {
-
-                try
+                if (ServerConfig.LoadFromFile(hybconfig, out ServerConfig gameConfig, out Exception exception))
                 {
-                    Config = Serializer.Deserialize(XmlReader.Create(hybconfig), new HybrasylConfig());
-                    Log.Information("Configuration file loaded.");
+                    Log.Information("Configuration file {file} loaded", hybconfig);
+                    Config = gameConfig;
                 }
-                catch (Exception e)
+                else
                 {
-                    Log.Error("The config file {ConfigFile} could not be parsed: {ParseError}", hybconfig, e.Message);
+                    Log.Fatal("Configuration file had errors!");
+                    Log.Fatal("Exception follows: {exception}", exception);
+                    return;
                 }
-
             }
             else
             {
@@ -293,7 +293,7 @@ namespace Hybrasyl
                     }
                 }
                 // Write out our configuration
-                XML.Serializer.Serialize(new XmlTextWriter(hybconfig, null), Config);
+                Config.SaveToFile(hybconfig);
                 Console.WriteLine("Configuration has been written. Press any key to start the server.");
                 Console.ReadKey();
             }

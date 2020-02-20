@@ -49,7 +49,7 @@ namespace Hybrasyl.Scripting
 
         public void SpawnMonster(string creatureName, HybrasylSpawn spawn, int x, int y)
         {
-            if (Game.World.WorldData.TryGetValue(creatureName, out Creatures.Creature creature))
+            if (Game.World.WorldData.TryGetValue(creatureName, out Xml.Creature.Creature creature))
             {
                 var baseMob = new Monster(creature, spawn.Spawn, Map.Id);
                 baseMob.X = (byte)x;

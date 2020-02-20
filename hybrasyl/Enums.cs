@@ -242,21 +242,6 @@ namespace Hybrasyl
 
         #region Slots, element types, item types
 
-        public enum Element : int
-        {
-            None = 0x00,
-            Fire = 0x01,
-            Water = 0x02,
-            Wind = 0x03,
-            Earth = 0x04,
-            Light = 0x05,
-            Dark = 0x06,
-            Wood = 0x07,
-            Metal = 0x08,
-            Undead = 0x09,
-            Random = 0x10
-        }
-
         public enum ItemSlots : int
         {
             None = 0,
@@ -386,52 +371,6 @@ namespace Hybrasyl
             Swimming = (GameMasterA | GameMasterB),
             Stats = (Primary | Current | Secondary),
             Full = (Primary | Current | Experience | Secondary | GameMasterA | GameMasterB)
-        }
-
-        public enum Direction : int
-        {
-            North = 0x00,
-            East = 0x01,
-            South = 0x02,
-            West = 0x03
-        }
-
-        public enum Class : int
-        {
-            Peasant = 0x00,
-            Warrior = 0x01,
-            Rogue = 0x02,
-            Wizard = 0x03,
-            Priest = 0x04,
-            Monk = 0x05
-        }
-
-        public enum Sex : int
-        {
-            Neutral = 0x00,
-            Male = 0x01,
-            Female = 0x02
-        }
-
-
-        public enum DamageType
-        {
-            Direct,
-            Physical,
-            Magical,
-            Elemental
-        }
-
-        public enum SpellUseType : byte
-        {
-            Unusable = 0,
-            Prompt = 1,
-            ChooseTarget = 2,
-            FourDigit = 3,
-            ThreeDigit = 4,
-            NoTarget = 5,
-            TwoDigit = 6,
-            OneDigit = 7,
         }
 
         public enum ThrottleResult : int

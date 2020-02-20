@@ -20,15 +20,14 @@
  * 
  */
 
- using System;
- using System.Collections.Generic;
- using System.Drawing;
- using System.Linq;
- using Hybrasyl.Castables;
- using Hybrasyl.Creatures;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Hybrasyl.Xml.Castable;
+using Hybrasyl.Xml.Creature;
 using Hybrasyl.Enums;
-using Castable = Hybrasyl.Castables.Castable;
- using Class = Hybrasyl.Castables.Class;
+using XmlCreature = Hybrasyl.Xml.Creature.Creature;
+using Hybrasyl.Xml.Common;
 
 namespace Hybrasyl.Objects
 {
@@ -44,7 +43,7 @@ namespace Hybrasyl.Objects
 
         private uint _simpleDamage => Convert.ToUInt32(Rng.Next(_spawn.Damage.Min, _spawn.Damage.Max) * _variance);
 
-        private List<Creatures.Castable> _castables;
+        private List<Xml.Creature.Castable> _castables;
         private double _variance;
 
         public int ActionDelay = 800;
@@ -94,8 +93,8 @@ namespace Hybrasyl.Objects
 
         public override void OnReceiveDamage()
         {
-            this.IsHostile = true;
-            this.ShouldWander = false;
+            IsHostile = true;
+            ShouldWander = false;
         }
 
 
@@ -148,7 +147,7 @@ namespace Hybrasyl.Objects
             
         public List<ItemObject> LootableItems { get; set; }
 
-        public Monster(Creatures.Creature creature, Spawn spawn, int map)
+        public Monster(XmlCreature creature, Spawn spawn, int map)
         {
 
             var direction = (Rng.Next(0, 100) >= 50);
@@ -173,8 +172,8 @@ namespace Hybrasyl.Objects
             Stats.BaseDex = VariantDex;
             _castables = spawn.Castables;
 
-            Stats.BaseDefensiveElement = (Enums.Element) spawn.GetDefensiveElement();
-            Stats.BaseDefensiveElement = (Enums.Element) spawn.GetOffensiveElement();
+            Stats.BaseDefensiveElement = spawn.GetDefensiveElement();
+            Stats.BaseDefensiveElement = spawn.GetOffensiveElement();
             LootableItems = new List<ItemObject>();
 
             //until intents are fixed, this is how this is going to be done.
@@ -259,7 +258,7 @@ namespace Hybrasyl.Objects
         {
             var nextSpell = _random.Next(0, _castables.Count);
             var creatureCastable = _castables[nextSpell];
-            var castable = World.WorldData.Get<Castable>(creatureCastable.Value);
+            var castable = World.WorldData.Get<Xml.Castable.Castable>(creatureCastable.Value);
             if (target is Merchant) return;
             UseCastable(castable, target);
             Condition.Casting = false;
@@ -301,7 +300,7 @@ namespace Hybrasyl.Objects
         /// </summary>
         /// <param name="direction"></param>
         /// <param name="target"></param>
-        public void SimpleAttack(Creature target) => target?.Damage(_simpleDamage, Stats.OffensiveElement, Enums.DamageType.Physical, DamageFlags.None, this);
+        public void SimpleAttack(Creature target) => target?.Damage(_simpleDamage, Stats.OffensiveElement, DamageType.Physical, DamageFlags.None, this);
 
         public override void ShowTo(VisibleObject obj)
         {

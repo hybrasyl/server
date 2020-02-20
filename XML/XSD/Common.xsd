@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:hyb="http://www.hybrasyl.com/XML/HybrasylCommon" targetNamespace="http://www.hybrasyl.com/XML/HybrasylCommon" elementFormDefault="unqualified">
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:hyb="http://www.hybrasyl.com/XML/Common" targetNamespace="http://www.hybrasyl.com/XML/Common" elementFormDefault="unqualified">
 
   <xs:annotation>
     <xs:documentation xml:lang="en">
@@ -30,6 +30,105 @@
 	  <xs:restriction base="xs:string">
 		  <xs:minLength value="1" />
 		  <xs:maxLength value="65534" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Shared types used by statuses and castables -->
+  <!-- Generic type for expressing a simple quantity, either rnd(Min/Max) or a specific value -->
+  <xs:complexType name="SimpleQuantity">
+    <xs:simpleContent>
+      <xs:extension base="xs:nonNegativeInteger">
+        <xs:attribute name="Min" default="0" type="xs:nonNegativeInteger" />
+        <xs:attribute name="Max" default="0" type="xs:nonNegativeInteger" />
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <!-- Stat effects (buffs or debuffs) container element -->
+  <xs:complexType name="StatModifiers">
+    <xs:attribute name="Str" default="0" type="xs:byte" />
+    <xs:attribute name="Int" default="0" type="xs:byte" />
+    <xs:attribute name="Wis" default="0" type="xs:byte" />
+    <xs:attribute name="Con" default="0" type="xs:byte" />
+    <xs:attribute name="Dex" default="0" type="xs:byte" />
+    <xs:attribute name="Hp" default="0" type="xs:int" />
+    <xs:attribute name="Mp" default="0" type="xs:int" />
+    <xs:attribute name="Hit" default="0" type="xs:byte" />
+    <xs:attribute name="Dmg" default="0" type="xs:byte" />
+    <xs:attribute name="Ac" default="0" type="xs:byte" />
+    <xs:attribute name="Regen" default="0" type="xs:byte" />
+    <xs:attribute name="Mr" default="0" type="xs:byte" />
+    <xs:attribute name="OffensiveElement" type="hyb:Element"/>
+    <xs:attribute name="DefensiveElement" type="hyb:Element"/>
+    <xs:attribute name="DamageModifier" type="xs:float"/>
+    <xs:attribute name="HealModifier" type="xs:float"/>
+    <xs:attribute name="DamageType" type="hyb:DamageType"/>
+    <xs:attribute name="ReflectChance" type="xs:float"/>
+    <xs:attribute name="ReflectIntensity" type="xs:float"/>
+  </xs:complexType>
+  
+  <!-- Damage flags type -->
+  <xs:simpleType name="DamageFlags">
+    <xs:restriction>
+      <xs:simpleType>
+        <xs:list>
+          <xs:simpleType>
+            <xs:restriction base="xs:token">
+              <xs:enumeration value="None"/>
+              <xs:enumeration value="Scaled" />
+              <xs:enumeration value="Resistance" />
+              <xs:enumeration value="Threat" />
+              <xs:enumeration value="Nonlethal"/>
+            </xs:restriction>
+          </xs:simpleType>
+        </xs:list>
+      </xs:simpleType>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Spell use type -->
+  <xs:simpleType name="SpellUseType">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="Unusable"/>
+      <xs:enumeration value="Prompt"/>
+      <xs:enumeration value="Target"/>
+      <xs:enumeration value="FourDigit"/>
+      <xs:enumeration value="ThreeDigit"/>
+      <xs:enumeration value="NoTarget"/>
+      <xs:enumeration value="TwoDigit"/>
+      <xs:enumeration value="Onedigit"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Skill intent targets -->
+  <xs:simpleType name="IntentTarget">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="Hostile" />
+      <xs:enumeration value="Friendly" />
+      <xs:enumeration value="Pvp" />
+      <xs:enumeration value="Group" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Intent direction type -->
+  <xs:simpleType name="IntentDirection">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="None"/>
+      <xs:enumeration value="Front" />
+      <xs:enumeration value="Back" />
+      <xs:enumeration value="Left" />
+      <xs:enumeration value="Right" />
+      <xs:enumeration value="Nearby" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Weapon type list (for casting restrictions) -->
+  <xs:simpleType name="IntentTargetList">
+    <xs:restriction>
+      <xs:simpleType>
+        <xs:list itemType="hyb:IntentTarget" />
+      </xs:simpleType>
+      <xs:maxLength value="4" />
     </xs:restriction>
   </xs:simpleType>
 
@@ -131,25 +230,6 @@
     </xs:restriction>
   </xs:simpleType>
 
-  <!-- Damage flags type -->
-  <xs:simpleType name="DamageFlags">
-    <xs:restriction>
-      <xs:simpleType>
-        <xs:list>
-          <xs:simpleType>
-            <xs:restriction base="xs:token">
-              <xs:enumeration value="None"/>
-              <xs:enumeration value="Scaled" />
-              <xs:enumeration value="Resistance" />
-              <xs:enumeration value="Threat" />
-              <xs:enumeration value="Nonlethal"/>
-            </xs:restriction>
-          </xs:simpleType>
-        </xs:list>
-      </xs:simpleType>
-    </xs:restriction>
-  </xs:simpleType>
-
   <!-- Classes (for item restrictions) -->
   <xs:simpleType name="Class">
     <xs:restriction base="xs:token">
@@ -174,7 +254,7 @@
   <!-- Elements -->
   <xs:simpleType name="Element">
     <xs:restriction base="xs:token">
-      <xs:enumeration value="None" />
+      <xs:enumeration value="None"/>
       <xs:enumeration value="Fire" />
       <xs:enumeration value="Water" />
       <xs:enumeration value="Wind" />
@@ -250,8 +330,8 @@
   <xs:simpleType name="Direction">
     <xs:restriction base="xs:token">
       <xs:enumeration value="North" />
-      <xs:enumeration value="South" />
       <xs:enumeration value="East" />
+      <xs:enumeration value="South" />
       <xs:enumeration value="West" />
     </xs:restriction>
   </xs:simpleType>
