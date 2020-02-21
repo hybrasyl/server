@@ -13,14 +13,13 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
- * Authors:   Justin Baugh  <baughj@hybrasyl.com>
- *            Kyle Speck    <kojasou@hybrasyl.com>
+ * For contributors and individual authors please refer to CONTRIBUTORS.MD.
+ * 
  */
 
 using Hybrasyl.Xml.ServerConfig;
-using Hybrasyl.Enums;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -29,13 +28,10 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
-using System.Xml;
-using Hybrasyl.Xml;
 using Serilog;
 using AssemblyInfo = Hybrasyl.Utility.AssemblyInfo;
 using Serilog.Core;
 using Serilog.Events;
-using Serilog.Core.Enrichers;
 
 namespace Hybrasyl
 {
