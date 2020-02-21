@@ -93,7 +93,22 @@ namespace Hybrasyl.Objects
         public bool IsMaster { get; set; }
         public UserGroup Group { get; set; }
 
-        
+        public int LevelCircle
+        {
+            get
+            {
+                if (Stats.Level < LevelCircles.CIRCLE_1)
+                    return 0;
+                else if (Stats.Level < LevelCircles.CIRCLE_2)
+                    return 1;
+                else if (Stats.Level < LevelCircles.CIRCLE_3)
+                    return 2;
+                else if (Stats.Level < LevelCircles.CIRCLE_4)
+                    return 3;
+                return 4;
+            }
+        }
+
         public Mailbox Mailbox => World.GetMailbox(Name);
         public bool UnreadMail => Mailbox.HasUnreadMessages;
 
@@ -307,10 +322,7 @@ namespace Hybrasyl.Objects
         public void Enqueue(ServerPacket packet)
         {
             GameLog.DebugFormat("Sending {0:X2} to {1}", packet.Opcode, Name);
-            if (Client == null)
-                LoginQueue.Enqueue(packet);
-            else
-                Client.Enqueue(packet);
+            Client.Enqueue(packet);
         }
 
         public override void AoiEntry(VisibleObject obj)
@@ -514,7 +526,7 @@ namespace Hybrasyl.Objects
             Condition.Comatose = false;
             var handler = Game.Config.Handlers?.Death;
             if (handler?.Coma != null && Game.World.WorldData.TryGetValueByIndex(handler.Coma.Value, out Status status))
-                RemoveStatus(status.Icon, false);
+                RemoveStatus(status.Icon);
         }
 
         /// <summary>
@@ -710,95 +722,32 @@ namespace Hybrasyl.Objects
                     {
                         levelsGained++;
                         Stats.Level++;
-                        LevelPoints = LevelPoints + 2;
-
-                        #region Add Hp and Mp for each level gained
+                        LevelPoints += 2;
 
                         int hpGain = 0;
                         int mpGain = 0;
                         int bonusHp = 0;
                         int bonusMp = 0;
 
-                        double levelCircleModifier;  // Users get more Hp and Mp per level at higher Level "circles"
+                        var levelCircleModifier = StatGainConstants.CIRCLE_MODIFIER[LevelCircle];
 
-                        if (Stats.Level < LevelCircles.CIRCLE_1)
-                        {
-                            levelCircleModifier = StatGainConstants.LEVEL_CIRCLE_GAIN_MODIFIER_0;
-                        }
-                        else if (Stats.Level < LevelCircles.CIRCLE_2)
-                        {
-                            levelCircleModifier = StatGainConstants.LEVEL_CIRCLE_GAIN_MODIFIER_1;
-                        }
-                        else if (Stats.Level < LevelCircles.CIRCLE_3)
-                        {
-                            levelCircleModifier = StatGainConstants.LEVEL_CIRCLE_GAIN_MODIFIER_2;
-                        }
-                        else if (Stats.Level < LevelCircles.CIRCLE_4)
-                        {
-                            levelCircleModifier = StatGainConstants.LEVEL_CIRCLE_GAIN_MODIFIER_3;
-                        }
-                        else
-                        {
-                            levelCircleModifier = StatGainConstants.LEVEL_CIRCLE_GAIN_MODIFIER_4;
-                        }
-
-                        switch (Class)
-                        {
-                            case Class.Peasant:
-                                hpGain = StatGainConstants.PEASANT_BASE_HP_GAIN;
-                                mpGain = StatGainConstants.PEASANT_BASE_MP_GAIN;
-                                bonusHp = StatGainConstants.PEASANT_BONUS_HP_GAIN;
-                                bonusMp = StatGainConstants.PEASANT_BONUS_MP_GAIN;
-                                break;
-
-                            case Class.Warrior:
-                                hpGain = StatGainConstants.WARRIOR_BASE_HP_GAIN;
-                                mpGain = StatGainConstants.WARRIOR_BASE_MP_GAIN;
-                                bonusHp = StatGainConstants.WARRIOR_BONUS_HP_GAIN;
-                                bonusMp = StatGainConstants.WARRIOR_BONUS_MP_GAIN;
-                                break;
-
-                            case Class.Rogue:
-                                hpGain = StatGainConstants.ROGUE_BASE_HP_GAIN;
-                                mpGain = StatGainConstants.ROGUE_BASE_MP_GAIN;
-                                bonusHp = StatGainConstants.ROGUE_BONUS_HP_GAIN;
-                                bonusMp = StatGainConstants.ROGUE_BONUS_MP_GAIN;
-                                break;
-
-                            case Class.Monk:
-                                hpGain = StatGainConstants.MONK_BASE_HP_GAIN;
-                                mpGain = StatGainConstants.MONK_BASE_MP_GAIN;
-                                bonusHp = StatGainConstants.MONK_BONUS_HP_GAIN;
-                                bonusMp = StatGainConstants.MONK_BONUS_MP_GAIN;
-                                break;
-
-                            case Class.Priest:
-                                hpGain = StatGainConstants.PRIEST_BASE_HP_GAIN;
-                                mpGain = StatGainConstants.PRIEST_BASE_MP_GAIN;
-                                bonusHp = StatGainConstants.PRIEST_BONUS_HP_GAIN;
-                                bonusMp = StatGainConstants.PRIEST_BONUS_MP_GAIN;
-                                break;
-
-                            case Class.Wizard:
-                                hpGain = StatGainConstants.WIZARD_BASE_HP_GAIN;
-                                mpGain = StatGainConstants.WIZARD_BASE_MP_GAIN;
-                                bonusHp = StatGainConstants.WIZARD_BONUS_HP_GAIN;
-                                bonusMp = StatGainConstants.WIZARD_BONUS_MP_GAIN;
-                                break;
-                        }
+                        hpGain = StatGainConstants.BASE_HP_GAIN[Class];
+                        mpGain = StatGainConstants.BASE_MP_GAIN[Class];
+                        bonusHp = StatGainConstants.BONUS_HP_GAIN[Class];
+                        bonusMp = StatGainConstants.BONUS_MP_GAIN[Class];
 
                         // Each level, a user is guaranteed to increase his hp and mp by some base amount, per his Class.
                         // His hp and mp will increase further by a "bonus amount" that is accounted for by:
                         // - 50% Level circle
                         // - 50% Randomness
 
-                        int bonusHpGain = (int)Math.Round(bonusHp * 0.5 * levelCircleModifier + bonusHp * 0.5 * random.NextDouble(), MidpointRounding.AwayFromZero);
-                        int bonusMpGain = (int)Math.Round(bonusMp * 0.5 * levelCircleModifier + bonusMp * 0.5 * random.NextDouble(), MidpointRounding.AwayFromZero);
+                        int bonusHpGain = (int)Math.Round((bonusHp * 0.5 * levelCircleModifier) + (bonusHp * 0.5 * random.NextDouble()), MidpointRounding.AwayFromZero);
+                        int bonusMpGain = (int)Math.Round((bonusMp * 0.5 * levelCircleModifier) + (bonusMp * 0.5 * random.NextDouble()), MidpointRounding.AwayFromZero);
 
                         Stats.BaseHp += (hpGain + bonusHpGain);
                         Stats.BaseMp += (mpGain + bonusMpGain);
+                        GameLog.UserActivityInfo("User {name}: level increased to {Level}, HP +{Hp}, MP +{Mp}", Name, LevelCircle, (hpGain + bonusHpGain), (mpGain + bonusMpGain));
 
-                        #endregion
                     }
                 }
                 // If a user has just become level 99, add the remainder exp to their box
@@ -2148,27 +2097,26 @@ namespace Hybrasyl.Objects
         }
 
         public override void Damage(double damage, Element element = Element.None,
-            DamageType damageType = DamageType.Direct, DamageFlags damageFlags = DamageFlags.None, Creature attacker = null, bool onDeath=true)
+            DamageType damageType = DamageType.Direct, DamageFlags damageFlags = DamageFlags.None, Creature attacker = null, bool onDeath = true)
         {
             if (Condition.Comatose || !Condition.Alive) return;
             base.Damage(damage, element, damageType, damageFlags, attacker, false); // We handle ondeath for users here
-            if (Stats.Hp == 0)
+            if (Stats.Hp == 0 && Group != null)
             {
-                    if (Group != null)
-                    {
-                        Stats.Hp = 1;
-                        var handler = Game.Config.Handlers?.Death?.Coma;
-                        if (handler != null && World.WorldData.TryGetValueByIndex(handler.Value, out Status status))
-                            ApplyStatus(new CreatureStatus(status, this, null, attacker));
-                        else
-                        {
-                            GameLog.Warning("No coma handler or status found - user {Name} died!");
-                            OnDeath();
-                        }
-                    }
-                    else
-                        OnDeath();
+                Stats.Hp = 1;
+                var handler = Game.Config.Handlers?.Death?.Coma;
+                if (handler?.Value != null && World.WorldData.TryGetValueByIndex(handler.Value, out Status status))
+                {
+                    ApplyStatus(new CreatureStatus(status, this, null, attacker));
+                }
+                else
+                {
+                    GameLog.Warning("No coma handler or status found - user {Name} died!");
+                    OnDeath();
+                }
             }
+            else if (Group == null)
+                OnDeath();
             UpdateAttributes(StatUpdateFlags.Current);
         }
 

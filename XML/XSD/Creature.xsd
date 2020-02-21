@@ -28,6 +28,7 @@
       <xs:element name="Maps" type="creature:MapList" minOccurs="1" maxOccurs="1"/>
       <xs:element name="Spawns" type="creature:SpawnList" minOccurs="1" maxOccurs="1"/>
     </xs:sequence>
+    <xs:attribute name="Disabled" use="optional" default="false" type="xs:boolean"/>
   </xs:complexType>
 
   <!-- A list of maps a spawngroup controls-->
@@ -43,6 +44,7 @@
     <xs:attribute name="MaxSpawn" type="xs:int" use ="required"/>
     <xs:attribute name="Limit" type="xs:int" use ="required"/>
     <xs:attribute name="Interval" type="xs:int" use ="required"/>
+    <xs:attribute name="Disabled" type="xs:boolean" default="false"/>
   </xs:complexType>
 
   <!-- Spawns -->

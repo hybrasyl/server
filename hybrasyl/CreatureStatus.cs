@@ -5,6 +5,7 @@ using Hybrasyl.Enums;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml.Status;
 using Hybrasyl.Xml.Common;
+using System.Reflection;
 
 namespace Hybrasyl
 {
@@ -95,10 +96,11 @@ namespace Hybrasyl
         void OnStart(bool displaySfx = true);
         void OnTick();
         void OnEnd();
-
+        void OnExpire();
         SimpleStatusEffect OnStartEffect { get; }
         SimpleStatusEffect OnTickEffect { get; }
-        SimpleStatusEffect OnEndEffect { get; }
+        SimpleStatusEffect OnRemoveEffect { get; }
+        SimpleStatusEffect OnExpireEffect { get; }
     }
 
     public class StatusInfo
@@ -106,7 +108,8 @@ namespace Hybrasyl
         public string Name { get; set; }
         public SimpleStatusEffect OnStartEffect { get; set; }
         public SimpleStatusEffect OnTickEffect { get; set; }
-        public SimpleStatusEffect OnEndEffect { get; set; }
+        public SimpleStatusEffect OnRemoveEffect { get; set; }
+        public SimpleStatusEffect OnExpireEffect { get; set; }
         public double Remaining { get; set; }
         public double Tick { get; set; }
     }
@@ -132,7 +135,7 @@ namespace Hybrasyl
         public string UseCastRestrictions => XmlStatus.CastRestriction?.Use ?? string.Empty;
         public string ReceiveCastRestrictions => XmlStatus.CastRestriction?.Receive ?? string.Empty;
 
-        public StatusInfo Info => new StatusInfo() { Name = Name, OnStartEffect = OnStartEffect, OnEndEffect = OnEndEffect, OnTickEffect = OnTickEffect, Remaining = Remaining, Tick = Tick};
+        public StatusInfo Info => new StatusInfo() { Name = Name, OnStartEffect = OnStartEffect, OnRemoveEffect = OnRemoveEffect, OnTickEffect = OnTickEffect, OnExpireEffect = OnExpireEffect, Remaining = Remaining, Tick = Tick};
 
         public Creature Target { get; }
         public Creature Source { get; }
@@ -151,10 +154,12 @@ namespace Hybrasyl
         public void OnStart(bool displaySfx = true) => _processStart(displaySfx);
         public void OnEnd() => _processRemove();
         public void OnTick() => _processTick();
+        public void OnExpire() => _processExpire();
 
         public SimpleStatusEffect OnTickEffect { get; }
         public SimpleStatusEffect OnStartEffect { get; }
-        public SimpleStatusEffect OnEndEffect { get; }
+        public SimpleStatusEffect OnRemoveEffect { get; }
+        public SimpleStatusEffect OnExpireEffect { get; }
 
         public bool Expired => (DateTime.Now - Start).TotalSeconds >= Duration;
         public double Elapsed => (DateTime.Now - Start).TotalSeconds;
@@ -179,9 +184,11 @@ namespace Hybrasyl
                 var start = CalculateNumericEffects(castable, xmlstatus.Effects.OnApply, source);
                 var tick = CalculateNumericEffects(castable, xmlstatus.Effects.OnTick, source);
                 var end = CalculateNumericEffects(castable, xmlstatus.Effects.OnRemove, source);
+                var expire = CalculateNumericEffects(castable, xmlstatus.Effects.OnExpire, source);
                 OnStartEffect = new SimpleStatusEffect(start.Heal, start.Damage);
                 OnTickEffect = new SimpleStatusEffect(tick.Heal, tick.Damage);
-                OnEndEffect = new SimpleStatusEffect(end.Heal, end.Damage);
+                OnRemoveEffect = new SimpleStatusEffect(end.Heal, end.Damage);
+                OnExpireEffect = new SimpleStatusEffect(expire.Heal, expire.Damage);
             }
         }
 
@@ -197,8 +204,9 @@ namespace Hybrasyl
                     Duration = serialized.Remaining;
                     Tick = serialized.Tick;
                     OnTickEffect = serialized.OnTickEffect;
-                    OnEndEffect = serialized.OnEndEffect;
+                    OnRemoveEffect = serialized.OnRemoveEffect;
                     OnStartEffect = serialized.OnStartEffect;
+                    OnRemoveEffect = serialized.OnRemoveEffect;
                 }
                 else
                 {
@@ -328,6 +336,46 @@ namespace Hybrasyl
                 ProcessSfx(effect);
         }
 
+        private void ProcessHandler(Handler handler)
+        {
+            if ((handler?.Function ?? String.Empty ) == String.Empty)
+                return;
+
+            // If a handler is specified, check the script for it first. Note that we don't run both;
+            // if you override something like OnDeath, that's your problem.
+            VisibleObject invoker;
+            VisibleObject invokee;
+
+            if (handler.ScriptSource == ScriptSource.Target)
+            {
+                invokee = Target;
+                invoker = Source;
+            }
+            else // Caster
+            {
+                invokee = Source;
+                invoker = Target;
+            }
+
+            if (invokee.Script != null)
+            {
+                invokee.Script.ExecuteFunction(handler.Function, invoker);
+                return;
+            }
+
+            Type type = invokee.GetType();
+            try
+            {
+                MethodInfo methodInfo = type.GetMethod(handler.Function);
+                methodInfo.Invoke(invokee,null);
+            }
+            catch (Exception e)
+            { 
+                GameLog.Error("Exception processing status handler: {exception}", e);
+
+            }
+        }
+
         private void ProcessEffects(ModifierEffect effect)
         {
             ProcessSfx(effect);
@@ -337,6 +385,7 @@ namespace Hybrasyl
         {
             ProcessFullEffects(XmlStatus.Effects?.OnApply, false, displaySfx);
             ProcessNumericEffects(OnStartEffect);
+            ProcessHandler(XmlStatus.Effects?.OnApply?.Handler);
         }
 
         private void _processTick()
@@ -344,12 +393,21 @@ namespace Hybrasyl
             LastTick = DateTime.Now;
             ProcessEffects(XmlStatus.Effects.OnTick);
             ProcessNumericEffects(OnTickEffect);
+            ProcessHandler(XmlStatus.Effects?.OnTick?.Handler);
         }
 
         private void _processRemove()
         {
             ProcessFullEffects(XmlStatus.Effects?.OnRemove, true);
-            ProcessNumericEffects(OnEndEffect);
+            ProcessNumericEffects(OnRemoveEffect);
+            ProcessHandler(XmlStatus.Effects?.OnRemove?.Handler);
+        }
+
+        private void _processExpire()
+        {
+            ProcessFullEffects(XmlStatus.Effects?.OnExpire, true);
+            ProcessNumericEffects(OnExpireEffect);
+            ProcessHandler(XmlStatus.Effects?.OnExpire?.Handler);
         }
 
     }

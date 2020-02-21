@@ -146,7 +146,6 @@ namespace Hybrasyl.Objects
                 if (value == false)
                 {
                     Conditions &= ~CreatureCondition.Coma;
-                    User?.Group?.SendMessage($"{User.Name} has recovered!");
                 }
                 else
                     Conditions |= CreatureCondition.Coma;

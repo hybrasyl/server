@@ -233,16 +233,12 @@ namespace Hybrasyl.Objects
                     trigger.SendSystemMessage("It doesn't work.");
                     return;
                 }
-                    
-                try
-                {
-                    invokeScript.ExecuteFunction("OnUse", new HybrasylWorldObject(this), new HybrasylUser(trigger));
-                }
-                catch (Exception e)
+
+                if (!invokeScript.ExecuteFunction("OnUse", trigger, null, this))
                 {
                     trigger.SendSystemMessage("It doesn't work.");
-                    GameLog.ErrorFormat($"User {trigger.Name}, item {Name}: exception {e}");
-                }              
+                    return;
+                }
             }            
             if (Use.Effect != null)
             {

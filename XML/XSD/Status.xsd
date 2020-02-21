@@ -88,6 +88,21 @@
       <xs:element minOccurs="0" name="Shout" type="hyb:String8"/>
     </xs:all>
   </xs:complexType>
+
+  <!-- Script source -->
+  <xs:simpleType name="ScriptSource">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="Target"/>
+      <xs:enumeration value="Caster"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:complexType name="Handler">
+    <xs:all>
+      <xs:element minOccurs="0"  name="Function" type="hyb:String8"/>
+      <xs:element minOccurs="0"  name="ScriptSource" type="status:ScriptSource"/>
+    </xs:all>
+  </xs:complexType>
   
   <xs:complexType name="ModifierEffect" >
     <xs:all>
@@ -102,6 +117,7 @@
       <xs:element name="Damage" minOccurs="0" type="status:Damage" />
       <xs:element name="StatModifiers" minOccurs="0" type="hyb:StatModifiers" />
       <xs:element name="Conditions" minOccurs="0" type="status:Conditions"/>
+      <xs:element name="Handler" minOccurs="0" type="status:Handler"/>
     </xs:all>
   </xs:complexType>
 
@@ -110,6 +126,7 @@
       <xs:element minOccurs="0" name="OnApply" type="status:ModifierEffect" />
       <xs:element minOccurs="0" name="OnTick" type="status:ModifierEffect" />
       <xs:element minOccurs="0" name="OnRemove" type="status:ModifierEffect" />
+      <xs:element minOccurs="0" name="OnExpire" type="status:ModifierEffect" />
     </xs:all>
   </xs:complexType>
 

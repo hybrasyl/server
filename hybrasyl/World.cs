@@ -328,8 +328,9 @@ namespace Hybrasyl
                 {
                     XmlMap newMap = XmlMap.LoadFromFile(xml);
                     var map = new Map(newMap, this);
-                    WorldData.SetWithIndex(map.Id, map, map.Name);
-                    GameLog.DebugFormat("Maps: Loaded {0}", map.Name);
+                    if (!WorldData.SetWithIndex(map.Id, map, map.Name))
+                        GameLog.ErrorFormat("SetWithIndex fail for {map.Name}..?");
+                    GameLog.InfoFormat("Maps: Loaded {0}", map.Name);
                 }
                 catch (Exception e)
                 {
@@ -2103,7 +2104,7 @@ namespace Hybrasyl
             //   0x03 = invitee responds with a "yes"
             byte stage = packet.ReadByte();
 
-            if (!TryGetUser(packet.ReadString8(), out User partner))
+            if (!TryGetActiveUser(packet.ReadString8(), out User partner))
                 return;
 
             // TODO: currently leaving five bytes on the table here. There's probably some

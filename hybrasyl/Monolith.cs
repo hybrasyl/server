@@ -26,7 +26,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using XmlCreature = Hybrasyl.Xml.Creature.Creature;
-using Hybrasyl.Xml;
 
 namespace Hybrasyl
 {
@@ -50,25 +49,28 @@ namespace Hybrasyl
         public void Start()
         {
             foreach (var spawngroup in _spawnGroups)
-            {
+            {               
                 foreach (var spawnmap in spawngroup.Maps)
                 {
-                    var mapObject = Game.World.WorldData.Values<Map>().SingleOrDefault(x => x.Name == spawnmap.Name);
-                    if (mapObject is null)
+                    if (Game.World.WorldData.TryGetValueByIndex(spawnmap.Name, out Map map))
                     {
-                        //GameLog.Error($"Spawngroup {spawngroup.Filename} references non-existent map {spawnmap.Name}, disabling");
-                        spawnmap.Disabled = true;
-                        continue;
+                        spawnmap.Id = map.Id;
+                        spawnmap.LastSpawn = DateTime.MinValue;
                     }
-                    spawnmap.Id = mapObject.Id;
+                    else
+                    {
+                        spawnmap.Disabled = true;
+                        GameLog.SpawnError("Specified map {map} not found", spawnmap.Name);
+                    }
                 }
             }
 
             while (true)
             {
                 foreach (var spawnGroup in _spawnGroups)
-                    Spawn(spawnGroup);
-                Thread.Sleep(250);
+                    if (!spawnGroup.Disabled)
+                        Spawn(spawnGroup);
+                Thread.Sleep(5000);
 
             }
         }
@@ -76,8 +78,9 @@ namespace Hybrasyl
 
         public void Spawn(Xml.Creature.SpawnGroup spawnGroup)
         {
-            foreach (var map in spawnGroup.Maps.Where(x => x.Disabled != true))
+            foreach (var map in spawnGroup.Maps)
             {
+                if (map.Disabled) continue;
                 try
                 {
                     var spawnMap = Game.World.WorldData.Get<Map>(map.Id);
@@ -85,14 +88,21 @@ namespace Hybrasyl
                     var monsterList = spawnMap.Objects.OfType<Monster>().ToList();
                     var monsterCount = monsterList.Count;
 
-                    if (monsterCount > map.Limit)
+                    // If there is no limit specified, we want a reasonable limit, which we consider to be 1/10th of total 
+                    // number of map tiles
+
+                    var spawnLimit = map.Limit == 0 ? (spawnMap.X * spawnMap.Y) / 10 : map.Limit;
+
+                    if (monsterCount > spawnLimit)
                     {
-                        GameLog.SpawnInfo($"Spawn: {map.Name}: mob count {monsterCount}, limit is {map.Limit}");
+                        GameLog.SpawnInfo($"Spawn: {map.Name}: not spawning, mob count is {monsterCount}, limit is {spawnLimit}");
                         continue;
                     }
-                    if (!(map.LastSpawn.AddSeconds(map.Interval) < DateTime.Now))
+
+                    var since = DateTime.Now - map.LastSpawn;
+                    if (since.TotalSeconds < map.Interval)
                     {
-                        GameLog.SpawnInfo($"Spawn: {map.Name}: last spawn {map.LastSpawn}, interval {map.Interval}");
+                        GameLog.SpawnInfo($"Spawn: {map.Name}: not spawning, last spawn was {since.TotalSeconds} ago, interval {map.Interval}");
                         continue;
                     }
 
@@ -100,7 +110,7 @@ namespace Hybrasyl
 
                     var thisSpawn = _random.Next(map.MinSpawn, map.MaxSpawn);
 
-                    GameLog.SpawnInfo($"Spawn: {map.Name} spawning {thisSpawn} mobs ");
+                    GameLog.SpawnInfo($"Spawn: {map.Name}: spawning {thisSpawn} mobs ");
 
                     for (var i = 0; i < thisSpawn; i++)
                     {

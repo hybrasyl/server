@@ -218,43 +218,50 @@ namespace Hybrasyl
 
     static class StatGainConstants
     {
-        public const int PEASANT_BASE_HP_GAIN = 8;
-        public const int PEASANT_BASE_MP_GAIN = 8;
-        public const int PEASANT_BONUS_HP_GAIN = 4;
-        public const int PEASANT_BONUS_MP_GAIN = 4;
+        public static readonly Dictionary<Xml.Common.Class, int> BASE_HP_GAIN = new Dictionary<Xml.Common.Class, int> {
+            { Xml.Common.Class.Peasant, 8 },
+            { Xml.Common.Class.Warrior, 71 },
+            { Xml.Common.Class.Rogue, 48 },
+            { Xml.Common.Class.Monk, 39 },
+            { Xml.Common.Class.Priest, 28 },
+            { Xml.Common.Class.Wizard, 18 }
+        };
 
-        public const int WARRIOR_BASE_HP_GAIN = 71;
-        public const int WARRIOR_BASE_MP_GAIN = 8;
-        public const int WARRIOR_BONUS_HP_GAIN = 9;
-        public const int WARRIOR_BONUS_MP_GAIN = 4;
+        public static readonly Dictionary<Xml.Common.Class, int> BASE_MP_GAIN = new Dictionary<Xml.Common.Class, int> {
+            { Xml.Common.Class.Peasant, 8 },
+            { Xml.Common.Class.Warrior, 8 },
+            { Xml.Common.Class.Rogue, 22 },
+            { Xml.Common.Class.Monk, 31 },
+            { Xml.Common.Class.Priest, 55 },
+            { Xml.Common.Class.Wizard, 68 }
+        };
 
-        public const int ROGUE_BASE_HP_GAIN = 48;
-        public const int ROGUE_BASE_MP_GAIN = 22;
-        public const int ROGUE_BONUS_HP_GAIN = 10;
-        public const int ROGUE_BONUS_MP_GAIN = 8;
+        public static readonly Dictionary<Xml.Common.Class, int> BONUS_HP_GAIN = new Dictionary<Xml.Common.Class, int> {
+            { Xml.Common.Class.Peasant, 4 },
+            { Xml.Common.Class.Warrior, 9 },
+            { Xml.Common.Class.Rogue, 10 },
+            { Xml.Common.Class.Monk, 9 },
+            { Xml.Common.Class.Priest, 4 },
+            { Xml.Common.Class.Wizard, 4 }
+        };
 
-        public const int MONK_BASE_HP_GAIN = 39;
-        public const int MONK_BASE_MP_GAIN = 31;
-        public const int MONK_BONUS_HP_GAIN = 9;
-        public const int MONK_BONUS_MP_GAIN = 12;
+        public static readonly Dictionary<Xml.Common.Class, int> BONUS_MP_GAIN = new Dictionary<Xml.Common.Class, int> {
+            { Xml.Common.Class.Peasant, 4 },
+            { Xml.Common.Class.Warrior, 4 },
+            { Xml.Common.Class.Rogue, 8 },
+            { Xml.Common.Class.Monk, 12 },
+            { Xml.Common.Class.Priest, 10 },
+            { Xml.Common.Class.Wizard, 4 }
+        };
 
-        public const int PRIEST_BASE_HP_GAIN = 28;
-        public const int PRIEST_BASE_MP_GAIN = 55;
-        public const int PRIEST_BONUS_HP_GAIN = 4;
-        public const int PRIEST_BONUS_MP_GAIN = 10;
-
-        public const int WIZARD_BASE_HP_GAIN = 18;
-        public const int WIZARD_BASE_MP_GAIN = 68;
-        public const int WIZARD_BONUS_HP_GAIN = 4;
-        public const int WIZARD_BONUS_MP_GAIN = 4;
-
-
-        // Modifiers for HP/MP gain upon leveling up, based on the user's Level Circle
-        public const double LEVEL_CIRCLE_GAIN_MODIFIER_0 = 0.0;
-        public const double LEVEL_CIRCLE_GAIN_MODIFIER_1 = 0.25;
-        public const double LEVEL_CIRCLE_GAIN_MODIFIER_2 = 0.5;
-        public const double LEVEL_CIRCLE_GAIN_MODIFIER_3 = 0.75;
-        public const double LEVEL_CIRCLE_GAIN_MODIFIER_4 = 1.0;
+        public static readonly Dictionary<int, double> CIRCLE_MODIFIER = new Dictionary<int, double>
+        {
+            {0,0.0},
+            {1,0.25},
+            {2,0.5},
+            {3,0.75},
+            {4,1.0}
+        };
     }
 
     static class DialogTypes

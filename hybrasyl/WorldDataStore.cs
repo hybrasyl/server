@@ -128,10 +128,9 @@ namespace Hybrasyl
         {
             tresult = default(T);
             var sub = GetSubIndex<T>();
-
             if (!sub.ContainsKey(key.ToString().Normalize()))
             {
-                GameLog.Error($"TryGetValueByIndex: type {typeof(T)}: key {key.ToString().Normalize()} not found");
+                //GameLog.Error($"TryGetValueByIndex: type {typeof(T)}: key {key.ToString().Normalize()} not found");
                 return false;
             }
             tresult = (T)sub[key.ToString().Normalize()];

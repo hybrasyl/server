@@ -408,7 +408,12 @@ namespace Hybrasyl.Objects
         private void _removeStatus(ICreatureStatus status, bool onEnd = true)
         {
             if (onEnd)
-                status.OnEnd();
+            {
+                if (status.Expired)
+                    status.OnExpire();
+                else
+                    status.OnEnd();
+            }
             if (this is User) (this as User).SendStatusUpdate(status, true);
         }
 

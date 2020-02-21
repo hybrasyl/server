@@ -111,6 +111,9 @@ namespace Hybrasyl
                     var ret = Script.ExecuteAndReturn(PreDisplayCallback, invoker);
                     if (ret == DynValue.True)
                         Dialogs.First().ShowTo(invoker, target);
+                    else
+                        // Error, generally speaking
+                        invoker.ClearDialogState();
                 }
                 else
                 {
