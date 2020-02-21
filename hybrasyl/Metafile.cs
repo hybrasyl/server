@@ -111,18 +111,8 @@ namespace Hybrasyl
 
                 Checksum = ~Crc32.Calculate(metaFileStream.ToArray());
                 metaFileStream.Seek(0, SeekOrigin.Begin);
-                var DeanChecksum = Crc32.ComputeChecksum(metaFileStream.ToArray());
-                metaFileStream.Seek(0, SeekOrigin.Begin);
-                if (DeanChecksum != Checksum)
-                {
-                    GameLog.Error("SOMETHING IS FUCKIN FUCKY GUY");
-                }
-                else
-                {
-                    GameLog.Info("EVERYTHING A OK. IM CATBUG");
-                }
 
-                using (var compressedMetaFileStream = new MemoryStream())
+		using (var compressedMetaFileStream = new MemoryStream())
                 {
                     ZlibCompression.Compress(metaFileStream, compressedMetaFileStream);
                     Data = compressedMetaFileStream.ToArray();
