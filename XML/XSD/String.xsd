@@ -23,7 +23,7 @@
     </xs:documentation>
   </xs:annotation>
 
-  <xs:import schemaLocation="hybrasylTypes.xsd" namespace="http://www.hybrasyl.com/XML/Common" />
+  <xs:import schemaLocation="Common.xsd" namespace="http://www.hybrasyl.com/XML/Common" />
   <!--Separated for future expansion usage.-->
   <xs:complexType name="String">
     <xs:attribute name="Key" type="xs:string"/>

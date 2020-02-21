@@ -213,53 +213,6 @@ namespace Hybrasyl
         public static int MAX_MR = 8;
     }
 
-    static class StatGainConstants
-    {
-        public static readonly Dictionary<Xml.Common.Class, int> BASE_HP_GAIN = new Dictionary<Xml.Common.Class, int> {
-            { Xml.Common.Class.Peasant, 8 },
-            { Xml.Common.Class.Warrior, 71 },
-            { Xml.Common.Class.Rogue, 48 },
-            { Xml.Common.Class.Monk, 39 },
-            { Xml.Common.Class.Priest, 28 },
-            { Xml.Common.Class.Wizard, 18 }
-        };
-
-        public static readonly Dictionary<Xml.Common.Class, int> BASE_MP_GAIN = new Dictionary<Xml.Common.Class, int> {
-            { Xml.Common.Class.Peasant, 8 },
-            { Xml.Common.Class.Warrior, 8 },
-            { Xml.Common.Class.Rogue, 22 },
-            { Xml.Common.Class.Monk, 31 },
-            { Xml.Common.Class.Priest, 55 },
-            { Xml.Common.Class.Wizard, 68 }
-        };
-
-        public static readonly Dictionary<Xml.Common.Class, int> BONUS_HP_GAIN = new Dictionary<Xml.Common.Class, int> {
-            { Xml.Common.Class.Peasant, 4 },
-            { Xml.Common.Class.Warrior, 9 },
-            { Xml.Common.Class.Rogue, 10 },
-            { Xml.Common.Class.Monk, 9 },
-            { Xml.Common.Class.Priest, 4 },
-            { Xml.Common.Class.Wizard, 4 }
-        };
-
-        public static readonly Dictionary<Xml.Common.Class, int> BONUS_MP_GAIN = new Dictionary<Xml.Common.Class, int> {
-            { Xml.Common.Class.Peasant, 4 },
-            { Xml.Common.Class.Warrior, 4 },
-            { Xml.Common.Class.Rogue, 8 },
-            { Xml.Common.Class.Monk, 12 },
-            { Xml.Common.Class.Priest, 10 },
-            { Xml.Common.Class.Wizard, 4 }
-        };
-
-        public static readonly Dictionary<int, double> CIRCLE_MODIFIER = new Dictionary<int, double>
-        {
-            {0,0.0},
-            {1,0.25},
-            {2,0.5},
-            {3,0.75},
-            {4,1.0}
-        };
-    }
 
     static class DialogTypes
     {

@@ -13,8 +13,7 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015-2016 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
@@ -724,29 +723,18 @@ namespace Hybrasyl.Objects
                         Stats.Level++;
                         LevelPoints += 2;
 
-                        int hpGain = 0;
-                        int mpGain = 0;
-                        int bonusHp = 0;
-                        int bonusMp = 0;
+                        // For level up we use Biomagus' formulas with a random 75% - 125% tweak
+                        // HP: (CON/(Lv+1)*50*randomfactor)+25
+                        // MP: (WIS/(Lv+1)*50*randomfactor)+25
 
-                        var levelCircleModifier = StatGainConstants.CIRCLE_MODIFIER[LevelCircle];
+                        var randomBonus = (random.NextDouble() * 0.50) + 0.75;
+                        
+                        int bonusHpGain = (int)Math.Round((Stats.Con / (Stats.Level + 1)) * 50 * randomBonus, MidpointRounding.AwayFromZero);
+                        int bonusMpGain = (int)Math.Round((Stats.Wis / (Stats.Level + 1))* 50 * randomBonus, MidpointRounding.AwayFromZero);
 
-                        hpGain = StatGainConstants.BASE_HP_GAIN[Class];
-                        mpGain = StatGainConstants.BASE_MP_GAIN[Class];
-                        bonusHp = StatGainConstants.BONUS_HP_GAIN[Class];
-                        bonusMp = StatGainConstants.BONUS_MP_GAIN[Class];
-
-                        // Each level, a user is guaranteed to increase his hp and mp by some base amount, per his Class.
-                        // His hp and mp will increase further by a "bonus amount" that is accounted for by:
-                        // - 50% Level circle
-                        // - 50% Randomness
-
-                        int bonusHpGain = (int)Math.Round((bonusHp * 0.5 * levelCircleModifier) + (bonusHp * 0.5 * random.NextDouble()), MidpointRounding.AwayFromZero);
-                        int bonusMpGain = (int)Math.Round((bonusMp * 0.5 * levelCircleModifier) + (bonusMp * 0.5 * random.NextDouble()), MidpointRounding.AwayFromZero);
-
-                        Stats.BaseHp += (hpGain + bonusHpGain);
-                        Stats.BaseMp += (mpGain + bonusMpGain);
-                        GameLog.UserActivityInfo("User {name}: level increased to {Level}, HP +{Hp}, MP +{Mp}", Name, LevelCircle, (hpGain + bonusHpGain), (mpGain + bonusMpGain));
+                        Stats.BaseHp += bonusHpGain + 25;
+                        Stats.BaseMp += bonusMpGain + 25;
+                        GameLog.UserActivityInfo("User {name}: level increased to {Level}, HP +{Hp}, MP +{Mp}", Name, LevelCircle, (25 + bonusHpGain), (25 + bonusMpGain));
 
                     }
                 }
