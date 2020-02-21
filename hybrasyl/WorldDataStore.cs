@@ -214,7 +214,7 @@ namespace Hybrasyl
         /// <param name="name"></param>
         /// <returns></returns>
         public List<Xml.Item.Item> FindItem(string name)
-        {
+       {
             var ret = new List<Xml.Item.Item>();
             foreach (var gender in Enum.GetValues(typeof(Gender)))
             {

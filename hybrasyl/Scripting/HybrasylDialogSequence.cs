@@ -31,7 +31,7 @@ namespace Hybrasyl.Scripting
     {
         internal DialogSequence Sequence { get; private set; }
 
-        public HybrasylDialogSequence(string sequenceName, bool closeOnEnd = false) =>
+	public HybrasylDialogSequence(string sequenceName, bool closeOnEnd = false) =>
             Sequence = new DialogSequence(sequenceName, closeOnEnd);
 
         internal HybrasylDialogSequence(DialogSequence sequence) =>

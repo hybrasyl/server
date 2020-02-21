@@ -92,7 +92,7 @@ namespace Hybrasyl.Objects
                 return _ephemeralStore.TryGetValue(key, out value);
         }
 
-        public WorldObject()
+	public WorldObject()
         {
             Name = string.Empty;
             ResetPursuits();

@@ -620,8 +620,8 @@ namespace Hybrasyl
                         (associate as VisibleObject).DisplayPursuits(invoker);
                     return; 
                 }
-                if (associate.SequenceCatalog.TryGetValue(NextSequence, out sequence) || Game.World.GlobalSequences.TryGetValue(NextSequence, out sequence))
-                {
+               if (associate.SequenceCatalog.TryGetValue(NextSequence, out sequence) || Game.World.GlobalSequences.TryGetValue(NextSequence, out sequence))
+               {
                     // End previous sequence
                     invoker.DialogState.EndDialog();
                     invoker.DialogState.StartDialog(invokee, sequence);
@@ -752,7 +752,6 @@ namespace Hybrasyl
                     Associate = Sequence.Associate;
                 else
                     Associate = associateOverride;
-
                 // Note that client is 1-indexed for responses
                 // If we have a JumpDialog, handle that first
 
@@ -761,6 +760,21 @@ namespace Hybrasyl
                     // Use jump dialog first
                     Options[optionSelected - 1].JumpDialog.ShowTo(invoker as User, Associate as VisibleObject);
                     return true;
+                }
+
+                // If the response is a sequence, start it
+                if (Options[optionSelected - 1].overrideSequence != null)
+                {
+                    var sequence = Options[optionSelected - 1].overrideSequence;
+                    if (invoker is User)
+                    {
+                        var user = invoker as User;
+                        // We lazily set this because an option / dialog can be constructed in a variety of places
+                        if (sequence.Associate == null)
+                            Associate.RegisterDialogSequence(sequence);
+                        user.DialogState.TransitionDialog(Associate as VisibleObject, Options[optionSelected - 1].overrideSequence);
+                        sequence.ShowTo(user, Associate as VisibleObject);
+                    }
                 }
 
                 // If the response is a sequence, start it

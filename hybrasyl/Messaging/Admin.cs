@@ -33,28 +33,6 @@ namespace Hybrasyl.Messaging
         }
     }
 
-    class DumpMetadata : ChatCommand
-    {
-        public new static string Command = "dumpmetadata";
-        public new static string ArgumentText = "<string metadatafile>";
-        public new static string HelpText = "Dump (in hex) a metadata file ";
-        public new static bool Privileged = true;
-
-        public new static ChatCommandResult Run(User user, params string[] args)
-        {
-            if (Game.World.WorldData.ContainsKey<CompiledMetafile>(args[0]))
-            {
-                var file = Game.World.WorldData.Get<CompiledMetafile>(args[0]);
-                var filepath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Hybrasyl");
-                File.WriteAllBytes($"{filepath}\\{args[0]}.mdf", file.Data);
-                return Success($"{filepath}\\{args[0]}.mdf written to disk");
-            }
-            return Fail("Look chief idk about all that");
-        }
-    }
-    
-
-
     class ClearCookie : ChatCommand
     {
         public new static string Command = "clearcookie";
@@ -99,6 +77,26 @@ namespace Hybrasyl.Messaging
         }
     }
 
+    class DumpMetadata : ChatCommand
+    {
+        public new static string Command = "dumpmetadata";
+        public new static string ArgumentText = "<string metadatafile>";
+        public new static string HelpText = "Dump (in hex) a metadata file ";
+        public new static bool Privileged = true;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            if (Game.World.WorldData.ContainsKey<CompiledMetafile>(args[0]))
+            {
+                var file = Game.World.WorldData.Get<CompiledMetafile>(args[0]);
+                var filepath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Hybrasyl");
+                File.WriteAllBytes($"{filepath}\\{args[0]}.mdf", file.Data);
+                return Success($"{filepath}\\{args[0]}.mdf written to disk");
+            }
+            return Fail("Look chief idk about all that");
+        }
+    }
+   
     class SetCookie : ChatCommand
     {
         public new static string Command = "setcookie";
