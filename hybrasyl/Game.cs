@@ -13,14 +13,13 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
- * Authors:   Justin Baugh  <baughj@hybrasyl.com>
- *            Kyle Speck    <kojasou@hybrasyl.com>
+ * For contributors and individual authors please refer to CONTRIBUTORS.MD.
+ * 
  */
 
-using Hybrasyl.Config;
-using Hybrasyl.Enums;
+using Hybrasyl.Xml.ServerConfig;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -29,13 +28,10 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
-using System.Xml;
-using Hybrasyl.XML;
 using Serilog;
 using AssemblyInfo = Hybrasyl.Utility.AssemblyInfo;
 using Serilog.Core;
 using Serilog.Events;
-using Serilog.Core.Enrichers;
 
 namespace Hybrasyl
 {
@@ -64,7 +60,7 @@ namespace Hybrasyl
         private static Monolith _monolith;
         private static MonolithControl _monolithControl;
 
-        public static HybrasylConfig Config { get; private set; }
+        public static ServerConfig Config { get; private set; }
 
         private static Thread _lobbyThread;
         private static Thread _loginThread;
@@ -118,9 +114,9 @@ namespace Hybrasyl
             Environment.Exit(0);
         }
 
-        public static HybrasylConfig GatherConfig()
+        public static ServerConfig GatherConfig()
         {
-            Config = new HybrasylConfig();
+            Config = new ServerConfig();
             Console.ForegroundColor = ConsoleColor.Green;
             Console.Write("Welcome to Project Hybrasyl: this is Hybrasyl server {0}\n\n", Assemblyinfo.Version);
             Console.ForegroundColor = ConsoleColor.White;
@@ -262,17 +258,17 @@ namespace Hybrasyl
        
             if (File.Exists(hybconfig))
             {
-
-                try
+                if (ServerConfig.LoadFromFile(hybconfig, out ServerConfig gameConfig, out Exception exception))
                 {
-                    Config = Serializer.Deserialize(XmlReader.Create(hybconfig), new HybrasylConfig());
-                    Log.Information("Configuration file loaded.");
+                    Log.Information("Configuration file {file} loaded", hybconfig);
+                    Config = gameConfig;
                 }
-                catch (Exception e)
+                else
                 {
-                    Log.Error("The config file {ConfigFile} could not be parsed: {ParseError}", hybconfig, e.Message);
+                    Log.Fatal("Configuration file had errors!");
+                    Log.Fatal("Exception follows: {exception}", exception);
+                    return;
                 }
-
             }
             else
             {
@@ -293,7 +289,7 @@ namespace Hybrasyl
                     }
                 }
                 // Write out our configuration
-                XML.Serializer.Serialize(new XmlTextWriter(hybconfig, null), Config);
+                Config.SaveToFile(hybconfig);
                 Console.WriteLine("Configuration has been written. Press any key to start the server.");
                 Console.ReadKey();
             }
@@ -665,6 +661,21 @@ namespace Hybrasyl
         0xB3667A2E, 0xC4614AB8, 0x5D681B02, 0x2A6F2B94, 0xB40BBE37, 0xC30C8EA1, 0x5A05DF1B, 0x2D02EF8D
         };
         #endregion
+
+
+        public static uint ComputeChecksum(byte[] filedata)
+        {
+            var hash = uint.MaxValue;
+            byte data;
+
+            for (var i = 0; i < filedata.Length; ++i)
+            {
+                data = (byte)(filedata[i] ^ (hash & 0xFF));
+                hash = crc32Table[data] ^ (hash >> 0x8);
+            }
+
+            return ~hash;
+        }
 
         public static uint Calculate(byte[] data)
         {

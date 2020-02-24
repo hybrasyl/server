@@ -25,8 +25,9 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.Xml.Serialization;
 using System.Security.Cryptography;
 using System.Text;
+using Hybrasyl.Xml.Common;
 
-namespace Hybrasyl.Items
+namespace Hybrasyl.Xml.Item
 {
     public partial class Item
     {
@@ -154,7 +155,7 @@ namespace Hybrasyl.Items
     }
 }
 
-namespace Hybrasyl.Castables
+namespace Hybrasyl.Xml.Castable
 {
     public partial class Heal
     {
@@ -242,7 +243,7 @@ namespace Hybrasyl.Castables
 
 }
 
-namespace Hybrasyl.Statuses
+namespace Hybrasyl.Xml.Status
 {
     public partial class Heal
     {
@@ -293,7 +294,7 @@ namespace Hybrasyl.Statuses
     }
 }
 
-namespace Hybrasyl.Config
+namespace Hybrasyl.Xml.ServerConfig
 {
 
     public partial class Time
@@ -372,42 +373,9 @@ namespace Hybrasyl.Config
         }
     }
 }
-namespace Hybrasyl.Creatures
+namespace Hybrasyl.Xml.Creature
 {
-    public partial class LootTable
-    {
-        public static explicit operator LootTable(Loot.LootTable table)
-        {
-            var ret = new LootTable();
-            ret.Items = new LootTableItemList();
-            ret.Items.Items = new List<LootItem>();
-
-            ret.Chance = table.Chance;
-            ret.Gold.Min = table.Gold.Min;
-            ret.Gold.Max = table.Gold.Max;
-            ret.Items.Chance = table.Items.Chance;
-
-            foreach (var items in table.Items.Items)
-            {
-                var newLootItem = new LootItem();
-                newLootItem.Always = items.Always;
-                newLootItem.Max = items.Max;
-                newLootItem.Min = items.Min;
-                newLootItem.Unique = items.Unique;
-                newLootItem.Value = items.Value;
-                newLootItem.Variants = items.Variants;
-
-                ret.Items.Items.Add(newLootItem);
-            }
-
-            ret.Items.Rolls = table.Items.Rolls;
-            ret.Rolls = table.Rolls;
-
-            return ret;
-        }
-    }
-    
-    
+      
     public partial class Spawn
     {
         protected Random Rng = new Random();
@@ -446,18 +414,16 @@ namespace Hybrasyl.Creatures
     {
         public DateTime LastSpawn { get; set; }
         public int Id { get; set; }
-        public bool Disabled { get; set; }
     }
 
     public partial class SpawnGroup
     {
-        public bool Disabled { get; set; }
         public string Filename { get; set; }
     }
 
 }
 
-namespace Hybrasyl.Nations
+namespace Hybrasyl.Xml.Nation
 {
     public partial class Nation
     {

@@ -13,8 +13,7 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015-2016 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
@@ -23,8 +22,6 @@
 
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
-using Hybrasyl.Castables;
-using Hybrasyl.Nations;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
@@ -33,11 +30,11 @@ using System.Drawing;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using Hybrasyl.Items;
-using Class = Hybrasyl.Castables.Class;
-using Motion = Hybrasyl.Castables.Motion;
-using Hybrasyl.Statuses;
 using Hybrasyl.Utility;
+using Hybrasyl.Xml.Common;
+using Hybrasyl.Xml.Nation;
+using XmlCastable = Hybrasyl.Xml.Castable.Castable;
+using Hybrasyl.Xml.Status;
 
 namespace Hybrasyl.Objects
 {
@@ -86,16 +83,31 @@ namespace Hybrasyl.Objects
         private Client Client;
 
         [JsonProperty]
-        public Sex Sex { get; set; }
+        public Gender Gender { get; set; }
         //private account Account { get; set; }
 
         [JsonProperty]
-        public Enums.Class Class { get; set; }
+        public Class Class { get; set; }
         [JsonProperty]
         public bool IsMaster { get; set; }
         public UserGroup Group { get; set; }
 
-        
+        public int LevelCircle
+        {
+            get
+            {
+                if (Stats.Level < LevelCircles.CIRCLE_1)
+                    return 0;
+                else if (Stats.Level < LevelCircles.CIRCLE_2)
+                    return 1;
+                else if (Stats.Level < LevelCircles.CIRCLE_3)
+                    return 2;
+                else if (Stats.Level < LevelCircles.CIRCLE_4)
+                    return 3;
+                return 4;
+            }
+        }
+
         public Mailbox Mailbox => World.GetMailbox(Name);
         public bool UnreadMail => Mailbox.HasUnreadMessages;
 
@@ -122,7 +134,7 @@ namespace Hybrasyl.Objects
         public byte HairColor { get; set; }
         #endregion
 
-        #region User metadata
+        #region User 
         // Some structs helping us to define various metadata 
         [JsonProperty]
         public LoginInfo Login { get; set; }
@@ -139,7 +151,7 @@ namespace Hybrasyl.Objects
         public byte[] PortraitData { get; set; }
         public string ProfileText { get; set; }
 
-        public Castable PendingLearnableCastable { get; private set; }
+        public XmlCastable PendingLearnableCastable { get; private set; }
         public ItemObject PendingSendableParcel { get; private set; }
         public string PendingParcelRecipient { get; private set; }
         public string PendingBuyableItem { get; private set; }
@@ -309,10 +321,7 @@ namespace Hybrasyl.Objects
         public void Enqueue(ServerPacket packet)
         {
             GameLog.DebugFormat("Sending {0:X2} to {1}", packet.Opcode, Name);
-            if (Client == null)
-                LoginQueue.Enqueue(packet);
-            else
-                Client.Enqueue(packet);
+            Client.Enqueue(packet);
         }
 
         public override void AoiEntry(VisibleObject obj)
@@ -350,6 +359,15 @@ namespace Hybrasyl.Objects
             p.WriteByte(0x0A);
             p.WriteByte(0x00);
             Enqueue(p);
+        }
+
+        /// <summary>
+        /// Close any active dialogs and clear all dialog state.
+        /// </summary>
+        public void ClearDialogState()
+        {
+            DialogState.EndDialog();
+            SendCloseDialog();
         }
 
         /// <summary>T
@@ -507,7 +525,7 @@ namespace Hybrasyl.Objects
             Condition.Comatose = false;
             var handler = Game.Config.Handlers?.Death;
             if (handler?.Coma != null && Game.World.WorldData.TryGetValueByIndex(handler.Coma.Value, out Status status))
-                RemoveStatus(status.Icon, false);
+                RemoveStatus(status.Icon);
         }
 
         /// <summary>
@@ -703,95 +721,21 @@ namespace Hybrasyl.Objects
                     {
                         levelsGained++;
                         Stats.Level++;
-                        LevelPoints = LevelPoints + 2;
+                        LevelPoints += 2;
 
-                        #region Add Hp and Mp for each level gained
+                        // For level up we use Biomagus' formulas with a random 75% - 125% tweak
+                        // HP: (CON/(Lv+1)*50*randomfactor)+25
+                        // MP: (WIS/(Lv+1)*50*randomfactor)+25
 
-                        int hpGain = 0;
-                        int mpGain = 0;
-                        int bonusHp = 0;
-                        int bonusMp = 0;
+                        var randomBonus = (random.NextDouble() * 0.50) + 0.75;
+                        
+                        int bonusHpGain = (int)Math.Round((Stats.Con / (Stats.Level + 1)) * 50 * randomBonus, MidpointRounding.AwayFromZero);
+                        int bonusMpGain = (int)Math.Round((Stats.Wis / (Stats.Level + 1))* 50 * randomBonus, MidpointRounding.AwayFromZero);
 
-                        double levelCircleModifier;  // Users get more Hp and Mp per level at higher Level "circles"
+                        Stats.BaseHp += bonusHpGain + 25;
+                        Stats.BaseMp += bonusMpGain + 25;
+                        GameLog.UserActivityInfo("User {name}: level increased to {Level}, HP +{Hp}, MP +{Mp}", Name, LevelCircle, (25 + bonusHpGain), (25 + bonusMpGain));
 
-                        if (Stats.Level < LevelCircles.CIRCLE_1)
-                        {
-                            levelCircleModifier = StatGainConstants.LEVEL_CIRCLE_GAIN_MODIFIER_0;
-                        }
-                        else if (Stats.Level < LevelCircles.CIRCLE_2)
-                        {
-                            levelCircleModifier = StatGainConstants.LEVEL_CIRCLE_GAIN_MODIFIER_1;
-                        }
-                        else if (Stats.Level < LevelCircles.CIRCLE_3)
-                        {
-                            levelCircleModifier = StatGainConstants.LEVEL_CIRCLE_GAIN_MODIFIER_2;
-                        }
-                        else if (Stats.Level < LevelCircles.CIRCLE_4)
-                        {
-                            levelCircleModifier = StatGainConstants.LEVEL_CIRCLE_GAIN_MODIFIER_3;
-                        }
-                        else
-                        {
-                            levelCircleModifier = StatGainConstants.LEVEL_CIRCLE_GAIN_MODIFIER_4;
-                        }
-
-                        switch (Class)
-                        {
-                            case Enums.Class.Peasant:
-                                hpGain = StatGainConstants.PEASANT_BASE_HP_GAIN;
-                                mpGain = StatGainConstants.PEASANT_BASE_MP_GAIN;
-                                bonusHp = StatGainConstants.PEASANT_BONUS_HP_GAIN;
-                                bonusMp = StatGainConstants.PEASANT_BONUS_MP_GAIN;
-                                break;
-
-                            case Enums.Class.Warrior:
-                                hpGain = StatGainConstants.WARRIOR_BASE_HP_GAIN;
-                                mpGain = StatGainConstants.WARRIOR_BASE_MP_GAIN;
-                                bonusHp = StatGainConstants.WARRIOR_BONUS_HP_GAIN;
-                                bonusMp = StatGainConstants.WARRIOR_BONUS_MP_GAIN;
-                                break;
-
-                            case Enums.Class.Rogue:
-                                hpGain = StatGainConstants.ROGUE_BASE_HP_GAIN;
-                                mpGain = StatGainConstants.ROGUE_BASE_MP_GAIN;
-                                bonusHp = StatGainConstants.ROGUE_BONUS_HP_GAIN;
-                                bonusMp = StatGainConstants.ROGUE_BONUS_MP_GAIN;
-                                break;
-
-                            case Enums.Class.Monk:
-                                hpGain = StatGainConstants.MONK_BASE_HP_GAIN;
-                                mpGain = StatGainConstants.MONK_BASE_MP_GAIN;
-                                bonusHp = StatGainConstants.MONK_BONUS_HP_GAIN;
-                                bonusMp = StatGainConstants.MONK_BONUS_MP_GAIN;
-                                break;
-
-                            case Enums.Class.Priest:
-                                hpGain = StatGainConstants.PRIEST_BASE_HP_GAIN;
-                                mpGain = StatGainConstants.PRIEST_BASE_MP_GAIN;
-                                bonusHp = StatGainConstants.PRIEST_BONUS_HP_GAIN;
-                                bonusMp = StatGainConstants.PRIEST_BONUS_MP_GAIN;
-                                break;
-
-                            case Enums.Class.Wizard:
-                                hpGain = StatGainConstants.WIZARD_BASE_HP_GAIN;
-                                mpGain = StatGainConstants.WIZARD_BASE_MP_GAIN;
-                                bonusHp = StatGainConstants.WIZARD_BONUS_HP_GAIN;
-                                bonusMp = StatGainConstants.WIZARD_BONUS_MP_GAIN;
-                                break;
-                        }
-
-                        // Each level, a user is guaranteed to increase his hp and mp by some base amount, per his Class.
-                        // His hp and mp will increase further by a "bonus amount" that is accounted for by:
-                        // - 50% Level circle
-                        // - 50% Randomness
-
-                        int bonusHpGain = (int)Math.Round(bonusHp * 0.5 * levelCircleModifier + bonusHp * 0.5 * random.NextDouble(), MidpointRounding.AwayFromZero);
-                        int bonusMpGain = (int)Math.Round(bonusMp * 0.5 * levelCircleModifier + bonusMp * 0.5 * random.NextDouble(), MidpointRounding.AwayFromZero);
-
-                        Stats.BaseHp += (hpGain + bonusHpGain);
-                        Stats.BaseMp += (mpGain + bonusMpGain);
-
-                        #endregion
                     }
                 }
                 // If a user has just become level 99, add the remainder exp to their box
@@ -907,10 +851,10 @@ namespace Hybrasyl.Objects
             switch (toRemove.EquipmentSlot)
             {
                 case (byte)ItemSlots.Necklace:
-                    Stats.BaseOffensiveElement = Enums.Element.None;
+                    Stats.BaseOffensiveElement = Element.None;
                     break;
                 case (byte)ItemSlots.Waist:
-                    Stats.BaseDefensiveElement = Enums.Element.None;
+                    Stats.BaseDefensiveElement = Element.None;
                     break;
             }
         }
@@ -1181,7 +1125,7 @@ namespace Hybrasyl.Objects
         /// </summary>
         /// <param name="castable">The castable that is being cast.</param>
         /// <returns>True or false depending on success.</returns>
-        public bool ProcessCastingCost(Castable castable)
+        public bool ProcessCastingCost(XmlCastable castable)
         {
             if (castable.CastCosts.Count == 0) return true;
 
@@ -1288,7 +1232,7 @@ namespace Hybrasyl.Objects
                 Y = Y,
                 Direction = Direction,
                 Id = Id,
-                Sex = Sex,
+                Gender = Gender,
                 Helmet = helmet,
                 Weapon = Equipment.Weapon?.DisplaySprite ?? 0,
                 Armor = (Equipment.Armor?.DisplaySprite ?? 0),
@@ -1420,7 +1364,7 @@ namespace Hybrasyl.Objects
             Enqueue(x0F);
         }
 
-        public void SendSkillUpdate(Castable item, int slot)
+        public void SendSkillUpdate(XmlCastable item, int slot)
         {
             if (item == null)
             {
@@ -1432,11 +1376,11 @@ namespace Hybrasyl.Objects
             var x2C = new ServerPacket(0x2C);
             x2C.WriteByte((byte)slot);
             x2C.WriteUInt16((ushort)(item.Icon));
-            x2C.WriteString8(Class == Enums.Class.Peasant ? item.Name : $"{item.Name} (Lev:{item.CastableLevel}/{GetCastableMaxLevel(item)})");
+            x2C.WriteString8(Class == Class.Peasant ? item.Name : $"{item.Name} (Lev:{item.CastableLevel}/{GetCastableMaxLevel(item)})");
             Enqueue(x2C);
         }
 
-        public void SendSpellUpdate(Castable item, int slot)
+        public void SendSpellUpdate(XmlCastable item, int slot)
         {
             if (item == null)
             {
@@ -1451,7 +1395,7 @@ namespace Hybrasyl.Objects
             var spellType = item.Intents[0].UseType;
             //var spellType = isClick ? 2 : 5;
             x17.WriteByte((byte)spellType); //spell type? how are we determining this?
-            x17.WriteString8(Class == Enums.Class.Peasant ? item.Name : $"{item.Name} (Lev:{item.CastableLevel}/{GetCastableMaxLevel(item)})");
+            x17.WriteString8(Class == Class.Peasant ? item.Name : $"{item.Name} (Lev:{item.CastableLevel}/{GetCastableMaxLevel(item)})");
             x17.WriteString8(item.Name); //prompt? what is this?
             x17.WriteByte((byte)item.Lines);
             Enqueue(x17);
@@ -1576,7 +1520,7 @@ namespace Hybrasyl.Objects
             Enqueue(x08);
         }
 
-        public int GetCastableMaxLevel(Castable castable) => IsMaster ? 100 : castable.GetMaxLevelByClass((Castables.Class)Class);
+        public int GetCastableMaxLevel(XmlCastable castable) => IsMaster ? 100 : castable.GetMaxLevelByClass(Class);
 
 
         public User GetFacingUser()
@@ -1853,7 +1797,7 @@ namespace Hybrasyl.Objects
             return true;
         }
 
-        public bool AddSkill(Castable castable)
+        public bool AddSkill(XmlCastable castable)
         {
             if (SkillBook.IsFull)
             {
@@ -1863,7 +1807,7 @@ namespace Hybrasyl.Objects
             return AddSkill(castable, SkillBook.FindEmptySlot());
         }
 
-        public bool AddSkill(Castable item, byte slot)
+        public bool AddSkill(XmlCastable item, byte slot)
         {
             // Quantity check - if we already have an ItemObject with the same name, will
             // adding the MaximumStack)
@@ -1887,7 +1831,7 @@ namespace Hybrasyl.Objects
             return true;
         }
 
-        public bool AddSpell(Castable castable)
+        public bool AddSpell(XmlCastable castable)
         {
             if (SpellBook.IsFull)
             {
@@ -1897,7 +1841,7 @@ namespace Hybrasyl.Objects
             return AddSpell(castable, SpellBook.FindEmptySlot());
         }
 
-        public bool AddSpell(Castable item, byte slot)
+        public bool AddSpell(XmlCastable item, byte slot)
         {
             // Quantity check - if we already have an ItemObject with the same name, will
             // adding the MaximumStack)
@@ -2140,28 +2084,27 @@ namespace Hybrasyl.Objects
             UpdateAttributes(StatUpdateFlags.Current);
         }
 
-        public override void Damage(double damage, Enums.Element element = Enums.Element.None,
-            Enums.DamageType damageType = Enums.DamageType.Direct, Castables.DamageFlags damageFlags = Castables.DamageFlags.None, Creature attacker = null, bool onDeath=true)
+        public override void Damage(double damage, Element element = Element.None,
+            DamageType damageType = DamageType.Direct, DamageFlags damageFlags = DamageFlags.None, Creature attacker = null, bool onDeath = true)
         {
             if (Condition.Comatose || !Condition.Alive) return;
             base.Damage(damage, element, damageType, damageFlags, attacker, false); // We handle ondeath for users here
-            if (Stats.Hp == 0)
+            if (Stats.Hp == 0 && Group != null)
             {
-                    if (Group != null)
-                    {
-                        Stats.Hp = 1;
-                        var handler = Game.Config.Handlers?.Death?.Coma;
-                        if (handler != null && World.WorldData.TryGetValueByIndex(handler.Value, out Status status))
-                            ApplyStatus(new CreatureStatus(status, this, null, attacker));
-                        else
-                        {
-                            GameLog.Warning("No coma handler or status found - user {Name} died!");
-                            OnDeath();
-                        }
-                    }
-                    else
-                        OnDeath();
+                Stats.Hp = 1;
+                var handler = Game.Config.Handlers?.Death?.Coma;
+                if (handler?.Value != null && World.WorldData.TryGetValueByIndex(handler.Value, out Status status))
+                {
+                    ApplyStatus(new CreatureStatus(status, this, null, attacker));
+                }
+                else
+                {
+                    GameLog.Warning("No coma handler or status found - user {Name} died!");
+                    OnDeath();
+                }
             }
+            else if (Group == null)
+                OnDeath();
             UpdateAttributes(StatUpdateFlags.Current);
         }
 
@@ -2173,13 +2116,13 @@ namespace Hybrasyl.Objects
 
 
 
-        public override bool UseCastable(Castable castObject, Creature target = null)
+        public override bool UseCastable(XmlCastable castObject, Creature target = null)
         {
             if (!ProcessCastingCost(castObject)) return false;
             if (base.UseCastable(castObject, target))
             {
                 // This may need to occur elsewhere, depends on how it looks in game
-                if (castObject.TryGetMotion((Class)Class, out Motion motion))
+                if (castObject.TryGetMotion((Class)Class, out Xml.Castable.Motion motion))
                     SendMotion(Id, motion.Id, motion.Speed);
                 return true;
             }
@@ -2390,7 +2333,7 @@ namespace Hybrasyl.Objects
 
             foreach (var skill in merchant.Roles.Train.Where(x => x.Type == "Skill").OrderBy(y => y.Name))
             {
-                if (Game.World.WorldData.TryGetValueByIndex(skill.Name, out Castable result))
+                if (Game.World.WorldData.TryGetValueByIndex(skill.Name, out XmlCastable result))
                 {
                     if (SkillBook.Contains(result)) continue;
                     merchantSkills.Skills.Add(new MerchantSkill()
@@ -2532,10 +2475,10 @@ namespace Hybrasyl.Objects
             SendClearSpell(slot);
         }
 
-        public void ShowLearnSkill(Merchant merchant, Castable castable)
+        public void ShowLearnSkill(Merchant merchant, XmlCastable castable)
         {
             var learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_choice");
-            var skillDesc = castable.Descriptions.Single(x => x.Class.Contains((Class)Class) || x.Class.Contains(Castables.Class.Peasant));
+            var skillDesc = castable.Descriptions.Single(x => x.Class.Contains((Class)Class) || x.Class.Contains(Class.Peasant));
             var prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$SKILLDESC", skillDesc.Value);
 
             var options = new MerchantOptions();
@@ -2576,8 +2519,8 @@ namespace Hybrasyl.Objects
         {
             var castable = PendingLearnableCastable;
             //now check requirements.
-            var classReq = castable.Requirements.Single(x => x.Class.Contains((Class)Class) || Class == Enums.Class.Peasant);
-            String learnString = null;
+            var classReq = castable.Requirements.Single(x => x.Class.Contains((Class)Class) || Class == Class.Peasant);
+            Xml.String.String learnString = null;
             MerchantOptions options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
             var prompt = string.Empty;
@@ -2599,13 +2542,13 @@ namespace Hybrasyl.Objects
             {
                 foreach (var preReq in classReq.Prerequisites)
                 {
-                    if (!SkillBook.Contains(Game.World.WorldData.GetByIndex<Castable>(preReq.Value)))
+                    if (!SkillBook.Contains(Game.World.WorldData.GetByIndex<XmlCastable>(preReq.Value)))
                     {
                         learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_level");
                         prompt = learnString.Value.Replace("$SKILLNAME", preReq.Value).Replace("$PREREQ", preReq.Level.ToString());
                         break;
                     }
-                    else if (SkillBook.Contains(Game.World.WorldData.GetByIndex<Castable>(preReq.Value)))
+                    else if (SkillBook.Contains(Game.World.WorldData.GetByIndex<XmlCastable>(preReq.Value)))
                     {
                         var preReqSkill = SkillBook.Single(x => x.Name == preReq.Value);
                         if (preReqSkill.CastableLevel < preReq.Level)
@@ -2670,8 +2613,8 @@ namespace Hybrasyl.Objects
         public void ShowLearnSkillAccept(Merchant merchant)
         {
             var castable = PendingLearnableCastable;
-            var classReq = castable.Requirements.Single(x => x.Class.Contains((Class)Class) || Class == Enums.Class.Peasant);
-            String learnString;
+            var classReq = castable.Requirements.Single(x => x.Class.Contains((Class)Class) || Class == Class.Peasant);
+            Xml.String.String learnString;
             var prompt = string.Empty;
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
@@ -2756,7 +2699,7 @@ namespace Hybrasyl.Objects
             foreach (var spell in merchant.Roles.Train.Where(x => x.Type == "Spell").OrderBy(y => y.Name))
             {
                 // Verify the spell exists first
-                if (Game.World.WorldData.TryGetValueByIndex(spell.Name, out Castable result))
+                if (Game.World.WorldData.TryGetValueByIndex(spell.Name, out XmlCastable result))
                 {
                     if (SpellBook.Contains(result)) continue;
                     merchantSpells.Spells.Add(new MerchantSpell()
@@ -2788,10 +2731,10 @@ namespace Hybrasyl.Objects
             Enqueue(packet.Packet());
         }
 
-        public void ShowLearnSpell(Merchant merchant, Castable castable)
+        public void ShowLearnSpell(Merchant merchant, XmlCastable castable)
         {
             var learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_choice");
-            var skillDesc = castable.Descriptions.Single(x => x.Class.Contains((Class)Class) || x.Class.Contains(Castables.Class.Peasant));
+            var skillDesc = castable.Descriptions.Single(x => x.Class.Contains((Class)Class) || x.Class.Contains(Class.Peasant));
             var prompt = learnString.Value.Replace("$SPELLNAME", castable.Name).Replace("$SPELLDESC", skillDesc.Value);
 
             var options = new MerchantOptions();
@@ -2832,8 +2775,8 @@ namespace Hybrasyl.Objects
         {
             var castable = PendingLearnableCastable;
             //now check requirements.
-            var classReq = castable.Requirements.Single(x => x.Class.Contains((Class)Class) || Class == Enums.Class.Peasant);
-            String learnString = null;
+            var classReq = castable.Requirements.Single(x => x.Class.Contains((Class)Class) || Class == Class.Peasant);
+            Xml.String.String learnString = null;
             MerchantOptions options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
             var prompt = string.Empty;
@@ -2855,13 +2798,13 @@ namespace Hybrasyl.Objects
             {
                 foreach (var preReq in classReq.Prerequisites)
                 {
-                    if (!SkillBook.Contains(Game.World.WorldData.GetByIndex<Castable>(preReq.Value)))
+                    if (!SkillBook.Contains(Game.World.WorldData.GetByIndex<XmlCastable>(preReq.Value)))
                     {
                         learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_level");
                         prompt = learnString.Value.Replace("$SPELLNAME", preReq.Value).Replace("$PREREQ", preReq.Level.ToString());
                         break;
                     }
-                    else if (SkillBook.Contains(Game.World.WorldData.GetByIndex<Castable>(preReq.Value)))
+                    else if (SkillBook.Contains(Game.World.WorldData.GetByIndex<XmlCastable>(preReq.Value)))
                     {
                         var preReqSkill = SkillBook.Single(x => x.Name == preReq.Value);
                         if (preReqSkill.CastableLevel < preReq.Level)
@@ -2926,8 +2869,8 @@ namespace Hybrasyl.Objects
         public void ShowLearnSpellAccept(Merchant merchant)
         {
             var castable = PendingLearnableCastable;
-            var classReq = castable.Requirements.Single(x => x.Class.Contains((Class)Class) || Class == Enums.Class.Peasant);
-            String learnString;
+            var classReq = castable.Requirements.Single(x => x.Class.Contains((Class)Class) || Class == Class.Peasant);
+            Xml.String.String learnString;
             var prompt = string.Empty;
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
@@ -3012,7 +2955,7 @@ namespace Hybrasyl.Objects
             var itemsCount = 0;
             foreach (var item in merchant.Roles.Vend.Items)
             {
-                var worldItem = Game.World.WorldData.GetByIndex<Item>(item.Name);
+                var worldItem = Game.World.WorldData.GetByIndex<Xml.Item.Item>(item.Name);
                 merchantItems.Items.Add(new MerchantShopItem()
                 {
                     Tile = (ushort)(0x8000 + worldItem.Properties.Appearance.Sprite),
@@ -3046,7 +2989,7 @@ namespace Hybrasyl.Objects
 
         public void ShowBuyMenuQuantity(Merchant merchant, string name)
         {
-            var item = Game.World.WorldData.GetByIndex<Item>(name);
+            var item = Game.World.WorldData.GetByIndex<Xml.Item.Item>(name);
             PendingBuyableItem = name;
             if (item.Stackable)
             {
@@ -3099,9 +3042,9 @@ namespace Hybrasyl.Objects
 
         public void ShowBuyItem(Merchant merchant, int quantity = 1)
         {
-            String buyString;
+            Xml.String.String buyString;
             var prompt = string.Empty;
-            var item = Game.World.WorldData.GetByIndex<Item>(PendingBuyableItem);
+            var item = Game.World.WorldData.GetByIndex<Xml.Item.Item>(PendingBuyableItem);
             var itemObj = Game.World.CreateItem(item.Id);
             var reqGold = (uint)(itemObj.Value * quantity);
             var options = new MerchantOptions();
@@ -3262,7 +3205,7 @@ namespace Hybrasyl.Objects
             var item = Inventory[slot];
             var offer = (uint)(Math.Round(item.Value * 0.10, 0) * quantity);
             PendingMerchantOffer = offer;
-            String offerString = null;
+            Xml.String.String offerString = null;
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
             var prompt = string.Empty;
@@ -3457,7 +3400,7 @@ namespace Hybrasyl.Objects
         {
             var itemObj = PendingSendableParcel;
             PendingParcelRecipient = recipient;
-            String parcelString;
+            Xml.String.String parcelString;
             var prompt = string.Empty;
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
@@ -3697,11 +3640,11 @@ namespace Hybrasyl.Objects
                     x0F.WriteByte(i);
                     x0F.WriteUInt16((ushort)(Inventory[i].Sprite + 0x8000));
                     x0F.WriteByte(Inventory[i].Color);
-                    x0F.WriteString8(this.Inventory[i].Name);
-                    x0F.WriteInt32(this.Inventory[i].Count);
-                    x0F.WriteBoolean(this.Inventory[i].Stackable);
-                    x0F.WriteUInt32(this.Inventory[i].MaximumDurability);
-                    x0F.WriteUInt32(this.Inventory[i].Durability);
+                    x0F.WriteString8(Inventory[i].Name);
+                    x0F.WriteInt32(Inventory[i].Count);
+                    x0F.WriteBoolean(Inventory[i].Stackable);
+                    x0F.WriteUInt32(Inventory[i].MaximumDurability);
+                    x0F.WriteUInt32(Inventory[i].Durability);
                     Enqueue(x0F);
                 }
             }

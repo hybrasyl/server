@@ -13,24 +13,20 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
- * Authors:   Justin Baugh  <baughj@hybrasyl.com>
- *            Kyle Speck    <kojasou@hybrasyl.com>
+ * For contributors and individual authors please refer to CONTRIBUTORS.MD.
+ * 
  */
 
-using Hybrasyl.Config;
-using Hybrasyl.Creatures;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
-using Hybrasyl.Items;
-using Hybrasyl.Nations;
+using Hybrasyl.Messaging;
 using Hybrasyl.Objects;
-using Hybrasyl.XML;
-using Serilog;
-using Serilog.Core;
+using Hybrasyl.Scripting;
+using Hybrasyl.Utility;
 using Newtonsoft.Json;
+using Serilog;
 using StackExchange.Redis;
 using System;
 using System.Collections;
@@ -43,14 +39,23 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Timers;
-using System.Xml;
 using System.Xml.Schema;
-using Hybrasyl.Scripting;
-using Castable = Hybrasyl.Castables.Castable;
-using Creature = Hybrasyl.Objects.Creature;
-using Hybrasyl.Statuses;
-using Hybrasyl.Messaging;
-using Hybrasyl.Loot;
+using Hybrasyl.Xml.Common;
+using Hybrasyl.Xml.String;
+using Hybrasyl.Xml.Nation;
+using Hybrasyl.Xml.Item;
+using Hybrasyl.Xml.ServerConfig;
+using Hybrasyl.Xml.Loot;
+
+
+// Conflicts between duplicate class names in existing object hierarchy and
+// xml are handled here
+
+using XmlMap = Hybrasyl.Xml.Map.Map;
+using XmlCreature = Hybrasyl.Xml.Creature.Creature;
+using XmlStatus = Hybrasyl.Xml.Status.Status;
+using XmlCastable = Hybrasyl.Xml.Castable.Castable;
+using XmlNpc = Hybrasyl.Xml.Creature.Npc;
 
 namespace Hybrasyl
 {
@@ -108,11 +113,10 @@ namespace Hybrasyl
             }
         }
 
-        public List<DialogSequence> GlobalSequences { get; set; }
-        public Dictionary<string, DialogSequence> GlobalSequencesCatalog { get; set; }
+        public MultiIndexDictionary<uint, string, DialogSequence> GlobalSequences { get; set; }
         private Dictionary<MerchantMenuItem, MerchantMenuHandler> merchantMenuHandlers;
 
-        public Dictionary<Tuple<Sex, string>, Item> ItemCatalog { get; set; }
+        public Dictionary<Tuple<Gender, string>, Item> ItemCatalog { get; set; }
        // public Dictionary<string, Map> MapCatalog { get; set; }
 
         public ScriptProcessor ScriptProcessor { get; set; }
@@ -121,6 +125,8 @@ namespace Hybrasyl
         public static BlockingCollection<HybrasylMessage> ControlMessageQueue;
         public static ConcurrentDictionary<long, User> ActiveUsers { get; private set; }
         public ConcurrentDictionary<string, long> ActiveUsersByName { get; set; }
+
+        public ConcurrentDictionary<Tuple<UInt32, UInt32>, AsyncDialogRequest> ActiveAsyncDialogs { get; set; }
 
         private Thread ConsumerThread { get; set; }
         private Thread ControlConsumerThread { get; set; }
@@ -203,16 +209,16 @@ namespace Hybrasyl
             Objects = new Dictionary<uint, WorldObject>();
             Portraits = new Dictionary<string, string>();
 
-            GlobalSequences = new List<DialogSequence>();
-            GlobalSequencesCatalog = new Dictionary<string, DialogSequence>();
-            ItemCatalog = new Dictionary<Tuple<Sex, string>, Item>();
-            //MapCatalog = new Dictionary<string, Map>();
+            GlobalSequences = new MultiIndexDictionary<uint, string, DialogSequence>();
+            ItemCatalog = new Dictionary<Tuple<Gender, string>, Item>();
 
             ScriptProcessor = new ScriptProcessor(this);
             MessageQueue = new BlockingCollection<HybrasylMessage>(new ConcurrentQueue<HybrasylMessage>());
             ControlMessageQueue = new BlockingCollection<HybrasylMessage>(new ConcurrentQueue<HybrasylMessage>());
             ActiveUsers = new ConcurrentDictionary<long, User>();
             ActiveUsersByName = new ConcurrentDictionary<string, long>();
+
+            ActiveAsyncDialogs = new ConcurrentDictionary<Tuple<UInt32, UInt32>, AsyncDialogRequest>();
 
             WorldData = new WorldDataStore();
 
@@ -262,9 +268,14 @@ namespace Hybrasyl
 
         internal void RegisterGlobalSequence(DialogSequence sequence)
         {
-            sequence.Id = UInt16.MaxValue - (uint)GlobalSequences.Count();
-            GlobalSequences.Add(sequence);
-            GlobalSequencesCatalog.Add(sequence.Name, sequence);
+            if (GlobalSequences.Count > Constants.DIALOG_SEQUENCE_SHARED)
+            {
+                GameLog.Error($"Maximum number of global sequences exceeded - registation request for {sequence.Name} ignored!");
+                return;
+            }
+            sequence.Id = (uint)GlobalSequences.Count + 1;
+            // Global sequences obviously always have IDs
+            GlobalSequences.Add((uint)sequence.Id, sequence.Name, sequence);
         }
 
         public bool PlayerExists(string name)
@@ -284,7 +295,7 @@ namespace Hybrasyl
             {              
                 try
                 {
-                    Strings = Serializer.Deserialize(XmlReader.Create(xml), new Strings());
+                    Strings = Strings.LoadFromFile(xml);
                     GameLog.Debug("Localization strings loaded.");
                 }
                 catch (Exception e)
@@ -298,7 +309,7 @@ namespace Hybrasyl
             {
                 try
                 {
-                    var npc = Serializer.Deserialize(XmlReader.Create(xml), new Creatures.Npc());
+                    var npc = XmlNpc.LoadFromFile(xml);
                     GameLog.Debug($"NPCs: loaded {npc.Name}");
                     WorldData.Set(npc.Name, npc);
                 }
@@ -313,10 +324,11 @@ namespace Hybrasyl
             {
                 try
                 {
-                    Maps.Map newMap = Serializer.Deserialize(XmlReader.Create(xml), new Maps.Map());
+                    XmlMap newMap = XmlMap.LoadFromFile(xml);
                     var map = new Map(newMap, this);
-                    WorldData.SetWithIndex(map.Id, map, map.Name);
-                    GameLog.DebugFormat("Maps: Loaded {0}", map.Name);
+                    if (!WorldData.SetWithIndex(map.Id, map, map.Name))
+                        GameLog.ErrorFormat("SetWithIndex fail for {map.Name}..?");
+                    GameLog.InfoFormat("Maps: Loaded {0}", map.Name);
                 }
                 catch (Exception e)
                 {
@@ -331,7 +343,7 @@ namespace Hybrasyl
             {
                 try
                 {
-                    var newNation = Serializer.Deserialize(XmlReader.Create(xml), new Nation());
+                    var newNation = Nation.LoadFromFile(xml);
                     GameLog.DebugFormat("Nations: Loaded {0}", newNation.Name);
                     WorldData.Set(newNation.Name, newNation);
                 }
@@ -361,7 +373,7 @@ namespace Hybrasyl
             {
                 try
                 {
-                    var creature = Serializer.Deserialize(XmlReader.Create(xml), new Creatures.Creature());
+                    var creature = XmlCreature.LoadFromFile(xml);
                     GameLog.DebugFormat("Creatures: loaded {0}", creature.Name);
                     WorldData.Set(creature.Name, creature);
                 }
@@ -371,32 +383,34 @@ namespace Hybrasyl
                 }
             }
 
-
+            GameLog.InfoFormat("Creatures: {0} creatures loaded", WorldData.Count<XmlCreature>());
 
             //Load SpawnGroups
             foreach (var xml in Directory.GetFiles(SpawnGroupDirectory, "*.xml"))
             {
                 try
                 {
-                    var spawnGroup = Serializer.Deserialize(XmlReader.Create(xml), new SpawnGroup());
+                    var spawnGroup = Xml.Creature.SpawnGroup.LoadFromFile(xml);
                     spawnGroup.Filename = Path.GetFileName(xml);
-                    GameLog.DebugFormat("SpawnGroup: loaded {0}", spawnGroup.GetHashCode());
+                    GameLog.InfoFormat("SpawnGroup: loaded {0}", spawnGroup.Filename);
                     WorldData.Set(spawnGroup.GetHashCode(), spawnGroup);
 
 
                 }
                 catch (Exception e)
                 {
-                    GameLog.ErrorFormat("Error parsing {0}: {1}", xml, e);
+                    GameLog.ErrorFormat("SpawnGroup: Error parsing {0}: {1}", xml, e);
                 }
             }
+
+            GameLog.InfoFormat("Spawngroups: {0} spawngroups loaded", WorldData.Count<Xml.Creature.SpawnGroup>());
 
             //Load LootSets
             foreach (var xml in Directory.GetFiles(LootSetDirectory, "*.xml"))
             {
                 try
                 {
-                    var lootSet = Serializer.Deserialize(XmlReader.Create(xml), new LootSet());
+                    var lootSet = LootSet.LoadFromFile(xml);
 
                     GameLog.DebugFormat("LootSets: loaded {0}", lootSet.Name);
                     WorldData.Set(lootSet.GetHashCode(), lootSet);
@@ -414,7 +428,7 @@ namespace Hybrasyl
             {
                 try
                 {
-                    Maps.WorldMap newWorldMap = Serializer.Deserialize(XmlReader.Create(xml), new Maps.WorldMap());
+                    Xml.Map.WorldMap newWorldMap = Xml.Map.WorldMap.LoadFromFile(xml);
                     var worldmap = new WorldMap(newWorldMap);
                     WorldData.Set(worldmap.Name, worldmap);
                     foreach (var point in worldmap.Points)
@@ -436,7 +450,7 @@ namespace Hybrasyl
             {
                 try
                 {
-                    Items.VariantGroup newGroup = Serializer.Deserialize(XmlReader.Create(xml), new Items.VariantGroup());
+                    VariantGroup newGroup = VariantGroup.LoadFromFile(xml);
                     GameLog.DebugFormat("Item variants: loaded {0}", newGroup.Name);
                     WorldData.Set(newGroup.Name, newGroup);
 
@@ -454,7 +468,7 @@ namespace Hybrasyl
             {
                 try
                 {
-                    Item newItem = Serializer.Deserialize(XmlReader.Create(xml), new Item());
+                    Item newItem = Item.LoadFromFile(xml);
                     GameLog.DebugFormat("Items: loaded {0}, id {1}", newItem.Name, newItem.Id);
                     WorldData.SetWithIndex(newItem.Id, newItem,  newItem.Name);
                     // Handle some null cases; there's probably a nicer way to do this
@@ -474,7 +488,7 @@ namespace Hybrasyl
                                     GameLog.ErrorFormat("Item already exists with Key {0} : {1}. Cannot add {2}", variantItem.Id, WorldData.Get<Item>(variantItem.Id).Name, variantItem.Name);
                                 }
                                 WorldData.SetWithIndex(variantItem.Id, variantItem,
-                                     new Tuple<Sex, string>(Sex.Neutral, variantItem.Name));
+                                     new Tuple<Gender, string>(Gender.Neutral, variantItem.Name));
                             }
                         }
                     }
@@ -490,7 +504,7 @@ namespace Hybrasyl
                 try
                 {
                     string name = string.Empty;
-                    Statuses.Status newStatus = Serializer.Deserialize(XmlReader.Create(xml), new Statuses.Status());
+                    XmlStatus newStatus = XmlStatus.LoadFromFile(xml);
                     WorldData.SetWithIndex(newStatus.Icon, newStatus, newStatus.Name);
                     GameLog.Warning($"Statuses: loaded {newStatus.Name}, id {newStatus.Id}");
                 }
@@ -501,14 +515,14 @@ namespace Hybrasyl
             
             }
 
-            GameLog.InfoFormat("Statuses: {0} statuses loaded", WorldData.Values<Status>().Count());
+            GameLog.InfoFormat("Statuses: {0} statuses loaded", WorldData.Values<XmlStatus>().Count());
 
             foreach (var xml in Directory.GetFiles(CastableDirectory, "*.xml"))
             {
                 try
                 {
                     string name = string.Empty;
-                    Castables.Castable newCastable = Serializer.Deserialize(XmlReader.Create(xml), new Castables.Castable());
+                    XmlCastable newCastable = XmlCastable.LoadFromFile(xml);
                     WorldData.SetWithIndex(newCastable.Id, newCastable, newCastable.Name);
                     GameLog.DebugFormat("Castables: loaded {0}, id {1}", newCastable.Name, newCastable.Id);
                 }
@@ -518,7 +532,7 @@ namespace Hybrasyl
                 }
             }
 
-            GameLog.InfoFormat("Castables: {0} castables loaded", WorldData.Values<Castable>().Count());
+            GameLog.InfoFormat("Castables: {0} castables loaded", WorldData.Values<XmlCastable>().Count());
 
             // Load data from Redis
             // Load mailboxes
@@ -582,7 +596,7 @@ namespace Hybrasyl
             return true;
         }
 
-        public Item ResolveVariant(Item item, Items.Variant variant, string variantGroup)
+        public Item ResolveVariant(Item item, Variant variant, string variantGroup)
         {
             var variantItem = item.Clone();
 
@@ -602,7 +616,7 @@ namespace Hybrasyl
                 variantItem.Properties.Restrictions.Level = new RestrictionsLevel();
 
             if (variantItem.Properties.StatModifiers is null)
-                variantItem.Properties.StatModifiers = new Items.StatModifiers()
+                variantItem.Properties.StatModifiers = new Xml.Item.ItemStatModifiers()
                 {
                     Base = new StatModifierBase(),
                     Element = new StatModifierElement(),
@@ -611,7 +625,7 @@ namespace Hybrasyl
 
             if (variantItem.Properties.Damage is null)
             {
-                variantItem.Properties.Damage = new Items.Damage()
+                variantItem.Properties.Damage = new Xml.Item.Damage()
                 {
                     Large = new DamageLarge(),
                     Small = new DamageSmall()
@@ -626,7 +640,7 @@ namespace Hybrasyl
 
             if (item.Properties.Damage is null)
             {
-                item.Properties.Damage = new Items.Damage()
+                item.Properties.Damage = new Xml.Item.Damage()
                 {
                     Large = new DamageLarge(),
                     Small = new DamageSmall()
@@ -763,7 +777,7 @@ namespace Hybrasyl
             // TODO: split items into multiple ItemInfo files (DA does ~700 each)
             foreach (var item in WorldData.Values<Item>())
             {
-                iteminfo0.Nodes.Add(new MetafileNode(item.Name, item.Properties.Restrictions?.Level?.Min ?? 1, (int)(item.Properties.Restrictions?.@Class ?? Items.Class.Peasant),
+                iteminfo0.Nodes.Add(new MetafileNode(item.Name, item.Properties.Restrictions?.Level?.Min ?? 1, (int)(item.Properties.Restrictions?.Class ?? Class.Peasant),
                     item.Properties.Physical.Weight, item.Properties.Vendor?.ShopTab ?? string.Empty, item.Properties.Vendor?.Description ?? string.Empty));
             }
             WorldData.Set(iteminfo0.Name, iteminfo0.Compile());
@@ -776,7 +790,7 @@ namespace Hybrasyl
             {
                 var sclass = new Metafile("SClass" + i);
                 sclass.Nodes.Add("Skill");
-                foreach (var skill in WorldData.Values<Castable>().Where(x => x.Type.Contains("skill")))
+                foreach (var skill in WorldData.Values<Xml.Castable.Castable>().Where(x => x.Type.Contains("skill")))
                 // placeholder; change to skills where class == i, are learnable from trainer, and sort by level
                 {
                     sclass.Nodes.Add(new MetafileNode(skill.Name,
@@ -790,7 +804,7 @@ namespace Hybrasyl
                 }
                 sclass.Nodes.Add("Skill_End");
                 sclass.Nodes.Add("Spell");
-                foreach (var spell in WorldData.Values<Castable>().Where(x => x.Type.Contains("spell")))
+                foreach (var spell in WorldData.Values<Xml.Castable.Castable>().Where(x => x.Type.Contains("spell")))
                 // placeholder; change to skills where class == i, are learnable from trainer, and sort by level
                 {
                     sclass.Nodes.Add(new MetafileNode(spell.Name,
@@ -811,11 +825,12 @@ namespace Hybrasyl
             #region NPCIllust
 
             var npcillust = new Metafile("NPCIllust");
-            foreach (var npc in WorldData.Values<Npc>()) // change to merchants that have a portrait rather than all
+            foreach (var npc in WorldData.Values<XmlNpc>()) // change to merchants that have a portrait rather than all
             {
                 if (npc.Appearance.Portrait != null)
                 {
                     npcillust.Nodes.Add(new MetafileNode(npc.Name, npc.Appearance.Portrait /* portrait filename */));
+                    GameLog.Info("metafile: set {Name} to {Portrait}", npc.Name, npc.Appearance.Portrait);
                 }
             }
             WorldData.Set(npcillust.Name, npcillust.Compile());
@@ -888,6 +903,7 @@ namespace Hybrasyl
             ControlMessageHandlers[ControlOpcodes.MonolithControl] = ControlMessage_MonolithControl; // ST + map lock?
             ControlMessageHandlers[ControlOpcodes.TriggerRefresh] = ControlMessage_TriggerRefresh; // ST
             ControlMessageHandlers[ControlOpcodes.HandleDeath] = ControlMessage_HandleDeath; // ST + user/map locks
+            ControlMessageHandlers[ControlOpcodes.DialogRequest] = ControlMessage_DialogRequest;
         }
 
         public void SetPacketHandlers()
@@ -1039,6 +1055,32 @@ namespace Hybrasyl
 
         public bool TryGetActiveUser(string name, out User user) => WorldData.TryGetValue(name, out user);
 
+        public bool TryAsyncDialog(VisibleObject invoker, User invokee, DialogSequence startSequence)
+        {
+            var request = new AsyncDialogRequest(startSequence, invoker, invokee);
+            if (request.CheckRequest())
+            {
+                var key = new Tuple<UInt32, UInt32>(invoker.Id, invokee.Id);
+                if (ActiveAsyncDialogs.TryAdd(key, request))
+                {
+                    ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.DialogRequest, request));
+                    return true;
+                }
+                else
+                {
+                    Log.Error($"Async dialog: enqueue request failed for {invoker.Name} -> {invokee.Name}, already exists?");
+                    return false;
+                }
+            }
+            else
+                Log.Warning($"Async dialog: request denied for {invoker.Name} -> {invokee.Name}, status checks failed");
+            return false;
+        }
+
+        public void CompleteAsyncDialog(AsyncDialogRequest request)
+        {
+
+        }
         public override void Shutdown()
         {
             GameLog.WarningFormat("Shutdown initiated, disconnecting {0} active users", ActiveUsers.Count);
@@ -1205,9 +1247,15 @@ namespace Hybrasyl
                 user.Refresh();
         }
 
+        private void ControlMessage_DialogRequest(HybrasylControlMessage message)
+        {
+            var asyncDialog = (AsyncDialogRequest)message.Arguments[0];
+            asyncDialog.ShowTo();
+        }
+
         private void ControlMessage_HandleDeath(HybrasylControlMessage message)
         {
-            var creature = (Creature)message.Arguments[0];
+            var creature = (Objects.Creature)message.Arguments[0];
             if (creature is User) { (creature as User).OnDeath(); }
             if (creature is Monster) { (creature as Monster).OnDeath(); }
         }
@@ -1349,6 +1397,7 @@ namespace Hybrasyl
             var user = (User)obj;
             var direction = packet.ReadByte();
             if (direction > 3) return;
+            user.Condition.Casting = false;
             user.Walk((Direction)direction);
         }
 
@@ -1584,9 +1633,8 @@ namespace Hybrasyl
             var user = (User)obj;
             var slot = packet.ReadByte();
             var target = packet.ReadUInt32();
-
             user.UseSpell(slot, target);
-            user.Condition.Casting = true;
+            user.Condition.Casting = false;
         }
 
         private void PacketHandler_0x0B_ClientExit(Object obj, ClientPacket packet)
@@ -1615,6 +1663,13 @@ namespace Hybrasyl
                 Remove(user);
                 DeleteUser(user.Name);
                 user.SendRedirectAndLogoff(this, Game.Login, user.Name);
+
+                // Remove any active async dialog sessions
+                foreach (var dialog in ActiveAsyncDialogs.Keys.Where(key => key.Item1 == user.Id || key.Item2 == user.Id))
+                {
+                    if (ActiveAsyncDialogs.TryRemove(dialog, out AsyncDialogRequest request))
+                        request.End();
+                }  
 
                 if (ActiveUsersByName.TryRemove(user.Name, out connectionId))
                 {
@@ -1658,6 +1713,9 @@ namespace Hybrasyl
             loginUser.ReapplyStatuses();
             loginUser.SetCitizenship();
             loginUser.ChrysalisMark();
+
+            // Clear conditions and dialog states
+            loginUser.Condition.Casting = false;
 
             Insert(loginUser);
             GameLog.DebugFormat("Elapsed time since login: {0}", loginUser.SinceLastLogin);
@@ -1728,6 +1786,7 @@ namespace Hybrasyl
             var user = (User)obj;
             var direction = packet.ReadByte();
             if (direction > 3) return;
+            user.Condition.Casting = false;
             user.Turn((Direction)direction);
         }
 
@@ -2043,7 +2102,7 @@ namespace Hybrasyl
             //   0x03 = invitee responds with a "yes"
             byte stage = packet.ReadByte();
 
-            if (!TryGetUser(packet.ReadString8(), out User partner))
+            if (!TryGetActiveUser(packet.ReadString8(), out User partner))
                 return;
 
             // TODO: currently leaving five bytes on the table here. There's probably some
@@ -2171,10 +2230,10 @@ namespace Hybrasyl
                     exchange.StartExchange();
                     exchange.AddGold(user, goldAmount);
                 }
-                else if (target is Creature && user.IsInViewport((VisibleObject)target))
+                else if (target is Objects.Creature && user.IsInViewport((VisibleObject)target))
                 {
                     // Give gold to Creature and go about our lives
-                    var creature = (Creature)target;
+                    var creature = (Objects.Creature)target;
                     creature.Gold += goldAmount;
                     user.Gold -= goldAmount;
                     user.UpdateAttributes(StatUpdateFlags.Stats);
@@ -2305,6 +2364,9 @@ namespace Hybrasyl
             var user = (User)obj;
             var response = new ServerPacket(0x31);
             var action = packet.ReadByte();
+
+            // The moment we get a 3B packet, we assume a user is "in a board"
+            user.Condition.Flags = user.Condition.Flags | PlayerFlags.InBoard;
 
             switch (action)
             {
@@ -2721,6 +2783,7 @@ namespace Hybrasyl
         private void PacketHandler_0x38_Refresh(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
+            user.Condition.Casting = false;
             user.Refresh();
         }
 
@@ -2752,11 +2815,7 @@ namespace Hybrasyl
                 if (pursuitId < Constants.DIALOG_SEQUENCE_SHARED)
                 {
                     // Does the sequence exist in the global catalog?
-                    try
-                    {
-                        pursuit = Game.World.GlobalSequences[pursuitId];
-                    }
-                    catch
+                    if (!GlobalSequences.TryGetValue(pursuitId, out pursuit))
                     {
                         GameLog.ErrorFormat("{0}: pursuit ID {1} doesn't exist in the global catalog?",
                             wobj.Name, pursuitId);
@@ -2836,12 +2895,45 @@ namespace Hybrasyl
             GameLog.DebugFormat("active dialog via state object: pursuitID {0}, pursuitIndex {1}",
                 user.DialogState.CurrentPursuitId, user.DialogState.CurrentPursuitIndex);
 
+            AsyncDialogRequest request = null;
+            VisibleObject source = null;
+
+            // Is this an async dialog session (either one in progress, or one starting)
+            if (objectID == UInt32.MaxValue)
+            {
+                // TODO: optimize
+                var asynckeys = ActiveAsyncDialogs.Keys.Where(key => key.Item1 == user.Id || key.Item2 == user.Id);
+                if (asynckeys.Count() == 1)
+                {
+                    if (!ActiveAsyncDialogs.TryGetValue(asynckeys.First(), out request))
+                    {
+                        GameLog.Error("WARNING: {Name}: Async count was nonzero but session could not be found", user.Name);
+                        return;
+                    }
+                    // If we are processing an asynchronous dialog request, make sure the source is set
+                    // to the other side of the session so it can be sent to callbacks
+                    source = request.Invokee.Name == user.Name ? request.Invoker : request.Invokee;
+                }
+                else if (asynckeys.Count() > 1)
+                {
+                    GameLog.Fatal("WARNING: Multiple async sessions for {Name} detected", user.Name);
+                    return;
+                }             
+            }
+
             if (pursuitID == user.DialogState.CurrentPursuitId && pursuitIndex == user.DialogState.CurrentPursuitIndex)
             {
                 // If we get a packet back with the same index and ID, the dialog has been closed.
                 GameLog.DebugFormat("Dialog closed, resetting dialog state");
-                user.DialogState.EndDialog();
-                return;
+                user.ClearDialogState();
+
+                // Check for open async dialogs that need to be closed. The async dialog session will be removed as well,
+                // but only if it's complete (both sides have clicked "Close" at some point)
+                if (request != null)
+                    // Close our side of the session
+                    request.Close(user.Id);
+                else
+                    return;
             }
 
             if ((pursuitIndex > user.DialogState.CurrentPursuitIndex + 1) ||
@@ -2853,9 +2945,10 @@ namespace Hybrasyl
 
             WorldObject wobj;
 
-            if (user.World.Objects.TryGetValue(objectID, out wobj))
+            if (user.World.Objects.TryGetValue(objectID, out wobj) || objectID == UInt32.MaxValue)
             {
                 VisibleObject clickTarget = wobj as VisibleObject;
+
                 // Was the previous button clicked? Handle that first
                 if (pursuitIndex == user.DialogState.CurrentPursuitIndex - 1)
                 {
@@ -2871,39 +2964,63 @@ namespace Hybrasyl
 
                 // Is the active dialog an input or options dialog?
                 // If so, we handle that first, as the response / callback / handler 
-                // needs to be able to handle the response.
+                // needs to be able to handle the response (which chould change the active sequence),
+                // and then we need to potentially display the next dialog in sequence.
+
+                var currPursuitId = user.DialogState.CurrentPursuitId;
+                var currPursuitIndex = user.DialogState.CurrentPursuitIndex;
+                var currMerchantId = user.DialogState.CurrentMerchantId;
 
                 if (user.DialogState.ActiveDialog is OptionsDialog)
                 {
                     var paramsLength = packet.ReadByte();
                     var option = packet.ReadByte();
                     var dialog = user.DialogState.ActiveDialog as OptionsDialog;
-                    dialog.HandleResponse(user, option, clickTarget);
-                    return;
+
+                    // If an error occurred in handling the response, it's generally safest to 
+                    // simply bail out 
+                    if (!dialog.HandleResponse(user, option, clickTarget, source))
+                    {
+                        user.ClearDialogState();
+                        return;
+                    }
+
+                    // Did the response cause the current sequence or dialog id to change? 
+                    // If so, simply return; otherwise, continue to process next dialog                   
+                    if (user.DialogState.CurrentMerchantId != currMerchantId || 
+                        user.DialogState.CurrentPursuitId != currPursuitId ||
+                        user.DialogState.CurrentPursuitIndex != currPursuitIndex)
+                        return;
                 }
 
+                // This logic is effectively identical to OptionsDialog
                 if (user.DialogState.ActiveDialog is TextDialog)
                 {
                     var paramsLength = packet.ReadByte();
                     var response = packet.ReadString8();
                     var dialog = user.DialogState.ActiveDialog as TextDialog;
-                    dialog.HandleResponse(user, response, clickTarget);
-                    return;
+                    if (!dialog.HandleResponse(user, response, clickTarget, source))
+                    {
+                        user.ClearDialogState();
+                        return;
+                    }
+                    if (user.DialogState.CurrentMerchantId != currMerchantId ||
+                        user.DialogState.CurrentPursuitId != currPursuitId ||
+                        user.DialogState.CurrentPursuitIndex != currPursuitIndex)
+                        return;
                 }
-                // TODO: implement FunctionDialog handling here?
-
+               
                 if (user.DialogState.ActiveDialog is null)
                 {
                     // The response handler could have closed the dialog, or done Goddess knows what
                     // to the state. We check here, and if the dialog state is null (the result of
                     // calling EndDialog() we send a close packet.
-                    user.SendCloseDialog();
+                    user.ClearDialogState();
                     return;
                 }            
 
-                // Regular ol' dialog.
-                //
                 // Did the user click next on the last dialog in a sequence?
+                //
                 // If the last dialog is a JumpDialog or FunctionDialog, just ShowTo it; it'll handle the rest.
                 // Otherwise, either close the dialog or go to the main menu (main menu by 
                 // default).
@@ -2926,13 +3043,32 @@ namespace Hybrasyl
                     if (user.DialogState.ActiveDialogSequence.CloseOnEnd)
                     {
                         GameLog.DebugFormat("Sending close packet");
-                        user.SendCloseDialog();
+                        user.ClearDialogState();
                         return;
                     }
                     else
-                        clickTarget.DisplayPursuits(user);
+                    {
+                        // If this is an NPC or reactor (and has a click target), then display main menu
+                        if (clickTarget != null)
+                            clickTarget.DisplayPursuits(user);
+                    }
                     // Either way down here, reset the dialog state since we're done with the sequence
                     user.DialogState.EndDialog();
+                    // If this is an asynchronous dialog, and we've reached here, also close the dialog
+                    if (request != null)
+                    {
+                        request.Close(user.Id);
+                        user.SendCloseDialog();
+                    }
+                    return;
+                }
+
+                // Are we transitioning between two dialog sequences? If so, show the first dialog from
+                // the new sequence and make sure we clear the previous state.
+                if (user.DialogState.PreviousPursuitId == pursuitID)
+                {
+                    user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
+                    user.DialogState.PreviousPursuitId = null;
                     return;
                 }
 
@@ -2984,12 +3120,15 @@ namespace Hybrasyl
         }
 
         [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
-        [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x43_PointClick(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
             var clickType = packet.ReadByte();
             Rectangle commonViewport = user.GetViewport();
+            
+            // N.B. We handle dead checks here rather than at the Required attribute level due to some 
+            // edge cases
+
             // User has clicked an X,Y point
             if (clickType == 3)
             {
@@ -3000,10 +3139,15 @@ namespace Hybrasyl
 
                 if (user.Map.Doors.ContainsKey(coords))
                 {
+                    if (!user.Condition.Alive)
+                    {
+                        user.SendSystemMessage("You try, but your hands pass right through it.");
+                        return;
+                    }
                     if (user.Map.Doors[coords].Closed)
-                        user.SendMessage("It's open.", 0x1);
+                        user.SendSystemMessage("It's open.");
                     else
-                        user.SendMessage("It's closed.", 0x1);
+                        user.SendSystemMessage("It's closed.");
 
                     user.Map.ToggleDoors(x, y);
                 }
@@ -3028,13 +3172,16 @@ namespace Hybrasyl
 
                 if (user.World.Objects.TryGetValue(entityId, out clickTarget))
                 {
-                    if (clickTarget is User || clickTarget is Merchant)
+                    Type type = clickTarget.GetType();
+                    MethodInfo methodInfo = type.GetMethod("OnClick");
+                    user.LastAssociate = clickTarget as VisibleObject;
+                    // Certain NPCs can be "spoken to" even when dead
+                    if (user.LastAssociate is Merchant && (!user.Condition.Alive && !user.LastAssociate.AllowDead))
                     {
-                        Type type = clickTarget.GetType();
-                        MethodInfo methodInfo = type.GetMethod("OnClick");
-                        user.LastAssociate = clickTarget as VisibleObject;
-                        methodInfo.Invoke(clickTarget, new[] { user });
+                        user.SendSystemMessage("You cannot do that now.");
+                        return;
                     }
+                    methodInfo.Invoke(clickTarget, new[] { user });
                 }
             }
             else
@@ -3237,7 +3384,7 @@ namespace Hybrasyl
             var enqueue = x0D.Packet();
            
             user.SendCastLine(enqueue);
-
+            
         }
 
         private void PacketHandler_0x4F_ProfileTextPortrait(Object obj, ClientPacket packet)
@@ -3303,7 +3450,7 @@ namespace Hybrasyl
                 if (WorldData.ContainsKey<CompiledMetafile>(name))
                 {
                     var file = WorldData.Get<CompiledMetafile>(name);
-
+                    GameLog.Info($"Responding 6f notall: sending {file.Name}, checksum {file.Checksum}");
                     var x6F = new ServerPacket(0x6F);
                     x6F.WriteBoolean(all);
                     x6F.WriteString8(file.Name);
@@ -3482,7 +3629,7 @@ namespace Hybrasyl
         private void MerchantMenuHandler_LearnSkill(User user, Merchant merchant, ClientPacket packet)
         {
             var skillName = packet.ReadString8(); //skill name
-            var skill = WorldData.GetByIndex<Castable>(skillName);
+            var skill = WorldData.GetByIndex<Xml.Castable.Castable>(skillName);
             user.ShowLearnSkill(merchant, skill);
         }
         private void MerchantMenuHandler_LearnSkillAccept(User user, Merchant merchant, ClientPacket packet)
@@ -3508,7 +3655,7 @@ namespace Hybrasyl
         private void MerchantMenuHandler_LearnSpell(User user, Merchant merchant, ClientPacket packet)
         {
             var spellName = packet.ReadString8();
-            var spell = WorldData.GetByIndex<Castable>(spellName);
+            var spell = WorldData.GetByIndex<XmlCastable>(spellName);
             user.ShowLearnSpell(merchant, spell);
         }
         private void MerchantMenuHandler_LearnSpellAccept(User user, Merchant merchant, ClientPacket packet)
@@ -3635,33 +3782,20 @@ namespace Hybrasyl
             }
         }
 
-        public bool TryGetItemTemplate(string name, Sex itemSex, out Item item)
+        public bool TryGetItemTemplate(string name, Gender itemGender, out Item item)
         {
-            var itemKey = new Tuple<Sex, string>(itemSex, name);
+            var itemKey = new Tuple<Gender, string>(itemGender, name);
             return ItemCatalog.TryGetValue(itemKey, out item);
         }
 
         public bool TryGetItemTemplate(string name, out Item item)
         {
             // This is kinda gross
-            var neutralKey = new Tuple<Sex, string>(Sex.Neutral, name);
-            var femaleKey = new Tuple<Sex, string>(Sex.Female, name);
-            var maleKey = new Tuple<Sex, string>(Sex.Male, name);
+            var neutralKey = new Tuple<Gender, string>(Gender.Neutral, name);
+            var femaleKey = new Tuple<Gender, string>(Gender.Female, name);
+            var maleKey = new Tuple<Gender, string>(Gender.Male, name);
 
             return ItemCatalog.TryGetValue(neutralKey, out item) || ItemCatalog.TryGetValue(femaleKey, out item) || ItemCatalog.TryGetValue(maleKey, out item);
-        }
-
-        public object ScriptMethod(string name, params object[] args)
-        {
-            object result = null;
-        
-            if (WorldData.ContainsKey<MethodInfo>(name))
-            {
-                var method = WorldData.Get<MethodInfo>(name);
-                result = method.Invoke(null, args);
-            }
-
-            return result;
         }
 
 
@@ -3725,7 +3859,12 @@ namespace Hybrasyl
                                 if (clientMessage.Packet.Opcode == 0x06) user.Refresh();
                                 continue;
                             }
+                            // Handle board usage
+                            if (user.Condition.Flags.HasFlag(PlayerFlags.InDialog) && clientMessage.Packet.Opcode != 0x3b &&
+                                clientMessage.Packet.Opcode != 0x45 && clientMessage.Packet.Opcode != 0x75)
+                                user.Condition.Flags = user.Condition.Flags & ~PlayerFlags.InDialog;
                             // Last but not least, invoke the handler
+
                             handler.Invoke(user, clientMessage.Packet);
                         }
                         else if (clientMessage.Packet.Opcode == 0x10) // Handle special case of join world

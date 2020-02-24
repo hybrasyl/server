@@ -1,16 +1,29 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<xs:schema xmlns:hyb="http://www.hybrasyl.com/XML/HybrasylCommon" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:strings="http://www.hybrasyl.com/XML/HybrasylStrings" targetNamespace="http://www.hybrasyl.com/XML/HybrasylStrings" elementFormDefault="qualified">
+<xs:schema xmlns:hyb="http://www.hybrasyl.com/XML/Common" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:strings="http://www.hybrasyl.com/XML/String" targetNamespace="http://www.hybrasyl.com/XML/String" elementFormDefault="qualified">
 
   <xs:annotation>
     <xs:documentation xml:lang="en">
-      Hybrasyl Project - Hybrasyl XML Schema - Common / Reused Types
-      This file is subject to the same licenses as Project Hybrasyl.
-      (C) 2017 Project Hybrasyl (info@hybrasyl.com)
-      Written by Michael Norris (norrism@hybrasyl.com)
+      This file is part of Project Hybrasyl.
+
+      This program is free software; you can redistribute it and/or modify
+      it under the terms of the Affero General Public License as published by
+      the Free Software Foundation, version 3.
+
+      This program is distributed in the hope that it will be useful, but
+      without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+      or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+      for more details.
+
+      You should have received a copy of the Affero General Public License along
+      with this program. If not, see http://www.gnu.org/licenses/ .
+
+      (C) 2020 ERISCO, LLC
+
+      For contributors and individual authors please refer to CONTRIBUTORS.MD.
     </xs:documentation>
   </xs:annotation>
 
-  <xs:import schemaLocation="hybrasylTypes.xsd" namespace="http://www.hybrasyl.com/XML/HybrasylCommon" />
+  <xs:import schemaLocation="Common.xsd" namespace="http://www.hybrasyl.com/XML/Common" />
   <!--Separated for future expansion usage.-->
   <xs:complexType name="String">
     <xs:attribute name="Key" type="xs:string"/>

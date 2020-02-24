@@ -7,14 +7,13 @@
  *
  * This program is distributed in the hope that it will be useful, but
  * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+ * or FITNESS FOR A PARTICULAR PURPOSE.See the Affero General Public License
  * for more details.
  *
  * You should have received a copy of the Affero General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
+ * with this program.If not, see<http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015-2016 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC
  *
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
@@ -49,7 +48,7 @@ namespace Hybrasyl.Scripting
 
         public void SpawnMonster(string creatureName, HybrasylSpawn spawn, int x, int y)
         {
-            if (Game.World.WorldData.TryGetValue(creatureName, out Creatures.Creature creature))
+            if (Game.World.WorldData.TryGetValue(creatureName, out Xml.Creature.Creature creature))
             {
                 var baseMob = new Monster(creature, spawn.Spawn, Map.Id);
                 baseMob.X = (byte)x;

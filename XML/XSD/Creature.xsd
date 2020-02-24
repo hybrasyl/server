@@ -1,16 +1,29 @@
 <?xml version="1.0"?>
-<xs:schema xmlns:loot="http://www.hybrasyl.com/XML/Loot" xmlns:hyb="http://www.hybrasyl.com/XML/HybrasylCommon" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:creature="http://www.hybrasyl.com/XML/Creature" targetNamespace="http://www.hybrasyl.com/XML/Creature" elementFormDefault="qualified">
+<xs:schema xmlns:loot="http://www.hybrasyl.com/XML/Loot" xmlns:hyb="http://www.hybrasyl.com/XML/Common" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:creature="http://www.hybrasyl.com/XML/Creature" targetNamespace="http://www.hybrasyl.com/XML/Creature" elementFormDefault="qualified">
 
   <xs:annotation>
     <xs:documentation xml:lang="en">
-      Hybrasyl Project - Hybrasyl XML Schema - Creatures (NPCs/mobs/drops)
-      This file is subject to the same licenses as Project Hybrasyl.
-      (C) 2016 Project Hybrasyl (info@hybrasyl.com)
-      Written by Justin Baugh (baughj@hybrasyl.com)
+      This file is part of Project Hybrasyl.
+
+      This program is free software; you can redistribute it and/or modify
+      it under the terms of the Affero General Public License as published by
+      the Free Software Foundation, version 3.
+
+      This program is distributed in the hope that it will be useful, but
+      without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+      or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+      for more details.
+
+      You should have received a copy of the Affero General Public License along
+      with this program. If not, see http://www.gnu.org/licenses/ .
+
+      (C) 2020 ERISCO, LLC
+
+      For contributors and individual authors please refer to CONTRIBUTORS.MD.
     </xs:documentation>
   </xs:annotation>
 
-  <xs:import schemaLocation="hybrasylTypes.xsd" namespace="http://www.hybrasyl.com/XML/HybrasylCommon" />
+  <xs:import schemaLocation="Common.xsd" namespace="http://www.hybrasyl.com/XML/Common" />
   <xs:import schemaLocation="Loot.xsd" namespace="http://www.hybrasyl.com/XML/Loot"/>
 
   <!-- Base definition for a monster -->
@@ -28,6 +41,7 @@
       <xs:element name="Maps" type="creature:MapList" minOccurs="1" maxOccurs="1"/>
       <xs:element name="Spawns" type="creature:SpawnList" minOccurs="1" maxOccurs="1"/>
     </xs:sequence>
+    <xs:attribute name="Disabled" use="optional" default="false" type="xs:boolean"/>
   </xs:complexType>
 
   <!-- A list of maps a spawngroup controls-->
@@ -43,6 +57,7 @@
     <xs:attribute name="MaxSpawn" type="xs:int" use ="required"/>
     <xs:attribute name="Limit" type="xs:int" use ="required"/>
     <xs:attribute name="Interval" type="xs:int" use ="required"/>
+    <xs:attribute name="Disabled" type="xs:boolean" default="false"/>
   </xs:complexType>
 
   <!-- Spawns -->
@@ -154,9 +169,9 @@
     <xs:sequence>
       <xs:element name="Set" type="creature:LootImport" minOccurs="0" maxOccurs="unbounded"/>
       <xs:element name="Table" type="loot:LootTable" minOccurs="0" maxOccurs="unbounded"/>
-      <xs:element name="Xp" type="creature:LootXp" minOccurs="0" maxOccurs="1"/>
       <xs:element name="Gold" type="creature:LootGold" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
+    <xs:attribute name="Xp" type="xs:unsignedInt" default="0" use="optional"/>
   </xs:complexType>
 
   <!-- Imported loot table-->
@@ -283,6 +298,7 @@
         </xs:complexType>
       </xs:element>
       <xs:element name="Roles" type="creature:NpcRoleList" minOccurs="0" maxOccurs="1" />
+      <xs:element name="AllowDead" type="xs:boolean" minOccurs="0" maxOccurs="1"/>
       <xs:element name="Inventory" minOccurs="0" maxOccurs="1">
         <xs:complexType>
           <xs:sequence minOccurs="0" maxOccurs="1">

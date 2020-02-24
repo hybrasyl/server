@@ -13,19 +13,19 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015-2016 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
  */
- 
+
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
+using Hybrasyl.Xml.Common;
 using MoonSharp.Interpreter;
 using Serilog;
 
@@ -71,7 +71,9 @@ namespace Hybrasyl.Scripting
         public Script Clone()
         {
             var clone = new Script(FullPath, Processor);
-            clone.Run();
+            // A clone doesn't need to run OnLoad again, which is guaranteed to be evaluated 
+            // only once per script (aka this.Compiled) lifetime
+            clone.Run(false);
             return clone;
         }
 
@@ -120,6 +122,8 @@ namespace Hybrasyl.Scripting
         /// <returns></returns>
         public dynamic GetUserDataValue(dynamic obj)
         {
+            if (obj == null)
+                return DynValue.NewNil();
             if (obj is User)
                 return UserData.Create(new HybrasylUser(obj as User));
             else if (obj is World)
@@ -144,19 +148,23 @@ namespace Hybrasyl.Scripting
         /// <summary>
         /// Load the script from disk and execute it.
         /// </summary>
+        /// <param name="onLoad">Whether or not to execute OnLoad() if it exists in the script.</param>
         /// <returns>boolean indicating whether the script was reloaded or not</returns>
-        public bool Run()
+        public bool Run(bool onLoad=true)
         {
             try
             {
-                Compiled.Globals["Sex"] = UserData.CreateStatic<Sex>();
+                Compiled.Globals["Gender"] = UserData.CreateStatic<Gender>();
                 Compiled.Globals["LegendIcon"] = UserData.CreateStatic<LegendIcon>();
                 Compiled.Globals["LegendColor"] = UserData.CreateStatic<LegendColor>();
                 Compiled.Globals["Class"] = UserData.CreateStatic<Class>();
                 Compiled.Globals["utility"] = typeof(HybrasylUtility);
                 Compiled.Globals.Set("world", UserData.Create(Processor.World));
                 Compiled.Globals.Set("logger", UserData.Create(new ScriptLogger(Name)));
+                Compiled.Globals.Set("this_script", DynValue.NewString(Name));
                 Compiled.DoFile(FullPath);
+                if (onLoad)
+                    ExecuteFunction("OnLoad");               
             }
             catch (Exception ex) when (ex is InterpreterException)
             {
@@ -187,8 +195,9 @@ namespace Hybrasyl.Scripting
         /// </summary>
         /// <param name="expr">The javascript expression, in string form.</param>
         /// <param name="invoker">The invoker (caller).</param>
+        /// <param name="source">Optionally, the source of the script call, invocation or dialog</param>
         /// <returns></returns>
-        public bool Execute(string expr, dynamic invoker)
+        public bool Execute(string expr, dynamic invoker, dynamic source = null)
         {
             if (Disabled)
                 return false;
@@ -197,13 +206,16 @@ namespace Hybrasyl.Scripting
             {
                 Compiled.Globals["utility"] = typeof(HybrasylUtility);
                 Compiled.Globals.Set("invoker", GetUserDataValue(invoker));
+                if (source != null)
+                   Compiled.Globals.Set("source", GetUserDataValue(source));
+
                 // We pass Compiled.Globals here to make sure that the updated table (with new variables) makes it over
                 Compiled.DoString(expr, Compiled.Globals);
             }
             catch (Exception ex) when (ex is InterpreterException)
             {
                 GameLog.ScriptingError("{Function}: Error executing expression {expr} in {FileName} (invoker {Invoker}): {Message}",
-                    MethodBase.GetCurrentMethod().Name, expr, FileName, (invoker as WorldObject).Name,
+                    MethodBase.GetCurrentMethod().Name, expr, FileName, (invoker.Obj as WorldObject).Name,
                     (ex as InterpreterException).DecoratedMessage);
                 //Disabled = true;
                 CompilationError = ex.ToString();
@@ -226,7 +238,7 @@ namespace Hybrasyl.Scripting
             catch (Exception ex) when (ex is InterpreterException)
             {
                 GameLog.ScriptingError("{Function}: Error executing expression: {expr} in {FileName} (invoker {Invoker}): {Message}",
-                    MethodBase.GetCurrentMethod().Name, expr, FileName, (invoker as WorldObject).Name,
+                    MethodBase.GetCurrentMethod().Name, expr, FileName, (invoker.Obj as WorldObject).Name,
                     (ex as InterpreterException).DecoratedMessage);
                  //Disabled = true;
                 CompilationError = ex.ToString();
@@ -234,7 +246,7 @@ namespace Hybrasyl.Scripting
             }
         }
 
-        public bool ExecuteFunction(string functionName, dynamic invoker, dynamic target)
+        public bool ExecuteFunction(string functionName, dynamic invoker, dynamic source, dynamic scriptItem=null)
         {
             if (Disabled)
                 return false;
@@ -245,7 +257,9 @@ namespace Hybrasyl.Scripting
                 {
                     Compiled.Globals["utility"] = typeof(HybrasylUtility);
                     Compiled.Globals.Set("invoker", GetUserDataValue(invoker));
-                    Compiled.Globals.Set("target", GetUserDataValue(target));
+                    Compiled.Globals.Set("source", GetUserDataValue(source));
+                    if (scriptItem != null)
+                        Compiled.Globals.Set("item", GetUserDataValue(scriptItem));
                     Compiled.Call(Compiled.Globals[functionName]);
                 }
                 else
@@ -254,7 +268,7 @@ namespace Hybrasyl.Scripting
             catch (Exception ex) when (ex is InterpreterException)
             {
                 GameLog.ScriptingError("{Function}: Error executing function {ScriptFunction} in {FileName} (invoker {Invoker}): {Message}",
-                    MethodBase.GetCurrentMethod().Name, functionName, FileName, (invoker as WorldObject).Name,
+                    MethodBase.GetCurrentMethod().Name, functionName, FileName, (invoker.Obj as WorldObject).Name,
                     (ex as InterpreterException).DecoratedMessage);
                 //Disabled = true;
                 CompilationError = ex.ToString();
@@ -277,12 +291,16 @@ namespace Hybrasyl.Scripting
                     Compiled.Call(Compiled.Globals[functionName]);
                 }
                 else
+                {
+                    GameLog.ScriptingError("{Function}: function {ScriptFunction} in {FileName} did not exist?", MethodBase.GetCurrentMethod().Name,
+                        functionName, FileName);
                     return false;
+                }
             }
             catch (Exception ex) when (ex is InterpreterException)
             {
                 GameLog.ScriptingError("{Function}: Error executing script function {ScriptFunction} in {FileName} (invoker {Invoker}): {Message}",
-                    MethodBase.GetCurrentMethod().Name, functionName, (invoker as WorldObject).Name, FileName,
+                    MethodBase.GetCurrentMethod().Name, functionName, (invoker.Obj as WorldObject).Name, FileName,
                     (ex as InterpreterException).DecoratedMessage);
                 CompilationError = ex.ToString();
                 return false;
@@ -294,7 +312,7 @@ namespace Hybrasyl.Scripting
 
         public bool ExecuteFunction(string functionName)
         {
-            if (Disabled || !(Associate is HybrasylWorldObject))
+            if (Disabled)
                 return false;
 
             try

@@ -18,43 +18,34 @@
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
  */
- 
+
 using Hybrasyl.Objects;
+using System;
+using System.Collections.Generic;
+using System.Text;
 
 namespace Hybrasyl.Messaging
 {
-    class GroupCommand : ChatCommand
+    class ClearDialogCommand : ChatCommand
     {
-        public new static string Command = "group";
+        public new static string Command = "cleardialog";
         public new static string ArgumentText = "<string username>";
-        public new static string HelpText = "Invite the specified player to your group.";
+        public new static string HelpText = "Completely clear the dialog state for a given user.";
         public new static bool Privileged = false;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
-            if (!Game.World.TryGetActiveUser(args[0], out User newMember))
-                return Fail($"The user {args[0]} could not be found");
-            user.InviteToGroup(newMember);
-            return Success($"{args[0]} invited to your group.");
+            if (!Game.World.WorldData.ContainsKey<User>(args[0]))
+                return Fail($"User {args[0]} not logged in");
+
+            var target = Game.World.WorldData.Get<User>(args[0]);
+
+            if (target.IsExempt)
+                return Fail($"User {target.Name} is exempt from your meddling.");
+            else
+                target.ClearDialogState();
+
+            return Success($"User {target.Name}: dialog state cleared.");
         }
-    }
-
-    class UngroupCommand : ChatCommand
-    {
-        public new static string Command = "ungroup";
-        public new static string ArgumentText = "none";
-        public new static string HelpText = "Leave your group.";
-        public new static bool Privileged = false;
-
-        public new static ChatCommandResult Run(User user, params string[] args)
-        {
-            if (user.Group != null)
-            {
-                user.Group.Remove(user);
-                return Success("You have left the group.");
-            }
-            return Fail("You are not in a group");
-        }
-
     }
 }

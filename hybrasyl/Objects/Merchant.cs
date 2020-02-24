@@ -13,22 +13,19 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015-2016 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
  */
-
-
-using Hybrasyl.Items;
+ 
 using Hybrasyl.Scripting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Hybrasyl.Creatures;
-using Hybrasyl.Castables;
-using Hybrasyl.Enums;
+using Hybrasyl.Xml.Creature;
+using Hybrasyl.Xml.Item;
+using Hybrasyl.Xml.Common;
 
 namespace Hybrasyl.Objects
 {
@@ -49,7 +46,7 @@ namespace Hybrasyl.Objects
 
         // Currently, NPCs can not be healed or damaged in any way whatsoever
         public override void Heal(double heal, Creature source = null) { return; }
-        public override void Damage(double damage, Enums.Element element = Enums.Element.None, Enums.DamageType damageType = Enums.DamageType.Direct, DamageFlags damageFlags = DamageFlags.None, Creature attacker = null, bool onDeath = true) { return; }
+        public override void Damage(double damage, Element element = Element.None, DamageType damageType = DamageType.Direct, DamageFlags damageFlags = DamageFlags.None, Creature attacker = null, bool onDeath = true) { return; }
 
         public void OnSpawn()
         {

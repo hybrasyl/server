@@ -13,18 +13,17 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
- * Authors:   Luke Segars   <luke@lukesegars.com>
+ * For contributors and individual authors please refer to CONTRIBUTORS.MD.
+ * 
  */
 
-using Hybrasyl.Objects;
-using Hybrasyl.Enums;
+ using Hybrasyl.Objects;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Serilog;
+using Hybrasyl.Xml.Common;
 
 namespace Hybrasyl
 {
@@ -143,11 +142,11 @@ namespace Hybrasyl
 
         public bool ContainsAllClasses()
         {
-            return (ClassCount[Enums.Class.Monk] > 0 &&
-                    ClassCount[Enums.Class.Priest] > 0 &&
-                    ClassCount[Enums.Class.Rogue] > 0 &&
-                    ClassCount[Enums.Class.Warrior] > 0 &&
-                    ClassCount[Enums.Class.Wizard] > 0);
+            return (ClassCount[Class.Monk] > 0 &&
+                    ClassCount[Class.Priest] > 0 &&
+                    ClassCount[Class.Rogue] > 0 &&
+                    ClassCount[Class.Warrior] > 0 &&
+                    ClassCount[Class.Wizard] > 0);
         }
 
         /**

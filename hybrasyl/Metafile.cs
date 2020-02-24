@@ -13,10 +13,10 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
- * Authors:   Kyle Speck    <kojasou@hybrasyl.com>
+ * For contributors and individual authors please refer to CONTRIBUTORS.MD.
+ * 
  */
 
 using System.Collections.Generic;
@@ -77,6 +77,8 @@ namespace Hybrasyl
         public Metafile Source { get; private set; }
         public uint Checksum { get; private set; }
         public byte[] Data { get; private set; }
+
+        public byte[] Decompressed { get; private set; }
         public CompiledMetafile(Metafile file)
         {
             Name = file.Name;
@@ -86,20 +88,20 @@ namespace Hybrasyl
 
             using (var metaFileStream = new MemoryStream())
             {
-                using (var metaFileWriter = new BinaryWriter(metaFileStream, Encoding.ASCII, true))
+                using (var metaFileWriter = new BinaryWriter(metaFileStream, CodePagesEncodingProvider.Instance.GetEncoding(949), true))
                 {
                     metaFileWriter.Write((byte)(file.Nodes.Count / 256));
                     metaFileWriter.Write((byte)(file.Nodes.Count % 256));
                     foreach (var node in file.Nodes)
                     {
-                        buffer = Encoding.ASCII.GetBytes(node.Text);
+                        buffer = CodePagesEncodingProvider.Instance.GetEncoding(949).GetBytes(node.Text);
                         metaFileWriter.Write((byte)buffer.Length);
                         metaFileWriter.Write(buffer);
                         metaFileWriter.Write((byte)(node.Properties.Count / 256));
                         metaFileWriter.Write((byte)(node.Properties.Count % 256));
                         foreach (var property in node.Properties)
                         {
-                            buffer = Encoding.ASCII.GetBytes(property);
+                            buffer = CodePagesEncodingProvider.Instance.GetEncoding(949).GetBytes(property);
                             metaFileWriter.Write((byte)(buffer.Length / 256));
                             metaFileWriter.Write((byte)(buffer.Length % 256));
                             metaFileWriter.Write(buffer);
@@ -108,8 +110,9 @@ namespace Hybrasyl
                 }
 
                 Checksum = ~Crc32.Calculate(metaFileStream.ToArray());
+                metaFileStream.Seek(0, SeekOrigin.Begin);
 
-                using (var compressedMetaFileStream = new MemoryStream())
+		using (var compressedMetaFileStream = new MemoryStream())
                 {
                     ZlibCompression.Compress(metaFileStream, compressedMetaFileStream);
                     Data = compressedMetaFileStream.ToArray();
@@ -118,3 +121,4 @@ namespace Hybrasyl
         }
     }
 }
+

@@ -13,11 +13,10 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
- * Authors:   Justin Baugh  <baughj@hybrasyl.com>
- *
+ * For contributors and individual authors please refer to CONTRIBUTORS.MD.
+ * 
  */
 
 using Hybrasyl.Objects;
@@ -27,6 +26,9 @@ using Hybrasyl.Scripting;
 using MoonSharp.Interpreter;
 using Serilog;
 using System;
+using System.Text.RegularExpressions;
+using System.Reflection;
+using Hybrasyl.Enums;
 
 namespace Hybrasyl
 {
@@ -35,9 +37,38 @@ namespace Hybrasyl
         public class DialogSequence
         {
             public List<Dialog> Dialogs { get; private set; }
-            public string Name { get; private set; }
+            public string Name { get; set; }
+            public string DisplayName { get; set; }
             public uint? Id { get; set; }
-            public Scripting.Script Script { get; private set; }
+
+            private Scripting.Script _script;
+            public string ScriptName;
+
+            private Dictionary<string, string> Tokens { get; set; }
+
+            public Scripting.Script Script
+            {
+                // This allows a form of lazy evaluation to prevent chicken in egg problems with registering
+                // dialogs associated with a running script which is in the process of registering said dialogs
+                get
+                {
+                    if (_script == null && !string.IsNullOrEmpty(ScriptName))
+                    {
+                        if (Game.World.ScriptProcessor.TryGetScript(ScriptName, out Scripting.Script _script))
+                            return _script;
+                        else
+                        {
+                            GameLog.Error($"DialogSequence {Name}: script associate {ScriptName} is missing");
+                            return null;
+                        }
+                    }
+                    if (_script != null)
+                        return _script;
+                    return null;
+                }
+                set { _script = value; }
+            }
+            
             public WorldObject Associate { get; private set; }
             public string PreDisplayCallback { get; private set; }
             public string MenuCheckExpression { get; private set; }
@@ -54,6 +85,9 @@ namespace Hybrasyl
                 PreDisplayCallback = string.Empty;
                 MenuCheckExpression = string.Empty;
                 Sprite = ushort.MaxValue;
+                ScriptName = string.Empty;
+                _script = null;
+                DisplayName = string.Empty;
             }
 
             /// <summary>
@@ -76,6 +110,9 @@ namespace Hybrasyl
                     var ret = Script.ExecuteAndReturn(PreDisplayCallback, invoker);
                     if (ret == DynValue.True)
                         Dialogs.First().ShowTo(invoker, target);
+                    else
+                        // Error, generally speaking
+                        invoker.ClearDialogState();
                 }
                 else
                 {
@@ -158,12 +195,94 @@ namespace Hybrasyl
         public class Dialog
         {
 
+            private static string _tokenRegex = @"\{\{(?<token>[A-Za-z0-9_-]+)\}\}";
+            private Regex _regex;
+
             protected ushort DialogType;
             public DialogSequence Sequence { get; private set; }
             public int Index;
-            public string DisplayText { get; set; }
+
             public string CallbackExpression { get; set; }
             private ushort _sprite { get; set; }
+
+            private string _displayText { get; set; }
+
+            /// <summary>
+            /// Gets the script responsible for handling events. This can be either an associate (e.g. an NPC),
+            /// an override, or a global script (set by a dialog's sequence).
+            /// Associate override first, then associate, and lastly, a global script.
+            /// </summary>
+            /// <returns></returns>
+            protected Scripting.Script GetScript(WorldObject AssociateOverride = null)
+            {
+                var associate = AssociateOverride == null ? Sequence.Associate : AssociateOverride;
+
+                if (associate != null)
+                    return AssociateOverride.Script;
+                else if (Sequence.Script != null)
+                    return Sequence.Script;
+
+                return null;
+
+            }
+
+            /// <summary>
+            /// Using the sequence associate or an override, evaluate the display text and replace
+            /// {{foo}} tokens (dialog template variables) with values from the ephemeral store.
+            /// </summary>
+            /// <param name="target">The user who is receiving the dialog</param>
+            /// <param name="AssociateOverride">The associate override, if any, to use as a source for token data</param>
+            /// <returns>An evaluated string</returns>
+            public string EvaluateDisplayText(User target, WorldObject AssociateOverride = null)
+            {
+                var matches = _regex.Matches(_displayText);
+
+                if (matches.Count == 0)
+                    return _displayText;
+
+                var associate = AssociateOverride == null ? Sequence.Associate : AssociateOverride;
+
+                // Handle a few special cases here
+                
+                var ret = _displayText;
+
+                if ((Sequence?.Id ?? uint.MaxValue) < Constants.DIALOG_SEQUENCE_SHARED)
+                {
+                    // Global sequence, check for async
+                    var dialog = Game.World.ActiveAsyncDialogs.Keys.Where(key => key.Item1 == target.Id || key.Item2 == target.Id).First();
+                    if (dialog != null)
+                    {
+                        WorldObject invoker = null;
+                        if (dialog.Item1 == target.Id)
+                            Game.World.Objects.TryGetValue(dialog.Item2, out invoker);
+                        if (dialog.Item2 == target.Id)
+                            Game.World.Objects.TryGetValue(dialog.Item1, out invoker);
+                        ret = ret.Replace("{{invoker}}", invoker?.Name ?? "System");
+                    }
+                }
+
+                if (associate == null)
+                    return ret;
+                
+                foreach (Match match in matches)
+                {
+                    GroupCollection groups = match.Groups;
+                    if (associate.TryGetEphemeral(groups["token"].Value, out dynamic value))
+                    {
+                        ret = ret.Replace("{{" + groups["token"] + "}}", value.ToString());
+                        GameLog.ScriptingInfo("{Function}: {Name}: token {Token} replaced with {String}",
+                            MethodInfo.GetCurrentMethod().Name, associate.Name, groups["token"], value);
+                    }
+                    else
+                    {
+                        GameLog.ScriptingError("{Function}: {Name}: template script references {Token} which could not be evaluated",
+                            MethodInfo.GetCurrentMethod().Name, associate.Name, groups["token"]);
+                        continue;
+                    }
+                }
+                return ret;              
+            }
+
             public ushort Sprite
             {
                 get
@@ -181,9 +300,10 @@ namespace Hybrasyl
             public Dialog(int dialogType, string displayText = null, string callbackFunction = "")
             {
                 DialogType = (ushort)dialogType;
-                DisplayText = displayText;
+                _displayText = displayText;
                 CallbackExpression = callbackFunction;
                 _sprite = ushort.MaxValue; // Client only uses about ~1000 of these values
+                _regex = new Regex(_tokenRegex, RegexOptions.Compiled);
             }
 
             // Any Dialog can have a callback function which can be used to process dialog responses, or
@@ -196,10 +316,19 @@ namespace Hybrasyl
 
             public void RunCallback(User target, VisibleObject associateOverride = null)
             {
-                if (CallbackExpression != null)
+                if (!string.IsNullOrEmpty(CallbackExpression))
                 {
-                    VisibleObject associate = associateOverride == null ? Sequence.Associate as VisibleObject : associateOverride;
-                    associate.Script.Execute(CallbackExpression, target);
+                    try
+                    {
+                        if (!GetScript(associateOverride).Execute(CallbackExpression, target))
+                            target.ClearDialogState();
+                    }
+                    catch (Exception ex)
+                    {
+                        GameLog.ScriptingError(ex, "{Function}: callback unhandled exception", MethodInfo.GetCurrentMethod().Name);
+                        target.ClearDialogState();
+                    }
+
                 }
             }
 
@@ -255,7 +384,8 @@ namespace Hybrasyl
                     sprite = Sprite;
 
                 dialogPacket.WriteByte(objType);
-                dialogPacket.WriteUInt32(invokee.Id);
+                // If no invokee ID, we use 0xFFFFFFFF; 99.9% of the time this is an async dialog request
+                dialogPacket.WriteUInt32(invokee?.Id ?? UInt32.MaxValue);
                 dialogPacket.WriteByte(0); // Unknown value
                 Log.Debug("Sprite is {Sprite}", sprite);
                 dialogPacket.WriteUInt16(sprite);
@@ -271,11 +401,13 @@ namespace Hybrasyl
                 dialogPacket.WriteBoolean(HasNextDialog());
 
                 dialogPacket.WriteByte(0);
-                dialogPacket.WriteString8(invokee.Name);
-                if (DisplayText != null)
-                {
-                    dialogPacket.WriteString16(DisplayText);
-                }
+                // TODO: Allow override here from DialogSequence
+                dialogPacket.WriteString8(invokee?.Name ?? Sequence.DisplayName);
+                var displayText = EvaluateDisplayText(invoker, invokee);
+
+                if (!string.IsNullOrEmpty(displayText))
+                    dialogPacket.WriteString16(displayText);
+
                 return dialogPacket;
             }
 
@@ -289,6 +421,174 @@ namespace Hybrasyl
             }
 
         }
+
+        /// <summary>
+        /// An AsyncDialogRequest is a dialog sequence that is showed to a player based on asynchronous input 
+        /// from another script, player, or event (such as a mentoring request). 
+        /// </summary>
+        public class AsyncDialogRequest
+        {
+            protected string Sequence = string.Empty;
+            private DialogSequence _sequence;
+            public VisibleObject Invoker;
+            public User Invokee;
+            private bool _requireLocal;
+
+            private bool _invokerClosed;
+            private bool _invokeeClosed;
+
+            public bool Complete
+            {
+                get
+                {
+                    if (Invoker is User)
+                        return _invokeeClosed && _invokerClosed;
+                    return _invokeeClosed;
+                }
+            }
+
+            public bool Ready => _invokeeReady && _invokerReady;
+
+            private bool _invokeeReady => !(Invokee.Condition.Comatose || Invokee.Condition.Casting ||
+                Invokee.Condition.InExchange || Invokee.Condition.Flags.HasFlag(PlayerFlags.InBoard) ||
+                (Invokee.DialogState?.InDialog ?? false));
+
+            private bool _invokerReady
+            {
+                get
+                {
+                    if (Invoker is User)
+                    {
+                        var user = Invoker as User;
+                        return user.Condition.Comatose || user.Condition.Casting ||
+                           user.Condition.InExchange || user.Condition.Flags.HasFlag(PlayerFlags.InBoard) ||
+                           (user.DialogState?.InDialog ?? false);
+                    }
+                    return true;
+                }
+            }
+
+            public void Close(UInt32 Id)
+            {
+                if (Invoker.Id == Id && Invoker is User)
+                    _invokerClosed = true;
+                if (Invokee.Id == Id)
+                    _invokeeClosed = true;
+
+                if (Complete)
+                    if (!Game.World.ActiveAsyncDialogs.TryRemove(new Tuple<UInt32, UInt32>(Invoker.Id, Invokee.Id), out _))
+                        GameLog.Error("Warning: couldn't close async dialog between {Invoker} and {Invokee}",
+                            Invoker.Name, Invokee.Name);
+                      
+            }
+
+            public AsyncDialogRequest(string sequence, VisibleObject invoker, User invokee, bool requireLocal = true)
+            {
+                Sequence = sequence;
+                Invoker = invoker;
+                Invokee = invokee;
+                _requireLocal = requireLocal;
+                _sequence = null;              
+            }
+
+            public AsyncDialogRequest(DialogSequence sequence, VisibleObject invoker, User invokee, bool requireLocal=true)
+            {
+                _sequence = sequence;
+                Invoker = invoker;
+                Invokee = invokee;
+                _requireLocal = requireLocal;
+            }
+
+            private void InvokerError(string message)
+            {
+                if (Invoker is User)
+                {
+                    (Invoker as User).SendSystemMessage(message);
+                    (Invoker as User).ClearDialogState();
+                }
+            }
+
+            public void End()
+            {
+                _invokerClosed = true;
+                _invokeeClosed = true;
+                Invokee.ClearDialogState();
+                (Invoker as User)?.ClearDialogState();
+            }
+            
+            private bool GetDialogSequence()
+            {
+                if (_sequence is null)
+                {
+                    if (Invoker.SequenceCatalog.TryGetValue(Sequence, out _sequence) || Game.World.GlobalSequences.TryGetValue(Sequence, out _sequence))
+                        return true;
+                    return false;
+                }
+                return true;
+            }
+
+            public bool CheckRequest()
+            {
+                if (!GetDialogSequence())
+                {
+                    Log.Error("AsyncDialogSequence: requested sequence {sequence} not found");
+                    return false;
+                }
+
+                // The sequence exists, now we do some checks.
+                //
+                // Do basic checks first.
+                // In all cases, the invokee must not be in an existing dialog sequence, or trading, 
+                // or reading a board
+                
+                if (!_invokeeReady)
+                {
+                    InvokerError("That person is busy.");                   
+                    return false;
+                }
+
+                if (!_invokerReady)
+                {
+                    InvokerError("You can't do that now.");
+                    return false;
+                }
+
+                // If the request is local, the invokee (dialog recipient) and the invoker must 
+                // be on the same map and within ASYNC_DIALOG_DISTANCE of each other.
+                //
+                if (_requireLocal && Invoker is VisibleObject)
+                {
+                    var invoker = Invoker as VisibleObject;
+                    if (invoker.Map.Id != Invokee.Map.Id || invoker.Distance(Invokee) > Constants.ASYNC_DIALOG_DISTANCE)
+                    {
+                        InvokerError("You need to be closer to do that.");
+                        return false;
+                    }
+                }
+                // all checks passed, do the thing
+                return true;
+            }
+
+            // Show the dialog to the recipient
+            public bool ShowTo()
+            {
+                // Do checks one last time, just to be safe
+                if (Ready)
+                {
+                    Invokee.DialogState.StartDialog(Invoker, _sequence);
+                    _sequence.ShowTo(Invokee);
+                    return true;
+                }
+
+                if (!_invokeeReady)
+                    InvokerError("That person is busy.");
+                if (!_invokerReady)
+                    InvokerError("You can't do that now.");
+
+                return false;
+            }
+        }
+
 
         /// <summary>
         /// A JumpDialog is a dialog that actually starts a new sequence. It's particularly useful for when you want a selected option to start a new
@@ -319,8 +619,8 @@ namespace Hybrasyl
                         (associate as VisibleObject).DisplayPursuits(invoker);
                     return; 
                 }
-                if (associate.SequenceCatalog.TryGetValue(NextSequence, out sequence) || Game.World.GlobalSequencesCatalog.TryGetValue(NextSequence, out sequence))
-                {
+               if (associate.SequenceCatalog.TryGetValue(NextSequence, out sequence) || Game.World.GlobalSequences.TryGetValue(NextSequence, out sequence))
+               {
                     // End previous sequence
                     invoker.DialogState.EndDialog();
                     invoker.DialogState.StartDialog(invokee, sequence);
@@ -356,8 +656,7 @@ namespace Hybrasyl
             {
                 if (Expression != null)
                 {
-                    VisibleObject associate = invokee == null ? Sequence.Associate as VisibleObject : invokee;
-                    associate.Script.Execute(Expression, invoker);
+                    GetScript(invokee).Execute(Expression, invoker);
                 }
                 // Skip to next dialog in sequence
                 Sequence.ShowByIndex(Index + 1, invoker, invokee);               
@@ -437,7 +736,7 @@ namespace Hybrasyl
                 Options.Add(new DialogOption(option, sequence));
             }
 
-            public void HandleResponse(WorldObject invoker, int optionSelected, WorldObject associateOverride = null)
+            public bool HandleResponse(WorldObject invoker, int optionSelected, WorldObject associateOverride = null, WorldObject source = null)
             {
                 WorldObject Associate;
                 string Expression = string.Empty;
@@ -445,13 +744,7 @@ namespace Hybrasyl
                 if (optionSelected < 0 || optionSelected > Options.Count)
                 {
                     Log.Error("Option dialog response: invalid player selection {OptionSelected}, aborting", optionSelected);
-                    if (invoker is User)
-                    {
-                        var user = invoker as User;
-                        user.DialogState.EndDialog();
-                        user.SendCloseDialog();
-                    }
-                    return;
+                    return false;
                 }
 
                 if (Sequence.Associate != null)
@@ -465,7 +758,22 @@ namespace Hybrasyl
                 {
                     // Use jump dialog first
                     Options[optionSelected - 1].JumpDialog.ShowTo(invoker as User, Associate as VisibleObject);
-                    return;
+                    return true;
+                }
+
+                // If the response is a sequence, start it
+                if (Options[optionSelected - 1].overrideSequence != null)
+                {
+                    var sequence = Options[optionSelected - 1].overrideSequence;
+                    if (invoker is User)
+                    {
+                        var user = invoker as User;
+                        // We lazily set this because an option / dialog can be constructed in a variety of places
+                        if (sequence.Associate == null)
+                            Associate.RegisterDialogSequence(sequence);
+                        user.DialogState.TransitionDialog(Associate as VisibleObject, Options[optionSelected - 1].overrideSequence);
+                        sequence.ShowTo(user, Associate as VisibleObject);
+                    }
                 }
 
                 // If the response is a sequence, start it
@@ -494,10 +802,10 @@ namespace Hybrasyl
                 // Regardless of what handler we use, make sure the script can see the value.
                 // We pass everything as string to not make UserData barf, as it can't handle dynamics.
                 // For option dialogs we pass both the "number" selected, and the actual text of the button pressed.
-                Associate.Script.SetGlobalValue("player_selection", optionSelected.ToString());
-                Associate.Script.SetGlobalValue("player_response", Options[optionSelected - 1].OptionText);
-                Associate.Script.Execute(Expression, invoker);
-                
+                var script = GetScript(associateOverride);
+                script.SetGlobalValue("player_selection", optionSelected.ToString());
+                script.SetGlobalValue("player_response", Options[optionSelected - 1].OptionText);
+                return script.Execute(Expression, invoker, source);
             }
         }
 
@@ -526,7 +834,7 @@ namespace Hybrasyl
                 RunCallback(invoker, invokee);
             }
 
-            public void HandleResponse(WorldObject invoker, string response, WorldObject associateOverride = null)
+            public bool HandleResponse(WorldObject invoker, string response, WorldObject associateOverride = null, WorldObject source = null)
             {
                 Log.Debug("Response {Response} from player {Invoker}", response, invoker.Name);
 
@@ -536,16 +844,19 @@ namespace Hybrasyl
                     if (Sequence.Associate == null && associateOverride == null && Sequence.Script == null)
                     {
                         Log.Error("InputDialog has no known associate or script...?");
-                        // Need better error handling here
-                        return;
+                        return false;
                     }
 
-                    var Associate = associateOverride == null ? Sequence.Associate : associateOverride;
-                    // Make sure the script can see the response
-                    Associate.Script.SetGlobalValue("player_response", response);
-                    Associate.Script.Execute(Handler, invoker);
-
+                    var scriptTarget = GetScript(associateOverride);
+                    if (scriptTarget == null)
+                    {
+                        Log.Error("scriptTarget is null, this should not happen");
+                        return false;
+                    }
+                    scriptTarget.SetGlobalValue("player_response", response);
+                    return scriptTarget.Execute(Handler, invoker, source);
                 }
+                return false;
             }
         }
 
@@ -562,7 +873,7 @@ namespace Hybrasyl
                 get
                 {
                     if (InDialog)
-                        return ActiveDialogSequence.Id ?? default(int);
+                        return ActiveDialogSequence?.Id ?? default(int);
                     else
                         return 0;
                 }
@@ -575,7 +886,7 @@ namespace Hybrasyl
                 get
                 {
                     if (InDialog)
-                        return ActiveDialog.Index;
+                        return ActiveDialog?.Index ?? default(int);
                     else
                         return -1;
                 }
@@ -586,7 +897,11 @@ namespace Hybrasyl
                 get
                 {
                     if (InDialog)
-                        return (int)Associate.Id;
+                        if (CurrentPursuitId == Constants.DIALOG_SEQUENCE_ASYNC)
+                            // Async dialogs have a fixed merchant ID of 0xFFFFFFFF
+                            return int.MaxValue;
+                        else
+                            return (int) (Associate?.Id ?? default(int));
                     else
                         return -1;
                 }
@@ -597,8 +912,12 @@ namespace Hybrasyl
             {
                 get
                 {
-                    return (Associate != null &&
-                        ActiveDialog != null && ActiveDialogSequence != null);
+                    if (ActiveDialog != null && ActiveDialogSequence != null)
+                        if (ActiveDialogSequence.Id < Constants.DIALOG_SEQUENCE_SHARED)
+                            return true;
+                        else
+                            return Associate != null;
+                    return false;
                 }
             }
 
@@ -683,10 +1002,16 @@ namespace Hybrasyl
             public bool SetDialogIndex(VisibleObject target, int pursuitId, int newIndex)
             {
                 // Sanity checking
-                if (target != Associate || pursuitId != CurrentPursuitId ||
-                    target.Map.Id != User.Map.Id || !InDialog)
+                if (target != null && (target != Associate || pursuitId != CurrentPursuitId ||
+                    target.Map.Id != User.Map.Id || !InDialog))
                 {
                     Log.Debug("{Username}: Failed dialog sanity check", User.Name);
+                    return false;
+                }
+
+                if (target == null && pursuitId > Constants.DIALOG_SEQUENCE_SHARED)
+                {
+                    Log.Error("{Username}: dialog associate is null but pursuitId is associate-specific");
                     return false;
                 }
 

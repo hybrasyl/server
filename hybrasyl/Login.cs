@@ -13,23 +13,20 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
- * Authors:   Justin Baugh  <baughj@hybrasyl.com>
- *            Kyle Speck    <kojasou@hybrasyl.com>
+ * For contributors and individual authors please refer to CONTRIBUTORS.MD.
+ * 
  */
 
 using System.Net;
-using Hybrasyl.Enums;
 using Hybrasyl.Objects;
 using System;
 using System.Collections;
 using System.Linq;
 using System.Text.RegularExpressions;
-using Newtonsoft.Json;
 using StackExchange.Redis;
-using Hybrasyl.Statuses;
+using Hybrasyl.Xml.Common;
 
 namespace Hybrasyl
 {
@@ -150,7 +147,7 @@ namespace Hybrasyl
                 return;
             }
             var hairStyle = packet.ReadByte();
-            var sex = packet.ReadByte();
+            var gender = packet.ReadByte();
             var hairColor = packet.ReadByte();
 
             if (hairStyle < 1)
@@ -162,11 +159,11 @@ namespace Hybrasyl
             if (hairColor > 13)
                 hairColor = 13;
 
-            if (sex < 1)
-                sex = 1;
+            if (gender < 1)
+                gender = 1;
 
-            if (sex > 2)
-                sex = 2;
+            if (gender > 2)
+                gender = 2;
 
             // Try to get our map
             // TODO: replace with XML config for start map, x, y
@@ -177,7 +174,7 @@ namespace Hybrasyl
             {
                 var newPlayer = new User();
                 newPlayer.Name = client.NewCharacterName;
-                newPlayer.Sex = (Sex) sex;
+                newPlayer.Gender = (Gender) gender;
                 newPlayer.Location.Direction = Direction.South;
                 newPlayer.Location.Map = map;
                 newPlayer.Location.X = 10; 

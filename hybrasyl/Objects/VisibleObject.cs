@@ -13,8 +13,7 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015-2016 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
@@ -28,6 +27,7 @@ using Hybrasyl.Enums;
 using Serilog;
 using MoonSharp.Interpreter;
 using Newtonsoft.Json;
+using Hybrasyl.Xml.Common;
 
 namespace Hybrasyl.Objects
 {
@@ -47,6 +47,9 @@ namespace Hybrasyl.Objects
         public string Portrait { get; set; }
         public string DisplayText { get; set; }
 
+        // Whether or not to allow a ghost (a dead player) to interact with this object
+        public bool AllowDead { get; set; }
+
         public string DeathPileOwner { get; set; }
         public List<string> ItemDropAllowedLooters { get; set; }
         public DateTime? ItemDropTime { get; set; }
@@ -63,6 +66,7 @@ namespace Hybrasyl.Objects
             viewportUsers = new HashSet<User>();
             Location = new LocationInfo();
             ItemDropType = ItemDropType.Normal;
+            AllowDead = false;
         }
 
         public virtual void AoiEntry(VisibleObject obj)
@@ -328,15 +332,15 @@ namespace Hybrasyl.Objects
                 optionsCount++;
 
             }
-        
-            var packet =new ServerPacketStructures.MerchantResponse()
+
+            var packet = new ServerPacketStructures.MerchantResponse()
             {
                 MerchantDialogType = MerchantDialogType.Options,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
                 ObjectId = Id,
-                Tile1 = (ushort)(Sprite),
+                Tile1 = (ushort)(0x4000 + Sprite),
                 Color1 = 0,
-                Tile2 = (ushort)(Sprite),
+                Tile2 = (ushort)(0x4000 + Sprite),
                 Color2 = 0,
                 PortraitType = 1,
                 Name = Name,

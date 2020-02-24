@@ -13,8 +13,7 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015-2016 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
@@ -27,8 +26,6 @@ namespace Hybrasyl.Objects
 {
     public class Reactor : VisibleObject
     {
-        //private reactor _reactor;
-        private HybrasylWorldObject _world;
 
         public bool Ready
         {
@@ -66,7 +63,7 @@ namespace Hybrasyl.Objects
             {
                 Script = myScript;
                 Script.AssociateScriptWithObject(this);
-                _ready = Script.Run();
+                _ready = Script.Run(false);
             }
             else
             {
@@ -80,22 +77,27 @@ namespace Hybrasyl.Objects
         public virtual void OnEntry(VisibleObject obj)
         {
             if (obj is User)
-                ((User)obj).LastAssociate = this;
+            {
+                var user = obj as User;
+                user.LastAssociate = this;
+                if (!user.Condition.Alive && !AllowDead)
+                    return;
+            }
             if (Ready)
-                Script.ExecuteFunction("OnEntry", Script.GetObjectWrapper(obj));
+                Script.ExecuteFunction("OnEntry", Script.GetObjectWrapper(obj), Script.GetObjectWrapper(this));
         }
 
         public override void AoiEntry(VisibleObject obj)
         {
             base.AoiEntry(obj);
             if (Ready)
-                Script.ExecuteFunction("AoiEntry", Script.GetObjectWrapper(obj));
+                Script.ExecuteFunction("AoiEntry", Script.GetObjectWrapper(obj), Script.GetObjectWrapper(this));
         }
 
         public virtual void OnLeave(VisibleObject obj)
         {
             if (Ready && Script.HasFunction("OnLeave"))
-                Script.ExecuteFunction("OnLeave", Script.GetObjectWrapper(obj));
+                Script.ExecuteFunction("OnLeave", Script.GetObjectWrapper(obj), Script.GetObjectWrapper(this));
             if (obj is User)
                 ((User)obj).LastAssociate = null;
         }
@@ -104,13 +106,13 @@ namespace Hybrasyl.Objects
         {
             base.AoiDeparture(obj);
             if (Ready)
-                Script.ExecuteFunction("AoiDeparture", Script.GetObjectWrapper(obj));
+                Script.ExecuteFunction("AoiDeparture", Script.GetObjectWrapper(obj), Script.GetObjectWrapper(this));
         }
 
         public virtual void OnDrop(VisibleObject obj, VisibleObject dropped)
         {
             if (Ready)
-                Script.ExecuteFunction("OnDrop", Script.GetObjectWrapper(obj),
+                Script.ExecuteFunction("OnDrop", Script.GetObjectWrapper(obj), Script.GetObjectWrapper(this),
                     Script.GetObjectWrapper(dropped));
         }
 
@@ -118,13 +120,13 @@ namespace Hybrasyl.Objects
         public void OnMove(VisibleObject obj)
         {
             if (Ready)
-                Script.ExecuteFunction("OnMove", Script.GetObjectWrapper(obj));
+                Script.ExecuteFunction("OnMove", Script.GetObjectWrapper(obj), Script.GetObjectWrapper(this));
         }
 
         public void OnTake(VisibleObject obj, VisibleObject taken)
         {
             if (Ready)
-                Script.ExecuteFunction("OnTake", Script.GetObjectWrapper(obj),
+                Script.ExecuteFunction("OnTake", Script.GetObjectWrapper(obj), Script.GetObjectWrapper(this),
                     Script.GetObjectWrapper(taken));
         }
 

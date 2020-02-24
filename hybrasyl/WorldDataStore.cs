@@ -1,12 +1,31 @@
-﻿using System;
+﻿/*
+ * This file is part of Project Hybrasyl.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the Affero General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+ * for more details.
+ *
+ * You should have received a copy of the Affero General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
+ *
+ * (C) 2020 ERISCO, LLC 
+ *
+ * For contributors and individual authors please refer to CONTRIBUTORS.MD.
+ * 
+ */
+ 
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.RegularExpressions;
-using Hybrasyl.Items;
-using Hybrasyl.Utility;
+using Hybrasyl.Xml.Common;
 
 namespace Hybrasyl
 {
@@ -130,10 +149,9 @@ namespace Hybrasyl
         {
             tresult = default(T);
             var sub = GetSubIndex<T>();
-
             if (!sub.ContainsKey(key.ToString().Normalize()))
             {
-                GameLog.Error($"TryGetValueByIndex: type {typeof(T)}: key {key.ToString().Normalize()} not found");
+                //GameLog.Error($"TryGetValueByIndex: type {typeof(T)}: key {key.ToString().Normalize()} not found");
                 return false;
             }
             tresult = (T)sub[key.ToString().Normalize()];
@@ -216,14 +234,14 @@ namespace Hybrasyl
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
-        public List<Item> FindItem(string name)
-        {
-            var ret = new List<Item>();
-            foreach (var gender in Enum.GetValues(typeof(Enums.Sex)))
+        public List<Xml.Item.Item> FindItem(string name)
+       {
+            var ret = new List<Xml.Item.Item>();
+            foreach (var gender in Enum.GetValues(typeof(Gender)))
             {
                 var rawhash = $"{name.Normalize()}:{gender.ToString().Normalize()}";
                 var hash = sha.ComputeHash(Encoding.ASCII.GetBytes(rawhash));
-                if (TryGetValue<Item>(string.Concat(hash.Select(b => b.ToString("x2"))).Substring(0, 8), out Item result))
+                if (TryGetValue(string.Concat(hash.Select(b => b.ToString("x2"))).Substring(0, 8), out Xml.Item.Item result))
                     ret.Add(result);
             }
             return ret;

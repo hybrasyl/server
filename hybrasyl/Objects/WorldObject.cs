@@ -13,8 +13,7 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015-2016 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
@@ -54,13 +53,49 @@ namespace Hybrasyl.Objects
         public World World { get; set; }
         public ushort DialogSprite { get; set; }
 
-        public ConcurrentDictionary<string, dynamic> EphemeralStore { get; set; }
+        private Dictionary<string, dynamic> _ephemeralStore { get; set; }
+        private readonly object _storeLock = new object();
 
-        public WorldObject()
+        public void SetEphemeral(string key, dynamic value)
+        {
+            lock(_storeLock)
+                _ephemeralStore[key] = value;
+        }
+
+        public List<Tuple<string, dynamic>> GetEphemeralValues()
+        {
+            var ret = new List<Tuple<string, dynamic>>();
+            lock (_storeLock)
+            {
+                foreach (var entry in _ephemeralStore)
+                    ret.Add(new Tuple<string,dynamic>(entry.Key, entry.Value));
+            }
+            return ret;
+        }
+
+        public dynamic GetEphemeral(string key)
+        {
+            lock (_storeLock)
+                return _ephemeralStore.ContainsKey(key) ? _ephemeralStore[key] : null;
+        }
+
+        public bool ClearEphemeral(string key)
+        {
+            lock (_storeLock)
+                return _ephemeralStore.ContainsKey(key) ? _ephemeralStore.Remove(key) : false;
+        }
+
+        public bool TryGetEphemeral(string key, out dynamic value)
+        {
+            lock (_storeLock)
+                return _ephemeralStore.TryGetValue(key, out value);
+        }
+
+	public WorldObject()
         {
             Name = string.Empty;
             ResetPursuits();
-            EphemeralStore = new ConcurrentDictionary<string, dynamic>();
+            _ephemeralStore = new Dictionary<string, dynamic>();
         }
 
         public virtual void SendId()
