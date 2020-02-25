@@ -13,7 +13,7 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2016 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC
  *
  */
 
@@ -25,9 +25,26 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.Xml.Serialization;
 using System.Security.Cryptography;
 using System.Text;
-using Hybrasyl.Xml.Common;
 
-namespace Hybrasyl.Xml.Item
+public static class EnumerableExtension
+{
+    public static T PickRandom<T>(this IEnumerable<T> source)
+    {
+        return source.PickRandom(1).Single();
+    }
+
+    public static IEnumerable<T> PickRandom<T>(this IEnumerable<T> source, int count)
+    {
+        return source.Shuffle().Take(count);
+    }
+
+    public static IEnumerable<T> Shuffle<T>(this IEnumerable<T> source)
+    {
+        return source.OrderBy(x => Guid.NewGuid());
+    }
+}
+
+namespace Hybrasyl.Xml
 {
     public partial class Item
     {
@@ -84,7 +101,7 @@ namespace Hybrasyl.Xml.Item
         public int BonusMP => Properties.StatModifiers.Base?.Mp ?? 0;
 
         [XmlIgnore]
-        public Class Class => Properties.Restrictions?.@Class ?? Class.Peasant;
+        public Class Class => Properties.Restrictions?.Class ?? Class.Peasant;
         [XmlIgnore]
         public Gender Gender => Properties.Restrictions?.Gender ?? Gender.Neutral;
 
@@ -130,7 +147,7 @@ namespace Hybrasyl.Xml.Item
         #endregion
 
         [XmlIgnore]
-        public Dictionary<int, Item> Variants { get; set; }
+        public Dictionary<string, List<Item>> Variants { get; set; }
 
         public string Id
         {
@@ -152,12 +169,27 @@ namespace Hybrasyl.Xml.Item
             ms.Close();
             return (Item)obj;
         }
+
+        public Item RandomVariant(string variant)
+        {
+            if (Variants.ContainsKey(variant))
+            {
+                return Variants[variant].PickRandom();
+            }
+            return null;
+        }
+
+    }
+
+    public partial class VariantGroup
+    {
+        public Variant RandomVariant() => Variant.PickRandom();
     }
 }
 
-namespace Hybrasyl.Xml.Castable
+namespace Hybrasyl.Xml
 {
-    public partial class Heal
+    public partial class CastableHeal
     {
         public bool IsSimple
         {
@@ -174,7 +206,7 @@ namespace Hybrasyl.Xml.Castable
         }
     }
 
-    public partial class Damage
+    public partial class CastableDamage
     {
         public bool IsSimple
         {
@@ -222,7 +254,7 @@ namespace Hybrasyl.Xml.Castable
             return (byte)(maxLevelProperty != null ? maxLevelProperty.GetValue(MaxLevel, null) : 0);
         }
 
-        public bool TryGetMotion(Class castClass, out Motion motion)
+        public bool TryGetMotion(Class castClass, out CastableMotion motion)
         {
             motion = null;
 
@@ -243,9 +275,9 @@ namespace Hybrasyl.Xml.Castable
 
 }
 
-namespace Hybrasyl.Xml.Status
+namespace Hybrasyl.Xml
 {
-    public partial class Heal
+    public partial class StatusHeal
     {
         public bool IsSimple
         {
@@ -262,7 +294,7 @@ namespace Hybrasyl.Xml.Status
 
     }
 
-    public partial class Damage
+    public partial class StatusDamage
     {
         public bool IsSimple
         {
@@ -294,7 +326,7 @@ namespace Hybrasyl.Xml.Status
     }
 }
 
-namespace Hybrasyl.Xml.ServerConfig
+namespace Hybrasyl.Xml
 {
 
     public partial class Time
@@ -373,7 +405,7 @@ namespace Hybrasyl.Xml.ServerConfig
         }
     }
 }
-namespace Hybrasyl.Xml.Creature
+namespace Hybrasyl.Xml
 {
       
     public partial class Spawn
@@ -410,7 +442,7 @@ namespace Hybrasyl.Xml.Creature
             return (Element)Rng.Next(1, 4);
         }
     }
-    public partial class Map
+    public partial class SpawnMap
     {
         public DateTime LastSpawn { get; set; }
         public int Id { get; set; }
@@ -423,7 +455,7 @@ namespace Hybrasyl.Xml.Creature
 
 }
 
-namespace Hybrasyl.Xml.Nation
+namespace Hybrasyl.Xml
 {
     public partial class Nation
     {

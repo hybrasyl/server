@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<xs:schema xmlns:hyb="http://www.hybrasyl.com/XML/Common" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:config="http://www.hybrasyl.com/XML/ServerConfig" targetNamespace="http://www.hybrasyl.com/XML/ServerConfig" elementFormDefault="qualified">
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
 
   <xs:annotation>
     <xs:documentation xml:lang="en">
@@ -23,7 +23,7 @@
     </xs:documentation>
   </xs:annotation>
 
-  <xs:import schemaLocation="Common.xsd" namespace="http://www.hybrasyl.com/XML/Common" />
+  <xs:include schemaLocation="Common.xsd" />
 
   <xs:complexType name="DataStore">
     <xs:sequence>
@@ -36,27 +36,27 @@
   </xs:complexType>
 
   <xs:complexType name="NetworkInfo">
-    <xs:attribute name="BindAddress" type="hyb:IpAddress" default="127.0.0.1" />
+    <xs:attribute name="BindAddress" type="IpAddress" default="127.0.0.1" />
     <xs:attribute name="Port" type="xs:unsignedShort" use="required" />
   </xs:complexType>
 
   <xs:complexType name="TargetUrl">
     <xs:attribute name="Url" type="xs:anyURI"/>
     <xs:attribute name="Port" type="xs:unsignedShort"/>
-   </xs:complexType>
-  
+  </xs:complexType>
+
   <xs:complexType name="Network">
     <xs:sequence>
-      <xs:element name="Lobby" type="config:NetworkInfo" />
-      <xs:element name="Login" type="config:NetworkInfo" />
-      <xs:element name="World" type="config:NetworkInfo" />
+      <xs:element name="Lobby" type="NetworkInfo" />
+      <xs:element name="Login" type="NetworkInfo" />
+      <xs:element name="World" type="NetworkInfo" />
     </xs:sequence>
   </xs:complexType>
 
   <xs:complexType name="ApiEndpoints">
     <xs:sequence>
-      <xs:element name="ControlService" type="config:NetworkInfo" />
-      <xs:element name="RemoteAdminHost" type="config:TargetUrl" />
+      <xs:element name="ControlService" type="NetworkInfo" />
+      <xs:element name="RemoteAdminHost" type="TargetUrl" />
     </xs:sequence>
   </xs:complexType>
 
@@ -84,80 +84,80 @@
 
   <xs:complexType name="GlobalBoards">
     <xs:sequence>
-      <xs:element name="Board" type="config:GlobalBoard" minOccurs="0" maxOccurs="unbounded" />
+      <xs:element name="Board" type="GlobalBoard" minOccurs="0" maxOccurs="unbounded" />
     </xs:sequence>
   </xs:complexType>
 
   <xs:complexType name="GlobalBoard">
     <xs:sequence>
-      <xs:element name="AccessList" type="config:GlobalBoardAccessList" minOccurs="0" maxOccurs="1" />
+      <xs:element name="AccessList" type="GlobalBoardAccessList" minOccurs="0" maxOccurs="1" />
     </xs:sequence>
     <xs:attribute name="Name" type="xs:token" use="required" />
-    <xs:attribute name="DisplayName" type="hyb:String8" use="required" />
+    <xs:attribute name="DisplayName" type="String8" use="required" />
   </xs:complexType>
 
   <xs:complexType name="GlobalBoardAccessList">
     <xs:sequence minOccurs="0" maxOccurs="unbounded">
-      <xs:element name="Read" type="hyb:CharacterName" minOccurs="0" maxOccurs="unbounded" />
-      <xs:element name="Write" type="hyb:CharacterName" minOccurs="0" maxOccurs="unbounded" />
-      <xs:element name="Moderate" type="hyb:CharacterName" minOccurs="0" maxOccurs="unbounded" />
+      <xs:element name="Read" type="CharacterName" minOccurs="0" maxOccurs="unbounded" />
+      <xs:element name="Write" type="CharacterName" minOccurs="0" maxOccurs="unbounded" />
+      <xs:element name="Moderate" type="CharacterName" minOccurs="0" maxOccurs="unbounded" />
     </xs:sequence>
   </xs:complexType>
 
   <xs:complexType name="LogConfig">
     <xs:attribute name="Type" type="xs:string" default="file" />
     <xs:attribute name="Target" type="xs:string" default="hybrasyl.log" />
-    <xs:attribute name="Level" type="config:LogLevel" default="Info" />
+    <xs:attribute name="Level" type="LogLevel" default="Info" />
   </xs:complexType>
 
   <xs:complexType name="ServerConfig">
     <xs:sequence>
-      <xs:element name="Logging" type="config:LogConfig" minOccurs="0" maxOccurs="1" />
-      <xs:element name="DataStore" type="config:DataStore" minOccurs="1" maxOccurs="1" />
-      <xs:element name="Network" type="config:Network" minOccurs="1" maxOccurs="1" />
-      <xs:element name="ApiEndpoints" type="config:ApiEndpoints" minOccurs="1" maxOccurs="1" />
-      <xs:element name="Access" type="config:Access" minOccurs="0" maxOccurs="1" />
-      <xs:element name="Boards" type="config:GlobalBoards" minOccurs="0" maxOccurs="1" />
-      <xs:element name="Time" type="config:Time" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="Handlers" type="config:Handlers" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Logging" type="LogConfig" minOccurs="0" maxOccurs="1" />
+      <xs:element name="DataStore" type="DataStore" minOccurs="1" maxOccurs="1" />
+      <xs:element name="Network" type="Network" minOccurs="1" maxOccurs="1" />
+      <xs:element name="ApiEndpoints" type="ApiEndpoints" minOccurs="1" maxOccurs="1" />
+      <xs:element name="Access" type="Access" minOccurs="0" maxOccurs="1" />
+      <xs:element name="Boards" type="GlobalBoards" minOccurs="0" maxOccurs="1" />
+      <xs:element name="Time" type="Time" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Handlers" type="Handlers" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
   </xs:complexType>
 
   <xs:complexType name="Time">
     <xs:sequence>
-      <xs:element name="Ages" type="config:HybrasylAges" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="ServerStart" type="config:ServerStart" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Ages" type="HybrasylAges" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="ServerStart" type="ServerStart" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
   </xs:complexType>
 
   <xs:complexType name="ServerStart">
     <xs:simpleContent>
       <xs:extension base="xs:dateTime">
-        <xs:attribute name="DefaultAge" type="hyb:String5" default="Hybrasyl"/>
+        <xs:attribute name="DefaultAge" type="String5" default="Hybrasyl"/>
         <xs:attribute name="DefaultYear" type="xs:int" default="1"/>
       </xs:extension>
     </xs:simpleContent>
   </xs:complexType>
 
   <xs:complexType name="HybrasylAge">
-    <xs:attribute name="Name" type="hyb:String5" use="required"/>
+    <xs:attribute name="Name" type="String5" use="required"/>
     <xs:attribute name="StartDate" type="xs:dateTime" use="required"/>
     <xs:attribute name="EndDate" type="xs:dateTime" use="optional"/>
     <xs:attribute name="StartYear" type="xs:int" default="1"/>
   </xs:complexType>
-  
+
   <xs:complexType name="HybrasylAges">
     <xs:sequence>
-      <xs:element name="Age" minOccurs="1" maxOccurs="unbounded" type="config:HybrasylAge">
+      <xs:element name="Age" minOccurs="1" maxOccurs="unbounded" type="HybrasylAge">
       </xs:element>
     </xs:sequence>
   </xs:complexType>
 
   <xs:complexType name="Handlers">
     <xs:sequence>
-      <xs:element name="Death" minOccurs="0" maxOccurs="1" type="config:Death" />
-      <xs:element name="Chat" minOccurs="0" maxOccurs="1" type="config:Chat"/>
-      <xs:element name="NewPlayer" minOccurs="1" maxOccurs="1" type="config:NewPlayer"/>
+      <xs:element name="Death" minOccurs="0" maxOccurs="1" type="Death" />
+      <xs:element name="Chat" minOccurs="0" maxOccurs="1" type="Chat"/>
+      <xs:element name="NewPlayer" minOccurs="1" maxOccurs="1" type="NewPlayer"/>
     </xs:sequence>
   </xs:complexType>
 
@@ -168,10 +168,10 @@
 
   <xs:complexType name="Death">
     <xs:sequence>
-      <xs:element name="Map" type="config:DeathMap" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="Coma" type="config:DeathComa" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="Penalty" type="config:DeathPenalty" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="LegendMark" type="config:DeathLegendMark" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Map" type="DeathMap" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="Coma" type="DeathComa" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="Penalty" type="DeathPenalty" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="LegendMark" type="DeathLegendMark" minOccurs="0" maxOccurs="1"/>
 
     </xs:sequence>
     <xs:attribute name="Active" type="xs:boolean" default="true" use="optional"/>
@@ -181,13 +181,13 @@
 
   <xs:complexType name="DeathMap">
     <xs:simpleContent>
-      <xs:extension base="hyb:String8">
+      <xs:extension base="String8">
         <xs:attribute name="X" type="xs:unsignedByte" use="required"/>
         <xs:attribute name="Y" type="xs:unsignedByte" use="required"/>
       </xs:extension>
     </xs:simpleContent>
   </xs:complexType>
-  
+
   <xs:complexType name="DeathComa">
     <xs:simpleContent>
       <xs:extension base="xs:string">
@@ -196,7 +196,7 @@
       </xs:extension>
     </xs:simpleContent>
   </xs:complexType>
-  
+
   <xs:complexType name="DeathPenalty">
     <xs:attribute name="Xp" type="xs:string" default="0.05"/>
     <xs:attribute name="Hp" type="xs:string" default="0.05"/>
@@ -204,8 +204,8 @@
 
   <xs:complexType name="DeathLegendMark">
     <xs:simpleContent>
-      <xs:extension base="hyb:String8">
-        <xs:attribute name="Prefix" type="hyb:String8" default="deaths"/>
+      <xs:extension base="String8">
+        <xs:attribute name="Prefix" type="String8" default="deaths"/>
         <xs:attribute name="Increment" type="xs:boolean" default="true"/>
       </xs:extension>
     </xs:simpleContent>
@@ -213,24 +213,24 @@
 
   <xs:complexType name="NewPlayer">
     <xs:sequence>
-      <xs:element name="StartMaps" minOccurs="1" maxOccurs="1" type="config:StartMaps"/>
+      <xs:element name="StartMaps" minOccurs="1" maxOccurs="1" type="StartMaps"/>
     </xs:sequence>
   </xs:complexType>
 
   <xs:complexType name="StartMaps">
     <xs:sequence>
-      <xs:element name="StartMap" minOccurs="1" maxOccurs="unbounded" type="config:StartMap"/>
+      <xs:element name="StartMap" minOccurs="1" maxOccurs="unbounded" type="StartMap"/>
     </xs:sequence>
   </xs:complexType>
-     
+
   <xs:complexType name="StartMap">
     <xs:simpleContent>
-      <xs:extension base="hyb:String8">
+      <xs:extension base="String8">
         <xs:attribute name="X" type="xs:unsignedByte" use="required"/>
         <xs:attribute name="Y" type="xs:unsignedByte" use="required"/>
       </xs:extension>
     </xs:simpleContent>
   </xs:complexType>
 
-<xs:element name="ServerConfig" type="config:ServerConfig" />
+  <xs:element name="ServerConfig" type="ServerConfig" />
 </xs:schema>

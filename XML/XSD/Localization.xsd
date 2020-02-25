@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<xs:schema xmlns:hyb="http://www.hybrasyl.com/XML/Common" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:strings="http://www.hybrasyl.com/XML/String" targetNamespace="http://www.hybrasyl.com/XML/String" elementFormDefault="qualified">
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
 
   <xs:annotation>
     <xs:documentation xml:lang="en">
@@ -23,46 +23,47 @@
     </xs:documentation>
   </xs:annotation>
 
-  <xs:import schemaLocation="Common.xsd" namespace="http://www.hybrasyl.com/XML/Common" />
+  <xs:include schemaLocation="Common.xsd"/>
   <!--Separated for future expansion usage.-->
-  <xs:complexType name="String">
+
+  <xs:complexType name="LocalizedString">
     <xs:attribute name="Key" type="xs:string"/>
     <xs:attribute name="Value" type="xs:string"/>
   </xs:complexType>
 
   <xs:complexType name="MerchantStrings">
     <xs:sequence>
-      <xs:element name="String" type="strings:String" minOccurs="0" maxOccurs="unbounded" />
+      <xs:element name="String" type="LocalizedString" minOccurs="0" maxOccurs="unbounded" />
     </xs:sequence>
   </xs:complexType>
 
   <xs:complexType name="MonsterPhrases">
     <xs:sequence>
-      <xs:element name="String" type="strings:String" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="String" type="LocalizedString" minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
   </xs:complexType>
 
   <xs:complexType name="NpcPhrases">
     <xs:sequence>
-      <xs:element name="String" type="strings:String" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="String" type="LocalizedString" minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
   </xs:complexType>
 
   <xs:complexType name="CommonStrings">
     <xs:sequence>
-      <xs:element name="String" type="strings:String" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="String" type="LocalizedString" minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
   </xs:complexType>
 
-  <xs:complexType name="Strings">
+  <xs:complexType name="LocalizedStrings">
     <xs:sequence>
-      <xs:element name="Common" type="strings:CommonStrings" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="Merchant" type="strings:MerchantStrings" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="NpcSpeak" type="strings:NpcPhrases" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="MonsterSpeak" type="strings:MonsterPhrases" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="Common" type="CommonStrings" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="Merchant" type="MerchantStrings" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="NpcSpeak" type="NpcPhrases" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="MonsterSpeak" type="MonsterPhrases" minOccurs="1" maxOccurs="1"/>
     </xs:sequence>
   </xs:complexType>
-  
-  <xs:element name="Strings" type="strings:Strings"/>
-  
+
+  <xs:element name="Strings" type="LocalizedStrings"/>
+
 </xs:schema>

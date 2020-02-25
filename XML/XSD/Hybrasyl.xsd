@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xs:schema id="Hybrasyl"
+    targetNamespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02"
+    xmlns="http://www.hybrasyl.com/XML/Hybrasyl/2020-02"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+  <!-- To make things easier, we bind everything into a master namespace that can be versioned,
+  this allows us to share types and also use one namespace rather than N namespaces -->
+
+  <xs:include schemaLocation="Common.xsd"/>
+  <xs:include schemaLocation="Castable.xsd"/>
+  <xs:include schemaLocation="Creature.xsd"/>
+  <xs:include schemaLocation="Item.xsd" />
+  <xs:include schemaLocation="Loot.xsd"/>
+  <xs:include schemaLocation="Map.xsd"/>
+  <xs:include schemaLocation="Nation.xsd"/>
+  <xs:include schemaLocation="ServerConfig.xsd"/>
+  <xs:include schemaLocation="Status.xsd"/>
+  <xs:include schemaLocation="Localization.xsd"/>
+
+</xs:schema>
