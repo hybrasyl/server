@@ -22,7 +22,7 @@
 using Hybrasyl.Xml.Castable;
 using Hybrasyl.Objects;
 using MoonSharp.Interpreter;
-using Hybrasyl.Xml.Loot;
+using Hybrasyl.Xml.Common;
 
 namespace Hybrasyl.Scripting
 {
@@ -112,9 +112,9 @@ namespace Hybrasyl.Scripting
             set => Spawn.Loot.Table[0].Chance = value;
         }
 
-        public void AddLootItem(string item, int min = 1, int max = 0)
+        public void AddLootItem(string item, int max = 0)
         {
-            if (Game.World.WorldData.TryGetValue<ItemObject>(item, out ItemObject theItem))
+            if (Game.World.WorldData.TryGetValue<ItemObject>(item, out _))
             {
                 if (Spawn.Loot.Table.Count >= 1)
                 {
@@ -122,9 +122,10 @@ namespace Hybrasyl.Scripting
                     // please feel free to implement the functionality on your own and make a PR.
                     var lootItem = new LootItem();
                     lootItem.Value = item;
-                    lootItem.Min = min;
                     lootItem.Max = max;
-                    Spawn.Loot.Table[0].Items.Items.Add(lootItem);
+                    var itemList = new LootTableItemList();
+                    itemList.Item.Add(lootItem);
+                    Spawn.Loot.Table[0].Items.Add(itemList);
                 }
             }
         }

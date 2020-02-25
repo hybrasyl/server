@@ -4,7 +4,7 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp2.2</TargetFramework>
     <Authors>Project Hybrasyl contributors</Authors>
-    <Copyright>(C) 2019 Project Hybrasyl</Copyright>
+    <Copyright>(C) 2019 ERISCO LLC</Copyright>
     <PackageLicenseExpression>AGPL-3.0-only</PackageLicenseExpression>
     <PackageProjectUrl>https://www.hybrasyl.com</PackageProjectUrl>
     <RepositoryUrl>https://github.com/hybrasyl/server</RepositoryUrl>

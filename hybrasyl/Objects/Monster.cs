@@ -26,6 +26,7 @@ using Hybrasyl.Xml.Creature;
 using Hybrasyl.Enums;
 using XmlCreature = Hybrasyl.Xml.Creature.Creature;
 using Hybrasyl.Xml.Common;
+using XmlItem = Hybrasyl.Xml.Item.Item;
 
 namespace Hybrasyl.Objects
 {
@@ -51,9 +52,6 @@ namespace Hybrasyl.Objects
         public bool ShouldWander { get; set; }
         public bool CanCast => _spawn.Castables.Count > 0;
 
-
-
-
         public override void OnDeath()
         {
             //Shout("AAAAAAAAAAaaaaa!!!");
@@ -70,8 +68,9 @@ namespace Hybrasyl.Objects
             hitter.ShareExperience(LootableXP);
             var itemDropTime = DateTime.Now;
 
-            foreach (var item in LootableItems)
+            foreach (var itemname in LootableItems)
             {
+                var item = Game.World.CreateItem(itemname);
                 item.ItemDropType = ItemDropType.MonsterLootPile;
                 item.ItemDropAllowedLooters = ItemDropAllowedLooters;
                 item.ItemDropTime = itemDropTime;
@@ -142,14 +141,15 @@ namespace Hybrasyl.Objects
         public uint VariantHp => CalculateVariance(_spawn.Stats.Hp);
         public uint VariantMp => CalculateVariance(_spawn.Stats.Mp);
 
+        private Loot _loot;
 
-        public uint LootableXP => _spawn.Loot.Xp; 
+        public uint LootableXP => _loot?.Xp ?? 0 ;
 
-        public uint LootableGold { get; set; }
-            
-        public List<ItemObject> LootableItems { get; set; }
+        public uint LootableGold => _loot?.Gold ?? 0 ;
 
-        public Monster(XmlCreature creature, Spawn spawn, int map)
+        public List<string> LootableItems => _loot?.Items ?? new List<string>();
+
+        public Monster(XmlCreature creature, Spawn spawn, int map, Loot loot = null)
         {
 
             var direction = (Rng.Next(0, 100) >= 50);
@@ -176,7 +176,8 @@ namespace Hybrasyl.Objects
 
             Stats.BaseDefensiveElement = spawn.GetDefensiveElement();
             Stats.BaseDefensiveElement = spawn.GetOffensiveElement();
-            LootableItems = new List<ItemObject>();
+
+            _loot = loot;
 
             //until intents are fixed, this is how this is going to be done.
             IsHostile = _random.Next(0, 7) < 2;

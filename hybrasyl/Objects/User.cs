@@ -407,7 +407,7 @@ namespace Hybrasyl.Objects
         /// </summary>
         public override void OnDeath()
         {
-            var handler = Game.Config.Handlers?.Death;
+                  var handler = Game.Config.Handlers?.Death;
             if (!(handler?.Active ?? true))
             {
                 SendSystemMessage("Death disabled by server configuration");
@@ -2103,7 +2103,7 @@ namespace Hybrasyl.Objects
                     OnDeath();
                 }
             }
-            else if (Group == null)
+            else if (Stats.Hp == 0)
                 OnDeath();
             UpdateAttributes(StatUpdateFlags.Current);
         }

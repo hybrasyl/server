@@ -136,6 +136,25 @@ namespace Hybrasyl.Messaging
         }
     }
 
+    class Immortal : ChatCommand
+    {
+        public new static string Command = "immortal";
+        public new static string ArgumentText = "none";
+        public new static string HelpText = "Make yourself immune to all damage";
+        public new static bool Privileged = true;
+        
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            user.AbsoluteImmortal = !user.AbsoluteImmortal;
+            user.MagicalImmortal = !user.MagicalImmortal;
+            user.PhysicalImmortal = !user.PhysicalImmortal;
+            if (user.AbsoluteImmortal)
+                return Success("You cannot be harmed.");
+            else
+                return Success("You return to the realm of the mortal.");
+        }
+    }
+
     class ShowEphemeral : ChatCommand
     {
         public new static string Command = "showephemeral";

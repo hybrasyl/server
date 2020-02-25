@@ -393,9 +393,7 @@ namespace Hybrasyl
                     var spawnGroup = Xml.Creature.SpawnGroup.LoadFromFile(xml);
                     spawnGroup.Filename = Path.GetFileName(xml);
                     GameLog.InfoFormat("SpawnGroup: loaded {0}", spawnGroup.Filename);
-                    WorldData.Set(spawnGroup.GetHashCode(), spawnGroup);
-
-
+                    WorldData.SetWithIndex(spawnGroup.GetHashCode(), spawnGroup, spawnGroup.Filename);
                 }
                 catch (Exception e)
                 {
@@ -413,7 +411,7 @@ namespace Hybrasyl
                     var lootSet = LootSet.LoadFromFile(xml);
 
                     GameLog.DebugFormat("LootSets: loaded {0}", lootSet.Name);
-                    WorldData.Set(lootSet.GetHashCode(), lootSet);
+                    WorldData.SetWithIndex(lootSet.GetHashCode(), lootSet, lootSet.Name);
                 }
                 catch (Exception e)
                 {
@@ -469,8 +467,9 @@ namespace Hybrasyl
                 try
                 {
                     Item newItem = Item.LoadFromFile(xml);
+                    var variants = new Dictionary<string, List<Item>>();
+
                     GameLog.DebugFormat("Items: loaded {0}, id {1}", newItem.Name, newItem.Id);
-                    WorldData.SetWithIndex(newItem.Id, newItem,  newItem.Name);
                     // Handle some null cases; there's probably a nicer way to do this
                     if (newItem.Properties.StatModifiers.Combat == null) { newItem.Properties.StatModifiers.Combat = new StatModifierCombat(); }
                     if (newItem.Properties.StatModifiers.Element == null) { newItem.Properties.StatModifiers.Element = new StatModifierElement(); }
@@ -479,19 +478,24 @@ namespace Hybrasyl
                     {
                         foreach (var targetGroup in newItem.Properties.Variants.Group)
                         {
+                            variants[targetGroup] = new List<Item>();
                             foreach (var variant in WorldData.Get<VariantGroup>(targetGroup).Variant)
                             {
                                 var variantItem = ResolveVariant(newItem, variant, targetGroup);
-                                GameLog.DebugFormat("ItemObject {0}: variantgroup {1}, subvariant {2}", variantItem.Name, targetGroup, variant.Name);
+                                GameLog.InfoFormat("ItemObject {0}: variantgroup {1}, subvariant {2}", variantItem.Name, targetGroup, variant.Name);
                                 if (WorldData.ContainsKey<Item>(variantItem.Id))
                                 {
                                     GameLog.ErrorFormat("Item already exists with Key {0} : {1}. Cannot add {2}", variantItem.Id, WorldData.Get<Item>(variantItem.Id).Name, variantItem.Name);
                                 }
                                 WorldData.SetWithIndex(variantItem.Id, variantItem,
                                      new Tuple<Gender, string>(Gender.Neutral, variantItem.Name));
+                                variants[targetGroup].Add(variantItem);
                             }
                         }
                     }
+                    newItem.Variants = variants;
+                    WorldData.SetWithIndex(newItem.Id, newItem, newItem.Name);
+
                 }
                 catch (Exception e)
                 {
