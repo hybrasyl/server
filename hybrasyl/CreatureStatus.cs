@@ -21,11 +21,8 @@
  
 using System;
 using System.Collections.Generic;
-using Hybrasyl.Xml.Castable;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
-using Hybrasyl.Xml.Status;
-using Hybrasyl.Xml.Common;
 using System.Reflection;
 
 namespace Hybrasyl
@@ -34,19 +31,19 @@ namespace Hybrasyl
     public class Prohibited : Attribute
     {
         public List<PlayerFlags> Flags { get; set; }
-        public List<CreatureCondition> Conditions { get; set; }
+        public List<Xml.CreatureCondition> Conditions { get; set; }
 
         public Prohibited(params object[] prohibited)
         {
             Flags = new List<PlayerFlags>();
-            Conditions = new List<CreatureCondition>();
+            Conditions = new List<Xml.CreatureCondition>();
 
             foreach (var parameter in prohibited)
             {
                 if (parameter.GetType() == typeof(PlayerFlags))
                     Flags.Add((PlayerFlags) parameter);
-                if (parameter.GetType() == typeof(CreatureCondition))
-                    Conditions.Add((CreatureCondition) parameter);
+                if (parameter.GetType() == typeof(Xml.CreatureCondition))
+                    Conditions.Add((Xml.CreatureCondition) parameter);
             }
         }
 
@@ -66,19 +63,19 @@ namespace Hybrasyl
     public class Required : Attribute
     {
         public List<PlayerFlags> Flags { get; set; }
-        public List<CreatureCondition> Conditions { get; set; }
+        public List<Xml.CreatureCondition> Conditions { get; set; }
 
         public Required(params object[] prohibited)
         {
             Flags = new List<PlayerFlags>();
-            Conditions = new List<CreatureCondition>();
+            Conditions = new List<Xml.CreatureCondition>();
 
             foreach (var parameter in prohibited)
             {
                 if (parameter.GetType() == typeof(PlayerFlags))
                     Flags.Add((PlayerFlags)parameter);
-                if (parameter.GetType() == typeof(CreatureCondition))
-                    Conditions.Add((CreatureCondition)parameter);
+                if (parameter.GetType() == typeof(Xml.CreatureCondition))
+                    Conditions.Add((Xml.CreatureCondition)parameter);
             }
         }
 
@@ -162,14 +159,14 @@ namespace Hybrasyl
         public Creature Source { get; }
         protected User User => Target as User;
 
-        public Conditions ConditionChanges => XmlStatus.Effects?.OnApply?.Conditions;
+        public Xml.Conditions ConditionChanges => XmlStatus.Effects?.OnApply?.Conditions;
 
         public DateTime Start { get; }
 
         public DateTime LastTick { get; private set; }
 
-        public Castable Castable { get; set; }
-        public Status XmlStatus { get; set; }
+        public Xml.Castable Castable { get; set; }
+        public Xml.Status XmlStatus { get; set; }
         public string ActionProhibitedMessage { get; set; }
 
         public void OnStart(bool displaySfx = true) => _processStart(displaySfx);
@@ -188,7 +185,7 @@ namespace Hybrasyl
 
         public double ElapsedSinceTick => (DateTime.Now - LastTick).TotalSeconds;
 
-        public CreatureStatus(Status xmlstatus, Creature target, Castable castable = null, Creature source = null, int duration = -1, int tickFrequency = -1)
+        public CreatureStatus(Xml.Status xmlstatus, Creature target, Xml.Castable castable = null, Creature source = null, int duration = -1, int tickFrequency = -1)
         {
             Target = target;
             XmlStatus = xmlstatus;
@@ -218,7 +215,7 @@ namespace Hybrasyl
             Target = target;
             if (!string.IsNullOrEmpty(serialized.Name))
             {
-                if (Game.World.WorldData.TryGetValueByIndex(serialized.Name, out Status status))
+                if (Game.World.WorldData.TryGetValueByIndex(serialized.Name, out Xml.Status status))
                 {
                     XmlStatus = status;
                     Start = DateTime.Now;               
@@ -236,7 +233,7 @@ namespace Hybrasyl
             }
         }
 
-        private void ProcessSfx(ModifierEffect effect)
+        private void ProcessSfx(Xml.ModifierEffect effect)
         {
             if (effect.Sound?.Id != 0)
                 User?.PlaySound(effect.Sound.Id);
@@ -270,7 +267,7 @@ namespace Hybrasyl
         }
 
 
-        private void ProcessConditions(ModifierEffect effect)
+        private void ProcessConditions(Xml.ModifierEffect effect)
         {
             if (effect.Conditions?.Set != null)
                 Target.Condition.Conditions |= effect.Conditions.Set;
@@ -278,7 +275,7 @@ namespace Hybrasyl
                 Target.Condition.Conditions &= ~effect.Conditions.Unset;
         }
 
-        private void ProcessStatModifiers(StatModifiers effect, bool remove = false)
+        private void ProcessStatModifiers(Xml.StatModifiers effect, bool remove = false)
         {
             if (effect == null) return;
 
@@ -301,9 +298,9 @@ namespace Hybrasyl
                 Target.Stats.BonusReflectChance -= effect.ReflectChance;
                 Target.Stats.BonusReflectIntensity -= effect.ReflectIntensity;
                 if (effect.OffensiveElement == Target.Stats.OffensiveElementOverride)
-                    Target.Stats.OffensiveElementOverride = Element.None;
+                    Target.Stats.OffensiveElementOverride = Xml.Element.None;
                 if (effect.DefensiveElement == Target.Stats.DefensiveElementOverride)
-                    Target.Stats.DefensiveElementOverride = Element.None;
+                    Target.Stats.DefensiveElementOverride = Xml.Element.None;
             }
             else
             {
@@ -328,7 +325,7 @@ namespace Hybrasyl
             }
         }
 
-        private (double Heal, DamageOutput Damage) CalculateNumericEffects(Castable castable, ModifierEffect effect, Creature source)
+        private (double Heal, DamageOutput Damage) CalculateNumericEffects(Xml.Castable castable, Xml.ModifierEffect effect, Creature source)
         {
             double heal = 0;
             DamageOutput dmg = new DamageOutput();
@@ -348,7 +345,7 @@ namespace Hybrasyl
         {
 
         }
-        private void ProcessFullEffects(ModifierEffect effect, bool RemoveStatBonuses = false, bool displaySfx = true)
+        private void ProcessFullEffects(Xml.ModifierEffect effect, bool RemoveStatBonuses = false, bool displaySfx = true)
         {
             // Stat modifiers and condition changes are only processed during start/remove
             ProcessConditions(effect);
@@ -357,7 +354,7 @@ namespace Hybrasyl
                 ProcessSfx(effect);
         }
 
-        private void ProcessHandler(Handler handler)
+        private void ProcessHandler(Xml.Handler handler)
         {
             if ((handler?.Function ?? String.Empty ) == String.Empty)
                 return;
@@ -367,7 +364,7 @@ namespace Hybrasyl
             VisibleObject invoker;
             VisibleObject invokee;
 
-            if (handler.ScriptSource == ScriptSource.Target)
+            if (handler.ScriptSource == Xml.ScriptSource.Target)
             {
                 invokee = Target;
                 invoker = Source;
@@ -397,7 +394,7 @@ namespace Hybrasyl
             }
         }
 
-        private void ProcessEffects(ModifierEffect effect)
+        private void ProcessEffects(Xml.ModifierEffect effect)
         {
             ProcessSfx(effect);
         }

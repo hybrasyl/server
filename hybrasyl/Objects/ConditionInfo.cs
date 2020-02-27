@@ -20,7 +20,6 @@
  */
  
 using Hybrasyl.Enums;
-using Hybrasyl.Xml.Common;
 using Newtonsoft.Json;
 
 namespace Hybrasyl.Objects
@@ -32,12 +31,12 @@ namespace Hybrasyl.Objects
         public User User => Creature as User;
 
         [JsonProperty]
-        public CreatureCondition Conditions { get; set; }
+        public Xml.CreatureCondition Conditions { get; set; }
 
         [JsonProperty]
         public PlayerFlags Flags { get; set; }
 
-        public ConditionInfo(Creature owner, CreatureCondition condition = 0, PlayerFlags flags=PlayerFlags.Alive)
+        public ConditionInfo(Creature owner, Xml.CreatureCondition condition = 0, PlayerFlags flags=PlayerFlags.Alive)
         {
             Creature = owner;
             Conditions = condition;
@@ -84,50 +83,50 @@ namespace Hybrasyl.Objects
 
         public bool Frozen
         {
-            get { return Conditions.HasFlag(CreatureCondition.Freeze); }
+            get { return Conditions.HasFlag(Xml.CreatureCondition.Freeze); }
             set
             {
                 if (value == false)
-                    Conditions &= ~CreatureCondition.Freeze;
+                    Conditions &= ~Xml.CreatureCondition.Freeze;
                 else
-                    Conditions |= CreatureCondition.Freeze;
+                    Conditions |= Xml.CreatureCondition.Freeze;
             }
         }
 
         public bool Asleep
         {
-            get { return Conditions.HasFlag(CreatureCondition.Sleep); }
+            get { return Conditions.HasFlag(Xml.CreatureCondition.Sleep); }
             set
             {
                 if (value == false)
-                    Conditions &= ~CreatureCondition.Sleep;
+                    Conditions &= ~Xml.CreatureCondition.Sleep;
                 else
-                    Conditions |= CreatureCondition.Freeze;
+                    Conditions |= Xml.CreatureCondition.Freeze;
             }
         }
 
         public bool Paralyzed
         {
-            get { return Conditions.HasFlag(CreatureCondition.Paralyze); }
+            get { return Conditions.HasFlag(Xml.CreatureCondition.Paralyze); }
             set
             {
                 if (value == false)
-                    Conditions &= ~CreatureCondition.Paralyze;
+                    Conditions &= ~Xml.CreatureCondition.Paralyze;
                 else
-                    Conditions |= CreatureCondition.Paralyze;
+                    Conditions |= Xml.CreatureCondition.Paralyze;
                 User?.UpdateAttributes(StatUpdateFlags.Secondary);
             }
         }
 
         public bool Blinded
         {
-            get { return Conditions.HasFlag(CreatureCondition.Blind); }
+            get { return Conditions.HasFlag(Xml.CreatureCondition.Blind); }
             set
             {
                 if (value == false)
-                    Conditions &= ~CreatureCondition.Blind;
+                    Conditions &= ~Xml.CreatureCondition.Blind;
                 else
-                    Conditions |= CreatureCondition.Blind;
+                    Conditions |= Xml.CreatureCondition.Blind;
                 User?.UpdateAttributes(StatUpdateFlags.Secondary);
             }
         }
@@ -160,16 +159,16 @@ namespace Hybrasyl.Objects
 
         public bool Comatose
         {
-            get { return User != null ? Conditions.HasFlag(CreatureCondition.Coma) : false; }
+            get { return User != null ? Conditions.HasFlag(Xml.CreatureCondition.Coma) : false; }
             set
             {
                 if (User == null) return;
                 if (value == false)
                 {
-                    Conditions &= ~CreatureCondition.Coma;
+                    Conditions &= ~Xml.CreatureCondition.Coma;
                 }
                 else
-                    Conditions |= CreatureCondition.Coma;
+                    Conditions |= Xml.CreatureCondition.Coma;
             }
         }
 

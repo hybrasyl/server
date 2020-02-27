@@ -19,7 +19,6 @@
  * 
  */
 
-using Hybrasyl.Xml.ServerConfig;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -60,7 +59,7 @@ namespace Hybrasyl
         private static Monolith _monolith;
         private static MonolithControl _monolithControl;
 
-        public static ServerConfig Config { get; private set; }
+        public static Xml.ServerConfig Config { get; private set; }
 
         private static Thread _lobbyThread;
         private static Thread _loginThread;
@@ -114,9 +113,9 @@ namespace Hybrasyl
             Environment.Exit(0);
         }
 
-        public static ServerConfig GatherConfig()
+        public static Xml.ServerConfig GatherConfig()
         {
-            Config = new ServerConfig();
+            Config = new Xml.ServerConfig();
             Console.ForegroundColor = ConsoleColor.Green;
             Console.Write("Welcome to Project Hybrasyl: this is Hybrasyl server {0}\n\n", Assemblyinfo.Version);
             Console.ForegroundColor = ConsoleColor.White;
@@ -177,9 +176,9 @@ namespace Hybrasyl
             Console.ForegroundColor = ConsoleColor.Yellow;
             Console.Write("\nDatastore: redis: {0}, port {1}\n\n", Config.DataStore.Host, Config.DataStore.Port);
 
-            Config.Time = new Time
+            Config.Time = new Xml.Time
             {
-                ServerStart = new ServerStart
+                ServerStart = new Xml.ServerStart
                 {
                     Value = DateTime.Now,
                     DefaultAge = "Hybrasyl",
@@ -187,7 +186,7 @@ namespace Hybrasyl
                 }
             };
 
-            Config.Access = new Access();
+            Config.Access = new Xml.Access();
 
             Console.ForegroundColor = ConsoleColor.Green;
             Console.Write("--- Privileged User Configuration ---\n\n");
@@ -198,7 +197,7 @@ namespace Hybrasyl
             Console.Write("Privileged User (enter character name): ");
             var privUser = Console.ReadLine();
 
-            Config.Access = new Access();
+            Config.Access = new Xml.Access();
             Config.Access.Privileged = string.IsNullOrEmpty(privUser) ? null : privUser;
 
             Console.ForegroundColor = ConsoleColor.Yellow;
@@ -206,7 +205,7 @@ namespace Hybrasyl
 
             Console.Write($"In-game time set to Hybrasyl, Year 1 (server start date set as {Config.Time.ServerStart.Value})\n\n");
             Console.ForegroundColor = ConsoleColor.White;
-            Config.Boards = new List<GlobalBoard>();
+            Config.Boards = new List<Xml.GlobalBoard>();
 
             return Config;
         }
@@ -258,7 +257,7 @@ namespace Hybrasyl
        
             if (File.Exists(hybconfig))
             {
-                if (ServerConfig.LoadFromFile(hybconfig, out ServerConfig gameConfig, out Exception exception))
+                if (Xml.ServerConfig.LoadFromFile(hybconfig, out Xml.ServerConfig gameConfig, out Exception exception))
                 {
                     Log.Information("Configuration file {file} loaded", hybconfig);
                     Config = gameConfig;

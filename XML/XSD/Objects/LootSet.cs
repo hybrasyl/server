@@ -22,7 +22,7 @@ using System.Collections.Generic;
 [Serializable]
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
-[XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
+[XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
 [XmlRootAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02", IsNullable=false)]
 public partial class LootSet
 {

@@ -23,7 +23,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using Hybrasyl.Xml.ServerConfig;
 using MoonSharp.Interpreter;
 
 namespace Hybrasyl
@@ -40,7 +39,7 @@ namespace Hybrasyl
     public class HybrasylTime
     {
         public string AgeName => Age.Name;
-        public HybrasylAge Age => Game.Config.Time.GetAgeFromTerranDatetime(TerranDateTime);
+        public Xml.HybrasylAge Age => Game.Config.Time.GetAgeFromTerranDatetime(TerranDateTime);
 
         public long HybrasylTicks => TerranTicks * 8;
         public long TerranTicks => (TerranDateTime - Age.StartDate).Ticks;
@@ -112,9 +111,9 @@ namespace Hybrasyl
         /// Default age is "Hybrasyl", year 1 is either the recorded ServerStart time in config.xml, or, 
         /// if we can't find that, the current running server's start time
         /// </summary>
-        public static HybrasylAge DefaultAge => new HybrasylAge() { Name = "Hybrasyl", StartYear = 1, StartDate = Game.Config.Time?.ServerStart?.Value ?? Game.StartDate };
+        public static Xml.HybrasylAge DefaultAge => new Xml.HybrasylAge() { Name = "Hybrasyl", StartYear = 1, StartDate = Game.Config.Time?.ServerStart?.Value ?? Game.StartDate };
 
-        public static HybrasylAge GetAgeFromTerranDate(DateTime datetime)
+        public static Xml.HybrasylAge GetAgeFromTerranDate(DateTime datetime)
         {
             if (Game.Config.Time.Ages.Count == 0)
                 return DefaultAge;
@@ -147,7 +146,7 @@ namespace Hybrasyl
 
         public static string CurrentAgeName => CurrentAge.Name;
 
-        public static HybrasylAge CurrentAge
+        public static Xml.HybrasylAge CurrentAge
         {
             get
             {
@@ -160,12 +159,12 @@ namespace Hybrasyl
         }
 
 
-        public static List<HybrasylAge> Ages()
+        public static List<Xml.HybrasylAge> Ages()
         { 
             if (Game.Config.Time.Ages.Count == 0)
             {
                 // Construct and return our default
-                return new List<HybrasylAge> { new HybrasylAge() { Name = "Hybrasyl", StartYear = 1, StartDate = Game.Config.Time.ServerStart.Value } };
+                return new List<Xml.HybrasylAge> { new Xml.HybrasylAge() { Name = "Hybrasyl", StartYear = 1, StartDate = Game.Config.Time.ServerStart.Value } };
             }
             return Game.Config.Time.Ages;
         }

@@ -24,10 +24,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using Hybrasyl.Xml.Creature;
-using Hybrasyl.Xml.Item;
-using Hybrasyl.Xml.Common;
-using Hybrasyl.Xml.Loot;
 
 namespace Hybrasyl
 {
@@ -68,7 +64,7 @@ namespace Hybrasyl
 
         public static Loot operator +(Loot a) => a;
 
-        public static Loot operator +(Loot a, Item b)
+        public static Loot operator +(Loot a, Xml.Item b)
         {
             var ret = new Loot(a.Xp, a.Gold);
             ret.Items.AddRange(a.Items);
@@ -155,7 +151,7 @@ namespace Hybrasyl
         /// </summary>
         /// <param name="spawn">The spawn we will use to calculate Loot.</param>
         /// <returns>A Loot struct with XP, gold and items, if any</returns>
-        public static Loot CalculateLoot(Spawn spawn)
+        public static Loot CalculateLoot(Xml.Spawn spawn)
         {
 
             // Loot calculations are not particularly complex but have a lot of components:
@@ -164,7 +160,7 @@ namespace Hybrasyl
             // Lastly, we return a Loot struct with our calculations.
 
             var loot = new Loot(0, 0);
-            var tables = new List<LootTable>();
+            var tables = new List<Xml.LootTable>();
             // Assign base XP
             loot.Xp = spawn.Loot.Xp;
             // Sets
@@ -172,7 +168,7 @@ namespace Hybrasyl
             {
                 // Is the set present?
                 GameLog.UserActivityInfo("Processing loot set {Name}", set.Name);
-                if (Game.World.WorldData.TryGetValueByIndex(set.Name, out LootSet lootset))
+                if (Game.World.WorldData.TryGetValueByIndex(set.Name, out Xml.LootSet lootset))
                 {
                     // Set is present, does it fire?
                     // Chance is implemented as a decimalized percentage, e.g. 0.08 = 8% chance
@@ -258,7 +254,7 @@ namespace Hybrasyl
         /// </summary>
         /// <param name="table">The table to be evaluated.</param>
         /// <returns>Loot structure containing Xp/Gold/List of items to be awarded.</returns>
-        public static Loot CalculateTable(LootTable table)
+        public static Loot CalculateTable(Xml.LootTable table)
         {
             var tableLoot = new Loot(0, 0);
             if (table.Gold != null)
@@ -289,11 +285,11 @@ namespace Hybrasyl
         /// </summary>
         /// <param name="list">LootTableItemList containing items</param>
         /// <returns>List of items</returns>
-        public static List<string> CalculateItems(LootTableItemList list)
+        public static List<string> CalculateItems(Xml.LootTableItemList list)
         {
             // Ordinarily, return one item from the list.
             var rolls = CalculateSuccessfulRolls(list.Rolls, list.Chance);
-            var loot = new List<LootItem>();
+            var loot = new List<Xml.LootItem>();
             var itemList = new List<ItemObject>();
 
             // First, process any "always" items, which always drop when the container fires
@@ -352,7 +348,7 @@ namespace Hybrasyl
                     if (lootitem.Variants.Count() > 0)
                     {
                         var lootedVariant = lootitem.Variants.PickRandom();
-                        if (xmlItem.Variants.TryGetValue(lootedVariant, out List<Item> variantItems))
+                        if (xmlItem.Variants.TryGetValue(lootedVariant, out List<Xml.Item> variantItems))
                             itemList.Add(Game.World.CreateItem(variantItems.PickRandom().Id));
                         else
                             GameLog.SpawnError("Spawn loot calculation: variant group {name} not found", lootedVariant);
@@ -378,9 +374,9 @@ namespace Hybrasyl
         private static Random _random;
 
 
-        private IEnumerable<Xml.Creature.SpawnGroup> _spawnGroups => Game.World.WorldData.Values<Xml.Creature.SpawnGroup>();
+        private IEnumerable<Xml.SpawnGroup> _spawnGroups => Game.World.WorldData.Values<Xml.SpawnGroup>();
         private IEnumerable<Map> _maps => Game.World.WorldData.Values<Map>();
-        private IEnumerable<Xml.Creature.Creature> _creatures => Game.World.WorldData.Values<Xml.Creature.Creature>();
+        private IEnumerable<Xml.Creature> _creatures => Game.World.WorldData.Values<Xml.Creature>();
 
 
         internal Monolith()
@@ -418,7 +414,7 @@ namespace Hybrasyl
         }
     
 
-        public void Spawn(SpawnGroup spawnGroup)
+        public void Spawn(Xml.SpawnGroup spawnGroup)
         {
             foreach (var map in spawnGroup.Maps)
             {

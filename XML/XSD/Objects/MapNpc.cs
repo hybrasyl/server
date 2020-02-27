@@ -29,13 +29,13 @@ public partial class MapNpc
     private string _name;
     private byte _x;
     private byte _y;
-    private byte _direction;
+    private Direction _direction;
     private static XmlSerializer serializer;
     #endregion
     
     public MapNpc()
     {
-        _direction = ((byte)(0));
+        _direction = Direction.North;
     }
     
     [XmlAttribute]
@@ -78,8 +78,8 @@ public partial class MapNpc
     }
     
     [XmlAttribute]
-    [DefaultValue(typeof(byte), "0")]
-    public byte Direction
+    [DefaultValue(Direction.North)]
+    public Direction Direction
     {
         get
         {

@@ -420,7 +420,7 @@ namespace Hybrasyl.Xml
         {
             if (_damage.Element.Count > 1)
                 return _damage.Element[Rng.Next(_damage.Element.Count)];
-            else if (_damage.Element.Count == 1 && _damage.Element[0] != Element.Random)
+            else if (_damage.Element.Count == 1 && _damage.Element[0] != Xml.Element.Random)
                 return _damage.Element[0];
 
             // Only deal with "base" elements for right now

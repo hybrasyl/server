@@ -23,9 +23,6 @@ using Hybrasyl.Scripting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Hybrasyl.Xml.Creature;
-using Hybrasyl.Xml.Item;
-using Hybrasyl.Xml.Common;
 
 namespace Hybrasyl.Objects
 {
@@ -33,20 +30,20 @@ namespace Hybrasyl.Objects
     {
         public bool Ready;
         //public npc Data;
-        public NpcRoleList Roles { get; set; }
+        public Xml.NpcRoleList Roles { get; set; }
         public MerchantJob Jobs { get; set; }
-        public new Dictionary<string, Item> Inventory { get; private set; }
+        public new Dictionary<string, Xml.Item> Inventory { get; private set; }
 
         public Merchant()
             : base()
         {
             Ready = false;
-            Inventory = new Dictionary<string, Item>();
+            Inventory = new Dictionary<string, Xml.Item>();
         }
 
         // Currently, NPCs can not be healed or damaged in any way whatsoever
         public override void Heal(double heal, Creature source = null) { return; }
-        public override void Damage(double damage, Element element = Element.None, DamageType damageType = DamageType.Direct, DamageFlags damageFlags = DamageFlags.None, Creature attacker = null, bool onDeath = true) { return; }
+        public override void Damage(double damage, Xml.Element element = Xml.Element.None, Xml.DamageType damageType = Xml.DamageType.Direct, Xml.DamageFlags damageFlags = Xml.DamageFlags.None, Creature attacker = null, bool onDeath = true) { return; }
 
         public void OnSpawn()
         {

@@ -22,7 +22,6 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using Hybrasyl.Xml.Castable;
 using Hybrasyl.Objects;
 
 namespace Hybrasyl
@@ -31,10 +30,10 @@ namespace Hybrasyl
     internal class FormulaParser
     {
         private Creature _caster;
-        private Castable _castable;
+        private Xml.Castable _castable;
         private Creature _target;
 
-        public FormulaParser(Creature caster, Castable castable, Creature target = null)
+        public FormulaParser(Creature caster, Xml.Castable castable, Creature target = null)
         {
             _caster = caster;
             _castable = castable;

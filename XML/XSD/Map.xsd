@@ -136,7 +136,7 @@
     <xs:attribute name="Name" type="hyb:String8"/>
     <xs:attribute name="X" type="xs:unsignedByte"/>
     <xs:attribute name="Y" type="xs:unsignedByte"/>
-    <xs:attribute name="Direction" type="xs:unsignedByte" default="0"/>
+    <xs:attribute name="Direction" type="hyb:Direction" default="North"/>
   </xs:complexType>
 
   <!-- Worldmap point -->

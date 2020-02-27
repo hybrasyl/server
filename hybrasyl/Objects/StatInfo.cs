@@ -22,7 +22,6 @@
 using Hybrasyl.Threading;
 using Newtonsoft.Json;
 using System;
-using Hybrasyl.Xml.Common;
 
 namespace Hybrasyl.Objects
 {
@@ -56,13 +55,13 @@ namespace Hybrasyl.Objects
         private Lockable<long> _bonusAc { get; set; }
         private Lockable<long> _bonusMr { get; set; }
         private Lockable<long> _bonusRegen { get; set; }
-        private Lockable<Element> _baseOffensiveElement { get; set; }
-        private Lockable<Element> _baseDefensiveElement { get; set; }
-        private Lockable<Element> _offensiveElementOverride { get; set; }
-        private Lockable<Element> _defensiveElementOverride { get; set; }
+        private Lockable<Xml.Element> _baseOffensiveElement { get; set; }
+        private Lockable<Xml.Element> _baseDefensiveElement { get; set; }
+        private Lockable<Xml.Element> _offensiveElementOverride { get; set; }
+        private Lockable<Xml.Element> _defensiveElementOverride { get; set; }
         private Lockable<double> _baseReflectChance { get; set; }
         private Lockable<double> _bonusReflectChance { get; set; }
-        private Lockable<DamageType?> _damageTypeOverride { get; set; }
+        private Lockable<Xml.DamageType?> _damageTypeOverride { get; set; }
         private Lockable<double> _baseReflectIntensity { get; set; }
         private Lockable<double> _bonusReflectIntensity { get; set; }
         private Lockable<double> _baseHealModifier { get; set; }
@@ -78,13 +77,13 @@ namespace Hybrasyl.Objects
         #region accessors
 
         [JsonProperty]
-        public Element BaseOffensiveElement { get { return _baseOffensiveElement.Value; } set { _baseOffensiveElement.Value = value; } }
+        public Xml.Element BaseOffensiveElement { get { return _baseOffensiveElement.Value; } set { _baseOffensiveElement.Value = value; } }
         [JsonProperty]
-        public Element BaseDefensiveElement { get { return _baseDefensiveElement.Value; } set { _baseDefensiveElement.Value = value; } }
+        public Xml.Element BaseDefensiveElement { get { return _baseDefensiveElement.Value; } set { _baseDefensiveElement.Value = value; } }
         [JsonProperty]
-        public Element OffensiveElementOverride { get { return _offensiveElementOverride.Value; } set { _offensiveElementOverride.Value = value; } }
+        public Xml.Element OffensiveElementOverride { get { return _offensiveElementOverride.Value; } set { _offensiveElementOverride.Value = value; } }
         [JsonProperty]
-        public Element DefensiveElementOverride { get { return _defensiveElementOverride.Value; } set { _defensiveElementOverride.Value = value; } }
+        public Xml.Element DefensiveElementOverride { get { return _defensiveElementOverride.Value; } set { _defensiveElementOverride.Value = value; } }
         [JsonProperty]
         public byte Level { get { return _level.Value; } set { _level.Value = value; } }
         [JsonProperty]
@@ -167,13 +166,13 @@ namespace Hybrasyl.Objects
             _bonusAc = new Lockable<long>(0);
             _bonusMr = new Lockable<long>(0);
             _bonusRegen = new Lockable<long>(0);
-            _baseOffensiveElement = new Lockable<Element>(Element.None);
-            _baseDefensiveElement = new Lockable<Element>(Element.None);
-            _offensiveElementOverride = new Lockable<Element>(Element.None);
-            _defensiveElementOverride = new Lockable<Element>(Element.None);
+            _baseOffensiveElement = new Lockable<Xml.Element>(Xml.Element.None);
+            _baseDefensiveElement = new Lockable<Xml.Element>(Xml.Element.None);
+            _offensiveElementOverride = new Lockable<Xml.Element>(Xml.Element.None);
+            _defensiveElementOverride = new Lockable<Xml.Element>(Xml.Element.None);
             _baseReflectChance = new Lockable<double>(0);
             _bonusReflectChance = new Lockable<double>(0);
-            _damageTypeOverride = new Lockable<DamageType?>(null);
+            _damageTypeOverride = new Lockable<Xml.DamageType?>(null);
             _baseReflectIntensity = new Lockable<double>(1);
             _bonusReflectIntensity = new Lockable<double>(0);
             _baseHealModifier = new Lockable<double>(1);
@@ -380,18 +379,18 @@ namespace Hybrasyl.Objects
             }
         }
 
-        public Element OffensiveElement
+        public Xml.Element OffensiveElement
         {
             get
             {
-                return (OffensiveElementOverride == Element.None ? OffensiveElementOverride : BaseOffensiveElement);
+                return (OffensiveElementOverride == Xml.Element.None ? OffensiveElementOverride : BaseOffensiveElement);
             }
         }
-        public Element DefensiveElement
+        public Xml.Element DefensiveElement
         {
             get
             {
-                return (DefensiveElementOverride == Element.None ? DefensiveElementOverride : BaseDefensiveElement);
+                return (DefensiveElementOverride == Xml.Element.None ? DefensiveElementOverride : BaseDefensiveElement);
             }
         }
 

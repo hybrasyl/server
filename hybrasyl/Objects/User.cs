@@ -31,10 +31,6 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using Hybrasyl.Utility;
-using Hybrasyl.Xml.Common;
-using Hybrasyl.Xml.Nation;
-using XmlCastable = Hybrasyl.Xml.Castable.Castable;
-using Hybrasyl.Xml.Status;
 
 namespace Hybrasyl.Objects
 {
@@ -83,11 +79,11 @@ namespace Hybrasyl.Objects
         private Client Client;
 
         [JsonProperty]
-        public Gender Gender { get; set; }
+        public Xml.Gender Gender { get; set; }
         //private account Account { get; set; }
 
         [JsonProperty]
-        public Class Class { get; set; }
+        public Xml.Class Class { get; set; }
         [JsonProperty]
         public bool IsMaster { get; set; }
         public UserGroup Group { get; set; }
@@ -151,7 +147,7 @@ namespace Hybrasyl.Objects
         public byte[] PortraitData { get; set; }
         public string ProfileText { get; set; }
 
-        public XmlCastable PendingLearnableCastable { get; private set; }
+        public Xml.Castable PendingLearnableCastable { get; private set; }
         public ItemObject PendingSendableParcel { get; private set; }
         public string PendingParcelRecipient { get; private set; }
         public string PendingBuyableItem { get; private set; }
@@ -167,9 +163,9 @@ namespace Hybrasyl.Objects
         public List<string> UseCastRestrictions => _currentStatuses.Select(e => e.Value.UseCastRestrictions).Where(e => e != string.Empty).ToList();
         public List<string> ReceiveCastRestrictions => _currentStatuses.Select(e => e.Value.ReceiveCastRestrictions).Where(e => e != string.Empty).ToList();
 
-        private Nation _nation;
+        private Xml.Nation _nation;
 
-        public Nation Nation
+        public Xml.Nation Nation
         {
             get
             {
@@ -241,7 +237,7 @@ namespace Hybrasyl.Objects
         {
             if (Citizenship != null)
             {
-                Nation theNation;
+                Xml.Nation theNation;
                 Nation = World.WorldData.TryGetValue(Citizenship, out theNation) ? theNation : World.DefaultNation;
             }
         }
@@ -524,7 +520,7 @@ namespace Hybrasyl.Objects
             if (!Condition.Comatose) return;
             Condition.Comatose = false;
             var handler = Game.Config.Handlers?.Death;
-            if (handler?.Coma != null && Game.World.WorldData.TryGetValueByIndex(handler.Coma.Value, out Status status))
+            if (handler?.Coma != null && Game.World.WorldData.TryGetValueByIndex(handler.Coma.Value, out Xml.Status status))
                 RemoveStatus(status.Icon);
         }
 
@@ -851,10 +847,10 @@ namespace Hybrasyl.Objects
             switch (toRemove.EquipmentSlot)
             {
                 case (byte)ItemSlots.Necklace:
-                    Stats.BaseOffensiveElement = Element.None;
+                    Stats.BaseOffensiveElement = Xml.Element.None;
                     break;
                 case (byte)ItemSlots.Waist:
-                    Stats.BaseDefensiveElement = Element.None;
+                    Stats.BaseDefensiveElement = Xml.Element.None;
                     break;
             }
         }
@@ -1125,11 +1121,11 @@ namespace Hybrasyl.Objects
         /// </summary>
         /// <param name="castable">The castable that is being cast.</param>
         /// <returns>True or false depending on success.</returns>
-        public bool ProcessCastingCost(XmlCastable castable)
+        public bool ProcessCastingCost(Xml.Castable castable)
         {
             if (castable.CastCosts.Count == 0) return true;
 
-            var costs = castable.CastCosts.Where(e => e.Class.Contains((Class)Class));
+            var costs = castable.CastCosts.Where(e => e.Class.Contains(Class));
 
             if (costs.Count() == 0)
                 costs = castable.CastCosts.Where(e => e.Class.Count == 0);
@@ -1364,7 +1360,7 @@ namespace Hybrasyl.Objects
             Enqueue(x0F);
         }
 
-        public void SendSkillUpdate(XmlCastable item, int slot)
+        public void SendSkillUpdate(Xml.Castable item, int slot)
         {
             if (item == null)
             {
@@ -1376,11 +1372,11 @@ namespace Hybrasyl.Objects
             var x2C = new ServerPacket(0x2C);
             x2C.WriteByte((byte)slot);
             x2C.WriteUInt16((ushort)(item.Icon));
-            x2C.WriteString8(Class == Class.Peasant ? item.Name : $"{item.Name} (Lev:{item.CastableLevel}/{GetCastableMaxLevel(item)})");
+            x2C.WriteString8(Class == Xml.Class.Peasant ? item.Name : $"{item.Name} (Lev:{item.CastableLevel}/{GetCastableMaxLevel(item)})");
             Enqueue(x2C);
         }
 
-        public void SendSpellUpdate(XmlCastable item, int slot)
+        public void SendSpellUpdate(Xml.Castable item, int slot)
         {
             if (item == null)
             {
@@ -1395,7 +1391,7 @@ namespace Hybrasyl.Objects
             var spellType = item.Intents[0].UseType;
             //var spellType = isClick ? 2 : 5;
             x17.WriteByte((byte)spellType); //spell type? how are we determining this?
-            x17.WriteString8(Class == Class.Peasant ? item.Name : $"{item.Name} (Lev:{item.CastableLevel}/{GetCastableMaxLevel(item)})");
+            x17.WriteString8(Class == Xml.Class.Peasant ? item.Name : $"{item.Name} (Lev:{item.CastableLevel}/{GetCastableMaxLevel(item)})");
             x17.WriteString8(item.Name); //prompt? what is this?
             x17.WriteByte((byte)item.Lines);
             Enqueue(x17);
@@ -1520,7 +1516,7 @@ namespace Hybrasyl.Objects
             Enqueue(x08);
         }
 
-        public int GetCastableMaxLevel(XmlCastable castable) => IsMaster ? 100 : castable.GetMaxLevelByClass(Class);
+        public int GetCastableMaxLevel(Xml.Castable castable) => IsMaster ? 100 : castable.GetMaxLevelByClass(Class);
 
 
         public User GetFacingUser()
@@ -1529,16 +1525,16 @@ namespace Hybrasyl.Objects
 
             switch (Direction)
             {
-                case Direction.North:
+                case Xml.Direction.North:
                     contents = Map.GetTileContents(X, Y - 1);
                     break;
-                case Direction.South:
+                case Xml.Direction.South:
                     contents = Map.GetTileContents(X, Y + 1);
                     break;
-                case Direction.West:
+                case Xml.Direction.West:
                     contents = Map.GetTileContents(X - 1, Y);
                     break;
-                case Direction.East:
+                case Xml.Direction.East:
                     contents = Map.GetTileContents(X + 1, Y);
                     break;
                 default:
@@ -1559,16 +1555,16 @@ namespace Hybrasyl.Objects
 
             switch (Direction)
             {
-                case Direction.North:
+                case Xml.Direction.North:
                     contents = Map.GetTileContents(X, Y - 1);
                     break;
-                case Direction.South:
+                case Xml.Direction.South:
                     contents = Map.GetTileContents(X, Y + 1);
                     break;
-                case Direction.West:
+                case Xml.Direction.West:
                     contents = Map.GetTileContents(X - 1, Y);
                     break;
-                case Direction.East:
+                case Xml.Direction.East:
                     contents = Map.GetTileContents(X + 1, Y);
                     break;
                 default:
@@ -1579,7 +1575,7 @@ namespace Hybrasyl.Objects
             return contents;
         }
 
-        public override bool Walk(Direction direction)
+        public override bool Walk(Xml.Direction direction)
         {
             int oldX = X, oldY = Y, newX = X, newY = Y;
             Rectangle arrivingViewport = Rectangle.Empty;
@@ -1596,22 +1592,22 @@ namespace Hybrasyl.Objects
                 // notified of an update to their AOI (area of interest, which is the object's viewport calculated from its
                 // current position).
 
-                case Direction.North:
+                case Xml.Direction.North:
                     --newY;
                     arrivingViewport = new Rectangle(oldX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE, 1);
                     departingViewport = new Rectangle(oldX - halfViewport, oldY + halfViewport, Constants.VIEWPORT_SIZE, 1);
                     break;
-                case Direction.South:
+                case Xml.Direction.South:
                     ++newY;
                     arrivingViewport = new Rectangle(oldX - halfViewport, oldY + halfViewport, Constants.VIEWPORT_SIZE, 1);
                     departingViewport = new Rectangle(oldX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE, 1);
                     break;
-                case Direction.West:
+                case Xml.Direction.West:
                     --newX;
                     arrivingViewport = new Rectangle(newX - halfViewport, oldY - halfViewport, 1, Constants.VIEWPORT_SIZE);
                     departingViewport = new Rectangle(oldX + halfViewport, oldY - halfViewport, 1, Constants.VIEWPORT_SIZE);
                     break;
-                case Direction.East:
+                case Xml.Direction.East:
                     ++newX;
                     arrivingViewport = new Rectangle(oldX + halfViewport, oldY - halfViewport, 1, Constants.VIEWPORT_SIZE);
                     departingViewport = new Rectangle(oldX - halfViewport, oldY - halfViewport, 1, Constants.VIEWPORT_SIZE);
@@ -1797,7 +1793,7 @@ namespace Hybrasyl.Objects
             return true;
         }
 
-        public bool AddSkill(XmlCastable castable)
+        public bool AddSkill(Xml.Castable castable)
         {
             if (SkillBook.IsFull)
             {
@@ -1807,7 +1803,7 @@ namespace Hybrasyl.Objects
             return AddSkill(castable, SkillBook.FindEmptySlot());
         }
 
-        public bool AddSkill(XmlCastable item, byte slot)
+        public bool AddSkill(Xml.Castable item, byte slot)
         {
             // Quantity check - if we already have an ItemObject with the same name, will
             // adding the MaximumStack)
@@ -1831,7 +1827,7 @@ namespace Hybrasyl.Objects
             return true;
         }
 
-        public bool AddSpell(XmlCastable castable)
+        public bool AddSpell(Xml.Castable castable)
         {
             if (SpellBook.IsFull)
             {
@@ -1841,7 +1837,7 @@ namespace Hybrasyl.Objects
             return AddSpell(castable, SpellBook.FindEmptySlot());
         }
 
-        public bool AddSpell(XmlCastable item, byte slot)
+        public bool AddSpell(Xml.Castable item, byte slot)
         {
             // Quantity check - if we already have an ItemObject with the same name, will
             // adding the MaximumStack)
@@ -2084,8 +2080,8 @@ namespace Hybrasyl.Objects
             UpdateAttributes(StatUpdateFlags.Current);
         }
 
-        public override void Damage(double damage, Element element = Element.None,
-            DamageType damageType = DamageType.Direct, DamageFlags damageFlags = DamageFlags.None, Creature attacker = null, bool onDeath = true)
+        public override void Damage(double damage, Xml.Element element = Xml.Element.None,
+            Xml.DamageType damageType = Xml.DamageType.Direct, Xml.DamageFlags damageFlags = Xml.DamageFlags.None, Creature attacker = null, bool onDeath = true)
         {
             if (Condition.Comatose || !Condition.Alive) return;
             base.Damage(damage, element, damageType, damageFlags, attacker, false); // We handle ondeath for users here
@@ -2093,7 +2089,7 @@ namespace Hybrasyl.Objects
             {
                 Stats.Hp = 1;
                 var handler = Game.Config.Handlers?.Death?.Coma;
-                if (handler?.Value != null && World.WorldData.TryGetValueByIndex(handler.Value, out Status status))
+                if (handler?.Value != null && World.WorldData.TryGetValueByIndex(handler.Value, out Xml.Status status))
                 {
                     ApplyStatus(new CreatureStatus(status, this, null, attacker));
                 }
@@ -2116,20 +2112,20 @@ namespace Hybrasyl.Objects
 
 
 
-        public override bool UseCastable(XmlCastable castObject, Creature target = null)
+        public override bool UseCastable(Xml.Castable castObject, Creature target = null)
         {
             if (!ProcessCastingCost(castObject)) return false;
             if (base.UseCastable(castObject, target))
             {
                 // This may need to occur elsewhere, depends on how it looks in game
-                if (castObject.TryGetMotion((Class)Class, out Xml.Castable.Motion motion))
+                if (castObject.TryGetMotion(Class, out Xml.CastableMotion motion))
                     SendMotion(Id, motion.Id, motion.Speed);
                 return true;
             }
             return false;
         }
 
-        public void AssailAttack(Direction direction, Creature target = null)
+        public void AssailAttack(Xml.Direction direction, Creature target = null)
         {
             if (target == null)
                 target = GetDirectionalTarget(direction);
@@ -2143,7 +2139,7 @@ namespace Hybrasyl.Objects
             }
             //animation handled here as to not repeatedly send assails.
             var firstAssail = SkillBook.FirstOrDefault(x => x.IsAssail);
-            var motion = firstAssail?.Effects.Animations.OnCast.Player.FirstOrDefault(y => y.Class.Contains((Class)Class));
+            var motion = firstAssail?.Effects.Animations.OnCast.Player.FirstOrDefault(y => y.Class.Contains(Class));
 
             var motionId = motion != null ? (byte)motion.Id : (byte)1;
             var assail = new ServerPacketStructures.PlayerAnimation() { Animation = motionId, Speed = 20, UserId = this.Id };
@@ -2333,7 +2329,7 @@ namespace Hybrasyl.Objects
 
             foreach (var skill in merchant.Roles.Train.Where(x => x.Type == "Skill").OrderBy(y => y.Name))
             {
-                if (Game.World.WorldData.TryGetValueByIndex(skill.Name, out XmlCastable result))
+                if (Game.World.WorldData.TryGetValueByIndex(skill.Name, out Xml.Castable result))
                 {
                     if (SkillBook.Contains(result)) continue;
                     merchantSkills.Skills.Add(new MerchantSkill()
@@ -2475,10 +2471,10 @@ namespace Hybrasyl.Objects
             SendClearSpell(slot);
         }
 
-        public void ShowLearnSkill(Merchant merchant, XmlCastable castable)
+        public void ShowLearnSkill(Merchant merchant, Xml.Castable castable)
         {
             var learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_choice");
-            var skillDesc = castable.Descriptions.Single(x => x.Class.Contains((Class)Class) || x.Class.Contains(Class.Peasant));
+            var skillDesc = castable.Descriptions.Single(x => x.Class.Contains(Class) || x.Class.Contains(Xml.Class.Peasant));
             var prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$SKILLDESC", skillDesc.Value);
 
             var options = new MerchantOptions();
@@ -2519,8 +2515,8 @@ namespace Hybrasyl.Objects
         {
             var castable = PendingLearnableCastable;
             //now check requirements.
-            var classReq = castable.Requirements.Single(x => x.Class.Contains((Class)Class) || Class == Class.Peasant);
-            Xml.String.String learnString = null;
+            var classReq = castable.Requirements.Single(x => x.Class.Contains(Class) || Class == Xml.Class.Peasant);
+            Xml.LocalizedString learnString = null;
             MerchantOptions options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
             var prompt = string.Empty;
@@ -2542,13 +2538,13 @@ namespace Hybrasyl.Objects
             {
                 foreach (var preReq in classReq.Prerequisites)
                 {
-                    if (!SkillBook.Contains(Game.World.WorldData.GetByIndex<XmlCastable>(preReq.Value)))
+                    if (!SkillBook.Contains(Game.World.WorldData.GetByIndex<Xml.Castable>(preReq.Value)))
                     {
                         learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_level");
                         prompt = learnString.Value.Replace("$SKILLNAME", preReq.Value).Replace("$PREREQ", preReq.Level.ToString());
                         break;
                     }
-                    else if (SkillBook.Contains(Game.World.WorldData.GetByIndex<XmlCastable>(preReq.Value)))
+                    else if (SkillBook.Contains(Game.World.WorldData.GetByIndex<Xml.Castable>(preReq.Value)))
                     {
                         var preReqSkill = SkillBook.Single(x => x.Name == preReq.Value);
                         if (preReqSkill.CastableLevel < preReq.Level)
@@ -2613,8 +2609,8 @@ namespace Hybrasyl.Objects
         public void ShowLearnSkillAccept(Merchant merchant)
         {
             var castable = PendingLearnableCastable;
-            var classReq = castable.Requirements.Single(x => x.Class.Contains((Class)Class) || Class == Class.Peasant);
-            Xml.String.String learnString;
+            var classReq = castable.Requirements.Single(x => x.Class.Contains(Class) || Class == Xml.Class.Peasant);
+            Xml.LocalizedString learnString;
             var prompt = string.Empty;
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
@@ -2699,7 +2695,7 @@ namespace Hybrasyl.Objects
             foreach (var spell in merchant.Roles.Train.Where(x => x.Type == "Spell").OrderBy(y => y.Name))
             {
                 // Verify the spell exists first
-                if (Game.World.WorldData.TryGetValueByIndex(spell.Name, out XmlCastable result))
+                if (Game.World.WorldData.TryGetValueByIndex(spell.Name, out Xml.Castable result))
                 {
                     if (SpellBook.Contains(result)) continue;
                     merchantSpells.Spells.Add(new MerchantSpell()
@@ -2731,10 +2727,10 @@ namespace Hybrasyl.Objects
             Enqueue(packet.Packet());
         }
 
-        public void ShowLearnSpell(Merchant merchant, XmlCastable castable)
+        public void ShowLearnSpell(Merchant merchant, Xml.Castable castable)
         {
             var learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_choice");
-            var skillDesc = castable.Descriptions.Single(x => x.Class.Contains((Class)Class) || x.Class.Contains(Class.Peasant));
+            var skillDesc = castable.Descriptions.Single(x => x.Class.Contains(Class) || x.Class.Contains(Xml.Class.Peasant));
             var prompt = learnString.Value.Replace("$SPELLNAME", castable.Name).Replace("$SPELLDESC", skillDesc.Value);
 
             var options = new MerchantOptions();
@@ -2775,8 +2771,8 @@ namespace Hybrasyl.Objects
         {
             var castable = PendingLearnableCastable;
             //now check requirements.
-            var classReq = castable.Requirements.Single(x => x.Class.Contains((Class)Class) || Class == Class.Peasant);
-            Xml.String.String learnString = null;
+            var classReq = castable.Requirements.Single(x => x.Class.Contains(Class) || Class == Xml.Class.Peasant);
+            Xml.LocalizedString learnString = null;
             MerchantOptions options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
             var prompt = string.Empty;
@@ -2798,13 +2794,13 @@ namespace Hybrasyl.Objects
             {
                 foreach (var preReq in classReq.Prerequisites)
                 {
-                    if (!SkillBook.Contains(Game.World.WorldData.GetByIndex<XmlCastable>(preReq.Value)))
+                    if (!SkillBook.Contains(Game.World.WorldData.GetByIndex<Xml.Castable>(preReq.Value)))
                     {
                         learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_level");
                         prompt = learnString.Value.Replace("$SPELLNAME", preReq.Value).Replace("$PREREQ", preReq.Level.ToString());
                         break;
                     }
-                    else if (SkillBook.Contains(Game.World.WorldData.GetByIndex<XmlCastable>(preReq.Value)))
+                    else if (SkillBook.Contains(Game.World.WorldData.GetByIndex<Xml.Castable>(preReq.Value)))
                     {
                         var preReqSkill = SkillBook.Single(x => x.Name == preReq.Value);
                         if (preReqSkill.CastableLevel < preReq.Level)
@@ -2869,8 +2865,8 @@ namespace Hybrasyl.Objects
         public void ShowLearnSpellAccept(Merchant merchant)
         {
             var castable = PendingLearnableCastable;
-            var classReq = castable.Requirements.Single(x => x.Class.Contains((Class)Class) || Class == Class.Peasant);
-            Xml.String.String learnString;
+            var classReq = castable.Requirements.Single(x => x.Class.Contains(Class) || Class == Xml.Class.Peasant);
+            Xml.LocalizedString learnString;
             var prompt = string.Empty;
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
@@ -2955,7 +2951,7 @@ namespace Hybrasyl.Objects
             var itemsCount = 0;
             foreach (var item in merchant.Roles.Vend.Items)
             {
-                var worldItem = Game.World.WorldData.GetByIndex<Xml.Item.Item>(item.Name);
+                var worldItem = Game.World.WorldData.GetByIndex<Xml.Item>(item.Name);
                 merchantItems.Items.Add(new MerchantShopItem()
                 {
                     Tile = (ushort)(0x8000 + worldItem.Properties.Appearance.Sprite),
@@ -2989,7 +2985,7 @@ namespace Hybrasyl.Objects
 
         public void ShowBuyMenuQuantity(Merchant merchant, string name)
         {
-            var item = Game.World.WorldData.GetByIndex<Xml.Item.Item>(name);
+            var item = Game.World.WorldData.GetByIndex<Xml.Item>(name);
             PendingBuyableItem = name;
             if (item.Stackable)
             {
@@ -3042,9 +3038,9 @@ namespace Hybrasyl.Objects
 
         public void ShowBuyItem(Merchant merchant, int quantity = 1)
         {
-            Xml.String.String buyString;
+            Xml.LocalizedString buyString;
             var prompt = string.Empty;
-            var item = Game.World.WorldData.GetByIndex<Xml.Item.Item>(PendingBuyableItem);
+            var item = Game.World.WorldData.GetByIndex<Xml.Item>(PendingBuyableItem);
             var itemObj = Game.World.CreateItem(item.Id);
             var reqGold = (uint)(itemObj.Value * quantity);
             var options = new MerchantOptions();
@@ -3205,7 +3201,7 @@ namespace Hybrasyl.Objects
             var item = Inventory[slot];
             var offer = (uint)(Math.Round(item.Value * 0.10, 0) * quantity);
             PendingMerchantOffer = offer;
-            Xml.String.String offerString = null;
+            Xml.LocalizedString offerString = null;
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
             var prompt = string.Empty;
@@ -3400,7 +3396,7 @@ namespace Hybrasyl.Objects
         {
             var itemObj = PendingSendableParcel;
             PendingParcelRecipient = recipient;
-            Xml.String.String parcelString;
+            Xml.LocalizedString parcelString;
             var prompt = string.Empty;
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
