@@ -44,9 +44,6 @@ public partial class Warp
         }
         set
         {
-            ValidationContext validatorPropContext = new ValidationContext(this, null, null);
-            validatorPropContext.MemberName = "Description";
-            Validator.ValidateProperty(value, validatorPropContext);
             _description = value;
         }
     }
@@ -72,9 +69,6 @@ public partial class Warp
         }
         set
         {
-            ValidationContext validatorPropContext = new ValidationContext(this, null, null);
-            validatorPropContext.MemberName = "WorldMapTarget";
-            Validator.ValidateProperty(value, validatorPropContext);
             _worldMapTarget = value;
         }
     }

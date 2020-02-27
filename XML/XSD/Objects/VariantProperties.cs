@@ -106,9 +106,6 @@ public partial class VariantProperties
         }
         set
         {
-            ValidationContext validatorPropContext = new ValidationContext(this, null, null);
-            validatorPropContext.MemberName = "Script";
-            Validator.ValidateProperty(value, validatorPropContext);
             _script = value;
         }
     }
