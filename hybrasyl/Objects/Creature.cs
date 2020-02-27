@@ -13,8 +13,7 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015-2016 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
@@ -25,12 +24,9 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using XmlCastable = Hybrasyl.Xml.Castable.Castable;
 using Hybrasyl.Enums;
-using Hybrasyl.Xml.Status;
 using Newtonsoft.Json;
 using Hybrasyl.Scripting;
-using Hybrasyl.Xml.Common;
 
 namespace Hybrasyl.Objects
 {
@@ -74,28 +70,28 @@ namespace Hybrasyl.Objects
         public override void OnClick(User invoker) =>
             invoker.SendSystemMessage(Name);
 
-        public Creature GetDirectionalTarget(Direction direction)
+        public Creature GetDirectionalTarget(Xml.Direction direction)
         {
             VisibleObject obj;
 
             switch (direction)
             {
-                case Direction.East:
+                case Xml.Direction.East:
                     {
                         obj = Map.EntityTree.FirstOrDefault(x => x.X == X + 1 && x.Y == Y && x is Creature);
                     }
                     break;
-                case Direction.West:
+                case Xml.Direction.West:
                     {
                         obj = Map.EntityTree.FirstOrDefault(x => x.X == X - 1 && x.Y == Y && x is Creature);
                     }
                     break;
-                case Direction.North:
+                case Xml.Direction.North:
                     {
                         obj = Map.EntityTree.FirstOrDefault(x => x.X == X && x.Y == Y - 1 && x is Creature);
                     }
                     break;
-                case Direction.South:
+                case Xml.Direction.South:
                     {
                         obj = Map.EntityTree.FirstOrDefault(x => x.X == X && x.Y == Y + 1 && x is Creature);
                     }
@@ -108,7 +104,7 @@ namespace Hybrasyl.Objects
             return null;
         }
     
-        public virtual List<Creature> GetTargets(XmlCastable castable, Creature target = null)
+        public virtual List<Creature> GetTargets(Xml.Castable castable, Creature target = null)
         {
             List<Creature> actualTargets = new List<Creature>();
 
@@ -129,14 +125,14 @@ namespace Hybrasyl.Objects
             foreach (var intent in intents)
             {
                 var possibleTargets = new List<VisibleObject>();
-                if (intent.UseType == SpellUseType.NoTarget && intent.Target.Contains(IntentTarget.Group))
+                if (intent.UseType == Xml.SpellUseType.NoTarget && intent.Target.Contains(Xml.IntentTarget.Group))
                 {
                     // Targeting group members
                     var user = this as User;
                     if (user != null && user.Group != null)
                         possibleTargets.AddRange(user.Group.Members.Where(m => m.Map.Id == Map.Id && m.Distance(this) < intent.Radius));
                 }
-                else if (intent.UseType == SpellUseType.Target && intent.Radius == 0 && intent.Direction == IntentDirection.None)
+                else if (intent.UseType == Xml.SpellUseType.Target && intent.Radius == 0 && intent.Direction == Xml.IntentDirection.None)
                 {
                     // Targeting the exact clicked target
                     if (target == null)
@@ -147,7 +143,7 @@ namespace Hybrasyl.Objects
                         (castable.Effects.Damage.IsEmpty && target is User))
                         possibleTargets.Add(target);
                 }
-                else if (intent.UseType == SpellUseType.NoTarget && intent.Radius == 0 && intent.Direction == IntentDirection.None)
+                else if (intent.UseType == Xml.SpellUseType.NoTarget && intent.Radius == 0 && intent.Direction == Xml.IntentDirection.None)
                 {
                     // Targeting self - which, currently, is only allowed for non-damaging spells
                     if (castable.Effects.Damage.IsEmpty)
@@ -162,7 +158,7 @@ namespace Hybrasyl.Objects
                     byte Y = this.Y;
 
                     // Handle area targeting with click target as the source
-                    if (intent.UseType == SpellUseType.Target)
+                    if (intent.UseType == Xml.SpellUseType.Target)
                     {
                         X = target.X;
                         Y = target.Y;
@@ -170,29 +166,29 @@ namespace Hybrasyl.Objects
 
                     switch (intent.Direction)
                     {
-                        case IntentDirection.Front:
+                        case Xml.IntentDirection.Front:
                             {
                                 switch (Direction)
                                 {
-                                    case Direction.North:
+                                    case Xml.Direction.North:
                                         {
                                             //facing north, attack north
                                             rect = new Rectangle(X, Y - intent.Radius, 1,  intent.Radius);
                                         }
                                         break;
-                                    case Direction.South:
+                                    case Xml.Direction.South:
                                         {
                                             //facing south, attack south
                                             rect = new Rectangle(X, Y, 1, 1 + intent.Radius);
                                         }
                                         break;
-                                    case Direction.East:
+                                    case Xml.Direction.East:
                                         {
                                             //facing east, attack east
                                             rect = new Rectangle(X, Y, 1 + intent.Radius, 1);
                                         }
                                         break;
-                                    case Direction.West:
+                                    case Xml.Direction.West:
                                         {
                                             //facing west, attack west
                                             rect = new Rectangle(X - intent.Radius, Y, intent.Radius, 1);
@@ -201,29 +197,29 @@ namespace Hybrasyl.Objects
                                 }
                             }
                             break;
-                        case IntentDirection.Back:
+                        case Xml.IntentDirection.Back:
                             {
                                 switch (Direction)
                                 {
-                                    case Direction.North:
+                                    case Xml.Direction.North:
                                         {
                                             //facing north, attack south
                                             rect = new Rectangle(X, Y, 1, 1 + intent.Radius);
                                         }
                                         break;
-                                    case Direction.South:
+                                    case Xml.Direction.South:
                                         {
                                             //facing south, attack north
                                             rect = new Rectangle(X, Y - intent.Radius, 1, intent.Radius);
                                         }
                                         break;
-                                    case Direction.East:
+                                    case Xml.Direction.East:
                                         {
                                             //facing east, attack west
                                             rect = new Rectangle(X - intent.Radius, Y, intent.Radius, 1);
                                         }
                                         break;
-                                    case Direction.West:
+                                    case Xml.Direction.West:
                                         {
                                             //facing west, attack east
                                             rect = new Rectangle(X, Y, 1 + intent.Radius, 1);
@@ -232,29 +228,29 @@ namespace Hybrasyl.Objects
                                 }
                             }
                             break;
-                        case IntentDirection.Left:
+                        case Xml.IntentDirection.Left:
                             {
                                 switch (Direction)
                                 {
-                                    case Direction.North:
+                                    case Xml.Direction.North:
                                         {
                                             //facing north, attack west
                                             rect = new Rectangle(X - intent.Radius, Y, intent.Radius, 1);
                                         }
                                         break;
-                                    case Direction.South:
+                                    case Xml.Direction.South:
                                         {
                                             //facing south, attack east
                                             rect = new Rectangle(X, Y, 1 + intent.Radius, 1);
                                         }
                                         break;
-                                    case Direction.East:
+                                    case Xml.Direction.East:
                                         {
                                             //facing east, attack north
                                             rect = new Rectangle(X, Y, 1, 1 + intent.Radius);
                                         }
                                         break;
-                                    case Direction.West:
+                                    case Xml.Direction.West:
                                         {
                                             //facing west, attack south
                                             rect = new Rectangle(X, Y - intent.Radius, 1, intent.Radius);
@@ -263,29 +259,29 @@ namespace Hybrasyl.Objects
                                 }
                             }
                             break;
-                        case IntentDirection.Right:
+                        case Xml.IntentDirection.Right:
                             {
                                 switch (Direction)
                                 {
-                                    case Direction.North:
+                                    case Xml.Direction.North:
                                         {
                                             //facing north, attack east
                                             rect = new Rectangle(X, Y, 1 + intent.Radius, 1);
                                         }
                                         break;
-                                    case Direction.South:
+                                    case Xml.Direction.South:
                                         {
                                             //facing south, attack west
                                             rect = new Rectangle(X - intent.Radius, Y, intent.Radius, 1);
                                         }
                                         break;
-                                    case Direction.East:
+                                    case Xml.Direction.East:
                                         {
                                             //facing east, attack south
                                             rect = new Rectangle(X, Y - intent.Radius, 1, intent.Radius);
                                         }
                                         break;
-                                    case Direction.West:
+                                    case Xml.Direction.West:
                                         {
                                             //facing west, attack north
                                             rect = new Rectangle(X, Y, 1, 1 + intent.Radius);
@@ -294,8 +290,8 @@ namespace Hybrasyl.Objects
                                 }
                             }
                             break;
-                        case IntentDirection.Nearby:
-                        case IntentDirection.None:
+                        case Xml.IntentDirection.Nearby:
+                        case Xml.IntentDirection.None:
                             {
                                 //attack radius
                                 rect = new Rectangle(X - intent.Radius, Y - intent.Radius, Math.Max(intent.Radius, (byte)1)*2, Math.Max(intent.Radius, (byte)1)*2);
@@ -317,24 +313,24 @@ namespace Hybrasyl.Objects
                     // No hostile flag: remove users
                     // No friendly flag: remove monsters
                     // Group / pvp: do not apply here
-                    if (!intent.Target.Contains(IntentTarget.Friendly))
+                    if (!intent.Target.Contains(Xml.IntentTarget.Friendly))
                         possibleTargets = possibleTargets.Where(e => !(e is Monster)).ToList();
-                    if (!intent.Target.Contains(IntentTarget.Hostile))
+                    if (!intent.Target.Contains(Xml.IntentTarget.Hostile))
                         possibleTargets = possibleTargets.Where(e => !(e is User)).ToList();
                 }
-                else if (this is User && intent.UseType != SpellUseType.NoTarget)
+                else if (this is User && intent.UseType != Xml.SpellUseType.NoTarget)
                 {
                     var user = this as User;
                     // No hostile flag: remove monsters
                     // No friendly flag: remove users with pvp disabled
                     // No pvp: remove 
                     // If we aren't targeting friendlies or pvp, remove all users entirely
-                    if (!intent.Target.Contains(IntentTarget.Pvp))
+                    if (!intent.Target.Contains(Xml.IntentTarget.Pvp))
                         possibleTargets = possibleTargets.Where(e => !(e is User && (e as Creature).Condition.PvpEnabled == true)).ToList();
-                    if (!intent.Target.Contains(IntentTarget.Friendly))
+                    if (!intent.Target.Contains(Xml.IntentTarget.Friendly))
                         possibleTargets = possibleTargets.Where(e => !(e is User && (e as Creature).Condition.PvpEnabled == false)).ToList();
                     // If we aren't targeting hostiles, remove all monsters
-                    if (!intent.Target.Contains(IntentTarget.Hostile))
+                    if (!intent.Target.Contains(Xml.IntentTarget.Hostile))
                         possibleTargets = possibleTargets.Where(e => !(e is Monster)).ToList();
                 }
 
@@ -482,7 +478,7 @@ namespace Hybrasyl.Objects
 
         #endregion
 
-        public virtual bool UseCastable(XmlCastable castObject, Creature target = null)
+        public virtual bool UseCastable(Xml.Castable castObject, Creature target = null)
         {
             if (!Condition.CastingAllowed) return false;
             
@@ -538,18 +534,18 @@ namespace Hybrasyl.Objects
                 }
                 if (!castObject.Effects.Damage.IsEmpty)
                 {
-                    Element attackElement;
+                    Xml.Element attackElement;
                     var damageOutput = NumberCruncher.CalculateDamage(castObject, tar, this);
-                    if (castObject.Element == Element.Random)
+                    if (castObject.Element == Xml.Element.Random)
                     {
                         Random rnd = new Random();
-                        var Elements = Enum.GetValues(typeof(Element));
-                        attackElement = (Element)Elements.GetValue(rnd.Next(Elements.Length));
+                        var Elements = Enum.GetValues(typeof(Xml.Element));
+                        attackElement = (Xml.Element)Elements.GetValue(rnd.Next(Elements.Length));
                     }
-                    else if (castObject.Element != Element.None)
+                    else if (castObject.Element != Xml.Element.None)
                         attackElement = castObject.Element;
                     else
-                        attackElement = (Stats.OffensiveElementOverride == Element.None ? Stats.OffensiveElementOverride : Stats.OffensiveElement);
+                        attackElement = (Stats.OffensiveElementOverride == Xml.Element.None ? Stats.OffensiveElementOverride : Stats.OffensiveElement);
                     if (this is User) GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} damage: {damageOutput}, element {attackElement}");
 
                     tar.Damage(damageOutput.Amount, attackElement, damageOutput.Type, damageOutput.Flags, this, false);
@@ -568,8 +564,8 @@ namespace Hybrasyl.Objects
 
                 foreach (var status in castObject.Effects.Statuses.Add.Where(e => e.Value != null))
                 {
-                    Status applyStatus;
-                    if (World.WorldData.TryGetValueByIndex<Status>(status.Value, out applyStatus))
+                    Xml.Status applyStatus;
+                    if (World.WorldData.TryGetValueByIndex<Xml.Status>(status.Value, out applyStatus))
                     {
                         GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - applying status {status.Value}");
                         ApplyStatus(new CreatureStatus(applyStatus, tar, castObject));
@@ -580,8 +576,8 @@ namespace Hybrasyl.Objects
 
                 foreach (var status in castObject.Effects.Statuses.Remove)
                 {
-                    Status applyStatus;
-                    if (World.WorldData.TryGetValueByIndex<Status>(status, out applyStatus))
+                    Xml.Status applyStatus;
+                    if (World.WorldData.TryGetValueByIndex<Xml.Status>(status, out applyStatus))
                     {
                         GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name} - removing status {status}");
                         RemoveStatus(applyStatus.Icon);
@@ -629,7 +625,7 @@ namespace Hybrasyl.Objects
         {
         }
 
-        public virtual bool Walk(Direction direction)
+        public virtual bool Walk(Xml.Direction direction)
         {           
             int oldX = X, oldY = Y, newX = X, newY = Y;
             Rectangle arrivingViewport = Rectangle.Empty;
@@ -647,22 +643,22 @@ namespace Hybrasyl.Objects
                 // notified of an update to their AOI (area of interest, which is the object's viewport calculated from its
                 // current position).
 
-                case Direction.North:
+                case Xml.Direction.North:
                     --newY;
                     arrivingViewport = new Rectangle(oldX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE, 1);
                     departingViewport = new Rectangle(oldX - halfViewport, oldY + halfViewport, Constants.VIEWPORT_SIZE, 1);
                     break;
-                case Direction.South:
+                case Xml.Direction.South:
                     ++newY;
                     arrivingViewport = new Rectangle(oldX - halfViewport, oldY + halfViewport, Constants.VIEWPORT_SIZE, 1);
                     departingViewport = new Rectangle(oldX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE, 1);
                     break;
-                case Direction.West:
+                case Xml.Direction.West:
                     --newX;
                     arrivingViewport = new Rectangle(newX - halfViewport, oldY - halfViewport, 1, Constants.VIEWPORT_SIZE);
                     departingViewport = new Rectangle(oldX + halfViewport, oldY - halfViewport, 1, Constants.VIEWPORT_SIZE);
                     break;
-                case Direction.East:
+                case Xml.Direction.East:
                     ++newX;
                     arrivingViewport = new Rectangle(oldX + halfViewport, oldY - halfViewport, 1, Constants.VIEWPORT_SIZE);
                     departingViewport = new Rectangle(oldX - halfViewport, oldY - halfViewport, 1, Constants.VIEWPORT_SIZE);
@@ -766,7 +762,7 @@ namespace Hybrasyl.Objects
             return true;
         }
 
-        public virtual bool Turn(Direction direction)
+        public virtual bool Turn(Xml.Direction direction)
         {
             Direction = direction;
 
@@ -828,7 +824,7 @@ namespace Hybrasyl.Objects
             Stats.Mp = mp > uint.MaxValue ? Stats.MaximumMp : Math.Min(Stats.MaximumMp, (uint)(Stats.Mp + mp));
         }
 
-        public virtual void Damage(double damage, Element element = Element.None, DamageType damageType = DamageType.Direct, DamageFlags damageFlags = DamageFlags.None, Creature attacker = null, bool onDeath=true)
+        public virtual void Damage(double damage, Xml.Element element = Xml.Element.None, Xml.DamageType damageType = Xml.DamageType.Direct, Xml.DamageFlags damageFlags = Xml.DamageFlags.None, Creature attacker = null, bool onDeath=true)
         {
             if (attacker is User && this is Monster)
             {
@@ -838,13 +834,15 @@ namespace Hybrasyl.Objects
 
             LastHitTime = DateTime.Now;
 
-            if (damageType == DamageType.Physical && (AbsoluteImmortal || PhysicalImmortal))
+            if (AbsoluteImmortal) return; 
+
+            if (damageType == Xml.DamageType.Physical && (AbsoluteImmortal || PhysicalImmortal))
                 return;
 
-            if (damageType == DamageType.Magical && (AbsoluteImmortal || MagicalImmortal))
+            if (damageType == Xml.DamageType.Magical && (AbsoluteImmortal || MagicalImmortal))
                 return;
 
-            if (damageType != DamageType.Direct)
+            if (damageType != Xml.DamageType.Direct)
             {
                 double armor = Stats.Ac * -1 + 100;
                 var resist = Game.ElementTable[(int)element, 0];
@@ -857,7 +855,7 @@ namespace Hybrasyl.Objects
 
             var normalized = (uint)damage;
 
-            if (normalized > Stats.Hp && damageFlags.HasFlag(DamageFlags.Nonlethal))
+            if (normalized > Stats.Hp && damageFlags.HasFlag(Xml.DamageFlags.Nonlethal))
                 normalized = Stats.Hp - 1;
             else if (normalized > Stats.Hp)
                 normalized = Stats.Hp;

@@ -40,22 +40,7 @@ using System.Text;
 using System.Threading;
 using System.Timers;
 using System.Xml.Schema;
-using Hybrasyl.Xml.Common;
-using Hybrasyl.Xml.String;
-using Hybrasyl.Xml.Nation;
-using Hybrasyl.Xml.Item;
-using Hybrasyl.Xml.ServerConfig;
-using Hybrasyl.Xml.Loot;
 
-
-// Conflicts between duplicate class names in existing object hierarchy and
-// xml are handled here
-
-using XmlMap = Hybrasyl.Xml.Map.Map;
-using XmlCreature = Hybrasyl.Xml.Creature.Creature;
-using XmlStatus = Hybrasyl.Xml.Status.Status;
-using XmlCastable = Hybrasyl.Xml.Castable.Castable;
-using XmlNpc = Hybrasyl.Xml.Creature.Npc;
 
 namespace Hybrasyl
 {
@@ -101,22 +86,22 @@ namespace Hybrasyl
         public Dictionary<uint, WorldObject> Objects { get; set; }
 
         public Dictionary<string, string> Portraits { get; set; }
-        public Strings Strings { get; set; }
+        public Xml.LocalizedStrings Strings { get; set; }
         public WorldDataStore WorldData { set; get;  }
       
-        public Nation DefaultNation
+        public Xml.Nation DefaultNation
         {
             get
             {
-                var nation = WorldData.Values<Nation>().FirstOrDefault(n => n.Default);
-                return nation ?? WorldData.Values<Nation>().First();
+                var nation = WorldData.Values<Xml.Nation>().FirstOrDefault(n => n.Default);
+                return nation ?? WorldData.Values<Xml.Nation>().First();
             }
         }
 
         public MultiIndexDictionary<uint, string, DialogSequence> GlobalSequences { get; set; }
         private Dictionary<MerchantMenuItem, MerchantMenuHandler> merchantMenuHandlers;
 
-        public Dictionary<Tuple<Gender, string>, Item> ItemCatalog { get; set; }
+        public Dictionary<Tuple<Xml.Gender, string>, Xml.Item> ItemCatalog { get; set; }
        // public Dictionary<string, Map> MapCatalog { get; set; }
 
         public ScriptProcessor ScriptProcessor { get; set; }
@@ -203,14 +188,14 @@ namespace Hybrasyl
         }
 
 
-        public World(int port, DataStore store)
+        public World(int port, Xml.DataStore store)
             : base(port)
         {
             Objects = new Dictionary<uint, WorldObject>();
             Portraits = new Dictionary<string, string>();
 
             GlobalSequences = new MultiIndexDictionary<uint, string, DialogSequence>();
-            ItemCatalog = new Dictionary<Tuple<Gender, string>, Item>();
+            ItemCatalog = new Dictionary<Tuple<Xml.Gender, string>, Xml.Item>();
 
             ScriptProcessor = new ScriptProcessor(this);
             MessageQueue = new BlockingCollection<HybrasylMessage>(new ConcurrentQueue<HybrasylMessage>());
@@ -295,7 +280,7 @@ namespace Hybrasyl
             {              
                 try
                 {
-                    Strings = Strings.LoadFromFile(xml);
+                    Strings = Xml.LocalizedStrings.LoadFromFile(xml);
                     GameLog.Debug("Localization strings loaded.");
                 }
                 catch (Exception e)
@@ -309,7 +294,7 @@ namespace Hybrasyl
             {
                 try
                 {
-                    var npc = XmlNpc.LoadFromFile(xml);
+                    var npc = Xml.Npc.LoadFromFile(xml);
                     GameLog.Debug($"NPCs: loaded {npc.Name}");
                     WorldData.Set(npc.Name, npc);
                 }
@@ -324,7 +309,7 @@ namespace Hybrasyl
             {
                 try
                 {
-                    XmlMap newMap = XmlMap.LoadFromFile(xml);
+                    Xml.Map newMap = Xml.Map.LoadFromFile(xml);
                     var map = new Map(newMap, this);
                     if (!WorldData.SetWithIndex(map.Id, map, map.Name))
                         GameLog.ErrorFormat("SetWithIndex fail for {map.Name}..?");
@@ -343,7 +328,7 @@ namespace Hybrasyl
             {
                 try
                 {
-                    var newNation = Nation.LoadFromFile(xml);
+                    var newNation = Xml.Nation.LoadFromFile(xml);
                     GameLog.DebugFormat("Nations: Loaded {0}", newNation.Name);
                     WorldData.Set(newNation.Name, newNation);
                 }
@@ -354,7 +339,7 @@ namespace Hybrasyl
             }
 
             // Ensure at least one nation and one map exist. Otherwise, things get a little weird
-            if (WorldData.Count<Nation>() == 0)
+            if (WorldData.Count<Xml.Nation>() == 0)
             {
                 GameLog.Fatal("National data: at least one well-formed nation file must exist!");
                 return false;
@@ -366,14 +351,14 @@ namespace Hybrasyl
                 return false;
             }
 
-            GameLog.InfoFormat("National data: {0} nations loaded", WorldData.Count<Nation>());
+            GameLog.InfoFormat("National data: {0} nations loaded", WorldData.Count<Xml.Nation>());
 
             //Load Creatures
             foreach (var xml in Directory.GetFiles(CreatureDirectory, "*.xml"))
             {
                 try
                 {
-                    var creature = XmlCreature.LoadFromFile(xml);
+                    var creature = Xml.Creature.LoadFromFile(xml);
                     GameLog.DebugFormat("Creatures: loaded {0}", creature.Name);
                     WorldData.Set(creature.Name, creature);
                 }
@@ -383,19 +368,17 @@ namespace Hybrasyl
                 }
             }
 
-            GameLog.InfoFormat("Creatures: {0} creatures loaded", WorldData.Count<XmlCreature>());
+            GameLog.InfoFormat("Creatures: {0} creatures loaded", WorldData.Count<Xml.Creature>());
 
             //Load SpawnGroups
             foreach (var xml in Directory.GetFiles(SpawnGroupDirectory, "*.xml"))
             {
                 try
                 {
-                    var spawnGroup = Xml.Creature.SpawnGroup.LoadFromFile(xml);
+                    var spawnGroup = Xml.SpawnGroup.LoadFromFile(xml);
                     spawnGroup.Filename = Path.GetFileName(xml);
                     GameLog.InfoFormat("SpawnGroup: loaded {0}", spawnGroup.Filename);
-                    WorldData.Set(spawnGroup.GetHashCode(), spawnGroup);
-
-
+                    WorldData.SetWithIndex(spawnGroup.GetHashCode(), spawnGroup, spawnGroup.Filename);
                 }
                 catch (Exception e)
                 {
@@ -403,17 +386,17 @@ namespace Hybrasyl
                 }
             }
 
-            GameLog.InfoFormat("Spawngroups: {0} spawngroups loaded", WorldData.Count<Xml.Creature.SpawnGroup>());
+            GameLog.InfoFormat("Spawngroups: {0} spawngroups loaded", WorldData.Count<Xml.SpawnGroup>());
 
             //Load LootSets
             foreach (var xml in Directory.GetFiles(LootSetDirectory, "*.xml"))
             {
                 try
                 {
-                    var lootSet = LootSet.LoadFromFile(xml);
+                    var lootSet = Xml.LootSet.LoadFromFile(xml);
 
                     GameLog.DebugFormat("LootSets: loaded {0}", lootSet.Name);
-                    WorldData.Set(lootSet.GetHashCode(), lootSet);
+                    WorldData.SetWithIndex(lootSet.GetHashCode(), lootSet, lootSet.Name);
                 }
                 catch (Exception e)
                 {
@@ -421,14 +404,14 @@ namespace Hybrasyl
                 }
             }
 
-            GameLog.InfoFormat("Loot Sets: {0} loot sets loaded", WorldData.Count<LootSet>());
+            GameLog.InfoFormat("Loot Sets: {0} loot sets loaded", WorldData.Count<Xml.LootSet>());
 
             // Load worldmaps
             foreach (var xml in Directory.GetFiles(WorldMapDirectory, "*.xml"))
             {
                 try
                 {
-                    Xml.Map.WorldMap newWorldMap = Xml.Map.WorldMap.LoadFromFile(xml);
+                    Xml.WorldMap newWorldMap = Xml.WorldMap.LoadFromFile(xml);
                     var worldmap = new WorldMap(newWorldMap);
                     WorldData.Set(worldmap.Name, worldmap);
                     foreach (var point in worldmap.Points)
@@ -450,7 +433,7 @@ namespace Hybrasyl
             {
                 try
                 {
-                    VariantGroup newGroup = VariantGroup.LoadFromFile(xml);
+                    Xml.VariantGroup newGroup = Xml.VariantGroup.LoadFromFile(xml);
                     GameLog.DebugFormat("Item variants: loaded {0}", newGroup.Name);
                     WorldData.Set(newGroup.Name, newGroup);
 
@@ -461,37 +444,43 @@ namespace Hybrasyl
                 }
             }
 
-            GameLog.InfoFormat("ItemObject variants: {0} variant sets loaded", WorldData.Values<VariantGroup>().Count());
+            GameLog.InfoFormat("ItemObject variants: {0} variant sets loaded", WorldData.Values<Xml.VariantGroup>().Count());
 
             // Load items
             foreach (var xml in Directory.GetFiles(ItemDirectory, "*.xml"))
             {
                 try
                 {
-                    Item newItem = Item.LoadFromFile(xml);
+                    Xml.Item newItem = Xml.Item.LoadFromFile(xml);
+                    var variants = new Dictionary<string, List<Xml.Item>>();
+
                     GameLog.DebugFormat("Items: loaded {0}, id {1}", newItem.Name, newItem.Id);
-                    WorldData.SetWithIndex(newItem.Id, newItem,  newItem.Name);
                     // Handle some null cases; there's probably a nicer way to do this
-                    if (newItem.Properties.StatModifiers.Combat == null) { newItem.Properties.StatModifiers.Combat = new StatModifierCombat(); }
-                    if (newItem.Properties.StatModifiers.Element == null) { newItem.Properties.StatModifiers.Element = new StatModifierElement(); }
-                    if (newItem.Properties.StatModifiers.Base == null) { newItem.Properties.StatModifiers.Base = new StatModifierBase(); }
+                    if (newItem.Properties.StatModifiers.Combat == null) { newItem.Properties.StatModifiers.Combat = new Xml.StatModifierCombat(); }
+                    if (newItem.Properties.StatModifiers.Element == null) { newItem.Properties.StatModifiers.Element = new Xml.StatModifierElement(); }
+                    if (newItem.Properties.StatModifiers.Base == null) { newItem.Properties.StatModifiers.Base = new Xml.StatModifierBase(); }
                     if (newItem.Properties.Variants != null)
                     {
                         foreach (var targetGroup in newItem.Properties.Variants.Group)
                         {
-                            foreach (var variant in WorldData.Get<VariantGroup>(targetGroup).Variant)
+                            variants[targetGroup] = new List<Xml.Item>();
+                            foreach (var variant in WorldData.Get<Xml.VariantGroup>(targetGroup).Variant)
                             {
                                 var variantItem = ResolveVariant(newItem, variant, targetGroup);
-                                GameLog.DebugFormat("ItemObject {0}: variantgroup {1}, subvariant {2}", variantItem.Name, targetGroup, variant.Name);
-                                if (WorldData.ContainsKey<Item>(variantItem.Id))
+                                GameLog.InfoFormat("ItemObject {0}: variantgroup {1}, subvariant {2}", variantItem.Name, targetGroup, variant.Name);
+                                if (WorldData.ContainsKey<Xml.Item>(variantItem.Id))
                                 {
-                                    GameLog.ErrorFormat("Item already exists with Key {0} : {1}. Cannot add {2}", variantItem.Id, WorldData.Get<Item>(variantItem.Id).Name, variantItem.Name);
+                                    GameLog.ErrorFormat("Item already exists with Key {0} : {1}. Cannot add {2}", variantItem.Id, WorldData.Get<Xml.Item>(variantItem.Id).Name, variantItem.Name);
                                 }
                                 WorldData.SetWithIndex(variantItem.Id, variantItem,
-                                     new Tuple<Gender, string>(Gender.Neutral, variantItem.Name));
+                                     new Tuple<Xml.Gender, string>(Xml.Gender.Neutral, variantItem.Name));
+                                variants[targetGroup].Add(variantItem);
                             }
                         }
                     }
+                    newItem.Variants = variants;
+                    WorldData.SetWithIndex(newItem.Id, newItem, newItem.Name);
+
                 }
                 catch (Exception e)
                 {
@@ -504,7 +493,7 @@ namespace Hybrasyl
                 try
                 {
                     string name = string.Empty;
-                    XmlStatus newStatus = XmlStatus.LoadFromFile(xml);
+                    Xml.Status newStatus = Xml.Status.LoadFromFile(xml);
                     WorldData.SetWithIndex(newStatus.Icon, newStatus, newStatus.Name);
                     GameLog.Warning($"Statuses: loaded {newStatus.Name}, id {newStatus.Id}");
                 }
@@ -515,14 +504,14 @@ namespace Hybrasyl
             
             }
 
-            GameLog.InfoFormat("Statuses: {0} statuses loaded", WorldData.Values<XmlStatus>().Count());
+            GameLog.InfoFormat("Statuses: {0} statuses loaded", WorldData.Values<Xml.Status>().Count());
 
             foreach (var xml in Directory.GetFiles(CastableDirectory, "*.xml"))
             {
                 try
                 {
                     string name = string.Empty;
-                    XmlCastable newCastable = XmlCastable.LoadFromFile(xml);
+                    Xml.Castable newCastable = Xml.Castable.LoadFromFile(xml);
                     WorldData.SetWithIndex(newCastable.Id, newCastable, newCastable.Name);
                     GameLog.DebugFormat("Castables: loaded {0}, id {1}", newCastable.Name, newCastable.Id);
                 }
@@ -532,7 +521,7 @@ namespace Hybrasyl
                 }
             }
 
-            GameLog.InfoFormat("Castables: {0} castables loaded", WorldData.Values<XmlCastable>().Count());
+            GameLog.InfoFormat("Castables: {0} castables loaded", WorldData.Values<Xml.Castable>().Count());
 
             // Load data from Redis
             // Load mailboxes
@@ -596,7 +585,7 @@ namespace Hybrasyl
             return true;
         }
 
-        public Item ResolveVariant(Item item, Variant variant, string variantGroup)
+        public Xml.Item ResolveVariant(Xml.Item item, Xml.Variant variant, string variantGroup)
         {
             var variantItem = item.Clone();
 
@@ -613,37 +602,37 @@ namespace Hybrasyl
             // Ensure all our modifiable / referenced properties at least exist
             // TODO: this is pretty hacky
             if (variantItem.Properties.Restrictions.Level is null)
-                variantItem.Properties.Restrictions.Level = new RestrictionsLevel();
+                variantItem.Properties.Restrictions.Level = new Xml.RestrictionsLevel();
 
             if (variantItem.Properties.StatModifiers is null)
-                variantItem.Properties.StatModifiers = new Xml.Item.ItemStatModifiers()
+                variantItem.Properties.StatModifiers = new Xml.ItemStatModifiers()
                 {
-                    Base = new StatModifierBase(),
-                    Element = new StatModifierElement(),
-                    Combat = new StatModifierCombat()
+                    Base = new Xml.StatModifierBase(),
+                    Element = new Xml.StatModifierElement(),
+                    Combat = new Xml.StatModifierCombat()
                 };
 
             if (variantItem.Properties.Damage is null)
             {
-                variantItem.Properties.Damage = new Xml.Item.Damage()
+                variantItem.Properties.Damage = new Xml.ItemDamage()
                 {
-                    Large = new DamageLarge(),
-                    Small = new DamageSmall()
+                    Large = new Xml.ItemDamageLarge(),
+                    Small = new Xml.ItemDamageSmall()
                 };
             }
 
             if (variantItem.Properties.Damage.Large is null)
-                variantItem.Properties.Damage.Large = new DamageLarge();
+                variantItem.Properties.Damage.Large = new Xml.ItemDamageLarge();
 
             if (variantItem.Properties.Damage.Small is null)
-                variantItem.Properties.Damage.Small = new DamageSmall();
+                variantItem.Properties.Damage.Small = new Xml.ItemDamageSmall();
 
             if (item.Properties.Damage is null)
             {
-                item.Properties.Damage = new Xml.Item.Damage()
+                item.Properties.Damage = new Xml.ItemDamage()
                 {
-                    Large = new DamageLarge(),
-                    Small = new DamageSmall()
+                    Large = new Xml.ItemDamageLarge(),
+                    Small = new Xml.ItemDamageSmall()
                 };
             }
 
@@ -775,9 +764,9 @@ namespace Hybrasyl
 
             var iteminfo0 = new Metafile("ItemInfo0");
             // TODO: split items into multiple ItemInfo files (DA does ~700 each)
-            foreach (var item in WorldData.Values<Item>())
+            foreach (var item in WorldData.Values<Xml.Item>())
             {
-                iteminfo0.Nodes.Add(new MetafileNode(item.Name, item.Properties.Restrictions?.Level?.Min ?? 1, (int)(item.Properties.Restrictions?.Class ?? Class.Peasant),
+                iteminfo0.Nodes.Add(new MetafileNode(item.Name, item.Properties.Restrictions?.Level?.Min ?? 1, (int)(item.Properties.Restrictions?.Class ?? Xml.Class.Peasant),
                     item.Properties.Physical.Weight, item.Properties.Vendor?.ShopTab ?? string.Empty, item.Properties.Vendor?.Description ?? string.Empty));
             }
             WorldData.Set(iteminfo0.Name, iteminfo0.Compile());
@@ -790,7 +779,7 @@ namespace Hybrasyl
             {
                 var sclass = new Metafile("SClass" + i);
                 sclass.Nodes.Add("Skill");
-                foreach (var skill in WorldData.Values<Xml.Castable.Castable>().Where(x => x.Type.Contains("skill")))
+                foreach (var skill in WorldData.Values<Xml.Castable>().Where(x => x.Type.Contains("skill")))
                 // placeholder; change to skills where class == i, are learnable from trainer, and sort by level
                 {
                     sclass.Nodes.Add(new MetafileNode(skill.Name,
@@ -804,7 +793,7 @@ namespace Hybrasyl
                 }
                 sclass.Nodes.Add("Skill_End");
                 sclass.Nodes.Add("Spell");
-                foreach (var spell in WorldData.Values<Xml.Castable.Castable>().Where(x => x.Type.Contains("spell")))
+                foreach (var spell in WorldData.Values<Xml.Castable>().Where(x => x.Type.Contains("spell")))
                 // placeholder; change to skills where class == i, are learnable from trainer, and sort by level
                 {
                     sclass.Nodes.Add(new MetafileNode(spell.Name,
@@ -825,7 +814,7 @@ namespace Hybrasyl
             #region NPCIllust
 
             var npcillust = new Metafile("NPCIllust");
-            foreach (var npc in WorldData.Values<XmlNpc>()) // change to merchants that have a portrait rather than all
+            foreach (var npc in WorldData.Values<Xml.Npc>()) // change to merchants that have a portrait rather than all
             {
                 if (npc.Appearance.Portrait != null)
                 {
@@ -840,7 +829,7 @@ namespace Hybrasyl
             #region NationDesc
 
             var nationdesc = new Metafile("NationDesc");
-            foreach (var nation in WorldData.Values<Nation>())
+            foreach (var nation in WorldData.Values<Xml.Nation>())
             {
                 GameLog.DebugFormat("Adding flag {0} for nation {1}", nation.Flag, nation.Name);
                 nationdesc.Nodes.Add(new MetafileNode("nation_" + nation.Flag, nation.Name));
@@ -1296,12 +1285,12 @@ namespace Hybrasyl
                                 //pathfind;
                                 if (distanceX > distanceY)
                                 {
-                                    monster.Walk(monster.X > closest.X ? Direction.West : Direction.East);
+                                    monster.Walk(monster.X > closest.X ? Xml.Direction.West : Xml.Direction.East);
                                 }
                                 else
                                 {
                                     //movey
-                                    monster.Walk(monster.Y > closest.Y ? Direction.North : Direction.South);
+                                    monster.Walk(monster.Y > closest.Y ? Xml.Direction.North : Xml.Direction.South);
                                 }
 
                                 if (distanceX == distanceY)
@@ -1310,11 +1299,11 @@ namespace Hybrasyl
 
                                     if (next == 0)
                                     {
-                                        monster.Walk(monster.X > closest.X ? Direction.West : Direction.East);
+                                        monster.Walk(monster.X > closest.X ? Xml.Direction.West : Xml.Direction.East);
                                     }
                                     else
                                     {
-                                        monster.Walk(monster.Y > closest.Y ? Direction.North : Direction.South);
+                                        monster.Walk(monster.Y > closest.Y ? Xml.Direction.North : Xml.Direction.South);
                                     }
                                 }
                             }
@@ -1358,12 +1347,12 @@ namespace Hybrasyl
                 if (nextAction == 1)
                 {
                     var nextMove = _random.Next(0, 4);
-                    monster.Walk((Direction)nextMove);
+                    monster.Walk((Xml.Direction)nextMove);
                 }
                 else
                 {
                     var nextMove = _random.Next(0, 4);
-                    monster.Turn((Direction)nextMove);
+                    monster.Turn((Xml.Direction)nextMove);
                 }
             }
         }
@@ -1391,17 +1380,17 @@ namespace Hybrasyl
             }
         }
 
-        [Prohibited(CreatureCondition.Coma,CreatureCondition.Sleep,CreatureCondition.Freeze,CreatureCondition.Paralyze)]
+        [Prohibited(Xml.CreatureCondition.Coma,Xml.CreatureCondition.Sleep,Xml.CreatureCondition.Freeze,Xml.CreatureCondition.Paralyze)]
         private void PacketHandler_0x06_Walk(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
             var direction = packet.ReadByte();
             if (direction > 3) return;
             user.Condition.Casting = false;
-            user.Walk((Direction)direction);
+            user.Walk((Xml.Direction)direction);
         }
 
-        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x07_PickupItem(Object obj, ClientPacket packet)
         {
@@ -1514,7 +1503,7 @@ namespace Hybrasyl
             }
         }
 
-        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x08_DropItem(Object obj, ClientPacket packet)
         {
@@ -1626,7 +1615,7 @@ namespace Hybrasyl
             }
         }
 
-        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, CreatureCondition.Paralyze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, Xml.CreatureCondition.Paralyze)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x0F_UseSpell(object obj, ClientPacket packet)
         {
@@ -1726,11 +1715,11 @@ namespace Hybrasyl
             }
             else if (loginUser.Login.FirstLogin)
             {
-                NewPlayer handler = Game.Config.Handlers?.NewPlayer;
+                Xml.NewPlayer handler = Game.Config.Handlers?.NewPlayer;
                 var targetmap = WorldData.First<Map>();
                 if (handler != null)
                 {
-                    StartMap startmap = handler.GetStartMap();
+                    Xml.StartMap startmap = handler.GetStartMap();
                     loginUser.Login.FirstLogin = false;
                     if (WorldData.TryGetValueByIndex(startmap.Value, out Map map))
                         loginUser.Teleport(map.Id, startmap.X, startmap.Y);
@@ -1780,17 +1769,17 @@ namespace Hybrasyl
             loginUser.Reindex();
         }
 
-        [Prohibited(CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Freeze)]
         private void PacketHandler_0x11_Turn(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
             var direction = packet.ReadByte();
             if (direction > 3) return;
             user.Condition.Casting = false;
-            user.Turn((Direction)direction);
+            user.Turn((Xml.Direction)direction);
         }
 
-        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, CreatureCondition.Paralyze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, Xml.CreatureCondition.Paralyze)]
         private void PacketHandler_0x13_Attack(object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -1849,7 +1838,7 @@ namespace Hybrasyl
             }
         }
 
-        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x1C_UseItem(Object obj, ClientPacket packet)
         {
@@ -2004,7 +1993,7 @@ namespace Hybrasyl
             }
         }
 
-        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x1D_Emote(Object obj, ClientPacket packet)
         {
@@ -2017,7 +2006,7 @@ namespace Hybrasyl
             }
         }
 
-        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x24_DropGold(Object obj, ClientPacket packet)
         {
@@ -2091,7 +2080,7 @@ namespace Hybrasyl
          *    5) Send them a dialog and have them explicitly accept.
          *    6) If accepted, join group (see stage 0x03).
          */
-        [Prohibited(CreatureCondition.Coma)]
+        [Prohibited(Xml.CreatureCondition.Coma)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x2E_GroupRequest(Object obj, ClientPacket packet)
         {
@@ -2168,7 +2157,7 @@ namespace Hybrasyl
             }
         }
 
-        [Prohibited(CreatureCondition.Coma)]
+        [Prohibited(Xml.CreatureCondition.Coma)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x2F_GroupToggle(Object obj, ClientPacket packet)
         {
@@ -2188,7 +2177,7 @@ namespace Hybrasyl
             // are extra bytes coming through but not sure what purpose they serve.
         }
 
-        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x2A_DropGoldOnCreature(Object obj, ClientPacket packet)
         {
@@ -2245,7 +2234,7 @@ namespace Hybrasyl
             }
         }
 
-        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x29_DropItemOnCreature(Object obj, ClientPacket packet)
         {
@@ -2357,7 +2346,7 @@ namespace Hybrasyl
             // Is the slot invalid? Does at least one of the slots contain an item?
         }
 
-        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x3B_AccessMessages(Object obj, ClientPacket packet)
         {
@@ -2743,7 +2732,7 @@ namespace Hybrasyl
             user.Enqueue(response);
         }
 
-        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, CreatureCondition.Paralyze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, Xml.CreatureCondition.Paralyze)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x3E_UseSkill(object obj, ClientPacket packet)
         {
@@ -2753,7 +2742,7 @@ namespace Hybrasyl
             user.UseSkill(slot);
         }
 
-        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
         private void PacketHandler_0x3F_MapPointClick(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -2787,7 +2776,7 @@ namespace Hybrasyl
             user.Refresh();
         }
 
-        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x39_NPCMainMenu(Object obj, ClientPacket packet)
         {
@@ -2877,7 +2866,7 @@ namespace Hybrasyl
             }
         }
 
-        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x3A_DialogUse(Object obj, ClientPacket packet)
         {
@@ -3119,7 +3108,7 @@ namespace Hybrasyl
             }
         }
 
-        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
         private void PacketHandler_0x43_PointClick(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -3192,7 +3181,7 @@ namespace Hybrasyl
             }
         }
 
-        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x44_EquippedItemClick(Object obj, ClientPacket packet)
         {
@@ -3238,7 +3227,7 @@ namespace Hybrasyl
             }
         }
 
-        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x47_StatPoint(Object obj, ClientPacket packet)
         {
@@ -3276,7 +3265,7 @@ namespace Hybrasyl
             }
         }
 
-        [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x4A_Trade(object obj, ClientPacket packet)
         {
@@ -3629,7 +3618,7 @@ namespace Hybrasyl
         private void MerchantMenuHandler_LearnSkill(User user, Merchant merchant, ClientPacket packet)
         {
             var skillName = packet.ReadString8(); //skill name
-            var skill = WorldData.GetByIndex<Xml.Castable.Castable>(skillName);
+            var skill = WorldData.GetByIndex<Xml.Castable>(skillName);
             user.ShowLearnSkill(merchant, skill);
         }
         private void MerchantMenuHandler_LearnSkillAccept(User user, Merchant merchant, ClientPacket packet)
@@ -3655,7 +3644,7 @@ namespace Hybrasyl
         private void MerchantMenuHandler_LearnSpell(User user, Merchant merchant, ClientPacket packet)
         {
             var spellName = packet.ReadString8();
-            var spell = WorldData.GetByIndex<XmlCastable>(spellName);
+            var spell = WorldData.GetByIndex<Xml.Castable>(spellName);
             user.ShowLearnSpell(merchant, spell);
         }
         private void MerchantMenuHandler_LearnSpellAccept(User user, Merchant merchant, ClientPacket packet)
@@ -3768,7 +3757,7 @@ namespace Hybrasyl
 
         public ItemObject CreateItem(string id, int quantity = 1)
         {
-            if (WorldData.ContainsKey<Item>(id))
+            if (WorldData.ContainsKey<Xml.Item>(id))
             {
                 var item = new ItemObject(id, this);
                 if (quantity > item.MaximumStack)
@@ -3782,18 +3771,18 @@ namespace Hybrasyl
             }
         }
 
-        public bool TryGetItemTemplate(string name, Gender itemGender, out Item item)
+        public bool TryGetItemTemplate(string name, Xml.Gender itemGender, out Xml.Item item)
         {
-            var itemKey = new Tuple<Gender, string>(itemGender, name);
+            var itemKey = new Tuple<Xml.Gender, string>(itemGender, name);
             return ItemCatalog.TryGetValue(itemKey, out item);
         }
 
-        public bool TryGetItemTemplate(string name, out Item item)
+        public bool TryGetItemTemplate(string name, out Xml.Item item)
         {
             // This is kinda gross
-            var neutralKey = new Tuple<Gender, string>(Gender.Neutral, name);
-            var femaleKey = new Tuple<Gender, string>(Gender.Female, name);
-            var maleKey = new Tuple<Gender, string>(Gender.Male, name);
+            var neutralKey = new Tuple<Xml.Gender, string>(Xml.Gender.Neutral, name);
+            var femaleKey = new Tuple<Xml.Gender, string>(Xml.Gender.Female, name);
+            var maleKey = new Tuple<Xml.Gender, string>(Xml.Gender.Male, name);
 
             return ItemCatalog.TryGetValue(neutralKey, out item) || ItemCatalog.TryGetValue(femaleKey, out item) || ItemCatalog.TryGetValue(maleKey, out item);
         }

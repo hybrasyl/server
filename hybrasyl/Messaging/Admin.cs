@@ -19,7 +19,6 @@
  * 
  */
 
-using Hybrasyl.Xml.Creature;
 using Hybrasyl.Objects;
 using Hybrasyl.Scripting;
 using System;
@@ -133,6 +132,25 @@ namespace Hybrasyl.Messaging
                 return Success($"User {target.Name}: cookie {args[1]} set");
             }
             return Fail($"User {args[0]} not logged in");
+        }
+    }
+
+    class Immortal : ChatCommand
+    {
+        public new static string Command = "immortal";
+        public new static string ArgumentText = "none";
+        public new static string HelpText = "Make yourself immune to all damage";
+        public new static bool Privileged = true;
+        
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            user.AbsoluteImmortal = !user.AbsoluteImmortal;
+            user.MagicalImmortal = !user.MagicalImmortal;
+            user.PhysicalImmortal = !user.PhysicalImmortal;
+            if (user.AbsoluteImmortal)
+                return Success("You cannot be harmed.");
+            else
+                return Success("You return to the realm of the mortal.");
         }
     }
 
@@ -605,10 +623,10 @@ namespace Hybrasyl.Messaging
         public new static ChatCommandResult Run(User user, params string[] args)
         {
 
-            if (Game.World.WorldData.TryGetValue(args[0], out Xml.Creature.Creature creature))
+            if (Game.World.WorldData.TryGetValue(args[0], out Xml.Creature creature))
             {
-                Spawn spawn = new Spawn();
-                spawn.Castables = new List<Castable>();
+                Xml.Spawn spawn = new Xml.Spawn();
+                spawn.Castables = new List<Xml.SpawnCastable>();
                 spawn.Stats.Hp = 100;
                 spawn.Stats.Mp = 100;
                 spawn.Stats.Str = 3;
@@ -617,7 +635,7 @@ namespace Hybrasyl.Messaging
                 spawn.Stats.Con = 3;
                 spawn.Stats.Dex = 3;
                 spawn.Loot.Xp = 1;
-                spawn.Loot.Gold = new LootGold
+                spawn.Loot.Gold = new Xml.LootGold
                 {
                     Min = 1,
                     Max = 1

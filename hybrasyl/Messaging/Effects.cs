@@ -19,7 +19,6 @@
  * 
  */
  
-using Hybrasyl.Xml.Item;
 using Hybrasyl.Objects;
 
 namespace Hybrasyl.Messaging
@@ -118,7 +117,7 @@ namespace Hybrasyl.Messaging
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
-            if (Game.World.WorldData.TryGetValueByIndex(args[0], out Item template))
+            if (Game.World.WorldData.TryGetValueByIndex(args[0], out Xml.Item template))
             {
                 var item = Game.World.CreateItem(template.Id);
                 if (args.Length == 2 && int.TryParse(args[1], out int count) && count <= item.MaximumStack)

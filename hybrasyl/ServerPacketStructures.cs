@@ -23,7 +23,6 @@ using System;
 using System.Collections.Generic;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
-using Hybrasyl.Xml.Common;
 
 namespace Hybrasyl
 {
@@ -295,7 +294,7 @@ namespace Hybrasyl
 
             internal byte X { get; set; }
             internal byte Y { get; set; }
-            internal Direction Direction { get; set; }
+            internal Xml.Direction Direction { get; set; }
             internal uint Id { get; set; }
 
             #endregion
@@ -303,7 +302,7 @@ namespace Hybrasyl
             #region Appearance
 
             internal string Name { get; set; }
-            internal Gender Gender { get; set; }
+            internal Xml.Gender Gender { get; set; }
             internal ushort Helmet { get; set; }
             internal byte BodySpriteOffset { get; set; }
             internal ushort Armor { get; set; }

@@ -20,11 +20,8 @@
  */
 
 using Hybrasyl.Objects;
-using Serilog;
 using System;
-
 using System.Linq;
-
 using System.Timers;
 
 namespace Hybrasyl

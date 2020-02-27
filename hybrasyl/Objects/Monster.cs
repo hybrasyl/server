@@ -22,10 +22,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Hybrasyl.Xml.Creature;
 using Hybrasyl.Enums;
-using XmlCreature = Hybrasyl.Xml.Creature.Creature;
-using Hybrasyl.Xml.Common;
 
 namespace Hybrasyl.Objects
 {
@@ -37,11 +34,11 @@ namespace Hybrasyl.Objects
 
         private uint _mTarget;
 
-        private Spawn _spawn;
+        private Xml.Spawn _spawn;
 
         private uint _simpleDamage => Convert.ToUInt32(Rng.Next(_spawn.Damage.Min, _spawn.Damage.Max) * _variance);
 
-        private List<Xml.Creature.Castable> _castables;
+        private List<Xml.SpawnCastable> _castables;
         private double _variance;
 
         public int ActionDelay = 800;
@@ -50,9 +47,6 @@ namespace Hybrasyl.Objects
         public bool IsHostile { get; set; }
         public bool ShouldWander { get; set; }
         public bool CanCast => _spawn.Castables.Count > 0;
-
-
-
 
         public override void OnDeath()
         {
@@ -70,8 +64,9 @@ namespace Hybrasyl.Objects
             hitter.ShareExperience(LootableXP);
             var itemDropTime = DateTime.Now;
 
-            foreach (var item in LootableItems)
+            foreach (var itemname in LootableItems)
             {
+                var item = Game.World.CreateItem(itemname);
                 item.ItemDropType = ItemDropType.MonsterLootPile;
                 item.ItemDropAllowedLooters = ItemDropAllowedLooters;
                 item.ItemDropTime = itemDropTime;
@@ -142,14 +137,15 @@ namespace Hybrasyl.Objects
         public uint VariantHp => CalculateVariance(_spawn.Stats.Hp);
         public uint VariantMp => CalculateVariance(_spawn.Stats.Mp);
 
+        private Loot _loot;
 
-        public uint LootableXP => _spawn.Loot.Xp; 
+        public uint LootableXP => _loot?.Xp ?? 0 ;
 
-        public uint LootableGold { get; set; }
-            
-        public List<ItemObject> LootableItems { get; set; }
+        public uint LootableGold => _loot?.Gold ?? 0 ;
 
-        public Monster(XmlCreature creature, Spawn spawn, int map)
+        public List<string> LootableItems => _loot?.Items ?? new List<string>();
+
+        public Monster(Xml.Creature creature, Xml.Spawn spawn, int map, Loot loot = null)
         {
 
             var direction = (Rng.Next(0, 100) >= 50);
@@ -176,7 +172,8 @@ namespace Hybrasyl.Objects
 
             Stats.BaseDefensiveElement = spawn.GetDefensiveElement();
             Stats.BaseDefensiveElement = spawn.GetOffensiveElement();
-            LootableItems = new List<ItemObject>();
+
+            _loot = loot;
 
             //until intents are fixed, this is how this is going to be done.
             IsHostile = _random.Next(0, 7) < 2;
@@ -207,49 +204,49 @@ namespace Hybrasyl.Objects
 
             if (xDelta > yDelta)
             {
-                Walk(x > X ? Direction.East : Direction.West);
+                Walk(x > X ? Xml.Direction.East : Xml.Direction.West);
             }
 
             return false;
         }
 
-        public bool CheckFacing(Direction direction, Creature target)
+        public bool CheckFacing(Xml.Direction direction, Creature target)
         {
             if (Math.Abs(this.X - target.X) <= 1 && Math.Abs(this.Y - target.Y) <= 1)
             {
                 if (((this.X - target.X) == 1 && (this.Y - target.Y) == 0))
                 {
                     //check if facing west
-                    if (this.Direction == Direction.West) return true;
+                    if (this.Direction == Xml.Direction.West) return true;
                     else
                     {
-                        this.Turn(Direction.West);
+                        this.Turn(Xml.Direction.West);
                     }
                 }
                 if (((this.X - target.X) == -1 && (this.Y - target.Y) == 0))
                 {
                     //check if facing east
-                    if (this.Direction == Direction.East) return true;
+                    if (this.Direction == Xml.Direction.East) return true;
                     else
                     {
-                        this.Turn(Direction.East);
+                        this.Turn(Xml.Direction.East);
                     }
                 }
                 if (((this.X - target.X) == 0 && (this.Y - target.Y) == 1))
                 {
                     //check if facing south
-                    if (this.Direction == Direction.North) return true;
+                    if (this.Direction == Xml.Direction.North) return true;
                     else
                     {
-                        this.Turn(Direction.North);
+                        this.Turn(Xml.Direction.North);
                     }
                 }
                 if (((this.X - target.X) == 0 && (this.Y - target.Y) == -1))
                 {
-                    if (this.Direction == Direction.South) return true;
+                    if (this.Direction == Xml.Direction.South) return true;
                     else
                     {
-                        this.Turn(Direction.South);
+                        this.Turn(Xml.Direction.South);
                     }
                 }
             }
@@ -260,13 +257,13 @@ namespace Hybrasyl.Objects
         {
             var nextSpell = _random.Next(0, _castables.Count);
             var creatureCastable = _castables[nextSpell];
-            var castable = World.WorldData.Get<Xml.Castable.Castable>(creatureCastable.Value);
+            var castable = World.WorldData.Get<Xml.Castable>(creatureCastable.Value);
             if (target is Merchant) return;
             UseCastable(castable, target);
             Condition.Casting = false;
         }
 
-        public void AssailAttack(Direction direction, Creature target = null)
+        public void AssailAttack(Xml.Direction direction, Creature target = null)
         {
             if (target == null)
             {
@@ -302,7 +299,7 @@ namespace Hybrasyl.Objects
         /// </summary>
         /// <param name="direction"></param>
         /// <param name="target"></param>
-        public void SimpleAttack(Creature target) => target?.Damage(_simpleDamage, Stats.OffensiveElement, DamageType.Physical, DamageFlags.None, this);
+        public void SimpleAttack(Creature target) => target?.Damage(_simpleDamage, Stats.OffensiveElement, Xml.DamageType.Physical, Xml.DamageFlags.None, this);
 
         public override void ShowTo(VisibleObject obj)
         {
