@@ -1,8 +1,31 @@
-﻿using System;
+﻿/*
+ * This file is part of Project Hybrasyl.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the Affero General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+ * for more details.
+ *
+ * You should have received a copy of the Affero General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
+ *
+ * (C) 2020 ERISCO, LLC 
+ *
+ * For contributors and individual authors please refer to CONTRIBUTORS.MD.
+ * 
+ */
+ 
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows.Markup;
+using System.Security.Cryptography;
+using System.Text;
+using Hybrasyl.Xml.Common;
 
 namespace Hybrasyl
 {
@@ -10,6 +33,15 @@ namespace Hybrasyl
     {
         private ConcurrentDictionary<Type, ConcurrentDictionary<string, dynamic>> _dataStore;
         private ConcurrentDictionary<Type, ConcurrentDictionary<dynamic, dynamic>> _index;
+        public static SHA256CryptoServiceProvider sha = new SHA256CryptoServiceProvider();
+
+        /// <summary>
+        /// Normalize keys by converting to lowercase and removing whitespace (this means that 
+        /// MiLeTh InN RoOm 1 => milethinnroom1. Collisions are possible here if you are mixing case in
+        /// keys, in which case, I suggest you ask yourself why you're doing that.
+        /// </summary>
+        /// <param name="key">Dynamic key object, which must provide a ToString</param>
+        /// <returns>A normalized string</returns>
 
         /// <summary>
         /// Constructor, takes no arguments.
@@ -60,10 +92,18 @@ namespace Hybrasyl
         {
             if (_dataStore.ContainsKey(typeof(T)))
             {
-                return (T) _dataStore[typeof(T)][key.ToString().ToLower()];
+                return (T) _dataStore[typeof(T)][key.ToString().Normalize()];
             }
             return default(T);
         }
+
+        /// <summary>
+        /// Return the first of any known type (e.g. first map, first NPC, etc)
+        /// </summary>
+        /// <typeparam name="T">The type of the object desired</typeparam>
+        /// <returns></returns>
+
+        public T First<T>() => (T)_dataStore[typeof(T)].First().Value;
 
         /// <summary>
         /// Given a type and a key, return the typed object matching the key in the subindex,
@@ -77,7 +117,7 @@ namespace Hybrasyl
         {
             if (_index.ContainsKey(typeof(T)))
             {
-                return (T) _index[typeof(T)][key];
+                return (T) _index[typeof(T)][key.ToString().Normalize()];
             }
             return default(T);
         }
@@ -93,8 +133,8 @@ namespace Hybrasyl
         {
             tresult = default(T);
             var sub = GetSubStore<T>();
-            if (!sub.ContainsKey(key.ToString().ToLower())) return false;
-            tresult = (T) sub[key.ToString().ToLower()];
+            if (!sub.ContainsKey(key.ToString().Normalize())) return false;
+            tresult = (T) sub[key.ToString().Normalize()];
             return true;
         }
 
@@ -109,8 +149,12 @@ namespace Hybrasyl
         {
             tresult = default(T);
             var sub = GetSubIndex<T>();
-            if (!sub.ContainsKey(key)) return false;
-            tresult = (T)sub[key];
+            if (!sub.ContainsKey(key.ToString().Normalize()))
+            {
+                //GameLog.Error($"TryGetValueByIndex: type {typeof(T)}: key {key.ToString().Normalize()} not found");
+                return false;
+            }
+            tresult = (T)sub[key.ToString().Normalize()];
             return true;
         }
 
@@ -121,7 +165,7 @@ namespace Hybrasyl
         /// <param name="key">The key to be used for the object</param>
         /// <param name="value">The actual object to be stored</param>
         /// <returns>Boolean indicating success</returns>
-        public bool Set<T>(dynamic key, T value) => GetSubStore<T>().TryAdd(key.ToString().ToLower(), value);
+        public bool Set<T>(dynamic key, T value) => GetSubStore<T>().TryAdd(key.ToString().Normalize(), value);
 
         /// <summary>
         /// Store an object in the datastore with the given key and index key.
@@ -131,7 +175,7 @@ namespace Hybrasyl
         /// <param name="value">The actual object to be stored</param>
         /// <param name="index">The index key for the object</param>
         /// <returns>Boolean indicating success</returns>
-        public bool SetWithIndex<T>(dynamic key, T value, dynamic index) => GetSubStore<T>().TryAdd(key.ToString().ToLower(), value) && GetSubIndex<T>().TryAdd(index, value);
+        public bool SetWithIndex<T>(dynamic key, T value, dynamic index) => GetSubStore<T>().TryAdd(key.ToString().Normalize(), value) && GetSubIndex<T>().TryAdd(index.ToString().Normalize(), value);
    
 
         /// <summary>
@@ -154,7 +198,7 @@ namespace Hybrasyl
         /// <typeparam name="T">The type to check</typeparam>
         /// <param name="key">The key to check</param>
         /// <returns>Boolean indicating whether or not the key exists</returns>
-        public bool ContainsKey<T>(dynamic key) => GetSubStore<T>().ContainsKey(key.ToString().ToLower());
+        public bool ContainsKey<T>(dynamic key) => GetSubStore<T>().ContainsKey(key.ToString().Normalize());
 
         /// <summary>
         /// Return a count of typed objects in the datastore.
@@ -179,7 +223,28 @@ namespace Hybrasyl
         public bool Remove<T>(dynamic key)
         {
             dynamic ignored;
-            return GetSubStore<T>().TryRemove(key, out ignored);
+            return GetSubStore<T>().TryRemove(key.ToString().Normalize(), out ignored);
+        }
+
+        // Convenience finder functions below for various non-generic types.
+        // This can probably be further genericized, moving forward.
+
+        /// <summary>
+        /// Find all iterations (genders) of a given item name, if it exists.
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public List<Xml.Item.Item> FindItem(string name)
+       {
+            var ret = new List<Xml.Item.Item>();
+            foreach (var gender in Enum.GetValues(typeof(Gender)))
+            {
+                var rawhash = $"{name.Normalize()}:{gender.ToString().Normalize()}";
+                var hash = sha.ComputeHash(Encoding.ASCII.GetBytes(rawhash));
+                if (TryGetValue(string.Concat(hash.Select(b => b.ToString("x2"))).Substring(0, 8), out Xml.Item.Item result))
+                    ret.Add(result);
+            }
+            return ret;
         }
 
     }

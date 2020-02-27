@@ -13,8 +13,7 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015-2016 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
@@ -25,8 +24,10 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using Hybrasyl.Enums;
-using log4net;
+using Serilog;
+using MoonSharp.Interpreter;
 using Newtonsoft.Json;
+using Hybrasyl.Xml.Common;
 
 namespace Hybrasyl.Objects
 {
@@ -34,9 +35,6 @@ namespace Hybrasyl.Objects
     public class VisibleObject : WorldObject
     {
         public static Random _random = new Random();
-        public new static readonly ILog Logger =
-               LogManager.GetLogger(
-               System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         [JsonProperty]
         public LocationInfo Location { get; set; }
@@ -48,6 +46,9 @@ namespace Hybrasyl.Objects
         public ushort Sprite { get; set; }
         public string Portrait { get; set; }
         public string DisplayText { get; set; }
+
+        // Whether or not to allow a ghost (a dead player) to interact with this object
+        public bool AllowDead { get; set; }
 
         public string DeathPileOwner { get; set; }
         public List<string> ItemDropAllowedLooters { get; set; }
@@ -65,6 +66,7 @@ namespace Hybrasyl.Objects
             viewportUsers = new HashSet<User>();
             Location = new LocationInfo();
             ItemDropType = ItemDropType.Normal;
+            AllowDead = false;
         }
 
         public virtual void AoiEntry(VisibleObject obj)
@@ -89,6 +91,9 @@ namespace Hybrasyl.Objects
                 return false;
             }
 
+            if (ItemDropTime == null)
+                // Item was inserted by the system, a script, or some other mechanism
+                return true;
 
             var timeDropDifference = (DateTime.Now - ItemDropTime.Value).TotalSeconds;
 
@@ -139,11 +144,11 @@ namespace Hybrasyl.Objects
         public virtual void Show()
         {
             var withinViewport = Map.EntityTree.GetObjects(GetViewport());
-            Logger.DebugFormat("WithinViewport contains {0} objects", withinViewport.Count);
+            GameLog.DebugFormat("WithinViewport contains {0} objects", withinViewport.Count);
 
             foreach (var obj in withinViewport)
             {
-                Logger.DebugFormat("Object type is {0} and its name is {1}", obj.GetType(), obj.Name);
+                GameLog.DebugFormat("Object type is {0} and its name is {1}", obj.GetType(), obj.Name);
                 obj.AoiEntry(this);
             }
         }
@@ -169,7 +174,7 @@ namespace Hybrasyl.Objects
         {
             if (!World.WorldData.ContainsKey<Map>(mapid)) return;
             Map?.Remove(this);
-            Logger.DebugFormat("Teleporting {0} to {1}.", Name, World.WorldData.Get<Map>(mapid).Name);
+            GameLog.DebugFormat("Teleporting {0} to {1}.", Name, World.WorldData.Get<Map>(mapid).Name);
             World.WorldData.Get<Map>(mapid).Insert(this, x, y);
         }
 
@@ -178,7 +183,7 @@ namespace Hybrasyl.Objects
             Map targetMap;
             if (!World.WorldData.TryGetValueByIndex(name, out targetMap)) return;
             Map?.Remove(this);
-            Logger.DebugFormat("Teleporting {0} to {1}.", Name, targetMap.Name);
+            GameLog.DebugFormat("Teleporting {0} to {1}.", Name, targetMap.Name);
             targetMap.Insert(this, x, y);
         }
 
@@ -190,33 +195,35 @@ namespace Hybrasyl.Objects
         {
         }
 
-        public virtual int Distance(VisibleObject obj)
-        {
-            return Point.Distance(obj.X, obj.Y, X, Y);
-        }
-
-        public virtual void Say(string message)
+        public virtual void Say(string message, string from="")
         {
             foreach (var user in viewportUsers)
             {
                 var x0D = new ServerPacket(0x0D);
                 x0D.WriteByte(0x00);
                 x0D.WriteUInt32(Id);
-                x0D.WriteString8($"{Name}: {message}");
+                if (!string.IsNullOrEmpty(from)) 
+                    x0D.WriteString8($"{from}: {message}");
+                else
+                    x0D.WriteString8($"{Name}: {message}");
+                GameLog.InfoFormat("Saying to {0}", user.Name);
                 user.Enqueue(x0D);
             }
         }
 
-        public virtual void Shout(string message)
+        public virtual void Shout(string message, string from="")
         {
-            foreach (var obj in Map.EntityTree.GetObjects(GetShoutViewport()).Where(e => e is User))
+            foreach (var obj in viewportUsers)
             {
                 var user = obj as User;
                 var x0D = new ServerPacket(0x0D);
                 x0D.WriteByte(0x01);
                 x0D.WriteUInt32(Id);
-                x0D.WriteString8($"{Name}! {message}");
-
+                if (!string.IsNullOrEmpty(from))
+                    x0D.WriteString8($"{from}! {message}");
+                else
+                    x0D.WriteString8($"{Name}: {message}");
+                GameLog.InfoFormat("Shouting to {0}", user.Name);
                 user.Enqueue(x0D);
 
             }
@@ -309,14 +316,24 @@ namespace Hybrasyl.Objects
 
             foreach (var pursuit in Pursuits)
             {
-                Logger.DebugFormat("Pursuit {0}, id {1}", pursuit.Name, pursuit.Id);
+                GameLog.DebugFormat("Pursuit {0}, id {1}", pursuit.Name, pursuit.Id);
+                if (pursuit.MenuCheckExpression != string.Empty)
+                {
+                    var ret = Script.ExecuteAndReturn(pursuit.MenuCheckExpression, invoker);
+                    // If the menu check expression returns anything other than true, we don't include the 
+                    // pursuit on the main menu that is sent to the user
+                    if (!ret.CastToBool())
+                    {
+                        GameLog.ScriptingDebug($"{pursuit.MenuCheckExpression} evaluated to {ret}");
+                        continue;
+                    }
+                }
                 options.Options.Add(new MerchantDialogOption { Id = (ushort)pursuit.Id.Value, Text = pursuit.Name} );
                 optionsCount++;
 
             }
-            options.OptionsCount = (byte)optionsCount;
-        
-            var packet =new ServerPacketStructures.MerchantResponse()
+
+            var packet = new ServerPacketStructures.MerchantResponse()
             {
                 MerchantDialogType = MerchantDialogType.Options,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -325,7 +342,7 @@ namespace Hybrasyl.Objects
                 Color1 = 0,
                 Tile2 = (ushort)(0x4000 + Sprite),
                 Color2 = 0,
-                PortraitType = 0,
+                PortraitType = 1,
                 Name = Name,
                 Text = greeting?.Value ?? string.Empty,
                 Options = options

@@ -13,55 +13,101 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015-2016 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
  */
- 
+
+using System;
 using System.Collections.Generic;
-using log4net;
-using NLua;
+using System.Reflection;
+using System.Text.RegularExpressions;
+using Hybrasyl.Enums;
+using Serilog;
+using MoonSharp.Interpreter;
+using Hybrasyl.Xml.Common;
 
 namespace Hybrasyl.Scripting
 {
     public class ScriptProcessor
     {
-        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-        private static readonly ILog ScriptingLogger = LogManager.GetLogger("ScriptingLog");
 
-        public Dictionary<string, Script> Scripts { get; private set; }
         public HybrasylWorld World { get; private set; }
+        public Dictionary<string, List<Script>> _scripts { get; private set; }
 
         public ScriptProcessor(World world)
         {
-            Scripts = new Dictionary<string, Script>();
             World = new HybrasylWorld(world);
+            // Register UserData types for MoonScript
+            UserData.RegisterAssembly(typeof(Game).Assembly);
+            UserData.RegisterType<Gender>();
+            UserData.RegisterType<LegendIcon>();
+            UserData.RegisterType<LegendColor>();
+            UserData.RegisterType<LegendMark>();
+            UserData.RegisterType<DateTime>();
+            UserData.RegisterType<TimeSpan>();
+            _scripts = new Dictionary<string, List<Script>>();            
         }
 
-        public bool TryGetScript(string scriptName, out Script script)
+        // "Ri OnA.lua" => riona
+        private string SanitizeName(string scriptName) => Regex.Replace(scriptName.ToLower().Normalize(), ".lua$", "");
+
+        private bool TryGetScriptInstances(string scriptName, out List<Script> scriptList)
         {
-            // Try to find "name.lua" or "name"
-            if (Scripts.TryGetValue($"{scriptName.ToLower()}.lua", out script) ||
-                Scripts.TryGetValue(scriptName.ToLower(), out script))
+            scriptList = null;
+            if (_scripts.TryGetValue(SanitizeName(scriptName), out scriptList))
             {
                 return true;
             }
             return false;
         }
-
-        public bool RegisterScript(Script script)
+        public bool TryGetScript(string scriptName, out Script script)
         {
-            script.Run();
-            Scripts[script.Name] = script;
-            return true;
+            script = null;
+            if (TryGetScriptInstances(scriptName, out List<Script> s))
+            // Note that a request for RiOnA.lua == Riona == riona as long as
+            // riona exists
+            {
+                script = s[0].Clone();
+                return true;
+            }
+            return false;
         }
 
-        public bool DeregisterScript(string scriptname)
+        public void RegisterScript(Script script)
         {
-            Scripts[scriptname] = null;
-            return true;
+            script.Run();
+            var name = SanitizeName(script.Name);
+            if (!_scripts.ContainsKey(name))
+            {
+                _scripts[name] = new List<Script>();
+            }
+            _scripts[name].Add(script);
+        }
+
+        public bool DeregisterScript(string scriptName)
+        {
+            if (TryGetScriptInstances(scriptName, out List<Script> scriptList))
+            {
+                _scripts[scriptName] = new List<Script>();
+                return true;
+            }
+            return false;
+        }
+
+        public bool Reload(string scriptName)
+        {
+            if (TryGetScriptInstances(SanitizeName(scriptName), out List<Script> s))
+            {
+                foreach (var instance in s)
+                {
+                    instance.Reload();
+                    GameLog.ScriptingInfo($"Reloading instance of {scriptName}: associate was {instance.Associate?.Name ?? "None"}");
+                }
+                return true;
+            }
+            return false;
         }
     }
 }

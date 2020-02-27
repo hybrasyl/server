@@ -20,7 +20,7 @@
  *            Kyle Speck    <kojasou@hybrasyl.com>
  */
 
-using log4net;
+using Serilog;
 using System;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
@@ -37,7 +37,6 @@ namespace Hybrasyl
     [Serializable]
     public abstract class Packet
     {
-        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         protected static byte[][] SaltTable = new byte[][]
     {
@@ -271,8 +270,8 @@ namespace Hybrasyl
         public void DumpPacket()
         {
             // Dump the packet to the console.
-            Logger.DebugFormat("Dumping packet:");
-            Logger.DebugFormat(BitConverter.ToString(Data));
+            GameLog.DebugFormat("Dumping packet:");
+            GameLog.DebugFormat(BitConverter.ToString(Data));
         }
 
         public byte[] ToArray()
@@ -575,7 +574,7 @@ namespace Hybrasyl
 
             _position += length + 1;
 
-            return Encoding.GetEncoding(949).GetString(buffer);
+            return Encoding.ASCII.GetString(buffer);
         }
         public string ReadString16()
         {
@@ -592,7 +591,7 @@ namespace Hybrasyl
 
             _position += length + 2;
 
-            return Encoding.GetEncoding(949).GetString(buffer);
+            return Encoding.ASCII.GetString(buffer);
         }
 
         public void GenerateDialogHeader()
@@ -675,7 +674,7 @@ namespace Hybrasyl
         public override bool ShouldEncrypt => Opcode != 0x00 && Opcode != 0x03 && Opcode != 0x7E;//&& Opcode != 0x0D;
 
         public override bool UseDefaultKey => Opcode == 0x01 || Opcode == 0x02 || Opcode == 0x0A || Opcode == 0x56 || Opcode == 0x60
-                                              || Opcode == 0x62 || Opcode == 0x66 || Opcode == 0x6F;
+                                              || Opcode == 0x62 || Opcode == 0x66; //(|| Opcode == 0x6F;)
 
         public override EncryptMethod EncryptMethod
         {
@@ -817,7 +816,7 @@ namespace Hybrasyl
         public void WriteStringWithLength(string value)
         {
             WriteByte((byte)value.Length);
-            var buffer = Encoding.GetEncoding(949).GetBytes(value);
+            var buffer = Encoding.ASCII.GetBytes(value);
             if (_position + buffer.Length > Data.Length)
             {
                 Array.Resize(ref Data, _position + buffer.Length);
@@ -828,7 +827,7 @@ namespace Hybrasyl
 
         public void WriteString(string value)
         {
-            var buffer = Encoding.GetEncoding(949).GetBytes(value);
+            var buffer = Encoding.ASCII.GetBytes(value);
             if (_position + buffer.Length > Data.Length)
             {
                 Array.Resize(ref Data, _position + buffer.Length);
@@ -839,7 +838,7 @@ namespace Hybrasyl
         public void WriteString8(string value)
         {
             value = value ?? string.Empty;
-            var buffer = Encoding.GetEncoding(949).GetBytes(value);
+            var buffer = Encoding.ASCII.GetBytes(value);
             if (_position + 1 + buffer.Length > Data.Length)
             {
                 Array.Resize(ref Data, _position + 1 + buffer.Length);
@@ -850,7 +849,7 @@ namespace Hybrasyl
         }
         public void WriteString16(string value)
         {
-            var buffer = Encoding.GetEncoding(949).GetBytes(value);
+            var buffer = Encoding.ASCII.GetBytes(value);
             if (_position + 2 + buffer.Length > Data.Length)
             {
                 Array.Resize(ref Data, _position + 2 + buffer.Length);

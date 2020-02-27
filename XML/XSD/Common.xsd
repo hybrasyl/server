@@ -1,0 +1,454 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:hyb="http://www.hybrasyl.com/XML/Common" targetNamespace="http://www.hybrasyl.com/XML/Common" elementFormDefault="unqualified">
+
+  <xs:annotation>
+    <xs:documentation xml:lang="en">
+      This file is part of Project Hybrasyl.
+
+      This program is free software; you can redistribute it and/or modify
+      it under the terms of the Affero General Public License as published by
+      the Free Software Foundation, version 3.
+
+      This program is distributed in the hope that it will be useful, but
+      without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+      or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+      for more details.
+
+      You should have received a copy of the Affero General Public License along
+      with this program. If not, see http://www.gnu.org/licenses/ .
+
+      (C) 2020 ERISCO, LLC
+
+      For contributors and individual authors please refer to CONTRIBUTORS.MD.
+
+    </xs:documentation>
+  </xs:annotation>
+
+  <!-- Define common types and elements that we will reuse later -->
+
+  <xs:simpleType name="String5">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="1"/>
+      <xs:maxLength value="32"/>
+    </xs:restriction>
+  </xs:simpleType>
+    
+  <xs:simpleType name="String8">
+	  <xs:restriction base="xs:string">
+		  <xs:minLength value="1" />
+		  <xs:maxLength value="255" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="String16">
+	  <xs:restriction base="xs:string">
+		  <xs:minLength value="1" />
+		  <xs:maxLength value="65534" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Shared types used by statuses and castables -->
+  <!-- Generic type for expressing a simple quantity, either rnd(Min/Max) or a specific value -->
+  <xs:complexType name="SimpleQuantity">
+    <xs:simpleContent>
+      <xs:extension base="xs:nonNegativeInteger">
+        <xs:attribute name="Min" default="0" type="xs:nonNegativeInteger" />
+        <xs:attribute name="Max" default="0" type="xs:nonNegativeInteger" />
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <!-- Stat effects (buffs or debuffs) container element -->
+  <xs:complexType name="StatModifiers">
+    <xs:attribute name="Str" default="0" type="xs:byte" />
+    <xs:attribute name="Int" default="0" type="xs:byte" />
+    <xs:attribute name="Wis" default="0" type="xs:byte" />
+    <xs:attribute name="Con" default="0" type="xs:byte" />
+    <xs:attribute name="Dex" default="0" type="xs:byte" />
+    <xs:attribute name="Hp" default="0" type="xs:int" />
+    <xs:attribute name="Mp" default="0" type="xs:int" />
+    <xs:attribute name="Hit" default="0" type="xs:byte" />
+    <xs:attribute name="Dmg" default="0" type="xs:byte" />
+    <xs:attribute name="Ac" default="0" type="xs:byte" />
+    <xs:attribute name="Regen" default="0" type="xs:byte" />
+    <xs:attribute name="Mr" default="0" type="xs:byte" />
+    <xs:attribute name="OffensiveElement" type="hyb:Element"/>
+    <xs:attribute name="DefensiveElement" type="hyb:Element"/>
+    <xs:attribute name="DamageModifier" type="xs:float"/>
+    <xs:attribute name="HealModifier" type="xs:float"/>
+    <xs:attribute name="DamageType" type="hyb:DamageType"/>
+    <xs:attribute name="ReflectChance" type="xs:float"/>
+    <xs:attribute name="ReflectIntensity" type="xs:float"/>
+  </xs:complexType>
+  
+  <!-- Damage flags type -->
+  <xs:simpleType name="DamageFlags">
+    <xs:restriction>
+      <xs:simpleType>
+        <xs:list>
+          <xs:simpleType>
+            <xs:restriction base="xs:token">
+              <xs:enumeration value="None"/>
+              <xs:enumeration value="Scaled" />
+              <xs:enumeration value="Resistance" />
+              <xs:enumeration value="Threat" />
+              <xs:enumeration value="Nonlethal"/>
+            </xs:restriction>
+          </xs:simpleType>
+        </xs:list>
+      </xs:simpleType>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Spell use type -->
+  <xs:simpleType name="SpellUseType">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="Unusable"/>
+      <xs:enumeration value="Prompt"/>
+      <xs:enumeration value="Target"/>
+      <xs:enumeration value="FourDigit"/>
+      <xs:enumeration value="ThreeDigit"/>
+      <xs:enumeration value="NoTarget"/>
+      <xs:enumeration value="TwoDigit"/>
+      <xs:enumeration value="Onedigit"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Skill intent targets -->
+  <xs:simpleType name="IntentTarget">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="Hostile" />
+      <xs:enumeration value="Friendly" />
+      <xs:enumeration value="Pvp" />
+      <xs:enumeration value="Group" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Intent direction type -->
+  <xs:simpleType name="IntentDirection">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="None"/>
+      <xs:enumeration value="Front" />
+      <xs:enumeration value="Back" />
+      <xs:enumeration value="Left" />
+      <xs:enumeration value="Right" />
+      <xs:enumeration value="Nearby" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Weapon type list (for casting restrictions) -->
+  <xs:simpleType name="IntentTargetList">
+    <xs:restriction>
+      <xs:simpleType>
+        <xs:list itemType="hyb:IntentTarget" />
+      </xs:simpleType>
+      <xs:maxLength value="4" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Various reusable types used by items & friends -->
+
+  <!-- Item colors -->
+  <xs:simpleType name="ItemColor">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="None" />
+      <xs:enumeration value="Black" />
+      <xs:enumeration value="Red" />
+      <xs:enumeration value="Orange" />
+      <xs:enumeration value="Yellow" />
+      <xs:enumeration value="Teal" />
+      <xs:enumeration value="Blue" />
+      <xs:enumeration value="Purple" />
+      <xs:enumeration value="DarkGreen" />
+      <xs:enumeration value="Green" />
+      <xs:enumeration value="LightOrange" />
+      <xs:enumeration value="Brown" />
+      <xs:enumeration value="Grey" />
+      <xs:enumeration value="DarkBlue" />
+      <xs:enumeration value="Tan" />
+      <xs:enumeration value="White" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="ItemBodyStyle">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="Transparent" />
+      <xs:enumeration value="Male" />
+      <xs:enumeration value="MaleBlack" />
+      <xs:enumeration value="MaleRed" />
+      <xs:enumeration value="Female" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="ItemFlags">
+    <xs:restriction>
+      <xs:simpleType>
+        <xs:list>
+          <xs:simpleType>
+            <xs:restriction base="xs:token">
+              <xs:enumeration value="Bound" />
+              <xs:enumeration value="Depositable" />
+              <xs:enumeration value="Enchantable" />
+              <xs:enumeration value="Consecratable" />
+              <xs:enumeration value="Tailorable" />
+              <xs:enumeration value="Smithable" />
+              <xs:enumeration value="Exchangeable" />
+              <xs:enumeration value="Vendorable" />
+              <xs:enumeration value="Perishable" />
+              <xs:enumeration value="Unique" />
+              <xs:enumeration value="Master" />
+              <xs:enumeration value="Unique-Equipped" />
+            </xs:restriction>
+          </xs:simpleType>
+        </xs:list>
+      </xs:simpleType>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Status effects -->
+
+  <xs:simpleType name="CreatureCondition">
+    <xs:restriction>
+      <xs:simpleType>
+        <xs:list>
+          <xs:simpleType>
+            <xs:restriction base="xs:token">
+              <xs:enumeration value="Freeze" />
+              <xs:enumeration value="Sleep" />
+              <xs:enumeration value="Paralyze" />
+              <xs:enumeration value="Blind" />
+              <xs:enumeration value="Coma" />
+              <xs:enumeration value="Poison" />
+              <xs:enumeration value="Mist" />
+              <xs:enumeration value="Regen" />
+              <xs:enumeration value="Sight" />
+              <xs:enumeration value="Invisible" />
+              <xs:enumeration value="Mute" />
+              <xs:enumeration value="ReflectPhysical" />
+              <xs:enumeration value="ReflectMagical" />
+              <xs:enumeration value="Invulnerable" />
+              <xs:enumeration value="Charm" />
+              <xs:enumeration value="IncreaseDamage" />
+              <xs:enumeration value="ReduceDamage" />
+              <xs:enumeration value="AbsorbSpell" />
+              <xs:enumeration value="ProhibitItemUse" />
+              <xs:enumeration value="ProhibitEquipChange" />
+              <xs:enumeration value="ProhibitSpeech" />
+              <xs:enumeration value="ProhibitWhisper" />
+              <xs:enumeration value="ProhibitShout" />
+            </xs:restriction>
+          </xs:simpleType>
+        </xs:list>
+      </xs:simpleType>
+      <xs:maxLength value="19" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Classes (for item restrictions) -->
+  <xs:simpleType name="Class">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="Peasant" />
+      <xs:enumeration value="Warrior" />
+      <xs:enumeration value="Rogue" />
+      <xs:enumeration value="Wizard" />
+      <xs:enumeration value="Priest" />
+      <xs:enumeration value="Monk" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!--  Gender (for item restrictions) -->
+  <xs:simpleType name="Gender">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="Neutral" />
+      <xs:enumeration value="Male" />
+      <xs:enumeration value="Female" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Elements -->
+  <xs:simpleType name="Element">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="None"/>
+      <xs:enumeration value="Fire" />
+      <xs:enumeration value="Water" />
+      <xs:enumeration value="Wind" />
+      <xs:enumeration value="Earth" />
+      <xs:enumeration value="Light" />
+      <xs:enumeration value="Dark" />
+      <xs:enumeration value="Wood" />
+      <xs:enumeration value="Metal" />
+      <xs:enumeration value="Undead" />
+      <xs:enumeration value="Random" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="IntentType">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="Hostile"/>
+      <!-- Hostile to players and can be attacked -->
+      <xs:enumeration value="Passive"/>
+      <!-- Passive to players and cannot be attacked -->
+      <xs:enumeration value="Neutral"/>
+      <!-- Passive to players and can be attacked -->
+
+    </xs:restriction>
+  </xs:simpleType>
+  
+  <xs:simpleType name="WeaponType">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="OneHand" />
+      <xs:enumeration value="TwoHand" />
+      <xs:enumeration value="Dagger" />
+      <xs:enumeration value="Staff" />
+      <xs:enumeration value="Claw" />
+      <xs:enumeration value="None" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="DamageType">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="Direct" />
+      <xs:enumeration value="Physical" />
+      <xs:enumeration value="Magical" />
+      <xs:enumeration value="Elemental" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="EquipmentSlot">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="None" />
+      <xs:enumeration value="Weapon" />
+      <xs:enumeration value="Armor" />
+      <xs:enumeration value="Shield" />
+      <xs:enumeration value="Helmet" />
+      <xs:enumeration value="Earring" />
+      <xs:enumeration value="Necklace" />
+      <xs:enumeration value="LeftHand" />
+      <xs:enumeration value="RightHand" />
+      <xs:enumeration value="LeftArm" />
+      <xs:enumeration value="RightArm" />
+      <xs:enumeration value="Waist" />
+      <xs:enumeration value="Leg" />
+      <xs:enumeration value="Foot" />
+      <xs:enumeration value="FirstAcc" />
+      <xs:enumeration value="Trousers" />
+      <xs:enumeration value="Coat" />
+      <xs:enumeration value="SecondAcc" />
+      <xs:enumeration value="ThirdAcc" />
+      <xs:enumeration value="Gauntlet" />
+      <xs:enumeration value="Ring" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Direction type -->
+  <xs:simpleType name="Direction">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="North" />
+      <xs:enumeration value="East" />
+      <xs:enumeration value="South" />
+      <xs:enumeration value="West" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Map flags type -->
+  <xs:simpleType name="MapFlags">
+    <xs:restriction>
+      <xs:simpleType>
+        <xs:list>
+          <xs:simpleType>
+            <xs:restriction base="xs:token">
+              <xs:enumeration value="Snow" />
+              <xs:enumeration value="Rain" />
+              <xs:enumeration value="Dark" />
+              <xs:enumeration value="NoMap" />
+              <xs:enumeration value="Winter" />
+            </xs:restriction>
+          </xs:simpleType>
+        </xs:list>
+      </xs:simpleType>
+      <xs:maxLength value="5" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- NPC joblist type -->
+  <xs:simpleType name="NpcJobList">
+    <xs:restriction>
+      <xs:simpleType>
+        <xs:list>
+          <xs:simpleType>
+            <xs:restriction base="xs:token">
+              <xs:enumeration value="Vend" />
+              <xs:enumeration value="Bank" />
+              <xs:enumeration value="Train" />
+              <xs:enumeration value="Repair" />
+              <xs:enumeration value="Post" />
+            </xs:restriction>
+          </xs:simpleType>
+        </xs:list>
+      </xs:simpleType>
+      <xs:maxLength value="5" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="NpcRepairType">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="Armor"/>
+      <xs:enumeration value="Weapon"/>
+      <xs:enumeration value="All"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Map warp restrictions type (used by warps/worldwarps) -->
+  <xs:complexType name="WarpRestrictions">
+    <xs:sequence minOccurs="0" maxOccurs="1">
+      <xs:element name="Level" minOccurs="0" maxOccurs="1">
+        <xs:complexType>
+          <xs:attribute name="Min" type="xs:unsignedByte" default="0" />
+          <xs:attribute name="Max" type="xs:unsignedByte" default="255" />
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="Ab" minOccurs="0" maxOccurs="1">
+        <xs:complexType>
+          <xs:attribute name="Min" type="xs:unsignedByte" default="0" />
+          <xs:attribute name="Max" type="xs:unsignedByte" default="255" />
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="NoMobUse" minOccurs="0" maxOccurs="1" type="xs:boolean"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Variant property type (string, must be numeric or contain a percent sign -->
+  <xs:simpleType name="VariantProperty">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="-{0,1}[0-9]*%{0,1}" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="VariantInteger">
+    <xs:restriction base="xs:integer">
+      <xs:minInclusive value="0"/>
+      <xs:maxInclusive value="255"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- IP address type (used for Hybrasyl config files), and yes, IPv4 only -->
+  <xs:simpleType name="IpAddress">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="((((25[0-5])|(2[0-4][0-9])|([01]?[0-9]?[0-9]))\.){3}((25[0-5])|(2[0-4][0-9])|([01]?[0-9]?[0-9])))(\-((((25[0-5])|(2[0-4][0-9])|([01]?[0-9]?[0-9]))\.){3}((25[0-5])|(2[0-4][0-9])|([01]?[0-9]?[0-9]))))?" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="CharacterName">
+    <xs:restriction base="xs:token">
+      <xs:minLength value="4" />
+      <xs:maxLength value="12" />
+      <xs:pattern value="[a-zA-Z]*" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- A list of character names -->
+  <xs:simpleType name="CharacterNameList">
+    <xs:list itemType="hyb:CharacterName" />
+  </xs:simpleType>
+  
+</xs:schema>

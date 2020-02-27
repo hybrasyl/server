@@ -13,15 +13,13 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
- * Authors:   Justin Baugh  <baughj@hybrasyl.com>
- *            Kyle Speck    <kojasou@hybrasyl.com>
+ * For contributors and individual authors please refer to CONTRIBUTORS.MD.
+ * 
  */
 
 using Hybrasyl.Enums;
-using log4net;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -41,7 +39,6 @@ namespace Hybrasyl
         private ConcurrentQueue<ServerPacket> _sendBuffer = new ConcurrentQueue<ServerPacket>();
         private ConcurrentQueue<ClientPacket> _receiveBuffer = new ConcurrentQueue<ClientPacket>();
         public ManualResetEvent SendComplete = new ManualResetEvent(false);
-        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         public bool Connected { get; set; }
 
@@ -53,7 +50,7 @@ namespace Hybrasyl
             get
             {
                 System.Diagnostics.StackFrame frame = new System.Diagnostics.StackFrame(1);
-                Logger.Debug($"Receive lock acquired by: {frame.GetMethod().Name} on thread {Thread.CurrentThread.ManagedThreadId}");
+                GameLog.Debug($"Receive lock acquired by: {frame.GetMethod().Name} on thread {Thread.CurrentThread.ManagedThreadId}");
                 return _recvlock;
             }
         }
@@ -64,7 +61,7 @@ namespace Hybrasyl
             get
             {
                 System.Diagnostics.StackFrame frame = new System.Diagnostics.StackFrame(1);
-                Logger.Debug($"Send lock acquired by: {frame.GetMethod().Name} on thread {Thread.CurrentThread.ManagedThreadId}");
+                GameLog.Debug($"Send lock acquired by: {frame.GetMethod().Name} on thread {Thread.CurrentThread.ManagedThreadId}");
                 return _sendlock;
             }
         }
@@ -169,8 +166,6 @@ namespace Hybrasyl
 
     public class Client
     {
-
-        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         public bool Connected => ClientState.Connected;
 
@@ -277,13 +272,13 @@ namespace Hybrasyl
             var idletime = new TimeSpan(now - _lastReceived);
             if (idletime.TotalSeconds > Constants.IDLE_TIME)
             {
-                Logger.DebugFormat("cid {0}: idle for {1} seconds, marking as idle", ConnectionId, idletime.TotalSeconds);
+                GameLog.DebugFormat("cid {0}: idle for {1} seconds, marking as idle", ConnectionId, idletime.TotalSeconds);
                 ToggleIdle();
-                Logger.DebugFormat("cid {0}: ToggleIdle: {1}", ConnectionId, IsIdle());
+                GameLog.DebugFormat("cid {0}: ToggleIdle: {1}", ConnectionId, IsIdle());
             }
             else
             {
-                Logger.DebugFormat("cid {0}: idle for {1} seconds, not idle", ConnectionId, idletime.TotalSeconds);
+                GameLog.DebugFormat("cid {0}: idle for {1} seconds, not idle", ConnectionId, idletime.TotalSeconds);
             }
         }
 
@@ -353,14 +348,14 @@ namespace Hybrasyl
             var tickSpan = new TimeSpan(_tickHeartbeatReceived - _tickHeartbeatSent);
             var byteSpan = new TimeSpan(_byteHeartbeatReceived - _byteHeartbeatSent);
 
-            Logger.DebugFormat("cid {0}: tick heartbeat elapsed seconds {1}, byte heartbeat elapsed seconds {2}",
+            GameLog.DebugFormat("cid {0}: tick heartbeat elapsed seconds {1}, byte heartbeat elapsed seconds {2}",
                 ConnectionId, tickSpan.TotalSeconds, byteSpan.TotalSeconds);
 
             if (tickSpan.TotalSeconds > Constants.REAP_HEARTBEAT_INTERVAL ||
                 byteSpan.TotalSeconds > Constants.REAP_HEARTBEAT_INTERVAL)
             {
                 // DON'T FEAR THE REAPER
-                Logger.InfoFormat("cid {0}: heartbeat expired",ConnectionId);
+                GameLog.InfoFormat("cid {0}: heartbeat expired",ConnectionId);
                 return true;
             }
             return false;
@@ -375,7 +370,7 @@ namespace Hybrasyl
             Interlocked.Exchange(ref _lastReceived, DateTime.Now.Ticks);
             if (updateIdle)
                 Interlocked.Exchange(ref _idle, 0);
-            Logger.DebugFormat("cid {0}: lastReceived now {1}", ConnectionId, _lastReceived);
+            GameLog.DebugFormat("cid {0}: lastReceived now {1}", ConnectionId, _lastReceived);
         }
 
         /// <summary>
@@ -408,7 +403,7 @@ namespace Hybrasyl
         {
             ClientState = new ClientState(socket);
             Server = server;
-            Logger.InfoFormat("Connection {0} from {1}:{2}", ConnectionId,
+            GameLog.InfoFormat("Connection {0} from {1}:{2}", ConnectionId,
                 ((IPEndPoint)Socket.RemoteEndPoint).Address.ToString(),
                 ((IPEndPoint)Socket.RemoteEndPoint).Port);
             EncryptionKey = Encoding.ASCII.GetBytes("UrkcnItnI");
@@ -474,7 +469,7 @@ namespace Hybrasyl
                 }
                 catch (Exception e)
                 {
-                    Logger.Error($"HALP: {e}");
+                    GameLog.Error($"HALP: {e}");
                 }
             }
         }
@@ -499,25 +494,25 @@ namespace Hybrasyl
                         {
                             if (Server is Lobby)
                             {
-                                Logger.DebugFormat("Lobby: 0x{0:X2}", packet.Opcode);
+                                GameLog.DebugFormat("Lobby: 0x{0:X2}", packet.Opcode);
                                 var handler = (Server as Lobby).PacketHandlers[packet.Opcode];
                                 handler.Invoke(this, packet);
-                                Logger.DebugFormat("Lobby packet done");
+                                GameLog.DebugFormat("Lobby packet done");
                                 UpdateLastReceived();
                             }
                             else if (Server is Login)
                             {
-                                Logger.Info($"Login: 0x{packet.Opcode:X2}");
+                                GameLog.Info($"Login: 0x{packet.Opcode:X2}");
                                 var handler = (Server as Login).PacketHandlers[packet.Opcode];
                                 handler.Invoke(this, packet);
-                                Logger.DebugFormat("Login packet done");
+                                GameLog.DebugFormat("Login packet done");
                                 UpdateLastReceived();
                             }
                             else
                             {
                                 UpdateLastReceived(packet.Opcode != 0x45 &&
                                                           packet.Opcode != 0x75);
-                                Logger.Info($"Queuing: 0x{packet.Opcode:X2}");
+                                GameLog.Info($"Queuing: 0x{packet.Opcode:X2}");
                                 // Check for throttling
                                 var throttleResult = Server.PacketThrottleCheck(this, packet);
                                 if (throttleResult == ThrottleResult.OK || throttleResult == ThrottleResult.ThrottleEnd || throttleResult == ThrottleResult.SquelchEnd)
@@ -532,7 +527,7 @@ namespace Hybrasyl
                         }
                         catch (Exception e)
                         {
-                            Logger.ErrorFormat("EXCEPTION IN HANDLING: 0x{0:X2}: {1}", packet.Opcode, e);
+                            GameLog.ErrorFormat("EXCEPTION IN HANDLING: 0x{0:X2}: {1}", packet.Opcode, e);
                         }
                     }
                 }
@@ -549,7 +544,7 @@ namespace Hybrasyl
             ClientState state = (ClientState)ar.AsyncState;
             Client client;
 
-            Logger.DebugFormat($"EndSend: SocketConnected: {state.WorkSocket.Connected}, IAsyncResult: Completed: {ar.IsCompleted}, CompletedSynchronously: {ar.CompletedSynchronously}");
+            GameLog.DebugFormat($"EndSend: SocketConnected: {state.WorkSocket.Connected}, IAsyncResult: Completed: {ar.IsCompleted}, CompletedSynchronously: {ar.CompletedSynchronously}");
 
             try
             {
@@ -557,7 +552,7 @@ namespace Hybrasyl
                 var bytesSent = state.WorkSocket.EndSend(ar, out errorCode);
                 if (!GlobalConnectionManifest.ConnectedClients.TryGetValue(state.Id, out client))
                 {
-                    Logger.ErrorFormat("Send: socket should not exist: cid {0}", state.Id);
+                    GameLog.ErrorFormat("Send: socket should not exist: cid {0}", state.Id);
                     state.WorkSocket.Close();
                     state.WorkSocket.Dispose();
                     return;
@@ -565,14 +560,14 @@ namespace Hybrasyl
 
                 if (bytesSent == 0 || errorCode != SocketError.Success)
                 {
-                    Logger.ErrorFormat("cid {0}: disconnected");
+                    GameLog.ErrorFormat("cid {0}: disconnected");
                     client.Disconnect();
                     throw new SocketException((int)errorCode);
                 }
             }
             catch (SocketException e)
             {
-                Logger.Fatal($"Error Code: {e.ErrorCode}, {e.Message}");
+                GameLog.Error($"Error Code: {e.ErrorCode}, {e.Message}");
                 state.WorkSocket.Close();
             }
             catch (ObjectDisposedException)
@@ -597,23 +592,23 @@ namespace Hybrasyl
 
         public void Enqueue(ServerPacket packet)
         {
-            Logger.DebugFormat("Enqueueing ServerPacket {0}", packet.Opcode);
+            GameLog.DebugFormat("Enqueueing ServerPacket {0}", packet.Opcode);
             ClientState.SendBufferAdd(packet);
             FlushSendBuffer();
         }
 
         public void Enqueue(ClientPacket packet)
         {
-            Logger.DebugFormat("Enqueueing ClientPacket {0}", packet.Opcode);
+            GameLog.DebugFormat("Enqueueing ClientPacket {0}", packet.Opcode);
             ClientState.ReceiveBufferAdd(packet);
             FlushReceiveBuffer();
         }
 
         public void Redirect(Redirect redirect, bool isLogoff = false)
         {
-            Logger.InfoFormat("Processing redirect");
+            GameLog.InfoFormat("Processing redirect");
             GlobalConnectionManifest.RegisterRedirect(this, redirect);
-            Logger.InfoFormat("Redirect: cid {0}", this.ConnectionId);
+            GameLog.InfoFormat("Redirect: cid {0}", this.ConnectionId);
             if (isLogoff)
             {
                 GlobalConnectionManifest.DeregisterClient(this);
@@ -629,7 +624,7 @@ namespace Hybrasyl
             var x03 = new ServerPacket(0x03);
             x03.Write(addressBytes);
             x03.WriteUInt16((ushort)redirect.Destination.Port);
-            x03.WriteByte((byte)(redirect.EncryptionKey.Length + Encoding.GetEncoding(949).GetBytes(redirect.Name).Length + 7));
+            x03.WriteByte((byte)(redirect.EncryptionKey.Length + Encoding.ASCII.GetBytes(redirect.Name).Length + 7));
             x03.WriteByte(redirect.EncryptionSeed);
             x03.WriteByte((byte)redirect.EncryptionKey.Length);
             x03.Write(redirect.EncryptionKey);

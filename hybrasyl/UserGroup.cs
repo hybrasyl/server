@@ -13,18 +13,17 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
- * Authors:   Luke Segars   <luke@lukesegars.com>
+ * For contributors and individual authors please refer to CONTRIBUTORS.MD.
+ * 
  */
 
-using Hybrasyl.Objects;
-using Hybrasyl.Enums;
+ using Hybrasyl.Objects;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using log4net;
+using Hybrasyl.Xml.Common;
 
 namespace Hybrasyl
 {
@@ -35,10 +34,7 @@ namespace Hybrasyl
 
     public class UserGroup
     {
-        public static readonly ILog Logger =
-            LogManager.GetLogger(
-                System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
+ 
         // Group-related info
         public List<User> Members { get; private set; }
         public DateTime CreatedOn { get; private set; }
@@ -60,7 +56,7 @@ namespace Hybrasyl
                 ClassCount[cl] = 0;
             }
 
-            Logger.InfoFormat("Creating new group with {0} as founder.", founder.Name);
+            GameLog.InfoFormat("Creating new group with {0} as founder.", founder.Name);
             // Distribute full experience to everyone with a bonus if a member of each
             // class is present.
             ExperienceDistributionFunc = Distribution_AllClassBonus;
@@ -146,11 +142,11 @@ namespace Hybrasyl
 
         public bool ContainsAllClasses()
         {
-            return (ClassCount[Enums.Class.Monk] > 0 &&
-                    ClassCount[Enums.Class.Priest] > 0 &&
-                    ClassCount[Enums.Class.Rogue] > 0 &&
-                    ClassCount[Enums.Class.Warrior] > 0 &&
-                    ClassCount[Enums.Class.Wizard] > 0);
+            return (ClassCount[Class.Monk] > 0 &&
+                    ClassCount[Class.Priest] > 0 &&
+                    ClassCount[Class.Rogue] > 0 &&
+                    ClassCount[Class.Warrior] > 0 &&
+                    ClassCount[Class.Wizard] > 0);
         }
 
         /**

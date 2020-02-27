@@ -1,2 +1,0 @@
-# server
-Hybrasyl Server

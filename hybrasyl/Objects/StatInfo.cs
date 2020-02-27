@@ -1,10 +1,28 @@
-﻿using Hybrasyl.Threading;
+﻿/*
+ * This file is part of Project Hybrasyl.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the Affero General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+ * for more details.
+ *
+ * You should have received a copy of the Affero General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
+ *
+ * (C) 2020 ERISCO, LLC 
+ *
+ * For contributors and individual authors please refer to CONTRIBUTORS.MD.
+ * 
+ */
+
+using Hybrasyl.Threading;
 using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Hybrasyl.Xml.Common;
 
 namespace Hybrasyl.Objects
 {
@@ -38,13 +56,13 @@ namespace Hybrasyl.Objects
         private Lockable<long> _bonusAc { get; set; }
         private Lockable<long> _bonusMr { get; set; }
         private Lockable<long> _bonusRegen { get; set; }
-        private Lockable<Enums.Element> _baseOffensiveElement { get; set; }
-        private Lockable<Enums.Element> _baseDefensiveElement { get; set; }
-        private Lockable<Enums.Element> _offensiveElementOverride { get; set; }
-        private Lockable<Enums.Element> _defensiveElementOverride { get; set; }
+        private Lockable<Element> _baseOffensiveElement { get; set; }
+        private Lockable<Element> _baseDefensiveElement { get; set; }
+        private Lockable<Element> _offensiveElementOverride { get; set; }
+        private Lockable<Element> _defensiveElementOverride { get; set; }
         private Lockable<double> _baseReflectChance { get; set; }
         private Lockable<double> _bonusReflectChance { get; set; }
-        private Lockable<Enums.DamageType?> _damageTypeOverride { get; set; }
+        private Lockable<DamageType?> _damageTypeOverride { get; set; }
         private Lockable<double> _baseReflectIntensity { get; set; }
         private Lockable<double> _bonusReflectIntensity { get; set; }
         private Lockable<double> _baseHealModifier { get; set; }
@@ -60,13 +78,13 @@ namespace Hybrasyl.Objects
         #region accessors
 
         [JsonProperty]
-        public Enums.Element BaseOffensiveElement { get { return _baseOffensiveElement.Value; } set { _baseOffensiveElement.Value = value; } }
+        public Element BaseOffensiveElement { get { return _baseOffensiveElement.Value; } set { _baseOffensiveElement.Value = value; } }
         [JsonProperty]
-        public Enums.Element BaseDefensiveElement { get { return _baseDefensiveElement.Value; } set { _baseDefensiveElement.Value = value; } }
+        public Element BaseDefensiveElement { get { return _baseDefensiveElement.Value; } set { _baseDefensiveElement.Value = value; } }
         [JsonProperty]
-        public Enums.Element OffensiveElementOverride { get { return _offensiveElementOverride.Value; } set { _offensiveElementOverride.Value = value; } }
+        public Element OffensiveElementOverride { get { return _offensiveElementOverride.Value; } set { _offensiveElementOverride.Value = value; } }
         [JsonProperty]
-        public Enums.Element DefensiveElementOverride { get { return _defensiveElementOverride.Value; } set { _defensiveElementOverride.Value = value; } }
+        public Element DefensiveElementOverride { get { return _defensiveElementOverride.Value; } set { _defensiveElementOverride.Value = value; } }
         [JsonProperty]
         public byte Level { get { return _level.Value; } set { _level.Value = value; } }
         [JsonProperty]
@@ -149,13 +167,13 @@ namespace Hybrasyl.Objects
             _bonusAc = new Lockable<long>(0);
             _bonusMr = new Lockable<long>(0);
             _bonusRegen = new Lockable<long>(0);
-            _baseOffensiveElement = new Lockable<Enums.Element>(Enums.Element.None);
-            _baseDefensiveElement = new Lockable<Enums.Element>(Enums.Element.None);
-            _offensiveElementOverride = new Lockable<Enums.Element>(Enums.Element.None);
-            _defensiveElementOverride = new Lockable<Enums.Element>(Enums.Element.None);
+            _baseOffensiveElement = new Lockable<Element>(Element.None);
+            _baseDefensiveElement = new Lockable<Element>(Element.None);
+            _offensiveElementOverride = new Lockable<Element>(Element.None);
+            _defensiveElementOverride = new Lockable<Element>(Element.None);
             _baseReflectChance = new Lockable<double>(0);
             _bonusReflectChance = new Lockable<double>(0);
-            _damageTypeOverride = new Lockable<Enums.DamageType?>(null);
+            _damageTypeOverride = new Lockable<DamageType?>(null);
             _baseReflectIntensity = new Lockable<double>(1);
             _bonusReflectIntensity = new Lockable<double>(0);
             _baseHealModifier = new Lockable<double>(1);
@@ -362,18 +380,18 @@ namespace Hybrasyl.Objects
             }
         }
 
-        public Enums.Element OffensiveElement
+        public Element OffensiveElement
         {
             get
             {
-                return (OffensiveElementOverride == Enums.Element.None ? OffensiveElementOverride : BaseOffensiveElement);
+                return (OffensiveElementOverride == Element.None ? OffensiveElementOverride : BaseOffensiveElement);
             }
         }
-        public Enums.Element DefensiveElement
+        public Element DefensiveElement
         {
             get
             {
-                return (DefensiveElementOverride == Enums.Element.None ? DefensiveElementOverride : BaseDefensiveElement);
+                return (DefensiveElementOverride == Element.None ? DefensiveElementOverride : BaseDefensiveElement);
             }
         }
 

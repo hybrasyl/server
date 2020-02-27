@@ -13,22 +13,19 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015-2016 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
  */
-
-
-using Hybrasyl.Items;
+ 
 using Hybrasyl.Scripting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Hybrasyl.Creatures;
-using Hybrasyl.Castables;
-using Hybrasyl.Enums;
+using Hybrasyl.Xml.Creature;
+using Hybrasyl.Xml.Item;
+using Hybrasyl.Xml.Common;
 
 namespace Hybrasyl.Objects
 {
@@ -38,7 +35,7 @@ namespace Hybrasyl.Objects
         //public npc Data;
         public NpcRoleList Roles { get; set; }
         public MerchantJob Jobs { get; set; }
-        public Dictionary<string, Item> Inventory { get; private set; }
+        public new Dictionary<string, Item> Inventory { get; private set; }
 
         public Merchant()
             : base()
@@ -49,7 +46,7 @@ namespace Hybrasyl.Objects
 
         // Currently, NPCs can not be healed or damaged in any way whatsoever
         public override void Heal(double heal, Creature source = null) { return; }
-        public override void Damage(double damage, Enums.Element element = Enums.Element.None, Enums.DamageType damageType = Enums.DamageType.Direct, DamageFlags damageFlags = DamageFlags.None, Creature attacker = null, bool onDeath = true) { return; }
+        public override void Damage(double damage, Element element = Element.None, DamageType damageType = DamageType.Direct, DamageFlags damageFlags = DamageFlags.None, Creature attacker = null, bool onDeath = true) { return; }
 
         public void OnSpawn()
         {
@@ -59,6 +56,8 @@ namespace Hybrasyl.Objects
             {
                 Script = script;
                 Script.AssociateScriptWithObject(this);
+                // Clear existing pursuits, in case the OnSpawn crashes / has a bug
+                ResetPursuits();
                 Ready = Script.ExecuteFunction("OnSpawn");
             }
         }
@@ -217,21 +216,21 @@ namespace Hybrasyl.Objects
 
     public struct MerchantOptions
     {
-        public byte OptionsCount;
+        public byte OptionsCount => Convert.ToByte(Options.Count);
         public List<MerchantDialogOption> Options;
     }
 
     public struct MerchantOptionsWithArgument
     {
-        public byte ArgumentLength;
+        public byte ArgumentLength => Convert.ToByte(Argument.Length);
         public string Argument;
-        public byte OptionsCount;
+        public byte OptionsCount => Convert.ToByte(Options.Count);
         public List<MerchantDialogOption> Options;
     }
 
     public struct MerchantDialogOption
     {
-        public byte Length;
+        public byte Length => Convert.ToByte(Text.Length);
         public string Text;
         public ushort Id;
     }
@@ -243,7 +242,7 @@ namespace Hybrasyl.Objects
 
     public struct MerchantInputWithArgument
     {
-        public byte ArgumentLength;
+        public byte ArgumentLength => Convert.ToByte(Argument.Length);
         public string Argument;
         public ushort Id;
     }
@@ -251,7 +250,7 @@ namespace Hybrasyl.Objects
     public struct MerchantShopItems
     {
         public ushort Id;
-        public ushort ItemsCount;
+        public ushort ItemsCount => Convert.ToUInt16(Items.Count);
         public List<MerchantShopItem> Items;
     }
 
@@ -260,16 +259,16 @@ namespace Hybrasyl.Objects
         public ushort Tile;
         public byte Color;
         public uint Price;
-        public byte NameLength;
+        public byte NameLength => Convert.ToByte(Name.Length);
         public string Name;
-        public byte DescriptionLength;
+        public byte DescriptionLength => Convert.ToByte(Description.Length);
         public string Description;
     }
 
     public struct UserInventoryItems
     {
         public ushort Id;
-        public byte InventorySlotsCount;
+        public byte InventorySlotsCount => Convert.ToByte(InventorySlots.Count);
         public List<byte> InventorySlots;
     }
 
@@ -286,7 +285,7 @@ namespace Hybrasyl.Objects
     public struct MerchantSpells
     {
         public ushort Id;
-        public ushort SpellsCount;
+        public ushort SpellsCount => Convert.ToUInt16(Spells.Count());
         public byte IconType;
         public List<MerchantSpell> Spells;
     }
@@ -296,14 +295,14 @@ namespace Hybrasyl.Objects
         public byte IconType;
         public byte Icon;
         public byte Color;
-        public byte NameLength;
+        public byte NameLength => Convert.ToByte(Name.Length);
         public string Name;
     }
 
     public struct MerchantSkills
     {
         public ushort Id;
-        public ushort SkillsCount;
+        public ushort SkillsCount => Convert.ToUInt16(Skills.Count());
         public byte IconType;
         public List<MerchantSkill> Skills;
     }
@@ -313,7 +312,7 @@ namespace Hybrasyl.Objects
         public byte IconType;
         public byte Icon;
         public byte Color;
-        public byte NameLength;
+        public byte NameLength => Convert.ToByte(Name.Length);
         public string Name;
     }
 

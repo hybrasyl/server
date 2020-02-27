@@ -25,22 +25,18 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using Hybrasyl.Castables;
+using XmlCastable = Hybrasyl.Xml.Castable.Castable;
 using Hybrasyl.Enums;
-using Hybrasyl.Statuses;
-using log4net;
+using Hybrasyl.Xml.Status;
 using Newtonsoft.Json;
+using Hybrasyl.Scripting;
+using Hybrasyl.Xml.Common;
 
 namespace Hybrasyl.Objects
 {
 
     public class Creature : VisibleObject
     {
-        public new static readonly ILog Logger =
-               LogManager.GetLogger(
-               System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
-        private static readonly ILog ActivityLogger = LogManager.GetLogger("UserActivityLog");
 
         [JsonProperty(Order = 2)]
         public StatInfo Stats { get; set; }
@@ -75,9 +71,8 @@ namespace Hybrasyl.Objects
             Statuses = new List<StatusInfo>();
         }
 
-        public override void OnClick(User invoker)
-        {
-        }
+        public override void OnClick(User invoker) =>
+            invoker.SendSystemMessage(Name);
 
         public Creature GetDirectionalTarget(Direction direction)
         {
@@ -113,7 +108,7 @@ namespace Hybrasyl.Objects
             return null;
         }
     
-        public virtual List<Creature> GetTargets(Castable castable, Creature target = null)
+        public virtual List<Creature> GetTargets(XmlCastable castable, Creature target = null)
         {
             List<Creature> actualTargets = new List<Creature>();
 
@@ -134,25 +129,25 @@ namespace Hybrasyl.Objects
             foreach (var intent in intents)
             {
                 var possibleTargets = new List<VisibleObject>();
-                if (intent.UseType == Castables.SpellUseType.NoTarget && intent.Target.Contains(IntentTarget.Group))
+                if (intent.UseType == SpellUseType.NoTarget && intent.Target.Contains(IntentTarget.Group))
                 {
                     // Targeting group members
                     var user = this as User;
                     if (user != null && user.Group != null)
                         possibleTargets.AddRange(user.Group.Members.Where(m => m.Map.Id == Map.Id && m.Distance(this) < intent.Radius));
                 }
-                else if (intent.UseType == Castables.SpellUseType.Target && intent.Radius == 0 && intent.Direction == IntentDirection.None)
+                else if (intent.UseType == SpellUseType.Target && intent.Radius == 0 && intent.Direction == IntentDirection.None)
                 {
                     // Targeting the exact clicked target
                     if (target == null)
-                        Logger.Error($"GetTargets: {castable.Name} - intent was for exact clicked target but no target was passed?");
+                        GameLog.Error($"GetTargets: {castable.Name} - intent was for exact clicked target but no target was passed?");
                     else
                         // Heal spels can be cast on players, other spells can be cast on attackable creatures
                         if ((!castable.Effects.Damage.IsEmpty && target.Condition.IsAttackable) ||
                         (castable.Effects.Damage.IsEmpty && target is User))
                         possibleTargets.Add(target);
                 }
-                else if (intent.UseType == Castables.SpellUseType.NoTarget && intent.Radius == 0 && intent.Direction == IntentDirection.None)
+                else if (intent.UseType == SpellUseType.NoTarget && intent.Radius == 0 && intent.Direction == IntentDirection.None)
                 {
                     // Targeting self - which, currently, is only allowed for non-damaging spells
                     if (castable.Effects.Damage.IsEmpty)
@@ -167,7 +162,7 @@ namespace Hybrasyl.Objects
                     byte Y = this.Y;
 
                     // Handle area targeting with click target as the source
-                    if (intent.UseType == Castables.SpellUseType.Target)
+                    if (intent.UseType == SpellUseType.Target)
                     {
                         X = target.X;
                         Y = target.Y;
@@ -307,7 +302,7 @@ namespace Hybrasyl.Objects
                             }
                             break;
                     }
-                    Logger.Info($"Rectangle: x: {X - intent.Radius} y: {Y - intent.Radius}, radius: {intent.Radius} - LOCATION: {rect.Location} TOP: {rect.Top}, BOTTOM: {rect.Bottom}, RIGHT: {rect.Right}, LEFT: {rect.Left}");
+                    GameLog.Info($"Rectangle: x: {X - intent.Radius} y: {Y - intent.Radius}, radius: {intent.Radius} - LOCATION: {rect.Location} TOP: {rect.Top}, BOTTOM: {rect.Bottom}, RIGHT: {rect.Right}, LEFT: {rect.Left}");
                     if (rect.IsEmpty) continue;
 
                     possibleTargets.AddRange(Map.EntityTree.GetObjects(rect).Where(obj => obj is Creature && obj != this));
@@ -327,7 +322,7 @@ namespace Hybrasyl.Objects
                     if (!intent.Target.Contains(IntentTarget.Hostile))
                         possibleTargets = possibleTargets.Where(e => !(e is User)).ToList();
                 }
-                else if (this is User)
+                else if (this is User && intent.UseType != SpellUseType.NoTarget)
                 {
                     var user = this as User;
                     // No hostile flag: remove monsters
@@ -347,7 +342,7 @@ namespace Hybrasyl.Objects
 
                 List<Creature> possible = intent.MaxTargets > 0 ? possibleTargets.Take(intent.MaxTargets).OfType<Creature>().ToList() : possibleTargets.OfType<Creature>().ToList();
                 if (possible != null && possible.Count > 0) actualTargets.AddRange(possible);
-                else Logger.Info("No targets found");
+                else GameLog.Info("No targets found");
             }
             return actualTargets;
         }
@@ -413,7 +408,12 @@ namespace Hybrasyl.Objects
         private void _removeStatus(ICreatureStatus status, bool onEnd = true)
         {
             if (onEnd)
-                status.OnEnd();
+            {
+                if (status.Expired)
+                    status.OnExpire();
+                else
+                    status.OnEnd();
+            }
             if (this is User) (this as User).SendStatusUpdate(status, true);
         }
 
@@ -451,7 +451,7 @@ namespace Hybrasyl.Objects
                 }
 
                 _currentStatuses.Clear();
-                Logger.Debug($"Current status count is {_currentStatuses.Count}");
+                GameLog.Debug($"Current status count is {_currentStatuses.Count}");
             }
         }
 
@@ -462,12 +462,12 @@ namespace Hybrasyl.Objects
         {
             foreach (var kvp in _currentStatuses)
             {
-                Logger.DebugFormat("OnTick: {0}, {1}", Name, kvp.Value.Name);
+                GameLog.DebugFormat("OnTick: {0}, {1}", Name, kvp.Value.Name);
 
                 if (kvp.Value.Expired)
                 {
                     var removed = RemoveStatus(kvp.Key);
-                    Logger.DebugFormat($"Status {kvp.Value.Name} has expired: removal was {removed}");
+                    GameLog.DebugFormat($"Status {kvp.Value.Name} has expired: removal was {removed}");
                 }
 
                 if (kvp.Value.ElapsedSinceTick >= kvp.Value.Tick)
@@ -482,11 +482,11 @@ namespace Hybrasyl.Objects
 
         #endregion
 
-        public virtual bool UseCastable(Castable castObject, Creature target = null)
+        public virtual bool UseCastable(XmlCastable castObject, Creature target = null)
         {
             if (!Condition.CastingAllowed) return false;
             
-            if (this is User) ActivityLogger.Info($"UseCastable: {Name} begin casting {castObject.Name} on target: {target?.Name ?? "no target"} CastingAllowed: {Condition.CastingAllowed}");
+            if (this is User) GameLog.UserActivityInfo($"UseCastable: {Name} begin casting {castObject.Name} on target: {target?.Name ?? "no target"} CastingAllowed: {Condition.CastingAllowed}");
 
             var damage = castObject.Effects.Damage;
             List<Creature> targets;
@@ -494,24 +494,40 @@ namespace Hybrasyl.Objects
             targets = GetTargets(castObject, target);
 
             if (targets.Count() == 0 && castObject.IsAssail == false) return false;
-
+            
             // We do these next steps to ensure effects are displayed uniformly and as fast as possible
             var deadMobs = new List<Creature>();
-            foreach (var tar in targets)
+            if (castObject.Effects?.Animations?.OnCast != null)
             {
-                foreach (var user in tar.viewportUsers)
+                foreach (var tar in targets)
                 {
-                    user.SendEffect(tar.Id, castObject.Effects.Animations.OnCast.Target.Id, castObject.Effects.Animations.OnCast.Target.Speed);
+                    foreach (var user in tar.viewportUsers)
+                    {
+                        user.SendEffect(tar.Id, castObject.Effects.Animations.OnCast.Target.Id, castObject.Effects.Animations.OnCast.Target.Speed);
+                    }
                 }
+                if (castObject.Effects?.Animations?.OnCast?.SpellEffect != null)
+                    Effect(castObject.Effects.Animations.OnCast.SpellEffect.Id, castObject.Effects.Animations.OnCast.SpellEffect.Speed);
             }
 
-            if (castObject.Effects?.Animations?.OnCast?.SpellEffect != null)
-                Effect(castObject.Effects.Animations.OnCast.SpellEffect.Id, castObject.Effects.Animations.OnCast.SpellEffect.Speed);
-
-            if (castObject.Effects.Sound != null)
+            if (castObject.Effects?.Sound != null)
                 PlaySound(castObject.Effects.Sound.Id);
 
-            ActivityLogger.Info($"UseCastable: {Name} casting {castObject.Name}, {targets.Count()} targets");
+            GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name}, {targets.Count()} targets");
+
+            if (!string.IsNullOrEmpty(castObject.Script))
+            {
+                // If a script is defined we fire it immediately, and let it handle targeting / etc
+                if (Game.World.ScriptProcessor.TryGetScript(castObject.Script, out Script script))
+                    return script.ExecuteFunction("OnUse", this);
+                else
+                {
+                    GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name}: castable script {castObject.Script} missing");
+                    return false;
+                }
+
+            }
+
             foreach (var tar in targets)
             {
                 if (castObject.Effects?.ScriptOverride == true)
@@ -522,19 +538,19 @@ namespace Hybrasyl.Objects
                 }
                 if (!castObject.Effects.Damage.IsEmpty)
                 {
-                    Enums.Element attackElement;
+                    Element attackElement;
                     var damageOutput = NumberCruncher.CalculateDamage(castObject, tar, this);
-                    if (castObject.Element == Castables.Element.Random)
+                    if (castObject.Element == Element.Random)
                     {
                         Random rnd = new Random();
-                        var Elements = Enum.GetValues(typeof(Enums.Element));
-                        attackElement = (Enums.Element)Elements.GetValue(rnd.Next(Elements.Length));
+                        var Elements = Enum.GetValues(typeof(Element));
+                        attackElement = (Element)Elements.GetValue(rnd.Next(Elements.Length));
                     }
-                    else if (castObject.Element != Castables.Element.None)
-                        attackElement = (Enums.Element)castObject.Element;
+                    else if (castObject.Element != Element.None)
+                        attackElement = castObject.Element;
                     else
-                        attackElement = (Stats.OffensiveElementOverride == Enums.Element.None ? Stats.OffensiveElementOverride : Stats.OffensiveElement);
-                    if (this is User) ActivityLogger.Info($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} damage: {damageOutput}, element {attackElement}");
+                        attackElement = (Stats.OffensiveElementOverride == Element.None ? Stats.OffensiveElementOverride : Stats.OffensiveElement);
+                    if (this is User) GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} damage: {damageOutput}, element {attackElement}");
 
                     tar.Damage(damageOutput.Amount, attackElement, damageOutput.Type, damageOutput.Flags, this, false);
                     if (tar.Stats.Hp <= 0) { deadMobs.Add(tar); }
@@ -545,7 +561,7 @@ namespace Hybrasyl.Objects
                 {
                     var healOutput = NumberCruncher.CalculateHeal(castObject, tar, this);
                     tar.Heal(healOutput, this);
-                    if (this is User) ActivityLogger.Info($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} healing: {healOutput}");
+                    if (this is User) GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} healing: {healOutput}");
                 }
 
                 // Handle statuses
@@ -555,11 +571,11 @@ namespace Hybrasyl.Objects
                     Status applyStatus;
                     if (World.WorldData.TryGetValueByIndex<Status>(status.Value, out applyStatus))
                     {
-                        ActivityLogger.Info($"UseCastable: {Name} casting {castObject.Name} - applying status {status.Value}");
+                        GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - applying status {status.Value}");
                         ApplyStatus(new CreatureStatus(applyStatus, tar, castObject));
                     }
                     else
-                        ActivityLogger.Error($"UseCastable: {Name} casting {castObject.Name} - failed to add status {status.Value}, does not exist!");
+                        GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name} - failed to add status {status.Value}, does not exist!");
                 }
 
                 foreach (var status in castObject.Effects.Statuses.Remove)
@@ -567,11 +583,11 @@ namespace Hybrasyl.Objects
                     Status applyStatus;
                     if (World.WorldData.TryGetValueByIndex<Status>(status, out applyStatus))
                     {
-                        ActivityLogger.Error($"UseCastable: {Name} casting {castObject.Name} - removing status {status}");
+                        GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name} - removing status {status}");
                         RemoveStatus(applyStatus.Icon);
                     }
                     else
-                        ActivityLogger.Error($"UseCastable: {Name} casting {castObject.Name} - failed to remove status {status}, does not exist!");
+                        GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name} - failed to remove status {status}, does not exist!");
 
                 }
             }
@@ -584,12 +600,12 @@ namespace Hybrasyl.Objects
 
         public void SendAnimation(ServerPacket packet)
         {
-            Logger.DebugFormat("SendAnimation");
-            Logger.DebugFormat("SendAnimation byte format is: {0}", BitConverter.ToString(packet.ToArray()));
+            GameLog.DebugFormat("SendAnimation");
+            GameLog.DebugFormat("SendAnimation byte format is: {0}", BitConverter.ToString(packet.ToArray()));
             foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>())
             {
                 var nPacket = (ServerPacket)packet.Clone();
-                Logger.DebugFormat("SendAnimation to {0}", user.Name);
+                GameLog.DebugFormat("SendAnimation to {0}", user.Name);
                 user.Enqueue(nPacket);
 
             }
@@ -597,12 +613,12 @@ namespace Hybrasyl.Objects
 
         public void SendCastLine(ServerPacket packet)
         {
-            Logger.DebugFormat("SendCastLine");
-            Logger.DebugFormat($"SendCastLine byte format is: {BitConverter.ToString(packet.ToArray())}");
+            GameLog.DebugFormat("SendCastLine");
+            GameLog.DebugFormat($"SendCastLine byte format is: {BitConverter.ToString(packet.ToArray())}");
             foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>())
             {
                 var nPacket = (ServerPacket)packet.Clone();
-                Logger.DebugFormat($"SendCastLine to {user.Name}");
+                GameLog.DebugFormat($"SendCastLine to {user.Name}");
                 user.Enqueue(nPacket);
 
             }
@@ -672,10 +688,10 @@ namespace Hybrasyl.Objects
                 // Is the player trying to walk into an occupied tile?
                 foreach (var obj in Map.GetTileContents((byte)newX, (byte)newY))
                 {
-                    Logger.DebugFormat("Collsion check: found obj {0}", obj.Name);
+                    GameLog.DebugFormat("Collsion check: found obj {0}", obj.Name);
                     if (obj is Creature)
                     {
-                        Logger.DebugFormat("Walking prohibited: found {0}", obj.Name);
+                        GameLog.DebugFormat("Walking prohibited: found {0}", obj.Name);
                         Refresh();
                         return false;
                     }
@@ -702,10 +718,10 @@ namespace Hybrasyl.Objects
 
             commonViewport = new Rectangle(oldX - halfViewport, oldY - halfViewport, Constants.VIEWPORT_SIZE, Constants.VIEWPORT_SIZE);
             commonViewport.Intersect(new Rectangle(newX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE, Constants.VIEWPORT_SIZE));
-            Logger.DebugFormat("Moving from {0},{1} to {2},{3}", oldX, oldY, newX, newY);
-            Logger.DebugFormat("Arriving viewport is a rectangle starting at {0}, {1}", arrivingViewport.X, arrivingViewport.Y);
-            Logger.DebugFormat("Departing viewport is a rectangle starting at {0}, {1}", departingViewport.X, departingViewport.Y);
-            Logger.DebugFormat("Common viewport is a rectangle starting at {0}, {1} of size {2}, {3}", commonViewport.X,
+            GameLog.DebugFormat("Moving from {0},{1} to {2},{3}", oldX, oldY, newX, newY);
+            GameLog.DebugFormat("Arriving viewport is a rectangle starting at {0}, {1}", arrivingViewport.X, arrivingViewport.Y);
+            GameLog.DebugFormat("Departing viewport is a rectangle starting at {0}, {1}", departingViewport.X, departingViewport.Y);
+            GameLog.DebugFormat("Common viewport is a rectangle starting at {0}, {1} of size {2}, {3}", commonViewport.X,
                 commonViewport.Y, commonViewport.Width, commonViewport.Height);
 
             X = (byte)newX;
@@ -722,7 +738,7 @@ namespace Hybrasyl.Objects
                 {
 
                     var user = obj as User;
-                    Logger.DebugFormat("Sending walk packet for {0} to {1}", Name, user.Name);
+                    GameLog.DebugFormat("Sending walk packet for {0} to {1}", Name, user.Name);
                     var x0C = new ServerPacket(0x0C);
                     x0C.WriteUInt32(Id);
                     x0C.WriteUInt16((byte)oldX);
@@ -812,7 +828,7 @@ namespace Hybrasyl.Objects
             Stats.Mp = mp > uint.MaxValue ? Stats.MaximumMp : Math.Min(Stats.MaximumMp, (uint)(Stats.Mp + mp));
         }
 
-        public virtual void Damage(double damage, Enums.Element element = Enums.Element.None, Enums.DamageType damageType = Enums.DamageType.Direct, Castables.DamageFlags damageFlags = Castables.DamageFlags.None, Creature attacker = null, bool onDeath = true)
+        public virtual void Damage(double damage, Element element = Element.None, DamageType damageType = DamageType.Direct, DamageFlags damageFlags = DamageFlags.None, Creature attacker = null, bool onDeath=true)
         {
             if (attacker is User && this is Monster)
             {
@@ -822,13 +838,13 @@ namespace Hybrasyl.Objects
 
             LastHitTime = DateTime.Now;
 
-            if (damageType == Enums.DamageType.Physical && (AbsoluteImmortal || PhysicalImmortal))
+            if (damageType == DamageType.Physical && (AbsoluteImmortal || PhysicalImmortal))
                 return;
 
-            if (damageType == Enums.DamageType.Magical && (AbsoluteImmortal || MagicalImmortal))
+            if (damageType == DamageType.Magical && (AbsoluteImmortal || MagicalImmortal))
                 return;
 
-            if (damageType != Enums.DamageType.Direct)
+            if (damageType != DamageType.Direct)
             {
                 double armor = Stats.Ac * -1 + 100;
                 var resist = Game.ElementTable[(int)element, 0];
@@ -841,7 +857,7 @@ namespace Hybrasyl.Objects
 
             var normalized = (uint)damage;
 
-            if (normalized > Stats.Hp && damageFlags.HasFlag(Castables.DamageFlags.Nonlethal))
+            if (normalized > Stats.Hp && damageFlags.HasFlag(DamageFlags.Nonlethal))
                 normalized = Stats.Hp - 1;
             else if (normalized > Stats.Hp)
                 normalized = Stats.Hp;
@@ -853,7 +869,8 @@ namespace Hybrasyl.Objects
             OnReceiveDamage();
             
             // TODO: Separate this out into a control message
-            if (Stats.Hp == 0 && onDeath == true) OnDeath();
+            if (Stats.Hp == 0 && onDeath)
+                OnDeath();
         }
 
         private void SendDamageUpdate(Creature creature)

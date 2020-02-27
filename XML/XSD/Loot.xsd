@@ -1,0 +1,82 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:hyb="http://www.hybrasyl.com/XML/Common" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:loot="http://www.hybrasyl.com/XML/Loot" targetNamespace="http://www.hybrasyl.com/XML/Loot" elementFormDefault="qualified">
+
+  <xs:annotation>
+    <xs:documentation xml:lang="en">
+      This file is part of Project Hybrasyl.
+
+      This program is free software; you can redistribute it and/or modify
+      it under the terms of the Affero General Public License as published by
+      the Free Software Foundation, version 3.
+
+      This program is distributed in the hope that it will be useful, but
+      without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+      or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+      for more details.
+
+      You should have received a copy of the Affero General Public License along
+      with this program. If not, see http://www.gnu.org/licenses/ .
+
+      (C) 2020 ERISCO, LLC
+
+      For contributors and individual authors please refer to CONTRIBUTORS.MD.
+    </xs:documentation>
+  </xs:annotation>
+
+  <xs:import schemaLocation="Common.xsd" namespace="http://www.hybrasyl.com/XML/Common" />
+
+  <!-- An item defined in a loot table-->
+  <xs:complexType name="LootItem">
+    <xs:simpleContent>
+      <xs:extension base="hyb:String8">
+        <xs:attribute name="Min" type="xs:int" default="1" use="optional"/>
+        <xs:attribute name="Max" type="xs:int" default="1" use="optional"/>
+        <xs:attribute name="Unique" type="xs:boolean" default="false" use="optional"/>
+        <xs:attribute name="Always" type="xs:boolean" default="false" use="optional"/>
+        <xs:attribute name="Variants" use="optional">
+          <xs:simpleType>
+            <xs:list itemType="hyb:String8" />
+          </xs:simpleType>
+        </xs:attribute>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:complexType name="LootTableItems">
+    <xs:sequence>
+      <xs:element name="Item" type="loot:LootItem" minOccurs="1" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType> 
+  
+  <xs:complexType name="LootTableItemList">
+    <xs:sequence>
+      <xs:element name="Items" type="loot:LootTableItems" minOccurs="1" maxOccurs="1"/>
+    </xs:sequence>
+    <xs:attribute name="Rolls" type="xs:int" default="1"/>
+    <xs:attribute name="Chance" type="xs:double"/>
+  </xs:complexType>
+
+  <xs:complexType name="LootTableGold">
+    <xs:attribute name="Min" type="xs:int" default="0"/>
+    <xs:attribute name="Max" type="xs:int" default="0"/>
+  </xs:complexType>
+
+  <xs:complexType name="LootTable">
+    <xs:sequence>
+      <xs:element name="Items" minOccurs="0" maxOccurs="1" type="loot:LootTableItemList"/>
+      <xs:element name="Gold" minOccurs="1" maxOccurs="1" type="loot:LootTableGold"/>
+    </xs:sequence>
+    <xs:attribute name="Rolls" type="xs:int" default="1"/>
+    <xs:attribute name="Chance" type="xs:double"/>
+  </xs:complexType>
+
+  <xs:element name="LootSet">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="Table" minOccurs="1" maxOccurs="unbounded" type="loot:LootTable"/>        
+      </xs:sequence>
+      <xs:attribute name="Name" type="hyb:String8"/>
+    </xs:complexType>
+  </xs:element>
+
+</xs:schema>

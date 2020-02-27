@@ -13,8 +13,7 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015-2016 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
@@ -27,18 +26,15 @@ using System.Drawing;
 using C3;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Scripting;
-using log4net;
+using Serilog;
 using Newtonsoft.Json;
+using System.Collections.Concurrent;
 
 namespace Hybrasyl.Objects
 {
     [JsonObject(MemberSerialization.OptIn)]
     public class WorldObject : IQuadStorable
     {
-        public static readonly ILog Logger =
-               LogManager.GetLogger(
-               System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
         /// <summary>
         /// The rectangle that defines the object's boundaries.
         /// </summary>
@@ -55,15 +51,60 @@ namespace Hybrasyl.Objects
 
         public Script Script { get; set; }
         public World World { get; set; }
+        public ushort DialogSprite { get; set; }
 
-        public WorldObject()
+        private Dictionary<string, dynamic> _ephemeralStore { get; set; }
+        private readonly object _storeLock = new object();
+
+        public void SetEphemeral(string key, dynamic value)
+        {
+            lock(_storeLock)
+                _ephemeralStore[key] = value;
+        }
+
+        public List<Tuple<string, dynamic>> GetEphemeralValues()
+        {
+            var ret = new List<Tuple<string, dynamic>>();
+            lock (_storeLock)
+            {
+                foreach (var entry in _ephemeralStore)
+                    ret.Add(new Tuple<string,dynamic>(entry.Key, entry.Value));
+            }
+            return ret;
+        }
+
+        public dynamic GetEphemeral(string key)
+        {
+            lock (_storeLock)
+                return _ephemeralStore.ContainsKey(key) ? _ephemeralStore[key] : null;
+        }
+
+        public bool ClearEphemeral(string key)
+        {
+            lock (_storeLock)
+                return _ephemeralStore.ContainsKey(key) ? _ephemeralStore.Remove(key) : false;
+        }
+
+        public bool TryGetEphemeral(string key, out dynamic value)
+        {
+            lock (_storeLock)
+                return _ephemeralStore.TryGetValue(key, out value);
+        }
+
+	public WorldObject()
         {
             Name = string.Empty;
             ResetPursuits();
+            _ephemeralStore = new Dictionary<string, dynamic>();
         }
 
         public virtual void SendId()
         {
+        }
+
+        public virtual int Distance(WorldObject obj)
+        {
+            return Point.Distance(obj.X, obj.Y, X, Y);
         }
 
         public void ResetPursuits()
@@ -90,7 +131,7 @@ namespace Hybrasyl.Objects
 
             if (SequenceCatalog.ContainsKey(pursuit.Name))
             {
-                Logger.WarnFormat("Pursuit {0} is being overwritten", pursuit.Name);
+                GameLog.WarningFormat("Pursuit {0} is being overwritten", pursuit.Name);
                 SequenceCatalog.Remove(pursuit.Name);
 
             }
@@ -106,14 +147,17 @@ namespace Hybrasyl.Objects
         public virtual void RegisterDialogSequence(DialogSequence sequence)
         {
             sequence.Id = (uint)(Constants.DIALOG_SEQUENCE_PURSUITS + DialogSequences.Count);
+            sequence.AssociateSequence(this);
             DialogSequences.Add(sequence);
+
             if (SequenceCatalog.ContainsKey(sequence.Name))
             {
-                Logger.WarnFormat("Dialog sequence {0} is being overwritten", sequence.Name);
+                GameLog.WarningFormat("Dialog sequence {0} is being overwritten", sequence.Name);
                 SequenceCatalog.Remove(sequence.Name);
 
             }
             SequenceCatalog.Add(sequence.Name, sequence);
+            
         }
 
         public List<DialogSequence> Pursuits;

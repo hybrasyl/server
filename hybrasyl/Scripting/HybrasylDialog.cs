@@ -13,22 +13,24 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015-2016 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
  */
 
 using Hybrasyl.Dialogs;
+using MoonSharp.Interpreter;
 
 namespace Hybrasyl.Scripting
 {
 
+    [MoonSharpUserData]
     public class HybrasylDialog
     {
         internal Dialog Dialog { get; set; }
         internal DialogSequence Sequence { get; set; }
+        internal System.Type DialogType => Dialog.GetType();
 
         public HybrasylDialog(Dialog dialog)
         {
@@ -37,12 +39,12 @@ namespace Hybrasyl.Scripting
 
         public void SetNpcDisplaySprite(int displaySprite)
         {
-            Dialog.DisplaySprite = (ushort)(0x4000 + displaySprite);
+            Dialog.Sprite = (ushort)(0x4000 + displaySprite);
         }
 
         public void SetItemDisplaySprite(int displaySprite)
         {
-            Dialog.DisplaySprite = (ushort)(0x8000 + displaySprite);
+            Dialog.Sprite = (ushort)(0x8000 + displaySprite);
         }
 
         public void AssociateDialogWithSequence(DialogSequence sequence)
@@ -50,6 +52,13 @@ namespace Hybrasyl.Scripting
             Sequence = sequence;
             sequence.AddDialog(Dialog);
         }
+
+        public void AttachCallback(string luaExpr)
+        {
+            Dialog.CallbackExpression = luaExpr;
+        }
+
+
 
     }
 }

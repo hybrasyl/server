@@ -13,22 +13,19 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015-2016 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
  */
 
- using System;
- using System.Collections.Generic;
- using System.Drawing;
- using System.Linq;
- using Hybrasyl.Castables;
- using Hybrasyl.Creatures;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Hybrasyl.Xml.Creature;
 using Hybrasyl.Enums;
-using Castable = Hybrasyl.Castables.Castable;
- using Class = Hybrasyl.Castables.Class;
+using XmlCreature = Hybrasyl.Xml.Creature.Creature;
+using Hybrasyl.Xml.Common;
 
 namespace Hybrasyl.Objects
 {
@@ -44,7 +41,7 @@ namespace Hybrasyl.Objects
 
         private uint _simpleDamage => Convert.ToUInt32(Rng.Next(_spawn.Damage.Min, _spawn.Damage.Max) * _variance);
 
-        private List<Creatures.Castable> _castables;
+        private List<Xml.Creature.Castable> _castables;
         private double _variance;
 
         public int ActionDelay = 800;
@@ -52,7 +49,8 @@ namespace Hybrasyl.Objects
         public DateTime LastAction { get; set; }
         public bool IsHostile { get; set; }
         public bool ShouldWander { get; set; }
-        public bool CanCast { get; set; }
+        public bool CanCast => _spawn.Castables.Count > 0;
+
 
 
 
@@ -70,9 +68,9 @@ namespace Hybrasyl.Objects
             Condition.Alive = false;
 
             hitter.ShareExperience(LootableXP);
-            var golds = new Gold(LootableGold);
             var itemDropTime = DateTime.Now;
-            foreach(var item in LootableItems)
+
+            foreach (var item in LootableItems)
             {
                 item.ItemDropType = ItemDropType.MonsterLootPile;
                 item.ItemDropAllowedLooters = ItemDropAllowedLooters;
@@ -80,21 +78,25 @@ namespace Hybrasyl.Objects
                 World.Insert(item);
                 Map.Insert(item, X, Y);
             }
-            golds.ItemDropType = ItemDropType.MonsterLootPile;
-            golds.ItemDropAllowedLooters = ItemDropAllowedLooters;
-            golds.ItemDropTime = itemDropTime;
 
-            World.Insert(golds);
-            Map.Insert(golds, X, Y);
+            if (LootableGold > 0)
+            {
+                var golds = new Gold(LootableGold);
+                golds.ItemDropType = ItemDropType.MonsterLootPile;
+                golds.ItemDropAllowedLooters = ItemDropAllowedLooters;
+                golds.ItemDropTime = itemDropTime;
+                World.Insert(golds);
+                Map.Insert(golds, X, Y);
+            }
+
             Map.Remove(this);
-
             World.Remove(this);
         }
 
         public override void OnReceiveDamage()
         {
-            this.IsHostile = true;
-            this.ShouldWander = false;
+            IsHostile = true;
+            ShouldWander = false;
         }
 
 
@@ -141,12 +143,13 @@ namespace Hybrasyl.Objects
         public uint VariantMp => CalculateVariance(_spawn.Stats.Mp);
 
 
-        public uint LootableXP => CalculateVariance((uint)Rng.Next((int)(_spawn.Loot.Xp?.Min ?? 1), (int)(_spawn.Loot.Xp?.Max ?? 1)));
+        public uint LootableXP => _spawn.Loot.Xp; 
+
         public uint LootableGold { get; set; }
             
         public List<ItemObject> LootableItems { get; set; }
 
-        public Monster(Creatures.Creature creature, Spawn spawn, int map)
+        public Monster(XmlCreature creature, Spawn spawn, int map)
         {
 
             var direction = (Rng.Next(0, 100) >= 50);
@@ -171,14 +174,13 @@ namespace Hybrasyl.Objects
             Stats.BaseDex = VariantDex;
             _castables = spawn.Castables;
 
-            Stats.BaseDefensiveElement = (Enums.Element) spawn.GetDefensiveElement();
-            Stats.BaseDefensiveElement = (Enums.Element) spawn.GetOffensiveElement();
+            Stats.BaseDefensiveElement = spawn.GetDefensiveElement();
+            Stats.BaseDefensiveElement = spawn.GetOffensiveElement();
             LootableItems = new List<ItemObject>();
 
             //until intents are fixed, this is how this is going to be done.
             IsHostile = _random.Next(0, 7) < 2;
             ShouldWander = IsHostile == false;
-            CanCast = spawn.Castables.Count > 0;
         }
 
         public Creature Target
@@ -258,7 +260,7 @@ namespace Hybrasyl.Objects
         {
             var nextSpell = _random.Next(0, _castables.Count);
             var creatureCastable = _castables[nextSpell];
-            var castable = World.WorldData.Get<Castable>(creatureCastable.Value);
+            var castable = World.WorldData.Get<Xml.Castable.Castable>(creatureCastable.Value);
             if (target is Merchant) return;
             UseCastable(castable, target);
             Condition.Casting = false;
@@ -300,7 +302,7 @@ namespace Hybrasyl.Objects
         /// </summary>
         /// <param name="direction"></param>
         /// <param name="target"></param>
-        public void SimpleAttack(Creature target) => target?.Damage(_simpleDamage, Stats.OffensiveElement, Enums.DamageType.Physical, DamageFlags.None, this);
+        public void SimpleAttack(Creature target) => target?.Damage(_simpleDamage, Stats.OffensiveElement, DamageType.Physical, DamageFlags.None, this);
 
         public override void ShowTo(VisibleObject obj)
         {

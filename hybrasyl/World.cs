@@ -13,24 +13,20 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
- * Authors:   Justin Baugh  <baughj@hybrasyl.com>
- *            Kyle Speck    <kojasou@hybrasyl.com>
+ * For contributors and individual authors please refer to CONTRIBUTORS.MD.
+ * 
  */
 
-using Hybrasyl.Config;
-using Hybrasyl.Creatures;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
-using Hybrasyl.Items;
-using Hybrasyl.Nations;
+using Hybrasyl.Messaging;
 using Hybrasyl.Objects;
-using Hybrasyl.XML;
-using log4net;
-using log4net.Core;
+using Hybrasyl.Scripting;
+using Hybrasyl.Utility;
 using Newtonsoft.Json;
+using Serilog;
 using StackExchange.Redis;
 using System;
 using System.Collections;
@@ -39,55 +35,50 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Reflection;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Timers;
-using System.Xml;
 using System.Xml.Schema;
-using Hybrasyl.Scripting;
-using Castable = Hybrasyl.Castables.Castable;
-using Creature = Hybrasyl.Objects.Creature;
-using Hybrasyl.Statuses;
-using Hybrasyl.Messaging;
-using Hybrasyl.Loot;
+using Hybrasyl.Xml.Common;
+using Hybrasyl.Xml.String;
+using Hybrasyl.Xml.Nation;
+using Hybrasyl.Xml.Item;
+using Hybrasyl.Xml.ServerConfig;
+using Hybrasyl.Xml.Loot;
+
+
+// Conflicts between duplicate class names in existing object hierarchy and
+// xml are handled here
+
+using XmlMap = Hybrasyl.Xml.Map.Map;
+using XmlCreature = Hybrasyl.Xml.Creature.Creature;
+using XmlStatus = Hybrasyl.Xml.Status.Status;
+using XmlCastable = Hybrasyl.Xml.Castable.Castable;
+using XmlNpc = Hybrasyl.Xml.Creature.Npc;
 
 namespace Hybrasyl
 {
     public static class SampleStackExchangeRedisExtensions
     {
-        public static T Get<T>(this IDatabase cache, string key)
-        {
-            return Deserialize<T>(cache.StringGet(key));
-        }
+        public static T Get<T>(this IDatabase cache, string key) => Deserialize<T>(cache.StringGet(key));
 
-        public static object Get(this IDatabase cache, string key)
-        {
-            return Deserialize<object>(cache.StringGet(key));
-        }
+        public static object Get(this IDatabase cache, string key) => Deserialize<object>(cache.StringGet(key));
 
-        public static void Set(this IDatabase cache, string key, object value)
-        {
-            cache.StringSet(key, Serialize(value));
-        }
+        public static void Set(this IDatabase cache, string key, object value) => cache.StringSet(key, Serialize(value));
 
-        private static byte[] Serialize(object o)
+        private static byte[] Serialize(object o, ObjectCreationHandling handling = ObjectCreationHandling.Replace, 
+            PreserveReferencesHandling refHandling = PreserveReferencesHandling.All)
         {
             if (o == null)
             {
                 return null;
             }
+            JsonSerializerSettings settings = new JsonSerializerSettings();
+            settings.ObjectCreationHandling = handling;
+            settings.PreserveReferencesHandling = refHandling;
 
-            System.Runtime.Serialization.Formatters.Binary.BinaryFormatter binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
-            using (MemoryStream memoryStream = new MemoryStream())
-            {
-                binaryFormatter.Serialize(memoryStream, o);
-                byte[] objectDataAsStream = memoryStream.ToArray();
-                return objectDataAsStream;
-            }
+            return Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(o, settings));
         }
 
         private static T Deserialize<T>(byte[] stream)
@@ -96,13 +87,7 @@ namespace Hybrasyl
             {
                 return default(T);
             }
-
-            System.Runtime.Serialization.Formatters.Binary.BinaryFormatter binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
-            using (MemoryStream memoryStream = new MemoryStream(stream))
-            {
-                T result = (T)binaryFormatter.Deserialize(memoryStream);
-                return result;
-            }
+            return JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(stream));
         }
     }
    
@@ -113,12 +98,6 @@ namespace Hybrasyl
 
         private object _lock = new object();
         public static DateTime StartDate => Game.Config.Time != null ? Game.Config.Time.ServerStart.Value : Game.StartDate;
-
-        public new static ILog Logger =
-            LogManager.GetLogger(
-                System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
-        
         public Dictionary<uint, WorldObject> Objects { get; set; }
 
         public Dictionary<string, string> Portraits { get; set; }
@@ -134,11 +113,10 @@ namespace Hybrasyl
             }
         }
 
-        public List<DialogSequence> GlobalSequences { get; set; }
-        public Dictionary<string, DialogSequence> GlobalSequencesCatalog { get; set; }
+        public MultiIndexDictionary<uint, string, DialogSequence> GlobalSequences { get; set; }
         private Dictionary<MerchantMenuItem, MerchantMenuHandler> merchantMenuHandlers;
 
-        public Dictionary<Tuple<Sex, string>, Item> ItemCatalog { get; set; }
+        public Dictionary<Tuple<Gender, string>, Item> ItemCatalog { get; set; }
        // public Dictionary<string, Map> MapCatalog { get; set; }
 
         public ScriptProcessor ScriptProcessor { get; set; }
@@ -147,6 +125,8 @@ namespace Hybrasyl
         public static BlockingCollection<HybrasylMessage> ControlMessageQueue;
         public static ConcurrentDictionary<long, User> ActiveUsers { get; private set; }
         public ConcurrentDictionary<string, long> ActiveUsersByName { get; set; }
+
+        public ConcurrentDictionary<Tuple<UInt32, UInt32>, AsyncDialogRequest> ActiveAsyncDialogs { get; set; }
 
         private Thread ConsumerThread { get; set; }
         private Thread ControlConsumerThread { get; set; }
@@ -196,19 +176,12 @@ namespace Hybrasyl
 
         public static bool TryGetUser(string name, out User userobj) 
         {
-            var jsonstring = (string)DatastoreConnection.GetDatabase().Get(User.GetStorageKey(name));
-            JsonSerializerSettings settings = new JsonSerializerSettings();
-            settings.ObjectCreationHandling = ObjectCreationHandling.Replace;
+//            userobj = JsonConvert.DeserializeObject<User>(jsonstring, settings);
+            userobj = DatastoreConnection.GetDatabase().Get<User>(User.GetStorageKey(name));
 
-            if (jsonstring == null)
-            {
-                userobj = null;
-                return false;
-            }
-            userobj = JsonConvert.DeserializeObject<User>(jsonstring, settings);
             if (userobj == null)
             {
-                Logger.FatalFormat("{0}: JSON object could not be deserialized!", name);
+                GameLog.Fatal("{Name}: JSON object could not be deserialized!", name);
                 return false;
             }
 
@@ -236,15 +209,16 @@ namespace Hybrasyl
             Objects = new Dictionary<uint, WorldObject>();
             Portraits = new Dictionary<string, string>();
 
-            GlobalSequencesCatalog = new Dictionary<string, DialogSequence>();
-            ItemCatalog = new Dictionary<Tuple<Sex, string>, Item>();
-            //MapCatalog = new Dictionary<string, Map>();
+            GlobalSequences = new MultiIndexDictionary<uint, string, DialogSequence>();
+            ItemCatalog = new Dictionary<Tuple<Gender, string>, Item>();
 
             ScriptProcessor = new ScriptProcessor(this);
             MessageQueue = new BlockingCollection<HybrasylMessage>(new ConcurrentQueue<HybrasylMessage>());
             ControlMessageQueue = new BlockingCollection<HybrasylMessage>(new ConcurrentQueue<HybrasylMessage>());
             ActiveUsers = new ConcurrentDictionary<long, User>();
             ActiveUsersByName = new ConcurrentDictionary<string, long>();
+
+            ActiveAsyncDialogs = new ConcurrentDictionary<Tuple<UInt32, UInt32>, AsyncDialogRequest>();
 
             WorldData = new WorldDataStore();
 
@@ -269,36 +243,39 @@ namespace Hybrasyl
         {
             DebugEnabled = !DebugEnabled;
             if (DebugEnabled)
-                ((log4net.Repository.Hierarchy.Hierarchy)LogManager.GetRepository()).Root.Level = Level.Debug;
+                Game.LevelSwitch.MinimumLevel = Serilog.Events.LogEventLevel.Verbose;
             else
-                ((log4net.Repository.Hierarchy.Hierarchy)LogManager.GetRepository()).Root.Level = Level.Info;
-
-            ((log4net.Repository.Hierarchy.Hierarchy)LogManager.GetRepository()).RaiseConfigurationChanged(EventArgs.Empty);
+                Game.LevelSwitch.MinimumLevel = Serilog.Events.LogEventLevel.Information;
             return DebugEnabled;
         }
         public bool InitWorld()
         {
+            CompileScripts(); // We compile scripts first so that all future operations requiring scripts work
             if (!LoadData())
             {
-                Logger.Fatal("There were errors loading basic world data. Hybrasyl has halted.");
-                Logger.Fatal("Please fix the errors and try to restart the server again.");
+                GameLog.Fatal("There were errors loading basic world data. Hybrasyl has halted.");
+                GameLog.Fatal("Please fix the errors and try to restart the server again.");
                 return false;
             }
-            CompileScripts();
             LoadMetafiles();
             SetPacketHandlers();
             SetControlMessageHandlers();
             SetMerchantMenuHandlers();
             RegisterWorldThrottles();
-            Logger.InfoFormat("Hybrasyl server ready");
+            GameLog.InfoFormat("Hybrasyl server ready");
             return true;
         }
 
         internal void RegisterGlobalSequence(DialogSequence sequence)
         {
-            sequence.Id = (uint)GlobalSequences.Count();
-            GlobalSequences.Add(sequence);
-            GlobalSequencesCatalog.Add(sequence.Name, sequence);
+            if (GlobalSequences.Count > Constants.DIALOG_SEQUENCE_SHARED)
+            {
+                GameLog.Error($"Maximum number of global sequences exceeded - registation request for {sequence.Name} ignored!");
+                return;
+            }
+            sequence.Id = (uint)GlobalSequences.Count + 1;
+            // Global sequences obviously always have IDs
+            GlobalSequences.Add((uint)sequence.Id, sequence.Name, sequence);
         }
 
         public bool PlayerExists(string name)
@@ -318,12 +295,12 @@ namespace Hybrasyl
             {              
                 try
                 {
-                    Strings = Serializer.Deserialize(XmlReader.Create(xml), new Strings());
-                    Logger.Debug("Localization strings loaded.");
+                    Strings = Strings.LoadFromFile(xml);
+                    GameLog.Debug("Localization strings loaded.");
                 }
                 catch (Exception e)
                 {
-                    Logger.Error($"Error parsing {xml}: {e}");
+                    GameLog.Error($"Error parsing {xml}: {e}");
                 }
             }
 
@@ -332,13 +309,13 @@ namespace Hybrasyl
             {
                 try
                 {
-                    var npc = Serializer.Deserialize(XmlReader.Create(xml), new Creatures.Npc());
-                    Logger.Debug($"NPCs: loaded {npc.Name}");
+                    var npc = XmlNpc.LoadFromFile(xml);
+                    GameLog.Debug($"NPCs: loaded {npc.Name}");
                     WorldData.Set(npc.Name, npc);
                 }
                 catch (Exception e)
                 {
-                    Logger.Error($"Error parsing {xml}: {e}");
+                    GameLog.Error($"Error parsing {xml}: {e}");
                 }
             }
 
@@ -347,152 +324,152 @@ namespace Hybrasyl
             {
                 try
                 {
-                    Maps.Map newMap = Serializer.Deserialize(XmlReader.Create(xml), new Maps.Map());
+                    XmlMap newMap = XmlMap.LoadFromFile(xml);
                     var map = new Map(newMap, this);
-                    //Maps.Add(map.Id, map);
-                    //MapCatalog.Add(map.Name, map);
-                    WorldData.SetWithIndex(map.Id, map, map.Name);
-                    Logger.DebugFormat("Maps: Loaded {0}", map.Name);
+                    if (!WorldData.SetWithIndex(map.Id, map, map.Name))
+                        GameLog.ErrorFormat("SetWithIndex fail for {map.Name}..?");
+                    GameLog.InfoFormat("Maps: Loaded {0}", map.Name);
                 }
                 catch (Exception e)
                 {
-                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, e);
+                    GameLog.ErrorFormat("Error parsing {0}: {1}", xml, e);
                 }
             }
 
-            Logger.InfoFormat("Maps: {0} maps loaded", WorldData.Count<Map>());
+            GameLog.InfoFormat("Maps: {0} maps loaded", WorldData.Count<Map>());
 
             // Load nations
             foreach (var xml in Directory.GetFiles(NationDirectory, "*.xml"))
             {
                 try
                 {
-                    var newNation = Serializer.Deserialize(XmlReader.Create(xml), new Nation());
-                    Logger.DebugFormat("Nations: Loaded {0}", newNation.Name);
-                    //Nations.Add(newNation.Name, newNation);
+                    var newNation = Nation.LoadFromFile(xml);
+                    GameLog.DebugFormat("Nations: Loaded {0}", newNation.Name);
                     WorldData.Set(newNation.Name, newNation);
                 }
                 catch (Exception e)
                 {
-                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, e);
+                    GameLog.ErrorFormat("Error parsing {0}: {1}", xml, e);
                 }
             }
 
             // Ensure at least one nation and one map exist. Otherwise, things get a little weird
             if (WorldData.Count<Nation>() == 0)
             {
-                Logger.FatalFormat("National data: at least one well-formed nation file must exist!");
+                GameLog.Fatal("National data: at least one well-formed nation file must exist!");
                 return false;
             }
 
             if (WorldData.Count<Map>() == 0)
             {
-                Logger.FatalFormat("Map data: at least one well-formed map file must exist!");
+                GameLog.Fatal("Map data: at least one well-formed map file must exist!");
                 return false;
             }
 
-            Logger.InfoFormat("National data: {0} nations loaded", WorldData.Count<Nation>());
+            GameLog.InfoFormat("National data: {0} nations loaded", WorldData.Count<Nation>());
 
             //Load Creatures
             foreach (var xml in Directory.GetFiles(CreatureDirectory, "*.xml"))
             {
                 try
                 {
-                    var creature = Serializer.Deserialize(XmlReader.Create(xml), new Creatures.Creature());
-                    Logger.DebugFormat("Creatures: loaded {0}", creature.Name);
+                    var creature = XmlCreature.LoadFromFile(xml);
+                    GameLog.DebugFormat("Creatures: loaded {0}", creature.Name);
                     WorldData.Set(creature.Name, creature);
                 }
                 catch (Exception e)
                 {
-                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, e);
+                    GameLog.ErrorFormat("Error parsing {0}: {1}", xml, e);
                 }
             }
 
-
+            GameLog.InfoFormat("Creatures: {0} creatures loaded", WorldData.Count<XmlCreature>());
 
             //Load SpawnGroups
             foreach (var xml in Directory.GetFiles(SpawnGroupDirectory, "*.xml"))
             {
                 try
                 {
-                    var spawnGroup = Serializer.Deserialize(XmlReader.Create(xml), new SpawnGroup());
+                    var spawnGroup = Xml.Creature.SpawnGroup.LoadFromFile(xml);
                     spawnGroup.Filename = Path.GetFileName(xml);
-                    Logger.DebugFormat("SpawnGroup: loaded {0}", spawnGroup.GetHashCode());
+                    GameLog.InfoFormat("SpawnGroup: loaded {0}", spawnGroup.Filename);
                     WorldData.Set(spawnGroup.GetHashCode(), spawnGroup);
 
 
                 }
                 catch (Exception e)
                 {
-                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, e);
+                    GameLog.ErrorFormat("SpawnGroup: Error parsing {0}: {1}", xml, e);
                 }
             }
+
+            GameLog.InfoFormat("Spawngroups: {0} spawngroups loaded", WorldData.Count<Xml.Creature.SpawnGroup>());
 
             //Load LootSets
             foreach (var xml in Directory.GetFiles(LootSetDirectory, "*.xml"))
             {
                 try
                 {
-                    var lootSet = Serializer.Deserialize(XmlReader.Create(xml), new LootSet());
+                    var lootSet = LootSet.LoadFromFile(xml);
 
-                    Logger.DebugFormat("LootSets: loaded {0}", lootSet.Name);
+                    GameLog.DebugFormat("LootSets: loaded {0}", lootSet.Name);
                     WorldData.Set(lootSet.GetHashCode(), lootSet);
                 }
                 catch (Exception e)
                 {
-                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, e);
+                    GameLog.ErrorFormat("Error parsing {0}: {1}", xml, e);
                 }
             }
 
-            Logger.InfoFormat("Loot Sets: {0} loot sets loaded", WorldData.Count<LootSet>());
+            GameLog.InfoFormat("Loot Sets: {0} loot sets loaded", WorldData.Count<LootSet>());
 
             // Load worldmaps
             foreach (var xml in Directory.GetFiles(WorldMapDirectory, "*.xml"))
             {
                 try
                 {
-                    Maps.WorldMap newWorldMap = Serializer.Deserialize(XmlReader.Create(xml), new Maps.WorldMap());
+                    Xml.Map.WorldMap newWorldMap = Xml.Map.WorldMap.LoadFromFile(xml);
                     var worldmap = new WorldMap(newWorldMap);
                     WorldData.Set(worldmap.Name, worldmap);
                     foreach (var point in worldmap.Points)
                     {
                         WorldData.Set(point.Id, point);
                     }
-                    Logger.DebugFormat("World Maps: Loaded {0}", worldmap.Name);
+                    GameLog.DebugFormat("World Maps: Loaded {0}", worldmap.Name);
                 }
                 catch (Exception e)
                 {
-                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, e);
+                    GameLog.ErrorFormat("Error parsing {0}: {1}", xml, e);
                 }
             }
 
-            Logger.InfoFormat("World Maps: {0} world maps loaded", WorldData.Count<WorldMap>());
+            GameLog.InfoFormat("World Maps: {0} world maps loaded", WorldData.Count<WorldMap>());
 
             // Load item variants
             foreach (var xml in Directory.GetFiles(ItemVariantDirectory, "*.xml"))
             {
                 try
                 {
-                    Items.VariantGroup newGroup = Serializer.Deserialize(XmlReader.Create(xml), new Items.VariantGroup());
-                    Logger.DebugFormat("Item variants: loaded {0}", newGroup.Name);
+                    VariantGroup newGroup = VariantGroup.LoadFromFile(xml);
+                    GameLog.DebugFormat("Item variants: loaded {0}", newGroup.Name);
                     WorldData.Set(newGroup.Name, newGroup);
 
                 }
                 catch (Exception e)
                 {
-                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, e);
+                    GameLog.ErrorFormat("Error parsing {0}: {1}", xml, e);
                 }
             }
 
-            Logger.InfoFormat("ItemObject variants: {0} variant sets loaded", WorldData.Values<VariantGroup>().Count());
+            GameLog.InfoFormat("ItemObject variants: {0} variant sets loaded", WorldData.Values<VariantGroup>().Count());
 
             // Load items
             foreach (var xml in Directory.GetFiles(ItemDirectory, "*.xml"))
             {
                 try
                 {
-                    Item newItem = Serializer.Deserialize(XmlReader.Create(xml), new Item());
-                    Logger.DebugFormat("Items: loaded {0}, id {1}", newItem.Name, newItem.Id);
+                    Item newItem = Item.LoadFromFile(xml);
+                    GameLog.DebugFormat("Items: loaded {0}, id {1}", newItem.Name, newItem.Id);
                     WorldData.SetWithIndex(newItem.Id, newItem,  newItem.Name);
                     // Handle some null cases; there's probably a nicer way to do this
                     if (newItem.Properties.StatModifiers.Combat == null) { newItem.Properties.StatModifiers.Combat = new StatModifierCombat(); }
@@ -505,20 +482,20 @@ namespace Hybrasyl
                             foreach (var variant in WorldData.Get<VariantGroup>(targetGroup).Variant)
                             {
                                 var variantItem = ResolveVariant(newItem, variant, targetGroup);
-                                Logger.DebugFormat("ItemObject {0}: variantgroup {1}, subvariant {2}", variantItem.Name, targetGroup, variant.Name);
+                                GameLog.DebugFormat("ItemObject {0}: variantgroup {1}, subvariant {2}", variantItem.Name, targetGroup, variant.Name);
                                 if (WorldData.ContainsKey<Item>(variantItem.Id))
                                 {
-                                    Logger.ErrorFormat("Item already exists with Key {0} : {1}. Cannot add {2}", variantItem.Id, WorldData.Get<Item>(variantItem.Id).Name, variantItem.Name);
+                                    GameLog.ErrorFormat("Item already exists with Key {0} : {1}. Cannot add {2}", variantItem.Id, WorldData.Get<Item>(variantItem.Id).Name, variantItem.Name);
                                 }
                                 WorldData.SetWithIndex(variantItem.Id, variantItem,
-                                     new Tuple<Sex, string>(Sex.Neutral, variantItem.Name));
+                                     new Tuple<Gender, string>(Gender.Neutral, variantItem.Name));
                             }
                         }
                     }
                 }
                 catch (Exception e)
                 {
-                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, e);
+                    GameLog.ErrorFormat("Error parsing {0}: {1}", xml, e);
                 }
             }
 
@@ -527,48 +504,47 @@ namespace Hybrasyl
                 try
                 {
                     string name = string.Empty;
-                    Statuses.Status newStatus = Serializer.Deserialize(XmlReader.Create(xml), new Statuses.Status());
+                    XmlStatus newStatus = XmlStatus.LoadFromFile(xml);
                     WorldData.SetWithIndex(newStatus.Icon, newStatus, newStatus.Name);
-                    Logger.Warn($"Statuses: loaded {newStatus.Name}, id {newStatus.Id}");
+                    GameLog.Warning($"Statuses: loaded {newStatus.Name}, id {newStatus.Id}");
                 }
                 catch (Exception e)
                 {
-                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, e);
+                    GameLog.ErrorFormat("Error parsing {0}: {1}", xml, e);
                 }
             
             }
 
-            Logger.InfoFormat("Statuses: {0} statuses loaded", WorldData.Values<Status>().Count());
+            GameLog.InfoFormat("Statuses: {0} statuses loaded", WorldData.Values<XmlStatus>().Count());
 
             foreach (var xml in Directory.GetFiles(CastableDirectory, "*.xml"))
             {
                 try
                 {
                     string name = string.Empty;
-                    Castables.Castable newCastable = Serializer.Deserialize(XmlReader.Create(xml), new Castables.Castable());
+                    XmlCastable newCastable = XmlCastable.LoadFromFile(xml);
                     WorldData.SetWithIndex(newCastable.Id, newCastable, newCastable.Name);
-                    Logger.DebugFormat("Castables: loaded {0}, id {1}", newCastable.Name, newCastable.Id);
+                    GameLog.DebugFormat("Castables: loaded {0}, id {1}", newCastable.Name, newCastable.Id);
                 }
                 catch (Exception e)
                 {
-                    Logger.ErrorFormat("Error parsing {0}: {1}", xml, e);
+                    GameLog.ErrorFormat("Error parsing {0}: {1}", xml, e);
                 }
             }
 
-            Logger.InfoFormat("Castables: {0} castables loaded", WorldData.Values<Castable>().Count());
+            GameLog.InfoFormat("Castables: {0} castables loaded", WorldData.Values<XmlCastable>().Count());
 
             // Load data from Redis
             // Load mailboxes
             var server = World.DatastoreConnection.GetServer(World.DatastoreConnection.GetEndPoints()[0]);
             foreach (var key in server.Keys(pattern: "Hybrasyl.Mailbox*"))
             {
-                Logger.InfoFormat("Loading mailbox at {0}", key);
-                var jsonstring = (string)World.DatastoreConnection.GetDatabase().Get(key);
-                var mailbox = JsonConvert.DeserializeObject<Mailbox>(jsonstring);
+                GameLog.InfoFormat("Loading mailbox at {0}", key);
+                var mailbox = DatastoreConnection.GetDatabase().Get<Mailbox>(key);
                 var name = key.ToString().Split(':')[1].ToLower();
                 if (name == string.Empty)
                 {
-                    Logger.Warn("Potentially corrupt mailbox data in Redis; ignoring");
+                    GameLog.Warning("Potentially corrupt mailbox data in Redis; ignoring");
                     continue;
                 }
                 //Mailboxes.Add(name, mailbox);
@@ -578,13 +554,12 @@ namespace Hybrasyl
             // Load all boards
             foreach (var key in server.Keys(pattern: "Hybrasyl.Board*"))
             {
-                Logger.InfoFormat("Loading board at {0}", key);
-                var jsonstring = (string)World.DatastoreConnection.GetDatabase().Get(key);
-                var messageboard = JsonConvert.DeserializeObject<Board>(jsonstring);
+                GameLog.InfoFormat("Loading board at {0}", key);
+                var messageboard = DatastoreConnection.GetDatabase().Get<Board>(key);
                 var name = key.ToString().Split(':')[1];
                 if (name == string.Empty)
                 {
-                    Logger.Warn("Potentially corrupt board data in Redis; ignoring");
+                    GameLog.Warning("Potentially corrupt board data in Redis; ignoring");
                     continue;
                 }
                 // Messageboard IDs are fairly irrelevant and only matter to the client
@@ -614,21 +589,21 @@ namespace Hybrasyl
                     {
                         board.SetAccessLevel(Convert.ToString(moderator), BoardAccessLevel.Moderate);
                     }
-                    Logger.InfoFormat("Boards: Global board {0} initialized", globalboard.Name);
+                    GameLog.InfoFormat("Boards: Global board {0} initialized", globalboard.Name);
                     board.Save();
                 }
             }
             return true;
         }
 
-        public Item ResolveVariant(Item item, Items.Variant variant, string variantGroup)
+        public Item ResolveVariant(Item item, Variant variant, string variantGroup)
         {
             var variantItem = item.Clone();
 
             variantItem.Name = $"{variant.Modifier} {item.Name}";
             variantItem.ParentItem = item;
             variantItem.IsVariant = true;
-            Logger.Debug($"Processing variant: {variantItem.Name}");
+            GameLog.Debug($"Processing variant: {variantItem.Name}");
             variantItem.Properties.Flags = variant.Properties.Flags;
                     
             variantItem.Properties.Physical.Value = variant.Properties.Physical.Value == 100 ? item.Properties.Physical.Value : Convert.ToUInt32(Math.Round(item.Properties.Physical.Value * (variant.Properties.Physical.Value * .01)));
@@ -641,7 +616,7 @@ namespace Hybrasyl
                 variantItem.Properties.Restrictions.Level = new RestrictionsLevel();
 
             if (variantItem.Properties.StatModifiers is null)
-                variantItem.Properties.StatModifiers = new Items.StatModifiers()
+                variantItem.Properties.StatModifiers = new Xml.Item.ItemStatModifiers()
                 {
                     Base = new StatModifierBase(),
                     Element = new StatModifierElement(),
@@ -650,7 +625,7 @@ namespace Hybrasyl
 
             if (variantItem.Properties.Damage is null)
             {
-                variantItem.Properties.Damage = new Items.Damage()
+                variantItem.Properties.Damage = new Xml.Item.Damage()
                 {
                     Large = new DamageLarge(),
                     Small = new DamageSmall()
@@ -665,7 +640,7 @@ namespace Hybrasyl
 
             if (item.Properties.Damage is null)
             {
-                item.Properties.Damage = new Items.Damage()
+                item.Properties.Damage = new Xml.Item.Damage()
                 {
                     Large = new DamageLarge(),
                     Small = new DamageSmall()
@@ -770,7 +745,7 @@ namespace Hybrasyl
             if (WorldData.ContainsKey<Mailbox>(mailboxName)) return WorldData.Get<Mailbox>(mailboxName);
             WorldData.Set<Mailbox>(mailboxName, new Mailbox(mailboxName));
             WorldData.Get<Mailbox>(mailboxName).Save();
-            Logger.InfoFormat("Mailbox: Creating mailbox for {0}", name);
+            GameLog.InfoFormat("Mailbox: Creating mailbox for {0}", name);
             return WorldData.Get<Mailbox>(mailboxName);
         }
 
@@ -780,16 +755,16 @@ namespace Hybrasyl
             var newBoard = new Board(name) { Id = WorldData.Values<Board>().Count() + 1 };
             WorldData.SetWithIndex<Board>(name, newBoard, newBoard.Id);
             newBoard.Save();
-            Logger.InfoFormat("Board: Creating {0}", name);
+            GameLog.InfoFormat("Board: Creating {0}", name);
             return WorldData.Get<Board>(name);
         }
 
         private static void ValidationCallBack(object sender, ValidationEventArgs args)
         {
             if (args.Severity == XmlSeverityType.Warning)
-                Logger.WarnFormat("XML warning: {0}", args.Message);
+                GameLog.WarningFormat("XML warning: {0}", args.Message);
             else
-                Logger.ErrorFormat("XML ERROR: {0}", args.Message);
+                GameLog.ErrorFormat("XML ERROR: {0}", args.Message);
         }
 
         private void LoadMetafiles()
@@ -802,7 +777,7 @@ namespace Hybrasyl
             // TODO: split items into multiple ItemInfo files (DA does ~700 each)
             foreach (var item in WorldData.Values<Item>())
             {
-                iteminfo0.Nodes.Add(new MetafileNode(item.Name, item.Properties.Restrictions?.Level?.Min ?? 1, (int)(item.Properties.Restrictions?.@Class ?? Items.Class.Peasant),
+                iteminfo0.Nodes.Add(new MetafileNode(item.Name, item.Properties.Restrictions?.Level?.Min ?? 1, (int)(item.Properties.Restrictions?.Class ?? Class.Peasant),
                     item.Properties.Physical.Weight, item.Properties.Vendor?.ShopTab ?? string.Empty, item.Properties.Vendor?.Description ?? string.Empty));
             }
             WorldData.Set(iteminfo0.Name, iteminfo0.Compile());
@@ -815,7 +790,7 @@ namespace Hybrasyl
             {
                 var sclass = new Metafile("SClass" + i);
                 sclass.Nodes.Add("Skill");
-                foreach (var skill in WorldData.Values<Castable>().Where(x => x.Type.Contains("skill")))
+                foreach (var skill in WorldData.Values<Xml.Castable.Castable>().Where(x => x.Type.Contains("skill")))
                 // placeholder; change to skills where class == i, are learnable from trainer, and sort by level
                 {
                     sclass.Nodes.Add(new MetafileNode(skill.Name,
@@ -829,7 +804,7 @@ namespace Hybrasyl
                 }
                 sclass.Nodes.Add("Skill_End");
                 sclass.Nodes.Add("Spell");
-                foreach (var spell in WorldData.Values<Castable>().Where(x => x.Type.Contains("spell")))
+                foreach (var spell in WorldData.Values<Xml.Castable.Castable>().Where(x => x.Type.Contains("spell")))
                 // placeholder; change to skills where class == i, are learnable from trainer, and sort by level
                 {
                     sclass.Nodes.Add(new MetafileNode(spell.Name,
@@ -850,11 +825,12 @@ namespace Hybrasyl
             #region NPCIllust
 
             var npcillust = new Metafile("NPCIllust");
-            foreach (var npc in WorldData.Values<Npc>()) // change to merchants that have a portrait rather than all
+            foreach (var npc in WorldData.Values<XmlNpc>()) // change to merchants that have a portrait rather than all
             {
                 if (npc.Appearance.Portrait != null)
                 {
                     npcillust.Nodes.Add(new MetafileNode(npc.Name, npc.Appearance.Portrait /* portrait filename */));
+                    GameLog.Info("metafile: set {Name} to {Portrait}", npc.Name, npc.Appearance.Portrait);
                 }
             }
             WorldData.Set(npcillust.Name, npcillust.Compile());
@@ -866,7 +842,7 @@ namespace Hybrasyl
             var nationdesc = new Metafile("NationDesc");
             foreach (var nation in WorldData.Values<Nation>())
             {
-                Logger.DebugFormat("Adding flag {0} for nation {1}", nation.Flag, nation.Name);
+                GameLog.DebugFormat("Adding flag {0} for nation {1}", nation.Flag, nation.Name);
                 nationdesc.Nodes.Add(new MetafileNode("nation_" + nation.Flag, nation.Name));
             }
             WorldData.Set(nationdesc.Name, nationdesc.Compile());
@@ -879,11 +855,11 @@ namespace Hybrasyl
             // Scan each directory for *.lua files
             foreach (var dir in Constants.SCRIPT_DIRECTORIES)
             {
-                Logger.InfoFormat("Scanning script directory: {0}", dir);
+                GameLog.InfoFormat("Scanning script directory: {0}", dir);
                 var directory = Path.Combine(ScriptDirectory, dir);
                 if (!Directory.Exists(directory))
                 {
-                    Logger.ErrorFormat("Scripting directory {0} not found!", dir);
+                    GameLog.ErrorFormat("Scripting directory {0} not found!", dir);
                     continue;
                 }
 
@@ -895,7 +871,7 @@ namespace Hybrasyl
                         if (Path.GetExtension(file) == ".lua")
                         {
                             var scriptname = Path.GetFileName(file);
-                            Logger.InfoFormat("Loading script {0}\\{1}", dir, scriptname);
+                            GameLog.InfoFormat("Loading script {0}\\{1}", dir, scriptname);
                             var script = new Script(file, ScriptProcessor);
                             ScriptProcessor.RegisterScript(script);
                             if (dir == "common")
@@ -904,7 +880,7 @@ namespace Hybrasyl
                     }
                     catch (Exception e)
                     {
-                        Logger.ErrorFormat("Script {0}\\{1}: Registration failed: {2}", dir, file, e.ToString());
+                        GameLog.ErrorFormat("Script {0}\\{1}: Registration failed: {2}", dir, file, e.ToString());
                     }
                 }
             }
@@ -927,6 +903,7 @@ namespace Hybrasyl
             ControlMessageHandlers[ControlOpcodes.MonolithControl] = ControlMessage_MonolithControl; // ST + map lock?
             ControlMessageHandlers[ControlOpcodes.TriggerRefresh] = ControlMessage_TriggerRefresh; // ST
             ControlMessageHandlers[ControlOpcodes.HandleDeath] = ControlMessage_HandleDeath; // ST + user/map locks
+            ControlMessageHandlers[ControlOpcodes.DialogRequest] = ControlMessage_DialogRequest;
         }
 
         public void SetPacketHandlers()
@@ -1078,9 +1055,35 @@ namespace Hybrasyl
 
         public bool TryGetActiveUser(string name, out User user) => WorldData.TryGetValue(name, out user);
 
+        public bool TryAsyncDialog(VisibleObject invoker, User invokee, DialogSequence startSequence)
+        {
+            var request = new AsyncDialogRequest(startSequence, invoker, invokee);
+            if (request.CheckRequest())
+            {
+                var key = new Tuple<UInt32, UInt32>(invoker.Id, invokee.Id);
+                if (ActiveAsyncDialogs.TryAdd(key, request))
+                {
+                    ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.DialogRequest, request));
+                    return true;
+                }
+                else
+                {
+                    Log.Error($"Async dialog: enqueue request failed for {invoker.Name} -> {invokee.Name}, already exists?");
+                    return false;
+                }
+            }
+            else
+                Log.Warning($"Async dialog: request denied for {invoker.Name} -> {invokee.Name}, status checks failed");
+            return false;
+        }
+
+        public void CompleteAsyncDialog(AsyncDialogRequest request)
+        {
+
+        }
         public override void Shutdown()
         {
-            Logger.WarnFormat("Shutdown initiated, disconnecting {0} active users", ActiveUsers.Count);
+            GameLog.WarningFormat("Shutdown initiated, disconnecting {0} active users", ActiveUsers.Count);
 
             Active = false;
             foreach (var connection in ActiveUsers)
@@ -1089,7 +1092,7 @@ namespace Hybrasyl
                 user.Logoff(true);
             }
             Listener.Close();
-            Logger.Warn("Shutdown complete");
+            GameLog.Warning("Shutdown complete");
         }
 
         #region Control Message Handlers
@@ -1101,7 +1104,7 @@ namespace Hybrasyl
             User user;
             if (ActiveUsers.TryRemove(connectionId, out user))
             {
-                Logger.InfoFormat("cid {0}: closed, player {1} removed", connectionId, user.Name);
+                GameLog.InfoFormat("cid {0}: closed, player {1} removed", connectionId, user.Name);
                 if (user.ActiveExchange != null)
                     user.ActiveExchange.CancelExchange(user);
                 ((IDictionary)ActiveUsersByName).Remove(user.Name);
@@ -1109,7 +1112,7 @@ namespace Hybrasyl
                 user.Map?.Remove(user);
                 user.Group?.Remove(user);
                 Remove(user);
-                Logger.DebugFormat("cid {0}: {1} cleaned up successfully", user.Name);
+                GameLog.DebugFormat("cid {0}: {1} cleaned up successfully", user.Name);
                 DeleteUser(user.Name);
             }
         }
@@ -1140,7 +1143,7 @@ namespace Hybrasyl
                         user.Stats.MaximumMp * 0.20);
                     mpRegen = mpRegen + (uint)(fixedRegenBuff * user.Stats.MaximumMp);
                 }
-                Logger.DebugFormat("User {0}: regen HP {1}, MP {2}", user.Name,
+                GameLog.DebugFormat("User {0}: regen HP {1}, MP {2}", user.Name,
                     hpRegen, mpRegen);
 
                 user.Stats.Hp = Math.Min(user.Stats.Hp + hpRegen, user.Stats.MaximumHp);
@@ -1156,12 +1159,12 @@ namespace Hybrasyl
             var connectionId = (long)message.Arguments[0];
             if (ActiveUsers.TryGetValue(connectionId, out user))
             {
-                Logger.DebugFormat("Saving user {0}", user.Name);
+                GameLog.DebugFormat("Saving user {0}", user.Name);
                 user.Save();
             }
             else
             {
-                Logger.WarnFormat("Tried to save user associated with connection ID {0} but user doesn't exist",
+                GameLog.WarningFormat("Tried to save user associated with connection ID {0} but user doesn't exist",
                     connectionId);
             }
         }
@@ -1170,7 +1173,7 @@ namespace Hybrasyl
         {
             // Initiate an orderly shutdown
             var userName = (string)message.Arguments[0];
-            Logger.WarnFormat("Server shutdown request initiated by {0}", userName);
+            GameLog.WarningFormat("Server shutdown request initiated by {0}", userName);
             // Chaos is Rising Up, yo.
             foreach (var connection in ActiveUsers)
             {
@@ -1183,14 +1186,14 @@ namespace Hybrasyl
             if (Game.IsActive())
                 Game.ToggleActive();
 
-            Logger.WarnFormat("Server has begun shutdown");
+            GameLog.WarningFormat("Server has begun shutdown");
         }
 
         private void ControlMessage_LogoffUser(HybrasylControlMessage message)
         {
             // Log off the specified user
             var userName = (string)message.Arguments[0];
-            Logger.WarnFormat("{0}: forcing logoff", userName);
+            GameLog.WarningFormat("{0}: forcing logoff", userName);
             User user;
             if (WorldData.TryGetValue(userName, out user))
             {
@@ -1202,23 +1205,23 @@ namespace Hybrasyl
         {
             // Set unread mail flag and if the user is online, send them an UpdateAttributes packet
             var userName = (string)message.Arguments[0];
-            Logger.DebugFormat("mail: attempting to notify {0} of new mail", userName);
+            GameLog.DebugFormat("mail: attempting to notify {0} of new mail", userName);
             User user;
             if (WorldData.TryGetValue(userName, out user))
             {
                 user.UpdateAttributes(StatUpdateFlags.Secondary);
-                Logger.DebugFormat("mail: notification to {0} sent", userName);
+                GameLog.DebugFormat("mail: notification to {0} sent", userName);
             }
             else
             {
-                Logger.DebugFormat("mail: notification to {0} failed, not logged in?", userName);
+                GameLog.DebugFormat("mail: notification to {0} failed, not logged in?", userName);
             }
         }
 
         private void ControlMessage_StatusTick(HybrasylControlMessage message)
         {
             var userName = (string)message.Arguments[0];
-            Logger.DebugFormat("statustick: processing tick for {0}", userName);
+            GameLog.DebugFormat("statustick: processing tick for {0}", userName);
             User user;
             if (WorldData.TryGetValue(userName, out user))
             {
@@ -1226,7 +1229,7 @@ namespace Hybrasyl
             }
             else
             {
-                Logger.DebugFormat("tick: Cannot process tick for {0}, not logged in?", userName);
+                GameLog.DebugFormat("tick: Cannot process tick for {0}, not logged in?", userName);
             }
         }
 
@@ -1234,7 +1237,7 @@ namespace Hybrasyl
         {
             var monster = (Monster)message.Arguments[0];
             var map = (Map)message.Arguments[1];
-            Logger.DebugFormat("monolith: spawning monster {0} on map {1}", monster.Name, map.Name);
+            GameLog.DebugFormat("monolith: spawning monster {0} on map {1}", monster.Name, map.Name);
             map.InsertCreature(monster);
         }
         private void ControlMessage_TriggerRefresh(HybrasylControlMessage message)
@@ -1244,9 +1247,15 @@ namespace Hybrasyl
                 user.Refresh();
         }
 
+        private void ControlMessage_DialogRequest(HybrasylControlMessage message)
+        {
+            var asyncDialog = (AsyncDialogRequest)message.Arguments[0];
+            asyncDialog.ShowTo();
+        }
+
         private void ControlMessage_HandleDeath(HybrasylControlMessage message)
         {
-            var creature = (Creature)message.Arguments[0];
+            var creature = (Objects.Creature)message.Arguments[0];
             if (creature is User) { (creature as User).OnDeath(); }
             if (creature is Monster) { (creature as Monster).OnDeath(); }
         }
@@ -1388,6 +1397,7 @@ namespace Hybrasyl
             var user = (User)obj;
             var direction = packet.ReadByte();
             if (direction > 3) return;
+            user.Condition.Casting = false;
             user.Walk((Direction)direction);
         }
 
@@ -1425,13 +1435,34 @@ namespace Hybrasyl
                 return;
             }
 
+            // Are we picking up an item from a reactor tile? 
+            // If so, we remove the item from the map and pass it onto the reactor
+            // for handling. Note that if the reactor does something stupid, the
+            // item is probably going to be lost forever. 
+            // We do it this way to provide maximum flexibility to scripts 
+            // (for instance: a reactor that destroys items outright, or damages them
+            // before being picked up, etc)
+            Reactor reactor;
+            var coordinates = new Tuple<byte, byte>((byte)x, (byte)y);
+            if (user.Map.Reactors.TryGetValue(coordinates, out reactor))
+            {
+                // Remove the item from the map
+                if (pickupObject is Gold)
+                    user.Map.RemoveGold(pickupObject as Gold);
+                else
+                    user.Map.Remove(pickupObject as ItemObject);
+                // Hopefully the reactor will DTRT
+                reactor.OnTake(user, pickupObject);
+                return;
+            }
+
             // If the add is successful, remove the item from the map quadtree
             if (pickupObject is Gold)
             {
                 var gold = (Gold)pickupObject;
                 if (user.AddGold(gold))
                 {
-                    Logger.DebugFormat("Removing {0}, qty {1} from {2}@{3},{4}",
+                    GameLog.DebugFormat("Removing {0}, qty {1} from {2}@{3},{4}",
                         gold.Name, gold.Amount, user.Map.Name, x, y);
                     user.Map.RemoveGold(gold);
                 }
@@ -1461,7 +1492,7 @@ namespace Hybrasyl
                     item.Count -= quantity;
                     existingItem.Count += quantity;
 
-                    Logger.DebugFormat("Removing {0}, qty {1} from {2}@{3},{4}",
+                    GameLog.DebugFormat("Removing {0}, qty {1} from {2}@{3},{4}",
                         item.Name, item.Count, user.Map.Name, x, y);
                     user.Map.Remove(item);
                     user.SendItemUpdate(existingItem, existingSlot);
@@ -1475,7 +1506,7 @@ namespace Hybrasyl
                 }
                 else
                 {
-                    Logger.DebugFormat("Removing {0}, qty {1} from {2}@{3},{4}",
+                    GameLog.DebugFormat("Removing {0}, qty {1} from {2}@{3},{4}",
                         item.Name, item.Count, user.Map.Name, x, y);
                     user.Map.Remove(item);
                     user.AddItem(item, slot);
@@ -1493,7 +1524,7 @@ namespace Hybrasyl
             var y = packet.ReadInt16();
             var count = packet.ReadInt32();
 
-            Logger.DebugFormat("{0} {1} {2} {3}", slot, x, y, count);
+            GameLog.DebugFormat("{0} {1} {2} {3}", slot, x, y, count);
 
             // Do a few sanity checks
             //
@@ -1502,7 +1533,7 @@ namespace Hybrasyl
             if (Math.Abs(x - user.X) > Constants.PICKUP_DISTANCE ||
                 Math.Abs(y - user.Y) > Constants.PICKUP_DISTANCE)
             {
-                Logger.ErrorFormat("Request to drop item exceeds maximum distance {0}",
+                GameLog.ErrorFormat("Request to drop item exceeds maximum distance {0}",
                     Hybrasyl.Constants.MAXIMUM_DROP_DISTANCE);
                 return;
             }
@@ -1510,7 +1541,7 @@ namespace Hybrasyl
             // Is this a valid slot?
             if ((slot == 0) || (slot > Hybrasyl.Constants.MAXIMUM_INVENTORY))
             {
-                Logger.ErrorFormat("Slot not valid. Aborting");
+                GameLog.ErrorFormat("Slot not valid. Aborting");
                 return;
             }
 
@@ -1520,7 +1551,7 @@ namespace Hybrasyl
             if ((user.Inventory[slot] == null) || (count > user.Inventory[slot].Count) ||
                 (user.Map.IsWall[x, y] == true) || !user.Map.IsValidPoint(x, y))
             {
-                Logger.ErrorFormat(
+                GameLog.ErrorFormat(
                     "Slot {0} is null, or count {1} exceeds count {2}, or {3},{4} is a wall, or {3},{4} is out of bounds",
                     slot, count, user.Inventory[slot].Count, x, y);
                 return;
@@ -1542,8 +1573,11 @@ namespace Hybrasyl
                 user.RemoveItem(slot);
             }
 
+            // This is a normal item, not part of a loot anything
+            toDrop.ItemDropTime = DateTime.Now;
+            toDrop.ItemDropType = ItemDropType.Normal;
             // Are we dropping an item onto a reactor?
-            Objects.Reactor reactor;
+            Reactor reactor;
             var coordinates = new Tuple<byte, byte>((byte)x, (byte)y);
             if (user.Map.Reactors.TryGetValue(coordinates, out reactor))
             {
@@ -1574,7 +1608,7 @@ namespace Hybrasyl
                     argString = prefixRemoved.Remove(prefixRemoved.IndexOf(cmd), cmd.Length).Trim();
                 else
                     argString = string.Empty;
-                Logger.Info($"{cmd}: {argString}");
+                GameLog.Info($"{cmd}: {argString}");
                 CommandHandler.Handle(user, cmd, argString);
             }
             else
@@ -1599,9 +1633,8 @@ namespace Hybrasyl
             var user = (User)obj;
             var slot = packet.ReadByte();
             var target = packet.ReadUInt32();
-
             user.UseSpell(slot, target);
-            user.Condition.Casting = true;
+            user.Condition.Casting = false;
         }
 
         private void PacketHandler_0x0B_ClientExit(Object obj, ClientPacket packet)
@@ -1631,11 +1664,18 @@ namespace Hybrasyl
                 DeleteUser(user.Name);
                 user.SendRedirectAndLogoff(this, Game.Login, user.Name);
 
+                // Remove any active async dialog sessions
+                foreach (var dialog in ActiveAsyncDialogs.Keys.Where(key => key.Item1 == user.Id || key.Item2 == user.Id))
+                {
+                    if (ActiveAsyncDialogs.TryRemove(dialog, out AsyncDialogRequest request))
+                        request.End();
+                }  
+
                 if (ActiveUsersByName.TryRemove(user.Name, out connectionId))
                 {
                     ((IDictionary)ActiveUsers).Remove(connectionId);
                 }
-                Logger.InfoFormat("cid {0}: {1} leaving world", connectionId, user.Name);
+                GameLog.InfoFormat("cid {0}: {1} leaving world", connectionId, user.Name);
             }
         }
 
@@ -1672,13 +1712,40 @@ namespace Hybrasyl
             loginUser.SendSpells();
             loginUser.ReapplyStatuses();
             loginUser.SetCitizenship();
+            loginUser.ChrysalisMark();
+
+            // Clear conditions and dialog states
+            loginUser.Condition.Casting = false;
 
             Insert(loginUser);
-            Logger.DebugFormat("Elapsed time since login: {0}", loginUser.SinceLastLogin);
+            GameLog.DebugFormat("Elapsed time since login: {0}", loginUser.SinceLastLogin);
 
             if (!loginUser.Condition.Alive)
             {
                 loginUser.Teleport("Chaotic Threshold", 10, 10);
+            }
+            else if (loginUser.Login.FirstLogin)
+            {
+                NewPlayer handler = Game.Config.Handlers?.NewPlayer;
+                var targetmap = WorldData.First<Map>();
+                if (handler != null)
+                {
+                    StartMap startmap = handler.GetStartMap();
+                    loginUser.Login.FirstLogin = false;
+                    if (WorldData.TryGetValueByIndex(startmap.Value, out Map map))
+                        loginUser.Teleport(map.Id, startmap.X, startmap.Y);
+                    else
+                    {
+                        // Teleport user to the center of the first known map and hope for the best
+                        loginUser.Teleport(targetmap.Id, (byte)(targetmap.X / 2), (byte)(targetmap.Y / 2));
+                        GameLog.Error($"{loginUser.Name} first login: map {startmap.Value} not found, using first available map {targetmap.Name}. Safety not guaranteed.");
+                    }
+                }
+                else
+                {
+                    loginUser.Teleport(targetmap.Id, (byte)(targetmap.X / 2), (byte)(targetmap.Y / 2));
+                    GameLog.Error($"{loginUser.Name} first login: start map config missing, using first available map {targetmap.Name}. Safety not guaranteed.");
+                }
             }
             else if(loginUser.Nation.SpawnPoints.Count != 0 &&
                 loginUser.SinceLastLogin > Hybrasyl.Constants.NATION_SPAWN_TIMEOUT)
@@ -1698,12 +1765,12 @@ namespace Hybrasyl
                 loginUser.Teleport((ushort)500, (byte)50, (byte)50);
             }
 
-            Logger.DebugFormat("Adding {0} to hash", loginUser.Name);
+            GameLog.DebugFormat("Adding {0} to hash", loginUser.Name);
             AddUser(loginUser);
             ActiveUsers[connectionId] = loginUser;
             ActiveUsersByName[loginUser.Name] = connectionId;
-            Logger.InfoFormat("cid {0}: {1} entering world", connectionId, loginUser.Name);
-            Logger.InfoFormat($"{loginUser.SinceLastLoginstring}");
+            GameLog.InfoFormat("cid {0}: {1} entering world", connectionId, loginUser.Name);
+            GameLog.InfoFormat($"{loginUser.SinceLastLoginstring}");
             // If the user's never logged off before (new character), don't display this message.
             if (loginUser.Login.LastLogoff != default(DateTime))
             {
@@ -1719,6 +1786,7 @@ namespace Hybrasyl
             var user = (User)obj;
             var direction = packet.ReadByte();
             if (direction > 3) return;
+            user.Condition.Casting = false;
             user.Turn((Direction)direction);
         }
 
@@ -1764,9 +1832,9 @@ namespace Hybrasyl
         {
             var user = (User)obj;
             var size = packet.ReadByte();
-            var target = Encoding.GetEncoding(949).GetString(packet.Read(size));
+            var target = Encoding.ASCII.GetString(packet.Read(size));
             var msgsize = packet.ReadByte();
-            var message = Encoding.GetEncoding(949).GetString(packet.Read(msgsize));
+            var message = Encoding.ASCII.GetString(packet.Read(msgsize));
 
             // "!!" is the special character sequence for group whisper. If this is the
             // target, the message should be sent as a group whisper instead of a standard
@@ -1788,7 +1856,7 @@ namespace Hybrasyl
             var user = (User)obj;
             var slot = packet.ReadByte();
 
-            Logger.DebugFormat("Updating slot {0}", slot);
+            GameLog.DebugFormat("Updating slot {0}", slot);
 
             if (slot == 0 || slot > Constants.MAXIMUM_INVENTORY) return;
 
@@ -1832,14 +1900,14 @@ namespace Hybrasyl
                             user.SendMessage(message, 3);
                             return;
                         }
-                        Logger.DebugFormat("Equipping {0}", item.Name);
+                        GameLog.DebugFormat("Equipping {0}", item.Name);
                         // Remove the item from inventory, but we don't decrement its count, as it still exists.
                         user.RemoveItem(slot);
 
                         // Handle gauntlet / ring special cases
                         if (item.EquipmentSlot == ClientItemSlots.Gauntlet)
                         {
-                            Logger.DebugFormat("item is gauntlets");
+                            GameLog.DebugFormat("item is gauntlets");
                             // First, is the left arm slot occupied?
                             if (user.Equipment[ClientItemSlots.LArm] != null)
                             {
@@ -1864,7 +1932,7 @@ namespace Hybrasyl
                         }
                         else if (item.EquipmentSlot == ClientItemSlots.Ring)
                         {
-                            Logger.DebugFormat("item is ring");
+                            GameLog.DebugFormat("item is ring");
 
                             // First, is the left ring slot occupied?
                             if (user.Equipment[ClientItemSlots.LHand] != null)
@@ -1915,18 +1983,18 @@ namespace Hybrasyl
 
                             if (oldItem != null)
                             {
-                                Logger.DebugFormat(" Attemping to equip {0}", item.Name);
-                                Logger.DebugFormat("..which would unequip {0}", oldItem.Name);
-                                Logger.DebugFormat("Player weight is currently {0}", user.CurrentWeight);
+                                GameLog.DebugFormat(" Attemping to equip {0}", item.Name);
+                                GameLog.DebugFormat("..which would unequip {0}", oldItem.Name);
+                                GameLog.DebugFormat("Player weight is currently {0}", user.CurrentWeight);
                                 user.RemoveEquipment(equipSlot);
                                 user.AddItem(oldItem, slot);
                                 user.AddEquipment(item, equipSlot);
                                 user.Show();
-                                Logger.DebugFormat("Player weight is currently {0}", user.CurrentWeight);
+                                GameLog.DebugFormat("Player weight is currently {0}", user.CurrentWeight);
                             }
                             else
                             {
-                                Logger.DebugFormat("Attemping to equip {0}", item.Name);
+                                GameLog.DebugFormat("Attemping to equip {0}", item.Name);
                                 user.AddEquipment(item, equipSlot);
                                 user.Show();
                             }
@@ -1958,7 +2026,7 @@ namespace Hybrasyl
             var x = packet.ReadInt16();
             var y = packet.ReadInt16();
 
-            Logger.DebugFormat("{0} {1} {2}", amount, x, y);
+            GameLog.DebugFormat("{0} {1} {2}", amount, x, y);
             // Do a few sanity checks
 
             // Is the distance valid? (Can't drop things beyond
@@ -1966,7 +2034,7 @@ namespace Hybrasyl
             if (Math.Abs(x - user.X) > Constants.PICKUP_DISTANCE ||
                 Math.Abs(y - user.Y) > Constants.PICKUP_DISTANCE)
             {
-                Logger.ErrorFormat("Request to drop gold exceeds maximum distance {0}",
+                GameLog.ErrorFormat("Request to drop gold exceeds maximum distance {0}",
                     Hybrasyl.Constants.MAXIMUM_DROP_DISTANCE);
                 return;
             }
@@ -1977,7 +2045,7 @@ namespace Hybrasyl
             if ((amount > user.Gold) || (x >= user.Map.X) || (y >= user.Map.Y) ||
                 (x < 0) || (y < 0) || (user.Map.IsWall[x, y]))
             {
-                Logger.ErrorFormat("Amount {0} exceeds amount {1}, or {2},{3} is a wall, or {2},{3} is out of bounds",
+                GameLog.ErrorFormat("Amount {0} exceeds amount {1}, or {2},{3} is a wall, or {2},{3} is out of bounds",
                     amount, user.Gold, x, y);
                 return;
             }
@@ -1986,6 +2054,10 @@ namespace Hybrasyl
             user.RemoveGold(amount);
 
             Insert(toDrop);
+
+            // This is a normal item, not part of a loot/death pile
+            toDrop.ItemDropTime = DateTime.Now;
+            toDrop.ItemDropType = ItemDropType.Normal;
 
             // Are we dropping an item onto a reactor?
             Objects.Reactor reactor;
@@ -2030,7 +2102,7 @@ namespace Hybrasyl
             //   0x03 = invitee responds with a "yes"
             byte stage = packet.ReadByte();
 
-            if (!TryGetUser(packet.ReadString8(), out User partner))
+            if (!TryGetActiveUser(packet.ReadString8(), out User partner))
                 return;
 
             // TODO: currently leaving five bytes on the table here. There's probably some
@@ -2048,13 +2120,13 @@ namespace Hybrasyl
                 // That means we need to check whether the user is a valid candidate for
                 // grouping, and send the confirmation dialog if so.
                 case 0x02:
-                    Logger.DebugFormat("{0} invites {1} to join a group.", user.Name, partner.Name);
+                    GameLog.DebugFormat("{0} invites {1} to join a group.", user.Name, partner.Name);
 
                     // Remove the user from the group. Kinda logically weird beside all of this other stuff
                     // so it may be worth restructuring but it should be accurate as-is.
                     if (partner.Grouped && user.Grouped && partner.Group == user.Group)
                     {
-                        Logger.DebugFormat("{0} leaving group.", user.Name);
+                        GameLog.DebugFormat("{0} leaving group.", user.Name);
                         user.Group.Remove(partner);
                         return;
                     }
@@ -2086,12 +2158,12 @@ namespace Hybrasyl
                 // request. We need to add them to the original user's group. Note that in this
                 // case the partner sent the original invitation.
                 case 0x03:
-                    Logger.Debug("Invitation accepted. Grouping.");
+                    GameLog.Debug("Invitation accepted. Grouping.");
                     partner.InviteToGroup(user);
                     break;
 
                 default:
-                    Logger.Error("Unknown GroupRequest stage. No action taken.");
+                    GameLog.Error("Unknown GroupRequest stage. No action taken.");
                     break;
             }
         }
@@ -2158,17 +2230,17 @@ namespace Hybrasyl
                     exchange.StartExchange();
                     exchange.AddGold(user, goldAmount);
                 }
-                else if (target is Creature && user.IsInViewport((VisibleObject)target))
+                else if (target is Objects.Creature && user.IsInViewport((VisibleObject)target))
                 {
                     // Give gold to Creature and go about our lives
-                    var creature = (Creature)target;
+                    var creature = (Objects.Creature)target;
                     creature.Gold += goldAmount;
                     user.Gold -= goldAmount;
                     user.UpdateAttributes(StatUpdateFlags.Stats);
                 }
                 else
                 {
-                    Logger.DebugFormat("user {0}: invalid drop target");
+                    GameLog.DebugFormat("user {0}: invalid drop target");
                 }
             }
         }
@@ -2230,7 +2302,7 @@ namespace Hybrasyl
                             creature.Inventory.AddItem(item);
                         }
                         else
-                            Logger.WarnFormat("0x29: Couldn't remove item from inventory...?");
+                            GameLog.WarningFormat("0x29: Couldn't remove item from inventory...?");
                     }
                 }
             }
@@ -2251,7 +2323,7 @@ namespace Hybrasyl
             if (window > 2)
                 return;
 
-            Logger.DebugFormat("Moving {0} to {1}", oldSlot, newSlot);
+            GameLog.DebugFormat("Moving {0} to {1}", oldSlot, newSlot);
 
             //0 inv, 1 spellbook, 2 skillbook (WHAT FUCKING INTERN REVERSED THESE??).
             switch (window)
@@ -2292,6 +2364,9 @@ namespace Hybrasyl
             var user = (User)obj;
             var response = new ServerPacket(0x31);
             var action = packet.ReadByte();
+
+            // The moment we get a 3B packet, we assume a user is "in a board"
+            user.Condition.Flags = user.Condition.Flags | PlayerFlags.InBoard;
 
             switch (action)
             {
@@ -2545,7 +2620,7 @@ namespace Hybrasyl
                         }
                         else
                         {
-                            Logger.WarnFormat("boards: {0} tried to post to non-existent board {1}",
+                            GameLog.WarningFormat("boards: {0} tried to post to non-existent board {1}",
                                 user.Name, boardId);
                             response.WriteBoolean(false);
                             response.WriteString8(
@@ -2576,7 +2651,7 @@ namespace Hybrasyl
                         }
                         else
                         {
-                            Logger.WarnFormat("boards: {0} tried to post to non-existent board {1}",
+                            GameLog.WarningFormat("boards: {0} tried to post to non-existent board {1}",
                                 user.Name, boardId);
                             response.WriteBoolean(false);
                             response.WriteString8(
@@ -2605,7 +2680,7 @@ namespace Hybrasyl
                                 {
                                     response.WriteBoolean(true); // Post was successful
                                     response.WriteString8("Your letter was sent.");
-                                    Logger.InfoFormat("mail: {0} sent message to {1}", user.Name, recipientUser.Name);
+                                    GameLog.InfoFormat("mail: {0} sent message to {1}", user.Name, recipientUser.Name);
                                     ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MailNotifyUser,
                                         recipientUser.Name));
                                 }
@@ -2642,7 +2717,7 @@ namespace Hybrasyl
                         {
                             response.WriteBoolean(false);
                             response.WriteString("You cannot highlight this message.");
-                            Logger.WarnFormat("mail: {0} tried to highlight message {1} but isn't GM! Hijinx suspected.",
+                            GameLog.WarningFormat("mail: {0} tried to highlight message {1} but isn't GM! Hijinx suspected.",
                                 user.Name, postId);
                         }
                         if (WorldData.TryGetValue(boardId, out board))
@@ -2683,7 +2758,7 @@ namespace Hybrasyl
         {
             var user = (User)obj;
             var target = BitConverter.ToInt64(packet.Read(8), 0);
-            Logger.DebugFormat("target bytes are: {0}, maybe", target);
+            GameLog.DebugFormat("target bytes are: {0}, maybe", target);
 
             if (user.IsAtWorldMap)
             {
@@ -2694,13 +2769,13 @@ namespace Hybrasyl
                 }
                 else
                 {
-                    Logger.ErrorFormat(string.Format("{0}: sent us a click to a non-existent map point!",
+                    GameLog.ErrorFormat(string.Format("{0}: sent us a click to a non-existent map point!",
                         user.Name));
                 }
             }
             else
             {
-                Logger.ErrorFormat(string.Format("{0}: sent us an 0x3F outside of a map screen!",
+                GameLog.ErrorFormat(string.Format("{0}: sent us an 0x3F outside of a map screen!",
                     user.Name));
             }
         }
@@ -2708,6 +2783,7 @@ namespace Hybrasyl
         private void PacketHandler_0x38_Refresh(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
+            user.Condition.Casting = false;
             user.Refresh();
         }
 
@@ -2724,7 +2800,7 @@ namespace Hybrasyl
             var objectId = packet.ReadUInt32();
             var pursuitId = packet.ReadUInt16();
 
-            Logger.DebugFormat("main menu packet: ObjectType {0}, ID {1}, pursuitID {2}",
+            GameLog.DebugFormat("main menu packet: ObjectType {0}, ID {1}, pursuitID {2}",
                 objectType, objectId, pursuitId);
 
             // Sanity checks
@@ -2739,13 +2815,9 @@ namespace Hybrasyl
                 if (pursuitId < Constants.DIALOG_SEQUENCE_SHARED)
                 {
                     // Does the sequence exist in the global catalog?
-                    try
+                    if (!GlobalSequences.TryGetValue(pursuitId, out pursuit))
                     {
-                        pursuit = Game.World.GlobalSequences[pursuitId];
-                    }
-                    catch
-                    {
-                        Logger.ErrorFormat("{0}: pursuit ID {1} doesn't exist in the global catalog?",
+                        GameLog.ErrorFormat("{0}: pursuit ID {1} doesn't exist in the global catalog?",
                             wobj.Name, pursuitId);
                         return;
                     }
@@ -2754,7 +2826,7 @@ namespace Hybrasyl
                 {
                     if (!(wobj is Merchant))
                     {
-                        Logger.ErrorFormat("{0}: attempt to use hardcoded merchant menu item on non-merchant",
+                        GameLog.ErrorFormat("{0}: attempt to use hardcoded merchant menu item on non-merchant",
                             wobj.Name, pursuitId);
                         return;
                     }
@@ -2765,14 +2837,14 @@ namespace Hybrasyl
 
                     if (!merchantMenuHandlers.TryGetValue(menuItem, out handler))
                     {
-                        Logger.ErrorFormat("{0}: merchant menu item {1} doesn't exist?",
+                        GameLog.ErrorFormat("{0}: merchant menu item {1} doesn't exist?",
                             wobj.Name, menuItem);
                         return;
                     }
 
                     if (!merchant.Jobs.HasFlag(handler.RequiredJob))
                     {
-                        Logger.ErrorFormat("{0}: merchant does not have required job {1}",
+                        GameLog.ErrorFormat("{0}: merchant does not have required job {1}",
                             wobj.Name, handler.RequiredJob);
                         return;
                     }
@@ -2789,18 +2861,18 @@ namespace Hybrasyl
                     }
                     catch
                     {
-                        Logger.ErrorFormat("{0}: local pursuit {1} doesn't exist?", wobj.Name, pursuitId);
+                        GameLog.ErrorFormat("{0}: local pursuit {1} doesn't exist?", wobj.Name, pursuitId);
                         return;
                     }
                 }
-                Logger.DebugFormat("{0}: showing initial dialog for Pursuit {1} ({2})",
+                GameLog.DebugFormat("{0}: showing initial dialog for Pursuit {1} ({2})",
                     clickTarget.Name, pursuit.Id, pursuit.Name);
                 user.DialogState.StartDialog(clickTarget, pursuit);
                 pursuit.ShowTo(user, clickTarget);
             }
             else
             {
-                Logger.WarnFormat("specified object ID {0} doesn't exist?", objectId);
+                GameLog.WarningFormat("specified object ID {0} doesn't exist?", objectId);
                 return;
             }
         }
@@ -2817,36 +2889,70 @@ namespace Hybrasyl
             var pursuitID = packet.ReadUInt16();
             var pursuitIndex = packet.ReadUInt16();
 
-            Logger.DebugFormat("objectType {0}, objectID {1}, pursuitID {2}, pursuitIndex {3}",
+            GameLog.DebugFormat("objectType {0}, objectID {1}, pursuitID {2}, pursuitIndex {3}",
                 objectType, objectID, pursuitID, pursuitIndex);
 
-            Logger.DebugFormat("active dialog via state object: pursuitID {0}, pursuitIndex {1}",
+            GameLog.DebugFormat("active dialog via state object: pursuitID {0}, pursuitIndex {1}",
                 user.DialogState.CurrentPursuitId, user.DialogState.CurrentPursuitIndex);
+
+            AsyncDialogRequest request = null;
+            VisibleObject source = null;
+
+            // Is this an async dialog session (either one in progress, or one starting)
+            if (objectID == UInt32.MaxValue)
+            {
+                // TODO: optimize
+                var asynckeys = ActiveAsyncDialogs.Keys.Where(key => key.Item1 == user.Id || key.Item2 == user.Id);
+                if (asynckeys.Count() == 1)
+                {
+                    if (!ActiveAsyncDialogs.TryGetValue(asynckeys.First(), out request))
+                    {
+                        GameLog.Error("WARNING: {Name}: Async count was nonzero but session could not be found", user.Name);
+                        return;
+                    }
+                    // If we are processing an asynchronous dialog request, make sure the source is set
+                    // to the other side of the session so it can be sent to callbacks
+                    source = request.Invokee.Name == user.Name ? request.Invoker : request.Invokee;
+                }
+                else if (asynckeys.Count() > 1)
+                {
+                    GameLog.Fatal("WARNING: Multiple async sessions for {Name} detected", user.Name);
+                    return;
+                }             
+            }
 
             if (pursuitID == user.DialogState.CurrentPursuitId && pursuitIndex == user.DialogState.CurrentPursuitIndex)
             {
                 // If we get a packet back with the same index and ID, the dialog has been closed.
-                Logger.DebugFormat("Dialog closed, resetting dialog state");
-                user.DialogState.EndDialog();
-                return;
+                GameLog.DebugFormat("Dialog closed, resetting dialog state");
+                user.ClearDialogState();
+
+                // Check for open async dialogs that need to be closed. The async dialog session will be removed as well,
+                // but only if it's complete (both sides have clicked "Close" at some point)
+                if (request != null)
+                    // Close our side of the session
+                    request.Close(user.Id);
+                else
+                    return;
             }
 
             if ((pursuitIndex > user.DialogState.CurrentPursuitIndex + 1) ||
                 (pursuitIndex < user.DialogState.CurrentPursuitIndex - 1))
             {
-                Logger.ErrorFormat("Dialog index is outside of acceptable limits (next/prev)");
+                GameLog.ErrorFormat("Dialog index is outside of acceptable limits (next/prev)");
                 return;
             }
 
             WorldObject wobj;
 
-            if (user.World.Objects.TryGetValue(objectID, out wobj))
+            if (user.World.Objects.TryGetValue(objectID, out wobj) || objectID == UInt32.MaxValue)
             {
                 VisibleObject clickTarget = wobj as VisibleObject;
+
                 // Was the previous button clicked? Handle that first
                 if (pursuitIndex == user.DialogState.CurrentPursuitIndex - 1)
                 {
-                    Logger.DebugFormat("Handling prev: client passed index {0}, current index is {1}",
+                    GameLog.DebugFormat("Handling prev: client passed index {0}, current index is {1}",
                         pursuitIndex, user.DialogState.CurrentPursuitIndex);
 
                     if (user.DialogState.SetDialogIndex(clickTarget, pursuitID, pursuitIndex))
@@ -2856,90 +2962,192 @@ namespace Hybrasyl
                     }
                 }
 
-                // Did the user click next on the last dialog in a sequence?
-                // If so, either close the dialog or go to the main menu (main menu by 
-                // default
-
-                if (user.DialogState.ActiveDialogSequence.Dialogs.Count() == pursuitIndex)
-                {
-                    user.DialogState.EndDialog();
-                    if (user.DialogState.ActiveDialogSequence.CloseOnEnd)
-                    {
-                        Logger.DebugFormat("Sending close packet");
-                        var p = new ServerPacket(0x30);
-                        p.WriteByte(0x0A);
-                        p.WriteByte(0x00);
-                        user.Enqueue(p);
-                    }
-                    else
-                        clickTarget.DisplayPursuits(user);
-                }
-
                 // Is the active dialog an input or options dialog?
+                // If so, we handle that first, as the response / callback / handler 
+                // needs to be able to handle the response (which chould change the active sequence),
+                // and then we need to potentially display the next dialog in sequence.
+
+                var currPursuitId = user.DialogState.CurrentPursuitId;
+                var currPursuitIndex = user.DialogState.CurrentPursuitIndex;
+                var currMerchantId = user.DialogState.CurrentMerchantId;
 
                 if (user.DialogState.ActiveDialog is OptionsDialog)
                 {
                     var paramsLength = packet.ReadByte();
                     var option = packet.ReadByte();
                     var dialog = user.DialogState.ActiveDialog as OptionsDialog;
-                    dialog.HandleResponse(user, option, clickTarget);
+
+                    // If an error occurred in handling the response, it's generally safest to 
+                    // simply bail out 
+                    if (!dialog.HandleResponse(user, option, clickTarget, source))
+                    {
+                        user.ClearDialogState();
+                        return;
+                    }
+
+                    // Did the response cause the current sequence or dialog id to change? 
+                    // If so, simply return; otherwise, continue to process next dialog                   
+                    if (user.DialogState.CurrentMerchantId != currMerchantId || 
+                        user.DialogState.CurrentPursuitId != currPursuitId ||
+                        user.DialogState.CurrentPursuitIndex != currPursuitIndex)
+                        return;
                 }
 
+                // This logic is effectively identical to OptionsDialog
                 if (user.DialogState.ActiveDialog is TextDialog)
                 {
                     var paramsLength = packet.ReadByte();
                     var response = packet.ReadString8();
                     var dialog = user.DialogState.ActiveDialog as TextDialog;
-                    dialog.HandleResponse(user, response, clickTarget);
+                    if (!dialog.HandleResponse(user, response, clickTarget, source))
+                    {
+                        user.ClearDialogState();
+                        return;
+                    }
+                    if (user.DialogState.CurrentMerchantId != currMerchantId ||
+                        user.DialogState.CurrentPursuitId != currPursuitId ||
+                        user.DialogState.CurrentPursuitIndex != currPursuitIndex)
+                        return;
+                }
+               
+                if (user.DialogState.ActiveDialog is null)
+                {
+                    // The response handler could have closed the dialog, or done Goddess knows what
+                    // to the state. We check here, and if the dialog state is null (the result of
+                    // calling EndDialog() we send a close packet.
+                    user.ClearDialogState();
+                    return;
+                }            
+
+                // Did the user click next on the last dialog in a sequence?
+                //
+                // If the last dialog is a JumpDialog or FunctionDialog, just ShowTo it; it'll handle the rest.
+                // Otherwise, either close the dialog or go to the main menu (main menu by 
+                // default).
+
+                if (user.DialogState.ActiveDialogSequence.Dialogs.Count() == pursuitIndex)
+                {
+                    if (user.DialogState.ActiveDialog is JumpDialog)
+                    {
+                        user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
+                        return;
+                    }
+                    if (user.DialogState.ActiveDialog is FunctionDialog)
+                    {
+                        // If a FunctionDialog is the last function, always close
+                        user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
+                        GameLog.DebugFormat("Sending close packet");
+                        user.SendCloseDialog();
+                        return;
+                    }
+                    if (user.DialogState.ActiveDialogSequence.CloseOnEnd)
+                    {
+                        GameLog.DebugFormat("Sending close packet");
+                        user.ClearDialogState();
+                        return;
+                    }
+                    else
+                    {
+                        // If this is an NPC or reactor (and has a click target), then display main menu
+                        if (clickTarget != null)
+                            clickTarget.DisplayPursuits(user);
+                    }
+                    // Either way down here, reset the dialog state since we're done with the sequence
+                    user.DialogState.EndDialog();
+                    // If this is an asynchronous dialog, and we've reached here, also close the dialog
+                    if (request != null)
+                    {
+                        request.Close(user.Id);
+                        user.SendCloseDialog();
+                    }
+                    return;
+                }
+
+                // Are we transitioning between two dialog sequences? If so, show the first dialog from
+                // the new sequence and make sure we clear the previous state.
+                if (user.DialogState.PreviousPursuitId == pursuitID)
+                {
+                    user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
+                    user.DialogState.PreviousPursuitId = null;
+                    return;
+                }
+
+                // Are we transitioning between two dialog sequences? If so, show the first dialog from
+                // the new sequence and make sure we clear the previous state.
+                if (user.DialogState.PreviousPursuitId == pursuitID)
+                {
+                    user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
+                    user.DialogState.PreviousPursuitId = null;
+                    return;
                 }
 
                 // Did the handling of a response result in our active dialog sequence changing? If so, exit.
 
                 if (user.DialogState.CurrentPursuitId != pursuitID)
                 {
-                    Logger.DebugFormat("Dialog has changed, exiting");
+                    GameLog.ErrorFormat("Dialog has changed, exiting");
                     return;
                 }
 
+                // TODO: improve this logic
+                // Handle function dialogs in between us and the next real dialog (or the end)
                 if (user.DialogState.SetDialogIndex(clickTarget, pursuitID, pursuitIndex))
                 {
-                    Logger.DebugFormat("Pursuit index is now {0}", pursuitIndex);
+                    while (user.DialogState.ActiveDialog is FunctionDialog)
+                    {
+                        // ShowTo and go
+                        user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
+                        pursuitIndex++;
+                        if (!user.DialogState.SetDialogIndex(clickTarget, pursuitID, pursuitIndex))
+                        {
+                            // We're at the end of our rope
+                            user.SendCloseDialog();
+                            return;
+                        }
+                    }
+                    GameLog.DebugFormat("Pursuit index is now {0}", pursuitIndex);
+
                     user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
                     return;
                 }
                 else
                 {
-                    Logger.DebugFormat("Sending close packet");
-                    var p = new ServerPacket(0x30);
-                    p.WriteByte(0x0A);
-                    p.WriteByte(0x00);
-                    user.Enqueue(p);
+                    GameLog.DebugFormat("Sending close packet");
+                    user.SendCloseDialog();
                     user.DialogState.EndDialog();
                 }
             }
         }
 
         [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
-        [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x43_PointClick(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
             var clickType = packet.ReadByte();
             Rectangle commonViewport = user.GetViewport();
+            
+            // N.B. We handle dead checks here rather than at the Required attribute level due to some 
+            // edge cases
+
             // User has clicked an X,Y point
             if (clickType == 3)
             {
                 var x = (byte)packet.ReadUInt16();
                 var y = (byte)packet.ReadUInt16();
                 var coords = new Tuple<byte, byte>(x, y);
-                Logger.DebugFormat("coordinates were {0}, {1}", x, y);
+                GameLog.DebugFormat("coordinates were {0}, {1}", x, y);
 
                 if (user.Map.Doors.ContainsKey(coords))
                 {
+                    if (!user.Condition.Alive)
+                    {
+                        user.SendSystemMessage("You try, but your hands pass right through it.");
+                        return;
+                    }
                     if (user.Map.Doors[coords].Closed)
-                        user.SendMessage("It's open.", 0x1);
+                        user.SendSystemMessage("It's open.");
                     else
-                        user.SendMessage("It's closed.", 0x1);
+                        user.SendSystemMessage("It's closed.");
 
                     user.Map.ToggleDoors(x, y);
                 }
@@ -2949,7 +3157,7 @@ namespace Hybrasyl
                 }
                 else
                 {
-                    Logger.DebugFormat("User clicked {0}@{1},{2} but no door/signpost is present",
+                    GameLog.DebugFormat("User clicked {0}@{1},{2} but no door/signpost is present",
                         user.Map.Name, x, y);
                 }
             }
@@ -2958,24 +3166,28 @@ namespace Hybrasyl
             else if (clickType == 1)
             {
                 var entityId = packet.ReadUInt32();
-                Logger.DebugFormat("User {0} clicked ID {1}: ", user.Name, entityId);
+                GameLog.DebugFormat("User {0} clicked ID {1}: ", user.Name, entityId);
 
                 WorldObject clickTarget = new WorldObject();
 
                 if (user.World.Objects.TryGetValue(entityId, out clickTarget))
                 {
-                    if (clickTarget is User || clickTarget is Merchant)
+                    Type type = clickTarget.GetType();
+                    MethodInfo methodInfo = type.GetMethod("OnClick");
+                    user.LastAssociate = clickTarget as VisibleObject;
+                    // Certain NPCs can be "spoken to" even when dead
+                    if (user.LastAssociate is Merchant && (!user.Condition.Alive && !user.LastAssociate.AllowDead))
                     {
-                        Type type = clickTarget.GetType();
-                        MethodInfo methodInfo = type.GetMethod("OnClick");
-                        methodInfo.Invoke(clickTarget, new[] { user });
+                        user.SendSystemMessage("You cannot do that now.");
+                        return;
                     }
+                    methodInfo.Invoke(clickTarget, new[] { user });
                 }
             }
             else
             {
-                Logger.DebugFormat("Unsupported clickType {0}", clickType);
-                Logger.DebugFormat("Packet follows:");
+                GameLog.DebugFormat("Unsupported clickType {0}", clickType);
+                GameLog.DebugFormat("Packet follows:");
                 packet.DumpPacket();
             }
         }
@@ -2989,21 +3201,21 @@ namespace Hybrasyl
 
             var slot = packet.ReadByte();
 
-            Logger.DebugFormat("Removing equipment from slot {0}", slot);
+            GameLog.DebugFormat("Removing equipment from slot {0}", slot);
             var item = user.Equipment[slot];
             if (item != null)
             {
-                Logger.DebugFormat("actually removing item");
+                GameLog.DebugFormat("actually removing item");
                 user.RemoveEquipment(slot);
                 // Add our removed item to our first empty inventory slot
-                Logger.DebugFormat("Player weight is currently {0}", user.CurrentWeight);
-                Logger.DebugFormat("Adding item {0}, count {1} to inventory", item.Name, item.Count);
+                GameLog.DebugFormat("Player weight is currently {0}", user.CurrentWeight);
+                GameLog.DebugFormat("Adding item {0}, count {1} to inventory", item.Name, item.Count);
                 user.AddItem(item);
-                Logger.DebugFormat("Player weight is now {0}", user.CurrentWeight);
+                GameLog.DebugFormat("Player weight is now {0}", user.CurrentWeight);
             }
             else
             {
-                Logger.DebugFormat("Ignoring useless click on slot {0}", slot);
+                GameLog.DebugFormat("Ignoring useless click on slot {0}", slot);
                 return;
             }
         }
@@ -3017,12 +3229,12 @@ namespace Hybrasyl
 
             if (!user.IsHeartbeatValid(byteA, byteB))
             {
-                Logger.WarnFormat("{0}: byte heartbeat not valid, disconnecting", user.Name);
+                GameLog.WarningFormat("{0}: byte heartbeat not valid, disconnecting", user.Name);
                 user.SendRedirectAndLogoff(Game.World, Game.Login, user.Name);
             }
             else
             {
-                Logger.DebugFormat("{0}: byte heartbeat valid", user.Name);
+                GameLog.DebugFormat("{0}: byte heartbeat valid", user.Name);
             }
         }
 
@@ -3141,13 +3353,13 @@ namespace Hybrasyl
 
                 case 0x04:
                     // Cancel trade
-                    Logger.Debug("Cancelling trade");
+                    GameLog.Debug("Cancelling trade");
                     user.ActiveExchange.CancelExchange(user);
                     break;
 
                 case 0x05:
                     // Confirm trade
-                    Logger.Debug("Confirming trade");
+                    GameLog.Debug("Confirming trade");
                     user.ActiveExchange.ConfirmExchange(user);
                     break;
 
@@ -3172,7 +3384,7 @@ namespace Hybrasyl
             var enqueue = x0D.Packet();
            
             user.SendCastLine(enqueue);
-
+            
         }
 
         private void PacketHandler_0x4F_ProfileTextPortrait(Object obj, ClientPacket packet)
@@ -3195,12 +3407,12 @@ namespace Hybrasyl
 
             if (!user.IsHeartbeatValid(serverTick, clientTick))
             {
-                Logger.InfoFormat("{0}: tick heartbeat not valid, disconnecting", user.Name);
+                GameLog.InfoFormat("{0}: tick heartbeat not valid, disconnecting", user.Name);
                 user.SendRedirectAndLogoff(Game.World, Game.Login, user.Name);
             }
             else
             {
-                Logger.DebugFormat("{0}: tick heartbeat valid", user.Name);
+                GameLog.DebugFormat("{0}: tick heartbeat valid", user.Name);
             }
         }
 
@@ -3227,6 +3439,7 @@ namespace Hybrasyl
                 foreach (var metafile in WorldData.Values<CompiledMetafile>())
                 {
                     x6F.WriteString8(metafile.Name);
+                    GameLog.Info($"Responding 6F: adding {metafile.Name}, checksum {metafile.Checksum}");
                     x6F.WriteUInt32(metafile.Checksum);
                 }
                 user.Enqueue(x6F);
@@ -3237,7 +3450,7 @@ namespace Hybrasyl
                 if (WorldData.ContainsKey<CompiledMetafile>(name))
                 {
                     var file = WorldData.Get<CompiledMetafile>(name);
-
+                    GameLog.Info($"Responding 6f notall: sending {file.Name}, checksum {file.Checksum}");
                     var x6F = new ServerPacket(0x6F);
                     x6F.WriteBoolean(all);
                     x6F.WriteString8(file.Name);
@@ -3416,7 +3629,7 @@ namespace Hybrasyl
         private void MerchantMenuHandler_LearnSkill(User user, Merchant merchant, ClientPacket packet)
         {
             var skillName = packet.ReadString8(); //skill name
-            var skill = WorldData.GetByIndex<Castable>(skillName);
+            var skill = WorldData.GetByIndex<Xml.Castable.Castable>(skillName);
             user.ShowLearnSkill(merchant, skill);
         }
         private void MerchantMenuHandler_LearnSkillAccept(User user, Merchant merchant, ClientPacket packet)
@@ -3442,7 +3655,7 @@ namespace Hybrasyl
         private void MerchantMenuHandler_LearnSpell(User user, Merchant merchant, ClientPacket packet)
         {
             var spellName = packet.ReadString8();
-            var spell = WorldData.GetByIndex<Castable>(spellName);
+            var spell = WorldData.GetByIndex<XmlCastable>(spellName);
             user.ShowLearnSpell(merchant, spell);
         }
         private void MerchantMenuHandler_LearnSpellAccept(User user, Merchant merchant, ClientPacket packet)
@@ -3553,7 +3766,7 @@ namespace Hybrasyl
             obj.Id = 0;
         }
 
-        public ItemObject CreateItem(int id, int quantity = 1)
+        public ItemObject CreateItem(string id, int quantity = 1)
         {
             if (WorldData.ContainsKey<Item>(id))
             {
@@ -3569,33 +3782,20 @@ namespace Hybrasyl
             }
         }
 
-        public bool TryGetItemTemplate(string name, Sex itemSex, out Item item)
+        public bool TryGetItemTemplate(string name, Gender itemGender, out Item item)
         {
-            var itemKey = new Tuple<Sex, string>(itemSex, name);
+            var itemKey = new Tuple<Gender, string>(itemGender, name);
             return ItemCatalog.TryGetValue(itemKey, out item);
         }
 
         public bool TryGetItemTemplate(string name, out Item item)
         {
             // This is kinda gross
-            var neutralKey = new Tuple<Sex, string>(Sex.Neutral, name);
-            var femaleKey = new Tuple<Sex, string>(Sex.Female, name);
-            var maleKey = new Tuple<Sex, string>(Sex.Male, name);
+            var neutralKey = new Tuple<Gender, string>(Gender.Neutral, name);
+            var femaleKey = new Tuple<Gender, string>(Gender.Female, name);
+            var maleKey = new Tuple<Gender, string>(Gender.Male, name);
 
             return ItemCatalog.TryGetValue(neutralKey, out item) || ItemCatalog.TryGetValue(femaleKey, out item) || ItemCatalog.TryGetValue(maleKey, out item);
-        }
-
-        public object ScriptMethod(string name, params object[] args)
-        {
-            object result = null;
-        
-            if (WorldData.ContainsKey<MethodInfo>(name))
-            {
-                var method = WorldData.Get<MethodInfo>(name);
-                result = method.Invoke(null, args);
-            }
-
-            return result;
         }
 
 
@@ -3614,7 +3814,7 @@ namespace Hybrasyl
                 }
                 catch (InvalidOperationException)
                 {
-                    Logger.ErrorFormat("QUEUE CONSUMER: EXCEPTION RAISED");
+                    GameLog.ErrorFormat("QUEUE CONSUMER: EXCEPTION RAISED");
                     continue;
                 }
 
@@ -3659,7 +3859,12 @@ namespace Hybrasyl
                                 if (clientMessage.Packet.Opcode == 0x06) user.Refresh();
                                 continue;
                             }
+                            // Handle board usage
+                            if (user.Condition.Flags.HasFlag(PlayerFlags.InDialog) && clientMessage.Packet.Opcode != 0x3b &&
+                                clientMessage.Packet.Opcode != 0x45 && clientMessage.Packet.Opcode != 0x75)
+                                user.Condition.Flags = user.Condition.Flags & ~PlayerFlags.InDialog;
                             // Last but not least, invoke the handler
+
                             handler.Invoke(user, clientMessage.Packet);
                         }
                         else if (clientMessage.Packet.Opcode == 0x10) // Handle special case of join world
@@ -3669,7 +3874,7 @@ namespace Hybrasyl
                         else
                         {
                             // We received a packet for a dead connection...?
-                            Logger.WarnFormat(
+                            GameLog.WarningFormat(
                                 "Connection ID {0}: received packet, but seems to be dead connection?",
                                 clientMessage.ConnectionId);
                             continue;
@@ -3677,12 +3882,12 @@ namespace Hybrasyl
                     }
                     catch (Exception e)
                     {
-                        Logger.Error("Exception encountered in packet handler!", e);
+                        GameLog.Error(e, "{Opcode}: Unhandled exception encountered in packet handler!", clientMessage.Packet.Opcode);
                     }
                 }
                 
             }
-            Logger.WarnFormat("Message queue is complete..?");
+            GameLog.WarningFormat("Message queue is complete..?");
         }
 
 
@@ -3700,7 +3905,7 @@ namespace Hybrasyl
                 }
                 catch (InvalidOperationException)
                 {
-                    Logger.ErrorFormat("QUEUE CONSUMER: EXCEPTION RAISED");
+                    GameLog.ErrorFormat("QUEUE CONSUMER: EXCEPTION RAISED");
                     continue;
                 }
 
@@ -3713,7 +3918,7 @@ namespace Hybrasyl
                     }
                     catch (Exception e)
                     {
-                        Logger.Error("Exception encountered in control message handler!", e);
+                        GameLog.Error("Exception encountered in control message handler!", e);
                     }
                 }
             }
@@ -3725,7 +3930,7 @@ namespace Hybrasyl
             ConsumerThread = new Thread(QueueConsumer);
             if (ConsumerThread.IsAlive) return;
             ConsumerThread.Start();
-            Logger.InfoFormat("Consumer thread: started");
+            GameLog.InfoFormat("Consumer thread: started");
 
         }
 
@@ -3734,7 +3939,7 @@ namespace Hybrasyl
             ControlConsumerThread = new Thread(ControlQueueConsumer);
             if (ControlConsumerThread.IsAlive) return;
             ControlConsumerThread.Start();
-            Logger.Info("Control consumer thread: started");
+            GameLog.Info("Control consumer thread: started");
         }
 
         // Mark the message queue as not accepting additions, which will result in thread termination
@@ -3760,19 +3965,19 @@ namespace Hybrasyl
 
                     if (interval == null)
                     {
-                        Logger.ErrorFormat("Job class {0} has no Interval defined! Job will not be scheduled.");
+                        GameLog.ErrorFormat("Job class {0} has no Interval defined! Job will not be scheduled.");
                         continue;
                     }
 
                     aTimer.Interval = ((int)interval) * 1000; // Interval is in ms; interval in Job classes is s
 
-                    Logger.InfoFormat("Hybrasyl: timer loaded for job {0}: interval {1}", jobClass.Name, aTimer.Interval);
+                    GameLog.InfoFormat("Hybrasyl: timer loaded for job {0}: interval {1}", jobClass.Name, aTimer.Interval);
                     aTimer.Enabled = true;
                     aTimer.Start();
                 }
                 else
                 {
-                    Logger.ErrorFormat("Job class {0} has no Execute method! Job will not be scheduled.", jobClass.Name);
+                    GameLog.ErrorFormat("Job class {0} has no Execute method! Job will not be scheduled.", jobClass.Name);
                 }
             }
         }
