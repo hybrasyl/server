@@ -33,7 +33,7 @@ public partial class Map
     private List<Warp> _warps;
     private List<Reactor> _reactors;
     private List<MapNpc> _npcs;
-    private Signs _signs;
+    private List<MapSign> _signs;
     private ushort _id;
     private byte _music;
     private byte _x;
@@ -44,7 +44,7 @@ public partial class Map
     
     public Map()
     {
-        _signs = new Signs();
+        _signs = new List<MapSign>();
         _npcs = new List<MapNpc>();
         _reactors = new List<Reactor>();
         _warps = new List<Warp>();
@@ -127,7 +127,8 @@ public partial class Map
         }
     }
     
-    public Signs Signs
+    [XmlArrayItemAttribute("Sign", IsNullable=false)]
+    public List<MapSign> Signs
     {
         get
         {

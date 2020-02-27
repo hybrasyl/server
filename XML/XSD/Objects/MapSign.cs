@@ -23,20 +23,18 @@ using System.Collections.Generic;
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-[XmlRootAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02", IsNullable=false)]
-public partial class Item
+public partial class MapSign
 {
     #region Private fields
     private string _name;
-    private string _comment;
-    private ItemProperties _properties;
+    private string _description;
+    private string _message;
+    private string _script;
+    private BoardType _type;
+    private byte _x;
+    private byte _y;
     private static XmlSerializer serializer;
     #endregion
-    
-    public Item()
-    {
-        _properties = new ItemProperties();
-    }
     
     [StringLengthAttribute(255, MinimumLength=1)]
     public string Name
@@ -51,28 +49,81 @@ public partial class Item
         }
     }
     
-    [StringLengthAttribute(65534, MinimumLength=1)]
-    public string Comment
+    [StringLengthAttribute(255, MinimumLength=1)]
+    public string Description
     {
         get
         {
-            return _comment;
+            return _description;
         }
         set
         {
-            _comment = value;
+            _description = value;
         }
     }
     
-    public ItemProperties Properties
+    [StringLengthAttribute(65534, MinimumLength=1)]
+    public string Message
     {
         get
         {
-            return _properties;
+            return _message;
         }
         set
         {
-            _properties = value;
+            _message = value;
+        }
+    }
+    
+    [StringLengthAttribute(255, MinimumLength=1)]
+    public string Script
+    {
+        get
+        {
+            return _script;
+        }
+        set
+        {
+            _script = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public BoardType Type
+    {
+        get
+        {
+            return _type;
+        }
+        set
+        {
+            _type = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public byte X
+    {
+        get
+        {
+            return _x;
+        }
+        set
+        {
+            _x = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public byte Y
+    {
+        get
+        {
+            return _y;
+        }
+        set
+        {
+            _y = value;
         }
     }
     
@@ -82,7 +133,7 @@ public partial class Item
         {
             if ((serializer == null))
             {
-                serializer = new XmlSerializerFactory().CreateSerializer(typeof(Item));
+                serializer = new XmlSerializerFactory().CreateSerializer(typeof(MapSign));
             }
             return serializer;
         }
@@ -90,7 +141,7 @@ public partial class Item
     
     #region Serialize/Deserialize
     /// <summary>
-    /// Serializes current Item object into an XML string
+    /// Serializes current MapSign object into an XML string
     /// </summary>
     /// <returns>string XML value</returns>
     public virtual string Serialize()
@@ -123,16 +174,16 @@ public partial class Item
     }
     
     /// <summary>
-    /// Deserializes workflow markup into an Item object
+    /// Deserializes workflow markup into an MapSign object
     /// </summary>
     /// <param name="input">string workflow markup to deserialize</param>
-    /// <param name="obj">Output Item object</param>
+    /// <param name="obj">Output MapSign object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool Deserialize(string input, out Item obj, out Exception exception)
+    public static bool Deserialize(string input, out MapSign obj, out Exception exception)
     {
         exception = null;
-        obj = default(Item);
+        obj = default(MapSign);
         try
         {
             obj = Deserialize(input);
@@ -145,19 +196,19 @@ public partial class Item
         }
     }
     
-    public static bool Deserialize(string input, out Item obj)
+    public static bool Deserialize(string input, out MapSign obj)
     {
         Exception exception = null;
         return Deserialize(input, out obj, out exception);
     }
     
-    public static Item Deserialize(string input)
+    public static MapSign Deserialize(string input)
     {
         StringReader stringReader = null;
         try
         {
             stringReader = new StringReader(input);
-            return ((Item)(Serializer.Deserialize(XmlReader.Create(stringReader))));
+            return ((MapSign)(Serializer.Deserialize(XmlReader.Create(stringReader))));
         }
         finally
         {
@@ -168,14 +219,14 @@ public partial class Item
         }
     }
     
-    public static Item Deserialize(Stream s)
+    public static MapSign Deserialize(Stream s)
     {
-        return ((Item)(Serializer.Deserialize(s)));
+        return ((MapSign)(Serializer.Deserialize(s)));
     }
     #endregion
     
     /// <summary>
-    /// Serializes current Item object into file
+    /// Serializes current MapSign object into file
     /// </summary>
     /// <param name="fileName">full path of outupt xml file</param>
     /// <param name="exception">output Exception value if failed</param>
@@ -216,16 +267,16 @@ public partial class Item
     }
     
     /// <summary>
-    /// Deserializes xml markup from file into an Item object
+    /// Deserializes xml markup from file into an MapSign object
     /// </summary>
     /// <param name="fileName">string xml file to load and deserialize</param>
-    /// <param name="obj">Output Item object</param>
+    /// <param name="obj">Output MapSign object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool LoadFromFile(string fileName, out Item obj, out Exception exception)
+    public static bool LoadFromFile(string fileName, out MapSign obj, out Exception exception)
     {
         exception = null;
-        obj = default(Item);
+        obj = default(MapSign);
         try
         {
             obj = LoadFromFile(fileName);
@@ -238,13 +289,13 @@ public partial class Item
         }
     }
     
-    public static bool LoadFromFile(string fileName, out Item obj)
+    public static bool LoadFromFile(string fileName, out MapSign obj)
     {
         Exception exception = null;
         return LoadFromFile(fileName, out obj, out exception);
     }
     
-    public static Item LoadFromFile(string fileName)
+    public static MapSign LoadFromFile(string fileName)
     {
         FileStream file = null;
         StreamReader sr = null;

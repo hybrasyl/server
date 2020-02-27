@@ -43,9 +43,6 @@ public partial class MessageBoard
         }
         set
         {
-            ValidationContext validatorPropContext = new ValidationContext(this, null, null);
-            validatorPropContext.MemberName = "Name";
-            Validator.ValidateProperty(value, validatorPropContext);
             _name = value;
         }
     }
@@ -59,9 +56,6 @@ public partial class MessageBoard
         }
         set
         {
-            ValidationContext validatorPropContext = new ValidationContext(this, null, null);
-            validatorPropContext.MemberName = "Description";
-            Validator.ValidateProperty(value, validatorPropContext);
             _description = value;
         }
     }
@@ -75,9 +69,6 @@ public partial class MessageBoard
         }
         set
         {
-            ValidationContext validatorPropContext = new ValidationContext(this, null, null);
-            validatorPropContext.MemberName = "Script";
-            Validator.ValidateProperty(value, validatorPropContext);
             _script = value;
         }
     }

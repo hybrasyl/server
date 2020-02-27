@@ -50,9 +50,6 @@ public partial class Reactor
         }
         set
         {
-            ValidationContext validatorPropContext = new ValidationContext(this, null, null);
-            validatorPropContext.MemberName = "Description";
-            Validator.ValidateProperty(value, validatorPropContext);
             _description = value;
         }
     }
@@ -66,9 +63,6 @@ public partial class Reactor
         }
         set
         {
-            ValidationContext validatorPropContext = new ValidationContext(this, null, null);
-            validatorPropContext.MemberName = "Script";
-            Validator.ValidateProperty(value, validatorPropContext);
             _script = value;
         }
     }

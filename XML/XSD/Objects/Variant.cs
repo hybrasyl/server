@@ -48,9 +48,6 @@ public partial class Variant
         }
         set
         {
-            ValidationContext validatorPropContext = new ValidationContext(this, null, null);
-            validatorPropContext.MemberName = "Name";
-            Validator.ValidateProperty(value, validatorPropContext);
             _name = value;
         }
     }
@@ -64,9 +61,6 @@ public partial class Variant
         }
         set
         {
-            ValidationContext validatorPropContext = new ValidationContext(this, null, null);
-            validatorPropContext.MemberName = "Modifier";
-            Validator.ValidateProperty(value, validatorPropContext);
             _modifier = value;
         }
     }
@@ -80,9 +74,6 @@ public partial class Variant
         }
         set
         {
-            ValidationContext validatorPropContext = new ValidationContext(this, null, null);
-            validatorPropContext.MemberName = "Comment";
-            Validator.ValidateProperty(value, validatorPropContext);
             _comment = value;
         }
     }
