@@ -45,9 +45,6 @@ public partial class Vendor
         }
         set
         {
-            ValidationContext validatorPropContext = new ValidationContext(this, null, null);
-            validatorPropContext.MemberName = "Description";
-            Validator.ValidateProperty(value, validatorPropContext);
             _description = value;
         }
     }

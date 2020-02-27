@@ -518,8 +518,15 @@
     <xs:list itemType="hyb:CharacterName" />
   </xs:simpleType>
 
-  <!-- Everything is shit -->
-  
+  <!-- Message board types -->
+  <xs:simpleType name="BoardType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="Messageboard"/>
+      <xs:enumeration value="Sign"/>
+    </xs:restriction>
+  </xs:simpleType>
+                 
+ 
   <!-- Base definition for a monster -->
   <xs:complexType name="Creature">
     <xs:sequence>

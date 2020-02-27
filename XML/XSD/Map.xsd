@@ -62,36 +62,24 @@
     <xs:attribute name="AllowDead" default="false" type="xs:boolean" />
   </xs:complexType>
 
-  <!-- Signpost subelements -->
-  <xs:complexType name="Signpost">
+  <!-- Signs and boards -->
+  <xs:complexType name="MapSign">
     <xs:sequence>
-      <xs:element name="Message" type="hyb:String16" minOccurs="1" maxOccurs="1" />
-      <xs:element name="Script" type="hyb:String8" minOccurs="0" maxOccurs="1" />
+      <xs:element name="Name" type="hyb:String8" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Description" type="hyb:String8" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Message" type="hyb:String16" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Script" type="hyb:String8" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
+    <xs:attribute name="Type" type="hyb:BoardType" use="required"/>
     <xs:attribute name="X" type="xs:unsignedByte" use="required" />
     <xs:attribute name="Y" type="xs:unsignedByte" use="required" />
   </xs:complexType>
-
-  <!-- Messageboards -->
-  <xs:complexType name="MessageBoard">
+  
+  <xs:complexType name="MapSigns">
     <xs:sequence>
-      <xs:element name="Name" type="hyb:String8" />
-      <xs:element name="Description" type="hyb:String16" />
-      <xs:element name="Script" type="hyb:String8" />
+      <xs:element name="Sign" type="hyb:MapSign" minOccurs="1" maxOccurs="unbounded" />
     </xs:sequence>
-    <xs:attribute name="X" type="xs:unsignedByte" use="required" />
-    <xs:attribute name="Y" type="xs:unsignedByte" use="required" />
-  </xs:complexType>
-
-  <!-- Signposts (collections of messageboard / signpost elements) -->
-  <xs:complexType name="Signs">
-    <xs:sequence>
-      <xs:sequence minOccurs="1" maxOccurs="unbounded">
-        <xs:element name="Signposts" type="hyb:Signpost" />
-        <xs:element name="MessageBoards" type="hyb:MessageBoard" />
-      </xs:sequence>
-    </xs:sequence>
-  </xs:complexType>
+  </xs:complexType>  
 
   <!-- Reactors -->
   <xs:complexType name="Reactors">
@@ -123,7 +111,7 @@
       <xs:element name="Warps" type="hyb:Warps" minOccurs="0" maxOccurs="1" />
       <xs:element name="Reactors" type="hyb:Reactors" minOccurs="0" maxOccurs="1" />
       <xs:element name="Npcs" type="hyb:Npcs" minOccurs="0" maxOccurs="1" />
-      <xs:element name="Signs" type="hyb:Signs" minOccurs="0" maxOccurs="1" />
+      <xs:element name="Signs" type="hyb:MapSigns" minOccurs="0" maxOccurs="1" />
     </xs:sequence>
     <xs:attribute name="Id" type="xs:unsignedShort" use="required" />
     <xs:attribute name="Music" type="xs:unsignedByte" default="0" />

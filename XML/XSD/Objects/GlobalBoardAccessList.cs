@@ -43,9 +43,6 @@ public partial class GlobalBoardAccessList
         }
         set
         {
-            ValidationContext validatorPropContext = new ValidationContext(this, null, null);
-            validatorPropContext.MemberName = "Read";
-            Validator.ValidateProperty(value, validatorPropContext);
             _read = value;
         }
     }
@@ -61,9 +58,6 @@ public partial class GlobalBoardAccessList
         }
         set
         {
-            ValidationContext validatorPropContext = new ValidationContext(this, null, null);
-            validatorPropContext.MemberName = "Write";
-            Validator.ValidateProperty(value, validatorPropContext);
             _write = value;
         }
     }
@@ -79,9 +73,6 @@ public partial class GlobalBoardAccessList
         }
         set
         {
-            ValidationContext validatorPropContext = new ValidationContext(this, null, null);
-            validatorPropContext.MemberName = "Moderate";
-            Validator.ValidateProperty(value, validatorPropContext);
             _moderate = value;
         }
     }

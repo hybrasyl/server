@@ -60,9 +60,6 @@ public partial class Statuses
         }
         set
         {
-            ValidationContext validatorPropContext = new ValidationContext(this, null, null);
-            validatorPropContext.MemberName = "Remove";
-            Validator.ValidateProperty(value, validatorPropContext);
             _remove = value;
         }
     }

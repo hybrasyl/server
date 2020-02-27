@@ -41,9 +41,6 @@ public partial class Variants
         }
         set
         {
-            ValidationContext validatorPropContext = new ValidationContext(this, null, null);
-            validatorPropContext.MemberName = "Name";
-            Validator.ValidateProperty(value, validatorPropContext);
             _name = value;
         }
     }
@@ -58,9 +55,6 @@ public partial class Variants
         }
         set
         {
-            ValidationContext validatorPropContext = new ValidationContext(this, null, null);
-            validatorPropContext.MemberName = "Group";
-            Validator.ValidateProperty(value, validatorPropContext);
             _group = value;
         }
     }

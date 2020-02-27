@@ -42,9 +42,6 @@ public partial class Signpost
         }
         set
         {
-            ValidationContext validatorPropContext = new ValidationContext(this, null, null);
-            validatorPropContext.MemberName = "Message";
-            Validator.ValidateProperty(value, validatorPropContext);
             _message = value;
         }
     }
@@ -58,9 +55,6 @@ public partial class Signpost
         }
         set
         {
-            ValidationContext validatorPropContext = new ValidationContext(this, null, null);
-            validatorPropContext.MemberName = "Script";
-            Validator.ValidateProperty(value, validatorPropContext);
             _script = value;
         }
     }

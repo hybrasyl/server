@@ -47,9 +47,6 @@ public partial class Npc
         }
         set
         {
-            ValidationContext validatorPropContext = new ValidationContext(this, null, null);
-            validatorPropContext.MemberName = "Name";
-            Validator.ValidateProperty(value, validatorPropContext);
             _name = value;
         }
     }
@@ -63,9 +60,6 @@ public partial class Npc
         }
         set
         {
-            ValidationContext validatorPropContext = new ValidationContext(this, null, null);
-            validatorPropContext.MemberName = "DisplayName";
-            Validator.ValidateProperty(value, validatorPropContext);
             _displayName = value;
         }
     }
