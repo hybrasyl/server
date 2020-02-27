@@ -19,7 +19,6 @@
  * 
  */
  
-using Hybrasyl.Xml.Castable;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -61,7 +60,7 @@ namespace Hybrasyl
                 {
                     dynamic item;
                     if (!TryGetValue(jArray[i], out item)) continue;
-                    book[i] = Game.World.WorldData.Values<Castable>().SingleOrDefault(x => x.Name.ToLower() == (string)item.Name);
+                    book[i] = Game.World.WorldData.Values<Xml.Castable>().SingleOrDefault(x => x.Name.ToLower() == (string)item.Name);
                     var castable = book[i];
                     if (castable != null) castable.CastableLevel = (byte)item.Level;
                 }
@@ -75,7 +74,7 @@ namespace Hybrasyl
                 {
                     dynamic item;
                     if (!TryGetValue(jArray[i], out item)) continue;
-                    book[i] = Game.World.WorldData.Values<Castable>().SingleOrDefault(x => x.Name.ToLower() == (string)item.Name);
+                    book[i] = Game.World.WorldData.Values<Xml.Castable>().SingleOrDefault(x => x.Name.ToLower() == (string)item.Name);
                     var castable = book[i];
                     if (castable != null)
                     {
@@ -108,10 +107,10 @@ namespace Hybrasyl
     }
 
     [JsonConverter(typeof(BookConverter))]
-    public class Book : IEnumerable<Castable>
+    public class Book : IEnumerable<Xml.Castable>
     {
-        private Castable[] _items;
-        private Dictionary<int, Castable> _itemIndex;
+        private Xml.Castable[] _items;
+        private Dictionary<int, Xml.Castable> _itemIndex;
 
         public bool IsFull => Count == Size;
 
@@ -120,7 +119,7 @@ namespace Hybrasyl
         public int Count { get; private set; }
 
 
-        public Castable this[byte slot]
+        public Xml.Castable this[byte slot]
         {
             get
             {
@@ -142,12 +141,12 @@ namespace Hybrasyl
             }
         }
 
-        private void _AddToIndex(Castable item)
+        private void _AddToIndex(Xml.Castable item)
         {
             _itemIndex[item.Id] = item;
         }
 
-        private void _RemoveFromIndex(Castable item)
+        private void _RemoveFromIndex(Xml.Castable item)
         {
             if (item != null)
             {
@@ -158,16 +157,16 @@ namespace Hybrasyl
 
         public Book()
         {
-            this._items = new Castable[90];
+            this._items = new Xml.Castable[90];
             Size = 90;
-            this._itemIndex = new Dictionary<int, Castable>();
+            this._itemIndex = new Dictionary<int, Xml.Castable>();
         }
 
         public Book(int size)
         {
-            this._items = new Castable[size];
+            this._items = new Xml.Castable[size];
             Size = size;
-            this._itemIndex = new Dictionary<int, Castable>();
+            this._itemIndex = new Dictionary<int, Xml.Castable>();
         }
 
         public bool Contains(int id)
@@ -216,14 +215,14 @@ namespace Hybrasyl
             return (byte)(IndexOf(name) + 1);
         }
 
-        public bool Add(Castable item)
+        public bool Add(Xml.Castable item)
         {
             if (IsFull) return false;
             var slot = FindEmptySlot();
             return Insert(slot, item);
         }
 
-        public bool Insert(byte slot, Castable item)
+        public bool Insert(byte slot, Xml.Castable item)
         {
             var index = slot - 1;
             if (index < 0 || index >= Size || _items[index] != null)
@@ -266,7 +265,7 @@ namespace Hybrasyl
             _itemIndex.Clear();
         }
 
-        public IEnumerator<Castable> GetEnumerator()
+        public IEnumerator<Xml.Castable> GetEnumerator()
         {
             for (var i = 0; i < Size; ++i)
             {

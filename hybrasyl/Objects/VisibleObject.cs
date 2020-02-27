@@ -24,10 +24,8 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using Hybrasyl.Enums;
-using Serilog;
 using MoonSharp.Interpreter;
 using Newtonsoft.Json;
-using Hybrasyl.Xml.Common;
 
 namespace Hybrasyl.Objects
 {
@@ -40,7 +38,7 @@ namespace Hybrasyl.Objects
         public LocationInfo Location { get; set; }
         // TODO: Clean these up later and simply use Location instead
         public Map Map { get { return Location.Map; } set { Location.Map = value; } }
-        public Direction Direction { get { return Location.Direction; } set { Location.Direction = value; } }
+        public Xml.Direction Direction { get { return Location.Direction; } set { Location.Direction = value; } }
         public override byte X { get { return Location.X; } set { Location.X = value; } }
         public override byte Y { get { return Location.Y; } set { Location.Y = value; } }
         public ushort Sprite { get; set; }

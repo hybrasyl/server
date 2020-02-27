@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<xs:schema xmlns:hyb="http://www.hybrasyl.com/XML/Common" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:nation="http://www.hybrasyl.com/XML/Nation" targetNamespace="http://www.hybrasyl.com/XML/Nation" elementFormDefault="qualified">
-
+<xs:schema
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    targetNamespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02"
+    xmlns:hyb="http://www.hybrasyl.com/XML/Hybrasyl/2020-02"
+    xmlns="http://www.hybrasyl.com/XML/Hybrasyl/2020-02"
+    elementFormDefault="qualified">
   <xs:annotation>
     <xs:documentation xml:lang="en">
       This file is part of Project Hybrasyl.
@@ -23,11 +27,9 @@
     </xs:documentation>
   </xs:annotation>
 
-  <xs:import schemaLocation="Common.xsd" namespace="http://www.hybrasyl.com/XML/Common" />
-
   <xs:complexType name="SpawnPoints">
     <xs:sequence>
-      <xs:element name="SpawnPoint" minOccurs="1" maxOccurs="unbounded" type="nation:SpawnPoint">
+      <xs:element name="SpawnPoint" minOccurs="1" maxOccurs="unbounded" type="hyb:SpawnPoint">
       </xs:element>
     </xs:sequence>
   </xs:complexType>
@@ -39,13 +41,13 @@
   </xs:complexType>
 
 
-  <xs:complexType name="Map">
+  <xs:complexType name="NationMap">
     <xs:attribute name="Name" type="hyb:String8"/>
   </xs:complexType>
-  
+
   <xs:complexType name="Territory">
     <xs:sequence>
-      <xs:element name="Map" minOccurs="1" maxOccurs="unbounded"/>
+      <xs:element name="Map" type="hyb:NationMap" minOccurs="1" maxOccurs="unbounded"/>
     </xs:sequence>
     <xs:attribute name="Nation" type="hyb:String8"/>
   </xs:complexType>
@@ -55,13 +57,13 @@
       <xs:sequence>
         <xs:element name="Name" type="hyb:String8" minOccurs="1" maxOccurs="1" />
         <xs:element name="Description" type="hyb:String8" minOccurs="0" maxOccurs="1" />
-        <xs:element name="SpawnPoints" type="nation:SpawnPoints" minOccurs="0" maxOccurs="1" />
+        <xs:element name="SpawnPoints" type="hyb:SpawnPoints" minOccurs="0" maxOccurs="1" />
       </xs:sequence>
       <xs:attribute name="Flag" type="xs:unsignedByte" use="required" />
       <xs:attribute name="Default" type="xs:boolean" default="false"/>
     </xs:complexType>
   </xs:element>
-  
-  <xs:element name="Territory" type="nation:Territory"/>
-  
+
+  <xs:element name="Territory" type="hyb:Territory"/>
+
 </xs:schema>

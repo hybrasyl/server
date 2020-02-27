@@ -26,7 +26,6 @@ using System.Collections;
 using System.Linq;
 using System.Text.RegularExpressions;
 using StackExchange.Redis;
-using Hybrasyl.Xml.Common;
 
 namespace Hybrasyl
 {
@@ -174,14 +173,14 @@ namespace Hybrasyl
             {
                 var newPlayer = new User();
                 newPlayer.Name = client.NewCharacterName;
-                newPlayer.Gender = (Gender) gender;
-                newPlayer.Location.Direction = Direction.South;
+                newPlayer.Gender = (Xml.Gender) gender;
+                newPlayer.Location.Direction = Xml.Direction.South;
                 newPlayer.Location.Map = map;
                 newPlayer.Location.X = 10; 
                 newPlayer.Location.Y = 10;
                 newPlayer.HairColor = hairColor;
                 newPlayer.HairStyle = hairStyle;
-                newPlayer.Class = Class.Peasant;
+                newPlayer.Class = Xml.Class.Peasant;
                 newPlayer.Gold = 0;
                 newPlayer.Login.CreatedTime = DateTime.Now;
                 newPlayer.Login.FirstLogin = true;

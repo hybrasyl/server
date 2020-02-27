@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Project Hybrasyl")]
 [assembly: AssemblyProduct("Hybrasyl XML Library")]
-[assembly: AssemblyCopyright("(C) 2017 Project Hybrasyl")]
+[assembly: AssemblyCopyright("(C) 2020 ERISCO LLC")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

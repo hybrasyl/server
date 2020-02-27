@@ -19,7 +19,6 @@
  * 
  */
  
-using Hybrasyl.Xml.Common;
 using Newtonsoft.Json;
 
 namespace Hybrasyl.Objects
@@ -52,7 +51,7 @@ namespace Hybrasyl.Objects
             }
         }
         [JsonProperty]
-        public Direction Direction { get; set; }
+        public Xml.Direction Direction { get; set; }
         [JsonProperty]
         public byte X { get; set; }
         [JsonProperty]

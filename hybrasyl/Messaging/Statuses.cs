@@ -20,7 +20,6 @@
  */
  
 using Hybrasyl.Objects;
-using Hybrasyl.Xml.Status;
 
 namespace Hybrasyl.Messaging
 {
@@ -34,7 +33,7 @@ namespace Hybrasyl.Messaging
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
-            if (Game.World.WorldData.TryGetValueByIndex(args[0], out Status status))
+            if (Game.World.WorldData.TryGetValueByIndex(args[0], out Xml.Status status))
             {
                 user.ApplyStatus(new CreatureStatus(status, user, null, null));
                 return Success();

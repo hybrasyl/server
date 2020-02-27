@@ -19,17 +19,15 @@
  * 
  */
 
-using Hybrasyl.Xml.Castable;
 using Hybrasyl.Objects;
 using MoonSharp.Interpreter;
-using Hybrasyl.Xml.Loot;
 
 namespace Hybrasyl.Scripting
 {
     [MoonSharpUserData]
     public class HybrasylSpawn
     {
-        internal Xml.Creature.Spawn Spawn;
+        internal Xml.Spawn Spawn;
 
         // Expose fields that can be used by scripting
 
@@ -112,29 +110,30 @@ namespace Hybrasyl.Scripting
             set => Spawn.Loot.Table[0].Chance = value;
         }
 
-        public void AddLootItem(string item, int min = 1, int max = 0)
+        public void AddLootItem(string item, int max = 0)
         {
-            if (Game.World.WorldData.TryGetValue<ItemObject>(item, out ItemObject theItem))
+            if (Game.World.WorldData.TryGetValue<ItemObject>(item, out _))
             {
                 if (Spawn.Loot.Table.Count >= 1)
                 {
                     // We only support editing the first loot table via scripting. If you don't like that,
                     // please feel free to implement the functionality on your own and make a PR.
-                    var lootItem = new LootItem();
+                    var lootItem = new Xml.LootItem();
                     lootItem.Value = item;
-                    lootItem.Min = min;
                     lootItem.Max = max;
-                    Spawn.Loot.Table[0].Items.Items.Add(lootItem);
+                    var itemList = new Xml.LootTableItemList();
+                    itemList.Item.Add(lootItem);
+                    Spawn.Loot.Table[0].Items.Add(itemList);
                 }
             }
         }
 
         public void AddCastable(string item, double chance = 0.50, int cooldown = 1, bool always = false)
         {
-            if (Game.World.WorldData.TryGetValue(item, out Castable theCastable))
+            if (Game.World.WorldData.TryGetValue(item, out Xml.Castable theCastable))
             {
                 // Add a castable to our casting list
-                var castInstruction = new Xml.Creature.Castable();
+                var castInstruction = new Xml.SpawnCastable();
                 castInstruction.Chance = (float)chance;
                 castInstruction.Cooldown = cooldown;
                 castInstruction.Value = item;
@@ -146,7 +145,7 @@ namespace Hybrasyl.Scripting
         public HybrasylSpawn(string creature, string spawnName, byte level = 3, byte str = 3,
             byte intel = 3, byte wis = 3, byte con = 3, byte dex = 3)
         {
-            Spawn = new Xml.Creature.Spawn();
+            Spawn = new Xml.Spawn();
             Level = level;
             Str = str;
             Int = intel;
@@ -154,11 +153,11 @@ namespace Hybrasyl.Scripting
             Con = con;
             Dex = dex;
             // Populate a default, empty loot table, with default xp/gold settings
-            Spawn.Loot.Table = new System.Collections.Generic.List<LootTable>();
-            Spawn.Castables = new System.Collections.Generic.List<Xml.Creature.Castable>();
-            Spawn.Loot.Table.Add(new LootTable());
-            Spawn.Loot = new Xml.Creature.LootList();
-            Spawn.Loot.Gold = new Xml.Creature.LootGold();
+            Spawn.Loot.Table = new System.Collections.Generic.List<Xml.LootTable>();
+            Spawn.Castables = new System.Collections.Generic.List<Xml.SpawnCastable>();
+            Spawn.Loot.Table.Add(new Xml.LootTable());
+            Spawn.Loot = new Xml.LootList();
+            Spawn.Loot.Gold = new Xml.LootGold();
         }
     }
 }

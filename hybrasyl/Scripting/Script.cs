@@ -25,7 +25,6 @@ using System.IO;
 using System.Reflection;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
-using Hybrasyl.Xml.Common;
 using MoonSharp.Interpreter;
 using Serilog;
 
@@ -154,10 +153,10 @@ namespace Hybrasyl.Scripting
         {
             try
             {
-                Compiled.Globals["Gender"] = UserData.CreateStatic<Gender>();
+                Compiled.Globals["Gender"] = UserData.CreateStatic<Xml.Gender>();
                 Compiled.Globals["LegendIcon"] = UserData.CreateStatic<LegendIcon>();
                 Compiled.Globals["LegendColor"] = UserData.CreateStatic<LegendColor>();
-                Compiled.Globals["Class"] = UserData.CreateStatic<Class>();
+                Compiled.Globals["Class"] = UserData.CreateStatic<Xml.Class>();
                 Compiled.Globals["utility"] = typeof(HybrasylUtility);
                 Compiled.Globals.Set("world", UserData.Create(Processor.World));
                 Compiled.Globals.Set("logger", UserData.Create(new ScriptLogger(Name)));

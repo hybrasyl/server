@@ -22,11 +22,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Hybrasyl.Xml.Castable;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
-using Hybrasyl.Xml.Common;
-using Hybrasyl.Xml.Item;
 using Hybrasyl.Objects;
 using MoonSharp.Interpreter;
 using System.Reflection;
@@ -42,13 +39,13 @@ namespace Hybrasyl.Scripting
         public string Name => User.Name;
         public byte X => User.X;
         public byte Y => User.Y;
-        public Class Class => User.Class;
+        public Xml.Class Class => User.Class;
 
         // TODO: determine a better way to do this in lua via moonsharp
         public string Type => "player";
 
 
-        public Gender Gender => User.Gender;
+        public Xml.Gender Gender => User.Gender;
 
         public uint Hp
         {
@@ -115,7 +112,7 @@ namespace Hybrasyl.Scripting
             return User.Legend.TryGetMark(prefix, out mark) ? mark : (object)null;
         }
 
-        public void ChangeClass(Class newClass, string oathGiver)
+        public void ChangeClass(Xml.Class newClass, string oathGiver)
         {
             User.Class = newClass;
             User.UpdateAttributes(StatUpdateFlags.Full);
@@ -124,23 +121,23 @@ namespace Hybrasyl.Scripting
             // this is annoying af
             switch (newClass)
             {
-                case Class.Monk:
+                case Xml.Class.Monk:
                     icon = LegendIcon.Monk;
                     legendtext = $"Monk by oath of {oathGiver}";
                     break;
-                case Class.Priest:
+                case Xml.Class.Priest:
                     icon = LegendIcon.Priest;
                     legendtext = $"Priest by oath of {oathGiver}";
                     break;
-                case Class.Rogue:
+                case Xml.Class.Rogue:
                     icon = LegendIcon.Rogue;
                     legendtext = $"Rogue by oath of {oathGiver}";
                     break;
-                case Class.Warrior:
+                case Xml.Class.Warrior:
                     icon = LegendIcon.Warrior;
                     legendtext = $"Warrior by oath of {oathGiver}";
                     break;
-                case Class.Wizard:
+                case Xml.Class.Wizard:
                     icon = LegendIcon.Wizard;
                     legendtext = $"Wizard by oath of {oathGiver}";
                     break;
@@ -299,8 +296,8 @@ namespace Hybrasyl.Scripting
             User.Heal(heal);
         }
 
-        public void Damage(int damage, Element element = Element.None,
-           DamageType damageType = DamageType.Direct)
+        public void Damage(int damage, Xml.Element element = Xml.Element.None,
+           Xml.DamageType damageType = Xml.DamageType.Direct)
         {
             User.Damage(damage, element, damageType);
         }
@@ -308,9 +305,9 @@ namespace Hybrasyl.Scripting
         public void Damage(int damage, bool fatal=true)
         {
             if (fatal)
-                User.Damage(damage, Element.None, DamageType.Direct, DamageFlags.Nonlethal);
+                User.Damage(damage, Xml.Element.None, Xml.DamageType.Direct, Xml.DamageFlags.Nonlethal);
             else
-                User.Damage(damage, Element.None, DamageType.Direct);
+                User.Damage(damage, Xml.Element.None, Xml.DamageType.Direct);
 
         }
 
@@ -324,7 +321,7 @@ namespace Hybrasyl.Scripting
         public bool GiveItem(string name, int count = 1)
         {
             // Does the item exist?
-            if (Game.World.WorldData.TryGetValueByIndex(name, out Item template))
+            if (Game.World.WorldData.TryGetValueByIndex(name, out Xml.Item template))
             {
                 var item = Game.World.CreateItem(template.Id);
                 if (count > 1)
@@ -377,7 +374,7 @@ namespace Hybrasyl.Scripting
 
         public bool AddSkill(string skillname)
         {
-            if (Game.World.WorldData.TryGetValue(skillname, out Castable result))
+            if (Game.World.WorldData.TryGetValue(skillname, out Xml.Castable result))
             {
                 User.AddSkill(result);
                 return true;
@@ -391,7 +388,7 @@ namespace Hybrasyl.Scripting
             User.SendMessage(message, Hybrasyl.MessageTypes.SYSTEM_WITH_OVERHEAD);
         }
 
-        public bool IsPeasant() => User.Class == Class.Peasant;
+        public bool IsPeasant() => User.Class == Xml.Class.Peasant;
 
         public void Whisper(string name, string message)
         {

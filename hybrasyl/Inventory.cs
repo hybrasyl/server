@@ -27,7 +27,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Hybrasyl.Xml.Item;
 using System.Collections.Concurrent;
 using Hybrasyl.Threading;
 
@@ -377,7 +376,7 @@ namespace Hybrasyl
                 if (TryGetValue(jArray[i], out item))
                 {
                     //itmType = Game.World.WorldData.Values<Item>().Where(x => x.Name == (string)item.FirstOrDefault().Value).FirstOrDefault().Name;
-                    if (Game.World.WorldData.TryGetValue<Item>(item.Id, out Item itemTemplate)) 
+                    if (Game.World.WorldData.TryGetValue<Xml.Item>(item.Id, out Xml.Item itemTemplate)) 
                     {
                         inv[i] = new ItemObject(itemTemplate.Id, Game.World)
                         {
@@ -608,7 +607,7 @@ namespace Hybrasyl
         {
             itemObject = null;
             List<ItemObject> itemList;
-            Item theItem;
+            Xml.Item theItem;
             if (!Game.World.TryGetItemTemplate(name, out theItem) ||
                 !_inventoryIndex.TryGetValue(theItem.Id, out itemList)) return false;
             itemObject = itemList.First();
@@ -731,7 +730,7 @@ namespace Hybrasyl
 
         public ItemObject FindByName(string name)
         {
-            Item theItem;
+            Xml.Item theItem;
             return Game.World.TryGetItemTemplate(name, out theItem) && _inventoryIndex.ContainsKey(theItem.Id)
                 ? _inventoryIndex[theItem.Id].First()
                 : null;

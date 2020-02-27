@@ -23,7 +23,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Hybrasyl.Xml.Common;
 
 namespace Hybrasyl
 {
@@ -38,7 +37,7 @@ namespace Hybrasyl
         // Group-related info
         public List<User> Members { get; private set; }
         public DateTime CreatedOn { get; private set; }
-        public Dictionary<Class, uint> ClassCount { get; private set; }
+        public Dictionary<Xml.Class, uint> ClassCount { get; private set; }
         public uint MaxMembers = 0;
 
         private delegate Dictionary<uint, uint> DistributionFunc(User source, uint full);
@@ -50,8 +49,8 @@ namespace Hybrasyl
         public UserGroup(User founder)
         {
             Members = new List<User>();
-            ClassCount = new Dictionary<Class, uint>();
-            foreach (var cl in Enum.GetValues(typeof(Class)).Cast<Class>())
+            ClassCount = new Dictionary<Xml.Class, uint>();
+            foreach (var cl in Enum.GetValues(typeof(Xml.Class)).Cast<Xml.Class>())
             {
                 ClassCount[cl] = 0;
             }
@@ -142,11 +141,11 @@ namespace Hybrasyl
 
         public bool ContainsAllClasses()
         {
-            return (ClassCount[Class.Monk] > 0 &&
-                    ClassCount[Class.Priest] > 0 &&
-                    ClassCount[Class.Rogue] > 0 &&
-                    ClassCount[Class.Warrior] > 0 &&
-                    ClassCount[Class.Wizard] > 0);
+            return (ClassCount[Xml.Class.Monk] > 0 &&
+                    ClassCount[Xml.Class.Priest] > 0 &&
+                    ClassCount[Xml.Class.Rogue] > 0 &&
+                    ClassCount[Xml.Class.Warrior] > 0 &&
+                    ClassCount[Xml.Class.Wizard] > 0);
         }
 
         /**

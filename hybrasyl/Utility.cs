@@ -22,11 +22,30 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 
 namespace Hybrasyl
 {
+
+    public static class EnumerableExtension
+    {
+        public static T PickRandom<T>(this IEnumerable<T> source)
+        {
+            return source.PickRandom(1).Single();
+        }
+
+        public static IEnumerable<T> PickRandom<T>(this IEnumerable<T> source, int count)
+        {
+            return source.Shuffle().Take(count);
+        }
+
+        public static IEnumerable<T> Shuffle<T>(this IEnumerable<T> source)
+        {
+            return source.OrderBy(x => Guid.NewGuid());
+        }
+    }
     public static class IntegerExtensions
     {
         public static string DisplayWithOrdinal(this int num)
@@ -212,7 +231,6 @@ namespace Hybrasyl
         public static int MIN_MR = 0;
         public static int MAX_MR = 8;
     }
-
 
     static class DialogTypes
     {

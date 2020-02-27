@@ -1,6 +1,10 @@
 <?xml version="1.0"?>
-<xs:schema xmlns:hyb="http://www.hybrasyl.com/XML/Common" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:maps="http://www.hybrasyl.com/XML/Map" targetNamespace="http://www.hybrasyl.com/XML/Map" elementFormDefault="qualified">
-
+<xs:schema
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    targetNamespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02"
+    xmlns:hyb="http://www.hybrasyl.com/XML/Hybrasyl/2020-02"
+    xmlns="http://www.hybrasyl.com/XML/Hybrasyl/2020-02"
+    elementFormDefault="qualified">
   <xs:annotation>
     <xs:documentation xml:lang="en">
       This file is part of Project Hybrasyl.
@@ -23,8 +27,6 @@
     </xs:documentation>
   </xs:annotation>
 
-  <xs:import schemaLocation="Common.xsd" namespace="http://www.hybrasyl.com/XML/Common" />
-
   <!-- Mapwarp / worldwarp subelements -->
   <xs:complexType name="Warp">
     <xs:sequence>
@@ -40,7 +42,7 @@
             </xs:simpleContent>
           </xs:complexType>
         </xs:element>
-          <xs:element name="WorldMapTarget" minOccurs="0" maxOccurs="1" type="hyb:String8"/>
+        <xs:element name="WorldMapTarget" minOccurs="0" maxOccurs="1" type="hyb:String8"/>
       </xs:sequence>
       <xs:element name="Restrictions" minOccurs="0" maxOccurs="1" type="hyb:WarpRestrictions" />
     </xs:sequence>
@@ -85,8 +87,8 @@
   <xs:complexType name="Signs">
     <xs:sequence>
       <xs:sequence minOccurs="1" maxOccurs="unbounded">
-        <xs:element name="Signposts" type="maps:Signpost" />
-        <xs:element name="MessageBoards" type="maps:MessageBoard" />
+        <xs:element name="Signposts" type="hyb:Signpost" />
+        <xs:element name="MessageBoards" type="hyb:MessageBoard" />
       </xs:sequence>
     </xs:sequence>
   </xs:complexType>
@@ -94,21 +96,21 @@
   <!-- Reactors -->
   <xs:complexType name="Reactors">
     <xs:sequence>
-      <xs:element name="Reactor" type="maps:Reactor" minOccurs="1" maxOccurs="unbounded" />
+      <xs:element name="Reactor" type="hyb:Reactor" minOccurs="1" maxOccurs="unbounded" />
     </xs:sequence>
   </xs:complexType>
 
   <!-- Warps -->
   <xs:complexType name="Warps">
     <xs:sequence>
-      <xs:element name="Warp" type="maps:Warp" minOccurs="1" maxOccurs="unbounded" />
+      <xs:element name="Warp" type="hyb:Warp" minOccurs="1" maxOccurs="unbounded" />
     </xs:sequence>
   </xs:complexType>
 
   <!-- NPCs -->
   <xs:complexType name="Npcs">
     <xs:sequence>
-      <xs:element name="Npc" type="maps:Npc" minOccurs="1" maxOccurs="unbounded" />
+      <xs:element name="Npc" type="hyb:MapNpc" minOccurs="1" maxOccurs="unbounded" />
     </xs:sequence>
   </xs:complexType>
 
@@ -118,10 +120,10 @@
       <xs:element name="Name" type="hyb:String8" minOccurs="1" maxOccurs="1" />
       <xs:element name="Description" type="hyb:String16" minOccurs="0" maxOccurs="1" />
       <xs:element name="Flags" type="hyb:MapFlags" minOccurs="0" maxOccurs="1" />
-      <xs:element name="Warps" type="maps:Warps" minOccurs="0" maxOccurs="1" />
-      <xs:element name="Reactors" type="maps:Reactors" minOccurs="0" maxOccurs="1" />
-      <xs:element name="Npcs" type="maps:Npcs" minOccurs="0" maxOccurs="1" />
-      <xs:element name="Signs" type="maps:Signs" minOccurs="0" maxOccurs="1" />
+      <xs:element name="Warps" type="hyb:Warps" minOccurs="0" maxOccurs="1" />
+      <xs:element name="Reactors" type="hyb:Reactors" minOccurs="0" maxOccurs="1" />
+      <xs:element name="Npcs" type="hyb:Npcs" minOccurs="0" maxOccurs="1" />
+      <xs:element name="Signs" type="hyb:Signs" minOccurs="0" maxOccurs="1" />
     </xs:sequence>
     <xs:attribute name="Id" type="xs:unsignedShort" use="required" />
     <xs:attribute name="Music" type="xs:unsignedByte" default="0" />
@@ -130,11 +132,11 @@
     <xs:attribute name="IsEnabled" type="xs:boolean" use="optional" default="true"/>
   </xs:complexType>
 
-  <xs:complexType name="Npc">
+  <xs:complexType name="MapNpc">
     <xs:attribute name="Name" type="hyb:String8"/>
     <xs:attribute name="X" type="xs:unsignedByte"/>
     <xs:attribute name="Y" type="xs:unsignedByte"/>
-    <xs:attribute name="Direction" type="xs:unsignedByte" default="0"/>
+    <xs:attribute name="Direction" type="hyb:Direction" default="North"/>
   </xs:complexType>
 
   <!-- Worldmap point -->
@@ -161,7 +163,7 @@
   <!-- Worldmap points (collection of worldmap points) -->
   <xs:complexType name="WorldMapPoints">
     <xs:sequence>
-      <xs:element name="Point" type="maps:WorldMapPoint" minOccurs="1" maxOccurs="unbounded" />
+      <xs:element name="Point" type="hyb:WorldMapPoint" minOccurs="1" maxOccurs="unbounded" />
       <xs:element name="Restrictions" minOccurs="0" maxOccurs="1" type="hyb:WarpRestrictions" />
     </xs:sequence>
   </xs:complexType>
@@ -171,12 +173,12 @@
     <xs:sequence>
       <xs:element name="Name" minOccurs="1" maxOccurs="1" type="hyb:String8" />
       <xs:element name="Description" type="hyb:String16" minOccurs="0" maxOccurs="1" />
-      <xs:element name="Points" type="maps:WorldMapPoints" minOccurs="0" maxOccurs="1" />
+      <xs:element name="Points" type="hyb:WorldMapPoints" minOccurs="0" maxOccurs="1" />
     </xs:sequence>
     <xs:attribute name="ClientMap" type="hyb:String8" use="required" />
   </xs:complexType>
 
   <!-- Lastly, add map/worldmap root elements -->
-  <xs:element name="Map" type="maps:Map" />
-  <xs:element name="WorldMap" type="maps:WorldMap" />
+  <xs:element name="Map" type="hyb:Map" />
+  <xs:element name="WorldMap" type="hyb:WorldMap" />
 </xs:schema>
