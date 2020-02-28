@@ -1,6 +1,8 @@
 # Hybrasyl Server
 
-[Project website](http://hybrasyl.com/) - [Bug tracker](https://hybrasyl.atlassian.net/secure/Dashboard.jspa) - [Punchlist](https://github.com/hybrasyl/server/wiki/Hybrasyl-Punchlist)
+[Project website](http://hybrasyl.com/) -
+[Bug tracker](https://github.com/hybrasyl/server/issues) -
+[Punchlist](https://github.com/hybrasyl/server/wiki/Hybrasyl-Punchlist)
 
 Welcome to Project Hybrasyl! Our aim is to create a well-documented and
 exceptionally accurate DOOMVAS v1 emulator (example:
@@ -99,7 +101,7 @@ To get started with the server:
 
 ## Running Hybrasyl
 
-Hybrasyl Server is .NET Core, which means it can be run on a variety of platfoms (Windows, GNU/Linux, OSX).
+Hybrasyl Server is .NET Core, which means it can be run on a variety of platforms (Windows, GNU/Linux, OSX).
 
 A `systemd` unit file [is provided](./contrib/hybrasyl.unit) to start the server on Ubuntu 18.04+. In any case,
 [download the latest release](https://github.com/hybrasyl/server/releases) for your platform. This can be unpacked
@@ -120,15 +122,18 @@ The process for compiling Hybrasyl is detailed below.
    [Microsoft Visual Studio](https://www.visualstudio.com/en-us/downloads/visual-studio-2015-downloads-vs.aspx).
    The Community Edition is free and capable of compiling all the needed projects (server, launcher).
 
-2. Clone the [launcher](https://github.com/hybrasyl/launcher) and 
-   [server](https://github.com/hybrasyl/server) repositories to your local machine
-   using a [git client](https://git-scm.com/downloads/guis), or with Visual Studio's built-in integration. 
-   Make sure you clone them into separate directories. 
+2. Clone the [launcher](https://github.com/hybrasyl/launcher) and
+   [server](https://github.com/hybrasyl/server) repositories to your
+   local machine using a
+   [git client](https://git-scm.com/downloads/guis), or with Visual
+   Studio's built-in integration. Make sure you clone them into
+   separate directories.
 
-3. Open the Hybrasyl Server solution (`Hybrasyl.sln`) in Visual Studio and
-   update all NuGet packages (just building it will do this). The SDK for
-   XML is now included in server to make this process (as well as making changes) 
-   easier.
+3. Open the Hybrasyl Server solution (`Hybrasyl.sln`) in Visual Studio
+   and update all NuGet packages (just building it will do this). You
+   can also run `dotnet restore` and `dotnet build` in the same
+   directory as the `Hybrasyl.csproj` file. This step will also build
+   the XML/XSD data library.
 
 4. Build Hybrasyl. The default settings should be adequate for most system
    setups, assuming you've updated and installed all NuGet packages (which
@@ -138,27 +143,29 @@ The process for compiling Hybrasyl is detailed below.
 
 Now that your setup is complete, you should be able to use the
 [released version of the launcher](https://www.hybrasyl.com/files/Hybrasyl_Launcher_Installer.msi)
-to connect to it. In case you have trouble with the latest launcher, open
-`Hy-brasyl Launcher.sln` and build the project. Launch the executable and
-select `localhost` from the server selection dropdown. You should now be able
-to connect to your Hybrasyl server, create a new character, and log in!
+to connect to it. In case you have trouble with the latest launcher,
+open `Hy-brasyl Launcher.sln` and build the project. Launch the
+executable and select `localhost` from the server selection dropdown.
+You should now be able to connect to your Hybrasyl server, create a
+new character, and log in!
 
 If not, well, take a look at the section on [getting help](#help).
 
 ## Logging in
 
-Log in to your new server by launching the Hy-brasyl Launcher application,
-either compiled as described above or downloaded from
+Log in to your new server by launching the Hy-brasyl Launcher
+application, either compiled as described above or downloaded from
 [hybrasyl.com](https://www.hybrasyl.com/files/Hybrasyl_Launcher_Installer.msi).
-Point it to a local Dark Ages client installation, select `localhost` from the
-server configuration dropdown, and launch. The launcher will ask you for a
-local Dark Ages client executable; you must have the latest client installed in
-order to continue. Once launched, you should see a Hybrasyl welcome screen in
-place of the standard Dark Ages welcome screen. Congratulations -- you're
-connected!
+Point it to a local Dark Ages client installation, select `localhost`
+from the server configuration dropdown, and launch. The launcher will
+ask you for a local Dark Ages client executable; you must have the
+latest client installed in order to continue. Once launched, you
+should see a Hybrasyl welcome screen in place of the standard Dark
+Ages welcome screen. Congratulations -- you're connected!
 
-Create a character and log in the same way you would on a production server.
-You should find your Aisling in an inn and ready to explore the world.
+Create a character and log in the same way you would on a production
+server. You should find your Aisling in an inn and ready to explore
+the world.
 
 ## Testing tips and other notable resources
 
@@ -171,10 +178,10 @@ You should find your Aisling in an inn and ready to explore the world.
   `world` directory.
   
 * You can learn skills and spells by using `/spell`, for instance, `/spell Assail`.
-
+  
 * Warps are links between locations on the map. You can add or remove warps
   in a map file (e.g. `xml/maps/ExampleVillage.xml`).
-
+  
 * You can add new items by creating new XML files. The example items should
   provide good models to follow; there are also XSD files for the XML
   structure in the SDK repository. We hope to make a world editor available
@@ -207,9 +214,9 @@ one [for users](https://groups.google.com/forum/#!forum/hybrasyl-users).
 By using this license for Hybrasyl, our intent is to foster a vibrant community
 whose development and progress are open and available to all.
 
-*Please note: these restrictions do not apply to in-game Python scripts and/or
- world data you may create for your server*. Whether or not you distribute that
- content is up to you.
+*Please note: these restrictions do not apply to in-game Lua scripts
+ and/or XML world data you may create for your server*. Whether or not
+ you distribute that content is up to you.
 
 ## Contributing
 
