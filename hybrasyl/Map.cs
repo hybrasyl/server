@@ -272,21 +272,10 @@ namespace Hybrasyl
                 InsertReactor(reactor);
                 GameLog.Debug($"{reactor.Id} placed in {reactor.Map.Name}, description was {reactor.Description}");
             }
-            if (newMap.Signs != null) {
-                foreach (var postElement in newMap.Signs.Signposts)
-                {
-                    var signpostElement = postElement as Xml.Signpost;
-                    var signpost = new Objects.Signpost(signpostElement.X, signpostElement.Y, signpostElement.Message);
-                    InsertSignpost(signpost);
-
-                }
-                foreach (var postElement in newMap.Signs.MessageBoards)
-                {
-                    var boardElement = postElement as Xml.MessageBoard;
-                    var board = new Objects.Signpost(boardElement.X, boardElement.Y, string.Empty, true, boardElement.Name);
-                    InsertSignpost(board);
-                    GameLog.InfoFormat("{0}: {1} - messageboard loaded", this.Name, board.Name);
-                }
+            foreach (var sign in newMap.Signs)
+            {
+                var signpost = new Signpost(sign.X, sign.Y, sign.Message, sign.Type == Xml.BoardType.Messageboard, sign.Name);
+                InsertSignpost(signpost);
             }
             Load();
         }
