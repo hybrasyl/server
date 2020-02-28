@@ -114,13 +114,22 @@ distribution that uses systemd, install the unit file in
 
 `service hybrasyl start`
 
+To start the server on OSX or GNU/Linux for debugging and testing, you can run `dotnet run` from the `hybrasyl`
+directory (e.g. where `Hybrasyl.csproj` lives.
+
 ## Compiling the Game Server
 
 The process for compiling Hybrasyl is detailed below.
 
-1. Install
-   [Microsoft Visual Studio](https://www.visualstudio.com/en-us/downloads/visual-studio-2015-downloads-vs.aspx).
-   The Community Edition is free and capable of compiling all the needed projects (server, launcher).
+1. Install either [Microsoft Visual Studio](https://www.visualstudio.com/en-us/downloads/visual-studio-2015-downloads-vs.aspx).
+or [Microsoft Visual Studio Code](https://code.visualstudio.com/).
+
+   For Visual Studio, the Community Edition is free and capable of compiling
+   all the needed projects (server, launcher).
+
+2. Download and install a [.NET Core SDK and Runtime](https://dotnet.microsoft.com/download).
+
+   Currently, Hybrasyl uses .NET Core 3.1.
 
 2. Clone the [launcher](https://github.com/hybrasyl/launcher) and
    [server](https://github.com/hybrasyl/server) repositories to your
@@ -129,17 +138,20 @@ The process for compiling Hybrasyl is detailed below.
    Studio's built-in integration. Make sure you clone them into
    separate directories.
 
-3. Open the Hybrasyl Server solution (`Hybrasyl.sln`) in Visual Studio
-   and update all NuGet packages (just building it will do this). You
-   can also run `dotnet restore` and `dotnet build` in the same
-   directory as the `Hybrasyl.csproj` file. This step will also build
-   the XML/XSD data library.
+3. Update and rebuild packages.
 
-4. Build Hybrasyl. The default settings should be adequate for most system
-   setups, assuming you've updated and installed all NuGet packages (which
-   should occur automatically) while running inside Visual Studio. Should you
-   choose to compile an executable (`.exe`), run the following from the command line:
-   `dotnet publish -c Debug -r win10-x64`
+   Open the Hybrasyl Server solution (`Hybrasyl.sln`) in Visual Studio
+   and update all NuGet packages (just building it will do this). If
+   using vscode or via command line, you can also run `dotnet restore`
+   and `dotnet build` in the same directory as the `Hybrasyl.csproj`
+   file. This step will also build the XML/XSD data library.
+
+4. Build Hybrasyl.
+
+   The default settings should be adequate for most system setups.
+   Should you wish to compile an executable (`.exe`), run the
+   following from the command line: `dotnet publish -c Debug -r
+   win10-x64` or `dotnet publish -c Debug -r ubuntu.18.04-x64`
 
 Now that your setup is complete, you should be able to use the
 [released version of the launcher](https://www.hybrasyl.com/files/Hybrasyl_Launcher_Installer.msi)
