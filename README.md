@@ -4,7 +4,9 @@
 [Bug tracker](https://github.com/hybrasyl/server/issues) -
 [Punchlist](https://github.com/hybrasyl/server/wiki/Hybrasyl-Punchlist)
 
-Welcome to Project Hybrasyl! Our aim is to create a well-documented and
+**Welcome to Project Hybrasyl!**
+
+Our aim is to create a well-documented and
 exceptionally accurate DOOMVAS v1 emulator (example:
 [Dark Ages](http://www.darkages.com)). Look around,
 [make an account](https://www.hybrasyl.com/accounts/sign_up), and join us
@@ -67,7 +69,7 @@ at runtime; XML is processed when the server starts up for actual world data
 
 To get started with the server:
 
-1. Install Redis.
+1. **Install Redis**
 
    Hybrasyl uses Redis to store player state and mailboxes. If you are using Ubuntu/Debian,
    `apt install redis-server`. For Windows, you can either run Redis using [WSL](https://docs.microsoft.com/en-us/windows/wsl/install-win10)
@@ -80,7 +82,7 @@ To get started with the server:
    TCP/6379, can be accessed from the server running Hybrasyl; you may need to
    grant access or open ports.
 
-2. Create and populate your base directory.
+2. **Create and populate your base directory**
 
    On Windows, this is `%userprofile%\documents\Hybrasyl`. On GNU/Linux
    or OSX this is `~/Hybrasyl` for whatever user is running the server.
@@ -91,13 +93,15 @@ To get started with the server:
    directly into your Hybrasyl data directory and start the server. You
    may wish to modify the default `config.xml`.
 
-3. Update your configuration.
+3. **Update your configuration**
 
    Examine the Hybrasyl configuration in the Hybrasyl data directory, `config.xml`. In particular,
    you will want to add the name of your character to `<Privileged>`, which will allow
    them to use any slash command.
 
-4. Install and run Hybrasyl (see _Running Hybrasyl_ below).
+4. **Install and run Hybrasyl** 
+
+   (see _Running Hybrasyl_ below).
 
 ## Running Hybrasyl
 
@@ -125,43 +129,40 @@ The process for compiling Hybrasyl is detailed below.
 or [Microsoft Visual Studio Code](https://code.visualstudio.com/).
 
    For Visual Studio, the Community Edition is free and capable of compiling
-   all the needed projects (server, launcher).
+   all the needed projects (server, launcher), but you don't strictly speaking need this any longer - you can also just edit C# code in VS Code.
 
 2. Download and install a [.NET Core SDK and Runtime](https://dotnet.microsoft.com/download).
 
-   Currently, Hybrasyl uses .NET Core 3.1.
+   Currently, Hybrasyl uses .NET Core 3.1. In order to do development, you need both the SDK and runtime; to simply run Hybrasyl, you just need the runtime.
 
 2. Clone the [launcher](https://github.com/hybrasyl/launcher) and
    [server](https://github.com/hybrasyl/server) repositories to your
    local machine using a
    [git client](https://git-scm.com/downloads/guis), or with Visual
-   Studio's built-in integration. Make sure you clone them into
-   separate directories.
-
+   Studio or VS Code's built-in integration. **Make sure you clone them into
+   separate directories**.
+   
 3. Update and rebuild packages.
 
    Open the Hybrasyl Server solution (`Hybrasyl.sln`) in Visual Studio
    and update all NuGet packages (just building it will do this). If
-   using vscode or via command line, you can also run `dotnet restore`
+   using VS Code / via command line, run `dotnet restore`
    and `dotnet build` in the same directory as the `Hybrasyl.csproj`
    file. This step will also build the XML/XSD data library.
 
 4. Build Hybrasyl.
 
    The default settings should be adequate for most system setups.
-   Should you wish to compile an executable (`.exe`), run the
+   Should you wish to compile an distributable / standalone executable, run the
    following from the command line: `dotnet publish -c Debug -r
    win10-x64` or `dotnet publish -c Debug -r ubuntu.18.04-x64`
 
-Now that your setup is complete, you should be able to use the
-[released version of the launcher](https://www.hybrasyl.com/files/Hybrasyl_Launcher_Installer.msi)
-to connect to it. In case you have trouble with the latest launcher,
-open `Hy-brasyl Launcher.sln` and build the project. Launch the
-executable and select `localhost` from the server selection dropdown.
-You should now be able to connect to your Hybrasyl server, create a
-new character, and log in!
+Now that your setup is complete, you should be able to use the launcher 
+to connect to it (after opening `Hy-brasyl Launcher.sln` and building the project). Launch the
+executable and select `localhost` from the server selection dropdown. You can also use one of the other community launchers to connect.
 
-If not, well, take a look at the section on [getting help](#help).
+You should now be able to connect to your Hybrasyl server, create a
+new character, and log in! If not, well, take a look at the section on [getting help](#help).
 
 ## Logging in
 
