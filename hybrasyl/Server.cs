@@ -242,7 +242,7 @@ namespace Hybrasyl
         public virtual void Shutdown()
         {
             GameLog.WarningFormat("{ServerType}: shutting down", this.GetType().ToString());
-            Listener.Close();
+            Listener?.Close();
             GameLog.WarningFormat("{ServerType}: shutdown complete", this.GetType().ToString());
         }
     }

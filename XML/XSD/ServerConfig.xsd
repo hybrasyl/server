@@ -122,6 +122,7 @@
       <xs:element name="Boards" type="hyb:GlobalBoards" minOccurs="0" maxOccurs="1" />
       <xs:element name="Time" type="hyb:Time" minOccurs="0" maxOccurs="1"/>
       <xs:element name="Handlers" type="hyb:Handlers" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Motd" type="hyb:String16" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
   </xs:complexType>
 
