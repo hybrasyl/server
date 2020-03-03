@@ -512,7 +512,7 @@ namespace Hybrasyl
                             {
                                 UpdateLastReceived(packet.Opcode != 0x45 &&
                                                           packet.Opcode != 0x75);
-                                GameLog.Info($"Queuing: 0x{packet.Opcode:X2}");
+                                //GameLog.Info($"Queuing: 0x{packet.Opcode:X2}");
                                 // Check for throttling
                                 var throttleResult = Server.PacketThrottleCheck(this, packet);
                                 if (throttleResult == ThrottleResult.OK || throttleResult == ThrottleResult.ThrottleEnd || throttleResult == ThrottleResult.SquelchEnd)
