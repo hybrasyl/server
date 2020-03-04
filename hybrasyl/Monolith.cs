@@ -72,7 +72,7 @@ namespace Hybrasyl
             return ret;
         }
 
-        public static Loot operator +(Loot a, Loot b) => new Loot(a.Xp + b.Xp, a.Gold + b.Gold, a.Items.Concat(b.Items) as List<string>);
+        public static Loot operator +(Loot a, Loot b) => new Loot(a.Xp + b.Xp, a.Gold + b.Gold, a.Items.Concat(b.Items).ToList());
     }
 
     /// <summary>
@@ -167,7 +167,7 @@ namespace Hybrasyl
             foreach (var set in spawn.Loot.Set)
             {
                 // Is the set present?
-                GameLog.UserActivityInfo("Processing loot set {Name}", set.Name);
+                GameLog.SpawnInfo("Processing loot set {Name}", set.Name);
                 if (Game.World.WorldData.TryGetValueByIndex(set.Name, out Xml.LootSet lootset))
                 {
                     // Set is present, does it fire?
@@ -177,7 +177,7 @@ namespace Hybrasyl
                     if (set.Rolls == 0)
                     {
                         tables.AddRange(lootset.Table);
-                        GameLog.UserActivityInfo("Processing loot set {Name}: set rolls == 0, looting", set.Name);
+                        GameLog.SpawnInfo("Processing loot set {Name}: set rolls == 0, looting", set.Name);
                         continue;
                     }
 
@@ -185,7 +185,7 @@ namespace Hybrasyl
                     {
                         if (Roll() <= set.Chance)
                         {
-                            GameLog.UserActivityInfo("Processing loot set {Name}: set hit, looting", set.Name);
+                            GameLog.SpawnInfo("Processing loot set {Name}: set hit, looting", set.Name);
 
                             // Ok, the set fired. Check the subtables, which can have independent chances.
                             // If no chance is present, we simply award something from each table in the set.
@@ -196,7 +196,7 @@ namespace Hybrasyl
                                 if (setTable.Rolls == 0)
                                 {
                                     tables.Add(setTable);
-                                    GameLog.UserActivityInfo("Processing loot set {Name}: setTable rolls == 0, looting", set.Name);
+                                    GameLog.SpawnInfo("Processing loot set {Name}: setTable rolls == 0, looting", set.Name);
                                     continue;
                                 }
                                 // Did the subtable hit?
@@ -205,13 +205,13 @@ namespace Hybrasyl
                                     if (Roll() <= setTable.Chance)
                                     {
                                         tables.Add(setTable);
-                                        GameLog.UserActivityInfo("Processing loot set {Name}: set subtable hit, looting ", set.Name);
+                                        GameLog.SpawnInfo("Processing loot set {Name}: set subtable hit, looting ", set.Name);
                                     }
                                 }
                             }
                         }
                         else
-                            GameLog.UserActivityInfo("Processing loot set {Name}: Set subtable missed", set.Name);
+                            GameLog.SpawnInfo("Processing loot set {Name}: Set subtable missed", set.Name);
                     }
                 }
                 else
@@ -224,28 +224,29 @@ namespace Hybrasyl
                 if (table.Rolls == 0)
                 {
                     tables.Add(table);
-                    GameLog.UserActivityInfo("Processing loot: spawn table for {Name}, rolls == 0, looting", spawn.Base);
+                    GameLog.SpawnInfo("Processing loot: spawn table for {Name}, rolls == 0, looting", spawn.Base);
                     continue;
                 }
                 for (var z = 0; z <= table.Rolls; z++)
                 {
                     if (Roll() <= table.Chance)
                     {
-                        GameLog.UserActivityInfo("Processing loot: spawn table for {Name} hit, looting", spawn.Base);
+                        GameLog.SpawnInfo("Processing loot: spawn table for {Name} hit, looting", spawn.Base);
                         tables.Add(table);
                     }
                     else
-                        GameLog.UserActivityInfo("Processing loot set {Name}: Spawn subtable missed", spawn.Base);
+                        GameLog.SpawnInfo("Processing loot set {Name}: Spawn subtable missed", spawn.Base);
 
                 }
             }
 
             // Now that we have all tables that fired, we need to calculate actual loot
 
+            GameLog.SpawnInfo("Loot for {Name}: tables: {Count}", spawn.Base, tables.Count());
             foreach (var table in tables)
                 loot += CalculateTable(table);
 
-            GameLog.UserActivityInfo("Final loot for {Name}: {Xp} xp, {Gold} gold, items {items}", spawn.Base, loot.Xp, loot.Gold, string.Join(",", loot.Items));
+            GameLog.SpawnInfo("Final loot for {Name}: {Xp} xp, {Gold} gold, items [{items}]", spawn.Base, loot.Xp, loot.Gold, string.Join(",", loot.Items));
             return loot;
         }
 
@@ -263,7 +264,7 @@ namespace Hybrasyl
                     tableLoot.Gold += RollBetween(table.Gold.Min, table.Gold.Max);
                 else
                     tableLoot.Gold += table.Gold.Min;
-                GameLog.UserActivityInfo("Processing loot: added {Gold} gp", tableLoot.Gold);
+                GameLog.SpawnInfo("Processing loot: added {Gold} gp", tableLoot.Gold);
             }
             if (table.Xp != null)
             {
@@ -271,12 +272,16 @@ namespace Hybrasyl
                     tableLoot.Xp += RollBetween(table.Xp.Min, table.Xp.Max);
                 else
                     tableLoot.Xp += table.Xp.Min;
-                GameLog.UserActivityInfo("Processing loot: added {Xp} xp", tableLoot.Xp);
+                GameLog.SpawnInfo("Processing loot: added {Xp} xp", tableLoot.Xp);
             }
             // Handle items now
-            foreach (var itemlist in table.Items)
-                tableLoot.Items.AddRange(CalculateItems(itemlist));
-
+            if (table.Items != null)
+            {
+                foreach (var itemlist in table.Items)
+                    tableLoot.Items.AddRange(CalculateItems(itemlist));
+            }
+            else
+               GameLog.SpawnWarning("Loot table is null!");
             return tableLoot;
         }
 
@@ -295,7 +300,7 @@ namespace Hybrasyl
             // First, process any "always" items, which always drop when the container fires
             foreach (var item in list.Item.Where(i => i.Always))
             {
-                GameLog.UserActivityInfo("Processing loot: added always item {item}", item.Value);
+                GameLog.SpawnInfo("Processing loot: added always item {item}", item.Value);
                 loot.Add(item);
             }
             var totalRolls = 0;
@@ -304,30 +309,34 @@ namespace Hybrasyl
             {
                 // Get a random item from the list
                 var item = list.Item.Where(i => !i.Always).PickRandom();
+                // As soon as we get an item from our table, we've "rolled"; we'll add another roll below if needed
+                rolls--;
 
                 // Check uniqueness. If something has already dropped, don't drop it again, and reroll
                 if (item.Unique && loot.Contains(item))
                 {
                     rolls++;
-                    GameLog.UserActivityInfo("Processing loot: added duplicate unique item {item}. Rerolling", item.Value);
+                    GameLog.SpawnInfo("Processing loot: added duplicate unique item {item}. Rerolling", item.Value);
                     continue;
                 }
+
                 // Check max quantity. If it is exceeded, reroll
                 if (item.Max > 0 && loot.Where(i => i.Value == item.Value).Count() >= item.Max)
                 {
                     rolls++;
-                    GameLog.UserActivityInfo("Processing loot: added over max quantity for {item}. Rerolling", item.Value);
+                    GameLog.SpawnInfo("Processing loot: added over max quantity for {item}. Rerolling", item.Value);
                     continue;
                 }
+
                 // If quantity and uniqueness are good, add the item
                 loot.Add(item);
-                GameLog.UserActivityInfo("Processing loot: added {item}", item.Value);
+                GameLog.SpawnInfo("Processing loot: added {item}", item.Value);
                 totalRolls++;
                 // As a check against something incredibly stupid in XML, we only allow a maximum of
                 // 100 rolls
                 if (totalRolls > 100)
                 {
-                    GameLog.UserActivityInfo("Processing loot: maximum number of rolls exceeded..?");
+                    GameLog.SpawnInfo("Processing loot: maximum number of rolls exceeded..?");
                     throw new LootRecursionError("Maximum number of rolls (100) exceeded!");
                 }
             }
@@ -362,7 +371,9 @@ namespace Hybrasyl
             }
             // We store loot as strings inside mobs to avoid having tens or hundreds of thousands of ItemObjects or
             // Items lying around - they're made into real objects at the time of mob death
-            return itemList.Select(x => x.Name) as List<string>;
+            if (itemList.Count > 0)
+                return itemList.Select(x => x.Name).ToList();
+            return new List<String>();
         }
     }
 
@@ -422,7 +433,7 @@ namespace Hybrasyl
                 try
                 {
                     var spawnMap = Game.World.WorldData.Get<Map>(map.Id);
-                    GameLog.SpawnInfo("Spawn: calculating {0}", spawnMap.Name);
+                    GameLog.SpawnDebug("Spawn: calculating {0}", spawnMap.Name);
                     var monsterList = spawnMap.Objects.OfType<Monster>().ToList();
                     var monsterCount = monsterList.Count;
 
@@ -433,14 +444,14 @@ namespace Hybrasyl
 
                     if (monsterCount > spawnLimit)
                     {
-                        GameLog.SpawnInfo($"Spawn: {map.Name}: not spawning, mob count is {monsterCount}, limit is {spawnLimit}");
+                        if (spawnMap.SpawnDebug) GameLog.SpawnInfo($"Spawn: {map.Name}: not spawning, mob count is {monsterCount}, limit is {spawnLimit}");
                         continue;
                     }
 
                     var since = DateTime.Now - map.LastSpawn;
                     if (since.TotalSeconds < map.Interval)
                     {
-                        GameLog.SpawnInfo($"Spawn: {map.Name}: not spawning, last spawn was {since.TotalSeconds} ago, interval {map.Interval}");
+                        if (spawnMap.SpawnDebug) GameLog.SpawnInfo($"Spawn: {map.Name}: not spawning, last spawn was {since.TotalSeconds} ago, interval {map.Interval}");
                         continue;
                     }
 
@@ -457,6 +468,9 @@ namespace Hybrasyl
                         var creature = _creatures.Single(x => x.Name == spawn.Base);
                         var newSpawnLoot = LootBox.CalculateLoot(spawn);
 
+                        if (spawnMap.SpawnDebug)
+                            GameLog.SpawnInfo("Spawn {name}, map {map}: {Xp} xp, {Gold} gold, items {Items}", spawn.Base, map.Name, newSpawnLoot.Xp, newSpawnLoot.Gold,
+                                string.Join(',', newSpawnLoot.Items));
                         var baseMob = new Monster(creature, spawn, map.Id, newSpawnLoot);
                         var mob = (Monster)baseMob.Clone();
 
@@ -470,13 +484,13 @@ namespace Hybrasyl
                         mob.X = (byte)xcoord;
                         mob.Y = (byte)ycoord;
 
-                        GameLog.SpawnInfo($"Spawn: spawning {mob.Name} on {spawnMap.Name}");
+                        if (spawnMap.SpawnDebug) GameLog.SpawnInfo($"Spawn: spawning {mob.Name} on {spawnMap.Name}");
                         SpawnMonster(mob, spawnMap);
                     }
                 }
                 catch (Exception e)
                 {
-                    GameLog.SpawnError("Spawngroup {Filename}: disabled map {Name} due to error {exception}", spawnGroup.Filename, map.Name, e);
+                    GameLog.SpawnError(e, "Spawngroup {Filename}: disabled map {Name} due to error", spawnGroup.Filename, map.Name);
                     map.Disabled = true;
                     continue;
                 }
@@ -486,7 +500,8 @@ namespace Hybrasyl
         {
             World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MonolithSpawn, monster, map));
             //Game.World.Maps[mapId].InsertCreature(monster);
-            GameLog.SpawnInfo("Spawning monster: {0} {1} at {2}, {3}", map.Name, monster.Name, (int) monster.X, (int) monster.Y);
+            if (map.SpawnDebug)
+                GameLog.SpawnInfo("Spawning monster: {0} {1} at {2}, {3}", map.Name, monster.Name, (int) monster.X, (int) monster.Y);
         }
     }
 
@@ -505,20 +520,17 @@ namespace Hybrasyl
             while (true)
             {
                 // Ignore processing if no one is logged in, what's the point
-                var mapsWithUsers = _maps.Where(x => x.Users.Count() > 0);
-                foreach (var map in mapsWithUsers)
-                {                   
-                    var mobsToEval = from monsters in map.EntityTree.GetAllObjects().OfType<Monster>()
-                        join users in map.EntityTree.GetAllObjects().OfType<User>() on monsters.Map equals users.Map
-                        where monsters.GetViewport().IntersectsWith(users.GetViewport())
-                        select monsters;
 
-                    foreach (var mob in mobsToEval)
+                foreach (var map in _maps)
+                {
+                    if (map.Users.Count == 0) continue;
+                                        
+                    foreach (var mob in map.Objects.Where(x => x is Monster).ToList())
                     {
-                        Evaluate(mob, map);
-                    }
-                    Thread.Sleep(1000);
+                        Evaluate(mob as Monster, map);
+                    }                   
                 }
+                Thread.Sleep(1000);
             }
         }
 
@@ -527,12 +539,14 @@ namespace Hybrasyl
         {
             if (!(monster.LastAction < DateTime.Now.AddMilliseconds(-monster.ActionDelay))) return;
 
-            var mapTree = map.EntityTree.GetAllObjects();
-            var mapPlayers = mapTree.Any(x => x is User);
-            if (!mapPlayers) return;
+            if (monster.Stats.Hp == 0)
+                return;
+
+            if (map.Users.Count == 0)
+                // Mobs on empty maps don't move, it's a waste of time
+                return;
 
             World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MonolithControl, monster, map));
-
         }
     }
 }

@@ -20,9 +20,6 @@
  */
 
 using Hybrasyl.Objects;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Hybrasyl.Messaging
 {
@@ -46,6 +43,56 @@ namespace Hybrasyl.Messaging
                 target.ClearDialogState();
 
             return Success($"User {target.Name}: dialog state cleared.");
+        }
+    }
+
+    class MapDebugCommand : ChatCommand
+    {
+        public new static string Command = "mapdebug";
+        public new static string ArgumentText = "";
+        public new static string HelpText = "Turn on map debugging for the current map.";
+        public new static bool Privileged = true;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            user.Map.SpawnDebug = !user.Map.SpawnDebug;
+            var str = user.Map.SpawnDebug ? "on" : "off";
+            return Success($"Map debugging for {user.Map.Name}: {str}");
+        }
+    }
+
+    class MapSpawnToggleCommand : ChatCommand
+    {
+        public new static string Command = "mapspawntoggle";
+        public new static string ArgumentText = "";
+        public new static string HelpText = "Toggle spawning for the current map.";
+        public new static bool Privileged = true;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            user.Map.SpawningDisabled = !user.Map.SpawningDisabled;
+            var str = user.Map.SpawningDisabled ? "on" : "off";
+            return Success($"Spawning on {user.Map.Name}: {str}");
+        }
+    }
+
+    class SpawnToggleCommand : ChatCommand
+    {
+        public new static string Command = "spawntoggle";
+        public new static string ArgumentText = "<string spawngroup>";
+        public new static string HelpText = "Toggle whether the specified spawngroup is enabled or disabled.";
+        public new static bool Privileged = true;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            if (Game.World.WorldData.TryGetValueByIndex<Xml.SpawnGroup>(args[0], out Xml.SpawnGroup group))
+            {
+                group.Disabled = !group.Disabled;
+                var str = group.Disabled ? "on" : "off";
+                return Success($"Spawngroup {args[0]}: spawning {str}");
+            }
+            else
+                return Fail($"Spawngroup {args[0]} not found");
         }
     }
 }

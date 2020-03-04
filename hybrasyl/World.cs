@@ -391,7 +391,7 @@ namespace Hybrasyl
                 try
                 {
                     var spawnGroup = Xml.SpawnGroup.LoadFromFile(xml);
-                    spawnGroup.Filename = Path.GetFileName(xml);
+                    spawnGroup.Filename = Path.GetFileNameWithoutExtension(xml);
                     GameLog.InfoFormat("SpawnGroup: loaded {0}", spawnGroup.Filename);
                     WorldData.SetWithIndex(spawnGroup.GetHashCode(), spawnGroup, spawnGroup.Filename);
                 }
@@ -3661,7 +3661,6 @@ namespace Hybrasyl
             var spell = WorldData.GetByIndex<Xml.Castable>(spellName);
             user.ShowLearnSpell(merchant, spell);
         }
-
         private void MerchantMenuHandler_LearnSpellAccept(User user, Merchant merchant, ClientPacket packet) =>
             user.ShowLearnSpellAccept(merchant);
 
@@ -3759,18 +3758,13 @@ namespace Hybrasyl
 
         public ItemObject CreateItem(string id, int quantity = 1)
         {
-            if (WorldData.ContainsKey<Xml.Item>(id))
-            {
-                var item = new ItemObject(id, this);
-                if (quantity > item.MaximumStack)
-                    quantity = item.MaximumStack;
-                item.Count = Math.Max(quantity, 1);
-                return item;
-            }
-            else
-            {
-                return null;
-            }
+            var xmlitem = WorldData.FindItem(id);
+            if (xmlitem.Count == 0) return null;
+            var item = new ItemObject(xmlitem.First().Id, this);
+            if (quantity > item.MaximumStack)
+                quantity = item.MaximumStack;
+            item.Count = Math.Max(quantity, 1);
+            return item;
         }
 
         public bool TryGetItemTemplate(string name, Xml.Gender itemGender, out Xml.Item item)
@@ -3803,10 +3797,10 @@ namespace Hybrasyl
                 {
                     message = MessageQueue.Take();
                 }
-                catch (InvalidOperationException)
+                catch (InvalidOperationException e)
                 {
                     if (!MessageQueue.IsCompleted)
-                        GameLog.ErrorFormat("QUEUE CONSUMER: EXCEPTION RAISED");
+                        GameLog.Error(e, "QUEUE CONSUMER: EXCEPTION RAISED: {exception}");
                     continue;
                 }
 
@@ -3894,9 +3888,9 @@ namespace Hybrasyl
                 {
                     message = ControlMessageQueue.Take();
                 }
-                catch (InvalidOperationException)
+                catch (InvalidOperationException e)
                 {
-                    GameLog.ErrorFormat("QUEUE CONSUMER: EXCEPTION RAISED");
+                    GameLog.Error(e, "QUEUE CONSUMER: EXCEPTION RAISED: {exception}");
                     continue;
                 }
 
@@ -3909,7 +3903,7 @@ namespace Hybrasyl
                     }
                     catch (Exception e)
                     {
-                        GameLog.Error("Exception encountered in control message handler!", e);
+                        GameLog.Error(e, "Exception encountered in control message handler: {exception}");
                     }
                 }
             }
