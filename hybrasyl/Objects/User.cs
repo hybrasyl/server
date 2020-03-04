@@ -330,7 +330,7 @@ namespace Hybrasyl.Objects
         public override void AoiDeparture(VisibleObject obj)
         {
             base.AoiDeparture(obj);
-            GameLog.DebugFormat("Removing ItemObject with ID {0}", obj.Id);
+            GameLog.Debug("Removing ItemObject with ID {Id}", obj.Id);
             var removePacket = new ServerPacket(0x0E);
             removePacket.WriteUInt32(obj.Id);
             Enqueue(removePacket);
@@ -339,7 +339,7 @@ namespace Hybrasyl.Objects
         public void AoiDeparture(VisibleObject obj, int transmitDelay)
         {
             base.AoiDeparture(obj);
-            GameLog.DebugFormat("Removing ItemObject with ID {0}", obj.Id);
+            GameLog.Debug("Removing ItemObject with ID {Id}", obj.Id);
             var removePacket = new ServerPacket(0x0E);
             removePacket.TransmitDelay = transmitDelay;
             removePacket.WriteUInt32(obj.Id);
@@ -719,18 +719,18 @@ namespace Hybrasyl.Objects
                         Stats.Level++;
                         LevelPoints += 2;
 
-                        // For level up we use Biomagus' formulas with a random 75% - 125% tweak
+                        // For level up we use Biomagus' formulas with a random 85% - 115% tweak
                         // HP: (CON/(Lv+1)*50*randomfactor)+25
                         // MP: (WIS/(Lv+1)*50*randomfactor)+25
 
-                        var randomBonus = (random.NextDouble() * 0.50) + 0.75;
-                        
-                        int bonusHpGain = (int)Math.Round((Stats.Con / (Stats.Level + 1)) * 50 * randomBonus, MidpointRounding.AwayFromZero);
-                        int bonusMpGain = (int)Math.Round((Stats.Wis / (Stats.Level + 1))* 50 * randomBonus, MidpointRounding.AwayFromZero);
+                        var randomBonus = (random.NextDouble() * 0.30) + 0.85;
+                        int bonusHpGain = (int) Math.Ceiling((double) (Stats.BaseCon / (float)Stats.Level) * 50 * randomBonus);
+                        int bonusMpGain = (int) Math.Ceiling((double) (Stats.BaseWis / (float)Stats.Level) * 50 * randomBonus);
 
                         Stats.BaseHp += bonusHpGain + 25;
                         Stats.BaseMp += bonusMpGain + 25;
-                        GameLog.UserActivityInfo("User {name}: level increased to {Level}, HP +{Hp}, MP +{Mp}", Name, LevelCircle, (25 + bonusHpGain), (25 + bonusMpGain));
+                        GameLog.UserActivityInfo("User {name}: level increased to {Level}, random factor {factor}, CON {Con}, WIS {Wis}: HP +{Hp}/+25, MP +{Mp}/+25" , Name, Stats.Level, randomBonus, Stats.BaseCon, Stats.BaseWis, 
+                            bonusHpGain, bonusMpGain);
 
                     }
                 }
