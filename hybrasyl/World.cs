@@ -1579,12 +1579,13 @@ namespace Hybrasyl
 
                 toDrop = new ItemObject(toDrop);
                 toDrop.Count = count;
-                Insert(toDrop);
             }
             else
             {
                 user.RemoveItem(slot);
             }
+            // Item is being dropped and is "in the world" again
+            Insert(toDrop);
 
             // This is a normal item, not part of a loot anything
             toDrop.ItemDropTime = DateTime.Now;
