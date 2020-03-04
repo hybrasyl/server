@@ -596,7 +596,7 @@
   <xs:complexType name="CreatureScript">
     <xs:simpleContent>
       <xs:extension base="hyb:String8">
-        <xs:attribute type="hyb:ScriptType" name="type"/>
+        <xs:attribute type="hyb:ScriptType" name="Type"/>
       </xs:extension>
     </xs:simpleContent>
   </xs:complexType>
@@ -604,17 +604,17 @@
   <!-- List of intents -->
   <xs:complexType name="IntentList">
     <xs:sequence>
-      <xs:element name="Npc" type="hyb:Intent" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="Player" type="hyb:Intent" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="Monster" type="hyb:Intent" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Npc" type="hyb:CreatureIntent" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Player" type="hyb:CreatureIntent" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Monster" type="hyb:CreatureIntent" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
   </xs:complexType>
 
   <!-- Spawn intent (hostile/friendly/etc) -->
-  <xs:complexType name="Intent">
+  <xs:complexType name="CreatureIntent">
     <xs:simpleContent>
       <xs:extension base="hyb:String8">
-        <xs:attribute type="hyb:IntentType" name="intent"/>
+        <xs:attribute type="hyb:IntentType" name="Intent"/>
       </xs:extension>
     </xs:simpleContent>
   </xs:complexType>
