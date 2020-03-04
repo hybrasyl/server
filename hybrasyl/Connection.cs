@@ -23,6 +23,9 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Threading;
+using System.IO;
+using System.Net;
+using System.Text.Json;
 
 namespace Hybrasyl
 {
@@ -76,6 +79,48 @@ namespace Hybrasyl
                         GameLog.ErrorFormat("Connection {id}: DeregisterClient failed", client.ConnectionId);
                 }
             }
+        }
+
+        public static byte[] RequestEncryptionKey(string endpoint, IPAddress remoteAddress)
+        {
+            byte[] key;
+
+            var webReq = WebRequest.Create(new Uri(endpoint));
+            webReq.ContentType = "application/json";
+            webReq.Method = "GET";
+
+            var response = webReq.GetResponse();
+            using (var sr = new StreamReader(response.GetResponseStream()))
+            {
+                key = (byte[])JsonSerializer.Deserialize(sr.ReadToEnd(), typeof(byte[]));
+            }
+
+            return key;
+
+        }
+
+        public static bool ValidateEncryptionKey(string endpoint, IPAddress remoteAddress, byte[] encryptionKey)
+        {
+            var valid = false;
+
+            var webReq = WebRequest.Create(new Uri(endpoint));
+            webReq.ContentType = "application/json";
+            webReq.Method = "POST";
+            var json = JsonSerializer.Serialize(encryptionKey);
+
+            using (var sw = new StreamWriter(webReq.GetRequestStream()))
+            {
+                sw.Write(json);
+            }
+
+            var response = webReq.GetResponse();
+
+            using (var sr = new StreamReader(response.GetResponseStream()))
+            {
+                valid = (bool)JsonSerializer.Deserialize(sr.ReadToEnd(), typeof(bool));
+            }
+
+            return valid;
         }
     }
 
