@@ -32,7 +32,7 @@ public partial class CreatureScript
     #endregion
     
     [XmlAttribute]
-    public ScriptType type
+    public ScriptType Type
     {
         get
         {
