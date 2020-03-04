@@ -51,11 +51,13 @@ namespace Hybrasyl
  
         // Yes, overflows are possible here; instead of complaining, ask yourself why you 
         // need an in-game year that is > maxint
-        public int Year => Convert.ToInt32(HybrasylTicks / TicksPerYear) + Age.StartYear;
+        public int Year => Convert.ToInt32(Math.Floor((double)(HybrasylTicks / TicksPerYear)) + Age.StartYear);
 
-        public int Moon => Convert.ToInt32(MoonTicks / TicksPerMoon);
+        // There is no moon 0
+        public int Moon => Convert.ToInt32(Math.Floor((double)(MoonTicks / TicksPerMoon)) + 1);
 
-        public int Sun => Convert.ToInt32(SunTicks / TicksPerSun);
+        // There is no sun 0
+        public int Sun => Convert.ToInt32(Math.Floor((double)(SunTicks / TicksPerSun)) + 1);
         public int Hour => Convert.ToInt32(HourTicks / TicksPerHour);
         public int Minute => Convert.ToInt32(MinuteTicks / TicksPerMinute);
 
