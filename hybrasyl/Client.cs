@@ -28,6 +28,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using System.IO;
+using System.Text.Json;
 
 namespace Hybrasyl
 {
@@ -406,7 +408,21 @@ namespace Hybrasyl
             GameLog.InfoFormat("Connection {0} from {1}:{2}", ConnectionId,
                 ((IPEndPoint)Socket.RemoteEndPoint).Address.ToString(),
                 ((IPEndPoint)Socket.RemoteEndPoint).Port);
-            EncryptionKey = Encoding.ASCII.GetBytes("UrkcnItnI");
+
+            if (server is Lobby)
+            {
+                EncryptionKey = Game.Config.ApiEndpoints.EncryptionEndpoint != null ? GlobalConnectionManifest.RequestEncryptionKey(Game.Config.ApiEndpoints.EncryptionEndpoint.Url, ((IPEndPoint)socket.RemoteEndPoint).Address) : Encoding.ASCII.GetBytes("UrkcnItnI");
+                GameLog.InfoFormat($"EncryptionKey is {Encoding.ASCII.GetString(EncryptionKey)}");
+
+                var validCheck = Game.Config.ApiEndpoints.ValidationEndpoint == null || GlobalConnectionManifest.ValidateEncryptionKey(Game.Config.ApiEndpoints.ValidationEndpoint.Url, ((IPEndPoint)socket.RemoteEndPoint).Address, EncryptionKey);
+
+                if (!validCheck)
+                {
+                    socket.Disconnect(true);
+                }
+
+            }
+
             EncryptionKeyTable = new byte[1024];
             _lastReceived = DateTime.Now.Ticks;
             GlobalConnectionManifest.RegisterClient(this);
@@ -609,6 +625,7 @@ namespace Hybrasyl
             GameLog.InfoFormat("Processing redirect");
             GlobalConnectionManifest.RegisterRedirect(this, redirect);
             GameLog.InfoFormat("Redirect: cid {0}", this.ConnectionId);
+            GameLog.InfoFormat($"Redirect EncryptionKey is {Encoding.ASCII.GetString(redirect.EncryptionKey)}");
             if (isLogoff)
             {
                 GlobalConnectionManifest.DeregisterClient(this);
