@@ -44,7 +44,10 @@
 
   <xs:complexType name="TargetUrl">
     <xs:attribute name="Url" type="xs:anyURI"/>
-    <xs:attribute name="Port" type="xs:unsignedShort"/>
+  </xs:complexType>
+
+  <xs:complexType name="WebUrl">
+    <xs:attribute name="Url" type="xs:anyURI"/>
   </xs:complexType>
 
   <xs:complexType name="Network">
@@ -59,6 +62,8 @@
     <xs:sequence>
       <xs:element name="ControlService" type="hyb:NetworkInfo" />
       <xs:element name="RemoteAdminHost" type="hyb:TargetUrl" />
+      <xs:element name="EncryptionEndpoint" type="hyb:TargetUrl" maxOccurs="1" minOccurs="0" />
+      <xs:element name="ValidationEndpoint" type="hyb:TargetUrl" minOccurs="0" maxOccurs="1" />
     </xs:sequence>
   </xs:complexType>
 

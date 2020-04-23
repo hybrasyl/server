@@ -22,6 +22,9 @@
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
+using System.IO;
+using System.Net;
+using System.Text.Json;
 using System.Threading;
 
 namespace Hybrasyl
@@ -69,6 +72,56 @@ namespace Hybrasyl
                 World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.CleanupUser, client.ConnectionId));
             }
         }
+
+        public static byte[] RequestEncryptionKey(string endpoint, IPAddress remoteAddress)
+        {
+            byte[] key;
+
+            var seed = new Seed() { Ip = remoteAddress.ToString() };
+
+            var webReq = WebRequest.Create(new Uri(endpoint));
+            webReq.ContentType = "application/json";
+            webReq.Method = "POST";
+
+            var json = JsonSerializer.Serialize(seed);
+
+            using (var sw = new StreamWriter(webReq.GetRequestStream()))
+            {
+                sw.Write(json);
+            }
+
+            var response = webReq.GetResponse();
+            using (var sr = new StreamReader(response.GetResponseStream()))
+            {
+                key = (byte[])JsonSerializer.Deserialize(sr.ReadToEnd(), typeof(byte[]));
+            }
+
+            return key;
+        }
+
+        public static bool ValidateEncryptionKey(string endpoint, ServerToken token)
+        {
+            bool valid;
+            
+            var webReq = WebRequest.Create(new Uri(endpoint));
+            webReq.ContentType = "application/json";
+            webReq.Method = "POST";
+
+            var json = JsonSerializer.Serialize(token);
+
+            using (var sw = new StreamWriter(webReq.GetRequestStream()))
+            {
+                sw.Write(json);
+            }
+
+            var response = webReq.GetResponse();
+            using (var sr = new StreamReader(response.GetResponseStream()))
+            {
+                valid = (bool)JsonSerializer.Deserialize(sr.ReadToEnd(), typeof(bool));
+            }
+
+            return valid;
+        }
     }
 
     public class HybrasylMessage
@@ -108,6 +161,18 @@ namespace Hybrasyl
         {
             Opcode = opcode;
         }
+    }
+
+    public class ServerToken
+    {
+        public byte[] Seed { get; set; }
+        public IPAddress Ip { get; set; }
+    }
+
+    public class Seed
+    {
+        public string Ip { get; set; }
+        public string Key { get; set; }
     }
 
 }
