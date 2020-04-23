@@ -26,13 +26,13 @@ using System.Collections.Generic;
 public partial class IntentList
 {
     #region Private fields
-    private Intent _npc;
-    private Intent _player;
-    private Intent _monster;
+    private CreatureIntent _npc;
+    private CreatureIntent _player;
+    private CreatureIntent _monster;
     private static XmlSerializer serializer;
     #endregion
     
-    public Intent Npc
+    public CreatureIntent Npc
     {
         get
         {
@@ -44,7 +44,7 @@ public partial class IntentList
         }
     }
     
-    public Intent Player
+    public CreatureIntent Player
     {
         get
         {
@@ -56,7 +56,7 @@ public partial class IntentList
         }
     }
     
-    public Intent Monster
+    public CreatureIntent Monster
     {
         get
         {

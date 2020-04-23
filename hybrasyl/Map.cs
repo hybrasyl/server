@@ -170,7 +170,11 @@ namespace Hybrasyl
         public Dictionary<Tuple<byte, byte>, Objects.Signpost> Signposts { get; set; }
         public Dictionary<Tuple<byte, byte>, Objects.Reactor> Reactors { get; set; }
 
-        public Dictionary<Monster, int> MapMonsters { get; set; }
+        public bool SpawnDebug { get; set; }
+
+        public bool SpawningDisabled { get; set; }
+
+        //public Dictionary<string, Xml.Spawn> Spawns { get; set; }
 
         /// <summary>
         /// Create a new Hybrasyl map from an XMLMap object.
@@ -181,6 +185,8 @@ namespace Hybrasyl
         {
             Init();
             World = theWorld;
+            SpawnDebug = false;
+          //  Spawns = new List<Xml.Spawn>();
 
             // TODO: refactor Map class to not do this, but be a partial which overlays
             // TODO: XSD.Map
@@ -588,6 +594,8 @@ namespace Hybrasyl
 
                     obj.Map = null;
                 }
+                else
+                    GameLog.Fatal("AIEEEEEEEEEEEEEEEE");
             }
         }
 

@@ -35,6 +35,7 @@ public partial class ServerConfig
     private List<GlobalBoard> _boards;
     private Time _time;
     private Handlers _handlers;
+    private string _motd;
     private static XmlSerializer serializer;
     #endregion
     
@@ -139,6 +140,19 @@ public partial class ServerConfig
         set
         {
             _handlers = value;
+        }
+    }
+    
+    [StringLengthAttribute(65534, MinimumLength=1)]
+    public string Motd
+    {
+        get
+        {
+            return _motd;
+        }
+        set
+        {
+            _motd = value;
         }
     }
     

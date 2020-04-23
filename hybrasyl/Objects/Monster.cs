@@ -53,13 +53,17 @@ namespace Hybrasyl.Objects
             //Shout("AAAAAAAAAAaaaaa!!!");
             // Now that we're dead, award loot.
             // FIXME: Implement loot tables / full looting.
+            Condition.Alive = false;
             var hitter = LastHitter as User;
-            if (hitter == null) return; // Don't handle cases of MOB ON MOB COMBAT just yet
+            if (hitter == null)
+            {
+                Map.Remove(this);
+                World.Remove(this);
+                return; // Don't handle cases of MOB ON MOB COMBAT just yet
+            }
 
             if (hitter.Grouped) ItemDropAllowedLooters = hitter.Group.Members.Select(user => user.Name).ToList();
             else ItemDropAllowedLooters.Add(hitter.Name);
-
-            Condition.Alive = false;
 
             hitter.ShareExperience(LootableXP);
             var itemDropTime = DateTime.Now;
@@ -67,6 +71,11 @@ namespace Hybrasyl.Objects
             foreach (var itemname in LootableItems)
             {
                 var item = Game.World.CreateItem(itemname);
+                if (item == null)
+                {
+                    GameLog.UserActivityError("User {player}: looting {monster}, loot item {item} is missing", hitter.Name, Name, itemname);
+                    continue;
+                }
                 item.ItemDropType = ItemDropType.MonsterLootPile;
                 item.ItemDropAllowedLooters = ItemDropAllowedLooters;
                 item.ItemDropTime = itemDropTime;
@@ -83,9 +92,9 @@ namespace Hybrasyl.Objects
                 World.Insert(golds);
                 Map.Insert(golds, X, Y);
             }
-
             Map.Remove(this);
             World.Remove(this);
+
         }
 
         public override void OnReceiveDamage()
@@ -148,10 +157,13 @@ namespace Hybrasyl.Objects
         public Monster(Xml.Creature creature, Xml.Spawn spawn, int map, Loot loot = null)
         {
 
-            var direction = (Rng.Next(0, 100) >= 50);
             _spawn = spawn;
-            _variance = (direction == true ? Rng.NextDouble() * -1 : Rng.NextDouble()) * _spawn.Variance;
-           
+            var buffed = Rng.Next() > 50;
+            if (buffed)
+                _variance = (Rng.NextDouble() * _spawn.Variance) + 1;
+            else
+                _variance = 1 - (Rng.NextDouble() * _spawn.Variance);
+
 
             Name = creature.Name;
             Sprite = creature.Sprite;

@@ -23,7 +23,7 @@ using System.Collections.Generic;
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-public partial class Intent
+public partial class CreatureIntent
 {
     #region Private fields
     private IntentType _intent;
@@ -32,7 +32,7 @@ public partial class Intent
     #endregion
     
     [XmlAttribute]
-    public IntentType intent
+    public IntentType Intent
     {
         get
         {
@@ -63,7 +63,7 @@ public partial class Intent
         {
             if ((serializer == null))
             {
-                serializer = new XmlSerializerFactory().CreateSerializer(typeof(Intent));
+                serializer = new XmlSerializerFactory().CreateSerializer(typeof(CreatureIntent));
             }
             return serializer;
         }
@@ -71,7 +71,7 @@ public partial class Intent
     
     #region Serialize/Deserialize
     /// <summary>
-    /// Serializes current Intent object into an XML string
+    /// Serializes current CreatureIntent object into an XML string
     /// </summary>
     /// <returns>string XML value</returns>
     public virtual string Serialize()
@@ -104,16 +104,16 @@ public partial class Intent
     }
     
     /// <summary>
-    /// Deserializes workflow markup into an Intent object
+    /// Deserializes workflow markup into an CreatureIntent object
     /// </summary>
     /// <param name="input">string workflow markup to deserialize</param>
-    /// <param name="obj">Output Intent object</param>
+    /// <param name="obj">Output CreatureIntent object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool Deserialize(string input, out Intent obj, out Exception exception)
+    public static bool Deserialize(string input, out CreatureIntent obj, out Exception exception)
     {
         exception = null;
-        obj = default(Intent);
+        obj = default(CreatureIntent);
         try
         {
             obj = Deserialize(input);
@@ -126,19 +126,19 @@ public partial class Intent
         }
     }
     
-    public static bool Deserialize(string input, out Intent obj)
+    public static bool Deserialize(string input, out CreatureIntent obj)
     {
         Exception exception = null;
         return Deserialize(input, out obj, out exception);
     }
     
-    public static Intent Deserialize(string input)
+    public static CreatureIntent Deserialize(string input)
     {
         StringReader stringReader = null;
         try
         {
             stringReader = new StringReader(input);
-            return ((Intent)(Serializer.Deserialize(XmlReader.Create(stringReader))));
+            return ((CreatureIntent)(Serializer.Deserialize(XmlReader.Create(stringReader))));
         }
         finally
         {
@@ -149,14 +149,14 @@ public partial class Intent
         }
     }
     
-    public static Intent Deserialize(Stream s)
+    public static CreatureIntent Deserialize(Stream s)
     {
-        return ((Intent)(Serializer.Deserialize(s)));
+        return ((CreatureIntent)(Serializer.Deserialize(s)));
     }
     #endregion
     
     /// <summary>
-    /// Serializes current Intent object into file
+    /// Serializes current CreatureIntent object into file
     /// </summary>
     /// <param name="fileName">full path of outupt xml file</param>
     /// <param name="exception">output Exception value if failed</param>
@@ -197,16 +197,16 @@ public partial class Intent
     }
     
     /// <summary>
-    /// Deserializes xml markup from file into an Intent object
+    /// Deserializes xml markup from file into an CreatureIntent object
     /// </summary>
     /// <param name="fileName">string xml file to load and deserialize</param>
-    /// <param name="obj">Output Intent object</param>
+    /// <param name="obj">Output CreatureIntent object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool LoadFromFile(string fileName, out Intent obj, out Exception exception)
+    public static bool LoadFromFile(string fileName, out CreatureIntent obj, out Exception exception)
     {
         exception = null;
-        obj = default(Intent);
+        obj = default(CreatureIntent);
         try
         {
             obj = LoadFromFile(fileName);
@@ -219,13 +219,13 @@ public partial class Intent
         }
     }
     
-    public static bool LoadFromFile(string fileName, out Intent obj)
+    public static bool LoadFromFile(string fileName, out CreatureIntent obj)
     {
         Exception exception = null;
         return LoadFromFile(fileName, out obj, out exception);
     }
     
-    public static Intent LoadFromFile(string fileName)
+    public static CreatureIntent LoadFromFile(string fileName)
     {
         FileStream file = null;
         StreamReader sr = null;

@@ -231,17 +231,24 @@ namespace Hybrasyl
         /// <summary>
         /// Find all iterations (genders) of a given item name, if it exists.
         /// </summary>
-        /// <param name="name"></param>
+        /// <param name="name">A string name or SHA id of an item</param>
         /// <returns></returns>
         public List<Xml.Item> FindItem(string name)
-       {
+        {
+            // Check for an exact result first
             var ret = new List<Xml.Item>();
-            foreach (var gender in Enum.GetValues(typeof(Xml.Gender)))
+            Xml.Item target;
+            if (TryGetValue(name, out target) || TryGetValueByIndex(name, out target))
+                ret.Add(target);
+            else
             {
-                var rawhash = $"{name.Normalize()}:{gender.ToString().Normalize()}";
-                var hash = sha.ComputeHash(Encoding.ASCII.GetBytes(rawhash));
-                if (TryGetValue(string.Concat(hash.Select(b => b.ToString("x2"))).Substring(0, 8), out Xml.Item result))
-                    ret.Add(result);
+                foreach (var gender in Enum.GetValues(typeof(Xml.Gender)))
+                {
+                    var rawhash = $"{name.Normalize()}:{gender.ToString().Normalize()}";
+                    var hash = sha.ComputeHash(Encoding.ASCII.GetBytes(rawhash));
+                    if (TryGetValue(string.Concat(hash.Select(b => b.ToString("x2"))).Substring(0, 8), out Xml.Item result))
+                        ret.Add(result);
+                }
             }
             return ret;
         }

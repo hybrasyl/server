@@ -75,7 +75,7 @@ namespace Hybrasyl
             return JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(stream));
         }
     }
-   
+
 
     public class World : Server
     {
@@ -87,8 +87,8 @@ namespace Hybrasyl
 
         public Dictionary<string, string> Portraits { get; set; }
         public Xml.LocalizedStrings Strings { get; set; }
-        public WorldDataStore WorldData { set; get;  }
-      
+        public WorldDataStore WorldData { set; get; }
+
         public Xml.Nation DefaultNation
         {
             get
@@ -102,7 +102,7 @@ namespace Hybrasyl
         private Dictionary<MerchantMenuItem, MerchantMenuHandler> merchantMenuHandlers;
 
         public Dictionary<Tuple<Xml.Gender, string>, Xml.Item> ItemCatalog { get; set; }
-       // public Dictionary<string, Map> MapCatalog { get; set; }
+        // public Dictionary<string, Map> MapCatalog { get; set; }
 
         public ScriptProcessor ScriptProcessor { get; set; }
 
@@ -159,9 +159,9 @@ namespace Hybrasyl
         public static string LocalizationDirectory => Path.Combine(DataDirectory, "world", "xml", "localization");
         #endregion
 
-        public static bool TryGetUser(string name, out User userobj) 
+        public static bool TryGetUser(string name, out User userobj)
         {
-//            userobj = JsonConvert.DeserializeObject<User>(jsonstring, settings);
+            //            userobj = JsonConvert.DeserializeObject<User>(jsonstring, settings);
             userobj = DatastoreConnection.GetDatabase().Get<User>(User.GetStorageKey(name));
 
             if (userobj == null)
@@ -180,7 +180,7 @@ namespace Hybrasyl
         public void RegisterWorldThrottles()
         {
             RegisterPacketThrottle(new GenericPacketThrottle(0x06, 250, 0, 500));  // Movement
-           // RegisterThrottle(new SpeechThrottle(0x0e, 250, 3, 10000, 10000, 200, 250, 6, 2000, 4000, 200)); // speech
+                                                                                   // RegisterThrottle(new SpeechThrottle(0x0e, 250, 3, 10000, 10000, 200, 250, 6, 2000, 4000, 200)); // speech
             RegisterPacketThrottle(new GenericPacketThrottle(0x3a, 600, 1000, 500));  // NPC use dialog
             RegisterPacketThrottle(new GenericPacketThrottle(0x38, 600, 0, 500));  // refresh (f5)
             RegisterPacketThrottle(new GenericPacketThrottle(0x39, 600, 1000, 500));  // NPC main menu
@@ -269,6 +269,21 @@ namespace Hybrasyl
             return redis.KeyExists(User.GetStorageKey(name));
         }
 
+        public static string[] GetXmlFiles(string Path)
+        {
+            var ret = new List<string>();
+            try
+            {
+                if (Directory.Exists(Path))
+                    return Directory.GetFiles(Path, "*.xml");
+            }
+            catch (Exception e)
+            {
+                GameLog.Error("Data directory {dir} not found or not accessible: {e}", Path, e);
+            }
+            return ret.ToArray();
+        }
+
         private bool LoadData()
         {
             // You'll notice some inconsistencies here in that we use both wrapper classes and
@@ -276,8 +291,8 @@ namespace Hybrasyl
             // refactored later, but it is way too much work to do now (e.g. maps, etc).
 
             //Load strings
-            foreach (var xml in Directory.GetFiles(LocalizationDirectory, "*.xml"))
-            {              
+            foreach (var xml in GetXmlFiles(LocalizationDirectory))
+            {
                 try
                 {
                     Strings = Xml.LocalizedStrings.LoadFromFile(xml);
@@ -290,7 +305,7 @@ namespace Hybrasyl
             }
 
             //Load NPCs
-            foreach (var xml in Directory.GetFiles(NpcsDirectory, "*.xml"))
+            foreach (var xml in GetXmlFiles(NpcsDirectory))
             {
                 try
                 {
@@ -305,7 +320,7 @@ namespace Hybrasyl
             }
 
             // Load maps
-            foreach (var xml in Directory.GetFiles(MapDirectory, "*.xml"))
+            foreach (var xml in GetXmlFiles(MapDirectory))
             {
                 try
                 {
@@ -324,7 +339,7 @@ namespace Hybrasyl
             GameLog.InfoFormat("Maps: {0} maps loaded", WorldData.Count<Map>());
 
             // Load nations
-            foreach (var xml in Directory.GetFiles(NationDirectory, "*.xml"))
+            foreach (var xml in GetXmlFiles(NationDirectory))
             {
                 try
                 {
@@ -354,7 +369,7 @@ namespace Hybrasyl
             GameLog.InfoFormat("National data: {0} nations loaded", WorldData.Count<Xml.Nation>());
 
             //Load Creatures
-            foreach (var xml in Directory.GetFiles(CreatureDirectory, "*.xml"))
+            foreach (var xml in GetXmlFiles(CreatureDirectory))
             {
                 try
                 {
@@ -371,12 +386,12 @@ namespace Hybrasyl
             GameLog.InfoFormat("Creatures: {0} creatures loaded", WorldData.Count<Xml.Creature>());
 
             //Load SpawnGroups
-            foreach (var xml in Directory.GetFiles(SpawnGroupDirectory, "*.xml"))
+            foreach (var xml in GetXmlFiles(SpawnGroupDirectory))
             {
                 try
                 {
                     var spawnGroup = Xml.SpawnGroup.LoadFromFile(xml);
-                    spawnGroup.Filename = Path.GetFileName(xml);
+                    spawnGroup.Filename = Path.GetFileNameWithoutExtension(xml);
                     GameLog.InfoFormat("SpawnGroup: loaded {0}", spawnGroup.Filename);
                     WorldData.SetWithIndex(spawnGroup.GetHashCode(), spawnGroup, spawnGroup.Filename);
                 }
@@ -389,7 +404,7 @@ namespace Hybrasyl
             GameLog.InfoFormat("Spawngroups: {0} spawngroups loaded", WorldData.Count<Xml.SpawnGroup>());
 
             //Load LootSets
-            foreach (var xml in Directory.GetFiles(LootSetDirectory, "*.xml"))
+            foreach (var xml in GetXmlFiles(LootSetDirectory))
             {
                 try
                 {
@@ -407,7 +422,7 @@ namespace Hybrasyl
             GameLog.InfoFormat("Loot Sets: {0} loot sets loaded", WorldData.Count<Xml.LootSet>());
 
             // Load worldmaps
-            foreach (var xml in Directory.GetFiles(WorldMapDirectory, "*.xml"))
+            foreach (var xml in GetXmlFiles(WorldMapDirectory))
             {
                 try
                 {
@@ -429,7 +444,7 @@ namespace Hybrasyl
             GameLog.InfoFormat("World Maps: {0} world maps loaded", WorldData.Count<WorldMap>());
 
             // Load item variants
-            foreach (var xml in Directory.GetFiles(ItemVariantDirectory, "*.xml"))
+            foreach (var xml in GetXmlFiles(ItemVariantDirectory))
             {
                 try
                 {
@@ -447,7 +462,7 @@ namespace Hybrasyl
             GameLog.InfoFormat("ItemObject variants: {0} variant sets loaded", WorldData.Values<Xml.VariantGroup>().Count());
 
             // Load items
-            foreach (var xml in Directory.GetFiles(ItemDirectory, "*.xml"))
+            foreach (var xml in GetXmlFiles(ItemDirectory))
             {
                 try
                 {
@@ -488,7 +503,7 @@ namespace Hybrasyl
                 }
             }
 
-            foreach (var xml in Directory.GetFiles(StatusDirectory, "*.xml"))
+            foreach (var xml in GetXmlFiles(StatusDirectory))
             {
                 try
                 {
@@ -501,12 +516,12 @@ namespace Hybrasyl
                 {
                     GameLog.ErrorFormat("Error parsing {0}: {1}", xml, e);
                 }
-            
+
             }
 
             GameLog.InfoFormat("Statuses: {0} statuses loaded", WorldData.Values<Xml.Status>().Count());
 
-            foreach (var xml in Directory.GetFiles(CastableDirectory, "*.xml"))
+            foreach (var xml in GetXmlFiles(CastableDirectory))
             {
                 try
                 {
@@ -559,7 +574,6 @@ namespace Hybrasyl
             }
 
             // Ensure global boards exist and are up to date with anything specified in the config
-
             if (Game.Config.Boards != null)
             {
                 foreach (var globalboard in Game.Config.Boards)
@@ -582,6 +596,16 @@ namespace Hybrasyl
                     board.Save();
                 }
             }
+            else
+            {
+                // If no boards are configured we set up a global default, moderated by the users specified
+                // in <Privileged>
+                var board = GetBoard("Hybrasyl");
+                board.DisplayName = "Hybrasyl Global Board";
+                foreach (var moderator in Game.Config.Access.Privileged)
+                    board.SetAccessLevel(Convert.ToString(moderator), BoardAccessLevel.Moderate);
+                board.Save();
+            }
             return true;
         }
 
@@ -594,7 +618,7 @@ namespace Hybrasyl
             variantItem.IsVariant = true;
             GameLog.Debug($"Processing variant: {variantItem.Name}");
             variantItem.Properties.Flags = variant.Properties.Flags;
-                    
+
             variantItem.Properties.Physical.Value = variant.Properties.Physical.Value == 100 ? item.Properties.Physical.Value : Convert.ToUInt32(Math.Round(item.Properties.Physical.Value * (variant.Properties.Physical.Value * .01)));
             variantItem.Properties.Physical.Durability = variant.Properties.Physical.Durability == 100 ? item.Properties.Physical.Durability : Convert.ToUInt32(Math.Round(item.Properties.Physical.Durability * (variant.Properties.Physical.Durability * .01)));
             variantItem.Properties.Physical.Weight = variant.Properties.Physical.Weight == 100 ? item.Properties.Physical.Weight : Convert.ToInt32(Math.Round(item.Properties.Physical.Weight * (variant.Properties.Physical.Weight * .01)));
@@ -654,7 +678,7 @@ namespace Hybrasyl
                 case "elemental":
                     {
                         if (variant.Properties.StatModifiers?.Element != null)
-                        { 
+                        {
                             variantItem.Properties.StatModifiers.Element.Offense = variant.Properties.StatModifiers.Element.Offense;
                             variantItem.Properties.StatModifiers.Element.Defense = variant.Properties.StatModifiers.Element.Defense;
                         }
@@ -667,7 +691,7 @@ namespace Hybrasyl
                             variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
                         }
                         if (variant.Properties.StatModifiers?.Combat != null)
-                        { 
+                        {
                             variantItem.Properties.StatModifiers.Combat.Ac = (sbyte)(item.Properties.StatModifiers.Combat.Ac + variant.Properties.StatModifiers.Combat.Ac);
                             variantItem.Properties.StatModifiers.Combat.Dmg += variant.Properties.StatModifiers.Combat.Dmg;
                             variantItem.Properties.StatModifiers.Combat.Hit += variant.Properties.StatModifiers.Combat.Hit;
@@ -693,15 +717,15 @@ namespace Hybrasyl
                             variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
                         }
                         if (variant.Properties.Damage?.Large != null)
-                        { 
+                        {
                             variantItem.Properties.Damage.Large.Min = Convert.ToUInt16(Math.Round(item.Properties.Damage.Large.Min * (variant.Properties.Damage.Large.Min * .01)));
                             variantItem.Properties.Damage.Large.Max = Convert.ToUInt16(Math.Round(item.Properties.Damage.Large.Max * (variant.Properties.Damage.Large.Max * .01)));
                         }
                         if (variant.Properties.Damage?.Small != null)
-                        { 
+                        {
                             variantItem.Properties.Damage.Small.Min = Convert.ToUInt16(Math.Round(item.Properties.Damage.Small.Min * (variant.Properties.Damage.Small.Min * .01)));
                             variantItem.Properties.Damage.Small.Max = Convert.ToUInt16(Math.Round(item.Properties.Damage.Small.Max * (variant.Properties.Damage.Small.Max * .01)));
-}
+                        }
                         break;
                     }
                 case "tailorable":
@@ -711,7 +735,7 @@ namespace Hybrasyl
                             variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
                         }
                         if (variant.Properties.StatModifiers?.Combat != null)
-                        { 
+                        {
                             variantItem.Properties.StatModifiers.Combat.Ac = (sbyte)(item.Properties.StatModifiers.Combat.Ac + variant.Properties.StatModifiers.Combat.Ac);
                             variantItem.Properties.StatModifiers.Combat.Dmg += variant.Properties.StatModifiers.Combat.Dmg;
                             variantItem.Properties.StatModifiers.Combat.Hit += variant.Properties.StatModifiers.Combat.Hit;
@@ -954,7 +978,7 @@ namespace Hybrasyl
                     new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_BuyItemWithQuantity)
                 },
                 {
-                  MerchantMenuItem.BuyItemAccept, new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_BuyItemAccept)  
+                  MerchantMenuItem.BuyItemAccept, new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_BuyItemAccept)
                 },
                 {
                     MerchantMenuItem.SellItemMenu, new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_SellItemMenu)
@@ -1080,8 +1104,8 @@ namespace Hybrasyl
                 var user = connection.Value;
                 user.Logoff(true);
             }
-            Listener.Close();
-            GameLog.Warning("Shutdown complete");
+            Listener?.Close();
+            GameLog.Warning("World: Shutdown complete");
         }
 
         #region Control Message Handlers
@@ -1231,7 +1255,7 @@ namespace Hybrasyl
         }
         private void ControlMessage_TriggerRefresh(HybrasylControlMessage message)
         {
-            var connectionId = (long) message.Arguments[0];
+            var connectionId = (long)message.Arguments[0];
             if (ActiveUsers.TryGetValue(connectionId, out User user))
                 user.Refresh();
         }
@@ -1252,11 +1276,11 @@ namespace Hybrasyl
         private void ControlMessage_MonolithControl(HybrasylControlMessage message)
         {
 
-            var monster = (Monster) message.Arguments[0];
-            var map = (Map) message.Arguments[1];
+            var monster = (Monster)message.Arguments[0];
+            var map = (Map)message.Arguments[1];
 
             // Don't handle control messages for dead/removed mobs
-            if (!monster.Condition.Alive || monster.Id == 0 || monster.Map == null) return; 
+            if (!monster.Condition.Alive || monster.Id == 0 || monster.Map == null) return;
             if (monster.IsHostile)
             {
                 if (map.Users.Count > 0)
@@ -1380,7 +1404,7 @@ namespace Hybrasyl
             }
         }
 
-        [Prohibited(Xml.CreatureCondition.Coma,Xml.CreatureCondition.Sleep,Xml.CreatureCondition.Freeze,Xml.CreatureCondition.Paralyze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, Xml.CreatureCondition.Paralyze)]
         private void PacketHandler_0x06_Walk(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -1555,12 +1579,13 @@ namespace Hybrasyl
 
                 toDrop = new ItemObject(toDrop);
                 toDrop.Count = count;
-                Insert(toDrop);
             }
             else
             {
                 user.RemoveItem(slot);
             }
+            // Item is being dropped and is "in the world" again
+            Insert(toDrop);
 
             // This is a normal item, not part of a loot anything
             toDrop.ItemDropTime = DateTime.Now;
@@ -1658,7 +1683,7 @@ namespace Hybrasyl
                 {
                     if (ActiveAsyncDialogs.TryRemove(dialog, out AsyncDialogRequest request))
                         request.End();
-                }  
+                }
 
                 if (ActiveUsersByName.TryRemove(user.Name, out connectionId))
                 {
@@ -1736,7 +1761,7 @@ namespace Hybrasyl
                     GameLog.Error($"{loginUser.Name} first login: start map config missing, using first available map {targetmap.Name}. Safety not guaranteed.");
                 }
             }
-            else if(loginUser.Nation.SpawnPoints.Count != 0 &&
+            else if (loginUser.Nation.SpawnPoints.Count != 0 &&
                 loginUser.SinceLastLogin > Hybrasyl.Constants.NATION_SPAWN_TIMEOUT)
             {
                 var spawnpoint = loginUser.Nation.RandomSpawnPoint;
@@ -2338,7 +2363,7 @@ namespace Hybrasyl
                         user.SwapCastable(oldSlot, newSlot, book);
                         break;
                     }
-               
+
                 default:
                     break;
             }
@@ -2907,7 +2932,7 @@ namespace Hybrasyl
                 {
                     GameLog.Fatal("WARNING: Multiple async sessions for {Name} detected", user.Name);
                     return;
-                }             
+                }
             }
 
             if (pursuitID == user.DialogState.CurrentPursuitId && pursuitIndex == user.DialogState.CurrentPursuitIndex)
@@ -2976,7 +3001,7 @@ namespace Hybrasyl
 
                     // Did the response cause the current sequence or dialog id to change? 
                     // If so, simply return; otherwise, continue to process next dialog                   
-                    if (user.DialogState.CurrentMerchantId != currMerchantId || 
+                    if (user.DialogState.CurrentMerchantId != currMerchantId ||
                         user.DialogState.CurrentPursuitId != currPursuitId ||
                         user.DialogState.CurrentPursuitIndex != currPursuitIndex)
                         return;
@@ -2998,7 +3023,7 @@ namespace Hybrasyl
                         user.DialogState.CurrentPursuitIndex != currPursuitIndex)
                         return;
                 }
-               
+
                 if (user.DialogState.ActiveDialog is null)
                 {
                     // The response handler could have closed the dialog, or done Goddess knows what
@@ -3006,7 +3031,7 @@ namespace Hybrasyl
                     // calling EndDialog() we send a close packet.
                     user.ClearDialogState();
                     return;
-                }            
+                }
 
                 // Did the user click next on the last dialog in a sequence?
                 //
@@ -3114,7 +3139,7 @@ namespace Hybrasyl
             var user = (User)obj;
             var clickType = packet.ReadByte();
             Rectangle commonViewport = user.GetViewport();
-            
+
             // N.B. We handle dead checks here rather than at the Required attribute level due to some 
             // edge cases
 
@@ -3359,21 +3384,21 @@ namespace Hybrasyl
 
         private void PacketHandler_0x4D_BeginCasting(object obj, ClientPacket packet)
         {
-            var user = (User) obj;
+            var user = (User)obj;
             user.Condition.Casting = true;
         }
 
         private void PacketHandler_0x4E_CastLine(object obj, ClientPacket packet)
         {
-            var user = (User) obj;
+            var user = (User)obj;
             var textLength = packet.ReadByte();
             var text = packet.Read(textLength);
             if (!user.Condition.Casting) return;
-            var x0D = new ServerPacketStructures.CastLine() {ChatType = 2, LineLength = textLength, LineText = Encoding.UTF8.GetString(text), TargetId = user.Id};
+            var x0D = new ServerPacketStructures.CastLine() { ChatType = 2, LineLength = textLength, LineText = Encoding.UTF8.GetString(text), TargetId = user.Id };
             var enqueue = x0D.Packet();
-           
+
             user.SendCastLine(enqueue);
-            
+
         }
 
         private void PacketHandler_0x4F_ProfileTextPortrait(Object obj, ClientPacket packet)
@@ -3549,7 +3574,7 @@ namespace Hybrasyl
             byte slot = packet.ReadByte();
             byte quantity = packet.ReadByte();
 
-            
+
             if (quantity < 1)
             {
                 user.ShowSellQuantity(merchant, slot);
@@ -3606,106 +3631,83 @@ namespace Hybrasyl
             merchant.DisplayPursuits(user);
         }
 
-        private void MerchantMenuHandler_SellItemAccept(User user, Merchant merchant, ClientPacket packet)
-        {
+        private void MerchantMenuHandler_SellItemAccept(User user, Merchant merchant, ClientPacket packet) =>
             user.SellItemAccept(merchant);
-        }
 
-        private void MerchantMenuHandler_LearnSkillMenu(User user, Merchant merchant, ClientPacket packet)
-        {
+        private void MerchantMenuHandler_LearnSkillMenu(User user, Merchant merchant, ClientPacket packet) =>
             user.ShowLearnSkillMenu(merchant);
-        }
+
         private void MerchantMenuHandler_LearnSkill(User user, Merchant merchant, ClientPacket packet)
         {
             var skillName = packet.ReadString8(); //skill name
             var skill = WorldData.GetByIndex<Xml.Castable>(skillName);
             user.ShowLearnSkill(merchant, skill);
         }
-        private void MerchantMenuHandler_LearnSkillAccept(User user, Merchant merchant, ClientPacket packet)
-        {
+
+        private void MerchantMenuHandler_LearnSkillAccept(User user, Merchant merchant, ClientPacket packet) =>
             user.ShowLearnSkillAccept(merchant);
-        }
 
-        private void MerchantMenuHandler_LearnSkillAgree(User user, Merchant merchant, ClientPacket packet)
-        {
-            
+        private void MerchantMenuHandler_LearnSkillAgree(User user, Merchant merchant, ClientPacket packet) =>
             user.ShowLearnSkillAgree(merchant);
-        }
 
-        private void MerchantMenuHandler_LearnSkillDisagree(User user, Merchant merchant, ClientPacket packet)
-        {
+        private void MerchantMenuHandler_LearnSkillDisagree(User user, Merchant merchant, ClientPacket packet) =>
             user.ShowLearnSkillDisagree(merchant);
-        }
 
-        private void MerchantMenuHandler_LearnSpellMenu(User user, Merchant merchant, ClientPacket packet)
-        {
+        private void MerchantMenuHandler_LearnSpellMenu(User user, Merchant merchant, ClientPacket packet) =>
             user.ShowLearnSpellMenu(merchant);
-        }
+
         private void MerchantMenuHandler_LearnSpell(User user, Merchant merchant, ClientPacket packet)
         {
             var spellName = packet.ReadString8();
             var spell = WorldData.GetByIndex<Xml.Castable>(spellName);
             user.ShowLearnSpell(merchant, spell);
         }
-        private void MerchantMenuHandler_LearnSpellAccept(User user, Merchant merchant, ClientPacket packet)
-        {
+        private void MerchantMenuHandler_LearnSpellAccept(User user, Merchant merchant, ClientPacket packet) =>
             user.ShowLearnSpellAccept(merchant);
-        }
-        private void MerchantMenuHandler_LearnSpellAgree(User user, Merchant merchant, ClientPacket packet)
-        {
+
+        private void MerchantMenuHandler_LearnSpellAgree(User user, Merchant merchant, ClientPacket packet) =>
             user.ShowLearnSpellAgree(merchant);
-        }
-        private void MerchantMenuHandler_LearnSpellDisagree(User user, Merchant merchant, ClientPacket packet)
-        {
+
+        private void MerchantMenuHandler_LearnSpellDisagree(User user, Merchant merchant, ClientPacket packet) =>
             user.ShowLearnSpellDisagree(merchant);
-        }
 
-        private void MerchantMenuHandler_ForgetSkillMenu(User user, Merchant merchant, ClientPacket packet)
-        {
+
+        private void MerchantMenuHandler_ForgetSkillMenu(User user, Merchant merchant, ClientPacket packet) =>
             user.ShowForgetSkillMenu(merchant);
-        }
-        private void MerchantMenuHandler_ForgetSkill(User user, Merchant merchant, ClientPacket packet)
-        {
 
-        }
+        private void MerchantMenuHandler_ForgetSkill(User user, Merchant merchant, ClientPacket packet) { }
+
         private void MerchantMenuHandler_ForgetSkillAccept(User user, Merchant merchant, ClientPacket packet)
         {
-            var slot = packet.ReadByte();
-            
+            var slot = packet.ReadByte();          
             user.ShowForgetSkillAccept(merchant, slot);
         }
-        private void MerchantMenuHandler_ForgetSpellMenu(User user, Merchant merchant, ClientPacket packet)
-        {
-            
-        }
-        private void MerchantMenuHandler_ForgetSpell(User user, Merchant merchant, ClientPacket packet)
-        {
 
-        }
+        private void MerchantMenuHandler_ForgetSpellMenu(User user, Merchant merchant, ClientPacket packet) =>
+            user.ShowForgetSpellMenu(merchant);
+
+        private void MerchantMenuHandler_ForgetSpell(User user, Merchant merchant, ClientPacket packet) { }
+
         private void MerchantMenuHandler_ForgetSpellAccept(User user, Merchant merchant, ClientPacket packet)
         {
-
+            var slot = packet.ReadByte();
+            user.ShowForgetSpellAccept(merchant, slot);
         }
 
-        private void MerchantMenuHandler_SendParcelMenu(User user, Merchant merchant, ClientPacket packet)
-        {
+        private void MerchantMenuHandler_SendParcelMenu(User user, Merchant merchant, ClientPacket packet) =>
             user.ShowMerchantSendParcel(merchant);
-        }
+
         private void MerchantMenuHandler_SendParcelRecipient(User user, Merchant merchant, ClientPacket packet)
         {
             var item = packet.ReadByte();
             var itemObj = user.Inventory[item];
             user.ShowMerchantSendParcelRecipient(merchant, itemObj);
         }
-        private void MerchantMenuHandler_SendParcel(User user, Merchant merchant, ClientPacket packet)
-        {
 
-        }
+        private void MerchantMenuHandler_SendParcel(User user, Merchant merchant, ClientPacket packet) { }
 
-        private void MerchantMenuHandler_SendParcelFailure(User user, Merchant merchant, ClientPacket packet)
-        {
-            
-        }
+        private void MerchantMenuHandler_SendParcelFailure(User user, Merchant merchant, ClientPacket packet) { }
+
         private void MerchantMenuHandler_SendParcelAccept(User user, Merchant merchant, ClientPacket packet)
         {
             var recipient = packet.ReadString8();
@@ -3757,18 +3759,13 @@ namespace Hybrasyl
 
         public ItemObject CreateItem(string id, int quantity = 1)
         {
-            if (WorldData.ContainsKey<Xml.Item>(id))
-            {
-                var item = new ItemObject(id, this);
-                if (quantity > item.MaximumStack)
-                    quantity = item.MaximumStack;
-                item.Count = Math.Max(quantity, 1);
-                return item;
-            }
-            else
-            {
-                return null;
-            }
+            var xmlitem = WorldData.FindItem(id);
+            if (xmlitem.Count == 0) return null;
+            var item = new ItemObject(xmlitem.First().Id, this);
+            if (quantity > item.MaximumStack)
+                quantity = item.MaximumStack;
+            item.Count = Math.Max(quantity, 1);
+            return item;
         }
 
         public bool TryGetItemTemplate(string name, Xml.Gender itemGender, out Xml.Item item)
@@ -3801,9 +3798,10 @@ namespace Hybrasyl
                 {
                     message = MessageQueue.Take();
                 }
-                catch (InvalidOperationException)
+                catch (InvalidOperationException e)
                 {
-                    GameLog.ErrorFormat("QUEUE CONSUMER: EXCEPTION RAISED");
+                    if (!MessageQueue.IsCompleted)
+                        GameLog.Error(e, "QUEUE CONSUMER: EXCEPTION RAISED: {exception}");
                     continue;
                 }
 
@@ -3876,7 +3874,6 @@ namespace Hybrasyl
                 }
                 
             }
-            GameLog.WarningFormat("Message queue is complete..?");
         }
 
 
@@ -3892,9 +3889,9 @@ namespace Hybrasyl
                 {
                     message = ControlMessageQueue.Take();
                 }
-                catch (InvalidOperationException)
+                catch (InvalidOperationException e)
                 {
-                    GameLog.ErrorFormat("QUEUE CONSUMER: EXCEPTION RAISED");
+                    GameLog.Error(e, "QUEUE CONSUMER: EXCEPTION RAISED: {exception}");
                     continue;
                 }
 
@@ -3907,7 +3904,7 @@ namespace Hybrasyl
                     }
                     catch (Exception e)
                     {
-                        GameLog.Error("Exception encountered in control message handler!", e);
+                        GameLog.Error(e, "Exception encountered in control message handler: {exception}");
                     }
                 }
             }
@@ -3932,9 +3929,18 @@ namespace Hybrasyl
         }
 
         // Mark the message queue as not accepting additions, which will result in thread termination
-        public void StopQueueConsumer() =>    MessageQueue.CompleteAdding();
-        public void StopControlConsumers() => ControlMessageQueue.CompleteAdding();
-
+        public void StopQueueConsumer()
+        {
+            MessageQueue.CompleteAdding();
+            // Remove remaining items
+            while (MessageQueue.TryTake(out _)) { }
+        }
+        public void StopControlConsumers()
+        {
+            ControlMessageQueue.CompleteAdding();
+            // Remove and discard all remaining items
+            while (ControlMessageQueue.TryTake(out _)) { }
+        }
 
         public void StartTimers()
         {
