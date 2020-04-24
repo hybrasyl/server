@@ -22,10 +22,10 @@
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
-using System.Threading;
 using System.IO;
 using System.Net;
 using System.Text.Json;
+using System.Threading;
 
 namespace Hybrasyl
 {
@@ -85,9 +85,18 @@ namespace Hybrasyl
         {
             byte[] key;
 
+            var seed = new Seed() { Ip = remoteAddress.ToString() };
+
             var webReq = WebRequest.Create(new Uri(endpoint));
             webReq.ContentType = "application/json";
-            webReq.Method = "GET";
+            webReq.Method = "POST";
+
+            var json = JsonSerializer.Serialize(seed);
+
+            using (var sw = new StreamWriter(webReq.GetRequestStream()))
+            {
+                sw.Write(json);
+            }
 
             var response = webReq.GetResponse();
             using (var sr = new StreamReader(response.GetResponseStream()))
@@ -96,17 +105,17 @@ namespace Hybrasyl
             }
 
             return key;
-
         }
 
-        public static bool ValidateEncryptionKey(string endpoint, IPAddress remoteAddress, byte[] encryptionKey)
+        public static bool ValidateEncryptionKey(string endpoint, ServerToken token)
         {
-            var valid = false;
-
+            bool valid;
+            
             var webReq = WebRequest.Create(new Uri(endpoint));
             webReq.ContentType = "application/json";
             webReq.Method = "POST";
-            var json = JsonSerializer.Serialize(encryptionKey);
+
+            var json = JsonSerializer.Serialize(token);
 
             using (var sw = new StreamWriter(webReq.GetRequestStream()))
             {
@@ -114,7 +123,6 @@ namespace Hybrasyl
             }
 
             var response = webReq.GetResponse();
-
             using (var sr = new StreamReader(response.GetResponseStream()))
             {
                 valid = (bool)JsonSerializer.Deserialize(sr.ReadToEnd(), typeof(bool));
@@ -161,6 +169,20 @@ namespace Hybrasyl
         {
             Opcode = opcode;
         }
+    }
+
+    [Serializable]
+    public class ServerToken
+    {
+        public byte[] Seed { get; set; }
+        public string Ip { get; set; }
+    }
+
+    [Serializable]
+    public class Seed
+    {
+        public string Ip { get; set; }
+        public string Key { get; set; }
     }
 
 }

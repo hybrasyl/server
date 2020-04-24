@@ -46,6 +46,10 @@
     <xs:attribute name="Url" type="xs:anyURI"/>
   </xs:complexType>
 
+  <xs:complexType name="WebUrl">
+    <xs:attribute name="Url" type="xs:anyURI"/>
+  </xs:complexType>
+
   <xs:complexType name="Network">
     <xs:sequence>
       <xs:element name="Lobby" type="hyb:NetworkInfo" />

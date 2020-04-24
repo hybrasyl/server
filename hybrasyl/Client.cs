@@ -23,13 +23,13 @@ using Hybrasyl.Enums;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading;
-using System.IO;
 using System.Text.Json;
+using System.Threading;
 
 namespace Hybrasyl
 {
@@ -414,20 +414,25 @@ namespace Hybrasyl
                 EncryptionKey = Game.Config.ApiEndpoints.EncryptionEndpoint != null ? GlobalConnectionManifest.RequestEncryptionKey(Game.Config.ApiEndpoints.EncryptionEndpoint.Url, ((IPEndPoint)socket.RemoteEndPoint).Address) : Encoding.ASCII.GetBytes("UrkcnItnI");
                 GameLog.InfoFormat($"EncryptionKey is {Encoding.ASCII.GetString(EncryptionKey)}");
 
-                var validCheck = Game.Config.ApiEndpoints.ValidationEndpoint == null || GlobalConnectionManifest.ValidateEncryptionKey(Game.Config.ApiEndpoints.ValidationEndpoint.Url, ((IPEndPoint)socket.RemoteEndPoint).Address, EncryptionKey);
+                var valid = Game.Config.ApiEndpoints.ValidationEndpoint != null ? GlobalConnectionManifest.ValidateEncryptionKey(Game.Config.ApiEndpoints.ValidationEndpoint.Url, new ServerToken { Ip = ((IPEndPoint)socket.RemoteEndPoint).Address.ToString(), Seed = EncryptionKey}) : true;
 
-                if (!validCheck)
+                if (!valid)
                 {
                     socket.Disconnect(true);
                 }
 
             }
 
+            
             EncryptionKeyTable = new byte[1024];
             _lastReceived = DateTime.Now.Ticks;
+            
             GlobalConnectionManifest.RegisterClient(this);
+            
+            
             ConnectedSince = DateTime.Now.Ticks;
         }
+
 
         public void Disconnect()
         {
@@ -528,7 +533,7 @@ namespace Hybrasyl
                             {
                                 UpdateLastReceived(packet.Opcode != 0x45 &&
                                                           packet.Opcode != 0x75);
-                                //GameLog.Info($"Queuing: 0x{packet.Opcode:X2}");
+                                GameLog.Info($"Queuing: 0x{packet.Opcode:X2}");
                                 // Check for throttling
                                 var throttleResult = Server.PacketThrottleCheck(this, packet);
                                 if (throttleResult == ThrottleResult.OK || throttleResult == ThrottleResult.ThrottleEnd || throttleResult == ThrottleResult.SquelchEnd)
@@ -625,7 +630,7 @@ namespace Hybrasyl
             GameLog.InfoFormat("Processing redirect");
             GlobalConnectionManifest.RegisterRedirect(this, redirect);
             GameLog.InfoFormat("Redirect: cid {0}", this.ConnectionId);
-            GameLog.InfoFormat($"Redirect EncryptionKey is {Encoding.ASCII.GetString(redirect.EncryptionKey)}");
+            GameLog.Info($"Redirect EncryptionKey is {Encoding.ASCII.GetString(redirect.EncryptionKey)}");
             if (isLogoff)
             {
                 GlobalConnectionManifest.DeregisterClient(this);
