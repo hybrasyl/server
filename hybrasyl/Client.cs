@@ -414,7 +414,7 @@ namespace Hybrasyl
                 EncryptionKey = Game.Config.ApiEndpoints.EncryptionEndpoint != null ? GlobalConnectionManifest.RequestEncryptionKey(Game.Config.ApiEndpoints.EncryptionEndpoint.Url, ((IPEndPoint)socket.RemoteEndPoint).Address) : Encoding.ASCII.GetBytes("UrkcnItnI");
                 GameLog.InfoFormat($"EncryptionKey is {Encoding.ASCII.GetString(EncryptionKey)}");
 
-                var valid = Game.Config.ApiEndpoints.ValidationEndpoint != null ? GlobalConnectionManifest.ValidateEncryptionKey(Game.Config.ApiEndpoints.ValidationEndpoint.Url, new ServerToken { Ip = ((IPEndPoint)socket.RemoteEndPoint).Address, Seed = EncryptionKey}) : true;
+                var valid = Game.Config.ApiEndpoints.ValidationEndpoint != null ? GlobalConnectionManifest.ValidateEncryptionKey(Game.Config.ApiEndpoints.ValidationEndpoint.Url, new ServerToken { Ip = ((IPEndPoint)socket.RemoteEndPoint).Address.ToString(), Seed = EncryptionKey}) : true;
 
                 if (!valid)
                 {

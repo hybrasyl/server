@@ -69,7 +69,15 @@ namespace Hybrasyl
             {
                 ((IDictionary)WorldClients).Remove(client.ConnectionId);
                 // This will also handle removing the user from WorldClients if necessary
-                World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.CleanupUser, client.ConnectionId));
+                try
+                {
+                    World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.CleanupUser, client.ConnectionId));
+                }
+                catch (InvalidOperationException)
+                {
+                    if (!World.ControlMessageQueue.IsCompleted)
+                        GameLog.ErrorFormat("Connection {id}: DeregisterClient failed", client.ConnectionId);
+                }
             }
         }
 
@@ -163,12 +171,14 @@ namespace Hybrasyl
         }
     }
 
+    [Serializable]
     public class ServerToken
     {
         public byte[] Seed { get; set; }
-        public IPAddress Ip { get; set; }
+        public string Ip { get; set; }
     }
 
+    [Serializable]
     public class Seed
     {
         public string Ip { get; set; }
