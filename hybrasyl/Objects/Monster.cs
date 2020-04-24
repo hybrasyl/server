@@ -13,22 +13,16 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015-2016 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
  */
 
- using System;
- using System.Collections.Generic;
- using System.Drawing;
- using System.Linq;
- using Hybrasyl.Castables;
- using Hybrasyl.Creatures;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Hybrasyl.Enums;
-using Castable = Hybrasyl.Castables.Castable;
- using Class = Hybrasyl.Castables.Class;
 
 namespace Hybrasyl.Objects
 {
@@ -40,11 +34,11 @@ namespace Hybrasyl.Objects
 
         private uint _mTarget;
 
-        private Spawn _spawn;
+        private Xml.Spawn _spawn;
 
         private uint _simpleDamage => Convert.ToUInt32(Rng.Next(_spawn.Damage.Min, _spawn.Damage.Max) * _variance);
 
-        private List<Creatures.Castable> _castables;
+        private List<Xml.SpawnCastable> _castables;
         private double _variance;
 
         public int ActionDelay = 800;
@@ -52,49 +46,61 @@ namespace Hybrasyl.Objects
         public DateTime LastAction { get; set; }
         public bool IsHostile { get; set; }
         public bool ShouldWander { get; set; }
-        public bool CanCast { get; set; }
-
-
+        public bool CanCast => _spawn.Castables.Count > 0;
 
         public override void OnDeath()
         {
             //Shout("AAAAAAAAAAaaaaa!!!");
             // Now that we're dead, award loot.
             // FIXME: Implement loot tables / full looting.
+            Condition.Alive = false;
             var hitter = LastHitter as User;
-            if (hitter == null) return; // Don't handle cases of MOB ON MOB COMBAT just yet
+            if (hitter == null)
+            {
+                Map.Remove(this);
+                World.Remove(this);
+                return; // Don't handle cases of MOB ON MOB COMBAT just yet
+            }
 
             if (hitter.Grouped) ItemDropAllowedLooters = hitter.Group.Members.Select(user => user.Name).ToList();
             else ItemDropAllowedLooters.Add(hitter.Name);
 
-            Condition.Alive = false;
-
             hitter.ShareExperience(LootableXP);
-            var golds = new Gold(LootableGold);
             var itemDropTime = DateTime.Now;
-            foreach(var item in LootableItems)
+
+            foreach (var itemname in LootableItems)
             {
+                var item = Game.World.CreateItem(itemname);
+                if (item == null)
+                {
+                    GameLog.UserActivityError("User {player}: looting {monster}, loot item {item} is missing", hitter.Name, Name, itemname);
+                    continue;
+                }
                 item.ItemDropType = ItemDropType.MonsterLootPile;
                 item.ItemDropAllowedLooters = ItemDropAllowedLooters;
                 item.ItemDropTime = itemDropTime;
                 World.Insert(item);
                 Map.Insert(item, X, Y);
             }
-            golds.ItemDropType = ItemDropType.MonsterLootPile;
-            golds.ItemDropAllowedLooters = ItemDropAllowedLooters;
-            golds.ItemDropTime = itemDropTime;
 
-            World.Insert(golds);
-            Map.Insert(golds, X, Y);
+            if (LootableGold > 0)
+            {
+                var golds = new Gold(LootableGold);
+                golds.ItemDropType = ItemDropType.MonsterLootPile;
+                golds.ItemDropAllowedLooters = ItemDropAllowedLooters;
+                golds.ItemDropTime = itemDropTime;
+                World.Insert(golds);
+                Map.Insert(golds, X, Y);
+            }
             Map.Remove(this);
-
             World.Remove(this);
+
         }
 
         public override void OnReceiveDamage()
         {
-            this.IsHostile = true;
-            this.ShouldWander = false;
+            IsHostile = true;
+            ShouldWander = false;
         }
 
 
@@ -140,19 +146,24 @@ namespace Hybrasyl.Objects
         public uint VariantHp => CalculateVariance(_spawn.Stats.Hp);
         public uint VariantMp => CalculateVariance(_spawn.Stats.Mp);
 
+        private Loot _loot;
 
-        public uint LootableXP => CalculateVariance((uint)Rng.Next((int)(_spawn.Loot.Xp?.Min ?? 1), (int)(_spawn.Loot.Xp?.Max ?? 1)));
-        public uint LootableGold { get; set; }
-            
-        public List<ItemObject> LootableItems { get; set; }
+        public uint LootableXP => _loot?.Xp ?? 0 ;
 
-        public Monster(Creatures.Creature creature, Spawn spawn, int map)
+        public uint LootableGold => _loot?.Gold ?? 0 ;
+
+        public List<string> LootableItems => _loot?.Items ?? new List<string>();
+
+        public Monster(Xml.Creature creature, Xml.Spawn spawn, int map, Loot loot = null)
         {
 
-            var direction = (Rng.Next(0, 100) >= 50);
             _spawn = spawn;
-            _variance = (direction == true ? Rng.NextDouble() * -1 : Rng.NextDouble()) * _spawn.Variance;
-           
+            var buffed = Rng.Next() > 50;
+            if (buffed)
+                _variance = (Rng.NextDouble() * _spawn.Variance) + 1;
+            else
+                _variance = 1 - (Rng.NextDouble() * _spawn.Variance);
+
 
             Name = creature.Name;
             Sprite = creature.Sprite;
@@ -171,14 +182,14 @@ namespace Hybrasyl.Objects
             Stats.BaseDex = VariantDex;
             _castables = spawn.Castables;
 
-            Stats.BaseDefensiveElement = (Enums.Element) spawn.GetDefensiveElement();
-            Stats.BaseDefensiveElement = (Enums.Element) spawn.GetOffensiveElement();
-            LootableItems = new List<ItemObject>();
+            Stats.BaseDefensiveElement = spawn.GetDefensiveElement();
+            Stats.BaseDefensiveElement = spawn.GetOffensiveElement();
+
+            _loot = loot;
 
             //until intents are fixed, this is how this is going to be done.
             IsHostile = _random.Next(0, 7) < 2;
             ShouldWander = IsHostile == false;
-            CanCast = spawn.Castables.Count > 0;
         }
 
         public Creature Target
@@ -205,49 +216,49 @@ namespace Hybrasyl.Objects
 
             if (xDelta > yDelta)
             {
-                Walk(x > X ? Direction.East : Direction.West);
+                Walk(x > X ? Xml.Direction.East : Xml.Direction.West);
             }
 
             return false;
         }
 
-        public bool CheckFacing(Direction direction, Creature target)
+        public bool CheckFacing(Xml.Direction direction, Creature target)
         {
             if (Math.Abs(this.X - target.X) <= 1 && Math.Abs(this.Y - target.Y) <= 1)
             {
                 if (((this.X - target.X) == 1 && (this.Y - target.Y) == 0))
                 {
                     //check if facing west
-                    if (this.Direction == Direction.West) return true;
+                    if (this.Direction == Xml.Direction.West) return true;
                     else
                     {
-                        this.Turn(Direction.West);
+                        this.Turn(Xml.Direction.West);
                     }
                 }
                 if (((this.X - target.X) == -1 && (this.Y - target.Y) == 0))
                 {
                     //check if facing east
-                    if (this.Direction == Direction.East) return true;
+                    if (this.Direction == Xml.Direction.East) return true;
                     else
                     {
-                        this.Turn(Direction.East);
+                        this.Turn(Xml.Direction.East);
                     }
                 }
                 if (((this.X - target.X) == 0 && (this.Y - target.Y) == 1))
                 {
                     //check if facing south
-                    if (this.Direction == Direction.North) return true;
+                    if (this.Direction == Xml.Direction.North) return true;
                     else
                     {
-                        this.Turn(Direction.North);
+                        this.Turn(Xml.Direction.North);
                     }
                 }
                 if (((this.X - target.X) == 0 && (this.Y - target.Y) == -1))
                 {
-                    if (this.Direction == Direction.South) return true;
+                    if (this.Direction == Xml.Direction.South) return true;
                     else
                     {
-                        this.Turn(Direction.South);
+                        this.Turn(Xml.Direction.South);
                     }
                 }
             }
@@ -258,13 +269,13 @@ namespace Hybrasyl.Objects
         {
             var nextSpell = _random.Next(0, _castables.Count);
             var creatureCastable = _castables[nextSpell];
-            var castable = World.WorldData.Get<Castable>(creatureCastable.Value);
+            var castable = World.WorldData.Get<Xml.Castable>(creatureCastable.Value);
             if (target is Merchant) return;
             UseCastable(castable, target);
             Condition.Casting = false;
         }
 
-        public void AssailAttack(Direction direction, Creature target = null)
+        public void AssailAttack(Xml.Direction direction, Creature target = null)
         {
             if (target == null)
             {
@@ -300,7 +311,7 @@ namespace Hybrasyl.Objects
         /// </summary>
         /// <param name="direction"></param>
         /// <param name="target"></param>
-        public void SimpleAttack(Creature target) => target?.Damage(_simpleDamage, Stats.OffensiveElement, Enums.DamageType.Physical, DamageFlags.None, this);
+        public void SimpleAttack(Creature target) => target?.Damage(_simpleDamage, Stats.OffensiveElement, Xml.DamageType.Physical, Xml.DamageFlags.None, this);
 
         public override void ShowTo(VisibleObject obj)
         {

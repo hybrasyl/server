@@ -13,26 +13,20 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
- * Authors:   Justin Baugh  <baughj@hybrasyl.com>
- *            Kyle Speck    <kojasou@hybrasyl.com>
+ * For contributors and individual authors please refer to CONTRIBUTORS.MD.
+ * 
  */
 
-using System.Runtime.Serialization;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
-using Hybrasyl.Properties;
-using log4net;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System.Reflection;
-using Hybrasyl.Items;
 using System.Collections.Concurrent;
 using Hybrasyl.Threading;
 
@@ -41,8 +35,6 @@ namespace Hybrasyl
 
     public class Exchange
     {
-        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
         private Inventory _sourceItems;
         private Inventory _targetItems;
         private uint _sourceGold;
@@ -191,7 +183,7 @@ namespace Hybrasyl
             }
             else
             {
-                Logger.WarnFormat("exchange: Hijinx occuring: participants are {0} and {1}",
+                GameLog.WarningFormat("exchange: Hijinx occuring: participants are {0} and {1}",
                     _source.Name, _target.Name);
                 _active = false;
                 return false;
@@ -262,7 +254,7 @@ namespace Hybrasyl
 
         public bool StartExchange()
         {
-            Logger.InfoFormat("Starting exchange between {0} and {1}", _source.Name, _target.Name);
+            GameLog.InfoFormat("Starting exchange between {0} and {1}", _source.Name, _target.Name);
             _active = true;
             _source.Condition.InExchange = true;
             _target.Condition.InExchange = true;
@@ -305,7 +297,7 @@ namespace Hybrasyl
         /// <returns></returns>
         public void PerformExchange()
         {
-            Logger.Info("Performing exchange");
+            GameLog.Info("Performing exchange");
             foreach (var item in _sourceItems)
             {
                 _target.AddItem(item);
@@ -331,19 +323,19 @@ namespace Hybrasyl
         {
             if (_source == requestor)
             {
-                Logger.InfoFormat("Exchange: source ({0}) confirmed", _source.Name);
+                GameLog.InfoFormat("Exchange: source ({0}) confirmed", _source.Name);
                 _sourceConfirmed = true;
                 _target.SendExchangeConfirmation(false);
             }
             if (_target == requestor)
             {
-                Logger.InfoFormat("Exchange: target ({0}) confirmed", _target.Name);
+                GameLog.InfoFormat("Exchange: target ({0}) confirmed", _target.Name);
                 _targetConfirmed = true;
                 _source.SendExchangeConfirmation(false);
             }
             if (_sourceConfirmed && _targetConfirmed)
             {
-                Logger.Info("Exchange: Both sides confirmed");
+                GameLog.Info("Exchange: Both sides confirmed");
                 _source.SendExchangeConfirmation();
                 _target.SendExchangeConfirmation();
                 PerformExchange();
@@ -380,19 +372,21 @@ namespace Hybrasyl
 
             for (byte i = 0; i < jArray.Count; i++)
             {
-                Item itmType = null;
                 dynamic item;
                 if (TryGetValue(jArray[i], out item))
                 {
-                    itmType = Game.World.WorldData.Get<Item>(item.Id);
                     //itmType = Game.World.WorldData.Values<Item>().Where(x => x.Name == (string)item.FirstOrDefault().Value).FirstOrDefault().Name;
-                    if (itmType != null)
+                    if (Game.World.WorldData.TryGetValue<Xml.Item>(item.Id, out Xml.Item itemTemplate)) 
                     {
-                        inv[i] = new ItemObject(itmType.Id, Game.World)
+                        inv[i] = new ItemObject(itemTemplate.Id, Game.World)
                         {
                             Count = item.Count ?? 1
                         };
                             //this will need to be expanded later based on ItemObject properties being saved back to the database.
+                    }
+                    else
+                    {
+                        GameLog.Error($"Inventory deserializer error: item {item.Id} not found in index, skipping");
                     }
                 }
             }
@@ -425,9 +419,7 @@ namespace Hybrasyl
         private object _lock = new object();
 
         private Lockable<ItemObject[]> _itemsObject;
-        private ConcurrentDictionary<int, List<ItemObject>> _inventoryIndex;
-
-        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+        private ConcurrentDictionary<string, List<ItemObject>> _inventoryIndex;
 
         private Lockable<int> _size { get; set; }
         private Lockable<int> _count { get; set; }
@@ -611,18 +603,18 @@ namespace Hybrasyl
             }
         }
 
-        public bool TryGetValue(string name, out ItemObject itemObject)
+        public bool TryGetValueByName(string name, out ItemObject itemObject)
         {
             itemObject = null;
             List<ItemObject> itemList;
-            Item theItem;
+            Xml.Item theItem;
             if (!Game.World.TryGetItemTemplate(name, out theItem) ||
                 !_inventoryIndex.TryGetValue(theItem.Id, out itemList)) return false;
             itemObject = itemList.First();
             return true;
         }
 
-        public bool TryGetValue(int templateId, out ItemObject itemObject)
+        public bool TryGetValue(string templateId, out ItemObject itemObject)
         {
             itemObject = null;
             List<ItemObject> itemList;
@@ -637,39 +629,49 @@ namespace Hybrasyl
             _size = new Lockable<int>(size);
             _count = new Lockable<int>(0);
             _weight = new Lockable<int>(0);
-            _inventoryIndex = new ConcurrentDictionary<int, List<ItemObject>>();
+            _inventoryIndex = new ConcurrentDictionary<string, List<ItemObject>>();
         }
-
-        public bool Contains(int id)
+        
+        public bool Contains(string id)
         {
             return _inventoryIndex.ContainsKey(id);
         }
 
-        public bool Contains(string name)
+        public bool ContainsName(string name)
         {
-            Item theItem = Game.World.WorldData.GetByIndex<Item>(name);
-            return _inventoryIndex.ContainsKey(theItem.Id);
+            // TODO: revisit this later
+            var itemList = Game.World.WorldData.FindItem(name);
+            if (itemList.Count == 0)
+                return false;
+            foreach (var item in itemList)
+                if (_inventoryIndex.ContainsKey(item.Id))
+                    return true;
+            return false;
         }
 
         public bool Contains(string name, int quantity)
         {
-            Item theItem = Game.World.WorldData.GetByIndex<Item>(name); 
-            
-            var hasItem = _inventoryIndex.ContainsKey(theItem.Id);
-            if (!hasItem) return false;
-            var inv = _inventoryIndex.Where(x=> x.Key == theItem.Id).ToList();
+            var itemList = Game.World.WorldData.FindItem(name);
+            if (itemList.Count == 0)
+                return false;
 
-            var quant = 0;
-            foreach (var itm in inv)
+            foreach (var item in itemList)
             {
-                quant += itm.Value.Count;
+                if (!_inventoryIndex.ContainsKey(item.Id))
+                    continue;
+
+                var quant = 0;
+
+                foreach (var itm in _inventoryIndex.Where(x => x.Key == item.Id).ToList())
+                {
+                    quant += itm.Value.Count;
+                }
+                var hasQuantity = quant >= quantity;
+                if (quant >= quantity)
+                    return true;
             }
-
-            var hasQuantity = quant >= quantity;
-            return hasQuantity;
+            return false;
         }
-
-
 
         public int FindEmptyIndex()
         {
@@ -685,7 +687,7 @@ namespace Hybrasyl
             return (byte)(FindEmptyIndex() + 1);
         }
 
-        public int IndexOf(int id)
+        public int IndexOf(string id)
         {
             for (var i = 0; i < Size; ++i)
             {
@@ -695,7 +697,7 @@ namespace Hybrasyl
             return -1;
         }
 
-        public int[] IndexOf(string name)
+        public int[] IndexByName(string name)
         {
             var indices = new List<int>();
             for (var i = 0; i < Size; i++)
@@ -706,13 +708,13 @@ namespace Hybrasyl
             return indices.ToArray();
         }
 
-        public byte SlotOf(int id)
+        public byte SlotOf(string id)
         {
             return (byte)(IndexOf(id) + 1);
         }
-        public byte[] SlotOf(string name)
+        public byte[] SlotByName(string name)
         {
-            var slotsInt = IndexOf(name);
+            var slotsInt = IndexByName(name);
             var slotsByte = new byte[slotsInt.Length];
             for(int i = 0; i < slotsInt.Length; i++)
             {
@@ -721,14 +723,14 @@ namespace Hybrasyl
             return slotsByte;
         }
 
-        public ItemObject Find(int id)
+        public ItemObject Find(string id)
         {
             return _inventoryIndex.ContainsKey(id) ? _inventoryIndex[id].First() : null;
         }
 
-        public ItemObject Find(string name)
+        public ItemObject FindByName(string name)
         {
-            Item theItem;
+            Xml.Item theItem;
             return Game.World.TryGetItemTemplate(name, out theItem) && _inventoryIndex.ContainsKey(theItem.Id)
                 ? _inventoryIndex[theItem.Id].First()
                 : null;

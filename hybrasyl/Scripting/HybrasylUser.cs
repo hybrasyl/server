@@ -13,8 +13,7 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015-2016 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
@@ -25,21 +24,28 @@ using System.Collections.Generic;
 using System.Linq;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
-using Hybrasyl.Items;
 using Hybrasyl.Objects;
-using log4net;
+using MoonSharp.Interpreter;
+using System.Reflection;
 
 namespace Hybrasyl.Scripting
 {
-
+    [MoonSharpUserData]
     public class HybrasylUser
     {
-        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
         internal User User { get; set; }
         internal HybrasylWorld World { get; set; }
         internal HybrasylMap Map { get; set; }
         public string Name => User.Name;
+        public byte X => User.X;
+        public byte Y => User.Y;
+        public Xml.Class Class => User.Class;
+
+        // TODO: determine a better way to do this in lua via moonsharp
+        public string Type => "player";
+
+
+        public Xml.Gender Gender => User.Gender;
 
         public uint Hp
         {
@@ -49,6 +55,8 @@ namespace Hybrasyl.Scripting
                 User.UpdateAttributes(StatUpdateFlags.Current);
             }
         }
+
+        public int Level { get => User.Stats.Level; }
 
         public uint Mp
         {
@@ -104,25 +112,63 @@ namespace Hybrasyl.Scripting
             return User.Legend.TryGetMark(prefix, out mark) ? mark : (object)null;
         }
 
+        public void ChangeClass(Xml.Class newClass, string oathGiver)
+        {
+            User.Class = newClass;
+            User.UpdateAttributes(StatUpdateFlags.Full);
+            LegendIcon icon;
+            string legendtext;
+            // this is annoying af
+            switch (newClass)
+            {
+                case Xml.Class.Monk:
+                    icon = LegendIcon.Monk;
+                    legendtext = $"Monk by oath of {oathGiver}";
+                    break;
+                case Xml.Class.Priest:
+                    icon = LegendIcon.Priest;
+                    legendtext = $"Priest by oath of {oathGiver}";
+                    break;
+                case Xml.Class.Rogue:
+                    icon = LegendIcon.Rogue;
+                    legendtext = $"Rogue by oath of {oathGiver}";
+                    break;
+                case Xml.Class.Warrior:
+                    icon = LegendIcon.Warrior;
+                    legendtext = $"Warrior by oath of {oathGiver}";
+                    break;
+                case Xml.Class.Wizard:
+                    icon = LegendIcon.Wizard;
+                    legendtext = $"Wizard by oath of {oathGiver}";
+                    break;
+                default:
+                    throw new ArgumentException("Invalid class");
+            }
+            User.Legend.AddMark(icon, LegendColor.White, legendtext, "CLS");
+        }
         public Legend GetLegend()
         {
             return User.Legend;
         }
 
-        public bool AddLegendMark(LegendIcon icon, LegendColor color, string text, string prefix=default(string), bool isPublic = true, int quantity = 0)
+        public bool AddLegendMark(LegendIcon icon, LegendColor color, string text, string prefix=default(string), bool isPublic = true, 
+            int quantity = 0, bool displaySeason=true, bool displayTimestamp=true)
         {
-            return AddLegendMark(icon, color, text, DateTime.Now, prefix, isPublic, quantity);
+            return AddLegendMark(icon, color, text, DateTime.Now, prefix, isPublic, quantity, displaySeason, displayTimestamp);
         }
 
-        public bool AddLegendMark(LegendIcon icon, LegendColor color, string text, DateTime created, string prefix = default(string), bool isPublic = true, int quantity = 0)
+        public bool AddLegendMark(LegendIcon icon, LegendColor color, string text, HybrasylTime timestamp, string prefix) => User.Legend.AddMark(icon, color, text, timestamp.TerranDateTime, prefix);
+
+        public bool AddLegendMark(LegendIcon icon, LegendColor color, string text, DateTime timestamp, string prefix = default(string), 
+            bool isPublic = true, int quantity = 0, bool displaySeason=true, bool displayTimestamp=true)
         {
             try
             {
-                return User.Legend.AddMark(icon, color, text, created, prefix, isPublic, quantity);
+                return User.Legend.AddMark(icon, color, text, timestamp, prefix, isPublic, quantity, displaySeason, displayTimestamp);
             }
             catch (ArgumentException)
             {
-                Logger.ErrorFormat("Legend mark: {0}: duplicate prefix {1}", User.Name, prefix);
+                GameLog.ErrorFormat("Legend mark: {0}: duplicate prefix {1}", User.Name, prefix);
             }
             return false;
         }
@@ -141,41 +187,78 @@ namespace Hybrasyl.Scripting
             return true;
         }
 
-        public void SetSessionFlag(string flag, dynamic value)
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sequence">The sequence name to start</param>
+        /// <param name="target">The </param>
+        /// <returns></returns>
+        public bool RequestDialog(string sequence, string invoker="")
+        {
+            DialogSequence sequenceObj = null;
+            VisibleObject invokerObj = null;
+
+            if (Game.World.TryGetActiveUser(invoker, out User user))
+                invokerObj = user as VisibleObject;
+            else if (Game.World.WorldData.TryGetValue<Merchant>(invoker, out Merchant merchant))
+                invokerObj = merchant as VisibleObject;
+
+            if (invokerObj != null)
+                invokerObj.SequenceCatalog.TryGetValue(sequence, out sequenceObj);
+
+            if (sequenceObj == null)
+                // Try global catalog
+                Game.World.GlobalSequences.TryGetValue(sequence, out sequenceObj);
+
+            if (invokerObj != null && sequenceObj != null)
+                return Game.World.TryAsyncDialog(invokerObj, User, sequenceObj);
+
+            GameLog.Warning($"invoker {invoker} or sequence {sequence} not found");
+            return false;
+        }
+           
+        public void SetSessionCookie(string cookieName, dynamic value)
         {
             try
             {
-                User.SetSessionFlag(flag, value.ToString());
-                Logger.DebugFormat("{0} - set session flag {1} to {2}", User.Name, flag, value.tostring());
+                if (value.GetType() == typeof(string))
+                    User.SetSessionCookie(cookieName, value);
+                else
+                    User.SetSessionCookie(cookieName, value.ToString());
+                GameLog.DebugFormat("{0} - set session cookie {1} to {2}", User.Name, cookieName, value);
             }
             catch (Exception e)
             {
-                Logger.WarnFormat("{0}: value could not be converted to string? {1}", User.Name, e.ToString());
+                GameLog.WarningFormat("{0}: value could not be converted to string? {1}", User.Name, e.ToString());
             }
         }
 
-        public void SetFlag(string flag, dynamic value)
-        {
+        public void SetCookie(string cookieName, dynamic value)
+        { 
             try
             {
-                User.SetFlag(flag, value.ToString());
+                if (value.GetType() == typeof(string))
+                    User.SetCookie(cookieName, value);
+                else
+                    User.SetCookie(cookieName, value.ToString());
+                GameLog.DebugFormat("{0} - set cookie {1} to {2}", User.Name, cookieName, value);
             }
             catch (Exception e)
             {
-                Logger.WarnFormat("{0}: value could not be converted to string? {1}", User.Name, e.ToString());
+                GameLog.WarningFormat("{0}: value could not be converted to string? {1}", User.Name, e.ToString());
             }
 
         }
 
-        public string GetSessionFlag(string flag)
-        {
-            return User.GetSessionFlag(flag);
-        }
+        public string GetSessionCookie(string cookieName) => User.GetSessionCookie(cookieName);
 
-        public string GetFlag(string flag)
-        {
-            return User.GetFlag(flag);
-        }
+        public string GetCookie(string cookieName) => User.GetCookie(cookieName);
+
+        public bool HasCookie(string cookieName) => User.HasCookie(cookieName);
+        public bool HasSessionCookie(string cookieName) => User.HasSessionCookie(cookieName);
+        public bool DeleteCookie(string cookieName) => User.DeleteCookie(cookieName);
+        public bool DeleteSessionCookie(string cookieName) => User.DeleteSessionCookie(cookieName);
 
         public void DisplayEffect(ushort effect, short speed = 100, bool global = true)
         {
@@ -210,37 +293,65 @@ namespace Hybrasyl.Scripting
 
         public void Heal(int heal)
         {
-            User.Heal((double)heal);
+            User.Heal(heal);
         }
 
-        public void Damage(int damage, Enums.Element element = Enums.Element.None,
-           Enums.DamageType damageType = Enums.DamageType.Direct)
+        public void Damage(int damage, Xml.Element element = Xml.Element.None,
+           Xml.DamageType damageType = Xml.DamageType.Direct)
         {
-            User.Damage((double)damage, element, damageType);
+            User.Damage(damage, element, damageType);
         }
 
-        public bool GiveItem(string name)
+        public void Damage(int damage, bool fatal=true)
+        {
+            if (fatal)
+                User.Damage(damage, Xml.Element.None, Xml.DamageType.Direct, Xml.DamageFlags.Nonlethal);
+            else
+                User.Damage(damage, Xml.Element.None, Xml.DamageType.Direct);
+
+        }
+
+        public bool GiveItem(HybrasylWorldObject obj)
+        {
+            if (obj.Obj is ItemObject)
+                return User.AddItem(obj.Obj as ItemObject);
+            return false;
+        }
+
+        public bool GiveItem(string name, int count = 1)
         {
             // Does the item exist?
-            Item theitem;
-            if (Game.World.ItemCatalog.TryGetValue(new Tuple<Sex, string>(User.Sex, name), out theitem) ||
-                Game.World.ItemCatalog.TryGetValue(new Tuple<Sex, string>(Sex.Neutral, name), out theitem))
+            if (Game.World.WorldData.TryGetValueByIndex(name, out Xml.Item template))
             {
-                Logger.DebugFormat("giving item {0} to {1}", name, User.Name);
-                var itemobj = Game.World.CreateItem(theitem.Id);
-                Game.World.Insert(itemobj);
-                User.AddItem(itemobj);
+                var item = Game.World.CreateItem(template.Id);
+                if (count > 1)
+                    item.Count = count;
+                else
+                    item.Count = item.MaximumStack;
+                Game.World.Insert(item);
+                User.AddItem(item);
                 return true;
-            }
-            else
-            {
-                Logger.DebugFormat("item {0} cannot be found", name);
             }
             return false;
         }
 
         public bool TakeItem(string name)
         {
+            if (User.Inventory.ContainsName(name))
+            {
+                // Find the first instance of the specified item and remove it
+                var slots = User.Inventory.SlotByName(name);
+                if (slots.Length == 0)
+                {
+                    GameLog.ScriptingWarning("{Function}: User had {item} a moment ago but now it's gone...?",
+                        MethodInfo.GetCurrentMethod().Name, User.Name, name);
+                    return false;
+                }
+                GameLog.ScriptingDebug("{Function}: A script removed {item} from {User}'s inventory ",
+                    MethodInfo.GetCurrentMethod().Name, User.Name, name); return User.Inventory.Remove(slots.First());
+            }
+            GameLog.ScriptingDebug("{Function}: User {User} doesn't have {item}",
+                MethodInfo.GetCurrentMethod().Name, User.Name, name);
             return false;
         }
 
@@ -253,10 +364,22 @@ namespace Hybrasyl.Scripting
 
         public bool TakeExperience(int exp)
         {
+            if ((uint)exp > User.Stats.Experience)
+                return false;
             User.Stats.Experience -= (uint)exp;
             SystemMessage($"Your world spins as your insight leaves you ((-{exp} experience!))");
             User.UpdateAttributes(StatUpdateFlags.Experience);
             return true;
+        }
+
+        public bool AddSkill(string skillname)
+        {
+            if (Game.World.WorldData.TryGetValue(skillname, out Xml.Castable result))
+            {
+                User.AddSkill(result);
+                return true;
+            }
+            return false;
         }
 
         public void SystemMessage(string message)
@@ -265,6 +388,7 @@ namespace Hybrasyl.Scripting
             User.SendMessage(message, Hybrasyl.MessageTypes.SYSTEM_WITH_OVERHEAD);
         }
 
+        public bool IsPeasant() => User.Class == Xml.Class.Peasant;
 
         public void Whisper(string name, string message)
         {
@@ -275,48 +399,63 @@ namespace Hybrasyl.Scripting
         {
         }
 
-        public void StartDialogSequence(string sequenceName, HybrasylWorldObject associate)
+        public void EndDialog()
         {
-            DialogSequence newSequence;
-            if (User.World.GlobalSequencesCatalog.TryGetValue(sequenceName, out newSequence))
-            {
-                newSequence.ShowTo(User, (VisibleObject)associate.Obj);
-                // End previous sequence
-                User.DialogState.EndDialog();
-                User.DialogState.StartDialog(associate.Obj as VisibleObject, newSequence);
-            }
-
+            User.DialogState.EndDialog();
+            User.SendCloseDialog();
         }
 
         public void StartSequence(string sequenceName, HybrasylWorldObject associateOverride = null)
         {
-            DialogSequence sequence;
-            VisibleObject associate;
-            Logger.DebugFormat("{0} starting sequence {1}", User.Name, sequenceName);
+            DialogSequence sequence = null;
+            VisibleObject associate = null;
+            GameLog.DebugFormat("{0} starting sequence {1}", User.Name, sequenceName);
 
-            // If we're using a new associate, we will consult that to find our sequence
-            associate = associateOverride == null ? User.DialogState.Associate as VisibleObject : associateOverride.Obj as VisibleObject;
+            // First: is this a global sequence?
+            Game.World.GlobalSequences.TryGetValue(sequenceName, out sequence);
 
-            // Use the local catalog for sequences first, then consult the global catalog
-
-            if (!associate.SequenceCatalog.TryGetValue(sequenceName, out sequence))
+            // Next: what object are we associated with?
+            if (associateOverride == null)
             {
-                if (!User.World.GlobalSequencesCatalog.TryGetValue(sequenceName, out sequence))
-                {
-                    Logger.ErrorFormat("called from {0}: sequence name {1} cannot be found!",
-                        associate.Name, sequenceName);
-                    // To be safe, end all dialogs and basically abort
-                    User.DialogState.EndDialog();
-                    return;
-                }
+                if (User.DialogState.Associate != null)
+                    associate = User.DialogState.Associate as VisibleObject;
+                else if (User.LastAssociate != null)
+                    associate = User.LastAssociate;
+            }
+            else
+                associate = associateOverride.Obj as VisibleObject;
+
+            // If we didn't get a sequence before, try with our associate
+            if (sequence == null && associate != null)
+                associate.SequenceCatalog.TryGetValue(sequenceName, out sequence);
+
+            // We should hopefully have a sequence now...
+            if (sequence == null)
+            {
+                GameLog.ErrorFormat("called from {0}: sequence name {1} cannot be found!",
+                    associate?.Name ?? "globalsequence", sequenceName);
+                // To be safe, terminate all dialog state
+                User.DialogState.EndDialog();
+                // If the user was previously talking to a merchant, and we can't find a sequence,
+                // simply display the main menu again. If it's a reactor....oh well.
+                if (associate is Merchant)
+                    associate.DisplayPursuits(User);
+                return;
             }
 
-            // sequence should now be our target sequence, let's end the current state and start a new one
+            // If we're here, sequence should now be our target sequence, 
+            // let's end the current state and start a new one
 
             User.DialogState.EndDialog();
             User.DialogState.StartDialog(associate, sequence);
             User.DialogState.ActiveDialog.ShowTo(User, associate);
         }
 
+        /// <summary>
+        /// Calculate the Manhattan distance between ourselves and a target object.
+        /// </summary>
+        /// <param name="target">The target object</param>
+        /// <returns></returns>
+        public int Distance(HybrasylWorldObject target) => User.Distance(target.Obj);
     }
 }

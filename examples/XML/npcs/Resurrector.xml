@@ -1,6 +1,0 @@
-<?xml version="1.0"?>
-<Npc xmlns="http://www.hybrasyl.com/XML/Creature">
-  <Name>Resurrector</Name>
-  <DisplayName>Resurrector</DisplayName>
-  <Appearance Sprite="96"/>
-</Npc>

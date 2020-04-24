@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    targetNamespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02"
+    xmlns:hyb="http://www.hybrasyl.com/XML/Hybrasyl/2020-02"
+    xmlns="http://www.hybrasyl.com/XML/Hybrasyl/2020-02"
+    elementFormDefault="qualified">
+  <xs:annotation>
+    <xs:documentation xml:lang="en">
+      This file is part of Project Hybrasyl.
+
+      This program is free software; you can redistribute it and/or modify
+      it under the terms of the Affero General Public License as published by
+      the Free Software Foundation, version 3.
+
+      This program is distributed in the hope that it will be useful, but
+      without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+      or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+      for more details.
+
+      You should have received a copy of the Affero General Public License along
+      with this program. If not, see http://www.gnu.org/licenses/ .
+
+      (C) 2020 ERISCO, LLC
+
+      For contributors and individual authors please refer to CONTRIBUTORS.MD.
+    </xs:documentation>
+  </xs:annotation>
+
+  <!-- Damage effects type -->
+  <xs:complexType name="StatusDamage">
+    <xs:all>
+      <xs:element name="Flags" type="hyb:DamageFlags" />
+      <xs:element name="Simple" type="hyb:SimpleQuantity" />
+      <xs:element name="Formula" type="xs:string" />
+    </xs:all>
+    <xs:attribute name="Type" type="hyb:DamageType" />
+  </xs:complexType>
+
+  <!-- Heal effects type -->
+  <xs:complexType name="StatusHeal">
+    <xs:sequence minOccurs="0" maxOccurs="1">
+      <xs:element name="Simple" type="hyb:SimpleQuantity" />
+      <xs:element name="Formula" type="xs:string" />
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="Status">
+    <xs:all>
+      <xs:element name="Category" type="hyb:String8"/>
+      <xs:element minOccurs="0" name="CastRestriction" type="hyb:CastRestriction" />
+      <xs:element minOccurs="0" name="Effects" type="hyb:StatusEffects" />
+      <xs:element minOccurs="0" name="ProhibitedMessage" type="hyb:String8"/>
+      <xs:element minOccurs="0" name="Script" type="hyb:String8" />
+    </xs:all>
+    <xs:attribute name="Duration" type="xs:int" use="optional" />
+    <xs:attribute name="Tick" type="xs:int" default="1" use="optional"/>
+    <xs:attribute name="Icon" type="xs:unsignedShort" use="required"/>
+    <xs:attribute name="Name" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="CastRestriction">
+    <xs:attribute name="Use" type="xs:token"/>
+    <xs:attribute name="Receive" type="xs:token"/>
+  </xs:complexType>
+
+  <xs:complexType name="StatusAnimations">
+    <xs:all>
+      <xs:element minOccurs="0" name="Target" type="hyb:Animation"/>
+      <xs:element minOccurs="0" name="SpellEffect" type="hyb:Animation"/>
+    </xs:all>
+  </xs:complexType>
+
+  <xs:complexType name="Conditions">
+    <xs:all>
+      <xs:element minOccurs="0" name="Set" type="hyb:CreatureCondition"/>
+      <xs:element minOccurs="0" name="Unset" type="hyb:CreatureCondition"/>
+    </xs:all>
+  </xs:complexType>
+
+  <xs:complexType name="Messages">
+    <xs:all>
+      <xs:element minOccurs="0" name="Target" type="hyb:String8"/>
+      <xs:element minOccurs="0" name="Source" type="hyb:String8"/>
+      <xs:element minOccurs="0" name="Group" type="hyb:String8"/>
+      <xs:element minOccurs="0" name="Say" type="hyb:String8"/>
+      <xs:element minOccurs="0" name="Shout" type="hyb:String8"/>
+    </xs:all>
+  </xs:complexType>
+
+  <!-- Script source -->
+  <xs:simpleType name="ScriptSource">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="Target"/>
+      <xs:enumeration value="Caster"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:complexType name="Handler">
+    <xs:all>
+      <xs:element minOccurs="0"  name="Function" type="hyb:String8"/>
+      <xs:element minOccurs="0"  name="ScriptSource" type="hyb:ScriptSource"/>
+    </xs:all>
+  </xs:complexType>
+
+  <xs:complexType name="ModifierEffect" >
+    <xs:all>
+      <xs:element name="Animations" type="hyb:StatusAnimations" minOccurs="0"/>
+      <xs:element name="Sound" minOccurs="0">
+        <xs:complexType>
+          <xs:attribute name="Id" type="xs:unsignedByte" use="required" />
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="Messages" minOccurs="0" type="hyb:Messages"/>
+      <xs:element name="Heal" minOccurs="0" type="hyb:StatusHeal" />
+      <xs:element name="Damage" minOccurs="0" type="hyb:StatusDamage" />
+      <xs:element name="StatModifiers" minOccurs="0" type="hyb:StatModifiers" />
+      <xs:element name="Conditions" minOccurs="0" type="hyb:Conditions"/>
+      <xs:element name="Handler" minOccurs="0" type="hyb:Handler"/>
+    </xs:all>
+  </xs:complexType>
+
+  <xs:complexType name="StatusEffects">
+    <xs:all>
+      <xs:element minOccurs="0" name="OnApply" type="hyb:ModifierEffect" />
+      <xs:element minOccurs="0" name="OnTick" type="hyb:ModifierEffect" />
+      <xs:element minOccurs="0" name="OnRemove" type="hyb:ModifierEffect" />
+      <xs:element minOccurs="0" name="OnExpire" type="hyb:ModifierEffect" />
+    </xs:all>
+  </xs:complexType>
+
+  <xs:element name="Status" type="hyb:Status"/>
+
+</xs:schema>

@@ -13,16 +13,17 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2016 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
- * Authors:   Justin Baugh  <baughj@hybrasyl.com>
- *
+ * For contributors and individual authors please refer to CONTRIBUTORS.MD.
+ * 
  */
- 
- using System;
+
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
 using Hybrasyl.Enums;
 using Newtonsoft.Json;
 
@@ -34,7 +35,8 @@ namespace Hybrasyl
     {
         public const int MaximumLegendSize = 254;
 
-        [JsonProperty] private SortedDictionary<DateTime, LegendMark> _legend =
+        [JsonProperty]
+        private SortedDictionary<DateTime, LegendMark> _legend =
             new SortedDictionary<DateTime, LegendMark>();
 
         private Dictionary<string, LegendMark> _legendIndex = new Dictionary<string, LegendMark>();
@@ -49,8 +51,9 @@ namespace Hybrasyl
             if (_legend.Keys.Count == MaximumLegendSize) return false;
             if (!string.IsNullOrEmpty(mark.Prefix) && _legendIndex.ContainsKey(mark.Prefix))
                 throw new ArgumentException("A legend mark's prefix must be unique for a given character");
-            _legend.Add(mark.Created, mark);
-            _legendIndex[mark.Prefix] = mark;
+            _legend.Add(mark.Timestamp, mark);
+            if (mark.Prefix != null)
+                _legendIndex[mark.Prefix] = mark;
             return true;
         }
 
@@ -59,23 +62,29 @@ namespace Hybrasyl
             LegendMark mark;
             if (!_legendIndex.TryGetValue(prefix, out mark)) return false;
             _legendIndex.Remove(prefix);
-            _legend.Remove(mark.Created);
+            _legend.Remove(mark.Timestamp);
             return true;
         }
 
-        public bool AddMark(LegendIcon icon, LegendColor color, string text, DateTime created,
-            string prefix = default(string), bool isPublic = true, int quantity = 0)
+        public bool AddMark(LegendIcon icon, LegendColor color, string text, DateTime timestamp,
+            string prefix = default(string), bool isPublic = true, int quantity = 0, bool displaySeason = true, bool displayTimestamp = true)
         {
-            var newMark = new LegendMark(icon, color, text, created, prefix, isPublic, quantity);
+            var newMark = new LegendMark(icon, color, text, timestamp, prefix, isPublic, quantity, displaySeason, displayTimestamp);
             return _addLegendMark(newMark);
         }
 
         public bool AddMark(LegendIcon icon, LegendColor color, string text, string prefix = default(string),
-            bool isPublic = true, int quantity = 0)
+            bool isPublic = true, int quantity = 0, bool displaySeason = true, bool displayTimestamp = true)
         {
             var datetime = DateTime.Now;
-            var newMark = new LegendMark(icon, color, text, datetime, prefix, isPublic, quantity);
+            var newMark = new LegendMark(icon, color, text, datetime, prefix, isPublic, quantity, displaySeason, displayTimestamp);
             return _addLegendMark(newMark);
+        }
+
+        [OnDeserialized]
+        private void _CreateIndex(StreamingContext context)
+        {
+            RegenerateIndex();
         }
 
         public void RegenerateIndex()
@@ -107,20 +116,36 @@ namespace Hybrasyl
         }
     }
 
-    [JsonObject]
+    [JsonObject(MemberSerialization.OptIn)]
     public class LegendMark
     {
+        [JsonProperty]
         public string Prefix { get; set; }
+        [JsonProperty]
         public LegendColor Color { get; set; }
+        [JsonProperty]
         public LegendIcon Icon { get; set; }
+        [JsonProperty]
         public string Text { get; set; }
+        [JsonProperty]
         public bool Public { get; set; }
+        [JsonProperty]
+        public bool DisplaySeason { get; set; }
+        [JsonProperty]
+        public bool DisplayTimestamp { get; set; }
+        [JsonProperty]
+        public DateTime Timestamp { get; set; }
+        [JsonProperty]
         public DateTime Created { get; }
+        [JsonProperty]
         public DateTime LastUpdated { get; set; }
+        [JsonProperty]
         public int Quantity { get; set; }
 
-        public LegendMark(LegendIcon icon, LegendColor color, string text, DateTime created,
-            string prefix = default(string), bool isPublic = true, int quantity = 0)
+        public HybrasylTime HybrasylDate => HybrasylTime.ConvertToHybrasyl(Timestamp);
+
+        public LegendMark(LegendIcon icon, LegendColor color, string text, DateTime timestamp,
+            string prefix = default(string), bool isPublic = true, int quantity = 0, bool displaySeason=true, bool displayTimestamp=true)
         {
             Icon = icon;
             Color = color;
@@ -128,8 +153,11 @@ namespace Hybrasyl
             Public = isPublic;
             Quantity = quantity;
             Prefix = prefix;
-            Created = created;
-            LastUpdated = created;
+            Timestamp = timestamp;
+            Created = DateTime.Now;
+            LastUpdated = DateTime.Now;
+            DisplaySeason = displaySeason;
+            DisplayTimestamp = displayTimestamp;
         }
 
         public void AddQuantity(int quantity)
@@ -140,9 +168,13 @@ namespace Hybrasyl
 
         public override string ToString()
         {
-            var aislingDate = HybrasylTime.ConvertToHybrasyl(Created != LastUpdated ? Created : LastUpdated);
+            var aislingDate = HybrasylTime.ConvertToHybrasyl(Timestamp != LastUpdated ? Timestamp : LastUpdated);
             var returnstring = Text;
-            var markDate = $"{aislingDate.Age} {aislingDate.Year}, {aislingDate.Season}";
+            string markDate = "";
+            if (DisplayTimestamp && DisplaySeason)
+                markDate = $"{aislingDate.AgeName} {aislingDate.Year}, {aislingDate.Season}";
+            else if (DisplayTimestamp)
+                markDate = $"{aislingDate.AgeName} {aislingDate.Year}";
 
             var maxLength = 254 - 15 - markDate.Length;
 

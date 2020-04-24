@@ -13,23 +13,39 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
- * Authors:   Justin Baugh  <baughj@hybrasyl.com>
- *            Kyle Speck    <kojasou@hybrasyl.com>
+ * For contributors and individual authors please refer to CONTRIBUTORS.MD.
+ * 
  */
 
-using log4net;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using Hybrasyl.Enums;
 
 namespace Hybrasyl
 {
+
+    public static class EnumerableExtension
+    {
+        public static T PickRandom<T>(this IEnumerable<T> source)
+        {
+            return source.PickRandom(1).Single();
+        }
+
+        public static IEnumerable<T> PickRandom<T>(this IEnumerable<T> source, int count)
+        {
+            return source.Shuffle().Take(count);
+        }
+
+        public static IEnumerable<T> Shuffle<T>(this IEnumerable<T> source)
+        {
+            return source.OrderBy(x => Guid.NewGuid());
+        }
+    }
     public static class IntegerExtensions
     {
         public static string DisplayWithOrdinal(this int num)
@@ -66,7 +82,7 @@ namespace Hybrasyl
         public const int MonolithControl = 9;
         public const int TriggerRefresh = 10;
         public const int HandleDeath = 11;
-
+        public const int DialogRequest = 12;
     }
 
     static class ServerTypes
@@ -94,6 +110,9 @@ namespace Hybrasyl
         // Manhattan distance between the user performing an action (killing a monster, etc) and other
         // users in the group in order to be eligible for sharing.
         public const int GROUP_SHARING_DISTANCE = 20;
+
+        // Manhattan distance between two players required for an asynchronous dialog request
+        public const int ASYNC_DIALOG_DISTANCE = 10;
 
         public static string DataDirectory;
 
@@ -151,9 +170,13 @@ namespace Hybrasyl
         // Dialog sequence IDs between 1 and DIALOG_SEQUENCE_SHARED are processed as 
         // "shared" (globally available) sequences; sequence IDs between DIALOG_SEQUENCE_SHARED
         // and DIALOG_SEQUENCE_PURSUITS are pursuits (main menu options); IDs above 
-        // DIALOG_SEQUENCE_PURSUITS are local to the object in question.
+        // DIALOG_SEQUENCE_PURSUITS are local to the object in question. 
+        // DIALOG_SEQUENCE_ASYNC -> Special ID - e.g. a *singular* ID - reserved for asynchronous dialogs 
+        // (these are effectively individual dialog  sessions that are managed by the server between two participants)
+        // DIALOG_SEQUENCE_HARDCODED -> dialogs reserved for internal (e.g. C#) implementations, such as merchant stores, etc
         public const int DIALOG_SEQUENCE_SHARED = 5000;
         public const int DIALOG_SEQUENCE_PURSUITS = 5100;
+        public const int DIALOG_SEQUENCE_ASYNC = 65000;
         public const int DIALOG_SEQUENCE_HARDCODED = 65280;
 
         public static Dictionary<string, int> CLASSES = new Dictionary<string, int> {
@@ -209,53 +232,13 @@ namespace Hybrasyl
         public static int MAX_MR = 8;
     }
 
-    static class StatGainConstants
-    {
-        public const int PEASANT_BASE_HP_GAIN = 8;
-        public const int PEASANT_BASE_MP_GAIN = 8;
-        public const int PEASANT_BONUS_HP_GAIN = 4;
-        public const int PEASANT_BONUS_MP_GAIN = 4;
-
-        public const int WARRIOR_BASE_HP_GAIN = 71;
-        public const int WARRIOR_BASE_MP_GAIN = 8;
-        public const int WARRIOR_BONUS_HP_GAIN = 9;
-        public const int WARRIOR_BONUS_MP_GAIN = 4;
-
-        public const int ROGUE_BASE_HP_GAIN = 48;
-        public const int ROGUE_BASE_MP_GAIN = 22;
-        public const int ROGUE_BONUS_HP_GAIN = 10;
-        public const int ROGUE_BONUS_MP_GAIN = 8;
-
-        public const int MONK_BASE_HP_GAIN = 39;
-        public const int MONK_BASE_MP_GAIN = 31;
-        public const int MONK_BONUS_HP_GAIN = 9;
-        public const int MONK_BONUS_MP_GAIN = 12;
-
-        public const int PRIEST_BASE_HP_GAIN = 28;
-        public const int PRIEST_BASE_MP_GAIN = 55;
-        public const int PRIEST_BONUS_HP_GAIN = 4;
-        public const int PRIEST_BONUS_MP_GAIN = 10;
-
-        public const int WIZARD_BASE_HP_GAIN = 18;
-        public const int WIZARD_BASE_MP_GAIN = 68;
-        public const int WIZARD_BONUS_HP_GAIN = 4;
-        public const int WIZARD_BONUS_MP_GAIN = 4;
-
-
-        // Modifiers for HP/MP gain upon leveling up, based on the user's Level Circle
-        public const double LEVEL_CIRCLE_GAIN_MODIFIER_0 = 0.0;
-        public const double LEVEL_CIRCLE_GAIN_MODIFIER_1 = 0.25;
-        public const double LEVEL_CIRCLE_GAIN_MODIFIER_2 = 0.5;
-        public const double LEVEL_CIRCLE_GAIN_MODIFIER_3 = 0.75;
-        public const double LEVEL_CIRCLE_GAIN_MODIFIER_4 = 1.0;
-    }
-
     static class DialogTypes
     {
         public const int FUNCTION_DIALOG = -1;
         public const int SIMPLE_DIALOG = 0;
         public const int OPTIONS_DIALOG = 2;
         public const int INPUT_DIALOG = 4;
+        public const int JUMP_DIALOG = 8;
     }
 
     static class MessageTypes
@@ -283,6 +266,81 @@ namespace Hybrasyl
     namespace Utility
     {
 
+
+        public class MultiIndexDictionary<TKey1, TKey2, TValue>
+        {
+            private Dictionary<TKey1, KeyValuePair<TKey2, TValue>> _dict1;
+            private Dictionary<TKey2, KeyValuePair<TKey1, TValue>> _dict2;
+
+            public MultiIndexDictionary()
+            {
+                _dict1 = new Dictionary<TKey1, KeyValuePair<TKey2, TValue>>();
+                _dict2 = new Dictionary<TKey2, KeyValuePair<TKey1, TValue>>();
+            }
+
+            public void Add(TKey1 k1, TKey2 k2, TValue value)
+            {
+                _dict1.Add(k1, new KeyValuePair<TKey2, TValue>(k2, value));
+                _dict2.Add(k2, new KeyValuePair<TKey1, TValue>(k1, value));
+            }
+
+            public void Clear()
+            {
+                _dict1 = new Dictionary<TKey1, KeyValuePair<TKey2, TValue>>();
+                _dict2 = new Dictionary<TKey2, KeyValuePair<TKey1, TValue>>();
+            }
+
+            public int Count => _dict1.Count;
+
+            public bool ContainsKey(TKey1 k1) => _dict1.ContainsKey(k1);
+
+            public bool ContainsKey(TKey2 k2) => _dict2.ContainsKey(k2);
+         
+            public bool Remove(TKey1 k1)
+            {
+                if (_dict1.ContainsKey(k1))
+                {
+                    var k2obj = _dict1[k1];
+                    return _dict1.Remove(k1) && _dict2.Remove(k2obj.Key);
+                }
+                else
+                    return false;
+            }
+
+            public bool Remove(TKey2 k2)
+            {
+                if (_dict2.ContainsKey(k2))
+                {
+                    var k1obj = _dict2[k2];
+                    return _dict2.Remove(k2) && _dict1.Remove(k1obj.Key);
+                }
+                else
+                    return false;
+            }
+
+            public bool TryGetValue(TKey1 k1, out TValue value)
+            {
+                value = default;
+                if (_dict1.TryGetValue(k1,out KeyValuePair<TKey2, TValue> kvp))
+                {
+                    value = kvp.Value;
+                    return true;
+                }
+                return false;
+            }
+
+            public bool TryGetValue(TKey2 k2, out TValue value)
+            {
+                value = default;
+                if (_dict2.TryGetValue(k2, out KeyValuePair<TKey1,TValue> kvp))
+                {
+                    value = kvp.Value;
+                    return true;
+                }
+                return false;
+            }
+
+        }
         /// <summary>
         /// A class to allow easy grabbing of assembly info; we use this in various places to
         /// display uniform version / copyright info.
@@ -334,27 +392,25 @@ namespace Hybrasyl
         /// </summary>
         public static class PrettyPrinter
         {
-            public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
             /// <summary>
             /// Pretty print an object, which is essentially a dump of its properties, at the moment.
             /// </summary>
             /// <param name="obj">The object to be pretty printed, using Hybrasyl.Utility.Logger.</param>
             public static void PrettyPrint(object obj)
             {
-                Logger.DebugFormat("object dump follows");
+                GameLog.DebugFormat("object dump follows");
                 try
                 {
                     foreach (PropertyDescriptor descriptor in TypeDescriptor.GetProperties(obj))
                     {
                         string name = descriptor.Name;
                         object value = descriptor.GetValue(obj);
-                        Logger.DebugFormat("{0} = {1}", name, value);
+                        GameLog.DebugFormat("{0} = {1}", name, value);
                     }
                 }
                 catch (Exception e)
                 {
-                    Logger.ErrorFormat("Couldn't pretty print: {0}", e.ToString());
+                    GameLog.ErrorFormat("Couldn't pretty print: {0}", e.ToString());
                 }
             }
         }
@@ -401,6 +457,8 @@ namespace Hybrasyl
                 a[0] = char.ToUpper(a[0]);
                 return new string(a);
             }
+            public static string Normalize(string key) => Regex.Replace(key.ToLower(), @"\s+", "");
+
         }
 
     } // end Namespace:Utility

@@ -1,0 +1,340 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    targetNamespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02"
+    xmlns:hyb="http://www.hybrasyl.com/XML/Hybrasyl/2020-02"
+    xmlns="http://www.hybrasyl.com/XML/Hybrasyl/2020-02"
+    elementFormDefault="qualified">
+  <xs:annotation>
+    <xs:documentation xml:lang="en">
+      This file is part of Project Hybrasyl.
+
+      This program is free software; you can redistribute it and/or modify
+      it under the terms of the Affero General Public License as published by
+      the Free Software Foundation, version 3.
+
+      This program is distributed in the hope that it will be useful, but
+      without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+      or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+      for more details.
+
+      You should have received a copy of the Affero General Public License along
+      with this program. If not, see http://www.gnu.org/licenses/ .
+
+      (C) 2020 ERISCO, LLC
+
+      For contributors and individual authors please refer to CONTRIBUTORS.MD.
+    </xs:documentation>
+  </xs:annotation>
+
+  <!-- Damage effects type -->
+  <xs:complexType name="CastableDamage">
+    <xs:all>
+      <xs:element name="Flags" type="hyb:DamageFlags" />
+      <xs:element name="Simple" type="hyb:SimpleQuantity" />
+      <xs:element name="Formula" type="xs:string" />
+    </xs:all>
+    <xs:attribute name="Type" type="hyb:DamageType" />
+  </xs:complexType>
+
+  <!-- Heal effects type -->
+  <xs:complexType name="CastableHeal">
+    <xs:sequence minOccurs="0" maxOccurs="1">
+      <xs:element name="Simple" type="hyb:SimpleQuantity" />
+      <xs:element name="Formula" type="xs:string" />
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Skill/spell book location -->
+  <xs:simpleType name="Book">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="PrimarySkill" />
+      <xs:enumeration value="SecondarySkill" />
+      <xs:enumeration value="UtilitySkill" />
+      <xs:enumeration value="PrimarySpell" />
+      <xs:enumeration value="SecondarySpell" />
+      <xs:enumeration value="UtilitySpell" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:complexType name="CastableMotion">
+    <xs:attribute name="Class" use="optional" type="hyb:ClassList"/> 
+    <xs:attribute name="Id" type="xs:unsignedByte"/>
+    <xs:attribute name="Speed" type="xs:short"/>
+  </xs:complexType>
+
+  <xs:complexType name="CastableMotionsList">
+    <xs:sequence>
+      <xs:element name="Motion" type="hyb:CastableMotion" minOccurs="1" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Item specification (used for requirements / cast cost) -->
+  <xs:complexType name="ItemSpecification">
+    <xs:simpleContent>
+      <xs:extension base="hyb:String8">
+        <xs:attribute name="Quantity" default="1" type="xs:unsignedByte" />
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <!-- Item specifications container element -->
+  <xs:complexType name="ItemsSpecification">
+    <xs:sequence>
+      <xs:element name="Item" type="hyb:ItemSpecification" minOccurs="1" maxOccurs="unbounded" />
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Casting cost -->
+  <xs:complexType name="ClassCastCost">
+    <xs:sequence minOccurs="0" maxOccurs="1">
+      <xs:element name="Items" minOccurs="0" maxOccurs="1" type="hyb:ItemsSpecification" />
+      <xs:element name="Stat" minOccurs="0" maxOccurs="1">
+        <xs:complexType>
+          <!-- hp/mp can be expressed as percentages here -->
+          <xs:attribute name="Hp" type="hyb:String8" default="0" />
+          <xs:attribute name="Mp" type="hyb:String8" default="0" />
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="Gold" type="xs:unsignedInt" minOccurs="0" maxOccurs="1" />
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="CastCost">
+    <xs:complexContent>
+      <xs:extension base="hyb:ClassCastCost">
+        <xs:attribute name="Class" use="optional" type="hyb:ClassList">
+        </xs:attribute>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="CastCostList">
+    <xs:sequence>
+      <xs:element name="CastCost" type="hyb:CastCost"  minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Intent container element -->
+  <xs:complexType name="CastableIntents">
+    <xs:sequence>
+      <xs:element name="Intent" type="hyb:CastableIntent" minOccurs="1" maxOccurs="unbounded" />
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Intent: What does the spell do, and whom does it affect? -->
+  <xs:complexType name="CastableIntent">
+    <xs:attribute name="UseType" type="hyb:SpellUseType" default="NoTarget" use="optional"/>
+    <xs:attribute name="Radius" type="xs:unsignedByte" default="0" />
+    <xs:attribute name="Direction" type="hyb:IntentDirection" default="None"/>
+    <xs:attribute name="Target" type="hyb:IntentTargetList" use="required" />
+    <xs:attribute name="MaxTargets" type="xs:unsignedByte" default="0" />
+  </xs:complexType>
+
+  <!-- MaxLevel type: each class can have various maximum levels for a spell -->
+  <xs:complexType name="MaxLevel">
+    <xs:attribute name="Monk" type="xs:unsignedByte" use="optional" />
+    <xs:attribute name="Warrior" type="xs:unsignedByte" use="optional" />
+    <xs:attribute name="Peasant" type="xs:unsignedByte" use="optional" />
+    <xs:attribute name="Wizard" type="xs:unsignedByte" use="optional" />
+    <xs:attribute name="Priest" type="xs:unsignedByte" use="optional" />
+    <xs:attribute name="Rogue" type="xs:unsignedByte" use="optional" />
+  </xs:complexType>
+
+  <!-- Requirements: What does a player need to learn this spell? -->
+  <xs:complexType name="ClassRequirement">
+    <xs:sequence minOccurs="0" maxOccurs="1">
+      <!-- Player level -->
+      <xs:element name="Level" minOccurs="0" maxOccurs="1">
+        <xs:complexType>
+          <xs:attribute name="Min" type="xs:unsignedByte" default="0" />
+          <xs:attribute name="Max" type="xs:unsignedByte" default="255" />
+        </xs:complexType>
+      </xs:element>
+      <!-- Player ability level -->
+      <xs:element name="Ab" minOccurs="0" maxOccurs="1">
+        <xs:complexType>
+          <xs:attribute name="Min" type="xs:unsignedByte" default="0" />
+          <xs:attribute name="Max" type="xs:unsignedByte" default="255" />
+        </xs:complexType>
+      </xs:element>
+      <!-- Items needed to learn spell -->
+      <xs:element name="Items" minOccurs="0" maxOccurs="1" type="hyb:ItemsSpecification" />
+      <!-- Gold needed to learn spell -->
+      <xs:element name="Gold" minOccurs="0" maxOccurs="1" type="xs:unsignedInt" />
+      <!-- Stat requirements -->
+      <xs:element name="Physical" minOccurs="0" maxOccurs="1">
+        <xs:complexType>
+          <xs:attribute name="Str" default="0" type="xs:unsignedByte" />
+          <xs:attribute name="Int" default="0" type="xs:unsignedByte" />
+          <xs:attribute name="Wis" default="0" type="xs:unsignedByte" />
+          <xs:attribute name="Con" default="0" type="xs:unsignedByte" />
+          <xs:attribute name="Dex" default="0" type="xs:unsignedByte" />
+          <xs:attribute name="Hp" default="0" type="xs:unsignedInt" />
+          <xs:attribute name="Mp" default="0" type="xs:unsignedInt" />
+        </xs:complexType>
+      </xs:element>
+      <!-- Prerequisites (other spells which must be learned first) -->
+      <xs:element name="Prerequisites" minOccurs="0" maxOccurs="0" type="hyb:LearnPrerequisites" />
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="Requirement">
+    <xs:complexContent>
+      <xs:extension base="hyb:ClassRequirement">
+        <xs:attribute name="Class" use="optional" type="hyb:ClassList"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="Requirements">
+    <xs:sequence>
+      <xs:element name="Requirement" type="hyb:Requirement" minOccurs="1" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Prerequisites -->
+  <xs:complexType name="LearnPrerequisites">
+    <xs:sequence>
+      <xs:element name="Prerequisite" minOccurs="1" maxOccurs="unbounded" type="hyb:LearnPrerequisite" />
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Individual prerequisite -->
+  <xs:complexType name="LearnPrerequisite">
+    <xs:simpleContent>
+      <xs:extension base="hyb:String8">
+        <xs:attribute name="Level" use="optional" type="xs:unsignedByte" />
+        <xs:attribute name="Ab" use="optional" type="xs:unsignedByte"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <!-- Weapon type list (for casting restrictions) -->
+  <xs:simpleType name="WeaponTypeList">
+    <xs:restriction>
+      <xs:simpleType>
+        <xs:list itemType="hyb:WeaponType" />
+      </xs:simpleType>
+      <xs:maxLength value="5" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Animations container element -->
+  <xs:complexType name="SpellAnimations">
+    <xs:sequence minOccurs="0" maxOccurs="1">
+      <xs:element name="OnCast" type="hyb:AnimationGroup" minOccurs="0" maxOccurs="1" />
+      <xs:element name="OnEnd" type="hyb:AnimationGroup" minOccurs="0" maxOccurs="1" />
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Animation group -->
+  <xs:complexType name="AnimationGroup">
+    <xs:all>
+      <xs:element name="Player" type="hyb:CastableMotionsList" minOccurs="0" maxOccurs="1" />
+      <xs:element name="SpellEffect" type="hyb:Animation" minOccurs="0" maxOccurs="1" />
+      <xs:element name="Target" type="hyb:Animation" minOccurs="0" maxOccurs="1" />
+    </xs:all>
+  </xs:complexType>
+
+
+  <!-- Effects type -->
+  <xs:complexType name="CastableEffects">
+    <xs:all>
+      <xs:element name="Animations" type="hyb:SpellAnimations" minOccurs="0" maxOccurs="1" />
+      <xs:element name="Sound" minOccurs="0" maxOccurs="1">
+        <xs:complexType>
+          <xs:attribute name="Id" type="xs:unsignedByte" use="required" />
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="Heal" minOccurs="0" maxOccurs="1" type="hyb:CastableHeal" />
+      <xs:element name="Damage" minOccurs="0" maxOccurs="1" type="hyb:CastableDamage" />
+      <xs:element name="StatModifiers" minOccurs="0" maxOccurs="1" type="hyb:StatModifiers" />
+      <xs:element name="Statuses" minOccurs="0" maxOccurs="1" type="hyb:Statuses" />
+    </xs:all>
+    <xs:attribute name="ScriptOverride" type="xs:boolean" default="false"/>
+  </xs:complexType>
+
+  <xs:complexType name="Categories">
+    <xs:sequence minOccurs="0" maxOccurs="1">
+      <xs:element name="Category" type="hyb:Category"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="Category" >
+    <xs:simpleContent>
+      <xs:extension base="hyb:String8">
+        <xs:attribute name="Unique" type="xs:boolean" default="false" use="optional" />
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <!-- Restrictions on casting, such as types of equipment, or
+  existing spells -->
+  <xs:complexType name="CastableRestrictions">
+    <xs:sequence minOccurs="0" maxOccurs="unbounded">
+      <xs:element name="WeaponType" type="hyb:WeaponType" maxOccurs="1" />
+      <xs:element name="EquipType" type="hyb:EquipmentSlot" maxOccurs="1" />
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="Description">
+    <xs:simpleContent>
+      <xs:extension base="hyb:String8">
+        <xs:attribute name="Class" use="optional" type="hyb:ClassList"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:complexType name="DescriptionList">
+    <xs:sequence>
+      <xs:element name="Description" type="hyb:Description" minOccurs="1" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="AddStatus">
+    <xs:simpleContent>
+      <xs:extension base="hyb:String8">
+        <xs:attribute name="Duration" use="optional" default="0" type="xs:int"/>
+        <xs:attribute name="Intensity" use="optional" default="1.0" type="xs:float"/>
+        <xs:attribute name="Speed" default="1.0" type="xs:float"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:complexType name="Statuses">
+    <xs:sequence minOccurs="0" maxOccurs="unbounded">
+      <xs:element name="Add" type="hyb:AddStatus"/>
+      <xs:element name="Remove" type="hyb:String8"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Castable type -->
+  <xs:complexType name="Castable">
+    <xs:all minOccurs="0" maxOccurs="1">
+      <xs:element name="Descriptions" type="hyb:DescriptionList" minOccurs="0" maxOccurs="1" />
+      <xs:element name="Name" type="hyb:String8" minOccurs="1" maxOccurs="1" />
+      <xs:element name="Categories" type="hyb:Categories" minOccurs="0" maxOccurs="1" />
+      <xs:element name="CastCosts" type="hyb:CastCostList" minOccurs="0" maxOccurs="1" />
+      <xs:element name="Intents" type="hyb:CastableIntents" minOccurs="0" maxOccurs="1" />
+      <xs:element name="MaxLevel" type="hyb:MaxLevel" minOccurs="0" maxOccurs="1" />
+      <xs:element name="Requirements" type="hyb:Requirements" minOccurs="0" maxOccurs="1" />
+      <xs:element name="Restrictions" type="hyb:CastableRestrictions" minOccurs="0" maxOccurs="1" />
+      <xs:element name="Effects" type="hyb:CastableEffects" minOccurs="0" maxOccurs="1" />
+      <xs:element name="Script" type="xs:string" minOccurs="0" maxOccurs="1"/>
+    </xs:all>
+    <!-- Castable attributes -->
+    <xs:attribute name="Type" use="required" />
+    <xs:attribute name="Icon" type="xs:unsignedByte" use="required" />
+    <xs:attribute name="Book" type="hyb:Book" use="required" />
+    <xs:attribute name="Element" default="None" type="hyb:Element"/>
+    <xs:attribute name="Lines" type="xs:unsignedByte" use="optional" default="0" />
+    <xs:attribute name="Class" type="hyb:ClassList" use="optional"/>
+    <xs:attribute name="Cooldown" use="optional" default="0" type="xs:int" />
+    <xs:attribute name="IsAssail" use="optional" default="false" type="xs:boolean"/>
+    <xs:attribute name="Reflectable" use="optional" default="true" type="xs:boolean"/>
+  </xs:complexType>
+
+  <!-- Bring it all together -->
+  <xs:element name="Castable" type="hyb:Castable" />
+</xs:schema>

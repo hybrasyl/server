@@ -1,23 +1,39 @@
-﻿using System;
+﻿/*
+ * This file is part of Project Hybrasyl.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the Affero General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+ * for more details.
+ *
+ * You should have received a copy of the Affero General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
+ *
+ * (C) 2020 ERISCO, LLC 
+ *
+ * For contributors and individual authors please refer to CONTRIBUTORS.MD.
+ * 
+ */
+
+using System;
 using System.Collections.Generic;
 using System.Text;
-using Hybrasyl.Castables;
 using Hybrasyl.Objects;
-using log4net;
 
 namespace Hybrasyl
 {
-  
+
     internal class FormulaParser
     {
         private Creature _caster;
-        private Castable _castable;
+        private Xml.Castable _castable;
         private Creature _target;
-        public new static readonly ILog Logger =
-       LogManager.GetLogger(
-       System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        public FormulaParser(Creature caster, Castable castable, Creature target = null)
+        public FormulaParser(Creature caster, Xml.Castable castable, Creature target = null)
         {
             _caster = caster;
             _castable = castable;

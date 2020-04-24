@@ -13,17 +13,18 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
- * Authors:   Justin Baugh  <baughj@hybrasyl.com>
- *
+ * For contributors and individual authors please refer to CONTRIBUTORS.MD.
+ * 
  */
 
-using log4net;
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
+using System.IO;
+using System.Net;
+using System.Text.Json;
 using System.Threading;
 
 namespace Hybrasyl
@@ -31,7 +32,6 @@ namespace Hybrasyl
 
     public static class GlobalConnectionManifest
     {
-        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         private static long _connectionId = 0;
         public static long GetNewConnectionId()
         {
@@ -63,21 +63,77 @@ namespace Hybrasyl
         public static void DeregisterClient(Client client)
         {
             ((IDictionary) ConnectedClients).Remove(client.ConnectionId);
-                Logger.InfoFormat("Deregistering {0}", client.ConnectionId);
+                GameLog.InfoFormat("Deregistering {0}", client.ConnectionId);
             // Send a control message to clean up after World users; Lobby and Login handle themselves
             if (client.ServerType == ServerTypes.World)
             {
                 ((IDictionary)WorldClients).Remove(client.ConnectionId);
                 // This will also handle removing the user from WorldClients if necessary
-                World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.CleanupUser, client.ConnectionId));
+                try
+                {
+                    World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.CleanupUser, client.ConnectionId));
+                }
+                catch (InvalidOperationException)
+                {
+                    if (!World.ControlMessageQueue.IsCompleted)
+                        GameLog.ErrorFormat("Connection {id}: DeregisterClient failed", client.ConnectionId);
+                }
             }
+        }
+
+        public static byte[] RequestEncryptionKey(string endpoint, IPAddress remoteAddress)
+        {
+            byte[] key;
+
+            var seed = new Seed() { Ip = remoteAddress.ToString() };
+
+            var webReq = WebRequest.Create(new Uri(endpoint));
+            webReq.ContentType = "application/json";
+            webReq.Method = "POST";
+
+            var json = JsonSerializer.Serialize(seed);
+
+            using (var sw = new StreamWriter(webReq.GetRequestStream()))
+            {
+                sw.Write(json);
+            }
+
+            var response = webReq.GetResponse();
+            using (var sr = new StreamReader(response.GetResponseStream()))
+            {
+                key = (byte[])JsonSerializer.Deserialize(sr.ReadToEnd(), typeof(byte[]));
+            }
+
+            return key;
+        }
+
+        public static bool ValidateEncryptionKey(string endpoint, ServerToken token)
+        {
+            bool valid;
+            
+            var webReq = WebRequest.Create(new Uri(endpoint));
+            webReq.ContentType = "application/json";
+            webReq.Method = "POST";
+
+            var json = JsonSerializer.Serialize(token);
+
+            using (var sw = new StreamWriter(webReq.GetRequestStream()))
+            {
+                sw.Write(json);
+            }
+
+            var response = webReq.GetResponse();
+            using (var sr = new StreamReader(response.GetResponseStream()))
+            {
+                valid = (bool)JsonSerializer.Deserialize(sr.ReadToEnd(), typeof(bool));
+            }
+
+            return valid;
         }
     }
 
     public class HybrasylMessage
     {
-        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
         public Int64 Ticks { get; private set; }
         // Maybe this can be like, idk, function name or something? Thread context? Whatever?
         public string Sender { get; private set; }
@@ -113,6 +169,20 @@ namespace Hybrasyl
         {
             Opcode = opcode;
         }
+    }
+
+    [Serializable]
+    public class ServerToken
+    {
+        public byte[] Seed { get; set; }
+        public string Ip { get; set; }
+    }
+
+    [Serializable]
+    public class Seed
+    {
+        public string Ip { get; set; }
+        public string Key { get; set; }
     }
 
 }

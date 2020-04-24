@@ -13,16 +13,13 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015-2016 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
  */
-
-
+ 
 using Hybrasyl.Enums;
-using Hybrasyl.Items;
 using Hybrasyl.Scripting;
 using Hybrasyl.Threading;
 using System;
@@ -31,7 +28,7 @@ namespace Hybrasyl.Objects
 {
     public class ItemObject : VisibleObject
     {
-        public int TemplateId { get; private set; }
+        public string TemplateId { get; private set; }
 
         /// <summary>
         /// Check to see if a specified user can equip an ItemObject. Returns a boolean indicating whether
@@ -49,7 +46,7 @@ namespace Hybrasyl.Objects
 
             // Check gender
 
-            if (Sex != 0 && (Sex != userobj.Sex))
+            if (Gender != 0 && (Gender != userobj.Gender))
             {
                 message = "You conclude this garment would look much better on someone else.";
                 return false;
@@ -57,9 +54,9 @@ namespace Hybrasyl.Objects
 
             // Check class
 
-            if (userobj.Class != Class && Class != Enums.Class.Peasant)
+            if (userobj.Class != Class && Class != Xml.Class.Peasant)
             {
-                message = userobj.Class == Enums.Class.Peasant ? "Perhaps one day you'll know how to use such things." : "Your path has forbidden itself from using such vulgar implements.";
+                message = userobj.Class == Xml.Class.Peasant ? "Perhaps one day you'll know how to use such things." : "Your path has forbidden itself from using such vulgar implements.";
                 return false;
             }
 
@@ -79,7 +76,7 @@ namespace Hybrasyl.Objects
 
             // Check if user is equipping a shield while holding a two-handed weapon
 
-            if (EquipmentSlot == ClientItemSlots.Shield && userobj.Equipment.Weapon != null && userobj.Equipment.Weapon.WeaponType == Items.WeaponType.TwoHand)
+            if (EquipmentSlot == ClientItemSlots.Shield && userobj.Equipment.Weapon != null && userobj.Equipment.Weapon.WeaponType == Xml.WeaponType.TwoHand)
             {
                 message = "You can't equip a shield with a two-handed weapon.";
                 return false;
@@ -87,7 +84,7 @@ namespace Hybrasyl.Objects
 
             // Check if user is equipping a two-handed weapon while holding a shield
 
-            if (EquipmentSlot == ClientItemSlots.Weapon && (WeaponType == Items.WeaponType.TwoHand || WeaponType == Items.WeaponType.Staff) && userobj.Equipment.Shield != null)
+            if (EquipmentSlot == ClientItemSlots.Weapon && (WeaponType == Xml.WeaponType.TwoHand || WeaponType == Xml.WeaponType.Staff) && userobj.Equipment.Shield != null)
             {
                 message = "You can't equip a two-handed weapon with a shield.";
                 return false;
@@ -110,14 +107,14 @@ namespace Hybrasyl.Objects
             return true;
         }
 
-        private Item Template => World.WorldData.Get<Item>(TemplateId);
+        private Xml.Item Template => World.WorldData.Get<Xml.Item>(TemplateId);
 
         public new string Name => Template.Name;
 
         public new ushort Sprite => Template.Properties.Appearance.Sprite;
 
         public bool Usable => Template.Properties.Use != null;
-        public Use Use => Template.Properties.Use;
+        public Xml.Use Use => Template.Properties.Use;
 
         public ushort EquipSprite => Template.Properties.Appearance.EquipSprite == 0 ? Template.Properties.Appearance.Sprite : Template.Properties.Appearance.EquipSprite;
            
@@ -133,7 +130,7 @@ namespace Hybrasyl.Objects
             }
         }
 
-        public WeaponType WeaponType => Template.Properties.Equipment.WeaponType;
+        public Xml.WeaponType WeaponType => Template.Properties.Equipment.WeaponType;
         public byte EquipmentSlot => Convert.ToByte(Template.Properties.Equipment.Slot);
         public int Weight => Template.Properties.Physical.Weight;
         public int MaximumStack => Template.MaximumStack;
@@ -143,8 +140,8 @@ namespace Hybrasyl.Objects
 
         public byte Level => Template.Level;
         public byte Ability => Template.Ability;
-        public Enums.Class Class => (Enums.Class)(Template.Class);
-        public Sex Sex => (Sex)Template.Gender;
+        public Xml.Class Class => Template.Class;
+        public Xml.Gender Gender => Template.Gender;
 
         public int BonusHp => Template.BonusHp;
         public int BonusMp => Template.BonusMp;
@@ -162,7 +159,7 @@ namespace Hybrasyl.Objects
 
         public byte BodyStyle => Convert.ToByte(Template.Properties.Appearance.BodyStyle);
 
-        public Enums.Element Element => (Enums.Element)Template.Element;
+        public Xml.Element Element => Template.Element;
 
         public ushort MinLDamage => Template.MinLDamage;
         public ushort MaxLDamage => Template.MaxLDamage;
@@ -174,34 +171,29 @@ namespace Hybrasyl.Objects
 
         public sbyte Regen => Template.Regen;
 
-        public bool Enchantable => Template.Properties.Flags.HasFlag(ItemFlags.Enchantable);
+        public bool Enchantable => Template.Properties.Flags.HasFlag(Xml.ItemFlags.Enchantable);
 
-        public bool Consecratable => Template.Properties.Flags.HasFlag(ItemFlags.Consecratable);
+        public bool Consecratable => Template.Properties.Flags.HasFlag(Xml.ItemFlags.Consecratable);
 
-        public bool Tailorable => Template.Properties.Flags.HasFlag(ItemFlags.Tailorable);
+        public bool Tailorable => Template.Properties.Flags.HasFlag(Xml.ItemFlags.Tailorable);
 
-        public bool Smithable => Template.Properties.Flags.HasFlag(ItemFlags.Smithable);
+        public bool Smithable => Template.Properties.Flags.HasFlag(Xml.ItemFlags.Smithable);
 
-        public bool Exchangeable => Template.Properties.Flags.HasFlag(ItemFlags.Exchangeable);
+        public bool Exchangeable => Template.Properties.Flags.HasFlag(Xml.ItemFlags.Exchangeable);
 
-        public bool Master => Template.Properties.Flags.HasFlag(ItemFlags.Master);
+        public bool Master => Template.Properties.Flags.HasFlag(Xml.ItemFlags.Master);
 
         public bool Perishable => Template.Properties.Physical.Perishable;
 
-        public bool Unique => Template.Properties.Flags.HasFlag(ItemFlags.Unique);
+        public bool Unique => Template.Properties.Flags.HasFlag(Xml.ItemFlags.Unique);
 
-        public bool UniqueEquipped => Template.Properties.Flags.HasFlag(ItemFlags.UniqueEquipped);
+        public bool UniqueEquipped => Template.Properties.Flags.HasFlag(Xml.ItemFlags.UniqueEquipped);
 
         public bool IsVariant => Template.IsVariant;
 
-        public Item ParentItem => Template.ParentItem;
+        public Xml.Item ParentItem => Template.ParentItem;
 
-        public Variant CurrentVariant => Template.CurrentVariant;
-
-        public Item GetVariant(int variantId)
-        {
-            return Template.Variants[variantId];
-        }
+        public Xml.Variant CurrentVariant => Template.CurrentVariant;
 
         private Lockable<int> _count { get; set; }
         public int Count
@@ -223,7 +215,7 @@ namespace Hybrasyl.Objects
         {
             // Run through all the different potential uses. We allow combinations of any
             // use specified in the item XML.
-            Logger.InfoFormat($"User {trigger.Name}: used item {Name}");
+            GameLog.InfoFormat($"User {trigger.Name}: used item {Name}");
             if (Use.Script != null)
             {
                 Script invokeScript;
@@ -232,16 +224,12 @@ namespace Hybrasyl.Objects
                     trigger.SendSystemMessage("It doesn't work.");
                     return;
                 }
-                    
-                try
-                {
-                    invokeScript.ExecuteFunction("OnUse", new HybrasylWorldObject(this), new HybrasylUser(trigger));
-                }
-                catch (Exception e)
+
+                if (!invokeScript.ExecuteFunction("OnUse", trigger, null, this))
                 {
                     trigger.SendSystemMessage("It doesn't work.");
-                    Logger.ErrorFormat($"User {trigger.Name}, item {Name}: exception {e}");
-                }              
+                    return;
+                }
             }            
             if (Use.Effect != null)
             {
@@ -273,7 +261,7 @@ namespace Hybrasyl.Objects
             }
         }
 
-        public ItemObject(int id, World world)
+        public ItemObject(string id, World world)
         {
             World = world;
             TemplateId = id;

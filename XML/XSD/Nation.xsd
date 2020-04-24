@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    targetNamespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02"
+    xmlns:hyb="http://www.hybrasyl.com/XML/Hybrasyl/2020-02"
+    xmlns="http://www.hybrasyl.com/XML/Hybrasyl/2020-02"
+    elementFormDefault="qualified">
+  <xs:annotation>
+    <xs:documentation xml:lang="en">
+      This file is part of Project Hybrasyl.
+
+      This program is free software; you can redistribute it and/or modify
+      it under the terms of the Affero General Public License as published by
+      the Free Software Foundation, version 3.
+
+      This program is distributed in the hope that it will be useful, but
+      without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+      or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+      for more details.
+
+      You should have received a copy of the Affero General Public License along
+      with this program. If not, see http://www.gnu.org/licenses/ .
+
+      (C) 2020 ERISCO, LLC
+
+      For contributors and individual authors please refer to CONTRIBUTORS.MD.
+    </xs:documentation>
+  </xs:annotation>
+
+  <xs:complexType name="SpawnPoints">
+    <xs:sequence>
+      <xs:element name="SpawnPoint" minOccurs="1" maxOccurs="unbounded" type="hyb:SpawnPoint">
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="SpawnPoint">
+    <xs:attribute name="MapName" type="hyb:String8" use="required" />
+    <xs:attribute name="X" type="xs:unsignedByte" use="required" />
+    <xs:attribute name="Y" type="xs:unsignedByte" use="required" />
+  </xs:complexType>
+
+
+  <xs:complexType name="NationMap">
+    <xs:attribute name="Name" type="hyb:String8"/>
+  </xs:complexType>
+
+  <xs:complexType name="Territory">
+    <xs:sequence>
+      <xs:element name="Map" type="hyb:NationMap" minOccurs="1" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="Nation" type="hyb:String8"/>
+  </xs:complexType>
+
+  <xs:element name="Nation">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="Name" type="hyb:String8" minOccurs="1" maxOccurs="1" />
+        <xs:element name="Description" type="hyb:String8" minOccurs="0" maxOccurs="1" />
+        <xs:element name="SpawnPoints" type="hyb:SpawnPoints" minOccurs="0" maxOccurs="1" />
+      </xs:sequence>
+      <xs:attribute name="Flag" type="xs:unsignedByte" use="required" />
+      <xs:attribute name="Default" type="xs:boolean" default="false"/>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="Territory" type="hyb:Territory"/>
+
+</xs:schema>

@@ -1,21 +1,36 @@
-﻿using Hybrasyl.Objects;
-using log4net;
+﻿/*
+ * This file is part of Project Hybrasyl.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the Affero General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+ * for more details.
+ *
+ * You should have received a copy of the Affero General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
+ *
+ * (C) 2020 ERISCO, LLC 
+ *
+ * For contributors and individual authors please refer to CONTRIBUTORS.MD.
+ * 
+ */
+ 
+using Hybrasyl.Objects;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace Hybrasyl.Messaging
 {
     public class ChatCommandHandler
     {
         private Dictionary<string, (Type Type, List<int> argCount)> _associates = new Dictionary<string, (Type, List<int>)>();
-        private static readonly ILog UserLogger = LogManager.GetLogger("UserActivityLogger");
-        private static readonly ILog GmLogger = LogManager.GetLogger("GmActivityLogger");
-        public static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         private static readonly Regex QuotesRegex = new Regex(" (?=(?:[^\"]*\"[^\"]*\")*(?![^\"]*\"))");
         private static readonly Regex ArgsRegex = new Regex("(\\[[a-zA-Z\\<\\> ]*\\])");
 
@@ -55,11 +70,11 @@ namespace Hybrasyl.Messaging
                     }
                     // int argcount = ((string)x.GetField("ArgumentText", BindingFlags.Public | BindingFlags.Static).GetValue(null)).Count(e => e == '<');
                     _associates.Add(command, (x, allowedArgcounts));
-                    Logger.Info($"{command} registered");
+                    GameLog.Info($"{command} registered");
                 }
                 catch (Exception e)
                 {
-                    Logger.Warn($"{x.Name}: could not be loaded - {e}");
+                    GameLog.Warning($"{x.Name}: could not be loaded - {e}");
                 }
             }
         }
@@ -89,7 +104,7 @@ namespace Hybrasyl.Messaging
                 if (priv && !user.IsPrivileged)
                 {
                     user.SendSystemMessage("Failed: Access denied (command is privileged)");
-                    UserLogger.Error($"{user.Name}: denied attempt to use privileged command {command}");
+                    GameLog.UserActivityError($"{user.Name}: denied attempt to use privileged command {command}");
                     return;
                 }
 
@@ -108,10 +123,10 @@ namespace Hybrasyl.Messaging
                 if (user.IsPrivileged)
                 {
                     var type = (priv == true ? "privileged" : "unprivileged");
-                    GmLogger.Warn($"{user.Name}: executing {type} command {command} {args}");
+                    GameLog.Warning($"{user.Name}: executing {type} command {command} {args}");
                 }
                 else
-                    UserLogger.Info($"{user.Name}: executing command {command} {args}");
+                    GameLog.Info($"{user.Name}: executing command {command} {args}");
 
 
                 var wtf = handler.Type.GetMethod("Run", BindingFlags.Public | BindingFlags.Static);

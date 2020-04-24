@@ -13,11 +13,10 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
- * Authors:   Kyle Speck    <kojasou@hybrasyl.com>
- *
+ * For contributors and individual authors please refer to CONTRIBUTORS.MD.
+ * 
  */
 
 using System;
@@ -31,11 +30,11 @@ namespace Hybrasyl
         public Lobby(int port)
             : base(port)
         {
-            Logger.InfoFormat("LobbyConstructor: port is {0}", port);
+            GameLog.InfoFormat("LobbyConstructor: port is {0}", port);
 
             PacketHandlers = new LobbyPacketHandler[256];
             for (int i = 0; i < 256; ++i)
-                PacketHandlers[i] = (c, p) => Logger.WarnFormat("Lobby: Unhandled opcode 0x{0:X2}", p.Opcode);
+                PacketHandlers[i] = (c, p) => GameLog.WarningFormat("Lobby: Unhandled opcode 0x{0:X2}", p.Opcode);
             PacketHandlers[0x00] = PacketHandler_0x00_ClientVersion;
             PacketHandlers[0x57] = PacketHandler_0x57_ServerTable;
 
@@ -60,7 +59,7 @@ namespace Hybrasyl
                 var x56 = new ServerPacket(0x56);
                 x56.WriteUInt16((ushort)Game.ServerTable.Length);
                 x56.Write(Game.ServerTable);
-                Logger.InfoFormat("ServerTable: Sent: {0}", BitConverter.ToString(x56.ToArray()));
+                GameLog.InfoFormat("ServerTable: Sent: {0}", BitConverter.ToString(x56.ToArray()));
                 client.Enqueue(x56);
             }
             else

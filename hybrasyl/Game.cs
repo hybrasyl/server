@@ -13,38 +13,29 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
- * Authors:   Justin Baugh  <baughj@hybrasyl.com>
- *            Kyle Speck    <kojasou@hybrasyl.com>
+ * For contributors and individual authors please refer to CONTRIBUTORS.MD.
+ * 
  */
 
-using Hybrasyl.Properties;
-using Hybrasyl.Config;
-using log4net;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Security.Cryptography;
-using System.ServiceModel;
-using System.ServiceModel.Description;
-using System.ServiceModel.Web;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
-using System.Xml;
-using Hybrasyl.XML;
-using log4net.Core;
+using Serilog;
 using AssemblyInfo = Hybrasyl.Utility.AssemblyInfo;
+using Serilog.Core;
+using Serilog.Events;
 
 namespace Hybrasyl
 {
     public static class Game
     {
-        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         public static readonly object SyncObj = new object();
         public static IPAddress IpAddress;
@@ -62,19 +53,21 @@ namespace Hybrasyl
         public static string Motd { get; set; }
         public static int LogLevel { get; set; }
 
-        public static AssemblyInfo Assemblyinfo  { get; set; }
+        public static AssemblyInfo Assemblyinfo { get; set; }
         private static long Active = 0;
 
         private static Monolith _monolith;
         private static MonolithControl _monolithControl;
 
-        public static HybrasylConfig Config { get; private set; }
+        public static Xml.ServerConfig Config { get; private set; }
 
         private static Thread _lobbyThread;
         private static Thread _loginThread;
         private static Thread _worldThread;
         private static Thread _spawnThread;
         private static Thread _controlThread;
+
+        public static LoggingLevelSwitch LevelSwitch;
 
         public static DateTime StartDate { get; set; }
 
@@ -97,188 +90,107 @@ namespace Hybrasyl
             return true;
         }
 
-        public static HybrasylConfig GatherConfig()
+        public static void CurrentDomain_ProcessExit(object sender, EventArgs e) => Shutdown();
+
+        public static void Shutdown()
         {
-            Config = new HybrasylConfig();
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.Write("Welcome to Project Hybrasyl: this is Hybrasyl server {0}\n\n", Assemblyinfo.Version);
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.Write("It looks like this is the first time you've run the server.\n");
-            Console.Write("I need to ask some questions before we can continue, to configure a few basics.\n");
-            Console.Write("These questions will only be asked once - if you need to make changes\n");
-            Console.Write("in the future, you can edit config.xml in the Hybrasyl server directory.\n\n");
+            Log.Warning("Hybrasyl: all servers shutting down");
 
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.Write("--- Network Settings ---\n\n");
-            Console.ForegroundColor = ConsoleColor.White;
+            // Server is shutting down. For Lobby and Login, this terminates the TCP listeners;
+            // for World, this triggers a logoff for all logged in users and then terminates. After
+            // termination, the queue consumer is stopped as well.
+            // For a true restart we'll need to do a few other things; stop timers, etc.
 
-            Console.Write("Enter this server's IP address, or what IP we should bind to (default is 127.0.0.1): ");
-            var serverIp = Console.ReadLine();
-            Console.Write("Enter the Lobby Port (default is 2610): ");
-            var lobbyPort = Console.ReadLine();
-            Console.Write("Enter the Login Port: (default is 2611): ");
-            var loginPort = Console.ReadLine();
-            Console.Write("Enter the World Port (default is 2612): ");
-            var worldPort = Console.ReadLine();
-
-            Config.Network.Lobby.BindAddress = string.IsNullOrEmpty(serverIp) ? "127.0.0.1" : serverIp;
-            Config.Network.Lobby.Port = (ushort)(string.IsNullOrEmpty(lobbyPort) ? 2610 : Convert.ToUInt16(lobbyPort));
-            Config.Network.Login.Port = (ushort)(string.IsNullOrEmpty(lobbyPort) ? 2611 : Convert.ToUInt16(loginPort));
-            Config.Network.World.Port = (ushort)(string.IsNullOrEmpty(lobbyPort) ? 2612 : Convert.ToUInt16(worldPort));
-
-            Console.ForegroundColor = ConsoleColor.Yellow;
-
-            Console.Write($"\nBinding to {Config.Network.Lobby.BindAddress}, lobby port {Config.Network.Lobby.Port}, " +
-                $"login port {Config.Network.Login.Port}, world port {Config.Network.World.Port}\n\n");
-
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.Write("--- Data Storage Settings ---\n\n");
-            Console.ForegroundColor = ConsoleColor.White;
-
-            Console.Write("Now, we need to configure the Redis store. Redis is used to store Hybrasyl's state data (such as players).\n");
-            Console.Write("If you have just installed Redis and are using the default settings, you can probably just stick with the defaults.\n\n");
-               
-            Console.Write("Redis IP or hostname (default is localhost): ");
-            var redisHost = Console.ReadLine();
-
-            Console.Write("Redis port (default is 6379): ");
-            var redisPort = Console.ReadLine();
-
-            Console.Write("\nRedis authentication information (optional - if you don't have these, just hit enter)\n\n");
-            Console.Write("Username: ");
-            var redisUser = Console.ReadLine();
-
-            Console.Write("Password: ");
-            var redisPass = Console.ReadLine();
-
-            Config.DataStore.Host = string.IsNullOrEmpty(redisHost) ? "localhost" : redisHost;
-            Config.DataStore.Port = string.IsNullOrEmpty(redisPort) ? (ushort)6379 : Convert.ToUInt16(redisPort);
-
-            Config.DataStore.Username = string.IsNullOrEmpty(redisUser) ? null : redisUser;
-            Config.DataStore.Password = string.IsNullOrEmpty(redisPass) ? null : redisPass;
-
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.Write("\nDatastore: redis: {0}, port {1}\n\n", Config.DataStore.Host, Config.DataStore.Port);
-
-            Config.Time = new Time
-            {
-                ServerStart = new ServerStart
-                {
-                    Value = DateTime.Now,
-                    DefaultAge = "Hybrasyl",
-                    DefaultYear = 1
-                }
-            };
-
-            Config.Access = new Access();
-
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.Write("--- Privileged User Configuration ---\n\n");
-            Console.ForegroundColor = ConsoleColor.White;
-
-            Console.Write("It is helpful to have at least one user who is privileged; that is to say, a user that can run admin commands and debug the server.\n");
-            Console.Write("The character obviously doesn't need to exist yet, but, we need to know the name.\n\n");
-            Console.Write("Privileged User (enter character name): ");
-            var privUser = Console.ReadLine();
-
-            Config.Access = new Access();
-            Config.Access.Privileged = string.IsNullOrEmpty(privUser) ? null : privUser;
-
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.Write($"\nPrivileged user: {Config.Access.Privileged}\n\n");
-
-            Console.Write($"In-game time set to Hybrasyl, Year 1 (server start date set as {Config.Time.ServerStart.Value})\n\n");
-            Console.ForegroundColor = ConsoleColor.White;
-            Config.Boards = new List<GlobalBoard>();
-
-            return Config;
+            CancellationTokenSource.Cancel();
+            Lobby.Shutdown();
+            Login.Shutdown();
+            World.Shutdown();
+            // Stop consumers, which will also empty queues
+            World.StopQueueConsumer();
+            World.StopControlConsumers();
+           
+            Thread.Sleep(2000);
+            Log.Warning("Hybrasyl {Version}: shutdown complete.", Assemblyinfo.Version);
+            //host.Close();
         }
 
         public static void Main(string[] args)
         {
             // Make our window nice and big
-            Console.SetWindowSize(140, 36);
-            LogLevel = Hybrasyl.Constants.DEFAULT_LOG_LEVEL;
+            //Console.SetWindowSize(140, 36);  //Removed for cross-platform compatibility
             Assemblyinfo = new AssemblyInfo(Assembly.GetEntryAssembly());
 
-            
+            // Default is info
+            LevelSwitch = new LoggingLevelSwitch();
+            LevelSwitch.MinimumLevel = LogEventLevel.Information;
+
+            // Set our exit handler
+            AppDomain.CurrentDomain.ProcessExit += new EventHandler(CurrentDomain_ProcessExit);
+
             Constants.DataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Hybrasyl");
 
             if (!Directory.Exists(Constants.DataDirectory))
             {
-                Logger.InfoFormat("Creating data directory {0}", Constants.DataDirectory);
+                Log.Information("Creating data directory {Directory}", Constants.DataDirectory);
                 try
                 {
-                    // Create the various directories we need
+                    // Ensure at least the world and logs directory exist 
                     Directory.CreateDirectory(Constants.DataDirectory);
-                    Directory.CreateDirectory(Path.Combine(Constants.DataDirectory, "maps"));
-                    Directory.CreateDirectory(Path.Combine(Constants.DataDirectory, "scripts"));
                     Directory.CreateDirectory(Path.Combine(Constants.DataDirectory, "world"));
+                    Directory.CreateDirectory(Path.Combine(Constants.DataDirectory, "logs"));
                 }
                 catch (Exception e)
                 {
-                    Logger.ErrorFormat("Can't create data directory: {0}", e.ToString());
+                    Console.WriteLine($"Can't create data directory: {Constants.DataDirectory}", e.ToString());
+                    Thread.Sleep(5000);
                     return;
                 }
             }
-            
+
+            // Configure logging 
+
+            // We log every LogType defined in our enumeration to its own file. Only the "general" type is sent to the console.
+            var log = new LoggerConfiguration().MinimumLevel.ControlledBy(LevelSwitch).Enrich.WithThreadId().Enrich.WithExceptionData().
+                WriteTo.Map("LogType", "General", (name, wt) => wt.File($"{Path.Combine(Constants.DataDirectory, "logs")}/{name}-.log", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 90, rollOnFileSizeLimit: true)).
+                WriteTo.Logger(lc => lc.Filter.ByIncludingOnly(GameLog.IsGeneralEvent).WriteTo.Console())
+                .CreateLogger();
+
+            Log.Logger = log;
+            Log.Information("Hybrasyl log begin");
+            Log.Information("Welcome to Project Hybrasyl: this is Hybrasyl server {0}\n\n", Assemblyinfo.Version);
+
             var hybconfig = Path.Combine(Constants.DataDirectory, "config.xml");
-       
+
             if (File.Exists(hybconfig))
             {
-
-                try
+                if (Xml.ServerConfig.LoadFromFile(hybconfig, out Xml.ServerConfig gameConfig, out Exception exception))
                 {
-                    Config = Serializer.Deserialize(XmlReader.Create(hybconfig), new HybrasylConfig());
-                    Logger.Info("Configuration file loaded.");
+                    Log.Information("Configuration file {file} loaded", hybconfig);
+                    Config = gameConfig;
                 }
-                catch (Exception e)
+                else
                 {
-                    Logger.ErrorFormat("The config file {0} could not be parsed: {1}", hybconfig, e);
+                    Log.Fatal("Configuration file had errors!");
+                    Log.Fatal("Exception follows: {exception}", exception);
+                    Log.Fatal("Server will terminate automatically in five seconds.");
+                    Thread.Sleep(5000);
+                    return;
                 }
-
             }
             else
             {
                 var validConfig = false;
-                while (validConfig == false)
-                {
-                    try
-                    {
-                        Config = GatherConfig();
-                        validConfig = true;
-                    }
-                    catch (Exception e)
-                    {
-                        Logger.ErrorFormat("Some of the values you entered were invalid. Try again. Error was: {0}",
-                            e.ToString());
 
-
-                   }
-                }
-                // Write out our configuration
-                XML.Serializer.Serialize(new XmlTextWriter(hybconfig, null), Config);
-                Console.WriteLine("Configuration has been written. Press any key to start the server.");
-                Console.ReadKey();
+                Log.Warning("This seems to be the first time you've run the server (config file not found)");
+                Log.Warning("Please take a look at the server documentation at github.com/hybrasyl/server.");
+                Log.Warning("We also recommend you look at the example config.xml in the community database.");
+                Log.Fatal("Hybrasyl cannot start without a config file, so it will automatically close in 10 seconds.");
+                Thread.Sleep(10000);
+                return;
             }
 
-            //set up service endpoint for ControlService
-
-            var port = Config.ApiEndpoints.ControlService?.Port == 0 ? Constants.ControlServicePort : Config.ApiEndpoints.ControlService.Port;
-            var host = new WebServiceHost(typeof(ControlService), new Uri($"http://{Config.ApiEndpoints.ControlService?.BindAddress ?? "127.0.0.1"}:{port}/ControlService"));
-            host.Open();
-            Logger.InfoFormat($"Starting ControlService on port {Config.ApiEndpoints.ControlService?.Port ?? Constants.ControlServicePort}");
-
-            // Set default logging level
-            ((log4net.Repository.Hierarchy.Hierarchy) LogManager.GetRepository()).Root.Level = Level.Info;
-                ((log4net.Repository.Hierarchy.Hierarchy) LogManager.GetRepository()).RaiseConfigurationChanged(
-                EventArgs.Empty);
-            
-            // Set console buffer, so we can scroll back a bunch
-            Console.BufferHeight = Int16.MaxValue - 1;
-
-            Logger.InfoFormat("Hybrasyl {0} starting.", Assemblyinfo.Version);
-            Logger.InfoFormat("{0} - this program is licensed under the GNU AGPL, version 3.", Assemblyinfo.Copyright);
+            Log.Information("Hybrasyl {Version} starting.", Assemblyinfo.Version);
+            Log.Information("{Copyright} - this program is licensed under the GNU AGPL, version 3.", Assemblyinfo.Copyright);
 
             LoadCollisions();
 
@@ -295,11 +207,10 @@ namespace Hybrasyl
 
             _monolith = new Monolith();
             _monolithControl = new MonolithControl();
-            
-        
+                    
             if (!World.InitWorld())
             {
-                Logger.FatalFormat("Hybrasyl cannot continue loading. Press any key to exit.");
+                GameLog.Fatal("Hybrasyl cannot continue loading. Fatal error while loading world data. Press any key to exit.");
                 Console.ReadKey();
                 Environment.Exit(1);
             }
@@ -310,14 +221,14 @@ namespace Hybrasyl
 
             using (var multiServerTableStream = new MemoryStream())
             {
-                using (var multiServerTableWriter = new BinaryWriter(multiServerTableStream, Encoding.GetEncoding(949), true))
+                using (var multiServerTableWriter = new BinaryWriter(multiServerTableStream, Encoding.ASCII, true))
                 {
                     multiServerTableWriter.Write((byte)1);
                     multiServerTableWriter.Write((byte)1);
                     multiServerTableWriter.Write(addressBytes);
                     multiServerTableWriter.Write((byte)(2611 / 256));
                     multiServerTableWriter.Write((byte)(2611 % 256));
-                    multiServerTableWriter.Write(Encoding.GetEncoding(949).GetBytes("Hybrasyl;Hybrasyl Production\0"));
+                    multiServerTableWriter.Write(Encoding.ASCII.GetBytes("Hybrasyl;Hybrasyl Production\0"));
                 }
 
                 ServerTableCrc = ~Crc32.Calculate(multiServerTableStream.ToArray());
@@ -331,7 +242,7 @@ namespace Hybrasyl
 
             using (var stipulationStream = new MemoryStream())
             {
-                using (var stipulationWriter = new StreamWriter(stipulationStream, Encoding.GetEncoding(949), 1024, true))
+                using (var stipulationWriter = new StreamWriter(stipulationStream, Encoding.ASCII, 1024, true))
                 {
                     var serverMsgFileName = Path.Combine(Constants.DataDirectory, "server.msg");
 
@@ -341,12 +252,10 @@ namespace Hybrasyl
                     }
                     else
                     {
-                        stipulationWriter.Write($"Welcome to Hybrasyl!\n\nThis is Hybrasyl (version {Assemblyinfo.Version}).\n\nFor more information please visit http://www.hybrasyl.com");
-                        if (string.IsNullOrEmpty(Motd))
-                        {
-                            Motd = ControlService.GetMotd();
-                        }
-                        stipulationWriter.Write($"\n\n{Motd}");
+                        if (string.IsNullOrEmpty(Config.Motd))
+                            stipulationWriter.Write($"Welcome to Hybrasyl!\n\nThis is Hybrasyl (version {Assemblyinfo.Version}).\n\nFor more information please visit http://www.hybrasyl.com");
+                        else
+                            stipulationWriter.Write(Config.Motd);
                     }
                 }
 
@@ -389,29 +298,20 @@ namespace Hybrasyl
                 Thread.Sleep(5);
             }
 
-            Logger.Warn("Hybrasyl: all servers shutting down");
-
-            // Server is shutting down. For Lobby and Login, this terminates the TCP listeners;
-            // for World, this triggers a logoff for all logged in users and then terminates. After
-            // termination, the queue consumer is stopped as well.
-            // For a true restart we'll need to do a few other things; stop timers, etc.
-
-            Lobby.Shutdown();
-            Login.Shutdown();
-            World.Shutdown();
-            Thread.Sleep(5000);
-            World.StopQueueConsumer();
-            World.StopControlConsumers();
-            Logger.WarnFormat("Hybrasyl {0}: shutdown complete.", Assemblyinfo.Version);
-            host.Close();
-            Environment.Exit(0);
+            Shutdown();
 
         }
 
         private static void LoadCollisions()
         {
             var assembly = Assembly.GetExecutingAssembly();
-            Collisions = Resources.sotp;
+            var sotp = assembly.GetManifestResourceStream("Hybrasyl.Resources.sotp.dat");
+            using (var ms = new MemoryStream())
+            {
+                sotp.CopyTo(ms);
+                Collisions = ms.ToArray();
+            }
+            //Collisions = Resources.sotp;
             //using (var stream = assembly.GetManifestResourceStream("Hybrasyl.Resources.sotp.dat"))
             //{
             //    int length = (int)stream.Length;
@@ -641,6 +541,21 @@ namespace Hybrasyl
         0xB3667A2E, 0xC4614AB8, 0x5D681B02, 0x2A6F2B94, 0xB40BBE37, 0xC30C8EA1, 0x5A05DF1B, 0x2D02EF8D
         };
         #endregion
+
+
+        public static uint ComputeChecksum(byte[] filedata)
+        {
+            var hash = uint.MaxValue;
+            byte data;
+
+            for (var i = 0; i < filedata.Length; ++i)
+            {
+                data = (byte)(filedata[i] ^ (hash & 0xFF));
+                hash = crc32Table[data] ^ (hash >> 0x8);
+            }
+
+            return ~hash;
+        }
 
         public static uint Calculate(byte[] data)
         {

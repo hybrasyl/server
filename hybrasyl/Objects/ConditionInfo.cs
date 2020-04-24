@@ -1,5 +1,25 @@
-﻿using Hybrasyl.Enums;
-using Hybrasyl.Statuses;
+﻿/*
+ * This file is part of Project Hybrasyl.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the Affero General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+ * for more details.
+ *
+ * You should have received a copy of the Affero General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
+ *
+ * (C) 2020 ERISCO, LLC 
+ *
+ * For contributors and individual authors please refer to CONTRIBUTORS.MD.
+ * 
+ */
+ 
+using Hybrasyl.Enums;
 using Newtonsoft.Json;
 
 namespace Hybrasyl.Objects
@@ -11,12 +31,12 @@ namespace Hybrasyl.Objects
         public User User => Creature as User;
 
         [JsonProperty]
-        public CreatureCondition Conditions { get; set; }
+        public Xml.CreatureCondition Conditions { get; set; }
 
         [JsonProperty]
         public PlayerFlags Flags { get; set; }
 
-        public ConditionInfo(Creature owner, CreatureCondition condition = 0, PlayerFlags flags=PlayerFlags.Alive)
+        public ConditionInfo(Creature owner, Xml.CreatureCondition condition = 0, PlayerFlags flags=PlayerFlags.Alive)
         {
             Creature = owner;
             Conditions = condition;
@@ -63,50 +83,50 @@ namespace Hybrasyl.Objects
 
         public bool Frozen
         {
-            get { return Conditions.HasFlag(CreatureCondition.Freeze); }
+            get { return Conditions.HasFlag(Xml.CreatureCondition.Freeze); }
             set
             {
                 if (value == false)
-                    Conditions &= ~CreatureCondition.Freeze;
+                    Conditions &= ~Xml.CreatureCondition.Freeze;
                 else
-                    Conditions |= CreatureCondition.Freeze;
+                    Conditions |= Xml.CreatureCondition.Freeze;
             }
         }
 
         public bool Asleep
         {
-            get { return Conditions.HasFlag(CreatureCondition.Sleep); }
+            get { return Conditions.HasFlag(Xml.CreatureCondition.Sleep); }
             set
             {
                 if (value == false)
-                    Conditions &= ~CreatureCondition.Sleep;
+                    Conditions &= ~Xml.CreatureCondition.Sleep;
                 else
-                    Conditions |= CreatureCondition.Freeze;
+                    Conditions |= Xml.CreatureCondition.Freeze;
             }
         }
 
         public bool Paralyzed
         {
-            get { return Conditions.HasFlag(CreatureCondition.Paralyze); }
+            get { return Conditions.HasFlag(Xml.CreatureCondition.Paralyze); }
             set
             {
                 if (value == false)
-                    Conditions &= ~CreatureCondition.Paralyze;
+                    Conditions &= ~Xml.CreatureCondition.Paralyze;
                 else
-                    Conditions |= CreatureCondition.Paralyze;
+                    Conditions |= Xml.CreatureCondition.Paralyze;
                 User?.UpdateAttributes(StatUpdateFlags.Secondary);
             }
         }
 
         public bool Blinded
         {
-            get { return Conditions.HasFlag(CreatureCondition.Blind); }
+            get { return Conditions.HasFlag(Xml.CreatureCondition.Blind); }
             set
             {
                 if (value == false)
-                    Conditions &= ~CreatureCondition.Blind;
+                    Conditions &= ~Xml.CreatureCondition.Blind;
                 else
-                    Conditions |= CreatureCondition.Blind;
+                    Conditions |= Xml.CreatureCondition.Blind;
                 User?.UpdateAttributes(StatUpdateFlags.Secondary);
             }
         }
@@ -139,17 +159,16 @@ namespace Hybrasyl.Objects
 
         public bool Comatose
         {
-            get { return User != null ? Conditions.HasFlag(CreatureCondition.Coma) : false; }
+            get { return User != null ? Conditions.HasFlag(Xml.CreatureCondition.Coma) : false; }
             set
             {
                 if (User == null) return;
                 if (value == false)
                 {
-                    Conditions &= ~CreatureCondition.Coma;
-                    User?.Group?.SendMessage($"{User.Name} has recovered!");
+                    Conditions &= ~Xml.CreatureCondition.Coma;
                 }
                 else
-                    Conditions |= CreatureCondition.Coma;
+                    Conditions |= Xml.CreatureCondition.Coma;
             }
         }
 

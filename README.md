@@ -1,8 +1,12 @@
 # Hybrasyl Server
 
-[Project website](http://hybrasyl.com/) - [Bug tracker](https://hybrasyl.atlassian.net/secure/Dashboard.jspa) - [Punchlist](https://github.com/hybrasyl/server/wiki/Hybrasyl-Punchlist)
+[Project website](http://hybrasyl.com/) -
+[Bug tracker](https://github.com/hybrasyl/server/issues) -
+[Punchlist](https://github.com/hybrasyl/server/wiki/Hybrasyl-Punchlist)
 
-Welcome to Project Hybrasyl! Our aim is to create a well-documented and
+**Welcome to Project Hybrasyl!**
+
+Our aim is to create a well-documented and
 exceptionally accurate DOOMVAS v1 emulator (example:
 [Dark Ages](http://www.darkages.com)). Look around,
 [make an account](https://www.hybrasyl.com/accounts/sign_up), and join us
@@ -33,7 +37,7 @@ the process of adding content to a server much easier.
 
 ## Requirements
 
-You will need three things to compile and use Hybrasyl:
+You will need three things to use Hybrasyl:
 
 * [Hybrasyl Launcher](https://github.com/hybrasyl/launcher)
 * [Redis](https://github.com/MSOpenTech/redis/releases)
@@ -63,7 +67,13 @@ player inventory, messageboards and mailboxes from its companion Redis server
 at runtime; XML is processed when the server starts up for actual world data
 (items, maps, mobs, etc).
 
-1. Download and install the Windows installer for Redis 2.8 from the
+To get started with the server:
+
+1. **Install Redis**
+
+   Hybrasyl uses Redis to store player state and mailboxes. If you are using Ubuntu/Debian,
+   `apt install redis-server`. For Windows, you can either run Redis using [WSL](https://docs.microsoft.com/en-us/windows/wsl/install-win10)
+   or you can downoad and install the Windows installer for Redis 2.8 from the
    [MSOpenTech releases page](https://github.com/MSOpenTech/redis/releases).
    There is no requirement for Redis to be local to the server; it can be
    hosted anywhere, though we recommend it is located on the same network
@@ -72,76 +82,103 @@ at runtime; XML is processed when the server starts up for actual world data
    TCP/6379, can be accessed from the server running Hybrasyl; you may need to
    grant access or open ports.
 
-2. Do _one_ of the following. Either:
-   * Run the included powershell script (`Prep.ps1`) included in the `examples` directory 
-   to create the Hybrasyl data directories. Hybrasyl's data is currently located at ```%MYDOCUMENTS\Hybrasyl\world```, normally found at `C:\Users\<yourusername>\Documents\world`.
+2. **Create and populate your base directory**
 
-	* Copy the [example XML and scripting data](https://github.com/hybrasyl/server/tree/master/examples/XML)
-   (including subdirectories) from the examples directory into the `world\xml` directory. This 
-   will populate the world with enough to login as a user,wander around, and test functionality.
-   
-   **_or_**
-   
-   * Unzip the included `examples.zip` into your Hybrasyl folder.
- 
-3. Examine the Hybrasyl configuration in the Hybrasyl data directory, `config.xml`. In particular, 
-   you will want to add the name of your character to `<Privileged>`, which will allow 
-   them to use any slash command.  
+   On Windows, this is `%userprofile%\documents\Hybrasyl`. On GNU/Linux
+   or OSX this is `~/Hybrasyl` for whatever user is running the server.
+   Take a look at the
+   [community-maintained database](https://github.com/shadowoffice/HybraDB)
+   for XML and scripting. This has more than enough XML and scripts to
+   get you started. You can put the contents of that repository
+   directly into your Hybrasyl data directory and start the server. You
+   may wish to modify the default `config.xml`.
+
+3. **Update your configuration**
+
+   Examine the Hybrasyl configuration in the Hybrasyl data directory, `config.xml`. In particular,
+   you will want to add the name of your character to `<Privileged>`, which will allow
+   them to use any slash command.
+
+4. **Install and run Hybrasyl** 
+
+   (see _Running Hybrasyl_ below).
+
+## Running Hybrasyl
+
+Hybrasyl Server is .NET Core, which means it can be run on a variety of platforms (Windows, GNU/Linux, OSX).
+
+A `systemd` unit file [is provided](./contrib/hybrasyl.unit) to start the server on Ubuntu 18.04+. In any case,
+[download the latest release](https://github.com/hybrasyl/server/releases) for your platform. This can be unpacked
+into `/srv/hybrasyl` on GNU/Linux or a directory of your choosing on Windows.
+
+Once downloaded, either run the server directly (`Hybrasyl.exe` or
+`Hybrasyl` on GNU/Linux) or, if you’re running on GNU/Linux or a WSL
+distribution that uses systemd, install the unit file in
+`/etc/systemd/system/hybrasyl.service` and start Hybrasyl:
+
+`service hybrasyl start`
+
+To start the server on OSX or GNU/Linux for debugging and testing, you can run `dotnet run` from the `hybrasyl`
+directory (e.g. where `Hybrasyl.csproj` lives.
 
 ## Compiling the Game Server
 
 The process for compiling Hybrasyl is detailed below.
 
-1. Install
-   [Microsoft Visual Studio](https://www.visualstudio.com/en-us/downloads/visual-studio-2015-downloads-vs.aspx).
-   The Community Edition is free and capable of compiling all the needed projects (server, launcher).
-2. Clone the [launcher](https://github.com/hybrasyl/launcher) and 
-   [server](https://github.com/hybrasyl/server) repositories to your local machine
-   using a [git client](https://git-scm.com/downloads/guis), or with Visual Studio's built-in integration. 
-   Make sure you clone them into separate directories. 
-3. Open the Hybrasyl Server solution (`Hybrasyl.sln`) in Visual Studio and
-   update all NuGet packages (just building it will do this). The SDK for
-   XML is now included in server to make this process (as well as making changes) 
-   easier.
-4. Build Hybrasyl. The default settings should be adequate for most system
-   setups, assuming you've updated and installed all NuGet packages (which
-   should occur automatically).
-5. Copy `lod136.map`, `lod500.map`, and `lod300.map` from your Dark Ages directory (or an
-   online archive) into `My Documents\Hybrasyl\world\mapfiles` (which should exist, if you followed the 
-   directions above).  
-6. Give the control service permission to bind to port 4949 (the
-   default, this can be changed in config.xml): `netsh http add urlacl
-   url=http://+:4949/ user=YOURMACHINENAME\YOURUSERNAME`. Substitute
-   your Windows machine name and your username in the command above;
-   e.g. `user=LOURES\baughj`.
-7. Run `Hybrasyl.exe` either from within Visual Studio or as a standalone
-   executable in the `hybrasyl\bin\Debug` folder of your git checkout. This
-   should launch the server. You can change any of Hybrasyl’s settings by 
-   editing `config.xml` in `My Documents\Hybrasyl`.
+1. Install either [Microsoft Visual Studio](https://www.visualstudio.com/en-us/downloads/visual-studio-2015-downloads-vs.aspx).
+or [Microsoft Visual Studio Code](https://code.visualstudio.com/).
 
-Now that your setup is complete, you should be able to use the
-[released version of the launcher](https://www.hybrasyl.com/files/Hybrasyl_Launcher_Installer.msi)
-to connect to it. In case you have trouble with the latest launcher, open
-`Hy-brasyl Launcher.sln` and build the project. Launch the executable and
-select `localhost` from the server selection dropdown. You should now be able
-to connect to your Hybrasyl server, create a new character, and log in!
+   For Visual Studio, the Community Edition is free and capable of compiling
+   all the needed projects (server, launcher), but you don't strictly speaking need this any longer - you can also just edit C# code in VS Code.
 
-If not, well, take a look at the section on [getting help](#help).
+2. Download and install a [.NET Core SDK and Runtime](https://dotnet.microsoft.com/download).
+
+   Currently, Hybrasyl uses .NET Core 3.1. In order to do development, you need both the SDK and runtime; to simply run Hybrasyl, you just need the runtime.
+
+2. Clone the [launcher](https://github.com/hybrasyl/launcher) and
+   [server](https://github.com/hybrasyl/server) repositories to your
+   local machine using a
+   [git client](https://git-scm.com/downloads/guis), or with Visual
+   Studio or VS Code's built-in integration. **Make sure you clone them into
+   separate directories**.
+   
+3. Update and rebuild packages.
+
+   Open the Hybrasyl Server solution (`Hybrasyl.sln`) in Visual Studio
+   and update all NuGet packages (just building it will do this). If
+   using VS Code / via command line, run `dotnet restore`
+   and `dotnet build` in the same directory as the `Hybrasyl.csproj`
+   file. This step will also build the XML/XSD data library.
+
+4. Build Hybrasyl.
+
+   The default settings should be adequate for most system setups.
+   Should you wish to compile an distributable / standalone executable, run the
+   following from the command line: `dotnet publish -c Debug -r
+   win10-x64` or `dotnet publish -c Debug -r ubuntu.18.04-x64`
+
+Now that your setup is complete, you should be able to use the launcher 
+to connect to it (after opening `Hy-brasyl Launcher.sln` and building the project). Launch the
+executable and select `localhost` from the server selection dropdown. You can also use one of the other community launchers to connect.
+
+You should now be able to connect to your Hybrasyl server, create a
+new character, and log in! If not, well, take a look at the section on [getting help](#help).
 
 ## Logging in
 
-Log in to your new server by launching the Hy-brasyl Launcher application,
-either compiled as described above or downloaded from
+Log in to your new server by launching the Hy-brasyl Launcher
+application, either compiled as described above or downloaded from
 [hybrasyl.com](https://www.hybrasyl.com/files/Hybrasyl_Launcher_Installer.msi).
-Point it to a local Dark Ages client installation, select `localhost` from the
-server configuration dropdown, and launch. The launcher will ask you for a
-local Dark Ages client executable; you must have the latest client installed in
-order to continue. Once launched, you should see a Hybrasyl welcome screen in
-place of the standard Dark Ages welcome screen. Congratulations -- you're
-connected!
+Point it to a local Dark Ages client installation, select `localhost`
+from the server configuration dropdown, and launch. The launcher will
+ask you for a local Dark Ages client executable; you must have the
+latest client installed in order to continue. Once launched, you
+should see a Hybrasyl welcome screen in place of the standard Dark
+Ages welcome screen. Congratulations -- you're connected!
 
-Create a character and log in the same way you would on a production server.
-You should find your Aisling in an inn and ready to explore the world.
+Create a character and log in the same way you would on a production
+server. You should find your Aisling in an inn and ready to explore
+the world.
 
 ## Testing tips and other notable resources
 
@@ -154,10 +191,10 @@ You should find your Aisling in an inn and ready to explore the world.
   `world` directory.
   
 * You can learn skills and spells by using `/spell`, for instance, `/spell Assail`.
-
+  
 * Warps are links between locations on the map. You can add or remove warps
   in a map file (e.g. `xml/maps/ExampleVillage.xml`).
-
+  
 * You can add new items by creating new XML files. The example items should
   provide good models to follow; there are also XSD files for the XML
   structure in the SDK repository. We hope to make a world editor available
@@ -190,9 +227,9 @@ one [for users](https://groups.google.com/forum/#!forum/hybrasyl-users).
 By using this license for Hybrasyl, our intent is to foster a vibrant community
 whose development and progress are open and available to all.
 
-*Please note: these restrictions do not apply to in-game Python scripts and/or
- world data you may create for your server*. Whether or not you distribute that
- content is up to you.
+*Please note: these restrictions do not apply to in-game Lua scripts
+ and/or XML world data you may create for your server*. Whether or not
+ you distribute that content is up to you.
 
 ## Contributing
 
@@ -201,7 +238,6 @@ us on Discord or send some emails to the developer list and get to know us
 first, especially if you plan on tackling a substantial feature or change.
 Hybrasyl follows the standard Github fork model, so
 [fork us today](https://github.com/hybrasyl/) and submit a PR!
-
 
 Please note that in order to contribute to the project, you must agree to the
 terms of

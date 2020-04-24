@@ -13,18 +13,16 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
- * Authors:   Luke Segars   <luke@lukesegars.com>
+ * For contributors and individual authors please refer to CONTRIBUTORS.MD.
+ * 
  */
 
-using Hybrasyl.Objects;
-using Hybrasyl.Enums;
+ using Hybrasyl.Objects;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using log4net;
 
 namespace Hybrasyl
 {
@@ -35,14 +33,11 @@ namespace Hybrasyl
 
     public class UserGroup
     {
-        public static readonly ILog Logger =
-            LogManager.GetLogger(
-                System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
+ 
         // Group-related info
         public List<User> Members { get; private set; }
         public DateTime CreatedOn { get; private set; }
-        public Dictionary<Class, uint> ClassCount { get; private set; }
+        public Dictionary<Xml.Class, uint> ClassCount { get; private set; }
         public uint MaxMembers = 0;
 
         private delegate Dictionary<uint, uint> DistributionFunc(User source, uint full);
@@ -54,13 +49,13 @@ namespace Hybrasyl
         public UserGroup(User founder)
         {
             Members = new List<User>();
-            ClassCount = new Dictionary<Class, uint>();
-            foreach (var cl in Enum.GetValues(typeof(Class)).Cast<Class>())
+            ClassCount = new Dictionary<Xml.Class, uint>();
+            foreach (var cl in Enum.GetValues(typeof(Xml.Class)).Cast<Xml.Class>())
             {
                 ClassCount[cl] = 0;
             }
 
-            Logger.InfoFormat("Creating new group with {0} as founder.", founder.Name);
+            GameLog.InfoFormat("Creating new group with {0} as founder.", founder.Name);
             // Distribute full experience to everyone with a bonus if a member of each
             // class is present.
             ExperienceDistributionFunc = Distribution_AllClassBonus;
@@ -146,11 +141,11 @@ namespace Hybrasyl
 
         public bool ContainsAllClasses()
         {
-            return (ClassCount[Enums.Class.Monk] > 0 &&
-                    ClassCount[Enums.Class.Priest] > 0 &&
-                    ClassCount[Enums.Class.Rogue] > 0 &&
-                    ClassCount[Enums.Class.Warrior] > 0 &&
-                    ClassCount[Enums.Class.Wizard] > 0);
+            return (ClassCount[Xml.Class.Monk] > 0 &&
+                    ClassCount[Xml.Class.Priest] > 0 &&
+                    ClassCount[Xml.Class.Rogue] > 0 &&
+                    ClassCount[Xml.Class.Warrior] > 0 &&
+                    ClassCount[Xml.Class.Wizard] > 0);
         }
 
         /**

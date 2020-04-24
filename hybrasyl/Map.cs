@@ -13,16 +13,14 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
- * Authors:   Justin Baugh  <baughj@hybrasyl.com>
- *            Kyle Speck    <kojasou@hybrasyl.com>
+ * For contributors and individual authors please refer to CONTRIBUTORS.MD.
+ * 
  */
 
 using C3;
 using Hybrasyl.Objects;
-using log4net;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -37,8 +35,6 @@ namespace Hybrasyl
 
     public class MapPoint
     {
-        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
         public Int64 Id
         {
             get
@@ -71,13 +67,13 @@ namespace Hybrasyl
 
         public byte[] GetBytes()
         {
-            var buffer = Encoding.GetEncoding(949).GetBytes(Name);
-            Logger.DebugFormat("buffer is {0} and Name is {1}", BitConverter.ToString(buffer), Name);
+            var buffer = Encoding.ASCII.GetBytes(Name);
+            GameLog.DebugFormat("buffer is {0} and Name is {1}", BitConverter.ToString(buffer), Name);
 
             // X quadrant, offset, Y quadrant, offset, length of the name, the name, plus a 64-bit(?!) ID
             var bytes = new List<Byte>();
 
-            Logger.DebugFormat("{0}, {1}, {2}, {3}, {4}, mappoint ID is {5}", XQuadrant, XOffset, YQuadrant,
+            GameLog.DebugFormat("{0}, {1}, {2}, {3}, {4}, mappoint ID is {5}", XQuadrant, XOffset, YQuadrant,
                 YOffset, Name.Length, Id);
 
             bytes.Add((byte)XQuadrant);
@@ -97,14 +93,12 @@ namespace Hybrasyl
 
     public class WorldMap
     {
-        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
         public string Name { get; set; }
         public string ClientMap { get; set; }
         public List<MapPoint> Points { get; set; }
         public World World { get; set; }
 
-        public WorldMap(Maps.WorldMap newWorldMap)
+        public WorldMap(Xml.WorldMap newWorldMap)
         {
             Points = new List<MapPoint>();
             Name = newWorldMap.Name;
@@ -130,7 +124,7 @@ namespace Hybrasyl
             // Returns the representation of the worldmap as an array of bytes, 
             // suitable to passing to a map packet.
 
-            var buffer = Encoding.GetEncoding(949).GetBytes(ClientMap);
+            var buffer = Encoding.ASCII.GetBytes(ClientMap);
             var bytes = new List<Byte> {(byte) ClientMap.Length};
 
             bytes.AddRange(buffer);
@@ -142,8 +136,8 @@ namespace Hybrasyl
                 bytes.AddRange(mappoint.GetBytes());
             }
 
-            Logger.DebugFormat("I am sending the following map packet:");
-            Logger.DebugFormat("{0}", BitConverter.ToString(bytes.ToArray()));
+            GameLog.DebugFormat("I am sending the following map packet:");
+            GameLog.DebugFormat("{0}", BitConverter.ToString(bytes.ToArray()));
 
             return bytes.ToArray();
         }
@@ -151,7 +145,6 @@ namespace Hybrasyl
 
     public class Map
     {
-        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         private object _lock = new object();
 
         public ushort Id { get; set; }
@@ -177,17 +170,23 @@ namespace Hybrasyl
         public Dictionary<Tuple<byte, byte>, Objects.Signpost> Signposts { get; set; }
         public Dictionary<Tuple<byte, byte>, Objects.Reactor> Reactors { get; set; }
 
-        public Dictionary<Monster, int> MapMonsters { get; set; }
+        public bool SpawnDebug { get; set; }
+
+        public bool SpawningDisabled { get; set; }
+
+        //public Dictionary<string, Xml.Spawn> Spawns { get; set; }
 
         /// <summary>
         /// Create a new Hybrasyl map from an XMLMap object.
         /// </summary>
         /// <param name="newMap">An XSD.Map object representing the XML map file.</param>
         /// <param name="theWorld">A world object where the map will be placed</param>
-        public Map(Maps.Map newMap, World theWorld)
+        public Map(Xml.Map newMap, World theWorld)
         {
             Init();
             World = theWorld;
+            SpawnDebug = false;
+          //  Spawns = new List<Xml.Spawn>();
 
             // TODO: refactor Map class to not do this, but be a partial which overlays
             // TODO: XSD.Map
@@ -236,10 +235,10 @@ namespace Hybrasyl
 
             foreach (var npcElement in newMap.Npcs)
             {
-                var npcTemplate = World.WorldData.Get<Creatures.Npc>(npcElement.Name);
+                var npcTemplate = World.WorldData.Get<Xml.Npc>(npcElement.Name);
                 if (npcTemplate == null)
                 {
-                    Logger.Error("map ${Name}: NPC ${npcElement.Name} is missing, will not be loaded");
+                    GameLog.Error("map ${Name}: NPC ${npcElement.Name} is missing, will not be loaded");
                     continue;
                 }
                 var merchant = new Merchant
@@ -248,8 +247,9 @@ namespace Hybrasyl
                     Y = npcElement.Y,
                     Name = npcElement.Name,
                     Sprite = npcTemplate.Appearance.Sprite,
-                    Direction = (Enums.Direction)npcElement.Direction,
+                    Direction = npcElement.Direction,
                     Portrait = npcTemplate.Appearance.Portrait,
+                    AllowDead = npcTemplate.AllowDead
                 };
                 if (npcTemplate.Roles != null)
                 {
@@ -266,32 +266,27 @@ namespace Hybrasyl
                     merchant.Roles = npcTemplate.Roles;
                 }
                 InsertNpc(merchant);
+                // Keep the actual spawned object around in the index for later use
+                World.WorldData.Set(merchant.Name, merchant);
             }
 
             foreach (var reactorElement in newMap.Reactors)
             {
-                // TODO: implement reactor loading support
+                var reactor = new Reactor(reactorElement.X, reactorElement.Y, this, 
+                    reactorElement.Script, reactorElement.Description, reactorElement.Blocking);
+                reactor.AllowDead = reactorElement.AllowDead;
+                InsertReactor(reactor);
+                GameLog.Debug($"{reactor.Id} placed in {reactor.Map.Name}, description was {reactor.Description}");
             }
-            if (newMap.Signs != null) {
-                foreach (var postElement in newMap.Signs.Signposts)
-                {
-                    var signpostElement = postElement as Maps.Signpost;
-                    var signpost = new Objects.Signpost(signpostElement.X, signpostElement.Y, signpostElement.Message);
-                    InsertSignpost(signpost);
-
-                }
-                foreach (var postElement in newMap.Signs.MessageBoards)
-                {
-                    var boardElement = postElement as Maps.MessageBoard;
-                    var board = new Objects.Signpost(boardElement.X, boardElement.Y, string.Empty, true, boardElement.Name);
-                    InsertSignpost(board);
-                    Logger.InfoFormat("{0}: {1} - messageboard loaded", this.Name, board.Name);
-                }
+            foreach (var sign in newMap.Signs)
+            {
+                var signpost = new Signpost(sign.X, sign.Y, sign.Message, sign.Type == Xml.BoardType.Messageboard, sign.Name);
+                InsertSignpost(signpost);
             }
             Load();
         }
     
-
+        
         public Map()
         {
             Init();
@@ -327,24 +322,21 @@ namespace Hybrasyl
         {
             World.Insert(toInsert);
             Insert(toInsert, toInsert.X, toInsert.Y);
-            Logger.DebugFormat("Monster {0} with id {1} spawned.", toInsert.Name, toInsert.Id);
+            GameLog.DebugFormat("Monster {0} with id {1} spawned.", toInsert.Name, toInsert.Id);
         }
 
         public void RemoveCreature(Creature toRemove)
         {
             World.Remove(toRemove);
             Remove(toRemove);
-            Logger.DebugFormat("Removing creature {0} (id {1})", toRemove.Name, toRemove.Id);
+            GameLog.DebugFormat("Removing creature {0} (id {1})", toRemove.Name, toRemove.Id);
         }
 
-        public void InsertReactor(/*reactor toinsert*/)
+        public void InsertReactor(Reactor toInsert)
         {
-            /*
-            var reactor = new Reactor(toinsert);
-            World.Insert(reactor);
-            Insert(reactor, reactor.X, reactor.Y);
-            reactor.OnSpawn();
-             */
+            World.Insert(toInsert);
+            Insert(toInsert, toInsert.X, toInsert.Y);
+            Reactors[new Tuple<byte, byte>(toInsert.X, toInsert.Y)] = toInsert;
         }
 
         public void InsertSignpost(Objects.Signpost post)
@@ -352,7 +344,7 @@ namespace Hybrasyl
             World.Insert(post);
             Insert(post, post.X, post.Y);
             Signposts[new Tuple<byte, byte>(post.X, post.Y)] = post;
-            Logger.InfoFormat("Inserted signpost {0}@{1},{2}", post.Map.Name, post.X, post.Y);
+            GameLog.InfoFormat("Inserted signpost {0}@{1},{2}", post.Map.Name, post.X, post.Y);
         }
 
         private void InsertDoor(byte x, byte y, bool open, bool isLeftRight, bool triggerCollision = true)
@@ -398,7 +390,7 @@ namespace Hybrasyl
                         if (Game.DoorSprites.ContainsKey(lfgu))
                         {
                             // This is a left-right door
-                            Logger.DebugFormat("Inserting LR door at {0}@{1},{2}: Collision: {3}",
+                            GameLog.DebugFormat("Inserting LR door at {0}@{1},{2}: Collision: {3}",
                                 Name, x, y, IsWall[x, y]);
 
                             InsertDoor((byte)x, (byte)y, IsWall[x, y], true,
@@ -406,7 +398,7 @@ namespace Hybrasyl
                         }
                         else if (Game.DoorSprites.ContainsKey(rfgu))
                         {
-                            Logger.DebugFormat("Inserting UD door at {0}@{1},{2}: Collision: {3}",
+                            GameLog.DebugFormat("Inserting UD door at {0}@{1},{2}: Collision: {3}",
                                 Name, x, y, IsWall[x, y]);
                             // THis is an up-down door 
                             InsertDoor((byte)x, (byte)y, IsWall[x, y], false,
@@ -446,12 +438,6 @@ namespace Hybrasyl
                         Users.Add(user.Name, user);
                     }
 
-                    var value = obj as Objects.Reactor;
-                    if (value != null)
-                    {
-                        Reactors.Add(new Tuple<byte, byte>((byte)x, (byte)y), value);
-                    }
-
                     var affectedObjects = EntityTree.GetObjects(obj.GetViewport());
 
                     foreach (var target in affectedObjects)
@@ -474,7 +460,7 @@ namespace Hybrasyl
         public void ToggleDoor(byte x, byte y)
         {
             var coords = new Tuple<byte, byte>(x, y);
-            Logger.DebugFormat("Door {0}@{1},{2}: Open: {3}, changing to {4}",
+            GameLog.DebugFormat("Door {0}@{1},{2}: Open: {3}, changing to {4}",
                 Name, x, y, Doors[coords].Closed,
                 !Doors[coords].Closed);
 
@@ -485,13 +471,13 @@ namespace Hybrasyl
             // Piet & Undine).
             if (Doors[coords].UpdateCollision)
             {
-                Logger.DebugFormat("Door {0}@{1},{2}: updateCollision is set, collisions are now {3}",
+                GameLog.DebugFormat("Door {0}@{1},{2}: updateCollision is set, collisions are now {3}",
                     Name, x, y, !Doors[coords].Closed);
                 IsWall[x, y] = !IsWall[x, y];
             }
 
-            Logger.DebugFormat("Toggling door at {0},{1}", x, y);
-            Logger.DebugFormat("Door is now in state: Open: {0} Collision: {1}", Doors[coords].Closed, IsWall[x, y]);
+            GameLog.DebugFormat("Toggling door at {0},{1}", x, y);
+            GameLog.DebugFormat("Door is now in state: Open: {0} Collision: {1}", Doors[coords].Closed, IsWall[x, y]);
 
             var updateViewport = GetViewport(x, y);
 
@@ -500,7 +486,7 @@ namespace Hybrasyl
                 if (obj is User)
                 {
                     var user = obj as User;
-                    Logger.DebugFormat("Sending door packet to {0}: X {1}, Y {2}, Open {3}, LR {4}",
+                    GameLog.DebugFormat("Sending door packet to {0}: X {1}, Y {2}, Open {3}, LR {4}",
                         user.Name, x, y, Doors[coords].Closed,
                         Doors[coords].IsLeftRight);
 
@@ -608,16 +594,18 @@ namespace Hybrasyl
 
                     obj.Map = null;
                 }
+                else
+                    GameLog.Fatal("AIEEEEEEEEEEEEEEEE");
             }
         }
 
         public void AddGold(int x, int y, Gold gold)
         {
-            Logger.DebugFormat("{0}, {1}, {2} qty {3} id {4}",
+            GameLog.DebugFormat("{0}, {1}, {2} qty {3} id {4}",
                 x, y, gold.Name, gold.Amount, gold.Id);
             if (gold == null)
             {
-                Logger.DebugFormat("ItemObject is null, aborting");
+                GameLog.DebugFormat("ItemObject is null, aborting");
                 return;
             }
             // Add the gold to the world at the given location.
@@ -634,11 +622,11 @@ namespace Hybrasyl
 
         public void AddItem(int x, int y, ItemObject itemObject)
         {
-            Logger.DebugFormat("{0}, {1}, {2} qty {3} id {4}",
+            GameLog.DebugFormat("{0}, {1}, {2} qty {3} id {4}",
                 x, y, itemObject.Name, itemObject.Count, itemObject.Id);
             if (itemObject == null)
             {
-                Logger.DebugFormat("ItemObject is null, aborting");
+                GameLog.DebugFormat("ItemObject is null, aborting");
                 return;
             }            
             // Add the ItemObject to the world at the given location.
@@ -656,7 +644,7 @@ namespace Hybrasyl
         public void RemoveGold(Gold gold)
         {
             // Remove the gold from the world at the specified location.
-            Logger.DebugFormat("Removing {0} qty {1} id {2}", gold.Name, gold.Amount, gold.Id);
+            GameLog.DebugFormat("Removing {0} qty {1} id {2}", gold.Name, gold.Amount, gold.Id);
             NotifyNearbyAoiDeparture(gold);
             lock (_lock)
             {
@@ -669,7 +657,7 @@ namespace Hybrasyl
         public void RemoveItem(ItemObject itemObject)
         {
             // Remove the ItemObject from the world at the specified location.
-            Logger.DebugFormat("Removing {0} qty {1} id {2}", itemObject.Name, itemObject.Count, itemObject.Id);
+            GameLog.DebugFormat("Removing {0} qty {1} id {2}", itemObject.Name, itemObject.Count, itemObject.Id);
             NotifyNearbyAoiDeparture(itemObject);
             lock (_lock)
             {
@@ -685,7 +673,7 @@ namespace Hybrasyl
             {
                 if (obj is User)
                 {
-                    Logger.DebugFormat("Notifying {0} of object {1} at {2},{3} with sprite {4}", obj.Name, objectToAdd.Name,
+                    GameLog.DebugFormat("Notifying {0} of object {1} at {2},{3} with sprite {4}", obj.Name, objectToAdd.Name,
                         objectToAdd.X, objectToAdd.Y, objectToAdd.Sprite);
                     var user = obj as User;
                     user.AoiEntry(objectToAdd);
@@ -722,8 +710,6 @@ namespace Hybrasyl
 
     public class Warp
     {
-        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
         public Map SourceMap { get; set; }
         public byte X { get; set; }
         public byte Y { get; set; }
@@ -763,7 +749,7 @@ namespace Hybrasyl
 
         public bool Use(User target)
         {
-            Logger.DebugFormat("warp: {0} from {1} ({2},{3}) to {4} ({5}, {6}", target.Name, SourceMap.Name, X, Y,
+            GameLog.DebugFormat("warp: {0} from {1} ({2},{3}) to {4} ({5}, {6}", target.Name, SourceMap.Name, X, Y,
                 DestinationMapName, DestinationX, DestinationY);
             switch (WarpType)
             {
@@ -775,7 +761,7 @@ namespace Hybrasyl
                         target.Teleport(map.Id, DestinationX, DestinationY);
                         return true;
                     }
-                    Logger.ErrorFormat("User {0} tried to warp to nonexistent map {1} from {2}: {3},{4}", target.Name,
+                    GameLog.ErrorFormat("User {0} tried to warp to nonexistent map {1} from {2}: {3},{4}", target.Name,
                         DestinationMapName, SourceMap.Name, X, Y);
                     break;
                 case WarpType.WorldMap:
@@ -787,7 +773,7 @@ namespace Hybrasyl
                         SourceMap.World.WorldData.Get<Map>(Hybrasyl.Constants.LAG_MAP).Insert(target, 5, 5, false);
                         return true;
                     }
-                    Logger.ErrorFormat("User {0} tried to warp to nonexistent worldmap {1} from {2}: {3},{4}",
+                    GameLog.ErrorFormat("User {0} tried to warp to nonexistent worldmap {1} from {2}: {3},{4}",
                         target.Name,
                         DestinationMapName, SourceMap.Name, X, Y);
                     break;

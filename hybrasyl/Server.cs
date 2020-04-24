@@ -13,19 +13,16 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2013 Justin Baugh (baughj@hybrasyl.com)
- * (C) 2015 Project Hybrasyl (info@hybrasyl.com)
+ * (C) 2020 ERISCO, LLC 
  *
- * Authors:   Justin Baugh  <baughj@hybrasyl.com>
- *            Kyle Speck    <kojasou@hybrasyl.com>
+ * For contributors and individual authors please refer to CONTRIBUTORS.MD.
+ * 
  */
 
 using Hybrasyl.Enums;
-using log4net;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -43,9 +40,6 @@ namespace Hybrasyl
 
     public class Server
     {
-        public static readonly ILog Logger =
-            LogManager.GetLogger(
-                System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         public int Port { get; private set; }
         public Socket Listener { get; private set; }
@@ -73,7 +67,7 @@ namespace Hybrasyl
             Throttles = new Dictionary<byte, IPacketThrottle>();
             ExpectedConnections = new ConcurrentDictionary<uint, Redirect>();
             for (int i = 0; i < 256; ++i)
-                PacketHandlers[i] = (c, p) => Logger.DebugFormat("Server: Unhandled opcode 0x{0:X2}", p.Opcode);
+                PacketHandlers[i] = (c, p) => GameLog.DebugFormat("Server: Unhandled opcode 0x{0:X2}", p.Opcode);
 
         }
 
@@ -98,7 +92,7 @@ namespace Hybrasyl
             Listener.Bind(new IPEndPoint(IPAddress.Any, Port));
             Active = true;
             Listener.Listen(100);
-            Logger.InfoFormat("Starting TcpListener: {0}:{1}", IPAddress.Any.ToString(), Port);
+            GameLog.InfoFormat("Starting TcpListener: {0}:{1}", IPAddress.Any.ToString(), Port);
             while (true)
             {
                 if (StopToken.IsCancellationRequested)
@@ -126,7 +120,7 @@ namespace Hybrasyl
             }
             catch (ObjectDisposedException e)
             {
-                Logger.Error($"Disposed socket {e.Message}");
+                GameLog.Error($"Disposed socket {e.Message}");
                 return;
             }
             Client client = new Client(handler, this);
@@ -139,24 +133,24 @@ namespace Hybrasyl
                 x7E.WriteByte(0x1B);
                 x7E.WriteString("CONNECTED SERVER\n");
                 client.Enqueue(x7E);
-                Logger.DebugFormat("Lobby: AcceptConnection occuring");
-                Logger.DebugFormat("Lobby: cid is {0}", client.ConnectionId);
+                GameLog.DebugFormat("Lobby: AcceptConnection occuring");
+                GameLog.DebugFormat("Lobby: cid is {0}", client.ConnectionId);
             }
             else if (this is Login)
             {
-                Logger.DebugFormat("Login: AcceptConnection occuring");
-                Logger.DebugFormat("Login: cid is {0}", client.ConnectionId);
+                GameLog.DebugFormat("Login: AcceptConnection occuring");
+                GameLog.DebugFormat("Login: cid is {0}", client.ConnectionId);
             }
             else if (this is World)
             {
-                Logger.DebugFormat("World: AcceptConnection occuring");
-                Logger.DebugFormat("World: cid is {0}", client.ConnectionId);
+                GameLog.DebugFormat("World: AcceptConnection occuring");
+                GameLog.DebugFormat("World: cid is {0}", client.ConnectionId);
             }
             try
             {
                 handler.BeginReceive(client.ClientState.Buffer, 0, client.ClientState.Buffer.Length, 0,
                     new AsyncCallback(ReadCallback), client.ClientState);
-                Logger.DebugFormat("AcceptConnection returning");
+                GameLog.DebugFormat("AcceptConnection returning");
                 clientSocket.BeginAccept(new AsyncCallback(AcceptConnection), clientSocket);
             }
             catch (SocketException)
@@ -173,8 +167,8 @@ namespace Hybrasyl
             int bytesRead = 0;
             ClientPacket receivedPacket;
           
-            Logger.Debug($"SocketConnected: {state.WorkSocket.Connected}, IAsyncResult: Completed: {ar.IsCompleted}, CompletedSynchronously: {ar.CompletedSynchronously}, queue size: {state.Buffer.Length}");
-            Logger.Debug("Running read callback");
+            GameLog.Debug($"SocketConnected: {state.WorkSocket.Connected}, IAsyncResult: Completed: {ar.IsCompleted}, CompletedSynchronously: {ar.CompletedSynchronously}, queue size: {state.Buffer.Length}");
+            GameLog.Debug("Running read callback");
 
             if (!GlobalConnectionManifest.ConnectedClients.TryGetValue(state.Id, out client))
             {
@@ -182,7 +176,7 @@ namespace Hybrasyl
                 Redirect redirect;
                 if (!GlobalConnectionManifest.TryGetRedirect(state.Id, out redirect))
                 {
-                    Logger.ErrorFormat("Receive: data from unknown client (id {0}, closing connection", state.Id);
+                    GameLog.ErrorFormat("Receive: data from unknown client (id {0}, closing connection", state.Id);
                     state.WorkSocket.Close();
                     state.WorkSocket.Dispose();
                     return;
@@ -197,13 +191,13 @@ namespace Hybrasyl
                 bytesRead = state.WorkSocket.EndReceive(ar, out errorCode);
                 if (bytesRead == 0 || errorCode != SocketError.Success)
                 {
-                    Logger.Error($"bytesRead: {bytesRead}, errorCode: {errorCode}");
+                    GameLog.Error($"bytesRead: {bytesRead}, errorCode: {errorCode}");
                     client.Disconnect();
                 }
             }
             catch (Exception e)
             {
-                Logger.Fatal($"EndReceive Error:  {e.Message}");
+                GameLog.Fatal($"EndReceive Error:  {e.Message}");
                 client.Disconnect();
             }
 
@@ -217,7 +211,7 @@ namespace Hybrasyl
             }
             catch (Exception e)
             {
-                Logger.Error($"ReadCallback error: {e.Message}");
+                GameLog.Error($"ReadCallback error: {e.Message}");
             }
             ContinueReceiving(state, client);
         }
@@ -229,17 +223,17 @@ namespace Hybrasyl
             {
                 state.WorkSocket.BeginReceive(state.Buffer, 0, state.Buffer.Length, 0,
                     new AsyncCallback(this.ReadCallback), state);
-                Logger.DebugFormat("Triggering receive callback");
+                GameLog.DebugFormat("Triggering receive callback");
             }
             catch (ObjectDisposedException e)
             {
-                Logger.Fatal(e.Message);
+                GameLog.Fatal(e.Message);
                 //client.Disconnect();
                 state.WorkSocket.Close();
             }
             catch (SocketException e)
             {
-                Logger.Fatal(e.Message);
+                GameLog.Fatal(e.Message);
                 client.Disconnect();
             }
         }
@@ -247,16 +241,15 @@ namespace Hybrasyl
 
         public virtual void Shutdown()
         {
-            Logger.WarnFormat("{0}: shutting down", this.GetType().ToString());
-            Listener.Close();
-            Logger.WarnFormat("{0}: shutdown complete", this.GetType().ToString());
+            GameLog.WarningFormat("{ServerType}: shutting down", this.GetType().ToString());
+            Listener?.Close();
+            GameLog.WarningFormat("{ServerType}: shutdown complete", this.GetType().ToString());
         }
     }
 
     public class Redirect
     {
         private static uint id = 0;
-        public static readonly ILog Logger = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         public uint Id { get; set; }
         public Client Client { get; set; }
