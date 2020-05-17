@@ -27,6 +27,23 @@
     </xs:documentation>
   </xs:annotation>
 
+  <!-- Castable type enumeration
+       Can be expanded for future use -->
+  <xs:simpleType name="CastableType">
+    <xs:restriction>
+      <xs:simpleType>
+        <xs:list>
+          <xs:simpleType>
+            <xs:restriction base="xs:token">
+              <xs:enumeration value="Spell" />
+              <xs:enumeration value="Skill" />
+            </xs:restriction>
+          </xs:simpleType>
+        </xs:list>
+      </xs:simpleType>
+    </xs:restriction>
+  </xs:simpleType>
+
   <!-- Damage effects type -->
   <xs:complexType name="CastableDamage">
     <xs:all>
@@ -324,7 +341,7 @@
       <xs:element name="Script" type="xs:string" minOccurs="0" maxOccurs="1"/>
     </xs:all>
     <!-- Castable attributes -->
-    <xs:attribute name="Type" use="required" />
+    <xs:attribute name="Type" use="required" type="hyb:CastableType" />
     <xs:attribute name="Icon" type="xs:unsignedByte" use="required" />
     <xs:attribute name="Book" type="hyb:Book" use="required" />
     <xs:attribute name="Element" default="None" type="hyb:Element"/>
