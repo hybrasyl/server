@@ -37,7 +37,6 @@ public partial class Castable
     private CastableRestrictions _restrictions;
     private CastableEffects _effects;
     private string _script;
-    private string _type;
     private byte _icon;
     private Book _book;
     private Element _element;
@@ -188,19 +187,6 @@ public partial class Castable
         set
         {
             _script = value;
-        }
-    }
-    
-    [XmlAttribute]
-    public string Type
-    {
-        get
-        {
-            return _type;
-        }
-        set
-        {
-            _type = value;
         }
     }
     
