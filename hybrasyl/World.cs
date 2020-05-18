@@ -803,7 +803,7 @@ namespace Hybrasyl
             {
                 var sclass = new Metafile("SClass" + i);
                 sclass.Nodes.Add("Skill");
-                foreach (var skill in WorldData.Values<Xml.Castable>().Where(x => x.Type.Contains("skill")))
+                foreach (var skill in WorldData.Values<Xml.Castable>().Where(x => x.Book == Xml.Book.PrimarySkill || x.Book == Xml.Book.SecondarySkill || x.Book == Xml.Book.UtilitySkill))
                 // placeholder; change to skills where class == i, are learnable from trainer, and sort by level
                 {
                     sclass.Nodes.Add(new MetafileNode(skill.Name,
@@ -817,7 +817,7 @@ namespace Hybrasyl
                 }
                 sclass.Nodes.Add("Skill_End");
                 sclass.Nodes.Add("Spell");
-                foreach (var spell in WorldData.Values<Xml.Castable>().Where(x => x.Type.Contains("spell")))
+                foreach (var spell in WorldData.Values<Xml.Castable>().Where(x => x.Book == Xml.Book.PrimarySpell || x.Book == Xml.Book.SecondarySpell || x.Book == Xml.Book.UtilitySpell))
                 // placeholder; change to skills where class == i, are learnable from trainer, and sort by level
                 {
                     sclass.Nodes.Add(new MetafileNode(spell.Name,
