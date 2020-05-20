@@ -33,10 +33,34 @@ namespace Hybrasyl.Scripting
     [MoonSharpUserData]
     public static class HybrasylUtility
     {
+        /// <summary>
+        /// Get the current Terran hour for the local (timezone of the server) time.
+        /// </summary>
+        /// <returns></returns>
         public static int GetCurrentHour() => DateTime.Now.Hour;
+        /// <summary>
+        /// Get the current Terran day for the local (timezone of the server) time.
+        /// </summary>
+        /// <returns></returns>
         public static int GetCurrentDay() => DateTime.Now.Day;
+        /// <summary>
+        /// Get current Unix time.
+        /// </summary>
+        /// <returns></returns>
         public static long GetUnixTime() => new DateTimeOffset(DateTime.Now).ToUnixTimeSeconds();
+        /// <summary>
+        /// Calculate the number of hours (float) between two Unix timestamps t1 and t2.
+        /// </summary>
+        /// <param name="t1">First timestamp</param>
+        /// <param name="t2">Second timestamp</param>
+        /// <returns></returns>
         public static long HoursBetweenUnixTimes(long t1, long t2) => ((t2 - t1) / 3600);
+        /// <summary>
+        /// Calculate the number of hours (float) between two Unix timestamps represented as strings.
+        /// </summary>
+        /// <param name="t1"></param>
+        /// <param name="t2"></param>
+        /// <returns></returns>
         public static long HoursBetweenUnixTimes(string t1, string t2) => (Convert.ToInt64(t2) - Convert.ToInt64(t1)) / 3600;
     }
 }

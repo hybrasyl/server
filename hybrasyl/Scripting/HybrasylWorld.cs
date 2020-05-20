@@ -29,7 +29,9 @@ using System.Reflection;
 
 namespace Hybrasyl.Scripting
 {
-
+    /// <summary>
+    /// A collection of dialog options that can be used by an options dialog (a dialog that displays a list of options for a player to select).
+    /// </summary>
     [MoonSharpUserData]
     public class HybrasylDialogOptions
     {
@@ -40,8 +42,18 @@ namespace Hybrasyl.Scripting
             Options = new OrderedDictionary();
         }
 
+        /// <summary>
+        /// Add a dialog option which will fire a function when selected by a player.
+        /// </summary>
+        /// <param name="option">The option text</param>
+        /// <param name="luaExpr">The lua expression to be evaluated when the option is selected by a player</param>
         public void AddOption(string option, string luaExpr = null) => Options.Add(option, luaExpr);
 
+        /// <summary>
+        /// Add a dialog option which will fire a JumpDialog when selected by a player.
+        /// </summary>
+        /// <param name="option">The option text</param>
+        /// <param name="nextDialog">The JumpDialog that will be used by this option</param>
         public void AddOption(string option, HybrasylDialog nextDialog)
         {
             if (nextDialog.DialogType == typeof(JumpDialog))
@@ -49,10 +61,17 @@ namespace Hybrasyl.Scripting
             else
                 GameLog.Error($"Dialog option {option}: unsupported dialog type {nextDialog.DialogType.Name}");
         }
-
+        /// <summary>
+        /// Add a dialog option that will start a new sequence when selected by a player.
+        /// </summary>
+        /// <param name="option">The option text</param>
+        /// <param name="sequence">The DialogSequence that wil be started when the option is selected by a player</param>
         public void AddOption(string option, HybrasylDialogSequence sequence) => Options.Add(option, sequence);
     }
 
+    /// <summary>
+    /// The world, as represented in Lua.
+    /// </summary>
     [MoonSharpUserData]
     public class HybrasylWorld
     {
@@ -64,20 +83,39 @@ namespace Hybrasyl.Scripting
             World = world;
         }
 
+        /// <summary>
+        /// Write a message to the game (server) informational log.
+        /// </summary>
+        /// <param name="message">The message to be written</param>
         public void WriteLog(string message)
         {
             GameLog.Info(message);
         }
 
+        /// <summary>
+        /// Return the current in game year.
+        /// </summary>
         public int CurrentInGameYear => HybrasylTime.CurrentYear;
+        /// <summary>
+        /// Return the current in game age (e.g. Hybrasyl, or Danaan).
+        /// </summary>
         public string CurrentInGameAge => HybrasylTime.CurrentAgeName;
 
+        /// <summary>
+        /// Return the current in-game time.
+        /// </summary>
+        /// <returns></returns>
         public HybrasylTime CurrentTime()
         {
             var ht = HybrasylTime.Now;
             return ht;
         }
 
+        /// <summary>
+        /// Get a user object for the specified user (player) name.
+        /// </summary>
+        /// <param name="username">The user to be returned</param>
+        /// <returns>HybrasylUser object for the given user, or nil, if the player is not logged in.</returns>
         public HybrasylUser GetUser(string username)
         {
             if (Game.World.TryGetActiveUser(username, out User user))
@@ -87,8 +125,18 @@ namespace Hybrasyl.Scripting
             return null;
         }
 
+        /// <summary>
+        /// Create a new dialog options container.
+        /// </summary>
+        /// <returns>A new DialogOptions container.</returns>
         public HybrasylDialogOptions NewDialogOptions() => new HybrasylDialogOptions();
 
+        /// <summary>
+        /// Create a new dialog sequence.
+        /// </summary>
+        /// <param name="sequenceName">The name of the new sequence.</param>
+        /// <param name="list">An arbitrary collection of dialogs that will be made part of this sequence.</param>
+        /// <returns>The constructed dialog sequence</returns>
         public HybrasylDialogSequence NewDialogSequence(string sequenceName, params object[] list)
         {
             var dialogSequence = new HybrasylDialogSequence(sequenceName);
@@ -108,6 +156,12 @@ namespace Hybrasyl.Scripting
             return dialogSequence;
         }
 
+        /// <summary>
+        /// Create a new "simple" (text-only) dialog.
+        /// </summary>
+        /// <param name="displayText">The text that the dialog will display to the player.</param>
+        /// <param name="callback">A lua callback that can be associated with the dialog, and will be fired when the dialog is shown to a player.</param>
+        /// <returns>The constructed dialog</returns>
         public HybrasylDialog NewDialog(string displayText, string callback = null)
         {
             var dialog = new SimpleDialog(displayText);
@@ -181,7 +235,17 @@ namespace Hybrasyl.Scripting
             sequence.AddDialog(dialog);
             return new HybrasylDialogSequence(sequence);
         }
-    
+
+        /// <summary>
+        /// Create a new text dialog (a dialog that asks a player a question; the player can type in a response).
+        /// </summary>
+        /// <param name="displayText">The text to be displayed in the dialog</param>
+        /// <param name="topCaption">The top caption of the text box input</param>
+        /// <param name="bottomCaption">The bottom caption of the text box input</param>
+        /// <param name="inputLength">The maximum length (up to 254 characters) of the text that can be typed into the dialog by the player</param>
+        /// <param name="callback">The callback function or lua expression that will fire when this dialog is shown to a player.</param>
+        /// <param name="handler">The function or lua expression that will handle the response once the player hits enter / hits next.</param>
+        /// <returns>The constructed dialog</returns>    
         public HybrasylDialog NewTextDialog(string displayText, string topCaption, string bottomCaption, int inputLength = 254, string callback="", string handler="")
         {
             var dialog = new TextDialog(displayText, topCaption, bottomCaption, inputLength);
@@ -190,6 +254,14 @@ namespace Hybrasyl.Scripting
             return new HybrasylDialog(dialog);
         }
 
+        /// <summary>
+        /// Create a new options dialog (a dialog that displays clickable options to the player).
+        /// </summary>
+        /// <param name="displayText">The text to be displayed in the dialog</param>
+        /// <param name="dialogOptions">A collection of dialog options (eg HybrasylDialogOptions) associated with this dialog</param>
+        /// <param name="callback">A callback function or expression that will fire when this dialog is shown to a player</param>
+        /// <param name="handler">A callback function or expression that will handle the response once a player selects (clicks) an option</param>
+        /// <returns>The constructed dialog</returns>
         public HybrasylDialog NewOptionsDialog(string displayText, HybrasylDialogOptions dialogOptions, string callback="", string handler = "")
         {
             var dialog = new OptionsDialog(displayText);
@@ -225,23 +297,44 @@ namespace Hybrasyl.Scripting
             return new HybrasylDialog(dialog);
         }
 
+        /// <summary>
+        /// Create a function dialog, which is an "invisible" dialog that will execute a Lua expression when shown to the player. The dialog function will be run,
+        /// and then the next dialog in the sequence will be shown to the player.
+        /// </summary>
+        /// <param name="luaExpr">The lua expression to run when the FunctionDialog is evaluated</param>
+        /// <returns>The constructed dialog</returns>
         public HybrasylDialog NewFunctionDialog(string luaExpr)
         {
             return new HybrasylDialog(new FunctionDialog(luaExpr));
         }
 
+        /// <summary>
+        /// Create a jump dialog, which is an "invisible" dialog that is used to start a new sequence from a subdialog. Can be used to jump between different NPC dialogue branches.
+        /// </summary>
+        /// <param name="targetSequence">The name of the sequence that will start when this JumpDialog is "shown" to the player.</param>
+        /// <returns>The constructed dialog</returns>
         public HybrasylDialog NewJumpDialog(string targetSequence)
         {
             var dialog = new JumpDialog(targetSequence);
             return new HybrasylDialog(dialog);
         }
 
+        /// <summary>
+        /// do not use.
+        /// </summary>
+        /// <param name="creaturename"></param>
+        /// <param name="spawnname"></param>
+        /// <returns></returns>
         public HybrasylSpawn NewSpawn(string creaturename, string spawnname)
         {
             var spawn = new HybrasylSpawn(creaturename, spawnname);
             return spawn;
         }
 
+        /// <summary>
+        /// Register a dialog sequence as a "global" sequence, meaning any object in the game can reference and use it.
+        /// </summary>
+        /// <param name="globalSequence">The dialog sequence to be registered as a global seqeunce.</param>
         public void RegisterGlobalSequence(HybrasylDialogSequence globalSequence)
         {
             Game.World.RegisterGlobalSequence(globalSequence.Sequence);

@@ -37,22 +37,38 @@ namespace Hybrasyl.Scripting
             Dialog = dialog;
         }
 
+        /// <summary>
+        /// Set the display sprite for this specific dialog to an NPC / creature sprite. This is the sprite that is displayed on the left hand side when a user views a dialog.
+        /// </summary>
+        /// <param name="displaySprite">int representing the sprite in the datfiles</param>
         public void SetNpcDisplaySprite(int displaySprite)
         {
             Dialog.Sprite = (ushort)(0x4000 + displaySprite);
         }
+        /// <summary>
+        /// Set the display sprite for this specific dialog to an item sprite. This is the sprite that is displayed on the left hand side when a user views a dialog.
+        /// </summary>
+        /// <param name="displaySprite">int representing the item sprite in the datfiles</param>
 
         public void SetItemDisplaySprite(int displaySprite)
         {
             Dialog.Sprite = (ushort)(0x8000 + displaySprite);
         }
 
+        /// <summary>
+        /// Assoiciate this particular dialog with a sequence.
+        /// </summary>
+        /// <param name="sequence"></param>
         public void AssociateDialogWithSequence(DialogSequence sequence)
         {
             Sequence = sequence;
             sequence.AddDialog(Dialog);
         }
 
+        /// <summary>
+        /// Attach a callback expression to this dialog, which will be invoked when the dialog is displayed.
+        /// </summary>
+        /// <param name="luaExpr">A Lua expression to be evaluated.</param>
         public void AttachCallback(string luaExpr)
         {
             Dialog.CallbackExpression = luaExpr;
