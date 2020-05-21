@@ -36,17 +36,39 @@ namespace Hybrasyl.Scripting
         internal User User { get; set; }
         internal HybrasylWorld World { get; set; }
         internal HybrasylMap Map { get; set; }
+        /// <summary>
+        /// The name of the player.
+        /// </summary>
         public string Name => User.Name;
+        /// <summary>
+        /// The current X coordinate of the player.
+        /// </summary>
         public byte X => User.X;
+        /// <summary>
+        /// The current Y coordinate of the player.
+        /// </summary>
         public byte Y => User.Y;
+        /// <summary>
+        /// The user's class (e.g. Rogue, Warrior, etc)
+        /// </summary>
         public Xml.Class Class => User.Class;
 
         // TODO: determine a better way to do this in lua via moonsharp
+        /// <summary>
+        /// The type of object this is. This is a shortcut to reference in scripting as evaluating type is annoying; so you can check the Type property instead.
+        /// e.g. invoker.Type == "player"
+        /// </summary>
         public string Type => "player";
 
 
+        /// <summary>
+        /// The gender of the player. For Darkages purpose, this will evaluate to Male or Female.
+        /// </summary>
         public Xml.Gender Gender => User.Gender;
 
+        /// <summary>
+        /// The current HP (hit points) of the user. This can be set to an arbitrary value; the player's HP display is automatically updated.
+        /// </summary>
         public uint Hp
         {
             get { return User.Stats.Hp; }
@@ -56,8 +78,14 @@ namespace Hybrasyl.Scripting
             }
         }
 
+        /// <summary>
+        /// The current level of the user. Client supports up to level 255; Hybrasyl has the same level cap as usda, 99. 
+        /// </summary>
         public int Level { get => User.Stats.Level; }
 
+        /// <summary>
+        /// The current MP (magic points) of the user. This can be set to an arbitrary value; the player's MP display is automatically updated.
+        /// </summary>
         public uint Mp
         {
             get { return User.Stats.Mp; }
@@ -74,44 +102,77 @@ namespace Hybrasyl.Scripting
             World = new HybrasylWorld(user.World);
             Map = new HybrasylMap(user.Map);
         }
-
+        /// <summary>
+        /// Get a list of objects in the viewport of the player. This represents all visible objects (items, players, creatures) contained in the client's viewport (the drawable map area).
+        /// </summary>
+        /// <returns></returns>
         public List<HybrasylWorldObject> GetViewportObjects()
         {
             return new List<HybrasylWorldObject>();
         }
 
+        /// <summary>
+        /// Get a list of players in the viewport of the player. This represents only players contained in the client's viewport (the drawable map area).
+        /// </summary>
+        /// <returns></returns>
         public List<HybrasylUser> GetViewportPlayers()
         {
             return new List<HybrasylUser>();
         }
 
+        /// <summary>
+        /// Resurrect a user. They respawn in their home map with 1HP/1MP and with scars, if configured in the death handler.
+        /// </summary>
         public void Resurrect()
         {
             User.Resurrect();
         }
 
+        /// <summary>
+        /// Get the player, if any, that the current player is facing ("looking at").
+        /// </summary>
+        /// <returns>HybrasylUser object for the player facing this player, or nil, if the player isn't directly facing another player.</returns>
         public HybrasylUser GetFacingUser()
         {
             var facing = User.GetFacingUser();
             return facing != null ? new HybrasylUser(facing) : null;
         }
 
+        /// <summary>
+        /// Get the objects a player is facing (for instance, items on the ground in front of the player)/
+        /// </summary>
+        /// <returns>A list of HybrasylWorldObjects that the player is facing.</returns>
         public List<HybrasylWorldObject> GetFacingObjects()
         {
             return User.GetFacingObjects().Select(item => new HybrasylWorldObject(item)).ToList();
         }
 
+        /// <summary>
+        /// End coma state (e.g. beothaich was used)
+        /// </summary>
         public void EndComa()
         {
             User.EndComa();
         }
 
+        /// <summary>
+        /// Get a legend mark from the current player's legend (a list of player achievements and accomplishments which is visible by anyone in the world), given a legend
+        /// prefix. All legend marks have invisible prefixes (keys) for editing / storage capabilities.
+        /// </summary>
+        /// <param name="prefix">The prefix we want to retrieve (legend key)</param>
+        /// <returns></returns>
         public dynamic GetLegendMark(string prefix)
         {
             LegendMark mark;
             return User.Legend.TryGetMark(prefix, out mark) ? mark : (object)null;
         }
 
+        /// <summary>
+        /// Change the class of a player to a new class. The player's class will immediately change and they will receive a legend mark that 
+        /// reads "newClass by oath of oathGiver, XXX".
+        /// </summary>
+        /// <param name="newClass">The player's new class./param>
+        /// <param name="oathGiver">The name of the NPC or player who gave oath for this class change.</param>
         public void ChangeClass(Xml.Class newClass, string oathGiver)
         {
             User.Class = newClass;
@@ -146,19 +207,58 @@ namespace Hybrasyl.Scripting
             }
             User.Legend.AddMark(icon, LegendColor.White, legendtext, "CLS");
         }
+
+        /// <summary>
+        /// Return the player's entire legend.
+        /// </summary>
+        /// <returns></returns>
         public Legend GetLegend()
         {
             return User.Legend;
         }
 
+        /// <summary>
+        /// Add a legend mark with the specified icon, color, text, and prefix to a player's legend, which will default to being issued now (current in-game time).
+        /// </summary>
+        /// <param name="icon">The icon to be used for the mark (heart, sword, etc)</param>
+        /// <param name="color">The color the mark will be rendered in (blue, yellow, orange, etc)</param>
+        /// <param name="text">The actual text of the legend mark.</param>
+        /// <param name="prefix">An invisible key (stored in the beginning of the mark) that can be used to refer to the mark later.</param>
+        /// <param name="isPublic">Whether or not this legend mark can be seen by other players. By convention, private marks are prefixed with " - ".</param>
+        /// <param name="quantity">Quantity of the legend mark. For instance "Mentored Dude (2)". Also by convention, quantity is expressed in parenthesis at the end of the mark.</param>
+        /// <param name="displaySeason">Whether or not to display the season of a mark (e.g. Fall, Summer)</param>
+        /// <param name="displayTimestamp">Whether or not to display the in-game time of a mark (e.g. Hybrasyl 5)</param>
+        /// <returns></returns>
         public bool AddLegendMark(LegendIcon icon, LegendColor color, string text, string prefix=default(string), bool isPublic = true, 
             int quantity = 0, bool displaySeason=true, bool displayTimestamp=true)
         {
             return AddLegendMark(icon, color, text, DateTime.Now, prefix, isPublic, quantity, displaySeason, displayTimestamp);
         }
 
+        /// <summary>
+        /// Add a legend mark with the specified icon, color, text, timestamp and prefix to a player's legend.
+        /// </summary>
+        /// <param name="icon">The icon to be used for the mark (heart, sword, etc)</param>
+        /// <param name="color">The color the mark will be rendered in (blue, yellow, orange, etc)</param>
+        /// <param name="text">The actual text of the legend mark.</param>
+        /// <param name="timestamp">The in-game time the legend was awarded.</param>
+        /// <param name="prefix">An invisible key (stored in the beginning of the mark) that can be used to refer to the mark later.</param>
+        /// <returns></returns>
         public bool AddLegendMark(LegendIcon icon, LegendColor color, string text, HybrasylTime timestamp, string prefix) => User.Legend.AddMark(icon, color, text, timestamp.TerranDateTime, prefix);
 
+        /// <summary>
+        /// Add a legend mark to a player's legend.
+        /// </summary>
+        /// <param name="icon">The icon to be used for the mark (heart, sword, etc)</param>
+        /// <param name="color">The color the mark will be rendered in (blue, yellow, orange, etc)</param>
+        /// <param name="text">The actual text of the legend mark.</param>
+        /// <param name="timestamp">The Terran time the legend was awarded.</param>
+        /// <param name="prefix">An invisible key (stored in the beginning of the mark) that can be used to refer to the mark later.</param>
+        /// <param name="isPublic">Whether or not this legend mark can be seen by other players. By convention, private marks are prefixed with " - ".</param>
+        /// <param name="quantity">Quantity of the legend mark. For instance "Mentored Dude (2)". Also by convention, quantity is expressed in parenthesis at the end of the mark.</param>
+        /// <param name="displaySeason">Whether or not to display the season of a mark (e.g. Fall, Summer)</param>
+        /// <param name="displayTimestamp">Whether or not to display the in-game time of a mark (e.g. Hybrasyl 5)</param>
+        /// <returns></returns>
         public bool AddLegendMark(LegendIcon icon, LegendColor color, string text, DateTime timestamp, string prefix = default(string), 
             bool isPublic = true, int quantity = 0, bool displaySeason=true, bool displayTimestamp=true)
         {
@@ -173,11 +273,23 @@ namespace Hybrasyl.Scripting
             return false;
         }
 
+        /// <summary>
+        /// Remove the given legend mark from a player's legend.
+        /// </summary>
+        /// <param name="prefix">The prefix key of the legend mark to be removed.</param>
+        /// <returns>Boolean indicating success or failure.</returns>
         public bool RemoveLegendMark(string prefix)
         {
             return User.Legend.RemoveMark(prefix);
         }
 
+        /// <summary>
+        /// Modify a previously created legend mark. You can set a new quantity, or set an existing mark as public or private.
+        /// </summary>
+        /// <param name="prefix">Prefix key of the legend mark to be modified.</param>
+        /// <param name="quantity">A quantity to be assigned to the mark.</param>
+        /// <param name="isPublic">Whether or not the mark should be public or not.</param>
+        /// <returns>Boolean indicating whether the mark for modification was found or not</returns>
         public bool ModifyLegendMark(string prefix, int quantity, bool isPublic)
         {
             LegendMark mark;
@@ -189,12 +301,13 @@ namespace Hybrasyl.Scripting
 
 
         /// <summary>
-        /// 
+        /// Request a sequence between two players. This is primarily used to start asynchronous dialog sequences (for things like mentoring or religion where confirmation from a second
+        /// player is required).
         /// </summary>
         /// <param name="sequence">The sequence name to start</param>
-        /// <param name="target">The </param>
-        /// <returns></returns>
-        public bool RequestDialog(string sequence, string invoker="")
+        /// <param name="invoker">The player invoking the asynchronous dialog.</param>
+        /// <returns>Boolean indicating whether or not the request was successful.</returns>
+        public bool RequestDialog(string sequence, string invoker = "")
         {
             DialogSequence sequenceObj = null;
             VisibleObject invokerObj = null;
@@ -217,7 +330,12 @@ namespace Hybrasyl.Scripting
             GameLog.Warning($"invoker {invoker} or sequence {sequence} not found");
             return false;
         }
-           
+        /// <summary>
+        /// Set a session cookie. A cookie is a key-value pair with a dynamic value (of any type) associated to a given name (a string key). NPCs and other scripting functionality can 
+        /// use this to store independent state to track quest progress / etc. Session cookies are deleted when a player is logged out.
+        /// </summary>
+        /// <param name="cookieName">Name of the cookie</param>
+        /// <param name="value">Dynamic (any type) value to be stored with the given name.</param>
         public void SetSessionCookie(string cookieName, dynamic value)
         {
             try
@@ -234,6 +352,12 @@ namespace Hybrasyl.Scripting
             }
         }
 
+        /// <summary>
+        /// Set a cookie. A cookie is a key-value pair with a dynamic value (of any type) associated to a given name (a string key). NPCs and other scripting functionality can 
+        /// use this to store independent state to track quest progress / etc. Cookies set by SetCookie are permanent.
+        /// </summary>
+        /// <param name="cookieName">Name of the cookie</param>
+        /// <param name="value">Dynamic (any type) value to be stored with the given name.</param>
         public void SetCookie(string cookieName, dynamic value)
         { 
             try
@@ -251,15 +375,54 @@ namespace Hybrasyl.Scripting
 
         }
 
+        /// <summary>
+        /// Get the value of a session cookie, if it exists.
+        /// </summary>
+        /// <param name="cookieName">The name of the cookie to fetch</param>
+        /// <returns>string representation of the cookie value</returns>
         public string GetSessionCookie(string cookieName) => User.GetSessionCookie(cookieName);
 
+        /// <summary>
+        /// Get the value of a cookie, if it exists.
+        /// </summary>
+        /// <param name="cookieName">The name of the cookie to fetch</param>
+        /// <returns>string representation of the cookie value</returns>
         public string GetCookie(string cookieName) => User.GetCookie(cookieName);
 
+        /// <summary>
+        /// Check to see if a player has a specified cookie or not.
+        /// </summary>
+        /// <param name="cookieName">Cookie name to check</param>
+        /// <returns>Boolean indicating whether or not the named cookie exists</returns>
         public bool HasCookie(string cookieName) => User.HasCookie(cookieName);
+
+        /// <summary>
+        /// Check to see if a player has a specified session cookie or not.
+        /// </summary>
+        /// <param name="cookieName">Cookie name to check</param>
+        /// <returns>Boolean indicating whether or not the named cookie exists</returns>
         public bool HasSessionCookie(string cookieName) => User.HasSessionCookie(cookieName);
+
+        /// <summary>
+        /// Permanently remove a cookie from a player.
+        /// </summary>
+        /// <param name="cookieName">The name of the cookie to be deleted.</param>
+        /// <returns></returns>
         public bool DeleteCookie(string cookieName) => User.DeleteCookie(cookieName);
+
+        /// <summary>
+        /// Permanently remove a session cookie from a player.
+        /// </summary>
+        /// <param name="cookieName">The name of the cookie to be deleted.</param>
+        /// <returns></returns>
         public bool DeleteSessionCookie(string cookieName) => User.DeleteSessionCookie(cookieName);
 
+        /// <summary>
+        /// Display a special effect visible to players.
+        /// </summary>
+        /// <param name="effect">ushort id of effect (references client datfile)</param>
+        /// <param name="speed">speed of the effect (generally 100)</param>
+        /// <param name="global">boolean indicating whether or not other players can see the effect, or just the player displaying the effect</param>
         public void DisplayEffect(ushort effect, short speed = 100, bool global = true)
         {
             if (!global)
@@ -268,6 +431,14 @@ namespace Hybrasyl.Scripting
                 User.Effect(effect, speed);
         }
 
+        /// <summary>
+        /// Display an effect at a given x,y coordinate on the current player's map.
+        /// </summary>
+        /// <param name="x">X coordinate where effect will be displayed</param>
+        /// <param name="y">Y coordinate where effect will be displayed</param>
+        /// <param name="effect">ushort id of effect (references client datfile)</param>
+        /// <param name="speed">speed of the effect (generally 100)</param>
+        /// <param name="global">boolean indicating whether or not other players can see the effect, or just the player displaying the effect</param>
         public void DisplayEffectAtCoords(short x, short y, ushort effect, short speed = 100, bool global = true)
         {
             if (!global)
@@ -276,32 +447,60 @@ namespace Hybrasyl.Scripting
                 User.Effect(x, y, effect, speed);
         }
 
+        /// <summary>
+        /// Teleport the player to an x,y coordinate location on the specified map.
+        /// </summary>
+        /// <param name="location">The map name</param>
+        /// <param name="x">X coordinate target</param>
+        /// <param name="y">Y coordinate target</param>
         public void Teleport(string location, int x, int y)
         {
             User.Teleport(location, (byte)x, (byte)y);
         }
 
+        /// <summary>
+        /// Play a sound effect.
+        /// </summary>
+        /// <param name="sound">byte id of the sound, referencing a sound effect in client datfiles.</param>
         public void SoundEffect(byte sound)
         {
             User.SendSound(sound);
         }
 
+        /// <summary>
+        /// Heal a player to full HP.
+        /// </summary>
         public void HealToFull()
         {
             User.Heal(User.Stats.MaximumHp);
         }
 
+        /// <summary>
+        /// Heal a player for the specified amount of HP.
+        /// </summary>
+        /// <param name="heal">Integer amount of HP to be restored.</param>
         public void Heal(int heal)
         {
             User.Heal(heal);
         }
 
+        /// <summary>
+        /// Deal damage to the current player.
+        /// </summary>
+        /// <param name="damage">Integer amount of damage to deal.</param>
+        /// <param name="element">Element of the damage (e.g. fire, air)</param>
+        /// <param name="damageType">Type of damage (direct, magical, etc)</param>
         public void Damage(int damage, Xml.Element element = Xml.Element.None,
            Xml.DamageType damageType = Xml.DamageType.Direct)
         {
             User.Damage(damage, element, damageType);
         }
 
+        /// <summary>
+        /// Deal physical (direct) damage to the current player.
+        /// </summary>
+        /// <param name="damage">Integer amount of damage to deal.</param>
+        /// <param name="fatal">Whether or not the damage should kill the player. If false, damage > current HP is reduced to (hp-1).</param>
         public void Damage(int damage, bool fatal=true)
         {
             if (fatal)
@@ -311,6 +510,11 @@ namespace Hybrasyl.Scripting
 
         }
 
+        /// <summary>
+        /// Give an instance of an item to a player.
+        /// </summary>
+        /// <param name="obj">HybrasylWorldObject, representing an item existing in the world, to give to the player.</param>
+        /// <returns>Boolean indicating whether or not it was successful (player may have full inventory, etc)</returns>
         public bool GiveItem(HybrasylWorldObject obj)
         {
             if (obj.Obj is ItemObject)
@@ -318,6 +522,12 @@ namespace Hybrasyl.Scripting
             return false;
         }
 
+        /// <summary>
+        /// Give a new instance of the named item to a player, optionally with a specified quantity.
+        /// </summary>
+        /// <param name="name">The name of the item to be created.</param>
+        /// <param name="count">The count (stack) of the item to be created.</param>
+        /// <returns>Boolean indicating whether or not it was successful (player may have full inventory, etc)</returns>
         public bool GiveItem(string name, int count = 1)
         {
             // Does the item exist?
@@ -335,6 +545,11 @@ namespace Hybrasyl.Scripting
             return false;
         }
 
+        /// <summary>
+        /// Take an item with a given name from the current player's inventory.
+        /// </summary>
+        /// <param name="name">The name of the item to be removed.</param>
+        /// <returns>Boolean indicating whether or not it the item was successfully removed from the player's inventory.</returns>
         public bool TakeItem(string name)
         {
             if (User.Inventory.ContainsName(name))
@@ -355,6 +570,11 @@ namespace Hybrasyl.Scripting
             return false;
         }
 
+        /// <summary>
+        /// Give experience to the current player.
+        /// </summary>
+        /// <param name="exp">Integer amount of experience to be awarded.</param>
+        /// <returns>true</returns>
         public bool GiveExperience(int exp)
         {
             SystemMessage($"{exp} experience!");
@@ -362,6 +582,11 @@ namespace Hybrasyl.Scripting
             return true;
         }
 
+        /// <summary>
+        /// Take experience from the current player.
+        /// </summary>
+        /// <param name="exp">Integer amount of experience to be deducted.</param>
+        /// <returns>Whether or not the experience was removed (if the requested amount exceeds total experience, none will be removed).</returns>
         public bool TakeExperience(int exp)
         {
             if ((uint)exp > User.Stats.Experience)
@@ -372,6 +597,11 @@ namespace Hybrasyl.Scripting
             return true;
         }
 
+        /// <summary>
+        /// Add a given skill to a player's skillbook.
+        /// </summary>
+        /// <param name="skillname">The name of the skill to be added.</param>
+        /// <returns>Boolean indicating success</returns>
         public bool AddSkill(string skillname)
         {
             if (Game.World.WorldData.TryGetValue(skillname, out Xml.Castable result))
@@ -382,29 +612,70 @@ namespace Hybrasyl.Scripting
             return false;
         }
 
+        /// <summary>
+        /// Add a given spell to a player's spellbook.
+        /// </summary>
+        /// <param name="spellname">The name of the spell to be added.</param>
+        /// <returns>Boolean indicating success</returns>
+        public bool AddSpell(string spellname)
+        {
+            if (Game.World.WorldData.TryGetValue(spellname, out Xml.Castable result))
+            {
+                User.AddSpell(result);
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Send a system message ("orange message") to the current player.
+        /// </summary>
+        /// <param name="message"></param>
         public void SystemMessage(string message)
         {
             // This is a typical client "orange message"
             User.SendMessage(message, Hybrasyl.MessageTypes.SYSTEM_WITH_OVERHEAD);
         }
 
+        /// <summary>
+        /// Indicates whether the current player is a peasant, or has an assigned class.
+        /// </summary>
+        /// <returns>Boolean indicating whether or not current player is a peasant.</returns>
         public bool IsPeasant() => User.Class == Xml.Class.Peasant;
 
+        /// <summary>
+        /// Sends a whisper ("blue message") from a given name to the current player.
+        /// </summary>
+        /// <param name="name">The name to be used for the whisper (e.g. who it is from)</param>
+        /// <param name="message">The message.</param>
         public void Whisper(string name, string message)
         {
             User.SendWhisper(name, message);
         }
 
+        /// <summary>
+        /// Sends an in-game mail to the current player. NOT CURRENTLY IMPLEMENTED.
+        /// </summary>
+        /// <param name="name">The name to be used for the mail sender (who it is from)</param>
+        /// <param name="message">The message.</param>
         public void Mail(string name, string message)
         {
         }
 
+        /// <summary>
+        /// Close any active dialogs for the current player.
+        /// </summary>
         public void EndDialog()
         {
             User.DialogState.EndDialog();
             User.SendCloseDialog();
         }
 
+        /// <summary>
+        /// Start a dialog sequence for the current player. This will display the first dialog in the sequence to the player.
+        /// </summary>
+        /// <param name="sequenceName">The name of the sequence to start</param>
+        /// <param name="associateOverride">An object to associate with the dialog as the invokee.</param>
         public void StartSequence(string sequenceName, HybrasylWorldObject associateOverride = null)
         {
             DialogSequence sequence = null;
@@ -452,10 +723,11 @@ namespace Hybrasyl.Scripting
         }
 
         /// <summary>
-        /// Calculate the Manhattan distance between ourselves and a target object.
+        /// Calculate the Manhattan distance (distance between two points measured along axes at right angles) 
+        /// between the current player and a target object.
         /// </summary>
         /// <param name="target">The target object</param>
-        /// <returns></returns>
+        /// <returns>The numeric distance</returns>
         public int Distance(HybrasylWorldObject target) => User.Distance(target.Obj);
     }
 }

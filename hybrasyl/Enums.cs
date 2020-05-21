@@ -27,6 +27,9 @@ namespace Hybrasyl
     {
 
         #region Colors and display enumerations
+        /// <summary>
+        /// how big is ye lantern
+        /// </summary>
         public enum LanternSize : byte
         {
             None = 0x00,
@@ -34,6 +37,9 @@ namespace Hybrasyl
             Large = 0x02
         }
 
+        /// <summary>
+        /// Rest positions (standing / sitting / reclining)
+        /// </summary>
         public enum RestPosition : byte
         {
             // Seriously, you try naming these
@@ -43,6 +49,9 @@ namespace Hybrasyl
             MaximumChill = 0x03
         }   
 
+        /// <summary>
+        /// Name display style (on overhead view)
+        /// </summary>
         public enum NameDisplayStyle : byte
         {
             GreyHover = 0x00,
@@ -51,6 +60,9 @@ namespace Hybrasyl
             GreyAlwaysOn = 0x03
         }
 
+        /// <summary>
+        /// The icon used by a legend mark (the icon is displayed to the left of the legend mark in a player's legend).
+        /// </summary>
         public enum LegendIcon
         {
             Community = 0,
@@ -63,6 +75,9 @@ namespace Hybrasyl
             Victory = 7
         }
 
+        /// <summary>
+        /// The color of a legend mark. There are a variety of colors not defined here, but the most common ones are.
+        /// </summary>
         public enum LegendColor
         {
             White = 32,
@@ -81,6 +96,9 @@ namespace Hybrasyl
             Red = 248
         }
 
+        /// <summary>
+        /// The color of text. There are a variety of colors not defined here, most common ones are.
+        /// </summary>
         public enum TextColor : int
         {
             Red = 62,
@@ -117,6 +135,9 @@ namespace Hybrasyl
             Purple = 9
         }
 
+        /// <summary>
+        /// The color of a status bar (buff/debuff)
+        /// </summary>
         public enum StatusBarColor : byte
         {
             Off = 0,
