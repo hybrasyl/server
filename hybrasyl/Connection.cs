@@ -24,6 +24,7 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Net;
+using System.Text;
 using System.Text.Json;
 using System.Threading;
 
@@ -85,49 +86,63 @@ namespace Hybrasyl
         {
             byte[] key;
 
-            var seed = new Seed() { Ip = remoteAddress.ToString() };
-
-            var webReq = WebRequest.Create(new Uri(endpoint));
-            webReq.ContentType = "application/json";
-            webReq.Method = "POST";
-
-            var json = JsonSerializer.Serialize(seed);
-
-            using (var sw = new StreamWriter(webReq.GetRequestStream()))
+            try
             {
-                sw.Write(json);
-            }
+                var seed = new Seed() { Ip = remoteAddress.ToString() };
 
-            var response = webReq.GetResponse();
-            using (var sr = new StreamReader(response.GetResponseStream()))
+                var webReq = WebRequest.Create(new Uri(endpoint));
+                webReq.ContentType = "application/json";
+                webReq.Method = "POST";
+
+                var json = JsonSerializer.Serialize(seed);
+
+                using (var sw = new StreamWriter(webReq.GetRequestStream()))
+                {
+                    sw.Write(json);
+                }
+
+                var response = webReq.GetResponse();
+                using (var sr = new StreamReader(response.GetResponseStream()))
+                {
+                    key = (byte[])JsonSerializer.Deserialize(sr.ReadToEnd(), typeof(byte[]));
+                }
+            }
+            catch (Exception e)
             {
-                key = (byte[])JsonSerializer.Deserialize(sr.ReadToEnd(), typeof(byte[]));
+                GameLog.Error("RequestEncryptionKey failure: {e}", e);
+                key = Encoding.ASCII.GetBytes("NOTVALID!");
             }
-
             return key;
         }
 
         public static bool ValidateEncryptionKey(string endpoint, ServerToken token)
         {
             bool valid;
-            
-            var webReq = WebRequest.Create(new Uri(endpoint));
-            webReq.ContentType = "application/json";
-            webReq.Method = "POST";
 
-            var json = JsonSerializer.Serialize(token);
-
-            using (var sw = new StreamWriter(webReq.GetRequestStream()))
+            try
             {
-                sw.Write(json);
-            }
+                var webReq = WebRequest.Create(new Uri(endpoint));
+                webReq.ContentType = "application/json";
+                webReq.Method = "POST";
 
-            var response = webReq.GetResponse();
-            using (var sr = new StreamReader(response.GetResponseStream()))
+                var json = JsonSerializer.Serialize(token);
+
+                using (var sw = new StreamWriter(webReq.GetRequestStream()))
+                {
+                    sw.Write(json);
+                }
+
+                var response = webReq.GetResponse();
+                using (var sr = new StreamReader(response.GetResponseStream()))
+                {
+                    valid = (bool)JsonSerializer.Deserialize(sr.ReadToEnd(), typeof(bool));
+                }
+            }
+            catch (Exception e)
             {
-                valid = (bool)JsonSerializer.Deserialize(sr.ReadToEnd(), typeof(bool));
+                GameLog.Error("ValidateEncryptionKey failure: {e}", e);
+                return false;
             }
-
             return valid;
         }
     }

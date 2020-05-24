@@ -419,6 +419,7 @@ namespace Hybrasyl
                 if (!valid)
                 {
                     socket.Disconnect(true);
+                    GameLog.ErrorFormat("Invalid key from {IP}", ((IPEndPoint)Socket.RemoteEndPoint).Address.ToString());
                 }
 
             }
@@ -428,8 +429,7 @@ namespace Hybrasyl
             _lastReceived = DateTime.Now.Ticks;
             
             GlobalConnectionManifest.RegisterClient(this);
-            
-            
+                       
             ConnectedSince = DateTime.Now.Ticks;
         }
 
