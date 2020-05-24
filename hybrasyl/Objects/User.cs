@@ -2561,7 +2561,7 @@ namespace Hybrasyl.Objects
                 var reqStr = string.Empty;
                 //now we can learning!
                 learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_reqs");
-                reqStr = classReq.Items.Aggregate(reqStr, (current, req) => current + (req.Value + "(" + req.Quantity + "), "));
+                if (classReq.Items != null) reqStr = classReq.Items.Aggregate(reqStr, (current, req) => current + (req.Value + "(" + req.Quantity + "), "));
 
                 if (classReq.Gold != 0)
                 {
@@ -2817,7 +2817,7 @@ namespace Hybrasyl.Objects
                 var reqStr = string.Empty;
                 //now we can learning!
                 learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_reqs");
-                reqStr = classReq.Items.Aggregate(reqStr, (current, req) => current + (req.Value + "(" + req.Quantity + "), "));
+                if (classReq.Items != null) reqStr = classReq.Items.Aggregate(reqStr, (current, req) => current + (req.Value + "(" + req.Quantity + "), "));
 
                 if (classReq.Gold != 0)
                 {
