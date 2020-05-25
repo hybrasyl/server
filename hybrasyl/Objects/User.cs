@@ -2327,7 +2327,7 @@ namespace Hybrasyl.Objects
             var merchantSkills = new MerchantSkills();
             merchantSkills.Skills = new List<MerchantSkill>();
 
-            foreach (var skill in merchant.Roles.Train.Where(x => x.Type == "Skill" && x.Class.Contains(Class)).OrderBy(y => y.Name))
+            foreach (var skill in merchant.Roles.Train.Where(x => x.Type == "Skill" && (x.Class.Contains(Class) || x.Class.Contains(Xml.Class.Peasant))).OrderBy(y => y.Name))
             {
                 if (Game.World.WorldData.TryGetValueByIndex(skill.Name, out Xml.Castable result))
                 {
@@ -2692,7 +2692,7 @@ namespace Hybrasyl.Objects
 
             var merchantSpells = new MerchantSpells();
             merchantSpells.Spells = new List<MerchantSpell>();
-            foreach (var spell in merchant.Roles.Train.Where(x => x.Type == "Spell" && x.Class.Contains(Class)).OrderBy(y => y.Name))
+            foreach (var spell in merchant.Roles.Train.Where(x => x.Type == "Spell" && (x.Class.Contains(Class) || x.Class.Contains(Xml.Class.Peasant))).OrderBy(y => y.Name))
             {
                 // Verify the spell exists first
                 if (Game.World.WorldData.TryGetValueByIndex(spell.Name, out Xml.Castable result))
