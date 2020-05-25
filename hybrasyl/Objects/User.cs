@@ -2327,7 +2327,7 @@ namespace Hybrasyl.Objects
             var merchantSkills = new MerchantSkills();
             merchantSkills.Skills = new List<MerchantSkill>();
 
-            foreach (var skill in merchant.Roles.Train.Where(x => x.Type == "Skill").OrderBy(y => y.Name))
+            foreach (var skill in merchant.Roles.Train.Where(x => x.Type == "Skill" && (x.Class.Contains(Class) || x.Class.Contains(Xml.Class.Peasant))).OrderBy(y => y.Name))
             {
                 if (Game.World.WorldData.TryGetValueByIndex(skill.Name, out Xml.Castable result))
                 {
@@ -2561,7 +2561,7 @@ namespace Hybrasyl.Objects
                 var reqStr = string.Empty;
                 //now we can learning!
                 learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_reqs");
-                reqStr = classReq.Items.Aggregate(reqStr, (current, req) => current + (req.Value + "(" + req.Quantity + "), "));
+                if (classReq.Items != null) reqStr = classReq.Items.Aggregate(reqStr, (current, req) => current + (req.Value + "(" + req.Quantity + "), "));
 
                 if (classReq.Gold != 0)
                 {
@@ -2692,7 +2692,7 @@ namespace Hybrasyl.Objects
 
             var merchantSpells = new MerchantSpells();
             merchantSpells.Spells = new List<MerchantSpell>();
-            foreach (var spell in merchant.Roles.Train.Where(x => x.Type == "Spell").OrderBy(y => y.Name))
+            foreach (var spell in merchant.Roles.Train.Where(x => x.Type == "Spell" && (x.Class.Contains(Class) || x.Class.Contains(Xml.Class.Peasant))).OrderBy(y => y.Name))
             {
                 // Verify the spell exists first
                 if (Game.World.WorldData.TryGetValueByIndex(spell.Name, out Xml.Castable result))
@@ -2817,7 +2817,7 @@ namespace Hybrasyl.Objects
                 var reqStr = string.Empty;
                 //now we can learning!
                 learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_reqs");
-                reqStr = classReq.Items.Aggregate(reqStr, (current, req) => current + (req.Value + "(" + req.Quantity + "), "));
+                if (classReq.Items != null) reqStr = classReq.Items.Aggregate(reqStr, (current, req) => current + (req.Value + "(" + req.Quantity + "), "));
 
                 if (classReq.Gold != 0)
                 {
