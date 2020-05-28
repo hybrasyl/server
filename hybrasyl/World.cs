@@ -555,6 +555,21 @@ namespace Hybrasyl
                 WorldData.Set(name, mailbox);
             }
 
+            //Load Vaults
+            foreach(var key in server.Keys(pattern: "Hybrasyl.Vault"))
+            {
+                GameLog.InfoFormat($"Loading vault with key {key}");
+                var vault = DatastoreConnection.GetDatabase().Get<Vault>(key);
+                WorldData.Set(vault.Owner, vault);
+            }
+
+            foreach (var key in server.Keys(pattern: "Hybrasyl.GuildVault"))
+            {
+                GameLog.InfoFormat($"Loading vault with key {key}");
+                var vault = DatastoreConnection.GetDatabase().Get<GuildVault>(key);
+                WorldData.Set(vault.Owner, vault);
+            }
+
             // Load all boards
             foreach (var key in server.Keys(pattern: "Hybrasyl.Board*"))
             {
@@ -1055,6 +1070,30 @@ namespace Hybrasyl
                 },
                 {
                     MerchantMenuItem.SendParcelFailure, new MerchantMenuHandler(MerchantJob.Post, MerchantMenuHandler_SendParcelFailure)
+                },
+                {
+                    MerchantMenuItem.DepositItem, new MerchantMenuHandler(MerchantJob.Bank, MerchantMenuHandler_DepositItem)
+                },
+                {
+                    MerchantMenuItem.DepositItemMenu, new MerchantMenuHandler(MerchantJob.Bank, MerchantMenuHandler_DepositItemMenu)
+                },
+                {
+                    MerchantMenuItem.DepositItemQuantity, new MerchantMenuHandler(MerchantJob.Bank, MerchantMenuHandler_DepositItemQuantity)
+                },
+                {
+                    MerchantMenuItem.DepositGoldMenu, new MerchantMenuHandler(MerchantJob.Bank, MerchantMenuHandler_DepositGoldMenu)
+                },
+                {
+                    MerchantMenuItem.WithdrawGoldMenu, new MerchantMenuHandler(MerchantJob.Bank, MerchantMenuHandler_WithdrawGoldMenu)
+                },
+                {
+                    MerchantMenuItem.WithdrawItem, new MerchantMenuHandler(MerchantJob.Bank, MerchantMenuHandler_WithdrawItem)
+                },
+                {
+                    MerchantMenuItem.WithdrawItemMenu, new MerchantMenuHandler(MerchantJob.Bank, MerchantMenuHandler_WithdrawItemMenu)
+                },
+                {
+                    MerchantMenuItem.WithdrawItemQuantity, new MerchantMenuHandler(MerchantJob.Bank, MerchantMenuHandler_WithdrawItemQuantity)
                 },
 
             };
@@ -3713,6 +3752,47 @@ namespace Hybrasyl
             var recipient = packet.ReadString8();
             user.ShowMerchantSendParcelAccept(merchant, recipient);
         }
+
+        private void MerchantMenuHandler_WithdrawItemQuantity(User user, Merchant merchant, ClientPacket packet)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void MerchantMenuHandler_WithdrawItemMenu(User user, Merchant merchant, ClientPacket packet)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void MerchantMenuHandler_WithdrawItem(User user, Merchant merchant, ClientPacket packet)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void MerchantMenuHandler_WithdrawGoldMenu(User user, Merchant merchant, ClientPacket packet)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void MerchantMenuHandler_DepositGoldMenu(User user, Merchant merchant, ClientPacket packet)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void MerchantMenuHandler_DepositItemQuantity(User user, Merchant merchant, ClientPacket packet)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void MerchantMenuHandler_DepositItemMenu(User user, Merchant merchant, ClientPacket packet)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void MerchantMenuHandler_DepositItem(User user, Merchant merchant, ClientPacket packet)
+        {
+            throw new NotImplementedException();
+        }
+
         #endregion Merchant Menu ItemObject Handlers
 
         public void Insert(WorldObject obj)

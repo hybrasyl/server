@@ -29,6 +29,8 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Collections.Concurrent;
 using Hybrasyl.Threading;
+using Serilog;
+using Hybrasyl.Xml;
 
 namespace Hybrasyl
 {
@@ -343,8 +345,147 @@ namespace Hybrasyl
         }
     }
 
+    [JsonObject(MemberSerialization.OptIn)]
+    public class Vault
+    {
+        [JsonProperty]
+        public Guid Owner { get; set; }
+        [JsonProperty]
+        public string FriendlyIdentifier { get; set; }
+        [JsonProperty]
+        public uint GoldLimit { get; private set; }
+        [JsonProperty]
+        public uint CurrentGold { get; private set; }
+        [JsonProperty]
+        public ushort ItemLimit { get; private set; }
+        [JsonProperty]
+        public ushort CurrentItemCount => (ushort)Items.Count;
+        public bool CanDepositGold => CurrentGold != GoldLimit;
+        public uint RemainingGold => GoldLimit - CurrentGold;
+        public ushort RemainingItems => (ushort)(ItemLimit - CurrentItemCount);
+
+
+        public Dictionary<string, int> Items { get; private set; } //item name, quantity
+
+        public Vault()
+        {
+            GoldLimit = uint.MaxValue;
+            ItemLimit = ushort.MaxValue;
+            CurrentGold = 0;
+            Items = new Dictionary<string, int>();
+        }
+
+        public Vault(uint goldLimit, ushort itemLimit)
+        {
+            GoldLimit = goldLimit;
+            ItemLimit = itemLimit;
+            Items = new Dictionary<string, int>();
+
+        }
+        
+        public bool AddGold(uint gold)
+        {
+            if (gold <= RemainingGold)
+            {
+                CurrentGold += gold;
+
+                GameLog.Info($"{gold} gold added to vault {FriendlyIdentifier}");
+                return true;
+            }
+            else
+            {
+                GameLog.Info($"Attempt to add {gold} gold to vault {FriendlyIdentifier}, but only {RemainingGold} available");
+                return false;
+            }
+        }
+
+        public bool RemoveGold(uint gold)
+        {
+            if (gold <= CurrentGold)
+            {
+                CurrentGold -= gold;
+                GameLog.Info($"{gold} gold removed from vault {FriendlyIdentifier}");
+                return true;
+            }
+            else
+            {
+                GameLog.Info($"Attempt to remove {gold} gold from vault {FriendlyIdentifier}, but only {CurrentGold} available");
+                return false;
+            }
+        }
+
+        public bool AddItem(string itemName, ushort quantity = 1)
+        {
+            if(CurrentItemCount < ItemLimit)
+            {
+                if(Items.ContainsKey(itemName))
+                {
+                    Items[itemName] += quantity;
+                    GameLog.Info($"{itemName} [{quantity}] added to existing item in vault {FriendlyIdentifier}");
+                }
+                else
+                {
+                    Items.Add(itemName, quantity);
+                    GameLog.Info($"{itemName} [{quantity}] added as new item in vault {FriendlyIdentifier}");
+                }
+                return true;
+            }
+            else
+            {
+                GameLog.Info($"Attempt to add {itemName} [{quantity}] to vault {FriendlyIdentifier}, but user doesn't have it?");
+                return false;
+            }
+        }
+
+        public bool RemoveItem(string itemName, ushort quantity = 1)
+        {
+            if(Items.ContainsKey(itemName))
+            {
+                if(Items[itemName] > quantity)
+                {
+                    Items[itemName] -= quantity;
+                    GameLog.Info($"{itemName} [{quantity}] removed from existing item in vault {FriendlyIdentifier}");
+                }
+                else
+                {
+                    Items.Remove(itemName);
+                    GameLog.Info($"{itemName} removed from vault {FriendlyIdentifier}");
+                }
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+    }
+
+    [JsonObject(MemberSerialization.OptIn)]
+    public class GuildVault : Vault
+    {
+        [JsonProperty]
+        public Guid GuildMaster { get; private set; } //no restrictions
+        [JsonProperty]
+        public List<Guid> AuthorizedViewers { get; private set; } //authorized to see what is stored, but cannot withdraw
+        [JsonProperty]
+        public List<Guid> AuthorizedWithdrawers { get; private set; } //authorized to withdraw,  up to limit
+        [JsonProperty]
+        public List<Guid> CouncilMembers { get; private set; } //possible restrictions?
+        [JsonProperty]
+        public int AuthorizedWithdrawerLimit { get;  private set; }
+        [JsonProperty]
+        public int CouncilMemberLimit { get; private set; }
+        public GuildVault() : base()
+        { }
+
+        public GuildVault(uint goldLimit, ushort itemLimit) : base(goldLimit, itemLimit) { }
+    }
+
+
+
     public class InventoryConverter : JsonConverter
     {
+
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
 
@@ -631,6 +772,7 @@ namespace Hybrasyl
             _weight = new Lockable<int>(0);
             _inventoryIndex = new ConcurrentDictionary<string, List<ItemObject>>();
         }
+
         
         public bool Contains(string id)
         {
@@ -857,4 +999,6 @@ namespace Hybrasyl
         }
 
     }
+
+
 }

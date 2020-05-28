@@ -34,14 +34,15 @@ using Hybrasyl.Utility;
 
 namespace Hybrasyl.Objects
 {
-
-
+    
     [JsonObject]
     public class GuildMembership
     {
+        public Guid Identifier { get; set; }
         public string Title { get; set; }
         public string Name { get; set; }
         public string Rank { get; set; }
+
     }
 
     [JsonObject]
@@ -75,6 +76,12 @@ namespace Hybrasyl.Objects
         }
 
         public string StorageKey => string.Concat(GetType().Name, ':', Name.ToLower());
+
+        [JsonProperty]
+        public Guid Guid { get; private set; }
+
+        [JsonProperty]
+        public Guid AccountGuid { get; private set; }
 
         private Client Client;
 
@@ -613,6 +620,7 @@ namespace Hybrasyl.Objects
 
         private void _initializeUser(string playername = "")
         {
+            Guid = new Guid();
             Inventory = new Inventory(59);
             Equipment = new Inventory(18);
             SkillBook = new SkillBook();
@@ -3460,6 +3468,59 @@ namespace Hybrasyl.Objects
             };
 
             //TODO: Get Parcel from pending mail.
+
+            Enqueue(packet.Packet());
+        }
+
+        public void ShowDepositGoldMenu(Merchant merchant)
+        {
+            var pair = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_gold");
+            var prompt = pair.Value;
+
+
+            var input = new MerchantInput();
+            input.Id = (ushort)MerchantMenuItem.DepositGoldMenu;
+
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Input,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Input = input
+            };
+
+            Enqueue(packet.Packet());
+        }
+
+        public void ShowWithdrawGoldMenu(Merchant merchant)
+        {
+            var pair = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_gold");
+            var prompt = pair.Value;
+
+            var input = new MerchantInput();
+            input.Id = (ushort)MerchantMenuItem.WithdrawGoldMenu;
+
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Input,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Input = input
+            };
 
             Enqueue(packet.Packet());
         }
