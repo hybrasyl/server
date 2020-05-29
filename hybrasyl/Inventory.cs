@@ -349,9 +349,7 @@ namespace Hybrasyl
     public class Vault
     {
         [JsonProperty]
-        public Guid Owner { get; set; }
-        [JsonProperty]
-        public string FriendlyIdentifier { get; set; }
+        public string OwnerIdentifier { get; set; }
         [JsonProperty]
         public uint GoldLimit { get; private set; }
         [JsonProperty]
@@ -365,22 +363,23 @@ namespace Hybrasyl
         public ushort RemainingItems => (ushort)(ItemLimit - CurrentItemCount);
 
 
-        public Dictionary<string, int> Items { get; private set; } //item name, quantity
+        public Dictionary<string, uint> Items { get; private set; } //item name, quantity
 
-        public Vault()
+        public Vault(string ownerIdentifier)
         {
             GoldLimit = uint.MaxValue;
             ItemLimit = ushort.MaxValue;
             CurrentGold = 0;
-            Items = new Dictionary<string, int>();
+            Items = new Dictionary<string, uint>();
+            OwnerIdentifier = ownerIdentifier;
         }
 
-        public Vault(uint goldLimit, ushort itemLimit)
+        public Vault(string ownerIdentifier, uint goldLimit, ushort itemLimit)
         {
             GoldLimit = goldLimit;
             ItemLimit = itemLimit;
-            Items = new Dictionary<string, int>();
-
+            Items = new Dictionary<string, uint>();
+            OwnerIdentifier = ownerIdentifier;
         }
         
         public bool AddGold(uint gold)
@@ -389,12 +388,12 @@ namespace Hybrasyl
             {
                 CurrentGold += gold;
 
-                GameLog.Info($"{gold} gold added to vault {FriendlyIdentifier}");
+                GameLog.Info($"{gold} gold added to vault {OwnerIdentifier}");
                 return true;
             }
             else
             {
-                GameLog.Info($"Attempt to add {gold} gold to vault {FriendlyIdentifier}, but only {RemainingGold} available");
+                GameLog.Info($"Attempt to add {gold} gold to vault {OwnerIdentifier}, but only {RemainingGold} available");
                 return false;
             }
         }
@@ -404,12 +403,12 @@ namespace Hybrasyl
             if (gold <= CurrentGold)
             {
                 CurrentGold -= gold;
-                GameLog.Info($"{gold} gold removed from vault {FriendlyIdentifier}");
+                GameLog.Info($"{gold} gold removed from vault {OwnerIdentifier}");
                 return true;
             }
             else
             {
-                GameLog.Info($"Attempt to remove {gold} gold from vault {FriendlyIdentifier}, but only {CurrentGold} available");
+                GameLog.Info($"Attempt to remove {gold} gold from vault {OwnerIdentifier}, but only {CurrentGold} available");
                 return false;
             }
         }
@@ -421,18 +420,18 @@ namespace Hybrasyl
                 if(Items.ContainsKey(itemName))
                 {
                     Items[itemName] += quantity;
-                    GameLog.Info($"{itemName} [{quantity}] added to existing item in vault {FriendlyIdentifier}");
+                    GameLog.Info($"{itemName} [{quantity}] added to existing item in vault {OwnerIdentifier}");
                 }
                 else
                 {
                     Items.Add(itemName, quantity);
-                    GameLog.Info($"{itemName} [{quantity}] added as new item in vault {FriendlyIdentifier}");
+                    GameLog.Info($"{itemName} [{quantity}] added as new item in vault {OwnerIdentifier}");
                 }
                 return true;
             }
             else
             {
-                GameLog.Info($"Attempt to add {itemName} [{quantity}] to vault {FriendlyIdentifier}, but user doesn't have it?");
+                GameLog.Info($"Attempt to add {itemName} [{quantity}] to vault {OwnerIdentifier}, but user doesn't have it?");
                 return false;
             }
         }
@@ -444,12 +443,12 @@ namespace Hybrasyl
                 if(Items[itemName] > quantity)
                 {
                     Items[itemName] -= quantity;
-                    GameLog.Info($"{itemName} [{quantity}] removed from existing item in vault {FriendlyIdentifier}");
+                    GameLog.Info($"{itemName} [{quantity}] removed from existing item in vault {OwnerIdentifier}");
                 }
                 else
                 {
                     Items.Remove(itemName);
-                    GameLog.Info($"{itemName} removed from vault {FriendlyIdentifier}");
+                    GameLog.Info($"{itemName} removed from vault {OwnerIdentifier}");
                 }
                 return true;
             }
@@ -463,22 +462,23 @@ namespace Hybrasyl
     [JsonObject(MemberSerialization.OptIn)]
     public class GuildVault : Vault
     {
+        //strings are guid identifiers
         [JsonProperty]
-        public Guid GuildMaster { get; private set; } //no restrictions
+        public string GuildMasterIdentifier { get; private set; } //no restrictions
         [JsonProperty]
-        public List<Guid> AuthorizedViewers { get; private set; } //authorized to see what is stored, but cannot withdraw
+        public List<string> AuthorizedViewers { get; private set; } //authorized to see what is stored, but cannot withdraw
         [JsonProperty]
-        public List<Guid> AuthorizedWithdrawers { get; private set; } //authorized to withdraw,  up to limit
+        public List<string> AuthorizedWithdrawers { get; private set; } //authorized to withdraw,  up to limit
         [JsonProperty]
-        public List<Guid> CouncilMembers { get; private set; } //possible restrictions?
+        public List<string> CouncilMembers { get; private set; } //possible restrictions?
         [JsonProperty]
         public int AuthorizedWithdrawerLimit { get;  private set; }
         [JsonProperty]
         public int CouncilMemberLimit { get; private set; }
-        public GuildVault() : base()
+        public GuildVault(string ownerIdentifier) : base(ownerIdentifier)
         { }
 
-        public GuildVault(uint goldLimit, ushort itemLimit) : base(goldLimit, itemLimit) { }
+        public GuildVault(string ownerIdentifier, uint goldLimit, ushort itemLimit) : base(ownerIdentifier, goldLimit, itemLimit) { }
     }
 
 

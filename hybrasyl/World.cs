@@ -560,14 +560,14 @@ namespace Hybrasyl
             {
                 GameLog.InfoFormat($"Loading vault with key {key}");
                 var vault = DatastoreConnection.GetDatabase().Get<Vault>(key);
-                WorldData.Set(vault.Owner, vault);
+                WorldData.Set(vault.OwnerIdentifier, vault);
             }
 
             foreach (var key in server.Keys(pattern: "Hybrasyl.GuildVault"))
             {
                 GameLog.InfoFormat($"Loading vault with key {key}");
                 var vault = DatastoreConnection.GetDatabase().Get<GuildVault>(key);
-                WorldData.Set(vault.Owner, vault);
+                WorldData.Set(vault.OwnerIdentifier, vault);
             }
 
             // Load all boards
@@ -1095,6 +1095,13 @@ namespace Hybrasyl
                 {
                     MerchantMenuItem.WithdrawItemQuantity, new MerchantMenuHandler(MerchantJob.Bank, MerchantMenuHandler_WithdrawItemQuantity)
                 },
+                {
+                    MerchantMenuItem.WithdrawGoldMenu, new MerchantMenuHandler(MerchantJob.Bank, MerchantMenuHandler_WithdrawGoldQuantity)
+                },
+                {
+                    MerchantMenuItem.WithdrawGoldMenu, new MerchantMenuHandler(MerchantJob.Bank, MerchantMenuHandler_DepositGoldQuantity)
+                },
+
 
             };
         }
@@ -3755,43 +3762,76 @@ namespace Hybrasyl
 
         private void MerchantMenuHandler_WithdrawItemQuantity(User user, Merchant merchant, ClientPacket packet)
         {
-            throw new NotImplementedException();
+            var item = packet.ReadString8();
+
+            user.ShowWithdrawItemQuantity(merchant, item);
         }
 
         private void MerchantMenuHandler_WithdrawItemMenu(User user, Merchant merchant, ClientPacket packet)
         {
-            throw new NotImplementedException();
+            user.ShowWithdrawItemMenu(merchant);
         }
 
         private void MerchantMenuHandler_WithdrawItem(User user, Merchant merchant, ClientPacket packet)
         {
-            throw new NotImplementedException();
+            var item = packet.ReadString8();
+            var quantity = Convert.ToUInt32(packet.ReadString8());
+            user.WithdrawItemConfirm(merchant, item, quantity);
         }
 
         private void MerchantMenuHandler_WithdrawGoldMenu(User user, Merchant merchant, ClientPacket packet)
         {
-            throw new NotImplementedException();
+            user.ShowWithdrawGoldMenu(merchant);
         }
 
         private void MerchantMenuHandler_DepositGoldMenu(User user, Merchant merchant, ClientPacket packet)
         {
-            throw new NotImplementedException();
+            user.ShowDepositGoldMenu(merchant);
         }
 
         private void MerchantMenuHandler_DepositItemQuantity(User user, Merchant merchant, ClientPacket packet)
         {
-            throw new NotImplementedException();
+            byte slot = packet.ReadByte();
+
+            var quantity = packet.ReadByte();
+
+            if (quantity < 1)
+            {
+                user.ShowDepositItemQuantity(merchant, slot);
+                return;
+            }
+
+            var item = user.Inventory[slot];
+            if (item == null || !item.Stackable) return;
+
+            user.DepositItemConfirm(merchant, slot, quantity);
         }
 
         private void MerchantMenuHandler_DepositItemMenu(User user, Merchant merchant, ClientPacket packet)
         {
-            throw new NotImplementedException();
+            user.ShowDepositItemMenu(merchant);
         }
 
         private void MerchantMenuHandler_DepositItem(User user, Merchant merchant, ClientPacket packet)
         {
-            throw new NotImplementedException();
+            var slot = packet.ReadByte();
+            var quantity = Convert.ToUInt32(packet.ReadString8());
+            user.DepositItemConfirm(merchant, slot, (byte)quantity);
         }
+
+        private void MerchantMenuHandler_DepositGoldQuantity(User user, Merchant merchant, ClientPacket packet)
+        {
+            var amount = Convert.ToUInt32(packet.ReadString8());
+            user.DepositGoldConfirm(merchant, amount);
+        }
+
+        private void MerchantMenuHandler_WithdrawGoldQuantity(User user, Merchant merchant, ClientPacket packet)
+        {
+            var amount = Convert.ToUInt32(packet.ReadString8());
+            user.WithdrawGoldConfirm(merchant, amount);
+        }
+
+
 
         #endregion Merchant Menu ItemObject Handlers
 

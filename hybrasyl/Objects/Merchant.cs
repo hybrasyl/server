@@ -160,6 +160,8 @@ namespace Hybrasyl.Objects
         WithdrawItemQuantity = 0xFF21,
         DepositItem = 0xFF22,
         DepositItemQuantity = 0xFF23,
+        WithdrawGoldQuantity = 0xFF24,
+        DepositGoldQuantity = 0xFF25,
 
         LearnSkill = 0xFF30,
         LearnSkillAccept = 0xFF31,
