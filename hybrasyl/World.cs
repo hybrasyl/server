@@ -556,14 +556,14 @@ namespace Hybrasyl
             }
 
             //Load Vaults
-            foreach(var key in server.Keys(pattern: "Hybrasyl.Vault"))
+            foreach(var key in server.Keys(pattern: "Hybrasyl.Vault*"))
             {
                 GameLog.InfoFormat($"Loading vault with key {key}");
                 var vault = DatastoreConnection.GetDatabase().Get<Vault>(key);
                 WorldData.Set(vault.OwnerUuid, vault);
             }
 
-            foreach (var key in server.Keys(pattern: "Hybrasyl.GuildVault"))
+            foreach (var key in server.Keys(pattern: "Hybrasyl.GuildVault*"))
             {
                 GameLog.InfoFormat($"Loading vault with key {key}");
                 var vault = DatastoreConnection.GetDatabase().Get<GuildVault>(key);
@@ -766,6 +766,20 @@ namespace Hybrasyl
         }
 
         /*End ItemVariants*/
+
+        public Vault GetVault(string uuid)
+        {
+
+            if (WorldData.ContainsKey<Vault>(uuid))
+            {
+                WorldData.Get<Vault>(uuid).Save();
+                return WorldData.Get<Vault>(uuid);
+            }
+            WorldData.Set<Vault>(uuid, new Vault(uuid));
+            WorldData.Get<Vault>(uuid).Save();
+            GameLog.InfoFormat("Vault: Creating vault for {0}", uuid);
+            return WorldData.Get<Vault>(uuid);
+        }
 
         public Mailbox GetMailbox(string name)
         {
@@ -1096,10 +1110,10 @@ namespace Hybrasyl
                     MerchantMenuItem.WithdrawItemQuantity, new MerchantMenuHandler(MerchantJob.Bank, MerchantMenuHandler_WithdrawItemQuantity)
                 },
                 {
-                    MerchantMenuItem.WithdrawGoldMenu, new MerchantMenuHandler(MerchantJob.Bank, MerchantMenuHandler_WithdrawGoldQuantity)
+                    MerchantMenuItem.WithdrawGoldQuantity, new MerchantMenuHandler(MerchantJob.Bank, MerchantMenuHandler_WithdrawGoldQuantity)
                 },
                 {
-                    MerchantMenuItem.WithdrawGoldMenu, new MerchantMenuHandler(MerchantJob.Bank, MerchantMenuHandler_DepositGoldQuantity)
+                    MerchantMenuItem.DepositGoldQuantity, new MerchantMenuHandler(MerchantJob.Bank, MerchantMenuHandler_DepositGoldQuantity)
                 },
 
 
@@ -3774,9 +3788,8 @@ namespace Hybrasyl
 
         private void MerchantMenuHandler_WithdrawItem(User user, Merchant merchant, ClientPacket packet)
         {
-            var item = packet.ReadString8();
             var quantity = Convert.ToUInt32(packet.ReadString8());
-            user.WithdrawItemConfirm(merchant, item, quantity);
+            user.WithdrawItemConfirm(merchant, user.PendingWithdrawItem, quantity);
         }
 
         private void MerchantMenuHandler_WithdrawGoldMenu(User user, Merchant merchant, ClientPacket packet)
@@ -3814,9 +3827,9 @@ namespace Hybrasyl
 
         private void MerchantMenuHandler_DepositItem(User user, Merchant merchant, ClientPacket packet)
         {
-            var slot = packet.ReadByte();
+            
             var quantity = Convert.ToUInt32(packet.ReadString8());
-            user.DepositItemConfirm(merchant, slot, (byte)quantity);
+            user.DepositItemConfirm(merchant, user.PendingDepositSlot, (byte)quantity);
         }
 
         private void MerchantMenuHandler_DepositGoldQuantity(User user, Merchant merchant, ClientPacket packet)

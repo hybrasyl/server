@@ -361,9 +361,14 @@ namespace Hybrasyl
         public bool CanDepositGold => CurrentGold != GoldLimit;
         public uint RemainingGold => GoldLimit - CurrentGold;
         public ushort RemainingItems => (ushort)(ItemLimit - CurrentItemCount);
+        public bool IsSaving;
 
+        public string StorageKey => string.Concat(GetType(), ':', OwnerUuid);
 
+        [JsonProperty]
         public Dictionary<string, uint> Items { get; private set; } //item name, quantity
+
+        public Vault() { }
 
         public Vault(string ownerUuid)
         {
@@ -457,7 +462,18 @@ namespace Hybrasyl
                 return false;
             }
         }
+
+        public void Save()
+        {
+            if (IsSaving) return;
+            IsSaving = true;
+            var cache = World.DatastoreConnection.GetDatabase();
+            cache.Set(StorageKey, this);
+            Game.World.WorldData.Set<Vault>(OwnerUuid, this);
+            IsSaving = false;
+        }
     }
+
 
     [JsonObject(MemberSerialization.OptIn)]
     public class GuildVault : Vault
@@ -475,6 +491,9 @@ namespace Hybrasyl
         public int AuthorizedWithdrawerLimit { get;  private set; }
         [JsonProperty]
         public int CouncilMemberLimit { get; private set; }
+
+        public GuildVault() : base()
+        { }
         public GuildVault(string ownerUuid) : base(ownerUuid)
         { }
 
@@ -806,7 +825,10 @@ namespace Hybrasyl
 
                 foreach (var itm in _inventoryIndex.Where(x => x.Key == item.Id).ToList())
                 {
-                    quant += itm.Value.Count;
+                    foreach (var i in itm.Value)
+                    {
+                        quant += i.Count;
+                    }
                 }
                 var hasQuantity = quant >= quantity;
                 if (quant >= quantity)
@@ -814,6 +836,7 @@ namespace Hybrasyl
             }
             return false;
         }
+
 
         public int FindEmptyIndex()
         {

@@ -192,7 +192,8 @@ namespace Hybrasyl
 
                 IDatabase cache = World.DatastoreConnection.GetDatabase();
                 cache.Set(User.GetStorageKey(newPlayer.Name), newPlayer);
-
+                var vault = new Vault(newPlayer.Uuid);
+                vault.Save();
 //                    GameLog.ErrorFormat("Error saving new player!");
   //                  GameLog.ErrorFormat(e.ToString());
     //                client.LoginMessage("Unknown error. Contact admin@hybrasyl.com", 3);

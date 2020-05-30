@@ -103,6 +103,7 @@ namespace Hybrasyl.Objects
         }
 
         public Mailbox Mailbox => World.GetMailbox(Name);
+        public Vault Vault => World.GetVault(AccountUuid == null ? Uuid : AccountUuid);
         public bool UnreadMail => Mailbox.HasUnreadMessages;
 
         #region Appearance settings 
@@ -154,7 +155,7 @@ namespace Hybrasyl.Objects
         public int PendingSellableQuantity { get; private set; }
         public uint PendingMerchantOffer { get; private set; }
         public byte PendingDepositSlot { get; private set; }
-        public int PendingDepositQuantity { get; private set; }
+        public string PendingWithdrawItem { get; private set; }
 
         [JsonProperty]
         public string GuildUuid { get; set; }
@@ -907,6 +908,7 @@ namespace Hybrasyl.Objects
         private (string GuildName, string GuildRank) GetGuildInfo()
         {
             var guild = World.WorldData.Get<Guild>($"{GuildUuid}");
+            if (guild == null) return ("", "");
 
             return guild.GetUserDetails(GuildUuid);
         }
@@ -1928,6 +1930,75 @@ namespace Hybrasyl.Objects
             SendItemUpdate(itemObject, slot);
             if (updateWeight) UpdateAttributes(StatUpdateFlags.Primary);
             return true;
+        }
+
+        public bool AddItem(string itemName, byte quantity = 1, bool updateWeight = true)
+        {
+            var xmlItem = World.WorldData.GetByIndex<Xml.Item>(itemName);
+
+            if(xmlItem.Stackable)
+            {
+                if(Inventory.Contains(itemName, 1))
+                {
+                    var slots = Inventory.SlotByName(itemName);
+
+                    foreach(var i in slots)
+                    {
+                        if (quantity > 0)
+                        {
+                            var slot = Inventory[i];
+                            if(slot.Count < slot.MaximumStack)
+                            {
+                                var diff = slot.MaximumStack - slot.Count;
+
+                                if(diff >= quantity)
+                                {
+                                    slot.Count += quantity;
+                                    quantity = 0;
+                                }
+                                else
+                                {
+                                    slot.Count += diff;
+                                    quantity -= (byte)diff;
+                                }
+                                SendItemUpdate(slot, i);
+                                if(updateWeight) Inventory.RecalculateWeight();
+                            }
+                        }
+                    }
+                    if(quantity > 0)
+                    {
+                        do
+                        {
+                            var item = World.CreateItem(xmlItem.Id);
+                            if(quantity > item.MaximumStack)
+                            {
+                                item.Count = item.MaximumStack;
+                                quantity -= (byte)item.MaximumStack;
+                                AddItem(item, updateWeight);
+                            }
+
+                        } 
+                        while (quantity > 0);
+                    }
+                }
+                return true;
+            }
+            else if( Inventory.EmptySlots > quantity)
+            {
+                do
+                {
+                    var item = World.CreateItem(xmlItem.Id);
+                    AddItem(item, updateWeight);
+                    quantity -= 1;
+                }
+                while (quantity > 0);
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
 
         public bool RemoveItem(byte slot, bool updateWeight = true)
@@ -3477,18 +3548,9 @@ namespace Hybrasyl.Objects
 
         public void ShowDepositGoldMenu(Merchant merchant)
         {
-            string vaultIdentifier = Uuid;
-            if (!string.IsNullOrEmpty(AccountUuid))
-            {
-                vaultIdentifier = AccountUuid;
-            }
-
-            var vault = World.WorldData.Get<Vault>(vaultIdentifier);
-
-            if (vault == null) return;
 
             var pair = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_gold");
-            var prompt = pair.Value.Replace("$COINS", vault.CurrentGold.ToString());
+            var prompt = pair.Value.Replace("$COINS", Vault.CurrentGold.ToString());
 
 
             var input = new MerchantInput();
@@ -3496,7 +3558,7 @@ namespace Hybrasyl.Objects
 
             var packet = new ServerPacketStructures.MerchantResponse()
             {
-                MerchantDialogType = MerchantDialogType.InputWithArgument,
+                MerchantDialogType = MerchantDialogType.Input,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
                 ObjectId = merchant.Id,
                 Tile1 = (ushort)(0x4000 + merchant.Sprite),
@@ -3514,13 +3576,6 @@ namespace Hybrasyl.Objects
 
         public void DepositGoldConfirm(Merchant merchant, uint amount)
         {
-            string vaultIdentifier = Uuid;
-            if (!string.IsNullOrEmpty(AccountUuid))
-            {
-                vaultIdentifier = AccountUuid;
-            }
-
-            var vault = World.WorldData.Get<Vault>(vaultIdentifier);
             string prompt;
             if(amount > Gold)
             {
@@ -3529,14 +3584,16 @@ namespace Hybrasyl.Objects
             }
             else
             {
-                if (amount > vault.RemainingGold)
+                if (amount > Vault.RemainingGold)
                 {
-                    prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_gold_failure_surplus").Value.Replace("$COINS", vault.RemainingGold.ToString());
+                    prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_gold_failure_surplus").Value.Replace("$COINS", Vault.RemainingGold.ToString());
                     ShowMerchantGoBack(merchant, prompt, MerchantMenuItem.DepositGoldMenu);
                 }
                 else
                 {
-                    vault.AddGold(amount);
+                    Vault.AddGold(amount);
+                    Vault.Save();
+                    RemoveGold(amount);
                     string coins = "coin";
                     if (amount > 1) coins = "coins";
                     prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_gold_success").Value;
@@ -3550,20 +3607,8 @@ namespace Hybrasyl.Objects
 
         public void ShowWithdrawGoldMenu(Merchant merchant)
         {
-            string vaultIdentifier = Uuid;
-            if (!string.IsNullOrEmpty(AccountUuid))
-            {
-                vaultIdentifier = AccountUuid;
-            }
-
-            var vault = World.WorldData.Get<Vault>(vaultIdentifier);
-
-            if (vault == null) return;
-
-
-
             var pair = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_gold");
-            var prompt = pair.Value.Replace("$COINS", vault.CurrentGold.ToString());
+            var prompt = pair.Value.Replace("$COINS", Vault.CurrentGold.ToString());
 
 
             var input = new MerchantInput();
@@ -3590,15 +3635,8 @@ namespace Hybrasyl.Objects
 
         public void WithdrawGoldConfirm(Merchant merchant, uint amount)
         {
-            string vaultIdentifier = Uuid;
-            if (!string.IsNullOrEmpty(AccountUuid))
-            {
-                vaultIdentifier = AccountUuid;
-            }
-
-            var vault = World.WorldData.Get<Vault>(vaultIdentifier);
             string prompt;
-            if (amount > vault.CurrentGold)
+            if (amount > Vault.CurrentGold)
             {
                 prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_gold_failure_defecit").Value;
                 ShowMerchantGoBack(merchant, prompt, MerchantMenuItem.WithdrawGoldMenu);
@@ -3612,7 +3650,9 @@ namespace Hybrasyl.Objects
                 }
                 else
                 {
-                    vault.RemoveGold(amount);
+                    Vault.RemoveGold(amount);
+                    Vault.Save();
+                    AddGold(amount);
                     string coins = "coin";
                     if (amount > 1) coins = "coins";
                     prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_gold_success").Value;
@@ -3632,7 +3672,7 @@ namespace Hybrasyl.Objects
 
             var inventoryItems = new UserInventoryItems();
             inventoryItems.InventorySlots = new List<byte>();
-            inventoryItems.Id = (ushort)MerchantMenuItem.DepositItem;
+            inventoryItems.Id = (ushort)MerchantMenuItem.DepositItemQuantity;
 
             var itemsCount = 0;
             for (byte i = 0; i < Inventory.Size; i++)
@@ -3675,7 +3715,7 @@ namespace Hybrasyl.Objects
 
                 var packet = new ServerPacketStructures.MerchantResponse()
                 {
-                    MerchantDialogType = MerchantDialogType.InputWithArgument,
+                    MerchantDialogType = MerchantDialogType.Input,
                     MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
                     ObjectId = merchant.Id,
                     Tile1 = (ushort)(0x4000 + merchant.Sprite),
@@ -3699,15 +3739,6 @@ namespace Hybrasyl.Objects
         public void DepositItemConfirm(Merchant merchant, byte slot, byte quantity = 1)
         {
             var failure = false;
-            string vaultIdentifier = Uuid;
-            if (!string.IsNullOrEmpty(Uuid))
-            {
-                vaultIdentifier = AccountUuid;
-            }
-
-            var vault = World.WorldData.Get<Vault>(vaultIdentifier);
-
-            if (vault == null) return;
 
             var item = Inventory[slot];
 
@@ -3721,54 +3752,50 @@ namespace Hybrasyl.Objects
                 failure = true;
             }
 
-            if (prompt == string.Empty)
-            {
-                if (!Inventory.Contains(item.Name))
-                {
-                    prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item_failure_quantity").Value;
-                }
-                failure = true;
 
-            }
-
-            if (prompt == string.Empty)
+            if (!Inventory.ContainsName(item.Name))
             {
-                if (!Inventory.Contains(item.Name, quantity))
-                {
-                    prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item_failure_quantity").Value;
-                }
+                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item_failure_quantity").Value;
                 failure = true;
             }
 
-            if (prompt == string.Empty)
+            if (item.Stackable && item.Count < quantity)
             {
-                if(fee > Gold)
-                {
-                    prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item_failure_fee").Value.Replace("$COINS", fee.ToString());
-                }
+                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item_failure_quantity").Value;
                 failure = true;
             }
+
+            if (fee > Gold)
+            {
+                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item_failure_fee").Value.Replace("$COINS", fee.ToString());
+                failure = true;
+            }
+                
+            
 
             if (prompt == string.Empty) //this is so bad
             {
                 //we can deposit!
                 prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item_success").Value.Replace("$ITEM", item.Name).Replace("$QUANTITY", quantity.ToString()).Replace("$COINS", fee.ToString());
-                vault.AddItem(item.Name, quantity);
+                Vault.AddItem(item.Name, quantity);
                 if(Inventory[slot].Stackable && Inventory[slot].Count > quantity)
                 {
                     RemoveItem(item.Name, quantity);
+                    
                 }
                 else
                 {
                     RemoveItem(slot);
                 }
+                RemoveGold(fee);
+                Vault.Save();
                 failure = false;
-
             }
 
             if (failure)
             {
                 var options = new MerchantOptions();
+                options.Options = new List<MerchantDialogOption>();
                 var packet = new ServerPacketStructures.MerchantResponse()
                 {
                     MerchantDialogType = MerchantDialogType.Options,
@@ -3795,20 +3822,13 @@ namespace Hybrasyl.Objects
 
         public void ShowWithdrawItemMenu(Merchant merchant)
         {
-            string vaultIdentifier = Uuid;
-            if (!string.IsNullOrEmpty(AccountUuid))
-            {
-                vaultIdentifier = AccountUuid;
-            }
-
-            var vault = World.WorldData.Get<Vault>(vaultIdentifier);
 
             var prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item").Value;
 
             var merchantItems = new MerchantShopItems();
             merchantItems.Items = new List<MerchantShopItem>();
             var itemsCount = 0;
-            foreach (var item in vault.Items)
+            foreach (var item in Vault.Items)
             {
                 var worldItem = Game.World.WorldData.GetByIndex<Xml.Item>(item.Key);
                 merchantItems.Items.Add(new MerchantShopItem()
@@ -3847,6 +3867,7 @@ namespace Hybrasyl.Objects
             var worldItem = World.WorldData.GetByIndex<Xml.Item>(item);
             if (worldItem.Stackable)
             {
+                PendingWithdrawItem = item;
                 var prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item_quantity").Value;
 
                 var input = new MerchantInput();
@@ -3854,7 +3875,7 @@ namespace Hybrasyl.Objects
 
                 var packet = new ServerPacketStructures.MerchantResponse()
                 {
-                    MerchantDialogType = MerchantDialogType.InputWithArgument,
+                    MerchantDialogType = MerchantDialogType.Input,
                     MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
                     ObjectId = merchant.Id,
                     Tile1 = (ushort)(0x4000 + merchant.Sprite),
@@ -3878,13 +3899,6 @@ namespace Hybrasyl.Objects
         public void WithdrawItemConfirm(Merchant merchant, string item, uint quantity = 1)
         {
             var failure = false;
-            string vaultIdentifier = Uuid;
-            if (!string.IsNullOrEmpty(AccountUuid))
-            {
-                vaultIdentifier = AccountUuid;
-            }
-
-            var vault = World.WorldData.Get<Vault>(vaultIdentifier);
             var worldItem = World.WorldData.GetByIndex<Xml.Item>(item);
             
 
@@ -3893,7 +3907,7 @@ namespace Hybrasyl.Objects
 
             string prompt = string.Empty;
 
-            if(quantity > vault.Items[item])
+            if(quantity > Vault.Items[item])
             {
                 prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item_failure_quantity_bank").Value.Replace("$QUANTITY", quantity.ToString()).Replace("$ITEM", item);
                 failure = true;
@@ -3939,17 +3953,16 @@ namespace Hybrasyl.Objects
                 prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item_success").Value.Replace("$ITEM", item).Replace("$QUANTITY", quantity.ToString());
                 if (worldItem.Stackable)
                 {
-                    vault.RemoveItem(item, (ushort)quantity);
-                    var slot = Inventory.SlotByName(item).LastOrDefault();
-                    Inventory[slot].Count += (int)quantity;
+                    Vault.RemoveItem(item, (ushort)quantity);
+                    AddItem(item, (byte)quantity);
                 }
                 else
                 {
                     var itemObj = World.CreateItem(worldItem.Id);
-                    vault.RemoveItem(item);
+                    Vault.RemoveItem(item);
                     AddItem(itemObj);
                 }
-
+                Vault.Save();
                 merchant.Say(prompt);
                 SendCloseDialog();
             }
