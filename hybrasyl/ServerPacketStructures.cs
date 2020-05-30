@@ -582,6 +582,7 @@ namespace Hybrasyl
             internal byte Class { get; set; }
             internal string ClassName { get; set; }
             internal ushort PlayerDisplay { get; set; }
+            internal string GuildName { get; set; }
 
             internal ServerPacket Packet()
             {
@@ -610,7 +611,7 @@ namespace Hybrasyl
                 packet.WriteByte(0x01);
                 packet.WriteByte(0x00);
                 packet.WriteString8(Player.IsMaster ? "Master" : Player.Class.ToString());
-                packet.WriteString8(Player.Guild != null ? Player.Guild.Name : string.Empty);
+                packet.WriteString8(GuildName != null ? GuildName : string.Empty);
                 packet.WriteByte((byte)(Player.Legend.Count > 255 ? 255 : Player.Legend.Count));
                 foreach (var mark in Player.Legend)
                 {

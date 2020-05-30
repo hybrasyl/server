@@ -34,15 +34,7 @@ using Hybrasyl.Utility;
 
 namespace Hybrasyl.Objects
 {
-
-
-    [JsonObject]
-    public class GuildMembership
-    {
-        public string Title { get; set; }
-        public string Name { get; set; }
-        public string Rank { get; set; }
-    }
+    
 
     [JsonObject]
     public class PasswordInfo
@@ -76,6 +68,12 @@ namespace Hybrasyl.Objects
 
         public string StorageKey => string.Concat(GetType().Name, ':', Name.ToLower());
 
+        [JsonProperty]
+        public string Uuid { get; set; }
+
+        [JsonProperty]
+        public string AccountUuid { get; set; }
+
         private Client Client;
 
         [JsonProperty]
@@ -105,6 +103,7 @@ namespace Hybrasyl.Objects
         }
 
         public Mailbox Mailbox => World.GetMailbox(Name);
+        public Vault Vault => World.GetVault(AccountUuid == null ? Uuid : AccountUuid);
         public bool UnreadMail => Mailbox.HasUnreadMessages;
 
         #region Appearance settings 
@@ -155,10 +154,11 @@ namespace Hybrasyl.Objects
         public byte PendingSellableSlot { get; private set; }
         public int PendingSellableQuantity { get; private set; }
         public uint PendingMerchantOffer { get; private set; }
-
+        public byte PendingDepositSlot { get; private set; }
+        public string PendingWithdrawItem { get; private set; }
 
         [JsonProperty]
-        public GuildMembership Guild { get; set; }
+        public string GuildUuid { get; set; }
 
         public List<string> UseCastRestrictions => _currentStatuses.Select(e => e.Value.UseCastRestrictions).Where(e => e != string.Empty).ToList();
         public List<string> ReceiveCastRestrictions => _currentStatuses.Select(e => e.Value.ReceiveCastRestrictions).Where(e => e != string.Empty).ToList();
@@ -622,7 +622,6 @@ namespace Hybrasyl.Objects
             Password = new PasswordInfo();
             Location = new LocationInfo();
             Legend = new Legend();
-            Guild = new GuildMembership();
             LastSaid = string.Empty;
             LastSpoke = 0;
             NumSaidRepeated = 0;
@@ -858,6 +857,8 @@ namespace Hybrasyl.Objects
         public override void OnClick(User invoker)
         {
 
+            var guildInfo = GetGuildInfo();
+
             // Return a profile packet (0x34) to the user who clicked.
             // This packet format is:
             // uint32 id, 18 equipment slots (uint16 sprite, byte color), byte namelength, string name,
@@ -865,6 +866,7 @@ namespace Hybrasyl.Objects
             // byte classnamelength, string classname, byte guildnamelength, byte guildname, byte numLegendMarks (lame!),
             // numLegendMarks[byte icon, byte color, byte marklength, string mark]
             // This packet can also contain a portrait and profile text but we haven't even remotely implemented it yet.
+            
 
             var profilePacket = new ServerPacket(0x34);
 
@@ -881,11 +883,11 @@ namespace Hybrasyl.Objects
             profilePacket.WriteByte((byte)GroupStatus);
             profilePacket.WriteString8(Name);
             profilePacket.WriteByte((byte)Nation.Flag); // This should pull from town / nation
-            profilePacket.WriteString8(Guild.Title);
+            profilePacket.WriteString8("");
             profilePacket.WriteByte((byte)(Grouping ? 1 : 0));
-            profilePacket.WriteString8(Guild.Rank);
+            profilePacket.WriteString8(guildInfo.GuildRank);
             profilePacket.WriteString8(Constants.REVERSE_CLASSES[(int)Class].Capitalize());
-            profilePacket.WriteString8(Guild.Name);
+            profilePacket.WriteString8(guildInfo.GuildName);
             profilePacket.WriteByte((byte)Legend.Count);
             foreach (var mark in Legend.Where(mark => mark.Public))
             {
@@ -901,6 +903,14 @@ namespace Hybrasyl.Objects
 
             invoker.Enqueue(profilePacket);
 
+        }
+
+        private (string GuildName, string GuildRank) GetGuildInfo()
+        {
+            var guild = World.WorldData.Get<Guild>($"{GuildUuid}");
+            if (guild == null) return ("", "");
+
+            return guild.GetUserDetails(GuildUuid);
         }
 
         private void SetValue(PropertyInfo info, object instance, object value)
@@ -1922,6 +1932,101 @@ namespace Hybrasyl.Objects
             return true;
         }
 
+        public bool AddItem(string itemName, ushort quantity = 1, bool updateWeight = true)
+        {
+            var xmlItem = World.WorldData.GetByIndex<Xml.Item>(itemName);
+
+            if(xmlItem.Stackable)
+            {
+                if(Inventory.Contains(itemName, 1))
+                {
+                    var slots = Inventory.SlotByName(itemName);
+
+                    foreach(var i in slots)
+                    {
+                        if (quantity > 0)
+                        {
+                            var slot = Inventory[i];
+                            if(slot.Count < slot.MaximumStack)
+                            {
+                                var diff = slot.MaximumStack - slot.Count;
+
+                                if(diff >= quantity)
+                                {
+                                    slot.Count += quantity;
+                                    quantity = 0;
+                                }
+                                else
+                                {
+                                    slot.Count += diff;
+                                    quantity -= (ushort)diff;
+                                }
+                                SendItemUpdate(slot, i);
+                                if(updateWeight) Inventory.RecalculateWeight();
+                            }
+                        }
+                    }
+                    if(quantity > 0)
+                    {
+                        do
+                        {
+                            var item = World.CreateItem(xmlItem.Id);
+                            if(quantity > item.MaximumStack)
+                            {
+                                item.Count = item.MaximumStack;
+                                quantity -= (ushort)item.MaximumStack;
+                                AddItem(item, updateWeight);
+                            }
+                            else
+                            {
+                                item.Count = quantity;
+                                quantity -= quantity;
+                                AddItem(item, updateWeight);
+                            }
+
+                        } 
+                        while (quantity > 0);
+                    }
+                }
+                else
+                {
+                    do
+                    {
+                        var item = World.CreateItem(xmlItem.Id);
+                        if (quantity > item.MaximumStack)
+                        {
+                            item.Count = item.MaximumStack;
+                            quantity -= (byte)item.MaximumStack;
+                            AddItem(item, updateWeight);
+                        }
+                        else
+                        {
+                            item.Count = quantity;
+                            quantity -= quantity;
+                            AddItem(item, updateWeight);
+                        }
+                    }
+                    while (quantity > 0);
+                }
+                return true;
+            }
+            else if( Inventory.EmptySlots > quantity)
+            {
+                do
+                {
+                    var item = World.CreateItem(xmlItem.Id);
+                    AddItem(item, updateWeight);
+                    quantity -= 1;
+                }
+                while (quantity > 0);
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
         public bool RemoveItem(byte slot, bool updateWeight = true)
         {
             if (Inventory.Remove(slot))
@@ -1933,7 +2038,7 @@ namespace Hybrasyl.Objects
             return false;
         }
 
-        public bool RemoveItem(string itemName, byte quantity = 0x01, bool updateWeight = true)
+        public bool RemoveItem(string itemName, ushort quantity = 0x01, bool updateWeight = true)
         {
            
             if (Inventory.Contains(itemName, quantity))
@@ -2185,10 +2290,12 @@ namespace Hybrasyl.Objects
         /// </summary>
         public void SendProfile()
         {
+            var guildInfo = GetGuildInfo();
+
             var profilePacket = new ServerPacket(0x39);
             profilePacket.WriteByte((byte)Nation.Flag); // citizenship
-            profilePacket.WriteString8(Guild.Rank);
-            profilePacket.WriteString8(Guild.Title);
+            profilePacket.WriteString8(guildInfo.GuildRank);
+            profilePacket.WriteString8("");
             profilePacket.WriteString8(GroupText);
             profilePacket.WriteBoolean(Grouping);
             profilePacket.WriteByte(0); // ??
@@ -2197,7 +2304,7 @@ namespace Hybrasyl.Objects
             profilePacket.WriteByte(0);
             profilePacket.WriteByte(0); // ??
             profilePacket.WriteString8(IsMaster ? "Master" : Hybrasyl.Constants.REVERSE_CLASSES[(int)Class].Capitalize());
-            profilePacket.WriteString8(Guild.Name);
+            profilePacket.WriteString8(guildInfo.GuildName);
             profilePacket.WriteByte((byte)Legend.Count);
             foreach (var mark in Legend)
             {
@@ -3081,6 +3188,7 @@ namespace Hybrasyl.Objects
                     }
                 }
                 RemoveGold(reqGold);
+                SendCloseDialog();
             }
             else
             {
@@ -3462,6 +3570,449 @@ namespace Hybrasyl.Objects
             //TODO: Get Parcel from pending mail.
 
             Enqueue(packet.Packet());
+        }
+
+        public void ShowDepositGoldMenu(Merchant merchant)
+        {
+
+            var pair = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_gold");
+            var prompt = pair.Value.Replace("$COINS", Vault.CurrentGold.ToString());
+
+
+            var input = new MerchantInput();
+            input.Id = (ushort)MerchantMenuItem.DepositGoldQuantity;
+
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Input,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Input = input
+            };
+
+            Enqueue(packet.Packet());
+        }
+
+        public void DepositGoldConfirm(Merchant merchant, uint amount)
+        {
+            string prompt;
+            if(amount > Gold)
+            {
+                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_gold_failure_defecit").Value;
+                ShowMerchantGoBack(merchant, prompt, MerchantMenuItem.DepositGoldMenu);
+            }
+            else
+            {
+                if (amount > Vault.RemainingGold)
+                {
+                    prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_gold_failure_surplus").Value.Replace("$COINS", Vault.RemainingGold.ToString());
+                    ShowMerchantGoBack(merchant, prompt, MerchantMenuItem.DepositGoldMenu);
+                }
+                else
+                {
+                    Vault.AddGold(amount);
+                    Vault.Save();
+                    RemoveGold(amount);
+                    string coins = "coin";
+                    if (amount > 1) coins = "coins";
+                    prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_gold_success").Value;
+                    prompt = prompt.Replace("$COINS", amount.ToString());
+                    prompt = prompt.Replace("$REF", coins);
+                    merchant.Say(prompt);
+                    SendCloseDialog();
+                }
+            }    
+        }
+
+        public void ShowWithdrawGoldMenu(Merchant merchant)
+        {
+            var pair = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_gold");
+            var prompt = pair.Value.Replace("$COINS", Vault.CurrentGold.ToString());
+
+
+            var input = new MerchantInput();
+            input.Id = (ushort)MerchantMenuItem.WithdrawGoldQuantity;
+
+
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Input,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Input = input
+            };
+
+            Enqueue(packet.Packet());
+        }
+
+        public void WithdrawGoldConfirm(Merchant merchant, uint amount)
+        {
+            string prompt;
+            if (amount > Vault.CurrentGold)
+            {
+                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_gold_failure_defecit").Value;
+                ShowMerchantGoBack(merchant, prompt, MerchantMenuItem.WithdrawGoldMenu);
+            }
+            else
+            {
+                if (amount > (uint.MaxValue - Gold))
+                {
+                    prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_gold_failure_surplus").Value;
+                    ShowMerchantGoBack(merchant, prompt, MerchantMenuItem.WithdrawGoldMenu);
+                }
+                else
+                {
+                    Vault.RemoveGold(amount);
+                    Vault.Save();
+                    AddGold(amount);
+                    string coins = "coin";
+                    if (amount > 1) coins = "coins";
+                    prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_gold_success").Value;
+                    prompt = prompt.Replace("$COINS", amount.ToString());
+                    prompt = prompt.Replace("$REF", coins);
+                    merchant.Say(prompt);
+                    SendCloseDialog();
+                }
+            }
+        }
+
+        public void ShowDepositItemMenu(Merchant merchant)
+        {
+            var pair = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item");
+            var prompt = pair.Value;
+
+
+            var inventoryItems = new UserInventoryItems();
+            inventoryItems.InventorySlots = new List<byte>();
+            inventoryItems.Id = (ushort)MerchantMenuItem.DepositItemQuantity;
+
+            var itemsCount = 0;
+            for (byte i = 0; i < Inventory.Size; i++)
+            {
+                if (Inventory[i] == null) continue;
+                if (Inventory[i].Exchangeable && Inventory[i].Durability == Inventory[i].MaximumDurability)
+                {
+                    inventoryItems.InventorySlots.Add(i);
+                    itemsCount++;
+                }
+            }
+
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.UserInventoryItems,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                UserInventoryItems = inventoryItems
+            };
+            Enqueue(packet.Packet());
+        }
+
+        public void ShowDepositItemQuantity(Merchant merchant, byte slot)
+        {
+            var item = Inventory[slot];
+            PendingDepositSlot = slot;
+            if (item.Stackable)
+            {
+                var prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item_quantity").Value;
+                var input = new MerchantInput();
+
+                input.Id = (ushort)MerchantMenuItem.DepositItem;
+
+                var packet = new ServerPacketStructures.MerchantResponse()
+                {
+                    MerchantDialogType = MerchantDialogType.Input,
+                    MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                    ObjectId = merchant.Id,
+                    Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                    Color1 = 0,
+                    Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                    Color2 = 0,
+                    PortraitType = 0,
+                    Name = merchant.Name,
+                    Text = prompt,
+                    Input = input
+
+                };
+                Enqueue(packet.Packet());
+            }
+            else
+            {
+                DepositItemConfirm(merchant, slot);
+            }
+        }
+
+        public void DepositItemConfirm(Merchant merchant, byte slot, ushort quantity = 1)
+        {
+            var failure = false;
+
+            var item = Inventory[slot];
+
+            var fee = (uint)(Math.Round(item.Value * 0.10, 0) * quantity);
+            
+            var prompt = string.Empty;
+
+            if (item.Durability != item.MaximumDurability)
+            {
+                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item_failure_durability").Value;
+                failure = true;
+            }
+
+
+            if (!Inventory.ContainsName(item.Name))
+            {
+                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item_failure_quantity").Value;
+                failure = true;
+            }
+
+            if (item.Stackable && item.Count < quantity)
+            {
+                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item_failure_quantity").Value;
+                failure = true;
+            }
+
+            if (fee > Gold)
+            {
+                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item_failure_fee").Value.Replace("$COINS", fee.ToString());
+                failure = true;
+            }
+                
+            
+
+            if (prompt == string.Empty) //this is so bad
+            {
+                //we can deposit!
+                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item_success").Value.Replace("$ITEM", item.Name).Replace("$QUANTITY", quantity.ToString()).Replace("$COINS", fee.ToString());
+                Vault.AddItem(item.Name, quantity);
+                if(Inventory[slot].Stackable && Inventory[slot].Count > quantity)
+                {
+                    RemoveItem(item.Name, quantity);
+                    
+                }
+                else
+                {
+                    RemoveItem(slot);
+                }
+                RemoveGold(fee);
+                Vault.Save();
+                failure = false;
+            }
+
+            if (failure)
+            {
+                var options = new MerchantOptions();
+                options.Options = new List<MerchantDialogOption>();
+                var packet = new ServerPacketStructures.MerchantResponse()
+                {
+                    MerchantDialogType = MerchantDialogType.Options,
+                    MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                    ObjectId = merchant.Id,
+                    Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                    Color1 = 0,
+                    Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                    Color2 = 0,
+                    PortraitType = 0,
+                    Name = merchant.Name,
+                    Text = prompt,
+                    Options = options
+                };
+
+                Enqueue(packet.Packet());
+            }
+            else
+            {
+                merchant.Say(prompt);
+                SendCloseDialog();
+            }
+        }
+
+        public void ShowWithdrawItemMenu(Merchant merchant)
+        {
+
+            var prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item").Value;
+
+            var merchantItems = new MerchantShopItems();
+            merchantItems.Items = new List<MerchantShopItem>();
+            var itemsCount = 0;
+            foreach (var item in Vault.Items)
+            {
+                var worldItem = Game.World.WorldData.GetByIndex<Xml.Item>(item.Key);
+                merchantItems.Items.Add(new MerchantShopItem()
+                {
+                    Tile = (ushort)(0x8000 + worldItem.Properties.Appearance.Sprite),
+                    Color = (byte)worldItem.Properties.Appearance.Color,
+                    Description = worldItem.Properties.Vendor?.Description ?? "",
+                    Name = worldItem.Name,
+                    Price = item.Value
+
+                }); ;
+                itemsCount++;
+            }
+            merchantItems.Id = (ushort)MerchantMenuItem.WithdrawItemQuantity;
+
+
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.MerchantShopItems,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                ShopItems = merchantItems
+            };
+            Enqueue(packet.Packet());
+        }
+
+        public void ShowWithdrawItemQuantity(Merchant merchant, string item)
+        {
+            var worldItem = World.WorldData.GetByIndex<Xml.Item>(item);
+            if (worldItem.Stackable)
+            {
+                PendingWithdrawItem = item;
+                var prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item_quantity").Value;
+
+                var input = new MerchantInput();
+                input.Id = (ushort)MerchantMenuItem.WithdrawItem;
+
+                var packet = new ServerPacketStructures.MerchantResponse()
+                {
+                    MerchantDialogType = MerchantDialogType.Input,
+                    MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                    ObjectId = merchant.Id,
+                    Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                    Color1 = 0,
+                    Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                    Color2 = 0,
+                    PortraitType = 0,
+                    Name = merchant.Name,
+                    Text = prompt,
+                    Input = input
+
+                };
+                Enqueue(packet.Packet());
+            }
+            else
+            {
+                WithdrawItemConfirm(merchant, item);
+            }
+        }
+
+        public void WithdrawItemConfirm(Merchant merchant, string item, uint quantity = 1)
+        {
+            var failure = false;
+            var worldItem = World.WorldData.GetByIndex<Xml.Item>(item);
+            
+
+            var options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
+
+            string prompt = string.Empty;
+
+            if(quantity > Vault.Items[item])
+            {
+                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item_failure_quantity_bank").Value.Replace("$QUANTITY", quantity.ToString()).Replace("$ITEM", item);
+                failure = true;
+            }
+            else if (worldItem.Stackable)
+            {
+                if (Inventory.Contains(item, 1))
+                {
+                    var maxQuantity = 0;
+                    var existingStacks = Inventory.SlotByName(item);
+                    foreach(var slot in existingStacks)
+                    {
+                        maxQuantity += Inventory[slot].MaximumStack - Inventory[slot].Count;
+                    }
+                    maxQuantity += (Inventory.EmptySlots - 2 ) * worldItem.MaximumStack; //account for slot 0 and gold slot
+
+                    if (quantity > maxQuantity)
+                    {
+                        prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item_failure_quantity_inventory_diff").Value.Replace("$ITEM", item).Replace("$QUANTITY", maxQuantity.ToString());
+                    }
+                }
+                else
+                {
+                    if(Inventory.EmptySlots == 0)
+                    {
+                        prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item_failure_slot").Value;
+                    }
+                }
+            }
+            else
+            {
+                if (Inventory.EmptySlots == 0)
+                {
+                    prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item_failure_slot").Value;
+                }
+                else if (CurrentWeight + worldItem.Properties.Physical.Weight > MaximumWeight)
+                {
+                    prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item_failure_weight").Value;
+                }
+            }
+
+            if(prompt == string.Empty)
+            {
+                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item_success").Value.Replace("$ITEM", item).Replace("$QUANTITY", quantity.ToString());
+                if (worldItem.Stackable)
+                {
+                    Vault.RemoveItem(item, (ushort)quantity);
+                    AddItem(item, (ushort)quantity);
+                }
+                else
+                {
+                    var itemObj = World.CreateItem(worldItem.Id);
+                    Vault.RemoveItem(item);
+                    AddItem(itemObj);
+                }
+                Vault.Save();
+                merchant.Say(prompt);
+                SendCloseDialog();
+            }
+            else
+            {
+
+                var packet = new ServerPacketStructures.MerchantResponse()
+                {
+                    MerchantDialogType = MerchantDialogType.Options,
+                    MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                    ObjectId = merchant.Id,
+                    Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                    Color1 = 0,
+                    Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                    Color2 = 0,
+                    PortraitType = 0,
+                    Name = merchant.Name,
+                    Text = prompt,
+                    Options = options
+                };
+
+                Enqueue(packet.Packet());
+            }
         }
 
         public void SendMessage(string message, byte type)

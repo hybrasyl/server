@@ -29,6 +29,8 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Collections.Concurrent;
 using Hybrasyl.Threading;
+using Serilog;
+using Hybrasyl.Xml;
 
 namespace Hybrasyl
 {
@@ -343,8 +345,166 @@ namespace Hybrasyl
         }
     }
 
+    [JsonObject(MemberSerialization.OptIn)]
+    public class Vault
+    {
+        [JsonProperty]
+        public string OwnerUuid { get; set; }
+        [JsonProperty]
+        public uint GoldLimit { get; private set; }
+        [JsonProperty]
+        public uint CurrentGold { get; private set; }
+        [JsonProperty]
+        public ushort ItemLimit { get; private set; }
+        [JsonProperty]
+        public ushort CurrentItemCount => (ushort)Items.Count;
+        public bool CanDepositGold => CurrentGold != GoldLimit;
+        public uint RemainingGold => GoldLimit - CurrentGold;
+        public ushort RemainingItems => (ushort)(ItemLimit - CurrentItemCount);
+        public bool IsSaving;
+
+        public string StorageKey => string.Concat(GetType(), ':', OwnerUuid);
+
+        [JsonProperty]
+        public Dictionary<string, uint> Items { get; private set; } //item name, quantity
+
+        public Vault() { }
+
+        public Vault(string ownerUuid)
+        {
+            GoldLimit = uint.MaxValue;
+            ItemLimit = ushort.MaxValue;
+            CurrentGold = 0;
+            Items = new Dictionary<string, uint>();
+            OwnerUuid = ownerUuid;
+        }
+
+        public Vault(string ownerUuid, uint goldLimit, ushort itemLimit)
+        {
+            GoldLimit = goldLimit;
+            ItemLimit = itemLimit;
+            Items = new Dictionary<string, uint>();
+            OwnerUuid = ownerUuid;
+        }
+        
+        public bool AddGold(uint gold)
+        {
+            if (gold <= RemainingGold)
+            {
+                CurrentGold += gold;
+
+                GameLog.Info($"{gold} gold added to vault {OwnerUuid}");
+                return true;
+            }
+            else
+            {
+                GameLog.Info($"Attempt to add {gold} gold to vault {OwnerUuid}, but only {RemainingGold} available");
+                return false;
+            }
+        }
+
+        public bool RemoveGold(uint gold)
+        {
+            if (gold <= CurrentGold)
+            {
+                CurrentGold -= gold;
+                GameLog.Info($"{gold} gold removed from vault {OwnerUuid}");
+                return true;
+            }
+            else
+            {
+                GameLog.Info($"Attempt to remove {gold} gold from vault {OwnerUuid}, but only {CurrentGold} available");
+                return false;
+            }
+        }
+
+        public bool AddItem(string itemName, ushort quantity = 1)
+        {
+            if(CurrentItemCount < ItemLimit)
+            {
+                if(Items.ContainsKey(itemName))
+                {
+                    Items[itemName] += quantity;
+                    GameLog.Info($"{itemName} [{quantity}] added to existing item in vault {OwnerUuid}");
+                }
+                else
+                {
+                    Items.Add(itemName, quantity);
+                    GameLog.Info($"{itemName} [{quantity}] added as new item in vault {OwnerUuid}");
+                }
+                return true;
+            }
+            else
+            {
+                GameLog.Info($"Attempt to add {itemName} [{quantity}] to vault {OwnerUuid}, but user doesn't have it?");
+                return false;
+            }
+        }
+
+        public bool RemoveItem(string itemName, ushort quantity = 1)
+        {
+            if(Items.ContainsKey(itemName))
+            {
+                if(Items[itemName] > quantity)
+                {
+                    Items[itemName] -= quantity;
+                    GameLog.Info($"{itemName} [{quantity}] removed from existing item in vault {OwnerUuid}");
+                }
+                else
+                {
+                    Items.Remove(itemName);
+                    GameLog.Info($"{itemName} removed from vault {OwnerUuid}");
+                }
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        public void Save()
+        {
+            if (IsSaving) return;
+            IsSaving = true;
+            var cache = World.DatastoreConnection.GetDatabase();
+            cache.Set(StorageKey, this);
+            Game.World.WorldData.Set<Vault>(OwnerUuid, this);
+            IsSaving = false;
+        }
+    }
+
+
+    [JsonObject(MemberSerialization.OptIn)]
+    public class GuildVault : Vault
+    {
+        //strings are guid identifiers
+        [JsonProperty]
+        public string GuildMasterUuid { get; private set; } //no restrictions
+        [JsonProperty]
+        public List<string> AuthorizedViewerUuids { get; private set; } //authorized to see what is stored, but cannot withdraw
+        [JsonProperty]
+        public List<string> AuthorizedWithdrawerUuids { get; private set; } //authorized to withdraw,  up to limit
+        [JsonProperty]
+        public List<string> CouncilMemberUuids { get; private set; } //possible restrictions?
+        [JsonProperty]
+        public int AuthorizedWithdrawerLimit { get;  private set; }
+        [JsonProperty]
+        public int CouncilMemberLimit { get; private set; }
+
+        public GuildVault() : base()
+        { }
+        public GuildVault(string ownerUuid) : base(ownerUuid)
+        { }
+
+        public GuildVault(string ownerUuid, uint goldLimit, ushort itemLimit) : base(ownerUuid, goldLimit, itemLimit) { }
+    }
+
+
+
     public class InventoryConverter : JsonConverter
     {
+
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
 
@@ -631,6 +791,7 @@ namespace Hybrasyl
             _weight = new Lockable<int>(0);
             _inventoryIndex = new ConcurrentDictionary<string, List<ItemObject>>();
         }
+
         
         public bool Contains(string id)
         {
@@ -664,7 +825,10 @@ namespace Hybrasyl
 
                 foreach (var itm in _inventoryIndex.Where(x => x.Key == item.Id).ToList())
                 {
-                    quant += itm.Value.Count;
+                    foreach (var i in itm.Value)
+                    {
+                        quant += i.Count;
+                    }
                 }
                 var hasQuantity = quant >= quantity;
                 if (quant >= quantity)
@@ -672,6 +836,7 @@ namespace Hybrasyl
             }
             return false;
         }
+
 
         public int FindEmptyIndex()
         {
@@ -857,4 +1022,6 @@ namespace Hybrasyl
         }
 
     }
+
+
 }

@@ -555,6 +555,21 @@ namespace Hybrasyl
                 WorldData.Set(name, mailbox);
             }
 
+            //Load Vaults
+            foreach(var key in server.Keys(pattern: "Hybrasyl.Vault*"))
+            {
+                GameLog.InfoFormat($"Loading vault with key {key}");
+                var vault = DatastoreConnection.GetDatabase().Get<Vault>(key);
+                WorldData.Set(vault.OwnerUuid, vault);
+            }
+
+            foreach (var key in server.Keys(pattern: "Hybrasyl.GuildVault*"))
+            {
+                GameLog.InfoFormat($"Loading vault with key {key}");
+                var vault = DatastoreConnection.GetDatabase().Get<GuildVault>(key);
+                WorldData.Set(vault.OwnerUuid, vault);
+            }
+
             // Load all boards
             foreach (var key in server.Keys(pattern: "Hybrasyl.Board*"))
             {
@@ -751,6 +766,20 @@ namespace Hybrasyl
         }
 
         /*End ItemVariants*/
+
+        public Vault GetVault(string uuid)
+        {
+
+            if (WorldData.ContainsKey<Vault>(uuid))
+            {
+                WorldData.Get<Vault>(uuid).Save();
+                return WorldData.Get<Vault>(uuid);
+            }
+            WorldData.Set<Vault>(uuid, new Vault(uuid));
+            WorldData.Get<Vault>(uuid).Save();
+            GameLog.InfoFormat("Vault: Creating vault for {0}", uuid);
+            return WorldData.Get<Vault>(uuid);
+        }
 
         public Mailbox GetMailbox(string name)
         {
@@ -1056,6 +1085,37 @@ namespace Hybrasyl
                 {
                     MerchantMenuItem.SendParcelFailure, new MerchantMenuHandler(MerchantJob.Post, MerchantMenuHandler_SendParcelFailure)
                 },
+                {
+                    MerchantMenuItem.DepositItem, new MerchantMenuHandler(MerchantJob.Bank, MerchantMenuHandler_DepositItem)
+                },
+                {
+                    MerchantMenuItem.DepositItemMenu, new MerchantMenuHandler(MerchantJob.Bank, MerchantMenuHandler_DepositItemMenu)
+                },
+                {
+                    MerchantMenuItem.DepositItemQuantity, new MerchantMenuHandler(MerchantJob.Bank, MerchantMenuHandler_DepositItemQuantity)
+                },
+                {
+                    MerchantMenuItem.DepositGoldMenu, new MerchantMenuHandler(MerchantJob.Bank, MerchantMenuHandler_DepositGoldMenu)
+                },
+                {
+                    MerchantMenuItem.WithdrawGoldMenu, new MerchantMenuHandler(MerchantJob.Bank, MerchantMenuHandler_WithdrawGoldMenu)
+                },
+                {
+                    MerchantMenuItem.WithdrawItem, new MerchantMenuHandler(MerchantJob.Bank, MerchantMenuHandler_WithdrawItem)
+                },
+                {
+                    MerchantMenuItem.WithdrawItemMenu, new MerchantMenuHandler(MerchantJob.Bank, MerchantMenuHandler_WithdrawItemMenu)
+                },
+                {
+                    MerchantMenuItem.WithdrawItemQuantity, new MerchantMenuHandler(MerchantJob.Bank, MerchantMenuHandler_WithdrawItemQuantity)
+                },
+                {
+                    MerchantMenuItem.WithdrawGoldQuantity, new MerchantMenuHandler(MerchantJob.Bank, MerchantMenuHandler_WithdrawGoldQuantity)
+                },
+                {
+                    MerchantMenuItem.DepositGoldQuantity, new MerchantMenuHandler(MerchantJob.Bank, MerchantMenuHandler_DepositGoldQuantity)
+                },
+
 
             };
         }
@@ -3713,6 +3773,79 @@ namespace Hybrasyl
             var recipient = packet.ReadString8();
             user.ShowMerchantSendParcelAccept(merchant, recipient);
         }
+
+        private void MerchantMenuHandler_WithdrawItemQuantity(User user, Merchant merchant, ClientPacket packet)
+        {
+            var item = packet.ReadString8();
+
+            user.ShowWithdrawItemQuantity(merchant, item);
+        }
+
+        private void MerchantMenuHandler_WithdrawItemMenu(User user, Merchant merchant, ClientPacket packet)
+        {
+            user.ShowWithdrawItemMenu(merchant);
+        }
+
+        private void MerchantMenuHandler_WithdrawItem(User user, Merchant merchant, ClientPacket packet)
+        {
+            var quantity = Convert.ToUInt32(packet.ReadString8());
+            user.WithdrawItemConfirm(merchant, user.PendingWithdrawItem, quantity);
+        }
+
+        private void MerchantMenuHandler_WithdrawGoldMenu(User user, Merchant merchant, ClientPacket packet)
+        {
+            user.ShowWithdrawGoldMenu(merchant);
+        }
+
+        private void MerchantMenuHandler_DepositGoldMenu(User user, Merchant merchant, ClientPacket packet)
+        {
+            user.ShowDepositGoldMenu(merchant);
+        }
+
+        private void MerchantMenuHandler_DepositItemQuantity(User user, Merchant merchant, ClientPacket packet)
+        {
+            byte slot = packet.ReadByte();
+
+            var quantity = packet.ReadByte();
+
+            if (quantity < 1)
+            {
+                user.ShowDepositItemQuantity(merchant, slot);
+                return;
+            }
+
+            var item = user.Inventory[slot];
+            if (item == null || !item.Stackable) return;
+
+            user.DepositItemConfirm(merchant, slot, quantity);
+        }
+
+        private void MerchantMenuHandler_DepositItemMenu(User user, Merchant merchant, ClientPacket packet)
+        {
+            user.ShowDepositItemMenu(merchant);
+        }
+
+        private void MerchantMenuHandler_DepositItem(User user, Merchant merchant, ClientPacket packet)
+        {
+            
+            var quantity = Convert.ToUInt32(packet.ReadString8());
+            user.DepositItemConfirm(merchant, user.PendingDepositSlot, (byte)quantity);
+        }
+
+        private void MerchantMenuHandler_DepositGoldQuantity(User user, Merchant merchant, ClientPacket packet)
+        {
+            var amount = Convert.ToUInt32(packet.ReadString8());
+            user.DepositGoldConfirm(merchant, amount);
+        }
+
+        private void MerchantMenuHandler_WithdrawGoldQuantity(User user, Merchant merchant, ClientPacket packet)
+        {
+            var amount = Convert.ToUInt32(packet.ReadString8());
+            user.WithdrawGoldConfirm(merchant, amount);
+        }
+
+
+
         #endregion Merchant Menu ItemObject Handlers
 
         public void Insert(WorldObject obj)
