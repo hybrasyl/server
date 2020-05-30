@@ -69,10 +69,10 @@ namespace Hybrasyl.Objects
         public string StorageKey => string.Concat(GetType().Name, ':', Name.ToLower());
 
         [JsonProperty]
-        public string Identifier { get; private set; }
+        public string Uuid { get; set; }
 
         [JsonProperty]
-        public string AccountIdentifier { get; private set; }
+        public string AccountUuid { get; set; }
 
         private Client Client;
 
@@ -157,7 +157,7 @@ namespace Hybrasyl.Objects
         public int PendingDepositQuantity { get; private set; }
 
         [JsonProperty]
-        public string GuildIdentifier { get; set; }
+        public string GuildUuid { get; set; }
 
         public List<string> UseCastRestrictions => _currentStatuses.Select(e => e.Value.UseCastRestrictions).Where(e => e != string.Empty).ToList();
         public List<string> ReceiveCastRestrictions => _currentStatuses.Select(e => e.Value.ReceiveCastRestrictions).Where(e => e != string.Empty).ToList();
@@ -612,7 +612,6 @@ namespace Hybrasyl.Objects
 
         private void _initializeUser(string playername = "")
         {
-            Identifier = Guid.NewGuid().ToString();
             Inventory = new Inventory(59);
             Equipment = new Inventory(18);
             SkillBook = new SkillBook();
@@ -907,9 +906,9 @@ namespace Hybrasyl.Objects
 
         private (string GuildName, string GuildRank) GetGuildInfo()
         {
-            var guild = World.WorldData.Get<Guild>($"{GuildIdentifier}");
+            var guild = World.WorldData.Get<Guild>($"{GuildUuid}");
 
-            return guild.GetUserDetails(GuildIdentifier);
+            return guild.GetUserDetails(GuildUuid);
         }
 
         private void SetValue(PropertyInfo info, object instance, object value)
@@ -3478,10 +3477,10 @@ namespace Hybrasyl.Objects
 
         public void ShowDepositGoldMenu(Merchant merchant)
         {
-            string vaultIdentifier = Identifier;
-            if (!string.IsNullOrEmpty(AccountIdentifier))
+            string vaultIdentifier = Uuid;
+            if (!string.IsNullOrEmpty(AccountUuid))
             {
-                vaultIdentifier = AccountIdentifier;
+                vaultIdentifier = AccountUuid;
             }
 
             var vault = World.WorldData.Get<Vault>(vaultIdentifier);
@@ -3515,7 +3514,13 @@ namespace Hybrasyl.Objects
 
         public void DepositGoldConfirm(Merchant merchant, uint amount)
         {
-            var vault = World.WorldData.Get<Vault>(Identifier);
+            string vaultIdentifier = Uuid;
+            if (!string.IsNullOrEmpty(AccountUuid))
+            {
+                vaultIdentifier = AccountUuid;
+            }
+
+            var vault = World.WorldData.Get<Vault>(vaultIdentifier);
             string prompt;
             if(amount > Gold)
             {
@@ -3545,10 +3550,10 @@ namespace Hybrasyl.Objects
 
         public void ShowWithdrawGoldMenu(Merchant merchant)
         {
-            string vaultIdentifier = Identifier;
-            if (!string.IsNullOrEmpty(AccountIdentifier))
+            string vaultIdentifier = Uuid;
+            if (!string.IsNullOrEmpty(AccountUuid))
             {
-                vaultIdentifier = AccountIdentifier;
+                vaultIdentifier = AccountUuid;
             }
 
             var vault = World.WorldData.Get<Vault>(vaultIdentifier);
@@ -3585,7 +3590,13 @@ namespace Hybrasyl.Objects
 
         public void WithdrawGoldConfirm(Merchant merchant, uint amount)
         {
-            var vault = World.WorldData.Get<Vault>(Identifier);
+            string vaultIdentifier = Uuid;
+            if (!string.IsNullOrEmpty(AccountUuid))
+            {
+                vaultIdentifier = AccountUuid;
+            }
+
+            var vault = World.WorldData.Get<Vault>(vaultIdentifier);
             string prompt;
             if (amount > vault.CurrentGold)
             {
@@ -3688,10 +3699,10 @@ namespace Hybrasyl.Objects
         public void DepositItemConfirm(Merchant merchant, byte slot, byte quantity = 1)
         {
             var failure = false;
-            string vaultIdentifier = Identifier;
-            if (!string.IsNullOrEmpty(AccountIdentifier))
+            string vaultIdentifier = Uuid;
+            if (!string.IsNullOrEmpty(Uuid))
             {
-                vaultIdentifier = AccountIdentifier;
+                vaultIdentifier = AccountUuid;
             }
 
             var vault = World.WorldData.Get<Vault>(vaultIdentifier);
@@ -3784,10 +3795,10 @@ namespace Hybrasyl.Objects
 
         public void ShowWithdrawItemMenu(Merchant merchant)
         {
-            string vaultIdentifier = Identifier;
-            if (!string.IsNullOrEmpty(AccountIdentifier))
+            string vaultIdentifier = Uuid;
+            if (!string.IsNullOrEmpty(AccountUuid))
             {
-                vaultIdentifier = AccountIdentifier;
+                vaultIdentifier = AccountUuid;
             }
 
             var vault = World.WorldData.Get<Vault>(vaultIdentifier);
@@ -3867,10 +3878,10 @@ namespace Hybrasyl.Objects
         public void WithdrawItemConfirm(Merchant merchant, string item, uint quantity = 1)
         {
             var failure = false;
-            string vaultIdentifier = Identifier;
-            if (!string.IsNullOrEmpty(AccountIdentifier))
+            string vaultIdentifier = Uuid;
+            if (!string.IsNullOrEmpty(AccountUuid))
             {
-                vaultIdentifier = AccountIdentifier;
+                vaultIdentifier = AccountUuid;
             }
 
             var vault = World.WorldData.Get<Vault>(vaultIdentifier);

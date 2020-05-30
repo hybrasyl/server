@@ -172,6 +172,7 @@ namespace Hybrasyl
             if (!Game.World.PlayerExists(client.NewCharacterName))
             {
                 var newPlayer = new User();
+                newPlayer.Uuid = Guid.NewGuid().ToString();
                 newPlayer.Name = client.NewCharacterName;
                 newPlayer.Gender = (Xml.Gender) gender;
                 newPlayer.Location.Direction = Xml.Direction.South;

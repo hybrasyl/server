@@ -560,14 +560,14 @@ namespace Hybrasyl
             {
                 GameLog.InfoFormat($"Loading vault with key {key}");
                 var vault = DatastoreConnection.GetDatabase().Get<Vault>(key);
-                WorldData.Set(vault.OwnerIdentifier, vault);
+                WorldData.Set(vault.OwnerUuid, vault);
             }
 
             foreach (var key in server.Keys(pattern: "Hybrasyl.GuildVault"))
             {
                 GameLog.InfoFormat($"Loading vault with key {key}");
                 var vault = DatastoreConnection.GetDatabase().Get<GuildVault>(key);
-                WorldData.Set(vault.OwnerIdentifier, vault);
+                WorldData.Set(vault.OwnerUuid, vault);
             }
 
             // Load all boards
