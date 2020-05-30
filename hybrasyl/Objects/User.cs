@@ -1932,7 +1932,7 @@ namespace Hybrasyl.Objects
             return true;
         }
 
-        public bool AddItem(string itemName, byte quantity = 1, bool updateWeight = true)
+        public bool AddItem(string itemName, ushort quantity = 1, bool updateWeight = true)
         {
             var xmlItem = World.WorldData.GetByIndex<Xml.Item>(itemName);
 
@@ -1959,7 +1959,7 @@ namespace Hybrasyl.Objects
                                 else
                                 {
                                     slot.Count += diff;
-                                    quantity -= (byte)diff;
+                                    quantity -= (ushort)diff;
                                 }
                                 SendItemUpdate(slot, i);
                                 if(updateWeight) Inventory.RecalculateWeight();
@@ -1974,13 +1974,39 @@ namespace Hybrasyl.Objects
                             if(quantity > item.MaximumStack)
                             {
                                 item.Count = item.MaximumStack;
-                                quantity -= (byte)item.MaximumStack;
+                                quantity -= (ushort)item.MaximumStack;
+                                AddItem(item, updateWeight);
+                            }
+                            else
+                            {
+                                item.Count = quantity;
+                                quantity -= quantity;
                                 AddItem(item, updateWeight);
                             }
 
                         } 
                         while (quantity > 0);
                     }
+                }
+                else
+                {
+                    do
+                    {
+                        var item = World.CreateItem(xmlItem.Id);
+                        if (quantity > item.MaximumStack)
+                        {
+                            item.Count = item.MaximumStack;
+                            quantity -= (byte)item.MaximumStack;
+                            AddItem(item, updateWeight);
+                        }
+                        else
+                        {
+                            item.Count = quantity;
+                            quantity -= quantity;
+                            AddItem(item, updateWeight);
+                        }
+                    }
+                    while (quantity > 0);
                 }
                 return true;
             }
@@ -2012,7 +2038,7 @@ namespace Hybrasyl.Objects
             return false;
         }
 
-        public bool RemoveItem(string itemName, byte quantity = 0x01, bool updateWeight = true)
+        public bool RemoveItem(string itemName, ushort quantity = 0x01, bool updateWeight = true)
         {
            
             if (Inventory.Contains(itemName, quantity))
@@ -3736,7 +3762,7 @@ namespace Hybrasyl.Objects
             }
         }
 
-        public void DepositItemConfirm(Merchant merchant, byte slot, byte quantity = 1)
+        public void DepositItemConfirm(Merchant merchant, byte slot, ushort quantity = 1)
         {
             var failure = false;
 
@@ -3916,16 +3942,17 @@ namespace Hybrasyl.Objects
             {
                 if (Inventory.Contains(item, 1))
                 {
-                    var slot = Inventory.SlotByName(item).LastOrDefault();
-
-                    if (Inventory[slot].Count == Inventory[slot].MaximumStack)
+                    var maxQuantity = 0;
+                    var existingStacks = Inventory.SlotByName(item);
+                    foreach(var slot in existingStacks)
                     {
-                        prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item_failure_quantity_inventory").Value.Replace("$ITEM", item);
+                        maxQuantity += Inventory[slot].MaximumStack - Inventory[slot].Count;
                     }
-                    else if (Inventory[slot].Count + quantity > Inventory[slot].MaximumStack)
+                    maxQuantity += (Inventory.EmptySlots - 2 ) * worldItem.MaximumStack; //account for slot 0 and gold slot
+
+                    if (quantity > maxQuantity)
                     {
-                        var remaining = Inventory[slot].MaximumStack - Inventory[slot].Count;
-                        prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item_failure_quantity_inventory_diff").Value.Replace("$ITEM", item).Replace("$QUANTITY", remaining.ToString());
+                        prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item_failure_quantity_inventory_diff").Value.Replace("$ITEM", item).Replace("$QUANTITY", maxQuantity.ToString());
                     }
                 }
                 else
@@ -3954,7 +3981,7 @@ namespace Hybrasyl.Objects
                 if (worldItem.Stackable)
                 {
                     Vault.RemoveItem(item, (ushort)quantity);
-                    AddItem(item, (byte)quantity);
+                    AddItem(item, (ushort)quantity);
                 }
                 else
                 {
