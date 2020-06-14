@@ -30,6 +30,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Hybrasyl
 {
@@ -456,43 +457,53 @@ namespace Hybrasyl
 
         public void FlushSendBuffer()
         {
-            lock (ClientState.SendLock)
+
+            //lock (ClientState.SendLock)
+            //{
+            try
             {
-                try
+                while (ClientState.SendBufferTake(out ServerPacket packet))
                 {
-                    ServerPacket packet;
-                    while (ClientState.SendBufferTake(out packet))
+                    Task.Run(new Action(() =>
                     {
-                        if (packet == null) return;
+                       if (packet == null) return;
 
-                        if (packet.ShouldEncrypt)
-                        {
-                            ++ServerOrdinal;
-                            packet.Ordinal = ServerOrdinal;
+                       if (packet.ShouldEncrypt)
+                       {
+                           ++ServerOrdinal;
+                           packet.Ordinal = ServerOrdinal;
 
-                            packet.GenerateFooter();
-                            packet.Encrypt(this);
-                        }
-                        if (packet.TransmitDelay != 0)
-                        {
-                            Thread.Sleep(packet.TransmitDelay);
-                        }
+                           packet.GenerateFooter();
+                           packet.Encrypt(this);
+                       }
+                       if (packet.TransmitDelay != 0)
+                       {
+                           Task.Delay(packet.TransmitDelay);
+                       }
 
-                        var buffer = packet.ToArray();
+                       var buffer = packet.ToArray();
+                       try
+                       {
+                           Socket.BeginSend(buffer, 0, buffer.Length, 0, SendCallback, ClientState);
+                       }
+                       catch (ObjectDisposedException e)
+                       {
+                           GameLog.Warning($"FlushSendBuffer: {e.Message}");
+                       }
+                    }));
 
-                        Socket.BeginSend(buffer, 0, buffer.Length, 0, SendCallback, ClientState);
-                    }
-                }
-                catch (ObjectDisposedException)
-                {
-                    // Socket is gone, peace out
-                    ClientState.Dispose();
-                }
-                catch (Exception e)
-                {
-                    GameLog.Error($"HALP: {e}");
                 }
             }
+            catch (ObjectDisposedException)
+            {
+                // Socket is gone, peace out
+                ClientState.Dispose();
+            }
+            catch (Exception e)
+            {
+                GameLog.Error($"HALP: {e}");
+            }
+            //}
         }
 
         public void FlushReceiveBuffer()

@@ -96,6 +96,7 @@ namespace Hybrasyl.Scripting
             }
         }
 
+
         public HybrasylUser(User user)
         {
             User = user;
@@ -644,6 +645,12 @@ namespace Hybrasyl.Scripting
         public bool IsPeasant() => User.Class == Xml.Class.Peasant;
 
         /// <summary>
+        /// Indicates whether the current player is in a guild.
+        /// </summary>
+        /// <returns>Boolean indicating whether or not current player is in a guild.</returns>
+        public bool IsInGuild() => User.GuildUuid != null;
+        
+        /// <summary>
         /// Sends a whisper ("blue message") from a given name to the current player.
         /// </summary>
         /// <param name="name">The name to be used for the whisper (e.g. who it is from)</param>
@@ -654,12 +661,14 @@ namespace Hybrasyl.Scripting
         }
 
         /// <summary>
-        /// Sends an in-game mail to the current player. NOT CURRENTLY IMPLEMENTED.
+        /// Sends an in-game mail to the current player. NOT TESTED.
         /// </summary>
         /// <param name="name">The name to be used for the mail sender (who it is from)</param>
+        /// <param name="subject">The message.</param>
         /// <param name="message">The message.</param>
-        public void Mail(string name, string message)
+        public void Mail(string name, string subject, string message)
         {
+            User.Mailbox.Messages.Add(new Message(User.Name, name, subject, message));
         }
 
         /// <summary>
