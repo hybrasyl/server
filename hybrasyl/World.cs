@@ -780,6 +780,19 @@ namespace Hybrasyl
             GameLog.InfoFormat("Vault: Creating vault for {0}", uuid);
             return WorldData.Get<Vault>(uuid);
         }
+        public GuildVault GetGuildVault(string uuid)
+        {
+
+            if (WorldData.ContainsKey<GuildVault>(uuid))
+            {
+                WorldData.Get<GuildVault>(uuid).Save();
+                return WorldData.Get<GuildVault>(uuid);
+            }
+            WorldData.Set<GuildVault>(uuid, new GuildVault(uuid));
+            WorldData.Get<GuildVault>(uuid).Save();
+            GameLog.InfoFormat("Vault: Creating vault for {0}", uuid);
+            return WorldData.Get<GuildVault>(uuid);
+        }
 
         public Mailbox GetMailbox(string name)
         {

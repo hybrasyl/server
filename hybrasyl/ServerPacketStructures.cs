@@ -502,7 +502,7 @@ namespace Hybrasyl
                     foreach (var skill in Skills.Skills)
                     {
                         packet.WriteByte(skill.IconType);
-                        packet.WriteByte(skill.Icon);
+                        packet.WriteUInt16(skill.Icon);
                         packet.WriteByte(skill.Color);
                         packet.WriteString8(skill.Name);
                     }

@@ -673,6 +673,54 @@ namespace Hybrasyl.Messaging
         }
 
     }
+
+    class SpawnXCommand : ChatCommand
+    {
+        public new static string Command = "spawnx";
+        public new static string ArgumentText = "<string> name <int> quantity";
+        public new static string HelpText = "Spawn the specified number of monster at your random coordinates, with base stats. [FOR TESTING]";
+        public new static bool Privileged = true;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+
+            if (Game.World.WorldData.TryGetValue(args[0], out Xml.Creature creature))
+            {
+                var b = int.TryParse(args[1], out int n);
+                if (b)
+                {
+                    var rand = new Random();
+                    var map = Game.World.WorldData.Get<Map>(user.Map.Id);
+                    for (var i = 0; i < n; i++)
+                    {
+                        Xml.Spawn spawn = new Xml.Spawn();
+                        spawn.Castables = new List<Xml.SpawnCastable>();
+                        spawn.Stats.Hp = 100;
+                        spawn.Stats.Mp = 100;
+                        spawn.Stats.Str = 3;
+                        spawn.Stats.Int = 3;
+                        spawn.Stats.Wis = 3;
+                        spawn.Stats.Con = 3;
+                        spawn.Stats.Dex = 3;
+                        spawn.Loot.Xp = 1;
+                        spawn.Loot.Gold = new Xml.LootGold
+                        {
+                            Min = 1,
+                            Max = 1
+                        };
+                        Monster newMob = new Monster(creature, spawn, user.Location.MapId);
+                        user.World.Insert(newMob);
+                        user.Map.Insert(newMob, (byte)rand.Next(0,map.X), (byte)rand.Next(0, map.Y));
+                    }
+                }
+                
+                return Success($"{creature.Name} spawned.");
+            }
+            else return Fail("Creature {args[0]} not found");
+
+        }
+
+    }
 }
 
 
