@@ -827,16 +827,52 @@ namespace Hybrasyl
             // these might be better suited in LoadData as the database is being read, but only items are in database atm
 
             #region ItemInfo
-
-            var iteminfo0 = new Metafile("ItemInfo0");
-            // TODO: split items into multiple ItemInfo files (DA does ~700 each)
-            foreach (var item in WorldData.Values<Xml.Item>())
+            var itmIndex = 0;
+            for (var i = 0; i < (int)(WorldData.Values<Xml.Item>().Count() / 700); i++)
             {
-                iteminfo0.Nodes.Add(new MetafileNode(item.Name, item.Properties.Restrictions?.Level?.Min ?? 1, (int)(item.Properties.Restrictions?.Class ?? Xml.Class.Peasant),
-                    item.Properties.Physical.Weight, item.Properties.Vendor?.ShopTab ?? string.Empty, item.Properties.Vendor?.Description ?? string.Empty));
-            }
-            WorldData.Set(iteminfo0.Name, iteminfo0.Compile());
+                var iteminfo = new Metafile($"ItemInfo{i}");
+                // TODO: split items into multiple ItemInfo files (DA does ~700 each)
+                var items = WorldData.Values<Xml.Item>().OrderBy(x => x.Name).ToArray();
+                for(var j = 0 + itmIndex; j< (700 + itmIndex); j++)
+                {
+                    if (j == items.Length) break;
+                    var item = items[j];
+                    var level = item.Properties.Restrictions?.Level?.Min ?? 1;
+                    var xclass = item.Properties.Restrictions?.Class ?? Xml.Class.Peasant;
+                    var nclass = xclass.ToString("g").Replace("Peasant","All");
+                    var weight = item.Properties.Physical.Weight;
+                    var tab = item.Properties.Vendor?.ShopTab ?? "Junk";
+                    var defaultDesc = "";
+                    if (item.BonusAc > 0) defaultDesc += $"-{item.BonusAc} AC \n";
+                    if (item.BonusStr > 0) defaultDesc += $"+{item.BonusStr} STR \n";
+                    if (item.BonusInt > 0) defaultDesc += $"+{item.BonusInt} INT \n";
+                    if (item.BonusWis > 0) defaultDesc += $"+{item.BonusWis} WIS \n";
+                    if (item.BonusCon > 0) defaultDesc += $"+{item.BonusCon} CON \n";
+                    if (item.BonusDex > 0) defaultDesc += $"+{item.BonusDex} DEX \n";
+                    if (item.BonusHit > 0) defaultDesc += $"+{item.BonusHit} HIT \n";
+                    if (item.BonusDmg > 0) defaultDesc += $"+{item.BonusDmg} DMG \n";
+                    if (item.BonusMr > 0) defaultDesc += $"+{item.BonusMr} MR \n";
+                    if (item.BonusHp > 0) defaultDesc += $"+{item.BonusHp} HP \n";
+                    if (item.BonusMp > 0) defaultDesc += $"+{item.BonusMp} MP \n";
+                    if (defaultDesc.Length > 0) defaultDesc.Remove(defaultDesc.Length - 2);
 
+                    var desc = "";
+                    if (item.Properties.Vendor?.Description == null || item.Properties.Vendor?.Description == "item")
+                    {
+                        desc = defaultDesc;
+                    }
+                    else
+                    {
+                        desc = item.Properties.Vendor?.Description;
+                    }
+                    //var desc = item.Properties.Vendor?.Description != "item" ? item.Properties.Vendor?.Description : defaultDesc;
+                    //var desc = item.Properties.Vendor?.Description ?? $"{nclass},Lev{level},Wt{weight}";
+                    
+                    iteminfo.Nodes.Add(new MetafileNode(item.Name, level, (int)xclass, weight, tab, desc));
+                }
+                WorldData.Set(iteminfo.Name, iteminfo.Compile());
+                itmIndex += 700;
+            }
             #endregion ItemInfo
 
             #region SClass

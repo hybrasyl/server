@@ -277,6 +277,6 @@ __pycache__/
 /HybrasylEntities
 
 #
-XML/log.txt
-hybrasyl/log.txt
-\#*
+**/XML/log.txt
+**/hybrasyl/log.txt
+**/*.txt

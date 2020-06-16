@@ -40,7 +40,7 @@ namespace Hybrasyl
             }
 
             compressedStream.Write(new byte[] { 0x78, 0x9C }, 0, 2);
-            using (var compressionStream = new DeflateStream(compressedStream, CompressionMode.Compress, true))
+            using (var compressionStream = new DeflateStream(compressedStream, CompressionLevel.Optimal, true))
             {
                 originalStream.Seek(0, SeekOrigin.Begin);
                 originalStream.CopyTo(compressionStream);
