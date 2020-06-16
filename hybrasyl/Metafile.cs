@@ -84,8 +84,6 @@ namespace Hybrasyl
             Name = file.Name;
             Source = file;
 
-            byte[] buffer;
-
             using (var metaFileStream = new MemoryStream())
             {
                 using (var metaFileWriter = new BinaryWriter(metaFileStream, CodePagesEncodingProvider.Instance.GetEncoding(949), true))
@@ -94,17 +92,17 @@ namespace Hybrasyl
                     metaFileWriter.Write((byte)(file.Nodes.Count % 256));
                     foreach (var node in file.Nodes)
                     {
-                        buffer = CodePagesEncodingProvider.Instance.GetEncoding(949).GetBytes(node.Text);
-                        metaFileWriter.Write((byte)buffer.Length);
-                        metaFileWriter.Write(buffer);
+                        byte[] nodeBuffer = CodePagesEncodingProvider.Instance.GetEncoding(949).GetBytes(node.Text);
+                        metaFileWriter.Write((byte)nodeBuffer.Length);
+                        metaFileWriter.Write(nodeBuffer);
                         metaFileWriter.Write((byte)(node.Properties.Count / 256));
                         metaFileWriter.Write((byte)(node.Properties.Count % 256));
                         foreach (var property in node.Properties)
                         {
-                            buffer = CodePagesEncodingProvider.Instance.GetEncoding(949).GetBytes(property);
-                            metaFileWriter.Write((byte)(buffer.Length / 256));
-                            metaFileWriter.Write((byte)(buffer.Length % 256));
-                            metaFileWriter.Write(buffer);
+                            byte[] propertyBuffer = CodePagesEncodingProvider.Instance.GetEncoding(949).GetBytes(property);
+                            metaFileWriter.Write((byte)(propertyBuffer.Length / 256));
+                            metaFileWriter.Write((byte)(propertyBuffer.Length % 256));
+                            metaFileWriter.Write(propertyBuffer);
                         }
                     }
                 }
