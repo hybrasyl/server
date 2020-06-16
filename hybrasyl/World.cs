@@ -871,10 +871,6 @@ namespace Hybrasyl
                     iteminfo.Nodes.Add(new MetafileNode(item.Name, level, (int)xclass, weight, tab, desc));
                 }
                 WorldData.Set(iteminfo.Name, iteminfo.Compile());
-                using(var f = new FileStream(iteminfo.Name, FileMode.OpenOrCreate, FileAccess.ReadWrite))
-                {
-                    f.Write(iteminfo.Compile().Data);
-                }
                 itmIndex += 700;
             }
             #endregion ItemInfo
@@ -929,10 +925,6 @@ namespace Hybrasyl
                 }
             }
             WorldData.Set(npcillust.Name, npcillust.Compile());
-            using (var f = new FileStream(npcillust.Name, FileMode.OpenOrCreate, FileAccess.ReadWrite))
-            {
-                f.Write(npcillust.Compile().Data);
-            }
 
             #endregion NPCIllust
 
