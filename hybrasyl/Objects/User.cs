@@ -3574,9 +3574,10 @@ namespace Hybrasyl.Objects
 
         public void ShowDepositGoldMenu(Merchant merchant)
         {
-
+            string coins = "coin";
+            if (Vault.CurrentGold > 1) coins = "coins";
             var pair = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_gold");
-            var prompt = pair.Value.Replace("$COINS", Vault.CurrentGold.ToString());
+            var prompt = pair.Value.Replace("$COINS", Vault.CurrentGold.ToString()).Replace("$REF", coins);
 
 
             var input = new MerchantInput();
@@ -3605,14 +3606,16 @@ namespace Hybrasyl.Objects
             string prompt;
             if(amount > Gold)
             {
-                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_gold_failure_defecit").Value;
+                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_gold_failure_deficit").Value;
                 ShowMerchantGoBack(merchant, prompt, MerchantMenuItem.DepositGoldMenu);
             }
             else
             {
                 if (amount > Vault.RemainingGold)
                 {
-                    prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_gold_failure_surplus").Value.Replace("$COINS", Vault.RemainingGold.ToString());
+                    string coins = "coin";
+                    if (amount > 1) coins = "coins";
+                    prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_gold_failure_surplus").Value.Replace("$COINS", Vault.RemainingGold.ToString()).Replace("$REF", coins);
                     ShowMerchantGoBack(merchant, prompt, MerchantMenuItem.DepositGoldMenu);
                 }
                 else
@@ -3633,8 +3636,10 @@ namespace Hybrasyl.Objects
 
         public void ShowWithdrawGoldMenu(Merchant merchant)
         {
+            string coins = "coin";
+            if (Vault.CurrentGold > 1) coins = "coins";
             var pair = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_gold");
-            var prompt = pair.Value.Replace("$COINS", Vault.CurrentGold.ToString());
+            var prompt = pair.Value.Replace("$COINS", Vault.CurrentGold.ToString()).Replace("$REF", coins);
 
 
             var input = new MerchantInput();
@@ -3664,7 +3669,7 @@ namespace Hybrasyl.Objects
             string prompt;
             if (amount > Vault.CurrentGold)
             {
-                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_gold_failure_defecit").Value;
+                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_gold_failure_deficit").Value;
                 ShowMerchantGoBack(merchant, prompt, MerchantMenuItem.WithdrawGoldMenu);
             }
             else
@@ -3793,7 +3798,9 @@ namespace Hybrasyl.Objects
 
             if (fee > Gold)
             {
-                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item_failure_fee").Value.Replace("$COINS", fee.ToString());
+                string coins = "coin";
+                if (fee > 1) coins = "coins";
+                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item_failure_fee").Value.Replace("$COINS", fee.ToString()).Replace("$REF", coins);
                 failure = true;
             }
                 
