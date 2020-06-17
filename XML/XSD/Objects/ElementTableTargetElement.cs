@@ -26,20 +26,19 @@ using System.Collections.Generic;
 public partial class ElementTableTargetElement
 {
     #region Private fields
-    private List<Element> _element;
+    private Element _element;
     private double _multiplier;
     private static XmlSerializer serializer;
     #endregion
     
     public ElementTableTargetElement()
     {
-        _element = new List<Element>();
-        _element = new Element[] {
-                Element.None};
+        _element = Element.None;
     }
     
     [XmlAttribute]
-    public List<Element> Element
+    [DefaultValue(Element.None)]
+    public Element Element
     {
         get
         {

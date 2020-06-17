@@ -37,6 +37,7 @@
   <!-- Don't change this order for now -->
   <xs:include schemaLocation="Item.xsd" />
   <xs:include schemaLocation="Castable.xsd"/>
+  <xs:include schemaLocation="ElementTable.xsd"/>
   <xs:include schemaLocation="Creature.xsd"/>
   <xs:include schemaLocation="Loot.xsd"/>
   <xs:include schemaLocation="Map.xsd"/>
@@ -44,6 +45,6 @@
   <xs:include schemaLocation="ServerConfig.xsd"/>
   <xs:include schemaLocation="Status.xsd"/>
   <xs:include schemaLocation="Localization.xsd"/>
-  <xs:include schemaLocation="ElementTable.xsd"/>
+  
   
 </xs:schema>
