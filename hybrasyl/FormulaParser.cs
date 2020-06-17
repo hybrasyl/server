@@ -268,6 +268,16 @@ namespace Hybrasyl
                         case "$CASTERBONUSAC":
                             tokens[i] = _caster.Stats.BonusAc.ToString();
                             break;
+                        case "$CASTERWEAPONDMG":
+                            {
+                                var rand = new Random();
+                                var mindmg = (int)_caster.Equipment.Weapon.MinSDamage;
+                                var maxdmg = (int)_caster.Equipment.Weapon.MaxSDamage;
+                                if (mindmg == 0) mindmg = 1;
+                                if (maxdmg == 0) maxdmg = 1;
+                                tokens[i] = rand.Next(mindmg, maxdmg).ToString();
+                            }
+                            break;
                         case "$CASTERWEAPONSDMG":
                             {
                                 var rand = new Random();
