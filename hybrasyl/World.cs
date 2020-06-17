@@ -487,8 +487,7 @@ namespace Hybrasyl
                                 {
                                     GameLog.ErrorFormat("Item already exists with Key {0} : {1}. Cannot add {2}", variantItem.Id, WorldData.Get<Xml.Item>(variantItem.Id).Name, variantItem.Name);
                                 }
-                                WorldData.SetWithIndex(variantItem.Id, variantItem,
-                                     new Tuple<Xml.Gender, string>(Xml.Gender.Neutral, variantItem.Name));
+                                WorldData.SetWithIndex(variantItem.Id, variantItem, variantItem.Name);
                                 variants[targetGroup].Add(variantItem);
                             }
                         }

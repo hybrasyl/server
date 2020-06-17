@@ -1515,8 +1515,8 @@ namespace Hybrasyl.Objects
                 x08.WriteByte(0); // Unknown
                 x08.WriteByte(0); // Unknown
                 x08.WriteByte((byte)(Mailbox.HasUnreadMessages ? 0x10 : 0x00));
-                x08.WriteByte((byte)Stats.OffensiveElement);
-                x08.WriteByte((byte)Stats.DefensiveElement);
+                x08.WriteByte((byte)Stats.BaseOffensiveElement);
+                x08.WriteByte((byte)Stats.BaseDefensiveElement);
                 x08.WriteSByte(Stats.Mr);
                 x08.WriteByte(0);
                 x08.WriteSByte(Stats.Ac);
