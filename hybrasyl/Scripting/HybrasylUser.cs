@@ -83,6 +83,11 @@ namespace Hybrasyl.Scripting
         /// </summary>
         public int Level { get => User.Stats.Level; }
 
+        public uint Gold { get => User.Gold; }
+
+        public bool AddGold(uint gold) => User.AddGold(gold);
+        public bool RemoveGold(uint gold) => User.RemoveGold(gold);
+
         /// <summary>
         /// The current MP (magic points) of the user. This can be set to an arbitrary value; the player's MP display is automatically updated.
         /// </summary>

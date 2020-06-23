@@ -214,7 +214,7 @@ namespace Hybrasyl.Scripting
             catch (Exception ex) when (ex is InterpreterException)
             {
                 GameLog.ScriptingError("{Function}: Error executing expression {expr} in {FileName} (invoker {Invoker}): {Message}",
-                    MethodBase.GetCurrentMethod().Name, expr, FileName, (invoker.Obj as WorldObject).Name,
+                    MethodBase.GetCurrentMethod().Name, expr, FileName, (invoker as WorldObject).Name,
                     (ex as InterpreterException).DecoratedMessage);
                 //Disabled = true;
                 CompilationError = ex.ToString();
@@ -237,7 +237,7 @@ namespace Hybrasyl.Scripting
             catch (Exception ex) when (ex is InterpreterException)
             {
                 GameLog.ScriptingError("{Function}: Error executing expression: {expr} in {FileName} (invoker {Invoker}): {Message}",
-                    MethodBase.GetCurrentMethod().Name, expr, FileName, (invoker.Obj as WorldObject).Name,
+                    MethodBase.GetCurrentMethod().Name, expr, FileName, (invoker as WorldObject).Name,
                     (ex as InterpreterException).DecoratedMessage);
                  //Disabled = true;
                 CompilationError = ex.ToString();
@@ -267,7 +267,7 @@ namespace Hybrasyl.Scripting
             catch (Exception ex) when (ex is InterpreterException)
             {
                 GameLog.ScriptingError("{Function}: Error executing function {ScriptFunction} in {FileName} (invoker {Invoker}): {Message}",
-                    MethodBase.GetCurrentMethod().Name, functionName, FileName, (invoker.Obj as WorldObject).Name,
+                    MethodBase.GetCurrentMethod().Name, functionName, FileName, (invoker as WorldObject).Name,
                     (ex as InterpreterException).DecoratedMessage);
                 //Disabled = true;
                 CompilationError = ex.ToString();
@@ -299,7 +299,7 @@ namespace Hybrasyl.Scripting
             catch (Exception ex) when (ex is InterpreterException)
             {
                 GameLog.ScriptingError("{Function}: Error executing script function {ScriptFunction} in {FileName} (invoker {Invoker}): {Message}",
-                    MethodBase.GetCurrentMethod().Name, functionName, (invoker.Obj as WorldObject).Name, FileName,
+                    MethodBase.GetCurrentMethod().Name, functionName, (invoker as WorldObject).Name, FileName,
                     (ex as InterpreterException).DecoratedMessage);
                 CompilationError = ex.ToString();
                 return false;
