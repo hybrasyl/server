@@ -23,51 +23,42 @@ using System.Collections.Generic;
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-public partial class LootImport
+public partial class ElementTableSourceElement
 {
     #region Private fields
-    private string _name;
-    private int _rolls;
-    private float _chance;
+    private List<ElementTableTargetElement> _target;
+    private Element _element;
     private static XmlSerializer serializer;
     #endregion
     
-    [XmlAttribute]
-    public string Name
+    public ElementTableSourceElement()
+    {
+        _target = new List<ElementTableTargetElement>();
+    }
+    
+    [XmlElement("Target")]
+    public List<ElementTableTargetElement> Target
     {
         get
         {
-            return _name;
+            return _target;
         }
         set
         {
-            _name = value;
+            _target = value;
         }
     }
     
     [XmlAttribute]
-    public int Rolls
+    public Element Element
     {
         get
         {
-            return _rolls;
+            return _element;
         }
         set
         {
-            _rolls = value;
-        }
-    }
-    
-    [XmlAttribute]
-    public float Chance
-    {
-        get
-        {
-            return _chance;
-        }
-        set
-        {
-            _chance = value;
+            _element = value;
         }
     }
     
@@ -77,7 +68,7 @@ public partial class LootImport
         {
             if ((serializer == null))
             {
-                serializer = new XmlSerializerFactory().CreateSerializer(typeof(LootImport));
+                serializer = new XmlSerializerFactory().CreateSerializer(typeof(ElementTableSourceElement));
             }
             return serializer;
         }
@@ -85,7 +76,7 @@ public partial class LootImport
     
     #region Serialize/Deserialize
     /// <summary>
-    /// Serializes current LootImport object into an XML string
+    /// Serializes current ElementTableSourceElement object into an XML string
     /// </summary>
     /// <returns>string XML value</returns>
     public virtual string Serialize()
@@ -118,16 +109,16 @@ public partial class LootImport
     }
     
     /// <summary>
-    /// Deserializes workflow markup into an LootImport object
+    /// Deserializes workflow markup into an ElementTableSourceElement object
     /// </summary>
     /// <param name="input">string workflow markup to deserialize</param>
-    /// <param name="obj">Output LootImport object</param>
+    /// <param name="obj">Output ElementTableSourceElement object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool Deserialize(string input, out LootImport obj, out Exception exception)
+    public static bool Deserialize(string input, out ElementTableSourceElement obj, out Exception exception)
     {
         exception = null;
-        obj = default(LootImport);
+        obj = default(ElementTableSourceElement);
         try
         {
             obj = Deserialize(input);
@@ -140,19 +131,19 @@ public partial class LootImport
         }
     }
     
-    public static bool Deserialize(string input, out LootImport obj)
+    public static bool Deserialize(string input, out ElementTableSourceElement obj)
     {
         Exception exception = null;
         return Deserialize(input, out obj, out exception);
     }
     
-    public static LootImport Deserialize(string input)
+    public static ElementTableSourceElement Deserialize(string input)
     {
         StringReader stringReader = null;
         try
         {
             stringReader = new StringReader(input);
-            return ((LootImport)(Serializer.Deserialize(XmlReader.Create(stringReader))));
+            return ((ElementTableSourceElement)(Serializer.Deserialize(XmlReader.Create(stringReader))));
         }
         finally
         {
@@ -163,14 +154,14 @@ public partial class LootImport
         }
     }
     
-    public static LootImport Deserialize(Stream s)
+    public static ElementTableSourceElement Deserialize(Stream s)
     {
-        return ((LootImport)(Serializer.Deserialize(s)));
+        return ((ElementTableSourceElement)(Serializer.Deserialize(s)));
     }
     #endregion
     
     /// <summary>
-    /// Serializes current LootImport object into file
+    /// Serializes current ElementTableSourceElement object into file
     /// </summary>
     /// <param name="fileName">full path of outupt xml file</param>
     /// <param name="exception">output Exception value if failed</param>
@@ -211,16 +202,16 @@ public partial class LootImport
     }
     
     /// <summary>
-    /// Deserializes xml markup from file into an LootImport object
+    /// Deserializes xml markup from file into an ElementTableSourceElement object
     /// </summary>
     /// <param name="fileName">string xml file to load and deserialize</param>
-    /// <param name="obj">Output LootImport object</param>
+    /// <param name="obj">Output ElementTableSourceElement object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool LoadFromFile(string fileName, out LootImport obj, out Exception exception)
+    public static bool LoadFromFile(string fileName, out ElementTableSourceElement obj, out Exception exception)
     {
         exception = null;
-        obj = default(LootImport);
+        obj = default(ElementTableSourceElement);
         try
         {
             obj = LoadFromFile(fileName);
@@ -233,13 +224,13 @@ public partial class LootImport
         }
     }
     
-    public static bool LoadFromFile(string fileName, out LootImport obj)
+    public static bool LoadFromFile(string fileName, out ElementTableSourceElement obj)
     {
         Exception exception = null;
         return LoadFromFile(fileName, out obj, out exception);
     }
     
-    public static LootImport LoadFromFile(string fileName)
+    public static ElementTableSourceElement LoadFromFile(string fileName)
     {
         FileStream file = null;
         StreamReader sr = null;

@@ -545,7 +545,7 @@ namespace Hybrasyl.Objects
                     else if (castObject.Element != Xml.Element.None)
                         attackElement = castObject.Element;
                     else
-                        attackElement = (Stats.OffensiveElementOverride == Xml.Element.None ? Stats.OffensiveElementOverride : Stats.OffensiveElement);
+                        attackElement = (Stats.OffensiveElementOverride != Xml.Element.None ? Stats.OffensiveElementOverride : Stats.BaseOffensiveElement);
                     if (this is User) GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} damage: {damageOutput}, element {attackElement}");
 
                     tar.Damage(damageOutput.Amount, attackElement, damageOutput.Type, damageOutput.Flags, this, false);
@@ -845,9 +845,10 @@ namespace Hybrasyl.Objects
             if (damageType != Xml.DamageType.Direct)
             {
                 double armor = Stats.Ac * -1 + 100;
-                var resist = Game.ElementTable[(int)element, 0];
-                var reduction = damage * (armor / (armor + 50));
-                damage = (damage - reduction) * resist;
+                var elementTable = Game.World.WorldData.Get<Xml.ElementTable>("ElementTable");
+                var multiplier = elementTable.Source.First(x => x.Element == element).Target.FirstOrDefault(x => x.Element == Stats.BaseDefensiveElement).Multiplier;
+                 var reduction = damage * (armor / (armor + 50));
+                damage = (damage - reduction) * multiplier;
             }
 
             if (attacker != null)

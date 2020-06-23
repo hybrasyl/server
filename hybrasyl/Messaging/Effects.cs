@@ -20,6 +20,8 @@
  */
  
 using Hybrasyl.Objects;
+using System.Text.RegularExpressions;
+using System.Linq;
 
 namespace Hybrasyl.Messaging
 {
@@ -129,6 +131,41 @@ namespace Hybrasyl.Messaging
                 return Success($"Item {args[0]} generated.");
             }
             return Fail($"Item {args[0]} not found");
+        }
+    }
+
+    class ItemListCommand : ChatCommand
+    {
+        public new static string Command = "itemlist";
+        public new static string ArgumentText = "<string searchTerm>";
+        public new static string HelpText = "Searches for items with the specified search term.";
+        public new static bool Privileged = false;
+
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            var searchstring = args[0];
+            if (args.Length > 1)
+                searchstring = string.Join(" ", args);
+
+            try
+            {
+                var term = new Regex($"{searchstring}");
+                var queryItems = from aitem in Game.World.WorldData.Values<Xml.Item>()
+                                where term.IsMatch(aitem.Name)
+                                select aitem;
+
+                var result = queryItems.Aggregate("", (current, item) => current + $"{item.Name}\n");
+                if (result.Length > 65400)
+                    result = $"{result.Substring(0, 65400)}\n(Results truncated)";
+
+                result = $"Search Results\n--------------\n\n{result}";
+                return Success(result, MessageTypes.SLATE_WITH_SCROLLBAR);
+            }
+            catch
+            {
+                return Fail("Search string could not be parsed as a regular expression. Try again.");
+            }
         }
     }
 

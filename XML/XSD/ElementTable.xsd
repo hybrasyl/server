@@ -2,9 +2,9 @@
 <xs:schema
     xmlns:xs="http://www.w3.org/2001/XMLSchema"
     targetNamespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02"
+    xmlns:hyb="http://www.hybrasyl.com/XML/Hybrasyl/2020-02"
     xmlns="http://www.hybrasyl.com/XML/Hybrasyl/2020-02"
-    elementFormDefault="qualified"
-    >
+    elementFormDefault="qualified">
   <xs:annotation>
     <xs:documentation xml:lang="en">
       This file is part of Project Hybrasyl.
@@ -24,27 +24,26 @@
       (C) 2020 ERISCO, LLC
 
       For contributors and individual authors please refer to CONTRIBUTORS.MD.
-
     </xs:documentation>
   </xs:annotation>
 
+  <xs:complexType name="ElementTableTargetElement">
+    <xs:attribute name="Element" type="hyb:Element" default="None"/>
+    <xs:attribute name="Multiplier" type="xs:double"/>
+  </xs:complexType>
 
-  <!-- To make things easier, we bind everything into a master namespace that can be versioned,
-  this allows us to share types and also use one namespace rather than N namespaces -->
+  <xs:complexType name="ElementTableSourceElement">
+    <xs:sequence>
+      <xs:element name="Target" type="hyb:ElementTableTargetElement" minOccurs="9" maxOccurs="9"/>
+    </xs:sequence>
+    <xs:attribute name="Element" type="hyb:Element"/>
+  </xs:complexType>
 
-  <!-- Shared types and structures -->
-  <xs:include schemaLocation="Common.xsd"/>
-  <!-- Don't change this order for now -->
-  <xs:include schemaLocation="Item.xsd" />
-  <xs:include schemaLocation="Castable.xsd"/>
-  <xs:include schemaLocation="ElementTable.xsd"/>
-  <xs:include schemaLocation="Creature.xsd"/>
-  <xs:include schemaLocation="Loot.xsd"/>
-  <xs:include schemaLocation="Map.xsd"/>
-  <xs:include schemaLocation="Nation.xsd"/>
-  <xs:include schemaLocation="ServerConfig.xsd"/>
-  <xs:include schemaLocation="Status.xsd"/>
-  <xs:include schemaLocation="Localization.xsd"/>
-  
-  
+  <xs:complexType name="ElementTable">
+    <xs:sequence>
+      <xs:element name="Source" type="hyb:ElementTableSourceElement" minOccurs="9" maxOccurs="9"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:element name="ElementTable" type="hyb:ElementTable"/>
 </xs:schema>

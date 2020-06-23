@@ -157,6 +157,7 @@ namespace Hybrasyl
         public static string NpcsDirectory => Path.Combine(DataDirectory, "world", "xml", "npcs");
 
         public static string LocalizationDirectory => Path.Combine(DataDirectory, "world", "xml", "localization");
+        public static string ElementDirectory => Path.Combine(DataDirectory, "world", "xml", "elements");
         #endregion
 
         public static bool TryGetUser(string name, out User userobj)
@@ -487,8 +488,7 @@ namespace Hybrasyl
                                 {
                                     GameLog.ErrorFormat("Item already exists with Key {0} : {1}. Cannot add {2}", variantItem.Id, WorldData.Get<Xml.Item>(variantItem.Id).Name, variantItem.Name);
                                 }
-                                WorldData.SetWithIndex(variantItem.Id, variantItem,
-                                     new Tuple<Xml.Gender, string>(Xml.Gender.Neutral, variantItem.Name));
+                                WorldData.SetWithIndex(variantItem.Id, variantItem, variantItem.Name);
                                 variants[targetGroup].Add(variantItem);
                             }
                         }
@@ -538,9 +538,34 @@ namespace Hybrasyl
 
             GameLog.InfoFormat("Castables: {0} castables loaded", WorldData.Values<Xml.Castable>().Count());
 
-            // Load data from Redis
-            // Load mailboxes
-            var server = World.DatastoreConnection.GetServer(World.DatastoreConnection.GetEndPoints()[0]);
+            //load element tables
+            foreach (var xml in GetXmlFiles(ElementDirectory))
+            { 
+                try
+                {
+                    //currently only support one table
+                    Xml.ElementTable table = Xml.ElementTable.LoadFromFile(xml);
+                    WorldData.Set("ElementTable", table);
+                    foreach (var source in table.Source)
+                    {
+                        foreach(var target in source.Target)
+                        {
+                            GameLog.InfoFormat($"ElementTable: loaded element {source.Element}, target {target.Element}, multiplier {target.Multiplier}");
+                        }
+                        
+                    }
+                    
+                }
+                catch (Exception e)
+                {
+                    GameLog.ErrorFormat("Error parsing {0}: {1}", xml, e);
+                }
+            }
+
+
+                // Load data from Redis
+                // Load mailboxes
+                var server = World.DatastoreConnection.GetServer(World.DatastoreConnection.GetEndPoints()[0]);
             foreach (var key in server.Keys(pattern: "Hybrasyl.Mailbox*"))
             {
                 GameLog.InfoFormat("Loading mailbox at {0}", key);
