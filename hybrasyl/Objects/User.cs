@@ -1221,7 +1221,7 @@ namespace Hybrasyl.Objects
 
         }
 
-        public void SendUpdateToUser(Client client)
+        public void SendUpdateToUser(Client client = null)
         {
             var offset = Equipment.Armor?.BodyStyle ?? 0;
             if (!Condition.Alive)
@@ -1232,7 +1232,7 @@ namespace Hybrasyl.Objects
             var helmet = Equipment.Helmet?.DisplaySprite ?? HairStyle;
             helmet = Equipment.DisplayHelm?.DisplaySprite ?? helmet;
 
-            client.Enqueue(new ServerPacketStructures.DisplayUser()
+            (client ?? Client).Enqueue(new ServerPacketStructures.DisplayUser()
             {
                 X = X,
                 Y = Y,
