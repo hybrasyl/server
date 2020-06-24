@@ -618,7 +618,6 @@ namespace Hybrasyl.Scripting
         /// <returns>true</returns>
         public bool GiveExperience(int exp)
         {
-            SystemMessage($"{exp} experience!");
             User.GiveExperience((uint)exp);
             return true;
         }
