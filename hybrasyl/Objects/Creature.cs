@@ -847,7 +847,7 @@ namespace Hybrasyl.Objects
                 double armor = Stats.Ac * -1 + 100;
                 var elementTable = Game.World.WorldData.Get<Xml.ElementTable>("ElementTable");
                 var multiplier = elementTable.Source.First(x => x.Element == element).Target.FirstOrDefault(x => x.Element == Stats.BaseDefensiveElement).Multiplier;
-                 var reduction = damage * (armor / (armor + 50));
+                var reduction = damage * (armor / (armor + 50));
                 damage = (damage - reduction) * multiplier;
             }
 
