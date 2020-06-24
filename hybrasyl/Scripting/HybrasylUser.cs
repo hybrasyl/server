@@ -83,9 +83,28 @@ namespace Hybrasyl.Scripting
         /// </summary>
         public int Level { get => User.Stats.Level; }
 
+        /// <summary>
+        /// Amount of gold the user currently has.
+        /// </summary>
         public uint Gold { get => User.Gold; }
 
+        /// <summary>
+        /// Whether the user is alive or not.
+        /// </summary>
+        public bool Alive { get => User.Condition.Alive; }
+
+        /// <summary>
+        /// Give the specified amount of gold to the user.
+        /// </summary>
+        /// <param name="gold">Amount of gold to give.</param>
+        /// <returns></returns>
         public bool AddGold(uint gold) => User.AddGold(gold);
+
+        /// <summary>
+        /// Take the specified amount of gold from the user.
+        /// </summary>
+        /// <param name="gold">Amount of gold to take.</param>
+        /// <returns></returns>
         public bool RemoveGold(uint gold) => User.RemoveGold(gold);
 
         /// <summary>
@@ -131,7 +150,8 @@ namespace Hybrasyl.Scripting
         /// </summary>
         public void Resurrect()
         {
-            User.Resurrect();
+            if (!User.Condition.Alive)
+                User.Resurrect();
         }
 
         /// <summary>
@@ -159,6 +179,21 @@ namespace Hybrasyl.Scripting
         public void EndComa()
         {
             User.EndComa();
+        }
+
+        /// <summary>
+        /// Teleport a user to their "home" (ordinary spawnpoint), or a map of last resort.
+        /// </summary>
+        public void SendHome()
+        {
+            if (User.Nation.SpawnPoints.Count != 0)
+            {
+                var spawnpoint = User.Nation.RandomSpawnPoint;
+                if (spawnpoint != null) 
+                    User.Teleport(spawnpoint.MapName, spawnpoint.X, spawnpoint.Y);
+                return;
+            }
+            User.Teleport((ushort)500, (byte)50, (byte)(50));
         }
 
         /// <summary>
