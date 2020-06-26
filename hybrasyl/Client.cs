@@ -626,14 +626,16 @@ namespace Hybrasyl
         {
             GameLog.DebugFormat("Enqueueing ServerPacket {0}", packet.Opcode);
             ClientState.SendBufferAdd(packet);
-            FlushSendBuffer();
+            if (!packet.ShouldEncrypt || (packet.ShouldEncrypt && EncryptionKey != null))
+                FlushSendBuffer();
         }
 
         public void Enqueue(ClientPacket packet)
         {
             GameLog.DebugFormat("Enqueueing ClientPacket {0}", packet.Opcode);
             ClientState.ReceiveBufferAdd(packet);
-            FlushReceiveBuffer();
+            if (!packet.ShouldEncrypt || (packet.ShouldEncrypt && EncryptionKey != null))
+                FlushReceiveBuffer();
         }
 
         public void Redirect(Redirect redirect, bool isLogoff = false)
