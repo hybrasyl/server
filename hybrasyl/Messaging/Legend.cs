@@ -25,6 +25,7 @@ using System;
 
 namespace Hybrasyl.Messaging
 {
+
     class LegendCommand : ChatCommand
     {
         public new static string Command = "legend";
@@ -43,13 +44,28 @@ namespace Hybrasyl.Messaging
                 if (args.Length == 5)
                     DateTime.TryParse(args[4], out time);
 
-                user.Legend.AddMark(icon, color, args[0]);
+                user.Legend.AddMark(icon, color, args[0], time, null, true, qty);
             }
             else return Fail("The value you specified could not be parsed (LegendIcon/Color)");
             return Success("Legend added.");
 
         }
     }
+
+    class TitleCommand : ChatCommand
+    {
+        public new static string Command = "title";
+        public new static string ArgumentText = "<string title>";
+        public new static string HelpText = "Change your displayed title.";
+        public new static bool Privileged = false;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            user.Title = args[0];
+            return Success("Title updated.");
+        }
+    }
+
 
     class LegendclearCommand : ChatCommand
     {

@@ -1840,7 +1840,7 @@ namespace Hybrasyl
             var redirect = ExpectedConnections[id];
 
             if (!redirect.Matches(name, key, seed)) return;
-
+            
             ((IDictionary)ExpectedConnections).Remove(id);
 
             User loginUser;
@@ -1962,13 +1962,12 @@ namespace Hybrasyl
                 int levelDifference = Math.Abs((int)user.Stats.Level - me.Stats.Level);
 
                 listPacket.WriteByte((byte)user.Class);
-                // TODO: GUILD SUPPORT
-                //if (!string.IsNullOrEmpty(me.Guild) && user.Guild == me.Guild) listPacket.WriteByte(84);
+                if (me.GuildUuid != string.Empty && user.GuildUuid == me.GuildUuid) listPacket.WriteByte(84);
                 if (levelDifference <= 5) listPacket.WriteByte(151);
                 else listPacket.WriteByte(255);
 
                 listPacket.WriteByte((byte)user.GroupStatus);
-                listPacket.WriteString8(""); //user.Title);
+                listPacket.WriteString8(user.Title);
                 listPacket.WriteBoolean(user.IsMaster);
                 listPacket.WriteString8(user.Name);
             }

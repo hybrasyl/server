@@ -204,26 +204,26 @@ namespace Hybrasyl.Objects
                     x0D.WriteString8($"{from}: {message}");
                 else
                     x0D.WriteString8($"{Name}: {message}");
-                GameLog.InfoFormat("Saying to {0}", user.Name);
                 user.Enqueue(x0D);
             }
         }
 
         public virtual void Shout(string message, string from="")
-        {
-            foreach (var obj in viewportUsers)
+        {           
+            foreach (var obj in Map.EntityTree.GetObjects(GetShoutViewport()))
             {
-                var user = obj as User;
-                var x0D = new ServerPacket(0x0D);
-                x0D.WriteByte(0x01);
-                x0D.WriteUInt32(Id);
-                if (!string.IsNullOrEmpty(from))
-                    x0D.WriteString8($"{from}! {message}");
-                else
-                    x0D.WriteString8($"{Name}: {message}");
-                GameLog.InfoFormat("Shouting to {0}", user.Name);
-                user.Enqueue(x0D);
-
+                if (obj is User)
+                {
+                    var user = obj as User;
+                    var x0D = new ServerPacket(0x0D);
+                    x0D.WriteByte(0x01);
+                    x0D.WriteUInt32(Id);
+                    if (!string.IsNullOrEmpty(from))
+                        x0D.WriteString8($"{from}! {message}");
+                    else
+                        x0D.WriteString8($"{Name}! {message}");
+                    user.Enqueue(x0D);
+                }
             }
         }
 

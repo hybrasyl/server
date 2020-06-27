@@ -202,14 +202,15 @@ namespace Hybrasyl.Objects
             set { _count.Value = value; }
         }
 
-        private Lockable<uint> _durability { get; set; }
+        private Lockable<double> _durability { get; set; }
 
-        public uint Durability
+        public double Durability
         {
             get { return _durability.Value; }
             set { _durability.Value = value; }
         }
 
+        public uint DisplayDurability => Convert.ToUInt32(Math.Round(Durability));
 
         public void Invoke(User trigger)
         {
@@ -265,7 +266,7 @@ namespace Hybrasyl.Objects
         {
             World = world;
             TemplateId = id;
-            _durability = new Lockable<uint>(MaximumDurability);
+            _durability = new Lockable<double>(MaximumDurability);
             _count = new Lockable<int>(1);
         }
 

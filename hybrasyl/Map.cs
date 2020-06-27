@@ -624,6 +624,9 @@ namespace Hybrasyl
         {
             GameLog.DebugFormat("{0}, {1}, {2} qty {3} id {4}",
                 x, y, itemObject.Name, itemObject.Count, itemObject.Id);
+            if (itemObject.Id == 0)
+                World.Insert(itemObject);
+
             if (itemObject == null)
             {
                 GameLog.DebugFormat("ItemObject is null, aborting");

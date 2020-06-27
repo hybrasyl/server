@@ -549,6 +549,9 @@ namespace Hybrasyl.Objects
                     if (this is User) GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} damage: {damageOutput}, element {attackElement}");
 
                     tar.Damage(damageOutput.Amount, attackElement, damageOutput.Type, damageOutput.Flags, this, false);
+                    if (this is User)
+                        Equipment.Weapon.Durability -= 1 / (Equipment.Weapon.MaximumDurability * (100 - Stats.Ac));
+
                     if (tar.Stats.Hp <= 0) { deadMobs.Add(tar); }
                 }
                 // Note that we ignore castables with both damage and healing effects present - one or the other.
@@ -557,7 +560,11 @@ namespace Hybrasyl.Objects
                 {
                     var healOutput = NumberCruncher.CalculateHeal(castObject, tar, this);
                     tar.Heal(healOutput, this);
-                    if (this is User) GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} healing: {healOutput}");
+                    if (this is User)
+                    {
+                        GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} healing: {healOutput}");
+                        Equipment.Weapon.Durability -= 1 / (Equipment.Weapon.MaximumDurability * (100 - Stats.Ac));
+                    }
                 }
 
                 // Handle statuses

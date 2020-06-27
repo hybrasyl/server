@@ -96,7 +96,7 @@ namespace Hybrasyl.Messaging
             {
                 user.Stats.BaseMp = mp;
                 user.UpdateAttributes(StatUpdateFlags.Full);
-                return Success($"Base HP now {mp}");
+                return Success($"Base MP now {mp}");
             }
             return Fail("The value you specified could not be parsed (uint)");
         }

@@ -183,6 +183,8 @@ namespace Hybrasyl
                 }
                 client = redirect.Client;
                 client.ClientState = state;
+                if (client.EncryptionKey == null)
+                    client.EncryptionKey = redirect.EncryptionKey;
                 GlobalConnectionManifest.RegisterClient(client);
             }
 

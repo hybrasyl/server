@@ -190,6 +190,7 @@ namespace Hybrasyl.Objects
         }
 
         [JsonProperty] public Legend Legend;
+        [JsonProperty] public string Title;
 
 
         public DialogState DialogState { get; set; }
@@ -403,7 +404,7 @@ namespace Hybrasyl.Objects
         /// </summary>
         public override void OnDeath()
         {
-                  var handler = Game.Config.Handlers?.Death;
+            var handler = Game.Config.Handlers?.Death;
             if (!(handler?.Active ?? true))
             {
                 SendSystemMessage("Death disabled by server configuration");
@@ -426,30 +427,46 @@ namespace Hybrasyl.Objects
             for (byte i = 0; i <= Inventory.Size; ++i)
             {
                 if (Inventory[i] == null) continue;
-                var theItem = Inventory[i];
+                var item = Inventory[i];
                 RemoveItem(i);
-                if (theItem.Perishable && (handler?.Perishable ?? true)) continue;
-                theItem.DeathPileOwner = Name;
-                theItem.ItemDropTime = timeofdeath;
-                theItem.ItemDropAllowedLooters = looters;
-                theItem.ItemDropType = ItemDropType.UserDeathPile;
-                Map.AddItem(X, Y, theItem);
-            }
-
-            // Now process equipment
-            foreach (var item in Equipment)
-            {
-                RemoveEquipment(item.EquipmentSlot);
-                if (item.Perishable && (handler?.Perishable ?? true)) continue;
+                if (item.Perishable && (handler?.Perishable ?? true))
+                {
+                    // Item is broken
+                    World.Remove(item);
+                    continue;
+                }
                 if (item.Durability > 10)
-                    item.Durability = (uint)Math.Ceiling(item.Durability * 0.90);
+                    item.Durability = Math.Ceiling(item.Durability * 0.90);
                 else
                     item.Durability = 0;
                 item.DeathPileOwner = Name;
                 item.ItemDropTime = timeofdeath;
                 item.ItemDropAllowedLooters = looters;
                 item.ItemDropType = ItemDropType.UserDeathPile;
+                Map.AddItem(X, Y, item);
+            }
 
+            // Now process equipment
+            for (byte i = 0; i <= Equipment.Size; i++)
+            {
+                var item = Equipment[i];
+                if (item == null)
+                    continue;
+                RemoveEquipment(i);
+                if (item.Perishable && (handler?.Perishable ?? true))
+                {
+                    // Item is broken
+                    World.Remove(item);
+                    continue;
+                }
+                if (item.Durability > 10)
+                    item.Durability = Math.Ceiling(item.Durability * 0.90);
+                else
+                    item.Durability = 0;
+                item.DeathPileOwner = Name;
+                item.ItemDropTime = timeofdeath;
+                item.ItemDropAllowedLooters = looters;
+                item.ItemDropType = ItemDropType.UserDeathPile;
                 Map.AddItem(X, Y, item);
             }
 
@@ -508,7 +525,6 @@ namespace Hybrasyl.Objects
             if (Game.Config.Handlers?.Death?.GroupNotify ?? true)
                 Group?.SendMessage($"{Name} has died!");
             
-
         }
 
 
@@ -559,7 +575,7 @@ namespace Hybrasyl.Objects
                     deathMark.AddQuantity(1);
                 }
                 else
-                    Legend.AddMark(LegendIcon.Community, LegendColor.Orange, handler.LegendMark.Value, DateTime.Now, handler.LegendMark.Prefix, true,
+                    Legend.AddMark(LegendIcon.Community, LegendColor.Brown, handler.LegendMark.Value, DateTime.Now, handler.LegendMark.Prefix, true,
                         1);
 
             }
@@ -883,6 +899,7 @@ namespace Hybrasyl.Objects
             profilePacket.WriteByte((byte)GroupStatus);
             profilePacket.WriteString8(Name);
             profilePacket.WriteByte((byte)Nation.Flag); // This should pull from town / nation
+            // test
             profilePacket.WriteString8("");
             profilePacket.WriteByte((byte)(Grouping ? 1 : 0));
             profilePacket.WriteString8(guildInfo.GuildRank);
@@ -955,6 +972,7 @@ namespace Hybrasyl.Objects
 
             var x22 = new ServerPacket(0x22);
             x22.WriteByte(0x00);
+            x22.TransmitDelay = 100;
             Enqueue(x22);
 
             if (Map.Music != 0xFF && Map.Music != CurrentMusicTrack) SendMusic(Map.Music);
@@ -1310,7 +1328,7 @@ namespace Hybrasyl.Objects
             equipPacket.WriteStringWithLength(itemObject.Name);
             equipPacket.WriteByte(0x00);
             equipPacket.WriteUInt32(itemObject.MaximumDurability);
-            equipPacket.WriteUInt32(itemObject.Durability);
+            equipPacket.WriteUInt32(itemObject.DisplayDurability);
             equipPacket.DumpPacket();
             Enqueue(equipPacket);
         }
@@ -1365,7 +1383,7 @@ namespace Hybrasyl.Objects
             x0F.WriteInt32(itemObject.Count);  //amount
             x0F.WriteBoolean(itemObject.Stackable);
             x0F.WriteUInt32(itemObject.MaximumDurability);  //maxdura
-            x0F.WriteUInt32(itemObject.Durability);  //curdura
+            x0F.WriteUInt32(itemObject.DisplayDurability);  //curdura
             x0F.WriteUInt32(0x00);  //?
             Enqueue(x0F);
         }
@@ -2040,42 +2058,53 @@ namespace Hybrasyl.Objects
 
         public bool RemoveItem(string itemName, ushort quantity = 0x01, bool updateWeight = true)
         {
-           
+            var slotsToUpdate = new List<byte>();
+            var slotsToClear = new List<byte>();
             if (Inventory.Contains(itemName, quantity))
             {
                 var remaining = (int)quantity;
                 var slots = Inventory.SlotByName(itemName);
-                foreach (var i in slots)
+                lock (Inventory.ContainerLock)
                 {
-                    if (remaining > 0)
+                    foreach (var i in slots)
                     {
-                        if (Inventory[i].Stackable)
+                        if (remaining > 0)
                         {
-                            if (Inventory[i].Count <= remaining)
+                            if (Inventory[i].Stackable)
                             {
-                                remaining -= Inventory[i].Count;
-                                Inventory[i].Remove();
-                                SendClearItem(i);
+                                if (Inventory[i].Count <= remaining)
+                                {
+                                    remaining -= Inventory[i].Count;
+                                    Inventory[i].Remove();
+                                    slotsToClear.Add(i);
+                                }
+                                if (Inventory[i].Count > remaining)
+                                {
+                                    Inventory[i].Count -= remaining;
+                                    remaining = 0;
+                                    slotsToUpdate.Add(i);
+                                }
                             }
-                            if (Inventory[i].Count > remaining)
+                            else
                             {
-                                Inventory[i].Count -= remaining;
-                                remaining = 0;
-                                SendItemUpdate(Inventory[i], i);
+                                Inventory.Remove(i);
+                                remaining--;
+                                slotsToUpdate.Add(i);
                             }
                         }
                         else
                         {
-                            Inventory.Remove(i);
-                            remaining--;
-                            SendItemUpdate(Inventory[i], i);
+                            break;
                         }
                     }
-                    else
-                    {
-                        break;
-                    }
                 }
+
+                foreach (var slot in slotsToClear)
+                    SendClearItem(slot);
+
+                foreach (var slot in slotsToUpdate)
+                    SendItemUpdate(Inventory[slot], slot);
+
                 return true;
             }
             return false;
@@ -2206,6 +2235,14 @@ namespace Hybrasyl.Objects
             }
             else if (Stats.Hp == 0)
                 OnDeath();
+            else
+            {
+                foreach (var item in Equipment)
+                {
+                    if (item.EquipmentSlot != ServerItemSlots.Weapon)
+                        item.Durability -= 1 / (item.MaximumDurability * (100 - Stats.Ac));
+                }
+            }
             UpdateAttributes(StatUpdateFlags.Current);
         }
 
@@ -2295,7 +2332,8 @@ namespace Hybrasyl.Objects
             var profilePacket = new ServerPacket(0x39);
             profilePacket.WriteByte((byte)Nation.Flag); // citizenship
             profilePacket.WriteString8(guildInfo.GuildRank);
-            profilePacket.WriteString8("");
+
+            profilePacket.WriteString8(Title);
             profilePacket.WriteString8(GroupText);
             profilePacket.WriteBoolean(Grouping);
             profilePacket.WriteByte(0); // ??
@@ -4198,7 +4236,7 @@ namespace Hybrasyl.Objects
                     x0F.WriteInt32(Inventory[i].Count);
                     x0F.WriteBoolean(Inventory[i].Stackable);
                     x0F.WriteUInt32(Inventory[i].MaximumDurability);
-                    x0F.WriteUInt32(Inventory[i].Durability);
+                    x0F.WriteUInt32(Inventory[i].DisplayDurability);
                     Enqueue(x0F);
                 }
             }

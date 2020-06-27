@@ -576,7 +576,7 @@ namespace Hybrasyl
     {
         public DateTime LastSaved { get; set; }
 
-        private object _lock = new object();
+        public object ContainerLock = new object();
 
         private Lockable<ItemObject[]> _itemsObject;
         private ConcurrentDictionary<string, List<ItemObject>> _inventoryIndex;
@@ -724,7 +724,7 @@ namespace Hybrasyl
             }
             internal set
             {
-                lock (_lock)
+                lock (ContainerLock)
                 {
                     int index = slot - 1;
                     if (index < 0 || index >= Size)
@@ -752,7 +752,7 @@ namespace Hybrasyl
         private void _RemoveFromIndex(ItemObject itemObject)
         {
             List<ItemObject> itemList;
-            lock (_lock)
+            lock (ContainerLock)
             {
                 if (_inventoryIndex.TryGetValue(itemObject.TemplateId, out itemList))
                 {
@@ -877,6 +877,7 @@ namespace Hybrasyl
         {
             return (byte)(IndexOf(id) + 1);
         }
+
         public byte[] SlotByName(string name)
         {
             var slotsInt = IndexByName(name);
@@ -923,27 +924,34 @@ namespace Hybrasyl
 
         public bool Remove(byte slot)
         {
-            var index = slot - 1;
-            if (index < 0 || index >= Size || _itemsObject.Value[index] == null)
-                return false;
-            var item = _itemsObject.Value[index];
-            _itemsObject.Value[index] = null;
-            Count -= 1;
-            Weight -= item.Weight;
-            _RemoveFromIndex(item);
+            lock (ContainerLock)
+            {
+                var index = slot - 1;
+                if (index < 0 || index >= Size || _itemsObject.Value[index] == null)
+                    return false;
+                var item = _itemsObject.Value[index];
+                _itemsObject.Value[index] = null;
+                Count -= 1;
+                Weight -= item.Weight;
+                _RemoveFromIndex(item);
 
-            return true;
+                return true;
+            }
         }
-
+        
         public bool Swap(byte slot1, byte slot2)
         {
-            int index1 = slot1 - 1, index2 = slot2 - 1;
-            if (index1 < 0 || index1 >= Size || index2 < 0 || index2 >= Size)
-                return false;
-            var item = _itemsObject.Value[index1];
-            _itemsObject.Value[index1] = _itemsObject.Value[index2];
-            _itemsObject.Value[index2] = item;
-            return true;
+            lock (ContainerLock)
+            {
+                int index1 = slot1 - 1, index2 = slot2 - 1;
+                if (index1 < 0 || index1 >= Size || index2 < 0 || index2 >= Size)
+                    return false;
+                var item = _itemsObject.Value[index1];
+                _itemsObject.Value[index1] = _itemsObject.Value[index2];
+                _itemsObject.Value[index2] = item;
+                return true;
+
+            }
         }
 
         public void Clear()

@@ -574,38 +574,57 @@ namespace Hybrasyl.Scripting
             // Does the item exist?
             if (Game.World.WorldData.TryGetValueByIndex(name, out Xml.Item template))
             {
-                var item = Game.World.CreateItem(template.Id);
-                if (count > 1)
-                    item.Count = count;
+                if (template.Stackable)
+                {
+                    var item = Game.World.CreateItem(template.Id);
+                    if (count > 1)
+                        item.Count = count > item.MaximumStack ? item.MaximumStack : count;
+                    else
+                        item.Count = item.MaximumStack;
+                    Game.World.Insert(item);
+                    User.AddItem(item);
+                    return true;
+                }
                 else
-                    item.Count = item.MaximumStack;
-                Game.World.Insert(item);
-                User.AddItem(item);
-                return true;
+                {
+                    var success = true;
+                    // Actually add N of the item. Note that if the user's inventory is full, or
+                    // becomes full, the items will drop to the ground.
+                    for (var i = 0; i <= count; i++)
+                    {
+                        var item = Game.World.CreateItem(template.Id);
+                        Game.World.Insert(item);
+                        success = success && User.AddItem(item);                       
+                    }
+                    return success;
+                }
             }
             return false;
         }
 
         /// <summary>
-        /// Take an item with a given name from the current player's inventory.
+        /// Check to see if a player has an item, optionally with a specified quantity.
+        /// </summary>
+        /// <param name="name">The name of the item to check.</param>
+        /// <param name="count">The quantity that will be checked.</param>
+        /// <returns></returns>
+        public bool HasItem(string name, int count = 1)
+        {
+            if (count == 1)
+                return User.Inventory.ContainsName(name);
+            return User.Inventory.Contains(name, count);
+        }
+
+        /// <summary>
+        /// Take an item with a given name and an optional quantity from the current player's inventory.
         /// </summary>
         /// <param name="name">The name of the item to be removed.</param>
+        /// <param name="count">The quantity to be removed.</param>
         /// <returns>Boolean indicating whether or not it the item was successfully removed from the player's inventory.</returns>
-        public bool TakeItem(string name)
+        public bool TakeItem(string name, int count = 1)
         {
-            if (User.Inventory.ContainsName(name))
-            {
-                // Find the first instance of the specified item and remove it
-                var slots = User.Inventory.SlotByName(name);
-                if (slots.Length == 0)
-                {
-                    GameLog.ScriptingWarning("{Function}: User had {item} a moment ago but now it's gone...?",
-                        MethodInfo.GetCurrentMethod().Name, User.Name, name);
-                    return false;
-                }
-                GameLog.ScriptingDebug("{Function}: A script removed {item} from {User}'s inventory ",
-                    MethodInfo.GetCurrentMethod().Name, User.Name, name); return User.Inventory.Remove(slots.First());
-            }
+            if (User.Inventory.ContainsName(name) && User.RemoveItem(name, (ushort) count))
+                return true;
             GameLog.ScriptingDebug("{Function}: User {User} doesn't have {item}",
                 MethodInfo.GetCurrentMethod().Name, User.Name, name);
             return false;
