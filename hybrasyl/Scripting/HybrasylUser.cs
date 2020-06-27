@@ -623,9 +623,8 @@ namespace Hybrasyl.Scripting
         /// <returns>Boolean indicating whether or not it the item was successfully removed from the player's inventory.</returns>
         public bool TakeItem(string name, int count = 1)
         {
-            if (User.Inventory.ContainsName(name))
-                return User.Inventory.Take(name, count);
-
+            if (User.Inventory.ContainsName(name) && User.RemoveItem(name, (ushort) count))
+                return true;
             GameLog.ScriptingDebug("{Function}: User {User} doesn't have {item}",
                 MethodInfo.GetCurrentMethod().Name, User.Name, name);
             return false;

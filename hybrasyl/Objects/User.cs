@@ -436,7 +436,7 @@ namespace Hybrasyl.Objects
                     continue;
                 }
                 if (item.Durability > 10)
-                    item.Durability = Convert.ToUInt32(Math.Ceiling(item.Durability * 0.90));
+                    item.Durability = Math.Ceiling(item.Durability * 0.90);
                 else
                     item.Durability = 0;
                 item.DeathPileOwner = Name;
@@ -460,7 +460,7 @@ namespace Hybrasyl.Objects
                     continue;
                 }
                 if (item.Durability > 10)
-                    item.Durability = Convert.ToUInt32(Math.Ceiling(item.Durability * 0.90));
+                    item.Durability = Math.Ceiling(item.Durability * 0.90);
                 else
                     item.Durability = 0;
                 item.DeathPileOwner = Name;
@@ -1328,7 +1328,7 @@ namespace Hybrasyl.Objects
             equipPacket.WriteStringWithLength(itemObject.Name);
             equipPacket.WriteByte(0x00);
             equipPacket.WriteUInt32(itemObject.MaximumDurability);
-            equipPacket.WriteUInt32(itemObject.Durability);
+            equipPacket.WriteUInt32(itemObject.DisplayDurability);
             equipPacket.DumpPacket();
             Enqueue(equipPacket);
         }
@@ -1383,7 +1383,7 @@ namespace Hybrasyl.Objects
             x0F.WriteInt32(itemObject.Count);  //amount
             x0F.WriteBoolean(itemObject.Stackable);
             x0F.WriteUInt32(itemObject.MaximumDurability);  //maxdura
-            x0F.WriteUInt32(itemObject.Durability);  //curdura
+            x0F.WriteUInt32(itemObject.DisplayDurability);  //curdura
             x0F.WriteUInt32(0x00);  //?
             Enqueue(x0F);
         }
@@ -2237,16 +2237,11 @@ namespace Hybrasyl.Objects
                 OnDeath();
             else
             {
-                // Apply durability damage
-                // FIXME: configurable formula
-                // Right now we simply apply a fixed 1/100th of damage across all armor slots equally.
-                // Note that this will result in more durability damage being taken if the user doesn't
-                // wear as much armor.
-                //var durabilityReduction = Math.Floor(damage / 100) / Equipment.Count;
-                //foreach (var item in Equipment)
-                //{
-                //    item.Durability -= durabilityReduction;
-                //}
+                foreach (var item in Equipment)
+                {
+                    if (item.EquipmentSlot != ServerItemSlots.Weapon)
+                        item.Durability -= 1 / (item.MaximumDurability * (100 - Stats.Ac));
+                }
             }
             UpdateAttributes(StatUpdateFlags.Current);
         }
@@ -4241,7 +4236,7 @@ namespace Hybrasyl.Objects
                     x0F.WriteInt32(Inventory[i].Count);
                     x0F.WriteBoolean(Inventory[i].Stackable);
                     x0F.WriteUInt32(Inventory[i].MaximumDurability);
-                    x0F.WriteUInt32(Inventory[i].Durability);
+                    x0F.WriteUInt32(Inventory[i].DisplayDurability);
                     Enqueue(x0F);
                 }
             }

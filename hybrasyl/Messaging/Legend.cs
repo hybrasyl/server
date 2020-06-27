@@ -61,7 +61,7 @@ namespace Hybrasyl.Messaging
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
-            user.Title = args[1];
+            user.Title = args[0];
             return Success("Title updated.");
         }
     }
