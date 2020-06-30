@@ -40,8 +40,9 @@ namespace Hybrasyl
                 dynamic itemInfo = new JObject();
                 if (book[i] == null) continue;
                 itemInfo.Name = book[i].Name.ToLower();
-                itemInfo.Level = book[i].CastableLevel;
                 itemInfo.LastCast = book[i].LastCast;
+                itemInfo.TotalUses = book[i].UseCount;
+                itemInfo.MasteryLevel = book[i].MasteryLevel;
                 output[i] = itemInfo;
             }
             var ja = JArray.FromObject(output);
@@ -62,7 +63,11 @@ namespace Hybrasyl
                     if (!TryGetValue(jArray[i], out item)) continue;
                     book[i] = Game.World.WorldData.Values<Xml.Castable>().SingleOrDefault(x => x.Name.ToLower() == (string)item.Name);
                     var castable = book[i];
-                    if (castable != null) castable.CastableLevel = (byte)item.Level;
+                    if (castable != null)
+                    {
+                        castable.UseCount = item.TotalUses == null ? 0 : item.TotalUses;
+                        castable.MasteryLevel = item.MasteryLevel == null ? (byte)0 : item.MasteryLevel;
+                    }
                 }
                 return book;
             }
@@ -78,7 +83,8 @@ namespace Hybrasyl
                     var castable = book[i];
                     if (castable != null)
                     {
-                        castable.CastableLevel = (byte)item.Level;
+                        castable.UseCount = item.TotalUses == null ? 0 : item.TotalUses;
+                        castable.MasteryLevel = item.MasteryLevel == null ? (byte)0 : item.MasteryLevel;
                         if (item.GetType().GetProperty("LastCast") != null)
                             castable.LastCast = (DateTime)item.LastCast;
                         else

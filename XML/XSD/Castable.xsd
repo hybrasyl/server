@@ -309,6 +309,26 @@
     </xs:sequence>
   </xs:complexType>
 
+  <!-- Castable mastery -->
+  <xs:simpleType name="MasteryModifier">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="Damage" />
+      <xs:enumeration value="Heal" />
+      <xs:enumeration value="MissRate" />
+      <xs:enumeration value="FailRate" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="MasteryModifierList">
+    <xs:list itemType="hyb:MasteryModifier" />
+  </xs:simpleType>
+
+  <xs:complexType name="CastableMastery">
+    <xs:attribute name="Uses" type="xs:int" default="1"/>
+    <xs:attribute name="Modifiers" type="hyb:MasteryModifierList"/>
+    <xs:attribute name="Tiered" type="xs:boolean"/>
+  </xs:complexType>
+
   <!-- Castable type -->
   <xs:complexType name="Castable">
     <xs:all minOccurs="0" maxOccurs="1">
@@ -322,6 +342,7 @@
       <xs:element name="Restrictions" type="hyb:CastableRestrictions" minOccurs="0" maxOccurs="1" />
       <xs:element name="Effects" type="hyb:CastableEffects" minOccurs="0" maxOccurs="1" />
       <xs:element name="Script" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Mastery" type="hyb:CastableMastery" minOccurs="1" maxOccurs="1"/>
     </xs:all>
     <!-- Castable attributes -->
     <xs:attribute name="Icon" type="xs:unsignedByte" use="required" />

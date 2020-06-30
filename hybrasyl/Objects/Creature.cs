@@ -550,7 +550,10 @@ namespace Hybrasyl.Objects
 
                     tar.Damage(damageOutput.Amount, attackElement, damageOutput.Type, damageOutput.Flags, this, false);
                     if (this is User)
-                        Equipment.Weapon.Durability -= 1 / (Equipment.Weapon.MaximumDurability * (100 - Stats.Ac));
+                    {
+                        if(Equipment.Weapon != null) Equipment.Weapon.Durability -= 1 / (Equipment.Weapon.MaximumDurability * (100 - Stats.Ac));
+                    }
+                        
 
                     if (tar.Stats.Hp <= 0) { deadMobs.Add(tar); }
                 }

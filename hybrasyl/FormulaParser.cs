@@ -271,8 +271,8 @@ namespace Hybrasyl
                         case "$CASTERWEAPONDMG":
                             {
                                 var rand = new Random();
-                                var mindmg = (int)_caster.Equipment.Weapon.MinSDamage;
-                                var maxdmg = (int)_caster.Equipment.Weapon.MaxSDamage;
+                                var mindmg = _caster.Equipment.Weapon == null ? 1 : (int)_caster.Equipment.Weapon.MinSDamage;
+                                var maxdmg = _caster.Equipment.Weapon == null ? 1 : (int)_caster.Equipment.Weapon.MaxSDamage;
                                 if (mindmg == 0) mindmg = 1;
                                 if (maxdmg == 0) maxdmg = 1;
                                 tokens[i] = rand.Next(mindmg, maxdmg).ToString();
@@ -281,8 +281,8 @@ namespace Hybrasyl
                         case "$CASTERWEAPONSDMG":
                             {
                                 var rand = new Random();
-                                var mindmg = (int)_caster.Equipment.Weapon.MinSDamage;
-                                var maxdmg = (int)_caster.Equipment.Weapon.MaxSDamage;
+                                var mindmg = _caster.Equipment.Weapon == null ? 1 : (int)_caster.Equipment.Weapon.MinSDamage;
+                                var maxdmg = _caster.Equipment.Weapon == null ? 1 : (int)_caster.Equipment.Weapon.MaxSDamage;
                                 if (mindmg == 0) mindmg = 1;
                                 if (maxdmg == 0) maxdmg = 1;
                                 tokens[i] = rand.Next(mindmg, maxdmg).ToString();
