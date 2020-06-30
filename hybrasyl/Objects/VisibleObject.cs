@@ -163,11 +163,6 @@ namespace Hybrasyl.Objects
         {
         }
 
-        public virtual void Remove()
-        {
-            Map.Remove(this);
-        }
-
         public virtual void Teleport(ushort mapid, byte x, byte y)
         {
             if (!World.WorldData.ContainsKey<Map>(mapid)) return;

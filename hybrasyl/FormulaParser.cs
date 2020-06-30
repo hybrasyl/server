@@ -271,51 +271,66 @@ namespace Hybrasyl
                         case "$CASTERWEAPONDMG":
                             {
                                 var rand = new Random();
-                                var mindmg = (int)_caster.Equipment.Weapon.MinSDamage;
-                                var maxdmg = (int)_caster.Equipment.Weapon.MaxSDamage;
-                                if (mindmg == 0) mindmg = 1;
-                                if (maxdmg == 0) maxdmg = 1;
-                                tokens[i] = rand.Next(mindmg, maxdmg).ToString();
+                                if (_caster.Equipment.Weapon == null)
+                                    tokens[i] = "0";
+                                else
+                                {
+                                    var mindmg = (int)_caster.Equipment.Weapon.MinSDamage;
+                                    var maxdmg = (int)_caster.Equipment.Weapon.MaxSDamage;
+                                    if (mindmg == 0) mindmg = 1;
+                                    if (maxdmg == 0) maxdmg = 1;
+                                    tokens[i] = rand.Next(mindmg, maxdmg).ToString();
+                                }
                             }
                             break;
                         case "$CASTERWEAPONSDMG":
                             {
                                 var rand = new Random();
-                                var mindmg = (int)_caster.Equipment.Weapon.MinSDamage;
-                                var maxdmg = (int)_caster.Equipment.Weapon.MaxSDamage;
-                                if (mindmg == 0) mindmg = 1;
-                                if (maxdmg == 0) maxdmg = 1;
-                                tokens[i] = rand.Next(mindmg, maxdmg).ToString();
+                                if (_caster.Equipment.Weapon == null)
+                                    tokens[i] = "0";
+                                else
+                                {
+                                    var mindmg = (int)_caster.Equipment.Weapon.MinSDamage;
+                                    var maxdmg = (int)_caster.Equipment.Weapon.MaxSDamage;
+                                    if (mindmg == 0) mindmg = 1;
+                                    if (maxdmg == 0) maxdmg = 1;
+                                    tokens[i] = rand.Next(mindmg, maxdmg).ToString();
+                                }
                             }
                             break;
                         case "$CASTERWEAPONSDMGMIN":
                             {
-                                tokens[i] = _caster.Equipment.Weapon.MinSDamage.ToString();
+                                tokens[i] = (_caster.Equipment.Weapon?.MinSDamage ?? '1').ToString();
                             }
                             break;
                         case "$CASTERWEAPONSDMGMAX":
                             {
-                                tokens[i] = _caster.Equipment.Weapon.MaxSDamage.ToString();
+                                tokens[i] = (_caster.Equipment.Weapon?.MaxSDamage ?? '1').ToString();
                             }
                             break;
                         case "$CASTERWEAPONLDMG":
                             {
                                 var rand = new Random();
-                                var mindmg = (int)_caster.Equipment.Weapon.MinLDamage;
-                                var maxdmg = (int)_caster.Equipment.Weapon.MaxLDamage;
-                                if (mindmg == 0) mindmg = 1;
-                                if (maxdmg == 0) maxdmg = 1;
-                                tokens[i] = rand.Next(mindmg, maxdmg).ToString();
+                                if (_caster.Equipment.Weapon == null)
+                                    tokens[i] = "0";
+                                else
+                                {
+                                    var mindmg = (int)_caster.Equipment.Weapon.MinLDamage;
+                                    var maxdmg = (int)_caster.Equipment.Weapon.MaxLDamage;
+                                    if (mindmg == 0) mindmg = 1;
+                                    if (maxdmg == 0) maxdmg = 1;
+                                    tokens[i] = rand.Next(mindmg, maxdmg).ToString();
+                                }
                             }
                             break;
                         case "$CASTERWEAPONLDMGMIN":
                             {
-                                tokens[i] = _caster.Equipment.Weapon.MinLDamage.ToString();
+                                tokens[i] = (_caster.Equipment.Weapon?.MinLDamage ?? '1').ToString();
                             }
                             break;
                         case "$CASTERWEAPONLDMGMAX":
                             {
-                                tokens[i] = _caster.Equipment.Weapon.MaxLDamage.ToString();
+                                tokens[i] = (_caster.Equipment.Weapon?.MaxLDamage ?? '1').ToString();
                             }
                             break;
                         case "$CASTABLELEVEL":

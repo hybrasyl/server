@@ -72,9 +72,14 @@ namespace Hybrasyl.Scripting
             return false;
         }
 
-        public void RegisterScript(Script script)
+        public void RegisterScript(Script script, bool run=true)
         {
-            script.Run();
+            if (script.Processor == null)
+                script.Processor = this;
+
+            if (run)
+                script.Run();
+
             var name = SanitizeName(script.Name);
             if (!_scripts.ContainsKey(name))
             {

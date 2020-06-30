@@ -15,6 +15,19 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="api\**" />
+    <Compile Remove="articles\**" />
+    <Compile Remove="_site\**" />
+    <EmbeddedResource Remove="api\**" />
+    <EmbeddedResource Remove="articles\**" />
+    <EmbeddedResource Remove="_site\**" />
+    <None Remove="api\**" />
+    <None Remove="articles\**" />
+    <None Remove="_site\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="docfx.json" />
     <None Remove="Resources\sotp.dat" />
   </ItemGroup>
 

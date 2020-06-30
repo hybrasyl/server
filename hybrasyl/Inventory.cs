@@ -821,18 +821,9 @@ namespace Hybrasyl
                 if (!_inventoryIndex.ContainsKey(item.Id))
                     continue;
 
-                var quant = 0;
-
-                foreach (var itm in _inventoryIndex.Where(x => x.Key == item.Id).ToList())
-                {
-                    foreach (var i in itm.Value)
-                    {
-                        quant += i.Count;
-                    }
-                }
-                var hasQuantity = quant >= quantity;
-                if (quant >= quantity)
-                    return true;
+                var total = _inventoryIndex.Where(x => x.Key == item.Id).First().Value.Sum(y => y.Count);
+                GameLog.Info($"Contains check: {name}, quantity {quantity}: {total} found");
+                if (total >= quantity) return true;
             }
             return false;
         }

@@ -15,7 +15,21 @@
   <!-- Continue to control versioning manually with AssemblyInfo.cs -->
   <PropertyGroup>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-  </PropertyGroup> 
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="api\**" />
+    <Compile Remove="articles\**" />
+    <Compile Remove="_site\**" />
+    <EmbeddedResource Remove="api\**" />
+    <EmbeddedResource Remove="articles\**" />
+    <EmbeddedResource Remove="_site\**" />
+    <None Remove="api\**" />
+    <None Remove="articles\**" />
+    <None Remove="_site\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="docfx.json" />
+  </ItemGroup> 
  
   <ItemGroup>
     <PackageReference Include="docfx" Version="2.53.1" />

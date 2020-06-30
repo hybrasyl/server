@@ -41,15 +41,22 @@ namespace Hybrasyl
 
         private Dictionary<string, LegendMark> _legendIndex = new Dictionary<string, LegendMark>();
 
-        public bool TryGetMark(string prefix, out LegendMark mark)
+        public bool TryGetMark(string searchKey, out LegendMark mark, bool byPrefix = true)
         {
-            return _legendIndex.TryGetValue(prefix, out mark);
+            if (byPrefix)
+                return _legendIndex.TryGetValue(searchKey, out mark);
+            else
+            {
+                // Return first mark that matches
+                mark = _legend.Values.Where(x => x.Text.ToLower().Contains(searchKey.ToLower())).First();
+                return mark != null;
+            }
         }
 
         private bool _addLegendMark(LegendMark mark)
         {
             if (_legend.Keys.Count == MaximumLegendSize) return false;
-            if (!string.IsNullOrEmpty(mark.Prefix) && _legendIndex.ContainsKey(mark.Prefix))
+            if (_legendIndex.ContainsKey(mark.Prefix))
                 throw new ArgumentException("A legend mark's prefix must be unique for a given character");
             _legend.Add(mark.Timestamp, mark);
             if (mark.Prefix != null)
@@ -92,8 +99,9 @@ namespace Hybrasyl
             if (_legendIndex.Count == _legend.Count) return;
             _legendIndex = new Dictionary<string, LegendMark>();
             foreach (var kvp in _legend)
-            {
-                _legendIndex[kvp.Value.Prefix] = kvp.Value;
+            {             
+                if (kvp.Value.Prefix != null)
+                    _legendIndex[kvp.Value.Prefix] = kvp.Value;
             }
         }
 
