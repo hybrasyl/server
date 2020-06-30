@@ -1109,6 +1109,7 @@ namespace Hybrasyl.Objects
                     Pane = 1,
                     Slot = slot
                 }.Packet());
+                castable.LastCast = DateTime.Now;
             }
             else
                 SendSystemMessage("Failed.");
@@ -1132,13 +1133,13 @@ namespace Hybrasyl.Objects
             }
             if (UseCastable(castable, targetCreature))
             {
-                SpellBook[slot].LastCast = DateTime.Now;
                 Client.Enqueue(new ServerPacketStructures.Cooldown()
                 {
                     Length = (uint)castable.Cooldown,
                     Pane = 0,
                     Slot = slot
                 }.Packet());
+                SpellBook[slot].LastCast = DateTime.Now;
             }
             else
                 SendSystemMessage("Failed.");
@@ -2028,7 +2029,7 @@ namespace Hybrasyl.Objects
                 }
                 return true;
             }
-            else if( Inventory.EmptySlots > quantity)
+            else if(Inventory.EmptySlots >= quantity)
             {
                 do
                 {
@@ -2074,12 +2075,14 @@ namespace Hybrasyl.Objects
                             {
                                 if (Inventory[i].Count <= remaining)
                                 {
+                                    GameLog.Info($"RemoveItem {itemName}, quantity {quantity}: removing stack from slot {i} with {Inventory[i].Count}");
                                     remaining -= Inventory[i].Count;
-                                    Inventory[i].Remove();
+                                    Inventory.Remove(i);
                                     slotsToClear.Add(i);
                                 }
-                                if (Inventory[i].Count > remaining)
+                                else if (Inventory[i].Count > remaining)
                                 {
+                                    GameLog.Info($"RemoveItem {itemName}, quantity {quantity}: removing quantity from stack, slot {i} with amount {Inventory[i].Count}");
                                     Inventory[i].Count -= remaining;
                                     remaining = 0;
                                     slotsToUpdate.Add(i);
@@ -2087,26 +2090,31 @@ namespace Hybrasyl.Objects
                             }
                             else
                             {
+                                GameLog.Info($"RemoveItem {itemName}, quantity {quantity}: removing nonstackable item from slot {i} with amount {Inventory[i].Count}");
                                 Inventory.Remove(i);
                                 remaining--;
-                                slotsToUpdate.Add(i);
+                                slotsToClear.Add(i);
                             }
                         }
                         else
                         {
+                            GameLog.Info($"RemoveItem {itemName}, quantity {quantity}: done, remaining {remaining}");
                             break;
                         }
                     }
                 }
 
                 foreach (var slot in slotsToClear)
+                {
+                    GameLog.Info("clearing slot {slot}");
                     SendClearItem(slot);
-
+                }
                 foreach (var slot in slotsToUpdate)
                     SendItemUpdate(Inventory[slot], slot);
 
                 return true;
             }
+            GameLog.Info($"RemoveItem {itemName}, quantity {quantity}: not found");
             return false;
         }
 
