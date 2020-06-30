@@ -3573,10 +3573,16 @@ namespace Hybrasyl
         private void PacketHandler_0x4E_CastLine(object obj, ClientPacket packet)
         {
             var user = (User)obj;
-            var textLength = packet.ReadByte();
-            var text = packet.Read(textLength);
+            var text = packet.ReadString8();
+
+            if(text.Contains("Mastery"))
+            {
+                text = text.Remove(text.IndexOf(" (Mastery"));
+            }
+            //var textLength = packet.ReadByte();
+            //var text = packet.Read(textLength);
             if (!user.Condition.Casting) return;
-            var x0D = new ServerPacketStructures.CastLine() { ChatType = 2, LineLength = textLength, LineText = Encoding.UTF8.GetString(text), TargetId = user.Id };
+            var x0D = new ServerPacketStructures.CastLine() { ChatType = 2, LineLength = (byte)text.Length, LineText = text, TargetId = user.Id };
             var enqueue = x0D.Packet();
 
             user.SendCastLine(enqueue);

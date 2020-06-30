@@ -1109,6 +1109,11 @@ namespace Hybrasyl.Objects
                     Pane = 1,
                     Slot = slot
                 }.Packet());
+                castable.UseCount += 1;
+                if(castable.UseCount <= castable.Mastery.Uses)
+                {
+                    SendSkillUpdate(castable, slot);
+                }
                 castable.LastCast = DateTime.Now;
             }
             else
@@ -1139,6 +1144,13 @@ namespace Hybrasyl.Objects
                     Pane = 0,
                     Slot = slot
                 }.Packet());
+
+                castable.UseCount += 1;
+                if (castable.UseCount <= castable.Mastery.Uses)
+                {
+                    SendSpellUpdate(castable, slot);
+                }
+                
                 SpellBook[slot].LastCast = DateTime.Now;
             }
             else
@@ -1398,10 +1410,18 @@ namespace Hybrasyl.Objects
             }
             GameLog.DebugFormat("Adding skill {0} to slot {2}",
                 item.Name, slot);
+
+            var mastery = "";
+
+            if(item.Mastery.Tiered)
+            {
+                mastery = $"[{item.MasteryLevel}]";
+            }
+
             var x2C = new ServerPacket(0x2C);
             x2C.WriteByte((byte)slot);
             x2C.WriteUInt16((ushort)(item.Icon));
-            x2C.WriteString8(Class == Xml.Class.Peasant ? item.Name : $"{item.Name} (Lev:{item.CastableLevel}/{GetCastableMaxLevel(item)})");
+            x2C.WriteString8(Class == Xml.Class.Peasant ? item.Name : $"{item.Name} (Mastery{mastery}: {Math.Round((decimal)(item.UseCount > item.Mastery.Uses ? 100 : item.UseCount / item.Mastery.Uses), 2)}%)");
             Enqueue(x2C);
         }
 
@@ -1414,13 +1434,21 @@ namespace Hybrasyl.Objects
             }
             GameLog.DebugFormat("Adding spell {0} to slot {2}",
                 item.Name, slot);
+
+            var mastery = "";
+
+            if (item.Mastery.Tiered)
+            {
+                mastery = $"[{item.MasteryLevel}]";
+            }
+
             var x17 = new ServerPacket(0x17);
             x17.WriteByte((byte)slot);
             x17.WriteUInt16((ushort)(item.Icon));
             var spellType = item.Intents[0].UseType;
             //var spellType = isClick ? 2 : 5;
             x17.WriteByte((byte)spellType); //spell type? how are we determining this?
-            x17.WriteString8(Class == Xml.Class.Peasant ? item.Name : $"{item.Name} (Lev:{item.CastableLevel}/{GetCastableMaxLevel(item)})");
+            x17.WriteString8(Class == Xml.Class.Peasant ? item.Name : $"{item.Name} (Mastery{mastery}:{ Math.Round((decimal)(item.UseCount > item.Mastery.Uses ? 100 : item.UseCount / item.Mastery.Uses), 2)}%)");
             x17.WriteString8(item.Name); //prompt? what is this?
             x17.WriteByte((byte)item.Lines);
             Enqueue(x17);

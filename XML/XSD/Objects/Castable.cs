@@ -37,6 +37,7 @@ public partial class Castable
     private CastableRestrictions _restrictions;
     private CastableEffects _effects;
     private string _script;
+    private CastableMastery _mastery;
     private byte _icon;
     private Book _book;
     private Element _element;
@@ -51,6 +52,7 @@ public partial class Castable
     public Castable()
     {
         _class = new List<Class>();
+        _mastery = new CastableMastery();
         _effects = new CastableEffects();
         _restrictions = new CastableRestrictions();
         _requirements = new List<Requirement>();
@@ -187,6 +189,18 @@ public partial class Castable
         set
         {
             _script = value;
+        }
+    }
+    
+    public CastableMastery Mastery
+    {
+        get
+        {
+            return _mastery;
+        }
+        set
+        {
+            _mastery = value;
         }
     }
     
