@@ -61,11 +61,13 @@ namespace Hybrasyl.Scripting
         public MoonSharp.Interpreter.Script Compiled { get; private set; }
         public HybrasylWorldObject Associate { get; private set; }
 
-        public bool Disabled { get; set; }
-        public string CompilationError { get; private set; }
-        public string LastRuntimeError { get; private set; }
+        public bool Disabled { get; set; } = false;
+        public string CompilationError { get; private set; } = string.Empty;
+        public string LastRuntimeError { get; private set; } = string.Empty;
 
-        private HashSet<String> _FunctionIndex { get; set; }
+        private HashSet<String> _FunctionIndex { get; set; } = new HashSet<string>();
+
+        public DynValue LastReturnValue { get; set; } = DynValue.Nil;
 
         public Script Clone()
         {
@@ -83,10 +85,14 @@ namespace Hybrasyl.Scripting
             Compiled = new MoonSharp.Interpreter.Script(CoreModules.Preset_SoftSandbox);
             RawSource = string.Empty;
             Processor = processor;
-            Disabled = false;
-            CompilationError = string.Empty;
-            LastRuntimeError = string.Empty;
-            _FunctionIndex = new HashSet<String>();
+        }
+
+        public Script(string script, string name)
+        {
+            FullPath = String.Empty;
+            Name = name;
+            Compiled = new MoonSharp.Interpreter.Script(CoreModules.Preset_SoftSandbox);
+            RawSource = script;
         }
 
         public void AssociateScriptWithObject(WorldObject obj)
@@ -144,6 +150,18 @@ namespace Hybrasyl.Scripting
             return Compiled.Globals.Get(name) != DynValue.Nil;
         }
 
+        public void SetGlobals()
+        {
+            // TODO: streamline / refactor
+            Compiled.Globals["Gender"] = UserData.CreateStatic<Xml.Gender>();
+            Compiled.Globals["LegendIcon"] = UserData.CreateStatic<LegendIcon>();
+            Compiled.Globals["LegendColor"] = UserData.CreateStatic<LegendColor>();
+            Compiled.Globals["Class"] = UserData.CreateStatic<Xml.Class>();
+            Compiled.Globals["utility"] = typeof(HybrasylUtility);
+            Compiled.Globals.Set("world", UserData.Create(Processor.World));
+            Compiled.Globals.Set("logger", UserData.Create(new ScriptLogger(Name)));
+        }
+
         /// <summary>
         /// Load the script from disk and execute it.
         /// </summary>
@@ -172,6 +190,7 @@ namespace Hybrasyl.Scripting
                                 (ex as InterpreterException).DecoratedMessage);
                 Disabled = true;
                 CompilationError = ex.ToString();
+                LastRuntimeError = (ex as InterpreterException).DecoratedMessage;
                 return false;
             }
 
@@ -209,7 +228,7 @@ namespace Hybrasyl.Scripting
                    Compiled.Globals.Set("source", GetUserDataValue(source));
 
                 // We pass Compiled.Globals here to make sure that the updated table (with new variables) makes it over
-                Compiled.DoString(expr, Compiled.Globals);
+                LastReturnValue = Compiled.DoString(expr, Compiled.Globals);
             }
             catch (Exception ex) when (ex is InterpreterException)
             {
@@ -218,6 +237,7 @@ namespace Hybrasyl.Scripting
                     (ex as InterpreterException).DecoratedMessage);
                 //Disabled = true;
                 CompilationError = ex.ToString();
+                LastRuntimeError = (ex as InterpreterException).DecoratedMessage;
                 return false;
             }
             return true;

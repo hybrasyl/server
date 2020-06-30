@@ -15,7 +15,7 @@
 
 # Build results
 [Dd]ebug/
-[Dd]ebugPublic/
+[Dd]ebugPublic/                     
 [Rr]elease/
 [Rr]eleases/
 x64/
@@ -79,7 +79,7 @@ artifacts/
 _Chutzpah*
 
 # Visual C++ cache files
-ipch/
+ipch/                     
 *.aps
 *.ncb
 *.opendb
@@ -280,3 +280,15 @@ __pycache__/
 **/XML/log.txt
 **/hybrasyl/log.txt
 **/*.txt
+
+XML/api
+XML/articles
+XML/site
+XML/docfx.json
+XML/toc.yml
+
+hybrasyl/api
+hybrasyl/articles
+hybrasyl/site
+hybrasyl/docfx.json
+hybrasyl/toc.yml

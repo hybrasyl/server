@@ -25,6 +25,7 @@ using Hybrasyl.Messaging;
 using Hybrasyl.Objects;
 using Hybrasyl.Scripting;
 using Hybrasyl.Utility;
+using MoonSharp.Interpreter;
 using Newtonsoft.Json;
 using Serilog;
 using StackExchange.Redis;
@@ -988,7 +989,7 @@ namespace Hybrasyl
                         {
                             var scriptname = Path.GetFileName(file);
                             GameLog.InfoFormat("Loading script {0}\\{1}", dir, scriptname);
-                            var script = new Script(file, ScriptProcessor);
+                            var script = new Scripting.Script(file, ScriptProcessor);
                             ScriptProcessor.RegisterScript(script);
                             if (dir == "common")
                                 script.Run();
@@ -1963,7 +1964,7 @@ namespace Hybrasyl
 
                 listPacket.WriteByte((byte)user.Class);
                 if (me.GuildUuid != string.Empty && user.GuildUuid == me.GuildUuid) listPacket.WriteByte(84);
-                if (levelDifference <= 5) listPacket.WriteByte(151);
+                else if (levelDifference <= 5) listPacket.WriteByte(151);
                 else listPacket.WriteByte(255);
 
                 listPacket.WriteByte((byte)user.GroupStatus);
@@ -1990,10 +1991,58 @@ namespace Hybrasyl
             {
                 user.SendGroupWhisper(message);
             }
-            else
+            else if (target == "$")
             {
-                user.SendWhisper(target, message);
+                if (!user.IsPrivileged)
+                {
+                    user.SendSystemMessage("Forbidden.");
+                    return;
+                }
+
+                Scripting.Script script;
+
+                if (!ScriptProcessor.TryGetScript($"{user.Name}-repl.lua", out script) || message.ToLower().Contains("--clear--"))
+                {
+                    // Make new magic script if needed
+                    if (ScriptProcessor.TryGetScript("repl.lua", out Scripting.Script newScript))
+                    {
+                        newScript.Name = $"{user.Name}-repl.lua";
+                        ScriptProcessor.RegisterScript(newScript);
+                        newScript.Execute($"init('{user.Name}')", user);
+                        user.DisplayIncomingWhisper("$", "Eval environment ready");
+                        return;
+                    }
+                    else
+                    {
+                        user.SendSystemMessage("repl.lua needs to exist as a script first");
+                        return;
+                    }
+                }
+                user.DisplayOutgoingWhisper("$", message);
+                // Tack on return here so we actually get the DynValue out
+                var ret = script.Execute($"return {message}", user);
+                if (!ret)
+                {
+                    var strs = script.LastRuntimeError.Split(50);
+                    foreach (var str in strs)
+                        user.DisplayIncomingWhisper("$", $"Err: {str}");
+                }
+                else
+                {
+                    if (script.LastReturnValue == DynValue.Nil || script.LastReturnValue == DynValue.Void)
+                        user.DisplayIncomingWhisper("$", "Ret: nil (OK)");
+                    // this is deeply annoying and stupid
+                    else if (script.LastReturnValue.Type == DataType.Boolean)
+                        user.DisplayIncomingWhisper("$", $"Ret: {script.LastReturnValue.Boolean.ToString()}");
+                    else
+                        user.DisplayIncomingWhisper("$", $"Ret: {script.LastReturnValue.CastToString()}");
+
+                }
+                return;
+
             }
+            else
+                user.SendWhisper(target, message);
         }
 
         [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
@@ -3935,7 +3984,7 @@ namespace Hybrasyl
 
             if (obj is ItemObject)
             {
-                Script itemscript;
+                Scripting.Script itemscript;
                 if (Game.World.ScriptProcessor.TryGetScript(obj.Name, out itemscript))
                 {
                     var clone = itemscript.Clone();

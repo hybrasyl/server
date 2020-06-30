@@ -29,6 +29,22 @@ using System.Text.RegularExpressions;
 namespace Hybrasyl
 {
 
+    public static class Extensions
+    {
+        public static IEnumerable<string> Split(this string str, int n)
+        {
+            if (String.IsNullOrEmpty(str) || n < 1)
+            {
+                throw new ArgumentException();
+            }
+
+            for (int i = 0; i < str.Length; i += n)
+            {
+                yield return str.Substring(i, Math.Min(n, str.Length - i));
+            }
+        }
+    }
+
     public static class EnumerableExtension
     {
         public static T PickRandom<T>(this IEnumerable<T> source)
