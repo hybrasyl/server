@@ -1824,12 +1824,12 @@ namespace Hybrasyl.Objects
 
         public bool AddSkill(Xml.Castable castable)
         {
-            if (SkillBook.IsFull)
+            if (SkillBook.IsFull(castable.Book))
             {
                 SendSystemMessage("You cannot learn any more skills.");
                 return false;
             }
-            return AddSkill(castable, SkillBook.FindEmptySlot());
+            return AddSkill(castable, SkillBook.FindEmptySlot(castable.Book));
         }
 
         public bool AddSkill(Xml.Castable item, byte slot)
@@ -1858,12 +1858,12 @@ namespace Hybrasyl.Objects
 
         public bool AddSpell(Xml.Castable castable)
         {
-            if (SpellBook.IsFull)
+            if (SpellBook.IsFull(castable.Book))
             {
                 SendSystemMessage("You cannot learn any more spells.");
                 return false;
             }
-            return AddSpell(castable, SpellBook.FindEmptySlot());
+            return AddSpell(castable, SpellBook.FindEmptySlot(castable.Book));
         }
 
         public bool AddSpell(Xml.Castable item, byte slot)

@@ -112,12 +112,31 @@ namespace Hybrasyl
         private Xml.Castable[] _items;
         private Dictionary<int, Xml.Castable> _itemIndex;
 
-        public bool IsFull => Count == Size;
+        public bool IsFull(Xml.Book book)
+        {
+            if (book == Xml.Book.PrimarySkill || book == Xml.Book.PrimarySpell)
+                return IsPrimaryFull;
+            if (book == Xml.Book.SecondarySkill || book == Xml.Book.SecondarySpell)
+                return IsSecondaryFull;
+            if (book == Xml.Book.UtilitySkill || book == Xml.Book.UtilitySpell)
+                return IsUtilityFull;
+            throw new ArgumentException($"Unknown book value {book}");
+        }
+
+        // Slots 36, 72 and 90 are inexplicably unusable on client, and client
+        // numbering for book slots is 1-based, so...
+        //
+        // Primary 0-34, 35 unusable
+        // Secondary 36-70, 71 unusable
+        // Utility 72-88, 89 unusable
+
+        public bool IsPrimaryFull => _items[0..34].Where(x => x != null).Count() == 35;
+        public bool IsSecondaryFull => _items[36..70].Where(x => x != null).Count() == 35;
+        public bool IsUtilityFull => _items[72..88].Where(x => x != null).Count() == 17;
 
         public int EmptySlots => Size - Count;
         public int Size { get; private set; }
         public int Count { get; private set; }
-
 
         public Xml.Castable this[byte slot]
         {
@@ -173,18 +192,30 @@ namespace Hybrasyl
         {
             return _itemIndex.ContainsKey(id);
         }
-        public int FindEmptyIndex()
+
+        public int FindEmptyIndex(int begin=0, int end=0)
         {
-            for (var i = 0; i < Size; ++i)
+            for (var i = begin; i < (end == 0 ? Size : end); ++i)
             {
                 if (_items[i] == null)
                     return i;
             }
-            return -1;
+            return -2;
         }
-        public byte FindEmptySlot()
+
+        public byte FindEmptyPrimarySlot() => (byte)(FindEmptyIndex(0, 34) + 1);
+        public byte FindEmptySecondarySlot() => (byte)(FindEmptyIndex(36, 70) + 1);
+        public byte FindEmptyUtilitySlot() => (byte)(FindEmptyIndex(72, 88) + 1);
+
+        public byte FindEmptySlot(Xml.Book book)
         {
-            return (byte)(FindEmptyIndex() + 1);
+            if (book == Xml.Book.PrimarySkill || book == Xml.Book.PrimarySpell)
+                return FindEmptyPrimarySlot();
+            if (book == Xml.Book.SecondarySkill || book == Xml.Book.SecondarySpell)
+                return FindEmptySecondarySlot();
+            if (book == Xml.Book.UtilitySkill || book == Xml.Book.UtilitySpell)
+                return FindEmptyUtilitySlot();
+            throw new ArgumentException($"Unknown book value {book}");
         }
 
         public int IndexOf(int id)
@@ -217,8 +248,8 @@ namespace Hybrasyl
 
         public bool Add(Xml.Castable item)
         {
-            if (IsFull) return false;
-            var slot = FindEmptySlot();
+            if (IsFull(item.Book)) return false;
+            var slot = FindEmptySlot(item.Book);
             return Insert(slot, item);
         }
 
