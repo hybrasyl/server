@@ -300,12 +300,12 @@ namespace Hybrasyl
                             break;
                         case "$CASTERWEAPONSDMGMIN":
                             {
-                                tokens[i] = (_caster.Equipment.Weapon?.MinSDamage ?? '0').ToString();
+                                tokens[i] = (_caster.Equipment.Weapon?.MinSDamage ?? '1').ToString();
                             }
                             break;
                         case "$CASTERWEAPONSDMGMAX":
                             {
-                                tokens[i] = (_caster.Equipment.Weapon?.MaxSDamage ?? '0').ToString();
+                                tokens[i] = (_caster.Equipment.Weapon?.MaxSDamage ?? '1').ToString();
                             }
                             break;
                         case "$CASTERWEAPONLDMG":
@@ -325,12 +325,12 @@ namespace Hybrasyl
                             break;
                         case "$CASTERWEAPONLDMGMIN":
                             {
-                                tokens[i] = (_caster.Equipment.Weapon?.MinLDamage ?? '0').ToString();
+                                tokens[i] = (_caster.Equipment.Weapon?.MinLDamage ?? '1').ToString();
                             }
                             break;
                         case "$CASTERWEAPONLDMGMAX":
                             {
-                                tokens[i] = (_caster.Equipment.Weapon?.MaxLDamage ?? '0').ToString();
+                                tokens[i] = (_caster.Equipment.Weapon?.MaxLDamage ?? '1').ToString();
                             }
                             break;
                         case "$CASTABLELEVEL":
