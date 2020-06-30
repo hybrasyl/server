@@ -138,10 +138,11 @@ namespace Hybrasyl.Objects
                     if (target == null)
                         GameLog.Error($"GetTargets: {castable.Name} - intent was for exact clicked target but no target was passed?");
                     else
-                        // Heal spels can be cast on players, other spells can be cast on attackable creatures
-                        if ((!castable.Effects.Damage.IsEmpty && target.Condition.IsAttackable) ||
-                        (castable.Effects.Damage.IsEmpty && target is User))
-                        possibleTargets.Add(target);
+                        // If we're doing damage, ensure the target is attackable
+                        if (!castable.Effects.Damage.IsEmpty && target.Condition.IsAttackable)
+                            possibleTargets.Add(target);
+                        else if (castable.Effects.Damage.IsEmpty)
+                            possibleTargets.Add(target);
                 }
                 else if (intent.UseType == Xml.SpellUseType.NoTarget && intent.Radius == 0 && intent.Direction == Xml.IntentDirection.None)
                 {
@@ -549,7 +550,7 @@ namespace Hybrasyl.Objects
                     if (this is User) GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} damage: {damageOutput}, element {attackElement}");
 
                     tar.Damage(damageOutput.Amount, attackElement, damageOutput.Type, damageOutput.Flags, this, false);
-                    if (this is User)
+                    if (this is User && Equipment.Weapon != null)
                         Equipment.Weapon.Durability -= 1 / (Equipment.Weapon.MaximumDurability * (100 - Stats.Ac));
 
                     if (tar.Stats.Hp <= 0) { deadMobs.Add(tar); }
@@ -563,7 +564,8 @@ namespace Hybrasyl.Objects
                     if (this is User)
                     {
                         GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} healing: {healOutput}");
-                        Equipment.Weapon.Durability -= 1 / (Equipment.Weapon.MaximumDurability * (100 - Stats.Ac));
+                        if (Equipment.Weapon != null)
+                           Equipment.Weapon.Durability -= 1 / (Equipment.Weapon.MaximumDurability * (100 - Stats.Ac));
                     }
                 }
 
