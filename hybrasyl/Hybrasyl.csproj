@@ -13,6 +13,10 @@
     <Description>Hybrasyl, a DOOMVAS v1 emulator</Description>
     <Version>0.7.0</Version>
   </PropertyGroup>
+  
+  <PropertyGroup>
+    <MSBuildGitHashCommand>git show HEAD</MSBuildGitHashCommand>
+  </PropertyGroup>
 
   <ItemGroup>
     <Compile Remove="api\**" />
@@ -39,6 +43,10 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="MoonSharp" Version="2.0.0" />
+    <PackageReference Include="MSBuildGitHash" Version="2.0.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
     <PackageReference Include="Serilog" Version="2.9.0" />
     <PackageReference Include="Serilog.Enrichers.ExceptionData" Version="1.0.0" />
@@ -56,7 +64,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Resources\sotp.dat" />
+    <EmbeddedResource Include="Resources\sotp.dat"/>
   </ItemGroup>
 
   <ItemGroup>

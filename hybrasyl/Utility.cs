@@ -392,6 +392,15 @@ namespace Hybrasyl
                 get { return GetAttributeValue<AssemblyCopyrightAttribute>(a => a.Copyright); }
             }
 
+            public string GitHash
+            {
+                get
+                {
+                    var attrs = Assembly.GetCustomAttributes<AssemblyMetadataAttribute>();
+                    return attrs.FirstOrDefault(a => a.Key == "GitHash")?.Value;
+                }
+            }
+
             protected string GetAttributeValue<TAttr>(Func<TAttr,
                 string> resolveFunc, string defaultResult = null) where TAttr : Attribute
             {

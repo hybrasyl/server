@@ -62,6 +62,19 @@ namespace Hybrasyl.Messaging
         }
     }
 
+    class VersionCommand : ChatCommand
+    {
+        public new static string Command = "version";
+        public new static string ArgumentText = "none";
+        public new static string HelpText = "Displays the current version of the running server.";
+        public new static bool Privileged = false;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            return Success($"Hybrasyl {Game.Assemblyinfo.Version}\n\n{Game.Assemblyinfo.GitHash.Replace(';','\n')}\n\n(C) 2020 ERISCO, LLC", MessageTypes.SLATE_WITH_SCROLLBAR);
+        }
+    }
+
     class HelpCommand : ChatCommand
     {
         public new static string Command = "help";
@@ -103,7 +116,5 @@ namespace Hybrasyl.Messaging
 
             return Success(helpString, MessageTypes.SLATE_WITH_SCROLLBAR);
         }
-
     }
-
 }
