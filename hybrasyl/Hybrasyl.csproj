@@ -15,7 +15,7 @@
   </PropertyGroup>
   
   <PropertyGroup>
-    <MSBuildGitHashCommand>git show HEAD</MSBuildGitHashCommand>
+    <MSBuildGitHashCommand>git log HEAD -1</MSBuildGitHashCommand>
   </PropertyGroup>
 
   <ItemGroup>
