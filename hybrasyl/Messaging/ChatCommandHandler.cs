@@ -116,7 +116,10 @@ namespace Hybrasyl.Messaging
                 if (!handler.argCount.Contains(splitArgs.Length))
                 {
                     var argText = (string) handler.Type.GetField("ArgumentText", BindingFlags.Public | BindingFlags.Static).GetValue(null);
-                    user.SendSystemMessage($"Usage: {command} {argText}");
+                    if (argText.Length <= 50)
+                        user.SendSystemMessage($"Usage: {command} {argText}");
+                    else
+                        user.SendSystemMessage($"{command}: invalid arguments");
                     return;
                 }
 

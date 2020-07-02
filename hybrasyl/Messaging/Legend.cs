@@ -29,7 +29,7 @@ namespace Hybrasyl.Messaging
     class LegendCommand : ChatCommand
     {
         public new static string Command = "legend";
-        public new static string ArgumentText = "<string legendText> <byte icon> <byte color> [<int quantity> <datetime date>]";
+        public new static string ArgumentText = "<string legendText> <byte icon> <byte color> | <int prefix> <int quantity> [<datetime date>]";
         public new static string HelpText = "Add a legend mark with the specified text, icon and color, and optionally with the given quantity and date.";
         public new static bool Privileged = false;
 
@@ -38,17 +38,21 @@ namespace Hybrasyl.Messaging
             if (Enum.TryParse(args[1], out LegendIcon icon) && Enum.TryParse(args[2], out LegendColor color))
             {
                 DateTime time = DateTime.Now;
-                int qty = 1;
+                int qty = -1;
+                string prefix = null;
+
                 if (args.Length > 3)
-                    int.TryParse(args[3], out qty);
-                if (args.Length == 5)
-                    DateTime.TryParse(args[4], out time);
-
-                user.Legend.AddMark(icon, color, args[0], time, null, true, qty);
+                {
+                    prefix = args[3];
+                    if (args.Length >= 5)
+                        int.TryParse(args[4], out qty);
+                    if (args.Length == 6)
+                        DateTime.TryParse(args[5], out time);
+                }
+                user.Legend.AddMark(icon, color, args[0], time, prefix, true, qty);
+                return Success("Legend added.");
             }
-            else return Fail("The value you specified could not be parsed (LegendIcon/Color)");
-            return Success("Legend added.");
-
+            return Fail("The arguments you specified could not be parsed.");
         }
     }
 
@@ -66,18 +70,26 @@ namespace Hybrasyl.Messaging
         }
     }
 
-
     class LegendclearCommand : ChatCommand
     {
         public new static string Command = "legendclear";
-        public new static string ArgumentText = "none";
-        public new static string HelpText = "Clear your legend. WARNING: Not reversible.";
+        public new static string ArgumentText = "[<int marks>]";
+        public new static string HelpText = "Clear your legend of the specified number of marks, starting at the end. If no argument given, CLEARS ALL MARKS. WARNING: Not reversible.";
         public new static bool Privileged = false;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
-            user.Legend.Clear();
-            return Success("Legend cleared.");
+            if (args.Length == 0)
+            {
+                user.Legend.Clear();
+                return Success("Legend cleared.");
+            }
+            if (int.TryParse(args[0], out int numToRemove))
+            {
+                user.Legend.RemoveMark(numToRemove);
+                return Success($"Last {numToRemove} legend mark(s) removed.");
+            }
+            return Fail("Couldn't parse number of marks");
         }
     }
 }
