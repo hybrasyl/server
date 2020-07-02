@@ -446,6 +446,23 @@ namespace Hybrasyl.Messaging
         }
     }
 
+    class WallsCommand : ChatCommand
+    {
+        public new static string Command = "walls";
+        public new static string ArgumentText = "none";
+        public new static string HelpText = "Enable or disable wallwalking.";
+        public new static bool Privileged = true;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            var disableCollisions = user.Flags.ContainsKey("disablecollisions") ? user.Flags["disablecollisions"] : false;
+            user.Flags["disablecollisions"] = !disableCollisions;
+            var msg = user.Flags["disablecollisions"] ? Success("Wall walking enabled") : Success("Wall walking disabled");
+            user.UpdateAttributes(Enums.StatUpdateFlags.Primary);
+            return msg;
+        }
+    }
+
     class ShutdownCommand : ChatCommand
     {
         public new static string Command = "shutdown";

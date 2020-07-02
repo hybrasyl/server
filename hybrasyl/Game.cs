@@ -311,13 +311,6 @@ namespace Hybrasyl
                 sotp.CopyTo(ms);
                 Collisions = ms.ToArray();
             }
-            //Collisions = Resources.sotp;
-            //using (var stream = assembly.GetManifestResourceStream("Hybrasyl.Resources.sotp.dat"))
-            //{
-            //    int length = (int)stream.Length;
-            //    Collisions = new byte[length];
-            //    stream.Read(Collisions, 0, length);
-            //}
         }
 
         /// <summary>
