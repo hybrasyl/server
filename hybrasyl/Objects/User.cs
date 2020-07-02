@@ -260,7 +260,7 @@ namespace Hybrasyl.Objects
                 if (Game.Config.Access?.Privileged != null)
                 {
                     return IsExempt || Flags.ContainsKey("gamemaster") ||
-                        Game.Config.Access.Privileged.IndexOf(Name, 0, StringComparison.CurrentCultureIgnoreCase) != 1;
+                        Game.Config.Access.Privileged.IndexOf(Name, 0, StringComparison.CurrentCultureIgnoreCase) != -1;
                 }
                 return IsExempt || Flags.ContainsKey("gamemaster");
             }
@@ -299,6 +299,8 @@ namespace Hybrasyl.Objects
         public long LastMailboxMessageSent { get; set; }
         public Dictionary<string, bool> Flags { get; private set; }
 
+        public bool CollisionsDisabled => Flags.ContainsKey("disablecollisions") ? Flags["disablecollisions"] : false;
+
         private Queue<ServerPacket> LoginQueue { get; set; }
 
         public DateTime LastAttack { get; set; }
@@ -317,7 +319,7 @@ namespace Hybrasyl.Objects
 
         public void Enqueue(ServerPacket packet)
         {
-            GameLog.DebugFormat("Sending {0:X2} to {1}", packet.Opcode, Name);
+            GameLog.InfoFormat("Sending 0x{0:X2} to {1}", packet.Opcode, Name);
             Client.Enqueue(packet);
         }
 
@@ -965,8 +967,7 @@ namespace Hybrasyl.Objects
             x15.WriteByte(Map.Y);
             x15.WriteByte(Map.Flags);
             x15.WriteUInt16(0);
-            x15.WriteByte((byte)(Map.Checksum % 256));
-            x15.WriteByte((byte)(Map.Checksum / 256));
+            x15.WriteUInt16(Map.Checksum);
             x15.WriteString8(Map.Name);
             Enqueue(x15);
 
@@ -1502,16 +1503,15 @@ namespace Hybrasyl.Objects
 
         public override void UpdateAttributes(StatUpdateFlags flags)
         {
+            
             var x08 = new ServerPacket(0x08);
             if (UnreadMail)
             {
                 flags |= StatUpdateFlags.UnreadMail;
             }
 
-            if (IsPrivileged || IsExempt)
-            {
-                flags |= StatUpdateFlags.GameMasterA;
-            }
+            if (CollisionsDisabled)
+                flags |= StatUpdateFlags.GameMasterA;                
 
             x08.WriteByte((byte)flags);
             if (flags.HasFlag(StatUpdateFlags.Primary))
@@ -1677,7 +1677,13 @@ namespace Hybrasyl.Objects
             // Now that we know where we are going, perform some sanity checks.
             // Is the player trying to walk into a wall, or off the map?
 
-            if (newX > Map.X || newY > Map.Y || Map.IsWall[newX, newY] || newX < 0 || newY < 0)
+            if (newX > Map.X || newY > Map.Y || newX < 0 || newY < 0)
+            {
+                Refresh();
+                return false;
+            }
+            // Allow a user to walk into walls, if and only if collisions are disabled (implies privileged user)
+            else if (Map.IsWall[newX, newY] && !CollisionsDisabled)
             {
                 Refresh();
                 return false;

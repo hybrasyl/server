@@ -1502,7 +1502,7 @@ namespace Hybrasyl
             if (monster.ShouldWander)
             {
                 var nextAction = _random.Next(0, 2);
-
+                
                 if (nextAction == 1)
                 {
                     var nextMove = _random.Next(0, 4);
