@@ -32,6 +32,7 @@ namespace Hybrasyl
         private Creature _caster;
         private Xml.Castable _castable;
         private Creature _target;
+        private Random _rnd = new Random();
 
         public FormulaParser(Creature caster, Xml.Castable castable, Creature target = null)
         {
@@ -437,6 +438,16 @@ namespace Hybrasyl
                         case "$TARGETBONUSAC":
                             tokens[i] = _target.Stats.BonusAc.ToString();
                             break;
+                        case "$RAND_10":
+                            tokens[i] = _rnd.Next(0, 10).ToString();
+                            break;
+                        case "$RAND_100":
+                            tokens[i] = _rnd.Next(0, 100).ToString();
+                            break;
+                        case "$RAND_1000":
+                            tokens[i] = _rnd.Next(0, 1000).ToString();
+                            break;
+
                         default:
                             tokens[i] = "0";
                             return false;

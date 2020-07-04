@@ -82,6 +82,10 @@ namespace Hybrasyl.Objects
 
         [JsonProperty]
         public Xml.Class Class { get; set; }
+
+        [JsonProperty]
+        public Xml.Class PreviousClass { get; set; }
+
         [JsonProperty]
         public bool IsMaster { get; set; }
         public UserGroup Group { get; set; }
@@ -422,7 +426,6 @@ namespace Hybrasyl.Objects
             RemoveAllStatuses();
 
             // We are now quite dead, not mostly dead
-
             Condition.Comatose = false;
 
             // First: break everything that is breakable in the inventory
@@ -511,11 +514,18 @@ namespace Hybrasyl.Objects
                     SendSystemMessage($"You lose {hpPenalty} HP!");
                 }
             }
+
             Stats.Hp = 0;
             Stats.Mp = 0;
             Condition.Alive = false;
             UpdateAttributes(StatUpdateFlags.Full);
             Effect(76, 120);
+
+            // Save location for recall / etc
+            Location.DeathMap = Map;
+            Location.DeathMapX = X;
+            Location.DeathMapY = Y;
+
             SendSystemMessage("Your items are ripped from your body.");
 
             if (Game.Config.Handlers?.Death?.Map != null) {
@@ -543,25 +553,32 @@ namespace Hybrasyl.Objects
         }
 
         /// <summary>
-        /// Resurrect a player.
+        /// Resurrect a player, optionally, instantly returning them to their point of death.
         /// </summary>
-        public void Resurrect()
+        /// <param name="recall">If true, resurrect at exact point of death.</param>
+        public void Resurrect(bool recall = false)
         {
             var handler = Game.Config.Handlers?.Death;
-            // Teleport user to national spawn point
             Condition.Alive = true;
 
-            if (Nation.SpawnPoints.Count != 0)
+            // Teleport user to national spawn point, or if recalled, to death location
+
+            if (!recall)
             {
-                var spawnpoint = Nation.RandomSpawnPoint;
-                Teleport(spawnpoint.MapName, spawnpoint.X, spawnpoint.Y);
+                if (Nation.SpawnPoints.Count != 0)
+                {
+                    var spawnpoint = Nation.RandomSpawnPoint;
+                    Teleport(spawnpoint.MapName, spawnpoint.X, spawnpoint.Y);
+                }
+                else
+                {
+                    // Handle any weird cases where a map someone exited on was deleted, etc
+                    // This "default" of Mileth should be set somewhere else
+                    Teleport((ushort)500, (byte)50, (byte)50);
+                }
             }
             else
-            {
-                // Handle any weird cases where a map someone exited on was deleted, etc
-                // This "default" of Mileth should be set somewhere else
-                Teleport((ushort)500, (byte)50, (byte)50);
-            }
+                Teleport(Location.DeathMapId, Location.DeathMapX, Location.DeathMapY);
 
             Stats.Hp = 1;
             Stats.Mp = 1;

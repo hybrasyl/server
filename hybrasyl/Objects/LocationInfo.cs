@@ -28,6 +28,8 @@ namespace Hybrasyl.Objects
     public class LocationInfo
     {
         private Map _map { get; set; }
+        private Map _deathmap { get; set; }
+
         public Map Map
         {
             get { return _map; }
@@ -38,7 +40,20 @@ namespace Hybrasyl.Objects
                     _mapId = Map.Id;
             }
         }
+
+        public Map DeathMap
+        {
+            get { return _deathmap; }
+            set
+            {
+                _deathmap = value;
+                if (value != null)
+                    _deathmapId = _deathmap.Id;
+            }
+        }
+
         private ushort _mapId { get; set; }
+
         [JsonProperty]
         public ushort MapId
         {
@@ -50,6 +65,21 @@ namespace Hybrasyl.Objects
                 _mapId = value;
             }
         }
+
+        private ushort _deathmapId { get; set; }
+
+        [JsonProperty]
+        public ushort DeathMapId
+        {
+            get { if (DeathMap != null) return DeathMap.Id; else return _deathmapId; }
+            set
+            {
+                if (Game.World.WorldData.TryGetValue(value, out Map map))
+                    Map = map;
+                _mapId = value;
+            }
+        }
+
         [JsonProperty]
         public Xml.Direction Direction { get; set; }
         [JsonProperty]
@@ -58,5 +88,10 @@ namespace Hybrasyl.Objects
         public byte Y { get; set; }
         [JsonProperty]
         public bool WorldMap { get; set; }
+
+        [JsonProperty]
+        public byte DeathMapX { get; set; }
+        [JsonProperty]
+        public byte DeathMapY { get; set; }
     }
 }

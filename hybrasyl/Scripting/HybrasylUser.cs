@@ -18,7 +18,6 @@
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
  */
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -52,6 +51,11 @@ namespace Hybrasyl.Scripting
         /// The user's class (e.g. Rogue, Warrior, etc)
         /// </summary>
         public Xml.Class Class => User.Class;
+
+        /// <summary>
+        /// The user's previous class, if a subpath.
+        /// </summary>
+        public Xml.Class PreviousClass => User.PreviousClass;
 
         // TODO: determine a better way to do this in lua via moonsharp
         /// <summary>

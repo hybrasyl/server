@@ -614,6 +614,43 @@ namespace Hybrasyl.Messaging
         }
     }
 
+    class ResurrectCommand : ChatCommand
+    {
+        public new static string Command = "resurrect";
+        public new static string ArgumentText = "None";
+        public new static string HelpText = "Resurrect yourself, if dead.";
+        public new static bool Privileged = true;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            if (!user.Condition.Alive)
+            {
+                user.Resurrect();
+                return Success("Saved from the clutches of Sgrios.");
+            }
+            return Success("You're already alive..");
+        }
+    }
+
+    class ReturnCommand : ChatCommand
+    {
+        public new static string Command = "return";
+        public new static string ArgumentText = "None";
+        public new static string HelpText = "Return (alive) to the exact point of your last death.";
+        public new static bool Privileged = true;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            if (!user.Condition.Alive)
+            {
+                user.Resurrect(true);
+                return Success("Be more careful next time.");
+            }
+            user.Teleport(user.Location.DeathMap.Id, user.Location.DeathMapX, user.Location.DeathMapY);
+            return Success("Recalled.");
+        }
+
+    }
     class DebugCommand : ChatCommand
     {
         public new static string Command = "debug";
