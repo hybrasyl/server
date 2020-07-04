@@ -464,7 +464,7 @@ namespace Hybrasyl
             {
                 while (ClientState.SendBufferTake(out ServerPacket packet))
                 {
-                    Task.Run(new Action(() =>
+                    Task.Run(async () =>
                     {
                        if (packet == null) return;
 
@@ -478,7 +478,7 @@ namespace Hybrasyl
                        }
                        if (packet.TransmitDelay != 0)
                        {
-                           Task.Delay(packet.TransmitDelay);
+                           await Task.Delay(packet.TransmitDelay);
                        }
 
                        var buffer = packet.ToArray();
@@ -490,7 +490,7 @@ namespace Hybrasyl
                        {
                            GameLog.Warning($"FlushSendBuffer: {e.Message}");
                        }
-                    }));
+                    });
 
                 }
             }
