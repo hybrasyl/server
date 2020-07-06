@@ -702,11 +702,11 @@ namespace Hybrasyl
         }
 
         /// <summary>
-        /// Find the nearest empty tile (e.g. non-wall) next to
+        /// Find the nearest empty tile (e.g. non-wall, not containing an NPC or a player) next to the specified x, y coordinates.
         /// </summary>
-        /// <param name="xStart"></param>
-        /// <param name="yStart"></param>
-        /// <returns></returns>
+        /// <param name="xStart">X location to start search</param>
+        /// <param name="yStart">Y location to start search</param>
+        /// <returns>x,y tuple of nearest empty tile</returns>
         public (byte x, byte y) FindEmptyTile(byte xStart, byte yStart)
         {
             byte retx = 0;
