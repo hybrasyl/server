@@ -21,6 +21,7 @@
 
 using Hybrasyl.Objects;
 using Hybrasyl.Scripting;
+using Hybrasyl.Xml;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -567,7 +568,7 @@ namespace Hybrasyl.Messaging
     class TeleportCommand : ChatCommand
     {
         public new static string Command = "teleport";
-        public new static string ArgumentText = "<string playername> | <uint mapnumber> <byte x> <byte y>";
+        public new static string ArgumentText = "<string playername> | <string npcname> | <string mapname> <byte x> <byte y> | <uint mapnumber> <byte x> <byte y>";
         public new static string HelpText = "Teleport to the specified player, or the given map number and coordinates.";
         public new static bool Privileged = false;
 
@@ -576,41 +577,58 @@ namespace Hybrasyl.Messaging
 
             if (args.Length == 1)
             {
-                if (!Game.World.WorldData.ContainsKey<User>(args[0]))
-                {
-                    return Fail("That player cannot be found");
-                }
-                else
+                // Either user or npc
+                if (Game.World.WorldData.ContainsKey<User>(args[0]))
                 {
                     var target = Game.World.WorldData.Get<User>(args[0]);
                     user.Teleport(target.Location.MapId, target.Location.X, target.Location.Y);
                     return Success($"Teleported to {target.Name} - {target.Map.Name} ({target.Location.X},{target.Location.Y})");
                 }
+                if (Game.World.WorldData.TryGetValue(args[0], out Merchant merchant))
+                {
+                    (var x, var y) = merchant.Map.FindEmptyTile((byte)(merchant.Map.X / 2), (byte)(merchant.Map.Y / 2));
+                    if (x > 0 && y > 0)
+                    {
+                        user.Teleport(merchant.Map.Id, x, y);
+                        return Success($"Teleported to {merchant.Name} - {merchant.Map.Name} ({x}, {y})");
+                    }
+                    return Fail("Sorry, something went wrong (empty tile could not be found..?)");
+                }
+                return Fail($"Sorry, user or npc {args[0]} not found.");
             }
             else
             {
-                if (ushort.TryParse(args[0], out ushort mapnum) && byte.TryParse(args[1], out byte x) && byte.TryParse(args[2], out byte y))
+                ushort? mapnum = null;
+                if (args[0] is string)
                 {
+                    if (Game.World.WorldData.TryGetValueByIndex<Map>(args[0], out Map targetMap))
+                        mapnum = targetMap.Id;
+                }
+                else if (ushort.TryParse(args[0], out ushort num))
+                    mapnum = num;
 
-                    if (Game.World.WorldData.ContainsKey<Map>(mapnum))
+                if (Game.World.WorldData.TryGetValue<Map>(mapnum, out Map map))
+                {
+                    if (byte.TryParse(args[1], out byte x) && byte.TryParse(args[2], out byte y))
                     {
-                        var map = Game.World.WorldData.Get<Map>(mapnum);
+
                         if (x < map.X && y < map.Y)
                         {
-                            user.Teleport(mapnum, x, y);
+                            user.Teleport(map.Id, x, y);
                             return Success($"Teleported to {map.Name} ({x},{y}).");
                         }
                         else
                             return Fail("Invalid x/y specified (hint: mapsize is {map.X}x{map.Y})");
                     }
                     else
-                        return Fail("Map number {mapnum} not found");
+                    {
+                        return Fail("Couldn't parse map number or coordinates (uint / byte / byte)");
+                    }
                 }
                 else
-                {
-                    return Fail("Couldn't parse map number or coordinates (uint / byte / byte)");
-                }
+                    return Fail("Map number {mapnum} not found");
             }
+
         }
     }
 

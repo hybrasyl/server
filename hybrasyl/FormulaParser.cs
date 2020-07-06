@@ -447,7 +447,6 @@ namespace Hybrasyl
                         case "$RAND_1000":
                             tokens[i] = _rnd.Next(0, 1000).ToString();
                             break;
-
                         default:
                             tokens[i] = "0";
                             return false;

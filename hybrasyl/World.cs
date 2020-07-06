@@ -3085,11 +3085,12 @@ namespace Hybrasyl
             var pursuitID = packet.ReadUInt16();
             var pursuitIndex = packet.ReadUInt16();
 
-            GameLog.DebugFormat("objectType {0}, objectID {1}, pursuitID {2}, pursuitIndex {3}",
-                objectType, objectID, pursuitID, pursuitIndex);
+            GameLog.DebugFormat($"0x3A   user: {user.Name} objectType {objectType} objectID {objectID} pursuitID {pursuitID} pursuitIndex {pursuitIndex}");
 
-            GameLog.DebugFormat("active dialog via state object: pursuitID {0}, pursuitIndex {1}",
-                user.DialogState.CurrentPursuitId, user.DialogState.CurrentPursuitIndex);
+            GameLog.DebugFormat("0x3A   DialogState: previous {prev}, current {cur}, pursuitIndex {pidx}",
+                user.DialogState.PreviousPursuitId?.ToString() ?? "null",
+                user.DialogState.CurrentPursuitId, 
+                user.DialogState.CurrentPursuitIndex);
 
             AsyncDialogRequest request = null;
             VisibleObject source = null;
@@ -3268,17 +3269,7 @@ namespace Hybrasyl
                     return;
                 }
 
-                // Are we transitioning between two dialog sequences? If so, show the first dialog from
-                // the new sequence and make sure we clear the previous state.
-                if (user.DialogState.PreviousPursuitId == pursuitID)
-                {
-                    user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
-                    user.DialogState.PreviousPursuitId = null;
-                    return;
-                }
-
                 // Did the handling of a response result in our active dialog sequence changing? If so, exit.
-
                 if (user.DialogState.CurrentPursuitId != pursuitID)
                 {
                     GameLog.ErrorFormat("Dialog has changed, exiting");

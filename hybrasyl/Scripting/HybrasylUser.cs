@@ -568,6 +568,25 @@ namespace Hybrasyl.Scripting
         }
 
         /// <summary>
+        /// Check to see if a user has the specified cookie; if not, set it, give experience, and optionally, send them a system message.
+        /// </summary>
+        /// <param name="cookie">Name of the cookie to be set.</param>
+        /// <param name="xp">Amount of XP to award.</param>
+        /// <param name="completionMessage">A system message that will be sent to the user.</param>
+        /// <returns>Boolean indicating whether or not the user was awarded XP.</returns>
+        public bool CompletionAward(string cookie, uint xp = 0, string completionMessage = null)
+        {
+            if (User.HasCookie(cookie))
+                return false;
+            User.SetCookie(cookie, new DateTimeOffset(DateTime.Now).ToUnixTimeSeconds().ToString());
+            if (xp > 0)
+                User.GiveExperience(xp);
+            if (!string.IsNullOrEmpty(completionMessage))
+                User.SendSystemMessage(completionMessage);
+            return true;
+        }
+
+        /// <summary>
         /// Give a new instance of the named item to a player, optionally with a specified quantity.
         /// </summary>
         /// <param name="name">The name of the item to be created.</param>

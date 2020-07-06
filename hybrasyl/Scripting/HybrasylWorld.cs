@@ -312,10 +312,13 @@ namespace Hybrasyl.Scripting
         /// Create a jump dialog, which is an "invisible" dialog that is used to start a new sequence from a subdialog. Can be used to jump between different NPC dialogue branches.
         /// </summary>
         /// <param name="targetSequence">The name of the sequence that will start when this JumpDialog is "shown" to the player.</param>
+        /// <param name="callbackExpression">A lua expression that will run when this dialog is shown to the player.</param>
         /// <returns>The constructed dialog</returns>
-        public HybrasylDialog NewJumpDialog(string targetSequence)
+        public HybrasylDialog NewJumpDialog(string targetSequence, string callbackExpression = null)
         {
             var dialog = new JumpDialog(targetSequence);
+            if (!string.IsNullOrEmpty(callbackExpression))
+                dialog.SetCallbackHandler(callbackExpression);
             return new HybrasylDialog(dialog);
         }
 
