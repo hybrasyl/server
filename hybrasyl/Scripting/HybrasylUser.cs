@@ -765,8 +765,9 @@ namespace Hybrasyl.Scripting
         {
             User.DialogState.EndDialog();
             User.SendCloseDialog();
+            //GameLog.Info("Dialog: closed by script");
         }
-
+        
         /// <summary>
         /// Start a dialog sequence for the current player. This will display the first dialog in the sequence to the player.
         /// </summary>
@@ -812,10 +813,23 @@ namespace Hybrasyl.Scripting
 
             // If we're here, sequence should now be our target sequence, 
             // let's end the current state and start a new one
+            if (User.DialogState.InDialog)
+            {
+                // Transition between current and new dialog
+                User.DialogState.TransitionDialog(associate, sequence);
+                //GameLog.Info($"Transitioning between dialog {User.DialogState.PreviousPursuitId} and {User.DialogState.CurrentPursuitId}");
+                //GameLog.Info($"Transition Dialog NPC associate {associate?.Name ?? "null"}");
+            }
+            else
+            {
+                // Start a new dialog
+                User.DialogState.StartDialog(associate, sequence);
+                //GameLog.Info($"StartDialog Dialog NPC associate {associate?.Name ?? "null"}");
+            }
 
-            User.DialogState.EndDialog();
-            User.DialogState.StartDialog(associate, sequence);
+            // Lastly, show the new dialog
             User.DialogState.ActiveDialog.ShowTo(User, associate);
+
         }
 
         /// <summary>

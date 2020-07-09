@@ -3231,10 +3231,15 @@ namespace Hybrasyl
                     }
                     if (user.DialogState.ActiveDialog is FunctionDialog)
                     {
-                        // If a FunctionDialog is the last function, always close
+                        var currpid = user.DialogState.CurrentPursuitId;
                         user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
-                        GameLog.DebugFormat("Sending close packet");
-                        user.SendCloseDialog();
+                        // Check to see if a script function changed the active dialog.
+                        // If it did, we don't need to send a close dialog packet.
+                        if (user.DialogState.CurrentPursuitId == currpid)
+                        {
+                            GameLog.DebugFormat("Sending close packet");
+                            user.SendCloseDialog();
+                        }
                         return;
                     }
                     if (user.DialogState.ActiveDialogSequence.CloseOnEnd)
@@ -3282,13 +3287,18 @@ namespace Hybrasyl
                 {
                     while (user.DialogState.ActiveDialog is FunctionDialog)
                     {
+                        var currpid = user.DialogState.CurrentPursuitId;
                         // ShowTo and go
                         user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
+                        // Check to see we're still in the same sequence.
+                        if (currpid != user.DialogState.CurrentPursuitId)
+                            return;
                         pursuitIndex++;
                         if (!user.DialogState.SetDialogIndex(clickTarget, pursuitID, pursuitIndex))
                         {
                             // We're at the end of our rope
                             user.SendCloseDialog();
+                            //GameLog.Info("Dialog: closed by while loop");
                             return;
                         }
                     }
@@ -3300,6 +3310,7 @@ namespace Hybrasyl
                 else
                 {
                     GameLog.DebugFormat("Sending close packet");
+                    //GameLog.Info("Dialog: closed by SetDialogIndex == false");
                     user.SendCloseDialog();
                     user.DialogState.EndDialog();
                 }
