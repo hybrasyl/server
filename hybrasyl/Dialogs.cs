@@ -944,6 +944,7 @@ namespace Hybrasyl
                     Associate = target;
                     ActiveDialogSequence = dialogStart;
                     ActiveDialog = dialogStart.Dialogs.First();
+                    User.Condition.Flags |= PlayerFlags.InDialog;
                     return true;
                 }
                 return false;
@@ -1038,6 +1039,7 @@ namespace Hybrasyl
                 ActiveDialog = null;
                 ActiveDialogSequence = null;
                 PreviousPursuitId = null;
+                User.Condition.Flags &= ~PlayerFlags.InDialog;
             }
 
             /// <summary>
