@@ -43,8 +43,8 @@ public partial class Vendor
             _description = value;
         }
     }
-    
-    [XmlAttribute]
+
+    [StringLengthAttribute(255, MinimumLength = 1)]
     public string ShopTab
     {
         get
