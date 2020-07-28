@@ -153,100 +153,134 @@ namespace Hybrasyl.Objects
             }
             return ret;
         }
-    
+
         public virtual List<Creature> GetTargets(Xml.Castable castable, Creature target = null)
         {
             List<Creature> actualTargets = new List<Creature>();
             var intents = castable.Intents;
             List<VisibleObject> possibleTargets = new List<VisibleObject>();
+            Creature origin;
 
             foreach (var intent in intents)
             {
+                if (intent.IsShapeless)
+                {
+                    // No shapes specified. 
+                    // If UseType=Target, exact clicked target.
+                    // If UseType=NoTarget Target=Self, caster.
+                    // If UseType=NoTarget Target=Group, *entire* group regardless of location on map.
+                    // Otherwise, no target.
+                    if (intent.UseType == Xml.SpellUseType.Target)
+                    {
+                        // Exact clicked target
+                        possibleTargets.Add(target);
+                    }
+                    else if (intent.UseType != Xml.SpellUseType.NoTarget)
+                        GameLog.Warning($"Unhandled intent type {intent.UseType}, ignoring");
+                    continue;
+                }
+
+                if (intent.Map != null)
+                {
+                    // add entire map
+                    possibleTargets.AddRange(Map.EntityTree.GetAllObjects().Where(e => e is Creature));
+                }
+
                 if (intent.UseType == Xml.SpellUseType.NoTarget)
                 {
-                    if (intent.IsShapeless)
-                    {
-                        // No shapes specified. 
-                        // If UseType=Target, exact clicked target.
-                        // If UseType=NoTarget Target=Self, caster.
-                        // If UseType=NoTarget Target=Group, *entire* group regardless of location on map.
-                        // Otherwise, no target.
-                        if (intent.UseType == Xml.SpellUseType.Target)
-                        {
-                            // Exact clicked target
-                            possibleTargets.Add(target);
-                        }
-                        else if (intent.UseType != Xml.SpellUseType.NoTarget)
-                            GameLog.Warning($"Unhandled intent type {intent.UseType}, ignoring");
-                        continue;
-                    }
-                    if (intent.Map != null)
-                    {
-                        // add entire map
-                        possibleTargets.AddRange(Map.EntityTree.GetAllObjects().Where(e => e is Creature));
-                    }
-                    // Handle shapes
-                    foreach (var cross in intent.Cross)
-                    {
-                        // Process cross targets
-                        foreach (Xml.Direction direction in Enum.GetValues(typeof(Xml.Direction)))
-                            possibleTargets.AddRange(GetDirectionalTargets(direction, cross.Radius));
-                    }
-                    foreach (var line in intent.Line)
-                    {
-                        // Process line targets
-                        possibleTargets.AddRange(GetDirectionalTargets(GetIntentDirection(line.Direction), line.Length));
-                    }
-                    foreach (var square in intent.Square)
-                    {
-                        // Process square targets
-                    }
-                    foreach (var tile in intent.Tile)
-                    {
-                        // Process tile targets
-                    }
-                    // Add self, if the flag is set.
+                    origin = this;
                 }
-                // UseType="NoTarget"
-                else if (intent.UseType == Xml.SpellUseType.NoTarget)
+                else
                 {
+                    origin = target;
+                }
+
+                // Handle shapes
+                foreach (var cross in intent.Cross)
+                {
+                    // Process cross targets
+                    foreach (Xml.Direction direction in Enum.GetValues(typeof(Xml.Direction)))
+                        possibleTargets.AddRange(origin.GetDirectionalTargets(direction, cross.Radius));
+                }
+                foreach (var line in intent.Line)
+                {
+                    // Process line targets
+                    possibleTargets.AddRange(origin.GetDirectionalTargets(origin.GetIntentDirection(line.Direction), line.Length));
+                }
+                foreach (var square in intent.Square)
+                {
+                    // Process square targets
+                    var r = (square.Side - 1) / 2;
+                    var rect = new Rectangle(origin.X - r, origin.Y - r, square.Side, square.Side);
+                    possibleTargets.AddRange(origin.Map.EntityTree.GetObjects(rect).Where(e => e is Creature));
+                }
+                foreach (var tile in intent.Tile)
+                {
+                    // Process tile targets, which can have either direction OR relative x/y
+                    if (tile.Direction == Xml.IntentDirection.None)
+                    {
+                        if (tile.RelativeX == 0 && tile.RelativeY == 0)
+                            continue;
+                        else
+                            possibleTargets.AddRange(origin.Map.GetTileContents(origin.X + tile.RelativeX, origin.Y + tile.RelativeY).Where(e => e is Creature));
+                    }
+                    else
+                        possibleTargets.Add(origin.GetDirectionalTarget(origin.GetIntentDirection(tile.Direction)));
 
                 }
-                // Remove merchants
-                //    possibleTargets = possibleTargets.Where(e => !(e is Merchant)).ToList();
-
-                //    // Handle intent flags
-                //    if (this is Monster)
-                //    {
-                //        // No hostile flag: remove users
-                //        // No friendly flag: remove monsters
-                //        // Group / pvp: do not apply here
-                //        if (!castable.IntentTargets(Xml.IntentTarget.Friendly))
-                //            possibleTargets = possibleTargets.SkipWhile(e => e is Monster).ToList();
-                //        if (!castable.IntentTargets(Xml.IntentTarget.Hostile))
-                //            possibleTargets = possibleTargets.SkipWhile(e => e is User).ToList();
-                //    }
-                //    else if (this is User)
-                //    {
-                //        var user = this as User;
-                //        // If we aren't targeting hostiles, remove all monsters
-                //        if (!castable.IntentTargets(Xml.IntentTarget.Hostile))
-                //            possibleTargets = possibleTargets.SkipWhile(e => e is Monster).ToList();
-                //        // If this is a PVP spell, remove non-pvp flagged players
-                //        if (castable.IntentTargets(Xml.IntentTarget.Pvp))
-                //            possibleTargets = possibleTargets.SkipWhile(e => e is User && !(e as User).Condition.PvpEnabled).ToList();
-                //        // If a friendly spell, remove pvp enabled players
-                //        if (castable.IntentTargets(Xml.IntentTarget.Friendly))
-                //            possibleTargets = possibleTargets.SkipWhile(e => e is User && (e as User).Condition.PvpEnabled).ToList();
-                //    }
-
-                //    // Finally, add the targets to our list
-
-                //    List<Creature> possible = intent.MaxTargets > 0 ? possibleTargets.Take(intent.MaxTargets).OfType<Creature>().ToList() : possibleTargets.OfType<Creature>().ToList();
-                //    if (possible != null && possible.Count > 0) actualTargets.AddRange(possible);
-                //    else GameLog.Info("No targets found");
-                //}
+                List<Creature> possible = intent.MaxTargets > 0 ? possibleTargets.Take(intent.MaxTargets).OfType<Creature>().ToList() : possibleTargets.OfType<Creature>().ToList();
+                if (possible != null && possible.Count > 0) actualTargets.AddRange(possible);
+                else GameLog.Info("No targets found");
             }
+
+            // Process intent flags
+
+            // Remove all merchants
+            actualTargets = actualTargets.Where(e => !(e is Merchant)).ToList();
+
+            if (this is Monster)
+            {
+                // No hostile flag: remove players
+                // No friendly flag: remove monsters
+                // Group / pvp: n/a
+                // Self: add self 
+            }
+            else if (this is User)
+            {
+                // No PVP flag: remove PVP flagged players
+                // No hostile flag: remove monsters
+                // No friendly flag: remove non-PVP flagged players
+                // No group flag: remove group members
+                // Self: add self
+            }
+
+            //    // Handle intent flags
+            //    if (this is Monster)
+            //    {
+            //        // No hostile flag: remove users
+            //        // No friendly flag: remove monsters
+            //        // Group / pvp: do not apply here
+            //        if (!castable.IntentTargets(Xml.IntentTarget.Friendly))
+            //            possibleTargets = possibleTargets.SkipWhile(e => e is Monster).ToList();
+            //        if (!castable.IntentTargets(Xml.IntentTarget.Hostile))
+            //            possibleTargets = possibleTargets.SkipWhile(e => e is User).ToList();
+            //    }
+            //    else if (this is User)
+            //    {
+            //        var user = this as User;
+            //        // If we aren't targeting hostiles, remove all monsters
+            //        if (!castable.IntentTargets(Xml.IntentTarget.Hostile))
+            //            possibleTargets = possibleTargets.SkipWhile(e => e is Monster).ToList();
+            //        // If this is a PVP spell, remove non-pvp flagged players
+            //        if (castable.IntentTargets(Xml.IntentTarget.Pvp))
+            //            possibleTargets = possibleTargets.SkipWhile(e => e is User && !(e as User).Condition.PvpEnabled).ToList();
+            //        // If a friendly spell, remove pvp enabled players
+            //        if (castable.IntentTargets(Xml.IntentTarget.Friendly))
+            //            possibleTargets = possibleTargets.SkipWhile(e => e is User && (e as User).Condition.PvpEnabled).ToList();
+            //    }
+
+            //    // Finally, add the targets to our list            
+
             return actualTargets;
         }
 

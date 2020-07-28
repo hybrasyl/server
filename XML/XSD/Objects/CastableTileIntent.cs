@@ -35,11 +35,13 @@ public partial class CastableTileIntent
     
     public CastableTileIntent()
     {
+        _direction = IntentDirection.None;
         _relativeX = ((sbyte)(0));
         _relativeY = ((sbyte)(0));
     }
     
     [XmlAttribute]
+    [DefaultValue(IntentDirection.None)]
     public IntentDirection Direction
     {
         get

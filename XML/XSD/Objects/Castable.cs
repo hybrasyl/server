@@ -41,7 +41,7 @@ public partial class Castable
     private CastableMastery _mastery;
     private byte _icon;
     private Book _book;
-    private List<Element> _element;
+    private Element _element;
     private byte _lines;
     private List<Class> _class;
     private int _cooldown;
@@ -53,7 +53,6 @@ public partial class Castable
     public Castable()
     {
         _class = new List<Class>();
-        _element = new List<Element>();
         _mastery = new CastableMastery();
         _effects = new CastableEffects();
         _restrictions = new CastableRestrictions();
@@ -63,8 +62,7 @@ public partial class Castable
         _castCosts = new List<CastCost>();
         _categories = new Categories();
         _descriptions = new List<Description>();
-        _element = new Element[] {
-                Element.None};
+        _element = Xml.Element.None;
         _lines = ((byte)(0));
         _cooldown = 0;
         _isAssail = false;
@@ -234,7 +232,7 @@ public partial class Castable
     }
     
     [XmlAttribute]
-    public List<Element> Element
+    public Element Element
     {
         get
         {

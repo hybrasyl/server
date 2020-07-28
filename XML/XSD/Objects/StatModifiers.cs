@@ -63,10 +63,8 @@ public partial class StatModifiers
         _ac = ((sbyte)(0));
         _regen = ((sbyte)(0));
         _mr = ((sbyte)(0));
-        _offensiveElement = new Element[] {
-                Element.None};
-        _defensiveElement = new Element[] {
-                Element.None};
+        _offensiveElement = Element.None;
+        _defensiveElement = Element.None;
     }
     
     [XmlAttribute]

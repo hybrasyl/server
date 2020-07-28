@@ -260,8 +260,8 @@ namespace Hybrasyl.Objects
                 case Xml.IntentDirection.Front:
                     return Direction;
                 case Xml.IntentDirection.Left:
-                    if (Direction == Xml.Direction.North) return Xml.Direction.East;
-                    if (Direction == Xml.Direction.South) return Xml.Direction.West;
+                    if (Direction == Xml.Direction.North) return Xml.Direction.West;
+                    if (Direction == Xml.Direction.South) return Xml.Direction.East;
                     if (Direction == Xml.Direction.East) return Xml.Direction.North;
                     if (Direction == Xml.Direction.West) return Xml.Direction.South;
                     break;

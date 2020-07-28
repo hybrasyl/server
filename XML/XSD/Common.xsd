@@ -150,6 +150,8 @@
   <!-- Intent direction type -->
   <xs:simpleType name="IntentDirection">
     <xs:restriction base="xs:token">
+      <!-- This unfortunately ends up being needed by xsd2code, as it can't properly handle nullable enum types -->
+      <xs:enumeration value="None" />
       <xs:enumeration value="Front" />
       <xs:enumeration value="Back" />
       <xs:enumeration value="Left" />

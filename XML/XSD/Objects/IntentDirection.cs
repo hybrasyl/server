@@ -24,6 +24,7 @@ using System.Collections.Generic;
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
 public enum IntentDirection
 {
+    None,
     Front,
     Back,
     Left,
