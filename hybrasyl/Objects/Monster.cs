@@ -23,6 +23,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Hybrasyl.Enums;
+using Hybrasyl.Scripting;
 
 namespace Hybrasyl.Objects
 {
@@ -97,12 +98,28 @@ namespace Hybrasyl.Objects
 
         }
 
-        public override void OnReceiveDamage()
+        public override void OnDamage(Creature attacker, uint damage)
         {
+            // TODO: make this run once
             IsHostile = true;
             ShouldWander = false;
+            // FIXME: in the glorious future, run asynchronously with locking
+            if (World.ScriptProcessor.TryGetScript(Name, out Script damageScript))
+            {
+                damageScript.SetGlobalValue("damage", damage);
+                damageScript.ExecuteFunction("OnDamage", attacker, this);
+            }
         }
 
+        public override void OnHeal(Creature healer, uint heal)
+        {
+            // FIXME: in the glorious future, run asynchronously with locking
+            if (World.ScriptProcessor.TryGetScript(Name, out Script healScript))
+            {
+                healScript.SetGlobalValue("heal", heal);
+                healScript.ExecuteFunction("OnHeal", healer, this);
+            }
+        }
 
         /// <summary>
         /// Calculates a sanity-checked stat using a spawn's variance value.

@@ -30,7 +30,7 @@ using System.Net;
 namespace Hybrasyl.Messaging
 {
     // Various admin commands are implemented here.
-    
+
     class ShowCookies : ChatCommand
     {
         public new static string Command = "showcookies";
@@ -38,7 +38,7 @@ namespace Hybrasyl.Messaging
         public new static string HelpText = "Show permanent and session cookies set for a specified player";
         public new static bool Privileged = true;
 
-        public new static ChatCommandResult Run(User user, params string [] args)
+        public new static ChatCommandResult Run(User user, params string[] args)
         {
             if (Game.World.WorldData.TryGetValue<User>(args[0], out User target))
             {
@@ -117,7 +117,7 @@ namespace Hybrasyl.Messaging
             return Fail("Look chief idk about all that");
         }
     }
-   
+
     class SetCookie : ChatCommand
     {
         public new static string Command = "setcookie";
@@ -142,7 +142,7 @@ namespace Hybrasyl.Messaging
         public new static string ArgumentText = "none";
         public new static string HelpText = "Make yourself immune to all damage";
         public new static bool Privileged = true;
-        
+
         public new static ChatCommandResult Run(User user, params string[] args)
         {
             user.AbsoluteImmortal = !user.AbsoluteImmortal;
@@ -599,13 +599,12 @@ namespace Hybrasyl.Messaging
             else
             {
                 ushort? mapnum = null;
-                if (args[0] is string)
-                {
-                    if (Game.World.WorldData.TryGetValueByIndex<Map>(args[0], out Map targetMap))
-                        mapnum = targetMap.Id;
-                }
-                else if (ushort.TryParse(args[0], out ushort num))
+                if (ushort.TryParse(args[0], out ushort num))
                     mapnum = num;
+                else if (Game.World.WorldData.TryGetValueByIndex<Map>(args[0], out Map targetMap))
+                    mapnum = targetMap.Id;
+                else
+                    return Fail("Unknown map id or map name");
 
                 if (Game.World.WorldData.TryGetValue<Map>(mapnum, out Map map))
                 {
@@ -782,16 +781,15 @@ namespace Hybrasyl.Messaging
                         };
                         Monster newMob = new Monster(creature, spawn, user.Location.MapId);
                         user.World.Insert(newMob);
-                        user.Map.Insert(newMob, (byte)rand.Next(0,map.X), (byte)rand.Next(0, map.Y));
+                        user.Map.Insert(newMob, (byte)rand.Next(0, map.X), (byte)rand.Next(0, map.Y));
                     }
                 }
-                
+
                 return Success($"{creature.Name} spawned.");
             }
             else return Fail("Creature {args[0]} not found");
 
         }
-
     }
 }
 

@@ -45,6 +45,5 @@
   <xs:include schemaLocation="ServerConfig.xsd"/>
   <xs:include schemaLocation="Status.xsd"/>
   <xs:include schemaLocation="Localization.xsd"/>
-  
-  
+    
 </xs:schema>

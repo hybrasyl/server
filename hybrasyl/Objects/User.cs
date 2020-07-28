@@ -323,7 +323,7 @@ namespace Hybrasyl.Objects
 
         public void Enqueue(ServerPacket packet)
         {
-            GameLog.InfoFormat("Sending 0x{0:X2} to {1}", packet.Opcode, Name);
+            GameLog.DebugFormat("Sending 0x{0:X2} to {1}", packet.Opcode, Name);
             Client.Enqueue(packet);
         }
 

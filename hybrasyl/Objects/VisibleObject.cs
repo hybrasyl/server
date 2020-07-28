@@ -113,12 +113,10 @@ namespace Hybrasyl.Objects
             return false;
         }
 
-        public virtual void OnClick(User invoker)
-        {
-        }
-
+        public virtual void OnClick(User invoker) { }
         public virtual void OnDeath() { }
-        public virtual void OnReceiveDamage() { }
+        public virtual void OnDamage(Creature attacker, uint damage) { }
+        public virtual void OnHeal(Creature healer, uint damage) { }
 
         public Rectangle GetBoundingBox()
         {
@@ -247,6 +245,35 @@ namespace Hybrasyl.Objects
                 var nPacket = (ServerPacket) soundPacket.Packet().Clone();
                 user.Enqueue(nPacket);
             }
+        }
+
+        public Xml.Direction GetIntentDirection(Xml.IntentDirection intentDirection)
+        {
+            switch (intentDirection)
+            {
+                case Xml.IntentDirection.Back:
+                    if (Direction == Xml.Direction.North) return Xml.Direction.South;
+                    if (Direction == Xml.Direction.South) return Xml.Direction.North;
+                    if (Direction == Xml.Direction.East) return Xml.Direction.West;
+                    if (Direction == Xml.Direction.West) return Xml.Direction.East;
+                    break;
+                case Xml.IntentDirection.Front:
+                    return Direction;
+                case Xml.IntentDirection.Left:
+                    if (Direction == Xml.Direction.North) return Xml.Direction.East;
+                    if (Direction == Xml.Direction.South) return Xml.Direction.West;
+                    if (Direction == Xml.Direction.East) return Xml.Direction.North;
+                    if (Direction == Xml.Direction.West) return Xml.Direction.South;
+                    break;
+                case Xml.IntentDirection.Right:
+                    if (Direction == Xml.Direction.North) return Xml.Direction.East;
+                    if (Direction == Xml.Direction.South) return Xml.Direction.West;
+                    if (Direction == Xml.Direction.East) return Xml.Direction.South;
+                    if (Direction == Xml.Direction.West) return Xml.Direction.North;
+                    break;
+            }
+            // We shouldn't be here
+            return Xml.Direction.North;
         }
 
         public void DisplayPursuits(User invoker)

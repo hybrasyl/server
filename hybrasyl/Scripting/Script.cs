@@ -198,15 +198,27 @@ namespace Hybrasyl.Scripting
         }
 
         /// <summary>
-        /// Set a value to be used by a script. Note that we only support interop with strings here.
+        /// Set a string value to be used by a script.
         /// </summary>
-        /// <param name="name"></param>
-        /// <param name="value"></param>
+        /// <param name="name">The name of the Lua variable.</param>
+        /// <param name="value">The string value of the variable.</param>
         public void SetGlobalValue(string name, string value)
         {
             var v = DynValue.NewString(value);
             Compiled.Globals.Set(name, v);
         }
+
+        /// <summary>
+        /// Set a numeric value to be used by a script.
+        /// </summary>
+        /// <param name="name">The name of the Lua variable.</param>
+        /// <param name="value">The numeric value of the variable.</param>
+        public void SetGlobalValue(string name, uint value)
+        {
+            var v = DynValue.NewNumber(value);
+            Compiled.Globals.Set(name, v);
+        }
+
         /// <summary>
         /// Execute a Lua expression in the context of an associated world object.
         /// Primarily used for dialog callbacks.
