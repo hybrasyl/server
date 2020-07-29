@@ -986,6 +986,7 @@ namespace Hybrasyl.Objects
             x04.WriteUInt16(Y);
             x04.WriteUInt16(11);
             x04.WriteUInt16(11);
+            x04.WriteByte(0);
             Enqueue(x04);
         }
 

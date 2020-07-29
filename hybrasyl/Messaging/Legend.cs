@@ -80,4 +80,21 @@ namespace Hybrasyl.Messaging
             return Success("Legend cleared.");
         }
     }
+
+    class LegendColorCommand : ChatCommand
+    {
+        public new static string Command = "legendcolors";
+        public new static string ArgumentText = "none";
+        public new static string HelpText = "Adds a legend mark for each color code to your legend.";
+        public new static bool Privileged = false;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            for(var i = 0; i<256; i++)
+            {
+                user.Legend.AddMark(LegendIcon.Community, (LegendColor)i, $"This is color {i}.", $"COLOR{i}");
+            }
+            return Success("View the colors.");
+        }
+    }
 }

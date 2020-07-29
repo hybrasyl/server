@@ -23,37 +23,23 @@ using System.Collections.Generic;
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-public partial class LocalizedString
+public partial class RecipeDuration
 {
     #region Private fields
-    private string _key;
-    private string _value;
+    private ushort _length;
     private static XmlSerializer serializer;
     #endregion
     
     [XmlAttribute]
-    public string Key
+    public ushort Length
     {
         get
         {
-            return _key;
+            return _length;
         }
         set
         {
-            _key = value;
-        }
-    }
-    
-    [XmlAttribute]
-    public string Value
-    {
-        get
-        {
-            return _value;
-        }
-        set
-        {
-            _value = value;
+            _length = value;
         }
     }
     
@@ -63,7 +49,7 @@ public partial class LocalizedString
         {
             if ((serializer == null))
             {
-                serializer = new XmlSerializerFactory().CreateSerializer(typeof(LocalizedString));
+                serializer = new XmlSerializerFactory().CreateSerializer(typeof(RecipeDuration));
             }
             return serializer;
         }
@@ -71,7 +57,7 @@ public partial class LocalizedString
     
     #region Serialize/Deserialize
     /// <summary>
-    /// Serializes current LocalizedString object into an XML string
+    /// Serializes current RecipeDuration object into an XML string
     /// </summary>
     /// <returns>string XML value</returns>
     public virtual string Serialize()
@@ -104,16 +90,16 @@ public partial class LocalizedString
     }
     
     /// <summary>
-    /// Deserializes workflow markup into an LocalizedString object
+    /// Deserializes workflow markup into an RecipeDuration object
     /// </summary>
     /// <param name="input">string workflow markup to deserialize</param>
-    /// <param name="obj">Output LocalizedString object</param>
+    /// <param name="obj">Output RecipeDuration object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool Deserialize(string input, out LocalizedString obj, out Exception exception)
+    public static bool Deserialize(string input, out RecipeDuration obj, out Exception exception)
     {
         exception = null;
-        obj = default(LocalizedString);
+        obj = default(RecipeDuration);
         try
         {
             obj = Deserialize(input);
@@ -126,19 +112,19 @@ public partial class LocalizedString
         }
     }
     
-    public static bool Deserialize(string input, out LocalizedString obj)
+    public static bool Deserialize(string input, out RecipeDuration obj)
     {
         Exception exception = null;
         return Deserialize(input, out obj, out exception);
     }
     
-    public static LocalizedString Deserialize(string input)
+    public static RecipeDuration Deserialize(string input)
     {
         StringReader stringReader = null;
         try
         {
             stringReader = new StringReader(input);
-            return ((LocalizedString)(Serializer.Deserialize(XmlReader.Create(stringReader))));
+            return ((RecipeDuration)(Serializer.Deserialize(XmlReader.Create(stringReader))));
         }
         finally
         {
@@ -149,14 +135,14 @@ public partial class LocalizedString
         }
     }
     
-    public static LocalizedString Deserialize(Stream s)
+    public static RecipeDuration Deserialize(Stream s)
     {
-        return ((LocalizedString)(Serializer.Deserialize(s)));
+        return ((RecipeDuration)(Serializer.Deserialize(s)));
     }
     #endregion
     
     /// <summary>
-    /// Serializes current LocalizedString object into file
+    /// Serializes current RecipeDuration object into file
     /// </summary>
     /// <param name="fileName">full path of outupt xml file</param>
     /// <param name="exception">output Exception value if failed</param>
@@ -197,16 +183,16 @@ public partial class LocalizedString
     }
     
     /// <summary>
-    /// Deserializes xml markup from file into an LocalizedString object
+    /// Deserializes xml markup from file into an RecipeDuration object
     /// </summary>
     /// <param name="fileName">string xml file to load and deserialize</param>
-    /// <param name="obj">Output LocalizedString object</param>
+    /// <param name="obj">Output RecipeDuration object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool LoadFromFile(string fileName, out LocalizedString obj, out Exception exception)
+    public static bool LoadFromFile(string fileName, out RecipeDuration obj, out Exception exception)
     {
         exception = null;
-        obj = default(LocalizedString);
+        obj = default(RecipeDuration);
         try
         {
             obj = LoadFromFile(fileName);
@@ -219,13 +205,13 @@ public partial class LocalizedString
         }
     }
     
-    public static bool LoadFromFile(string fileName, out LocalizedString obj)
+    public static bool LoadFromFile(string fileName, out RecipeDuration obj)
     {
         Exception exception = null;
         return LoadFromFile(fileName, out obj, out exception);
     }
     
-    public static LocalizedString LoadFromFile(string fileName)
+    public static RecipeDuration LoadFromFile(string fileName)
     {
         FileStream file = null;
         StreamReader sr = null;

@@ -12,10 +12,15 @@
     <Product>Hybrasyl Server</Product>
     <Description>Hybrasyl, a DOOMVAS v1 emulator</Description>
     <Version>0.7.0</Version>
+    <BuildDocFx Condition="'$(Configuration)'=='Debug' ">false</BuildDocFx>
   </PropertyGroup>
   
   <PropertyGroup>
     <MSBuildGitHashCommand>git log HEAD -1</MSBuildGitHashCommand>
+  </PropertyGroup>
+  
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <Optimize>false</Optimize>
   </PropertyGroup>
 
   <ItemGroup>
@@ -64,7 +69,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Resources\sotp.dat"/>
+    <EmbeddedResource Include="Resources\sotp.dat" />
   </ItemGroup>
 
   <ItemGroup>
