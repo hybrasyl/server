@@ -27,6 +27,7 @@ using System.Collections.Generic;
 public partial class Recipe
 {
     #region Private fields
+    private string _name;
     private RecipeItem _item;
     private RecipeDuration _duration;
     private string _description;
@@ -39,6 +40,18 @@ public partial class Recipe
         _ingredients = new RecipeIngredients();
         _duration = new RecipeDuration();
         _item = new RecipeItem();
+    }
+    
+    public string Name
+    {
+        get
+        {
+            return _name;
+        }
+        set
+        {
+            _name = value;
+        }
     }
     
     public RecipeItem Item
