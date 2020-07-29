@@ -6,6 +6,7 @@
     <RootNamespace>Hybrasyl.Xml</RootNamespace>
     <PackageVersion>0.7.0</PackageVersion>
     <Version>0.7.0</Version>
+    <BuildDocFx Condition="'$(Configuration)'=='Debug'">false</BuildDocFx>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='XML|AnyCPU'" />

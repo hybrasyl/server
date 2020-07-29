@@ -23,37 +23,37 @@ using System.Collections.Generic;
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-public partial class LocalizedString
+public partial class RecipeIngredient
 {
     #region Private fields
-    private string _key;
-    private string _value;
+    private string _name;
+    private ushort _quantity;
     private static XmlSerializer serializer;
     #endregion
     
     [XmlAttribute]
-    public string Key
+    public string Name
     {
         get
         {
-            return _key;
+            return _name;
         }
         set
         {
-            _key = value;
+            _name = value;
         }
     }
     
     [XmlAttribute]
-    public string Value
+    public ushort Quantity
     {
         get
         {
-            return _value;
+            return _quantity;
         }
         set
         {
-            _value = value;
+            _quantity = value;
         }
     }
     
@@ -63,7 +63,7 @@ public partial class LocalizedString
         {
             if ((serializer == null))
             {
-                serializer = new XmlSerializerFactory().CreateSerializer(typeof(LocalizedString));
+                serializer = new XmlSerializerFactory().CreateSerializer(typeof(RecipeIngredient));
             }
             return serializer;
         }
@@ -71,7 +71,7 @@ public partial class LocalizedString
     
     #region Serialize/Deserialize
     /// <summary>
-    /// Serializes current LocalizedString object into an XML string
+    /// Serializes current RecipeIngredient object into an XML string
     /// </summary>
     /// <returns>string XML value</returns>
     public virtual string Serialize()
@@ -104,16 +104,16 @@ public partial class LocalizedString
     }
     
     /// <summary>
-    /// Deserializes workflow markup into an LocalizedString object
+    /// Deserializes workflow markup into an RecipeIngredient object
     /// </summary>
     /// <param name="input">string workflow markup to deserialize</param>
-    /// <param name="obj">Output LocalizedString object</param>
+    /// <param name="obj">Output RecipeIngredient object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool Deserialize(string input, out LocalizedString obj, out Exception exception)
+    public static bool Deserialize(string input, out RecipeIngredient obj, out Exception exception)
     {
         exception = null;
-        obj = default(LocalizedString);
+        obj = default(RecipeIngredient);
         try
         {
             obj = Deserialize(input);
@@ -126,19 +126,19 @@ public partial class LocalizedString
         }
     }
     
-    public static bool Deserialize(string input, out LocalizedString obj)
+    public static bool Deserialize(string input, out RecipeIngredient obj)
     {
         Exception exception = null;
         return Deserialize(input, out obj, out exception);
     }
     
-    public static LocalizedString Deserialize(string input)
+    public static RecipeIngredient Deserialize(string input)
     {
         StringReader stringReader = null;
         try
         {
             stringReader = new StringReader(input);
-            return ((LocalizedString)(Serializer.Deserialize(XmlReader.Create(stringReader))));
+            return ((RecipeIngredient)(Serializer.Deserialize(XmlReader.Create(stringReader))));
         }
         finally
         {
@@ -149,14 +149,14 @@ public partial class LocalizedString
         }
     }
     
-    public static LocalizedString Deserialize(Stream s)
+    public static RecipeIngredient Deserialize(Stream s)
     {
-        return ((LocalizedString)(Serializer.Deserialize(s)));
+        return ((RecipeIngredient)(Serializer.Deserialize(s)));
     }
     #endregion
     
     /// <summary>
-    /// Serializes current LocalizedString object into file
+    /// Serializes current RecipeIngredient object into file
     /// </summary>
     /// <param name="fileName">full path of outupt xml file</param>
     /// <param name="exception">output Exception value if failed</param>
@@ -197,16 +197,16 @@ public partial class LocalizedString
     }
     
     /// <summary>
-    /// Deserializes xml markup from file into an LocalizedString object
+    /// Deserializes xml markup from file into an RecipeIngredient object
     /// </summary>
     /// <param name="fileName">string xml file to load and deserialize</param>
-    /// <param name="obj">Output LocalizedString object</param>
+    /// <param name="obj">Output RecipeIngredient object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool LoadFromFile(string fileName, out LocalizedString obj, out Exception exception)
+    public static bool LoadFromFile(string fileName, out RecipeIngredient obj, out Exception exception)
     {
         exception = null;
-        obj = default(LocalizedString);
+        obj = default(RecipeIngredient);
         try
         {
             obj = LoadFromFile(fileName);
@@ -219,13 +219,13 @@ public partial class LocalizedString
         }
     }
     
-    public static bool LoadFromFile(string fileName, out LocalizedString obj)
+    public static bool LoadFromFile(string fileName, out RecipeIngredient obj)
     {
         Exception exception = null;
         return LoadFromFile(fileName, out obj, out exception);
     }
     
-    public static LocalizedString LoadFromFile(string fileName)
+    public static RecipeIngredient LoadFromFile(string fileName)
     {
         FileStream file = null;
         StreamReader sr = null;
