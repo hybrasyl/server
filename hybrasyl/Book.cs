@@ -65,8 +65,8 @@ namespace Hybrasyl
                     var castable = book[i];
                     if (castable != null)
                     {
-                        castable.UseCount = Convert.ToUInt16(item.TotalUses == null ? 0 : item.TotalUses);
-                        castable.MasteryLevel = Convert.ToByte(item.MasteryLevel == null ? (byte)0 : item.MasteryLevel);
+                        castable.UseCount = (ushort)(item.TotalUses == null ? 0 : item.TotalUses);
+                        castable.MasteryLevel = (byte)(item.MasteryLevel == null ? (byte)0 : item.MasteryLevel);
                     }
                 }
                 return book;

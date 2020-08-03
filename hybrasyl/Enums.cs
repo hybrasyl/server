@@ -148,6 +148,13 @@ namespace Hybrasyl
             White = 5
         }
 
+        public enum PaperType : byte
+        {
+            Brown = 2,
+            Gold = 3,
+            Silver = 4
+        }
+
         #endregion
 
         #region Opcode enumerations
@@ -185,6 +192,7 @@ namespace Hybrasyl
             public const byte RemoveSpell = 0x18;
             public const byte PlaySound = 0x19;
             public const byte PlayerAnimation = 0x1A;
+            public const byte EditablePaper = 0x1B;
             public const byte MapChangeCompled = 0x1F;
             public const byte Refresh = 0x22;
             public const byte SpellAnimation = 0x29;
@@ -195,6 +203,7 @@ namespace Hybrasyl
             public const byte UserMoveResponse = 0x32;
             public const byte DisplayUser = 0x33;
             public const byte Profile = 0x34;
+            public const byte ReadonlyPaper = 0x35;
             public const byte UserList = 0x36;
             public const byte AddEquipment = 0x37;
             public const byte RemoveEquipment = 0x38;
@@ -207,6 +216,9 @@ namespace Hybrasyl
             public const byte Exchange = 0x42;
             public const byte ClickObject = 0x43;           
             public const byte CancelCast = 0x48;
+            public const byte PlayerShop = 0x4F;
+            public const byte Manufacture = 0x50;
+            public const byte ManufactureTimer = 0x51;
             public const byte ServerSelect = 0x57;
             public const byte MapLoadComplete = 0x58;
             public const byte Notification = 0x60;

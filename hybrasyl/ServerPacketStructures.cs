@@ -23,6 +23,7 @@ using System;
 using System.Collections.Generic;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
+using Hybrasyl.Xml;
 
 namespace Hybrasyl
 {
@@ -905,6 +906,175 @@ namespace Hybrasyl
             {
                 ServerPacket packet = new ServerPacket(OpCode);
                 packet.WriteByte(0x00);
+
+                return packet;
+            }
+        }
+
+        internal partial class Manufacture
+        {
+            private readonly byte OpCode;
+            public bool IsInitial { get; set; }
+            public byte RecipeCount { get; set; }
+            public byte Index { get; set; }
+            public ushort Sprite { get; set; }
+            public string RecipeName { get; set; }
+            public string RecipeDescription { get; set; }
+            public Dictionary<string, int> RecipeIngredients { get; set; }
+            internal Manufacture()
+            {
+                OpCode = OpCodes.Manufacture;
+            }
+
+            internal ServerPacket Packet()
+            {
+                var packet = new ServerPacket(OpCode);
+                packet.WriteByte(0x01);
+                packet.WriteByte(0x3C);
+                if (IsInitial)
+                {
+                    packet.WriteByte(0x00);
+                    packet.WriteByte(RecipeCount);
+                    packet.WriteByte(0x00);
+                }
+                else
+                {
+                    packet.WriteByte(0x01);
+                    packet.WriteByte(Index);
+                    packet.WriteUInt16(Sprite);
+
+                    packet.WriteString16(RecipeDescription);
+
+                    var ing = "Ingredients: \n";
+                    foreach(var ingredient in RecipeIngredients)
+                    {
+                        ing += $"{ingredient.Value} {ingredient.Key}\n";
+                    }
+                    packet.WriteString16(ing);
+                    packet.WriteByte(0x01);
+                    packet.WriteByte(0x00);
+                }
+
+                return packet;
+            }
+        }
+
+        internal partial class ManufactureCursor
+        {
+            private readonly byte OpCode;
+
+            public bool Complete { get; set; }
+
+            internal ManufactureCursor()
+            {
+                OpCode = OpCodes.ManufactureTimer;
+            }
+
+            internal ServerPacket Packet()
+            {
+                var packet = new ServerPacket(OpCode);
+                packet.WriteBoolean(Complete);
+
+                return packet;
+            }
+        }
+
+        internal partial class PlayerShop
+        {
+            private readonly byte OpCode;
+
+            public uint ShopId { get; set; }
+            public uint ShopGold { get; set; }
+            public string ShopName { get; set; }
+            public bool NameOnly { get; set; }
+            public (uint id, ItemObject item, ushort count, uint price)[] ShopItems { get; set; }
+
+            internal PlayerShop()
+            {
+                OpCode = OpCodes.PlayerShop;
+            }
+
+            public ServerPacket Packet()
+            {
+                var packet = new ServerPacket(OpCode);
+                packet.WriteByte(0x01);
+                packet.WriteUInt32(ShopId);
+                if(NameOnly)
+                {
+                    packet.WriteByte(0x04);
+                    packet.WriteString8(ShopName);
+                }
+                else
+                {
+                    packet.WriteByte(0x00);
+                    packet.WriteUInt32(ShopGold);
+                    packet.WriteByte(0x64); // unknown
+                    packet.WriteByte((byte)ShopItems.Length);
+                    foreach(var listing in ShopItems)
+                    {
+                        packet.WriteUInt32(listing.id);
+                        packet.WriteUInt16(listing.item.Sprite);
+                        packet.WriteByte(listing.item.Color);
+                        packet.WriteString8(listing.item.Name);
+                        packet.WriteUInt32(listing.item.DisplayDurability);
+                        packet.WriteUInt16(listing.count);
+                        packet.WriteUInt32(listing.price);
+                        packet.WriteUInt32(0);
+                    }
+                }
+                return packet;
+            }
+        }
+
+        internal partial class EditablePaper
+        {
+            private readonly byte OpCode;
+            public PaperType Type { get; set; }
+            public byte Width { get; set; }
+            public byte Height { get; set; }
+            public string Text { get; set; }
+            public byte Slot { get; set; }
+
+            public EditablePaper()
+            {
+                OpCode = OpCodes.EditablePaper;
+            }
+
+            public ServerPacket Packet()
+            {
+                var packet = new ServerPacket(OpCode);
+                packet.WriteByte(Slot);
+                packet.WriteByte((byte)Type);
+                packet.WriteByte(Width);
+                packet.WriteByte(Height);
+                packet.WriteString16(Text);
+
+                return packet;
+            }
+        }
+
+        internal partial class ReadonlyPaper
+        {
+            private readonly byte OpCode;
+            public PaperType Type { get; set; }
+            public byte Width { get; set; }
+            public byte Height { get; set; }
+            public string Text { get; set; }
+            public bool Centered { get; set; }
+
+            public ReadonlyPaper()
+            {
+                OpCode = OpCodes.ReadonlyPaper;
+            }
+
+            public ServerPacket Packet()
+            {
+                var packet = new ServerPacket(OpCode);
+                packet.WriteByte((byte)Type);
+                packet.WriteByte(Width);
+                packet.WriteByte(Height);
+                packet.WriteBoolean(Centered);
+                packet.WriteString16(Text);
 
                 return packet;
             }

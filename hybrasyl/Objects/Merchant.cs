@@ -194,7 +194,7 @@ namespace Hybrasyl.Objects
 
     }
 
-    enum MerchantDialogType : byte
+    public enum MerchantDialogType : byte
     {
         Options = 0,
         OptionsWithArgument = 1,
@@ -208,7 +208,7 @@ namespace Hybrasyl.Objects
         UserSkillBook = 9
     }
 
-    enum MerchantDialogObjectType : byte
+    public enum MerchantDialogObjectType : byte
     {
         Merchant = 1
     }
