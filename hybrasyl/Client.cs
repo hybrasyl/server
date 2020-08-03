@@ -486,9 +486,9 @@ namespace Hybrasyl
                        {
                            Socket.BeginSend(buffer, 0, buffer.Length, 0, SendCallback, ClientState);
                        }
-                       catch (ObjectDisposedException e)
+                       catch (ObjectDisposedException)
                        {
-                           GameLog.Warning($"FlushSendBuffer: {e.Message}");
+                            ClientState.Dispose();
                        }
                     });
 

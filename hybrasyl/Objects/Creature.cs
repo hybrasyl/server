@@ -119,25 +119,26 @@ namespace Hybrasyl.Objects
             {
                 case Xml.Direction.East:
                     {
-                        rect = new Rectangle(X + 1, Y, radius - 1, 1);
+                        rect = new Rectangle(X + 1, Y, radius, 1);
                     }
                     break;
                 case Xml.Direction.West:
                     {
-                        rect = new Rectangle(X - radius, Y, radius - 1, 1);
+                        rect = new Rectangle(X - radius, Y, radius, 1);
                     }
                     break;
                 case Xml.Direction.South:
                     {
-                        rect = new Rectangle(X, Y + 1, 1, radius - 1);
+                        rect = new Rectangle(X, Y + 1, 1, radius);
                     }
                     break;
                 case Xml.Direction.North:
                     {
-                        rect = new Rectangle(X, Y - radius, 1, radius - 1);
+                        rect = new Rectangle(X, Y - radius, 1, radius);
                     }
                     break;
             }
+            GameLog.UserActivityInfo($"GetDirectionalTargets: {rect.X}, {rect.Y} {rect.Height}, {rect.Width}");
             ret.AddRange(Map.EntityTree.GetObjects(rect).Where(obj => obj is Creature).Select(e => e as Creature));
             return ret;
         }
@@ -156,7 +157,7 @@ namespace Hybrasyl.Objects
 
         public virtual List<Creature> GetTargets(Xml.Castable castable, Creature target = null)
         {
-            List<Creature> actualTargets = new List<Creature>();
+            IEnumerable<Creature> actualTargets = new List<Creature>();
             var intents = castable.Intents;
             List<VisibleObject> possibleTargets = new List<VisibleObject>();
             Creature origin;
@@ -165,6 +166,7 @@ namespace Hybrasyl.Objects
             {
                 if (intent.IsShapeless)
                 {
+                    GameLog.UserActivityInfo("GetTarget: Shapeless");
                     // No shapes specified. 
                     // If UseType=Target, exact clicked target.
                     // If UseType=NoTarget Target=Self, caster.
@@ -174,24 +176,29 @@ namespace Hybrasyl.Objects
                     {
                         // Exact clicked target
                         possibleTargets.Add(target);
+                        GameLog.UserActivityInfo("GetTarget: exact clicked target");
                     }
                     else if (intent.UseType != Xml.SpellUseType.NoTarget)
-                        GameLog.Warning($"Unhandled intent type {intent.UseType}, ignoring");
+                        GameLog.UserActivityWarning($"Unhandled intent type {intent.UseType}, ignoring");
                     continue;
                 }
 
                 if (intent.Map != null)
                 {
                     // add entire map
+                    GameLog.UserActivityInfo("GetTarget: adding map targets");
                     possibleTargets.AddRange(Map.EntityTree.GetAllObjects().Where(e => e is Creature));
                 }
 
                 if (intent.UseType == Xml.SpellUseType.NoTarget)
                 {
                     origin = this;
+                    GameLog.UserActivityInfo($"GetTarget: origin is {this.Name} at {this.X}, {this.Y}");
+
                 }
                 else
                 {
+                    GameLog.UserActivityInfo($"GetTarget: origin is {target.Name} at {target.X}, {target.Y}");
                     origin = target;
                 }
 
@@ -200,18 +207,27 @@ namespace Hybrasyl.Objects
                 {
                     // Process cross targets
                     foreach (Xml.Direction direction in Enum.GetValues(typeof(Xml.Direction)))
-                        possibleTargets.AddRange(origin.GetDirectionalTargets(direction, cross.Radius));
+                    {
+                        GameLog.UserActivityInfo($"GetTarget: cross, {direction}, origin {origin.Name}, radius {cross.Radius}");
+                        possibleTargets.AddRange(origin.GetDirectionalTargets(direction, cross.Radius));                       
+                    }
+                    // Add origin and let flags sort it out
+                    possibleTargets.Add(origin);
                 }
                 foreach (var line in intent.Line)
                 {
                     // Process line targets
+                    GameLog.UserActivityInfo($"GetTarget: line, {line.Direction}, origin {origin.Name}, length {line.Length}");
                     possibleTargets.AddRange(origin.GetDirectionalTargets(origin.GetIntentDirection(line.Direction), line.Length));
+                    // Similar to above, add origin
+                    possibleTargets.Add(origin);
                 }
                 foreach (var square in intent.Square)
                 {
                     // Process square targets
                     var r = (square.Side - 1) / 2;
                     var rect = new Rectangle(origin.X - r, origin.Y - r, square.Side, square.Side);
+                    GameLog.UserActivityInfo($"GetTarget: square, {origin.X - r}, {origin.Y - r} - origin {origin.Name}, side length {square.Side}");
                     possibleTargets.AddRange(origin.Map.EntityTree.GetObjects(rect).Where(e => e is Creature));
                 }
                 foreach (var tile in intent.Tile)
@@ -220,68 +236,78 @@ namespace Hybrasyl.Objects
                     if (tile.Direction == Xml.IntentDirection.None)
                     {
                         if (tile.RelativeX == 0 && tile.RelativeY == 0)
+                        {
+                            GameLog.UserActivityInfo($"GetTarget: tile, origin {origin.Name}, RelativeX && RelativeY == 0, skipping");
                             continue;
+                        }
                         else
+                        {
+                            GameLog.UserActivityInfo($"GetTarget: tile, ({origin.X + tile.RelativeX}, {origin.Y + tile.RelativeY}, origin {origin.Name}");
                             possibleTargets.AddRange(origin.Map.GetTileContents(origin.X + tile.RelativeX, origin.Y + tile.RelativeY).Where(e => e is Creature));
+                        }
                     }
                     else
+                    {
+                        GameLog.UserActivityInfo($"GetTarget: tile, intent {tile.Direction}, direction {origin.GetIntentDirection(tile.Direction)}, origin {origin.Name}");
                         possibleTargets.Add(origin.GetDirectionalTarget(origin.GetIntentDirection(tile.Direction)));
+                    }
 
                 }
                 List<Creature> possible = intent.MaxTargets > 0 ? possibleTargets.Take(intent.MaxTargets).OfType<Creature>().ToList() : possibleTargets.OfType<Creature>().ToList();
-                if (possible != null && possible.Count > 0) actualTargets.AddRange(possible);
-                else GameLog.Info("No targets found");
+                if (possible != null && possible.Count > 0) 
+                    actualTargets = actualTargets.Concat(possible);
+                else GameLog.UserActivityInfo("GetTarget: No targets found");
+
+                // Remove all merchants
+                // TODO: perhaps improve with a flag or extend in the future
+                actualTargets = actualTargets.SkipWhile(e => e is Merchant);
+
+                // Process intent flags
+
+                if (this is Monster)
+                {
+                    // No hostile flag: remove players
+                    if (!intent.Flags.Contains(Xml.IntentFlags.Hostile))
+                    { 
+                        actualTargets = actualTargets.SkipWhile(e => e is User);
+                    }
+                    // No friendly flag: remove monsters
+                    if (!intent.Flags.Contains(Xml.IntentFlags.Friendly))
+                    {
+                        actualTargets = actualTargets.SkipWhile(e => e is Monster);
+                    }
+                    // Group / pvp: n/a
+                }
+                else if (this is User userobj)
+                {
+                    // No PVP flag: remove PVP flagged players
+                    // No hostile flag: remove monsters
+                    // No friendly flag: remove non-PVP flagged players
+                    // No group flag: remove group members
+                    if (!intent.Flags.Contains(Xml.IntentFlags.Hostile))
+                        actualTargets = actualTargets.SkipWhile(e => e is Monster);
+                    if (!intent.Flags.Contains(Xml.IntentFlags.Friendly))
+                        actualTargets = actualTargets.SkipWhile(e => e is User && !(e as User).Condition.PvpEnabled);
+                    if (!intent.Flags.Contains(Xml.IntentFlags.Pvp))
+                        actualTargets = actualTargets.SkipWhile(e => (e is User) && (e as User).Condition.PvpEnabled);
+                    if (!intent.Flags.Contains(Xml.IntentFlags.Group))
+                    {
+                        // Remove group members
+                        if (userobj.Group != null)
+                            actualTargets = actualTargets.SkipWhile(e => (e is User) && userobj.Group.Contains(e as User));
+                    }
+                }
+                // No Self flag: remove self 
+                if (!intent.Flags.Contains(Xml.IntentFlags.Self))
+                {
+                    GameLog.UserActivityInfo($"Trying to remove self: my id is {this.Id} and actualtargets contains {String.Join(',',actualTargets.Select(e => e.Id).ToList())}");
+                    actualTargets = actualTargets.Where(e => e.Id != this.Id);
+                    GameLog.UserActivityInfo($"did it happen :o -  my id is {this.Id} and actualtargets contains {String.Join(',', actualTargets.Select(e => e.Id).ToList())}");
+                }
+
             }
 
-            // Process intent flags
-
-            // Remove all merchants
-            actualTargets = actualTargets.Where(e => !(e is Merchant)).ToList();
-
-            if (this is Monster)
-            {
-                // No hostile flag: remove players
-                // No friendly flag: remove monsters
-                // Group / pvp: n/a
-                // Self: add self 
-            }
-            else if (this is User)
-            {
-                // No PVP flag: remove PVP flagged players
-                // No hostile flag: remove monsters
-                // No friendly flag: remove non-PVP flagged players
-                // No group flag: remove group members
-                // Self: add self
-            }
-
-            //    // Handle intent flags
-            //    if (this is Monster)
-            //    {
-            //        // No hostile flag: remove users
-            //        // No friendly flag: remove monsters
-            //        // Group / pvp: do not apply here
-            //        if (!castable.IntentTargets(Xml.IntentTarget.Friendly))
-            //            possibleTargets = possibleTargets.SkipWhile(e => e is Monster).ToList();
-            //        if (!castable.IntentTargets(Xml.IntentTarget.Hostile))
-            //            possibleTargets = possibleTargets.SkipWhile(e => e is User).ToList();
-            //    }
-            //    else if (this is User)
-            //    {
-            //        var user = this as User;
-            //        // If we aren't targeting hostiles, remove all monsters
-            //        if (!castable.IntentTargets(Xml.IntentTarget.Hostile))
-            //            possibleTargets = possibleTargets.SkipWhile(e => e is Monster).ToList();
-            //        // If this is a PVP spell, remove non-pvp flagged players
-            //        if (castable.IntentTargets(Xml.IntentTarget.Pvp))
-            //            possibleTargets = possibleTargets.SkipWhile(e => e is User && !(e as User).Condition.PvpEnabled).ToList();
-            //        // If a friendly spell, remove pvp enabled players
-            //        if (castable.IntentTargets(Xml.IntentTarget.Friendly))
-            //            possibleTargets = possibleTargets.SkipWhile(e => e is User && (e as User).Condition.PvpEnabled).ToList();
-            //    }
-
-            //    // Finally, add the targets to our list            
-
-            return actualTargets;
+            return actualTargets.ToList();
         }
 
 
@@ -432,8 +458,11 @@ namespace Hybrasyl.Objects
 
             // Quick checks
             // If no targets and is not an assail, do nothing
-            if (targets.Count() == 0 && castObject.IsAssail == false) return false;
-
+            if (targets.Count() == 0 && castObject.IsAssail == false)
+            {
+                GameLog.UserActivityInfo($"UseCastable: {Name}: no targets and not assail");
+                return false;
+            }
             // Is this a pvpable spell? If so, is pvp enabled?
 
             // We do these next steps to ensure effects are displayed uniformly and as fast as possible
@@ -444,11 +473,15 @@ namespace Hybrasyl.Objects
                 {
                     foreach (var user in tar.viewportUsers)
                     {
+                        GameLog.UserActivityInfo($"UseCastable: Sending {user.Name} effect for {Name}: {castObject.Effects.Animations.OnCast.Target.Id}");
                         user.SendEffect(tar.Id, castObject.Effects.Animations.OnCast.Target.Id, castObject.Effects.Animations.OnCast.Target.Speed);
                     }
                 }
                 if (castObject.Effects?.Animations?.OnCast?.SpellEffect != null)
+                {
+                    GameLog.UserActivityInfo($"UseCastable: Sending spelleffect for {Name}: {castObject.Effects.Animations.OnCast.SpellEffect.Id}");
                     Effect(castObject.Effects.Animations.OnCast.SpellEffect.Id, castObject.Effects.Animations.OnCast.SpellEffect.Speed);
+                }
             }
 
             if (castObject.Effects?.Sound != null)
@@ -468,6 +501,8 @@ namespace Hybrasyl.Objects
                 }
 
             }
+            if (targets.Count == 0)
+                GameLog.UserActivityError("{Name}: {castObject.Name}: hey fam no targets");
 
             foreach (var tar in targets)
             {
@@ -762,8 +797,11 @@ namespace Hybrasyl.Objects
 
         public virtual void Heal(double heal, Creature source = null)
         {
+            OnHeal(source, (uint) heal);
+
             if (AbsoluteImmortal || PhysicalImmortal) return;
             if (Stats.Hp == Stats.MaximumHp) return;
+            Stats.Hp = heal > uint.MaxValue ? Stats.MaximumHp : Math.Min(Stats.MaximumHp, (uint)(Stats.Hp + heal));
 
             Stats.Hp = heal > uint.MaxValue ? Stats.MaximumHp : Math.Min(Stats.MaximumHp, (uint)(Stats.Hp + heal));
             SendDamageUpdate(this);

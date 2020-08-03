@@ -1266,8 +1266,6 @@ namespace Hybrasyl.Objects
             x07.WriteString8(creature.Name);
             x07.DumpPacket();
             Enqueue(x07);
-
-
         }
 
         public void SendUpdateToUser(Client client = null)
@@ -1315,8 +1313,6 @@ namespace Hybrasyl.Objects
                 HairColor = HairColor
             }.Packet());
         }
-
-
 
         public override void SendId()
         {
@@ -1448,10 +1444,12 @@ namespace Hybrasyl.Objects
             if (item == null)
             {
                 SendClearSpell(slot);
+                GameLog.InfoFormat($"{Name}: cleared spell slot {slot}");
                 return;
             }
             GameLog.DebugFormat("Adding spell {0} to slot {2}",
                 item.Name, slot);
+            GameLog.InfoFormat($"{Name}: adding {item.Name} to slot {slot}");
 
             var mastery = "";
 
@@ -1469,6 +1467,7 @@ namespace Hybrasyl.Objects
             x17.WriteString8(Class == Xml.Class.Peasant ? item.Name : $"{item.Name} (Mastery{mastery}:{ Math.Round((decimal)(item.UseCount > item.Mastery.Uses ? 100 : item.UseCount / item.Mastery.Uses), 2)}%)");
             x17.WriteString8(item.Name); //prompt? what is this?
             x17.WriteByte((byte)item.Lines);
+            GameLog.InfoFormat($"{Name}: enqueuing {item.Name} to slot {slot}");
             Enqueue(x17);
         }
 
@@ -1928,12 +1927,12 @@ namespace Hybrasyl.Objects
                 return false;
             }
 
-            GameLog.DebugFormat("Attempting to add spell to spellbook slot {0}", slot);
+            GameLog.InfoFormat("Attempting to add spell to spellbook slot {0}", slot);
 
 
             if (!SpellBook.Insert(slot, item))
             {
-                GameLog.DebugFormat("Slot was invalid or not null");
+                GameLog.ErrorFormat("Slot was invalid or not null");
                 return false;
             }
 
@@ -4176,7 +4175,14 @@ namespace Hybrasyl.Objects
                 Client.Redirect(redirect, true);
             }
             else
-                Client.Socket.Disconnect(true);
+                try
+                {
+                    Client.Socket.Disconnect(true);
+                }
+                catch (ObjectDisposedException)
+                {
+                    Client.ClientState = null;
+                }
         }
 
         public void SetEncryptionParameters(byte[] key, byte seed, string name)

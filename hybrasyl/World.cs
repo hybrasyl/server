@@ -277,7 +277,14 @@ namespace Hybrasyl
             try
             {
                 if (Directory.Exists(Path))
-                    return Directory.GetFiles(Path, "*.xml");
+                {
+                    var wef = new List<string>();
+
+                    foreach (var asdf in Directory.GetFiles(Path, "*.xml", SearchOption.AllDirectories))
+                        wef.Add(asdf.Replace(Path, ""));
+                    
+                    return Directory.GetFiles(Path, "*.xml", SearchOption.AllDirectories).Where(e => !e.Replace(Path, "").StartsWith("\\_")).ToArray();
+                }
             }
             catch (Exception e)
             {
@@ -970,36 +977,23 @@ namespace Hybrasyl
         public void CompileScripts()
         {
             // Scan each directory for *.lua files
-            foreach (var dir in Constants.SCRIPT_DIRECTORIES)
+            foreach (var file in Directory.GetFiles(ScriptDirectory, "*.lua", SearchOption.AllDirectories))
             {
-                GameLog.InfoFormat("Scanning script directory: {0}", dir);
-                var directory = Path.Combine(ScriptDirectory, dir);
-                if (!Directory.Exists(directory))
-                {
-                    GameLog.ErrorFormat("Scripting directory {0} not found!", dir);
+                var path = file.Replace(ScriptDirectory, "");
+                var scriptname = Path.GetFileName(file);
+                if (path.StartsWith("_"))
                     continue;
-                }
-
-                var filelist = Directory.GetFiles(directory);
-                foreach (var file in filelist)
+                GameLog.Info($"Loading script: {path}");
+                try
                 {
-                    try
-                    {
-                        if (Path.GetExtension(file) == ".lua")
-                        {
-                            var scriptname = Path.GetFileName(file);
-                            GameLog.InfoFormat("Loading script {0}\\{1}", dir, scriptname);
-                            var script = new Scripting.Script(file, ScriptProcessor);
-                            ScriptProcessor.RegisterScript(script);
-                            if (dir == "common")
-                                script.Run();
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        GameLog.ErrorFormat("Script {0}\\{1}: Registration failed: {2}", dir, file, e.ToString());
-                    }
+                    var script = new Scripting.Script(file, ScriptProcessor);
+                    ScriptProcessor.RegisterScript(script);
+                    if (path.StartsWith("common"))
+                        script.Run();
                 }
+                catch (Exception e)
+                {
+                    GameLog.Error($"Script {scriptname}: Registration failed: {e.ToString()}");                }
             }
         }
 

@@ -593,6 +593,24 @@
     </xs:sequence>
   </xs:complexType>
 
+  <!-- Spawn flags -->
+  <xs:simpleType name="SpawnFlags">
+    <xs:restriction>
+      <xs:simpleType>
+        <xs:list>
+          <xs:simpleType>
+            <xs:restriction base="xs:token">
+              <xs:enumeration value="MovementDisabled"/>
+              <xs:enumeration value="AiDisabled"/>
+              <xs:enumeration value="DeathDisabled"/>
+            </xs:restriction>
+          </xs:simpleType>
+        </xs:list>
+      </xs:simpleType>
+      <xs:maxLength value="3" />
+    </xs:restriction>
+  </xs:simpleType>
+
   <!-- Definition for an actual spawn/monster (mob variant)-->
   <xs:complexType name="Spawn">
     <xs:sequence>
@@ -607,6 +625,7 @@
     </xs:sequence>
     <xs:attribute name="Base" type="hyb:String8" use="required"/>
     <xs:attribute name="Variance" type="xs:float" use="optional" default="1.0"/>
+    <xs:attribute name="Flags" type="hyb:SpawnFlags" use="optional"/>   
   </xs:complexType>
 
   <!-- Whether or not a specified script overrides the spawning behavior or supplements it-->

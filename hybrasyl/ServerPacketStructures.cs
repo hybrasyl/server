@@ -354,7 +354,7 @@ namespace Hybrasyl
                 packet.WriteByte((byte) Direction);
                 packet.WriteUInt32(Id);
                 packet.WriteUInt16(Helmet);
-                GameLog.InfoFormat($"Gender is {Gender}");
+
                 if (!DisplayAsMonster)
                 {
                     packet.WriteByte((byte) (((byte) Gender*16) + BodySpriteOffset));

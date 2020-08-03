@@ -164,7 +164,7 @@ namespace Hybrasyl
             // Assign base XP
             loot.Xp = spawn.Loot.Xp;
             // Sets
-            foreach (var set in spawn.Loot.Set)
+            foreach (var set in spawn.Loot?.Set ?? new List<Xml.LootImport>())
             {
                 // Is the set present?
                 GameLog.SpawnInfo("Processing loot set {Name}", set.Name);
@@ -219,7 +219,7 @@ namespace Hybrasyl
             }
 
             // Now, calculate loot for any tables attached to the spawn
-            foreach (var table in spawn.Loot.Table)
+            foreach (var table in spawn.Loot?.Table ?? new List<Xml.LootTable>())
             {
                 if (table.Rolls == 0)
                 {
@@ -471,19 +471,35 @@ namespace Hybrasyl
                         if (spawnMap.SpawnDebug)
                             GameLog.SpawnInfo("Spawn {name}, map {map}: {Xp} xp, {Gold} gold, items {Items}", spawn.Base, map.Name, newSpawnLoot.Xp, newSpawnLoot.Gold,
                                 string.Join(',', newSpawnLoot.Items));
+
                         var baseMob = new Monster(creature, spawn, map.Id, newSpawnLoot);
                         var mob = (Monster)baseMob.Clone();
-
                         var xcoord = 0;
                         var ycoord = 0;
-                        do
+
+                        if (map.Coordinates.Count > 0)
                         {
-                            xcoord = _random.Next(0, spawnMap.X - 1);
-                            ycoord = _random.Next(0, spawnMap.Y - 1);
-                        } while (spawnMap.IsWall[xcoord, ycoord]);
+                            // TODO: optimize / improve
+                            foreach (var coord in map.Coordinates)
+                            {
+                                if (spawnMap.EntityTree.GetObjects(new System.Drawing.Rectangle(coord.X, coord.Y, 1, 1)).Where(e => e is Creature).Count() == 0)
+                                {
+                                    xcoord = coord.X;
+                                    ycoord = coord.Y;
+                                    break;
+                                }
+                            }                         
+                        }
+                        else
+                        {
+                            do
+                            {
+                                xcoord = _random.Next(0, spawnMap.X - 1);
+                                ycoord = _random.Next(0, spawnMap.Y - 1);
+                            } while (spawnMap.IsWall[xcoord, ycoord]);
+                        }
                         mob.X = (byte)xcoord;
                         mob.Y = (byte)ycoord;
-
                         if (spawnMap.SpawnDebug) GameLog.SpawnInfo($"Spawn: spawning {mob.Name} on {spawnMap.Name}");
                         SpawnMonster(mob, spawnMap);
                     }
@@ -539,7 +555,7 @@ namespace Hybrasyl
         {
             if (!(monster.LastAction < DateTime.Now.AddMilliseconds(-monster.ActionDelay))) return;
 
-            if (monster.Stats.Hp == 0)
+            if (monster.Stats.Hp == 0 || monster.AiDisabled)
                 return;
 
             if (map.Users.Count == 0)

@@ -38,6 +38,7 @@ public partial class Spawn
     private List<SpawnCastable> _castables;
     private string _base;
     private float _variance;
+    private SpawnFlags _flags;
     private static XmlSerializer _serializer;
     #endregion
     
@@ -172,6 +173,19 @@ public partial class Spawn
         set
         {
             _variance = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public SpawnFlags Flags
+    {
+        get
+        {
+            return _flags;
+        }
+        set
+        {
+            _flags = value;
         }
     }
     

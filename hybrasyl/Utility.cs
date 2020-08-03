@@ -217,7 +217,6 @@ namespace Hybrasyl
         public static string[] BONUS_ATTRS = { "hp", "mp", "str", "int", "wis", "con", "dex", "hit", 
                                                 "dmg", "ac", "mr", "regen" };
 
-        public static string[] SCRIPT_DIRECTORIES = { "npc", "startup", "item", "reactor", "common"};
         public const int MESSAGE_RETURN_SIZE = 64;
         // You must wait this long before sending another board/mail message
         public const int SEND_MESSAGE_COOLDOWN = 2000; 
