@@ -251,18 +251,21 @@ namespace Hybrasyl
                 }
             }
             // Message handling
-            if (effect.Messages != null && User != null)
+            if (effect.Messages != null)
             {
-                if (effect.Messages?.Target != null)
-                    User.SendSystemMessage(string.Format(effect.Messages.Target, User.Name));
-                if (effect.Messages?.Group != null)
-                    User.Group.SendMessage(string.Format(effect.Messages.Group, User.Name));
+                if (User != null)
+                {
+                    if (effect.Messages?.Target != null)
+                        User.SendSystemMessage(string.Format(effect.Messages.Target, User.Name));
+                    if (effect.Messages?.Group != null)
+                        User.Group?.SendMessage(string.Format(effect.Messages.Group, User.Name));
+                }
                 if (effect.Messages?.Source != null)
-                    (Source as User)?.SendSystemMessage(string.Format(effect.Messages.Source, User.Name));
+                    (Source as User)?.SendSystemMessage(string.Format(effect.Messages.Source, User?.Name ?? string.Empty));
                 if (effect.Messages?.Say != null)
-                    User?.Say(string.Format(effect.Messages.Say, User.Name));
+                    Target.Say(string.Format(effect.Messages.Say, User?.Name ?? string.Empty));
                 if (effect.Messages?.Shout != null)
-                    User?.Say(string.Format(effect.Messages.Shout, User.Name));
+                    Target.Shout(string.Format(effect.Messages.Shout, User?.Name ?? string.Empty));
             }
         }
 

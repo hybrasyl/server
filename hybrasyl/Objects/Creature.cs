@@ -175,12 +175,11 @@ namespace Hybrasyl.Objects
                     if (intent.UseType == Xml.SpellUseType.Target)
                     {
                         // Exact clicked target
-                        possibleTargets.Add(target);
+                        possibleTargets.Add(target);                        
                         GameLog.UserActivityInfo("GetTarget: exact clicked target");
                     }
                     else if (intent.UseType != Xml.SpellUseType.NoTarget)
                         GameLog.UserActivityWarning($"Unhandled intent type {intent.UseType}, ignoring");
-                    continue;
                 }
 
                 if (intent.Map != null)
@@ -264,6 +263,8 @@ namespace Hybrasyl.Objects
 
                 // Process intent flags
 
+                var this_id = this.Id;
+
                 if (this is Monster)
                 {
                     // No hostile flag: remove players
@@ -285,11 +286,18 @@ namespace Hybrasyl.Objects
                     // No friendly flag: remove non-PVP flagged players
                     // No group flag: remove group members
                     if (!intent.Flags.Contains(Xml.IntentFlags.Hostile))
+                    {
                         actualTargets = actualTargets.SkipWhile(e => e is Monster);
+                    }
                     if (!intent.Flags.Contains(Xml.IntentFlags.Friendly))
-                        actualTargets = actualTargets.SkipWhile(e => e is User && !(e as User).Condition.PvpEnabled);
+                    {
+                        actualTargets = actualTargets.SkipWhile(e => e is User && !(e as User).Condition.PvpEnabled && e.Id != this_id);
+                    }
                     if (!intent.Flags.Contains(Xml.IntentFlags.Pvp))
-                        actualTargets = actualTargets.SkipWhile(e => (e is User) && (e as User).Condition.PvpEnabled);
+                    {
+                        
+                        actualTargets = actualTargets.SkipWhile(e => (e is User) && (e as User).Condition.PvpEnabled && e.Id != this_id);
+                    }
                     if (!intent.Flags.Contains(Xml.IntentFlags.Group))
                     {
                         // Remove group members
@@ -301,7 +309,7 @@ namespace Hybrasyl.Objects
                 if (!intent.Flags.Contains(Xml.IntentFlags.Self))
                 {
                     GameLog.UserActivityInfo($"Trying to remove self: my id is {this.Id} and actualtargets contains {String.Join(',',actualTargets.Select(e => e.Id).ToList())}");
-                    actualTargets = actualTargets.Where(e => e.Id != this.Id);
+                    actualTargets = actualTargets.Where(e => e.Id != this_id);
                     GameLog.UserActivityInfo($"did it happen :o -  my id is {this.Id} and actualtargets contains {String.Join(',', actualTargets.Select(e => e.Id).ToList())}");
                 }
 
@@ -559,7 +567,7 @@ namespace Hybrasyl.Objects
                     if (World.WorldData.TryGetValueByIndex<Xml.Status>(status.Value, out applyStatus))
                     {
                         GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - applying status {status.Value}");
-                        ApplyStatus(new CreatureStatus(applyStatus, tar, castObject));
+                        tar.ApplyStatus(new CreatureStatus(applyStatus, tar, castObject));
                     }
                     else
                         GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name} - failed to add status {status.Value}, does not exist!");
@@ -571,7 +579,7 @@ namespace Hybrasyl.Objects
                     if (World.WorldData.TryGetValueByIndex<Xml.Status>(status, out applyStatus))
                     {
                         GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name} - removing status {status}");
-                        RemoveStatus(applyStatus.Icon);
+                        tar.RemoveStatus(applyStatus.Icon);
                     }
                     else
                         GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name} - failed to remove status {status}, does not exist!");

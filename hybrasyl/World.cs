@@ -3981,8 +3981,7 @@ namespace Hybrasyl
             {
                 AddUser((User)obj);
             }
-            
-            lock (_lock) { ++worldObjectID; }
+
             obj.Id = worldObjectID;
             obj.World = this;
             obj.SendId();
@@ -3999,6 +3998,7 @@ namespace Hybrasyl
 
             lock (_lock)
             {
+                ++worldObjectID;
                 Objects.Add(worldObjectID, obj);
             }
         }

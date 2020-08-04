@@ -512,8 +512,7 @@ namespace Hybrasyl
             {
                 try
                 {
-                    ClientPacket packet;
-                    while (ClientState.ReceiveBufferTake(out packet))
+                    while (ClientState.ReceiveBufferTake(out ClientPacket packet))
                     {
                         if (packet.ShouldEncrypt)
                         {
@@ -553,7 +552,7 @@ namespace Hybrasyl
                                 }
                                 else
                                     if (packet.Opcode == 0x06)
-                                        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.TriggerRefresh, ConnectionId));
+                                    World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.TriggerRefresh, ConnectionId));
                             }
 
                         }
