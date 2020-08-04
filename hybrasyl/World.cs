@@ -277,7 +277,14 @@ namespace Hybrasyl
             try
             {
                 if (Directory.Exists(Path))
-                    return Directory.GetFiles(Path, "*.xml");
+                {
+                    var wef = new List<string>();
+
+                    foreach (var asdf in Directory.GetFiles(Path, "*.xml", SearchOption.AllDirectories))
+                        wef.Add(asdf.Replace(Path, ""));
+                    
+                    return Directory.GetFiles(Path, "*.xml", SearchOption.AllDirectories).Where(e => !e.Replace(Path, "").StartsWith("\\_")).ToArray();
+                }
             }
             catch (Exception e)
             {
@@ -970,36 +977,23 @@ namespace Hybrasyl
         public void CompileScripts()
         {
             // Scan each directory for *.lua files
-            foreach (var dir in Constants.SCRIPT_DIRECTORIES)
+            foreach (var file in Directory.GetFiles(ScriptDirectory, "*.lua", SearchOption.AllDirectories))
             {
-                GameLog.InfoFormat("Scanning script directory: {0}", dir);
-                var directory = Path.Combine(ScriptDirectory, dir);
-                if (!Directory.Exists(directory))
-                {
-                    GameLog.ErrorFormat("Scripting directory {0} not found!", dir);
+                var path = file.Replace(ScriptDirectory, "");
+                var scriptname = Path.GetFileName(file);
+                if (path.StartsWith("_"))
                     continue;
-                }
-
-                var filelist = Directory.GetFiles(directory);
-                foreach (var file in filelist)
+                GameLog.Info($"Loading script: {path}");
+                try
                 {
-                    try
-                    {
-                        if (Path.GetExtension(file) == ".lua")
-                        {
-                            var scriptname = Path.GetFileName(file);
-                            GameLog.InfoFormat("Loading script {0}\\{1}", dir, scriptname);
-                            var script = new Scripting.Script(file, ScriptProcessor);
-                            ScriptProcessor.RegisterScript(script);
-                            if (dir == "common")
-                                script.Run();
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        GameLog.ErrorFormat("Script {0}\\{1}: Registration failed: {2}", dir, file, e.ToString());
-                    }
+                    var script = new Scripting.Script(file, ScriptProcessor);
+                    ScriptProcessor.RegisterScript(script);
+                    if (path.StartsWith("common"))
+                        script.Run();
                 }
+                catch (Exception e)
+                {
+                    GameLog.Error($"Script {scriptname}: Registration failed: {e.ToString()}");                }
             }
         }
 
@@ -1539,7 +1533,7 @@ namespace Hybrasyl
             }
         }
 
-        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, Xml.CreatureCondition.Paralyze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, Xml.CreatureCondition.Paralyze, PlayerFlags.InDialog)]
         private void PacketHandler_0x06_Walk(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -1549,7 +1543,7 @@ namespace Hybrasyl
             user.Walk((Xml.Direction)direction);
         }
 
-        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x07_PickupItem(Object obj, ClientPacket packet)
         {
@@ -1662,7 +1656,7 @@ namespace Hybrasyl
             }
         }
 
-        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x08_DropItem(Object obj, ClientPacket packet)
         {
@@ -1775,7 +1769,7 @@ namespace Hybrasyl
             }
         }
 
-        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, Xml.CreatureCondition.Paralyze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, Xml.CreatureCondition.Paralyze, PlayerFlags.InDialog)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x0F_UseSpell(object obj, ClientPacket packet)
         {
@@ -1929,7 +1923,7 @@ namespace Hybrasyl
             loginUser.Reindex();
         }
 
-        [Prohibited(Xml.CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
         private void PacketHandler_0x11_Turn(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -1939,7 +1933,7 @@ namespace Hybrasyl
             user.Turn((Xml.Direction)direction);
         }
 
-        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, Xml.CreatureCondition.Paralyze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, Xml.CreatureCondition.Paralyze, PlayerFlags.InDialog)]
         private void PacketHandler_0x13_Attack(object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -2045,7 +2039,7 @@ namespace Hybrasyl
                 user.SendWhisper(target, message);
         }
 
-        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x1C_UseItem(Object obj, ClientPacket packet)
         {
@@ -2213,7 +2207,7 @@ namespace Hybrasyl
             }
         }
 
-        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x24_DropGold(Object obj, ClientPacket packet)
         {
@@ -2287,7 +2281,7 @@ namespace Hybrasyl
          *    5) Send them a dialog and have them explicitly accept.
          *    6) If accepted, join group (see stage 0x03).
          */
-        [Prohibited(Xml.CreatureCondition.Coma)]
+        [Prohibited(Xml.CreatureCondition.Coma, PlayerFlags.InDialog)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x2E_GroupRequest(Object obj, ClientPacket packet)
         {
@@ -2364,7 +2358,7 @@ namespace Hybrasyl
             }
         }
 
-        [Prohibited(Xml.CreatureCondition.Coma)]
+        [Prohibited(Xml.CreatureCondition.Coma, PlayerFlags.InDialog)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x2F_GroupToggle(Object obj, ClientPacket packet)
         {
@@ -2384,7 +2378,7 @@ namespace Hybrasyl
             // are extra bytes coming through but not sure what purpose they serve.
         }
 
-        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x2A_DropGoldOnCreature(Object obj, ClientPacket packet)
         {
@@ -2441,7 +2435,7 @@ namespace Hybrasyl
             }
         }
 
-        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x29_DropItemOnCreature(Object obj, ClientPacket packet)
         {
@@ -2939,7 +2933,7 @@ namespace Hybrasyl
             user.Enqueue(response);
         }
 
-        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, Xml.CreatureCondition.Paralyze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, Xml.CreatureCondition.Paralyze, PlayerFlags.InDialog)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x3E_UseSkill(object obj, ClientPacket packet)
         {
@@ -2949,7 +2943,7 @@ namespace Hybrasyl
             user.UseSkill(slot);
         }
 
-        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
         private void PacketHandler_0x3F_MapPointClick(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -2976,6 +2970,7 @@ namespace Hybrasyl
             }
         }
 
+        [Prohibited(PlayerFlags.InDialog)]
         private void PacketHandler_0x38_Refresh(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -3317,7 +3312,7 @@ namespace Hybrasyl
             }
         }
 
-        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
         private void PacketHandler_0x43_PointClick(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -3390,7 +3385,7 @@ namespace Hybrasyl
             }
         }
 
-        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x44_EquippedItemClick(Object obj, ClientPacket packet)
         {
@@ -3436,7 +3431,7 @@ namespace Hybrasyl
             }
         }
 
-        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x47_StatPoint(Object obj, ClientPacket packet)
         {
@@ -3566,12 +3561,14 @@ namespace Hybrasyl
             }
         }
 
+        [Prohibited(PlayerFlags.InDialog)]
         private void PacketHandler_0x4D_BeginCasting(object obj, ClientPacket packet)
         {
             var user = (User)obj;
             user.Condition.Casting = true;
         }
 
+        [Prohibited(PlayerFlags.InDialog)]
         private void PacketHandler_0x4E_CastLine(object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -4047,7 +4044,6 @@ namespace Hybrasyl
             return ItemCatalog.TryGetValue(neutralKey, out item) || ItemCatalog.TryGetValue(femaleKey, out item) || ItemCatalog.TryGetValue(maleKey, out item);
         }
 
-
         private void QueueConsumer()
         {
             while (!MessageQueue.IsCompleted)
@@ -4078,7 +4074,10 @@ namespace Hybrasyl
                         {
                             // Check if the action is prohibited due to statuses or flags
                             MethodBase method = handler.GetMethodInfo();
+                            // TODO: improve
+                            bool sendRefresh = false;
                             bool ignore = false;
+                            string systemMessage = string.Empty;
 
                             foreach (var prohibited in method.GetCustomAttributes(typeof(Prohibited), true))
                             {
@@ -4086,7 +4085,10 @@ namespace Hybrasyl
                                 if (prohibitedCondition == null) continue;
                                 if (prohibitedCondition.Check(user.Condition)) continue;
                                 // TODO: fix this to be per-flag/status
-                                user.SendSystemMessage("It cannot be done in your current state.");
+                                if (clientMessage.Packet.Opcode == 0x06 && user.Condition.Flags.HasFlag(PlayerFlags.InDialog))
+                                    sendRefresh = true;
+                                else
+                                    systemMessage = "It cannot be done in your current state.";
                                 ignore = true;
                             }
 
@@ -4095,9 +4097,15 @@ namespace Hybrasyl
                                 var requiredCondition = required as Required;
                                 if (requiredCondition == null) continue;
                                 if (requiredCondition.Check(user.Condition)) continue;
-                                user.SendSystemMessage("You cannot do that now.");
+                                systemMessage = "You cannot do that now.";
                                 ignore = true;
                             }
+
+                            if (systemMessage != string.Empty)
+                                user.SendSystemMessage(systemMessage);
+
+                            if (sendRefresh)
+                                user.Refresh();
 
                             // If we are in an exchange, we should only receive exchange packets and the
                             // occasional heartbeat. If we receive anything else, just kill the exchange.

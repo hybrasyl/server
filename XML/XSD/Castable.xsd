@@ -115,22 +115,6 @@
     </xs:sequence>
   </xs:complexType>
 
-  <!-- Intent container element -->
-  <xs:complexType name="CastableIntents">
-    <xs:sequence>
-      <xs:element name="Intent" type="hyb:CastableIntent" minOccurs="1" maxOccurs="unbounded" />
-    </xs:sequence>
-  </xs:complexType>
-
-  <!-- Intent: What does the spell do, and whom does it affect? -->
-  <xs:complexType name="CastableIntent">
-    <xs:attribute name="UseType" type="hyb:SpellUseType" default="NoTarget" use="optional"/>
-    <xs:attribute name="Radius" type="xs:unsignedByte" default="0" />
-    <xs:attribute name="Direction" type="hyb:IntentDirection" default="None"/>
-    <xs:attribute name="Target" type="hyb:IntentTargetList" use="required" />
-    <xs:attribute name="MaxTargets" type="xs:unsignedByte" default="0" />
-  </xs:complexType>
-
   <!-- MaxLevel type: each class can have various maximum levels for a spell -->
   <xs:complexType name="MaxLevel">
     <xs:attribute name="Monk" type="xs:unsignedByte" use="optional" />
@@ -353,6 +337,46 @@
     <xs:attribute name="Cooldown" use="optional" default="0" type="xs:int" />
     <xs:attribute name="IsAssail" use="optional" default="false" type="xs:boolean"/>
     <xs:attribute name="Reflectable" use="optional" default="true" type="xs:boolean"/>
+  </xs:complexType>
+
+  <!-- Intent container element -->
+  <xs:complexType name="CastableIntents">
+    <xs:sequence>
+      <xs:element name="Intent" type="hyb:CastableIntent" minOccurs="1" maxOccurs="unbounded" />
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="CastableLineIntent">
+    <xs:attribute name="Length" type="xs:unsignedByte" use="required"/>
+    <xs:attribute name="Direction" type="hyb:IntentDirection" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="CastableCrossIntent">
+    <xs:attribute name="Radius" type="xs:unsignedByte" use="required" />
+  </xs:complexType>
+
+  <xs:complexType name="CastableSquareIntent">
+    <xs:attribute name="Side" type="hyb:OddByte" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="CastableTileIntent">
+    <xs:attribute name="Direction" type="hyb:IntentDirection" use="optional" default="None"/>
+    <xs:attribute name="RelativeX" type="xs:byte" use="optional" default="0"/>
+    <xs:attribute name="RelativeY" type="xs:byte" use="optional" default="0" />
+  </xs:complexType>
+
+  <!-- Intent: What does the spell do, and whom does it affect? -->
+  <xs:complexType name="CastableIntent">
+    <xs:sequence>
+      <xs:element name="Map" minOccurs="0" maxOccurs="1" />
+      <xs:element name="Line" minOccurs="0" maxOccurs="unbounded" type="hyb:CastableLineIntent" />
+      <xs:element name="Cross" minOccurs="0" maxOccurs="unbounded" type="hyb:CastableCrossIntent" />
+      <xs:element name="Square" minOccurs="0" maxOccurs="unbounded" type="hyb:CastableSquareIntent" />
+      <xs:element name="Tile" minOccurs="0" maxOccurs="unbounded" type="hyb:CastableTileIntent" />
+    </xs:sequence>
+    <xs:attribute name="UseType" type="hyb:SpellUseType" default="NoTarget" use="optional" />
+    <xs:attribute name="Flags" type="hyb:IntentFlagsList" use="optional" />
+    <xs:attribute name="MaxTargets" type="xs:unsignedByte" default="0" />
   </xs:complexType>
 
   <!-- Bring it all together -->

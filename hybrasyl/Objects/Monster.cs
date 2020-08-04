@@ -23,6 +23,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Hybrasyl.Enums;
+using Hybrasyl.Scripting;
 
 namespace Hybrasyl.Objects
 {
@@ -47,12 +48,18 @@ namespace Hybrasyl.Objects
         public bool IsHostile { get; set; }
         public bool ShouldWander { get; set; }
         public bool CanCast => _spawn.Castables.Count > 0;
+        public bool DeathDisabled => _spawn.Flags.HasFlag(Xml.SpawnFlags.DeathDisabled);
+        public bool MovementDisabled => _spawn.Flags.HasFlag(Xml.SpawnFlags.MovementDisabled);
+        public bool AiDisabled => _spawn.Flags.HasFlag(Xml.SpawnFlags.AiDisabled);
 
         public override void OnDeath()
         {
-            //Shout("AAAAAAAAAAaaaaa!!!");
-            // Now that we're dead, award loot.
-            // FIXME: Implement loot tables / full looting.
+            if (DeathDisabled)
+            {
+                Stats.Hp = Stats.MaximumHp;               
+                return;
+            }
+
             Condition.Alive = false;
             var hitter = LastHitter as User;
             if (hitter == null)
@@ -97,12 +104,25 @@ namespace Hybrasyl.Objects
 
         }
 
-        public override void OnReceiveDamage()
+        public override void OnDamage(Creature attacker, uint damage)
         {
-            IsHostile = true;
-            ShouldWander = false;
+            // FIXME: in the glorious future, run asynchronously with locking
+            if (World.ScriptProcessor.TryGetScript(Name, out Script damageScript))
+            {
+                damageScript.SetGlobalValue("damage", damage);
+                damageScript.ExecuteFunction("OnDamage", this, attacker);
+            }
         }
 
+        public override void OnHeal(Creature healer, uint heal)
+        {
+            // FIXME: in the glorious future, run asynchronously with locking
+            if (World.ScriptProcessor.TryGetScript(Name, out Script healScript))
+            {
+                healScript.SetGlobalValue("heal", heal);
+                healScript.ExecuteFunction("OnHeal", this, healer);
+            }
+        }
 
         /// <summary>
         /// Calculates a sanity-checked stat using a spawn's variance value.
@@ -187,9 +207,15 @@ namespace Hybrasyl.Objects
 
             _loot = loot;
 
-            //until intents are fixed, this is how this is going to be done.
-            IsHostile = _random.Next(0, 7) < 2;
-            ShouldWander = IsHostile == false;
+            if (spawn.Flags.HasFlag(Xml.SpawnFlags.AiDisabled))
+                IsHostile = false;
+            else
+                IsHostile = _random.Next(0, 7) < 2;
+
+            if (spawn.Flags.HasFlag(Xml.SpawnFlags.MovementDisabled))
+                ShouldWander = false;
+            else
+                ShouldWander = IsHostile == false;
         }
 
         public Creature Target

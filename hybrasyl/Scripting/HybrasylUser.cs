@@ -832,6 +832,8 @@ namespace Hybrasyl.Scripting
 
         }
 
+
+
         /// <summary>
         /// Calculate the Manhattan distance (distance between two points measured along axes at right angles) 
         /// between the current player and a target object.

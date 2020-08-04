@@ -107,6 +107,9 @@ namespace Hybrasyl
             return true;
         }
 
+        // TODO: refactor to use hashset
+        public bool Contains(User user) => Members.Where(e => e.Name == user.Name).Count() > 0;
+
         public void Remove(User user)
         {
             lock (_lock)

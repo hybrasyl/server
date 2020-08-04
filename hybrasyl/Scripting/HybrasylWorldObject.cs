@@ -59,8 +59,8 @@ namespace Hybrasyl.Scripting
         {
             get
             {
-                if (Obj is ItemObject)
-                    return (Obj as ItemObject).Name;
+                if (Obj is ItemObject item)
+                    return item.Name;
                 else
                     return Name;
             }
@@ -88,9 +88,8 @@ namespace Hybrasyl.Scripting
             if (Obj is Merchant || Obj is Reactor)
             {
                 var merchant = Obj as VisibleObject;
-                if (invoker is HybrasylUser)
+                if (invoker is HybrasylUser hybUser)
                 {
-                    var hybUser = (HybrasylUser)invoker;
                     merchant.DisplayPursuits(hybUser.User);
                 }
             }
@@ -186,8 +185,8 @@ namespace Hybrasyl.Scripting
         /// <param name="displaySprite">Integer referencing a creature sprite in the client datfiles.</param>
         public void SetNpcDisplaySprite(int displaySprite)
         {
-            if (Obj is VisibleObject)
-                ((VisibleObject) Obj).DialogSprite = (ushort)(0x4000 + displaySprite);
+            if (Obj is VisibleObject vobj)
+                vobj.DialogSprite = (ushort)(0x4000 + displaySprite);
         }
 
         /// <summary>
@@ -196,9 +195,23 @@ namespace Hybrasyl.Scripting
         /// <param name="displaySprite">Integer referencing a creature sprite in the client datfiles.</param>
         public void SetItemDisplaySprite(int displaySprite)
         {
-            if (Obj is VisibleObject)
-                ((VisibleObject)Obj).DialogSprite = (ushort)(0x4000 + displaySprite);
+            if (Obj is VisibleObject vobj)
+                vobj.DialogSprite = (ushort)(0x4000 + displaySprite);
         }
+
+        public void SetCreatureDisplaySprite(int displaySprite)
+        {
+            if (Obj is Monster monster)
+                monster.Sprite = (ushort)displaySprite;
+        }
+
+        public int GetCreatureDisplaySprite()
+        {
+            if (Obj is Monster monster)
+                return monster.Sprite;
+            return 0;
+        }
+
 
         /// <summary>
         /// Request an asynchronous dialog with a player. This can be used to ask a different player a question (such as for mentoring, etc).
@@ -234,5 +247,17 @@ namespace Hybrasyl.Scripting
             }
         }
 
+        /// <summary>
+        /// Refresh this object to a player. Can be used for sprite / other display changes.
+        /// </summary>
+        /// <param name="user">User object that will receive the update.</param>
+        public void ShowTo(HybrasylUser user)
+        {
+            if (Obj is Monster)
+            {
+                var monster = Obj as Monster;
+                monster.ShowTo(user.User);
+            }
+        }
     }
 }

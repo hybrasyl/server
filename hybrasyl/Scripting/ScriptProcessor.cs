@@ -48,12 +48,13 @@ namespace Hybrasyl.Scripting
         }
 
         // "Ri OnA.lua" => riona
-        private string SanitizeName(string scriptName) => Regex.Replace(scriptName.ToLower().Normalize(), ".lua$", "");
+        private string SanitizeName(string scriptName) => Regex.Replace(Regex.Replace(scriptName.ToLower().Normalize(), @"\s+",""), ".lua$", "");
 
         private bool TryGetScriptInstances(string scriptName, out List<Script> scriptList)
         {
             scriptList = null;
-            if (_scripts.TryGetValue(SanitizeName(scriptName), out scriptList))
+            var wef = SanitizeName(scriptName);
+            if (_scripts.TryGetValue(wef, out scriptList))
             {
                 return true;
             }

@@ -275,8 +275,24 @@ namespace Hybrasyl.Xml
 
             return true;
         }
+
+        //public bool IntentTargets(IntentTarget type)
+        //{
+        //    foreach (var intent in Intents)
+        //    {
+        //        if (intent.Target.Contains(type))
+        //            return true;
+        //    }
+        //    return false;
+        //}
+
+        
     }
 
+    public partial class CastableIntent
+    {
+        public bool IsShapeless => Cross.Count == 0 && Line.Count == 0 && Square.Count == 0 && Tile.Count == 0 && Map == null;
+    }
 }
 
 namespace Hybrasyl.Xml

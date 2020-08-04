@@ -486,9 +486,9 @@ namespace Hybrasyl
                        {
                            Socket.BeginSend(buffer, 0, buffer.Length, 0, SendCallback, ClientState);
                        }
-                       catch (ObjectDisposedException e)
+                       catch (ObjectDisposedException)
                        {
-                           GameLog.Warning($"FlushSendBuffer: {e.Message}");
+                            ClientState.Dispose();
                        }
                     });
 
@@ -534,7 +534,7 @@ namespace Hybrasyl
                             }
                             else if (Server is Login)
                             {
-                                GameLog.Info($"Login: 0x{packet.Opcode:X2}");
+                                GameLog.Debug($"Login: 0x{packet.Opcode:X2}");
                                 var handler = (Server as Login).PacketHandlers[packet.Opcode];
                                 handler.Invoke(this, packet);
                                 GameLog.DebugFormat("Login packet done");
@@ -544,7 +544,7 @@ namespace Hybrasyl
                             {
                                 UpdateLastReceived(packet.Opcode != 0x45 &&
                                                           packet.Opcode != 0x75);
-                                GameLog.Info($"Queuing: 0x{packet.Opcode:X2}");
+                                GameLog.Debug($"Queuing: 0x{packet.Opcode:X2}");
                                 // Check for throttling
                                 var throttleResult = Server.PacketThrottleCheck(this, packet);
                                 if (throttleResult == ThrottleResult.OK || throttleResult == ThrottleResult.ThrottleEnd || throttleResult == ThrottleResult.SquelchEnd)
