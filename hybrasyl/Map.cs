@@ -583,8 +583,10 @@ namespace Hybrasyl
                         // If the target of a Remove is a player, we insert a 250ms delay to allow the animation
                         // frame to complete, or a slight delay to allow a kill animation to finish animating.
                         // Yes, this is a thing we do.
-                        if (target is User)
-                            ((User)target).AoiDeparture(obj, obj is User ? 250 : 100);
+                        if (target is User && obj is User)
+                            ((User)target).AoiDeparture(obj, 250);
+                        else if (target is User && obj is Creature)
+                            ((User)target).AoiDeparture(obj, 100);
                         else
                             target.AoiDeparture(obj);
 
@@ -795,7 +797,6 @@ namespace Hybrasyl
                     Map map;
                     if (SourceMap.World.WorldData.TryGetValueByIndex(DestinationMapName, out map))
                     {
-                        Thread.Sleep(250);
                         target.Teleport(map.Id, DestinationX, DestinationY);
                         return true;
                     }

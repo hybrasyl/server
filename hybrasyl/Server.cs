@@ -26,6 +26,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Hybrasyl
 {
@@ -68,7 +69,28 @@ namespace Hybrasyl
             ExpectedConnections = new ConcurrentDictionary<uint, Redirect>();
             for (int i = 0; i < 256; ++i)
                 PacketHandlers[i] = (c, p) => GameLog.DebugFormat("Server: Unhandled opcode 0x{0:X2}", p.Opcode);
+            Task.Run(ProcessOutbound);
+        }
 
+        public async void ProcessOutbound()
+        {
+            while (!StopToken.IsCancellationRequested)
+            {
+                foreach (var kvp in Clients)
+                {
+                    var ptr = kvp.Key;
+                    var client = kvp.Value;
+                    if (client.Connected && client.ClientState.SendBufferDepth > 0)
+                    {
+                        //GameLog.ErrorFormat($"Server {this.GetType().Name} Client {client.ConnectionId}: buffer sending");
+                        await Task.Run(() => client.FlushSendBuffer());
+                    }
+                    if (!client.Connected)
+                        Clients.TryRemove(ptr, out Client _);
+                }
+                // TODO: configurable?
+                await Task.Delay(50);
+            }
         }
 
         public void RegisterPacketThrottle(IPacketThrottle newThrottle)

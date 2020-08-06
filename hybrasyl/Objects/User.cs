@@ -340,6 +340,7 @@ namespace Hybrasyl.Objects
             GameLog.Debug("Removing ItemObject with ID {Id}", obj.Id);
             var removePacket = new ServerPacket(0x0E);
             removePacket.WriteUInt32(obj.Id);
+            removePacket.TransmitDelay = 250;
             Enqueue(removePacket);
         }
 

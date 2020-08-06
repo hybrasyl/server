@@ -34,7 +34,6 @@ namespace Hybrasyl
     [Serializable]
     public abstract class Packet
     {
-
         protected static byte[][] SaltTable = new byte[][]
     {
       #region Seed 00
