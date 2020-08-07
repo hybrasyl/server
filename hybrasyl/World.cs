@@ -2979,7 +2979,6 @@ namespace Hybrasyl
         }
 
         [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
-        [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x39_NPCMainMenu(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -3069,7 +3068,6 @@ namespace Hybrasyl
         }
 
         [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
-        [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x3A_DialogUse(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -3367,14 +3365,22 @@ namespace Hybrasyl
                 {
                     Type type = clickTarget.GetType();
                     MethodInfo methodInfo = type.GetMethod("OnClick");
-                    user.LastAssociate = clickTarget as VisibleObject;
-                    // Certain NPCs can be "spoken to" even when dead
-                    if (user.LastAssociate is Merchant && (!user.Condition.Alive && !user.LastAssociate.AllowDead))
+                    var associate = clickTarget as VisibleObject;
+                    if (associate.Map == user.Map)
                     {
-                        user.SendSystemMessage("You cannot do that now.");
+                        // Certain NPCs can be "spoken to" even when dead
+                        if (user.LastAssociate is Merchant && (!user.Condition.Alive && !user.LastAssociate.AllowDead))
+                        {
+                            user.SendSystemMessage("You cannot do that now.");
+                            return;
+                        }
+                        methodInfo.Invoke(clickTarget, new[] { user });
+                    }
+                    else
+                    {
+                        GameLog.Warning($"User {user.Name}: Click packet for object not on current map: {entityId} {clickTarget.Id} {user.Map.Name}");
                         return;
                     }
-                    methodInfo.Invoke(clickTarget, new[] { user });
                 }
             }
             else
@@ -3998,8 +4004,8 @@ namespace Hybrasyl
 
             lock (_lock)
             {
-                ++worldObjectID;
                 Objects.Add(worldObjectID, obj);
+                ++worldObjectID;
             }
         }
 
