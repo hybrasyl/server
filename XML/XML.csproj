@@ -29,7 +29,10 @@
     <None Remove="_site\**" />
   </ItemGroup>
   <ItemGroup>
+    <None Remove="docfx-guidelines.json" />
     <None Remove="docfx.json" />
+    <None Remove="log.txt" />
+    <None Remove="toc.yml" />
   </ItemGroup> 
  
   <ItemGroup>

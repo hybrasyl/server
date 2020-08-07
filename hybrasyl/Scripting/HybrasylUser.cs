@@ -213,6 +213,13 @@ namespace Hybrasyl.Scripting
         }
 
         /// <summary>
+        /// Check to see if a player has a legend mark with the specified prefix in their legend.
+        /// </summary>
+        /// <param name="prefix">Prefix of the mark to check</param>
+        /// <returns>boolean</returns>
+        public bool HasLegendMark(string prefix) => User.Legend.TryGetMark(prefix, out LegendMark _);
+
+        /// <summary>
         /// Change the class of a player to a new class. The player's class will immediately change and they will receive a legend mark that 
         /// reads "newClass by oath of oathGiver, XXX".
         /// </summary>

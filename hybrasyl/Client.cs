@@ -644,7 +644,10 @@ namespace Hybrasyl
         public void Enqueue(ServerPacket packet)
         {
             GameLog.DebugFormat("Enqueueing ServerPacket {0}", packet.Opcode);
-            ClientState.SendBufferAdd(packet);
+            if (Connected)
+                ClientState.SendBufferAdd(packet);
+            else
+                throw new ObjectDisposedException("Client is no longer connected");
         }
 
         public void Enqueue(ClientPacket packet)

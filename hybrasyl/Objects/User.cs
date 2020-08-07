@@ -315,6 +315,9 @@ namespace Hybrasyl.Objects
         }
 
         [JsonProperty]
+        public Dictionary<byte, bool> ClientSettings { get; set; }
+
+        [JsonProperty]
         public bool IsMuted { get; set; }
         [JsonProperty]
         public bool IsIgnoringWhispers { get; set; }
@@ -666,6 +669,7 @@ namespace Hybrasyl.Objects
             DialogState = new DialogState(this);
             UserCookies = new Dictionary<string, string>();
             UserSessionCookies = new Dictionary<string, string>();
+            ClientSettings = new Dictionary<byte, bool>();
             Group = null;
             Flags = new Dictionary<string, bool>();
             _currentStatuses = new ConcurrentDictionary<ushort, ICreatureStatus>();

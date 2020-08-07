@@ -809,6 +809,27 @@ namespace Hybrasyl
             }
         }
 
+        internal partial class SettingsMessage
+        {
+            private readonly byte OpCode = OpCodes.SystemMessage;
+            internal byte Type = 0x07;
+            internal byte Number { get; set; }
+            internal string DisplayString { get; set; }
+
+            internal ServerPacket Packet()
+            {
+                ServerPacket packet = new ServerPacket(OpCode);
+                packet.WriteByte(Type);
+                // Unusually, this message length includes the settings number above,
+                // and is not just the string length...
+                packet.WriteByte(00);
+                packet.WriteByte((byte)(DisplayString.Length + 1));
+                packet.WriteByte((byte)(Number + 0x30));
+                packet.WriteString(DisplayString);
+                return packet;
+            }
+        }
+
         internal partial class SpellAnimation
         {
             private readonly byte OpCode;

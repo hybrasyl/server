@@ -993,7 +993,8 @@ namespace Hybrasyl
                 }
                 catch (Exception e)
                 {
-                    GameLog.Error($"Script {scriptname}: Registration failed: {e.ToString()}");                }
+                    GameLog.Error($"Script {scriptname}: Registration failed: {e.ToString()}");                
+                }
             }
         }
 
@@ -1033,6 +1034,7 @@ namespace Hybrasyl
             PacketHandlers[0x13] = PacketHandler_0x13_Attack; // PT
             PacketHandlers[0x18] = PacketHandler_0x18_ShowPlayerList; // ST
             PacketHandlers[0x19] = PacketHandler_0x19_Whisper; // ST
+            PacketHandlers[0x1B] = PacketHandler_0x1B_Settings; // either
             PacketHandlers[0x1C] = PacketHandler_0x1C_UseItem; // PT
             PacketHandlers[0x1D] = PacketHandler_0x1D_Emote; // ST
             PacketHandlers[0x24] = PacketHandler_0x24_DropGold; // ST + map lock
@@ -2037,6 +2039,47 @@ namespace Hybrasyl
             }
             else
                 user.SendWhisper(target, message);
+        }
+
+        private void PacketHandler_0x1B_Settings(Object obj, ClientPacket packet)
+        {
+            // TODO: future expansion
+            var settingNumber = packet.ReadByte();
+            var user = obj as User;
+            // Only seven of these are usable by the client (1-6, and 8), 
+            // the seventh one is sent to keep the ordering consistent but does nothing
+            var settings = new List<byte>() { 1, 2, 3, 4, 5, 6, 7, 8 };
+            if (settingNumber == 0)
+            {
+                // Send all settings
+                foreach (var x in settings)
+                {
+                    if (!user.ClientSettings.ContainsKey(x))
+                        user.ClientSettings[x] = false;
+                }
+                // for the record this is a very strange usage of a message packet
+                var settingsString = string.Join(" \t", settings.Select(x => string.Format("Setting {0}: {1}", x, user.ClientSettings[x])));
+                var x0a = new ServerPacketStructures.SettingsMessage()
+                {
+                    DisplayString = settingsString,
+                    Number = 0
+                };
+                var settingsPacket = x0a.Packet();
+                user.Enqueue(settingsPacket);
+
+            }
+            else
+            {
+                // Set individual setting
+                if (!user.ClientSettings.ContainsKey(settingNumber))
+                    user.ClientSettings[settingNumber] = false;
+                else
+                    user.ClientSettings[settingNumber] = !user.ClientSettings[settingNumber];
+                var displayString = $"Setting {settingNumber}: {user.ClientSettings[settingNumber]}";
+                var x0a = new ServerPacketStructures.SettingsMessage() { DisplayString = displayString, Number = settingNumber };
+                var settingspacket = x0a.Packet();
+                user.Enqueue(settingspacket);
+            }
         }
 
         [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
@@ -4066,7 +4109,7 @@ namespace Hybrasyl
                 catch (InvalidOperationException e)
                 {
                     if (!MessageQueue.IsCompleted)
-                        GameLog.Error(e, "QUEUE CONSUMER: EXCEPTION RAISED: {exception}");
+                        GameLog.Error($"QUEUE CONSUMER: EXCEPTION RAISED: {e}");
                     continue;
                 }
 
