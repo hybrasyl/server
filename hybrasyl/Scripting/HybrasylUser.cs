@@ -749,10 +749,20 @@ namespace Hybrasyl.Scripting
         /// </summary>
         /// <param name="name">The name to be used for the whisper (e.g. who it is from)</param>
         /// <param name="message">The message.</param>
-        public void Whisper(string name, string message)
-        {
+        public void Whisper(string name, string message) =>
             User.SendWhisper(name, message);
-        }
+
+        /// <summary>
+        /// Say something as the user.
+        /// </summary>
+        /// <param name="message">The message to speak aloud.</param>
+        public void Say(string message) => User.Say(message);
+
+        /// <summary>
+        /// Shout something as the user.
+        /// </summary>
+        /// <param name="message">The message to shout.</param>
+        public void Shout(string message) => User.Shout(message);
 
         /// <summary>
         /// Sends an in-game mail to the current player. NOT TESTED.
@@ -762,10 +772,8 @@ namespace Hybrasyl.Scripting
         /// <param name="message">The message.</param>
         public void Mail(string name, string subject, string message)
         {
-            User.Mailbox.Messages.Add(new Message(User.Name, name, subject, message));
         }
 
-        /// <summary>
         /// Close any active dialogs for the current player.
         /// </summary>
         public void EndDialog()
