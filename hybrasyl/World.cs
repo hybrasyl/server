@@ -25,7 +25,6 @@ using Hybrasyl.Messaging;
 using Hybrasyl.Objects;
 using Hybrasyl.Scripting;
 using Hybrasyl.Utility;
-using Hybrasyl.Xml;
 using MoonSharp.Interpreter;
 using Newtonsoft.Json;
 using Serilog;
@@ -909,37 +908,37 @@ namespace Hybrasyl
             {
                 var sclass = new Metafile("SClass" + i);
                 
-                List<Castable> skills = null;
-                List<Castable> spells = null;
-                Class @class = Class.Peasant;
+                List<Xml.Castable> skills = null;
+                List<Xml.Castable> spells = null;
+                Xml.Class @class = Xml.Class.Peasant;
 
 
                 switch(i)
                 {
                     case 1:
-                        skills = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySkill || x.Book == Xml.Book.SecondarySkill || x.Book == Xml.Book.UtilitySkill) && (x.Class.Contains(Class.Warrior))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Class.Warrior)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(Class.Warrior)).Level.Min).ThenBy(x => x.Name).ToList();
-                        spells = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySpell || x.Book == Xml.Book.SecondarySpell || x.Book == Xml.Book.UtilitySpell) && (x.Class.Contains(Class.Warrior))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Class.Warrior)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(Class.Warrior)).Level.Min).ThenBy(x => x.Name).ToList();
-                        @class = Class.Warrior;
+                        skills = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySkill || x.Book == Xml.Book.SecondarySkill || x.Book == Xml.Book.UtilitySkill) && (x.Class.Contains(Xml.Class.Warrior))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Warrior)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Warrior)).Level.Min).ThenBy(x => x.Name).ToList();
+                        spells = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySpell || x.Book == Xml.Book.SecondarySpell || x.Book == Xml.Book.UtilitySpell) && (x.Class.Contains(Xml.Class.Warrior))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Warrior)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Warrior)).Level.Min).ThenBy(x => x.Name).ToList();
+                        @class = Xml.Class.Warrior;
                         break;
                     case 2:
-                        skills = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySkill || x.Book == Xml.Book.SecondarySkill || x.Book == Xml.Book.UtilitySkill) && (x.Class.Contains(Class.Rogue))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Class.Rogue)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(Class.Rogue)).Level.Min).ThenBy(x => x.Name).ToList();
-                        spells = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySpell || x.Book == Xml.Book.SecondarySpell || x.Book == Xml.Book.UtilitySpell) && (x.Class.Contains(Class.Rogue))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Class.Rogue)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(Class.Rogue)).Level.Min).ThenBy(x => x.Name).ToList();
-                        @class = Class.Rogue;
+                        skills = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySkill || x.Book == Xml.Book.SecondarySkill || x.Book == Xml.Book.UtilitySkill) && (x.Class.Contains(Xml.Class.Rogue))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Rogue)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Rogue)).Level.Min).ThenBy(x => x.Name).ToList();
+                        spells = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySpell || x.Book == Xml.Book.SecondarySpell || x.Book == Xml.Book.UtilitySpell) && (x.Class.Contains(Xml.Class.Rogue))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Rogue)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Rogue)).Level.Min).ThenBy(x => x.Name).ToList();
+                        @class = Xml.Class.Rogue;
                         break;
                     case 3:
-                        skills = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySkill || x.Book == Xml.Book.SecondarySkill || x.Book == Xml.Book.UtilitySkill) && (x.Class.Contains(Class.Wizard))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Class.Wizard)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(Class.Wizard)).Level.Min).ThenBy(x => x.Name).ToList();
-                        spells = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySpell || x.Book == Xml.Book.SecondarySpell || x.Book == Xml.Book.UtilitySpell) && (x.Class.Contains(Class.Wizard))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Class.Wizard)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(Class.Wizard)).Level.Min).ThenBy(x => x.Name).ToList();
-                        @class = Class.Wizard;
+                        skills = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySkill || x.Book == Xml.Book.SecondarySkill || x.Book == Xml.Book.UtilitySkill) && (x.Class.Contains(Xml.Class.Wizard))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Wizard)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Wizard)).Level.Min).ThenBy(x => x.Name).ToList();
+                        spells = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySpell || x.Book == Xml.Book.SecondarySpell || x.Book == Xml.Book.UtilitySpell) && (x.Class.Contains(Xml.Class.Wizard))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Wizard)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Wizard)).Level.Min).ThenBy(x => x.Name).ToList();
+                        @class = Xml.Class.Wizard;
                         break;
                     case 4:
-                        skills = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySkill || x.Book == Xml.Book.SecondarySkill || x.Book == Xml.Book.UtilitySkill) && (x.Class.Contains(Class.Priest))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Class.Priest)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(Class.Priest)).Level.Min).ThenBy(x => x.Name).ToList();
-                        spells = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySpell || x.Book == Xml.Book.SecondarySpell || x.Book == Xml.Book.UtilitySpell) && (x.Class.Contains(Class.Priest))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Class.Priest)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(Class.Priest)).Level.Min).ThenBy(x => x.Name).ToList();
-                        @class = Class.Priest;
+                        skills = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySkill || x.Book == Xml.Book.SecondarySkill || x.Book == Xml.Book.UtilitySkill) && (x.Class.Contains(Xml.Class.Priest))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Priest)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Priest)).Level.Min).ThenBy(x => x.Name).ToList();
+                        spells = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySpell || x.Book == Xml.Book.SecondarySpell || x.Book == Xml.Book.UtilitySpell) && (x.Class.Contains(Xml.Class.Priest))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Priest)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Priest)).Level.Min).ThenBy(x => x.Name).ToList();
+                        @class = Xml.Class.Priest;
                         break;
                     case 5:
-                        skills = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySkill || x.Book == Xml.Book.SecondarySkill || x.Book == Xml.Book.UtilitySkill) && (x.Class.Contains(Class.Monk))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Class.Monk)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(Class.Monk)).Level.Min).ThenBy(x => x.Name).ToList();
-                        spells = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySpell || x.Book == Xml.Book.SecondarySpell || x.Book == Xml.Book.UtilitySpell) && (x.Class.Contains(Class.Monk))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Class.Monk)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(Class.Monk)).Level.Min).ThenBy(x => x.Name).ToList();
-                        @class = Class.Monk;
+                        skills = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySkill || x.Book == Xml.Book.SecondarySkill || x.Book == Xml.Book.UtilitySkill) && (x.Class.Contains(Xml.Class.Monk))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Monk)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Monk)).Level.Min).ThenBy(x => x.Name).ToList();
+                        spells = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySpell || x.Book == Xml.Book.SecondarySpell || x.Book == Xml.Book.UtilitySpell) && (x.Class.Contains(Xml.Class.Monk))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Monk)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Monk)).Level.Min).ThenBy(x => x.Name).ToList();
+                        @class = Xml.Class.Monk;
                         break;
                 }
                 sclass.Nodes.Add("");
@@ -952,9 +951,9 @@ namespace Hybrasyl
                     {
                         desc = skill.Descriptions.FirstOrDefault(x => x.Class.Contains(@class)).Value;
                     }
-                    else if(skill.Descriptions.Any(x => x.Class.Contains(Class.Peasant)))
+                    else if(skill.Descriptions.Any(x => x.Class.Contains(Xml.Class.Peasant)))
                     {
-                        desc = skill.Descriptions.FirstOrDefault(x => x.Class.Contains(Class.Peasant)).Value;
+                        desc = skill.Descriptions.FirstOrDefault(x => x.Class.Contains(Xml.Class.Peasant)).Value;
                     }
                     
                     if(desc == null)
@@ -965,22 +964,22 @@ namespace Hybrasyl
                     var requirements = skill.Requirements.FirstOrDefault(x => x.Class.Contains(@class));
                     if (requirements == null)
                     {
-                        requirements = skill.Requirements.FirstOrDefault(x => x.Class.Contains(Class.Peasant));
+                        requirements = skill.Requirements.FirstOrDefault(x => x.Class.Contains(Xml.Class.Peasant));
                     }
 
-                    List<LearnPrerequisite> prereqs = null;
+                    List<Xml.LearnPrerequisite> prereqs = null;
                     if(requirements != null)
                     {
                         prereqs = requirements.Prerequisites;
                     }
                     else
                     {
-                        requirements = new Requirement();
+                        requirements = new Xml.Requirement();
                     }
 
                     if(requirements.Level == null)
                     {
-                        requirements.Level = new ClassRequirementLevel();
+                        requirements.Level = new Xml.ClassRequirementLevel();
                         requirements.Level.Min = 0;
                     }
 
@@ -1030,9 +1029,9 @@ namespace Hybrasyl
                     {
                         desc = spell.Descriptions.FirstOrDefault(x => x.Class.Contains(@class)).Value;
                     }
-                    else if (spell.Descriptions.Any(x => x.Class.Contains(Class.Peasant)))
+                    else if (spell.Descriptions.Any(x => x.Class.Contains(Xml.Class.Peasant)))
                     {
-                        desc = spell.Descriptions.FirstOrDefault(x => x.Class.Contains(Class.Peasant)).Value;
+                        desc = spell.Descriptions.FirstOrDefault(x => x.Class.Contains(Xml.Class.Peasant)).Value;
                     }
 
                     if (desc == null)
@@ -1043,23 +1042,22 @@ namespace Hybrasyl
                     var requirements = spell.Requirements.FirstOrDefault(x => x.Class.Contains(@class));
                     if (requirements == null)
                     {
-                        requirements = spell.Requirements.FirstOrDefault(x => x.Class.Contains(Class.Peasant));
+                        requirements = spell.Requirements.FirstOrDefault(x => x.Class.Contains(Xml.Class.Peasant));
                     }
 
-                    List<LearnPrerequisite> prereqs = null;
+                    List<Xml.LearnPrerequisite> prereqs = null;
                     if (requirements != null)
                     {
                         prereqs = requirements.Prerequisites;
                     }
                     else
                     {
-                        requirements = new Requirement();
-                        requirements = new Requirement();
+                        requirements = new Xml.Requirement();
                     }
 
                     if (requirements.Level == null)
                     {
-                        requirements.Level = new ClassRequirementLevel();
+                        requirements.Level = new Xml.ClassRequirementLevel();
                         requirements.Level.Min = 0;
                     }
 
@@ -1354,8 +1352,21 @@ namespace Hybrasyl
                 {
                     MerchantMenuItem.DepositGoldQuantity, new MerchantMenuHandler(MerchantJob.Bank, MerchantMenuHandler_DepositGoldQuantity)
                 },
-
-
+                {
+                    MerchantMenuItem.RepairItemMenu, new MerchantMenuHandler(MerchantJob.Repair, MerchantMenuHandler_RepairItemMenu)
+                },
+                {
+                    MerchantMenuItem.RepairItem, new MerchantMenuHandler(MerchantJob.Repair, MerchantMenuHandler_RepairItem)
+                },
+                {
+                    MerchantMenuItem.RepairItemAccept, new MerchantMenuHandler(MerchantJob.Repair, MerchantMenuHandler_RepairItemAccept)
+                },
+                {
+                    MerchantMenuItem.RepairAllItems, new MerchantMenuHandler(MerchantJob.Repair, MerchantMenuHandler_RepairAllItems)
+                },
+                {
+                    MerchantMenuItem.RepairAllItemsAccept, new MerchantMenuHandler(MerchantJob.Repair, MerchantMenuHandler_RepairAllItemsAccept)
+                },
             };
         }
 
@@ -1754,7 +1765,7 @@ namespace Hybrasyl
             // We do it this way to provide maximum flexibility to scripts 
             // (for instance: a reactor that destroys items outright, or damages them
             // before being picked up, etc)
-            Objects.Reactor reactor;
+            Reactor reactor;
             var coordinates = new Tuple<byte, byte>((byte)x, (byte)y);
             if (user.Map.Reactors.TryGetValue(coordinates, out reactor))
             {
@@ -1890,7 +1901,7 @@ namespace Hybrasyl
             toDrop.ItemDropTime = DateTime.Now;
             toDrop.ItemDropType = ItemDropType.Normal;
             // Are we dropping an item onto a reactor?
-            Objects.Reactor reactor;
+            Reactor reactor;
             var coordinates = new Tuple<byte, byte>((byte)x, (byte)y);
             if (user.Map.Reactors.TryGetValue(coordinates, out reactor))
             {
@@ -2420,7 +2431,7 @@ namespace Hybrasyl
             toDrop.ItemDropType = ItemDropType.Normal;
 
             // Are we dropping an item onto a reactor?
-            Objects.Reactor reactor;
+            Reactor reactor;
             var coordinates = new Tuple<byte, byte>((byte)x, (byte)y);
             if (user.Map.Reactors.TryGetValue(coordinates, out reactor))
             {
@@ -4134,6 +4145,31 @@ namespace Hybrasyl
         {
             var amount = Convert.ToUInt32(packet.ReadString8());
             user.WithdrawGoldConfirm(merchant, amount);
+        }
+
+        private void MerchantMenuHandler_RepairItemMenu(User user, Merchant merchant, ClientPacket packet)
+        {
+            user.ShowRepairItemMenu(merchant);
+        }
+        private void MerchantMenuHandler_RepairItem(User user, Merchant merchant, ClientPacket packet)
+        {
+            var slot = packet.ReadByte();
+            user.ShowRepairItem(merchant, slot);
+        }
+
+        private void MerchantMenuHandler_RepairItemAccept(User user, Merchant merchant, ClientPacket packet)
+        {
+            user.ShowRepairItemAccept(merchant);
+        }
+
+        private void MerchantMenuHandler_RepairAllItems(User user, Merchant merchant, ClientPacket packet)
+        {
+            user.ShowRepairAllItems(merchant);
+        }
+
+        private void MerchantMenuHandler_RepairAllItemsAccept(User user, Merchant merchant, ClientPacket packet)
+        {
+            user.ShowRepairAllItemsAccept(merchant);
         }
 
 

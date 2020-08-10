@@ -156,6 +156,8 @@ namespace Hybrasyl.Objects
         public uint PendingMerchantOffer { get; private set; }
         public byte PendingDepositSlot { get; private set; }
         public string PendingWithdrawItem { get; private set; }
+        public byte PendingRepairSlot { get; private set; }
+        public uint PendingRepairCost { get; private set; }
 
         [JsonProperty]
         public string GuildUuid { get; set; }
@@ -3925,6 +3927,302 @@ namespace Hybrasyl.Objects
             {
                 merchant.Say(prompt);
                 SendCloseDialog();
+            }
+        }
+
+        public void ShowRepairItemMenu(Merchant merchant)
+        {
+            var inventoryItems = new UserInventoryItems();
+            inventoryItems.InventorySlots = new List<byte>();
+            inventoryItems.Id = (ushort)MerchantMenuItem.RepairItem;
+            var itemsCount = 0;
+            for (byte i = 0; i < Inventory.Size; i++)
+            {
+                if (Inventory[i] == null) continue;
+                if (Inventory[i].Durability != Inventory[i].MaximumDurability)
+                {
+                    inventoryItems.InventorySlots.Add(i);
+                    itemsCount++;
+                }
+            }
+
+            var prompt = "";
+
+            if (itemsCount > 0)
+            {
+                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "repair_item").Value;
+                var packet = new ServerPacketStructures.MerchantResponse()
+                {
+                    MerchantDialogType = MerchantDialogType.UserInventoryItems,
+                    MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                    ObjectId = merchant.Id,
+                    Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                    Color1 = 0,
+                    Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                    Color2 = 0,
+                    PortraitType = 0,
+                    Name = merchant.Name,
+                    Text = prompt,
+                    UserInventoryItems = inventoryItems
+                };
+                Enqueue(packet.Packet());
+            }
+            else
+            {
+                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "repair_item_none").Value;
+                var options = new MerchantOptions();
+                options.Options = new List<MerchantDialogOption>();
+                var packet = new ServerPacketStructures.MerchantResponse()
+                {
+                    MerchantDialogType = MerchantDialogType.Options,
+                    MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                    ObjectId = merchant.Id,
+                    Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                    Color1 = 0,
+                    Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                    Color2 = 0,
+                    PortraitType = 0,
+                    Name = merchant.Name,
+                    Text = prompt,
+                    Options = options
+                };
+                Enqueue(packet.Packet());
+            }
+        }
+
+        public void ShowRepairItem(Merchant merchant, byte slot)
+        {
+            var prompt = "";
+            var item = Inventory[slot];
+
+            PendingRepairSlot = slot;
+
+            PendingRepairCost = (uint)Math.Ceiling(item.Value - (item.Durability / item.MaximumDurability * item.Value));
+
+            var options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
+
+            if(PendingRepairCost <=1)
+            {
+                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "repair_item_nocost").Value;
+            }
+            else
+            {
+                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "repair_item_cost").Value.Replace("$COINS", PendingRepairCost.ToString());
+                options.Options.Add(new MerchantDialogOption()
+                {
+                    Id = (ushort)MerchantMenuItem.RepairItemAccept,
+                    Text = "Yes"
+                });
+                options.Options.Add(new MerchantDialogOption()
+                {
+                    Id = (ushort)MerchantMenuItem.MainMenu,
+                    Text = "No"
+                });
+            }
+
+            var packet = new ServerPacketStructures.MerchantResponse()
+            {
+                MerchantDialogType = MerchantDialogType.Options,
+                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                ObjectId = merchant.Id,
+                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Color1 = 0,
+                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Color2 = 0,
+                PortraitType = 0,
+                Name = merchant.Name,
+                Text = prompt,
+                Options = options
+            };
+            Enqueue(packet.Packet());
+        }
+
+        public void ShowRepairItemAccept(Merchant merchant)
+        {
+            if(Gold < PendingRepairCost)
+            {
+                var prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "repair_item_fail").Value;
+                var options = new MerchantOptions();
+                options.Options = new List<MerchantDialogOption>();
+
+                var packet = new ServerPacketStructures.MerchantResponse()
+                {
+                    MerchantDialogType = MerchantDialogType.Options,
+                    MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                    ObjectId = merchant.Id,
+                    Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                    Color1 = 0,
+                    Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                    Color2 = 0,
+                    PortraitType = 0,
+                    Name = merchant.Name,
+                    Text = prompt,
+                    Options = options
+                };
+                Enqueue(packet.Packet());
+            }
+            else
+            {
+                RemoveGold(PendingRepairCost);
+                Inventory[PendingRepairSlot].Durability = Inventory[PendingRepairSlot].MaximumDurability;
+                PendingRepairSlot = 0;
+                PendingRepairCost = 0;
+                DisplayPursuits(this);
+            }
+        }
+
+        public void ShowRepairAllItems(Merchant merchant)
+        {
+            var prompt = "";
+            var repairableCount = 0;
+
+            for (byte i = 0; i < Inventory.Size; i++)
+            {
+                if (Inventory[i] == null) continue;
+                if (Inventory[i].Durability != Inventory[i].MaximumDurability)
+                {
+                    var item = Inventory[i];
+                    PendingRepairCost += (uint)Math.Ceiling(item.Value - (item.Durability / item.MaximumDurability * item.Value));
+                    repairableCount++;
+                }
+            }
+
+            for(byte i = 0; i < Equipment.Size; i++)
+            {
+                if (Equipment[i] == null) continue;
+                if (Equipment[i].Durability != Equipment[i].MaximumDurability)
+                {
+                    var item = Equipment[i];
+                    PendingRepairCost += (uint)Math.Ceiling(item.Value - (item.Durability / item.MaximumDurability * item.Value));
+                    repairableCount++;
+                }
+            }
+
+            var options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
+
+            if (repairableCount > 0)
+            {
+
+                if (PendingRepairCost <= 1)
+                {
+                    prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "repair_item_nocost").Value;
+                }
+                else
+                {
+                    prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "repair_all_items_cost").Value.Replace("$COINS", PendingRepairCost.ToString());
+                    options.Options.Add(new MerchantDialogOption()
+                    {
+                        Id = (ushort)MerchantMenuItem.RepairAllItemsAccept,
+                        Text = "Yes"
+                    });
+                    options.Options.Add(new MerchantDialogOption()
+                    {
+                        Id = (ushort)MerchantMenuItem.MainMenu,
+                        Text = "No"
+                    });
+                }
+
+                var packet = new ServerPacketStructures.MerchantResponse()
+                {
+                    MerchantDialogType = MerchantDialogType.Options,
+                    MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                    ObjectId = merchant.Id,
+                    Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                    Color1 = 0,
+                    Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                    Color2 = 0,
+                    PortraitType = 0,
+                    Name = merchant.Name,
+                    Text = prompt,
+                    Options = options
+                };
+                Enqueue(packet.Packet());
+            }
+            else
+            {
+                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "repair_item_none").Value;
+                var packet = new ServerPacketStructures.MerchantResponse()
+                {
+                    MerchantDialogType = MerchantDialogType.Options,
+                    MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                    ObjectId = merchant.Id,
+                    Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                    Color1 = 0,
+                    Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                    Color2 = 0,
+                    PortraitType = 0,
+                    Name = merchant.Name,
+                    Text = prompt,
+                    Options = options
+                };
+                Enqueue(packet.Packet());
+            }
+        }
+
+        public void ShowRepairAllItemsAccept(Merchant merchant)
+        {
+            var prompt = "";
+            var options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
+            if (Gold < PendingRepairCost)
+            {
+                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "repair_item_fail").Value;
+
+                var packet = new ServerPacketStructures.MerchantResponse()
+                {
+                    MerchantDialogType = MerchantDialogType.Options,
+                    MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                    ObjectId = merchant.Id,
+                    Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                    Color1 = 0,
+                    Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                    Color2 = 0,
+                    PortraitType = 0,
+                    Name = merchant.Name,
+                    Text = prompt,
+                    Options = options
+                };
+                Enqueue(packet.Packet());
+            }
+            else
+            {
+                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "repair_all_items_success").Value;
+                RemoveGold(PendingRepairCost);
+                PendingRepairCost = 0;
+                for (byte i = 0; i < Inventory.Size; i++)
+                {
+                    if (Inventory[i] == null) continue;
+                    if (Inventory[i].Durability != Inventory[i].MaximumDurability)
+                    {
+                        Inventory[i].Durability = Inventory[i].MaximumDurability;
+                    }
+                }
+
+                for (byte i = 0; i < Equipment.Size; i++)
+                {
+                    if (Equipment[i] == null) continue;
+                    if (Equipment[i].Durability != Inventory[i].MaximumDurability)
+                    {
+                        Equipment[i].Durability = Equipment[i].MaximumDurability;
+                    }
+                }
+                var packet = new ServerPacketStructures.MerchantResponse()
+                {
+                    MerchantDialogType = MerchantDialogType.Options,
+                    MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                    ObjectId = merchant.Id,
+                    Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                    Color1 = 0,
+                    Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                    Color2 = 0,
+                    PortraitType = 0,
+                    Name = merchant.Name,
+                    Text = prompt,
+                    Options = options
+                };
+                Enqueue(packet.Packet());
             }
         }
 
