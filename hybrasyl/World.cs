@@ -37,6 +37,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Timers;
@@ -909,38 +910,171 @@ namespace Hybrasyl
             #endregion ItemInfo
 
             #region SClass
-
             for (int i = 1; i <= 5; ++i)
             {
                 var sclass = new Metafile("SClass" + i);
+                
+                List<Xml.Castable> skills = null;
+                List<Xml.Castable> spells = null;
+                Xml.Class @class = (Xml.Class)i;
+
+                skills = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySkill || x.Book == Xml.Book.SecondarySkill || x.Book == Xml.Book.UtilitySkill) && (x.Class.Contains(Xml.Class.Warrior))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Warrior)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)).Level.Min).ThenBy(x => x.Name).ToList();
+                spells = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySpell || x.Book == Xml.Book.SecondarySpell || x.Book == Xml.Book.UtilitySpell) && (x.Class.Contains(Xml.Class.Warrior))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Warrior)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)).Level.Min).ThenBy(x => x.Name).ToList();
+
+                sclass.Nodes.Add("");
                 sclass.Nodes.Add("Skill");
-                foreach (var skill in WorldData.Values<Xml.Castable>().Where(x => x.Book == Xml.Book.PrimarySkill || x.Book == Xml.Book.SecondarySkill || x.Book == Xml.Book.UtilitySkill))
-                // placeholder; change to skills where class == i, are learnable from trainer, and sort by level
+                foreach (var skill in skills)
                 {
+                    var desc = "";
+                    if(skill.Descriptions.Any(x => x.Class.Contains(@class)))
+                    {
+                        desc = skill.Descriptions.FirstOrDefault(x => x.Class.Contains(@class)).Value;
+                    }
+                    else if(skill.Descriptions.Any(x => x.Class.Contains(Xml.Class.Peasant)))
+                    {
+                        desc = skill.Descriptions.FirstOrDefault(x => x.Class.Contains(Xml.Class.Peasant)).Value;
+                    }
+                    
+                    if(desc == null)
+                    {
+                        desc = "";
+                    }
+
+                    var requirements = skill.Requirements.FirstOrDefault(x => x.Class.Contains(@class));
+                    if (requirements == null)
+                    {
+                        requirements = skill.Requirements.FirstOrDefault(x => x.Class.Contains(Xml.Class.Peasant));
+                    }
+
+                    List<Xml.LearnPrerequisite> prereqs = null;
+                    if(requirements != null)
+                    {
+                        prereqs = requirements.Prerequisites;
+                    }
+                    else
+                    {
+                        requirements = new Xml.Requirement();
+                    }
+
+                    if(requirements.Level == null)
+                    {
+                        requirements.Level = new Xml.ClassRequirementLevel();
+                        requirements.Level.Min = 0;
+                    }
+
+                    
+                    var prereq1 = "0";
+                    var prereq1level = "0";
+                    var prereq2 = "0";
+                    var prereq2level = "0";
+                    if(prereqs != null)
+                    {
+                        if(prereqs.Count <= 2 && prereqs.Count > 0)
+                        {
+                            if (prereqs[0] != null)
+                            {
+                                prereq1 = prereqs[0].Value;
+                                prereq1level = $"{ prereqs[0].Level}";
+                            }
+                            if (prereqs.Count == 2)
+                            {
+                                if (prereqs[1] != null)
+                                {
+                                    prereq2 = prereqs[1].Value;
+                                    prereq2level = $"{ prereqs[1].Level}";
+                                }
+                            }
+                        }
+                    }
+
                     sclass.Nodes.Add(new MetafileNode(skill.Name,
-                        string.Format("{0}/{1}/{2}", 0, 0, 0), // req level, master (0/1), req ab
+                        string.Format("{0}/{1}/{2}",requirements.Level.Min == 0 ? 1 : requirements.Level.Min, 0, requirements.Ab != null ? (requirements.Ab.Min == 0 ? 1 : requirements.Ab.Min) : 0), // req level, master (0/1), req ab
                         string.Format("{0}/{1}/{2}", 0, 0, 0), // skill icon, x position (defunct), y position (defunct)
-                        string.Format("{0}/{1}/{2}/{3}/{4}", 3, 3, 3, 3, 3),
+                        string.Format("{0}/{1}/{2}/{3}/{4}", requirements?.Physical == null ? 3 : requirements.Physical.Str, requirements?.Physical == null ? 3 : requirements.Physical.Dex, requirements?.Physical == null ? 3 : requirements.Physical.Int, requirements?.Physical == null ? 3 : requirements.Physical.Wis, requirements?.Physical == null ? 3 : requirements.Physical.Con),
                         // str, dex, int, wis, con (not a typo, dex after str)
-                        string.Format("{0}/{1}", 0, 0), // req skill 1 (skill name or 0 for none), req skill 1 level
-                        string.Format("{0}/{1}", 0, 0) // req skill 2 (skill name or 0 for none), req skill 2 level
+                        string.Format("{0}/{1}", prereq1, prereq1level), // req skill 1 (skill name or 0 for none), req skill 1 level
+                        string.Format("{0}/{1}", prereq2, prereq2level), // req skill 2 (skill name or 0 for none), req skill 2 level
+                        desc
                         ));
                 }
-                sclass.Nodes.Add("Skill_End");
+                sclass.Nodes.Add(new MetafileNode("Skill_End", ""));
+                sclass.Nodes.Add("");
                 sclass.Nodes.Add("Spell");
-                foreach (var spell in WorldData.Values<Xml.Castable>().Where(x => x.Book == Xml.Book.PrimarySpell || x.Book == Xml.Book.SecondarySpell || x.Book == Xml.Book.UtilitySpell))
+                foreach (var spell in spells)
                 // placeholder; change to skills where class == i, are learnable from trainer, and sort by level
                 {
+                    var desc = "";
+                    if (spell.Descriptions.Any(x => x.Class.Contains(@class)))
+                    {
+                        desc = spell.Descriptions.FirstOrDefault(x => x.Class.Contains(@class)).Value;
+                    }
+                    else if (spell.Descriptions.Any(x => x.Class.Contains(Xml.Class.Peasant)))
+                    {
+                        desc = spell.Descriptions.FirstOrDefault(x => x.Class.Contains(Xml.Class.Peasant)).Value;
+                    }
+
+                    if (desc == null)
+                    {
+                        desc = "";
+                    }
+
+                    var requirements = spell.Requirements.FirstOrDefault(x => x.Class.Contains(@class));
+                    if (requirements == null)
+                    {
+                        requirements = spell.Requirements.FirstOrDefault(x => x.Class.Contains(Xml.Class.Peasant));
+                    }
+
+                    List<Xml.LearnPrerequisite> prereqs = null;
+                    if (requirements != null)
+                    {
+                        prereqs = requirements.Prerequisites;
+                    }
+                    else
+                    {
+                        requirements = new Xml.Requirement();
+                    }
+
+                    if (requirements.Level == null)
+                    {
+                        requirements.Level = new Xml.ClassRequirementLevel();
+                        requirements.Level.Min = 0;
+                    }
+
+                    var prereq1 = "0";
+                    var prereq1level = "0";
+                    var prereq2 = "0";
+                    var prereq2level = "0";
+                    if (prereqs != null)
+                    {
+                        if (prereqs.Count <= 2 && prereqs.Count > 0)
+                        {
+                            if (prereqs[0] != null)
+                            {
+                                prereq1 = prereqs[0].Value;
+                                prereq1level = $"{ prereqs[0].Level}";
+                            }
+                            if (prereqs.Count == 2)
+                            {
+                                if (prereqs[1] != null)
+                                {
+                                    prereq2 = prereqs[1].Value;
+                                    prereq2level = $"{ prereqs[1].Level}";
+                                }
+                            }
+                        }
+                    }
+
                     sclass.Nodes.Add(new MetafileNode(spell.Name,
-                        string.Format("{0}/{1}/{2}", 0, 0, 0), // req level, master (0/1), req ab
+                        string.Format("{0}/{1}/{2}", requirements.Level.Min == 0 ? 1 : requirements.Level.Min, 0, requirements.Ab != null ? (requirements.Ab.Min == 0 ? 1 : requirements.Ab.Min) : 0), // req level, master (0/1), req ab
                         string.Format("{0}/{1}/{2}", 0, 0, 0), // spell icon, x position (defunct), y position (defunct)
-                        string.Format("{0}/{1}/{2}/{3}/{4}", 3, 3, 3, 3, 3),
+                        string.Format("{0}/{1}/{2}/{3}/{4}", requirements?.Physical == null ? 3 : requirements.Physical.Str, requirements?.Physical == null ? 3 : requirements.Physical.Dex, requirements?.Physical == null ? 3 : requirements.Physical.Int, requirements?.Physical == null ? 3 : requirements.Physical.Wis, requirements?.Physical == null ? 3 : requirements.Physical.Con),
                         // str, dex, int, wis, con (not a typo, dex after str)
-                        string.Format("{0}/{1}", 0, 0), // req spell 1 (spell name or 0 for none), req spell 1 level
-                        string.Format("{0}/{1}", 0, 0) // req spell 2 (spell name or 0 for none), req spell 2 level
+                        string.Format("{0}/{1}", prereq1, prereq1level), // req spell 1 (spell name or 0 for none), req skill 1 level
+                        string.Format("{0}/{1}", prereq2, prereq2level), // req spell 2 (spell name or 0 for none), req skill 2 level
+                        desc
                         ));
                 }
-                sclass.Nodes.Add("Spell_End");
+                sclass.Nodes.Add(new MetafileNode("Spell_End", ""));
                 WorldData.Set(sclass.Name, sclass.Compile());
             }
 
@@ -1186,8 +1320,21 @@ namespace Hybrasyl
                 {
                     MerchantMenuItem.DepositGoldQuantity, new MerchantMenuHandler(MerchantJob.Bank, MerchantMenuHandler_DepositGoldQuantity)
                 },
-
-
+                {
+                    MerchantMenuItem.RepairItemMenu, new MerchantMenuHandler(MerchantJob.Repair, MerchantMenuHandler_RepairItemMenu)
+                },
+                {
+                    MerchantMenuItem.RepairItem, new MerchantMenuHandler(MerchantJob.Repair, MerchantMenuHandler_RepairItem)
+                },
+                {
+                    MerchantMenuItem.RepairItemAccept, new MerchantMenuHandler(MerchantJob.Repair, MerchantMenuHandler_RepairItemAccept)
+                },
+                {
+                    MerchantMenuItem.RepairAllItems, new MerchantMenuHandler(MerchantJob.Repair, MerchantMenuHandler_RepairAllItems)
+                },
+                {
+                    MerchantMenuItem.RepairAllItemsAccept, new MerchantMenuHandler(MerchantJob.Repair, MerchantMenuHandler_RepairAllItemsAccept)
+                },
             };
         }
 
@@ -2293,7 +2440,7 @@ namespace Hybrasyl
             toDrop.ItemDropType = ItemDropType.Normal;
 
             // Are we dropping an item onto a reactor?
-            Objects.Reactor reactor;
+            Reactor reactor;
             var coordinates = new Tuple<byte, byte>((byte)x, (byte)y);
             if (user.Map.Reactors.TryGetValue(coordinates, out reactor))
             {
@@ -2524,9 +2671,9 @@ namespace Hybrasyl
                     else
                         exchange.AddItem(user, itemSlot, quantity);
                 }
-                else if (target is Creature && user.IsInViewport((VisibleObject)target))
+                else if (target is Objects.Creature && user.IsInViewport((VisibleObject)target))
                 {
-                    var creature = (Creature)target;
+                    var creature = (Objects.Creature)target;
                     var item = user.Inventory[itemSlot];
                     if (item != null)
                     {
@@ -4018,6 +4165,31 @@ namespace Hybrasyl
         {
             var amount = Convert.ToUInt32(packet.ReadString8());
             user.WithdrawGoldConfirm(merchant, amount);
+        }
+
+        private void MerchantMenuHandler_RepairItemMenu(User user, Merchant merchant, ClientPacket packet)
+        {
+            user.ShowRepairItemMenu(merchant);
+        }
+        private void MerchantMenuHandler_RepairItem(User user, Merchant merchant, ClientPacket packet)
+        {
+            var slot = packet.ReadByte();
+            user.ShowRepairItem(merchant, slot);
+        }
+
+        private void MerchantMenuHandler_RepairItemAccept(User user, Merchant merchant, ClientPacket packet)
+        {
+            user.ShowRepairItemAccept(merchant);
+        }
+
+        private void MerchantMenuHandler_RepairAllItems(User user, Merchant merchant, ClientPacket packet)
+        {
+            user.ShowRepairAllItems(merchant);
+        }
+
+        private void MerchantMenuHandler_RepairAllItemsAccept(User user, Merchant merchant, ClientPacket packet)
+        {
+            user.ShowRepairAllItemsAccept(merchant);
         }
 
 
