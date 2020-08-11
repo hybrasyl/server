@@ -903,48 +903,20 @@ namespace Hybrasyl
             #endregion ItemInfo
 
             #region SClass
-            //warrior = 1, rogue = 2, wizard = 3, priest = 4  monk = 5
             for (int i = 1; i <= 5; ++i)
             {
                 var sclass = new Metafile("SClass" + i);
                 
                 List<Xml.Castable> skills = null;
                 List<Xml.Castable> spells = null;
-                Xml.Class @class = Xml.Class.Peasant;
+                Xml.Class @class = (Xml.Class)i;
 
+                skills = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySkill || x.Book == Xml.Book.SecondarySkill || x.Book == Xml.Book.UtilitySkill) && (x.Class.Contains(Xml.Class.Warrior))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Warrior)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)).Level.Min).ThenBy(x => x.Name).ToList();
+                spells = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySpell || x.Book == Xml.Book.SecondarySpell || x.Book == Xml.Book.UtilitySpell) && (x.Class.Contains(Xml.Class.Warrior))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Warrior)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)).Level.Min).ThenBy(x => x.Name).ToList();
 
-                switch(i)
-                {
-                    case 1:
-                        skills = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySkill || x.Book == Xml.Book.SecondarySkill || x.Book == Xml.Book.UtilitySkill) && (x.Class.Contains(Xml.Class.Warrior))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Warrior)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Warrior)).Level.Min).ThenBy(x => x.Name).ToList();
-                        spells = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySpell || x.Book == Xml.Book.SecondarySpell || x.Book == Xml.Book.UtilitySpell) && (x.Class.Contains(Xml.Class.Warrior))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Warrior)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Warrior)).Level.Min).ThenBy(x => x.Name).ToList();
-                        @class = Xml.Class.Warrior;
-                        break;
-                    case 2:
-                        skills = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySkill || x.Book == Xml.Book.SecondarySkill || x.Book == Xml.Book.UtilitySkill) && (x.Class.Contains(Xml.Class.Rogue))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Rogue)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Rogue)).Level.Min).ThenBy(x => x.Name).ToList();
-                        spells = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySpell || x.Book == Xml.Book.SecondarySpell || x.Book == Xml.Book.UtilitySpell) && (x.Class.Contains(Xml.Class.Rogue))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Rogue)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Rogue)).Level.Min).ThenBy(x => x.Name).ToList();
-                        @class = Xml.Class.Rogue;
-                        break;
-                    case 3:
-                        skills = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySkill || x.Book == Xml.Book.SecondarySkill || x.Book == Xml.Book.UtilitySkill) && (x.Class.Contains(Xml.Class.Wizard))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Wizard)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Wizard)).Level.Min).ThenBy(x => x.Name).ToList();
-                        spells = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySpell || x.Book == Xml.Book.SecondarySpell || x.Book == Xml.Book.UtilitySpell) && (x.Class.Contains(Xml.Class.Wizard))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Wizard)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Wizard)).Level.Min).ThenBy(x => x.Name).ToList();
-                        @class = Xml.Class.Wizard;
-                        break;
-                    case 4:
-                        skills = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySkill || x.Book == Xml.Book.SecondarySkill || x.Book == Xml.Book.UtilitySkill) && (x.Class.Contains(Xml.Class.Priest))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Priest)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Priest)).Level.Min).ThenBy(x => x.Name).ToList();
-                        spells = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySpell || x.Book == Xml.Book.SecondarySpell || x.Book == Xml.Book.UtilitySpell) && (x.Class.Contains(Xml.Class.Priest))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Priest)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Priest)).Level.Min).ThenBy(x => x.Name).ToList();
-                        @class = Xml.Class.Priest;
-                        break;
-                    case 5:
-                        skills = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySkill || x.Book == Xml.Book.SecondarySkill || x.Book == Xml.Book.UtilitySkill) && (x.Class.Contains(Xml.Class.Monk))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Monk)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Monk)).Level.Min).ThenBy(x => x.Name).ToList();
-                        spells = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySpell || x.Book == Xml.Book.SecondarySpell || x.Book == Xml.Book.UtilitySpell) && (x.Class.Contains(Xml.Class.Monk))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Monk)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Monk)).Level.Min).ThenBy(x => x.Name).ToList();
-                        @class = Xml.Class.Monk;
-                        break;
-                }
                 sclass.Nodes.Add("");
                 sclass.Nodes.Add("Skill");
                 foreach (var skill in skills)
-                // placeholder; change to skills where class == i, are learnable from trainer, and sort by level
                 {
                     var desc = "";
                     if(skill.Descriptions.Any(x => x.Class.Contains(@class)))
