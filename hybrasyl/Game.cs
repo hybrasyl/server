@@ -31,6 +31,9 @@ using Serilog;
 using AssemblyInfo = Hybrasyl.Utility.AssemblyInfo;
 using Serilog.Core;
 using Serilog.Events;
+using System.Threading.Tasks;
+using System.Net.Http;
+using Newtonsoft.Json.Linq;
 
 namespace Hybrasyl
 {
@@ -288,6 +291,8 @@ namespace Hybrasyl
             _spawnThread.Start();
             _controlThread.Start();
 
+            Task.Run(CheckVersion).GetAwaiter();
+
             while (true)
             {
                 if (!IsActive())
@@ -300,6 +305,35 @@ namespace Hybrasyl
             
             Shutdown();
 
+        }
+
+        private async static void CheckVersion()
+        {
+            try
+            {
+                using HttpClient client = new HttpClient();
+                using HttpResponseMessage res = await client.GetAsync("https://www.hybrasyl.com/builds/latest.json");
+                using HttpContent content = res.Content;
+
+                var data = await content.ReadAsStringAsync();
+                var jsonobj = JObject.Parse(data);
+                var versioninfo = Assemblyinfo.GitHash.Split(';');
+                var ourhash = versioninfo[0].Replace("commit ","").Substring(0, 8).ToLower();
+                var theirhash = jsonobj["commit"].ToString().Substring(0, 8).ToLower();
+                if (theirhash != ourhash)
+                {
+                    GameLog.Warning("THIS VERSION OF HYBRASYL IS OUT OF DATE");
+                    GameLog.Warning($"You have {ourhash} but {theirhash} is available as of {jsonobj["build_date"]}");
+                    GameLog.Warning($"You can download the new version at https://www.hybrasyl.com/builds/ .");
+                }
+                else
+                    GameLog.Info("This version of Hybrasyl is up to date!");
+            }
+            catch (Exception e)
+            {
+                GameLog.Error("An error occurred checking if server updates are available {e}",e);
+            }
+           
         }
 
         private static void LoadCollisions()

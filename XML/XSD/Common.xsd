@@ -268,6 +268,7 @@
               <xs:enumeration value="Unique" />
               <xs:enumeration value="Master" />
               <xs:enumeration value="Unique-Equipped" />
+              <xs:enumeration value="Identifiable"/>
             </xs:restriction>
           </xs:simpleType>
         </xs:list>

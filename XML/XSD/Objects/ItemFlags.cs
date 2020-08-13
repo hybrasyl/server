@@ -39,6 +39,7 @@ public enum ItemFlags
     [XmlEnumAttribute("Unique-Equipped")]
     [EnumMember(Value="Unique-Equipped")]
     UniqueEquipped = 2048,
+    Identifiable = 4096,
 }
 }
 #pragma warning restore

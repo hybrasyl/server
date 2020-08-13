@@ -109,6 +109,7 @@ namespace Hybrasyl.Objects
             // FIXME: in the glorious future, run asynchronously with locking
             if (World.ScriptProcessor.TryGetScript(Name, out Script damageScript))
             {
+                damageScript.AssociateScriptWithObject(this);
                 damageScript.SetGlobalValue("damage", damage);
                 damageScript.ExecuteFunction("OnDamage", this, attacker);
             }
@@ -119,6 +120,7 @@ namespace Hybrasyl.Objects
             // FIXME: in the glorious future, run asynchronously with locking
             if (World.ScriptProcessor.TryGetScript(Name, out Script healScript))
             {
+                healScript.AssociateScriptWithObject(this);
                 healScript.SetGlobalValue("heal", heal);
                 healScript.ExecuteFunction("OnHeal", this, healer);
             }

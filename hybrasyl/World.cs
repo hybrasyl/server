@@ -338,7 +338,7 @@ namespace Hybrasyl
                     var map = new Map(newMap, this);
                     if (!WorldData.SetWithIndex(map.Id, map, map.Name))
                         GameLog.ErrorFormat("SetWithIndex fail for {map.Name}..?");
-                    GameLog.InfoFormat("Maps: Loaded {0}", map.Name);
+                    GameLog.Info("Maps: Loaded {filename} ({mapname})", Path.GetFileName(xml), map.Name);
                 }
                 catch (Exception e)
                 {
@@ -4281,7 +4281,7 @@ namespace Hybrasyl
                 catch (InvalidOperationException e)
                 {
                     if (!MessageQueue.IsCompleted)
-                        GameLog.Error($"QUEUE CONSUMER: EXCEPTION RAISED: {e}");
+                        GameLog.Error($"QUEUE CONSUMER: EXCEPTION RAISED: {e}", e);
                     continue;
                 }
 

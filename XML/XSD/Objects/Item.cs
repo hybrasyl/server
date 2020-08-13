@@ -29,6 +29,7 @@ public partial class Item
 {
     #region Private fields
     private string _name;
+    private string _unidentifiedName;
     private string _comment;
     private ItemProperties _properties;
     private static XmlSerializer _serializer;
@@ -49,6 +50,19 @@ public partial class Item
         set
         {
             _name = value;
+        }
+    }
+    
+    [StringLengthAttribute(255, MinimumLength=1)]
+    public string UnidentifiedName
+    {
+        get
+        {
+            return _unidentifiedName;
+        }
+        set
+        {
+            _unidentifiedName = value;
         }
     }
     

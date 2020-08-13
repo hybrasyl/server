@@ -235,6 +235,7 @@
   <xs:complexType name="Item">
     <xs:sequence>
       <xs:element name="Name" minOccurs="1" maxOccurs="1" type="hyb:String8" />
+      <xs:element name="UnidentifiedName" minOccurs="0" maxOccurs="1" type="hyb:String8"/>
       <xs:element name="Comment" minOccurs="0" maxOccurs="1" type="hyb:String16" />
       <xs:element name="Properties" minOccurs="1" maxOccurs="1" type="hyb:ItemProperties" />
     </xs:sequence>
