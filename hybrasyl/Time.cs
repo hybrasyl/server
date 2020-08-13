@@ -148,6 +148,8 @@ namespace Hybrasyl
 
         public static string CurrentAgeName => CurrentAge.Name;
 
+        public static string CurrentSeason => Now.Season;
+
         public static Xml.HybrasylAge CurrentAge
         {
             get

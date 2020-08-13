@@ -52,6 +52,16 @@ namespace Hybrasyl.Scripting
             }
         }
 
+        public string LocationDescription
+        {
+            get
+            {
+                if (Obj is VisibleObject vo)
+                    return $"{vo.Map.Name} @ ({vo.X},{vo.Y}";
+                return "Not on a map";
+            }
+        }
+
         /// <summary>
         /// The name of the object.
         /// </summary>
@@ -62,7 +72,7 @@ namespace Hybrasyl.Scripting
                 if (Obj is ItemObject item)
                     return item.Name;
                 else
-                    return Name;
+                    return Obj.Name;
             }
         }
         /// <summary>
@@ -85,6 +95,11 @@ namespace Hybrasyl.Scripting
         /// <param name="invoker">The object invoking the pursuit list (e.g. a player that clicked on the NPC, item, etc)</param>
         public void DisplayPursuits(dynamic invoker)
         {
+            if (invoker is null)
+            {
+                GameLog.ScriptingError("DisplayPursuits: invoker was null, ignoring");
+                return;
+            }
             if (Obj is Merchant || Obj is Reactor)
             {
                 var merchant = Obj as VisibleObject;
@@ -113,6 +128,10 @@ namespace Hybrasyl.Scripting
         /// <param name="hybrasylSequence"></param>
         public void AddPursuit(HybrasylDialogSequence hybrasylSequence)
         {
+            if (hybrasylSequence is null || hybrasylSequence.Sequence.Dialogs.Count == 0)
+            {
+                GameLog.ScriptingError("AddPursuit: Dialog sequence (first argument) was null or sequence was empty (no dialogs)");
+            }
             if (Obj is VisibleObject && !(Obj is User))
             {
                 var vobj = Obj as VisibleObject;
@@ -130,6 +149,11 @@ namespace Hybrasyl.Scripting
         /// <param name="value">The value (dynamic) we want to store</param>
         public void SetEphemeral(string key, dynamic value)
         {
+            if (string.IsNullOrEmpty(key) || value is null)
+            {
+                GameLog.ScriptingError("SetEphemeral: key (first argument) or value (second argument) was null or empty, ignoring");
+                return;
+            }
             Obj.SetEphemeral(key, value);
             GameLog.ScriptingInfo("{Function}: {Name}, stored key {Key} with value {Value}",
                     MethodInfo.GetCurrentMethod().Name, Obj.Name, key, value);
@@ -139,8 +163,17 @@ namespace Hybrasyl.Scripting
         /// Remove the specified key from the object's ephemeral store.
         /// </summary>
         /// <param name="key"></param>
-        public void ClearEphemeral(string key) => Obj.ClearEphemeral(key);
-        
+        public void ClearEphemeral(string key) 
+        {
+            if (string.IsNullOrEmpty(key))
+            {
+                GameLog.ScriptingError("ClearEphemeral: key (first argument) was null or empty, ignoring");
+                return;
+            }
+            Obj.ClearEphemeral(key);
+
+        }
+
         /// <summary>
         /// Get the value of a specified key from the object's ephemeral store.
         /// </summary>
@@ -148,6 +181,11 @@ namespace Hybrasyl.Scripting
         /// <returns></returns>
         public dynamic GetEphemeral(string key)
         {
+            if (string.IsNullOrEmpty(key))
+            {
+                GameLog.ScriptingError("GetEphemeral: key (first argument) was null or empty, returning nil");
+                return DynValue.Nil;
+            }
             if (Obj.TryGetEphemeral(key, out dynamic value))
                 return value;
             else return DynValue.Nil;
@@ -160,9 +198,9 @@ namespace Hybrasyl.Scripting
         /// <param name="hybrasylSequence"></param>
         public void RegisterSequence(HybrasylDialogSequence hybrasylSequence)
         {
-            if (hybrasylSequence is null)
+            if (hybrasylSequence is null || hybrasylSequence.Sequence.Dialogs.Count == 0)
             {
-                GameLog.Error("RegisterSequence called with null/nil value. Check Lua");
+                GameLog.Error("RegisterSequence: sequence (first argument) was null or contained no dialogs, ignoring");
                 return;       
             }
             if (Obj is VisibleObject && !(Obj is User))
@@ -177,8 +215,27 @@ namespace Hybrasyl.Scripting
         /// </summary>
         /// <param name="target">The target object</param>
         /// <returns></returns>
-        public int Distance(HybrasylWorldObject target) => Obj.Distance(target.Obj);
-
+        public int Distance(HybrasylWorldObject target)
+        {
+            if (target is null)
+            {
+                GameLog.ScriptingError("Distance: target (first argument) was null, returning -1");
+                return -1;
+            }
+            if (target.Obj is VisibleObject v1 && Obj is VisibleObject v2)
+            {
+                if (v1.Map.Id == v2.Map.Id)
+                    return Obj.Distance(target.Obj);
+                else
+                {
+                    GameLog.ScriptingError("Distance: target (first argument, {targetname}) not on same map as {thisname}, returning -1",
+                        v1.Name, v2.Name);
+                }
+            }
+            else
+                GameLog.ScriptingError("Distance: either target (first argument) or this object was not a VisibleObject (not on a map), returning -1");
+            return -1;
+        }
         /// <summary>
         /// Set the default sprite for this world object to a specified creature sprite.
         /// </summary>
@@ -187,6 +244,8 @@ namespace Hybrasyl.Scripting
         {
             if (Obj is VisibleObject vobj)
                 vobj.DialogSprite = (ushort)(0x4000 + displaySprite);
+            else
+                GameLog.ScriptingError("SetNpcDisplaySprite: underlying object is not a visible object, ignoring");
         }
 
         /// <summary>
@@ -197,12 +256,16 @@ namespace Hybrasyl.Scripting
         {
             if (Obj is VisibleObject vobj)
                 vobj.DialogSprite = (ushort)(0x4000 + displaySprite);
+            else
+                GameLog.ScriptingError("SetItemDisplaySprite: underlying object is not a visible object, ignoring");
         }
 
         public void SetCreatureDisplaySprite(int displaySprite)
         {
             if (Obj is Monster monster)
                 monster.Sprite = (ushort)displaySprite;
+            else
+                GameLog.ScriptingError("SetCreatureDisplaySprite: underlying object is not a monster, ignoring");
         }
 
         public int GetCreatureDisplaySprite()
@@ -222,7 +285,12 @@ namespace Hybrasyl.Scripting
         /// <returns>Boolean indicating success</returns>
         public bool RequestDialog(string player, string sequence, bool requireLocal = true)
         {
-            
+            if (string.IsNullOrEmpty(player) || string.IsNullOrEmpty(sequence))
+            {
+                GameLog.ScriptingError("RequestDialog: player (first argument) or sequence (second argument) was null or empty, returning false");
+                return false;
+            }
+
             DialogSequence seq;
             if (Game.World.TryGetActiveUser(player, out User user))
             {
@@ -230,7 +298,11 @@ namespace Hybrasyl.Scripting
                     Game.World.GlobalSequences.TryGetValue(sequence, out seq))
                     // TODO: fix this awful object hierarchy nonsense
                     return Game.World.TryAsyncDialog(Obj as VisibleObject, user, seq);
+                else
+                    GameLog.ScriptingError("RequestDialog: {player} - sequence {sequence} was not found", user.Name, sequence);
             }
+            else
+                GameLog.ScriptingWarning("RequestDialog: {player} is not online", user.Name);
             return false;
         }
 
@@ -245,6 +317,8 @@ namespace Hybrasyl.Scripting
                 var creature = Obj as VisibleObject;
                 creature.Say(message);
             }
+            else
+                GameLog.ScriptingError("Say: only visible objects can speak, ignoring");
         }
 
         /// <summary>
@@ -258,6 +332,8 @@ namespace Hybrasyl.Scripting
                 var monster = Obj as Monster;
                 monster.ShowTo(user.User);
             }
+            else
+                GameLog.ScriptingError("ShowTo: only monsters can use this currently, ignoring");
         }
     }
 }

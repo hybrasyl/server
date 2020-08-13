@@ -61,6 +61,11 @@ namespace Hybrasyl.Scripting
         /// <param name="sequence"></param>
         public void AssociateDialogWithSequence(DialogSequence sequence)
         {
+            if (sequence is null)
+            {
+                GameLog.ScriptingError("AssociateDialogWithSequence: sequence (first argument) cannot be null");
+                return;
+            }
             Sequence = sequence;
             sequence.AddDialog(Dialog);
         }
@@ -71,6 +76,11 @@ namespace Hybrasyl.Scripting
         /// <param name="luaExpr">A Lua expression to be evaluated.</param>
         public void AttachCallback(string luaExpr)
         {
+            if (string.IsNullOrEmpty(luaExpr))
+            {
+                GameLog.ScriptingWarning("AttachCallback: lua expression (first argument) was null or empty, ignoring");
+                return;
+            }
             Dialog.CallbackExpression = luaExpr;
         }
 

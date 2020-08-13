@@ -138,6 +138,11 @@ namespace Hybrasyl.Objects
 
         public uint MaximumDurability => Template.Properties.Physical.Durability;
 
+        // For future use / expansion re: unidentified items.
+        // Should pull from template and only allow false to be set when
+        // Identifiable flag is set.
+        public bool Identified => true;
+
         public byte Level => Template.Level;
         public byte Ability => Template.Ability;
         public Xml.Class Class => Template.Class;
@@ -226,7 +231,7 @@ namespace Hybrasyl.Objects
                     return;
                 }
 
-                if (!invokeScript.ExecuteFunction("OnUse", trigger, null, this))
+                if (!invokeScript.ExecuteFunction("OnUse", this, trigger, this))
                 {
                     trigger.SendSystemMessage("It doesn't work.");
                     return;

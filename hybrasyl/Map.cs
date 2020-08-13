@@ -268,6 +268,7 @@ namespace Hybrasyl
                 InsertNpc(merchant);
                 // Keep the actual spawned object around in the index for later use
                 World.WorldData.Set(merchant.Name, merchant);
+
             }
 
             foreach (var reactorElement in newMap.Reactors)
