@@ -16,7 +16,7 @@
   </PropertyGroup>
   
   <PropertyGroup>
-    <MSBuildGitHashCommand>git log HEAD -1</MSBuildGitHashCommand>
+    <MSBuildGitHashCommand>git show-ref -s HEAD </MSBuildGitHashCommand>
   </PropertyGroup>
   
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
