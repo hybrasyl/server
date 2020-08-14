@@ -154,7 +154,7 @@ namespace Hybrasyl
             // Retrieve git hash information, if present
             var commit = Assemblyinfo.GitHash.Split(';')[0];
             if (!string.IsNullOrEmpty(commit))
-                GitCommit = commit.Replace("commit ", "").Substring(0, 8).ToLower();
+                GitCommit = commit;
             else
                 GitCommit = "unknown";
 
@@ -332,7 +332,7 @@ namespace Hybrasyl
 
                 var data = await content.ReadAsStringAsync();
                 var jsonobj = JObject.Parse(data);
-                var theirhash = jsonobj["commit"].ToString().Substring(0, 8).ToLower();
+                var theirhash = jsonobj["commit"].ToString().ToLower();
                 if (theirhash != GitCommit)
                 {
                     GameLog.Warning("THIS VERSION OF HYBRASYL IS OUT OF DATE");
