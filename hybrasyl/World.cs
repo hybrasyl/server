@@ -918,8 +918,8 @@ namespace Hybrasyl
                 List<Xml.Castable> spells = null;
                 Xml.Class @class = (Xml.Class)i;
 
-                skills = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySkill || x.Book == Xml.Book.SecondarySkill || x.Book == Xml.Book.UtilitySkill) && (x.Class.Contains(Xml.Class.Warrior))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Warrior)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)).Level.Min).ThenBy(x => x.Name).ToList();
-                spells = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySpell || x.Book == Xml.Book.SecondarySpell || x.Book == Xml.Book.UtilitySpell) && (x.Class.Contains(Xml.Class.Warrior))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(Xml.Class.Warrior)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)).Level.Min).ThenBy(x => x.Name).ToList();
+                skills = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySkill || x.Book == Xml.Book.SecondarySkill || x.Book == Xml.Book.UtilitySkill) && (x.Class.Contains(@class))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)).Level.Min).ThenBy(x => x.Name).ToList();
+                spells = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySpell || x.Book == Xml.Book.SecondarySpell || x.Book == Xml.Book.UtilitySpell) && (x.Class.Contains(@class))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)).Level.Min).ThenBy(x => x.Name).ToList();
 
                 sclass.Nodes.Add("");
                 sclass.Nodes.Add("Skill");
