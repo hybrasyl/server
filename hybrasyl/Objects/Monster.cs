@@ -104,26 +104,57 @@ namespace Hybrasyl.Objects
 
         }
 
+        // We follow a different pattern here due to the fact that monsters
+        // are not intended to be long-lived objects, and we don't want to 
+        // spend a lot of overhead and resources creating a full script (eg via
+        // OnSpawn) when not needed 99% of the time.
+        private void InitScript()
+        {
+            if (Script != null)
+                return;
+
+            if (World.ScriptProcessor.TryGetScript(Name, out Script damageScript))
+            {
+                Script = damageScript;
+                Script.AssociateScriptWithObject(this);
+            }
+        }
+
+        public override void OnHear(VisibleObject speaker, string text, bool shout = false)
+        {
+            if (speaker == this)
+                return;
+
+            // FIXME: in the glorious future, run asynchronously with locking
+            InitScript();
+
+            if (Script.HasFunction("OnHear"))
+            {
+                Script.SetGlobalValue("text", text);
+                Script.SetGlobalValue("shout", shout);
+
+                if (speaker is User user)
+                    Script.ExecuteFunction("OnHear", new HybrasylUser(user));
+                else
+                    Script.ExecuteFunction("OnHear", new HybrasylWorldObject(speaker));
+            }
+        }
+
         public override void OnDamage(Creature attacker, uint damage)
         {
             // FIXME: in the glorious future, run asynchronously with locking
-            if (World.ScriptProcessor.TryGetScript(Name, out Script damageScript))
-            {
-                damageScript.AssociateScriptWithObject(this);
-                damageScript.SetGlobalValue("damage", damage);
-                damageScript.ExecuteFunction("OnDamage", this, attacker);
-            }
+            InitScript();
+            Script.SetGlobalValue("damage", damage);
+            Script.ExecuteFunction("OnDamage", this, attacker);
         }
 
         public override void OnHeal(Creature healer, uint heal)
         {
             // FIXME: in the glorious future, run asynchronously with locking
-            if (World.ScriptProcessor.TryGetScript(Name, out Script healScript))
-            {
-                healScript.AssociateScriptWithObject(this);
-                healScript.SetGlobalValue("heal", heal);
-                healScript.ExecuteFunction("OnHeal", this, healer);
-            }
+            InitScript();
+            Script.SetGlobalValue("heal", heal);
+            Script.ExecuteFunction("OnHeal", this, healer);
+
         }
 
         /// <summary>
