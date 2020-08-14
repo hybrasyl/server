@@ -118,6 +118,8 @@ namespace Hybrasyl.Objects
         public virtual void OnDamage(Creature attacker, uint damage) { }
         public virtual void OnHeal(Creature healer, uint damage) { }
 
+        public virtual void OnHear(VisibleObject speaker, string text, bool shout = false) { }
+
         public Rectangle GetBoundingBox()
         {
             return new Rectangle(X, Y, 1, 1);
@@ -188,16 +190,21 @@ namespace Hybrasyl.Objects
 
         public virtual void Say(string message, string from="")
         {
-            foreach (var user in viewportUsers)
+            foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
             {
-                var x0D = new ServerPacket(0x0D);
-                x0D.WriteByte(0x00);
-                x0D.WriteUInt32(Id);
-                if (!string.IsNullOrEmpty(from)) 
-                    x0D.WriteString8($"{from}: {message}");
+                if (obj is User user)
+                {
+                    var x0D = new ServerPacket(0x0D);
+                    x0D.WriteByte(0x00);
+                    x0D.WriteUInt32(Id);
+                    if (!string.IsNullOrEmpty(from))
+                        x0D.WriteString8($"{from}: {message}");
+                    else
+                        x0D.WriteString8($"{Name}: {message}");
+                    user.Enqueue(x0D);
+                }
                 else
-                    x0D.WriteString8($"{Name}: {message}");
-                user.Enqueue(x0D);
+                    obj.OnHear(this, message, false);
             }
         }
 
@@ -205,9 +212,8 @@ namespace Hybrasyl.Objects
         {           
             foreach (var obj in Map.EntityTree.GetObjects(GetShoutViewport()))
             {
-                if (obj is User)
+                if (obj is User user)
                 {
-                    var user = obj as User;
                     var x0D = new ServerPacket(0x0D);
                     x0D.WriteByte(0x01);
                     x0D.WriteUInt32(Id);
@@ -217,6 +223,8 @@ namespace Hybrasyl.Objects
                         x0D.WriteString8($"{Name}! {message}");
                     user.Enqueue(x0D);
                 }
+                else
+                    obj.OnHear(this, message, true);
             }
         }
 

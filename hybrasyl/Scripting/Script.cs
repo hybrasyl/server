@@ -112,7 +112,7 @@ namespace Hybrasyl.Scripting
 
             Associate = new HybrasylWorldObject(obj);
             if (obj is VisibleObject)
-            { 
+            {
                 var visibleObject = obj as VisibleObject;
                 Compiled.Globals.Set("map", UserData.Create(new HybrasylMap(visibleObject.Map)));
             }
@@ -150,7 +150,7 @@ namespace Hybrasyl.Scripting
                 return UserData.Create(new HybrasylMap(obj as Map));
             else if (obj is WorldObject)
                 return UserData.Create(new HybrasylWorldObject(obj as WorldObject));
-            return UserData.Create(obj); 
+            return UserData.Create(obj);
         }
 
         private static LuaException ParseException(string decoratedMessage)
@@ -167,11 +167,11 @@ namespace Hybrasyl.Scripting
                 ret.Error = decoratedMessage;
             return ret;
         }
-        
+
         private string ExtractLuaSource(int linenumber)
         {
             var lines = RawSource.Split('\n').ToList();
-            var lua = $"## {lines[linenumber - 2]}\n## --->{lines[linenumber-1]}\n";
+            var lua = $"## {lines[linenumber - 2]}\n## --->{lines[linenumber - 1]}\n";
             if (linenumber < lines.Count)
                 lua = $"{lua}## {lines[linenumber]}";
             return lua;
@@ -240,7 +240,7 @@ namespace Hybrasyl.Scripting
         /// </summary>
         /// <param name="onLoad">Whether or not to execute OnLoad() if it exists in the script.</param>
         /// <returns>boolean indicating whether the script was reloaded or not</returns>
-        public bool Run(bool onLoad=true)
+        public bool Run(bool onLoad = true)
         {
             try
             {
@@ -261,12 +261,12 @@ namespace Hybrasyl.Scripting
                     ExecuteFunction("OnLoad");
                 }
             }
-            catch (Exception ex) 
+            catch (Exception ex)
             {
                 var error_msg = HumanizeException(ex);
                 GameLog.ScriptingError("Run: Error executing script {FileName} (associate {assoc}): {Message}",
                                   FileName, Associate?.Name ?? "none", error_msg);
-                
+
                 Disabled = true;
                 CompilationError = ex.ToString();
                 LastRuntimeError = error_msg;
@@ -298,6 +298,12 @@ namespace Hybrasyl.Scripting
             Compiled.Globals.Set(name, v);
         }
 
+        public void SetGlobalValue(string name, bool value)
+        {
+            var v = DynValue.NewBoolean(value);
+            Compiled.Globals.Set(name, v);
+        }
+        
         /// <summary>
         /// Execute a Lua expression in the context of an associated world object.
         /// Primarily used for dialog callbacks.
