@@ -71,7 +71,7 @@ namespace Hybrasyl.Messaging
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
-            return Success($"Hybrasyl {Game.Assemblyinfo.Version}\n\n{Game.Assemblyinfo.GitHash.Replace(';','\n')}\n\n(C) 2020 ERISCO, LLC", MessageTypes.SLATE_WITH_SCROLLBAR);
+            return Success($"Hybrasyl {Game.Assemblyinfo.Version}\n\nRunning commit {(string.IsNullOrEmpty(Game.GitCommit) ? "unknown" : Game.GitCommit)}:\n\n{Game.CommitLog}\n\n(C) 2020 ERISCO, LLC", MessageTypes.SLATE_WITH_SCROLLBAR);
         }
     }
 
