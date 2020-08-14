@@ -16,7 +16,7 @@
   </PropertyGroup>
   
   <PropertyGroup>
-    <MSBuildGitHashCommand>git show-ref -s HEAD </MSBuildGitHashCommand>
+    <MSBuildGitHashCommand>git rev-parse --short HEAD </MSBuildGitHashCommand>
   </PropertyGroup>
   
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
