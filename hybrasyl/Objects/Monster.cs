@@ -52,6 +52,8 @@ namespace Hybrasyl.Objects
         public bool MovementDisabled => _spawn.Flags.HasFlag(Xml.SpawnFlags.MovementDisabled);
         public bool AiDisabled => _spawn.Flags.HasFlag(Xml.SpawnFlags.AiDisabled);
 
+        public bool ScriptDisabled { get; set; }
+
         public override void OnDeath()
         {
             if (DeathDisabled)
@@ -110,14 +112,17 @@ namespace Hybrasyl.Objects
         // OnSpawn) when not needed 99% of the time.
         private void InitScript()
         {
-            if (Script != null)
+            if (Script != null || ScriptDisabled == true)
                 return;
 
             if (World.ScriptProcessor.TryGetScript(Name, out Script damageScript))
             {
                 Script = damageScript;
                 Script.AssociateScriptWithObject(this);
+                ScriptDisabled = false;
             }
+            else
+                ScriptDisabled = true;                
         }
 
         public override void OnHear(VisibleObject speaker, string text, bool shout = false)
@@ -144,17 +149,22 @@ namespace Hybrasyl.Objects
         {
             // FIXME: in the glorious future, run asynchronously with locking
             InitScript();
-            Script.SetGlobalValue("damage", damage);
-            Script.ExecuteFunction("OnDamage", this, attacker);
+            if (Script != null)
+            {
+                Script.SetGlobalValue("damage", damage);
+                Script.ExecuteFunction("OnDamage", this, attacker);
+            }
         }
 
         public override void OnHeal(Creature healer, uint heal)
         {
             // FIXME: in the glorious future, run asynchronously with locking
             InitScript();
-            Script.SetGlobalValue("heal", heal);
-            Script.ExecuteFunction("OnHeal", this, healer);
-
+            if (Script != null)
+            {
+                Script.SetGlobalValue("heal", heal);
+                Script.ExecuteFunction("OnHeal", this, healer);
+            }
         }
 
         /// <summary>

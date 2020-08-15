@@ -102,7 +102,6 @@ namespace Hybrasyl
             {
                 client.LoginMessage("That character does not exist", 3);
                 GameLog.InfoFormat("cid {0}: attempt to login as nonexistent character {1}", client.ConnectionId, name);
-
             }
             else if (loginUser.VerifyPassword(password))
             {
@@ -124,10 +123,10 @@ namespace Hybrasyl
                     client.EncryptionKey);
                 GameLog.InfoFormat("cid {0} ({1}): login successful, redirecting to world server",
                     client.ConnectionId, name);
-                client.Redirect(redirect);
                 loginUser.Login.LastLogin = DateTime.Now;
                 loginUser.Login.LastLoginFrom = ((IPEndPoint) client.Socket.RemoteEndPoint).Address.ToString();
                 loginUser.Save();
+                client.Redirect(redirect);
             }
             else
             {

@@ -685,7 +685,7 @@ namespace Hybrasyl
             x03.Write(redirect.EncryptionKey);
             x03.WriteString8(redirect.Name);
             x03.WriteUInt32(redirect.Id);
-            x03.TransmitDelay = 100;
+            x03.TransmitDelay = 250;
             Enqueue(x03);
         }
 

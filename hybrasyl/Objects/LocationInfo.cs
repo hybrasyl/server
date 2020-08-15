@@ -75,8 +75,8 @@ namespace Hybrasyl.Objects
             set
             {
                 if (Game.World.WorldData.TryGetValue(value, out Map map))
-                    Map = map;
-                _mapId = value;
+                    DeathMap = map;
+                _deathmapId = value;
             }
         }
 
