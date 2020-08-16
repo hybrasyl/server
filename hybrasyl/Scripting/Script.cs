@@ -263,6 +263,7 @@ namespace Hybrasyl.Scripting
             }
             catch (Exception ex)
             {
+                Game.ReportException(ex);
                 var error_msg = HumanizeException(ex);
                 GameLog.ScriptingError("Run: Error executing script {FileName} (associate {assoc}): {Message}",
                                   FileName, Associate?.Name ?? "none", error_msg);
@@ -329,6 +330,7 @@ namespace Hybrasyl.Scripting
             }
             catch (Exception ex) 
             {
+                Game.ReportException(ex);
                 var error_msg = HumanizeException(ex);
                 GameLog.ScriptingError("Execute: Error executing expression {expr} in {FileName} (associate {associate}, invoker {invoker}, source {source}): {Message}",
                     expr, FileName, Associate?.Name ?? "none", invoker?.Name ?? "none", source?.Name ?? "none", error_msg);
@@ -354,6 +356,7 @@ namespace Hybrasyl.Scripting
             }
             catch (Exception ex)
             {
+                Game.ReportException(ex);
                 var error_msg = HumanizeException(ex);
                 GameLog.ScriptingError("Execute: Error executing expression {expr} in {FileName} (associate {associate}, invoker {invoker}): {Message}",
                     expr, FileName, Associate?.Name ?? "none", invoker?.Name ?? "none", error_msg);
@@ -388,6 +391,7 @@ namespace Hybrasyl.Scripting
             }
             catch (Exception ex) 
             {
+                Game.ReportException(ex);
                 var error_msg = HumanizeException(ex);
                 GameLog.ScriptingError("ExecuteFunction: Error executing function {fn} in {FileName} (associate {associate}, invoker {invoker}, item {item}): {Message}",
                     functionName, FileName, Associate?.Name ?? "none", invoker?.Name ?? "none", scriptItem?.Name ?? "none", error_msg);
@@ -420,6 +424,7 @@ namespace Hybrasyl.Scripting
             }
             catch (Exception ex)
             {
+                Game.ReportException(ex);
                 var error_msg = HumanizeException(ex);
                 GameLog.ScriptingError("ExecuteFunction: Error executing function {fn} in {FileName} (associate {associate}, invoker {invoker}): {Message}",
                     functionName, FileName, Associate?.Name ?? "none", invoker?.Name ?? "none", error_msg);
@@ -465,6 +470,7 @@ namespace Hybrasyl.Scripting
             }
             catch (Exception ex)
             {
+                Game.ReportException(ex);
                 var error_msg = HumanizeException(ex);
                 GameLog.ScriptingError("ExecuteFunction: Error executing function {fn} in {FileName} (associate {associate}): {Message}",
                     functionName, FileName, Associate?.Name ?? "none", error_msg);

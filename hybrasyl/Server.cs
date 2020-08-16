@@ -142,6 +142,7 @@ namespace Hybrasyl
             }
             catch (ObjectDisposedException e)
             {
+                Game.ReportException(e);
                 GameLog.Error($"Disposed socket {e.Message}");
                 return;
             }
@@ -175,8 +176,9 @@ namespace Hybrasyl
                 GameLog.DebugFormat("AcceptConnection returning");
                 clientSocket.BeginAccept(new AsyncCallback(AcceptConnection), clientSocket);
             }
-            catch (SocketException)
+            catch (SocketException e)
             {
+                Game.ReportException(e);
                 handler.Close();
             }
         }
@@ -222,6 +224,7 @@ namespace Hybrasyl
             catch (Exception e)
             {
                 GameLog.Fatal($"EndReceive Error:  {e.Message}");
+                Game.ReportException(e);
                 client.Disconnect();
             }
 
@@ -235,6 +238,7 @@ namespace Hybrasyl
             }
             catch (Exception e)
             {
+                Game.ReportException(e);
                 GameLog.Error($"ReadCallback error: {e.Message}");
             }
             ContinueReceiving(state, client);
@@ -251,12 +255,14 @@ namespace Hybrasyl
             }
             catch (ObjectDisposedException e)
             {
+                Game.ReportException(e);
                 GameLog.Fatal(e.Message);
                 //client.Disconnect();
                 state.WorkSocket.Close();
             }
             catch (SocketException e)
             {
+                Game.ReportException(e);
                 GameLog.Fatal(e.Message);
                 client.Disconnect();
             }

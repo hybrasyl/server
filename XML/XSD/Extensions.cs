@@ -493,3 +493,30 @@ namespace Hybrasyl.Xml
     }
 }
 
+namespace Hybrasyl.Xml
+{
+    public partial class Access
+    {
+        private List<string> _privilegedUsers = new List<String>();
+
+        public List<string> PrivilegedUsers
+        {
+            get
+            {
+                if (!string.IsNullOrEmpty(Privileged))
+                  foreach (var p in Privileged.Trim().Split(' '))
+                    _privilegedUsers.Add(p.Trim().ToLower());
+                return _privilegedUsers;
+            }
+        }
+
+        public bool IsPrivileged(string user)
+        {
+            if (PrivilegedUsers.Count > 0)
+                return PrivilegedUsers.Contains(user.ToLower()) || PrivilegedUsers.Contains("*");
+            return false;
+        }
+
+    }
+}
+

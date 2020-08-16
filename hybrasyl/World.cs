@@ -651,9 +651,12 @@ namespace Hybrasyl
                 // in <Privileged>
                 var board = GetBoard("Hybrasyl");
                 board.DisplayName = "Hybrasyl Global Board";
-                foreach (var moderator in Game.Config.Access.Privileged)
-                    board.SetAccessLevel(Convert.ToString(moderator), BoardAccessLevel.Moderate);
-                board.Save();
+                if (Game.Config.Access != null)
+                {
+                    foreach (var moderator in Game.Config.Access.PrivilegedUsers)
+                        board.SetAccessLevel(moderator, BoardAccessLevel.Moderate);
+                    board.Save();
+                }
             }
             return true;
         }
@@ -3070,8 +3073,9 @@ namespace Hybrasyl
                                     response.WriteString8("{0}'s mailbox is full. Your message was discarded. Sorry!");
                                 }
                             }
-                            catch (MessageStoreLocked)
+                            catch (MessageStoreLocked e)
                             {
+                                Game.ReportException(e);
                                 response.WriteBoolean(true);
                                 response.WriteString8("{0} cannot receive mail at this time. Sorry!");
                             }
@@ -4280,6 +4284,7 @@ namespace Hybrasyl
                 }
                 catch (InvalidOperationException e)
                 {
+                    Game.ReportException(e);
                     if (!MessageQueue.IsCompleted)
                         GameLog.Error($"QUEUE CONSUMER: EXCEPTION RAISED: {e}", e);
                     continue;
@@ -4361,6 +4366,7 @@ namespace Hybrasyl
                     }
                     catch (Exception e)
                     {
+                        Game.ReportException(e);
                         GameLog.Error(e, "{Opcode}: Unhandled exception encountered in packet handler!", clientMessage.Packet.Opcode);
                     }
                 }
@@ -4383,7 +4389,8 @@ namespace Hybrasyl
                 }
                 catch (InvalidOperationException e)
                 {
-                    GameLog.Error(e, "QUEUE CONSUMER: EXCEPTION RAISED: {exception}");
+                    Game.ReportException(e);
+                    GameLog.Error("QUEUE CONSUMER: EXCEPTION RAISED: {exception}", e);
                     continue;
                 }
 
@@ -4396,7 +4403,8 @@ namespace Hybrasyl
                     }
                     catch (Exception e)
                     {
-                        GameLog.Error(e, "Exception encountered in control message handler: {exception}");
+                        Game.ReportException(e);
+                        GameLog.Error("Exception encountered in control message handler: {exception}", e);
                     }
                 }
             }

@@ -29,7 +29,7 @@ namespace Hybrasyl.Messaging
         public new static string Command = "status";
         public new static string ArgumentText = "<string statusName>";
         public new static string HelpText = "Apply a given status to yourself.";
-        public new static bool Privileged = false;
+        public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
@@ -47,7 +47,7 @@ namespace Hybrasyl.Messaging
         public new static string Command = "clearstatus";
         public new static string ArgumentText = "none";
         public new static string HelpText = "Clear all statuses and conditions.";
-        public new static bool Privileged = false;
+        public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
@@ -64,7 +64,7 @@ namespace Hybrasyl.Messaging
         public new static string Command = "clearflags";
         public new static string ArgumentText = "none";
         public new static string HelpText = "Clear all player flags.";
-        public new static bool Privileged = false;
+        public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {

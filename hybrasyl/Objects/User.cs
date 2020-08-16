@@ -263,12 +263,7 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                if (Game.Config.Access?.Privileged != null)
-                {
-                    return IsExempt || Flags.ContainsKey("gamemaster") ||
-                        Game.Config.Access.Privileged.IndexOf(Name, 0, StringComparison.CurrentCultureIgnoreCase) != -1;
-                }
-                return IsExempt || Flags.ContainsKey("gamemaster");
+                return IsExempt || Flags.ContainsKey("gamemaster") || (Game.Config.Access?.IsPrivileged(this.Name) ?? false);
             }
         }
 
@@ -965,6 +960,7 @@ namespace Hybrasyl.Objects
             }
             catch (Exception e)
             {
+                Game.ReportException(e);
                 GameLog.ErrorFormat("Exception trying to set {0} to {1}", info.Name, value.ToString());
                 GameLog.ErrorFormat(e.ToString());
                 throw;
@@ -4483,8 +4479,9 @@ namespace Hybrasyl.Objects
                 {
                     Client.Socket.Disconnect(true);
                 }
-                catch (ObjectDisposedException)
+                catch (ObjectDisposedException e)
                 {
+                    Game.ReportException(e);
                     Client.ClientState = null;
                 }
         }

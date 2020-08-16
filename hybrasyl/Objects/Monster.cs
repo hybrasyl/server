@@ -132,8 +132,7 @@ namespace Hybrasyl.Objects
 
             // FIXME: in the glorious future, run asynchronously with locking
             InitScript();
-
-            if (Script.HasFunction("OnHear"))
+            if (Script != null && !ScriptDisabled)
             {
                 Script.SetGlobalValue("text", text);
                 Script.SetGlobalValue("shout", shout);
@@ -149,7 +148,7 @@ namespace Hybrasyl.Objects
         {
             // FIXME: in the glorious future, run asynchronously with locking
             InitScript();
-            if (Script != null)
+            if (Script != null && !ScriptDisabled)
             {
                 Script.SetGlobalValue("damage", damage);
                 Script.ExecuteFunction("OnDamage", this, attacker);
@@ -160,7 +159,7 @@ namespace Hybrasyl.Objects
         {
             // FIXME: in the glorious future, run asynchronously with locking
             InitScript();
-            if (Script != null)
+            if (Script != null && !ScriptDisabled)
             {
                 Script.SetGlobalValue("heal", heal);
                 Script.ExecuteFunction("OnHeal", this, healer);

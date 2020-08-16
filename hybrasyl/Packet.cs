@@ -286,7 +286,6 @@ namespace Hybrasyl
             }
             catch (Exception)
             {
-
                 Array.Resize(ref buffer, Data.Length + shouldEncrypt + 2);
             }
             finally

@@ -31,6 +31,7 @@ public partial class ApiEndpoints
     private TargetUrl _remoteAdminHost;
     private TargetUrl _encryptionEndpoint;
     private TargetUrl _validationEndpoint;
+    private TargetUrl _sentry;
     private static XmlSerializer _serializer;
     #endregion
     
@@ -85,6 +86,18 @@ public partial class ApiEndpoints
         set
         {
             _validationEndpoint = value;
+        }
+    }
+    
+    public TargetUrl Sentry
+    {
+        get
+        {
+            return _sentry;
+        }
+        set
+        {
+            _sentry = value;
         }
     }
     

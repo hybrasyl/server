@@ -506,6 +506,7 @@ namespace Hybrasyl
                 }
                 catch (Exception e)
                 {
+                    Game.ReportException(e);
                     GameLog.SpawnError(e, "Spawngroup {Filename}: disabled map {Name} due to error", spawnGroup.Filename, map.Name);
                     map.Disabled = true;
                     continue;

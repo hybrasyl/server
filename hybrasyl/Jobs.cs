@@ -83,6 +83,7 @@ namespace Hybrasyl
                 }
                 catch (Exception e)
                 {
+                    Game.ReportException(e);
                     GameLog.Error("Exception occured in job:", e);
                 }
             }
@@ -108,8 +109,9 @@ namespace Hybrasyl
                             mailbox.Cleanup();
                             mailbox.Unlock();
                         }
-                        catch (MessageStoreLocked)
+                        catch (MessageStoreLocked e)
                         {
+                            Game.ReportException(e);
                             GameLog.ErrorFormat("{0}: mailbox locked during cleanup...?", mailbox.Name);
                         }
                     }
@@ -121,8 +123,9 @@ namespace Hybrasyl
                             board.Cleanup();
                             board.Unlock();
                         }
-                        catch (MessageStoreLocked)
+                        catch (MessageStoreLocked e)
                         {
+                            Game.ReportException(e);
                             GameLog.ErrorFormat("{0}: board locked during cleanup...?", board.Name);
                         }
                     }
@@ -130,6 +133,7 @@ namespace Hybrasyl
                 }
                 catch (Exception e)
                 {
+                    Game.ReportException(e);
                     GameLog.Error("Exception occured in job:", e);
                 }
             }
@@ -155,6 +159,7 @@ namespace Hybrasyl
                 }
                 catch (Exception e)
                 {
+                    Game.ReportException(e);
                     GameLog.Error("Exception occured in job:", e);
                 }
             }
@@ -181,6 +186,7 @@ namespace Hybrasyl
                 }
                 catch (Exception e)
                 {
+                    Game.ReportException(e);
                     GameLog.Error("Exception occured in job:", e);
                 }
             }
@@ -206,6 +212,7 @@ namespace Hybrasyl
                 }
                 catch (Exception e)
                 {
+                    Game.ReportException(e);
                     GameLog.Error("Exception occured in job:", e);
                 }
             }
@@ -244,6 +251,7 @@ namespace Hybrasyl
                 }
                 catch (Exception e)
                 {
+                    Game.ReportException(e);
                     GameLog.ErrorFormat("Exception occurred in job:", e);
                 }
             }
@@ -317,6 +325,7 @@ namespace Hybrasyl
                 }
                 catch (Exception e)
                 {
+                    Game.ReportException(e);
                     GameLog.Error("Exception occured in job:", e);
                 }
             }

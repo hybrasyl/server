@@ -33,7 +33,7 @@ namespace Hybrasyl.Messaging
         public new static string Command = "maplist";
         public new static string ArgumentText = "<string searchTerm>";
         public new static string HelpText = "Searches for maps with the specified search term.";
-        public new static bool Privileged = false;
+        public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
