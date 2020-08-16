@@ -31,7 +31,7 @@ namespace Hybrasyl.Messaging
         public new static string Command = "legend";
         public new static string ArgumentText = "<string legendText> <byte icon> <byte color> | <int prefix> <int quantity> [<datetime date>]";
         public new static string HelpText = "Add a legend mark with the specified text, icon and color, and optionally with the given quantity and date.";
-        public new static bool Privileged = false;
+        public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
@@ -61,7 +61,7 @@ namespace Hybrasyl.Messaging
         public new static string Command = "title";
         public new static string ArgumentText = "<string title>";
         public new static string HelpText = "Change your displayed title.";
-        public new static bool Privileged = false;
+        public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
@@ -75,7 +75,7 @@ namespace Hybrasyl.Messaging
         public new static string Command = "legendclear";
         public new static string ArgumentText = "[<int marks>]";
         public new static string HelpText = "Clear your legend of the specified number of marks, starting at the end. If no argument given, CLEARS ALL MARKS. WARNING: Not reversible.";
-        public new static bool Privileged = false;
+        public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
@@ -98,7 +98,7 @@ namespace Hybrasyl.Messaging
         public new static string Command = "legendcolors";
         public new static string ArgumentText = "none";
         public new static string HelpText = "Adds a legend mark for each color code to your legend.";
-        public new static bool Privileged = false;
+        public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {

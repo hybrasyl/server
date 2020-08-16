@@ -61,10 +61,13 @@ namespace Hybrasyl.Objects
 
         public override void OnHear(VisibleObject speaker, string text, bool shout = false)
         {
+            if (speaker == this)
+                return;
+
             if (!Ready)
                 OnSpawn();
 
-            if (Script != null && Script.HasFunction("OnHear"))
+            if (Script != null)
             {
                 Script.SetGlobalValue("text", text);
                 Script.SetGlobalValue("shout", shout);

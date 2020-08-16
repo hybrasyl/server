@@ -236,7 +236,7 @@ namespace Hybrasyl
         {
             var checkname = charName.ToLower();
 
-            if (ModeratorList.Contains(checkname))
+            if (ModeratorList.Contains(checkname) || ModeratorList.Contains("*"))
                 return true;
 
             if (BlockList.Contains(checkname))

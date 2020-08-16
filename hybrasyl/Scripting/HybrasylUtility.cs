@@ -74,6 +74,7 @@ namespace Hybrasyl.Scripting
             }
             catch (Exception e)
             {
+                Game.ReportException(e);
                 GameLog.ScriptingError("HoursBetweenUnixTimes: Exception occurred doing time conversion, returning 0 - {exception}", e);
                 return 0;
             }

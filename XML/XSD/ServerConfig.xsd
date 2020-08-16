@@ -64,6 +64,7 @@
       <xs:element name="RemoteAdminHost" type="hyb:TargetUrl" />
       <xs:element name="EncryptionEndpoint" type="hyb:TargetUrl" maxOccurs="1" minOccurs="0" />
       <xs:element name="ValidationEndpoint" type="hyb:TargetUrl" minOccurs="0" maxOccurs="1" />
+      <xs:element name="Sentry" minOccurs="0" maxOccurs="1" type="hyb:TargetUrl"/>
     </xs:sequence>
   </xs:complexType>
 

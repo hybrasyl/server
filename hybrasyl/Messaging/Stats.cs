@@ -31,7 +31,7 @@ namespace Hybrasyl.Messaging
         public new static string Command = "hp";
         public new static string ArgumentText = "<uint hp>";
         public new static string HelpText = "Set current HP to the specified uint value.";
-        public new static bool Privileged = false;
+        public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
@@ -50,7 +50,7 @@ namespace Hybrasyl.Messaging
         public new static string Command = "basehp";
         public new static string ArgumentText = "<uint hp>";
         public new static string HelpText = "Set base HP to the specified uint value.";
-        public new static bool Privileged = false;
+        public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
@@ -69,7 +69,7 @@ namespace Hybrasyl.Messaging
         public new static string Command = "mp";
         public new static string ArgumentText = "<uint mp>";
         public new static string HelpText = "Set current HP to the specified uint value.";
-        public new static bool Privileged = false;
+        public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
@@ -88,7 +88,7 @@ namespace Hybrasyl.Messaging
         public new static string Command = "basemp";
         public new static string ArgumentText = "<uint mp>";
         public new static string HelpText = "Set base HP to the specified uint value.";
-        public new static bool Privileged = false;
+        public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
@@ -107,7 +107,7 @@ namespace Hybrasyl.Messaging
         public new static string Command = "attr";
         public new static string ArgumentText = "<string attribute> <byte value>";
         public new static string HelpText = "Set a specified attribute (str/con etc) to the given byte value.";
-        public new static bool Privileged = false;
+        public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
@@ -147,7 +147,7 @@ namespace Hybrasyl.Messaging
         public new static string Command = "gold";
         public new static string ArgumentText = "<uint gold>";
         public new static string HelpText = "Give yourself the specified amount of gold.";
-        public new static bool Privileged = false;
+        public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
@@ -165,7 +165,7 @@ namespace Hybrasyl.Messaging
         public new static string Command = "damage";
         public new static string ArgumentText = "<double damage>";
         public new static string HelpText = "Damage yourself for the specified amount. Careful...";
-        public new static bool Privileged = false;
+        public new static bool Privileged = true;
         
         public new static ChatCommandResult Run(User user, params string[] args)
         {
@@ -182,7 +182,7 @@ namespace Hybrasyl.Messaging
         public new static string Command = "exp";
         public new static string ArgumentText = "<uint experience>";
         public new static string HelpText = "Award yourself a given amount of experience.";
-        public new static bool Privileged = false;
+        public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
@@ -200,7 +200,7 @@ namespace Hybrasyl.Messaging
         public new static string Command = "expreset";
         public new static string ArgumentText = "<none>";
         public new static string HelpText = "Reset level, experience, and level points (level 1, 0 XP, 0 points).";
-        public new static bool Privileged = false;
+        public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
@@ -218,7 +218,7 @@ namespace Hybrasyl.Messaging
         public new static string Command = "nation";
         public new static string ArgumentText = "<string nation>";
         public new static string HelpText = "Make yourself a citizen of the specified nation.";
-        public new static bool Privileged = false;
+        public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
@@ -237,7 +237,7 @@ namespace Hybrasyl.Messaging
         public new static string Command = "class";
         public new static string ArgumentText = "<string class>";
         public new static string HelpText = "Change your class to the one specified.";
-        public new static bool Privileged = false;
+        public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
@@ -257,7 +257,7 @@ namespace Hybrasyl.Messaging
         public new static string Command = "level";
         public new static string ArgumentText = "<byte level>";
         public new static string HelpText = "Change your level to the one specified.";
-        public new static bool Privileged = false;
+        public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
@@ -277,7 +277,7 @@ namespace Hybrasyl.Messaging
         public new static string Command = "skill";
         public new static string ArgumentText = "<string skillName>";
         public new static string HelpText = "Add the specified skill to your skillbook.";
-        public new static bool Privileged = false;
+        public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
@@ -296,7 +296,7 @@ namespace Hybrasyl.Messaging
         public new static string Command = "spell";
         public new static string ArgumentText = "<string spellName>";
         public new static string HelpText = "Add the specified spell to your spellbook.";
-        public new static bool Privileged = false;
+        public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
@@ -315,7 +315,7 @@ namespace Hybrasyl.Messaging
         public new static string Command = "master";
         public new static string ArgumentText = "none";
         public new static string HelpText = "Toggle mastership.";
-        public new static bool Privileged = false;
+        public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {

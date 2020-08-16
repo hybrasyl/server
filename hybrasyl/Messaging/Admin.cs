@@ -570,7 +570,7 @@ namespace Hybrasyl.Messaging
         public new static string Command = "teleport";
         public new static string ArgumentText = "<string playername> | <string npcname> | <string mapname> <byte x> <byte y> | <uint mapnumber> <byte x> <byte y>";
         public new static string HelpText = "Teleport to the specified player, or the given map number and coordinates.";
-        public new static bool Privileged = false;
+        public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {

@@ -412,6 +412,7 @@ namespace Hybrasyl.Scripting
             }
             catch (Exception e)
             {
+                Game.ReportException(e);
                 GameLog.ScriptingError("SetSessionCookie: {user}: value (second argument) could not be converted to string? {error}", User.Name, e);
             }
         }
@@ -438,6 +439,7 @@ namespace Hybrasyl.Scripting
             }
             catch (Exception e)
             {
+                Game.ReportException(e);
                 GameLog.ScriptingError("SetCookie: {user} - value (second argument) could not be converted to string? {exception}", User.Name, e.ToString());
             }
 

@@ -391,7 +391,8 @@ namespace Hybrasyl
                 methodInfo.Invoke(invokee,null);
             }
             catch (Exception e)
-            { 
+            {
+                Game.ReportException(e);
                 GameLog.Error("Exception processing status handler: {exception}", e);
 
             }

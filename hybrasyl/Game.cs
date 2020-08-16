@@ -34,6 +34,7 @@ using Serilog.Events;
 using System.Threading.Tasks;
 using System.Net.Http;
 using Newtonsoft.Json.Linq;
+using Sentry;
 
 namespace Hybrasyl
 {
@@ -78,6 +79,9 @@ namespace Hybrasyl
 
         private static readonly CancellationTokenSource CancellationTokenSource = new CancellationTokenSource();
 
+        public static IDisposable Sentry { get; private set; }
+        public static bool SentryEnabled { get; private set; }
+
         public static void ToggleActive()
         {
             if (Interlocked.Read(ref Active) == 0)
@@ -93,6 +97,12 @@ namespace Hybrasyl
             if (Interlocked.Read(ref Active) == 0)
                 return false;
             return true;
+        }
+
+        public static void ReportException(Exception e)
+        {
+            if (SentryEnabled)
+                Task.Run(() => SentrySdk.CaptureException(e));
         }
 
         public static void CurrentDomain_ProcessExit(object sender, EventArgs e) => Shutdown();
@@ -202,6 +212,33 @@ namespace Hybrasyl
 
             Log.Information($"Hybrasyl {Assemblyinfo.Version} (commit {(string.IsNullOrEmpty(GitCommit) ? "unknown" : GitCommit)}) starting.");
             Log.Information("{Copyright} - this program is licensed under the GNU AGPL, version 3.", Assemblyinfo.Copyright);
+
+
+            try
+            {
+                var env = Environment.GetEnvironmentVariable("HYB_ENV");
+                if (!string.IsNullOrEmpty(Config.ApiEndpoints.Sentry?.Url ?? null))
+                {
+                    Sentry = SentrySdk.Init(i =>
+                    {
+                        i.Dsn = new Dsn(Config.ApiEndpoints.Sentry.Url);
+                        i.Environment = (env ?? "dev");
+                    }
+                    );
+                    SentryEnabled = true;
+                    GameLog.Info("Sentry: exception reporting enabled");
+                }
+                else
+                {
+                    GameLog.Info("Sentry: exception reporting disabled");
+                    SentryEnabled = false;
+                }
+            }
+            catch (Exception e)
+            {
+                GameLog.Warning("Sentry: exception reporting disabled, unknown error: {e}", e);
+                SentryEnabled = false;
+            }
 
             LoadCollisions();
 
@@ -344,6 +381,7 @@ namespace Hybrasyl
             }
             catch (Exception e)
             {
+                Game.ReportException(e);
                 GameLog.Error("An error occurred checking if server updates are available {e}",e);
             }           
         }
@@ -370,6 +408,7 @@ namespace Hybrasyl
             }
             catch (Exception e)
             {
+                Game.ReportException(e);
                 GameLog.Error("Couldn't fetch version information from GitHub: {e}", e);
                 CommitLog = "There was an error fetching commit log information from Github. Sorry.";
             }

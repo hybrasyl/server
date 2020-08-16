@@ -74,8 +74,9 @@ namespace Hybrasyl
                 {
                     World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.CleanupUser, client.ConnectionId));
                 }
-                catch (InvalidOperationException)
+                catch (InvalidOperationException e)
                 {
+                    Game.ReportException(e);
                     if (!World.ControlMessageQueue.IsCompleted)
                         GameLog.ErrorFormat("Connection {id}: DeregisterClient failed", client.ConnectionId);
                 }
@@ -109,6 +110,7 @@ namespace Hybrasyl
             }
             catch (Exception e)
             {
+                Game.ReportException(e);
                 GameLog.Error("RequestEncryptionKey failure: {e}", e);
                 key = Encoding.ASCII.GetBytes("NOTVALID!");
             }
@@ -140,6 +142,7 @@ namespace Hybrasyl
             }
             catch (Exception e)
             {
+                Game.ReportException(e);
                 GameLog.Error("ValidateEncryptionKey failure: {e}", e);
                 return false;
             }

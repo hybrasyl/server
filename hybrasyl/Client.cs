@@ -129,8 +129,9 @@ namespace Hybrasyl
                 WorkSocket.Shutdown(SocketShutdown.Both);
                 WorkSocket.Close();
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                Game.ReportException(e);
                 WorkSocket.Close();
             }
 
@@ -508,19 +509,22 @@ namespace Hybrasyl
                             await Task.Delay(transmitDelay);
                         Socket.BeginSend(socketbuf, 0, socketbuf.Length, 0, SendCallback, ClientState);
                     }
-                    catch (ObjectDisposedException)
+                    catch (ObjectDisposedException e)
                     {
+                        Game.ReportException(e);
                         ClientState.Dispose();
                     }
                 });
             }
-            catch (ObjectDisposedException)
+            catch (ObjectDisposedException e)
             {
                 // Socket is gone, peace out
+                Game.ReportException(e);
                 ClientState.Dispose();
             }
             catch (Exception e)
             {
+                Game.ReportException(e);
                 GameLog.Error($"HALP: {e}");
             }
         }
@@ -578,12 +582,14 @@ namespace Hybrasyl
                         }
                         catch (Exception e)
                         {
+                            Game.ReportException(e);
                             GameLog.ErrorFormat("EXCEPTION IN HANDLING: 0x{0:X2}: {1}", packet.Opcode, e);
                         }
                     }
                 }
                 catch (Exception e)
                 {
+                    Game.ReportException(e);
                     Console.WriteLine(e);
                     throw;
                 }
@@ -617,11 +623,13 @@ namespace Hybrasyl
             }
             catch (SocketException e)
             {
+                Game.ReportException(e);
                 GameLog.Error($"Error Code: {e.ErrorCode}, {e.Message}");
                 state.WorkSocket.Close();
             }
-            catch (ObjectDisposedException)
+            catch (ObjectDisposedException e)
             {
+                Game.ReportException(e);
                 //client.Disconnect();
                 GameLog.Error($"ObjectDisposedException");
                 state.WorkSocket.Close();

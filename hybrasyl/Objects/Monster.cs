@@ -52,7 +52,7 @@ namespace Hybrasyl.Objects
         public bool MovementDisabled => _spawn.Flags.HasFlag(Xml.SpawnFlags.MovementDisabled);
         public bool AiDisabled => _spawn.Flags.HasFlag(Xml.SpawnFlags.AiDisabled);
 
-        public bool ScriptDisabled { get; set; }
+        public bool ScriptExists { get; set; }
 
         public override void OnDeath()
         {
@@ -112,17 +112,17 @@ namespace Hybrasyl.Objects
         // OnSpawn) when not needed 99% of the time.
         private void InitScript()
         {
-            if (Script != null || ScriptDisabled == true)
+            if (Script != null || !ScriptExists)               
                 return;
 
             if (World.ScriptProcessor.TryGetScript(Name, out Script damageScript))
             {
                 Script = damageScript;
                 Script.AssociateScriptWithObject(this);
-                ScriptDisabled = false;
+                ScriptExists = true;
             }
             else
-                ScriptDisabled = true;                
+                ScriptExists = false;                
         }
 
         public override void OnHear(VisibleObject speaker, string text, bool shout = false)
@@ -132,8 +132,7 @@ namespace Hybrasyl.Objects
 
             // FIXME: in the glorious future, run asynchronously with locking
             InitScript();
-
-            if (Script.HasFunction("OnHear"))
+            if (Script != null)
             {
                 Script.SetGlobalValue("text", text);
                 Script.SetGlobalValue("shout", shout);
@@ -149,6 +148,7 @@ namespace Hybrasyl.Objects
         {
             // FIXME: in the glorious future, run asynchronously with locking
             InitScript();
+
             if (Script != null)
             {
                 Script.SetGlobalValue("damage", damage);

@@ -325,6 +325,7 @@ namespace Hybrasyl
                     }
                     catch (Exception ex)
                     {
+                        Game.ReportException(ex);
                         GameLog.ScriptingError(ex, "{Function}: callback unhandled exception", MethodInfo.GetCurrentMethod().Name);
                         target.ClearDialogState();
                     }
