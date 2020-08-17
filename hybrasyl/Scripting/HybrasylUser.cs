@@ -345,13 +345,43 @@ namespace Hybrasyl.Scripting
         /// <returns>Boolean indicating whether the mark for modification was found or not</returns>
         public bool ModifyLegendMark(string prefix, int quantity, bool isPublic)
         {
-            LegendMark mark;
-            if (!User.Legend.TryGetMark(prefix, out mark)) return false;
+            if (!User.Legend.TryGetMark(prefix, out LegendMark mark)) return false;
             mark.Quantity = quantity;
             mark.Public = isPublic;
             return true;
         }
 
+        /// <summary>
+        /// Increment a legend mark with a quantity.
+        /// </summary>
+        /// <param name="prefix">The legend mark prefix to modify.</param>
+        /// <param name="preserveDate">Whether or not to preserve the date. If true, the date of the mark is not updated.</param>
+        /// <returns>Boolean indicating whether the mark existed / was updated</returns>
+        public bool IncrementLegendMark(string prefix, bool preserveDate=true)
+        {
+            if (!User.Legend.TryGetMark(prefix, out LegendMark mark))
+                return false;
+            mark.Quantity++;
+            if (!preserveDate)
+                mark.Timestamp = DateTime.Now;
+            return true;
+        }
+
+        /// <summary>
+        /// Decrement a legend mark with a quantity.
+        /// </summary>
+        /// <param name="prefix">The legend mark prefix to modify.</param>
+        /// <param name="preserveDate">Whether or not to preserve the date. If true, the date of the mark is not updated.</param>
+        /// <returns>Boolean indicating whether the mark existed / was updated</returns>
+        public bool DecrementLegendMark(string prefix, bool preserveDate=true)
+        {
+            if (!User.Legend.TryGetMark(prefix, out LegendMark mark))
+                return false;
+            mark.Quantity--;
+            if (!preserveDate)
+                mark.Timestamp = DateTime.Now;
+            return true;
+        }
 
         /// <summary>
         /// Request a sequence between two players. This is primarily used to start asynchronous dialog sequences (for things like mentoring or religion where confirmation from a second
@@ -809,6 +839,24 @@ namespace Hybrasyl.Scripting
             return false;
         }
 
+
+        /// <summary>
+        /// Check to see if the specified skill exists in the user's skill book.
+        /// </summary>
+        /// <param name="skillname">Name of the skill to find.</param>
+        /// <returns>Boolean indicating whether or not the user knows the skill.</returns>
+        public bool HasSkill(string skillname)
+        {
+            if (string.IsNullOrEmpty(skillname))
+                GameLog.ScriptingError("HasSkill: {user} - skill name (first argument) cannot be null or empty");
+            else if (Game.World.WorldData.TryGetValue(skillname, out Xml.Castable result))
+                return User.SkillBook.Contains(result);
+            else
+                GameLog.ScriptingError("HasSkill: {user} - skill {skill} not found", User.Name, skillname);
+            return false;
+
+        }
+
         /// <summary>
         /// Add a given spell to a player's spellbook.
         /// </summary>
@@ -826,6 +874,23 @@ namespace Hybrasyl.Scripting
             else
                 GameLog.ScriptingError("AddSpell: {user} - spell {spell} not found", User.Name, spellname);
             return false;
+        }
+
+        /// <summary>
+        /// Check to see if the specified spell exists in the user's spell book.
+        /// </summary>
+        /// <param name="skillname">Name of the spell to find.</param>
+        /// <returns>Boolean indicating whether or not the user knows the spell.</returns>
+        public bool HasSpell(string spellname)
+        {
+            if (string.IsNullOrEmpty(spellname))
+                GameLog.ScriptingError("HasSpell: {user} - spell name (first argument) cannot be null or empty");
+            else if (Game.World.WorldData.TryGetValue(spellname, out Xml.Castable result))
+                return User.SpellBook.Contains(result);
+            else
+                GameLog.ScriptingError("HasSpell: {user} - spell {spell} not found", User.Name, spellname);
+            return false;
+
         }
 
         /// <summary>
