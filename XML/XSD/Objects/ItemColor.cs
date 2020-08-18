@@ -70,7 +70,7 @@ using System.Collections.Generic;
         Grass,
         Lapis,
         Maroon,
-        Kru,
+        TiNfOiL,
         Aquamarine,
         Leaf,
         Purple,
