@@ -262,6 +262,29 @@ namespace Hybrasyl.Scripting
         }
 
         /// <summary>
+        /// Check to see whether the user has killed a named monster, optionally in the last n minutes.
+        /// </summary>
+        /// <param name="name">The name of the monster to check</param>
+        /// <param name="minutes">The number of minutes to limit the check. 0 is default and means no limit.</param>
+        /// <returns></returns>
+        public bool HasKilled(string name, int minutes = 0)
+        {
+            var ts = DateTime.Now;
+            var matches = User.RecentKills.Where(x => x.Name.ToLower() == name.ToLower()).ToList();
+            if (matches.Count > 0 && minutes == 0)
+                return true;
+            else if (matches.Count > 0 && minutes > 0)
+            {
+                foreach (var rec in matches)
+                {
+                    if ((ts - rec.Timestamp).TotalMinutes <= minutes)
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
         /// Return the player's entire legend.
         /// </summary>
         /// <returns></returns>

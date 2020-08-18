@@ -45,6 +45,13 @@ namespace Hybrasyl.Objects
     }
 
     [JsonObject]
+    public class KillRecord
+    {
+        public string Name { get; set; }
+        public DateTime Timestamp { get; set; }
+    }
+
+    [JsonObject]
     public class LoginInfo
     {
         public DateTime LastLogin { get; set; }
@@ -162,6 +169,9 @@ namespace Hybrasyl.Objects
         public string PendingWithdrawItem { get; private set; }
         public byte PendingRepairSlot { get; private set; }
         public uint PendingRepairCost { get; private set; }
+
+        [JsonProperty]
+        public List<KillRecord> RecentKills { get; private set; }
 
         [JsonProperty]
         public string GuildUuid { get; set; }
@@ -670,7 +680,7 @@ namespace Hybrasyl.Objects
             Group = null;
             Flags = new Dictionary<string, bool>();
             _currentStatuses = new ConcurrentDictionary<ushort, ICreatureStatus>();
-          
+            RecentKills = new List<KillRecord>();       
             #region Appearance defaults
             RestPosition = RestPosition.Standing;
             SkinColor = SkinColor.Basic;
@@ -681,6 +691,14 @@ namespace Hybrasyl.Objects
             DisplayAsMonster = false;
             MonsterSprite = ushort.MinValue;
             #endregion
+        }
+
+        public void TrackKill(string name, DateTime timestamp)
+        {
+            // FIXME: better implementation; stack cannot be used without deserialization workarounds
+            if (RecentKills.Count == 25)
+                RecentKills = RecentKills.SkipLast(1).ToList();
+            RecentKills.Add(new KillRecord { Name = name, Timestamp = timestamp });
         }
 
         /**

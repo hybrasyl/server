@@ -96,9 +96,9 @@ namespace Hybrasyl.Xml
         public Use Use => Properties.Use;
 
         [XmlIgnore]
-        public int BonusHP => Properties.StatModifiers.Base?.Hp ?? 0;
+        public int BonusHP => Properties.StatModifiers?.Base?.Hp ?? 0;
         [XmlIgnore]
-        public int BonusMP => Properties.StatModifiers.Base?.Mp ?? 0;
+        public int BonusMP => Properties.StatModifiers?.Base?.Mp ?? 0;
 
         [XmlIgnore]
         public Class Class => Properties.Restrictions?.Class ?? Class.Peasant;

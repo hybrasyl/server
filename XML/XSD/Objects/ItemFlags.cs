@@ -36,8 +36,6 @@ public enum ItemFlags
     Perishable = 256,
     Unique = 512,
     Master = 1024,
-    [XmlEnumAttribute("Unique-Equipped")]
-    [EnumMember(Value="Unique-Equipped")]
     UniqueEquipped = 2048,
     Identifiable = 4096,
 }
