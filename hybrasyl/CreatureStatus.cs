@@ -191,7 +191,7 @@ namespace Hybrasyl
             XmlStatus = xmlstatus;
             Start = DateTime.Now;
             Duration = duration == -1 ? xmlstatus.Duration : duration;
-            Tick = tickFrequency == -1 ? xmlstatus.Tick : duration;
+            Tick = tickFrequency == -1 ? xmlstatus.Tick : tickFrequency;
 
             // Calculate damage/heal effects. Note that a castable MUST be passed here for a status 
             // to have damage effects as the castable itself has fields we need to access 
