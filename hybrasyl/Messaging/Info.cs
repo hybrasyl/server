@@ -75,6 +75,19 @@ namespace Hybrasyl.Messaging
         }
     }
 
+    class RecentkillsCommand : ChatCommand
+    {
+        public new static string Command = "recentkills";
+        public new static string ArgumentText = "none";
+        public new static string HelpText = "Displays your last 25 (monster) kills, along with timestamps.";
+        public new static bool Privileged = false;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            return Success($"Kill List\n---------\n\n{string.Join("", user.RecentKills.Select(x => $"{x.Name} - {x.Timestamp}\n").ToList())}", MessageTypes.SLATE_WITH_SCROLLBAR);
+        }
+    }
+
     class HelpCommand : ChatCommand
     {
         public new static string Command = "help";

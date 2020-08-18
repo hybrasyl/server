@@ -480,10 +480,6 @@ namespace Hybrasyl
                     var variants = new Dictionary<string, List<Xml.Item>>();
 
                     GameLog.DebugFormat("Items: loaded {0}, id {1}", newItem.Name, newItem.Id);
-                    // Handle some null cases; there's probably a nicer way to do this
-                    if (newItem.Properties.StatModifiers.Combat == null) { newItem.Properties.StatModifiers.Combat = new Xml.StatModifierCombat(); }
-                    if (newItem.Properties.StatModifiers.Element == null) { newItem.Properties.StatModifiers.Element = new Xml.StatModifierElement(); }
-                    if (newItem.Properties.StatModifiers.Base == null) { newItem.Properties.StatModifiers.Base = new Xml.StatModifierBase(); }
                     if (newItem.Properties.Variants != null)
                     {
                         foreach (var targetGroup in newItem.Properties.Variants.Group)

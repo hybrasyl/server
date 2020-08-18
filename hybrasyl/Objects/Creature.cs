@@ -566,8 +566,9 @@ namespace Hybrasyl.Objects
                     Xml.Status applyStatus;
                     if (World.WorldData.TryGetValueByIndex<Xml.Status>(status.Value, out applyStatus))
                     {
-                        GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - applying status {status.Value}");
-                        tar.ApplyStatus(new CreatureStatus(applyStatus, tar, castObject));
+                        var duration = status.Duration == 0 ? applyStatus.Duration : status.Duration;
+                        GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - applying status {status.Value} - duration {duration}");
+                        tar.ApplyStatus(new CreatureStatus(applyStatus, tar, castObject, this, duration));
                     }
                     else
                         GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name} - failed to add status {status.Value}, does not exist!");

@@ -71,8 +71,18 @@ namespace Hybrasyl.Objects
                 return; // Don't handle cases of MOB ON MOB COMBAT just yet
             }
 
-            if (hitter.Grouped) ItemDropAllowedLooters = hitter.Group.Members.Select(user => user.Name).ToList();
-            else ItemDropAllowedLooters.Add(hitter.Name);
+            var deadTime = DateTime.Now;
+
+            if (hitter.Grouped)
+            {
+                ItemDropAllowedLooters = hitter.Group.Members.Select(user => user.Name).ToList();
+                hitter.Group.Members.ForEach(x => x.TrackKill(Name, deadTime));
+            }
+            else
+            {
+                ItemDropAllowedLooters.Add(hitter.Name);
+                hitter.TrackKill(Name, deadTime);
+            }
 
             hitter.ShareExperience(LootableXP);
             var itemDropTime = DateTime.Now;
