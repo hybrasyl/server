@@ -112,7 +112,7 @@ namespace Hybrasyl.Xml
         [XmlIgnore]
         public sbyte BonusStr => Properties.StatModifiers?.@Base?.Str ?? 0;
         [XmlIgnore]
-        public sbyte BonusInt => Properties.StatModifiers?.@Base.@Int ?? 0;
+        public sbyte BonusInt => Properties.StatModifiers?.@Base?.@Int ?? 0;
         [XmlIgnore]
         public sbyte BonusWis => Properties.StatModifiers?.@Base?.Wis ?? 0;
         [XmlIgnore]

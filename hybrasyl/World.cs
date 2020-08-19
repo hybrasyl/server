@@ -673,8 +673,11 @@ namespace Hybrasyl
 
             // Ensure all our modifiable / referenced properties at least exist
             // TODO: this is pretty hacky
-            if (variantItem.Properties.Restrictions.Level is null)
+            if (variantItem.Properties.Restrictions is null)
+            {
+                variantItem.Properties.Restrictions = new Xml.ItemRestrictions();
                 variantItem.Properties.Restrictions.Level = new Xml.RestrictionsLevel();
+            }
 
             if (variantItem.Properties.StatModifiers is null)
                 variantItem.Properties.StatModifiers = new Xml.ItemStatModifiers()
@@ -725,7 +728,11 @@ namespace Hybrasyl
                     }
                 case "elemental":
                     {
-                        if (variant.Properties.StatModifiers?.Element != null)
+                        if ((variantItem.Properties?.Equipment?.Slot ?? Xml.EquipmentSlot.None) == Xml.EquipmentSlot.Waist)
+                            variantItem.Properties.StatModifiers.Element.Defense = variant.Properties.StatModifiers.Element.Defense;
+                        else if ((variantItem.Properties?.Equipment?.Slot ?? Xml.EquipmentSlot.None) == Xml.EquipmentSlot.Necklace)
+                            variantItem.Properties.StatModifiers.Element.Offense = variant.Properties.StatModifiers.Element.Offense;
+                        else if (variant.Properties.StatModifiers?.Element != null)
                         {
                             variantItem.Properties.StatModifiers.Element.Offense = variant.Properties.StatModifiers.Element.Offense;
                             variantItem.Properties.StatModifiers.Element.Defense = variant.Properties.StatModifiers.Element.Defense;

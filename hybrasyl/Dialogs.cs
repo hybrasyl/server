@@ -383,6 +383,12 @@ namespace Hybrasyl
 
                 if (Sprite != 0)
                     sprite = Sprite;
+                else
+                {
+                    // If dialog sprite is unset, try using invokee's sprite; 
+                    // then try user dialog state (global sequence)
+                    sprite = invokee?.DialogSprite ?? invoker.DialogState?.Associate?.DialogSprite ?? 0;
+                }
 
                 dialogPacket.WriteByte(objType);
                 // If no invokee ID, we use 0xFFFFFFFF; 99.9% of the time this is an async dialog request
@@ -403,7 +409,7 @@ namespace Hybrasyl
 
                 dialogPacket.WriteByte(0);
                 // TODO: Allow override here from DialogSequence
-                dialogPacket.WriteString8(invokee?.Name ?? Sequence.DisplayName);
+                dialogPacket.WriteString8(invokee?.Name ?? invoker.DialogState?.Associate?.Name ?? Sequence.DisplayName);
                 var displayText = EvaluateDisplayText(invoker, invokee);
 
                 if (!string.IsNullOrEmpty(displayText))

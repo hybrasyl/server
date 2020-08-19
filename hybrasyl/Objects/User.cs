@@ -35,7 +35,6 @@ using Hybrasyl.Utility;
 namespace Hybrasyl.Objects
 {
     
-
     [JsonObject]
     public class PasswordInfo
     {
@@ -1156,8 +1155,6 @@ namespace Hybrasyl.Objects
                 }
                 castable.LastCast = DateTime.Now;
             }
-            else
-                SendSystemMessage("Failed.");
         }
 
         internal void UseSpell(byte slot, uint target = 0)
@@ -1171,11 +1168,14 @@ namespace Hybrasyl.Objects
                 return;
             }
 
-            if (UseCastRestrictions.Contains(castable.Categories.Category.Value))
+            var intersect = UseCastRestrictions.Intersect(castable.Categories.Select(x => x.Value), StringComparer.InvariantCultureIgnoreCase);
+
+            if (intersect.Count() > 0)
             {
                 SendSystemMessage("You cannot cast that now.");
                 return;
             }
+
             if (UseCastable(castable, targetCreature))
             {
                 Client.Enqueue(new ServerPacketStructures.Cooldown()
@@ -1193,8 +1193,6 @@ namespace Hybrasyl.Objects
                 
                 SpellBook[slot].LastCast = DateTime.Now;
             }
-            else
-                SendSystemMessage("Failed.");
         }
 
         /// <summary>
@@ -1202,8 +1200,10 @@ namespace Hybrasyl.Objects
         /// </summary>
         /// <param name="castable">The castable that is being cast.</param>
         /// <returns>True or false depending on success.</returns>
-        public bool ProcessCastingCost(Xml.Castable castable)
+        public bool ProcessCastingCost(Xml.Castable castable, out string message)
         {
+            message = string.Empty;
+
             if (castable.CastCosts.Count == 0) return true;
 
             var costs = castable.CastCosts.Where(e => e.Class.Contains(Class));
@@ -1231,20 +1231,31 @@ namespace Hybrasyl.Objects
                 else
                     reduceMp = Convert.ToUInt32(castcosts.Stat.Mp);
 
-            
             if (castcosts.Items != null)
             {
                 foreach (var item in castcosts.Items)
                 {
-                    if (!Inventory.Contains(item.Value, item.Quantity)) hasItemCost = false;
+                    if (!Inventory.Contains(item.Value, item.Quantity))
+                        hasItemCost = false;
                 }
             }
 
             // Check that all requirements are met first. Note that a spell cannot be cast if its HP cost would result
             // in the caster's HP being reduced to zero.
-            if (reduceHp >= Stats.Hp || reduceMp > Stats.Mp || castcosts.Gold > Gold || !hasItemCost) return false;
+            if (reduceHp >= Stats.Hp)
+                message = "You lack the required vitality.";
 
-            if (castcosts.Gold > this.Gold) return false;
+            if (reduceMp > Stats.Mp)
+                message = "Your mana is too low.";
+
+            if (!hasItemCost)
+                message = "You lack the required items.";
+
+            if (castcosts.Gold > Gold)
+                message = "You lack the required gold.";
+
+            if (message != string.Empty)
+                return false;
 
             if (reduceHp != 0) Stats.Hp -= reduceHp;
             if (reduceMp != 0) Stats.Mp -= reduceMp;
@@ -1461,36 +1472,81 @@ namespace Hybrasyl.Objects
             Enqueue(x2C);
         }
 
-        public void SendSpellUpdate(Xml.Castable item, int slot)
+        public void SendSpellUpdate(Xml.Castable castable, int slot)
         {
-            if (item == null)
+            if (castable == null)
             {
                 SendClearSpell(slot);
                 GameLog.InfoFormat($"{Name}: cleared spell slot {slot}");
                 return;
             }
             GameLog.DebugFormat("Adding spell {0} to slot {2}",
-                item.Name, slot);
-            GameLog.InfoFormat($"{Name}: adding {item.Name} to slot {slot}");
+                castable.Name, slot);
+            GameLog.InfoFormat($"{Name}: adding {castable.Name} to slot {slot}");
 
             var mastery = "";
 
-            if (item.Mastery.Tiered)
+            if (castable.Mastery.Tiered)
             {
-                mastery = $"[{item.MasteryLevel}]";
+                mastery = $"[{castable.MasteryLevel}]";
             }
 
             var x17 = new ServerPacket(0x17);
             x17.WriteByte((byte)slot);
-            x17.WriteUInt16((ushort)(item.Icon));
-            var spellType = item.Intents[0].UseType;
-            //var spellType = isClick ? 2 : 5;
+            x17.WriteUInt16((ushort)(castable.Icon));
+            var spellType = castable.Intents[0].UseType;
             x17.WriteByte((byte)spellType); //spell type? how are we determining this?
-            x17.WriteString8(Class == Xml.Class.Peasant ? item.Name : $"{item.Name} (Mastery{mastery}:{ Math.Round((decimal)(item.UseCount > item.Mastery.Uses ? 100 : item.UseCount / item.Mastery.Uses), 2)}%)");
-            x17.WriteString8(item.Name); //prompt? what is this?
-            x17.WriteByte((byte)item.Lines);
-            GameLog.InfoFormat($"{Name}: enqueuing {item.Name} to slot {slot}");
+            x17.WriteString8(Class == Xml.Class.Peasant ? castable.Name : $"{castable.Name} (Mastery{mastery}:{ Math.Round((decimal)(castable.UseCount > castable.Mastery.Uses ? 100 : castable.UseCount / castable.Mastery.Uses), 2)}%)");
+            x17.WriteString8(castable.Name); //prompt? what is this?
+            x17.WriteByte((byte)CalculateLines(castable));
+            GameLog.InfoFormat($"{Name}: enqueuing {castable.Name} to slot {slot}");
             Enqueue(x17);
+        }
+
+        private int CalculateLines(Xml.Castable castable)
+        {
+            // TODO: potentially add additional equipment types. for now only weapons
+            if (Equipment.Weapon?.CastModifiers != null)
+            {
+                object modifier = null;
+                foreach (var castmodifier in Equipment.Weapon.CastModifiers)
+                {
+                    // Matches most to least specific, first match wins
+                    if (castmodifier.Castable != string.Empty && castmodifier.Castable.ToLower() == castable.Name.ToLower())
+                    {
+                        modifier = castmodifier.Item;
+                        break;
+                    }
+                    else if (castmodifier.Group != string.Empty && castable.Categories.Select(x => x.Value.ToLower()).Contains(castmodifier.Group.ToLower()))
+                    {
+                        modifier = castmodifier.Item;
+                        break;
+                    }
+                    else if (castmodifier.All == true)
+                    {
+                        modifier = castmodifier.Item;
+                        break;
+                    }
+                }
+                // Evaluate modifier match.
+                // Exact match first, then between min / max, which is same as "all" if no min/max defined (default -1 / 255)
+                if (modifier is Xml.CastModifierAdd add)
+                {
+                    if (castable.Lines == add.Match || (add.Match == -1 && castable.Lines >= add.Min && castable.Lines <= add.Max))
+                        return castable.Lines + add.Amount;
+                }
+                else if (modifier is Xml.CastModifierSubtract sub)
+                {
+                    if (castable.Lines == sub.Match || (sub.Match == -1 && castable.Lines >= sub.Min && castable.Lines <= sub.Max))
+                        return castable.Lines - sub.Amount;
+                }
+                else if (modifier is Xml.CastModifierReplace repl)
+                {
+                    if (castable.Lines == repl.Match || (repl.Match == -1 && castable.Lines >= repl.Min && castable.Lines <= repl.Max))
+                        return repl.Amount;
+                }
+            }
+            return castable.Lines;
         }
 
         public void SetCookie(string cookieName, string value)
@@ -2225,6 +2281,9 @@ namespace Hybrasyl.Objects
             ApplyBonuses(itemObject);
             UpdateAttributes(StatUpdateFlags.Stats);
             if (sendUpdate) Show();
+            // TODO: re-evaluate if this gets too heavyweight
+            if (itemObject.EquipmentSlot == ((byte)Xml.EquipmentSlot.Weapon - 1))
+                SendSpells();
 
             return true;
         }
@@ -2333,10 +2392,36 @@ namespace Hybrasyl.Objects
         }
 
 
-
         public override bool UseCastable(Xml.Castable castObject, Creature target = null)
         {
-            if (!ProcessCastingCost(castObject)) return false;
+            // Check casting costs
+            if (!ProcessCastingCost(castObject, out string message))
+            {
+                SendSystemMessage(message);
+                return false;
+            }
+
+            // Check restrictions
+            foreach (var restriction in castObject.Restrictions)
+            {
+                if (restriction.Slot == Xml.EquipmentSlot.None && !Inventory.Contains(restriction.Value))
+                {
+                    // in inventory check
+                    SendSystemMessage($"You lack the needed {restriction.Value}.");
+                    return false;
+                }
+                else if (restriction.Slot != Xml.EquipmentSlot.None)
+                {
+                    // equipment check
+                    var i = Equipment.FindByName(restriction.Value);
+                    if (i.EquipmentSlot != ((byte)restriction.Slot - 1))
+                    {
+                        SendSystemMessage($"You must have {restriction.Value} equipped.");
+                        return false;
+                    }      
+                }
+            }
+            
             if (base.UseCastable(castObject, target))
             {
                 // This may need to occur elsewhere, depends on how it looks in game

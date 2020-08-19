@@ -47,8 +47,8 @@ public partial class StatModifiers
     private float _reflectChance;
     private float _reflectIntensity;
     private static XmlSerializer _serializer;
-    #endregion
-    
+        #endregion
+
     public StatModifiers()
     {
         _str = ((sbyte)(0));
