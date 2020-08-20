@@ -673,43 +673,25 @@ namespace Hybrasyl
 
             // Ensure all our modifiable / referenced properties at least exist
             // TODO: this is pretty hacky
-            if (variantItem.Properties.Restrictions is null)
-            {
-                variantItem.Properties.Restrictions = new Xml.ItemRestrictions();
-                variantItem.Properties.Restrictions.Level = new Xml.RestrictionsLevel();
-            }
 
             if (variantItem.Properties.StatModifiers is null)
-                variantItem.Properties.StatModifiers = new Xml.ItemStatModifiers()
-                {
-                    Base = new Xml.StatModifierBase(),
-                    Element = new Xml.StatModifierElement(),
-                    Combat = new Xml.StatModifierCombat()
-                };
-
+                variantItem.Properties.StatModifiers = new Xml.ItemStatModifiers();
+            if (variantItem.Properties.StatModifiers.Base is null)
+                variantItem.Properties.StatModifiers.Base = new Xml.StatModifierBase();
+            if (variantItem.Properties.StatModifiers.Combat is null)
+                variantItem.Properties.StatModifiers.Combat = new Xml.StatModifierCombat();
+            if (variantItem.Properties.Restrictions is null)
+                variantItem.Properties.Restrictions = new Xml.ItemRestrictions();
+            if (variantItem.Properties.Restrictions.Level is null)
+                variantItem.Properties.Restrictions.Level = new Xml.RestrictionsLevel();
+            if (variantItem.Properties.StatModifiers.Element is null)
+                variantItem.Properties.StatModifiers.Element = new Xml.StatModifierElement();
             if (variantItem.Properties.Damage is null)
-            {
-                variantItem.Properties.Damage = new Xml.ItemDamage()
-                {
-                    Large = new Xml.ItemDamageLarge(),
-                    Small = new Xml.ItemDamageSmall()
-                };
-            }
-
-            if (variantItem.Properties.Damage.Large is null)
-                variantItem.Properties.Damage.Large = new Xml.ItemDamageLarge();
-
+                variantItem.Properties.Damage = new Xml.ItemDamage();
             if (variantItem.Properties.Damage.Small is null)
                 variantItem.Properties.Damage.Small = new Xml.ItemDamageSmall();
-
-            if (item.Properties.Damage is null)
-            {
-                item.Properties.Damage = new Xml.ItemDamage()
-                {
-                    Large = new Xml.ItemDamageLarge(),
-                    Small = new Xml.ItemDamageSmall()
-                };
-            }
+            if (variantItem.Properties.Damage.Large is null)
+                variantItem.Properties.Damage.Large = new Xml.ItemDamageLarge();
 
             switch (variantGroup.ToLower())
             {
