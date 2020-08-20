@@ -102,6 +102,7 @@
   <xs:complexType name="RestrictionsLevel">
     <xs:attribute name="Min" type="xs:unsignedByte" default="0" />
     <xs:attribute name="Max" type="xs:unsignedByte" default="255" />
+    <xs:attribute name="Master" type="xs:boolean" default="false" />
   </xs:complexType>
 
   <xs:complexType name="RestrictionsAb">

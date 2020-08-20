@@ -118,6 +118,12 @@ namespace Hybrasyl.Objects
                     }
                 }
             }
+
+            if (((Template.Properties?.Restrictions?.Level?.Master ?? false) == true) && (!userobj.IsMaster))
+            {
+                message = "You are not a master of your craft.";
+                return false;
+            }
             return true;
         }
 
