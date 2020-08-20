@@ -31,6 +31,7 @@ public partial class ItemRestrictions
     private RestrictionsAb _ab;
     private Class _class;
     private Gender _gender;
+    private List<string> _castables;
     private static XmlSerializer _serializer;
     #endregion
     
@@ -87,6 +88,19 @@ public partial class ItemRestrictions
         set
         {
             _gender = value;
+        }
+    }
+    
+    [XmlArrayItemAttribute("Castable", IsNullable=false)]
+    public List<string> Castables
+    {
+        get
+        {
+            return _castables;
+        }
+        set
+        {
+            _castables = value;
         }
     }
     

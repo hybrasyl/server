@@ -34,7 +34,7 @@ public partial class ElementTableTargetElement
     
     public ElementTableTargetElement()
     {
-            _element = Element.None;
+        _element = Element.None;
     }
     
     [XmlAttribute]

@@ -24,37 +24,75 @@ using System.Collections.Generic;
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-public partial class RecipeIngredient
+public partial class CastModifierAdd
 {
     #region Private fields
-    private string _name;
-    private ushort _quantity;
+    private int _match;
+    private int _amount;
+    private int _min;
+    private int _max;
     private static XmlSerializer _serializer;
     #endregion
     
+    public CastModifierAdd()
+    {
+        _match = -1;
+        _min = -1;
+        _max = 255;
+    }
+    
     [XmlAttribute]
-    public string Name
+    [DefaultValue(-1)]
+    public int Match
     {
         get
         {
-            return _name;
+            return _match;
         }
         set
         {
-            _name = value;
+            _match = value;
         }
     }
     
     [XmlAttribute]
-    public ushort Quantity
+    public int Amount
     {
         get
         {
-            return _quantity;
+            return _amount;
         }
         set
         {
-            _quantity = value;
+            _amount = value;
+        }
+    }
+    
+    [XmlAttribute]
+    [DefaultValue(-1)]
+    public int Min
+    {
+        get
+        {
+            return _min;
+        }
+        set
+        {
+            _min = value;
+        }
+    }
+    
+    [XmlAttribute]
+    [DefaultValue(255)]
+    public int Max
+    {
+        get
+        {
+            return _max;
+        }
+        set
+        {
+            _max = value;
         }
     }
     
@@ -64,7 +102,7 @@ public partial class RecipeIngredient
         {
             if ((_serializer == null))
             {
-                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(RecipeIngredient));
+                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(CastModifierAdd));
             }
             return _serializer;
         }
@@ -72,7 +110,7 @@ public partial class RecipeIngredient
     
     #region Serialize/Deserialize
     /// <summary>
-    /// Serialize RecipeIngredient object
+    /// Serialize CastModifierAdd object
     /// </summary>
     /// <returns>XML value</returns>
     public virtual string Serialize()
@@ -105,16 +143,16 @@ public partial class RecipeIngredient
     }
     
     /// <summary>
-    /// Deserializes RecipeIngredient object
+    /// Deserializes CastModifierAdd object
     /// </summary>
     /// <param name="input">string workflow markup to deserialize</param>
-    /// <param name="obj">Output RecipeIngredient object</param>
+    /// <param name="obj">Output CastModifierAdd object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool Deserialize(string input, out RecipeIngredient obj, out Exception exception)
+    public static bool Deserialize(string input, out CastModifierAdd obj, out Exception exception)
     {
         exception = null;
-        obj = default(RecipeIngredient);
+        obj = default(CastModifierAdd);
         try
         {
             obj = Deserialize(input);
@@ -127,19 +165,19 @@ public partial class RecipeIngredient
         }
     }
     
-    public static bool Deserialize(string input, out RecipeIngredient obj)
+    public static bool Deserialize(string input, out CastModifierAdd obj)
     {
         Exception exception = null;
         return Deserialize(input, out obj, out exception);
     }
     
-    public static RecipeIngredient Deserialize(string input)
+    public static CastModifierAdd Deserialize(string input)
     {
         StringReader stringReader = null;
         try
         {
             stringReader = new StringReader(input);
-            return ((RecipeIngredient)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
+            return ((CastModifierAdd)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
         }
         finally
         {
@@ -150,14 +188,14 @@ public partial class RecipeIngredient
         }
     }
     
-    public static RecipeIngredient Deserialize(Stream s)
+    public static CastModifierAdd Deserialize(Stream s)
     {
-        return ((RecipeIngredient)(SerializerXML.Deserialize(s)));
+        return ((CastModifierAdd)(SerializerXML.Deserialize(s)));
     }
     #endregion
     
     /// <summary>
-    /// Serializes current RecipeIngredient object into file
+    /// Serializes current CastModifierAdd object into file
     /// </summary>
     /// <param name="fileName">full path of outupt xml file</param>
     /// <param name="exception">output Exception value if failed</param>
@@ -198,16 +236,16 @@ public partial class RecipeIngredient
     }
     
     /// <summary>
-    /// Deserializes xml markup from file into an RecipeIngredient object
+    /// Deserializes xml markup from file into an CastModifierAdd object
     /// </summary>
     /// <param name="fileName">string xml file to load and deserialize</param>
-    /// <param name="obj">Output RecipeIngredient object</param>
+    /// <param name="obj">Output CastModifierAdd object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool LoadFromFile(string fileName, out RecipeIngredient obj, out Exception exception)
+    public static bool LoadFromFile(string fileName, out CastModifierAdd obj, out Exception exception)
     {
         exception = null;
-        obj = default(RecipeIngredient);
+        obj = default(CastModifierAdd);
         try
         {
             obj = LoadFromFile(fileName);
@@ -220,13 +258,13 @@ public partial class RecipeIngredient
         }
     }
     
-    public static bool LoadFromFile(string fileName, out RecipeIngredient obj)
+    public static bool LoadFromFile(string fileName, out CastModifierAdd obj)
     {
         Exception exception = null;
         return LoadFromFile(fileName, out obj, out exception);
     }
     
-    public static RecipeIngredient LoadFromFile(string fileName)
+    public static CastModifierAdd LoadFromFile(string fileName)
     {
         FileStream file = null;
         StreamReader sr = null;

@@ -759,7 +759,7 @@ namespace Hybrasyl.Scripting
                     var success = true;
                     // Actually add N of the item. Note that if the user's inventory is full, or
                     // becomes full, the items will drop to the ground.
-                    for (var i = 0; i <= count; i++)
+                    for (var i = 0; i < count; i++)
                     {
                         var item = Game.World.CreateItem(template.Id);
                         Game.World.Insert(item);

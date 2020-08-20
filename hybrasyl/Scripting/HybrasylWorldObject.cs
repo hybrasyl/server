@@ -160,6 +160,27 @@ namespace Hybrasyl.Scripting
         }
 
         /// <summary>
+        /// Set a scoped value in an *object's* ephemeral store. The store lasts for the
+        /// lifetime of the object (for mobs, until they're killed; for NPCs, most likely
+        /// until server restart, for players, while they're logged in). This is effectively
+        /// NPC state memory that is player independent. Scoped means it is tied to a specific
+        /// user.
+        /// </summary>
+        /// <param name="key">The key we will store</param>
+        /// <param name="value">The value (dynamic) we want to store</param>
+        public void SetScopedEphemeral(string user, string key, dynamic value)
+        {
+            if (string.IsNullOrEmpty(user) || string.IsNullOrEmpty(key) || value is null)
+            {
+                GameLog.ScriptingError("SetEphemeral: user (first argument) or key (second argument) or value (third argument) was null or empty, ignoring");
+                return;
+            }
+            Obj.SetEphemeral($"{user.ToLower()}:{key}", value);
+            GameLog.ScriptingInfo("{Function}: {Name}, stored scoped key {Key} with value {Value} for {user}",
+                    MethodInfo.GetCurrentMethod().Name, Obj.Name, key, value, user);
+        }
+
+        /// <summary>
         /// Remove the specified key from the object's ephemeral store.
         /// </summary>
         /// <param name="key"></param>
@@ -177,8 +198,8 @@ namespace Hybrasyl.Scripting
         /// <summary>
         /// Get the value of a specified key from the object's ephemeral store.
         /// </summary>
-        /// <param name="key"></param>
-        /// <returns></returns>
+        /// <param name="key">The key to retrieve</param>
+        /// <returns>dynamic value</returns>
         public dynamic GetEphemeral(string key)
         {
             if (string.IsNullOrEmpty(key))
@@ -189,6 +210,25 @@ namespace Hybrasyl.Scripting
             if (Obj.TryGetEphemeral(key, out dynamic value))
                 return value;
             else return DynValue.Nil;
+        }
+
+        /// <summary>
+        /// Get the value of a scoped ephemeral (a value stored scoped to a specific player) from the object's ephemeral store.
+        /// </summary>
+        /// <param name="user">The user for the scope</param>
+        /// <param name="key">The key to retrieve</param>
+        /// <returns>dynamic value</returns>
+        public dynamic GetScopedEphemeral(string user, string key)
+        {
+            if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(user))
+            {
+                GameLog.ScriptingError("GetScopedEphemeral: user (first argument) or key (second argument) was null or empty, returning nil");
+                return DynValue.Nil;
+            }
+            if (Obj.TryGetEphemeral($"{user.ToLower()}:{key}", out dynamic value))
+                return value;
+            else
+                return DynValue.Nil;
         }
 
         /// <summary>

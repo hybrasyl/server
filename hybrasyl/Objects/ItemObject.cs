@@ -23,6 +23,7 @@ using Hybrasyl.Enums;
 using Hybrasyl.Scripting;
 using Hybrasyl.Threading;
 using System;
+using System.Collections.Generic;
 
 namespace Hybrasyl.Objects
 {
@@ -104,6 +105,25 @@ namespace Hybrasyl.Objects
                 return false;
             }
 
+            // Check castable requirements
+            if (Template.Properties?.Restrictions?.Castables != null)
+            {
+                foreach (var castable in Template.Properties.Restrictions.Castables)
+                {
+                    if (userobj.SkillBook.IndexOf(castable) == -1 &&
+                        userobj.SpellBook.IndexOf(castable) == -1)
+                    {
+                        message = "You lack the required skill or spell.";
+                        return false;
+                    }
+                }
+            }
+
+            if (((Template.Properties?.Restrictions?.Level?.Master ?? false) == true) && (!userobj.IsMaster))
+            {
+                message = "You are not a master of your craft.";
+                return false;
+            }
             return true;
         }
 
@@ -135,6 +155,8 @@ namespace Hybrasyl.Objects
         public int Weight => Template.Properties.Physical.Weight;
         public int MaximumStack => Template.MaximumStack;
         public bool Stackable => Template.Stackable;
+
+        public List<Xml.CastModifier> CastModifiers => Template.Properties.CastModifiers;
 
         public uint MaximumDurability => Template.Properties.Physical.Durability;
 

@@ -30,12 +30,12 @@ public partial class Castable
     #region Private fields
     private List<Description> _descriptions;
     private string _name;
-    private Categories _categories;
+    private List<Category> _categories;
     private List<CastCost> _castCosts;
     private List<CastableIntent> _intents;
     private MaxLevel _maxLevel;
     private List<Requirement> _requirements;
-    private CastableRestrictions _restrictions;
+    private List<EquipmentRestriction> _restrictions;
     private CastableEffects _effects;
     private string _script;
     private CastableMastery _mastery;
@@ -55,12 +55,12 @@ public partial class Castable
         _class = new List<Class>();
         _mastery = new CastableMastery();
         _effects = new CastableEffects();
-        _restrictions = new CastableRestrictions();
+        _restrictions = new List<EquipmentRestriction>();
         _requirements = new List<Requirement>();
         _maxLevel = new MaxLevel();
         _intents = new List<CastableIntent>();
         _castCosts = new List<CastCost>();
-        _categories = new Categories();
+        _categories = new List<Category>();
         _descriptions = new List<Description>();
         _element = Xml.Element.None;
         _lines = ((byte)(0));
@@ -94,7 +94,8 @@ public partial class Castable
         }
     }
     
-    public Categories Categories
+    [XmlArrayItemAttribute(IsNullable=false)]
+    public List<Category> Categories
     {
         get
         {
@@ -157,7 +158,8 @@ public partial class Castable
         }
     }
     
-    public CastableRestrictions Restrictions
+    [XmlArrayItemAttribute("Item", IsNullable=false)]
+    public List<EquipmentRestriction> Restrictions
     {
         get
         {

@@ -27,16 +27,17 @@ using System.Collections.Generic;
 public partial class Categories
 {
     #region Private fields
-    private Category _category;
+    private List<Category> _category;
     private static XmlSerializer _serializer;
     #endregion
     
     public Categories()
     {
-        _category = new Category();
+        _category = new List<Category>();
     }
     
-    public Category Category
+    [XmlElement("Category")]
+    public List<Category> Category
     {
         get
         {

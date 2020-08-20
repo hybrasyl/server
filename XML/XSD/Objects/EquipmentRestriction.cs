@@ -24,37 +24,43 @@ using System.Collections.Generic;
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-public partial class RecipeIngredient
+public partial class EquipmentRestriction
 {
     #region Private fields
-    private string _name;
-    private ushort _quantity;
+    private EquipmentSlot _slot;
+    private string _value;
     private static XmlSerializer _serializer;
     #endregion
     
-    [XmlAttribute]
-    public string Name
+    public EquipmentRestriction()
     {
-        get
-        {
-            return _name;
-        }
-        set
-        {
-            _name = value;
-        }
+        _slot = EquipmentSlot.None;
     }
     
     [XmlAttribute]
-    public ushort Quantity
+    [DefaultValue(EquipmentSlot.None)]
+    public EquipmentSlot Slot
     {
         get
         {
-            return _quantity;
+            return _slot;
         }
         set
         {
-            _quantity = value;
+            _slot = value;
+        }
+    }
+    
+    [XmlTextAttribute]
+    public string Value
+    {
+        get
+        {
+            return _value;
+        }
+        set
+        {
+            _value = value;
         }
     }
     
@@ -64,7 +70,7 @@ public partial class RecipeIngredient
         {
             if ((_serializer == null))
             {
-                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(RecipeIngredient));
+                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(EquipmentRestriction));
             }
             return _serializer;
         }
@@ -72,7 +78,7 @@ public partial class RecipeIngredient
     
     #region Serialize/Deserialize
     /// <summary>
-    /// Serialize RecipeIngredient object
+    /// Serialize EquipmentRestriction object
     /// </summary>
     /// <returns>XML value</returns>
     public virtual string Serialize()
@@ -105,16 +111,16 @@ public partial class RecipeIngredient
     }
     
     /// <summary>
-    /// Deserializes RecipeIngredient object
+    /// Deserializes EquipmentRestriction object
     /// </summary>
     /// <param name="input">string workflow markup to deserialize</param>
-    /// <param name="obj">Output RecipeIngredient object</param>
+    /// <param name="obj">Output EquipmentRestriction object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool Deserialize(string input, out RecipeIngredient obj, out Exception exception)
+    public static bool Deserialize(string input, out EquipmentRestriction obj, out Exception exception)
     {
         exception = null;
-        obj = default(RecipeIngredient);
+        obj = default(EquipmentRestriction);
         try
         {
             obj = Deserialize(input);
@@ -127,19 +133,19 @@ public partial class RecipeIngredient
         }
     }
     
-    public static bool Deserialize(string input, out RecipeIngredient obj)
+    public static bool Deserialize(string input, out EquipmentRestriction obj)
     {
         Exception exception = null;
         return Deserialize(input, out obj, out exception);
     }
     
-    public static RecipeIngredient Deserialize(string input)
+    public static EquipmentRestriction Deserialize(string input)
     {
         StringReader stringReader = null;
         try
         {
             stringReader = new StringReader(input);
-            return ((RecipeIngredient)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
+            return ((EquipmentRestriction)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
         }
         finally
         {
@@ -150,14 +156,14 @@ public partial class RecipeIngredient
         }
     }
     
-    public static RecipeIngredient Deserialize(Stream s)
+    public static EquipmentRestriction Deserialize(Stream s)
     {
-        return ((RecipeIngredient)(SerializerXML.Deserialize(s)));
+        return ((EquipmentRestriction)(SerializerXML.Deserialize(s)));
     }
     #endregion
     
     /// <summary>
-    /// Serializes current RecipeIngredient object into file
+    /// Serializes current EquipmentRestriction object into file
     /// </summary>
     /// <param name="fileName">full path of outupt xml file</param>
     /// <param name="exception">output Exception value if failed</param>
@@ -198,16 +204,16 @@ public partial class RecipeIngredient
     }
     
     /// <summary>
-    /// Deserializes xml markup from file into an RecipeIngredient object
+    /// Deserializes xml markup from file into an EquipmentRestriction object
     /// </summary>
     /// <param name="fileName">string xml file to load and deserialize</param>
-    /// <param name="obj">Output RecipeIngredient object</param>
+    /// <param name="obj">Output EquipmentRestriction object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool LoadFromFile(string fileName, out RecipeIngredient obj, out Exception exception)
+    public static bool LoadFromFile(string fileName, out EquipmentRestriction obj, out Exception exception)
     {
         exception = null;
-        obj = default(RecipeIngredient);
+        obj = default(EquipmentRestriction);
         try
         {
             obj = LoadFromFile(fileName);
@@ -220,13 +226,13 @@ public partial class RecipeIngredient
         }
     }
     
-    public static bool LoadFromFile(string fileName, out RecipeIngredient obj)
+    public static bool LoadFromFile(string fileName, out EquipmentRestriction obj)
     {
         Exception exception = null;
         return LoadFromFile(fileName, out obj, out exception);
     }
     
-    public static RecipeIngredient LoadFromFile(string fileName)
+    public static EquipmentRestriction LoadFromFile(string fileName)
     {
         FileStream file = null;
         StreamReader sr = null;
