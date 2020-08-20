@@ -361,6 +361,17 @@
     </xs:restriction>
   </xs:simpleType>
 
+  <xs:simpleType name="TargetType">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="None"/>
+      <xs:enumeration value="Self" />
+      <xs:enumeration value="Attacker" />
+      <xs:enumeration value="Group" />
+      <xs:enumeration value="Nearby" />
+      <xs:enumeration value="Random" />
+    </xs:restriction>
+  </xs:simpleType>
+
   <xs:simpleType name="WeaponType">
     <xs:restriction base="xs:token">
       <xs:enumeration value="OneHand" />
@@ -578,7 +589,7 @@
       <xs:element name="Defense" type="hyb:Defense" minOccurs="1" maxOccurs="1"/>
       <xs:element name="Stats" type="hyb:Stats" minOccurs="1" maxOccurs="1"/>
       <xs:element name="Loot" type="hyb:LootList" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="Castables" type="hyb:CastableList" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Castables" type="hyb:CastableGroup" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
     <xs:attribute name="Base" type="hyb:String8" use="required"/>
     <xs:attribute name="Variance" type="xs:float" use="optional" default="1.0"/>
@@ -686,21 +697,52 @@
     <xs:attribute name="Max" type="xs:unsignedInt" default="1" use="optional"/>
   </xs:complexType>
 
-  <!-- List of castables a creature is allowed to use -->
-  <xs:complexType name="CastableList">
+  <xs:complexType name="SpawnCastable">
+    <xs:simpleContent>
+      <xs:extension base="hyb:String8">
+        <xs:attribute name="Name" type="hyb:String8" use="required"/>
+        <xs:attribute name="MinDmg" type="xs:int" use="optional" default="0"/>
+        <xs:attribute name="MaxDmg" type="xs:int" use="optional" default="0"/>
+        <xs:attribute name="Element" type="hyb:Element" use="optional" default="None"/>
+        <xs:attribute name="NearDeathPercent" type="xs:int" use="optional" default="20"/>
+        <xs:attribute name="Target" type="hyb:TargetType" use="required"/>
+        <xs:attribute name="Interval" type="xs:int" default="30" use="optional"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:complexType name="SpawnCastableOffense">
     <xs:sequence>
       <xs:element name="Castable" type="hyb:SpawnCastable" minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
   </xs:complexType>
 
-  <xs:complexType name="SpawnCastable">
-    <xs:simpleContent>
-      <xs:extension base="hyb:String8">
-        <xs:attribute name="Cooldown" type="xs:int" default="1" use="optional"/>
-        <xs:attribute name="Chance" type="xs:float" default="1" use="optional"/>
-        <xs:attribute name="Always" type="xs:boolean" default="false" use="optional"/>
-      </xs:extension>
-    </xs:simpleContent>
+  <xs:complexType name="SpawnCastableDefense">
+    <xs:sequence>
+      <xs:element name="Castable" type="hyb:SpawnCastable" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="SpawnCastableNearDeath">
+    <xs:sequence>
+      <xs:element name="Castable" type="hyb:SpawnCastable" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="SpawnCastableOnDeath">
+    <xs:sequence>
+      <xs:element name="Castable" type="hyb:SpawnCastable" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- List of castables a creature is allowed to use -->
+  <xs:complexType name="CastableGroup">
+    <xs:sequence>
+      <xs:element name="Offense" type="hyb:SpawnCastableOffense" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Defense" type="hyb:SpawnCastableDefense" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="NearDeath" type="hyb:SpawnCastableNearDeath" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="OnDeath" type="hyb:SpawnCastableOnDeath" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
   </xs:complexType>
 
   <xs:complexType name="NpcRoleTrainCastable">
