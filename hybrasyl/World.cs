@@ -2112,7 +2112,7 @@ namespace Hybrasyl
                 int levelDifference = Math.Abs((int)user.Stats.Level - me.Stats.Level);
 
                 listPacket.WriteByte((byte)user.Class);
-                if (me.GuildUuid != string.Empty && user.GuildUuid == me.GuildUuid) listPacket.WriteByte(84);
+                if (!string.IsNullOrEmpty(me.GuildUuid) && user.GuildUuid == me.GuildUuid) listPacket.WriteByte(84);
                 else if (levelDifference <= 5) listPacket.WriteByte(151);
                 else listPacket.WriteByte(255);
 
