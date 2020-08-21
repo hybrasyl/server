@@ -111,7 +111,7 @@ namespace Hybrasyl.Objects
                         hasCast = true;
                     }
                 }
-                if (!hasCast)
+                if (!hasCast && Template.Properties.Restrictions.Castables.Count > 0)
                 {
                     message = "You are missing some skill or spell requirements.";
                     return false;
@@ -217,7 +217,7 @@ namespace Hybrasyl.Objects
 
         public bool Consumable => Template.Properties.Flags.HasFlag(Xml.ItemFlags.Consumable);
 
-        public bool Undamageable => Template.Properties.Flags.HasFlag(Xml.ItemFlags.UnDamageable);
+        public bool Undamageable => Template.Properties.Flags.HasFlag(Xml.ItemFlags.Undamageable);
 
         public bool IsVariant => Template.IsVariant;
 
