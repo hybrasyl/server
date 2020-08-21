@@ -92,13 +92,6 @@ namespace Hybrasyl.Objects
             }
 
             // Check mastership
-
-            if (Master && !userobj.IsMaster)
-            {
-                message = "Perhaps one day you'll know how to use such things.";
-                return false;
-            }
-
             if (UniqueEquipped && userobj.Equipment.Find(Name) != null)
             {
                 message = "You can't equip more than one of these.";
@@ -108,18 +101,24 @@ namespace Hybrasyl.Objects
             // Check castable requirements
             if (Template.Properties?.Restrictions?.Castables != null)
             {
+                bool hasCast = false;
+                // Behavior is ANY castable, not ALL in list
                 foreach (var castable in Template.Properties.Restrictions.Castables)
                 {
-                    if (userobj.SkillBook.IndexOf(castable) == -1 &&
-                        userobj.SpellBook.IndexOf(castable) == -1)
+                    if (userobj.SkillBook.IndexOf(castable) != -1 &&
+                        userobj.SpellBook.IndexOf(castable) != -1)
                     {
-                        message = "You lack the required skill or spell.";
-                        return false;
+                        hasCast = true;
                     }
+                }
+                if (!hasCast)
+                {
+                    message = "You are missing some skill or spell requirements.";
+                    return false;
                 }
             }
 
-            if (((Template.Properties?.Restrictions?.Level?.Master ?? false) == true) && (!userobj.IsMaster))
+            if (MasterOnly && (!userobj.IsMaster))
             {
                 message = "You are not a master of your craft.";
                 return false;
@@ -208,13 +207,15 @@ namespace Hybrasyl.Objects
 
         public bool Exchangeable => Template.Properties.Flags.HasFlag(Xml.ItemFlags.Exchangeable);
 
-        public bool Master => Template.Properties.Flags.HasFlag(Xml.ItemFlags.Master);
+        public bool MasterOnly => Template.Properties.Flags.HasFlag(Xml.ItemFlags.MasterOnly);
 
-        public bool Perishable => Template.Properties.Physical.Perishable;
+        public bool Perishable => Template.Properties.Flags.HasFlag(Xml.ItemFlags.Perishable);
 
-        public bool Unique => Template.Properties.Flags.HasFlag(Xml.ItemFlags.Unique);
+        public bool UniqueInventory => Template.Properties.Flags.HasFlag(Xml.ItemFlags.UniqueInventory);
 
         public bool UniqueEquipped => Template.Properties.Flags.HasFlag(Xml.ItemFlags.UniqueEquipped);
+
+        public bool Consumable => Template.Properties.Flags.HasFlag(Xml.ItemFlags.Consumable);
 
         public bool IsVariant => Template.IsVariant;
 
@@ -283,7 +284,7 @@ namespace Hybrasyl.Objects
             {
                 trigger.Teleport(Use.Teleport.Value, Use.Teleport.X, Use.Teleport.Y);
             }
-            if (Use.Consumed)
+            if (Consumable)
             {
                 Count--;
             }

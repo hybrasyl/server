@@ -94,15 +94,11 @@
     <xs:attribute name="Value" type="xs:unsignedInt" use="required"/>
     <xs:attribute name="Weight" type="xs:int" use="required"/>
     <xs:attribute name="Durability" type="xs:unsignedInt" use="required"/>
-    <xs:attribute name="Perishable" type="xs:boolean" default="false" />
-    <xs:attribute name="Vendorable" type="xs:boolean" default="true" />
-    <xs:attribute name="Bound" type="xs:boolean" default="false" />
   </xs:complexType>
 
   <xs:complexType name="RestrictionsLevel">
     <xs:attribute name="Min" type="xs:unsignedByte" default="0" />
     <xs:attribute name="Max" type="xs:unsignedByte" default="255" />
-    <xs:attribute name="Master" type="xs:boolean" default="false" />
   </xs:complexType>
 
   <xs:complexType name="RestrictionsAb">
@@ -188,7 +184,6 @@
 
   <xs:complexType name="Equipment">
     <xs:attribute name="Slot" use="required" type="hyb:EquipmentSlot" />
-    <xs:attribute name="Unique" type="xs:boolean" default="false" />
     <xs:attribute name="WeaponType" type="hyb:WeaponType" />
   </xs:complexType>
 
@@ -239,7 +234,6 @@
       <xs:element name="Effect" minOccurs="0" maxOccurs="1" type="hyb:ItemUseEffect"/>
       <xs:element name="Sound" minOccurs="0" maxOccurs="1" type="hyb:ItemUseSound"/>
     </xs:sequence>
-    <xs:attribute name="Consumed" type="xs:boolean" default="true" />
   </xs:complexType>
 
   <xs:complexType name="ItemProperties">

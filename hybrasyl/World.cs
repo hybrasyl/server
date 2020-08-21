@@ -1755,7 +1755,7 @@ namespace Hybrasyl
             else if (pickupObject is ItemObject)
             {
                 var item = (ItemObject)pickupObject;
-                if (item.Unique && user.Inventory.Contains(item.TemplateId))
+                if (item.UniqueInventory && user.Inventory.Contains(item.TemplateId))
                 {
                     user.SendMessage(string.Format("You can't carry any more of those.", item.Name), 3);
                     return;
@@ -2259,8 +2259,8 @@ namespace Hybrasyl
                     break;
 
                 case Enums.ItemObjectType.Equipment:
-                    {
-                        if (item.Durability == 0)
+                    {                 
+                       if (item.Durability == 0)
                         {
                             user.SendSystemMessage("This item is too badly damaged to use.");
                             return;

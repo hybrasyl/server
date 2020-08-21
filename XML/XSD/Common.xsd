@@ -321,10 +321,12 @@
               <xs:enumeration value="Exchangeable" />
               <xs:enumeration value="Vendorable" />
               <xs:enumeration value="Perishable" />
-              <xs:enumeration value="Unique" />
-              <xs:enumeration value="Master" />
+              <xs:enumeration value="UniqueInventory" />
+              <xs:enumeration value="MasterOnly" />
               <xs:enumeration value="UniqueEquipped" />
               <xs:enumeration value="Identifiable"/>
+              <xs:enumeration value="Undamageable"/>
+              <xs:enumeration value="Consumable"/>
             </xs:restriction>
           </xs:simpleType>
         </xs:list>
