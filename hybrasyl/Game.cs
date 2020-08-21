@@ -482,7 +482,10 @@ namespace Hybrasyl
                 var data = await content.ReadAsStringAsync();
                 var jsonobj = JObject.Parse(data);
 
-                CommitLog = jsonobj["commit"]["message"].ToString();
+                if (res.StatusCode == HttpStatusCode.OK)
+                    CommitLog = jsonobj["commit"]["message"].ToString();
+                else
+                    CommitLog = "There was an error fetching commit log information from Github. Sorry.";
             }
             catch (Exception e)
             {
