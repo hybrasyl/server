@@ -59,43 +59,45 @@ namespace Hybrasyl.Objects
         public bool CanCast {
             get
             {
-                //if any of these are present, return true.
-                if (_spawn.Castables.Offense != null)
+                if (_spawn.Castables != null)
                 {
-                    if (_spawn.Castables.Offense.Count > 0)
+                    //if any of these are present, return true.
+                    if (_spawn.Castables.Offense != null)
                     {
-                        return true;
+                        if (_spawn.Castables.Offense.Count > 0)
+                        {
+                            return true;
+                        }
+                        else return false;
                     }
-                    else return false;
-                }
 
-                if (_spawn.Castables.Defense != null)
-                {
-                    if (_spawn.Castables.Defense.Count > 0)
+                    if (_spawn.Castables.Defense != null)
                     {
-                        return true;
+                        if (_spawn.Castables.Defense.Count > 0)
+                        {
+                            return true;
+                        }
+                        else return false;
                     }
-                    else return false;
-                }
 
-                if (_spawn.Castables.NearDeath != null)
-                {
-                    if (_spawn.Castables.NearDeath.Castable.Count > 0)
+                    if (_spawn.Castables.NearDeath != null)
                     {
-                        return true;
+                        if (_spawn.Castables.NearDeath.Castable.Count > 0)
+                        {
+                            return true;
+                        }
+                        else return false;
                     }
-                    else return false;
-                }
 
-                if (_spawn.Castables.OnDeath != null)
-                {
-                    if (_spawn.Castables.OnDeath.Count > 0)
+                    if (_spawn.Castables.OnDeath != null)
                     {
-                        return true;
+                        if (_spawn.Castables.OnDeath.Count > 0)
+                        {
+                            return true;
+                        }
+                        else return false;
                     }
-                    else return false;
                 }
-
                 return false;
             }
         } 
@@ -339,7 +341,7 @@ namespace Hybrasyl.Objects
 
         public void Cast(Creature target, Xml.SpawnCastable creatureCastable)
         {
-            var castable = World.WorldData.Get<Xml.Castable>(creatureCastable.Name);
+            var castable = World.WorldData.GetByIndex<Xml.Castable>(creatureCastable.Name);
             if (target is Merchant) return;
             UseCastable(castable, creatureCastable, target);
             Condition.Casting = false;
@@ -347,7 +349,7 @@ namespace Hybrasyl.Objects
 
         public void Cast(UserGroup target, Xml.SpawnCastable creatureCastable, Xml.TargetType targetType)
         {
-            var castable = World.WorldData.Get<Xml.Castable>(creatureCastable.Name);
+            var castable = World.WorldData.GetByIndex<Xml.Castable>(creatureCastable.Name);
 
             if (targetType == Xml.TargetType.Group)
             {
