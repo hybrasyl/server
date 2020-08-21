@@ -38,16 +38,12 @@ public partial class Physical
     
     public Physical()
     {
-        _value = ((uint)(0));
-        _weight = 1;
-        _durability = ((uint)(1));
         _perishable = false;
         _vendorable = true;
         _bound = false;
     }
     
     [XmlAttribute]
-    [DefaultValue(typeof(uint), "0")]
     public uint Value
     {
         get
@@ -61,7 +57,6 @@ public partial class Physical
     }
     
     [XmlAttribute]
-    [DefaultValue(1)]
     public int Weight
     {
         get
@@ -75,7 +70,6 @@ public partial class Physical
     }
     
     [XmlAttribute]
-    [DefaultValue(typeof(uint), "1")]
     public uint Durability
     {
         get

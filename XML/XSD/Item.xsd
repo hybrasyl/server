@@ -91,9 +91,9 @@
   </xs:complexType>
 
   <xs:complexType name="Physical">
-    <xs:attribute name="Value" default="0" type="xs:unsignedInt" />
-    <xs:attribute name="Weight" default="1" type="xs:int" />
-    <xs:attribute name="Durability" default="1" type="xs:unsignedInt" />
+    <xs:attribute name="Value" type="xs:unsignedInt" use="required"/>
+    <xs:attribute name="Weight" type="xs:int" use="required"/>
+    <xs:attribute name="Durability" type="xs:unsignedInt" use="required"/>
     <xs:attribute name="Perishable" type="xs:boolean" default="false" />
     <xs:attribute name="Vendorable" type="xs:boolean" default="true" />
     <xs:attribute name="Bound" type="xs:boolean" default="false" />
