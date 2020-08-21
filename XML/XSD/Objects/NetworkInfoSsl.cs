@@ -24,61 +24,82 @@ using System.Collections.Generic;
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-public partial class Network
+public partial class NetworkInfoSsl
 {
     #region Private fields
-    private NetworkInfo _lobby;
-    private NetworkInfo _login;
-    private NetworkInfo _world;
-    private NetworkInfoSsl _grpc;
+    private string _chainCertificateFile;
+    private string _serverCertificateFile;
+    private string _serverKeyFile;
+    private string _bindAddress;
+    private ushort _port;
     private static XmlSerializer _serializer;
     #endregion
     
-    public NetworkInfo Lobby
+    public NetworkInfoSsl()
+    {
+        _bindAddress = "127.0.0.1";
+    }
+    
+    public string ChainCertificateFile
     {
         get
         {
-            return _lobby;
+            return _chainCertificateFile;
         }
         set
         {
-            _lobby = value;
+            _chainCertificateFile = value;
         }
     }
     
-    public NetworkInfo Login
+    public string ServerCertificateFile
     {
         get
         {
-            return _login;
+            return _serverCertificateFile;
         }
         set
         {
-            _login = value;
+            _serverCertificateFile = value;
         }
     }
     
-    public NetworkInfo World
+    public string ServerKeyFile
     {
         get
         {
-            return _world;
+            return _serverKeyFile;
         }
         set
         {
-            _world = value;
+            _serverKeyFile = value;
         }
     }
     
-    public NetworkInfoSsl Grpc
+    [XmlAttribute]
+    [DefaultValue("127.0.0.1")]
+    public string BindAddress
     {
         get
         {
-            return _grpc;
+            return _bindAddress;
         }
         set
         {
-            _grpc = value;
+            _bindAddress = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public ushort Port
+    {
+        get
+        {
+            return _port;
+        }
+        set
+        {
+            _port = value;
         }
     }
     
@@ -88,7 +109,7 @@ public partial class Network
         {
             if ((_serializer == null))
             {
-                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(Network));
+                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(NetworkInfoSsl));
             }
             return _serializer;
         }
@@ -96,7 +117,7 @@ public partial class Network
     
     #region Serialize/Deserialize
     /// <summary>
-    /// Serialize Network object
+    /// Serialize NetworkInfoSsl object
     /// </summary>
     /// <returns>XML value</returns>
     public virtual string Serialize()
@@ -129,16 +150,16 @@ public partial class Network
     }
     
     /// <summary>
-    /// Deserializes Network object
+    /// Deserializes NetworkInfoSsl object
     /// </summary>
     /// <param name="input">string workflow markup to deserialize</param>
-    /// <param name="obj">Output Network object</param>
+    /// <param name="obj">Output NetworkInfoSsl object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool Deserialize(string input, out Network obj, out Exception exception)
+    public static bool Deserialize(string input, out NetworkInfoSsl obj, out Exception exception)
     {
         exception = null;
-        obj = default(Network);
+        obj = default(NetworkInfoSsl);
         try
         {
             obj = Deserialize(input);
@@ -151,19 +172,19 @@ public partial class Network
         }
     }
     
-    public static bool Deserialize(string input, out Network obj)
+    public static bool Deserialize(string input, out NetworkInfoSsl obj)
     {
         Exception exception = null;
         return Deserialize(input, out obj, out exception);
     }
     
-    public static Network Deserialize(string input)
+    public static NetworkInfoSsl Deserialize(string input)
     {
         StringReader stringReader = null;
         try
         {
             stringReader = new StringReader(input);
-            return ((Network)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
+            return ((NetworkInfoSsl)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
         }
         finally
         {
@@ -174,14 +195,14 @@ public partial class Network
         }
     }
     
-    public static Network Deserialize(Stream s)
+    public static NetworkInfoSsl Deserialize(Stream s)
     {
-        return ((Network)(SerializerXML.Deserialize(s)));
+        return ((NetworkInfoSsl)(SerializerXML.Deserialize(s)));
     }
     #endregion
     
     /// <summary>
-    /// Serializes current Network object into file
+    /// Serializes current NetworkInfoSsl object into file
     /// </summary>
     /// <param name="fileName">full path of outupt xml file</param>
     /// <param name="exception">output Exception value if failed</param>
@@ -222,16 +243,16 @@ public partial class Network
     }
     
     /// <summary>
-    /// Deserializes xml markup from file into an Network object
+    /// Deserializes xml markup from file into an NetworkInfoSsl object
     /// </summary>
     /// <param name="fileName">string xml file to load and deserialize</param>
-    /// <param name="obj">Output Network object</param>
+    /// <param name="obj">Output NetworkInfoSsl object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool LoadFromFile(string fileName, out Network obj, out Exception exception)
+    public static bool LoadFromFile(string fileName, out NetworkInfoSsl obj, out Exception exception)
     {
         exception = null;
-        obj = default(Network);
+        obj = default(NetworkInfoSsl);
         try
         {
             obj = LoadFromFile(fileName);
@@ -244,13 +265,13 @@ public partial class Network
         }
     }
     
-    public static bool LoadFromFile(string fileName, out Network obj)
+    public static bool LoadFromFile(string fileName, out NetworkInfoSsl obj)
     {
         Exception exception = null;
         return LoadFromFile(fileName, out obj, out exception);
     }
     
-    public static Network LoadFromFile(string fileName)
+    public static NetworkInfoSsl LoadFromFile(string fileName)
     {
         FileStream file = null;
         StreamReader sr = null;

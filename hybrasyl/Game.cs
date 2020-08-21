@@ -71,6 +71,8 @@ namespace Hybrasyl
         private static Thread _spawnThread;
         private static Thread _controlThread;
 
+        private static Grpc.Core.Server GrpcServer;
+
         public static LoggingLevelSwitch LevelSwitch;
 
         public static DateTime StartDate { get; set; }
@@ -339,6 +341,81 @@ namespace Hybrasyl
             Task.Run(CheckVersion).GetAwaiter();
             Task.Run(GetCommitLog).GetAwaiter();
 
+            GrpcServer = null;
+
+            // Uncomment for GRPC troubleshooting
+            // Environment.SetEnvironmentVariable("GRPC_VERBOSITY", "debug");
+
+            // Start GRPC server
+            if (Config.Network.Grpc != null)
+            {
+                var ssl_enabled = Config.Network.Grpc.ServerCertificateFile != null && Config.Network.Grpc.ServerKeyFile != null;
+
+                if (ssl_enabled)
+                {
+                    Grpc.Core.SslServerCredentials credentials;
+                    // Load credentials
+                    try
+                    {
+                        var cert = File.ReadAllText(Path.Join(Constants.DataDirectory, Config.Network.Grpc.ServerCertificateFile));
+                        var key = File.ReadAllText(Path.Join(Constants.DataDirectory, Config.Network.Grpc.ServerKeyFile));
+                        var keypair_list = new List<Grpc.Core.KeyCertificatePair>() { new Grpc.Core.KeyCertificatePair(cert, key) };
+                        if (Config.Network.Grpc.ChainCertificateFile != null)
+                        {
+                            var chaincerts = File.ReadAllText(Path.Join(Constants.DataDirectory, Config.Network.Grpc.ChainCertificateFile));
+                            credentials = new Grpc.Core.SslServerCredentials(keypair_list, chaincerts,
+                                Grpc.Core.SslClientCertificateRequestType.RequestAndRequireAndVerify);
+                        }
+                        else
+                        {
+                            // Note, without a chain certificate, only the connection is secure; there is no authentication
+                            credentials = new Grpc.Core.SslServerCredentials(keypair_list);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        GameLog.Error("GRPC: server initialization: key/cert load failed: {e}", e);
+                        GameLog.Error("GRPC: server disabled");
+                        credentials = null;
+                    }
+                    if (credentials != null)
+                    {
+                        GrpcServer = new Grpc.Core.Server
+                        {
+                            Services = { HybrasylGrpc.Patron.BindService(new HybrasylGrpc.PatronServer()) },
+                            Ports =
+                            {
+                                new Grpc.Core.ServerPort(Config.Network.Grpc.BindAddress,
+                        Config.Network.Grpc.Port, credentials)
+                            }
+                        };
+                        GameLog.Info("GRPC: SSL server initialized");
+                    }
+                }
+                else
+                {
+                    // Insecure mode, should be used for development only
+                    GrpcServer = new Grpc.Core.Server
+                    {
+                        Services = { HybrasylGrpc.Patron.BindService(new HybrasylGrpc.PatronServer()) },
+                        Ports = { new Grpc.Core.ServerPort(Config.Network.Grpc.BindAddress, Config.Network.Grpc.Port, Grpc.Core.ServerCredentials.Insecure) }
+                    };
+                    GameLog.Info("GRPC: server initialized (insecure, use for development only)");
+
+                }
+            }
+
+            if (GrpcServer != null)
+            {
+                try
+                {
+                    GrpcServer.Start();
+                }
+                catch (IOException e)
+                {
+                    GameLog.Info("GRPC: server start failed: {e}", e);
+                }
+            }
             while (true)
             {
                 if (!IsActive())
@@ -350,6 +427,7 @@ namespace Hybrasyl
             }
             
             Shutdown();
+            GrpcServer.ShutdownAsync().Wait();
 
         }
 

@@ -1334,6 +1334,8 @@ namespace Hybrasyl
 
         public bool TryGetActiveUser(string name, out User user) => WorldData.TryGetValue(name, out user);
 
+        public bool UserConnected(string name) => ActiveUsersByName.ContainsKey(name);
+
         public bool TryAsyncDialog(VisibleObject invoker, User invokee, DialogSequence startSequence)
         {
             var request = new AsyncDialogRequest(startSequence, invoker, invokee);
