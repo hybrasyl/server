@@ -540,7 +540,7 @@ namespace Hybrasyl.Objects
 
                     if (this is User)
                     {
-                        if(Equipment.Weapon != null) Equipment.Weapon.Durability -= 1 / (Equipment.Weapon.MaximumDurability * (100 - Stats.Ac));
+                        if(Equipment.Weapon != null && !Equipment.Weapon.Undamageable) Equipment.Weapon.Durability -= 1 / (Equipment.Weapon.MaximumDurability * (100 - Stats.Ac));
                     }
 
                     if (tar.Stats.Hp <= 0) { deadMobs.Add(tar); }
@@ -554,7 +554,7 @@ namespace Hybrasyl.Objects
                     if (this is User)
                     {
                         GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} healing: {healOutput}");
-                        if (Equipment.Weapon != null)
+                        if (Equipment.Weapon != null && !Equipment.Weapon.Undamageable)
                            Equipment.Weapon.Durability -= 1 / (Equipment.Weapon.MaximumDurability * (100 - Stats.Ac));
                     }
                 }

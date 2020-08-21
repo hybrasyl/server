@@ -217,6 +217,8 @@ namespace Hybrasyl.Objects
 
         public bool Consumable => Template.Properties.Flags.HasFlag(Xml.ItemFlags.Consumable);
 
+        public bool Undamageable => Template.Properties.Flags.HasFlag(Xml.ItemFlags.UnDamageable);
+
         public bool IsVariant => Template.IsVariant;
 
         public Xml.Item ParentItem => Template.ParentItem;

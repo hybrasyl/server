@@ -450,10 +450,13 @@ namespace Hybrasyl.Objects
                     World.Remove(item);
                     continue;
                 }
-                if (item.Durability > 10)
-                    item.Durability = Math.Ceiling(item.Durability * 0.90);
-                else
-                    item.Durability = 0;
+                if (!item.Undamageable)
+                {
+                    if (item.Durability > 10)
+                        item.Durability = Math.Ceiling(item.Durability * 0.90);
+                    else
+                        item.Durability = 0;
+                }
                 item.DeathPileOwner = Name;
                 item.ItemDropTime = timeofdeath;
                 item.ItemDropAllowedLooters = looters;
@@ -474,10 +477,13 @@ namespace Hybrasyl.Objects
                     World.Remove(item);
                     continue;
                 }
-                if (item.Durability > 10)
-                    item.Durability = Math.Ceiling(item.Durability * 0.90);
-                else
-                    item.Durability = 0;
+                if (!item.Undamageable)
+                {
+                    if (item.Durability > 10)
+                        item.Durability = Math.Ceiling(item.Durability * 0.90);
+                    else
+                        item.Durability = 0;
+                }
                 item.DeathPileOwner = Name;
                 item.ItemDropTime = timeofdeath;
                 item.ItemDropAllowedLooters = looters;
@@ -2378,7 +2384,7 @@ namespace Hybrasyl.Objects
             {
                 foreach (var item in Equipment)
                 {
-                    if (item.EquipmentSlot != ServerItemSlots.Weapon)
+                    if (item.EquipmentSlot != ServerItemSlots.Weapon && !(item.Undamageable))
                         item.Durability -= 1 / (item.MaximumDurability * (100 - Stats.Ac));
                 }
             }
