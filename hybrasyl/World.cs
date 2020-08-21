@@ -1652,6 +1652,7 @@ namespace Hybrasyl
                                             if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
                                             {
                                                 monster.Cast(aggroTarget, selectedCastable);
+                                                selectedCastable.LastCast = DateTime.Now;
                                             }
                                             else
                                             {
@@ -1664,6 +1665,7 @@ namespace Hybrasyl
                                             if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
                                             {
                                                 monster.Cast(targetGroup, selectedCastable, selectedCastable.Target);
+                                                selectedCastable.LastCast = DateTime.Now;
                                             }
                                             else
                                             {
@@ -1683,6 +1685,7 @@ namespace Hybrasyl
                                             if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
                                             {
                                                 monster.Cast(aggroTarget, selectedCastable);
+                                                selectedCastable.LastCast = DateTime.Now;
                                             }
                                             else
                                             {
@@ -1695,6 +1698,7 @@ namespace Hybrasyl
                                             if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
                                             {
                                                 monster.Cast(targetGroup, selectedCastable, selectedCastable.Target);
+                                                selectedCastable.LastCast = DateTime.Now;
                                             }
                                             else
                                             {
@@ -1714,6 +1718,7 @@ namespace Hybrasyl
                                             if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
                                             {
                                                 monster.Cast(aggroTarget, selectedCastable);
+                                                selectedCastable.LastCast = DateTime.Now;
                                             }
                                             else
                                             {
@@ -1726,6 +1731,7 @@ namespace Hybrasyl
                                             if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
                                             {
                                                 monster.Cast(targetGroup, selectedCastable, selectedCastable.Target);
+                                                selectedCastable.LastCast = DateTime.Now;
                                             }
                                             else
                                             {
@@ -1777,6 +1783,7 @@ namespace Hybrasyl
                                             if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
                                             {
                                                 monster.Cast(aggroTarget, selectedCastable);
+                                                selectedCastable.LastCast = DateTime.Now;
                                             }
                                             else
                                             {
@@ -1789,6 +1796,7 @@ namespace Hybrasyl
                                             if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
                                             {
                                                 monster.Cast(targetGroup, selectedCastable, selectedCastable.Target);
+                                                selectedCastable.LastCast = DateTime.Now;
                                             }
                                             else
                                             {
@@ -1808,6 +1816,7 @@ namespace Hybrasyl
                                             if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
                                             {
                                                 monster.Cast(aggroTarget, selectedCastable);
+                                                selectedCastable.LastCast = DateTime.Now;
                                             }
                                             else
                                             {
@@ -1820,6 +1829,7 @@ namespace Hybrasyl
                                             if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
                                             {
                                                 monster.Cast(targetGroup, selectedCastable, selectedCastable.Target);
+                                                selectedCastable.LastCast = DateTime.Now;
                                             }
                                             else
                                             {
@@ -1839,6 +1849,7 @@ namespace Hybrasyl
                                             if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
                                             {
                                                 monster.Cast(aggroTarget, selectedCastable);
+                                                selectedCastable.LastCast = DateTime.Now;
                                             }
                                             else
                                             {
@@ -1851,6 +1862,7 @@ namespace Hybrasyl
                                             if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
                                             {
                                                 monster.Cast(targetGroup, selectedCastable, selectedCastable.Target);
+                                                selectedCastable.LastCast = DateTime.Now;
                                             }
                                             else
                                             {
