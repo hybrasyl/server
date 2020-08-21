@@ -703,8 +703,7 @@
         <xs:attribute name="Name" type="hyb:String8" use="required"/>
         <xs:attribute name="MinDmg" type="xs:int" use="optional" default="0"/>
         <xs:attribute name="MaxDmg" type="xs:int" use="optional" default="0"/>
-        <xs:attribute name="Element" type="hyb:Element" use="optional" default="None"/>
-        <xs:attribute name="NearDeathPercent" type="xs:int" use="optional" default="20"/>
+        <xs:attribute name="Element" type="hyb:Element" use="optional"/>
         <xs:attribute name="Target" type="hyb:TargetType" use="required"/>
         <xs:attribute name="Interval" type="xs:int" default="30" use="optional"/>
       </xs:extension>
@@ -727,6 +726,7 @@
     <xs:sequence>
       <xs:element name="Castable" type="hyb:SpawnCastable" minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
+    <xs:attribute name="HealthPercent" type="xs:int" use="optional" default="20"/>
   </xs:complexType>
 
   <xs:complexType name="SpawnCastableOnDeath">

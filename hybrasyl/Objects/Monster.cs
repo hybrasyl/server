@@ -22,7 +22,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Transactions;
 using Hybrasyl.Enums;
+using Hybrasyl.Scripting;
 
 namespace Hybrasyl.Objects
 {
@@ -38,7 +40,7 @@ namespace Hybrasyl.Objects
 
         private uint _simpleDamage => Convert.ToUInt32(Rng.Next(_spawn.Damage.Min, _spawn.Damage.Max) * _variance);
 
-        private List<Xml.SpawnCastable> _castables;
+        private Xml.CastableGroup _castables;
         private double _variance;
 
         public int ActionDelay = 800;
@@ -46,7 +48,56 @@ namespace Hybrasyl.Objects
         public DateTime LastAction { get; set; }
         public bool IsHostile { get; set; }
         public bool ShouldWander { get; set; }
-        public bool CanCast => _spawn.Castables.Count > 0;
+
+        public Dictionary<uint, double> AggroTable { get; set; }
+        public Xml.CastableGroup Castables => _castables;
+
+        public bool HasCastNearDeath = false;
+        
+        
+        public bool CanCast {
+            get
+            {
+                //if any of these are present, return true.
+                if (_spawn.Castables.Offense != null)
+                {
+                    if (_spawn.Castables.Offense.Count > 0)
+                    {
+                        return true;
+                    }
+                    else return false;
+                }
+
+                if (_spawn.Castables.Defense != null)
+                {
+                    if (_spawn.Castables.Defense.Count > 0)
+                    {
+                        return true;
+                    }
+                    else return false;
+                }
+
+                if (_spawn.Castables.NearDeath != null)
+                {
+                    if (_spawn.Castables.NearDeath.Castable.Count > 0)
+                    {
+                        return true;
+                    }
+                    else return false;
+                }
+
+                if (_spawn.Castables.OnDeath != null)
+                {
+                    if (_spawn.Castables.OnDeath.Count > 0)
+                    {
+                        return true;
+                    }
+                    else return false;
+                }
+
+                return false;
+            }
+        } 
 
         public override void OnDeath()
         {
@@ -101,6 +152,24 @@ namespace Hybrasyl.Objects
         {
             IsHostile = true;
             ShouldWander = false;
+        }
+
+        public void OnReceiveDamage(Creature attacker, double damage)
+        {
+            if(!AggroTable.ContainsKey(attacker.Id))
+            {
+                AggroTable.Add(attacker.Id, damage);
+            }
+            else
+            {
+                AggroTable[attacker.Id] += damage;
+            }
+        }
+
+        public override void Damage(double damage, Xml.Element element = Xml.Element.None, Xml.DamageType damageType = Xml.DamageType.Direct, Xml.DamageFlags damageFlags = Xml.DamageFlags.None, Creature attacker = null, bool onDeath = true)
+        {
+            base.Damage(damage, element, damageType, damageFlags, attacker, onDeath);
+            OnReceiveDamage(attacker, damage);
         }
 
 
@@ -190,6 +259,8 @@ namespace Hybrasyl.Objects
             //until intents are fixed, this is how this is going to be done.
             IsHostile = _random.Next(0, 7) < 2;
             ShouldWander = IsHostile == false;
+
+            AggroTable = new Dictionary<uint, double>();
         }
 
         public Creature Target
@@ -265,14 +336,192 @@ namespace Hybrasyl.Objects
             return false;
         }
 
-        public void Cast(Creature target)
+        public void Cast(Creature target, Xml.SpawnCastable creatureCastable)
         {
-            var nextSpell = _random.Next(0, _castables.Count);
-            var creatureCastable = _castables[nextSpell];
-            var castable = World.WorldData.Get<Xml.Castable>(creatureCastable.Value);
+            var castable = World.WorldData.Get<Xml.Castable>(creatureCastable.Name);
             if (target is Merchant) return;
-            UseCastable(castable, target);
+            UseCastable(castable, creatureCastable, target);
             Condition.Casting = false;
+        }
+
+        public void Cast(UserGroup target, Xml.SpawnCastable creatureCastable, Xml.TargetType targetType)
+        {
+            var castable = World.WorldData.Get<Xml.Castable>(creatureCastable.Name);
+
+            if (targetType == Xml.TargetType.Group)
+            {
+                foreach(var user in target.Members)
+                {
+                    UseCastable(castable, creatureCastable, user);
+                }
+            }
+
+            if(targetType == Xml.TargetType.Random)
+            {
+                var rngSelection = _random.Next(0, target.Count - 1);
+
+                var user = target.Members[rngSelection];
+
+                UseCastable(castable, creatureCastable, user);
+            }
+
+            Condition.Casting = false;
+        }
+
+        public Xml.SpawnCastable SelectSpawnCastable(SpawnCastType castType)
+        {
+            var nextSpell = 0;
+            Xml.SpawnCastable creatureCastable = null;
+            switch (castType)
+            {
+                case SpawnCastType.Offensive:
+                    nextSpell = _random.Next(0, _castables.Offense.Count - 1);
+                    creatureCastable = _castables.Offense[nextSpell];
+                    break;
+                case SpawnCastType.Defensive:
+                    nextSpell = _random.Next(0, _castables.Defense.Count - 1);
+                    creatureCastable = _castables.Defense[nextSpell];
+                    break;
+                case SpawnCastType.NearDeath:
+                    nextSpell = _random.Next(0, _castables.NearDeath.Castable.Count - 1);
+                    creatureCastable = _castables.NearDeath.Castable[nextSpell];
+                    break;
+                case SpawnCastType.OnDeath:
+                    nextSpell = _random.Next(0, _castables.OnDeath.Count - 1);
+                    creatureCastable = _castables.OnDeath[nextSpell];
+                    break;
+            }
+
+            return creatureCastable;
+        }
+
+        public bool UseCastable(Xml.Castable castObject, Xml.SpawnCastable spawnCastable, Creature target = null)
+        {
+            if (!Condition.CastingAllowed) return false;
+
+            var damage = _random.Next(spawnCastable.MinDmg, spawnCastable.MaxDmg);
+            List<Creature> targets;
+
+
+
+            targets = GetTargets(castObject, target);
+
+            if (targets.Count() == 0 && castObject.IsAssail == false) return false;
+
+            // We do these next steps to ensure effects are displayed uniformly and as fast as possible
+            var deadMobs = new List<Creature>();
+            if (castObject.Effects?.Animations?.OnCast != null)
+            {
+
+
+                foreach (var tar in targets)
+                {
+                    foreach (var user in tar.viewportUsers)
+                    {
+                        user.SendEffect(tar.Id, castObject.Effects.Animations.OnCast.Target.Id, castObject.Effects.Animations.OnCast.Target.Speed);
+                    }
+                }
+                if (castObject.Effects?.Animations?.OnCast?.SpellEffect != null)
+                    Effect(castObject.Effects.Animations.OnCast.SpellEffect.Id, castObject.Effects.Animations.OnCast.SpellEffect.Speed);
+            }
+
+            if (castObject.Effects?.Sound != null)
+                PlaySound(castObject.Effects.Sound.Id);
+
+            GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name}, {targets.Count()} targets");
+
+            if (!string.IsNullOrEmpty(castObject.Script))
+            {
+                // If a script is defined we fire it immediately, and let it handle targeting / etc
+                if (Game.World.ScriptProcessor.TryGetScript(castObject.Script, out Script script))
+                    return script.ExecuteFunction("OnUse", this);
+                else
+                {
+                    GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name}: castable script {castObject.Script} missing");
+                    return false;
+                }
+
+            }
+
+            foreach (var tar in targets)
+            {
+                if (castObject.Effects?.ScriptOverride == true)
+                {
+                    // TODO: handle castables with scripting
+                    // DoStuff();
+                    continue;
+                }
+                if (!castObject.Effects.Damage.IsEmpty)
+                {
+                    Xml.Element attackElement;
+                    var damageOutput = NumberCruncher.CalculateDamage(castObject, tar, this);
+                    if (castObject.Element == Xml.Element.Random)
+                    {
+                        Random rnd = new Random();
+                        var Elements = Enum.GetValues(typeof(Xml.Element));
+                        attackElement = (Xml.Element)Elements.GetValue(rnd.Next(Elements.Length));
+                    }
+                    else if (castObject.Element != Xml.Element.None)
+                        attackElement = castObject.Element;
+                    else
+                        attackElement = (Stats.OffensiveElementOverride != Xml.Element.None ? Stats.OffensiveElementOverride : Stats.BaseOffensiveElement);
+                    if (this is User) GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} damage: {damageOutput}, element {attackElement}");
+
+                    tar.Damage(damageOutput.Amount, attackElement, damageOutput.Type, damageOutput.Flags, this, false);
+
+                    if (this is User)
+                    {
+                        if (Equipment.Weapon != null) Equipment.Weapon.Durability -= 1 / (Equipment.Weapon.MaximumDurability * (100 - Stats.Ac));
+                    }
+
+                    if (tar.Stats.Hp <= 0) { deadMobs.Add(tar); }
+                }
+                // Note that we ignore castables with both damage and healing effects present - one or the other.
+                // A future improvement might be to allow more complex effects.
+                else if (!castObject.Effects.Heal.IsEmpty)
+                {
+                    var healOutput = NumberCruncher.CalculateHeal(castObject, tar, this);
+                    tar.Heal(healOutput, this);
+                    if (this is User)
+                    {
+                        GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} healing: {healOutput}");
+                        if (Equipment.Weapon != null)
+                            Equipment.Weapon.Durability -= 1 / (Equipment.Weapon.MaximumDurability * (100 - Stats.Ac));
+                    }
+                }
+
+                // Handle statuses
+
+                foreach (var status in castObject.Effects.Statuses.Add.Where(e => e.Value != null))
+                {
+                    Xml.Status applyStatus;
+                    if (World.WorldData.TryGetValueByIndex<Xml.Status>(status.Value, out applyStatus))
+                    {
+                        GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - applying status {status.Value}");
+                        ApplyStatus(new CreatureStatus(applyStatus, tar, castObject));
+                    }
+                    else
+                        GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name} - failed to add status {status.Value}, does not exist!");
+                }
+
+                foreach (var status in castObject.Effects.Statuses.Remove)
+                {
+                    Xml.Status applyStatus;
+                    if (World.WorldData.TryGetValueByIndex<Xml.Status>(status, out applyStatus))
+                    {
+                        GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name} - removing status {status}");
+                        RemoveStatus(applyStatus.Icon);
+                    }
+                    else
+                        GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name} - failed to remove status {status}, does not exist!");
+
+                }
+            }
+            // Now flood away
+            foreach (var dead in deadMobs)
+                World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.HandleDeath, dead));
+            Condition.Casting = false;
+            return true;
         }
 
         public void AssailAttack(Xml.Direction direction, Creature target = null)

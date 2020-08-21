@@ -1568,20 +1568,37 @@ namespace Hybrasyl
                 if (map.Users.Count > 0)
                 {
                     var entityTree = map.EntityTree.GetObjects(monster.GetViewport());
-                    //get players
+                    //get players on screen
                     var players = entityTree.OfType<User>();
 
+                    Creature aggroTarget;
                     //get closest
-                    var closest =
-                        players.OrderBy(x => Math.Sqrt((Math.Pow(monster.X - x.X, 2) + Math.Pow(monster.Y - x.Y, 2))))
+                    if(monster.AggroTable.Count == 0)
+                    {
+                        //get closest player
+                        aggroTarget = players.OrderBy(x => Math.Sqrt((Math.Pow(monster.X - x.X, 2) + Math.Pow(monster.Y - x.Y, 2))))
                             .FirstOrDefault();
+                    }
+                    else
+                    {
+                        var aggroid = monster.AggroTable.OrderByDescending(x => x.Value).FirstOrDefault().Key;
+                        aggroTarget = players.FirstOrDefault(x => x.Id == aggroid);
+                    }
 
-                    if (closest != null)
+                    UserGroup targetGroup = null;
+
+                    //get aggro target's group
+                    if(aggroTarget is User)
+                    {
+                        targetGroup = ((User)aggroTarget).Group;
+                    }
+
+                    if (aggroTarget != null)
                     {
 
                         //pathfind or cast if far away
-                        var distanceX = (int)Math.Sqrt(Math.Pow(monster.X - closest.X, 2));
-                        var distanceY = (int)Math.Sqrt(Math.Pow(monster.Y - closest.Y, 2));
+                        var distanceX = (int)Math.Sqrt(Math.Pow(monster.X - aggroTarget.X, 2));
+                        var distanceY = (int)Math.Sqrt(Math.Pow(monster.Y - aggroTarget.Y, 2));
                         if (distanceX >= 1 && distanceY >= 1)
                         {
                             var nextAction = _random.Next(1, 6);
@@ -1591,12 +1608,12 @@ namespace Hybrasyl
                                 //pathfind;
                                 if (distanceX > distanceY)
                                 {
-                                    monster.Walk(monster.X > closest.X ? Xml.Direction.West : Xml.Direction.East);
+                                    monster.Walk(monster.X > aggroTarget.X ? Xml.Direction.West : Xml.Direction.East);
                                 }
                                 else
                                 {
                                     //movey
-                                    monster.Walk(monster.Y > closest.Y ? Xml.Direction.North : Xml.Direction.South);
+                                    monster.Walk(monster.Y > aggroTarget.Y ? Xml.Direction.North : Xml.Direction.South);
                                 }
 
                                 if (distanceX == distanceY)
@@ -1605,11 +1622,11 @@ namespace Hybrasyl
 
                                     if (next == 0)
                                     {
-                                        monster.Walk(monster.X > closest.X ? Xml.Direction.West : Xml.Direction.East);
+                                        monster.Walk(monster.X > aggroTarget.X ? Xml.Direction.West : Xml.Direction.East);
                                     }
                                     else
                                     {
-                                        monster.Walk(monster.Y > closest.Y ? Xml.Direction.North : Xml.Direction.South);
+                                        monster.Walk(monster.Y > aggroTarget.Y ? Xml.Direction.North : Xml.Direction.South);
                                     }
                                 }
                             }
@@ -1618,7 +1635,68 @@ namespace Hybrasyl
                                 //cast
                                 if (monster.CanCast)
                                 {
-                                    monster.Cast(closest);
+                                    bool hasOffense = monster.Castables.Offense != null;
+                                    bool hasDefense = monster.Castables.Defense != null;
+                                    bool hasNearDeath = monster.Castables.NearDeath != null;
+                                    bool hasOnDeath = monster.Castables.OnDeath != null;
+                                    //need to determine what it should do, and what is available to it.
+
+                                    var currentHpPercent = (double)(monster.Stats.Hp / monster.Stats.MaximumHp);
+
+                                    if(hasOnDeath && currentHpPercent < 1)
+                                    {
+                                        var selectedCastable = monster.SelectSpawnCastable(SpawnCastType.OnDeath);
+
+                                        if (selectedCastable.Target == Xml.TargetType.Attacker)
+                                        {
+                                            monster.Cast(aggroTarget, selectedCastable);
+                                        }
+
+                                        if(selectedCastable.Target == Xml.TargetType.Group || selectedCastable.Target == Xml.TargetType.Random)
+                                        {
+                                            monster.Cast(targetGroup, selectedCastable, selectedCastable.Target);
+                                        }
+                                    }
+
+                                    if (hasNearDeath && currentHpPercent <= monster.Castables.NearDeath.HealthPercent && monster.HasCastNearDeath == false)
+                                    {
+                                        monster.HasCastNearDeath = true;
+
+                                        var selectedCastable = monster.SelectSpawnCastable(SpawnCastType.NearDeath);
+
+                                        if (selectedCastable.Target == Xml.TargetType.Attacker)
+                                        {
+                                            monster.Cast(aggroTarget, selectedCastable);
+                                        }
+
+                                        if (selectedCastable.Target == Xml.TargetType.Group || selectedCastable.Target == Xml.TargetType.Random)
+                                        {
+                                            monster.Cast(targetGroup, selectedCastable, selectedCastable.Target);
+                                        }
+                                    }
+
+                                    var nextChoice = _random.Next(0, 1);
+
+                                    if(nextChoice == 0) //offense
+                                    {
+                                        var selectedCastable = monster.SelectSpawnCastable(SpawnCastType.Offensive);
+
+                                        if (selectedCastable.Target == Xml.TargetType.Attacker)
+                                        {
+                                            monster.Cast(aggroTarget, selectedCastable);
+                                        }
+
+                                        if (selectedCastable.Target == Xml.TargetType.Group || selectedCastable.Target == Xml.TargetType.Random)
+                                        {
+                                            monster.Cast(targetGroup, selectedCastable, selectedCastable.Target);
+                                        }
+                                    }
+
+                                    if(nextChoice == 1) //defense
+                                    {
+                                        //not sure how to handle this one
+                                    }
+
                                 }
                             }
                         }
@@ -1626,20 +1704,81 @@ namespace Hybrasyl
                         {
                             //check facing and attack or cast
 
-                            var nextAction = _random.Next(1, 6);
+                            var nextAction = _random.Next(1, 5);
                             if (nextAction > 1)
                             {
-                                var facing = monster.CheckFacing(monster.Direction, closest);
+                                var facing = monster.CheckFacing(monster.Direction, aggroTarget);
                                 if (facing)
                                 {
-                                    monster.AssailAttack(monster.Direction, closest);
+                                    monster.AssailAttack(monster.Direction, aggroTarget);
                                 }
                             }
                             else
                             {
                                 if (monster.CanCast)
-                                {
-                                    monster.Cast(closest);
+                                { 
+                                    bool hasOffense = monster.Castables.Offense != null;
+                                    bool hasDefense = monster.Castables.Defense != null;
+                                    bool hasNearDeath = monster.Castables.NearDeath != null;
+                                    bool hasOnDeath = monster.Castables.OnDeath != null;
+                                    //need to determine what it should do, and what is available to it.
+
+                                    var currentHpPercent = (double)(monster.Stats.Hp / monster.Stats.MaximumHp);
+
+                                    if (hasOnDeath && currentHpPercent < 1)
+                                    {
+                                        var selectedCastable = monster.SelectSpawnCastable(SpawnCastType.OnDeath);
+
+                                        if (selectedCastable.Target == Xml.TargetType.Attacker)
+                                        {
+                                            monster.Cast(aggroTarget, selectedCastable);
+                                        }
+
+                                        if (selectedCastable.Target == Xml.TargetType.Group || selectedCastable.Target == Xml.TargetType.Random)
+                                        {
+                                            monster.Cast(targetGroup, selectedCastable, selectedCastable.Target);
+                                        }
+                                    }
+
+                                    if (hasNearDeath && currentHpPercent <= monster.Castables.NearDeath.HealthPercent && monster.HasCastNearDeath == false)
+                                    {
+                                        monster.HasCastNearDeath = true;
+
+                                        var selectedCastable = monster.SelectSpawnCastable(SpawnCastType.NearDeath);
+
+                                        if (selectedCastable.Target == Xml.TargetType.Attacker)
+                                        {
+                                            monster.Cast(aggroTarget, selectedCastable);
+                                        }
+
+                                        if (selectedCastable.Target == Xml.TargetType.Group || selectedCastable.Target == Xml.TargetType.Random)
+                                        {
+                                            monster.Cast(targetGroup, selectedCastable, selectedCastable.Target);
+                                        }
+                                    }
+
+                                    var nextChoice = _random.Next(0, 1);
+
+                                    if (nextChoice == 0) //offense
+                                    {
+                                        var selectedCastable = monster.SelectSpawnCastable(SpawnCastType.Offensive);
+
+                                        if (selectedCastable.Target == Xml.TargetType.Attacker)
+                                        {
+                                            monster.Cast(aggroTarget, selectedCastable);
+                                        }
+
+                                        if (selectedCastable.Target == Xml.TargetType.Group || selectedCastable.Target == Xml.TargetType.Random)
+                                        {
+                                            monster.Cast(targetGroup, selectedCastable, selectedCastable.Target);
+                                        }
+                                    }
+
+                                    if (nextChoice == 1) //defense
+                                    {
+                                        //not sure how to handle this one
+                                    }
+
                                 }
                             }
                         }

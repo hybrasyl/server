@@ -457,6 +457,11 @@ namespace Hybrasyl.Xml
         public string Filename { get; set; }
     }
 
+    public partial class SpawnCastable
+    {
+        public DateTime LastCast { get; set; }
+    }
+
 }
 
 namespace Hybrasyl.Xml

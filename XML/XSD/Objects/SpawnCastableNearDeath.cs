@@ -24,153 +24,43 @@ using System.Collections.Generic;
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-[XmlRootAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02", IsNullable=false)]
-public partial class Spawn
+public partial class SpawnCastableNearDeath
 {
     #region Private fields
-    private CreatureScript _script;
-    private IntentList _intents;
-    private Respawn _respawn;
-    private SpawnDamage _damage;
-    private Defense _defense;
-    private Stats _stats;
-    private LootList _loot;
-    private CastableGroup _castables;
-    private string _base;
-    private float _variance;
+    private List<SpawnCastable> _castable;
+    private int _healthPercent;
     private static XmlSerializer _serializer;
     #endregion
     
-    public Spawn()
+    public SpawnCastableNearDeath()
     {
-        _loot = new LootList();
-        _stats = new Stats();
-        _defense = new Defense();
-        _damage = new SpawnDamage();
-        _respawn = new Respawn();
-        _variance = ((float)(1F));
+        _healthPercent = 20;
     }
     
-    public CreatureScript Script
+    [XmlElement("Castable")]
+    public List<SpawnCastable> Castable
     {
         get
         {
-            return _script;
+            return _castable;
         }
         set
         {
-            _script = value;
-        }
-    }
-    
-    public IntentList Intents
-    {
-        get
-        {
-            return _intents;
-        }
-        set
-        {
-            _intents = value;
-        }
-    }
-    
-    public Respawn Respawn
-    {
-        get
-        {
-            return _respawn;
-        }
-        set
-        {
-            _respawn = value;
-        }
-    }
-    
-    public SpawnDamage Damage
-    {
-        get
-        {
-            return _damage;
-        }
-        set
-        {
-            _damage = value;
-        }
-    }
-    
-    public Defense Defense
-    {
-        get
-        {
-            return _defense;
-        }
-        set
-        {
-            _defense = value;
-        }
-    }
-    
-    public Stats Stats
-    {
-        get
-        {
-            return _stats;
-        }
-        set
-        {
-            _stats = value;
-        }
-    }
-    
-    public LootList Loot
-    {
-        get
-        {
-            return _loot;
-        }
-        set
-        {
-            _loot = value;
-        }
-    }
-    
-    public CastableGroup Castables
-    {
-        get
-        {
-            return _castables;
-        }
-        set
-        {
-            _castables = value;
+            _castable = value;
         }
     }
     
     [XmlAttribute]
-    public string Base
+    [DefaultValue(20)]
+    public int HealthPercent
     {
         get
         {
-            return _base;
+            return _healthPercent;
         }
         set
         {
-            _base = value;
-        }
-    }
-    
-    [XmlAttribute]
-    [DefaultValue(typeof(float), "1")]
-    public float Variance
-    {
-        get
-        {
-            return _variance;
-        }
-        set
-        {
-            _variance = value;
+            _healthPercent = value;
         }
     }
     
@@ -180,7 +70,7 @@ public partial class Spawn
         {
             if ((_serializer == null))
             {
-                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(Spawn));
+                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(SpawnCastableNearDeath));
             }
             return _serializer;
         }
@@ -188,7 +78,7 @@ public partial class Spawn
     
     #region Serialize/Deserialize
     /// <summary>
-    /// Serialize Spawn object
+    /// Serialize SpawnCastableNearDeath object
     /// </summary>
     /// <returns>XML value</returns>
     public virtual string Serialize()
@@ -221,16 +111,16 @@ public partial class Spawn
     }
     
     /// <summary>
-    /// Deserializes Spawn object
+    /// Deserializes SpawnCastableNearDeath object
     /// </summary>
     /// <param name="input">string workflow markup to deserialize</param>
-    /// <param name="obj">Output Spawn object</param>
+    /// <param name="obj">Output SpawnCastableNearDeath object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool Deserialize(string input, out Spawn obj, out Exception exception)
+    public static bool Deserialize(string input, out SpawnCastableNearDeath obj, out Exception exception)
     {
         exception = null;
-        obj = default(Spawn);
+        obj = default(SpawnCastableNearDeath);
         try
         {
             obj = Deserialize(input);
@@ -243,19 +133,19 @@ public partial class Spawn
         }
     }
     
-    public static bool Deserialize(string input, out Spawn obj)
+    public static bool Deserialize(string input, out SpawnCastableNearDeath obj)
     {
         Exception exception = null;
         return Deserialize(input, out obj, out exception);
     }
     
-    public static Spawn Deserialize(string input)
+    public static SpawnCastableNearDeath Deserialize(string input)
     {
         StringReader stringReader = null;
         try
         {
             stringReader = new StringReader(input);
-            return ((Spawn)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
+            return ((SpawnCastableNearDeath)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
         }
         finally
         {
@@ -266,14 +156,14 @@ public partial class Spawn
         }
     }
     
-    public static Spawn Deserialize(Stream s)
+    public static SpawnCastableNearDeath Deserialize(Stream s)
     {
-        return ((Spawn)(SerializerXML.Deserialize(s)));
+        return ((SpawnCastableNearDeath)(SerializerXML.Deserialize(s)));
     }
     #endregion
     
     /// <summary>
-    /// Serializes current Spawn object into file
+    /// Serializes current SpawnCastableNearDeath object into file
     /// </summary>
     /// <param name="fileName">full path of outupt xml file</param>
     /// <param name="exception">output Exception value if failed</param>
@@ -314,16 +204,16 @@ public partial class Spawn
     }
     
     /// <summary>
-    /// Deserializes xml markup from file into an Spawn object
+    /// Deserializes xml markup from file into an SpawnCastableNearDeath object
     /// </summary>
     /// <param name="fileName">string xml file to load and deserialize</param>
-    /// <param name="obj">Output Spawn object</param>
+    /// <param name="obj">Output SpawnCastableNearDeath object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool LoadFromFile(string fileName, out Spawn obj, out Exception exception)
+    public static bool LoadFromFile(string fileName, out SpawnCastableNearDeath obj, out Exception exception)
     {
         exception = null;
-        obj = default(Spawn);
+        obj = default(SpawnCastableNearDeath);
         try
         {
             obj = LoadFromFile(fileName);
@@ -336,13 +226,13 @@ public partial class Spawn
         }
     }
     
-    public static bool LoadFromFile(string fileName, out Spawn obj)
+    public static bool LoadFromFile(string fileName, out SpawnCastableNearDeath obj)
     {
         Exception exception = null;
         return LoadFromFile(fileName, out obj, out exception);
     }
     
-    public static Spawn LoadFromFile(string fileName)
+    public static SpawnCastableNearDeath LoadFromFile(string fileName)
     {
         FileStream file = null;
         StreamReader sr = null;

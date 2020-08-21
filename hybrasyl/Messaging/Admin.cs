@@ -626,7 +626,7 @@ namespace Hybrasyl.Messaging
             if (Game.World.WorldData.TryGetValue(args[0], out Xml.Creature creature))
             {
                 Xml.Spawn spawn = new Xml.Spawn();
-                spawn.Castables = new List<Xml.SpawnCastable>();
+                spawn.Castables = new Xml.CastableGroup();
                 spawn.Stats.Hp = 100;
                 spawn.Stats.Mp = 100;
                 spawn.Stats.Str = 3;
@@ -694,7 +694,7 @@ namespace Hybrasyl.Messaging
                     for (var i = 0; i < n; i++)
                     {
                         Xml.Spawn spawn = new Xml.Spawn();
-                        spawn.Castables = new List<Xml.SpawnCastable>();
+                        spawn.Castables = new Xml.CastableGroup();
                         spawn.Stats.Hp = 100;
                         spawn.Stats.Mp = 100;
                         spawn.Stats.Str = 3;

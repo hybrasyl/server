@@ -27,59 +27,102 @@ using System.Collections.Generic;
 public partial class SpawnCastable
 {
     #region Private fields
-    private int _cooldown;
-    private float _chance;
-    private bool _always;
+    private string _name;
+    private int _minDmg;
+    private int _maxDmg;
+    private List<Element> _element;
+    private TargetType _target;
+    private int _interval;
     private string _value;
     private static XmlSerializer _serializer;
     #endregion
     
     public SpawnCastable()
     {
-        _cooldown = 1;
-        _chance = ((float)(1F));
-        _always = false;
+        _element = new List<Element>();
+        _minDmg = 0;
+        _maxDmg = 0;
+        _interval = 30;
     }
     
     [XmlAttribute]
-    [DefaultValue(1)]
-    public int Cooldown
+    public string Name
     {
         get
         {
-            return _cooldown;
+            return _name;
         }
         set
         {
-            _cooldown = value;
-        }
-    }
-    
-    [XmlAttribute]
-    [DefaultValue(typeof(float), "1")]
-    public float Chance
-    {
-        get
-        {
-            return _chance;
-        }
-        set
-        {
-            _chance = value;
+            _name = value;
         }
     }
     
     [XmlAttribute]
-    [DefaultValue(false)]
-    public bool Always
+    [DefaultValue(0)]
+    public int MinDmg
     {
         get
         {
-            return _always;
+            return _minDmg;
         }
         set
         {
-            _always = value;
+            _minDmg = value;
+        }
+    }
+    
+    [XmlAttribute]
+    [DefaultValue(0)]
+    public int MaxDmg
+    {
+        get
+        {
+            return _maxDmg;
+        }
+        set
+        {
+            _maxDmg = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public List<Element> Element
+    {
+        get
+        {
+            return _element;
+        }
+        set
+        {
+            _element = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public TargetType Target
+    {
+        get
+        {
+            return _target;
+        }
+        set
+        {
+            _target = value;
+        }
+    }
+    
+    [XmlAttribute]
+    [DefaultValue(30)]
+    public int Interval
+    {
+        get
+        {
+            return _interval;
+        }
+        set
+        {
+            _interval = value;
         }
     }
     
