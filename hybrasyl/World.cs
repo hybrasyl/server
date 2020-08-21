@@ -1649,12 +1649,26 @@ namespace Hybrasyl
 
                                         if (selectedCastable.Target == Xml.TargetType.Attacker)
                                         {
-                                            monster.Cast(aggroTarget, selectedCastable);
+                                            if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                                            {
+                                                monster.Cast(aggroTarget, selectedCastable);
+                                            }
+                                            else
+                                            {
+                                                monster.AssailAttack(monster.Direction, aggroTarget);
+                                            }
                                         }
 
                                         if(selectedCastable.Target == Xml.TargetType.Group || selectedCastable.Target == Xml.TargetType.Random)
                                         {
-                                            monster.Cast(targetGroup, selectedCastable, selectedCastable.Target);
+                                            if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                                            {
+                                                monster.Cast(targetGroup, selectedCastable, selectedCastable.Target);
+                                            }
+                                            else
+                                            {
+                                                monster.AssailAttack(monster.Direction, aggroTarget);
+                                            }
                                         }
                                     }
 
@@ -1666,12 +1680,26 @@ namespace Hybrasyl
 
                                         if (selectedCastable.Target == Xml.TargetType.Attacker)
                                         {
-                                            monster.Cast(aggroTarget, selectedCastable);
+                                            if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                                            {
+                                                monster.Cast(aggroTarget, selectedCastable);
+                                            }
+                                            else
+                                            {
+                                                monster.AssailAttack(monster.Direction, aggroTarget);
+                                            }
                                         }
 
                                         if (selectedCastable.Target == Xml.TargetType.Group || selectedCastable.Target == Xml.TargetType.Random)
                                         {
-                                            monster.Cast(targetGroup, selectedCastable, selectedCastable.Target);
+                                            if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                                            {
+                                                monster.Cast(targetGroup, selectedCastable, selectedCastable.Target);
+                                            }
+                                            else
+                                            {
+                                                monster.AssailAttack(monster.Direction, aggroTarget);
+                                            }
                                         }
                                     }
 
@@ -1683,12 +1711,27 @@ namespace Hybrasyl
 
                                         if (selectedCastable.Target == Xml.TargetType.Attacker)
                                         {
-                                            monster.Cast(aggroTarget, selectedCastable);
+                                            if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                                            {
+                                                monster.Cast(aggroTarget, selectedCastable);
+                                            }
+                                            else
+                                            {
+                                                monster.AssailAttack(monster.Direction, aggroTarget);
+                                            }
                                         }
 
                                         if (selectedCastable.Target == Xml.TargetType.Group || selectedCastable.Target == Xml.TargetType.Random)
                                         {
-                                            monster.Cast(targetGroup, selectedCastable, selectedCastable.Target);
+                                            if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                                            {
+                                                monster.Cast(targetGroup, selectedCastable, selectedCastable.Target);
+                                            }
+                                            else
+                                            {
+                                                monster.AssailAttack(monster.Direction, aggroTarget);
+                                            }
+
                                         }
                                     }
 
@@ -1716,7 +1759,7 @@ namespace Hybrasyl
                             else
                             {
                                 if (monster.CanCast)
-                                { 
+                                {
                                     bool hasOffense = monster.Castables.Offense != null;
                                     bool hasDefense = monster.Castables.Defense != null;
                                     bool hasNearDeath = monster.Castables.NearDeath != null;
@@ -1731,12 +1774,26 @@ namespace Hybrasyl
 
                                         if (selectedCastable.Target == Xml.TargetType.Attacker)
                                         {
-                                            monster.Cast(aggroTarget, selectedCastable);
+                                            if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                                            {
+                                                monster.Cast(aggroTarget, selectedCastable);
+                                            }
+                                            else
+                                            {
+                                                monster.AssailAttack(monster.Direction, aggroTarget);
+                                            }
                                         }
 
                                         if (selectedCastable.Target == Xml.TargetType.Group || selectedCastable.Target == Xml.TargetType.Random)
                                         {
-                                            monster.Cast(targetGroup, selectedCastable, selectedCastable.Target);
+                                            if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                                            {
+                                                monster.Cast(targetGroup, selectedCastable, selectedCastable.Target);
+                                            }
+                                            else
+                                            {
+                                                monster.AssailAttack(monster.Direction, aggroTarget);
+                                            }
                                         }
                                     }
 
@@ -1748,12 +1805,26 @@ namespace Hybrasyl
 
                                         if (selectedCastable.Target == Xml.TargetType.Attacker)
                                         {
-                                            monster.Cast(aggroTarget, selectedCastable);
+                                            if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                                            {
+                                                monster.Cast(aggroTarget, selectedCastable);
+                                            }
+                                            else
+                                            {
+                                                monster.AssailAttack(monster.Direction, aggroTarget);
+                                            }
                                         }
 
                                         if (selectedCastable.Target == Xml.TargetType.Group || selectedCastable.Target == Xml.TargetType.Random)
                                         {
-                                            monster.Cast(targetGroup, selectedCastable, selectedCastable.Target);
+                                            if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                                            {
+                                                monster.Cast(targetGroup, selectedCastable, selectedCastable.Target);
+                                            }
+                                            else
+                                            {
+                                                monster.AssailAttack(monster.Direction, aggroTarget);
+                                            }
                                         }
                                     }
 
@@ -1765,12 +1836,27 @@ namespace Hybrasyl
 
                                         if (selectedCastable.Target == Xml.TargetType.Attacker)
                                         {
-                                            monster.Cast(aggroTarget, selectedCastable);
+                                            if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                                            {
+                                                monster.Cast(aggroTarget, selectedCastable);
+                                            }
+                                            else
+                                            {
+                                                monster.AssailAttack(monster.Direction, aggroTarget);
+                                            }
                                         }
 
                                         if (selectedCastable.Target == Xml.TargetType.Group || selectedCastable.Target == Xml.TargetType.Random)
                                         {
-                                            monster.Cast(targetGroup, selectedCastable, selectedCastable.Target);
+                                            if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                                            {
+                                                monster.Cast(targetGroup, selectedCastable, selectedCastable.Target);
+                                            }
+                                            else
+                                            {
+                                                monster.AssailAttack(monster.Direction, aggroTarget);
+                                            }
+
                                         }
                                     }
 
