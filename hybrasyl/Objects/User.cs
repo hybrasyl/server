@@ -2410,7 +2410,7 @@ namespace Hybrasyl.Objects
             // Check restrictions
             foreach (var restriction in castObject.Restrictions)
             {
-                if (restriction.Slot == Xml.EquipmentSlot.None && !Inventory.Contains(restriction.Value))
+                if (restriction.Slot == Xml.EquipmentSlot.None && !Inventory.ContainsName(restriction.Value))
                 {
                     // in inventory check
                     SendSystemMessage($"You lack the needed {restriction.Value}.");
