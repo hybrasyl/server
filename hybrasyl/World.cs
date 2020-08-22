@@ -2241,7 +2241,7 @@ namespace Hybrasyl
             switch (item.ItemObjectType)
             {
                 case Enums.ItemObjectType.CanUse:
-                    if (item.Durability == 0 && !(item.EquipmentSlot == ClientItemSlots.None))
+                    if (item.Durability == 0 && !((item?.EquipmentSlot ?? ClientItemSlots.None) == ClientItemSlots.None))
                     {
                         user.SendSystemMessage("This item is too badly damaged to use.");
                         return;

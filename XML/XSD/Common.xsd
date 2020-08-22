@@ -360,7 +360,8 @@
               <xs:enumeration value="IncreaseDamage" />
               <xs:enumeration value="ReduceDamage" />
               <xs:enumeration value="AbsorbSpell" />
-              <xs:enumeration value="ProhibitItemUse" />
+              <xs:enumeration value="Prohibit
+                              " />
               <xs:enumeration value="ProhibitEquipChange" />
               <xs:enumeration value="ProhibitSpeech" />
               <xs:enumeration value="ProhibitWhisper" />
