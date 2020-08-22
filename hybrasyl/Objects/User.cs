@@ -1317,6 +1317,7 @@ namespace Hybrasyl.Objects
             // Figure out what we're sending as the "helmet"
             var helmet = Equipment.Helmet?.DisplaySprite ?? HairStyle;
             helmet = Equipment.DisplayHelm?.DisplaySprite ?? helmet;
+            var color = Equipment.DisplayHelm?.Color ?? HairColor;
 
             (client ?? Client).Enqueue(new ServerPacketStructures.DisplayUser()
             {
@@ -1349,7 +1350,7 @@ namespace Hybrasyl.Objects
                 Name = Name,
                 GroupName = string.Empty, // TODO: Group name
                 MonsterSprite = MonsterSprite,
-                HairColor = HairColor
+                HairColor = color,
             }.Packet());
         }
 
@@ -1390,7 +1391,7 @@ namespace Hybrasyl.Objects
             var equipPacket = new ServerPacket(0x37);
             equipPacket.WriteByte((byte)slot);
             equipPacket.WriteUInt16((ushort)(itemObject.Sprite + 0x8000));
-            equipPacket.WriteByte(0x00);
+            equipPacket.WriteByte(itemObject.Color);
             equipPacket.WriteStringWithLength(itemObject.Name);
             equipPacket.WriteByte(0x00);
             equipPacket.WriteUInt32(itemObject.MaximumDurability);
@@ -2281,7 +2282,7 @@ namespace Hybrasyl.Objects
                 GameLog.DebugFormat("Slot wasn't null, aborting");
                 return false;
             }
-
+            
             SendEquipItem(itemObject, slot);
             Client.SendMessage(string.Format("Equipped {0}", itemObject.Name), 3);
             ApplyBonuses(itemObject);
