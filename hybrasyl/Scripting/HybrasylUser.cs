@@ -746,7 +746,7 @@ namespace Hybrasyl.Scripting
                 if (template.Stackable)
                 {
                     var item = Game.World.CreateItem(template.Id);
-                    if (count > 1)
+                    if (count >= 1)
                         item.Count = count > item.MaximumStack ? item.MaximumStack : count;
                     else
                         item.Count = item.MaximumStack;
