@@ -34,10 +34,12 @@ public enum ItemFlags
     Exchangeable = 64,
     Vendorable = 128,
     Perishable = 256,
-    Unique = 512,
-    Master = 1024,
+    UniqueInventory = 512,
+    MasterOnly = 1024,
     UniqueEquipped = 2048,
     Identifiable = 4096,
+    Undamageable = 8192,
+    Consumable = 16384,
 }
 }
 #pragma warning restore

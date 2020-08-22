@@ -30,24 +30,10 @@ public partial class Physical
     private uint _value;
     private int _weight;
     private uint _durability;
-    private bool _perishable;
-    private bool _vendorable;
-    private bool _bound;
     private static XmlSerializer _serializer;
     #endregion
     
-    public Physical()
-    {
-        _value = ((uint)(0));
-        _weight = 1;
-        _durability = ((uint)(1));
-        _perishable = false;
-        _vendorable = true;
-        _bound = false;
-    }
-    
     [XmlAttribute]
-    [DefaultValue(typeof(uint), "0")]
     public uint Value
     {
         get
@@ -61,7 +47,6 @@ public partial class Physical
     }
     
     [XmlAttribute]
-    [DefaultValue(1)]
     public int Weight
     {
         get
@@ -75,7 +60,6 @@ public partial class Physical
     }
     
     [XmlAttribute]
-    [DefaultValue(typeof(uint), "1")]
     public uint Durability
     {
         get
@@ -85,48 +69,6 @@ public partial class Physical
         set
         {
             _durability = value;
-        }
-    }
-    
-    [XmlAttribute]
-    [DefaultValue(false)]
-    public bool Perishable
-    {
-        get
-        {
-            return _perishable;
-        }
-        set
-        {
-            _perishable = value;
-        }
-    }
-    
-    [XmlAttribute]
-    [DefaultValue(true)]
-    public bool Vendorable
-    {
-        get
-        {
-            return _vendorable;
-        }
-        set
-        {
-            _vendorable = value;
-        }
-    }
-    
-    [XmlAttribute]
-    [DefaultValue(false)]
-    public bool Bound
-    {
-        get
-        {
-            return _bound;
-        }
-        set
-        {
-            _bound = value;
         }
     }
     

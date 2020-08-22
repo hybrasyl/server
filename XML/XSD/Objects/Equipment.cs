@@ -28,15 +28,9 @@ public partial class Equipment
 {
     #region Private fields
     private EquipmentSlot _slot;
-    private bool _unique;
     private WeaponType _weaponType;
     private static XmlSerializer _serializer;
     #endregion
-    
-    public Equipment()
-    {
-        _unique = false;
-    }
     
     [XmlAttribute]
     public EquipmentSlot Slot
@@ -48,20 +42,6 @@ public partial class Equipment
         set
         {
             _slot = value;
-        }
-    }
-    
-    [XmlAttribute]
-    [DefaultValue(false)]
-    public bool Unique
-    {
-        get
-        {
-            return _unique;
-        }
-        set
-        {
-            _unique = value;
         }
     }
     

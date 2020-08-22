@@ -29,7 +29,6 @@ public partial class RestrictionsLevel
     #region Private fields
     private byte _min;
     private byte _max;
-    private bool _master;
     private static XmlSerializer _serializer;
     #endregion
     
@@ -37,7 +36,6 @@ public partial class RestrictionsLevel
     {
         _min = ((byte)(0));
         _max = ((byte)(255));
-        _master = false;
     }
     
     [XmlAttribute]
@@ -65,20 +63,6 @@ public partial class RestrictionsLevel
         set
         {
             _max = value;
-        }
-    }
-    
-    [XmlAttribute]
-    [DefaultValue(false)]
-    public bool Master
-    {
-        get
-        {
-            return _master;
-        }
-        set
-        {
-            _master = value;
         }
     }
     

@@ -450,10 +450,13 @@ namespace Hybrasyl.Objects
                     World.Remove(item);
                     continue;
                 }
-                if (item.Durability > 10)
-                    item.Durability = Math.Ceiling(item.Durability * 0.90);
-                else
-                    item.Durability = 0;
+                if (!item.Undamageable)
+                {
+                    if (item.Durability > 10)
+                        item.Durability = Math.Ceiling(item.Durability * 0.90);
+                    else
+                        item.Durability = 0;
+                }
                 item.DeathPileOwner = Name;
                 item.ItemDropTime = timeofdeath;
                 item.ItemDropAllowedLooters = looters;
@@ -474,10 +477,13 @@ namespace Hybrasyl.Objects
                     World.Remove(item);
                     continue;
                 }
-                if (item.Durability > 10)
-                    item.Durability = Math.Ceiling(item.Durability * 0.90);
-                else
-                    item.Durability = 0;
+                if (!item.Undamageable)
+                {
+                    if (item.Durability > 10)
+                        item.Durability = Math.Ceiling(item.Durability * 0.90);
+                    else
+                        item.Durability = 0;
+                }
                 item.DeathPileOwner = Name;
                 item.ItemDropTime = timeofdeath;
                 item.ItemDropAllowedLooters = looters;
@@ -1438,7 +1444,7 @@ namespace Hybrasyl.Objects
             var x0F = new ServerPacket(0x0F);
             x0F.WriteByte((byte)slot);
             x0F.WriteUInt16((ushort)(itemObject.Sprite + 0x8000));
-            x0F.WriteByte(0x00);
+            x0F.WriteByte(itemObject.Color);
             x0F.WriteString8(itemObject.Name);
             x0F.WriteInt32(itemObject.Count);  //amount
             x0F.WriteBoolean(itemObject.Stackable);
@@ -2378,7 +2384,7 @@ namespace Hybrasyl.Objects
             {
                 foreach (var item in Equipment)
                 {
-                    if (item.EquipmentSlot != ServerItemSlots.Weapon)
+                    if (item.EquipmentSlot != ServerItemSlots.Weapon && !(item.Undamageable))
                         item.Durability -= 1 / (item.MaximumDurability * (100 - Stats.Ac));
                 }
             }

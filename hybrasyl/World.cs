@@ -659,45 +659,49 @@ namespace Hybrasyl
 
         public Xml.Item ResolveVariant(Xml.Item item, Xml.Variant variant, string variantGroup)
         {
+            // Ensure all our modifiable / referenced properties at least exist
+            // TODO: this is pretty hacky
+            if (item.Properties.Physical is null)
+                item.Properties.Physical = new Xml.Physical();
+            if (item.Properties.StatModifiers is null)
+                item.Properties.StatModifiers = new Xml.ItemStatModifiers();
+            if (item.Properties.StatModifiers.Base is null)
+                item.Properties.StatModifiers.Base = new Xml.StatModifierBase();
+            if (item.Properties.StatModifiers.Combat is null)
+                item.Properties.StatModifiers.Combat = new Xml.StatModifierCombat();
+            if (item.Properties.Restrictions is null)
+                item.Properties.Restrictions = new Xml.ItemRestrictions();
+            if (item.Properties.Restrictions.Level is null)
+                item.Properties.Restrictions.Level = new Xml.RestrictionsLevel();
+            if (item.Properties.StatModifiers.Element is null)
+                item.Properties.StatModifiers.Element = new Xml.StatModifierElement();
+            if (item.Properties.Damage is null)
+                item.Properties.Damage = new Xml.ItemDamage();
+            if (item.Properties.Damage.Small is null)
+                item.Properties.Damage.Small = new Xml.ItemDamageSmall();
+            if (item.Properties.Damage.Large is null)
+                item.Properties.Damage.Large = new Xml.ItemDamageLarge();
+
             var variantItem = item.Clone();
 
             variantItem.Name = $"{variant.Modifier} {item.Name}";
             variantItem.ParentItem = item;
             variantItem.IsVariant = true;
             GameLog.Debug($"Processing variant: {variantItem.Name}");
-            variantItem.Properties.Flags = variant.Properties.Flags;
 
-            variantItem.Properties.Physical.Value = variant.Properties.Physical.Value == 100 ? item.Properties.Physical.Value : Convert.ToUInt32(Math.Round(item.Properties.Physical.Value * (variant.Properties.Physical.Value * .01)));
-            variantItem.Properties.Physical.Durability = variant.Properties.Physical.Durability == 100 ? item.Properties.Physical.Durability : Convert.ToUInt32(Math.Round(item.Properties.Physical.Durability * (variant.Properties.Physical.Durability * .01)));
-            variantItem.Properties.Physical.Weight = variant.Properties.Physical.Weight == 100 ? item.Properties.Physical.Weight : Convert.ToInt32(Math.Round(item.Properties.Physical.Weight * (variant.Properties.Physical.Weight * .01)));
+            if (variant.Properties.Flags != 0)
+                variantItem.Properties.Flags = variant.Properties.Flags;
 
-            // Ensure all our modifiable / referenced properties at least exist
-            // TODO: this is pretty hacky
-
-            if (variantItem.Properties.StatModifiers is null)
-                variantItem.Properties.StatModifiers = new Xml.ItemStatModifiers();
-            if (variantItem.Properties.StatModifiers.Base is null)
-                variantItem.Properties.StatModifiers.Base = new Xml.StatModifierBase();
-            if (variantItem.Properties.StatModifiers.Combat is null)
-                variantItem.Properties.StatModifiers.Combat = new Xml.StatModifierCombat();
-            if (variantItem.Properties.Restrictions is null)
-                variantItem.Properties.Restrictions = new Xml.ItemRestrictions();
-            if (variantItem.Properties.Restrictions.Level is null)
-                variantItem.Properties.Restrictions.Level = new Xml.RestrictionsLevel();
-            if (variantItem.Properties.StatModifiers.Element is null)
-                variantItem.Properties.StatModifiers.Element = new Xml.StatModifierElement();
-            if (variantItem.Properties.Damage is null)
-                variantItem.Properties.Damage = new Xml.ItemDamage();
-            if (variantItem.Properties.Damage.Small is null)
-                variantItem.Properties.Damage.Small = new Xml.ItemDamageSmall();
-            if (variantItem.Properties.Damage.Large is null)
-                variantItem.Properties.Damage.Large = new Xml.ItemDamageLarge();
+            variantItem.Properties.Physical.Value =  Convert.ToUInt32(Math.Round(item.Properties.Physical.Value * (variant.Properties.Physical.Value * .01)));
+            variantItem.Properties.Physical.Durability = Convert.ToUInt32(Math.Round(item.Properties.Physical.Durability * (variant.Properties.Physical.Durability * .01)));
+            variantItem.Properties.Physical.Weight =  Convert.ToInt32(Math.Round(item.Properties.Physical.Weight * (variant.Properties.Physical.Weight * .01)));
 
             switch (variantGroup.ToLower())
             {
                 case "consecratable":
                     {
-                        if (variant.Properties.Restrictions?.Level != null) variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
+                        if (variant.Properties.Restrictions?.Level != null) 
+                            variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
                         if (variant.Properties.StatModifiers?.Base != null)
                         {
                             variantItem.Properties.StatModifiers.Base.Dex += variant.Properties.StatModifiers.Base.Dex;
@@ -729,7 +733,7 @@ namespace Hybrasyl
                         }
                         if (variant.Properties.StatModifiers?.Combat != null)
                         {
-                            variantItem.Properties.StatModifiers.Combat.Ac = (sbyte)(item.Properties.StatModifiers.Combat.Ac + variant.Properties.StatModifiers.Combat.Ac);
+                            variantItem.Properties.StatModifiers.Combat.Ac += variant.Properties.StatModifiers.Combat.Ac;
                             variantItem.Properties.StatModifiers.Combat.Dmg += variant.Properties.StatModifiers.Combat.Dmg;
                             variantItem.Properties.StatModifiers.Combat.Hit += variant.Properties.StatModifiers.Combat.Hit;
                             variantItem.Properties.StatModifiers.Combat.Mr += variant.Properties.StatModifiers.Combat.Mr;
@@ -906,8 +910,8 @@ namespace Hybrasyl
                 List<Xml.Castable> spells = null;
                 Xml.Class @class = (Xml.Class)i;
 
-                skills = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySkill || x.Book == Xml.Book.SecondarySkill || x.Book == Xml.Book.UtilitySkill) && (x.Class.Contains(@class))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)).Level.Min).ThenBy(x => x.Name).ToList();
-                spells = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySpell || x.Book == Xml.Book.SecondarySpell || x.Book == Xml.Book.UtilitySpell) && (x.Class.Contains(@class))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)).Level.Min).ThenBy(x => x.Name).ToList();
+                skills = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySkill || x.Book == Xml.Book.SecondarySkill || x.Book == Xml.Book.UtilitySkill) && (x.Class.Contains(@class))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)).Level?.Min ?? 1).ThenBy(x => x.Name).ToList();
+                spells = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySpell || x.Book == Xml.Book.SecondarySpell || x.Book == Xml.Book.UtilitySpell) && (x.Class.Contains(@class))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)).Level?.Min ?? 1).ThenBy(x => x.Name).ToList();
 
                 sclass.Nodes.Add("");
                 sclass.Nodes.Add("Skill");
@@ -1751,7 +1755,7 @@ namespace Hybrasyl
             else if (pickupObject is ItemObject)
             {
                 var item = (ItemObject)pickupObject;
-                if (item.Unique && user.Inventory.Contains(item.TemplateId))
+                if (item.UniqueInventory && user.Inventory.Contains(item.TemplateId))
                 {
                     user.SendMessage(string.Format("You can't carry any more of those.", item.Name), 3);
                     return;
@@ -2255,8 +2259,8 @@ namespace Hybrasyl
                     break;
 
                 case Enums.ItemObjectType.Equipment:
-                    {
-                        if (item.Durability == 0)
+                    {                 
+                       if (item.Durability == 0)
                         {
                             user.SendSystemMessage("This item is too badly damaged to use.");
                             return;

@@ -83,9 +83,11 @@ namespace Hybrasyl.Xml
         {
             get
             {
-                if (Properties.Equipment.WeaponType == WeaponType.None)
-                    return Properties.StatModifiers?.Element?.Defense ?? Element.None;
-                return Properties.StatModifiers?.Element?.Offense ?? Element.None;
+                var off = Properties.StatModifiers?.Element?.Offense ?? Element.None;
+                var def = Properties.StatModifiers?.Element?.Defense ?? Element.None;
+                if (Properties.Equipment?.Slot == EquipmentSlot.Necklace)
+                    return off;
+                return def;
             }
         }
 
