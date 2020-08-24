@@ -3042,6 +3042,7 @@ namespace Hybrasyl
                         var recipient = packet.ReadString8();
                         var subject = packet.ReadString8();
                         var body = packet.ReadString16();
+
                         response.WriteByte(0x06); // Send post response
                         User recipientUser;
 

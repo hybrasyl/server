@@ -28,17 +28,17 @@ public partial class EquipmentRestriction
 {
     #region Private fields
     private EquipmentSlot _slot;
+    private WeaponType _type;
     private string _value;
     private static XmlSerializer _serializer;
     #endregion
     
     public EquipmentRestriction()
     {
-        _slot = EquipmentSlot.None;
+        _type = new WeaponType();
     }
     
     [XmlAttribute]
-    [DefaultValue(EquipmentSlot.None)]
     public EquipmentSlot Slot
     {
         get
@@ -48,6 +48,19 @@ public partial class EquipmentRestriction
         set
         {
             _slot = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public WeaponType Type
+    {
+        get
+        {
+            return _type;
+        }
+        set
+        {
+            _type = value;
         }
     }
     

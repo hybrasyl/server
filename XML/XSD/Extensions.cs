@@ -250,7 +250,7 @@ namespace Hybrasyl.Xml
         {
             get
             {
-                return Cooldown > 0 ? (DateTime.Now - LastCast).Seconds < Cooldown : false;
+                return Cooldown > 0 ? (DateTime.Now - LastCast).TotalSeconds < Cooldown : false;
             }
         }
 
