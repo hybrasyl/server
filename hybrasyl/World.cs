@@ -272,6 +272,15 @@ namespace Hybrasyl
             return redis.KeyExists(User.GetStorageKey(name));
         }
 
+        /// <summary>
+        /// Load all messaging plugins, based on server config.
+        /// </summary>
+        /// <returns></returns>
+        public bool LoadPlugins()
+        {
+            return false;
+        }
+
         public static string[] GetXmlFiles(string Path)
         {
             var ret = new List<string>();

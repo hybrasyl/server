@@ -24,66 +24,79 @@ using System.Collections.Generic;
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-public partial class Handlers
+public partial class MessagePlugin
 {
     #region Private fields
-    private Death _death;
-    private Chat _chat;
-    private NewPlayer _newPlayer;
-    private MessageHandlers _messaging;
+    private List<PluginConfig> _configuration;
+    private List<string> _targets;
+    private MessageType _type;
+    private bool _passthrough;
+    private string _name;
     private static XmlSerializer _serializer;
     #endregion
     
-    public Handlers()
-    {
-        _newPlayer = new NewPlayer();
-    }
-    
-    public Death Death
+    [XmlArrayItemAttribute("Config", IsNullable=false)]
+    public List<PluginConfig> Configuration
     {
         get
         {
-            return _death;
+            return _configuration;
         }
         set
         {
-            _death = value;
+            _configuration = value;
         }
     }
     
-    public Chat Chat
+    [XmlArrayItemAttribute("Target", DataType="token", IsNullable=false)]
+    public List<string> Targets
     {
         get
         {
-            return _chat;
+            return _targets;
         }
         set
         {
-            _chat = value;
+            _targets = value;
         }
     }
     
-    public NewPlayer NewPlayer
+    [XmlAttribute]
+    public MessageType Type
     {
         get
         {
-            return _newPlayer;
+            return _type;
         }
         set
         {
-            _newPlayer = value;
+            _type = value;
         }
     }
     
-    public MessageHandlers Messaging
+    [XmlAttribute]
+    public bool Passthrough
     {
         get
         {
-            return _messaging;
+            return _passthrough;
         }
         set
         {
-            _messaging = value;
+            _passthrough = value;
+        }
+    }
+    
+    [XmlAttribute(DataType="token")]
+    public string Name
+    {
+        get
+        {
+            return _name;
+        }
+        set
+        {
+            _name = value;
         }
     }
     
@@ -93,7 +106,7 @@ public partial class Handlers
         {
             if ((_serializer == null))
             {
-                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(Handlers));
+                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(MessagePlugin));
             }
             return _serializer;
         }
@@ -101,7 +114,7 @@ public partial class Handlers
     
     #region Serialize/Deserialize
     /// <summary>
-    /// Serialize Handlers object
+    /// Serialize MessagePlugin object
     /// </summary>
     /// <returns>XML value</returns>
     public virtual string Serialize()
@@ -134,16 +147,16 @@ public partial class Handlers
     }
     
     /// <summary>
-    /// Deserializes Handlers object
+    /// Deserializes MessagePlugin object
     /// </summary>
     /// <param name="input">string workflow markup to deserialize</param>
-    /// <param name="obj">Output Handlers object</param>
+    /// <param name="obj">Output MessagePlugin object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool Deserialize(string input, out Handlers obj, out Exception exception)
+    public static bool Deserialize(string input, out MessagePlugin obj, out Exception exception)
     {
         exception = null;
-        obj = default(Handlers);
+        obj = default(MessagePlugin);
         try
         {
             obj = Deserialize(input);
@@ -156,19 +169,19 @@ public partial class Handlers
         }
     }
     
-    public static bool Deserialize(string input, out Handlers obj)
+    public static bool Deserialize(string input, out MessagePlugin obj)
     {
         Exception exception = null;
         return Deserialize(input, out obj, out exception);
     }
     
-    public static Handlers Deserialize(string input)
+    public static MessagePlugin Deserialize(string input)
     {
         StringReader stringReader = null;
         try
         {
             stringReader = new StringReader(input);
-            return ((Handlers)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
+            return ((MessagePlugin)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
         }
         finally
         {
@@ -179,14 +192,14 @@ public partial class Handlers
         }
     }
     
-    public static Handlers Deserialize(Stream s)
+    public static MessagePlugin Deserialize(Stream s)
     {
-        return ((Handlers)(SerializerXML.Deserialize(s)));
+        return ((MessagePlugin)(SerializerXML.Deserialize(s)));
     }
     #endregion
     
     /// <summary>
-    /// Serializes current Handlers object into file
+    /// Serializes current MessagePlugin object into file
     /// </summary>
     /// <param name="fileName">full path of outupt xml file</param>
     /// <param name="exception">output Exception value if failed</param>
@@ -227,16 +240,16 @@ public partial class Handlers
     }
     
     /// <summary>
-    /// Deserializes xml markup from file into an Handlers object
+    /// Deserializes xml markup from file into an MessagePlugin object
     /// </summary>
     /// <param name="fileName">string xml file to load and deserialize</param>
-    /// <param name="obj">Output Handlers object</param>
+    /// <param name="obj">Output MessagePlugin object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool LoadFromFile(string fileName, out Handlers obj, out Exception exception)
+    public static bool LoadFromFile(string fileName, out MessagePlugin obj, out Exception exception)
     {
         exception = null;
-        obj = default(Handlers);
+        obj = default(MessagePlugin);
         try
         {
             obj = LoadFromFile(fileName);
@@ -249,13 +262,13 @@ public partial class Handlers
         }
     }
     
-    public static bool LoadFromFile(string fileName, out Handlers obj)
+    public static bool LoadFromFile(string fileName, out MessagePlugin obj)
     {
         Exception exception = null;
         return LoadFromFile(fileName, out obj, out exception);
     }
     
-    public static Handlers LoadFromFile(string fileName)
+    public static MessagePlugin LoadFromFile(string fileName)
     {
         FileStream file = null;
         StreamReader sr = null;

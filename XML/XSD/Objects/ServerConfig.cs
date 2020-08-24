@@ -37,6 +37,7 @@ public partial class ServerConfig
     private Time _time;
     private Handlers _handlers;
     private string _motd;
+    private ServerPlugins _plugins;
     private static XmlSerializer _serializer;
     #endregion
     
@@ -154,6 +155,18 @@ public partial class ServerConfig
         set
         {
             _motd = value;
+        }
+    }
+    
+    public ServerPlugins Plugins
+    {
+        get
+        {
+            return _plugins;
+        }
+        set
+        {
+            _plugins = value;
         }
     }
     

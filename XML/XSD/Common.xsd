@@ -574,6 +574,21 @@
       <xs:pattern value="((((25[0-5])|(2[0-4][0-9])|([01]?[0-9]?[0-9]))\.){3}((25[0-5])|(2[0-4][0-9])|([01]?[0-9]?[0-9])))(\-((((25[0-5])|(2[0-4][0-9])|([01]?[0-9]?[0-9]))\.){3}((25[0-5])|(2[0-4][0-9])|([01]?[0-9]?[0-9]))))?" />
     </xs:restriction>
   </xs:simpleType>
+  
+  <!-- Message types for plugins -->
+  <xs:simpleType name="MessageType">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="Mail" />
+      <xs:enumeration value="BoardMessage" />
+      <xs:enumeration value="Say" />
+      <xs:enumeration value="Shout" />
+      <xs:enumeration value="Whisper" />
+      <xs:enumeration value="GuildChat" />
+      <xs:enumeration value="GroupChat" />
+      <xs:enumeration value="RegionalChat" />
+      <xs:enumeration value="GMChat" />
+    </xs:restriction>
+  </xs:simpleType>
 
   <xs:simpleType name="CharacterName">
     <xs:restriction base="xs:token">
