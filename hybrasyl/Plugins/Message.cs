@@ -9,7 +9,7 @@ namespace Hybrasyl.Plugins
     {
         public string Sender = string.Empty;
         public string Recipient = string.Empty;
-        public MessageType Type { get; set; }
+        public Xml.MessageType Type { get; set; }
         public string Text = string.Empty;
         public string Subject = string.Empty;
     }
