@@ -692,7 +692,7 @@
       <xs:element name="Defense" type="hyb:Defense" minOccurs="1" maxOccurs="1"/>
       <xs:element name="Stats" type="hyb:Stats" minOccurs="1" maxOccurs="1"/>
       <xs:element name="Loot" type="hyb:LootList" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="Castables" type="hyb:CastableGroup" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Castables" type="hyb:CastableGroup" minOccurs="1" maxOccurs="1"/>
     </xs:sequence>
     <xs:attribute name="Base" type="hyb:String8" use="required"/>
     <xs:attribute name="Name" type="hyb:String8" use="optional"/>
@@ -829,7 +829,7 @@
 
   <xs:complexType name="SpawnCastableNearDeath">
     <xs:sequence>
-      <xs:element name="Castable" type="hyb:SpawnCastable" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Castables" type="hyb:SpawnCastableNearDeathCastables" minOccurs="1" maxOccurs="1"/>      
     </xs:sequence>
     <xs:attribute name="HealthPercent" type="xs:int" use="optional" default="20"/>
   </xs:complexType>
@@ -840,13 +840,19 @@
     </xs:sequence>
   </xs:complexType>
 
+  <xs:complexType name="SpawnCastableNearDeathCastables">
+    <xs:sequence>
+      <xs:element name="Castable" type="hyb:SpawnCastable" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
   <!-- List of castables a creature is allowed to use -->
   <xs:complexType name="CastableGroup">
     <xs:sequence>
-      <xs:element name="Offense" type="hyb:SpawnCastableOffense" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="Defense" type="hyb:SpawnCastableDefense" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="NearDeath" type="hyb:SpawnCastableNearDeath" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="OnDeath" type="hyb:SpawnCastableOnDeath" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Offense" type="hyb:SpawnCastableOffense" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="Defense" type="hyb:SpawnCastableDefense" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="NearDeath" type="hyb:SpawnCastableNearDeath" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="OnDeath" type="hyb:SpawnCastableOnDeath" minOccurs="1" maxOccurs="1"/>
     </xs:sequence>
   </xs:complexType>
 

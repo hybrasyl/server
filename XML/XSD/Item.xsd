@@ -183,7 +183,7 @@
   </xs:complexType>
 
   <xs:complexType name="Equipment">
-    <xs:attribute name="Slot" use="required" type="hyb:EquipmentSlot" default="None"/>
+    <xs:attribute name="Slot" use="required" type="hyb:EquipmentSlot"/>
     <xs:attribute name="WeaponType" type="hyb:WeaponType" />
   </xs:complexType>
 

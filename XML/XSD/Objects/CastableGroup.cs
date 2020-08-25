@@ -34,6 +34,14 @@ public partial class CastableGroup
     private static XmlSerializer _serializer;
     #endregion
     
+    public CastableGroup()
+    {
+        _onDeath = new List<SpawnCastable>();
+        _nearDeath = new SpawnCastableNearDeath();
+        _defense = new List<SpawnCastable>();
+        _offense = new List<SpawnCastable>();
+    }
+    
     [XmlArrayItemAttribute("Castable", IsNullable=false)]
     public List<SpawnCastable> Offense
     {

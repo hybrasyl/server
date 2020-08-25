@@ -19,7 +19,7 @@ using System.Text;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 
-[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.3752.0")]
+[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.4084.0")]
 [Serializable]
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -30,7 +30,7 @@ public partial class SpawnCastable
     private string _name;
     private int _minDmg;
     private int _maxDmg;
-    private List<Element> _element;
+    private Element _element;
     private TargetType _target;
     private int _interval;
     private string _value;
@@ -39,7 +39,6 @@ public partial class SpawnCastable
     
     public SpawnCastable()
     {
-        _element = new List<Element>();
         _minDmg = 0;
         _maxDmg = 0;
         _interval = 30;
@@ -87,7 +86,7 @@ public partial class SpawnCastable
     }
     
     [XmlAttribute]
-    public List<Element> Element
+    public Element Element
     {
         get
         {

@@ -27,26 +27,27 @@ using System.Collections.Generic;
 public partial class SpawnCastableNearDeath
 {
     #region Private fields
-    private List<SpawnCastable> _castable;
+    private List<SpawnCastable> _castables;
     private int _healthPercent;
     private static XmlSerializer _serializer;
     #endregion
     
     public SpawnCastableNearDeath()
     {
+        _castables = new List<SpawnCastable>();
         _healthPercent = 20;
     }
     
-    [XmlElement("Castable")]
-    public List<SpawnCastable> Castable
+    [XmlArrayItemAttribute("Castable", IsNullable=false)]
+    public List<SpawnCastable> Castables
     {
         get
         {
-            return _castable;
+            return _castables;
         }
         set
         {
-            _castable = value;
+            _castables = value;
         }
     }
     

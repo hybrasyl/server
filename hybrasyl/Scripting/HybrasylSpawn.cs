@@ -20,6 +20,7 @@
  */
 
 using Hybrasyl.Objects;
+using Hybrasyl.Xml;
 using MoonSharp.Interpreter;
 
 namespace Hybrasyl.Scripting
@@ -124,6 +125,38 @@ namespace Hybrasyl.Scripting
                     var itemList = new Xml.LootTableItemList();
                     itemList.Item.Add(lootItem);
                     Spawn.Loot.Table[0].Items.Add(itemList);
+                }
+            }
+        }
+
+        public void AddCastable(string name, string type, int minDmg, int maxDmg, Element element, int interval, TargetType targetType )
+        {
+            if (Game.World.WorldData.TryGetValue(name, out Xml.Castable theCastable))
+            {
+
+                // Add a castable to our casting list
+                var castInstruction = new Xml.SpawnCastable();
+                castInstruction.Element = element;
+                castInstruction.Interval = interval;
+                castInstruction.Name = name;
+                castInstruction.Target = targetType;
+                castInstruction.MinDmg = minDmg;
+                castInstruction.MaxDmg = maxDmg;
+                
+                switch(type.ToLower())
+                {
+                    case "offense":
+                        Spawn.Castables.Offense.Add(castInstruction);
+                        break;
+                    case "defense":
+                        Spawn.Castables.Defense.Add(castInstruction);
+                        break;
+                    case "neardeath":
+                        Spawn.Castables.NearDeath.Castables.Add(castInstruction);
+                        break;
+                    case "ondeath":
+                        Spawn.Castables.OnDeath.Add(castInstruction);
+                        break;
                 }
             }
         }
