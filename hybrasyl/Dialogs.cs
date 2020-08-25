@@ -325,6 +325,7 @@ namespace Hybrasyl
                     }
                     catch (Exception ex)
                     {
+                        Game.ReportException(ex);
                         GameLog.ScriptingError(ex, "{Function}: callback unhandled exception", MethodInfo.GetCurrentMethod().Name);
                         target.ClearDialogState();
                     }
@@ -382,6 +383,12 @@ namespace Hybrasyl
 
                 if (Sprite != 0)
                     sprite = Sprite;
+                else
+                {
+                    // If dialog sprite is unset, try using invokee's sprite; 
+                    // then try user dialog state (global sequence)
+                    sprite = invokee?.DialogSprite ?? invoker.DialogState?.Associate?.DialogSprite ?? 0;
+                }
 
                 dialogPacket.WriteByte(objType);
                 // If no invokee ID, we use 0xFFFFFFFF; 99.9% of the time this is an async dialog request
@@ -402,7 +409,7 @@ namespace Hybrasyl
 
                 dialogPacket.WriteByte(0);
                 // TODO: Allow override here from DialogSequence
-                dialogPacket.WriteString8(invokee?.Name ?? Sequence.DisplayName);
+                dialogPacket.WriteString8(invokee?.Name ?? invoker.DialogState?.Associate?.Name ?? Sequence.DisplayName);
                 var displayText = EvaluateDisplayText(invoker, invokee);
 
                 if (!string.IsNullOrEmpty(displayText))
@@ -611,6 +618,10 @@ namespace Hybrasyl
                 // Depending on how this was registered, it may not have an associate; thankfully we always
                 // get a hint of one from the 0x3A packet
                 var associate = Sequence?.Associate is null ? invokee : Sequence.Associate;
+                // We assume that a callback expression for a jump dialog is a simple one to award xp, set
+                // a value, etc. If you use this functionality to modify dialog sequences / change active 
+                // sequence you're likely to have strange results.
+                RunCallback(invoker, invokee);
                 if (NextSequence.ToLower().Trim() == "mainmenu")
                 {
                     // Return to main menu (pursuits)
@@ -776,20 +787,6 @@ namespace Hybrasyl
                     }
                 }
 
-                // If the response is a sequence, start it
-                if (Options[optionSelected - 1].overrideSequence != null)
-                {
-                    var sequence = Options[optionSelected - 1].overrideSequence;
-                    if (invoker is User)
-                    {
-                        var user = invoker as User;
-                        // We lazily set this because an option / dialog can be constructed in a variety of places
-                        if (sequence.Associate == null)
-                            Associate.RegisterDialogSequence(sequence);
-                        user.DialogState.TransitionDialog(Associate as VisibleObject, Options[optionSelected - 1].overrideSequence);
-                        sequence.ShowTo(user, Associate as VisibleObject);
-                    }
-                }
                 // If the individual options don't have callbacks, use the dialog callback instead.
                 if (Handler != null && Options[optionSelected - 1].CallbackFunction == null)
                 {
@@ -954,6 +951,7 @@ namespace Hybrasyl
                     Associate = target;
                     ActiveDialogSequence = dialogStart;
                     ActiveDialog = dialogStart.Dialogs.First();
+                    User.Condition.Flags |= PlayerFlags.InDialog;
                     return true;
                 }
                 return false;
@@ -1005,7 +1003,8 @@ namespace Hybrasyl
                 if (target != null && (target != Associate || pursuitId != CurrentPursuitId ||
                     target.Map.Id != User.Map.Id || !InDialog))
                 {
-                    Log.Debug("{Username}: Failed dialog sanity check", User.Name);
+                    Log.Error("{Username}: Failed dialog sanity check: target {target}, current pursuit {cpid}, pursuit {pid}, index {index}, target map {targetmap}, user map {usermap}, indialog {dialog}", 
+                        User.Name, target.Name, CurrentPursuitId, pursuitId, newIndex, target.Map.Id, User.Map.Id, InDialog);
                     return false;
                 }
 
@@ -1046,6 +1045,8 @@ namespace Hybrasyl
                 Associate = null;
                 ActiveDialog = null;
                 ActiveDialogSequence = null;
+                PreviousPursuitId = null;
+                User.Condition.Flags &= ~PlayerFlags.InDialog;
             }
 
             /// <summary>

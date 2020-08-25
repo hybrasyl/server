@@ -83,9 +83,11 @@ namespace Hybrasyl.Xml
         {
             get
             {
-                if (Properties.Equipment.WeaponType == WeaponType.None)
-                    return Properties.StatModifiers?.Element?.Defense ?? Element.None;
-                return Properties.StatModifiers?.Element?.Offense ?? Element.None;
+                var off = Properties.StatModifiers?.Element?.Offense ?? Element.None;
+                var def = Properties.StatModifiers?.Element?.Defense ?? Element.None;
+                if (Properties.Equipment?.Slot == EquipmentSlot.Necklace)
+                    return off;
+                return def;
             }
         }
 
@@ -96,9 +98,9 @@ namespace Hybrasyl.Xml
         public Use Use => Properties.Use;
 
         [XmlIgnore]
-        public int BonusHP => Properties.StatModifiers.Base?.Hp ?? 0;
+        public int BonusHP => Properties.StatModifiers?.Base?.Hp ?? 0;
         [XmlIgnore]
-        public int BonusMP => Properties.StatModifiers.Base?.Mp ?? 0;
+        public int BonusMP => Properties.StatModifiers?.Base?.Mp ?? 0;
 
         [XmlIgnore]
         public Class Class => Properties.Restrictions?.Class ?? Class.Peasant;
@@ -112,7 +114,7 @@ namespace Hybrasyl.Xml
         [XmlIgnore]
         public sbyte BonusStr => Properties.StatModifiers?.@Base?.Str ?? 0;
         [XmlIgnore]
-        public sbyte BonusInt => Properties.StatModifiers?.@Base.@Int ?? 0;
+        public sbyte BonusInt => Properties.StatModifiers?.@Base?.@Int ?? 0;
         [XmlIgnore]
         public sbyte BonusWis => Properties.StatModifiers?.@Base?.Wis ?? 0;
         [XmlIgnore]
@@ -275,8 +277,24 @@ namespace Hybrasyl.Xml
 
             return true;
         }
+
+        //public bool IntentTargets(IntentTarget type)
+        //{
+        //    foreach (var intent in Intents)
+        //    {
+        //        if (intent.Target.Contains(type))
+        //            return true;
+        //    }
+        //    return false;
+        //}
+
+        
     }
 
+    public partial class CastableIntent
+    {
+        public bool IsShapeless => Cross.Count == 0 && Line.Count == 0 && Square.Count == 0 && Tile.Count == 0 && Map == null;
+    }
 }
 
 namespace Hybrasyl.Xml
@@ -479,6 +497,33 @@ namespace Hybrasyl.Xml
                     return default(SpawnPoint);
             }
         }
+    }
+}
+
+namespace Hybrasyl.Xml
+{
+    public partial class Access
+    {
+        private List<string> _privilegedUsers = new List<String>();
+
+        public List<string> PrivilegedUsers
+        {
+            get
+            {
+                if (!string.IsNullOrEmpty(Privileged))
+                  foreach (var p in Privileged.Trim().Split(' '))
+                    _privilegedUsers.Add(p.Trim().ToLower());
+                return _privilegedUsers;
+            }
+        }
+
+        public bool IsPrivileged(string user)
+        {
+            if (PrivilegedUsers.Count > 0)
+                return PrivilegedUsers.Contains(user.ToLower()) || PrivilegedUsers.Contains("*");
+            return false;
+        }
+
     }
 }
 

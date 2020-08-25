@@ -278,7 +278,14 @@ namespace Hybrasyl
             try
             {
                 if (Directory.Exists(Path))
-                    return Directory.GetFiles(Path, "*.xml");
+                {
+                    var wef = new List<string>();
+
+                    foreach (var asdf in Directory.GetFiles(Path, "*.xml", SearchOption.AllDirectories))
+                        wef.Add(asdf.Replace(Path, ""));
+                    
+                    return Directory.GetFiles(Path, "*.xml", SearchOption.AllDirectories).Where(e => !e.Replace(Path, "").StartsWith("\\_")).ToArray();
+                }
             }
             catch (Exception e)
             {
@@ -331,7 +338,7 @@ namespace Hybrasyl
                     var map = new Map(newMap, this);
                     if (!WorldData.SetWithIndex(map.Id, map, map.Name))
                         GameLog.ErrorFormat("SetWithIndex fail for {map.Name}..?");
-                    GameLog.InfoFormat("Maps: Loaded {0}", map.Name);
+                    GameLog.Info("Maps: Loaded {filename} ({mapname})", Path.GetFileName(xml), map.Name);
                 }
                 catch (Exception e)
                 {
@@ -473,10 +480,6 @@ namespace Hybrasyl
                     var variants = new Dictionary<string, List<Xml.Item>>();
 
                     GameLog.DebugFormat("Items: loaded {0}, id {1}", newItem.Name, newItem.Id);
-                    // Handle some null cases; there's probably a nicer way to do this
-                    if (newItem.Properties.StatModifiers.Combat == null) { newItem.Properties.StatModifiers.Combat = new Xml.StatModifierCombat(); }
-                    if (newItem.Properties.StatModifiers.Element == null) { newItem.Properties.StatModifiers.Element = new Xml.StatModifierElement(); }
-                    if (newItem.Properties.StatModifiers.Base == null) { newItem.Properties.StatModifiers.Base = new Xml.StatModifierBase(); }
                     if (newItem.Properties.Variants != null)
                     {
                         foreach (var targetGroup in newItem.Properties.Variants.Group)
@@ -644,69 +647,61 @@ namespace Hybrasyl
                 // in <Privileged>
                 var board = GetBoard("Hybrasyl");
                 board.DisplayName = "Hybrasyl Global Board";
-                foreach (var moderator in Game.Config.Access.Privileged)
-                    board.SetAccessLevel(Convert.ToString(moderator), BoardAccessLevel.Moderate);
-                board.Save();
+                if (Game.Config.Access != null)
+                {
+                    foreach (var moderator in Game.Config.Access.PrivilegedUsers)
+                        board.SetAccessLevel(moderator, BoardAccessLevel.Moderate);
+                    board.Save();
+                }
             }
             return true;
         }
 
         public Xml.Item ResolveVariant(Xml.Item item, Xml.Variant variant, string variantGroup)
         {
+            // Ensure all our modifiable / referenced properties at least exist
+            // TODO: this is pretty hacky
+            if (item.Properties.Physical is null)
+                item.Properties.Physical = new Xml.Physical();
+            if (item.Properties.StatModifiers is null)
+                item.Properties.StatModifiers = new Xml.ItemStatModifiers();
+            if (item.Properties.StatModifiers.Base is null)
+                item.Properties.StatModifiers.Base = new Xml.StatModifierBase();
+            if (item.Properties.StatModifiers.Combat is null)
+                item.Properties.StatModifiers.Combat = new Xml.StatModifierCombat();
+            if (item.Properties.Restrictions is null)
+                item.Properties.Restrictions = new Xml.ItemRestrictions();
+            if (item.Properties.Restrictions.Level is null)
+                item.Properties.Restrictions.Level = new Xml.RestrictionsLevel();
+            if (item.Properties.StatModifiers.Element is null)
+                item.Properties.StatModifiers.Element = new Xml.StatModifierElement();
+            if (item.Properties.Damage is null)
+                item.Properties.Damage = new Xml.ItemDamage();
+            if (item.Properties.Damage.Small is null)
+                item.Properties.Damage.Small = new Xml.ItemDamageSmall();
+            if (item.Properties.Damage.Large is null)
+                item.Properties.Damage.Large = new Xml.ItemDamageLarge();
+
             var variantItem = item.Clone();
 
             variantItem.Name = $"{variant.Modifier} {item.Name}";
             variantItem.ParentItem = item;
             variantItem.IsVariant = true;
             GameLog.Debug($"Processing variant: {variantItem.Name}");
-            variantItem.Properties.Flags = variant.Properties.Flags;
 
-            variantItem.Properties.Physical.Value = variant.Properties.Physical.Value == 100 ? item.Properties.Physical.Value : Convert.ToUInt32(Math.Round(item.Properties.Physical.Value * (variant.Properties.Physical.Value * .01)));
-            variantItem.Properties.Physical.Durability = variant.Properties.Physical.Durability == 100 ? item.Properties.Physical.Durability : Convert.ToUInt32(Math.Round(item.Properties.Physical.Durability * (variant.Properties.Physical.Durability * .01)));
-            variantItem.Properties.Physical.Weight = variant.Properties.Physical.Weight == 100 ? item.Properties.Physical.Weight : Convert.ToInt32(Math.Round(item.Properties.Physical.Weight * (variant.Properties.Physical.Weight * .01)));
+            if (variant.Properties.Flags != 0)
+                variantItem.Properties.Flags = variant.Properties.Flags;
 
-            // Ensure all our modifiable / referenced properties at least exist
-            // TODO: this is pretty hacky
-            if (variantItem.Properties.Restrictions.Level is null)
-                variantItem.Properties.Restrictions.Level = new Xml.RestrictionsLevel();
-
-            if (variantItem.Properties.StatModifiers is null)
-                variantItem.Properties.StatModifiers = new Xml.ItemStatModifiers()
-                {
-                    Base = new Xml.StatModifierBase(),
-                    Element = new Xml.StatModifierElement(),
-                    Combat = new Xml.StatModifierCombat()
-                };
-
-            if (variantItem.Properties.Damage is null)
-            {
-                variantItem.Properties.Damage = new Xml.ItemDamage()
-                {
-                    Large = new Xml.ItemDamageLarge(),
-                    Small = new Xml.ItemDamageSmall()
-                };
-            }
-
-            if (variantItem.Properties.Damage.Large is null)
-                variantItem.Properties.Damage.Large = new Xml.ItemDamageLarge();
-
-            if (variantItem.Properties.Damage.Small is null)
-                variantItem.Properties.Damage.Small = new Xml.ItemDamageSmall();
-
-            if (item.Properties.Damage is null)
-            {
-                item.Properties.Damage = new Xml.ItemDamage()
-                {
-                    Large = new Xml.ItemDamageLarge(),
-                    Small = new Xml.ItemDamageSmall()
-                };
-            }
+            variantItem.Properties.Physical.Value =  Convert.ToUInt32(Math.Round(item.Properties.Physical.Value * (variant.Properties.Physical.Value * .01)));
+            variantItem.Properties.Physical.Durability = Convert.ToUInt32(Math.Round(item.Properties.Physical.Durability * (variant.Properties.Physical.Durability * .01)));
+            variantItem.Properties.Physical.Weight =  Convert.ToInt32(Math.Round(item.Properties.Physical.Weight * (variant.Properties.Physical.Weight * .01)));
 
             switch (variantGroup.ToLower())
             {
                 case "consecratable":
                     {
-                        if (variant.Properties.Restrictions?.Level != null) variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
+                        if (variant.Properties.Restrictions?.Level != null) 
+                            variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
                         if (variant.Properties.StatModifiers?.Base != null)
                         {
                             variantItem.Properties.StatModifiers.Base.Dex += variant.Properties.StatModifiers.Base.Dex;
@@ -719,7 +714,11 @@ namespace Hybrasyl
                     }
                 case "elemental":
                     {
-                        if (variant.Properties.StatModifiers?.Element != null)
+                        if ((variantItem.Properties?.Equipment?.Slot ?? Xml.EquipmentSlot.None) == Xml.EquipmentSlot.Waist)
+                            variantItem.Properties.StatModifiers.Element.Defense = variant.Properties.StatModifiers.Element.Defense;
+                        else if ((variantItem.Properties?.Equipment?.Slot ?? Xml.EquipmentSlot.None) == Xml.EquipmentSlot.Necklace)
+                            variantItem.Properties.StatModifiers.Element.Offense = variant.Properties.StatModifiers.Element.Offense;
+                        else if (variant.Properties.StatModifiers?.Element != null)
                         {
                             variantItem.Properties.StatModifiers.Element.Offense = variant.Properties.StatModifiers.Element.Offense;
                             variantItem.Properties.StatModifiers.Element.Defense = variant.Properties.StatModifiers.Element.Defense;
@@ -734,7 +733,7 @@ namespace Hybrasyl
                         }
                         if (variant.Properties.StatModifiers?.Combat != null)
                         {
-                            variantItem.Properties.StatModifiers.Combat.Ac = (sbyte)(item.Properties.StatModifiers.Combat.Ac + variant.Properties.StatModifiers.Combat.Ac);
+                            variantItem.Properties.StatModifiers.Combat.Ac += variant.Properties.StatModifiers.Combat.Ac;
                             variantItem.Properties.StatModifiers.Combat.Dmg += variant.Properties.StatModifiers.Combat.Dmg;
                             variantItem.Properties.StatModifiers.Combat.Hit += variant.Properties.StatModifiers.Combat.Hit;
                             variantItem.Properties.StatModifiers.Combat.Mr += variant.Properties.StatModifiers.Combat.Mr;
@@ -911,8 +910,8 @@ namespace Hybrasyl
                 List<Xml.Castable> spells = null;
                 Xml.Class @class = (Xml.Class)i;
 
-                skills = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySkill || x.Book == Xml.Book.SecondarySkill || x.Book == Xml.Book.UtilitySkill) && (x.Class.Contains(@class))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)).Level.Min).ThenBy(x => x.Name).ToList();
-                spells = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySpell || x.Book == Xml.Book.SecondarySpell || x.Book == Xml.Book.UtilitySpell) && (x.Class.Contains(@class))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)).Level.Min).ThenBy(x => x.Name).ToList();
+                skills = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySkill || x.Book == Xml.Book.SecondarySkill || x.Book == Xml.Book.UtilitySkill) && (x.Class.Contains(@class))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)).Level?.Min ?? 1).ThenBy(x => x.Name).ToList();
+                spells = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySpell || x.Book == Xml.Book.SecondarySpell || x.Book == Xml.Book.UtilitySpell) && (x.Class.Contains(@class))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)).Level?.Min ?? 1).ThenBy(x => x.Name).ToList();
 
                 sclass.Nodes.Add("");
                 sclass.Nodes.Add("Skill");
@@ -1104,35 +1103,23 @@ namespace Hybrasyl
         public void CompileScripts()
         {
             // Scan each directory for *.lua files
-            foreach (var dir in Constants.SCRIPT_DIRECTORIES)
+            foreach (var file in Directory.GetFiles(ScriptDirectory, "*.lua", SearchOption.AllDirectories))
             {
-                GameLog.InfoFormat("Scanning script directory: {0}", dir);
-                var directory = Path.Combine(ScriptDirectory, dir);
-                if (!Directory.Exists(directory))
-                {
-                    GameLog.ErrorFormat("Scripting directory {0} not found!", dir);
+                var path = file.Replace(ScriptDirectory, "");
+                var scriptname = Path.GetFileName(file);
+                if (path.StartsWith("_"))
                     continue;
-                }
-
-                var filelist = Directory.GetFiles(directory);
-                foreach (var file in filelist)
+                GameLog.Info($"Loading script: {path}");
+                try
                 {
-                    try
-                    {
-                        if (Path.GetExtension(file) == ".lua")
-                        {
-                            var scriptname = Path.GetFileName(file);
-                            GameLog.InfoFormat("Loading script {0}\\{1}", dir, scriptname);
-                            var script = new Scripting.Script(file, ScriptProcessor);
-                            ScriptProcessor.RegisterScript(script);
-                            if (dir == "common")
-                                script.Run();
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        GameLog.ErrorFormat("Script {0}\\{1}: Registration failed: {2}", dir, file, e.ToString());
-                    }
+                    var script = new Scripting.Script(file, ScriptProcessor);
+                    ScriptProcessor.RegisterScript(script);
+                    if (path.StartsWith("common"))
+                        script.Run();
+                }
+                catch (Exception e)
+                {
+                    GameLog.Error($"Script {scriptname}: Registration failed: {e.ToString()}");                
                 }
             }
         }
@@ -1173,6 +1160,7 @@ namespace Hybrasyl
             PacketHandlers[0x13] = PacketHandler_0x13_Attack; // PT
             PacketHandlers[0x18] = PacketHandler_0x18_ShowPlayerList; // ST
             PacketHandlers[0x19] = PacketHandler_0x19_Whisper; // ST
+            PacketHandlers[0x1B] = PacketHandler_0x1B_Settings; // either
             PacketHandlers[0x1C] = PacketHandler_0x1C_UseItem; // PT
             PacketHandlers[0x1D] = PacketHandler_0x1D_Emote; // ST
             PacketHandlers[0x24] = PacketHandler_0x24_DropGold; // ST + map lock
@@ -1349,6 +1337,8 @@ namespace Hybrasyl
         public void AddUser(User userobj) => WorldData.Set(userobj.Name, userobj);
 
         public bool TryGetActiveUser(string name, out User user) => WorldData.TryGetValue(name, out user);
+
+        public bool UserConnected(string name) => ActiveUsersByName.ContainsKey(name);
 
         public bool TryAsyncDialog(VisibleObject invoker, User invokee, DialogSequence startSequence)
         {
@@ -1886,7 +1876,7 @@ namespace Hybrasyl
             if (monster.ShouldWander)
             {
                 var nextAction = _random.Next(0, 2);
-
+                
                 if (nextAction == 1)
                 {
                     var nextMove = _random.Next(0, 4);
@@ -1923,7 +1913,7 @@ namespace Hybrasyl
             }
         }
 
-        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, Xml.CreatureCondition.Paralyze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, Xml.CreatureCondition.Paralyze, PlayerFlags.InDialog)]
         private void PacketHandler_0x06_Walk(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -1933,7 +1923,7 @@ namespace Hybrasyl
             user.Walk((Xml.Direction)direction);
         }
 
-        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x07_PickupItem(Object obj, ClientPacket packet)
         {
@@ -2002,7 +1992,7 @@ namespace Hybrasyl
             else if (pickupObject is ItemObject)
             {
                 var item = (ItemObject)pickupObject;
-                if (item.Unique && user.Inventory.Contains(item.TemplateId))
+                if (item.UniqueInventory && user.Inventory.Contains(item.TemplateId))
                 {
                     user.SendMessage(string.Format("You can't carry any more of those.", item.Name), 3);
                     return;
@@ -2046,7 +2036,7 @@ namespace Hybrasyl
             }
         }
 
-        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x08_DropItem(Object obj, ClientPacket packet)
         {
@@ -2159,7 +2149,7 @@ namespace Hybrasyl
             }
         }
 
-        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, Xml.CreatureCondition.Paralyze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, Xml.CreatureCondition.Paralyze, PlayerFlags.InDialog)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x0F_UseSpell(object obj, ClientPacket packet)
         {
@@ -2313,7 +2303,7 @@ namespace Hybrasyl
             loginUser.Reindex();
         }
 
-        [Prohibited(Xml.CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
         private void PacketHandler_0x11_Turn(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -2323,7 +2313,7 @@ namespace Hybrasyl
             user.Turn((Xml.Direction)direction);
         }
 
-        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, Xml.CreatureCondition.Paralyze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, Xml.CreatureCondition.Paralyze, PlayerFlags.InDialog)]
         private void PacketHandler_0x13_Attack(object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -2347,7 +2337,7 @@ namespace Hybrasyl
                 int levelDifference = Math.Abs((int)user.Stats.Level - me.Stats.Level);
 
                 listPacket.WriteByte((byte)user.Class);
-                if (me.GuildUuid != string.Empty && user.GuildUuid == me.GuildUuid) listPacket.WriteByte(84);
+                if (!string.IsNullOrEmpty(me.GuildUuid) && user.GuildUuid == me.GuildUuid) listPacket.WriteByte(84);
                 else if (levelDifference <= 5) listPacket.WriteByte(151);
                 else listPacket.WriteByte(255);
 
@@ -2429,7 +2419,48 @@ namespace Hybrasyl
                 user.SendWhisper(target, message);
         }
 
-        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
+        private void PacketHandler_0x1B_Settings(Object obj, ClientPacket packet)
+        {
+            // TODO: future expansion
+            var settingNumber = packet.ReadByte();
+            var user = obj as User;
+            // Only seven of these are usable by the client (1-6, and 8), 
+            // the seventh one is sent to keep the ordering consistent but does nothing
+            var settings = new List<byte>() { 1, 2, 3, 4, 5, 6, 7, 8 };
+            if (settingNumber == 0)
+            {
+                // Send all settings
+                foreach (var x in settings)
+                {
+                    if (!user.ClientSettings.ContainsKey(x))
+                        user.ClientSettings[x] = false;
+                }
+                // for the record this is a very strange usage of a message packet
+                var settingsString = string.Join(" \t", settings.Select(x => string.Format("Setting {0}: {1}", x, user.ClientSettings[x])));
+                var x0a = new ServerPacketStructures.SettingsMessage()
+                {
+                    DisplayString = settingsString,
+                    Number = 0
+                };
+                var settingsPacket = x0a.Packet();
+                user.Enqueue(settingsPacket);
+
+            }
+            else
+            {
+                // Set individual setting
+                if (!user.ClientSettings.ContainsKey(settingNumber))
+                    user.ClientSettings[settingNumber] = false;
+                else
+                    user.ClientSettings[settingNumber] = !user.ClientSettings[settingNumber];
+                var displayString = $"Setting {settingNumber}: {user.ClientSettings[settingNumber]}";
+                var x0a = new ServerPacketStructures.SettingsMessage() { DisplayString = displayString, Number = settingNumber };
+                var settingspacket = x0a.Packet();
+                user.Enqueue(settingspacket);
+            }
+        }
+
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x1C_UseItem(Object obj, ClientPacket packet)
         {
@@ -2447,7 +2478,7 @@ namespace Hybrasyl
             switch (item.ItemObjectType)
             {
                 case Enums.ItemObjectType.CanUse:
-                    if (item.Durability == 0)
+                    if (item.Durability == 0 && !((item?.EquipmentSlot ?? ClientItemSlots.None) == ClientItemSlots.None))
                     {
                         user.SendSystemMessage("This item is too badly damaged to use.");
                         return;
@@ -2465,8 +2496,8 @@ namespace Hybrasyl
                     break;
 
                 case Enums.ItemObjectType.Equipment:
-                    {
-                        if (item.Durability == 0)
+                    {                 
+                       if (item.Durability == 0)
                         {
                             user.SendSystemMessage("This item is too badly damaged to use.");
                             return;
@@ -2597,7 +2628,7 @@ namespace Hybrasyl
             }
         }
 
-        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x24_DropGold(Object obj, ClientPacket packet)
         {
@@ -2671,7 +2702,7 @@ namespace Hybrasyl
          *    5) Send them a dialog and have them explicitly accept.
          *    6) If accepted, join group (see stage 0x03).
          */
-        [Prohibited(Xml.CreatureCondition.Coma)]
+        [Prohibited(Xml.CreatureCondition.Coma, PlayerFlags.InDialog)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x2E_GroupRequest(Object obj, ClientPacket packet)
         {
@@ -2748,7 +2779,7 @@ namespace Hybrasyl
             }
         }
 
-        [Prohibited(Xml.CreatureCondition.Coma)]
+        [Prohibited(Xml.CreatureCondition.Coma, PlayerFlags.InDialog)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x2F_GroupToggle(Object obj, ClientPacket packet)
         {
@@ -2768,7 +2799,7 @@ namespace Hybrasyl
             // are extra bytes coming through but not sure what purpose they serve.
         }
 
-        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x2A_DropGoldOnCreature(Object obj, ClientPacket packet)
         {
@@ -2825,7 +2856,7 @@ namespace Hybrasyl
             }
         }
 
-        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x29_DropItemOnCreature(Object obj, ClientPacket packet)
         {
@@ -3270,8 +3301,9 @@ namespace Hybrasyl
                                     response.WriteString8("{0}'s mailbox is full. Your message was discarded. Sorry!");
                                 }
                             }
-                            catch (MessageStoreLocked)
+                            catch (MessageStoreLocked e)
                             {
+                                Game.ReportException(e);
                                 response.WriteBoolean(true);
                                 response.WriteString8("{0} cannot receive mail at this time. Sorry!");
                             }
@@ -3323,7 +3355,7 @@ namespace Hybrasyl
             user.Enqueue(response);
         }
 
-        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, Xml.CreatureCondition.Paralyze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, Xml.CreatureCondition.Paralyze, PlayerFlags.InDialog)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x3E_UseSkill(object obj, ClientPacket packet)
         {
@@ -3333,7 +3365,7 @@ namespace Hybrasyl
             user.UseSkill(slot);
         }
 
-        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
         private void PacketHandler_0x3F_MapPointClick(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -3360,6 +3392,7 @@ namespace Hybrasyl
             }
         }
 
+        [Prohibited(PlayerFlags.InDialog)]
         private void PacketHandler_0x38_Refresh(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -3368,7 +3401,6 @@ namespace Hybrasyl
         }
 
         [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
-        [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x39_NPCMainMenu(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -3458,7 +3490,6 @@ namespace Hybrasyl
         }
 
         [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
-        [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x3A_DialogUse(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -3469,11 +3500,12 @@ namespace Hybrasyl
             var pursuitID = packet.ReadUInt16();
             var pursuitIndex = packet.ReadUInt16();
 
-            GameLog.DebugFormat("objectType {0}, objectID {1}, pursuitID {2}, pursuitIndex {3}",
-                objectType, objectID, pursuitID, pursuitIndex);
+            GameLog.DebugFormat($"0x3A   user: {user.Name} objectType {objectType} objectID {objectID} pursuitID {pursuitID} pursuitIndex {pursuitIndex}");
 
-            GameLog.DebugFormat("active dialog via state object: pursuitID {0}, pursuitIndex {1}",
-                user.DialogState.CurrentPursuitId, user.DialogState.CurrentPursuitIndex);
+            GameLog.DebugFormat("0x3A   DialogState: previous {prev}, current {cur}, pursuitIndex {pidx}",
+                user.DialogState.PreviousPursuitId?.ToString() ?? "null",
+                user.DialogState.CurrentPursuitId, 
+                user.DialogState.CurrentPursuitIndex);
 
             AsyncDialogRequest request = null;
             VisibleObject source = null;
@@ -3614,10 +3646,15 @@ namespace Hybrasyl
                     }
                     if (user.DialogState.ActiveDialog is FunctionDialog)
                     {
-                        // If a FunctionDialog is the last function, always close
+                        var currpid = user.DialogState.CurrentPursuitId;
                         user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
-                        GameLog.DebugFormat("Sending close packet");
-                        user.SendCloseDialog();
+                        // Check to see if a script function changed the active dialog.
+                        // If it did, we don't need to send a close dialog packet.
+                        if (user.DialogState.CurrentPursuitId == currpid)
+                        {
+                            GameLog.DebugFormat("Sending close packet");
+                            user.SendCloseDialog();
+                        }
                         return;
                     }
                     if (user.DialogState.ActiveDialogSequence.CloseOnEnd)
@@ -3652,17 +3689,7 @@ namespace Hybrasyl
                     return;
                 }
 
-                // Are we transitioning between two dialog sequences? If so, show the first dialog from
-                // the new sequence and make sure we clear the previous state.
-                if (user.DialogState.PreviousPursuitId == pursuitID)
-                {
-                    user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
-                    user.DialogState.PreviousPursuitId = null;
-                    return;
-                }
-
                 // Did the handling of a response result in our active dialog sequence changing? If so, exit.
-
                 if (user.DialogState.CurrentPursuitId != pursuitID)
                 {
                     GameLog.ErrorFormat("Dialog has changed, exiting");
@@ -3675,13 +3702,18 @@ namespace Hybrasyl
                 {
                     while (user.DialogState.ActiveDialog is FunctionDialog)
                     {
+                        var currpid = user.DialogState.CurrentPursuitId;
                         // ShowTo and go
                         user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
+                        // Check to see we're still in the same sequence.
+                        if (currpid != user.DialogState.CurrentPursuitId)
+                            return;
                         pursuitIndex++;
                         if (!user.DialogState.SetDialogIndex(clickTarget, pursuitID, pursuitIndex))
                         {
                             // We're at the end of our rope
                             user.SendCloseDialog();
+                            //GameLog.Info("Dialog: closed by while loop");
                             return;
                         }
                     }
@@ -3693,13 +3725,14 @@ namespace Hybrasyl
                 else
                 {
                     GameLog.DebugFormat("Sending close packet");
+                    //GameLog.Info("Dialog: closed by SetDialogIndex == false");
                     user.SendCloseDialog();
                     user.DialogState.EndDialog();
                 }
             }
         }
 
-        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
         private void PacketHandler_0x43_PointClick(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -3754,14 +3787,22 @@ namespace Hybrasyl
                 {
                     Type type = clickTarget.GetType();
                     MethodInfo methodInfo = type.GetMethod("OnClick");
-                    user.LastAssociate = clickTarget as VisibleObject;
-                    // Certain NPCs can be "spoken to" even when dead
-                    if (user.LastAssociate is Merchant && (!user.Condition.Alive && !user.LastAssociate.AllowDead))
+                    var associate = clickTarget as VisibleObject;
+                    if (associate.Map == user.Map)
                     {
-                        user.SendSystemMessage("You cannot do that now.");
+                        // Certain NPCs can be "spoken to" even when dead
+                        if (user.LastAssociate is Merchant && (!user.Condition.Alive && !user.LastAssociate.AllowDead))
+                        {
+                            user.SendSystemMessage("You cannot do that now.");
+                            return;
+                        }
+                        methodInfo.Invoke(clickTarget, new[] { user });
+                    }
+                    else
+                    {
+                        GameLog.Warning($"User {user.Name}: Click packet for object not on current map: {entityId} {clickTarget.Id} {user.Map.Name}");
                         return;
                     }
-                    methodInfo.Invoke(clickTarget, new[] { user });
                 }
             }
             else
@@ -3772,7 +3813,7 @@ namespace Hybrasyl
             }
         }
 
-        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x44_EquippedItemClick(Object obj, ClientPacket packet)
         {
@@ -3818,7 +3859,7 @@ namespace Hybrasyl
             }
         }
 
-        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x47_StatPoint(Object obj, ClientPacket packet)
         {
@@ -3948,12 +3989,14 @@ namespace Hybrasyl
             }
         }
 
+        [Prohibited(PlayerFlags.InDialog)]
         private void PacketHandler_0x4D_BeginCasting(object obj, ClientPacket packet)
         {
             var user = (User)obj;
             user.Condition.Casting = true;
         }
 
+        [Prohibited(PlayerFlags.InDialog)]
         private void PacketHandler_0x4E_CastLine(object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -4391,8 +4434,7 @@ namespace Hybrasyl
             {
                 AddUser((User)obj);
             }
-            
-            lock (_lock) { ++worldObjectID; }
+
             obj.Id = worldObjectID;
             obj.World = this;
             obj.SendId();
@@ -4410,6 +4452,7 @@ namespace Hybrasyl
             lock (_lock)
             {
                 Objects.Add(worldObjectID, obj);
+                ++worldObjectID;
             }
         }
 
@@ -4454,7 +4497,6 @@ namespace Hybrasyl
             return ItemCatalog.TryGetValue(neutralKey, out item) || ItemCatalog.TryGetValue(femaleKey, out item) || ItemCatalog.TryGetValue(maleKey, out item);
         }
 
-
         private void QueueConsumer()
         {
             while (!MessageQueue.IsCompleted)
@@ -4470,8 +4512,9 @@ namespace Hybrasyl
                 }
                 catch (InvalidOperationException e)
                 {
+                    Game.ReportException(e);
                     if (!MessageQueue.IsCompleted)
-                        GameLog.Error(e, "QUEUE CONSUMER: EXCEPTION RAISED: {exception}");
+                        GameLog.Error($"QUEUE CONSUMER: EXCEPTION RAISED: {e}", e);
                     continue;
                 }
 
@@ -4485,7 +4528,10 @@ namespace Hybrasyl
                         {
                             // Check if the action is prohibited due to statuses or flags
                             MethodBase method = handler.GetMethodInfo();
+                            // TODO: improve
+                            bool sendRefresh = false;
                             bool ignore = false;
+                            string systemMessage = string.Empty;
 
                             foreach (var prohibited in method.GetCustomAttributes(typeof(Prohibited), true))
                             {
@@ -4493,7 +4539,10 @@ namespace Hybrasyl
                                 if (prohibitedCondition == null) continue;
                                 if (prohibitedCondition.Check(user.Condition)) continue;
                                 // TODO: fix this to be per-flag/status
-                                user.SendSystemMessage("It cannot be done in your current state.");
+                                if (clientMessage.Packet.Opcode == 0x06 && user.Condition.Flags.HasFlag(PlayerFlags.InDialog))
+                                    sendRefresh = true;
+                                else
+                                    systemMessage = "It cannot be done in your current state.";
                                 ignore = true;
                             }
 
@@ -4502,9 +4551,15 @@ namespace Hybrasyl
                                 var requiredCondition = required as Required;
                                 if (requiredCondition == null) continue;
                                 if (requiredCondition.Check(user.Condition)) continue;
-                                user.SendSystemMessage("You cannot do that now.");
+                                systemMessage = "You cannot do that now.";
                                 ignore = true;
                             }
+
+                            if (systemMessage != string.Empty)
+                                user.SendSystemMessage(systemMessage);
+
+                            if (sendRefresh)
+                                user.Refresh();
 
                             // If we are in an exchange, we should only receive exchange packets and the
                             // occasional heartbeat. If we receive anything else, just kill the exchange.
@@ -4539,6 +4594,7 @@ namespace Hybrasyl
                     }
                     catch (Exception e)
                     {
+                        Game.ReportException(e);
                         GameLog.Error(e, "{Opcode}: Unhandled exception encountered in packet handler!", clientMessage.Packet.Opcode);
                     }
                 }
@@ -4561,7 +4617,8 @@ namespace Hybrasyl
                 }
                 catch (InvalidOperationException e)
                 {
-                    GameLog.Error(e, "QUEUE CONSUMER: EXCEPTION RAISED: {exception}");
+                    Game.ReportException(e);
+                    GameLog.Error("QUEUE CONSUMER: EXCEPTION RAISED: {exception}", e);
                     continue;
                 }
 
@@ -4574,7 +4631,8 @@ namespace Hybrasyl
                     }
                     catch (Exception e)
                     {
-                        GameLog.Error(e, "Exception encountered in control message handler: {exception}");
+                        Game.ReportException(e);
+                        GameLog.Error("Exception encountered in control message handler: {exception}", e);
                     }
                 }
             }

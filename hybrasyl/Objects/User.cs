@@ -35,13 +35,19 @@ using Hybrasyl.Utility;
 namespace Hybrasyl.Objects
 {
     
-
     [JsonObject]
     public class PasswordInfo
     {
         public string Hash { get; set; }
         public DateTime LastChanged { get; set; }
         public string LastChangedFrom { get; set; }
+    }
+
+    [JsonObject]
+    public class KillRecord
+    {
+        public string Name { get; set; }
+        public DateTime Timestamp { get; set; }
     }
 
     [JsonObject]
@@ -82,6 +88,10 @@ namespace Hybrasyl.Objects
 
         [JsonProperty]
         public Xml.Class Class { get; set; }
+
+        [JsonProperty]
+        public Xml.Class PreviousClass { get; set; }
+
         [JsonProperty]
         public bool IsMaster { get; set; }
         public UserGroup Group { get; set; }
@@ -158,6 +168,9 @@ namespace Hybrasyl.Objects
         public string PendingWithdrawItem { get; private set; }
         public byte PendingRepairSlot { get; private set; }
         public uint PendingRepairCost { get; private set; }
+
+        [JsonProperty]
+        public List<KillRecord> RecentKills { get; private set; }
 
         [JsonProperty]
         public string GuildUuid { get; set; }
@@ -259,12 +272,7 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                if (Game.Config.Access?.Privileged != null)
-                {
-                    return IsExempt || Flags.ContainsKey("gamemaster") ||
-                        Game.Config.Access.Privileged.IndexOf(Name, 0, StringComparison.CurrentCultureIgnoreCase) != 1;
-                }
-                return IsExempt || Flags.ContainsKey("gamemaster");
+                return IsExempt || Flags.ContainsKey("gamemaster") || (Game.Config.Access?.IsPrivileged(this.Name) ?? false);
             }
         }
 
@@ -301,6 +309,8 @@ namespace Hybrasyl.Objects
         public long LastMailboxMessageSent { get; set; }
         public Dictionary<string, bool> Flags { get; private set; }
 
+        public bool CollisionsDisabled => Flags.ContainsKey("disablecollisions") ? Flags["disablecollisions"] : false;
+
         private Queue<ServerPacket> LoginQueue { get; set; }
 
         public DateTime LastAttack { get; set; }
@@ -311,6 +321,9 @@ namespace Hybrasyl.Objects
         }
 
         [JsonProperty]
+        public Dictionary<byte, bool> ClientSettings { get; set; }
+
+        [JsonProperty]
         public bool IsMuted { get; set; }
         [JsonProperty]
         public bool IsIgnoringWhispers { get; set; }
@@ -319,7 +332,7 @@ namespace Hybrasyl.Objects
 
         public void Enqueue(ServerPacket packet)
         {
-            GameLog.DebugFormat("Sending {0:X2} to {1}", packet.Opcode, Name);
+            GameLog.DebugFormat("Sending 0x{0:X2} to {1}", packet.Opcode, Name);
             Client.Enqueue(packet);
         }
 
@@ -336,6 +349,7 @@ namespace Hybrasyl.Objects
             GameLog.Debug("Removing ItemObject with ID {Id}", obj.Id);
             var removePacket = new ServerPacket(0x0E);
             removePacket.WriteUInt32(obj.Id);
+            removePacket.TransmitDelay = 250;
             Enqueue(removePacket);
         }
 
@@ -422,7 +436,6 @@ namespace Hybrasyl.Objects
             RemoveAllStatuses();
 
             // We are now quite dead, not mostly dead
-
             Condition.Comatose = false;
 
             // First: break everything that is breakable in the inventory
@@ -437,10 +450,13 @@ namespace Hybrasyl.Objects
                     World.Remove(item);
                     continue;
                 }
-                if (item.Durability > 10)
-                    item.Durability = Math.Ceiling(item.Durability * 0.90);
-                else
-                    item.Durability = 0;
+                if (!item.Undamageable)
+                {
+                    if (item.Durability > 10)
+                        item.Durability = Math.Ceiling(item.Durability * 0.90);
+                    else
+                        item.Durability = 0;
+                }
                 item.DeathPileOwner = Name;
                 item.ItemDropTime = timeofdeath;
                 item.ItemDropAllowedLooters = looters;
@@ -461,10 +477,13 @@ namespace Hybrasyl.Objects
                     World.Remove(item);
                     continue;
                 }
-                if (item.Durability > 10)
-                    item.Durability = Math.Ceiling(item.Durability * 0.90);
-                else
-                    item.Durability = 0;
+                if (!item.Undamageable)
+                {
+                    if (item.Durability > 10)
+                        item.Durability = Math.Ceiling(item.Durability * 0.90);
+                    else
+                        item.Durability = 0;
+                }
                 item.DeathPileOwner = Name;
                 item.ItemDropTime = timeofdeath;
                 item.ItemDropAllowedLooters = looters;
@@ -511,11 +530,18 @@ namespace Hybrasyl.Objects
                     SendSystemMessage($"You lose {hpPenalty} HP!");
                 }
             }
+
             Stats.Hp = 0;
             Stats.Mp = 0;
             Condition.Alive = false;
             UpdateAttributes(StatUpdateFlags.Full);
             Effect(76, 120);
+
+            // Save location for recall / etc
+            Location.DeathMap = Map;
+            Location.DeathMapX = X;
+            Location.DeathMapY = Y;
+
             SendSystemMessage("Your items are ripped from your body.");
 
             if (Game.Config.Handlers?.Death?.Map != null) {
@@ -543,25 +569,32 @@ namespace Hybrasyl.Objects
         }
 
         /// <summary>
-        /// Resurrect a player.
+        /// Resurrect a player, optionally, instantly returning them to their point of death.
         /// </summary>
-        public void Resurrect()
+        /// <param name="recall">If true, resurrect at exact point of death.</param>
+        public void Resurrect(bool recall = false)
         {
             var handler = Game.Config.Handlers?.Death;
-            // Teleport user to national spawn point
             Condition.Alive = true;
 
-            if (Nation.SpawnPoints.Count != 0)
+            // Teleport user to national spawn point, or if recalled, to death location
+
+            if (!recall)
             {
-                var spawnpoint = Nation.RandomSpawnPoint;
-                Teleport(spawnpoint.MapName, spawnpoint.X, spawnpoint.Y);
+                if (Nation.SpawnPoints.Count != 0)
+                {
+                    var spawnpoint = Nation.RandomSpawnPoint;
+                    Teleport(spawnpoint.MapName, spawnpoint.X, spawnpoint.Y);
+                }
+                else
+                {
+                    // Handle any weird cases where a map someone exited on was deleted, etc
+                    // This "default" of Mileth should be set somewhere else
+                    Teleport((ushort)500, (byte)50, (byte)50);
+                }
             }
             else
-            {
-                // Handle any weird cases where a map someone exited on was deleted, etc
-                // This "default" of Mileth should be set somewhere else
-                Teleport((ushort)500, (byte)50, (byte)50);
-            }
+                Teleport(Location.DeathMapId, Location.DeathMapX, Location.DeathMapY);
 
             Stats.Hp = 1;
             Stats.Mp = 1;
@@ -648,10 +681,11 @@ namespace Hybrasyl.Objects
             DialogState = new DialogState(this);
             UserCookies = new Dictionary<string, string>();
             UserSessionCookies = new Dictionary<string, string>();
+            ClientSettings = new Dictionary<byte, bool>();
             Group = null;
             Flags = new Dictionary<string, bool>();
             _currentStatuses = new ConcurrentDictionary<ushort, ICreatureStatus>();
-          
+            RecentKills = new List<KillRecord>();       
             #region Appearance defaults
             RestPosition = RestPosition.Standing;
             SkinColor = SkinColor.Basic;
@@ -662,6 +696,14 @@ namespace Hybrasyl.Objects
             DisplayAsMonster = false;
             MonsterSprite = ushort.MinValue;
             #endregion
+        }
+
+        public void TrackKill(string name, DateTime timestamp)
+        {
+            // FIXME: better implementation; stack cannot be used without deserialization workarounds
+            if (RecentKills.Count == 25)
+                RecentKills = RecentKills.SkipLast(1).ToList();
+            RecentKills.Add(new KillRecord { Name = name, Timestamp = timestamp });
         }
 
         /**
@@ -941,6 +983,7 @@ namespace Hybrasyl.Objects
             }
             catch (Exception e)
             {
+                Game.ReportException(e);
                 GameLog.ErrorFormat("Exception trying to set {0} to {1}", info.Name, value.ToString());
                 GameLog.ErrorFormat(e.ToString());
                 throw;
@@ -967,8 +1010,7 @@ namespace Hybrasyl.Objects
             x15.WriteByte(Map.Y);
             x15.WriteByte(Map.Flags);
             x15.WriteUInt16(0);
-            x15.WriteByte((byte)(Map.Checksum % 256));
-            x15.WriteByte((byte)(Map.Checksum / 256));
+            x15.WriteUInt16(Map.Checksum);
             x15.WriteString8(Map.Name);
             Enqueue(x15);
 
@@ -1119,8 +1161,6 @@ namespace Hybrasyl.Objects
                 }
                 castable.LastCast = DateTime.Now;
             }
-            else
-                SendSystemMessage("Failed.");
         }
 
         internal void UseSpell(byte slot, uint target = 0)
@@ -1134,11 +1174,14 @@ namespace Hybrasyl.Objects
                 return;
             }
 
-            if (UseCastRestrictions.Contains(castable.Categories.Category.Value))
+            var intersect = UseCastRestrictions.Intersect(castable.Categories.Select(x => x.Value), StringComparer.InvariantCultureIgnoreCase);
+
+            if (intersect.Count() > 0)
             {
                 SendSystemMessage("You cannot cast that now.");
                 return;
             }
+
             if (UseCastable(castable, targetCreature))
             {
                 Client.Enqueue(new ServerPacketStructures.Cooldown()
@@ -1156,8 +1199,6 @@ namespace Hybrasyl.Objects
                 
                 SpellBook[slot].LastCast = DateTime.Now;
             }
-            else
-                SendSystemMessage("Failed.");
         }
 
         /// <summary>
@@ -1165,8 +1206,10 @@ namespace Hybrasyl.Objects
         /// </summary>
         /// <param name="castable">The castable that is being cast.</param>
         /// <returns>True or false depending on success.</returns>
-        public bool ProcessCastingCost(Xml.Castable castable)
+        public bool ProcessCastingCost(Xml.Castable castable, out string message)
         {
+            message = string.Empty;
+
             if (castable.CastCosts.Count == 0) return true;
 
             var costs = castable.CastCosts.Where(e => e.Class.Contains(Class));
@@ -1194,20 +1237,31 @@ namespace Hybrasyl.Objects
                 else
                     reduceMp = Convert.ToUInt32(castcosts.Stat.Mp);
 
-            
             if (castcosts.Items != null)
             {
                 foreach (var item in castcosts.Items)
                 {
-                    if (!Inventory.Contains(item.Value, item.Quantity)) hasItemCost = false;
+                    if (!Inventory.Contains(item.Value, item.Quantity))
+                        hasItemCost = false;
                 }
             }
 
             // Check that all requirements are met first. Note that a spell cannot be cast if its HP cost would result
             // in the caster's HP being reduced to zero.
-            if (reduceHp >= Stats.Hp || reduceMp > Stats.Mp || castcosts.Gold > Gold || !hasItemCost) return false;
+            if (reduceHp >= Stats.Hp)
+                message = "You lack the required vitality.";
 
-            if (castcosts.Gold > this.Gold) return false;
+            if (reduceMp > Stats.Mp)
+                message = "Your mana is too low.";
+
+            if (!hasItemCost)
+                message = "You lack the required items.";
+
+            if (castcosts.Gold > Gold)
+                message = "You lack the required gold.";
+
+            if (message != string.Empty)
+                return false;
 
             if (reduceHp != 0) Stats.Hp -= reduceHp;
             if (reduceMp != 0) Stats.Mp -= reduceMp;
@@ -1251,8 +1305,6 @@ namespace Hybrasyl.Objects
             x07.WriteString8(creature.Name);
             x07.DumpPacket();
             Enqueue(x07);
-
-
         }
 
         public void SendUpdateToUser(Client client = null)
@@ -1265,6 +1317,7 @@ namespace Hybrasyl.Objects
             // Figure out what we're sending as the "helmet"
             var helmet = Equipment.Helmet?.DisplaySprite ?? HairStyle;
             helmet = Equipment.DisplayHelm?.DisplaySprite ?? helmet;
+            var color = Equipment.DisplayHelm?.Color ?? HairColor;
 
             (client ?? Client).Enqueue(new ServerPacketStructures.DisplayUser()
             {
@@ -1297,11 +1350,9 @@ namespace Hybrasyl.Objects
                 Name = Name,
                 GroupName = string.Empty, // TODO: Group name
                 MonsterSprite = MonsterSprite,
-                HairColor = HairColor
+                HairColor = color,
             }.Packet());
         }
-
-
 
         public override void SendId()
         {
@@ -1340,7 +1391,7 @@ namespace Hybrasyl.Objects
             var equipPacket = new ServerPacket(0x37);
             equipPacket.WriteByte((byte)slot);
             equipPacket.WriteUInt16((ushort)(itemObject.Sprite + 0x8000));
-            equipPacket.WriteByte(0x00);
+            equipPacket.WriteByte(itemObject.Color);
             equipPacket.WriteStringWithLength(itemObject.Name);
             equipPacket.WriteByte(0x00);
             equipPacket.WriteUInt32(itemObject.MaximumDurability);
@@ -1394,7 +1445,7 @@ namespace Hybrasyl.Objects
             var x0F = new ServerPacket(0x0F);
             x0F.WriteByte((byte)slot);
             x0F.WriteUInt16((ushort)(itemObject.Sprite + 0x8000));
-            x0F.WriteByte(0x00);
+            x0F.WriteByte(itemObject.Color);
             x0F.WriteString8(itemObject.Name);
             x0F.WriteInt32(itemObject.Count);  //amount
             x0F.WriteBoolean(itemObject.Stackable);
@@ -1428,33 +1479,81 @@ namespace Hybrasyl.Objects
             Enqueue(x2C);
         }
 
-        public void SendSpellUpdate(Xml.Castable item, int slot)
+        public void SendSpellUpdate(Xml.Castable castable, int slot)
         {
-            if (item == null)
+            if (castable == null)
             {
                 SendClearSpell(slot);
+                GameLog.InfoFormat($"{Name}: cleared spell slot {slot}");
                 return;
             }
             GameLog.DebugFormat("Adding spell {0} to slot {2}",
-                item.Name, slot);
+                castable.Name, slot);
+            GameLog.InfoFormat($"{Name}: adding {castable.Name} to slot {slot}");
 
             var mastery = "";
 
-            if (item.Mastery.Tiered)
+            if (castable.Mastery.Tiered)
             {
-                mastery = $"[{item.MasteryLevel}]";
+                mastery = $"[{castable.MasteryLevel}]";
             }
 
             var x17 = new ServerPacket(0x17);
             x17.WriteByte((byte)slot);
-            x17.WriteUInt16((ushort)(item.Icon));
-            var spellType = item.Intents[0].UseType;
-            //var spellType = isClick ? 2 : 5;
+            x17.WriteUInt16((ushort)(castable.Icon));
+            var spellType = castable.Intents[0].UseType;
             x17.WriteByte((byte)spellType); //spell type? how are we determining this?
-            x17.WriteString8(Class == Xml.Class.Peasant ? item.Name : $"{item.Name} (Mastery{mastery}:{ Math.Round((decimal)(item.UseCount > item.Mastery.Uses ? 100 : item.UseCount / item.Mastery.Uses), 2)}%)");
-            x17.WriteString8(item.Name); //prompt? what is this?
-            x17.WriteByte((byte)item.Lines);
+            x17.WriteString8(Class == Xml.Class.Peasant ? castable.Name : $"{castable.Name} (Mastery{mastery}:{ Math.Round((decimal)(castable.UseCount > castable.Mastery.Uses ? 100 : castable.UseCount / castable.Mastery.Uses), 2)}%)");
+            x17.WriteString8(castable.Name); //prompt? what is this?
+            x17.WriteByte((byte)CalculateLines(castable));
+            GameLog.InfoFormat($"{Name}: enqueuing {castable.Name} to slot {slot}");
             Enqueue(x17);
+        }
+
+        private int CalculateLines(Xml.Castable castable)
+        {
+            // TODO: potentially add additional equipment types. for now only weapons
+            if (Equipment.Weapon?.CastModifiers != null)
+            {
+                object modifier = null;
+                foreach (var castmodifier in Equipment.Weapon.CastModifiers)
+                {
+                    // Matches most to least specific, first match wins
+                    if (castmodifier.Castable != string.Empty && castmodifier.Castable.ToLower() == castable.Name.ToLower())
+                    {
+                        modifier = castmodifier.Item;
+                        break;
+                    }
+                    else if (castmodifier.Group != string.Empty && castable.Categories.Select(x => x.Value.ToLower()).Contains(castmodifier.Group.ToLower()))
+                    {
+                        modifier = castmodifier.Item;
+                        break;
+                    }
+                    else if (castmodifier.All == true)
+                    {
+                        modifier = castmodifier.Item;
+                        break;
+                    }
+                }
+                // Evaluate modifier match.
+                // Exact match first, then between min / max, which is same as "all" if no min/max defined (default -1 / 255)
+                if (modifier is Xml.CastModifierAdd add)
+                {
+                    if (castable.Lines == add.Match || (add.Match == -1 && castable.Lines >= add.Min && castable.Lines <= add.Max))
+                        return castable.Lines + add.Amount;
+                }
+                else if (modifier is Xml.CastModifierSubtract sub)
+                {
+                    if (castable.Lines == sub.Match || (sub.Match == -1 && castable.Lines >= sub.Min && castable.Lines <= sub.Max))
+                        return castable.Lines - sub.Amount;
+                }
+                else if (modifier is Xml.CastModifierReplace repl)
+                {
+                    if (castable.Lines == repl.Match || (repl.Match == -1 && castable.Lines >= repl.Min && castable.Lines <= repl.Max))
+                        return repl.Amount;
+                }
+            }
+            return castable.Lines;
         }
 
         public void SetCookie(string cookieName, string value)
@@ -1505,16 +1604,15 @@ namespace Hybrasyl.Objects
 
         public override void UpdateAttributes(StatUpdateFlags flags)
         {
+            
             var x08 = new ServerPacket(0x08);
             if (UnreadMail)
             {
                 flags |= StatUpdateFlags.UnreadMail;
             }
 
-            if (IsPrivileged || IsExempt)
-            {
-                flags |= StatUpdateFlags.GameMasterA;
-            }
+            if (CollisionsDisabled)
+                flags |= StatUpdateFlags.GameMasterA;                
 
             x08.WriteByte((byte)flags);
             if (flags.HasFlag(StatUpdateFlags.Primary))
@@ -1680,7 +1778,13 @@ namespace Hybrasyl.Objects
             // Now that we know where we are going, perform some sanity checks.
             // Is the player trying to walk into a wall, or off the map?
 
-            if (newX > Map.X || newY > Map.Y || Map.IsWall[newX, newY] || newX < 0 || newY < 0)
+            if (newX > Map.X || newY > Map.Y || newX < 0 || newY < 0)
+            {
+                Refresh();
+                return false;
+            }
+            // Allow a user to walk into walls, if and only if collisions are disabled (implies privileged user)
+            else if (Map.IsWall[newX, newY] && !CollisionsDisabled)
             {
                 Refresh();
                 return false;
@@ -1908,12 +2012,12 @@ namespace Hybrasyl.Objects
                 return false;
             }
 
-            GameLog.DebugFormat("Attempting to add spell to spellbook slot {0}", slot);
+            GameLog.InfoFormat("Attempting to add spell to spellbook slot {0}", slot);
 
 
             if (!SpellBook.Insert(slot, item))
             {
-                GameLog.DebugFormat("Slot was invalid or not null");
+                GameLog.ErrorFormat("Slot was invalid or not null");
                 return false;
             }
 
@@ -2178,12 +2282,15 @@ namespace Hybrasyl.Objects
                 GameLog.DebugFormat("Slot wasn't null, aborting");
                 return false;
             }
-
+            
             SendEquipItem(itemObject, slot);
             Client.SendMessage(string.Format("Equipped {0}", itemObject.Name), 3);
             ApplyBonuses(itemObject);
             UpdateAttributes(StatUpdateFlags.Stats);
             if (sendUpdate) Show();
+            // TODO: re-evaluate if this gets too heavyweight
+            if (itemObject.EquipmentSlot == ((byte)Xml.EquipmentSlot.Weapon - 1))
+                SendSpells();
 
             return true;
         }
@@ -2278,7 +2385,7 @@ namespace Hybrasyl.Objects
             {
                 foreach (var item in Equipment)
                 {
-                    if (item.EquipmentSlot != ServerItemSlots.Weapon)
+                    if (item.EquipmentSlot != ServerItemSlots.Weapon && !(item.Undamageable))
                         item.Durability -= 1 / (item.MaximumDurability * (100 - Stats.Ac));
                 }
             }
@@ -2292,10 +2399,36 @@ namespace Hybrasyl.Objects
         }
 
 
-
         public override bool UseCastable(Xml.Castable castObject, Creature target = null)
         {
-            if (!ProcessCastingCost(castObject)) return false;
+            // Check casting costs
+            if (!ProcessCastingCost(castObject, out string message))
+            {
+                SendSystemMessage(message);
+                return false;
+            }
+
+            // Check restrictions
+            foreach (var restriction in castObject.Restrictions)
+            {
+                if (restriction.Slot == Xml.EquipmentSlot.None && !Inventory.ContainsName(restriction.Value))
+                {
+                    // in inventory check
+                    SendSystemMessage($"You lack the needed {restriction.Value}.");
+                    return false;
+                }
+                else if (restriction.Slot != Xml.EquipmentSlot.None)
+                {
+                    // equipment check
+                    var i = Equipment.FindByName(restriction.Value);
+                    if (i.EquipmentSlot != ((byte)restriction.Slot - 1))
+                    {
+                        SendSystemMessage($"You must have {restriction.Value} equipped.");
+                        return false;
+                    }      
+                }
+            }
+            
             if (base.UseCastable(castObject, target))
             {
                 // This may need to occur elsewhere, depends on how it looks in game
@@ -4452,7 +4585,15 @@ namespace Hybrasyl.Objects
                 Client.Redirect(redirect, true);
             }
             else
-                Client.Socket.Disconnect(true);
+                try
+                {
+                    Client.Socket.Disconnect(true);
+                }
+                catch (ObjectDisposedException e)
+                {
+                    Game.ReportException(e);
+                    Client.ClientState = null;
+                }
         }
 
         public void SetEncryptionParameters(byte[] key, byte seed, string name)

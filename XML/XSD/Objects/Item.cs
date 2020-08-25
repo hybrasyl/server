@@ -19,7 +19,7 @@ using System.Text;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 
-[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.4084.0")]
+[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.3752.0")]
 [Serializable]
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -29,6 +29,7 @@ public partial class Item
 {
     #region Private fields
     private string _name;
+    private string _unidentifiedName;
     private string _comment;
     private ItemProperties _properties;
     private static XmlSerializer _serializer;
@@ -49,6 +50,19 @@ public partial class Item
         set
         {
             _name = value;
+        }
+    }
+    
+    [StringLengthAttribute(255, MinimumLength=1)]
+    public string UnidentifiedName
+    {
+        get
+        {
+            return _unidentifiedName;
+        }
+        set
+        {
+            _unidentifiedName = value;
         }
     }
     

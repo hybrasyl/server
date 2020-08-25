@@ -47,5 +47,4 @@
   <xs:include schemaLocation="Localization.xsd"/>
   <xs:include schemaLocation="Recipe.xsd"/>
   
-  
 </xs:schema>

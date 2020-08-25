@@ -19,7 +19,7 @@ using System.Text;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 
-[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.4084.0")]
+[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.3752.0")]
 [Serializable]
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -30,15 +30,9 @@ public partial class Network
     private NetworkInfo _lobby;
     private NetworkInfo _login;
     private NetworkInfo _world;
+    private NetworkInfoSsl _grpc;
     private static XmlSerializer _serializer;
     #endregion
-    
-    public Network()
-    {
-        _world = new NetworkInfo();
-        _login = new NetworkInfo();
-        _lobby = new NetworkInfo();
-    }
     
     public NetworkInfo Lobby
     {
@@ -73,6 +67,18 @@ public partial class Network
         set
         {
             _world = value;
+        }
+    }
+    
+    public NetworkInfoSsl Grpc
+    {
+        get
+        {
+            return _grpc;
+        }
+        set
+        {
+            _grpc = value;
         }
     }
     

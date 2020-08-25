@@ -19,7 +19,7 @@ using System.Text;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 
-[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.4084.0")]
+[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.3752.0")]
 [Serializable]
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -27,7 +27,7 @@ using System.Collections.Generic;
 public partial class CastableRestrictions
 {
     #region Private fields
-    private List<WeaponType> _weaponType;
+    private List<string> _weaponType;
     private List<EquipmentSlot> _equipType;
     private static XmlSerializer _serializer;
     #endregion
@@ -35,11 +35,11 @@ public partial class CastableRestrictions
     public CastableRestrictions()
     {
         _equipType = new List<EquipmentSlot>();
-        _weaponType = new List<WeaponType>();
+        _weaponType = new List<string>();
     }
     
     [XmlElement("WeaponType")]
-    public List<WeaponType> WeaponType
+    public List<string> WeaponType
     {
         get
         {

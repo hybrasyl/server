@@ -19,7 +19,7 @@ using System.Text;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 
-[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.4084.0")]
+[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.3752.0")]
 [Serializable]
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -32,14 +32,8 @@ public partial class Use
     private ItemUsePlayerEffect _playerEffect;
     private ItemUseEffect _effect;
     private ItemUseSound _sound;
-    private bool _consumed;
     private static XmlSerializer _serializer;
     #endregion
-    
-    public Use()
-    {
-        _consumed = true;
-    }
     
     public string Script
     {
@@ -98,20 +92,6 @@ public partial class Use
         set
         {
             _sound = value;
-        }
-    }
-    
-    [XmlAttribute]
-    [DefaultValue(true)]
-    public bool Consumed
-    {
-        get
-        {
-            return _consumed;
-        }
-        set
-        {
-            _consumed = value;
         }
     }
     

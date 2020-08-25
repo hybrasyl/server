@@ -268,6 +268,7 @@ namespace Hybrasyl
                 InsertNpc(merchant);
                 // Keep the actual spawned object around in the index for later use
                 World.WorldData.Set(merchant.Name, merchant);
+
             }
 
             foreach (var reactorElement in newMap.Reactors)
@@ -413,7 +414,6 @@ namespace Hybrasyl
 
             return false;
         }
-
 
         public void Insert(VisibleObject obj, byte x, byte y, bool updateClient = true)
         {
@@ -584,8 +584,10 @@ namespace Hybrasyl
                         // If the target of a Remove is a player, we insert a 250ms delay to allow the animation
                         // frame to complete, or a slight delay to allow a kill animation to finish animating.
                         // Yes, this is a thing we do.
-                        if (target is User)
-                            ((User)target).AoiDeparture(obj, obj is User ? 250 : 100);
+                        if (target is User && obj is User)
+                            ((User)target).AoiDeparture(obj, 250);
+                        else if (target is User && obj is Creature)
+                            ((User)target).AoiDeparture(obj, 100);
                         else
                             target.AoiDeparture(obj);
 
@@ -701,6 +703,42 @@ namespace Hybrasyl
         {
             return x >= 0 && x < X && y >= 0 && y < Y;
         }
+
+        /// <summary>
+        /// Find the nearest empty tile (e.g. non-wall, not containing an NPC or a player) next to the specified x, y coordinates.
+        /// </summary>
+        /// <param name="xStart">X location to start search</param>
+        /// <param name="yStart">Y location to start search</param>
+        /// <returns>x,y tuple of nearest empty tile</returns>
+        public (byte x, byte y) FindEmptyTile(byte xStart, byte yStart)
+        {
+            byte retx = 0;
+            byte rety = 0;
+            int radius = 1;
+            // TODO: update to check for map being full / other edge cases
+            do
+            {   
+                for (int x = -1 * radius; x <= radius; x++)
+                {
+                    for (int y = -1 * radius; y <= radius; y++)
+                    {
+                        if (IsWall[xStart + x, yStart + y] || GetTileContents(xStart + x, yStart + y).Where(x => x is Creature).Count() > 0)
+                            continue;
+                        else
+                        {
+                            retx = (byte) (xStart + x);
+                            rety = (byte) (yStart + y);
+                            break;
+                        }
+                    }
+                }
+                radius++;
+                // Don't go on forever here
+                if (radius > 3) break;
+            } while (true);
+
+            return (retx, rety);
+        }
  
     }
 
@@ -760,7 +798,6 @@ namespace Hybrasyl
                     Map map;
                     if (SourceMap.World.WorldData.TryGetValueByIndex(DestinationMapName, out map))
                     {
-                        Thread.Sleep(250);
                         target.Teleport(map.Id, DestinationX, DestinationY);
                         return true;
                     }

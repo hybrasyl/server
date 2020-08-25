@@ -42,7 +42,7 @@ namespace Hybrasyl
         private ConcurrentQueue<ServerPacket> _sendBuffer = new ConcurrentQueue<ServerPacket>();
         private ConcurrentQueue<ClientPacket> _receiveBuffer = new ConcurrentQueue<ClientPacket>();
         public ManualResetEvent SendComplete = new ManualResetEvent(false);
-
+        public int SendBufferDepth => _sendBuffer.Count;
         public bool Connected { get; set; }
 
         public long Id { get; }
@@ -101,15 +101,10 @@ namespace Hybrasyl
             }
         }
 
-        public void SendBufferAdd(ServerPacket packet)
-        {
-            _sendBuffer.Enqueue(packet);
-        }
-
-        public bool SendBufferTake(out ServerPacket packet)
-        {
-            return _sendBuffer.TryDequeue(out packet);
-        }
+        public void SendBufferAdd(ServerPacket packet) => _sendBuffer.Enqueue(packet);
+        public bool SendBufferPeek(out ServerPacket packet) => _sendBuffer.TryPeek(out packet);
+        public bool SendBufferTake(out ServerPacket packet) => _sendBuffer.TryDequeue(out packet);
+        public bool SendBufferEmpty => _sendBuffer.IsEmpty;
 
         public void ResetReceive()
         {
@@ -134,8 +129,9 @@ namespace Hybrasyl
                 WorkSocket.Shutdown(SocketShutdown.Both);
                 WorkSocket.Close();
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                Game.ReportException(e);
                 WorkSocket.Close();
             }
 
@@ -457,53 +453,80 @@ namespace Hybrasyl
 
         public void FlushSendBuffer()
         {
+            MemoryStream buffer = new MemoryStream();
+            int transmitDelay = 0;
 
-            //lock (ClientState.SendLock)
-            //{
             try
             {
-                while (ClientState.SendBufferTake(out ServerPacket packet))
+                while (!ClientState.SendBufferEmpty)
                 {
-                    Task.Run(new Action(() =>
+                    if (ClientState.SendBufferPeek(out ServerPacket precheck))
                     {
-                       if (packet == null) return;
+                        if (buffer.Length > 0 && (precheck.TransmitDelay > 0 && transmitDelay == 0))
+                        {
+                            // If we're dealing with a bunch of packets with delays, batch them together.
+                            // Otherwise, send them individually.
+                            //GameLog.Warning("TransmitDelay occurring");
+                            break;
+                        }
+                        // Limit outbound transmissions to 65k bytes at a time
+                        if (buffer.Length >= 65535)
+                        {
+                            //GameLog.Warning("Breaking up into chunks");
+                            break;
+                        }
+                    }
 
-                       if (packet.ShouldEncrypt)
-                       {
-                           ++ServerOrdinal;
-                           packet.Ordinal = ServerOrdinal;
+                    if (ClientState.SendBufferTake(out ServerPacket packet))
+                    {
+                        // If no packets, just call the whole thing off
+                        if (packet == null) return;
 
-                           packet.GenerateFooter();
-                           packet.Encrypt(this);
-                       }
-                       if (packet.TransmitDelay != 0)
-                       {
-                           Task.Delay(packet.TransmitDelay);
-                       }
-
-                       var buffer = packet.ToArray();
-                       try
-                       {
-                           Socket.BeginSend(buffer, 0, buffer.Length, 0, SendCallback, ClientState);
-                       }
-                       catch (ObjectDisposedException e)
-                       {
-                           GameLog.Warning($"FlushSendBuffer: {e.Message}");
-                       }
-                    }));
-
+                        if (packet.ShouldEncrypt)
+                        {
+                            ++ServerOrdinal;
+                            packet.Ordinal = ServerOrdinal;
+                            packet.GenerateFooter();
+                            packet.Encrypt(this);
+                        }
+                        if (packet.TransmitDelay > 0)
+                            transmitDelay = packet.TransmitDelay;
+                        // Write packet to our memory stream
+                        buffer.Write(packet.ToArray());
+                    }
                 }
+
+                if (buffer.Length == 0) return;
+
+                // Background enqueue a send with our memory stream
+                Task.Run(async () =>
+                {
+                    var socketbuf = buffer.ToArray();
+                    try
+                    {
+                        //GameLog.Info($"transmit: {socketbuf.Length} with delay {transmitDelay}");
+                        if (transmitDelay > 0)
+                            await Task.Delay(transmitDelay);
+                        Socket.BeginSend(socketbuf, 0, socketbuf.Length, 0, SendCallback, ClientState);
+                    }
+                    catch (ObjectDisposedException e)
+                    {
+                        Game.ReportException(e);
+                        ClientState.Dispose();
+                    }
+                });
             }
-            catch (ObjectDisposedException)
+            catch (ObjectDisposedException e)
             {
                 // Socket is gone, peace out
+                Game.ReportException(e);
                 ClientState.Dispose();
             }
             catch (Exception e)
             {
+                Game.ReportException(e);
                 GameLog.Error($"HALP: {e}");
             }
-            //}
         }
 
         public void FlushReceiveBuffer()
@@ -534,7 +557,7 @@ namespace Hybrasyl
                             }
                             else if (Server is Login)
                             {
-                                GameLog.Info($"Login: 0x{packet.Opcode:X2}");
+                                GameLog.Debug($"Login: 0x{packet.Opcode:X2}");
                                 var handler = (Server as Login).PacketHandlers[packet.Opcode];
                                 handler.Invoke(this, packet);
                                 GameLog.DebugFormat("Login packet done");
@@ -544,7 +567,7 @@ namespace Hybrasyl
                             {
                                 UpdateLastReceived(packet.Opcode != 0x45 &&
                                                           packet.Opcode != 0x75);
-                                GameLog.Info($"Queuing: 0x{packet.Opcode:X2}");
+                                GameLog.Debug($"Queuing: 0x{packet.Opcode:X2}");
                                 // Check for throttling
                                 var throttleResult = Server.PacketThrottleCheck(this, packet);
                                 if (throttleResult == ThrottleResult.OK || throttleResult == ThrottleResult.ThrottleEnd || throttleResult == ThrottleResult.SquelchEnd)
@@ -559,12 +582,14 @@ namespace Hybrasyl
                         }
                         catch (Exception e)
                         {
+                            Game.ReportException(e);
                             GameLog.ErrorFormat("EXCEPTION IN HANDLING: 0x{0:X2}: {1}", packet.Opcode, e);
                         }
                     }
                 }
                 catch (Exception e)
                 {
+                    Game.ReportException(e);
                     Console.WriteLine(e);
                     throw;
                 }
@@ -575,7 +600,6 @@ namespace Hybrasyl
         {
             ClientState state = (ClientState)ar.AsyncState;
             Client client;
-
             GameLog.DebugFormat($"EndSend: SocketConnected: {state.WorkSocket.Connected}, IAsyncResult: Completed: {ar.IsCompleted}, CompletedSynchronously: {ar.CompletedSynchronously}");
 
             try
@@ -599,12 +623,15 @@ namespace Hybrasyl
             }
             catch (SocketException e)
             {
+                Game.ReportException(e);
                 GameLog.Error($"Error Code: {e.ErrorCode}, {e.Message}");
                 state.WorkSocket.Close();
             }
-            catch (ObjectDisposedException)
+            catch (ObjectDisposedException e)
             {
+                Game.ReportException(e);
                 //client.Disconnect();
+                GameLog.Error($"ObjectDisposedException");
                 state.WorkSocket.Close();
             }
             state.SendComplete.Set();
@@ -625,9 +652,10 @@ namespace Hybrasyl
         public void Enqueue(ServerPacket packet)
         {
             GameLog.DebugFormat("Enqueueing ServerPacket {0}", packet.Opcode);
-            ClientState.SendBufferAdd(packet);
-            if (!packet.ShouldEncrypt || (packet.ShouldEncrypt && EncryptionKey != null))
-                FlushSendBuffer();
+            if (Connected)
+                ClientState.SendBufferAdd(packet);
+            else
+                throw new ObjectDisposedException("Client is no longer connected");
         }
 
         public void Enqueue(ClientPacket packet)
@@ -665,7 +693,7 @@ namespace Hybrasyl
             x03.Write(redirect.EncryptionKey);
             x03.WriteString8(redirect.Name);
             x03.WriteUInt32(redirect.Id);
-            Thread.Sleep(100);
+            x03.TransmitDelay = 250;
             Enqueue(x03);
         }
 

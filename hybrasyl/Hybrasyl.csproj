@@ -16,7 +16,7 @@
   </PropertyGroup>
   
   <PropertyGroup>
-    <MSBuildGitHashCommand>git log HEAD -1</MSBuildGitHashCommand>
+    <MSBuildGitHashCommand>git rev-parse --short HEAD </MSBuildGitHashCommand>
   </PropertyGroup>
   
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -36,32 +36,45 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="docfx-guidelines.json" />
     <None Remove="docfx.json" />
+    <None Remove="log.txt" />
     <None Remove="Resources\sotp.dat" />
   </ItemGroup>
 
   <ItemGroup>
+    <Protobuf Include="protos/Patron.proto" GrpcServices="Server" />
+  </ItemGroup>
+  
+  <ItemGroup>
     <PackageReference Include="BCrypt.Net-Core" Version="1.6.0" />
-    <PackageReference Include="docfx" Version="2.53.1" />
-    <PackageReference Include="docfx.console" Version="2.53.1">
+    <PackageReference Include="docfx" Version="2.56.2" />
+    <PackageReference Include="docfx.console" Version="2.56.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Google.Protobuf" Version="3.13.0" />
+    <PackageReference Include="Grpc" Version="2.31.0" />
+    <PackageReference Include="Grpc.Tools" Version="2.31.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="MoonSharp" Version="2.0.0" />
-    <PackageReference Include="MSBuildGitHash" Version="2.0.1">
+    <PackageReference Include="MSBuildGitHash" Version="2.0.2">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+    <PackageReference Include="Sentry" Version="2.1.5" />
     <PackageReference Include="Serilog" Version="2.9.0" />
     <PackageReference Include="Serilog.Enrichers.ExceptionData" Version="1.0.0" />
     <PackageReference Include="Serilog.Enrichers.Thread" Version="3.1.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="3.1.1" />
     <PackageReference Include="Serilog.Sinks.File" Version="4.1.0" />
     <PackageReference Include="Serilog.Sinks.Map" Version="1.0.1" />
-    <PackageReference Include="StackExchange.Redis" Version="2.0.601" />
+    <PackageReference Include="StackExchange.Redis" Version="2.1.58" />
     <PackageReference Include="System.ServiceModel.Primitives" Version="4.7.0" />
-    <PackageReference Include="System.Text.Encoding.CodePages" Version="4.7.0" />
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="4.7.1" />
   </ItemGroup>
 
   <ItemGroup>

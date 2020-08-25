@@ -29,7 +29,7 @@ namespace Hybrasyl.Scripting
     /// <summary>
     /// A variety of utility functions for scripts that are statically accessible from a global `utility` object.
     /// </summary>
-    
+
     [MoonSharpUserData]
     public static class HybrasylUtility
     {
@@ -61,6 +61,23 @@ namespace Hybrasyl.Scripting
         /// <param name="t1"></param>
         /// <param name="t2"></param>
         /// <returns></returns>
-        public static long HoursBetweenUnixTimes(string t1, string t2) => (Convert.ToInt64(t2) - Convert.ToInt64(t1)) / 3600;
+        public static long HoursBetweenUnixTimes(string t1, string t2)
+        {
+            if (string.IsNullOrEmpty(t1) || string.IsNullOrEmpty(t2))
+            {
+                GameLog.ScriptingError("HoursBetweenUnixTimes: t1 (first argument) or t2 (second argument) was null or empty, returning 0");
+                return 0;
+            }
+            try
+            {
+                return (Convert.ToInt64(t2) - Convert.ToInt64(t1)) / 3600;
+            }
+            catch (Exception e)
+            {
+                Game.ReportException(e);
+                GameLog.ScriptingError("HoursBetweenUnixTimes: Exception occurred doing time conversion, returning 0 - {exception}", e);
+                return 0;
+            }
+        }
     }
 }

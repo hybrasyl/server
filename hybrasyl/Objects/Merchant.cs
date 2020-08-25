@@ -59,6 +59,26 @@ namespace Hybrasyl.Objects
             }
         }
 
+        public override void OnHear(VisibleObject speaker, string text, bool shout = false)
+        {
+            if (speaker == this)
+                return;
+
+            if (!Ready)
+                OnSpawn();
+
+            if (Script != null)
+            {
+                Script.SetGlobalValue("text", text);
+                Script.SetGlobalValue("shout", shout);
+
+                if (speaker is User user)
+                    Script.ExecuteFunction("OnHear", new HybrasylUser(user));
+                else
+                    Script.ExecuteFunction("OnHear", new HybrasylWorldObject(speaker));
+            }
+        }
+
         public override void OnClick(User invoker)
         {
             if (!Ready)

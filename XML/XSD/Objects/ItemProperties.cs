@@ -19,7 +19,7 @@ using System.Text;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 
-[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.4084.0")]
+[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.3752.0")]
 [Serializable]
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -28,7 +28,7 @@ public partial class ItemProperties
 {
     #region Private fields
     private Appearance _appearance;
-    private List<CastModifiersLines> _castModifiers;
+    private List<CastModifier> _castModifiers;
     private Stackable _stackable;
     private Physical _physical;
     private Equipment _equipment;
@@ -62,8 +62,8 @@ public partial class ItemProperties
         }
     }
     
-    [XmlArrayItemAttribute("Lines", IsNullable=false)]
-    public List<CastModifiersLines> CastModifiers
+    [XmlArrayItemAttribute("Match", IsNullable=false)]
+    public List<CastModifier> CastModifiers
     {
         get
         {

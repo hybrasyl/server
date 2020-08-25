@@ -33,7 +33,7 @@ namespace Hybrasyl.Messaging
         public new static string Command = "maplist";
         public new static string ArgumentText = "<string searchTerm>";
         public new static string HelpText = "Searches for maps with the specified search term.";
-        public new static bool Privileged = false;
+        public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
@@ -71,7 +71,20 @@ namespace Hybrasyl.Messaging
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
-            return Success($"Hybrasyl {Game.Assemblyinfo.Version}\n\n{Game.Assemblyinfo.GitHash.Replace(';','\n')}\n\n(C) 2020 ERISCO, LLC", MessageTypes.SLATE_WITH_SCROLLBAR);
+            return Success($"Hybrasyl {Game.Assemblyinfo.Version}\n\nRunning commit {(string.IsNullOrEmpty(Game.GitCommit) ? "unknown" : Game.GitCommit)}:\n\n{Game.CommitLog}\n\n(C) 2020 ERISCO, LLC", MessageTypes.SLATE_WITH_SCROLLBAR);
+        }
+    }
+
+    class RecentkillsCommand : ChatCommand
+    {
+        public new static string Command = "recentkills";
+        public new static string ArgumentText = "none";
+        public new static string HelpText = "Displays your last 25 (monster) kills, along with timestamps.";
+        public new static bool Privileged = false;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            return Success($"Kill List\n---------\n\n{string.Join("", user.RecentKills.Select(x => $"{x.Name} - {x.Timestamp}\n").ToList())}", MessageTypes.SLATE_WITH_SCROLLBAR);
         }
     }
 

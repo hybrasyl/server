@@ -22,7 +22,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
 using MoonSharp.Interpreter;
@@ -49,10 +51,18 @@ namespace Hybrasyl.Scripting
         public void Error(string message) => Log.Error("{ScriptName} : {Message}", ScriptName, message);
     }
 
+    public struct LuaException
+    {
+        public string Filename;
+        public int LineNumber;
+        public string Error;
+    };
+
     public class Script
     {
-
+        static Regex LuaRegex = new Regex(@"(.*):\(([0-9]*),([0-9]*)-([0-9]*)\): (.*)$");
         public string RawSource { get; set; }
+
         public string Name { get; set; }
         public string FullPath { get; private set; }
         public string FileName => Path.GetFileName(FullPath);
@@ -97,9 +107,12 @@ namespace Hybrasyl.Scripting
 
         public void AssociateScriptWithObject(WorldObject obj)
         {
+            if (Associate?.Obj?.Id == obj.Id)
+                return;
+
             Associate = new HybrasylWorldObject(obj);
             if (obj is VisibleObject)
-            { 
+            {
                 var visibleObject = obj as VisibleObject;
                 Compiled.Globals.Set("map", UserData.Create(new HybrasylMap(visibleObject.Map)));
             }
@@ -137,7 +150,67 @@ namespace Hybrasyl.Scripting
                 return UserData.Create(new HybrasylMap(obj as Map));
             else if (obj is WorldObject)
                 return UserData.Create(new HybrasylWorldObject(obj as WorldObject));
-            return UserData.Create(obj); 
+            return UserData.Create(obj);
+        }
+
+        private static LuaException ParseException(string decoratedMessage)
+        {
+            var matches = LuaRegex.Match(decoratedMessage);
+            var ret = new LuaException();
+            if (matches.Success && matches.Groups.Count == 6)
+            {
+                ret.Filename = Path.GetFileName(matches.Groups[1].Value);
+                ret.LineNumber = int.Parse(matches.Groups[2].Value);
+                ret.Error = matches.Groups[5].Value;
+            }
+            else
+                ret.Error = decoratedMessage;
+            return ret;
+        }
+
+        private string ExtractLuaSource(int linenumber)
+        {
+            var lines = RawSource.Split('\n').ToList();
+            var lua = $"## {lines[linenumber - 2]}\n## --->{lines[linenumber - 1]}\n";
+            if (linenumber < lines.Count)
+                lua = $"{lua}## {lines[linenumber]}";
+            return lua;
+        }
+
+        private string HumanizeException(Exception ex)
+        {
+            var lines = RawSource.Split('\n').ToList();
+            var summary = string.Empty;
+
+            if (ex is InterpreterException ie)
+            {
+                // Get information from decorated message. CallStack is only available for
+                // certain lua exceptions; decorated message / innerexception always has what
+                // is needed.
+                var e = ParseException(ie.DecoratedMessage);
+                if (!string.IsNullOrEmpty(e.Filename))
+                    summary = $"Line {e.LineNumber}: {e.Error}\n{ExtractLuaSource(e.LineNumber)}";
+                else
+                    summary = $"Could not be parsed, raw message follows {ie.DecoratedMessage}";
+                if (ie is SyntaxErrorException)
+                {
+                    return $"\nSyntax error: {summary}";
+                }
+                if (ie is ScriptRuntimeException)
+                    return $"\nScripting runtime error: {summary}";
+                if (ie is DynamicExpressionException)
+                    return $"\nLua type error: {summary}";
+                else
+                    return $"\nInternal error from Lua code: STACK: {summary}\nERR: {ie.DecoratedMessage}";
+            }
+            else
+            {
+                var retstr = string.Empty;
+                retstr = $"\nC# exception, perhaps caused by Lua script code: STACK: {ex.StackTrace}\n ERR:{ex.Message}";
+                if (ex.InnerException != null)
+                    retstr = $"{retstr}\nINNER STACK TRACE: {ex.InnerException.StackTrace}\n INNER ERR: {ex.InnerException.Message}";
+                return retstr;
+            }
         }
 
         /// <summary>
@@ -167,7 +240,7 @@ namespace Hybrasyl.Scripting
         /// </summary>
         /// <param name="onLoad">Whether or not to execute OnLoad() if it exists in the script.</param>
         /// <returns>boolean indicating whether the script was reloaded or not</returns>
-        public bool Run(bool onLoad=true)
+        public bool Run(bool onLoad = true)
         {
             try
             {
@@ -179,18 +252,25 @@ namespace Hybrasyl.Scripting
                 Compiled.Globals.Set("world", UserData.Create(Processor.World));
                 Compiled.Globals.Set("logger", UserData.Create(new ScriptLogger(Name)));
                 Compiled.Globals.Set("this_script", DynValue.NewString(Name));
+                // Load file into RawSource so we have access to it later
+                RawSource = File.ReadAllText(FullPath);
                 Compiled.DoFile(FullPath);
                 if (onLoad)
-                    ExecuteFunction("OnLoad");               
+                {
+                    GameLog.ScriptingInfo($"Loading: {Path.GetFileName(FullPath)}");
+                    ExecuteFunction("OnLoad");
+                }
             }
-            catch (Exception ex) when (ex is InterpreterException)
+            catch (Exception ex)
             {
-                GameLog.ScriptingError("{Function}: Error executing script {FileName}: {Message}",
-                                MethodBase.GetCurrentMethod().Name, FileName, 
-                                (ex as InterpreterException).DecoratedMessage);
+                Game.ReportException(ex);
+                var error_msg = HumanizeException(ex);
+                GameLog.ScriptingError("Run: Error executing script {FileName} (associate {assoc}): {Message}",
+                                  FileName, Associate?.Name ?? "none", error_msg);
+
                 Disabled = true;
                 CompilationError = ex.ToString();
-                LastRuntimeError = (ex as InterpreterException).DecoratedMessage;
+                LastRuntimeError = error_msg;
                 return false;
             }
 
@@ -198,15 +278,33 @@ namespace Hybrasyl.Scripting
         }
 
         /// <summary>
-        /// Set a value to be used by a script. Note that we only support interop with strings here.
+        /// Set a string value to be used by a script.
         /// </summary>
-        /// <param name="name"></param>
-        /// <param name="value"></param>
+        /// <param name="name">The name of the Lua variable.</param>
+        /// <param name="value">The string value of the variable.</param>
         public void SetGlobalValue(string name, string value)
         {
             var v = DynValue.NewString(value);
             Compiled.Globals.Set(name, v);
         }
+
+        /// <summary>
+        /// Set a numeric value to be used by a script.
+        /// </summary>
+        /// <param name="name">The name of the Lua variable.</param>
+        /// <param name="value">The numeric value of the variable.</param>
+        public void SetGlobalValue(string name, uint value)
+        {
+            var v = DynValue.NewNumber(value);
+            Compiled.Globals.Set(name, v);
+        }
+
+        public void SetGlobalValue(string name, bool value)
+        {
+            var v = DynValue.NewBoolean(value);
+            Compiled.Globals.Set(name, v);
+        }
+        
         /// <summary>
         /// Execute a Lua expression in the context of an associated world object.
         /// Primarily used for dialog callbacks.
@@ -230,14 +328,15 @@ namespace Hybrasyl.Scripting
                 // We pass Compiled.Globals here to make sure that the updated table (with new variables) makes it over
                 LastReturnValue = Compiled.DoString(expr, Compiled.Globals);
             }
-            catch (Exception ex) when (ex is InterpreterException)
+            catch (Exception ex) 
             {
-                GameLog.ScriptingError("{Function}: Error executing expression {expr} in {FileName} (invoker {Invoker}): {Message}",
-                    MethodBase.GetCurrentMethod().Name, expr, FileName, invoker.Name,
-                    (ex as InterpreterException).DecoratedMessage);
+                Game.ReportException(ex);
+                var error_msg = HumanizeException(ex);
+                GameLog.ScriptingError("Execute: Error executing expression {expr} in {FileName} (associate {associate}, invoker {invoker}, source {source}): {Message}",
+                    expr, FileName, Associate?.Name ?? "none", invoker?.Name ?? "none", source?.Name ?? "none", error_msg);
                 //Disabled = true;
                 CompilationError = ex.ToString();
-                LastRuntimeError = (ex as InterpreterException).DecoratedMessage;
+                LastRuntimeError = error_msg;
                 return false;
             }
             return true;
@@ -252,13 +351,15 @@ namespace Hybrasyl.Scripting
             {
                 Compiled.Globals["utility"] = typeof(HybrasylUtility);
                 Compiled.Globals.Set("invoker", GetUserDataValue(invoker));
+                Compiled.Globals.Set("parent", GetUserDataValue(invoker));
                 return Compiled.DoString(expr);
             }
-            catch (Exception ex) when (ex is InterpreterException)
+            catch (Exception ex)
             {
-                GameLog.ScriptingError("{Function}: Error executing expression: {expr} in {FileName} (invoker {Invoker}): {Message}",
-                    MethodBase.GetCurrentMethod().Name, expr, FileName, invoker.Name,
-                    (ex as InterpreterException).DecoratedMessage);
+                Game.ReportException(ex);
+                var error_msg = HumanizeException(ex);
+                GameLog.ScriptingError("Execute: Error executing expression {expr} in {FileName} (associate {associate}, invoker {invoker}): {Message}",
+                    expr, FileName, Associate?.Name ?? "none", invoker?.Name ?? "none", error_msg);
                  //Disabled = true;
                 CompilationError = ex.ToString();
                 return DynValue.Nil;
@@ -282,15 +383,20 @@ namespace Hybrasyl.Scripting
                     Compiled.Call(Compiled.Globals[functionName]);
                 }
                 else
+                {
+                    //GameLog.ScriptingWarning("ExecuteFunction: function {fn} in {FileName} did not exist",
+                    //    functionName, FileName);
                     return false;
+                }
             }
-            catch (Exception ex) when (ex is InterpreterException)
+            catch (Exception ex) 
             {
-                GameLog.ScriptingError("{Function}: Error executing function {ScriptFunction} in {FileName} (invoker {Invoker}): {Message}",
-                    MethodBase.GetCurrentMethod().Name, functionName, FileName, invoker.Name,
-                    (ex as InterpreterException).DecoratedMessage);
+                Game.ReportException(ex);
+                var error_msg = HumanizeException(ex);
+                GameLog.ScriptingError("ExecuteFunction: Error executing function {fn} in {FileName} (associate {associate}, invoker {invoker}, item {item}): {Message}",
+                    functionName, FileName, Associate?.Name ?? "none", invoker?.Name ?? "none", scriptItem?.Name ?? "none", error_msg);
                 //Disabled = true;
-                CompilationError = ex.ToString();
+                CompilationError = error_msg;
                 return false;
             }
             return true;
@@ -311,17 +417,18 @@ namespace Hybrasyl.Scripting
                 }
                 else
                 {
-                    GameLog.ScriptingError("{Function}: function {ScriptFunction} in {FileName} did not exist?", MethodBase.GetCurrentMethod().Name,
-                        functionName, FileName);
+                    //GameLog.ScriptingWarning("ExecuteFunction: function {fn} in {FileName} did not exist",
+                    //    functionName, FileName);
                     return false;
                 }
             }
-            catch (Exception ex) when (ex is InterpreterException)
+            catch (Exception ex)
             {
-                GameLog.ScriptingError("{Function}: Error executing script function {ScriptFunction} in {FileName} (invoker {Invoker}): {Message}",
-                    MethodBase.GetCurrentMethod().Name, functionName, invoker.Name, FileName,
-                    (ex as InterpreterException).DecoratedMessage);
-                CompilationError = ex.ToString();
+                Game.ReportException(ex);
+                var error_msg = HumanizeException(ex);
+                GameLog.ScriptingError("ExecuteFunction: Error executing function {fn} in {FileName} (associate {associate}, invoker {invoker}): {Message}",
+                    functionName, FileName, Associate?.Name ?? "none", invoker?.Name ?? "none", error_msg);
+                CompilationError = error_msg;
                 return false;
             }
 
@@ -339,17 +446,35 @@ namespace Hybrasyl.Scripting
                 if (HasFunction(functionName))
                 {
                     Compiled.Globals["utility"] = typeof(HybrasylUtility);
+                    // Provide extra information when running spawn/load to aid in debugging
+                    if (functionName == "OnSpawn" || functionName == "OnLoad")
+                    {
+                        string assoc = null;
+                        if (Associate != null)
+                        {
+                            assoc = $"{Associate.Type}";
+                            if (!string.IsNullOrEmpty(Associate.Name))
+                                assoc = $"{assoc} {Associate.Name}";
+                            assoc = $"{assoc}: {Associate.LocationDescription}";
+                        }
+                        GameLog.ScriptingInfo($"{FileName}: (associate is {assoc ?? "none"}), executing {functionName}");
+                    }
                     Compiled.Call(Compiled.Globals[functionName]);
                 }
                 else
+                {
+                    //GameLog.ScriptingWarning("ExecuteFunction: function {fn} in {FileName} did not exist",
+                    //    functionName, FileName);
                     return false;
+                }
             }
-            catch (Exception ex) when (ex is InterpreterException)
+            catch (Exception ex)
             {
-                GameLog.ScriptingError("{Function}: Error executing script function {ScriptFunction} in {FileName}: {Message}",
-                    MethodBase.GetCurrentMethod().Name, functionName, FileName,
-                    (ex as InterpreterException).DecoratedMessage);
-                CompilationError = ex.ToString();
+                Game.ReportException(ex);
+                var error_msg = HumanizeException(ex);
+                GameLog.ScriptingError("ExecuteFunction: Error executing function {fn} in {FileName} (associate {associate}): {Message}",
+                    functionName, FileName, Associate?.Name ?? "none", error_msg);
+                CompilationError = error_msg;
                 return false;
             }
 

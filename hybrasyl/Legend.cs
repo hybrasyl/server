@@ -56,7 +56,7 @@ namespace Hybrasyl
         private bool _addLegendMark(LegendMark mark)
         {
             if (_legend.Keys.Count == MaximumLegendSize) return false;
-            if (_legendIndex.ContainsKey(mark.Prefix))
+            if (!string.IsNullOrEmpty(mark.Prefix) && _legendIndex.ContainsKey(mark.Prefix))
                 throw new ArgumentException("A legend mark's prefix must be unique for a given character");
             _legend.Add(mark.Timestamp, mark);
             if (mark.Prefix != null)
@@ -73,15 +73,32 @@ namespace Hybrasyl
             return true;
         }
 
+        public void RemoveMark(int count)
+        {
+            if (count > _legend.Count)
+                Clear();
+            else
+            {
+                _legend.Keys.TakeLast(count);
+                foreach (var timestamp in _legend.Keys.TakeLast(count))
+                {
+                    var mark = _legend[timestamp];
+                    if (!string.IsNullOrEmpty(mark.Prefix))
+                        _legendIndex.Remove(mark.Prefix);
+                    _legend.Remove(mark.Timestamp);
+                }
+            }
+        }
+
         public bool AddMark(LegendIcon icon, LegendColor color, string text, DateTime timestamp,
-            string prefix = default(string), bool isPublic = true, int quantity = 0, bool displaySeason = true, bool displayTimestamp = true)
+            string prefix = default(string), bool isPublic = true, int quantity = -1, bool displaySeason = true, bool displayTimestamp = true)
         {
             var newMark = new LegendMark(icon, color, text, timestamp, prefix, isPublic, quantity, displaySeason, displayTimestamp);
             return _addLegendMark(newMark);
         }
 
         public bool AddMark(LegendIcon icon, LegendColor color, string text, string prefix = default(string),
-            bool isPublic = true, int quantity = 0, bool displaySeason = true, bool displayTimestamp = true)
+            bool isPublic = true, int quantity = -1, bool displaySeason = true, bool displayTimestamp = true)
         {
             var datetime = DateTime.Now;
             var newMark = new LegendMark(icon, color, text, datetime, prefix, isPublic, quantity, displaySeason, displayTimestamp);
@@ -153,7 +170,7 @@ namespace Hybrasyl
         public HybrasylTime HybrasylDate => HybrasylTime.ConvertToHybrasyl(Timestamp);
 
         public LegendMark(LegendIcon icon, LegendColor color, string text, DateTime timestamp,
-            string prefix = default(string), bool isPublic = true, int quantity = 0, bool displaySeason=true, bool displayTimestamp=true)
+            string prefix = default(string), bool isPublic = true, int quantity = -1, bool displaySeason=true, bool displayTimestamp=true)
         {
             Icon = icon;
             Color = color;
@@ -170,6 +187,8 @@ namespace Hybrasyl
 
         public void AddQuantity(int quantity)
         {
+            if (Quantity == -1)
+                return;
             Quantity += quantity;
             LastUpdated = DateTime.Now;
         }
@@ -191,7 +210,7 @@ namespace Hybrasyl
                 returnstring = Text.Substring(0, maxLength);
             }
 
-            if (Quantity != 0)
+            if (Quantity > 0)
                 returnstring = $"{returnstring} ({Quantity})";
             if (!Public)
                 returnstring = $" - {returnstring}";

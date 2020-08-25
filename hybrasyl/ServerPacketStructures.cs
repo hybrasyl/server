@@ -355,7 +355,7 @@ namespace Hybrasyl
                 packet.WriteByte((byte) Direction);
                 packet.WriteUInt32(Id);
                 packet.WriteUInt16(Helmet);
-                GameLog.InfoFormat($"Gender is {Gender}");
+
                 if (!DisplayAsMonster)
                 {
                     packet.WriteByte((byte) (((byte) Gender*16) + BodySpriteOffset));
@@ -805,6 +805,27 @@ namespace Hybrasyl
                 ServerPacket packet = new ServerPacket(OpCode);
                 packet.WriteByte(Type);
                 packet.WriteString16(Message);
+                return packet;
+            }
+        }
+
+        internal partial class SettingsMessage
+        {
+            private readonly byte OpCode = OpCodes.SystemMessage;
+            internal byte Type = 0x07;
+            internal byte Number { get; set; }
+            internal string DisplayString { get; set; }
+
+            internal ServerPacket Packet()
+            {
+                ServerPacket packet = new ServerPacket(OpCode);
+                packet.WriteByte(Type);
+                // Unusually, this message length includes the settings number above,
+                // and is not just the string length...
+                packet.WriteByte(00);
+                packet.WriteByte((byte)(DisplayString.Length + 1));
+                packet.WriteByte((byte)(Number + 0x30));
+                packet.WriteString(DisplayString);
                 return packet;
             }
         }

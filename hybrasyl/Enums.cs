@@ -80,16 +80,21 @@ namespace Hybrasyl
         /// </summary>
         public enum LegendColor
         {
+            Aqua = 1,
             White = 32,
+            Pink = 36,
+            Peony = 36,
             LightOrange = 50,
+            Mahogany = 53,
+            Brass = 63,
             LightYellow = 64,
             Yellow = 68,
             LightGreen = 75,
+            Teal = 87,
             Blue = 88,
             LightPink = 96,
             DarkPurple = 100,
-            Pink = 105,
-            Darkgreen = 125,
+            Lavender = 105,
             Green = 128,
             Orange = 152,
             Brown = 160,

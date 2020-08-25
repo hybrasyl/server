@@ -19,7 +19,7 @@ using System.Text;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 
-[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.4084.0")]
+[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.3752.0")]
 [Serializable]
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -27,16 +27,17 @@ using System.Collections.Generic;
 public partial class Categories
 {
     #region Private fields
-    private Category _category;
+    private List<Category> _category;
     private static XmlSerializer _serializer;
     #endregion
     
     public Categories()
     {
-        _category = new Category();
+        _category = new List<Category>();
     }
     
-    public Category Category
+    [XmlElement("Category")]
+    public List<Category> Category
     {
         get
         {

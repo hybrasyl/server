@@ -28,7 +28,7 @@ namespace Hybrasyl.Messaging
         public new static string Command = "cleardialog";
         public new static string ArgumentText = "<string username>";
         public new static string HelpText = "Completely clear the dialog state for a given user.";
-        public new static bool Privileged = false;
+        public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {

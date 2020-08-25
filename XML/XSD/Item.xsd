@@ -27,22 +27,44 @@
     </xs:documentation>
   </xs:annotation>
 
-  <xs:complexType name="CastModifiers">
-    <xs:sequence>
-      <xs:element name="Lines" minOccurs="1" maxOccurs="unbounded">
-        <xs:complexType>
-          <xs:attribute name="Offset" type="xs:byte" use="optional" />
-          <xs:attribute name="Number" type="xs:byte" use="optional" />
-          <xs:attribute name="Modifier" type="xs:byte" use="optional" />
-          <xs:attribute name="Global" type="xs:boolean" default="false" use="optional" />
-          <xs:attribute name="SpellGroup" type="xs:token" use="optional" />
-          <xs:attribute name="Min" type="xs:unsignedByte" use="optional" />
-          <xs:attribute name="Max" type="xs:unsignedByte" use="optional" />
-        </xs:complexType>
-      </xs:element>
-    </xs:sequence>
+  <xs:complexType name="CastModifierAdd">
+    <xs:attribute name="Match" type="xs:int" use="optional" default="-1"/>
+    <xs:attribute name="Amount" type="xs:int" use="required"/>
+    <xs:attribute name="Min" type="xs:int" use="optional" default="-1"/>
+    <xs:attribute name="Max" type="xs:int" use="optional" default="255"/>    
   </xs:complexType>
 
+  <xs:complexType name="CastModifierSubtract">
+    <xs:attribute name="Match" type="xs:int" use="optional" default="-1"/>
+    <xs:attribute name="Amount" type="xs:int" use="required"/>
+    <xs:attribute name="Min" type="xs:int" use="optional" default="-1"/>
+    <xs:attribute name="Max" type="xs:int" use="optional" default="255"/>
+  </xs:complexType>
+
+  <xs:complexType name="CastModifierReplace">
+    <xs:attribute name="Match" type="xs:int" use="optional" default="-1"/>
+    <xs:attribute name="Amount" type="xs:int" use="required"/>
+    <xs:attribute name="Min" type="xs:int" use="optional" default="-1"/>
+    <xs:attribute name="Max" type="xs:int" use="optional" default="255"/>
+  </xs:complexType>
+
+  <xs:complexType name="CastModifier">
+    <xs:choice>
+      <xs:element name="Add" type="hyb:CastModifierAdd"/>
+      <xs:element name="Subtract" type="hyb:CastModifierSubtract"/>
+      <xs:element name="Replace" type="hyb:CastModifierReplace"/>
+      </xs:choice>
+    <xs:attribute name="Group" type="hyb:String8" use="optional"/>
+    <xs:attribute name="Castable" type="hyb:String8" use="optional"/>
+    <xs:attribute name="All" type="xs:boolean" default="false"/>
+  </xs:complexType>
+
+  <xs:complexType name="CastModifiers">
+    <xs:sequence>
+      <xs:element name="Match" type="CastModifier" minOccurs="0" maxOccurs="unbounded"/>     
+    </xs:sequence>
+  </xs:complexType>
+  
   <xs:complexType name="Appearance">
     <xs:attribute name="Sprite" use="required" type="xs:unsignedShort" />
     <xs:attribute name="EquipSprite" type="xs:unsignedShort" />
@@ -69,12 +91,9 @@
   </xs:complexType>
 
   <xs:complexType name="Physical">
-    <xs:attribute name="Value" default="0" type="xs:unsignedInt" />
-    <xs:attribute name="Weight" default="1" type="xs:int" />
-    <xs:attribute name="Durability" default="1" type="xs:unsignedInt" />
-    <xs:attribute name="Perishable" type="xs:boolean" default="false" />
-    <xs:attribute name="Vendorable" type="xs:boolean" default="true" />
-    <xs:attribute name="Bound" type="xs:boolean" default="false" />
+    <xs:attribute name="Value" type="xs:unsignedInt" use="required"/>
+    <xs:attribute name="Weight" type="xs:int" use="required"/>
+    <xs:attribute name="Durability" type="xs:unsignedInt" use="required"/>
   </xs:complexType>
 
   <xs:complexType name="RestrictionsLevel">
@@ -87,12 +106,19 @@
     <xs:attribute name="Max" type="xs:unsignedByte" default="255" />
   </xs:complexType>
 
+  <xs:complexType name="RestrictionsCastableList">
+    <xs:sequence>
+      <xs:element name="Castable" type="hyb:String8" minOccurs="1" maxOccurs="unbounded"/>
+    </xs:sequence>    
+  </xs:complexType>
+
   <xs:complexType name="ItemRestrictions">
     <xs:sequence>
       <xs:element name="Level" minOccurs="0" maxOccurs="1" type="hyb:RestrictionsLevel"/>
       <xs:element name="Ab" minOccurs="0" maxOccurs="1" type="hyb:RestrictionsAb"/>
       <xs:element name="Class" minOccurs="0" maxOccurs="1" type="hyb:Class" default="Peasant" />
       <xs:element name="Gender" type="hyb:Gender" minOccurs="0" maxOccurs="1" default="Neutral" />
+      <xs:element name="Castables" type="hyb:RestrictionsCastableList" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
   </xs:complexType>
 
@@ -157,8 +183,7 @@
   </xs:complexType>
 
   <xs:complexType name="Equipment">
-    <xs:attribute name="Slot" use="required" type="hyb:EquipmentSlot" />
-    <xs:attribute name="Unique" type="xs:boolean" default="false" />
+    <xs:attribute name="Slot" use="required" type="hyb:EquipmentSlot" default="None"/>
     <xs:attribute name="WeaponType" type="hyb:WeaponType" />
   </xs:complexType>
 
@@ -209,7 +234,6 @@
       <xs:element name="Effect" minOccurs="0" maxOccurs="1" type="hyb:ItemUseEffect"/>
       <xs:element name="Sound" minOccurs="0" maxOccurs="1" type="hyb:ItemUseSound"/>
     </xs:sequence>
-    <xs:attribute name="Consumed" type="xs:boolean" default="true" />
   </xs:complexType>
 
   <xs:complexType name="ItemProperties">
@@ -235,6 +259,7 @@
   <xs:complexType name="Item">
     <xs:sequence>
       <xs:element name="Name" minOccurs="1" maxOccurs="1" type="hyb:String8" />
+      <xs:element name="UnidentifiedName" minOccurs="0" maxOccurs="1" type="hyb:String8"/>
       <xs:element name="Comment" minOccurs="0" maxOccurs="1" type="hyb:String16" />
       <xs:element name="Properties" minOccurs="1" maxOccurs="1" type="hyb:ItemProperties" />
     </xs:sequence>

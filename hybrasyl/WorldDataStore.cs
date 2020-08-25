@@ -30,6 +30,8 @@ namespace Hybrasyl
 {
     public class WorldDataStore
     {
+        static string Sanitize(dynamic key) => key.ToString().Normalize().ToLower();
+
         private ConcurrentDictionary<Type, ConcurrentDictionary<string, dynamic>> _dataStore;
         private ConcurrentDictionary<Type, ConcurrentDictionary<dynamic, dynamic>> _index;
         public static SHA256CryptoServiceProvider sha = new SHA256CryptoServiceProvider();
@@ -91,7 +93,7 @@ namespace Hybrasyl
         {
             if (_dataStore.ContainsKey(typeof(T)))
             {
-                return (T) _dataStore[typeof(T)][key.ToString().Normalize()];
+                return (T) _dataStore[typeof(T)][Sanitize(key)];
             }
             return default(T);
         }
@@ -116,7 +118,7 @@ namespace Hybrasyl
         {
             if (_index.ContainsKey(typeof(T)))
             {
-                return (T) _index[typeof(T)][key.ToString().Normalize()];
+                return (T) _index[typeof(T)][Sanitize(key)];
             }
             return default(T);
         }
@@ -132,8 +134,8 @@ namespace Hybrasyl
         {
             tresult = default(T);
             var sub = GetSubStore<T>();
-            if (!sub.ContainsKey(key.ToString().Normalize())) return false;
-            tresult = (T) sub[key.ToString().Normalize()];
+            if (!sub.ContainsKey(Sanitize(key))) return false;
+            tresult = (T) sub[Sanitize(key)];
             return true;
         }
 
@@ -148,12 +150,12 @@ namespace Hybrasyl
         {
             tresult = default(T);
             var sub = GetSubIndex<T>();
-            if (!sub.ContainsKey(key.ToString().Normalize()))
+            if (!sub.ContainsKey(Sanitize(key)))
             {
                 //GameLog.Error($"TryGetValueByIndex: type {typeof(T)}: key {key.ToString().Normalize()} not found");
                 return false;
             }
-            tresult = (T)sub[key.ToString().Normalize()];
+            tresult = (T)sub[Sanitize(key)];
             return true;
         }
 
@@ -164,7 +166,7 @@ namespace Hybrasyl
         /// <param name="key">The key to be used for the object</param>
         /// <param name="value">The actual object to be stored</param>
         /// <returns>Boolean indicating success</returns>
-        public bool Set<T>(dynamic key, T value) => GetSubStore<T>().TryAdd(key.ToString().Normalize(), value);
+        public bool Set<T>(dynamic key, T value) => GetSubStore<T>().TryAdd(Sanitize(key), value);
 
         /// <summary>
         /// Store an object in the datastore with the given key and index key.
@@ -174,7 +176,8 @@ namespace Hybrasyl
         /// <param name="value">The actual object to be stored</param>
         /// <param name="index">The index key for the object</param>
         /// <returns>Boolean indicating success</returns>
-        public bool SetWithIndex<T>(dynamic key, T value, dynamic index) => GetSubStore<T>().TryAdd(key.ToString().Normalize(), value) && GetSubIndex<T>().TryAdd(index.ToString().Normalize(), value);
+        public bool SetWithIndex<T>(dynamic key, T value, dynamic index) => GetSubStore<T>().TryAdd(Sanitize(key), value) && 
+            GetSubIndex<T>().TryAdd(Sanitize(index), value);
    
 
         /// <summary>
@@ -197,7 +200,7 @@ namespace Hybrasyl
         /// <typeparam name="T">The type to check</typeparam>
         /// <param name="key">The key to check</param>
         /// <returns>Boolean indicating whether or not the key exists</returns>
-        public bool ContainsKey<T>(dynamic key) => GetSubStore<T>().ContainsKey(key.ToString().Normalize());
+        public bool ContainsKey<T>(dynamic key) => GetSubStore<T>().ContainsKey(Sanitize(key));
 
         /// <summary>
         /// Return a count of typed objects in the datastore.

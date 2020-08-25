@@ -191,7 +191,7 @@ namespace Hybrasyl
             XmlStatus = xmlstatus;
             Start = DateTime.Now;
             Duration = duration == -1 ? xmlstatus.Duration : duration;
-            Tick = tickFrequency == -1 ? xmlstatus.Tick : duration;
+            Tick = tickFrequency == -1 ? xmlstatus.Tick : tickFrequency;
 
             // Calculate damage/heal effects. Note that a castable MUST be passed here for a status 
             // to have damage effects as the castable itself has fields we need to access 
@@ -251,18 +251,21 @@ namespace Hybrasyl
                 }
             }
             // Message handling
-            if (effect.Messages != null && User != null)
+            if (effect.Messages != null)
             {
-                if (effect.Messages?.Target != null)
-                    User.SendSystemMessage(string.Format(effect.Messages.Target, User.Name));
-                if (effect.Messages?.Group != null)
-                    User.Group.SendMessage(string.Format(effect.Messages.Group, User.Name));
+                if (User != null)
+                {
+                    if (effect.Messages?.Target != null)
+                        User.SendSystemMessage(string.Format(effect.Messages.Target, User.Name));
+                    if (effect.Messages?.Group != null)
+                        User.Group?.SendMessage(string.Format(effect.Messages.Group, User.Name));
+                }
                 if (effect.Messages?.Source != null)
-                    (Source as User)?.SendSystemMessage(string.Format(effect.Messages.Source, User.Name));
+                    (Source as User)?.SendSystemMessage(string.Format(effect.Messages.Source, User?.Name ?? string.Empty));
                 if (effect.Messages?.Say != null)
-                    User?.Say(string.Format(effect.Messages.Say, User.Name));
+                    Target.Say(string.Format(effect.Messages.Say, User?.Name ?? string.Empty));
                 if (effect.Messages?.Shout != null)
-                    User?.Say(string.Format(effect.Messages.Shout, User.Name));
+                    Target.Shout(string.Format(effect.Messages.Shout, User?.Name ?? string.Empty));
             }
         }
 
@@ -388,7 +391,8 @@ namespace Hybrasyl
                 methodInfo.Invoke(invokee,null);
             }
             catch (Exception e)
-            { 
+            {
+                Game.ReportException(e);
                 GameLog.Error("Exception processing status handler: {exception}", e);
 
             }

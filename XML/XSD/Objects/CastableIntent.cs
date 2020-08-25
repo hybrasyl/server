@@ -19,7 +19,7 @@ using System.Text;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 
-[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.4084.0")]
+[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.3752.0")]
 [Serializable]
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -27,21 +27,86 @@ using System.Collections.Generic;
 public partial class CastableIntent
 {
     #region Private fields
+    private object _map;
+    private List<CastableLineIntent> _line;
+    private List<CastableCrossIntent> _cross;
+    private List<CastableSquareIntent> _square;
+    private List<CastableTileIntent> _tile;
     private SpellUseType _useType;
-    private byte _radius;
-    private IntentDirection _direction;
-    private List<IntentTarget> _target;
+    private List<IntentFlags> _flags;
     private byte _maxTargets;
     private static XmlSerializer _serializer;
     #endregion
     
     public CastableIntent()
     {
-        _target = new List<IntentTarget>();
+        _flags = new List<IntentFlags>();
         _useType = SpellUseType.NoTarget;
-        _radius = ((byte)(0));
-        _direction = IntentDirection.None;
         _maxTargets = ((byte)(0));
+    }
+    
+    public object Map
+    {
+        get
+        {
+            return _map;
+        }
+        set
+        {
+            _map = value;
+        }
+    }
+    
+    [XmlElement("Line")]
+    public List<CastableLineIntent> Line
+    {
+        get
+        {
+            return _line;
+        }
+        set
+        {
+            _line = value;
+        }
+    }
+    
+    [XmlElement("Cross")]
+    public List<CastableCrossIntent> Cross
+    {
+        get
+        {
+            return _cross;
+        }
+        set
+        {
+            _cross = value;
+        }
+    }
+    
+    [XmlElement("Square")]
+    public List<CastableSquareIntent> Square
+    {
+        get
+        {
+            return _square;
+        }
+        set
+        {
+            _square = value;
+        }
+    }
+    
+    [XmlElement("Tile")]
+    public List<CastableTileIntent> Tile
+    {
+        get
+        {
+            return _tile;
+        }
+        set
+        {
+            _tile = value;
+        }
     }
     
     [XmlAttribute]
@@ -59,43 +124,15 @@ public partial class CastableIntent
     }
     
     [XmlAttribute]
-    [DefaultValue(typeof(byte), "0")]
-    public byte Radius
+    public List<IntentFlags> Flags
     {
         get
         {
-            return _radius;
+            return _flags;
         }
         set
         {
-            _radius = value;
-        }
-    }
-    
-    [XmlAttribute]
-    [DefaultValue(IntentDirection.None)]
-    public IntentDirection Direction
-    {
-        get
-        {
-            return _direction;
-        }
-        set
-        {
-            _direction = value;
-        }
-    }
-    
-    [XmlAttribute]
-    public List<IntentTarget> Target
-    {
-        get
-        {
-            return _target;
-        }
-        set
-        {
-            _target = value;
+            _flags = value;
         }
     }
     

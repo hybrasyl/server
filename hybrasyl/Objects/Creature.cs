@@ -103,245 +103,219 @@ namespace Hybrasyl.Objects
             if (obj is Creature) return obj as Creature;
             return null;
         }
-    
+
+        /// <summary>
+        /// Get targets from this creature, in the specified direction, up to the specified radius of tiles.
+        /// </summary>
+        /// <param name="direction">The direction to find targets</param>
+        /// <param name="radius">The radius to search</param>
+        /// <returns></returns>
+        public List<Creature> GetDirectionalTargets(Xml.Direction direction, int radius = 1)
+        {
+            var ret = new List<Creature>();
+            Rectangle rect = new Rectangle(0, 0, 0, 0);
+
+            switch (direction)
+            {
+                case Xml.Direction.East:
+                    {
+                        rect = new Rectangle(X + 1, Y, radius, 1);
+                    }
+                    break;
+                case Xml.Direction.West:
+                    {
+                        rect = new Rectangle(X - radius, Y, radius, 1);
+                    }
+                    break;
+                case Xml.Direction.South:
+                    {
+                        rect = new Rectangle(X, Y + 1, 1, radius);
+                    }
+                    break;
+                case Xml.Direction.North:
+                    {
+                        rect = new Rectangle(X, Y - radius, 1, radius);
+                    }
+                    break;
+            }
+            GameLog.UserActivityInfo($"GetDirectionalTargets: {rect.X}, {rect.Y} {rect.Height}, {rect.Width}");
+            ret.AddRange(Map.EntityTree.GetObjects(rect).Where(obj => obj is Creature).Select(e => e as Creature));
+            return ret;
+        }
+
+        public Dictionary<Xml.Direction, List<Creature>> GetFacingTargets(int radius = 1)
+        {
+            var ret = new Dictionary<Xml.Direction, List<Creature>>();
+            foreach (Xml.Direction direction in Enum.GetValues(typeof(Xml.Direction)))
+            {
+                ret[direction] = new List<Creature>();
+                // TODO: null check, remove 
+                ret[direction].AddRange(GetDirectionalTargets(direction, radius));
+            }
+            return ret;
+        }
+
         public virtual List<Creature> GetTargets(Xml.Castable castable, Creature target = null)
         {
-            List<Creature> actualTargets = new List<Creature>();
-
-            /* INTENT HANDLING FOR TARGETING
-             * 
-             * This is particularly confusing so it is documented here.
-             * UseType=Target Radius=0 Direction=None -> exact clicked target 
-             * UseType=Target Radius=0 Direction=!None -> invalid
-             * UseType=Target Radius=>0 Direction=None -> rect centered on target 
-             * UseType=Target Radius>0 Direction=(anything but none) -> directional rect target based on click x/y
-             * UseType=NoTarget Radius=0 Direction=None -> self (wings of protection, maybe custom spells / mentoring / lore / etc)?
-             * UseType=NoTarget Radius>0 Direction=None -> rect from self in all directions
-             * UseType=NoTarget Radius>0 Direction=!None -> rect from self in specific direction
-             */
-
+            IEnumerable<Creature> actualTargets = new List<Creature>();
             var intents = castable.Intents;
+            List<VisibleObject> possibleTargets = new List<VisibleObject>();
+            Creature origin;
 
             foreach (var intent in intents)
             {
-                var possibleTargets = new List<VisibleObject>();
-                if (intent.UseType == Xml.SpellUseType.NoTarget && intent.Target.Contains(Xml.IntentTarget.Group))
+                if (intent.IsShapeless)
                 {
-                    // Targeting group members
-                    var user = this as User;
-                    if (user != null && user.Group != null)
-                        possibleTargets.AddRange(user.Group.Members.Where(m => m.Map.Id == Map.Id && m.Distance(this) < intent.Radius));
+                    GameLog.UserActivityInfo("GetTarget: Shapeless");
+                    // No shapes specified. 
+                    // If UseType=Target, exact clicked target.
+                    // If UseType=NoTarget Target=Self, caster.
+                    // If UseType=NoTarget Target=Group, *entire* group regardless of location on map.
+                    // Otherwise, no target.
+                    if (intent.UseType == Xml.SpellUseType.Target)
+                    {
+                        // Exact clicked target
+                        possibleTargets.Add(target);                        
+                        GameLog.UserActivityInfo("GetTarget: exact clicked target");
+                    }
+                    else if (intent.UseType != Xml.SpellUseType.NoTarget)
+                        GameLog.UserActivityWarning($"Unhandled intent type {intent.UseType}, ignoring");
                 }
-                else if (intent.UseType == Xml.SpellUseType.Target && intent.Radius == 0 && intent.Direction == Xml.IntentDirection.None)
+
+                if (intent.Map != null)
                 {
-                    // Targeting the exact clicked target
-                    if (target == null)
-                        GameLog.Error($"GetTargets: {castable.Name} - intent was for exact clicked target but no target was passed?");
-                    else
-                        // If we're doing damage, ensure the target is attackable
-                        if (!castable.Effects.Damage.IsEmpty && target.Condition.IsAttackable)
-                            possibleTargets.Add(target);
-                        else if (castable.Effects.Damage.IsEmpty)
-                            possibleTargets.Add(target);
+                    // add entire map
+                    GameLog.UserActivityInfo("GetTarget: adding map targets");
+                    possibleTargets.AddRange(Map.EntityTree.GetAllObjects().Where(e => e is Creature));
                 }
-                else if (intent.UseType == Xml.SpellUseType.NoTarget && intent.Radius == 0 && intent.Direction == Xml.IntentDirection.None)
+
+                if (intent.UseType == Xml.SpellUseType.NoTarget)
                 {
-                    // Targeting self - which, currently, is only allowed for non-damaging spells
-                    if (castable.Effects.Damage.IsEmpty)
-                        possibleTargets.Add(this);
+                    origin = this;
+                    GameLog.UserActivityInfo($"GetTarget: origin is {this.Name} at {this.X}, {this.Y}");
+
                 }
                 else
                 {
-                    // Area targeting, directional or otherwise
-
-                    Rectangle rect = new Rectangle(0, 0, 0, 0);
-                    byte X = this.X;
-                    byte Y = this.Y;
-
-                    // Handle area targeting with click target as the source
-                    if (intent.UseType == Xml.SpellUseType.Target)
-                    {
-                        X = target.X;
-                        Y = target.Y;
-                    }
-
-                    switch (intent.Direction)
-                    {
-                        case Xml.IntentDirection.Front:
-                            {
-                                switch (Direction)
-                                {
-                                    case Xml.Direction.North:
-                                        {
-                                            //facing north, attack north
-                                            rect = new Rectangle(X, Y - intent.Radius, 1,  intent.Radius);
-                                        }
-                                        break;
-                                    case Xml.Direction.South:
-                                        {
-                                            //facing south, attack south
-                                            rect = new Rectangle(X, Y, 1, 1 + intent.Radius);
-                                        }
-                                        break;
-                                    case Xml.Direction.East:
-                                        {
-                                            //facing east, attack east
-                                            rect = new Rectangle(X, Y, 1 + intent.Radius, 1);
-                                        }
-                                        break;
-                                    case Xml.Direction.West:
-                                        {
-                                            //facing west, attack west
-                                            rect = new Rectangle(X - intent.Radius, Y, intent.Radius, 1);
-                                        }
-                                        break;
-                                }
-                            }
-                            break;
-                        case Xml.IntentDirection.Back:
-                            {
-                                switch (Direction)
-                                {
-                                    case Xml.Direction.North:
-                                        {
-                                            //facing north, attack south
-                                            rect = new Rectangle(X, Y, 1, 1 + intent.Radius);
-                                        }
-                                        break;
-                                    case Xml.Direction.South:
-                                        {
-                                            //facing south, attack north
-                                            rect = new Rectangle(X, Y - intent.Radius, 1, intent.Radius);
-                                        }
-                                        break;
-                                    case Xml.Direction.East:
-                                        {
-                                            //facing east, attack west
-                                            rect = new Rectangle(X - intent.Radius, Y, intent.Radius, 1);
-                                        }
-                                        break;
-                                    case Xml.Direction.West:
-                                        {
-                                            //facing west, attack east
-                                            rect = new Rectangle(X, Y, 1 + intent.Radius, 1);
-                                        }
-                                        break;
-                                }
-                            }
-                            break;
-                        case Xml.IntentDirection.Left:
-                            {
-                                switch (Direction)
-                                {
-                                    case Xml.Direction.North:
-                                        {
-                                            //facing north, attack west
-                                            rect = new Rectangle(X - intent.Radius, Y, intent.Radius, 1);
-                                        }
-                                        break;
-                                    case Xml.Direction.South:
-                                        {
-                                            //facing south, attack east
-                                            rect = new Rectangle(X, Y, 1 + intent.Radius, 1);
-                                        }
-                                        break;
-                                    case Xml.Direction.East:
-                                        {
-                                            //facing east, attack north
-                                            rect = new Rectangle(X, Y, 1, 1 + intent.Radius);
-                                        }
-                                        break;
-                                    case Xml.Direction.West:
-                                        {
-                                            //facing west, attack south
-                                            rect = new Rectangle(X, Y - intent.Radius, 1, intent.Radius);
-                                        }
-                                        break;
-                                }
-                            }
-                            break;
-                        case Xml.IntentDirection.Right:
-                            {
-                                switch (Direction)
-                                {
-                                    case Xml.Direction.North:
-                                        {
-                                            //facing north, attack east
-                                            rect = new Rectangle(X, Y, 1 + intent.Radius, 1);
-                                        }
-                                        break;
-                                    case Xml.Direction.South:
-                                        {
-                                            //facing south, attack west
-                                            rect = new Rectangle(X - intent.Radius, Y, intent.Radius, 1);
-                                        }
-                                        break;
-                                    case Xml.Direction.East:
-                                        {
-                                            //facing east, attack south
-                                            rect = new Rectangle(X, Y - intent.Radius, 1, intent.Radius);
-                                        }
-                                        break;
-                                    case Xml.Direction.West:
-                                        {
-                                            //facing west, attack north
-                                            rect = new Rectangle(X, Y, 1, 1 + intent.Radius);
-                                        }
-                                        break;
-                                }
-                            }
-                            break;
-                        case Xml.IntentDirection.Nearby:
-                        case Xml.IntentDirection.None:
-                            {
-                                //attack radius
-                                rect = new Rectangle(X - intent.Radius, Y - intent.Radius, Math.Max(intent.Radius, (byte)1)*2, Math.Max(intent.Radius, (byte)1)*2);
-                            }
-                            break;
-                    }
-                    GameLog.Info($"Rectangle: x: {X - intent.Radius} y: {Y - intent.Radius}, radius: {intent.Radius} - LOCATION: {rect.Location} TOP: {rect.Top}, BOTTOM: {rect.Bottom}, RIGHT: {rect.Right}, LEFT: {rect.Left}");
-                    if (rect.IsEmpty) continue;
-
-                    possibleTargets.AddRange(Map.EntityTree.GetObjects(rect).Where(obj => obj is Creature && obj != this));
+                    GameLog.UserActivityInfo($"GetTarget: origin is {target.Name} at {target.X}, {target.Y}");
+                    origin = target;
                 }
 
-                // Remove merchants
-                possibleTargets = possibleTargets.Where(e => !(e is Merchant)).ToList();
+                // Handle shapes
+                foreach (var cross in intent.Cross)
+                {
+                    // Process cross targets
+                    foreach (Xml.Direction direction in Enum.GetValues(typeof(Xml.Direction)))
+                    {
+                        GameLog.UserActivityInfo($"GetTarget: cross, {direction}, origin {origin.Name}, radius {cross.Radius}");
+                        possibleTargets.AddRange(origin.GetDirectionalTargets(direction, cross.Radius));                       
+                    }
+                    // Add origin and let flags sort it out
+                    possibleTargets.Add(origin);
+                }
+                foreach (var line in intent.Line)
+                {
+                    // Process line targets
+                    GameLog.UserActivityInfo($"GetTarget: line, {line.Direction}, origin {origin.Name}, length {line.Length}");
+                    possibleTargets.AddRange(origin.GetDirectionalTargets(origin.GetIntentDirection(line.Direction), line.Length));
+                    // Similar to above, add origin
+                    possibleTargets.Add(origin);
+                }
+                foreach (var square in intent.Square)
+                {
+                    // Process square targets
+                    var r = (square.Side - 1) / 2;
+                    var rect = new Rectangle(origin.X - r, origin.Y - r, square.Side, square.Side);
+                    GameLog.UserActivityInfo($"GetTarget: square, {origin.X - r}, {origin.Y - r} - origin {origin.Name}, side length {square.Side}");
+                    possibleTargets.AddRange(origin.Map.EntityTree.GetObjects(rect).Where(e => e is Creature));
+                }
+                foreach (var tile in intent.Tile)
+                {
+                    // Process tile targets, which can have either direction OR relative x/y
+                    if (tile.Direction == Xml.IntentDirection.None)
+                    {
+                        if (tile.RelativeX == 0 && tile.RelativeY == 0)
+                        {
+                            GameLog.UserActivityInfo($"GetTarget: tile, origin {origin.Name}, RelativeX && RelativeY == 0, skipping");
+                            continue;
+                        }
+                        else
+                        {
+                            GameLog.UserActivityInfo($"GetTarget: tile, ({origin.X + tile.RelativeX}, {origin.Y + tile.RelativeY}, origin {origin.Name}");
+                            possibleTargets.AddRange(origin.Map.GetTileContents(origin.X + tile.RelativeX, origin.Y + tile.RelativeY).Where(e => e is Creature));
+                        }
+                    }
+                    else
+                    {
+                        GameLog.UserActivityInfo($"GetTarget: tile, intent {tile.Direction}, direction {origin.GetIntentDirection(tile.Direction)}, origin {origin.Name}");
+                        possibleTargets.Add(origin.GetDirectionalTarget(origin.GetIntentDirection(tile.Direction)));
+                    }
 
-                // Handle intent flags
+                }
+                List<Creature> possible = intent.MaxTargets > 0 ? possibleTargets.Take(intent.MaxTargets).OfType<Creature>().ToList() : possibleTargets.OfType<Creature>().ToList();
+                if (possible != null && possible.Count > 0) 
+                    actualTargets = actualTargets.Concat(possible);
+                else GameLog.UserActivityInfo("GetTarget: No targets found");
+
+                // Remove all merchants
+                // TODO: perhaps improve with a flag or extend in the future
+                actualTargets = actualTargets.SkipWhile(e => e is Merchant);
+
+                // Process intent flags
+
+                var this_id = this.Id;
+
                 if (this is Monster)
                 {
-                    // No hostile flag: remove users
+                    // No hostile flag: remove players
+                    if (!intent.Flags.Contains(Xml.IntentFlags.Hostile))
+                    { 
+                        actualTargets = actualTargets.SkipWhile(e => e is User);
+                    }
                     // No friendly flag: remove monsters
-                    // Group / pvp: do not apply here
-                    if (!intent.Target.Contains(Xml.IntentTarget.Friendly))
-                        possibleTargets = possibleTargets.Where(e => !(e is Monster)).ToList();
-                    if (!intent.Target.Contains(Xml.IntentTarget.Hostile))
-                        possibleTargets = possibleTargets.Where(e => !(e is User)).ToList();
+                    if (!intent.Flags.Contains(Xml.IntentFlags.Friendly))
+                    {
+                        actualTargets = actualTargets.SkipWhile(e => e is Monster);
+                    }
+                    // Group / pvp: n/a
                 }
-                else if (this is User && intent.UseType != Xml.SpellUseType.NoTarget)
+                else if (this is User userobj)
                 {
-                    var user = this as User;
+                    // No PVP flag: remove PVP flagged players
                     // No hostile flag: remove monsters
-                    // No friendly flag: remove users with pvp disabled
-                    // No pvp: remove 
-                    // If we aren't targeting friendlies or pvp, remove all users entirely
-                    if (!intent.Target.Contains(Xml.IntentTarget.Pvp))
-                        possibleTargets = possibleTargets.Where(e => !(e is User && (e as Creature).Condition.PvpEnabled == true)).ToList();
-                    if (!intent.Target.Contains(Xml.IntentTarget.Friendly))
-                        possibleTargets = possibleTargets.Where(e => !(e is User && (e as Creature).Condition.PvpEnabled == false)).ToList();
-                    // If we aren't targeting hostiles, remove all monsters
-                    if (!intent.Target.Contains(Xml.IntentTarget.Hostile))
-                        possibleTargets = possibleTargets.Where(e => !(e is Monster)).ToList();
+                    // No friendly flag: remove non-PVP flagged players
+                    // No group flag: remove group members
+                    if (!intent.Flags.Contains(Xml.IntentFlags.Hostile))
+                    {
+                        actualTargets = actualTargets.SkipWhile(e => e is Monster);
+                    }
+                    if (!intent.Flags.Contains(Xml.IntentFlags.Friendly))
+                    {
+                        actualTargets = actualTargets.SkipWhile(e => e is User && !(e as User).Condition.PvpEnabled && e.Id != this_id);
+                    }
+                    if (!intent.Flags.Contains(Xml.IntentFlags.Pvp))
+                    {
+                        
+                        actualTargets = actualTargets.SkipWhile(e => (e is User) && (e as User).Condition.PvpEnabled && e.Id != this_id);
+                    }
+                    if (!intent.Flags.Contains(Xml.IntentFlags.Group))
+                    {
+                        // Remove group members
+                        if (userobj.Group != null)
+                            actualTargets = actualTargets.SkipWhile(e => (e is User) && userobj.Group.Contains(e as User));
+                    }
+                }
+                // No Self flag: remove self 
+                if (!intent.Flags.Contains(Xml.IntentFlags.Self))
+                {
+                    GameLog.UserActivityInfo($"Trying to remove self: my id is {this.Id} and actualtargets contains {String.Join(',',actualTargets.Select(e => e.Id).ToList())}");
+                    actualTargets = actualTargets.Where(e => e.Id != this_id);
+                    GameLog.UserActivityInfo($"did it happen :o -  my id is {this.Id} and actualtargets contains {String.Join(',', actualTargets.Select(e => e.Id).ToList())}");
                 }
 
-                // Finally, add the targets to our list
-
-                List<Creature> possible = intent.MaxTargets > 0 ? possibleTargets.Take(intent.MaxTargets).OfType<Creature>().ToList() : possibleTargets.OfType<Creature>().ToList();
-                if (possible != null && possible.Count > 0) actualTargets.AddRange(possible);
-                else GameLog.Info("No targets found");
             }
-            return actualTargets;
+
+            return actualTargets.ToList();
         }
 
 
@@ -490,8 +464,15 @@ namespace Hybrasyl.Objects
 
             targets = GetTargets(castObject, target);
 
-            if (targets.Count() == 0 && castObject.IsAssail == false) return false;
-            
+            // Quick checks
+            // If no targets and is not an assail, do nothing
+            if (targets.Count() == 0 && castObject.IsAssail == false)
+            {
+                GameLog.UserActivityInfo($"UseCastable: {Name}: no targets and not assail");
+                return false;
+            }
+            // Is this a pvpable spell? If so, is pvp enabled?
+
             // We do these next steps to ensure effects are displayed uniformly and as fast as possible
             var deadMobs = new List<Creature>();
             if (castObject.Effects?.Animations?.OnCast != null)
@@ -500,11 +481,15 @@ namespace Hybrasyl.Objects
                 {
                     foreach (var user in tar.viewportUsers)
                     {
+                        GameLog.UserActivityInfo($"UseCastable: Sending {user.Name} effect for {Name}: {castObject.Effects.Animations.OnCast.Target.Id}");
                         user.SendEffect(tar.Id, castObject.Effects.Animations.OnCast.Target.Id, castObject.Effects.Animations.OnCast.Target.Speed);
                     }
                 }
                 if (castObject.Effects?.Animations?.OnCast?.SpellEffect != null)
+                {
+                    GameLog.UserActivityInfo($"UseCastable: Sending spelleffect for {Name}: {castObject.Effects.Animations.OnCast.SpellEffect.Id}");
                     Effect(castObject.Effects.Animations.OnCast.SpellEffect.Id, castObject.Effects.Animations.OnCast.SpellEffect.Speed);
+                }
             }
 
             if (castObject.Effects?.Sound != null)
@@ -524,6 +509,8 @@ namespace Hybrasyl.Objects
                 }
 
             }
+            if (targets.Count == 0)
+                GameLog.UserActivityError("{Name}: {castObject.Name}: hey fam no targets");
 
             foreach (var tar in targets)
             {
@@ -553,7 +540,7 @@ namespace Hybrasyl.Objects
 
                     if (this is User)
                     {
-                        if(Equipment.Weapon != null) Equipment.Weapon.Durability -= 1 / (Equipment.Weapon.MaximumDurability * (100 - Stats.Ac));
+                        if(Equipment.Weapon != null && !Equipment.Weapon.Undamageable) Equipment.Weapon.Durability -= 1 / (Equipment.Weapon.MaximumDurability * (100 - Stats.Ac));
                     }
 
                     if (tar.Stats.Hp <= 0) { deadMobs.Add(tar); }
@@ -567,7 +554,7 @@ namespace Hybrasyl.Objects
                     if (this is User)
                     {
                         GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} healing: {healOutput}");
-                        if (Equipment.Weapon != null)
+                        if (Equipment.Weapon != null && !Equipment.Weapon.Undamageable)
                            Equipment.Weapon.Durability -= 1 / (Equipment.Weapon.MaximumDurability * (100 - Stats.Ac));
                     }
                 }
@@ -579,8 +566,9 @@ namespace Hybrasyl.Objects
                     Xml.Status applyStatus;
                     if (World.WorldData.TryGetValueByIndex<Xml.Status>(status.Value, out applyStatus))
                     {
-                        GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - applying status {status.Value}");
-                        ApplyStatus(new CreatureStatus(applyStatus, tar, castObject));
+                        var duration = status.Duration == 0 ? applyStatus.Duration : status.Duration;
+                        GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - applying status {status.Value} - duration {duration}");
+                        tar.ApplyStatus(new CreatureStatus(applyStatus, tar, castObject, this, duration));
                     }
                     else
                         GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name} - failed to add status {status.Value}, does not exist!");
@@ -592,7 +580,7 @@ namespace Hybrasyl.Objects
                     if (World.WorldData.TryGetValueByIndex<Xml.Status>(status, out applyStatus))
                     {
                         GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name} - removing status {status}");
-                        RemoveStatus(applyStatus.Icon);
+                        tar.RemoveStatus(applyStatus.Icon);
                     }
                     else
                         GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name} - failed to remove status {status}, does not exist!");
@@ -818,8 +806,11 @@ namespace Hybrasyl.Objects
 
         public virtual void Heal(double heal, Creature source = null)
         {
+            OnHeal(source, (uint) heal);
+
             if (AbsoluteImmortal || PhysicalImmortal) return;
             if (Stats.Hp == Stats.MaximumHp) return;
+            Stats.Hp = heal > uint.MaxValue ? Stats.MaximumHp : Math.Min(Stats.MaximumHp, (uint)(Stats.Hp + heal));
 
             Stats.Hp = heal > uint.MaxValue ? Stats.MaximumHp : Math.Min(Stats.MaximumHp, (uint)(Stats.Hp + heal));
             SendDamageUpdate(this);
@@ -846,14 +837,6 @@ namespace Hybrasyl.Objects
 
             LastHitTime = DateTime.Now;
 
-            if (AbsoluteImmortal) return; 
-
-            if (damageType == Xml.DamageType.Physical && (AbsoluteImmortal || PhysicalImmortal))
-                return;
-
-            if (damageType == Xml.DamageType.Magical && (AbsoluteImmortal || MagicalImmortal))
-                return;
-
             if (damageType != Xml.DamageType.Direct)
             {
                 double armor = Stats.Ac * -1 + 100;
@@ -873,12 +856,20 @@ namespace Hybrasyl.Objects
             else if (normalized > Stats.Hp)
                 normalized = Stats.Hp;
 
+            OnDamage(attacker, normalized);
+
+            if (AbsoluteImmortal) return;
+
+            if (damageType == Xml.DamageType.Physical && (AbsoluteImmortal || PhysicalImmortal))
+                return;
+
+            if (damageType == Xml.DamageType.Magical && (AbsoluteImmortal || MagicalImmortal))
+                return;
+
             Stats.Hp -= normalized;
 
             SendDamageUpdate(this);
-            
-            OnReceiveDamage();
-            
+                        
             // TODO: Separate this out into a control message
             if (Stats.Hp == 0 && onDeath)
                 OnDeath();

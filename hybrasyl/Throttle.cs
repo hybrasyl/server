@@ -241,7 +241,7 @@ namespace Hybrasyl
             try
             {
                 DateTime rightnow = DateTime.Now;
-                GameLog.Warning($"Right now is {rightnow}");
+                //GameLog.Warning($"Right now is {rightnow}");
                 var transmitInterval = (rightnow - info.LastReceived);
                 var acceptedInterval = (rightnow - info.LastAccepted);
                 info.PreviousReceived = info.LastReceived;

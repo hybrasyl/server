@@ -34,7 +34,6 @@ namespace Hybrasyl
     [Serializable]
     public abstract class Packet
     {
-
         protected static byte[][] SaltTable = new byte[][]
     {
       #region Seed 00
@@ -287,7 +286,6 @@ namespace Hybrasyl
             }
             catch (Exception)
             {
-
                 Array.Resize(ref buffer, Data.Length + shouldEncrypt + 2);
             }
             finally

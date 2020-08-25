@@ -19,7 +19,7 @@ using System.Text;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 
-[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.4084.0")]
+[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.3752.0")]
 [Serializable]
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -27,6 +27,7 @@ using System.Collections.Generic;
 public partial class SpawnMap
 {
     #region Private fields
+    private List<SpawnCoordinate> _coordinates;
     private string _name;
     private int _minSpawn;
     private int _maxSpawn;
@@ -39,6 +40,19 @@ public partial class SpawnMap
     public SpawnMap()
     {
         _disabled = false;
+    }
+    
+    [XmlArrayItemAttribute("Coordinate", typeof(SpawnCoordinate), IsNullable=false)]
+    public List<SpawnCoordinate> Coordinates
+    {
+        get
+        {
+            return _coordinates;
+        }
+        set
+        {
+            _coordinates = value;
+        }
     }
     
     [XmlAttribute]

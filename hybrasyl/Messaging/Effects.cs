@@ -31,7 +31,7 @@ namespace Hybrasyl.Messaging
         public new static string Command = "motion";
         public new static string ArgumentText = "<byte motion> [<short speed>]";
         public new static string HelpText = "Displays the specified motion (player animation) with an optional speed.";
-        public new static bool Privileged = false;
+        public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
@@ -74,7 +74,7 @@ namespace Hybrasyl.Messaging
         public new static string Command = "effect";
         public new static string ArgumentText = "<byte effect>";
         public new static string HelpText = "Displays the specified effect (animation).";
-        public new static bool Privileged = false;
+        public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
@@ -95,7 +95,8 @@ namespace Hybrasyl.Messaging
         public new static string Command = "sound";
         public new static string ArgumentText = "<byte sound>";
         public new static string HelpText = "Plays the specified sound effect.";
-        public new static bool Privileged = false;
+        public new static bool Privileged = true;
+
         public new static ChatCommandResult Run(User user, params string[] args)
         {
             if (byte.TryParse(args[0], out byte sound))
@@ -114,7 +115,7 @@ namespace Hybrasyl.Messaging
         public new static string Command = "music";
         public new static string ArgumentText = "<byte music>";
         public new static string HelpText = "Plays the specified background music.";
-        public new static bool Privileged = false;
+        public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
@@ -136,8 +137,7 @@ namespace Hybrasyl.Messaging
         public new static string Command = "item";
         public new static string ArgumentText = "<string itemName> [<uint quantity>]";
         public new static string HelpText = "Give yourself the specified item, with optional quantity.";
-        public new static bool Privileged = false;
-
+        public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
@@ -161,8 +161,7 @@ namespace Hybrasyl.Messaging
         public new static string Command = "itemlist";
         public new static string ArgumentText = "<string searchTerm>";
         public new static string HelpText = "Searches for items with the specified search term.";
-        public new static bool Privileged = false;
-
+        public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
@@ -196,7 +195,7 @@ namespace Hybrasyl.Messaging
         public new static string Command = "mapmsg";
         public new static string ArgumentText = "<string message>";
         public new static string HelpText = "Send a map message to everyone on the current map.";
-        public new static bool Privileged = false;
+        public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
@@ -214,7 +213,7 @@ namespace Hybrasyl.Messaging
         public new static string Command = "worldmsg";
         public new static string ArgumentText = "<string message>";
         public new static string HelpText = "Send a map message to everyone on the current map.";
-        public new static bool Privileged = false;
+        public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {

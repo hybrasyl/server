@@ -42,6 +42,16 @@
     <xs:attribute name="Port" type="xs:unsignedShort" use="required" />
   </xs:complexType>
 
+  <xs:complexType name="NetworkInfoSsl">
+    <xs:sequence>
+      <xs:element name="ChainCertificateFile" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="ServerCertificateFile" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="ServerKeyFile" type="xs:string" minOccurs="1" maxOccurs="1" />       
+    </xs:sequence>
+    <xs:attribute name="BindAddress" type="hyb:IpAddress" default="127.0.0.1" />
+    <xs:attribute name="Port" type="xs:unsignedShort" use="required" />
+  </xs:complexType>
+
   <xs:complexType name="TargetUrl">
     <xs:attribute name="Url" type="xs:anyURI"/>
   </xs:complexType>
@@ -52,9 +62,10 @@
 
   <xs:complexType name="Network">
     <xs:sequence>
-      <xs:element name="Lobby" type="hyb:NetworkInfo" />
-      <xs:element name="Login" type="hyb:NetworkInfo" />
-      <xs:element name="World" type="hyb:NetworkInfo" />
+      <xs:element name="Lobby" type="hyb:NetworkInfo" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Login" type="hyb:NetworkInfo" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="World" type="hyb:NetworkInfo" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Grpc" type="hyb:NetworkInfoSsl" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
   </xs:complexType>
 
@@ -64,6 +75,7 @@
       <xs:element name="RemoteAdminHost" type="hyb:TargetUrl" />
       <xs:element name="EncryptionEndpoint" type="hyb:TargetUrl" maxOccurs="1" minOccurs="0" />
       <xs:element name="ValidationEndpoint" type="hyb:TargetUrl" minOccurs="0" maxOccurs="1" />
+      <xs:element name="Sentry" minOccurs="0" maxOccurs="1" type="hyb:TargetUrl"/>
     </xs:sequence>
   </xs:complexType>
 

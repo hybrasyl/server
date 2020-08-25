@@ -20,7 +20,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 
 [System.FlagsAttribute()]
-[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.4084.0")]
+[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.3752.0")]
 [Serializable]
 [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
 public enum ItemFlags
@@ -34,11 +34,12 @@ public enum ItemFlags
     Exchangeable = 64,
     Vendorable = 128,
     Perishable = 256,
-    Unique = 512,
-    Master = 1024,
-    [XmlEnumAttribute("Unique-Equipped")]
-    [EnumMember(Value="Unique-Equipped")]
+    UniqueInventory = 512,
+    MasterOnly = 1024,
     UniqueEquipped = 2048,
+    Identifiable = 4096,
+    Undamageable = 8192,
+    Consumable = 16384,
 }
 }
 #pragma warning restore

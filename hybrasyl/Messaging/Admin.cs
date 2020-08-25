@@ -21,6 +21,7 @@
 
 using Hybrasyl.Objects;
 using Hybrasyl.Scripting;
+using Hybrasyl.Xml;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -29,7 +30,7 @@ using System.Net;
 namespace Hybrasyl.Messaging
 {
     // Various admin commands are implemented here.
-    
+
     class ShowCookies : ChatCommand
     {
         public new static string Command = "showcookies";
@@ -37,7 +38,7 @@ namespace Hybrasyl.Messaging
         public new static string HelpText = "Show permanent and session cookies set for a specified player";
         public new static bool Privileged = true;
 
-        public new static ChatCommandResult Run(User user, params string [] args)
+        public new static ChatCommandResult Run(User user, params string[] args)
         {
             if (Game.World.WorldData.TryGetValue<User>(args[0], out User target))
             {
@@ -116,7 +117,7 @@ namespace Hybrasyl.Messaging
             return Fail("Look chief idk about all that");
         }
     }
-   
+
     class SetCookie : ChatCommand
     {
         public new static string Command = "setcookie";
@@ -141,7 +142,7 @@ namespace Hybrasyl.Messaging
         public new static string ArgumentText = "none";
         public new static string HelpText = "Make yourself immune to all damage";
         public new static bool Privileged = true;
-        
+
         public new static ChatCommandResult Run(User user, params string[] args)
         {
             user.AbsoluteImmortal = !user.AbsoluteImmortal;
@@ -446,6 +447,23 @@ namespace Hybrasyl.Messaging
         }
     }
 
+    class WallsCommand : ChatCommand
+    {
+        public new static string Command = "walls";
+        public new static string ArgumentText = "none";
+        public new static string HelpText = "Enable or disable wallwalking.";
+        public new static bool Privileged = true;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            var disableCollisions = user.Flags.ContainsKey("disablecollisions") ? user.Flags["disablecollisions"] : false;
+            user.Flags["disablecollisions"] = !disableCollisions;
+            var msg = user.Flags["disablecollisions"] ? Success("Wall walking enabled") : Success("Wall walking disabled");
+            user.UpdateAttributes(Enums.StatUpdateFlags.Primary);
+            return msg;
+        }
+    }
+
     class ShutdownCommand : ChatCommand
     {
         public new static string Command = "shutdown";
@@ -550,53 +568,106 @@ namespace Hybrasyl.Messaging
     class TeleportCommand : ChatCommand
     {
         public new static string Command = "teleport";
-        public new static string ArgumentText = "<string playername> | <uint mapnumber> <byte x> <byte y>";
+        public new static string ArgumentText = "<string playername> | <string npcname> | <string mapname> <byte x> <byte y> | <uint mapnumber> <byte x> <byte y>";
         public new static string HelpText = "Teleport to the specified player, or the given map number and coordinates.";
-        public new static bool Privileged = false;
+        public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
 
             if (args.Length == 1)
             {
-                if (!Game.World.WorldData.ContainsKey<User>(args[0]))
-                {
-                    return Fail("That player cannot be found");
-                }
-                else
+                // Either user or npc
+                if (Game.World.WorldData.ContainsKey<User>(args[0]))
                 {
                     var target = Game.World.WorldData.Get<User>(args[0]);
                     user.Teleport(target.Location.MapId, target.Location.X, target.Location.Y);
                     return Success($"Teleported to {target.Name} - {target.Map.Name} ({target.Location.X},{target.Location.Y})");
                 }
+                if (Game.World.WorldData.TryGetValue(args[0], out Merchant merchant))
+                {
+                    (var x, var y) = merchant.Map.FindEmptyTile((byte)(merchant.Map.X / 2), (byte)(merchant.Map.Y / 2));
+                    if (x > 0 && y > 0)
+                    {
+                        user.Teleport(merchant.Map.Id, x, y);
+                        return Success($"Teleported to {merchant.Name} - {merchant.Map.Name} ({x}, {y})");
+                    }
+                    return Fail("Sorry, something went wrong (empty tile could not be found..?)");
+                }
+                return Fail($"Sorry, user or npc {args[0]} not found.");
             }
             else
             {
-                if (ushort.TryParse(args[0], out ushort mapnum) && byte.TryParse(args[1], out byte x) && byte.TryParse(args[2], out byte y))
-                {
+                ushort? mapnum = null;
+                if (ushort.TryParse(args[0], out ushort num))
+                    mapnum = num;
+                else if (Game.World.WorldData.TryGetValueByIndex<Map>(args[0], out Map targetMap))
+                    mapnum = targetMap.Id;
+                else
+                    return Fail("Unknown map id or map name");
 
-                    if (Game.World.WorldData.ContainsKey<Map>(mapnum))
+                if (Game.World.WorldData.TryGetValue<Map>(mapnum, out Map map))
+                {
+                    if (byte.TryParse(args[1], out byte x) && byte.TryParse(args[2], out byte y))
                     {
-                        var map = Game.World.WorldData.Get<Map>(mapnum);
+
                         if (x < map.X && y < map.Y)
                         {
-                            user.Teleport(mapnum, x, y);
+                            user.Teleport(map.Id, x, y);
                             return Success($"Teleported to {map.Name} ({x},{y}).");
                         }
                         else
                             return Fail("Invalid x/y specified (hint: mapsize is {map.X}x{map.Y})");
                     }
                     else
-                        return Fail("Map number {mapnum} not found");
+                    {
+                        return Fail("Couldn't parse map number or coordinates (uint / byte / byte)");
+                    }
                 }
                 else
-                {
-                    return Fail("Couldn't parse map number or coordinates (uint / byte / byte)");
-                }
+                    return Fail("Map number {mapnum} not found");
             }
+
         }
     }
 
+    class ResurrectCommand : ChatCommand
+    {
+        public new static string Command = "resurrect";
+        public new static string ArgumentText = "None";
+        public new static string HelpText = "Resurrect yourself, if dead.";
+        public new static bool Privileged = true;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            if (!user.Condition.Alive)
+            {
+                user.Resurrect();
+                return Success("Saved from the clutches of Sgrios.");
+            }
+            return Success("You're already alive..");
+        }
+    }
+
+    class ReturnCommand : ChatCommand
+    {
+        public new static string Command = "return";
+        public new static string ArgumentText = "None";
+        public new static string HelpText = "Return (alive) to the exact point of your last death.";
+        public new static bool Privileged = true;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            if (!user.Condition.Alive)
+            {
+                user.Resurrect(true);
+                return Success("Be more careful next time.");
+            }
+            user.Teleport(user.Location.DeathMap.Id, user.Location.DeathMapX, user.Location.DeathMapY);
+            return Success("Recalled.");
+        }
+
+    }
     class DebugCommand : ChatCommand
     {
         public new static string Command = "debug";
@@ -710,16 +781,15 @@ namespace Hybrasyl.Messaging
                         };
                         Monster newMob = new Monster(creature, spawn, user.Location.MapId);
                         user.World.Insert(newMob);
-                        user.Map.Insert(newMob, (byte)rand.Next(0,map.X), (byte)rand.Next(0, map.Y));
+                        user.Map.Insert(newMob, (byte)rand.Next(0, map.X), (byte)rand.Next(0, map.Y));
                     }
                 }
-                
+
                 return Success($"{creature.Name} spawned.");
             }
             else return Fail("Creature {args[0]} not found");
 
         }
-
     }
 }
 

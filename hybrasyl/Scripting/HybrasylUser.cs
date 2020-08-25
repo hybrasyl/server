@@ -18,7 +18,6 @@
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
  */
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -52,6 +51,11 @@ namespace Hybrasyl.Scripting
         /// The user's class (e.g. Rogue, Warrior, etc)
         /// </summary>
         public Xml.Class Class => User.Class;
+
+        /// <summary>
+        /// The user's previous class, if a subpath.
+        /// </summary>
+        public Xml.Class PreviousClass => User.PreviousClass;
 
         // TODO: determine a better way to do this in lua via moonsharp
         /// <summary>
@@ -209,6 +213,13 @@ namespace Hybrasyl.Scripting
         }
 
         /// <summary>
+        /// Check to see if a player has a legend mark with the specified prefix in their legend.
+        /// </summary>
+        /// <param name="prefix">Prefix of the mark to check</param>
+        /// <returns>boolean</returns>
+        public bool HasLegendMark(string prefix) => User.Legend.TryGetMark(prefix, out LegendMark _);
+
+        /// <summary>
         /// Change the class of a player to a new class. The player's class will immediately change and they will receive a legend mark that 
         /// reads "newClass by oath of oathGiver, XXX".
         /// </summary>
@@ -244,9 +255,33 @@ namespace Hybrasyl.Scripting
                     legendtext = $"Wizard by oath of {oathGiver}";
                     break;
                 default:
+                    GameLog.ScriptingError("ChangeClass: {user} - unknown class (first argument) passed", User.Name);
                     throw new ArgumentException("Invalid class");
             }
             User.Legend.AddMark(icon, LegendColor.White, legendtext, "CLS");
+        }
+
+        /// <summary>
+        /// Check to see whether the user has killed a named monster, optionally in the last n minutes.
+        /// </summary>
+        /// <param name="name">The name of the monster to check</param>
+        /// <param name="minutes">The number of minutes to limit the check. 0 is default and means no limit.</param>
+        /// <returns></returns>
+        public bool HasKilled(string name, int minutes = 0)
+        {
+            var ts = DateTime.Now;
+            var matches = User.RecentKills.Where(x => x.Name.ToLower() == name.ToLower()).ToList();
+            if (matches.Count > 0 && minutes == 0)
+                return true;
+            else if (matches.Count > 0 && minutes > 0)
+            {
+                foreach (var rec in matches)
+                {
+                    if ((ts - rec.Timestamp).TotalMinutes <= minutes)
+                        return true;
+                }
+            }
+            return false;
         }
 
         /// <summary>
@@ -309,7 +344,7 @@ namespace Hybrasyl.Scripting
             }
             catch (ArgumentException)
             {
-                GameLog.ErrorFormat("Legend mark: {0}: duplicate prefix {1}", User.Name, prefix);
+                GameLog.ScriptingError("AddLegendMark: {user} - duplicate prefix {prefix}", User.Name, prefix);
             }
             return false;
         }
@@ -333,13 +368,43 @@ namespace Hybrasyl.Scripting
         /// <returns>Boolean indicating whether the mark for modification was found or not</returns>
         public bool ModifyLegendMark(string prefix, int quantity, bool isPublic)
         {
-            LegendMark mark;
-            if (!User.Legend.TryGetMark(prefix, out mark)) return false;
+            if (!User.Legend.TryGetMark(prefix, out LegendMark mark)) return false;
             mark.Quantity = quantity;
             mark.Public = isPublic;
             return true;
         }
 
+        /// <summary>
+        /// Increment a legend mark with a quantity.
+        /// </summary>
+        /// <param name="prefix">The legend mark prefix to modify.</param>
+        /// <param name="preserveDate">Whether or not to preserve the date. If true, the date of the mark is not updated.</param>
+        /// <returns>Boolean indicating whether the mark existed / was updated</returns>
+        public bool IncrementLegendMark(string prefix, bool preserveDate=true)
+        {
+            if (!User.Legend.TryGetMark(prefix, out LegendMark mark))
+                return false;
+            mark.Quantity++;
+            if (!preserveDate)
+                mark.Timestamp = DateTime.Now;
+            return true;
+        }
+
+        /// <summary>
+        /// Decrement a legend mark with a quantity.
+        /// </summary>
+        /// <param name="prefix">The legend mark prefix to modify.</param>
+        /// <param name="preserveDate">Whether or not to preserve the date. If true, the date of the mark is not updated.</param>
+        /// <returns>Boolean indicating whether the mark existed / was updated</returns>
+        public bool DecrementLegendMark(string prefix, bool preserveDate=true)
+        {
+            if (!User.Legend.TryGetMark(prefix, out LegendMark mark))
+                return false;
+            mark.Quantity--;
+            if (!preserveDate)
+                mark.Timestamp = DateTime.Now;
+            return true;
+        }
 
         /// <summary>
         /// Request a sequence between two players. This is primarily used to start asynchronous dialog sequences (for things like mentoring or religion where confirmation from a second
@@ -350,6 +415,12 @@ namespace Hybrasyl.Scripting
         /// <returns>Boolean indicating whether or not the request was successful.</returns>
         public bool RequestDialog(string sequence, string invoker = "")
         {
+            if (string.IsNullOrEmpty(sequence))
+            {
+                GameLog.ScriptingError("RequestDialog: {user} - sequence (first argument) was null or empty", User.Name);
+                return false;
+            }
+
             DialogSequence sequenceObj = null;
             VisibleObject invokerObj = null;
 
@@ -368,7 +439,7 @@ namespace Hybrasyl.Scripting
             if (invokerObj != null && sequenceObj != null)
                 return Game.World.TryAsyncDialog(invokerObj, User, sequenceObj);
 
-            GameLog.Warning($"invoker {invoker} or sequence {sequence} not found");
+            GameLog.ScriptingWarning("RequestDialog: {user} - invoker {invoker} or sequence {sequence} not found", user, invoker, sequence);
             return false;
         }
         /// <summary>
@@ -379,6 +450,11 @@ namespace Hybrasyl.Scripting
         /// <param name="value">Dynamic (any type) value to be stored with the given name.</param>
         public void SetSessionCookie(string cookieName, dynamic value)
         {
+            if (string.IsNullOrEmpty(cookieName) || value is null)
+            {
+                GameLog.ScriptingError("SetSessionCookie: {user} - session cookie name (first argument) or value (second) was null or empty", User.Name);
+                return;
+            }
             try
             {
                 if (value.GetType() == typeof(string))
@@ -389,7 +465,8 @@ namespace Hybrasyl.Scripting
             }
             catch (Exception e)
             {
-                GameLog.WarningFormat("{0}: value could not be converted to string? {1}", User.Name, e.ToString());
+                Game.ReportException(e);
+                GameLog.ScriptingError("SetSessionCookie: {user}: value (second argument) could not be converted to string? {error}", User.Name, e);
             }
         }
 
@@ -400,7 +477,11 @@ namespace Hybrasyl.Scripting
         /// <param name="cookieName">Name of the cookie</param>
         /// <param name="value">Dynamic (any type) value to be stored with the given name.</param>
         public void SetCookie(string cookieName, dynamic value)
-        { 
+        {
+            if (string.IsNullOrEmpty(cookieName) || value is null)
+            {
+                GameLog.ScriptingError("SetCookie: {user} - session cookie name (first argument) or value (second) was null or empty", User.Name);
+            }
             try
             {
                 if (value.GetType() == typeof(string))
@@ -411,7 +492,8 @@ namespace Hybrasyl.Scripting
             }
             catch (Exception e)
             {
-                GameLog.WarningFormat("{0}: value could not be converted to string? {1}", User.Name, e.ToString());
+                Game.ReportException(e);
+                GameLog.ScriptingError("SetCookie: {user} - value (second argument) could not be converted to string? {exception}", User.Name, e.ToString());
             }
 
         }
@@ -421,42 +503,91 @@ namespace Hybrasyl.Scripting
         /// </summary>
         /// <param name="cookieName">The name of the cookie to fetch</param>
         /// <returns>string representation of the cookie value</returns>
-        public string GetSessionCookie(string cookieName) => User.GetSessionCookie(cookieName);
+        public string GetSessionCookie(string cookieName)
+        {
+            if (string.IsNullOrEmpty(cookieName))
+            {
+                GameLog.ScriptingError("GetSessionCookie: {user} - cookie name (first argument) was null or empty - returning nil", User.Name);
+                return null;
+            }
+            return User.GetSessionCookie(cookieName);
+        }
 
         /// <summary>
         /// Get the value of a cookie, if it exists.
         /// </summary>
         /// <param name="cookieName">The name of the cookie to fetch</param>
         /// <returns>string representation of the cookie value</returns>
-        public string GetCookie(string cookieName) => User.GetCookie(cookieName);
+        public string GetCookie(string cookieName)
+        {
+            if (string.IsNullOrEmpty(cookieName))
+            {
+                GameLog.ScriptingError("GetCookie: {user} - cookie name (first argument) was null or empty - returning nil", User.Name);
+                return null;
+            }
 
+            return User.GetCookie(cookieName);
+        }
         /// <summary>
         /// Check to see if a player has a specified cookie or not.
         /// </summary>
         /// <param name="cookieName">Cookie name to check</param>
         /// <returns>Boolean indicating whether or not the named cookie exists</returns>
-        public bool HasCookie(string cookieName) => User.HasCookie(cookieName);
+        public bool HasCookie(string cookieName)
+        {
+            if (string.IsNullOrEmpty(cookieName))
+            {
+                GameLog.ScriptingError("HasCookie: {user} - cookie name (first argument) was null or empty - returning false", User.Name);
+                return false;
+            }
 
+            return User.HasCookie(cookieName);
+        }
         /// <summary>
         /// Check to see if a player has a specified session cookie or not.
         /// </summary>
         /// <param name="cookieName">Cookie name to check</param>
         /// <returns>Boolean indicating whether or not the named cookie exists</returns>
-        public bool HasSessionCookie(string cookieName) => User.HasSessionCookie(cookieName);
+        public bool HasSessionCookie(string cookieName)
+        {
+            if (string.IsNullOrEmpty(cookieName))
+            {
+                GameLog.ScriptingError("HasSessionCookie: {user} - cookie name (first argument) was null or empty - returning false", User.Name);
+                return false;
+            }
+
+            return User.HasSessionCookie(cookieName);
+        }
 
         /// <summary>
         /// Permanently remove a cookie from a player.
         /// </summary>
         /// <param name="cookieName">The name of the cookie to be deleted.</param>
         /// <returns></returns>
-        public bool DeleteCookie(string cookieName) => User.DeleteCookie(cookieName);
-
+        public bool DeleteCookie(string cookieName)
+        {
+            if (string.IsNullOrEmpty(cookieName))
+            {
+                GameLog.ScriptingError("DeleteCookie: {user} cookie name (first argument) was null or empty - returning false", User.Name);
+                return false;
+            }
+            return User.DeleteCookie(cookieName);
+        }
         /// <summary>
         /// Permanently remove a session cookie from a player.
         /// </summary>
         /// <param name="cookieName">The name of the cookie to be deleted.</param>
         /// <returns></returns>
-        public bool DeleteSessionCookie(string cookieName) => User.DeleteSessionCookie(cookieName);
+        public bool DeleteSessionCookie(string cookieName)
+        {
+            if (string.IsNullOrEmpty(cookieName))
+            {
+                GameLog.ScriptingError("DeleteSessionCookie: {user} cookie name (first argument) was null or empty - returning false", User.Name);
+                return false;
+            }
+
+            return User.DeleteSessionCookie(cookieName);
+        }
 
         /// <summary>
         /// Display a special effect visible to players.
@@ -496,6 +627,11 @@ namespace Hybrasyl.Scripting
         /// <param name="y">Y coordinate target</param>
         public void Teleport(string location, int x, int y)
         {
+            if (string.IsNullOrEmpty(location))
+            {
+                GameLog.ScriptingError("Teleport: {user} - location name (first argument) was null or empty - aborting for safety", User.Name);
+                return;
+            }
             User.Teleport(location, (byte)x, (byte)y);
         }
 
@@ -558,9 +694,37 @@ namespace Hybrasyl.Scripting
         /// <returns>Boolean indicating whether or not it was successful (player may have full inventory, etc)</returns>
         public bool GiveItem(HybrasylWorldObject obj)
         {
-            if (obj.Obj is ItemObject)
+            if (obj.Obj is ItemObject || !(obj is null))
                 return User.AddItem(obj.Obj as ItemObject);
+            else
+            {
+                GameLog.ScriptingError("GiveItem: {user} - object (first argument) was either null, or not an item", User.Name);
+            }
             return false;
+        }
+
+        /// <summary>
+        /// Check to see if a user has the specified cookie; if not, set it, give experience, and optionally, send them a system message.
+        /// </summary>
+        /// <param name="cookie">Name of the cookie to be set.</param>
+        /// <param name="xp">Amount of XP to award.</param>
+        /// <param name="completionMessage">A system message that will be sent to the user.</param>
+        /// <returns>Boolean indicating whether or not the user was awarded XP.</returns>
+        public bool CompletionAward(string cookie, uint xp = 0, string completionMessage = null)
+        {
+            if (string.IsNullOrEmpty(cookie))
+            {
+                GameLog.ScriptingError("CompletionAward: {user} - cookie name (first parameter) cannot be null or empty - returning false", User.Name);
+                return false;
+            }
+            if (User.HasCookie(cookie))
+                return false;
+            User.SetCookie(cookie, new DateTimeOffset(DateTime.Now).ToUnixTimeSeconds().ToString());
+            if (xp > 0)
+                User.GiveExperience(xp);
+            if (!string.IsNullOrEmpty(completionMessage))
+                User.SendSystemMessage(completionMessage);
+            return true;
         }
 
         /// <summary>
@@ -571,13 +735,18 @@ namespace Hybrasyl.Scripting
         /// <returns>Boolean indicating whether or not it was successful (player may have full inventory, etc)</returns>
         public bool GiveItem(string name, int count = 1)
         {
+            if (string.IsNullOrEmpty(name))
+            {
+                GameLog.ScriptingError("GiveItem: {user}: item name (first parameter) was null or empty - returning false", User.Name);
+                return false;
+            }
             // Does the item exist?
             if (Game.World.WorldData.TryGetValueByIndex(name, out Xml.Item template))
             {
                 if (template.Stackable)
                 {
                     var item = Game.World.CreateItem(template.Id);
-                    if (count > 1)
+                    if (count >= 1)
                         item.Count = count > item.MaximumStack ? item.MaximumStack : count;
                     else
                         item.Count = item.MaximumStack;
@@ -590,7 +759,7 @@ namespace Hybrasyl.Scripting
                     var success = true;
                     // Actually add N of the item. Note that if the user's inventory is full, or
                     // becomes full, the items will drop to the ground.
-                    for (var i = 0; i <= count; i++)
+                    for (var i = 0; i < count; i++)
                     {
                         var item = Game.World.CreateItem(template.Id);
                         Game.World.Insert(item);
@@ -599,6 +768,7 @@ namespace Hybrasyl.Scripting
                     return success;
                 }
             }
+            GameLog.ScriptingError("GiveItem: {user} - item name {name} could not be found", User.Name, name);
             return false;
         }
 
@@ -610,6 +780,11 @@ namespace Hybrasyl.Scripting
         /// <returns></returns>
         public bool HasItem(string name, int count = 1)
         {
+            if (string.IsNullOrEmpty(name))
+            {
+                GameLog.ScriptingError("HasItem: {user} - item name (first parameter) was null or empty - returning false", User.Name);
+                return false;
+            }
             if (count == 1)
                 return User.Inventory.ContainsName(name);
             return User.Inventory.Contains(name, count);
@@ -623,15 +798,21 @@ namespace Hybrasyl.Scripting
         /// <returns>Boolean indicating whether or not it the item was successfully removed from the player's inventory.</returns>
         public bool TakeItem(string name, int count = 1)
         {
+            if (string.IsNullOrEmpty(name))
+            {
+                GameLog.ScriptingError("TakeItem: {user} - item name (first parameter) was null or empty - returning false", User.Name);
+                return false;
+            }
+
             if (User.Inventory.ContainsName(name))
             {
                 if (User.RemoveItem(name, (ushort)count))
                     return true;
                 else
-                    GameLog.ScriptingWarning("{Function}: User {User} removeitem failed for {item}", MethodInfo.GetCurrentMethod().Name, User.Name, name);
+                    GameLog.ScriptingWarning("TakeItem: {user} - failed for {item}", User.Name, name);
             }
             else
-                GameLog.ScriptingWarning("{Function}: User {User} doesn't have {item}", MethodInfo.GetCurrentMethod().Name, User.Name, name);
+                GameLog.ScriptingWarning("TakeItem: {user} doesn't have {item}", User.Name, name);
 
             return false;
         }
@@ -669,12 +850,34 @@ namespace Hybrasyl.Scripting
         /// <returns>Boolean indicating success</returns>
         public bool AddSkill(string skillname)
         {
-            if (Game.World.WorldData.TryGetValue(skillname, out Xml.Castable result))
+            if (string.IsNullOrEmpty(skillname))
+                GameLog.ScriptingError("AddSkill: {user} - skill name (first argument) cannot be null or empty");
+            else if (Game.World.WorldData.TryGetValue(skillname, out Xml.Castable result))
             {
                 User.AddSkill(result);
                 return true;
             }
+            else
+                GameLog.ScriptingError("AddSkill: {user} - skill {skill} not found", User.Name, skillname);
             return false;
+        }
+
+
+        /// <summary>
+        /// Check to see if the specified skill exists in the user's skill book.
+        /// </summary>
+        /// <param name="skillname">Name of the skill to find.</param>
+        /// <returns>Boolean indicating whether or not the user knows the skill.</returns>
+        public bool HasSkill(string skillname)
+        {
+            if (string.IsNullOrEmpty(skillname))
+                GameLog.ScriptingError("HasSkill: {user} - skill name (first argument) cannot be null or empty");
+            else if (Game.World.WorldData.TryGetValue(skillname, out Xml.Castable result))
+                return User.SkillBook.Contains(result);
+            else
+                GameLog.ScriptingError("HasSkill: {user} - skill {skill} not found", User.Name, skillname);
+            return false;
+
         }
 
         /// <summary>
@@ -684,12 +887,33 @@ namespace Hybrasyl.Scripting
         /// <returns>Boolean indicating success</returns>
         public bool AddSpell(string spellname)
         {
-            if (Game.World.WorldData.TryGetValue(spellname, out Xml.Castable result))
+            if (string.IsNullOrEmpty(spellname))
+                GameLog.ScriptingError("AddSpell: {user} - spell name (first argument) cannot be null or empty");
+            else if (Game.World.WorldData.TryGetValue(spellname, out Xml.Castable result))
             {
                 User.AddSpell(result);
                 return true;
             }
+            else
+                GameLog.ScriptingError("AddSpell: {user} - spell {spell} not found", User.Name, spellname);
             return false;
+        }
+
+        /// <summary>
+        /// Check to see if the specified spell exists in the user's spell book.
+        /// </summary>
+        /// <param name="skillname">Name of the spell to find.</param>
+        /// <returns>Boolean indicating whether or not the user knows the spell.</returns>
+        public bool HasSpell(string spellname)
+        {
+            if (string.IsNullOrEmpty(spellname))
+                GameLog.ScriptingError("HasSpell: {user} - spell name (first argument) cannot be null or empty");
+            else if (Game.World.WorldData.TryGetValue(spellname, out Xml.Castable result))
+                return User.SpellBook.Contains(result);
+            else
+                GameLog.ScriptingError("HasSpell: {user} - spell {spell} not found", User.Name, spellname);
+            return false;
+
         }
 
         /// <summary>
@@ -719,10 +943,20 @@ namespace Hybrasyl.Scripting
         /// </summary>
         /// <param name="name">The name to be used for the whisper (e.g. who it is from)</param>
         /// <param name="message">The message.</param>
-        public void Whisper(string name, string message)
-        {
+        public void Whisper(string name, string message) =>
             User.SendWhisper(name, message);
-        }
+
+        /// <summary>
+        /// Say something as the user.
+        /// </summary>
+        /// <param name="message">The message to speak aloud.</param>
+        public void Say(string message) => User.Say(message);
+
+        /// <summary>
+        /// Shout something as the user.
+        /// </summary>
+        /// <param name="message">The message to shout.</param>
+        public void Shout(string message) => User.Shout(message);
 
         /// <summary>
         /// Sends an in-game mail to the current player. NOT TESTED.
@@ -732,18 +966,18 @@ namespace Hybrasyl.Scripting
         /// <param name="message">The message.</param>
         public void Mail(string name, string subject, string message)
         {
-            User.Mailbox.Messages.Add(new Message(User.Name, name, subject, message));
+            GameLog.ScriptingFatal("Mail: not currently implemented");
         }
 
-        /// <summary>
         /// Close any active dialogs for the current player.
         /// </summary>
         public void EndDialog()
         {
             User.DialogState.EndDialog();
             User.SendCloseDialog();
+            //GameLog.Info("Dialog: closed by script");
         }
-
+        
         /// <summary>
         /// Start a dialog sequence for the current player. This will display the first dialog in the sequence to the player.
         /// </summary>
@@ -751,6 +985,11 @@ namespace Hybrasyl.Scripting
         /// <param name="associateOverride">An object to associate with the dialog as the invokee.</param>
         public void StartSequence(string sequenceName, HybrasylWorldObject associateOverride = null)
         {
+            if (sequenceName == null)
+            {
+                GameLog.ScriptingError("StartSequence: {user} - sequence name (first argument) cannot be null or empty", User.Name);
+                return;
+            }
             DialogSequence sequence = null;
             VisibleObject associate = null;
             GameLog.DebugFormat("{0} starting sequence {1}", User.Name, sequenceName);
@@ -776,8 +1015,8 @@ namespace Hybrasyl.Scripting
             // We should hopefully have a sequence now...
             if (sequence == null)
             {
-                GameLog.ErrorFormat("called from {0}: sequence name {1} cannot be found!",
-                    associate?.Name ?? "globalsequence", sequenceName);
+                GameLog.ScriptingError("StartSequence: {user} - called from {associate}: sequence name {seq} cannot be found!",
+                    User.Name, associate?.Name ?? "globalsequence", sequenceName);
                 // To be safe, terminate all dialog state
                 User.DialogState.EndDialog();
                 // If the user was previously talking to a merchant, and we can't find a sequence,
@@ -789,10 +1028,23 @@ namespace Hybrasyl.Scripting
 
             // If we're here, sequence should now be our target sequence, 
             // let's end the current state and start a new one
+            if (User.DialogState.InDialog)
+            {
+                // Transition between current and new dialog
+                User.DialogState.TransitionDialog(associate, sequence);
+                //GameLog.Info($"Transitioning between dialog {User.DialogState.PreviousPursuitId} and {User.DialogState.CurrentPursuitId}");
+                //GameLog.Info($"Transition Dialog NPC associate {associate?.Name ?? "null"}");
+            }
+            else
+            {
+                // Start a new dialog
+                User.DialogState.StartDialog(associate, sequence);
+                //GameLog.Info($"StartDialog Dialog NPC associate {associate?.Name ?? "null"}");
+            }
 
-            User.DialogState.EndDialog();
-            User.DialogState.StartDialog(associate, sequence);
+            // Lastly, show the new dialog
             User.DialogState.ActiveDialog.ShowTo(User, associate);
+
         }
 
         /// <summary>

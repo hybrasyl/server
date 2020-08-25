@@ -63,6 +63,7 @@ namespace Hybrasyl
             }
             catch (Exception e)
             {
+                Game.ReportException(e);
                 GameLog.Error($"NumberCruncher formula error: castable {castable.Name}, target {target.Name}, source {source?.Name ?? "no source"}: {formula}, error: {e}");
                 return 0;
             }

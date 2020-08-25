@@ -49,6 +49,10 @@ namespace Hybrasyl.Objects
         public DateTime LastAction { get; set; }
         public bool IsHostile { get; set; }
         public bool ShouldWander { get; set; }
+        public bool CanCast => _spawn.Castables.Count > 0;
+        public bool DeathDisabled => _spawn.Flags.HasFlag(Xml.SpawnFlags.DeathDisabled);
+        public bool MovementDisabled => _spawn.Flags.HasFlag(Xml.SpawnFlags.MovementDisabled);
+        public bool AiDisabled => _spawn.Flags.HasFlag(Xml.SpawnFlags.AiDisabled);
 
         public Dictionary<uint, double> AggroTable { get; set; }
         public Xml.CastableGroup Castables => _castables;
@@ -104,9 +108,12 @@ namespace Hybrasyl.Objects
 
         public override void OnDeath()
         {
-            //Shout("AAAAAAAAAAaaaaa!!!");
-            // Now that we're dead, award loot.
-            // FIXME: Implement loot tables / full looting.
+            if (DeathDisabled)
+            {
+                Stats.Hp = Stats.MaximumHp;               
+                return;
+            }
+
             Condition.Alive = false;
             var hitter = LastHitter as User;
             if (hitter == null)
@@ -116,8 +123,18 @@ namespace Hybrasyl.Objects
                 return; // Don't handle cases of MOB ON MOB COMBAT just yet
             }
 
-            if (hitter.Grouped) ItemDropAllowedLooters = hitter.Group.Members.Select(user => user.Name).ToList();
-            else ItemDropAllowedLooters.Add(hitter.Name);
+            var deadTime = DateTime.Now;
+
+            if (hitter.Grouped)
+            {
+                ItemDropAllowedLooters = hitter.Group.Members.Select(user => user.Name).ToList();
+                hitter.Group.Members.ForEach(x => x.TrackKill(Name, deadTime));
+            }
+            else
+            {
+                ItemDropAllowedLooters.Add(hitter.Name);
+                hitter.TrackKill(Name, deadTime);
+            }
 
             hitter.ShareExperience(LootableXP);
             var itemDropTime = DateTime.Now;
@@ -151,12 +168,66 @@ namespace Hybrasyl.Objects
 
         }
 
-        public override void OnReceiveDamage()
+        // We follow a different pattern here due to the fact that monsters
+        // are not intended to be long-lived objects, and we don't want to 
+        // spend a lot of overhead and resources creating a full script (eg via
+        // OnSpawn) when not needed 99% of the time.
+        private void InitScript()
         {
-            IsHostile = true;
-            ShouldWander = false;
+            if (Script != null || !ScriptExists)               
+                return;
+
+            if (World.ScriptProcessor.TryGetScript(Name, out Script damageScript))
+            {
+                Script = damageScript;
+                Script.AssociateScriptWithObject(this);
+                ScriptExists = true;
+            }
+            else
+                ScriptExists = false;                
         }
 
+        public override void OnHear(VisibleObject speaker, string text, bool shout = false)
+        {
+            if (speaker == this)
+                return;
+
+            // FIXME: in the glorious future, run asynchronously with locking
+            InitScript();
+            if (Script != null)
+            {
+                Script.SetGlobalValue("text", text);
+                Script.SetGlobalValue("shout", shout);
+
+                if (speaker is User user)
+                    Script.ExecuteFunction("OnHear", new HybrasylUser(user));
+                else
+                    Script.ExecuteFunction("OnHear", new HybrasylWorldObject(speaker));
+            }
+        }
+
+        public override void OnDamage(Creature attacker, uint damage)
+        {
+            // FIXME: in the glorious future, run asynchronously with locking
+            InitScript();
+
+            if (Script != null)
+            {
+                Script.SetGlobalValue("damage", damage);
+                Script.ExecuteFunction("OnDamage", this, attacker);
+            }
+        }
+
+        public override void OnHeal(Creature healer, uint heal)
+        {
+            // FIXME: in the glorious future, run asynchronously with locking
+            InitScript();
+            if (Script != null)
+            {
+                Script.SetGlobalValue("heal", heal);
+                Script.ExecuteFunction("OnHeal", this, healer);
+            }
+        }
         public void OnReceiveDamage(Creature attacker, double damage)
         {
             if(!AggroTable.ContainsKey(attacker.Id))
@@ -259,6 +330,15 @@ namespace Hybrasyl.Objects
 
             _loot = loot;
 
+            if (spawn.Flags.HasFlag(Xml.SpawnFlags.AiDisabled))
+                IsHostile = false;
+            else
+                IsHostile = _random.Next(0, 7) < 2;
+
+            if (spawn.Flags.HasFlag(Xml.SpawnFlags.MovementDisabled))
+                ShouldWander = false;
+            else
+                ShouldWander = IsHostile == false;
             //until intents are fixed, this is how this is going to be done.
             IsHostile = _random.Next(0, 7) < 2;
             ShouldWander = IsHostile == false;

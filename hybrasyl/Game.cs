@@ -31,6 +31,10 @@ using Serilog;
 using AssemblyInfo = Hybrasyl.Utility.AssemblyInfo;
 using Serilog.Core;
 using Serilog.Events;
+using System.Threading.Tasks;
+using System.Net.Http;
+using Newtonsoft.Json.Linq;
+using Sentry;
 
 namespace Hybrasyl
 {
@@ -67,11 +71,18 @@ namespace Hybrasyl
         private static Thread _spawnThread;
         private static Thread _controlThread;
 
+        private static Grpc.Core.Server GrpcServer;
+
         public static LoggingLevelSwitch LevelSwitch;
 
         public static DateTime StartDate { get; set; }
+        public static string GitCommit { get; private set; }
+        public static string CommitLog { get; private set; }
 
         private static readonly CancellationTokenSource CancellationTokenSource = new CancellationTokenSource();
+
+        public static IDisposable Sentry { get; private set; }
+        public static bool SentryEnabled { get; private set; }
 
         public static void ToggleActive()
         {
@@ -88,6 +99,12 @@ namespace Hybrasyl
             if (Interlocked.Read(ref Active) == 0)
                 return false;
             return true;
+        }
+
+        public static void ReportException(Exception e)
+        {
+            if (SentryEnabled)
+                Task.Run(() => SentrySdk.CaptureException(e));
         }
 
         public static void CurrentDomain_ProcessExit(object sender, EventArgs e) => Shutdown();
@@ -146,6 +163,12 @@ namespace Hybrasyl
                     return;
                 }
             }
+            // Retrieve git hash information, if present
+            var commit = Assemblyinfo.GitHash.Split(';')[0];
+            if (!string.IsNullOrEmpty(commit))
+                GitCommit = commit;
+            else
+                GitCommit = "unknown";
 
             // Configure logging 
 
@@ -189,8 +212,35 @@ namespace Hybrasyl
                 return;
             }
 
-            Log.Information("Hybrasyl {Version} starting.", Assemblyinfo.Version);
+            Log.Information($"Hybrasyl {Assemblyinfo.Version} (commit {(string.IsNullOrEmpty(GitCommit) ? "unknown" : GitCommit)}) starting.");
             Log.Information("{Copyright} - this program is licensed under the GNU AGPL, version 3.", Assemblyinfo.Copyright);
+
+
+            try
+            {
+                var env = Environment.GetEnvironmentVariable("HYB_ENV");
+                if (!string.IsNullOrEmpty(Config.ApiEndpoints.Sentry?.Url ?? null))
+                {
+                    Sentry = SentrySdk.Init(i =>
+                    {
+                        i.Dsn = new Dsn(Config.ApiEndpoints.Sentry.Url);
+                        i.Environment = (env ?? "dev");
+                    }
+                    );
+                    SentryEnabled = true;
+                    GameLog.Info("Sentry: exception reporting enabled");
+                }
+                else
+                {
+                    GameLog.Info("Sentry: exception reporting disabled");
+                    SentryEnabled = false;
+                }
+            }
+            catch (Exception e)
+            {
+                GameLog.Warning("Sentry: exception reporting disabled, unknown error: {e}", e);
+                SentryEnabled = false;
+            }
 
             LoadCollisions();
 
@@ -253,7 +303,7 @@ namespace Hybrasyl
                     else
                     {
                         if (string.IsNullOrEmpty(Config.Motd))
-                            stipulationWriter.Write($"Welcome to Hybrasyl!\n\nThis is Hybrasyl (version {Assemblyinfo.Version}).\n\nFor more information please visit http://www.hybrasyl.com");
+                            stipulationWriter.Write($"Welcome to Hybrasyl!\n\nThis is Hybrasyl (version {Assemblyinfo.Version}, commit {(string.IsNullOrEmpty(GitCommit) ? "unknown" : GitCommit)}).\n\nFor more information please visit http://www.hybrasyl.com");
                         else
                             stipulationWriter.Write(Config.Motd);
                     }
@@ -288,6 +338,84 @@ namespace Hybrasyl
             _spawnThread.Start();
             _controlThread.Start();
 
+            Task.Run(CheckVersion).GetAwaiter();
+            Task.Run(GetCommitLog).GetAwaiter();
+
+            GrpcServer = null;
+
+            // Uncomment for GRPC troubleshooting
+            // Environment.SetEnvironmentVariable("GRPC_VERBOSITY", "debug");
+
+            // Start GRPC server
+            if (Config.Network.Grpc != null)
+            {
+                var ssl_enabled = Config.Network.Grpc.ServerCertificateFile != null && Config.Network.Grpc.ServerKeyFile != null;
+
+                if (ssl_enabled)
+                {
+                    Grpc.Core.SslServerCredentials credentials;
+                    // Load credentials
+                    try
+                    {
+                        var cert = File.ReadAllText(Path.Join(Constants.DataDirectory, Config.Network.Grpc.ServerCertificateFile));
+                        var key = File.ReadAllText(Path.Join(Constants.DataDirectory, Config.Network.Grpc.ServerKeyFile));
+                        var keypair_list = new List<Grpc.Core.KeyCertificatePair>() { new Grpc.Core.KeyCertificatePair(cert, key) };
+                        if (Config.Network.Grpc.ChainCertificateFile != null)
+                        {
+                            var chaincerts = File.ReadAllText(Path.Join(Constants.DataDirectory, Config.Network.Grpc.ChainCertificateFile));
+                            credentials = new Grpc.Core.SslServerCredentials(keypair_list, chaincerts,
+                                Grpc.Core.SslClientCertificateRequestType.RequestAndRequireAndVerify);
+                        }
+                        else
+                        {
+                            // Note, without a chain certificate, only the connection is secure; there is no authentication
+                            credentials = new Grpc.Core.SslServerCredentials(keypair_list);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        GameLog.Error("GRPC: server initialization: key/cert load failed: {e}", e);
+                        GameLog.Error("GRPC: server disabled");
+                        credentials = null;
+                    }
+                    if (credentials != null)
+                    {
+                        GrpcServer = new Grpc.Core.Server
+                        {
+                            Services = { HybrasylGrpc.Patron.BindService(new HybrasylGrpc.PatronServer()) },
+                            Ports =
+                            {
+                                new Grpc.Core.ServerPort(Config.Network.Grpc.BindAddress,
+                        Config.Network.Grpc.Port, credentials)
+                            }
+                        };
+                        GameLog.Info("GRPC: SSL server initialized");
+                    }
+                }
+                else
+                {
+                    // Insecure mode, should be used for development only
+                    GrpcServer = new Grpc.Core.Server
+                    {
+                        Services = { HybrasylGrpc.Patron.BindService(new HybrasylGrpc.PatronServer()) },
+                        Ports = { new Grpc.Core.ServerPort(Config.Network.Grpc.BindAddress, Config.Network.Grpc.Port, Grpc.Core.ServerCredentials.Insecure) }
+                    };
+                    GameLog.Info("GRPC: server initialized (insecure, use for development only)");
+
+                }
+            }
+
+            if (GrpcServer != null)
+            {
+                try
+                {
+                    GrpcServer.Start();
+                }
+                catch (IOException e)
+                {
+                    GameLog.Info("GRPC: server start failed: {e}", e);
+                }
+            }
             while (true)
             {
                 if (!IsActive())
@@ -297,9 +425,74 @@ namespace Hybrasyl
                 }
                 Thread.Sleep(5);
             }
-
+            
             Shutdown();
+            GrpcServer.ShutdownAsync().Wait();
 
+        }
+
+        private async static void CheckVersion()
+        {
+            if (string.IsNullOrEmpty(GitCommit))
+            {
+                GameLog.Error("Server update check skipped, git hash not found in assemblyinfo.");
+                return;
+            }
+                    
+            try
+            {
+                using HttpClient client = new HttpClient();
+                using HttpResponseMessage res = await client.GetAsync("https://www.hybrasyl.com/builds/latest.json");
+                using HttpContent content = res.Content;
+
+                var data = await content.ReadAsStringAsync();
+                var jsonobj = JObject.Parse(data);
+                var theirhash = jsonobj["commit"].ToString().ToLower();
+                if (theirhash != GitCommit)
+                {
+                    GameLog.Warning("THIS VERSION OF HYBRASYL IS OUT OF DATE");
+                    GameLog.Warning($"You have {GitCommit} but {theirhash} is available as of {jsonobj["build_date"]}");
+                    GameLog.Warning($"You can download the new version at https://www.hybrasyl.com/builds/ .");
+                }
+                else
+                    GameLog.Info("This version of Hybrasyl is up to date!");
+            }
+            catch (Exception e)
+            {
+                Game.ReportException(e);
+                GameLog.Error("An error occurred checking if server updates are available {e}",e);
+            }           
+        }
+
+        private async static void GetCommitLog()
+        {
+            if (string.IsNullOrEmpty(GitCommit))
+            {
+                GameLog.Error("Git log fetch skipped, git hash not found in assemblyinfo.");
+                return;
+            }
+
+            try
+            {
+                using HttpClient client = new HttpClient();
+                client.DefaultRequestHeaders.Add("User-Agent", "Hybrasyl Server");
+                using HttpResponseMessage res = await client.GetAsync($"https://api.github.com/repos/hybrasyl/server/commits/{GitCommit}");
+                using HttpContent content = res.Content;
+
+                var data = await content.ReadAsStringAsync();
+                var jsonobj = JObject.Parse(data);
+
+                if (res.StatusCode == HttpStatusCode.OK)
+                    CommitLog = jsonobj["commit"]["message"].ToString();
+                else
+                    CommitLog = "There was an error fetching commit log information from Github. Sorry.";
+            }
+            catch (Exception e)
+            {
+                Game.ReportException(e);
+                GameLog.Error("Couldn't fetch version information from GitHub: {e}", e);
+                CommitLog = "There was an error fetching commit log information from Github. Sorry.";
+            }
         }
 
         private static void LoadCollisions()
@@ -311,13 +504,6 @@ namespace Hybrasyl
                 sotp.CopyTo(ms);
                 Collisions = ms.ToArray();
             }
-            //Collisions = Resources.sotp;
-            //using (var stream = assembly.GetManifestResourceStream("Hybrasyl.Resources.sotp.dat"))
-            //{
-            //    int length = (int)stream.Length;
-            //    Collisions = new byte[length];
-            //    stream.Read(Collisions, 0, length);
-            //}
         }
 
         /// <summary>

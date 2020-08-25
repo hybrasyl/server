@@ -26,6 +26,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Hybrasyl
 {
@@ -67,8 +68,29 @@ namespace Hybrasyl
             Throttles = new Dictionary<byte, IPacketThrottle>();
             ExpectedConnections = new ConcurrentDictionary<uint, Redirect>();
             for (int i = 0; i < 256; ++i)
-                PacketHandlers[i] = (c, p) => GameLog.DebugFormat("Server: Unhandled opcode 0x{0:X2}", p.Opcode);
+                PacketHandlers[i] = (c, p) => GameLog.Warning($"{GetType().Name}: Unhandled opcode 0x{p.Opcode:X2}");
+            Task.Run(ProcessOutbound);
+        }
 
+        public async void ProcessOutbound()
+        {
+            while (!StopToken.IsCancellationRequested)
+            {
+                foreach (var kvp in Clients)
+                {
+                    var ptr = kvp.Key;
+                    var client = kvp.Value;
+                    if (client.Connected && client.ClientState.SendBufferDepth > 0)
+                    {
+                        //GameLog.ErrorFormat($"Server {this.GetType().Name} Client {client.ConnectionId}: buffer sending");
+                        await Task.Run(() => client.FlushSendBuffer());
+                    }
+                    if (!client.Connected)
+                        Clients.TryRemove(ptr, out Client _);
+                }
+                // TODO: configurable?
+                await Task.Delay(50);
+            }
         }
 
         public void RegisterPacketThrottle(IPacketThrottle newThrottle)
@@ -120,6 +142,7 @@ namespace Hybrasyl
             }
             catch (ObjectDisposedException e)
             {
+                Game.ReportException(e);
                 GameLog.Error($"Disposed socket {e.Message}");
                 return;
             }
@@ -153,8 +176,9 @@ namespace Hybrasyl
                 GameLog.DebugFormat("AcceptConnection returning");
                 clientSocket.BeginAccept(new AsyncCallback(AcceptConnection), clientSocket);
             }
-            catch (SocketException)
+            catch (SocketException e)
             {
+                Game.ReportException(e);
                 handler.Close();
             }
         }
@@ -200,6 +224,7 @@ namespace Hybrasyl
             catch (Exception e)
             {
                 GameLog.Fatal($"EndReceive Error:  {e.Message}");
+                Game.ReportException(e);
                 client.Disconnect();
             }
 
@@ -213,6 +238,7 @@ namespace Hybrasyl
             }
             catch (Exception e)
             {
+                Game.ReportException(e);
                 GameLog.Error($"ReadCallback error: {e.Message}");
             }
             ContinueReceiving(state, client);
@@ -229,12 +255,14 @@ namespace Hybrasyl
             }
             catch (ObjectDisposedException e)
             {
+                Game.ReportException(e);
                 GameLog.Fatal(e.Message);
                 //client.Disconnect();
                 state.WorkSocket.Close();
             }
             catch (SocketException e)
             {
+                Game.ReportException(e);
                 GameLog.Fatal(e.Message);
                 client.Disconnect();
             }

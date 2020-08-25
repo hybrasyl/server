@@ -23,6 +23,7 @@ using Hybrasyl.Enums;
 using Hybrasyl.Scripting;
 using Hybrasyl.Threading;
 using System;
+using System.Collections.Generic;
 
 namespace Hybrasyl.Objects
 {
@@ -91,19 +92,37 @@ namespace Hybrasyl.Objects
             }
 
             // Check mastership
-
-            if (Master && !userobj.IsMaster)
-            {
-                message = "Perhaps one day you'll know how to use such things.";
-                return false;
-            }
-
             if (UniqueEquipped && userobj.Equipment.Find(Name) != null)
             {
                 message = "You can't equip more than one of these.";
                 return false;
             }
 
+            // Check castable requirements
+            if (Template.Properties?.Restrictions?.Castables != null)
+            {
+                bool hasCast = false;
+                // Behavior is ANY castable, not ALL in list
+                foreach (var castable in Template.Properties.Restrictions.Castables)
+                {
+                    if (userobj.SkillBook.IndexOf(castable) != -1 &&
+                        userobj.SpellBook.IndexOf(castable) != -1)
+                    {
+                        hasCast = true;
+                    }
+                }
+                if (!hasCast && Template.Properties.Restrictions.Castables.Count > 0)
+                {
+                    message = "You are missing some skill or spell requirements.";
+                    return false;
+                }
+            }
+
+            if (MasterOnly && (!userobj.IsMaster))
+            {
+                message = "You are not a master of your craft.";
+                return false;
+            }
             return true;
         }
 
@@ -122,9 +141,9 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                if (Template.Properties.Equipment != null)
+                if ((Template?.Properties?.Equipment?.Slot ?? Xml.EquipmentSlot.None) != Xml.EquipmentSlot.None)
                     return ItemObjectType.Equipment;
-                else if (Template.Properties.Use != null)
+                else if (Template.Properties.Flags.HasFlag(Xml.ItemFlags.Consumable))
                     return ItemObjectType.CanUse;
                 return ItemObjectType.CannotUse;
             }
@@ -136,7 +155,14 @@ namespace Hybrasyl.Objects
         public int MaximumStack => Template.MaximumStack;
         public bool Stackable => Template.Stackable;
 
+        public List<Xml.CastModifier> CastModifiers => Template.Properties.CastModifiers;
+
         public uint MaximumDurability => Template.Properties.Physical.Durability;
+
+        // For future use / expansion re: unidentified items.
+        // Should pull from template and only allow false to be set when
+        // Identifiable flag is set.
+        public bool Identified => true;
 
         public byte Level => Template.Level;
         public byte Ability => Template.Ability;
@@ -181,13 +207,17 @@ namespace Hybrasyl.Objects
 
         public bool Exchangeable => Template.Properties.Flags.HasFlag(Xml.ItemFlags.Exchangeable);
 
-        public bool Master => Template.Properties.Flags.HasFlag(Xml.ItemFlags.Master);
+        public bool MasterOnly => Template.Properties.Flags.HasFlag(Xml.ItemFlags.MasterOnly);
 
-        public bool Perishable => Template.Properties.Physical.Perishable;
+        public bool Perishable => Template.Properties.Flags.HasFlag(Xml.ItemFlags.Perishable);
 
-        public bool Unique => Template.Properties.Flags.HasFlag(Xml.ItemFlags.Unique);
+        public bool UniqueInventory => Template.Properties.Flags.HasFlag(Xml.ItemFlags.UniqueInventory);
 
         public bool UniqueEquipped => Template.Properties.Flags.HasFlag(Xml.ItemFlags.UniqueEquipped);
+
+        public bool Consumable => Template.Properties.Flags.HasFlag(Xml.ItemFlags.Consumable);
+
+        public bool Undamageable => Template.Properties.Flags.HasFlag(Xml.ItemFlags.Undamageable);
 
         public bool IsVariant => Template.IsVariant;
 
@@ -226,7 +256,7 @@ namespace Hybrasyl.Objects
                     return;
                 }
 
-                if (!invokeScript.ExecuteFunction("OnUse", trigger, null, this))
+                if (!invokeScript.ExecuteFunction("OnUse", this, trigger, this))
                 {
                     trigger.SendSystemMessage("It doesn't work.");
                     return;
@@ -256,7 +286,7 @@ namespace Hybrasyl.Objects
             {
                 trigger.Teleport(Use.Teleport.Value, Use.Teleport.X, Use.Teleport.Y);
             }
-            if (Use.Consumed)
+            if (Consumable)
             {
                 Count--;
             }

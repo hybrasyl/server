@@ -113,12 +113,12 @@ namespace Hybrasyl.Objects
             return false;
         }
 
-        public virtual void OnClick(User invoker)
-        {
-        }
-
+        public virtual void OnClick(User invoker) { }
         public virtual void OnDeath() { }
-        public virtual void OnReceiveDamage() { }
+        public virtual void OnDamage(Creature attacker, uint damage) { }
+        public virtual void OnHeal(Creature healer, uint damage) { }
+
+        public virtual void OnHear(VisibleObject speaker, string text, bool shout = false) { }
 
         public Rectangle GetBoundingBox()
         {
@@ -190,16 +190,21 @@ namespace Hybrasyl.Objects
 
         public virtual void Say(string message, string from="")
         {
-            foreach (var user in viewportUsers)
+            foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
             {
-                var x0D = new ServerPacket(0x0D);
-                x0D.WriteByte(0x00);
-                x0D.WriteUInt32(Id);
-                if (!string.IsNullOrEmpty(from)) 
-                    x0D.WriteString8($"{from}: {message}");
+                if (obj is User user)
+                {
+                    var x0D = new ServerPacket(0x0D);
+                    x0D.WriteByte(0x00);
+                    x0D.WriteUInt32(Id);
+                    if (!string.IsNullOrEmpty(from))
+                        x0D.WriteString8($"{from}: {message}");
+                    else
+                        x0D.WriteString8($"{Name}: {message}");
+                    user.Enqueue(x0D);
+                }
                 else
-                    x0D.WriteString8($"{Name}: {message}");
-                user.Enqueue(x0D);
+                    obj.OnHear(this, message, false);
             }
         }
 
@@ -207,9 +212,8 @@ namespace Hybrasyl.Objects
         {           
             foreach (var obj in Map.EntityTree.GetObjects(GetShoutViewport()))
             {
-                if (obj is User)
+                if (obj is User user)
                 {
-                    var user = obj as User;
                     var x0D = new ServerPacket(0x0D);
                     x0D.WriteByte(0x01);
                     x0D.WriteUInt32(Id);
@@ -219,6 +223,8 @@ namespace Hybrasyl.Objects
                         x0D.WriteString8($"{Name}! {message}");
                     user.Enqueue(x0D);
                 }
+                else
+                    obj.OnHear(this, message, true);
             }
         }
 
@@ -247,6 +253,35 @@ namespace Hybrasyl.Objects
                 var nPacket = (ServerPacket) soundPacket.Packet().Clone();
                 user.Enqueue(nPacket);
             }
+        }
+
+        public Xml.Direction GetIntentDirection(Xml.IntentDirection intentDirection)
+        {
+            switch (intentDirection)
+            {
+                case Xml.IntentDirection.Back:
+                    if (Direction == Xml.Direction.North) return Xml.Direction.South;
+                    if (Direction == Xml.Direction.South) return Xml.Direction.North;
+                    if (Direction == Xml.Direction.East) return Xml.Direction.West;
+                    if (Direction == Xml.Direction.West) return Xml.Direction.East;
+                    break;
+                case Xml.IntentDirection.Front:
+                    return Direction;
+                case Xml.IntentDirection.Left:
+                    if (Direction == Xml.Direction.North) return Xml.Direction.West;
+                    if (Direction == Xml.Direction.South) return Xml.Direction.East;
+                    if (Direction == Xml.Direction.East) return Xml.Direction.North;
+                    if (Direction == Xml.Direction.West) return Xml.Direction.South;
+                    break;
+                case Xml.IntentDirection.Right:
+                    if (Direction == Xml.Direction.North) return Xml.Direction.East;
+                    if (Direction == Xml.Direction.South) return Xml.Direction.West;
+                    if (Direction == Xml.Direction.East) return Xml.Direction.South;
+                    if (Direction == Xml.Direction.West) return Xml.Direction.North;
+                    break;
+            }
+            // We shouldn't be here
+            return Xml.Direction.North;
         }
 
         public void DisplayPursuits(User invoker)

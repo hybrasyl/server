@@ -52,6 +52,17 @@
     </xs:restriction>
   </xs:simpleType>
 
+  <!-- An odd byte, used in castables -->
+  <xs:simpleType name="OddByte">
+    <xs:restriction base="xs:unsignedByte">
+      <xs:pattern value="[13579]"/>
+      <xs:pattern value="[1-9][13579]"/>
+      <xs:pattern value="1[0-9][13579]"/>
+      <xs:pattern value="2[0-4][13579]"/>
+      <xs:pattern value="25[135]"/>
+    </xs:restriction>
+  </xs:simpleType>
+
   <!-- Shared types used by statuses and castables -->
   <!-- Generic type for expressing a simple quantity, either rnd(Min/Max) or a specific value -->
   <xs:complexType name="SimpleQuantity">
@@ -121,39 +132,40 @@
       <xs:enumeration value="ThreeDigit"/>
       <xs:enumeration value="NoTarget"/>
       <xs:enumeration value="TwoDigit"/>
-      <xs:enumeration value="Onedigit"/>
+      <xs:enumeration value="OneDigit"/>
     </xs:restriction>
   </xs:simpleType>
 
   <!-- Skill intent targets -->
-  <xs:simpleType name="IntentTarget">
+  <xs:simpleType name="IntentFlags">
     <xs:restriction base="xs:token">
       <xs:enumeration value="Hostile" />
       <xs:enumeration value="Friendly" />
       <xs:enumeration value="Pvp" />
       <xs:enumeration value="Group" />
+      <xs:enumeration value="Self" />
     </xs:restriction>
   </xs:simpleType>
 
   <!-- Intent direction type -->
   <xs:simpleType name="IntentDirection">
     <xs:restriction base="xs:token">
-      <xs:enumeration value="None"/>
+      <!-- This unfortunately ends up being needed by xsd2code, as it can't properly handle nullable enum types -->
+      <xs:enumeration value="None" />
       <xs:enumeration value="Front" />
       <xs:enumeration value="Back" />
       <xs:enumeration value="Left" />
       <xs:enumeration value="Right" />
-      <xs:enumeration value="Nearby" />
     </xs:restriction>
   </xs:simpleType>
 
   <!-- Weapon type list (for casting restrictions) -->
-  <xs:simpleType name="IntentTargetList">
+  <xs:simpleType name="IntentFlagsList">
     <xs:restriction>
       <xs:simpleType>
-        <xs:list itemType="hyb:IntentTarget" />
+        <xs:list itemType="hyb:IntentFlags" />
       </xs:simpleType>
-      <xs:maxLength value="4" />
+      <xs:maxLength value="5" />
     </xs:restriction>
   </xs:simpleType>
 
@@ -209,22 +221,78 @@
   <!-- Item colors -->
   <xs:simpleType name="ItemColor">
     <xs:restriction base="xs:token">
-      <xs:enumeration value="None" />
-      <xs:enumeration value="Black" />
-      <xs:enumeration value="Red" />
-      <xs:enumeration value="Orange" />
-      <xs:enumeration value="Yellow" />
-      <xs:enumeration value="Teal" />
-      <xs:enumeration value="Blue" />
-      <xs:enumeration value="Purple" />
-      <xs:enumeration value="DarkGreen" />
-      <xs:enumeration value="Green" />
-      <xs:enumeration value="LightOrange" />
-      <xs:enumeration value="Brown" />
-      <xs:enumeration value="Grey" />
-      <xs:enumeration value="DarkBlue" />
-      <xs:enumeration value="Tan" />
-      <xs:enumeration value="White" />
+      <xs:enumeration value="None"/>
+      <xs:enumeration value="Black"/>
+      <xs:enumeration value="Red"/>
+      <xs:enumeration value="Auburn"/>
+      <xs:enumeration value="Butter"/>
+      <xs:enumeration value="Aqua"/>
+      <xs:enumeration value="Blue"/>
+      <xs:enumeration value="Plum"/>
+      <xs:enumeration value="Forest"/>
+      <xs:enumeration value="Green"/>
+      <xs:enumeration value="Sienna"/>
+      <xs:enumeration value="Brown"/>
+      <xs:enumeration value="Charcoal"/>
+      <xs:enumeration value="Navy"/>
+      <xs:enumeration value="Acorn"/>
+      <xs:enumeration value="White"/>
+      <xs:enumeration value="Pink"/>
+      <xs:enumeration value="Honeydew"/>
+      <xs:enumeration value="Orange"/>
+      <xs:enumeration value="Platinum"/>
+      <xs:enumeration value="Midnight"/>
+      <xs:enumeration value="Orchid"/>
+      <xs:enumeration value="Lavender"/>
+      <xs:enumeration value="Fuschia"/>
+      <xs:enumeration value="Cerise"/>
+      <xs:enumeration value="Ocean"/>
+      <xs:enumeration value="HotPink"/>
+      <xs:enumeration value="Seafoam"/>
+      <xs:enumeration value="Amethyst"/>
+      <xs:enumeration value="Peach"/>
+      <xs:enumeration value="Sky"/>
+      <xs:enumeration value="Lime"/>
+      <xs:enumeration value="Jade"/>
+      <xs:enumeration value="Honey"/>
+      <xs:enumeration value="Cobalt"/>
+      <xs:enumeration value="Cocoa"/>
+      <xs:enumeration value="Wine"/>
+      <xs:enumeration value="Kelp"/>
+      <xs:enumeration value="Wine2"/>
+      <xs:enumeration value="Teal"/>
+      <xs:enumeration value="Copper"/>
+      <xs:enumeration value="Curry"/>
+      <xs:enumeration value="Moss"/>
+      <xs:enumeration value="Grass"/>
+      <xs:enumeration value="Lapis"/>
+      <xs:enumeration value="Maroon"/>
+      <xs:enumeration value="TiNfOiL"/>
+      <xs:enumeration value="Aquamarine"/>
+      <xs:enumeration value="Leaf"/>
+      <xs:enumeration value="Purple"/>
+      <xs:enumeration value="Scarlet"/>
+      <xs:enumeration value="Lemon"/>
+      <xs:enumeration value="Puce"/>
+      <xs:enumeration value="Coral"/>
+      <xs:enumeration value="Crimson"/>
+      <xs:enumeration value="Gold"/>
+      <xs:enumeration value="Silver"/>
+      <xs:enumeration value="Fire"/>
+      <xs:enumeration value="Stormy"/>
+      <xs:enumeration value="Cherry"/>
+      <xs:enumeration value="Mint"/>
+      <xs:enumeration value="Cerulean"/>
+      <xs:enumeration value="Twilight"/>
+      <xs:enumeration value="Quartz"/>
+      <xs:enumeration value="Turquoise"/>
+      <xs:enumeration value="Peridot"/>
+      <xs:enumeration value="Nebula"/>
+      <xs:enumeration value="Bubblegum"/>
+      <xs:enumeration value="Cyan"/>
+      <xs:enumeration value="Sable"/>
+      <xs:enumeration value="Mauve"/>
+      <xs:enumeration value="Dusk"/>
     </xs:restriction>
   </xs:simpleType>
 
@@ -253,9 +321,12 @@
               <xs:enumeration value="Exchangeable" />
               <xs:enumeration value="Vendorable" />
               <xs:enumeration value="Perishable" />
-              <xs:enumeration value="Unique" />
-              <xs:enumeration value="Master" />
-              <xs:enumeration value="Unique-Equipped" />
+              <xs:enumeration value="UniqueInventory" />
+              <xs:enumeration value="MasterOnly" />
+              <xs:enumeration value="UniqueEquipped" />
+              <xs:enumeration value="Identifiable"/>
+              <xs:enumeration value="Undamageable"/>
+              <xs:enumeration value="Consumable"/>
             </xs:restriction>
           </xs:simpleType>
         </xs:list>
@@ -289,7 +360,8 @@
               <xs:enumeration value="IncreaseDamage" />
               <xs:enumeration value="ReduceDamage" />
               <xs:enumeration value="AbsorbSpell" />
-              <xs:enumeration value="ProhibitItemUse" />
+              <xs:enumeration value="Prohibit
+                              " />
               <xs:enumeration value="ProhibitEquipChange" />
               <xs:enumeration value="ProhibitSpeech" />
               <xs:enumeration value="ProhibitWhisper" />
@@ -357,7 +429,6 @@
       <!-- Passive to players and cannot be attacked -->
       <xs:enumeration value="Neutral"/>
       <!-- Passive to players and can be attacked -->
-
     </xs:restriction>
   </xs:simpleType>
 
@@ -563,7 +634,21 @@
     </xs:sequence>
   </xs:complexType>
 
+  <xs:complexType name="SpawnCoordinatesList">
+    <xs:sequence>
+      <xs:element name="Coordinate" type="hyb:SpawnCoordinate" minOccurs="1" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="SpawnCoordinate">
+    <xs:attribute name="X" type="xs:unsignedByte" use="required"/>
+    <xs:attribute name="Y" type="xs:unsignedByte" use="required"/>
+  </xs:complexType>
+  
   <xs:complexType name="SpawnMap">
+    <xs:sequence>
+      <xs:element name="Coordinates" minOccurs="0" maxOccurs="unbounded" type="hyb:SpawnCoordinatesList"/>
+    </xs:sequence>
     <xs:attribute name="Name" type="hyb:String8" use ="required"/>
     <xs:attribute name="MinSpawn" type="xs:int" use ="required"/>
     <xs:attribute name="MaxSpawn" type="xs:int" use ="required"/>
@@ -578,6 +663,24 @@
       <xs:element name="Spawn" type="hyb:Spawn" minOccurs="1" maxOccurs="unbounded" />
     </xs:sequence>
   </xs:complexType>
+
+  <!-- Spawn flags -->
+  <xs:simpleType name="SpawnFlags">
+    <xs:restriction>
+      <xs:simpleType>
+        <xs:list>
+          <xs:simpleType>
+            <xs:restriction base="xs:token">
+              <xs:enumeration value="MovementDisabled"/>
+              <xs:enumeration value="AiDisabled"/>
+              <xs:enumeration value="DeathDisabled"/>
+            </xs:restriction>
+          </xs:simpleType>
+        </xs:list>
+      </xs:simpleType>
+      <xs:maxLength value="3" />
+    </xs:restriction>
+  </xs:simpleType>
 
   <!-- Definition for an actual spawn/monster (mob variant)-->
   <xs:complexType name="Spawn">
@@ -594,6 +697,7 @@
     <xs:attribute name="Base" type="hyb:String8" use="required"/>
     <xs:attribute name="Name" type="hyb:String8" use="optional"/>
     <xs:attribute name="Variance" type="xs:float" use="optional" default="1.0"/>
+    <xs:attribute name="Flags" type="hyb:SpawnFlags" use="optional"/>   
   </xs:complexType>
 
   <!-- Whether or not a specified script overrides the spawning behavior or supplements it-->
