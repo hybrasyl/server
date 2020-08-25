@@ -15,6 +15,7 @@ namespace Hybrasyl.Plugins
     public interface IMessagePluginResponse : IPluginResponse
     {
         public Message Message { get; set; }
+        public bool Transformed { get; }
     }
 
     public interface IHandlerConfiguration

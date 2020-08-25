@@ -3098,6 +3098,8 @@ namespace Hybrasyl
 
                 case 0x06:
                     {
+                        // TODO: refactor big switch statement
+                        //
                         // Send mail (which one might argue, ye olde DOOMVAS protocol designers, is a type of message)
 
                         var boardId = packet.ReadUInt16();
@@ -3117,9 +3119,17 @@ namespace Hybrasyl
                             var resp = pmh.Process(msg);
                             if (!pmh.Passthrough)
                             {
+                                // Plugin is "last destination" for message
                                 continueProcessing = false;
-                                response.WriteBoolean(resp.Success); // Post was successful
+                                response.WriteBoolean(resp.Success); 
                                 response.WriteString8(resp.PluginResponse);
+                            }
+                            else if (resp.Transformed)
+                            {
+                                // Update message if transformed, and keep going
+                                recipient = resp.Message.Recipient;
+                                subject = resp.Message.Subject;
+                                body = resp.Message.Text;                              
                             }
                         }
 
