@@ -6,30 +6,39 @@ using System.Text;
 namespace Hybrasyl.Plugins
 {
 
+    public interface IPluginResponse
+    {
+        public bool Success { get; set; }
+        public string PluginResponse { get; set; }
+    }
+
+    public interface IMessagePluginResponse : IPluginResponse
+    {
+        public Message Message { get; set; }
+    }
+
     public interface IHandlerConfiguration
     {
+        public void LoadXmlConfig(List<Xml.PluginConfig> config);
         public bool StoreValue(string key, string value);
         public bool TryGetValue(string key, out string value);
     }
 
     /// <summary>
-    /// An interface for a message handler plugin that can process messages without transforming the message.
+    /// A base interface for message handlers.
     /// </summary>
     public interface IMessageHandler
     {
         public bool Disabled { get; set; }
+        public bool Passthrough { get; set; }
         public bool Initialize(IHandlerConfiguration config);
-        public void Process(Message message);
+        public void SetTargets(List<string> targets);
+        public bool WillHandle(string target);
     }
 
-    /// <summary>
-    /// An interface for a handler that operates as a passthrough, potentially transforming a message.
-    /// </summary>
-    public interface ITransformingMessageHandler
-    { 
-        public bool Disabled { get; set; }
-        public bool Initialize(IHandlerConfiguration config);
-        public Message Process(Message inbound);
+    public interface IProcessingMessageHandler : IMessageHandler
+    {
+        public IMessagePluginResponse Process(Message inbound);
     }
 
 }

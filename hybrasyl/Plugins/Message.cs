@@ -12,5 +12,16 @@ namespace Hybrasyl.Plugins
         public Xml.MessageType Type { get; set; }
         public string Text = string.Empty;
         public string Subject = string.Empty;
+
+        public Message(Xml.MessageType type, string sender, string recipient, string subject, string body)
+        {
+            Type = type;
+            Sender = sender;
+            Recipient = recipient;
+            Text = body;
+            Subject = subject;
+        }
+
+        public Message() { }
     }
 }

@@ -9,12 +9,33 @@ namespace Hybrasyl.Plugins
         private Dictionary<string, string> Config;
         private object Lock;
 
-        public SimpleConfiguration(Dictionary<string, string> config)
+        private void Init()
         {
-            Config = config;
             Lock = new object();
+            Config = new Dictionary<string, string>();
+        }
+        public SimpleConfiguration() => Init();
+
+        public SimpleConfiguration(List<Xml.PluginConfig> configuration)
+        {
+            Init();
+            LoadXmlConfig(configuration);
         }
 
+        public void LoadXmlConfig(List<Xml.PluginConfig> configuration)
+        {
+            lock (Lock)
+            {
+                foreach (var kvp in configuration)
+                {
+                    if (!StoreValue(kvp.Key, kvp.Value))
+                    {
+                        GameLog.Error("SimpleConfiguration: XML configuration processing failure, couldn't store key");
+                        throw new ArgumentException("Configuration could not be stored");
+                    }
+                }
+            }
+        }
         public bool StoreValue(string key, string value)
         {
             try

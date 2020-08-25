@@ -11,7 +11,7 @@ namespace Hybrasyl.Plugins
     /// <summary>
     /// A message handler plugin 
     /// </summary>
-    public class BugReporter : MessagePlugin, IProcessingMessageHandler
+    public class FeedbackReporter : MessagePlugin, IProcessingMessageHandler
     {
         private static Random rand = new Random();
         private string WebhookUrl = string.Empty;
@@ -37,11 +37,11 @@ namespace Hybrasyl.Plugins
         {
             try
             {
-                await File.WriteAllTextAsync(Path.Join(OutputDir, $"bugreport-{sender}-{id}.txt"), text);
+                await File.WriteAllTextAsync(Path.Join(OutputDir, $"feedback-{sender}-{id}.txt"), text);
             }
             catch (Exception e)
             {
-                GameLog.Error("BugReporter: failure to write out log: {e}, plugin disabled", e);
+                GameLog.Error("Feedback: failure to write out log: {e}, plugin disabled", e);
                 Disabled = true;
             }
         }
@@ -52,7 +52,7 @@ namespace Hybrasyl.Plugins
             if (Disabled)
             {
                 resp.Success = false;
-                resp.PluginResponse = "Sorry, the bug reporter is currently disabled. We apologize for the inconvenience.";
+                resp.PluginResponse = "Sorry, feedback is currently disabled. We apologize for the inconvenience.";
                 return resp;
             }
 
@@ -61,7 +61,7 @@ namespace Hybrasyl.Plugins
             // Transmit message to discord, also save locally
 
             var now = DateTime.Now;
-            string text = $"**Bug Report Submission**\n\n**Bug ID**: {id}\n**From**: {inbound.Sender}\n**Date**: {now.ToString()}\n\n**Subject**: {inbound.Subject}";
+            string text = $"**Feedback Submission**\n\n**ID**: {id}\n**From**: {inbound.Sender}\n**Date**: {now.ToString()}\n\n**Subject**: {inbound.Subject}";
 
             if (inbound.Text.Length > 1800)
                 text = $"{text}\n\n{inbound.Text.Substring(0, 1800)} ...\n(Truncated. Full message on server)";
@@ -71,7 +71,7 @@ namespace Hybrasyl.Plugins
             Task.Run(() => client.SendMessageAsync(text));
             Task.Run(() => SaveToDisk(inbound.Sender, id, text));
             resp.Success = true;
-            resp.PluginResponse = $"Thank you for your bug submission (BUG-{id}). It has been received.";
+            resp.PluginResponse = $"Thank you for your feedback (FEED-{id}). It has been logged.";
             return resp;
         }
     }
