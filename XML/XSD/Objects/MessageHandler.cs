@@ -19,71 +19,62 @@ using System.Text;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 
-[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8")]
+[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.3752.0")]
 [Serializable]
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-public partial class Handlers
+public partial class MessageHandler
 {
     #region Private fields
-    private Death _death;
-    private Chat _chat;
-    private NewPlayer _newPlayer;
-    private MessageHandlers _messaging;
+    private List<string> _target;
+    private string _handler;
+    private string _passthrough;
     private static XmlSerializer _serializer;
     #endregion
     
-    public Handlers()
+    public MessageHandler()
     {
-        _newPlayer = new NewPlayer();
+        _passthrough = "false";
     }
     
-    public Death Death
+    [XmlElement("Target", DataType="token")]
+    public List<string> Target
     {
         get
         {
-            return _death;
+            return _target;
         }
         set
         {
-            _death = value;
+            _target = value;
         }
     }
     
-    public Chat Chat
+    [XmlAttribute(DataType="token")]
+    public string Handler
     {
         get
         {
-            return _chat;
+            return _handler;
         }
         set
         {
-            _chat = value;
+            _handler = value;
         }
     }
     
-    public NewPlayer NewPlayer
+    [XmlAttribute]
+    [DefaultValue("false")]
+    public string Passthrough
     {
         get
         {
-            return _newPlayer;
+            return _passthrough;
         }
         set
         {
-            _newPlayer = value;
-        }
-    }
-    
-    public MessageHandlers Messaging
-    {
-        get
-        {
-            return _messaging;
-        }
-        set
-        {
-            _messaging = value;
+            _passthrough = value;
         }
     }
     
@@ -93,7 +84,7 @@ public partial class Handlers
         {
             if ((_serializer == null))
             {
-                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(Handlers));
+                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(MessageHandler));
             }
             return _serializer;
         }
@@ -101,7 +92,7 @@ public partial class Handlers
     
     #region Serialize/Deserialize
     /// <summary>
-    /// Serialize Handlers object
+    /// Serialize MessageHandler object
     /// </summary>
     /// <returns>XML value</returns>
     public virtual string Serialize()
@@ -134,16 +125,16 @@ public partial class Handlers
     }
     
     /// <summary>
-    /// Deserializes Handlers object
+    /// Deserializes MessageHandler object
     /// </summary>
     /// <param name="input">string workflow markup to deserialize</param>
-    /// <param name="obj">Output Handlers object</param>
+    /// <param name="obj">Output MessageHandler object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool Deserialize(string input, out Handlers obj, out Exception exception)
+    public static bool Deserialize(string input, out MessageHandler obj, out Exception exception)
     {
         exception = null;
-        obj = default(Handlers);
+        obj = default(MessageHandler);
         try
         {
             obj = Deserialize(input);
@@ -156,19 +147,19 @@ public partial class Handlers
         }
     }
     
-    public static bool Deserialize(string input, out Handlers obj)
+    public static bool Deserialize(string input, out MessageHandler obj)
     {
         Exception exception = null;
         return Deserialize(input, out obj, out exception);
     }
     
-    public static Handlers Deserialize(string input)
+    public static MessageHandler Deserialize(string input)
     {
         StringReader stringReader = null;
         try
         {
             stringReader = new StringReader(input);
-            return ((Handlers)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
+            return ((MessageHandler)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
         }
         finally
         {
@@ -179,14 +170,14 @@ public partial class Handlers
         }
     }
     
-    public static Handlers Deserialize(Stream s)
+    public static MessageHandler Deserialize(Stream s)
     {
-        return ((Handlers)(SerializerXML.Deserialize(s)));
+        return ((MessageHandler)(SerializerXML.Deserialize(s)));
     }
     #endregion
     
     /// <summary>
-    /// Serializes current Handlers object into file
+    /// Serializes current MessageHandler object into file
     /// </summary>
     /// <param name="fileName">full path of outupt xml file</param>
     /// <param name="exception">output Exception value if failed</param>
@@ -227,16 +218,16 @@ public partial class Handlers
     }
     
     /// <summary>
-    /// Deserializes xml markup from file into an Handlers object
+    /// Deserializes xml markup from file into an MessageHandler object
     /// </summary>
     /// <param name="fileName">string xml file to load and deserialize</param>
-    /// <param name="obj">Output Handlers object</param>
+    /// <param name="obj">Output MessageHandler object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool LoadFromFile(string fileName, out Handlers obj, out Exception exception)
+    public static bool LoadFromFile(string fileName, out MessageHandler obj, out Exception exception)
     {
         exception = null;
-        obj = default(Handlers);
+        obj = default(MessageHandler);
         try
         {
             obj = LoadFromFile(fileName);
@@ -249,13 +240,13 @@ public partial class Handlers
         }
     }
     
-    public static bool LoadFromFile(string fileName, out Handlers obj)
+    public static bool LoadFromFile(string fileName, out MessageHandler obj)
     {
         Exception exception = null;
         return LoadFromFile(fileName, out obj, out exception);
     }
     
-    public static Handlers LoadFromFile(string fileName)
+    public static MessageHandler LoadFromFile(string fileName)
     {
         FileStream file = null;
         StreamReader sr = null;

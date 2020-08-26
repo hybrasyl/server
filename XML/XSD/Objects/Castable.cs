@@ -62,7 +62,7 @@ public partial class Castable
         _castCosts = new List<CastCost>();
         _categories = new List<Category>();
         _descriptions = new List<Description>();
-        _element = Xml.Element.None;
+        _element = Element.None;
         _lines = ((byte)(0));
         _cooldown = 0;
         _isAssail = false;

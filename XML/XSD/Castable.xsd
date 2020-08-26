@@ -256,7 +256,8 @@
   <xs:complexType name="EquipmentRestriction">
     <xs:simpleContent>
       <xs:extension base="hyb:String8">
-        <xs:attribute name="Slot" type="hyb:EquipmentSlot" use="optional" default="None" />
+        <xs:attribute name="Slot" type="hyb:EquipmentSlot" use="required"/>
+        <xs:attribute name="Type" type="hyb:WeaponType" use="optional"/>
       </xs:extension>
     </xs:simpleContent>
   </xs:complexType>

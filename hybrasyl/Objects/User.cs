@@ -1149,19 +1149,18 @@ namespace Hybrasyl.Objects
             }
             if (UseCastable(castable))
             {
-                Client.Enqueue(new ServerPacketStructures.Cooldown()
-                {
-                    Length = (uint)castable.Cooldown,
-                    Pane = 1,
-                    Slot = slot
-                }.Packet());
                 castable.UseCount += 1;
                 if(castable.UseCount <= castable.Mastery.Uses)
-                {
                     SendSkillUpdate(castable, slot);
-                }
-                castable.LastCast = DateTime.Now;
             }
+            castable.LastCast = DateTime.Now;
+            Client.Enqueue(new ServerPacketStructures.Cooldown()
+            {
+                Length = (uint)castable.Cooldown,
+                Pane = 1,
+                Slot = slot
+            }.Packet());
+
         }
 
         internal void UseSpell(byte slot, uint target = 0)
@@ -1185,21 +1184,17 @@ namespace Hybrasyl.Objects
 
             if (UseCastable(castable, targetCreature))
             {
-                Client.Enqueue(new ServerPacketStructures.Cooldown()
-                {
-                    Length = (uint)castable.Cooldown,
-                    Pane = 0,
-                    Slot = slot
-                }.Packet());
-
                 castable.UseCount += 1;
                 if (castable.UseCount <= castable.Mastery.Uses)
-                {
-                    SendSpellUpdate(castable, slot);
-                }
-                
-                SpellBook[slot].LastCast = DateTime.Now;
+                    SendSpellUpdate(castable, slot);               
             }
+            Client.Enqueue(new ServerPacketStructures.Cooldown()
+            {
+                Length = (uint)castable.Cooldown,
+                Pane = 0,
+                Slot = slot
+            }.Packet());
+            castable.LastCast = DateTime.Now;
         }
 
         /// <summary>
@@ -1318,7 +1313,8 @@ namespace Hybrasyl.Objects
             // Figure out what we're sending as the "helmet"
             var helmet = Equipment.Helmet?.DisplaySprite ?? HairStyle;
             helmet = Equipment.DisplayHelm?.DisplaySprite ?? helmet;
-            var color = Equipment.DisplayHelm?.Color ?? HairColor;
+            var helmcolor = Equipment.DisplayHelm?.Color ?? 0;
+            var color = helmcolor == 0 ? HairColor : helmcolor;
 
             (client ?? Client).Enqueue(new ServerPacketStructures.DisplayUser()
             {
@@ -1520,12 +1516,13 @@ namespace Hybrasyl.Objects
                 foreach (var castmodifier in Equipment.Weapon.CastModifiers)
                 {
                     // Matches most to least specific, first match wins
-                    if (castmodifier.Castable != string.Empty && castmodifier.Castable.ToLower() == castable.Name.ToLower())
+                    if (!string.IsNullOrEmpty(castmodifier.Castable) && castmodifier.Castable.ToLower() == castable.Name.ToLower())
                     {
                         modifier = castmodifier.Item;
                         break;
                     }
-                    else if (castmodifier.Group != string.Empty && castable.Categories.Select(x => x.Value.ToLower()).Contains(castmodifier.Group.ToLower()))
+                    else if (!string.IsNullOrEmpty(castmodifier.Castable) && 
+                        castable.Categories.Select(x => x.Value.ToLower()).Contains(castmodifier.Group.ToLower()))
                     {
                         modifier = castmodifier.Item;
                         break;
@@ -1541,12 +1538,12 @@ namespace Hybrasyl.Objects
                 if (modifier is Xml.CastModifierAdd add)
                 {
                     if (castable.Lines == add.Match || (add.Match == -1 && castable.Lines >= add.Min && castable.Lines <= add.Max))
-                        return castable.Lines + add.Amount;
+                        return Math.Min(255, castable.Lines + add.Amount);
                 }
                 else if (modifier is Xml.CastModifierSubtract sub)
                 {
                     if (castable.Lines == sub.Match || (sub.Match == -1 && castable.Lines >= sub.Min && castable.Lines <= sub.Max))
-                        return castable.Lines - sub.Amount;
+                        return Math.Max(0, castable.Lines - sub.Amount);
                 }
                 else if (modifier is Xml.CastModifierReplace repl)
                 {
@@ -2289,10 +2286,9 @@ namespace Hybrasyl.Objects
             ApplyBonuses(itemObject);
             UpdateAttributes(StatUpdateFlags.Stats);
             if (sendUpdate) Show();
-            // TODO: re-evaluate if this gets too heavyweight
-            if (itemObject.EquipmentSlot == ((byte)Xml.EquipmentSlot.Weapon - 1))
+            // TODO: target this recalculation, this is a mildly expensive operation
+            if (itemObject.CastModifiers != null)
                 SendSpells();
-
             return true;
         }
         public bool RemoveEquipment(byte slot, bool sendUpdate = true)
@@ -2303,6 +2299,9 @@ namespace Hybrasyl.Objects
                 SendRefreshEquipmentSlot(slot);
                 Client.SendMessage(string.Format("Unequipped {0}", item.Name), 3);
                 RemoveBonuses(item);
+                // TODO: target this recalculation, this is a mildly expensive operation
+                if (item.CastModifiers != null)
+                    SendSpells();
                 UpdateAttributes(StatUpdateFlags.Stats);
                 if (sendUpdate) Show();
                 return true;
@@ -2399,6 +2398,68 @@ namespace Hybrasyl.Objects
             if (this is User) { UpdateAttributes(StatUpdateFlags.Current); }
         }
 
+        private bool CheckCastableRestrictions(List<Xml.EquipmentRestriction> restrictions, out string message)
+        {
+            message = string.Empty;
+
+            if (restrictions.Count == 0)
+                return true;
+
+            // First restriction to be verified passes.
+            foreach (var restriction in restrictions)
+            {
+                /* <Restrictions>
+                      <Item Slot="Necklace">Nadurra Necklace</Item><!--is it equipped?-->
+                      <Item>Nadurrua Necklace</Item><!--is it carried-->
+                      <Item Slot="Weapon" Type="Claw"><!-- are you wearing a claw weapon?-->  
+                      <Item Slot="Weapon" Type="None"><!-- are you wearing no weapon?-->  
+                   </Restrictions>
+               * 
+               * 
+               */
+                if (restriction.Slot == Xml.EquipmentSlot.None && restriction.Value != null)
+                {
+                    // Inventory check
+                    if (Inventory.ContainsName(restriction.Value))
+                        return true;
+                    else
+                        message = $"You lack the needed {restriction.Value}.";
+                }
+                else if (restriction.Value != null)
+                {
+                    // Named slot with specific item restriction
+                    var item = Equipment.FindByName(restriction.Value);
+                    if (item.EquipmentSlot != ((byte)restriction.Slot - 1))
+                    {
+                        message = $"You must have {restriction.Value} equipped";
+                    }
+                    else
+                        return true;
+                }
+                else
+                {
+                    if (restriction.Slot == Xml.EquipmentSlot.Weapon)
+                    {
+                        if (Equipment.Weapon == null && restriction.Type == Xml.WeaponType.None)
+                            return true;
+                        else if (Equipment.Weapon != null && restriction.Type == Equipment.Weapon.WeaponType)
+                            return true;
+                        else
+                            message = $"You can't use this with your current class of weapon.";
+                        
+                    }
+                    else
+                    {
+                        // TODO: improve message and check
+                        var slot = ((byte)restriction.Slot) - 1;
+                        if (Equipment[(byte)slot] != null)
+                            message = $"You are missing some equipment.";
+                    }
+                }
+            }
+            return false;
+        }
+
 
         public override bool UseCastable(Xml.Castable castObject, Creature target = null, SpawnCastable spawnCastable = null)
         {
@@ -2409,25 +2470,10 @@ namespace Hybrasyl.Objects
                 return false;
             }
 
-            // Check restrictions
-            foreach (var restriction in castObject.Restrictions)
+            if (!CheckCastableRestrictions(castObject.Restrictions, out string restrictionMessage))
             {
-                if (restriction.Slot == Xml.EquipmentSlot.None && !Inventory.ContainsName(restriction.Value))
-                {
-                    // in inventory check
-                    SendSystemMessage($"You lack the needed {restriction.Value}.");
-                    return false;
-                }
-                else if (restriction.Slot != Xml.EquipmentSlot.None)
-                {
-                    // equipment check
-                    var i = Equipment.FindByName(restriction.Value);
-                    if (i.EquipmentSlot != ((byte)restriction.Slot - 1))
-                    {
-                        SendSystemMessage($"You must have {restriction.Value} equipped.");
-                        return false;
-                    }      
-                }
+                SendSystemMessage(restrictionMessage);
+                return false;
             }
             
             if (base.UseCastable(castObject, target))
