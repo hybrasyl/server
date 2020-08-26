@@ -492,7 +492,7 @@ namespace Hybrasyl.Objects
         {
             var castable = World.WorldData.GetByIndex<Xml.Castable>(creatureCastable.Name);
             if (target is Merchant) return;
-            UseCastable(castable, creatureCastable, target);
+            UseCastable(castable, target, creatureCastable);
             Condition.Casting = false;
         }
 
@@ -504,7 +504,7 @@ namespace Hybrasyl.Objects
             {
                 foreach(var user in target.Members)
                 {
-                    UseCastable(castable, creatureCastable, user);
+                    UseCastable(castable, user, creatureCastable);
                 }
             }
 
@@ -514,7 +514,7 @@ namespace Hybrasyl.Objects
 
                 var user = target.Members[rngSelection];
 
-                UseCastable(castable, creatureCastable, user);
+                UseCastable(castable, user, creatureCastable);
             }
 
             Condition.Casting = false;
@@ -547,242 +547,6 @@ namespace Hybrasyl.Objects
             return creatureCastable;
         }
 
-        public bool UseCastable(Xml.Castable castObject, Xml.SpawnCastable spawnCastable, Creature target = null)
-        {
-            if (!Condition.CastingAllowed) return false;
-
-            var damage = _random.Next(spawnCastable.MinDmg, spawnCastable.MaxDmg);
-            List<Creature> targets;
-
-            targets = GetTargets(castObject, target);
-
-            if (targets.Count() == 0 && castObject.IsAssail == false) return false;
-
-            // We do these next steps to ensure effects are displayed uniformly and as fast as possible
-            var deadMobs = new List<Creature>();
-            if (castObject.Effects?.Animations?.OnCast != null)
-            {
-
-
-                foreach (var tar in targets)
-                {
-                    foreach (var user in tar.viewportUsers)
-                    {
-                        user.SendEffect(tar.Id, castObject.Effects.Animations.OnCast.Target.Id, castObject.Effects.Animations.OnCast.Target.Speed);
-                    }
-                }
-                if (castObject.Effects?.Animations?.OnCast?.SpellEffect != null)
-                    Effect(castObject.Effects.Animations.OnCast.SpellEffect.Id, castObject.Effects.Animations.OnCast.SpellEffect.Speed);
-            }
-
-            if (castObject.Effects?.Sound != null)
-                PlaySound(castObject.Effects.Sound.Id);
-
-            GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name}, {targets.Count()} targets");
-
-            if (!string.IsNullOrEmpty(castObject.Script))
-            {
-                // If a script is defined we fire it immediately, and let it handle targeting / etc
-                if (Game.World.ScriptProcessor.TryGetScript(castObject.Script, out Script script))
-                    return script.ExecuteFunction("OnUse", this);
-                else
-                {
-                    GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name}: castable script {castObject.Script} missing");
-                    return false;
-                }
-
-            }
-
-            foreach (var tar in targets)
-            {
-                if (castObject.Effects?.ScriptOverride == true)
-                {
-                    // TODO: handle castables with scripting
-                    // DoStuff();
-                    continue;
-                }
-                if (!castObject.Effects.Damage.IsEmpty)
-                {
-                    Xml.Element attackElement;
-                    var damageOutput = NumberCruncher.CalculateDamage(castObject, tar, this);
-                    if (castObject.Element == Xml.Element.Random)
-                    {
-                        Random rnd = new Random();
-                        var Elements = Enum.GetValues(typeof(Xml.Element));
-                        attackElement = (Xml.Element)Elements.GetValue(rnd.Next(Elements.Length));
-                    }
-                    else if (castObject.Element != Xml.Element.None)
-                        attackElement = castObject.Element;
-                    else
-                        attackElement = (Stats.OffensiveElementOverride != Xml.Element.None ? Stats.OffensiveElementOverride : Stats.BaseOffensiveElement);
-
-                    tar.Damage(damageOutput.Amount, attackElement, damageOutput.Type, damageOutput.Flags, this, false);
-
-                    if (tar.Stats.Hp <= 0) { deadMobs.Add(tar); }
-                }
-                // Note that we ignore castables with both damage and healing effects present - one or the other.
-                // A future improvement might be to allow more complex effects.
-                else if (!castObject.Effects.Heal.IsEmpty)
-                {
-                    var healOutput = NumberCruncher.CalculateHeal(castObject, tar, this);
-                    tar.Heal(healOutput, this);
-                }
-
-                // Handle statuses
-
-                foreach (var status in castObject.Effects.Statuses.Add.Where(e => e.Value != null))
-                {
-                    Xml.Status applyStatus;
-                    if (World.WorldData.TryGetValueByIndex<Xml.Status>(status.Value, out applyStatus))
-                    {
-                        GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - applying status {status.Value}");
-                        ApplyStatus(new CreatureStatus(applyStatus, tar, castObject));
-                    }
-                    else
-                        GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name} - failed to add status {status.Value}, does not exist!");
-                }
-
-                foreach (var status in castObject.Effects.Statuses.Remove)
-                {
-                    Xml.Status applyStatus;
-                    if (World.WorldData.TryGetValueByIndex<Xml.Status>(status, out applyStatus))
-                    {
-                        GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name} - removing status {status}");
-                        RemoveStatus(applyStatus.Icon);
-                    }
-                    else
-                        GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name} - failed to remove status {status}, does not exist!");
-
-                }
-            }
-            // Now flood away
-            foreach (var dead in deadMobs)
-                World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.HandleDeath, dead));
-            Condition.Casting = false;
-            return true;
-        }
-
-        public bool UseCastable(Xml.Castable castObject, Xml.SpawnCastable spawnCastable, UserGroup target = null)
-        {
-            if (!Condition.CastingAllowed) return false;
-
-            var damage = _random.Next(spawnCastable.MinDmg, spawnCastable.MaxDmg);
-            List<Creature> targets = new List<Creature>();
-
-
-            foreach(var user in target.Members)
-            {
-                var tars = GetTargets(castObject, user);
-                targets.AddRange(tars);
-            }
-
-            
-
-            if (targets.Count() == 0 && castObject.IsAssail == false) return false;
-
-            // We do these next steps to ensure effects are displayed uniformly and as fast as possible
-            var deadMobs = new List<Creature>();
-            if (castObject.Effects?.Animations?.OnCast != null)
-            {
-
-
-                foreach (var tar in targets)
-                {
-                    foreach (var user in tar.viewportUsers)
-                    {
-                        user.SendEffect(tar.Id, castObject.Effects.Animations.OnCast.Target.Id, castObject.Effects.Animations.OnCast.Target.Speed);
-                    }
-                }
-                if (castObject.Effects?.Animations?.OnCast?.SpellEffect != null)
-                    Effect(castObject.Effects.Animations.OnCast.SpellEffect.Id, castObject.Effects.Animations.OnCast.SpellEffect.Speed);
-            }
-
-            if (castObject.Effects?.Sound != null)
-                PlaySound(castObject.Effects.Sound.Id);
-
-            GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name}, {targets.Count()} targets");
-
-            if (!string.IsNullOrEmpty(castObject.Script))
-            {
-                // If a script is defined we fire it immediately, and let it handle targeting / etc
-                if (Game.World.ScriptProcessor.TryGetScript(castObject.Script, out Script script))
-                    return script.ExecuteFunction("OnUse", this);
-                else
-                {
-                    GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name}: castable script {castObject.Script} missing");
-                    return false;
-                }
-
-            }
-
-            foreach (var tar in targets)
-            {
-                if (castObject.Effects?.ScriptOverride == true)
-                {
-                    // TODO: handle castables with scripting
-                    // DoStuff();
-                    continue;
-                }
-                if (!castObject.Effects.Damage.IsEmpty)
-                {
-                    Xml.Element attackElement;
-                    var damageOutput = NumberCruncher.CalculateDamage(castObject, tar, this);
-                    if (castObject.Element == Xml.Element.Random)
-                    {
-                        Random rnd = new Random();
-                        var Elements = Enum.GetValues(typeof(Xml.Element));
-                        attackElement = (Xml.Element)Elements.GetValue(rnd.Next(Elements.Length));
-                    }
-                    else if (castObject.Element != Xml.Element.None)
-                        attackElement = castObject.Element;
-                    else
-                        attackElement = (Stats.OffensiveElementOverride != Xml.Element.None ? Stats.OffensiveElementOverride : Stats.BaseOffensiveElement);
-
-                    tar.Damage(damageOutput.Amount, attackElement, damageOutput.Type, damageOutput.Flags, this, false);
-
-                    if (tar.Stats.Hp <= 0) { deadMobs.Add(tar); }
-                }
-                // Note that we ignore castables with both damage and healing effects present - one or the other.
-                // A future improvement might be to allow more complex effects.
-                else if (!castObject.Effects.Heal.IsEmpty)
-                {
-                    var healOutput = NumberCruncher.CalculateHeal(castObject, tar, this);
-                    tar.Heal(healOutput, this);
-                }
-
-                // Handle statuses
-
-                foreach (var status in castObject.Effects.Statuses.Add.Where(e => e.Value != null))
-                {
-                    Xml.Status applyStatus;
-                    if (World.WorldData.TryGetValueByIndex<Xml.Status>(status.Value, out applyStatus))
-                    {
-                        GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - applying status {status.Value}");
-                        ApplyStatus(new CreatureStatus(applyStatus, tar, castObject));
-                    }
-                    else
-                        GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name} - failed to add status {status.Value}, does not exist!");
-                }
-
-                foreach (var status in castObject.Effects.Statuses.Remove)
-                {
-                    Xml.Status applyStatus;
-                    if (World.WorldData.TryGetValueByIndex<Xml.Status>(status, out applyStatus))
-                    {
-                        GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name} - removing status {status}");
-                        RemoveStatus(applyStatus.Icon);
-                    }
-                    else
-                        GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name} - failed to remove status {status}, does not exist!");
-
-                }
-            }
-            // Now flood away
-            foreach (var dead in deadMobs)
-                World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.HandleDeath, dead));
-            Condition.Casting = false;
-            return true;
-        }
 
         public void AssailAttack(Xml.Direction direction, Creature target = null)
         {

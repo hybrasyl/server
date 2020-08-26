@@ -31,6 +31,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using Hybrasyl.Utility;
+using Hybrasyl.Xml;
 
 namespace Hybrasyl.Objects
 {
@@ -2399,7 +2400,7 @@ namespace Hybrasyl.Objects
         }
 
 
-        public override bool UseCastable(Xml.Castable castObject, Creature target = null)
+        public override bool UseCastable(Xml.Castable castObject, Creature target = null, SpawnCastable spawnCastable = null)
         {
             // Check casting costs
             if (!ProcessCastingCost(castObject, out string message))

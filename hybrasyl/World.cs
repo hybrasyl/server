@@ -1586,16 +1586,15 @@ namespace Hybrasyl
                     {
 
                         //pathfind or cast if far away
-                        var distanceX = (int)Math.Sqrt(Math.Pow(monster.X - aggroTarget.X, 2));
-                        var distanceY = (int)Math.Sqrt(Math.Pow(monster.Y - aggroTarget.Y, 2));
-                        if (distanceX >= 1 && distanceY >= 1)
+                        
+                        if (monster.Distance(aggroTarget) >= 1)
                         {
                             var nextAction = _random.Next(1, 6);
 
                             if (nextAction > 1)
                             {
                                 //pathfind;
-                                if (distanceX > distanceY)
+                                if (monster.X > aggroTarget.X)
                                 {
                                     monster.Walk(monster.X > aggroTarget.X ? Xml.Direction.West : Xml.Direction.East);
                                 }
@@ -1605,7 +1604,7 @@ namespace Hybrasyl
                                     monster.Walk(monster.Y > aggroTarget.Y ? Xml.Direction.North : Xml.Direction.South);
                                 }
 
-                                if (distanceX == distanceY)
+                                if (monster.Distance(aggroTarget) == 1)
                                 {
                                     var next = _random.Next(0, 2);
 
