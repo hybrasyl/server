@@ -394,10 +394,7 @@ namespace Hybrasyl.Objects
                             Cast(aggroTarget, selectedCastable);
                             selectedCastable.LastCast = DateTime.Now;
                         }
-                        else
-                        {
-                            AssailAttack(Direction, aggroTarget);
-                        }
+                        
                     }
 
                     if (selectedCastable.Target == Xml.TargetType.Group || selectedCastable.Target == Xml.TargetType.Random)
@@ -407,10 +404,7 @@ namespace Hybrasyl.Objects
                             Cast(targetGroup, selectedCastable, selectedCastable.Target);
                             selectedCastable.LastCast = DateTime.Now;
                         }
-                        else
-                        {
-                            AssailAttack(Direction, aggroTarget);
-                        }
+                        
                     }
                 }
 
@@ -427,10 +421,7 @@ namespace Hybrasyl.Objects
                             Cast(aggroTarget, selectedCastable);
                             selectedCastable.LastCast = DateTime.Now;
                         }
-                        else
-                        {
-                            AssailAttack(Direction, aggroTarget);
-                        }
+                        
                     }
 
                     if (selectedCastable.Target == Xml.TargetType.Group || selectedCastable.Target == Xml.TargetType.Random)
@@ -440,10 +431,7 @@ namespace Hybrasyl.Objects
                             Cast(targetGroup, selectedCastable, selectedCastable.Target);
                             selectedCastable.LastCast = DateTime.Now;
                         }
-                        else
-                        {
-                            AssailAttack(Direction, aggroTarget);
-                        }
+                        
                     }
                 }
 
@@ -460,10 +448,7 @@ namespace Hybrasyl.Objects
                             Cast(aggroTarget, selectedCastable);
                             selectedCastable.LastCast = DateTime.Now;
                         }
-                        else
-                        {
-                            AssailAttack(Direction, aggroTarget);
-                        }
+                        
                     }
 
                     if (selectedCastable.Target == Xml.TargetType.Group || selectedCastable.Target == Xml.TargetType.Random)
@@ -473,10 +458,7 @@ namespace Hybrasyl.Objects
                             Cast(targetGroup, selectedCastable, selectedCastable.Target);
                             selectedCastable.LastCast = DateTime.Now;
                         }
-                        else
-                        {
-                            AssailAttack(Direction, aggroTarget);
-                        }
+                        
 
                     }
                 }

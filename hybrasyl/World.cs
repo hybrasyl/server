@@ -1649,7 +1649,7 @@ namespace Hybrasyl
 
                         //pathfind or cast if far away
                         
-                        if (monster.Distance(aggroTarget) >= 1)
+                        if (monster.Distance(aggroTarget) > 2)
                         {
                             var nextAction = _random.Next(1, 6);
 
@@ -1666,7 +1666,7 @@ namespace Hybrasyl
                                     monster.Walk(monster.Y > aggroTarget.Y ? Xml.Direction.North : Xml.Direction.South);
                                 }
 
-                                if (monster.Distance(aggroTarget) == 1)
+                                if (monster.Distance(aggroTarget) == 2)
                                 {
                                     var next = _random.Next(0, 2);
 
