@@ -23,6 +23,7 @@ using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
 using Hybrasyl.Messaging;
 using Hybrasyl.Objects;
+using Hybrasyl.Plugins;
 using Hybrasyl.Scripting;
 using Hybrasyl.Utility;
 using MoonSharp.Interpreter;
@@ -40,6 +41,7 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Timers;
 using System.Xml.Schema;
 
@@ -82,6 +84,8 @@ namespace Hybrasyl
     public class World : Server
     {
         private static uint worldObjectID = 0;
+
+        private Dictionary<Xml.MessageType, List<IMessageHandler>> MessagePlugins = new Dictionary<Xml.MessageType, List<IMessageHandler>>();
 
         private object _lock = new object();
         public static DateTime StartDate => Game.Config.Time != null ? Game.Config.Time.ServerStart.Value : Game.StartDate;
@@ -250,6 +254,7 @@ namespace Hybrasyl
             SetControlMessageHandlers();
             SetMerchantMenuHandlers();
             RegisterWorldThrottles();
+            LoadPlugins();
             GameLog.InfoFormat("Hybrasyl server ready");
             return true;
         }
@@ -270,6 +275,49 @@ namespace Hybrasyl
         {
             var redis = DatastoreConnection.GetDatabase();
             return redis.KeyExists(User.GetStorageKey(name));
+        }
+
+        /// <summary>
+        /// Load all messaging plugins, based on server config.
+        /// </summary>
+        /// <returns></returns>
+        public void LoadPlugins()
+        {
+            // TODO: make more dynamic as we add plugin types
+            if (Game.Config.Plugins?.Message != null)
+            {
+                foreach (var plugin in Game.Config.Plugins.Message)
+                {
+                    var config = new SimpleConfiguration(plugin.Configuration);
+                    if (!MessagePlugins.ContainsKey(plugin.Type))
+                        MessagePlugins.Add(plugin.Type, new List<IMessageHandler>());
+                    // Instantiate handler
+                    var type = Assembly.GetExecutingAssembly().GetType(plugin.Name);
+                    if (type == null)
+                    {
+                        GameLog.Error("LoadPlugins: plugin {plugin} not found in assembly, ignoring", plugin.Name);
+                        continue;
+                    }
+                    if (type.GetInterface(typeof(IMessageHandler).FullName) != null)
+                    {
+                        try
+                        {
+                            var pluginInstance = Activator.CreateInstance(type) as IMessageHandler;
+                            pluginInstance.Initialize(config);
+                            pluginInstance.SetTargets(plugin.Targets);
+                            MessagePlugins[plugin.Type].Add(pluginInstance);
+                        }
+                        catch (Exception e)
+                        {
+                            GameLog.Error("LoadPlugins: plugin {plugin} failed to initialize: {e}", type.FullName, e);                           
+                        }
+
+                    }
+                    else
+                        GameLog.Error("LoadPlugins: specified plugin {plugin} doesn't implement IMessageHandler interface", type.FullName);
+                    GameLog.Info("LoadPlugins: Message plugin {plugin} loaded successfully", type.FullName);
+                }
+            }
         }
 
         public static string[] GetXmlFiles(string Path)
@@ -1122,6 +1170,20 @@ namespace Hybrasyl
                     GameLog.Error($"Script {scriptname}: Registration failed: {e.ToString()}");                
                 }
             }
+        }
+
+        public IMessageHandler ResolveMessagingPlugin(Xml.MessageType type, Plugins.Message message)
+        {
+            // Do we have a plugin that would handle this message?
+            if (MessagePlugins.TryGetValue(type, out List<IMessageHandler> pluginList))
+            {
+                foreach (var plugin in pluginList)
+                {
+                    if (plugin.WillHandle(message.Recipient))
+                        return plugin;
+                }
+            }
+            return null;
         }
 
         #region Set Handlers
@@ -3036,16 +3098,44 @@ namespace Hybrasyl
 
                 case 0x06:
                     {
+                        // TODO: refactor big switch statement
+                        //
                         // Send mail (which one might argue, ye olde DOOMVAS protocol designers, is a type of message)
 
                         var boardId = packet.ReadUInt16();
                         var recipient = packet.ReadString8();
                         var subject = packet.ReadString8();
                         var body = packet.ReadString16();
+                        bool continueProcessing = true;
+
+                        // Handle plugin response
+                        var plugin = ResolveMessagingPlugin(Xml.MessageType.Mail, new Plugins.Message(Xml.MessageType.Mail, user.Name, recipient, subject, body));
+
                         response.WriteByte(0x06); // Send post response
+
+                        if (plugin is IProcessingMessageHandler pmh)
+                        {
+                            var msg = new Plugins.Message(Xml.MessageType.Mail, user.Name, recipient, subject, body);
+                            var resp = pmh.Process(msg);
+                            if (!pmh.Passthrough)
+                            {
+                                // Plugin is "last destination" for message
+                                continueProcessing = false;
+                                response.WriteBoolean(resp.Success); 
+                                response.WriteString8(resp.PluginResponse);
+                            }
+                            else if (resp.Transformed)
+                            {
+                                // Update message if transformed, and keep going
+                                recipient = resp.Message.Recipient;
+                                subject = resp.Message.Subject;
+                                body = resp.Message.Text;                              
+                            }
+                        }
+
                         User recipientUser;
 
-                        if (WorldData.TryGetValue(recipient, out recipientUser))
+                        if (WorldData.TryGetValue(recipient, out recipientUser) && continueProcessing)
                         {
                             try
                             {

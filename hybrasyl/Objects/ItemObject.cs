@@ -105,7 +105,7 @@ namespace Hybrasyl.Objects
                 // Behavior is ANY castable, not ALL in list
                 foreach (var castable in Template.Properties.Restrictions.Castables)
                 {
-                    if (userobj.SkillBook.IndexOf(castable) != -1 &&
+                    if (userobj.SkillBook.IndexOf(castable) != -1 ||
                         userobj.SpellBook.IndexOf(castable) != -1)
                     {
                         hasCast = true;

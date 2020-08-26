@@ -24,66 +24,23 @@ using System.Collections.Generic;
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-public partial class Handlers
+public partial class ServerPlugins
 {
     #region Private fields
-    private Death _death;
-    private Chat _chat;
-    private NewPlayer _newPlayer;
-    private MessageHandlers _messaging;
+    private List<MessagePlugin> _message;
     private static XmlSerializer _serializer;
     #endregion
     
-    public Handlers()
-    {
-        _newPlayer = new NewPlayer();
-    }
-    
-    public Death Death
+    [XmlArrayItemAttribute("Plugin", IsNullable=false)]
+    public List<MessagePlugin> Message
     {
         get
         {
-            return _death;
+            return _message;
         }
         set
         {
-            _death = value;
-        }
-    }
-    
-    public Chat Chat
-    {
-        get
-        {
-            return _chat;
-        }
-        set
-        {
-            _chat = value;
-        }
-    }
-    
-    public NewPlayer NewPlayer
-    {
-        get
-        {
-            return _newPlayer;
-        }
-        set
-        {
-            _newPlayer = value;
-        }
-    }
-    
-    public MessageHandlers Messaging
-    {
-        get
-        {
-            return _messaging;
-        }
-        set
-        {
-            _messaging = value;
+            _message = value;
         }
     }
     
@@ -93,7 +50,7 @@ public partial class Handlers
         {
             if ((_serializer == null))
             {
-                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(Handlers));
+                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(ServerPlugins));
             }
             return _serializer;
         }
@@ -101,7 +58,7 @@ public partial class Handlers
     
     #region Serialize/Deserialize
     /// <summary>
-    /// Serialize Handlers object
+    /// Serialize ServerPlugins object
     /// </summary>
     /// <returns>XML value</returns>
     public virtual string Serialize()
@@ -134,16 +91,16 @@ public partial class Handlers
     }
     
     /// <summary>
-    /// Deserializes Handlers object
+    /// Deserializes ServerPlugins object
     /// </summary>
     /// <param name="input">string workflow markup to deserialize</param>
-    /// <param name="obj">Output Handlers object</param>
+    /// <param name="obj">Output ServerPlugins object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool Deserialize(string input, out Handlers obj, out Exception exception)
+    public static bool Deserialize(string input, out ServerPlugins obj, out Exception exception)
     {
         exception = null;
-        obj = default(Handlers);
+        obj = default(ServerPlugins);
         try
         {
             obj = Deserialize(input);
@@ -156,19 +113,19 @@ public partial class Handlers
         }
     }
     
-    public static bool Deserialize(string input, out Handlers obj)
+    public static bool Deserialize(string input, out ServerPlugins obj)
     {
         Exception exception = null;
         return Deserialize(input, out obj, out exception);
     }
     
-    public static Handlers Deserialize(string input)
+    public static ServerPlugins Deserialize(string input)
     {
         StringReader stringReader = null;
         try
         {
             stringReader = new StringReader(input);
-            return ((Handlers)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
+            return ((ServerPlugins)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
         }
         finally
         {
@@ -179,14 +136,14 @@ public partial class Handlers
         }
     }
     
-    public static Handlers Deserialize(Stream s)
+    public static ServerPlugins Deserialize(Stream s)
     {
-        return ((Handlers)(SerializerXML.Deserialize(s)));
+        return ((ServerPlugins)(SerializerXML.Deserialize(s)));
     }
     #endregion
     
     /// <summary>
-    /// Serializes current Handlers object into file
+    /// Serializes current ServerPlugins object into file
     /// </summary>
     /// <param name="fileName">full path of outupt xml file</param>
     /// <param name="exception">output Exception value if failed</param>
@@ -227,16 +184,16 @@ public partial class Handlers
     }
     
     /// <summary>
-    /// Deserializes xml markup from file into an Handlers object
+    /// Deserializes xml markup from file into an ServerPlugins object
     /// </summary>
     /// <param name="fileName">string xml file to load and deserialize</param>
-    /// <param name="obj">Output Handlers object</param>
+    /// <param name="obj">Output ServerPlugins object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool LoadFromFile(string fileName, out Handlers obj, out Exception exception)
+    public static bool LoadFromFile(string fileName, out ServerPlugins obj, out Exception exception)
     {
         exception = null;
-        obj = default(Handlers);
+        obj = default(ServerPlugins);
         try
         {
             obj = LoadFromFile(fileName);
@@ -249,13 +206,13 @@ public partial class Handlers
         }
     }
     
-    public static bool LoadFromFile(string fileName, out Handlers obj)
+    public static bool LoadFromFile(string fileName, out ServerPlugins obj)
     {
         Exception exception = null;
         return LoadFromFile(fileName, out obj, out exception);
     }
     
-    public static Handlers LoadFromFile(string fileName)
+    public static ServerPlugins LoadFromFile(string fileName)
     {
         FileStream file = null;
         StreamReader sr = null;

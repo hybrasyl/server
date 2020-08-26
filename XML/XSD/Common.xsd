@@ -360,8 +360,7 @@
               <xs:enumeration value="IncreaseDamage" />
               <xs:enumeration value="ReduceDamage" />
               <xs:enumeration value="AbsorbSpell" />
-              <xs:enumeration value="Prohibit
-                              " />
+              <xs:enumeration value="ProhibitItemUse" />
               <xs:enumeration value="ProhibitEquipChange" />
               <xs:enumeration value="ProhibitSpeech" />
               <xs:enumeration value="ProhibitWhisper" />
@@ -573,6 +572,21 @@
   <xs:simpleType name="IpAddress">
     <xs:restriction base="xs:string">
       <xs:pattern value="((((25[0-5])|(2[0-4][0-9])|([01]?[0-9]?[0-9]))\.){3}((25[0-5])|(2[0-4][0-9])|([01]?[0-9]?[0-9])))(\-((((25[0-5])|(2[0-4][0-9])|([01]?[0-9]?[0-9]))\.){3}((25[0-5])|(2[0-4][0-9])|([01]?[0-9]?[0-9]))))?" />
+    </xs:restriction>
+  </xs:simpleType>
+  
+  <!-- Message types for plugins -->
+  <xs:simpleType name="MessageType">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="Mail" />
+      <xs:enumeration value="BoardMessage" />
+      <xs:enumeration value="Say" />
+      <xs:enumeration value="Shout" />
+      <xs:enumeration value="Whisper" />
+      <xs:enumeration value="GuildChat" />
+      <xs:enumeration value="GroupChat" />
+      <xs:enumeration value="RegionalChat" />
+      <xs:enumeration value="GMChat" />
     </xs:restriction>
   </xs:simpleType>
 

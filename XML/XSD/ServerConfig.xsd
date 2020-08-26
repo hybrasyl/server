@@ -129,6 +129,60 @@
     <xs:attribute name="Level" type="hyb:LogLevel" default="Info" />
   </xs:complexType>
 
+  <!--
+    <Plugins>
+      <Messaging>
+        <Plugin Type="Mail" Passthrough="False" Name="BugReporter">
+          <Configuration>
+            <Config Key="WebhookUrl" Value="https://discordapp.com/api/webhooks/747500241556734074/2Lp7EMK5AeP3nY3dng-XazSP0z0oGKFxjM8cMrrpOd6WztdOQfkxXV1jwlKx7t5CPrA-"/>
+            <Config Key="OutputDir" Value="bugs"/>
+          </Configuration>
+          <Targets >
+            <Target>BugReporter</Target>
+          </Targets>
+        </Plugin>
+      </Messaging>
+    </Plugins>
+  -->
+  <xs:complexType name="MessagePluginTargets">
+    <xs:sequence>
+      <xs:element name="Target" type="xs:token" minOccurs="1" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="PluginConfig">
+    <xs:attribute name="Key" type="xs:token" use="required"/>
+    <xs:attribute name="Value" type="xs:token" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="PluginConfiguration">
+    <xs:sequence>
+      <xs:element name="Config" type="PluginConfig" minOccurs="1" maxOccurs="unbounded"/>
+   </xs:sequence>
+  </xs:complexType>
+  
+  <xs:complexType name="MessagePlugin">
+    <xs:sequence>
+      <xs:element name="Configuration" type="hyb:PluginConfiguration" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Targets" type="hyb:MessagePluginTargets" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+    <xs:attribute name="Type" type="hyb:MessageType" use="required"/>
+    <xs:attribute name="Passthrough" type="xs:boolean" use="required"/>
+    <xs:attribute name="Name" type="xs:token" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="MessagePlugins">
+    <xs:sequence>
+      <xs:element name="Plugin" type="hyb:MessagePlugin" minOccurs="1" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+  
+  <xs:complexType name="ServerPlugins">
+    <xs:sequence>
+      <xs:element name="Message" type="hyb:MessagePlugins" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+  </xs:complexType>
+
   <xs:complexType name="ServerConfig">
     <xs:sequence>
       <xs:element name="Logging" type="hyb:LogConfig" minOccurs="0" maxOccurs="1" />
@@ -140,6 +194,7 @@
       <xs:element name="Time" type="hyb:Time" minOccurs="0" maxOccurs="1"/>
       <xs:element name="Handlers" type="hyb:Handlers" minOccurs="0" maxOccurs="1"/>
       <xs:element name="Motd" type="hyb:String16" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Plugins" type="hyb:ServerPlugins" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
   </xs:complexType>
 
@@ -173,11 +228,27 @@
     </xs:sequence>
   </xs:complexType>
 
+  <xs:complexType name="MessageHandler">
+    <xs:sequence>
+      <xs:element name="Target" minOccurs="0" maxOccurs="unbounded" type="xs:token"/>
+    </xs:sequence>
+    <xs:attribute name="Handler" use="required" type="xs:token"/>
+    <xs:attribute name="Passthrough" default="false"/>
+  </xs:complexType>
+
+  <xs:complexType name="MessageHandlers">
+    <xs:sequence>
+      <xs:element name="Mail" minOccurs="0" maxOccurs="unbounded" type="MessageHandler"/>
+      <xs:element name="Board" minOccurs="0" maxOccurs="unbounded" type="MessageHandler"/>
+    </xs:sequence>    
+  </xs:complexType>
+    
   <xs:complexType name="Handlers">
     <xs:sequence>
       <xs:element name="Death" minOccurs="0" maxOccurs="1" type="hyb:Death" />
       <xs:element name="Chat" minOccurs="0" maxOccurs="1" type="hyb:Chat"/>
       <xs:element name="NewPlayer" minOccurs="1" maxOccurs="1" type="hyb:NewPlayer"/>
+      <xs:element name="Messaging" minOccurs="0" maxOccurs="1" type="hyb:MessageHandlers"/>
     </xs:sequence>
   </xs:complexType>
 
