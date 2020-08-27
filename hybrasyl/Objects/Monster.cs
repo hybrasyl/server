@@ -117,7 +117,7 @@ namespace Hybrasyl.Objects
                 item.ItemDropType = ItemDropType.MonsterLootPile;
                 item.ItemDropAllowedLooters = ItemDropAllowedLooters;
                 item.ItemDropTime = itemDropTime;
-                World.Insert(item);
+                Game.World.Insert(item);
                 Map.Insert(item, X, Y);
             }
 
@@ -127,7 +127,7 @@ namespace Hybrasyl.Objects
                 golds.ItemDropType = ItemDropType.MonsterLootPile;
                 golds.ItemDropAllowedLooters = ItemDropAllowedLooters;
                 golds.ItemDropTime = itemDropTime;
-                World.Insert(golds);
+                Game.World.Insert(golds);
                 Map.Insert(golds, X, Y);
             }
             Map.Remove(this);
@@ -381,7 +381,7 @@ namespace Hybrasyl.Objects
             {
                 //need to determine what it should do, and what is available to it.
 
-                var currentHpPercent = (double)(Stats.Hp / Stats.MaximumHp);
+                var currentHpPercent = (double)(Stats.Hp / Stats.MaximumHp) * 100;
 
                 if (currentHpPercent < 1)
                 {
@@ -399,12 +399,22 @@ namespace Hybrasyl.Objects
 
                     if (selectedCastable.Target == Xml.TargetType.Group || selectedCastable.Target == Xml.TargetType.Random)
                     {
-                        if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                        if (targetGroup != null)
                         {
-                            Cast(targetGroup, selectedCastable, selectedCastable.Target);
-                            selectedCastable.LastCast = DateTime.Now;
+                            if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                            {
+                                Cast(targetGroup, selectedCastable, selectedCastable.Target);
+                                selectedCastable.LastCast = DateTime.Now;
+                            }
                         }
-                        
+                        else
+                        {
+                            if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                            {
+                                Cast(aggroTarget, selectedCastable);
+                                selectedCastable.LastCast = DateTime.Now;
+                            }
+                        }
                     }
                 }
 
@@ -426,12 +436,22 @@ namespace Hybrasyl.Objects
 
                     if (selectedCastable.Target == Xml.TargetType.Group || selectedCastable.Target == Xml.TargetType.Random)
                     {
-                        if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                        if (targetGroup != null)
                         {
-                            Cast(targetGroup, selectedCastable, selectedCastable.Target);
-                            selectedCastable.LastCast = DateTime.Now;
+                            if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                            {
+                                Cast(targetGroup, selectedCastable, selectedCastable.Target);
+                                selectedCastable.LastCast = DateTime.Now;
+                            }
                         }
-                        
+                        else
+                        {
+                            if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                            {
+                                Cast(aggroTarget, selectedCastable);
+                                selectedCastable.LastCast = DateTime.Now;
+                            }
+                        }
                     }
                 }
 
@@ -447,19 +467,27 @@ namespace Hybrasyl.Objects
                         {
                             Cast(aggroTarget, selectedCastable);
                             selectedCastable.LastCast = DateTime.Now;
-                        }
-                        
+                        }                        
                     }
 
                     if (selectedCastable.Target == Xml.TargetType.Group || selectedCastable.Target == Xml.TargetType.Random)
                     {
-                        if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                        if (targetGroup != null)
                         {
-                            Cast(targetGroup, selectedCastable, selectedCastable.Target);
-                            selectedCastable.LastCast = DateTime.Now;
+                            if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                            {
+                                Cast(targetGroup, selectedCastable, selectedCastable.Target);
+                                selectedCastable.LastCast = DateTime.Now;
+                            }
                         }
-                        
-
+                        else
+                        {
+                            if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                            {
+                                Cast(aggroTarget, selectedCastable);
+                                selectedCastable.LastCast = DateTime.Now;
+                            }
+                        }
                     }
                 }
 

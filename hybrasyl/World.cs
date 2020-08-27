@@ -1215,6 +1215,7 @@ namespace Hybrasyl
             PacketHandlers[0x07] = PacketHandler_0x07_PickupItem; // ST + map lock
             PacketHandlers[0x08] = PacketHandler_0x08_DropItem; // ST + map lock
             PacketHandlers[0x0B] = PacketHandler_0x0B_ClientExit; // primary thread 
+            PacketHandlers[0x0C] = PacketHandler_0X0C_PutGround;
             PacketHandlers[0x0E] = PacketHandler_0x0E_Talk; // ST
             PacketHandlers[0x0F] = PacketHandler_0x0F_UseSpell; // PT
             PacketHandlers[0x10] = PacketHandler_0x10_ClientJoin; // PT
@@ -1250,6 +1251,8 @@ namespace Hybrasyl
             PacketHandlers[0x79] = PacketHandler_0x79_Status; // ST
             PacketHandlers[0x7B] = PacketHandler_0x7B_RequestMetafile; // ST
         }
+
+        
 
         public void SetMerchantMenuHandlers()
         {
@@ -1913,6 +1916,11 @@ namespace Hybrasyl
                 }
                 GameLog.InfoFormat("cid {0}: {1} leaving world", connectionId, user.Name);
             }
+        }
+
+        private void PacketHandler_0X0C_PutGround(object obj, ClientPacket packet)
+        {
+            //do nothing. only here to remove the stupid spam.
         }
 
         private void PacketHandler_0x10_ClientJoin(Object obj, ClientPacket packet)

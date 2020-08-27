@@ -56,7 +56,7 @@ namespace Hybrasyl
 
                         //pathfind or cast if far away
 
-                        if (monster.Distance(aggroTarget) > 2)
+                        if (monster.Distance(aggroTarget) >= 2)
                         {
                             var nextAction = _random.Next(1, 6);
 
