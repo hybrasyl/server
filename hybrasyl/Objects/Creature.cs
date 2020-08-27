@@ -474,6 +474,9 @@ namespace Hybrasyl.Objects
                             Max = spawnCastable.MaxDmg.ToString()
                         }
                     };
+
+                    castObject.Effects.Damage = damage; //set damage based on spawncastable settings.
+                    castObject.Element = spawnCastable.Element; //handle defined element without redoing a ton of code.
                 }                
             }
 
@@ -552,6 +555,14 @@ namespace Hybrasyl.Objects
                     if (this is User) GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} damage: {damageOutput}, element {attackElement}");
 
                     tar.Damage(damageOutput.Amount, attackElement, damageOutput.Type, damageOutput.Flags, this, false);
+
+                    if (this is Monster)
+                    {
+                        if(tar is User)
+                        {
+                            (tar as User).SendSystemMessage($"{this.Name} attacks you with {castObject.Name}.");
+                        }
+                    }
 
                     if (this is User)
                     {
