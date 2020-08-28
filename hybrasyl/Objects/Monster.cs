@@ -117,7 +117,7 @@ namespace Hybrasyl.Objects
                 item.ItemDropType = ItemDropType.MonsterLootPile;
                 item.ItemDropAllowedLooters = ItemDropAllowedLooters;
                 item.ItemDropTime = itemDropTime;
-                Game.World.Insert(item);
+                World.Insert(item);
                 Map.Insert(item, X, Y);
             }
 
@@ -127,7 +127,7 @@ namespace Hybrasyl.Objects
                 golds.ItemDropType = ItemDropType.MonsterLootPile;
                 golds.ItemDropAllowedLooters = ItemDropAllowedLooters;
                 golds.ItemDropTime = itemDropTime;
-                Game.World.Insert(golds);
+                World.Insert(golds);
                 Map.Insert(golds, X, Y);
             }
             Map.Remove(this);
@@ -623,6 +623,118 @@ namespace Hybrasyl.Objects
         public object Clone()
         {
             return this.MemberwiseClone();
+        }
+
+        public void PathFind((int x, int y) startPoint, (int x, int y) endPoint)
+        {
+            if(startPoint == endPoint)
+            {
+                return;
+            }
+            if(Map.IsWall[endPoint.x, endPoint.y])
+            {
+                return;
+            }
+
+            PathNextPoint(Relation(endPoint), startPoint);
+
+        }
+        public Xml.Direction Relation((int X, int Y) point)
+        {
+            if (Y > point.Y)
+                return Xml.Direction.North;
+            if (X < point.X)
+                return Xml.Direction.East;
+            if (Y < point.Y)
+                return Xml.Direction.South;
+            if (X > point.X)
+                return Xml.Direction.West;
+            return Xml.Direction.North;
+        }
+
+        public void PathNextPoint(Xml.Direction direction, (int x, int y) currentPoint)
+        {
+            var rect = Map.GetViewport(12, 12);
+            var invalidPoints = new HashSet<(int x, int y)>(
+                from obj in Map.EntityTree.GetObjects(rect)
+                where Map.GetTileContents(obj.Location.X, obj.Location.Y).Any(x => x is Creature)
+                select ((int)obj.Location.X, (int)obj.Location.Y)
+                );
+
+            (int x, int y) point = NextPoint(direction, currentPoint);
+
+
+            if(!Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
+            {
+                Walk(direction);
+            }
+            else
+            {
+                var next = _random.Next(0, 9);
+
+                switch(direction)
+                {
+                    case Xml.Direction.North:
+                    case Xml.Direction.South:
+                        if(next < 5) //try east
+                        {
+                            point = NextPoint(Xml.Direction.East, currentPoint);
+                            if (!Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
+                            {
+                                Walk(Xml.Direction.East);
+                            }
+                        }
+                        else //try west
+                        {
+                            point = NextPoint(Xml.Direction.West, currentPoint);
+                            if (!Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
+                            {
+                                Walk(Xml.Direction.West);
+                            }
+                        }
+                        break;
+                    case Xml.Direction.East:
+                    case Xml.Direction.West:
+                        if (next < 5) //try north
+                        {
+                            point = NextPoint(Xml.Direction.North, currentPoint);
+                            if (!Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
+                            {
+                                Walk(Xml.Direction.North);
+                            }
+                        }
+                        else //try south
+                        {
+                            point = NextPoint(Xml.Direction.South, currentPoint);
+                            if (!Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
+                            {
+                                Walk(Xml.Direction.South);
+                            }
+                        }
+                        break;
+                }
+            }
+        }
+
+        public (int x, int y) NextPoint(Xml.Direction direction, (int x, int y) currentPoint)
+        {
+            (int x, int y) point = currentPoint;
+            switch (direction)
+            {
+                case Xml.Direction.North:
+                    point = (currentPoint.x, currentPoint.y - 1);
+                    break;
+                case Xml.Direction.East:
+                    point = (currentPoint.x + 1, currentPoint.y);
+                    break;
+                case Xml.Direction.South:
+                    point = (currentPoint.x, currentPoint.y + 1);
+                    break;
+                case Xml.Direction.West:
+                    point = (currentPoint.x - 1, currentPoint.y);
+                    break;
+            }
+            return point;
         }
     }
 
