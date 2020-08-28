@@ -505,15 +505,27 @@ namespace Hybrasyl.Xml
     public partial class Access
     {
         private List<string> _privilegedUsers = new List<String>();
+        private List<string> _reservedNames = new List<String>();
 
         public List<string> PrivilegedUsers
         {
             get
             {
-                if (!string.IsNullOrEmpty(Privileged))
+                if (!string.IsNullOrEmpty(Privileged) && _privilegedUsers.Count == 0)
                   foreach (var p in Privileged.Trim().Split(' '))
                     _privilegedUsers.Add(p.Trim().ToLower());
                 return _privilegedUsers;
+            }
+        }
+
+        public List<string> ReservedNames
+        {
+            get
+            {
+                if (!string.IsNullOrEmpty(Reserved) && _reservedNames.Count == 0)
+                    foreach (var p in Reserved.Trim().Split(' '))
+                        _reservedNames.Add(p.Trim().ToLower());
+                return _reservedNames;
             }
         }
 
@@ -521,6 +533,13 @@ namespace Hybrasyl.Xml
         {
             if (PrivilegedUsers.Count > 0)
                 return PrivilegedUsers.Contains(user.ToLower()) || PrivilegedUsers.Contains("*");
+            return false;
+        }
+
+        public bool IsReservedName(string user)
+        {
+            if (ReservedNames.Count > 0)
+                return ReservedNames.Contains(user.ToLower());
             return false;
         }
 

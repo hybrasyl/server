@@ -188,9 +188,9 @@ namespace Hybrasyl
         {
             RegisterPacketThrottle(new GenericPacketThrottle(0x06, 250, 0, 500));  // Movement
                                                                                    // RegisterThrottle(new SpeechThrottle(0x0e, 250, 3, 10000, 10000, 200, 250, 6, 2000, 4000, 200)); // speech
-            RegisterPacketThrottle(new GenericPacketThrottle(0x3a, 600, 1000, 500));  // NPC use dialog
+            RegisterPacketThrottle(new GenericPacketThrottle(0x3a, 100, 1000, 500));  // NPC use dialog
             RegisterPacketThrottle(new GenericPacketThrottle(0x38, 600, 0, 500));  // refresh (f5)
-            RegisterPacketThrottle(new GenericPacketThrottle(0x39, 600, 1000, 500));  // NPC main menu
+            RegisterPacketThrottle(new GenericPacketThrottle(0x39, 200, 1000, 500));  // NPC main menu
             RegisterPacketThrottle(new GenericPacketThrottle(0x13, 800, 0, 0));        // Assail
         }
 
