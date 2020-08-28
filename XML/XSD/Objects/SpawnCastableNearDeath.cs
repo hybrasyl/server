@@ -24,44 +24,44 @@ using System.Collections.Generic;
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-public partial class Statuses
+public partial class SpawnCastableNearDeath
 {
     #region Private fields
-    private List<AddStatus> _add;
-    private List<string> _remove;
+    private List<SpawnCastable> _castables;
+    private int _healthPercent;
     private static XmlSerializer _serializer;
     #endregion
     
-    public Statuses()
+    public SpawnCastableNearDeath()
     {
-        _remove = new List<string>();
-        _add = new List<AddStatus>();
+        _castables = new List<SpawnCastable>();
+        _healthPercent = 20;
     }
     
-    [XmlElement("Add")]
-    public List<AddStatus> Add
+    [XmlArrayItemAttribute("Castable", IsNullable=false)]
+    public List<SpawnCastable> Castables
     {
         get
         {
-            return _add;
+            return _castables;
         }
         set
         {
-            _add = value;
+            _castables = value;
         }
     }
     
-    [XmlElement("Remove")]
-    [StringLengthAttribute(255, MinimumLength=1)]
-    public List<string> Remove
+    [XmlAttribute]
+    [DefaultValue(20)]
+    public int HealthPercent
     {
         get
         {
-            return _remove;
+            return _healthPercent;
         }
         set
         {
-            _remove = value;
+            _healthPercent = value;
         }
     }
     
@@ -71,7 +71,7 @@ public partial class Statuses
         {
             if ((_serializer == null))
             {
-                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(Statuses));
+                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(SpawnCastableNearDeath));
             }
             return _serializer;
         }
@@ -79,7 +79,7 @@ public partial class Statuses
     
     #region Serialize/Deserialize
     /// <summary>
-    /// Serialize Statuses object
+    /// Serialize SpawnCastableNearDeath object
     /// </summary>
     /// <returns>XML value</returns>
     public virtual string Serialize()
@@ -112,16 +112,16 @@ public partial class Statuses
     }
     
     /// <summary>
-    /// Deserializes Statuses object
+    /// Deserializes SpawnCastableNearDeath object
     /// </summary>
     /// <param name="input">string workflow markup to deserialize</param>
-    /// <param name="obj">Output Statuses object</param>
+    /// <param name="obj">Output SpawnCastableNearDeath object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool Deserialize(string input, out Statuses obj, out Exception exception)
+    public static bool Deserialize(string input, out SpawnCastableNearDeath obj, out Exception exception)
     {
         exception = null;
-        obj = default(Statuses);
+        obj = default(SpawnCastableNearDeath);
         try
         {
             obj = Deserialize(input);
@@ -134,19 +134,19 @@ public partial class Statuses
         }
     }
     
-    public static bool Deserialize(string input, out Statuses obj)
+    public static bool Deserialize(string input, out SpawnCastableNearDeath obj)
     {
         Exception exception = null;
         return Deserialize(input, out obj, out exception);
     }
     
-    public static Statuses Deserialize(string input)
+    public static SpawnCastableNearDeath Deserialize(string input)
     {
         StringReader stringReader = null;
         try
         {
             stringReader = new StringReader(input);
-            return ((Statuses)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
+            return ((SpawnCastableNearDeath)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
         }
         finally
         {
@@ -157,14 +157,14 @@ public partial class Statuses
         }
     }
     
-    public static Statuses Deserialize(Stream s)
+    public static SpawnCastableNearDeath Deserialize(Stream s)
     {
-        return ((Statuses)(SerializerXML.Deserialize(s)));
+        return ((SpawnCastableNearDeath)(SerializerXML.Deserialize(s)));
     }
     #endregion
     
     /// <summary>
-    /// Serializes current Statuses object into file
+    /// Serializes current SpawnCastableNearDeath object into file
     /// </summary>
     /// <param name="fileName">full path of outupt xml file</param>
     /// <param name="exception">output Exception value if failed</param>
@@ -205,16 +205,16 @@ public partial class Statuses
     }
     
     /// <summary>
-    /// Deserializes xml markup from file into an Statuses object
+    /// Deserializes xml markup from file into an SpawnCastableNearDeath object
     /// </summary>
     /// <param name="fileName">string xml file to load and deserialize</param>
-    /// <param name="obj">Output Statuses object</param>
+    /// <param name="obj">Output SpawnCastableNearDeath object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool LoadFromFile(string fileName, out Statuses obj, out Exception exception)
+    public static bool LoadFromFile(string fileName, out SpawnCastableNearDeath obj, out Exception exception)
     {
         exception = null;
-        obj = default(Statuses);
+        obj = default(SpawnCastableNearDeath);
         try
         {
             obj = LoadFromFile(fileName);
@@ -227,13 +227,13 @@ public partial class Statuses
         }
     }
     
-    public static bool LoadFromFile(string fileName, out Statuses obj)
+    public static bool LoadFromFile(string fileName, out SpawnCastableNearDeath obj)
     {
         Exception exception = null;
         return LoadFromFile(fileName, out obj, out exception);
     }
     
-    public static Statuses LoadFromFile(string fileName)
+    public static SpawnCastableNearDeath LoadFromFile(string fileName)
     {
         FileStream file = null;
         StreamReader sr = null;

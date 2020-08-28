@@ -24,44 +24,72 @@ using System.Collections.Generic;
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-public partial class Statuses
+public partial class CastableGroup
 {
     #region Private fields
-    private List<AddStatus> _add;
-    private List<string> _remove;
+    private List<SpawnCastable> _offense;
+    private List<SpawnCastable> _defense;
+    private SpawnCastableNearDeath _nearDeath;
+    private List<SpawnCastable> _onDeath;
     private static XmlSerializer _serializer;
     #endregion
     
-    public Statuses()
+    public CastableGroup()
     {
-        _remove = new List<string>();
-        _add = new List<AddStatus>();
+        _onDeath = new List<SpawnCastable>();
+        _nearDeath = new SpawnCastableNearDeath();
+        _defense = new List<SpawnCastable>();
+        _offense = new List<SpawnCastable>();
     }
     
-    [XmlElement("Add")]
-    public List<AddStatus> Add
+    [XmlArrayItemAttribute("Castable", IsNullable=false)]
+    public List<SpawnCastable> Offense
     {
         get
         {
-            return _add;
+            return _offense;
         }
         set
         {
-            _add = value;
+            _offense = value;
         }
     }
     
-    [XmlElement("Remove")]
-    [StringLengthAttribute(255, MinimumLength=1)]
-    public List<string> Remove
+    [XmlArrayItemAttribute("Castable", IsNullable=false)]
+    public List<SpawnCastable> Defense
     {
         get
         {
-            return _remove;
+            return _defense;
         }
         set
         {
-            _remove = value;
+            _defense = value;
+        }
+    }
+    
+    public SpawnCastableNearDeath NearDeath
+    {
+        get
+        {
+            return _nearDeath;
+        }
+        set
+        {
+            _nearDeath = value;
+        }
+    }
+    
+    [XmlArrayItemAttribute("Castable", IsNullable=false)]
+    public List<SpawnCastable> OnDeath
+    {
+        get
+        {
+            return _onDeath;
+        }
+        set
+        {
+            _onDeath = value;
         }
     }
     
@@ -71,7 +99,7 @@ public partial class Statuses
         {
             if ((_serializer == null))
             {
-                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(Statuses));
+                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(CastableGroup));
             }
             return _serializer;
         }
@@ -79,7 +107,7 @@ public partial class Statuses
     
     #region Serialize/Deserialize
     /// <summary>
-    /// Serialize Statuses object
+    /// Serialize CastableGroup object
     /// </summary>
     /// <returns>XML value</returns>
     public virtual string Serialize()
@@ -112,16 +140,16 @@ public partial class Statuses
     }
     
     /// <summary>
-    /// Deserializes Statuses object
+    /// Deserializes CastableGroup object
     /// </summary>
     /// <param name="input">string workflow markup to deserialize</param>
-    /// <param name="obj">Output Statuses object</param>
+    /// <param name="obj">Output CastableGroup object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool Deserialize(string input, out Statuses obj, out Exception exception)
+    public static bool Deserialize(string input, out CastableGroup obj, out Exception exception)
     {
         exception = null;
-        obj = default(Statuses);
+        obj = default(CastableGroup);
         try
         {
             obj = Deserialize(input);
@@ -134,19 +162,19 @@ public partial class Statuses
         }
     }
     
-    public static bool Deserialize(string input, out Statuses obj)
+    public static bool Deserialize(string input, out CastableGroup obj)
     {
         Exception exception = null;
         return Deserialize(input, out obj, out exception);
     }
     
-    public static Statuses Deserialize(string input)
+    public static CastableGroup Deserialize(string input)
     {
         StringReader stringReader = null;
         try
         {
             stringReader = new StringReader(input);
-            return ((Statuses)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
+            return ((CastableGroup)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
         }
         finally
         {
@@ -157,14 +185,14 @@ public partial class Statuses
         }
     }
     
-    public static Statuses Deserialize(Stream s)
+    public static CastableGroup Deserialize(Stream s)
     {
-        return ((Statuses)(SerializerXML.Deserialize(s)));
+        return ((CastableGroup)(SerializerXML.Deserialize(s)));
     }
     #endregion
     
     /// <summary>
-    /// Serializes current Statuses object into file
+    /// Serializes current CastableGroup object into file
     /// </summary>
     /// <param name="fileName">full path of outupt xml file</param>
     /// <param name="exception">output Exception value if failed</param>
@@ -205,16 +233,16 @@ public partial class Statuses
     }
     
     /// <summary>
-    /// Deserializes xml markup from file into an Statuses object
+    /// Deserializes xml markup from file into an CastableGroup object
     /// </summary>
     /// <param name="fileName">string xml file to load and deserialize</param>
-    /// <param name="obj">Output Statuses object</param>
+    /// <param name="obj">Output CastableGroup object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool LoadFromFile(string fileName, out Statuses obj, out Exception exception)
+    public static bool LoadFromFile(string fileName, out CastableGroup obj, out Exception exception)
     {
         exception = null;
-        obj = default(Statuses);
+        obj = default(CastableGroup);
         try
         {
             obj = LoadFromFile(fileName);
@@ -227,13 +255,13 @@ public partial class Statuses
         }
     }
     
-    public static bool LoadFromFile(string fileName, out Statuses obj)
+    public static bool LoadFromFile(string fileName, out CastableGroup obj)
     {
         Exception exception = null;
         return LoadFromFile(fileName, out obj, out exception);
     }
     
-    public static Statuses LoadFromFile(string fileName)
+    public static CastableGroup LoadFromFile(string fileName)
     {
         FileStream file = null;
         StreamReader sr = null;

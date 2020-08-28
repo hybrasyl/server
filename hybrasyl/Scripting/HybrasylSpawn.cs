@@ -20,6 +20,7 @@
  */
 
 using Hybrasyl.Objects;
+using Hybrasyl.Xml;
 using MoonSharp.Interpreter;
 
 namespace Hybrasyl.Scripting
@@ -128,17 +129,35 @@ namespace Hybrasyl.Scripting
             }
         }
 
-        public void AddCastable(string item, double chance = 0.50, int cooldown = 1, bool always = false)
+        public void AddCastable(string name, string type, int minDmg, int maxDmg, Element element, int interval, TargetType targetType )
         {
-            if (Game.World.WorldData.TryGetValue(item, out Xml.Castable theCastable))
+            if (Game.World.WorldData.TryGetValue(name, out Xml.Castable theCastable))
             {
+
                 // Add a castable to our casting list
                 var castInstruction = new Xml.SpawnCastable();
-                castInstruction.Chance = (float)chance;
-                castInstruction.Cooldown = cooldown;
-                castInstruction.Value = item;
-                castInstruction.Always = always;
-                Spawn.Castables.Add(castInstruction);
+                castInstruction.Element = element;
+                castInstruction.Interval = interval;
+                castInstruction.Name = name;
+                castInstruction.Target = targetType;
+                castInstruction.MinDmg = minDmg;
+                castInstruction.MaxDmg = maxDmg;
+                
+                switch(type.ToLower())
+                {
+                    case "offense":
+                        Spawn.Castables.Offense.Add(castInstruction);
+                        break;
+                    case "defense":
+                        Spawn.Castables.Defense.Add(castInstruction);
+                        break;
+                    case "neardeath":
+                        Spawn.Castables.NearDeath.Castables.Add(castInstruction);
+                        break;
+                    case "ondeath":
+                        Spawn.Castables.OnDeath.Add(castInstruction);
+                        break;
+                }
             }
         }
 
@@ -154,7 +173,7 @@ namespace Hybrasyl.Scripting
             Dex = dex;
             // Populate a default, empty loot table, with default xp/gold settings
             Spawn.Loot.Table = new System.Collections.Generic.List<Xml.LootTable>();
-            Spawn.Castables = new System.Collections.Generic.List<Xml.SpawnCastable>();
+            Spawn.Castables = new Xml.CastableGroup();
             Spawn.Loot.Table.Add(new Xml.LootTable());
             Spawn.Loot = new Xml.LootList();
             Spawn.Loot.Gold = new Xml.LootGold();

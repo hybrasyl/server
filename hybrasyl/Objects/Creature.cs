@@ -453,14 +453,32 @@ namespace Hybrasyl.Objects
 
         #endregion
 
-        public virtual bool UseCastable(Xml.Castable castObject, Creature target = null)
+        public virtual bool UseCastable(Xml.Castable castObject, Creature target = null, Xml.SpawnCastable spawnCastable = null)
         {
             if (!Condition.CastingAllowed) return false;
             
             if (this is User) GameLog.UserActivityInfo($"UseCastable: {Name} begin casting {castObject.Name} on target: {target?.Name ?? "no target"} CastingAllowed: {Condition.CastingAllowed}");
 
             var damage = castObject.Effects.Damage;
-            List<Creature> targets;
+            List<Creature> targets = new List<Creature>();
+
+            if(this is Monster)
+            {
+                if(spawnCastable != null)
+                {
+                    damage = new Xml.CastableDamage
+                    {
+                        Simple = new Xml.SimpleQuantity
+                        {
+                            Min = spawnCastable.MinDmg.ToString(),
+                            Max = spawnCastable.MaxDmg.ToString()
+                        }
+                    };
+
+                    castObject.Effects.Damage = damage; //set damage based on spawncastable settings.
+                    castObject.Element = spawnCastable.Element; //handle defined element without redoing a ton of code.
+                }                
+            }
 
             targets = GetTargets(castObject, target);
 
@@ -537,6 +555,14 @@ namespace Hybrasyl.Objects
                     if (this is User) GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} damage: {damageOutput}, element {attackElement}");
 
                     tar.Damage(damageOutput.Amount, attackElement, damageOutput.Type, damageOutput.Flags, this, false);
+
+                    if (this is Monster)
+                    {
+                        if(tar is User)
+                        {
+                            (tar as User).SendSystemMessage($"{this.Name} attacks you with {castObject.Name}.");
+                        }
+                    }
 
                     if (this is User)
                     {

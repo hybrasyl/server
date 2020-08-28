@@ -81,7 +81,7 @@ namespace Hybrasyl
     }
 
 
-    public class World : Server
+    public partial class World : Server
     {
         private static uint worldObjectID = 0;
 
@@ -1215,6 +1215,7 @@ namespace Hybrasyl
             PacketHandlers[0x07] = PacketHandler_0x07_PickupItem; // ST + map lock
             PacketHandlers[0x08] = PacketHandler_0x08_DropItem; // ST + map lock
             PacketHandlers[0x0B] = PacketHandler_0x0B_ClientExit; // primary thread 
+            PacketHandlers[0x0C] = PacketHandler_0X0C_PutGround;
             PacketHandlers[0x0E] = PacketHandler_0x0E_Talk; // ST
             PacketHandlers[0x0F] = PacketHandler_0x0F_UseSpell; // PT
             PacketHandlers[0x10] = PacketHandler_0x10_ClientJoin; // PT
@@ -1250,6 +1251,8 @@ namespace Hybrasyl
             PacketHandlers[0x79] = PacketHandler_0x79_Status; // ST
             PacketHandlers[0x7B] = PacketHandler_0x7B_RequestMetafile; // ST
         }
+
+        
 
         public void SetMerchantMenuHandlers()
         {
@@ -1580,13 +1583,7 @@ namespace Hybrasyl
             }
         }
 
-        private void ControlMessage_SpawnMonster(HybrasylControlMessage message)
-        {
-            var monster = (Monster)message.Arguments[0];
-            var map = (Map)message.Arguments[1];
-            GameLog.DebugFormat("monolith: spawning monster {0} on map {1}", monster.Name, map.Name);
-            map.InsertCreature(monster);
-        }
+        
         private void ControlMessage_TriggerRefresh(HybrasylControlMessage message)
         {
             var connectionId = (long)message.Arguments[0];
@@ -1607,113 +1604,7 @@ namespace Hybrasyl
             if (creature is Monster) { (creature as Monster).OnDeath(); }
         }
 
-        private void ControlMessage_MonolithControl(HybrasylControlMessage message)
-        {
-
-            var monster = (Monster)message.Arguments[0];
-            var map = (Map)message.Arguments[1];
-
-            // Don't handle control messages for dead/removed mobs
-            if (!monster.Condition.Alive || monster.Id == 0 || monster.Map == null) return;
-            if (monster.IsHostile)
-            {
-                if (map.Users.Count > 0)
-                {
-                    var entityTree = map.EntityTree.GetObjects(monster.GetViewport());
-                    //get players
-                    var players = entityTree.OfType<User>();
-
-                    //get closest
-                    var closest =
-                        players.OrderBy(x => Math.Sqrt((Math.Pow(monster.X - x.X, 2) + Math.Pow(monster.Y - x.Y, 2))))
-                            .FirstOrDefault();
-
-                    if (closest != null)
-                    {
-
-                        //pathfind or cast if far away
-                        var distanceX = (int)Math.Sqrt(Math.Pow(monster.X - closest.X, 2));
-                        var distanceY = (int)Math.Sqrt(Math.Pow(monster.Y - closest.Y, 2));
-                        if (distanceX >= 1 && distanceY >= 1)
-                        {
-                            var nextAction = _random.Next(1, 6);
-
-                            if (nextAction > 1)
-                            {
-                                //pathfind;
-                                if (distanceX > distanceY)
-                                {
-                                    monster.Walk(monster.X > closest.X ? Xml.Direction.West : Xml.Direction.East);
-                                }
-                                else
-                                {
-                                    //movey
-                                    monster.Walk(monster.Y > closest.Y ? Xml.Direction.North : Xml.Direction.South);
-                                }
-
-                                if (distanceX == distanceY)
-                                {
-                                    var next = _random.Next(0, 2);
-
-                                    if (next == 0)
-                                    {
-                                        monster.Walk(monster.X > closest.X ? Xml.Direction.West : Xml.Direction.East);
-                                    }
-                                    else
-                                    {
-                                        monster.Walk(monster.Y > closest.Y ? Xml.Direction.North : Xml.Direction.South);
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                //cast
-                                if (monster.CanCast)
-                                {
-                                    monster.Cast(closest);
-                                }
-                            }
-                        }
-                        else
-                        {
-                            //check facing and attack or cast
-
-                            var nextAction = _random.Next(1, 6);
-                            if (nextAction > 1)
-                            {
-                                var facing = monster.CheckFacing(monster.Direction, closest);
-                                if (facing)
-                                {
-                                    monster.AssailAttack(monster.Direction, closest);
-                                }
-                            }
-                            else
-                            {
-                                if (monster.CanCast)
-                                {
-                                    monster.Cast(closest);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            if (monster.ShouldWander)
-            {
-                var nextAction = _random.Next(0, 2);
-                
-                if (nextAction == 1)
-                {
-                    var nextMove = _random.Next(0, 4);
-                    monster.Walk((Xml.Direction)nextMove);
-                }
-                else
-                {
-                    var nextMove = _random.Next(0, 4);
-                    monster.Turn((Xml.Direction)nextMove);
-                }
-            }
-        }
+        
 
         #endregion Control Message Handlers
 
@@ -2025,6 +1916,11 @@ namespace Hybrasyl
                 }
                 GameLog.InfoFormat("cid {0}: {1} leaving world", connectionId, user.Name);
             }
+        }
+
+        private void PacketHandler_0X0C_PutGround(object obj, ClientPacket packet)
+        {
+            //do nothing. only here to remove the stupid spam.
         }
 
         private void PacketHandler_0x10_ClientJoin(Object obj, ClientPacket packet)

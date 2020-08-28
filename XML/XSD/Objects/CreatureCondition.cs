@@ -20,7 +20,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 
 [System.FlagsAttribute()]
-[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.3752.0")]
+[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8")]
 [Serializable]
 [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
 public enum CreatureCondition
@@ -43,7 +43,9 @@ public enum CreatureCondition
     IncreaseDamage = 32768,
     ReduceDamage = 65536,
     AbsorbSpell = 131072,
-    ProhibitItemUse = 262144,
+    [XmlEnumAttribute("Prohibit                               ")]
+    [EnumMember(Value="Prohibit                               ")]
+    Prohibit = 262144,
     ProhibitEquipChange = 524288,
     ProhibitSpeech = 1048576,
     ProhibitWhisper = 2097152,

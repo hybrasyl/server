@@ -21,7 +21,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
+using System.Transactions;
 using Hybrasyl.Enums;
 using Hybrasyl.Scripting;
 
@@ -39,7 +41,7 @@ namespace Hybrasyl.Objects
 
         private uint _simpleDamage => Convert.ToUInt32(Rng.Next(_spawn.Damage.Min, _spawn.Damage.Max) * _variance);
 
-        private List<Xml.SpawnCastable> _castables;
+        private Xml.CastableGroup _castables;
         private double _variance;
 
         public int ActionDelay = 800;
@@ -47,12 +49,29 @@ namespace Hybrasyl.Objects
         public DateTime LastAction { get; set; }
         public bool IsHostile { get; set; }
         public bool ShouldWander { get; set; }
-        public bool CanCast => _spawn.Castables.Count > 0;
         public bool DeathDisabled => _spawn.Flags.HasFlag(Xml.SpawnFlags.DeathDisabled);
         public bool MovementDisabled => _spawn.Flags.HasFlag(Xml.SpawnFlags.MovementDisabled);
         public bool AiDisabled => _spawn.Flags.HasFlag(Xml.SpawnFlags.AiDisabled);
 
         public bool ScriptExists { get; set; }
+
+        public Dictionary<uint, double> AggroTable { get; set; }
+        public Xml.CastableGroup Castables => _castables;
+
+        public bool HasCastNearDeath = false;
+        
+        
+        public bool CanCast {
+            get
+            {
+                //if any of these are present, return true.
+                if (_spawn.Castables.Offense.Count > 0 || _spawn.Castables.Defense.Count > 0 || _spawn.Castables.NearDeath.Castables.Count > 0 || _spawn.Castables.OnDeath.Count > 0)
+                {
+                    return true;
+                }
+                return false;
+            }
+        } 
 
         public override void OnDeath()
         {
@@ -156,6 +175,15 @@ namespace Hybrasyl.Objects
 
         public override void OnDamage(Creature attacker, uint damage)
         {
+            if (!AggroTable.ContainsKey(attacker.Id))
+            {
+                AggroTable.Add(attacker.Id, damage);
+            }
+            else
+            {
+                AggroTable[attacker.Id] += damage;
+            }
+
             // FIXME: in the glorious future, run asynchronously with locking
             InitScript();
 
@@ -176,6 +204,7 @@ namespace Hybrasyl.Objects
                 Script.ExecuteFunction("OnHeal", this, healer);
             }
         }
+
 
         /// <summary>
         /// Calculates a sanity-checked stat using a spawn's variance value.
@@ -269,6 +298,8 @@ namespace Hybrasyl.Objects
                 ShouldWander = false;
             else
                 ShouldWander = IsHostile == false;
+
+            AggroTable = new Dictionary<uint, double>();
         }
 
         public Creature Target
@@ -344,15 +375,188 @@ namespace Hybrasyl.Objects
             return false;
         }
 
-        public void Cast(Creature target)
+        public void Cast(Creature aggroTarget, UserGroup targetGroup)
         {
-            var nextSpell = _random.Next(0, _castables.Count);
-            var creatureCastable = _castables[nextSpell];
-            var castable = World.WorldData.Get<Xml.Castable>(creatureCastable.Value);
+            if (CanCast)
+            {
+                //need to determine what it should do, and what is available to it.
+
+                var currentHpPercent = (double)(Stats.Hp / Stats.MaximumHp) * 100;
+
+                if (currentHpPercent < 1)
+                {
+                    var selectedCastable = SelectSpawnCastable(SpawnCastType.OnDeath);
+
+                    if (selectedCastable.Target == Xml.TargetType.Attacker)
+                    {
+                        if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                        {
+                            Cast(aggroTarget, selectedCastable);
+                            selectedCastable.LastCast = DateTime.Now;
+                        }
+                        
+                    }
+
+                    if (selectedCastable.Target == Xml.TargetType.Group || selectedCastable.Target == Xml.TargetType.Random)
+                    {
+                        if (targetGroup != null)
+                        {
+                            if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                            {
+                                Cast(targetGroup, selectedCastable, selectedCastable.Target);
+                                selectedCastable.LastCast = DateTime.Now;
+                            }
+                        }
+                        else
+                        {
+                            if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                            {
+                                Cast(aggroTarget, selectedCastable);
+                                selectedCastable.LastCast = DateTime.Now;
+                            }
+                        }
+                    }
+                }
+
+                if (currentHpPercent <= Castables.NearDeath.HealthPercent && HasCastNearDeath == false)
+                {
+                    HasCastNearDeath = true;
+
+                    var selectedCastable = SelectSpawnCastable(SpawnCastType.NearDeath);
+
+                    if (selectedCastable.Target == Xml.TargetType.Attacker)
+                    {
+                        if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                        {
+                            Cast(aggroTarget, selectedCastable);
+                            selectedCastable.LastCast = DateTime.Now;
+                        }
+                        
+                    }
+
+                    if (selectedCastable.Target == Xml.TargetType.Group || selectedCastable.Target == Xml.TargetType.Random)
+                    {
+                        if (targetGroup != null)
+                        {
+                            if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                            {
+                                Cast(targetGroup, selectedCastable, selectedCastable.Target);
+                                selectedCastable.LastCast = DateTime.Now;
+                            }
+                        }
+                        else
+                        {
+                            if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                            {
+                                Cast(aggroTarget, selectedCastable);
+                                selectedCastable.LastCast = DateTime.Now;
+                            }
+                        }
+                    }
+                }
+
+                var nextChoice = _random.Next(0, 1);
+
+                if (nextChoice == 0) //offense
+                {
+                    var selectedCastable = SelectSpawnCastable(SpawnCastType.Offensive);
+
+                    if (selectedCastable.Target == Xml.TargetType.Attacker)
+                    {
+                        if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                        {
+                            Cast(aggroTarget, selectedCastable);
+                            selectedCastable.LastCast = DateTime.Now;
+                        }                        
+                    }
+
+                    if (selectedCastable.Target == Xml.TargetType.Group || selectedCastable.Target == Xml.TargetType.Random)
+                    {
+                        if (targetGroup != null)
+                        {
+                            if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                            {
+                                Cast(targetGroup, selectedCastable, selectedCastable.Target);
+                                selectedCastable.LastCast = DateTime.Now;
+                            }
+                        }
+                        else
+                        {
+                            if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                            {
+                                Cast(aggroTarget, selectedCastable);
+                                selectedCastable.LastCast = DateTime.Now;
+                            }
+                        }
+                    }
+                }
+
+                if (nextChoice == 1) //defense
+                {
+                    //not sure how to handle this one
+                }
+            }
+        }
+
+        public void Cast(Creature target, Xml.SpawnCastable creatureCastable)
+        {
+            var castable = World.WorldData.GetByIndex<Xml.Castable>(creatureCastable.Name);
             if (target is Merchant) return;
-            UseCastable(castable, target);
+            UseCastable(castable, target, creatureCastable);
             Condition.Casting = false;
         }
+
+        public void Cast(UserGroup target, Xml.SpawnCastable creatureCastable, Xml.TargetType targetType)
+        {
+            var castable = World.WorldData.GetByIndex<Xml.Castable>(creatureCastable.Name);
+
+            if (targetType == Xml.TargetType.Group)
+            {
+                foreach(var user in target.Members)
+                {
+                    UseCastable(castable, user, creatureCastable);
+                }
+            }
+
+            if(targetType == Xml.TargetType.Random)
+            {
+                var rngSelection = _random.Next(0, target.Count - 1);
+
+                var user = target.Members[rngSelection];
+
+                UseCastable(castable, user, creatureCastable);
+            }
+
+            Condition.Casting = false;
+        }
+
+        public Xml.SpawnCastable SelectSpawnCastable(SpawnCastType castType)
+        {
+            var nextSpell = 0;
+            Xml.SpawnCastable creatureCastable = null;
+            switch (castType)
+            {
+                case SpawnCastType.Offensive:
+                    nextSpell = _random.Next(0, _castables.Offense.Count - 1);
+                    creatureCastable = _castables.Offense[nextSpell];
+                    break;
+                case SpawnCastType.Defensive:
+                    nextSpell = _random.Next(0, _castables.Defense.Count - 1);
+                    creatureCastable = _castables.Defense[nextSpell];
+                    break;
+                case SpawnCastType.NearDeath:
+                    nextSpell = _random.Next(0, _castables.NearDeath.Castables.Count - 1);
+                    creatureCastable = _castables.NearDeath.Castables[nextSpell];
+                    break;
+                case SpawnCastType.OnDeath:
+                    nextSpell = _random.Next(0, _castables.OnDeath.Count - 1);
+                    creatureCastable = _castables.OnDeath[nextSpell];
+                    break;
+            }
+
+            return creatureCastable;
+        }
+
 
         public void AssailAttack(Xml.Direction direction, Creature target = null)
         {
@@ -419,6 +623,118 @@ namespace Hybrasyl.Objects
         public object Clone()
         {
             return this.MemberwiseClone();
+        }
+
+        public void PathFind((int x, int y) startPoint, (int x, int y) endPoint)
+        {
+            if(startPoint == endPoint)
+            {
+                return;
+            }
+            if(Map.IsWall[endPoint.x, endPoint.y])
+            {
+                return;
+            }
+
+            PathNextPoint(Relation(endPoint), startPoint);
+
+        }
+        public Xml.Direction Relation((int X, int Y) point)
+        {
+            if (Y > point.Y)
+                return Xml.Direction.North;
+            if (X < point.X)
+                return Xml.Direction.East;
+            if (Y < point.Y)
+                return Xml.Direction.South;
+            if (X > point.X)
+                return Xml.Direction.West;
+            return Xml.Direction.North;
+        }
+
+        public void PathNextPoint(Xml.Direction direction, (int x, int y) currentPoint)
+        {
+            var rect = Map.GetViewport(12, 12);
+            var invalidPoints = new HashSet<(int x, int y)>(
+                from obj in Map.EntityTree.GetObjects(rect)
+                where Map.GetTileContents(obj.Location.X, obj.Location.Y).Any(x => x is Creature)
+                select ((int)obj.Location.X, (int)obj.Location.Y)
+                );
+
+            (int x, int y) point = NextPoint(direction, currentPoint);
+
+
+            if(!Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
+            {
+                Walk(direction);
+            }
+            else
+            {
+                var next = _random.Next(0, 9);
+
+                switch(direction)
+                {
+                    case Xml.Direction.North:
+                    case Xml.Direction.South:
+                        if(next < 5) //try east
+                        {
+                            point = NextPoint(Xml.Direction.East, currentPoint);
+                            if (!Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
+                            {
+                                Walk(Xml.Direction.East);
+                            }
+                        }
+                        else //try west
+                        {
+                            point = NextPoint(Xml.Direction.West, currentPoint);
+                            if (!Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
+                            {
+                                Walk(Xml.Direction.West);
+                            }
+                        }
+                        break;
+                    case Xml.Direction.East:
+                    case Xml.Direction.West:
+                        if (next < 5) //try north
+                        {
+                            point = NextPoint(Xml.Direction.North, currentPoint);
+                            if (!Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
+                            {
+                                Walk(Xml.Direction.North);
+                            }
+                        }
+                        else //try south
+                        {
+                            point = NextPoint(Xml.Direction.South, currentPoint);
+                            if (!Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
+                            {
+                                Walk(Xml.Direction.South);
+                            }
+                        }
+                        break;
+                }
+            }
+        }
+
+        public (int x, int y) NextPoint(Xml.Direction direction, (int x, int y) currentPoint)
+        {
+            (int x, int y) point = currentPoint;
+            switch (direction)
+            {
+                case Xml.Direction.North:
+                    point = (currentPoint.x, currentPoint.y - 1);
+                    break;
+                case Xml.Direction.East:
+                    point = (currentPoint.x + 1, currentPoint.y);
+                    break;
+                case Xml.Direction.South:
+                    point = (currentPoint.x, currentPoint.y + 1);
+                    break;
+                case Xml.Direction.West:
+                    point = (currentPoint.x - 1, currentPoint.y);
+                    break;
+            }
+            return point;
         }
     }
 

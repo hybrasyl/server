@@ -160,6 +160,14 @@ namespace Hybrasyl
             Silver = 4
         }
 
+        public enum SpawnCastType
+        {
+            Offensive,
+            Defensive,
+            NearDeath,
+            OnDeath
+        }
+
         #endregion
 
         #region Opcode enumerations

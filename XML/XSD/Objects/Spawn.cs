@@ -19,7 +19,7 @@ using System.Text;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 
-[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.3752.0")]
+[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8")]
 [Serializable]
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -35,8 +35,9 @@ public partial class Spawn
     private Defense _defense;
     private Stats _stats;
     private LootList _loot;
-    private List<SpawnCastable> _castables;
+    private CastableGroup _castables;
     private string _base;
+    private string _name;
     private float _variance;
     private SpawnFlags _flags;
     private static XmlSerializer _serializer;
@@ -44,6 +45,7 @@ public partial class Spawn
     
     public Spawn()
     {
+        _castables = new CastableGroup();
         _loot = new LootList();
         _stats = new Stats();
         _defense = new Defense();
@@ -136,8 +138,7 @@ public partial class Spawn
         }
     }
     
-    [XmlArrayItemAttribute("Castable", IsNullable=false)]
-    public List<SpawnCastable> Castables
+    public CastableGroup Castables
     {
         get
         {
@@ -159,6 +160,19 @@ public partial class Spawn
         set
         {
             _base = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string Name
+    {
+        get
+        {
+            return _name;
+        }
+        set
+        {
+            _name = value;
         }
     }
     
