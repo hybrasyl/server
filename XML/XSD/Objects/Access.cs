@@ -28,6 +28,7 @@ public partial class Access
 {
     #region Private fields
     private string _privileged;
+    private string _reserved;
     private static XmlSerializer _serializer;
     #endregion
     
@@ -40,6 +41,18 @@ public partial class Access
         set
         {
             _privileged = value;
+        }
+    }
+    
+    public string Reserved
+    {
+        get
+        {
+            return _reserved;
+        }
+        set
+        {
+            _reserved = value;
         }
     }
     

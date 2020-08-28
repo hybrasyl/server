@@ -65,7 +65,7 @@ namespace Hybrasyl
             // isn't valid.
             byte passwordErr = 0x0;
 
-            if (Game.World.PlayerExists(name))
+            if (Game.World.PlayerExists(name) || (Game.Config.Access?.IsReservedName(name) ?? false))
             {
                 client.LoginMessage("That name is unavailable.", 3);
             }

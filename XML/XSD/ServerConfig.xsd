@@ -98,6 +98,11 @@
           <xs:list itemType="xs:token" />
         </xs:simpleType>
       </xs:element>
+      <xs:element name="Reserved" minOccurs="0" maxOccurs="1">
+        <xs:simpleType>
+          <xs:list itemType="xs:token"/>
+        </xs:simpleType>
+      </xs:element>
     </xs:sequence>
   </xs:complexType>
 
@@ -129,21 +134,6 @@
     <xs:attribute name="Level" type="hyb:LogLevel" default="Info" />
   </xs:complexType>
 
-  <!--
-    <Plugins>
-      <Messaging>
-        <Plugin Type="Mail" Passthrough="False" Name="BugReporter">
-          <Configuration>
-            <Config Key="WebhookUrl" Value="https://discordapp.com/api/webhooks/747500241556734074/2Lp7EMK5AeP3nY3dng-XazSP0z0oGKFxjM8cMrrpOd6WztdOQfkxXV1jwlKx7t5CPrA-"/>
-            <Config Key="OutputDir" Value="bugs"/>
-          </Configuration>
-          <Targets >
-            <Target>BugReporter</Target>
-          </Targets>
-        </Plugin>
-      </Messaging>
-    </Plugins>
-  -->
   <xs:complexType name="MessagePluginTargets">
     <xs:sequence>
       <xs:element name="Target" type="xs:token" minOccurs="1" maxOccurs="unbounded"/>
