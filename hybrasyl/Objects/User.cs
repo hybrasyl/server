@@ -2905,16 +2905,16 @@ namespace Hybrasyl.Objects
                     if (!SkillBook.Contains(Game.World.WorldData.GetByIndex<Xml.Castable>(preReq.Value)))
                     {
                         learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_level");
-                        prompt = learnString.Value.Replace("$SKILLNAME", preReq.Value).Replace("$PREREQ", preReq.Level.ToString());
+                        prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$PREREQ", preReq.Value).Replace("$LEVEL", preReq.Level.ToString());
                         break;
                     }
                     else if (SkillBook.Contains(Game.World.WorldData.GetByIndex<Xml.Castable>(preReq.Value)))
                     {
                         var preReqSkill = SkillBook.Single(x => x.Name == preReq.Value);
-                        if (preReqSkill.CastableLevel < preReq.Level)
+                        if ((preReqSkill.UseCount / preReqSkill.Mastery.Uses) * 100 < preReq.Level)
                         {
                             learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_level");
-                            prompt = learnString.Value.Replace("$SKILLNAME", preReq.Value).Replace("$PREREQ", preReq.Level.ToString());
+                            prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$PREREQ", preReq.Value).Replace("$LEVEL", preReq.Level.ToString());
                             break;
                         }
                     }
@@ -3161,16 +3161,16 @@ namespace Hybrasyl.Objects
                     if (!SkillBook.Contains(Game.World.WorldData.GetByIndex<Xml.Castable>(preReq.Value)))
                     {
                         learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_level");
-                        prompt = learnString.Value.Replace("$SPELLNAME", preReq.Value).Replace("$PREREQ", preReq.Level.ToString());
+                        prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$PREREQ", preReq.Value).Replace("$LEVEL", preReq.Level.ToString());
                         break;
                     }
                     else if (SkillBook.Contains(Game.World.WorldData.GetByIndex<Xml.Castable>(preReq.Value)))
                     {
                         var preReqSkill = SkillBook.Single(x => x.Name == preReq.Value);
-                        if (preReqSkill.CastableLevel < preReq.Level)
+                        if ((preReqSkill.UseCount / preReqSkill.Mastery.Uses) * 100 < preReq.Level)
                         {
                             learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_level");
-                            prompt = learnString.Value.Replace("$SPELLNAME", preReq.Value).Replace("$PREREQ", preReq.Level.ToString());
+                            prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$PREREQ", preReq.Value).Replace("$LEVEL", preReq.Level.ToString());
                             break;
                         }
                     }
@@ -4065,8 +4065,10 @@ namespace Hybrasyl.Objects
 
             if (prompt == string.Empty) //this is so bad
             {
+                string coins = "coin";
+                if (fee > 1) coins = "coins";
                 //we can deposit!
-                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item_success").Value.Replace("$ITEM", item.Name).Replace("$QUANTITY", quantity.ToString()).Replace("$COINS", fee.ToString());
+                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item_success").Value.Replace("$ITEM", item.Name).Replace("$QUANTITY", quantity.ToString()).Replace("$COINS", fee.ToString()).Replace("$REF", coins);
                 Vault.AddItem(item.Name, quantity);
                 if(Inventory[slot].Stackable && Inventory[slot].Count > quantity)
                 {
