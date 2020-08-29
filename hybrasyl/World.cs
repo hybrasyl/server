@@ -902,12 +902,12 @@ namespace Hybrasyl
 
             #region ItemInfo
             var itmIndex = 0;
-            for (var i = 0; i < (int)(WorldData.Values<Xml.Item>().Count() / 700); i++)
+            for (var i = 0; i < (int)(WorldData.Values<Xml.Item>().Count() / 500); i++)
             {
                 var iteminfo = new Metafile($"ItemInfo{i}");
                 // TODO: split items into multiple ItemInfo files (DA does ~700 each)
                 var items = WorldData.Values<Xml.Item>().OrderBy(x => x.Name).ToArray();
-                for(var j = 0 + itmIndex; j< (700 + itmIndex); j++)
+                for(var j = 0 + itmIndex; j< (500 + itmIndex); j++)
                 {
                     if (j == items.Length) break;
                     var item = items[j];
@@ -917,17 +917,17 @@ namespace Hybrasyl
                     var weight = item.Properties.Physical.Weight;
                     var tab = item.Properties.Vendor?.ShopTab ?? "Junk";
                     var defaultDesc = "";
-                    if (item.BonusAc > 0) defaultDesc += $"-{item.BonusAc} AC \n";
-                    if (item.BonusStr > 0) defaultDesc += $"+{item.BonusStr} STR \n";
-                    if (item.BonusInt > 0) defaultDesc += $"+{item.BonusInt} INT \n";
-                    if (item.BonusWis > 0) defaultDesc += $"+{item.BonusWis} WIS \n";
-                    if (item.BonusCon > 0) defaultDesc += $"+{item.BonusCon} CON \n";
-                    if (item.BonusDex > 0) defaultDesc += $"+{item.BonusDex} DEX \n";
-                    if (item.BonusHit > 0) defaultDesc += $"+{item.BonusHit} HIT \n";
-                    if (item.BonusDmg > 0) defaultDesc += $"+{item.BonusDmg} DMG \n";
-                    if (item.BonusMr > 0) defaultDesc += $"+{item.BonusMr} MR \n";
-                    if (item.BonusHp > 0) defaultDesc += $"+{item.BonusHp} HP \n";
-                    if (item.BonusMp > 0) defaultDesc += $"+{item.BonusMp} MP \n";
+                    if (item.BonusAc != 0) defaultDesc += $"{(item.BonusAc > 0 ? "+" + item.BonusAc.ToString() : item.BonusAc.ToString())} AC \n";
+                    if (item.BonusStr != 0) defaultDesc += $"{(item.BonusStr > 0 ? "+" + item.BonusStr.ToString() : item.BonusStr.ToString())} STR \n";
+                    if (item.BonusInt != 0) defaultDesc += $"{(item.BonusInt > 0 ? "+" + item.BonusInt.ToString() : item.BonusInt.ToString())} INT \n";
+                    if (item.BonusWis != 0) defaultDesc += $"{(item.BonusWis > 0 ? "+" + item.BonusWis.ToString() : item.BonusWis.ToString())} WIS \n";
+                    if (item.BonusCon != 0) defaultDesc += $"{(item.BonusCon > 0 ? "+" + item.BonusCon.ToString() : item.BonusCon.ToString())} CON \n";
+                    if (item.BonusDex != 0) defaultDesc += $"{(item.BonusDex > 0 ? "+" + item.BonusDex.ToString() : item.BonusDex.ToString())} DEX \n";
+                    if (item.BonusHit != 0) defaultDesc += $"{(item.BonusHit > 0 ? "+" + item.BonusHit.ToString() : item.BonusHit.ToString())} HIT \n";
+                    if (item.BonusDmg != 0) defaultDesc += $"{(item.BonusDmg > 0 ? "+" + item.BonusDmg.ToString() : item.BonusDmg.ToString())} DMG \n";
+                    if (item.BonusMr != 0) defaultDesc += $"{(item.BonusMr > 0 ? "+" + item.BonusMr.ToString() : item.BonusMr.ToString())} MR \n";
+                    if (item.BonusHp != 0) defaultDesc += $"{(item.BonusHp > 0 ? "+" + item.BonusHp.ToString() : item.BonusHp.ToString())} HP \n";
+                    if (item.BonusMp != 0) defaultDesc += $"{(item.BonusMp > 0 ? "+" + item.BonusMp.ToString() : item.BonusMp.ToString())} MP \n";
                     if (defaultDesc.Length > 0) defaultDesc.Remove(defaultDesc.Length - 2);
 
                     var desc = "";
@@ -945,7 +945,7 @@ namespace Hybrasyl
                     iteminfo.Nodes.Add(new MetafileNode(item.Name, level, (int)xclass, weight, tab, desc));
                 }
                 WorldData.Set(iteminfo.Name, iteminfo.Compile());
-                itmIndex += 700;
+                itmIndex += 500;
             }
             #endregion ItemInfo
 

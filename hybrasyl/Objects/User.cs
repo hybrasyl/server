@@ -4458,7 +4458,8 @@ namespace Hybrasyl.Objects
             var itemsCount = 0;
             foreach (var item in Vault.Items)
             {
-                var worldItem = Game.World.WorldData.GetByIndex<Xml.Item>(item.Key);
+                Game.World.WorldData.TryGetValueByIndex<Xml.Item>(item.Key, out var worldItem);
+                if(worldItem == null) continue;
                 merchantItems.Items.Add(new MerchantShopItem()
                 {
                     Tile = (ushort)(0x8000 + worldItem.Properties.Appearance.Sprite),
