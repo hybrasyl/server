@@ -103,7 +103,7 @@ namespace Hybrasyl.Objects
                 hitter.TrackKill(Name, deadTime);
             }
 
-            hitter.ShareExperience(LootableXP);
+            hitter.ShareExperience(LootableXP, Stats.Level);
             var itemDropTime = DateTime.Now;
 
             foreach (var itemname in LootableItems)
