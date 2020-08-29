@@ -581,7 +581,7 @@ namespace Hybrasyl.Objects
                     {
                         GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} healing: {healOutput}");
                         if (Equipment.Weapon != null && !Equipment.Weapon.Undamageable)
-                           Equipment.Weapon.Durability -= 1 / (Equipment.Weapon.MaximumDurability * (100 - Stats.Ac));
+                           Equipment.Weapon.Durability -= 1 / (Equipment.Weapon.MaximumDurability * ((100 - Stats.Ac) == 0 ? 1 : (100 - Stats.Ac)));
                     }
                 }
 

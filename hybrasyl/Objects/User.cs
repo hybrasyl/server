@@ -2426,7 +2426,7 @@ namespace Hybrasyl.Objects
                 foreach (var item in Equipment)
                 {
                     if (item.EquipmentSlot != ServerItemSlots.Weapon && !(item.Undamageable))
-                        item.Durability -= 1 / (item.MaximumDurability * (100 - Stats.Ac));
+                        item.Durability -= 1 / (item.MaximumDurability * ((100 - Stats.Ac) == 0 ? 1: (100 - Stats.Ac)));
                 }
             }
             UpdateAttributes(StatUpdateFlags.Current);
