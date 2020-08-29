@@ -415,8 +415,8 @@ namespace Hybrasyl
 
                 if (!valid)
                 {
-                    socket.Disconnect(true);
                     GameLog.ErrorFormat("Invalid key from {IP}", ((IPEndPoint)Socket.RemoteEndPoint).Address.ToString());
+                    socket.Disconnect(true);
                 }
 
             }

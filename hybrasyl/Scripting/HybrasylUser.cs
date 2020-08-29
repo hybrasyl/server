@@ -852,7 +852,7 @@ namespace Hybrasyl.Scripting
         {
             if (string.IsNullOrEmpty(skillname))
                 GameLog.ScriptingError("AddSkill: {user} - skill name (first argument) cannot be null or empty");
-            else if (Game.World.WorldData.TryGetValue(skillname, out Xml.Castable result))
+            else if (Game.World.WorldData.TryGetValueByIndex(skillname, out Xml.Castable result))
             {
                 User.AddSkill(result);
                 return true;
@@ -872,7 +872,7 @@ namespace Hybrasyl.Scripting
         {
             if (string.IsNullOrEmpty(skillname))
                 GameLog.ScriptingError("HasSkill: {user} - skill name (first argument) cannot be null or empty");
-            else if (Game.World.WorldData.TryGetValue(skillname, out Xml.Castable result))
+            else if (Game.World.WorldData.TryGetValueByIndex(skillname, out Xml.Castable result))
                 return User.SkillBook.Contains(result);
             else
                 GameLog.ScriptingError("HasSkill: {user} - skill {skill} not found", User.Name, skillname);
@@ -889,7 +889,7 @@ namespace Hybrasyl.Scripting
         {
             if (string.IsNullOrEmpty(spellname))
                 GameLog.ScriptingError("AddSpell: {user} - spell name (first argument) cannot be null or empty");
-            else if (Game.World.WorldData.TryGetValue(spellname, out Xml.Castable result))
+            else if (Game.World.WorldData.TryGetValueByIndex(spellname, out Xml.Castable result))
             {
                 User.AddSpell(result);
                 return true;
@@ -908,7 +908,7 @@ namespace Hybrasyl.Scripting
         {
             if (string.IsNullOrEmpty(spellname))
                 GameLog.ScriptingError("HasSpell: {user} - spell name (first argument) cannot be null or empty");
-            else if (Game.World.WorldData.TryGetValue(spellname, out Xml.Castable result))
+            else if (Game.World.WorldData.TryGetValueByIndex(spellname, out Xml.Castable result))
                 return User.SpellBook.Contains(result);
             else
                 GameLog.ScriptingError("HasSpell: {user} - spell {spell} not found", User.Name, spellname);
