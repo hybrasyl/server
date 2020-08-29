@@ -686,6 +686,7 @@ namespace Hybrasyl
                         board.SetAccessLevel(Convert.ToString(moderator), BoardAccessLevel.Moderate);
                     }
                     GameLog.InfoFormat("Boards: Global board {0} initialized", globalboard.Name);
+                    WorldData.SetWithIndex(board.Name, board, board.Id);
                     board.Save();
                 }
             }
@@ -699,6 +700,7 @@ namespace Hybrasyl
                 {
                     foreach (var moderator in Game.Config.Access.PrivilegedUsers)
                         board.SetAccessLevel(moderator, BoardAccessLevel.Moderate);
+                    WorldData.SetWithIndex(board.Name, board, board.Id);
                     board.Save();
                 }
             }
@@ -2709,12 +2711,13 @@ namespace Hybrasyl
 
                         // TODO: This has the potential to be a somewhat expensive operation, optimize this.
                         var boardList =
-                            WorldData.Values<Board>().Where(mb => mb.CheckAccessLevel(user.Name, BoardAccessLevel.Read));
+                            WorldData.Values<Board>().Where(mb => mb.Global && mb.CheckAccessLevel(user.Name, BoardAccessLevel.Read));
 
                         // Mail is always the first board and has a fixed id of 0
                         response.WriteUInt16((ushort)(boardList.Count() + 1));
                         response.WriteUInt16(0);
                         response.WriteString8("Mail");
+
                         foreach (var board in boardList)
                         {
                             response.WriteUInt16((ushort)board.Id);
