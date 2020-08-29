@@ -166,6 +166,8 @@ namespace Hybrasyl
         public static string ElementDirectory => Path.Combine(DataDirectory, "world", "xml", "elements");
         #endregion
 
+        public HashSet<Creature> ActiveStatuses = new HashSet<Creature>();
+
         public static bool TryGetUser(string name, out User userobj)
         {
             //            userobj = JsonConvert.DeserializeObject<User>(jsonstring, settings);
@@ -258,6 +260,11 @@ namespace Hybrasyl
             GameLog.InfoFormat("Hybrasyl server ready");
             return true;
         }
+
+        public void EnqueueStatusCheck(Creature obj) =>
+            ActiveStatuses.Add(obj);
+
+        public void RemoveStatusCheck(Creature obj) => ActiveStatuses.Remove(obj);
 
         internal void RegisterGlobalSequence(DialogSequence sequence)
         {
@@ -562,7 +569,7 @@ namespace Hybrasyl
                 {
                     string name = string.Empty;
                     Xml.Status newStatus = Xml.Status.LoadFromFile(xml);
-                    WorldData.SetWithIndex(newStatus.Icon, newStatus, newStatus.Name);
+                    WorldData.Set(newStatus.Name, newStatus);
                     GameLog.Warning($"Statuses: loaded {newStatus.Name}, id {newStatus.Id}");
                 }
                 catch (Exception e)
@@ -1572,16 +1579,13 @@ namespace Hybrasyl
 
         private void ControlMessage_StatusTick(HybrasylControlMessage message)
         {
-            var userName = (string)message.Arguments[0];
-            GameLog.DebugFormat("statustick: processing tick for {0}", userName);
-            User user;
-            if (WorldData.TryGetValue(userName, out user))
+            var objectId = (uint)message.Arguments[0];
+            if (Objects.TryGetValue(objectId, out WorldObject wobj))
             {
-                user.ProcessStatusTicks();
-            }
-            else
-            {
-                GameLog.DebugFormat("tick: Cannot process tick for {0}, not logged in?", userName);
+                if (wobj is Creature creature)
+                    creature.ProcessStatusTicks();
+                else
+                    GameLog.Error($"Status tick on non-creature? {wobj.Name}");
             }
         }
 

@@ -282,8 +282,14 @@ namespace Hybrasyl
                     User user;
                     if (World.ActiveUsers.TryGetValue(connectionId, out user))
                     {
-                        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.StatusTick, user.Name));
+                        if (user.Statuses.Count > 0 && user.Condition.Alive)
+                            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.StatusTick, user.Id));
                     }
+                }
+                foreach (var wobj in Game.World.ActiveStatuses)
+                {
+                    if (wobj is Creature creature && creature.Condition.Alive)
+                        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.StatusTick, wobj.Id));
                 }
                 GameLog.Debug("Status tick job ending");
 

@@ -134,8 +134,8 @@ namespace Hybrasyl
 
     public class SimpleStatusEffect
     {
-        double Heal { get; set; }
-        DamageOutput Damage { get; set; }
+        public double Heal { get; set; }
+        public DamageOutput Damage { get; set; }
 
         public SimpleStatusEffect(double heal, DamageOutput damage)
         {
@@ -190,6 +190,8 @@ namespace Hybrasyl
             Target = target;
             XmlStatus = xmlstatus;
             Start = DateTime.Now;
+            Target = target;
+            Source = source;
             Duration = duration == -1 ? xmlstatus.Duration : duration;
             Tick = tickFrequency == -1 ? xmlstatus.Tick : tickFrequency;
 
@@ -338,7 +340,7 @@ namespace Hybrasyl
             }
             if (!effect.Damage.IsEmpty)
             {
-                dmg = NumberCruncher.CalculateDamage(Castable, effect, Target, Source, Name);
+                dmg = NumberCruncher.CalculateDamage(castable, effect, Target, source, Name);
                //      if (dmg.Amount != 0) Target.Damage(dmg.Amount, Element.None, dmg.Type);
             }
             return (heal, dmg);
@@ -346,8 +348,12 @@ namespace Hybrasyl
 
         private void ProcessNumericEffects(SimpleStatusEffect effect)
         {
-
+            if (effect.Damage != null)
+                Target.Damage(effect.Damage.Amount, effect.Damage.Element, effect.Damage.Type, effect.Damage.Flags, Source);
+            if (effect.Heal != 0)
+                Target.Heal(effect.Heal, Source);
         }
+
         private void ProcessFullEffects(Xml.ModifierEffect effect, bool RemoveStatBonuses = false, bool displaySfx = true)
         {
             // Stat modifiers and condition changes are only processed during start/remove

@@ -132,6 +132,7 @@ namespace Hybrasyl.Objects
             }
             Map.Remove(this);
             World.Remove(this);
+            World.RemoveStatusCheck(this);
 
         }
 
@@ -175,15 +176,17 @@ namespace Hybrasyl.Objects
 
         public override void OnDamage(Creature attacker, uint damage)
         {
-            if (!AggroTable.ContainsKey(attacker.Id))
+            if (attacker != null)
             {
-                AggroTable.Add(attacker.Id, damage);
+                if (!AggroTable.ContainsKey(attacker.Id))
+                {
+                    AggroTable.Add(attacker.Id, damage);
+                }
+                else
+                {
+                    AggroTable[attacker.Id] += damage;
+                }
             }
-            else
-            {
-                AggroTable[attacker.Id] += damage;
-            }
-
             // FIXME: in the glorious future, run asynchronously with locking
             InitScript();
 
