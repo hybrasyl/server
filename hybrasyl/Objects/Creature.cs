@@ -566,7 +566,7 @@ namespace Hybrasyl.Objects
 
                     if (this is User)
                     {
-                        if(Equipment.Weapon != null && !Equipment.Weapon.Undamageable) Equipment.Weapon.Durability -= 1 / (Equipment.Weapon.MaximumDurability * (100 - Stats.Ac));
+                        if(Equipment.Weapon != null && !Equipment.Weapon.Undamageable) Equipment.Weapon.Durability -= 1 / (Equipment.Weapon.MaximumDurability * ((100 - Stats.Ac) == 0 ? 1 : (100 - Stats.Ac)));
                     }
 
                     if (tar.Stats.Hp <= 0) { deadMobs.Add(tar); }
