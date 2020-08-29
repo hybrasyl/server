@@ -174,14 +174,36 @@ namespace Hybrasyl
          * Distribute a pool of experience across members of the group.
          */
 
-        public void ShareExperience(User source, uint experience)
+        public void ShareExperience(User source, uint experience, byte mobLevel)
         {
             Dictionary<uint, uint> share = ExperienceDistributionFunc(source, experience);
 
             for (int i = 0; i < Members.Count; i++)
             {
-                // Note: this will only work for positive numbers at this point.
-                Members[i].GiveExperience((uint) share[Members[i].Id]);
+                var absoluteLevel = (byte)Math.Abs(Members[i].Stats.Level - mobLevel);
+                if (absoluteLevel > 3)
+                {
+                    switch (absoluteLevel)
+                    {
+                        case 4:
+                            share[Members[i].Id] = (uint)Math.Ceiling(share[Members[i].Id] * .8);
+                            break;
+                        case 5:
+                            share[Members[i].Id] = (uint)Math.Ceiling(share[Members[i].Id] * .6);
+                            break;
+                        case 6:
+                            share[Members[i].Id] = (uint)Math.Ceiling(share[Members[i].Id] * .4);
+                            break;
+                        case 7:
+                            share[Members[i].Id] = (uint)Math.Ceiling(share[Members[i].Id] * .2);
+                            break;
+                        default:
+                            share[Members[i].Id] = 1;
+                            break;
+                    }
+
+                    // Note: this will only work for positive numbers at this point.
+                    Members[i].GiveExperience((uint) share[Members[i].Id]);
             }
         }
 

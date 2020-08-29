@@ -730,15 +730,41 @@ namespace Hybrasyl.Objects
          * Distributes experience to a group if the user is in one, or to the
          * user directly if the user is ungrouped.
          */
-        public void ShareExperience(uint exp)
+        public void ShareExperience(uint exp, byte mobLevel)
         {
             if (Group != null)
             {
-                Group.ShareExperience(this, exp);
+                Group.ShareExperience(this, exp, mobLevel);
             }
             else
             {
-                GiveExperience(exp);
+                var absoluteLevel = (byte)Math.Abs(Stats.Level - mobLevel);
+                if (absoluteLevel > 3)
+                {
+                    switch (absoluteLevel)
+                    {
+                        case 4:
+                            exp = (uint)Math.Ceiling(exp * .8);
+                            break;
+                        case 5:
+                            exp = (uint)Math.Ceiling(exp * .6);
+                            break;
+                        case 6:
+                            exp = (uint)Math.Ceiling(exp * .4);
+                            break;
+                        case 7:
+                            exp = (uint)Math.Ceiling(exp * .2);
+                            break;
+                        default:
+                            exp = 1;
+                            break;
+                    }
+                    GiveExperience(exp);
+                }
+                else
+                {
+                    GiveExperience(exp);
+                }
             }
         }
 

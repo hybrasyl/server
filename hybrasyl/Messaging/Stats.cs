@@ -188,7 +188,7 @@ namespace Hybrasyl.Messaging
         {
             if (!uint.TryParse(args[0], out uint amount))
                 return Fail("The value you specified could not be parsed (uint)");
-            user.ShareExperience(amount);
+            user.ShareExperience(amount, user.Stats.Level);
             return Success($"{user.Name} - awarded {amount} XP.");
 
         }
