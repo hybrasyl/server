@@ -183,6 +183,8 @@ namespace Hybrasyl.Objects
             {
                 AggroTable[attacker.Id] += damage;
             }
+            IsHostile = true;
+            ShouldWander = false;
 
             // FIXME: in the glorious future, run asynchronously with locking
             InitScript();
