@@ -1471,7 +1471,15 @@ namespace Hybrasyl.Objects
             var x2C = new ServerPacket(0x2C);
             x2C.WriteByte((byte)slot);
             x2C.WriteUInt16((ushort)(item.Icon));
-            x2C.WriteString8(Class == Xml.Class.Peasant ? item.Name : $"{item.Name} (Mastery{mastery}: {Math.Round((decimal)(item.UseCount > item.Mastery.Uses ? 100 : item.UseCount / item.Mastery.Uses), 2)}%)");
+            if(item.Mastery.Uses != 1)
+            {
+                x2C.WriteString8(Class == Xml.Class.Peasant ? item.Name : $"{item.Name} (Mastery{mastery}: {Math.Round((decimal)(item.UseCount > item.Mastery.Uses ? 100 : item.UseCount / item.Mastery.Uses), 2)}%)");
+            }
+            else
+            {
+                x2C.WriteString8(item.Name);
+            }
+            
             Enqueue(x2C);
         }
 
@@ -1499,7 +1507,14 @@ namespace Hybrasyl.Objects
             x17.WriteUInt16((ushort)(castable.Icon));
             var spellType = castable.Intents[0].UseType;
             x17.WriteByte((byte)spellType); //spell type? how are we determining this?
-            x17.WriteString8(Class == Xml.Class.Peasant ? castable.Name : $"{castable.Name} (Mastery{mastery}:{ Math.Round((decimal)(castable.UseCount > castable.Mastery.Uses ? 100 : castable.UseCount / castable.Mastery.Uses), 2)}%)");
+            if(castable.Mastery.Uses != 1)
+            {
+                x17.WriteString8(Class == Xml.Class.Peasant ? castable.Name : $"{castable.Name} (Mastery{mastery}:{ Math.Round((decimal)(castable.UseCount > castable.Mastery.Uses ? 100 : castable.UseCount / castable.Mastery.Uses), 2)}%)");
+            }
+            else
+            {
+                x17.WriteString8(castable.Name);
+            }
             x17.WriteString8(castable.Name); //prompt? what is this?
             x17.WriteByte((byte)CalculateLines(castable));
             GameLog.InfoFormat($"{Name}: enqueuing {castable.Name} to slot {slot}");
