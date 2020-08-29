@@ -911,12 +911,12 @@ namespace Hybrasyl
 
             #region ItemInfo
             var itmIndex = 0;
-            for (var i = 0; i < (int)(WorldData.Values<Xml.Item>().Count() / 500); i++)
+            for (var i = 0; i < (int)(WorldData.Values<Xml.Item>().Count() / 600); i++)
             {
                 var iteminfo = new Metafile($"ItemInfo{i}");
                 // TODO: split items into multiple ItemInfo files (DA does ~700 each)
                 var items = WorldData.Values<Xml.Item>().OrderBy(x => x.Name).ToArray();
-                for(var j = 0 + itmIndex; j< (500 + itmIndex); j++)
+                for(var j = 0 + itmIndex; j< (600 + itmIndex); j++)
                 {
                     if (j == items.Length) break;
                     var item = items[j];
@@ -954,7 +954,7 @@ namespace Hybrasyl
                     iteminfo.Nodes.Add(new MetafileNode(item.Name, level, (int)xclass, weight, tab, desc));
                 }
                 WorldData.Set(iteminfo.Name, iteminfo.Compile());
-                itmIndex += 500;
+                itmIndex += 600;
             }
             #endregion ItemInfo
 
