@@ -1367,6 +1367,7 @@ namespace Hybrasyl.Objects
                 Overcoat = Equipment.Overcoat?.DisplaySprite ?? 0,
                 OvercoatColor = Equipment.Overcoat?.Color ?? 0,
                 SkinColor = SkinColor,
+                Shield = (byte)(Equipment.Shield?.DisplaySprite ?? 0),
                 Invisible = Transparent,
                 NameStyle = NameStyle,
                 Name = Name,
