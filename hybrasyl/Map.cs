@@ -186,7 +186,7 @@ namespace Hybrasyl
             Init();
             World = theWorld;
             SpawnDebug = false;
-          //  Spawns = new List<Xml.Spawn>();
+            //  Spawns = new List<Xml.Spawn>();
 
             // TODO: refactor Map class to not do this, but be a partial which overlays
             // TODO: XSD.Map

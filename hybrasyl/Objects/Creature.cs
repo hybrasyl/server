@@ -368,6 +368,8 @@ namespace Hybrasyl.Objects
             status.OnStart(sendUpdates);
             if (sendUpdates)
                 UpdateAttributes(StatUpdateFlags.Full);
+            if (this is Monster)
+                Game.World.EnqueueStatusCheck(this);
             return true;
         }
 
@@ -386,6 +388,8 @@ namespace Hybrasyl.Objects
                     status.OnEnd();
             }
             if (this is User) (this as User).SendStatusUpdate(status, true);
+            if (this is Monster)
+                Game.World.RemoveStatusCheck(this);
         }
 
         /// <summary>
@@ -590,7 +594,7 @@ namespace Hybrasyl.Objects
                 foreach (var status in castObject.Effects.Statuses.Add.Where(e => e.Value != null))
                 {
                     Xml.Status applyStatus;
-                    if (World.WorldData.TryGetValueByIndex<Xml.Status>(status.Value, out applyStatus))
+                    if (World.WorldData.TryGetValue<Xml.Status>(status.Value.ToLower(), out applyStatus))
                     {
                         var duration = status.Duration == 0 ? applyStatus.Duration : status.Duration;
                         GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - applying status {status.Value} - duration {duration}");
@@ -603,7 +607,7 @@ namespace Hybrasyl.Objects
                 foreach (var status in castObject.Effects.Statuses.Remove)
                 {
                     Xml.Status applyStatus;
-                    if (World.WorldData.TryGetValueByIndex<Xml.Status>(status, out applyStatus))
+                    if (World.WorldData.TryGetValue<Xml.Status>(status.ToLower(), out applyStatus))
                     {
                         GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name} - removing status {status}");
                         tar.RemoveStatus(applyStatus.Icon);

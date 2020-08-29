@@ -26,6 +26,7 @@ namespace Hybrasyl.Objects
         public string Message { get; set; }
         public bool IsMessageboard { get; set; }
         public string BoardName { get; set; }
+        public Board Board { get; private set; }
 
         public Signpost(byte postX, byte postY, string message, bool messageboard = false,
             string boardname = null)
@@ -36,20 +37,18 @@ namespace Hybrasyl.Objects
             Message = message;
             IsMessageboard = messageboard;
             BoardName = boardname;
+            Board = null;
+            if (IsMessageboard && !string.IsNullOrEmpty(boardname))
+                Board = Game.World.GetBoard(BoardName);
         }
 
         public override void OnClick(User invoker)
         {
             GameLog.DebugFormat("Signpost was clicked");
             if (!IsMessageboard)
-            {
                 invoker.SendMessage(Message, Message.Length < 1024 ? (byte)MessageTypes.SLATE : (byte)MessageTypes.SLATE_WITH_SCROLLBAR);
-            }
             else
-            {
-                var board = World.GetBoard(BoardName);
-                invoker.Enqueue(board.RenderToPacket(true));
-            }
+                invoker.Enqueue(Board.RenderToPacket(true));
         }
     }
 
