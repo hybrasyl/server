@@ -1473,7 +1473,7 @@ namespace Hybrasyl.Objects
             x2C.WriteUInt16((ushort)(item.Icon));
             if(item.Mastery.Uses != 1)
             {
-                x2C.WriteString8(Class == Xml.Class.Peasant ? item.Name : $"{item.Name} (Mastery{mastery}: {Math.Round((decimal)(item.UseCount > item.Mastery.Uses ? 100 : item.UseCount / item.Mastery.Uses), 2)}%)");
+                x2C.WriteString8(Class == Xml.Class.Peasant ? item.Name : $"{item.Name} (Mastery{mastery}: {Math.Round((decimal)(item.UseCount > item.Mastery.Uses ? 1 : item.UseCount / item.Mastery.Uses), 2) * 100}%)");
             }
             else
             {
@@ -1509,7 +1509,7 @@ namespace Hybrasyl.Objects
             x17.WriteByte((byte)spellType); //spell type? how are we determining this?
             if(castable.Mastery.Uses != 1)
             {
-                x17.WriteString8(Class == Xml.Class.Peasant ? castable.Name : $"{castable.Name} (Mastery{mastery}:{ Math.Round((decimal)(castable.UseCount > castable.Mastery.Uses ? 100 : castable.UseCount / castable.Mastery.Uses), 2)}%)");
+                x17.WriteString8(Class == Xml.Class.Peasant ? castable.Name : $"{castable.Name} (Mastery{mastery}:{ Math.Round((decimal)(castable.UseCount > castable.Mastery.Uses ? 1 : castable.UseCount / castable.Mastery.Uses), 2) * 100 }%)");
             }
             else
             {
