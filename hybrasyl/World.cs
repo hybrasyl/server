@@ -961,6 +961,18 @@ namespace Hybrasyl
                 skills = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySkill || x.Book == Xml.Book.SecondarySkill || x.Book == Xml.Book.UtilitySkill) && (x.Class.Contains(@class))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)).Level?.Min ?? 1).ThenBy(x => x.Name).ToList();
                 spells = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySpell || x.Book == Xml.Book.SecondarySpell || x.Book == Xml.Book.UtilitySpell) && (x.Class.Contains(@class))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)).Level?.Min ?? 1).ThenBy(x => x.Name).ToList();
 
+                var ignoreSpells = spells.Where(x => x.Categories.Any(x => x.Value == "Politics" || x.Value == "Religion" || x.Value == "Profession")).ToList();
+                var ignoreSkills = skills.Where(x => x.Categories.Any(x => x.Value == "Politics" || x.Value == "Religion" || x.Value == "Profession")).ToList();
+
+                foreach (var spell in ignoreSpells)
+                {
+                    spells.Remove(spell);
+                }
+                foreach (var skill in ignoreSkills)
+                {
+                    skills.Remove(skill);
+                }
+
                 sclass.Nodes.Add("");
                 sclass.Nodes.Add("Skill");
                 foreach (var skill in skills)
