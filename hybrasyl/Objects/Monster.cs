@@ -543,19 +543,19 @@ namespace Hybrasyl.Objects
             switch (castType)
             {
                 case SpawnCastType.Offensive:
-                    nextSpell = _random.Next(0, _castables.Offense.Count - 1);
+                    nextSpell = _random.Next(0, _castables.Offense.Count == 0 ? 0 : _castables.Offense.Count - 1);
                     creatureCastable = _castables.Offense[nextSpell];
                     break;
                 case SpawnCastType.Defensive:
-                    nextSpell = _random.Next(0, _castables.Defense.Count - 1);
+                    nextSpell = _random.Next(0, _castables.Defense.Count == 0 ? 0 : _castables.Defense.Count - 1);
                     creatureCastable = _castables.Defense[nextSpell];
                     break;
                 case SpawnCastType.NearDeath:
-                    nextSpell = _random.Next(0, _castables.NearDeath.Castables.Count - 1);
+                    nextSpell = _random.Next(0, _castables.NearDeath.Castables.Count == 0 ? 0 : _castables.NearDeath.Castables.Count - 1);
                     creatureCastable = _castables.NearDeath.Castables[nextSpell];
                     break;
                 case SpawnCastType.OnDeath:
-                    nextSpell = _random.Next(0, _castables.OnDeath.Count - 1);
+                    nextSpell = _random.Next(0, _castables.OnDeath.Count == 0 ? 0 : _castables.OnDeath.Count - 1);
                     creatureCastable = _castables.OnDeath[nextSpell];
                     break;
             }
