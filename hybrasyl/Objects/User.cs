@@ -1500,7 +1500,11 @@ namespace Hybrasyl.Objects
             x2C.WriteUInt16((ushort)(item.Icon));
             if(item.Mastery.Uses != 1)
             {
-                x2C.WriteString8(Class == Xml.Class.Peasant ? item.Name : $"{item.Name} (Mastery{mastery}: {Math.Round((decimal)(item.UseCount > item.Mastery.Uses ? 1 : item.UseCount / item.Mastery.Uses), 2) * 100}%)");
+                double percent;
+                if (item.UseCount > item.Mastery.Uses) percent = 100;
+                else percent = Math.Round((item.UseCount / (double)item.Mastery.Uses) * 100, 2);
+
+                x2C.WriteString8($"{item.Name} (Mastery{mastery}: {percent}%)");
             }
             else
             {
@@ -1534,9 +1538,13 @@ namespace Hybrasyl.Objects
             x17.WriteUInt16((ushort)(castable.Icon));
             var spellType = castable.Intents[0].UseType;
             x17.WriteByte((byte)spellType); //spell type? how are we determining this?
-            if(castable.Mastery.Uses != 1)
+            if (castable.Mastery.Uses != 1)
             {
-                x17.WriteString8(Class == Xml.Class.Peasant ? castable.Name : $"{castable.Name} (Mastery{mastery}:{ Math.Round((decimal)(castable.UseCount > castable.Mastery.Uses ? 1 : castable.UseCount / castable.Mastery.Uses), 2) * 100 }%)");
+                double percent;
+                if (castable.UseCount > castable.Mastery.Uses) percent = 100;
+                else percent = Math.Round((castable.UseCount / (double)castable.Mastery.Uses) * 100, 2);
+
+                x17.WriteString8($"{castable.Name} (Mastery{mastery}: {percent}%)");
             }
             else
             {
@@ -2536,7 +2544,8 @@ namespace Hybrasyl.Objects
             {
                 if (target != null && target.GetType() != typeof(Merchant))
                 {
-                    UseCastable(c, target);
+                    UseSkill(SkillBook.SlotOf(c.Name));
+                    //UseCastable(c, target);
                 }
             }
             //animation handled here as to not repeatedly send assails.
