@@ -332,7 +332,7 @@ namespace Hybrasyl.Objects
         }
 
         public DateTime LastHitTime { get; private set; }
-        public Creature FirstHitter { get; private set; }
+        public Creature FirstHitter { get; internal set; }
 
         private uint _mLastHitter;
         public Creature LastHitter

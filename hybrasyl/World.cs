@@ -1051,8 +1051,13 @@ namespace Hybrasyl
                     sclass.Nodes.Add(new MetafileNode(skill.Name,
                         string.Format("{0}/{1}/{2}",requirements.Level.Min == 0 ? 1 : requirements.Level.Min, 0, requirements.Ab != null ? (requirements.Ab.Min == 0 ? 1 : requirements.Ab.Min) : 0), // req level, master (0/1), req ab
                         string.Format("{0}/{1}/{2}", 0, 0, 0), // skill icon, x position (defunct), y position (defunct)
-                        string.Format("{0}/{1}/{2}/{3}/{4}", requirements?.Physical == null ? 3 : requirements.Physical.Str, requirements?.Physical == null ? 3 : requirements.Physical.Dex, requirements?.Physical == null ? 3 : requirements.Physical.Int, requirements?.Physical == null ? 3 : requirements.Physical.Wis, requirements?.Physical == null ? 3 : requirements.Physical.Con),
-                        // str, dex, int, wis, con (not a typo, dex after str)
+                        string.Format("{0}/{1}/{2}/{3}/{4}", 
+                                    requirements?.Physical == null ? 3 : requirements.Physical.Str, 
+                                    requirements?.Physical == null ? 3 : requirements.Physical.Int, 
+                                    requirements?.Physical == null ? 3 : requirements.Physical.Wis, 
+                                    requirements?.Physical == null ? 3 : requirements.Physical.Dex, 
+                                    requirements?.Physical == null ? 3 : requirements.Physical.Con),
+                        // str, int, wis, dex, con (not a typo, dex before con)
                         string.Format("{0}/{1}", prereq1, prereq1level), // req skill 1 (skill name or 0 for none), req skill 1 level
                         string.Format("{0}/{1}", prereq2, prereq2level), // req skill 2 (skill name or 0 for none), req skill 2 level
                         desc
@@ -3934,7 +3939,8 @@ namespace Hybrasyl
 
         private void MerchantMenuHandler_BuyItemAccept(User user, Merchant merchant, ClientPacket packet)
         {
-            user.ShowBuyItem(merchant);
+            var quantity = Convert.ToUInt32(packet.ReadString8());
+            user.ShowBuyItem(merchant, (int)quantity);
         }
 
         private void MerchantMenuHandler_SellItem(User user, Merchant merchant, ClientPacket packet)

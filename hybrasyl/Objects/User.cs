@@ -1799,23 +1799,23 @@ namespace Hybrasyl.Objects
 
                 case Xml.Direction.North:
                     --newY;
-                    arrivingViewport = new Rectangle(oldX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE, 1);
-                    departingViewport = new Rectangle(oldX - halfViewport, oldY + halfViewport, Constants.VIEWPORT_SIZE, 1);
+                    arrivingViewport = new Rectangle(oldX - halfViewport + 2, newY - halfViewport + 4, Constants.VIEWPORT_SIZE, 1);
+                    departingViewport = new Rectangle(oldX - halfViewport + 2, oldY + halfViewport - 2, Constants.VIEWPORT_SIZE, 1);
                     break;
                 case Xml.Direction.South:
                     ++newY;
-                    arrivingViewport = new Rectangle(oldX - halfViewport, oldY + halfViewport, Constants.VIEWPORT_SIZE, 1);
-                    departingViewport = new Rectangle(oldX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE, 1);
+                    arrivingViewport = new Rectangle(oldX - halfViewport - 2, oldY + halfViewport - 4, Constants.VIEWPORT_SIZE, 1);
+                    departingViewport = new Rectangle(oldX - halfViewport + 2, newY - halfViewport + 2, Constants.VIEWPORT_SIZE, 1);
                     break;
                 case Xml.Direction.West:
                     --newX;
-                    arrivingViewport = new Rectangle(newX - halfViewport, oldY - halfViewport, 1, Constants.VIEWPORT_SIZE);
-                    departingViewport = new Rectangle(oldX + halfViewport, oldY - halfViewport, 1, Constants.VIEWPORT_SIZE);
+                    arrivingViewport = new Rectangle(newX - halfViewport + 4, oldY - halfViewport + 2, 1, Constants.VIEWPORT_SIZE);
+                    departingViewport = new Rectangle(oldX + halfViewport - 2, oldY - halfViewport - 2, 1, Constants.VIEWPORT_SIZE);
                     break;
                 case Xml.Direction.East:
                     ++newX;
-                    arrivingViewport = new Rectangle(oldX + halfViewport, oldY - halfViewport, 1, Constants.VIEWPORT_SIZE);
-                    departingViewport = new Rectangle(oldX - halfViewport, oldY - halfViewport, 1, Constants.VIEWPORT_SIZE);
+                    arrivingViewport = new Rectangle(oldX + halfViewport - 4, oldY - halfViewport + 2, 1, Constants.VIEWPORT_SIZE);
+                    departingViewport = new Rectangle(oldX - halfViewport + 2, oldY - halfViewport + 2, 1, Constants.VIEWPORT_SIZE);
                     break;
             }
             var isWarp = Map.Warps.TryGetValue(new Tuple<byte, byte>((byte)newX, (byte)newY), out Warp targetWarp);
@@ -2961,7 +2961,7 @@ namespace Hybrasyl.Objects
                     else if (SkillBook.Contains(Game.World.WorldData.GetByIndex<Xml.Castable>(preReq.Value)))
                     {
                         var preReqSkill = SkillBook.Single(x => x.Name == preReq.Value);
-                        if ((preReqSkill.UseCount / preReqSkill.Mastery.Uses) * 100 < preReq.Level)
+                        if (Math.Round((preReqSkill.UseCount / (double)preReqSkill.Mastery.Uses) * 100, 2) < preReq.Level)
                         {
                             learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_level");
                             prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$PREREQ", preReq.Value).Replace("$LEVEL", preReq.Level.ToString());
@@ -3208,19 +3208,19 @@ namespace Hybrasyl.Objects
             {
                 foreach (var preReq in classReq.Prerequisites)
                 {
-                    if (!SkillBook.Contains(Game.World.WorldData.GetByIndex<Xml.Castable>(preReq.Value)))
+                    if (!SpellBook.Contains(Game.World.WorldData.GetByIndex<Xml.Castable>(preReq.Value)))
                     {
                         learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_level");
-                        prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$PREREQ", preReq.Value).Replace("$LEVEL", preReq.Level.ToString());
+                        prompt = learnString.Value.Replace("$SPELLNAME", castable.Name).Replace("$PREREQ", preReq.Value).Replace("$LEVEL", preReq.Level.ToString());
                         break;
                     }
-                    else if (SkillBook.Contains(Game.World.WorldData.GetByIndex<Xml.Castable>(preReq.Value)))
+                    else if (SpellBook.Contains(Game.World.WorldData.GetByIndex<Xml.Castable>(preReq.Value)))
                     {
-                        var preReqSkill = SkillBook.Single(x => x.Name == preReq.Value);
-                        if ((preReqSkill.UseCount / preReqSkill.Mastery.Uses) * 100 < preReq.Level)
+                        var preReqSpell = SpellBook.Single(x => x.Name == preReq.Value);
+                        if (Math.Round((preReqSpell.UseCount / (double)preReqSpell.Mastery.Uses) * 100, 2) < preReq.Level)
                         {
                             learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_level");
-                            prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$PREREQ", preReq.Value).Replace("$LEVEL", preReq.Level.ToString());
+                            prompt = learnString.Value.Replace("$SPELLNAME", castable.Name).Replace("$PREREQ", preReq.Value).Replace("$LEVEL", preReq.Level.ToString());
                             break;
                         }
                     }
@@ -3473,10 +3473,13 @@ namespace Hybrasyl.Objects
             if (prompt == string.Empty) //this is so bad
             {
                 //check if user has item
-                var hasItem = Inventory.Contains(itemObj.Name);
+                var hasItem = Inventory.ContainsName(itemObj.Name);
                 if (hasItem)
                 {
-                    if (itemObj.Stackable) IncreaseItem(Inventory.SlotByName(itemObj.Name).First(), quantity);
+                    if (itemObj.Stackable)
+                    {
+                        AddItem(itemObj.Name, (ushort)quantity);
+                    }
                     else
                     {
                         AddItem(itemObj);
@@ -3486,8 +3489,7 @@ namespace Hybrasyl.Objects
                 {
                     if (itemObj.Stackable)
                     {
-                        AddItem(itemObj);
-                        IncreaseItem(Inventory.SlotByName(itemObj.Name).First(), quantity - 1);
+                        AddItem(itemObj.Name, (ushort)quantity);
                     }
                     else
                     {
@@ -3623,15 +3625,15 @@ namespace Hybrasyl.Objects
 
             if (item.Durability != item.MaximumDurability)
             {
-                offerString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_failure");
+                offerString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_failure_durability");
                 prompt = offerString.Value;
             }
 
             if (prompt == string.Empty)
             {
-                if (!Inventory.Contains(item.Name))
+                if (!Inventory.ContainsName(item.Name))
                 {
-                    offerString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_failure");
+                    offerString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_failure_no_item");
                     prompt = offerString.Value;
                 }
             }

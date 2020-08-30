@@ -201,10 +201,9 @@ namespace Hybrasyl
                             share[Members[i].Id] = 1;
                             break;
                     }
-
-                    // Note: this will only work for positive numbers at this point.
-                    Members[i].GiveExperience((uint)share[Members[i].Id]);
                 }
+                // Note: this will only work for positive numbers at this point.
+                Members[i].GiveExperience((uint)share[Members[i].Id]);
             }
         }
 
