@@ -742,6 +742,22 @@ namespace Hybrasyl.Objects
             }
             return point;
         }
+
+        public override void AoiDeparture(VisibleObject obj)
+        {
+            if(obj is User)
+            {
+                var user = (User)obj;
+
+                if(AggroTable.ContainsKey(user.Id))
+                {
+                    AggroTable.Remove(user.Id);
+                    ShouldWander = true;
+                    FirstHitter = null;
+                }
+            }
+            base.AoiDeparture(obj);
+        }
     }
 
 }
