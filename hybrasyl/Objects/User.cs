@@ -1328,6 +1328,12 @@ namespace Hybrasyl.Objects
             Enqueue(x07);
         }
 
+        public void SetHairstyle(byte hairStyle)
+        {
+            HairStyle = hairStyle;
+            SendUpdateToUser();
+        }
+
         public void SendUpdateToUser(Client client = null)
         {
             var offset = Equipment.Armor?.BodyStyle ?? 0;

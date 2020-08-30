@@ -366,7 +366,7 @@ namespace Hybrasyl.Scripting
             }
         }
 
-        public bool ExecuteFunction(string functionName, dynamic invoker, dynamic source, dynamic scriptItem=null)
+        public bool ExecuteFunction(string functionName, dynamic invoker, dynamic source, dynamic scriptItem=null, bool returnFromScript=false)
         {
             if (Disabled)
                 return false;
@@ -380,7 +380,8 @@ namespace Hybrasyl.Scripting
                     Compiled.Globals.Set("source", GetUserDataValue(source));
                     if (scriptItem != null)
                         Compiled.Globals.Set("item", GetUserDataValue(scriptItem));
-                    Compiled.Call(Compiled.Globals[functionName]);
+                    if (returnFromScript) return Compiled.Call(Compiled.Globals[functionName]).Boolean;
+                    else Compiled.Call(Compiled.Globals[functionName]);
                 }
                 else
                 {
