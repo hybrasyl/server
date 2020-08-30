@@ -3211,7 +3211,7 @@ namespace Hybrasyl.Objects
                     if (!SpellBook.Contains(Game.World.WorldData.GetByIndex<Xml.Castable>(preReq.Value)))
                     {
                         learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_level");
-                        prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$PREREQ", preReq.Value).Replace("$LEVEL", preReq.Level.ToString());
+                        prompt = learnString.Value.Replace("$SPELLNAME", castable.Name).Replace("$PREREQ", preReq.Value).Replace("$LEVEL", preReq.Level.ToString());
                         break;
                     }
                     else if (SpellBook.Contains(Game.World.WorldData.GetByIndex<Xml.Castable>(preReq.Value)))
@@ -3220,7 +3220,7 @@ namespace Hybrasyl.Objects
                         if (Math.Round((preReqSpell.UseCount / (double)preReqSpell.Mastery.Uses) * 100, 2) < preReq.Level)
                         {
                             learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_level");
-                            prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$PREREQ", preReq.Value).Replace("$LEVEL", preReq.Level.ToString());
+                            prompt = learnString.Value.Replace("$SPELLNAME", castable.Name).Replace("$PREREQ", preReq.Value).Replace("$LEVEL", preReq.Level.ToString());
                             break;
                         }
                     }
