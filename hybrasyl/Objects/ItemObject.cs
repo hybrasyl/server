@@ -256,7 +256,7 @@ namespace Hybrasyl.Objects
                     return;
                 }
 
-                if (!invokeScript.ExecuteFunction("OnUse", this, trigger, this))
+                if (!invokeScript.ExecuteFunction("OnUse", trigger, this, this))
                 {
                     trigger.SendSystemMessage("It doesn't work.");
                     return;

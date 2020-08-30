@@ -380,7 +380,7 @@ namespace Hybrasyl.Scripting
                     Compiled.Globals.Set("source", GetUserDataValue(source));
                     if (scriptItem != null)
                         Compiled.Globals.Set("item", GetUserDataValue(scriptItem));
-                    Compiled.Call(Compiled.Globals[functionName]);
+                   return Compiled.Call(Compiled.Globals[functionName]).Boolean;
                 }
                 else
                 {

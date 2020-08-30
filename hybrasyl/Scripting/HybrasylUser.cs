@@ -618,6 +618,15 @@ namespace Hybrasyl.Scripting
             else
                 User.Effect(x, y, effect, speed);
         }
+        /// <summary>
+        /// Display a motion on the user
+        /// </summary>
+        /// <param name="motionId">the motion to display</param>
+        /// <param name="speed">speed of the diplayed motion</param>
+        public void DisplayMotion(int motionId, short speed = 20)
+        {
+            User.Motion((byte)motionId, speed);
+        }
 
         /// <summary>
         /// Teleport the player to an x,y coordinate location on the specified map.
@@ -1054,5 +1063,14 @@ namespace Hybrasyl.Scripting
         /// <param name="target">The target object</param>
         /// <returns>The numeric distance</returns>
         public int Distance(HybrasylWorldObject target) => User.Distance(target.Obj);
+
+        /// <summary>
+        /// Set a user's hairstyle from a script
+        /// </summary>
+        /// <param name="hairStyle">The target hairstyle</param>
+        public void SetHairstyle(int hairStyle)
+        {
+            User.SetHairstyle((byte)hairStyle);
+        }
     }
 }

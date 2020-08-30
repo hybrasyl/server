@@ -2427,6 +2427,8 @@ namespace Hybrasyl
 
         private void PacketHandler_0x2D_PlayerInfo(Object obj, ClientPacket packet)
         {
+            //this handler also handles group management pane
+
             var user = (User)obj;
             user.SendProfile();
         }
