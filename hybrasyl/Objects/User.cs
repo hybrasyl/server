@@ -3623,15 +3623,15 @@ namespace Hybrasyl.Objects
 
             if (item.Durability != item.MaximumDurability)
             {
-                offerString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_failure");
+                offerString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_failure_durability");
                 prompt = offerString.Value;
             }
 
             if (prompt == string.Empty)
             {
-                if (!Inventory.Contains(item.Name))
+                if (!Inventory.ContainsName(item.Name))
                 {
-                    offerString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_failure");
+                    offerString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_failure_no_item");
                     prompt = offerString.Value;
                 }
             }
