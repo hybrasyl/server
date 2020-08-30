@@ -348,7 +348,8 @@ namespace Hybrasyl
 
         private void ProcessNumericEffects(SimpleStatusEffect effect)
         {
-            if (effect.Damage != null)
+            if (effect == null) return;
+            if (effect.Damage != null && effect.Damage.Amount != 0)
                 Target.Damage(effect.Damage.Amount, effect.Damage.Element, effect.Damage.Type, effect.Damage.Flags, Source);
             if (effect.Heal != 0)
                 Target.Heal(effect.Heal, Source);

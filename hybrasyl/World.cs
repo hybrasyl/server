@@ -1,4 +1,5 @@
 ﻿/*
+ *
  * This file is part of Project Hybrasyl.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -114,8 +115,6 @@ namespace Hybrasyl
 
         public static BlockingCollection<HybrasylMessage> MessageQueue;
         public static BlockingCollection<HybrasylMessage> ControlMessageQueue;
-        public static ConcurrentDictionary<long, User> ActiveUsers { get; private set; }
-        public ConcurrentDictionary<string, long> ActiveUsersByName { get; set; }
 
         public ConcurrentDictionary<Tuple<UInt32, UInt32>, AsyncDialogRequest> ActiveAsyncDialogs { get; set; }
 
@@ -209,9 +208,7 @@ namespace Hybrasyl
             ScriptProcessor = new ScriptProcessor(this);
             MessageQueue = new BlockingCollection<HybrasylMessage>(new ConcurrentQueue<HybrasylMessage>());
             ControlMessageQueue = new BlockingCollection<HybrasylMessage>(new ConcurrentQueue<HybrasylMessage>());
-            ActiveUsers = new ConcurrentDictionary<long, User>();
-            ActiveUsersByName = new ConcurrentDictionary<string, long>();
-
+       
             ActiveAsyncDialogs = new ConcurrentDictionary<Tuple<UInt32, UInt32>, AsyncDialogRequest>();
 
             WorldData = new WorldDataStore();
@@ -1436,13 +1433,28 @@ namespace Hybrasyl
 
         #endregion Set Handlers
 
-        public void DeleteUser(string username) => WorldData.Remove<User>(username);
+        public void DeleteUser(string username)
+        {
+            if (TryGetActiveUser(username, out User user))
+                WorldData.RemoveIndex<User>(user.ConnectionId);
+            WorldData.Remove<User>(username);
+        }
 
-        public void AddUser(User userobj) => WorldData.Set(userobj.Name, userobj);
+        public void AddUser(User userobj, long connectionId) => WorldData.SetWithIndex(userobj.Name, userobj, connectionId);
 
         public bool TryGetActiveUser(string name, out User user) => WorldData.TryGetValue(name, out user);
 
-        public bool UserConnected(string name) => ActiveUsersByName.ContainsKey(name);
+        public bool TryGetActiveUserById(long connectionId, out User user) => WorldData.TryGetValueByIndex(connectionId, out user);
+
+        public IEnumerable<User> ActiveUsers => WorldData.Values<User>();
+
+        public bool UserConnected(string name)
+        {
+            if (WorldData.TryGetValue(name, out User user))
+                return user.Connected;
+            else
+                return false;
+        }
 
         public bool TryAsyncDialog(VisibleObject invoker, User invokee, DialogSequence startSequence)
         {
@@ -1472,12 +1484,11 @@ namespace Hybrasyl
         }
         public override void Shutdown()
         {
-            GameLog.WarningFormat("Shutdown initiated, disconnecting {0} active users", ActiveUsers.Count);
+            GameLog.WarningFormat("Shutdown initiated, disconnecting {0} active users", ActiveUsers.Count());
 
             Active = false;
-            foreach (var connection in ActiveUsers)
+            foreach (var user in ActiveUsers)
             {
-                var user = connection.Value;
                 user.Logoff(true);
             }
             Listener?.Close();
@@ -1490,13 +1501,12 @@ namespace Hybrasyl
         {
             // clean up after a broken connection
             var connectionId = (long)message.Arguments[0];
-            User user;
-            if (ActiveUsers.TryRemove(connectionId, out user))
+
+            if (TryGetActiveUserById(connectionId, out User user))
             {
                 GameLog.InfoFormat("cid {0}: closed, player {1} removed", connectionId, user.Name);
                 if (user.ActiveExchange != null)
                     user.ActiveExchange.CancelExchange(user);
-                ((IDictionary)ActiveUsersByName).Remove(user.Name);
                 user.UpdateLogoffTime();
                 user.Map?.Remove(user);
                 user.Group?.Remove(user);
@@ -1514,7 +1524,7 @@ namespace Hybrasyl
             // Regen = regen * 0.0015 (so 100 regen = 15%)
             User user;
             var connectionId = (long)message.Arguments[0];
-            if (ActiveUsers.TryGetValue(connectionId, out user))
+            if (TryGetActiveUserById(connectionId, out user))
             {
                 uint hpRegen = 0;
                 uint mpRegen = 0;
@@ -1546,7 +1556,7 @@ namespace Hybrasyl
             // save a user
             User user;
             var connectionId = (long)message.Arguments[0];
-            if (ActiveUsers.TryGetValue(connectionId, out user))
+            if (TryGetActiveUserById(connectionId, out user))
             {
                 GameLog.DebugFormat("Saving user {0}", user.Name);
                 user.Save();
@@ -1564,9 +1574,8 @@ namespace Hybrasyl
             var userName = (string)message.Arguments[0];
             GameLog.WarningFormat("Server shutdown request initiated by {0}", userName);
             // Chaos is Rising Up, yo.
-            foreach (var connection in ActiveUsers)
+            foreach (var user in ActiveUsers)
             {
-                var user = connection.Value;
                 user.SendMessage("Chaos is rising up. Please re-enter in a few minutes.",
                     MessageTypes.SYSTEM_WITH_OVERHEAD);
             }
@@ -1584,7 +1593,7 @@ namespace Hybrasyl
             var userName = (string)message.Arguments[0];
             GameLog.WarningFormat("{0}: forcing logoff", userName);
             User user;
-            if (WorldData.TryGetValue(userName, out user))
+            if (TryGetActiveUser(userName, out user))
             {
                 user.Logoff();
             }
@@ -1596,7 +1605,7 @@ namespace Hybrasyl
             var userName = (string)message.Arguments[0];
             GameLog.DebugFormat("mail: attempting to notify {0} of new mail", userName);
             User user;
-            if (WorldData.TryGetValue(userName, out user))
+            if (TryGetActiveUser(userName, out user))
             {
                 user.UpdateAttributes(StatUpdateFlags.Secondary);
                 GameLog.DebugFormat("mail: notification to {0} sent", userName);
@@ -1623,7 +1632,7 @@ namespace Hybrasyl
         private void ControlMessage_TriggerRefresh(HybrasylControlMessage message)
         {
             var connectionId = (long)message.Arguments[0];
-            if (ActiveUsers.TryGetValue(connectionId, out User user))
+            if (TryGetActiveUserById(connectionId, out User user))
                 user.Refresh();
         }
 
@@ -1926,9 +1935,6 @@ namespace Hybrasyl
             }
             else
             {
-                long connectionId;
-
-                //user.Save();
                 user.UpdateLogoffTime();
                 user.Map.Remove(user);
                 if (user.Grouped)
@@ -1936,8 +1942,9 @@ namespace Hybrasyl
                     user.Group.Remove(user);
                 }
                 Remove(user);
-                DeleteUser(user.Name);
                 user.SendRedirectAndLogoff(this, Game.Login, user.Name);
+                user.Save();
+                DeleteUser(user.Name);
 
                 // Remove any active async dialog sessions
                 foreach (var dialog in ActiveAsyncDialogs.Keys.Where(key => key.Item1 == user.Id || key.Item2 == user.Id))
@@ -1945,12 +1952,8 @@ namespace Hybrasyl
                     if (ActiveAsyncDialogs.TryRemove(dialog, out AsyncDialogRequest request))
                         request.End();
                 }
-
-                if (ActiveUsersByName.TryRemove(user.Name, out connectionId))
-                {
-                    ((IDictionary)ActiveUsers).Remove(connectionId);
-                }
-                GameLog.InfoFormat("cid {0}: {1} leaving world", connectionId, user.Name);
+                
+                GameLog.InfoFormat("{1} leaving world", user.Name);
             }
         }
 
@@ -1998,6 +2001,9 @@ namespace Hybrasyl
             loginUser.Condition.Casting = false;
 
             Insert(loginUser);
+            GameLog.DebugFormat("Adding {0} to hash", loginUser.Name);
+            AddUser(loginUser, connectionId);
+
             GameLog.DebugFormat("Elapsed time since login: {0}", loginUser.SinceLastLogin);
 
             if (!loginUser.Condition.Alive)
@@ -2045,10 +2051,6 @@ namespace Hybrasyl
                 loginUser.Teleport((ushort)500, (byte)50, (byte)50);
             }
 
-            GameLog.DebugFormat("Adding {0} to hash", loginUser.Name);
-            AddUser(loginUser);
-            ActiveUsers[connectionId] = loginUser;
-            ActiveUsersByName[loginUser.Name] = connectionId;
             GameLog.InfoFormat("cid {0}: {1} entering world", connectionId, loginUser.Name);
             GameLog.InfoFormat($"{loginUser.SinceLastLoginstring}");
             // If the user's never logged off before (new character), don't display this message.
@@ -2081,7 +2083,7 @@ namespace Hybrasyl
         {
             var me = (User)obj;
 
-            var list = from user in ActiveUsers.Values
+            var list = from user in ActiveUsers
                        orderby user.IsMaster descending, user.Stats.Level descending, user.Stats.BaseHp + user.Stats.BaseMp * 2 descending, user.Name ascending
                        select user;
 
@@ -4213,17 +4215,10 @@ namespace Hybrasyl
             user.ShowRepairAllItemsAccept(merchant);
         }
 
-
-
         #endregion Merchant Menu ItemObject Handlers
 
         public void Insert(WorldObject obj)
         {
-            if (obj is User)
-            {
-                AddUser((User)obj);
-            }
-
             obj.Id = worldObjectID;
             obj.World = this;
             obj.SendId();
@@ -4247,10 +4242,6 @@ namespace Hybrasyl
 
         public void Remove(WorldObject obj)
         {
-            if (obj is User)
-            {
-                DeleteUser(obj.Name);
-            }
             lock (_lock)
             {
                 Objects.Remove(obj.Id);
@@ -4315,7 +4306,7 @@ namespace Hybrasyl
                     var handler = PacketHandlers[clientMessage.Packet.Opcode];
                     try
                     {
-                        if (ActiveUsers.TryGetValue(clientMessage.ConnectionId, out user))
+                        if (TryGetActiveUserById(clientMessage.ConnectionId, out user))
                         {
                             // Check if the action is prohibited due to statuses or flags
                             MethodBase method = handler.GetMethodInfo();

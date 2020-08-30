@@ -174,7 +174,7 @@ namespace Hybrasyl.Objects
         public virtual void Teleport(string name, byte x, byte y)
         {
             Map targetMap;
-            if (!World.WorldData.TryGetValueByIndex(name, out targetMap)) return;
+            if (string.IsNullOrEmpty(name) || !World.WorldData.TryGetValueByIndex(name, out targetMap)) return;
             Map?.Remove(this);
             GameLog.DebugFormat("Teleporting {0} to {1}.", Name, targetMap.Name);
             targetMap.Insert(this, x, y);
