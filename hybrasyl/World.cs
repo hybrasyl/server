@@ -3939,7 +3939,8 @@ namespace Hybrasyl
 
         private void MerchantMenuHandler_BuyItemAccept(User user, Merchant merchant, ClientPacket packet)
         {
-            user.ShowBuyItem(merchant);
+            var quantity = Convert.ToUInt32(packet.ReadString8());
+            user.ShowBuyItem(merchant, (int)quantity);
         }
 
         private void MerchantMenuHandler_SellItem(User user, Merchant merchant, ClientPacket packet)

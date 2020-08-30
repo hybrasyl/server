@@ -3473,10 +3473,13 @@ namespace Hybrasyl.Objects
             if (prompt == string.Empty) //this is so bad
             {
                 //check if user has item
-                var hasItem = Inventory.Contains(itemObj.Name);
+                var hasItem = Inventory.ContainsName(itemObj.Name);
                 if (hasItem)
                 {
-                    if (itemObj.Stackable) IncreaseItem(Inventory.SlotByName(itemObj.Name).First(), quantity);
+                    if (itemObj.Stackable)
+                    {
+                        AddItem(itemObj.Name, (ushort)quantity);
+                    }
                     else
                     {
                         AddItem(itemObj);
@@ -3486,8 +3489,7 @@ namespace Hybrasyl.Objects
                 {
                     if (itemObj.Stackable)
                     {
-                        AddItem(itemObj);
-                        IncreaseItem(Inventory.SlotByName(itemObj.Name).First(), quantity - 1);
+                        AddItem(itemObj.Name, (ushort)quantity);
                     }
                     else
                     {
