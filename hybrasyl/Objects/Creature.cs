@@ -861,7 +861,7 @@ namespace Hybrasyl.Objects
         {
             if (attacker is User && this is Monster)
             {
-                if (FirstHitter == null || !Game.World.ActiveUsersByName.ContainsKey(FirstHitter.Name) || ((DateTime.Now - LastHitTime).TotalSeconds > Constants.MONSTER_TAGGING_TIMEOUT)) FirstHitter = attacker;
+                if (FirstHitter == null || !World.UserConnected(FirstHitter.Name) || ((DateTime.Now - LastHitTime).TotalSeconds > Constants.MONSTER_TAGGING_TIMEOUT)) FirstHitter = attacker;
                 if (attacker != FirstHitter && !((FirstHitter as User).Group?.Members.Contains(attacker) ?? false)) return;
             }
 

@@ -82,6 +82,8 @@ namespace Hybrasyl.Objects
         public string AccountUuid { get; set; }
 
         private Client Client;
+        public bool Connected => Client.Connected;
+        public long ConnectionId => Client.ConnectionId;
 
         [JsonProperty]
         public Xml.Gender Gender { get; set; }
@@ -4705,7 +4707,7 @@ namespace Hybrasyl.Objects
             else
                 try
                 {
-                    Client.Socket.Disconnect(true);
+                    Client.Disconnect();
                 }
                 catch (ObjectDisposedException e)
                 {

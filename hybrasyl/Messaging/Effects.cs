@@ -218,9 +218,9 @@ namespace Hybrasyl.Messaging
         public new static ChatCommandResult Run(User user, params string[] args)
         {
             user.Map.Message = args[0];
-            foreach (var connectedUser in World.ActiveUsers)
+            foreach (var connectedUser in Game.World.WorldData.Values<User>())
             {
-                connectedUser.Value.SendWorldMessage(user.Name, args[0]);
+                connectedUser.SendWorldMessage(user.Name, args[0]);
             }
             return Success("World message sent.");
         }

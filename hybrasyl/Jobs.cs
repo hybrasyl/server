@@ -237,7 +237,7 @@ namespace Hybrasyl
                         var client = connection.Value;
                         var connectionId = connection.Key;
                         User user;
-                        if (World.ActiveUsers.TryGetValue(connectionId, out user))
+                        if (Game.World.WorldData.TryGetValueByIndex(connectionId, out user))
                         {
                             if (client.IsHeartbeatExpired())
                             {
@@ -280,7 +280,7 @@ namespace Hybrasyl
                 foreach (var connectionId in GlobalConnectionManifest.WorldClients.Keys)
                 {
                     User user;
-                    if (World.ActiveUsers.TryGetValue(connectionId, out user))
+                    if (Game.World.WorldData.TryGetValueByIndex(connectionId, out user))
                     {
                         if (user.Statuses.Count > 0 && user.Condition.Alive)
                             World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.StatusTick, user.Id));
@@ -314,7 +314,7 @@ namespace Hybrasyl
                         if (client.IsIdle())
                         {
                             User user;
-                            if (World.ActiveUsers.TryGetValue(connectionId, out user))
+                            if (Game.World.WorldData.TryGetValueByIndex(connectionId, out user))
                             {
                                 user.Motion(16, 120); // send snore effect
                             }

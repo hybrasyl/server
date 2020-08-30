@@ -107,7 +107,7 @@ namespace Hybrasyl
             {
                 GameLog.DebugFormat("cid {0}: password verified for {1}", client.ConnectionId, name);
 
-                if (Game.World.ActiveUsersByName.ContainsKey(name))
+                if (Game.World.WorldData.ContainsKey<User>(name))
                 {
                     GameLog.InfoFormat("cid {0}: {1} logging on again, disconnecting previous connection",
                         client.ConnectionId, name);

@@ -21,9 +21,7 @@
 
 using Hybrasyl.Objects;
 using Hybrasyl.Scripting;
-using Hybrasyl.Xml;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Net;
 
@@ -292,16 +290,17 @@ namespace Hybrasyl.Messaging
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
-            if (!Game.World.WorldData.ContainsKey<User>(args[0]))
+            if (Game.World.TryGetActiveUser(args[0], out User target))
+            {
+                if (target.IsExempt)
+                    return Fail($"User {target.Name} is exempt from your meddling.");
+
+                target.Teleport(user.Location.MapId, user.Location.X, user.Location.Y);
+                return Success($"User {target.Name} has been summoned.");
+            }
+            else
                 return Fail($"User {args[0]} not logged in");
 
-            var target = Game.World.WorldData.Get<User>(args[0]);
-
-            if (target.IsExempt)
-                return Fail($"User {user.Name} is exempt from your meddling");
-
-            target.Teleport(user.Location.MapId, user.Location.X, user.Location.Y);
-            return Success($"User {user.Name} has been summoned.");
         }
     }
 
@@ -314,17 +313,18 @@ namespace Hybrasyl.Messaging
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
-            if (!Game.World.WorldData.ContainsKey<User>(args[0]))
-                return Fail($"User {args[0]} not logged in");
+            if (Game.World.TryGetActiveUser(args[0], out User target))
+            {
+                if (target.IsExempt)
+                    return Fail($"User {target.Name} is exempt from your meddling");
+                else
+                    target.Logoff(true);
 
-            var target = Game.World.WorldData.Get<User>(args[0]);
+                return Success($"User {target.Name} was kicked.");
+            }
+            return Fail($"User {args[0]} not logged in");
 
-            if (target.IsExempt)
-                return Fail($"User {target.Name} is exempt from your meddling");
-            else
-                target.Logoff();
 
-            return Success($"User {target.Name} was kicked.");
         }
 
     }
@@ -339,8 +339,8 @@ namespace Hybrasyl.Messaging
         public new static ChatCommandResult Run(User user, params string[] args)
         {
             var gcmContents = "Contents of Global Connection Manifest\n";
-            var userContents = "Contents of User Dictionary\n";
-            var ActiveUserContents = "Contents of ActiveUsers Concurrent Dictionary\n";
+            var userContents = "Active Users\n";
+
             foreach (var pair in GlobalConnectionManifest.ConnectedClients)
             {
                 var serverType = string.Empty;
@@ -373,14 +373,9 @@ namespace Hybrasyl.Messaging
             {
                 userContents = userContents + tehuser.Name + "\n";
             }
-            foreach (var tehotheruser in Game.World.ActiveUsersByName)
-            {
-                ActiveUserContents = ActiveUserContents +
-                                     string.Format("{0}: {1}\n", tehotheruser.Value, tehotheruser.Key);
-            }
 
             // Report to the end user
-            return Success($"{gcmContents}\n\n{userContents}\n\n{ActiveUserContents}",
+            return Success($"{gcmContents}\n\n{userContents}",
                 MessageTypes.SLATE_WITH_SCROLLBAR);
         }
 
@@ -395,17 +390,17 @@ namespace Hybrasyl.Messaging
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
-            if (!Game.World.WorldData.ContainsKey<User>(args[0]))
-                return Fail($"User {args[0]} not logged in.");
+            if (Game.World.TryGetActiveUser(args[0], out User target))
+            { 
+                if (target.IsExempt)
+                    return Fail($"User {target.Name} is exempt from your meddling.");
+                else
+                    target.IsMuted = true;
 
-            var target = Game.World.WorldData.Get<User>(args[0]);
+                return Success($"User {target.Name} was muted.");
+            }
+            return Fail($"User {args[0]} not logged in.");
 
-            if (target.IsExempt)
-                return Fail($"User {target.Name} is exempt from your meddling");
-            else
-                target.IsMuted = true;
-
-            return Success($"User {target.Name} was muted.");
         }
 
     }
@@ -419,17 +414,16 @@ namespace Hybrasyl.Messaging
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
-            if (!Game.World.WorldData.ContainsKey<User>(args[0]))
-                return Fail($"User {args[0]} not logged in");
+            if (Game.World.TryGetActiveUser(args[0], out User target))
+            {
+                if (target.IsExempt)
+                    return Fail($"User {target.Name} is exempt from your meddling");
+                else
+                    target.IsMuted = false;
 
-            var target = Game.World.WorldData.Get<User>(args[0]);
-
-            if (target.IsExempt)
-                return Fail($"User {target.Name} is exempt from your meddling");
-            else
-                target.IsMuted = false;
-
-            return Success($"User {target.Name} was unmuted.");
+                return Success($"User {target.Name} was unmuted.");
+            }
+            return Fail($"User {args[0]} not logged in");
         }
 
     }

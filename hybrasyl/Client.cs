@@ -655,13 +655,19 @@ namespace Hybrasyl
             if (Connected)
                 ClientState.SendBufferAdd(packet);
             else
-                throw new ObjectDisposedException("Client is no longer connected");
+            {
+                // Trigger cleanup
+                Disconnect();
+                return;
+            }
         }
 
         public void Enqueue(ClientPacket packet)
         {
             GameLog.DebugFormat("Enqueueing ClientPacket {0}", packet.Opcode);
             ClientState.ReceiveBufferAdd(packet);
+            if (!Connected)
+                Disconnect();
             if (!packet.ShouldEncrypt || (packet.ShouldEncrypt && EncryptionKey != null))
                 FlushReceiveBuffer();
         }

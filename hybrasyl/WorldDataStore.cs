@@ -179,7 +179,6 @@ namespace Hybrasyl
         public bool SetWithIndex<T>(dynamic key, T value, dynamic index) => GetSubStore<T>().TryAdd(Sanitize(key), value) && 
             GetSubIndex<T>().TryAdd(Sanitize(index), value);
    
-
         /// <summary>
         /// Returns all the objects contained in the datastore of the specified type's substore.
         /// </summary>
@@ -224,8 +223,12 @@ namespace Hybrasyl
         /// <returns></returns>
         public bool Remove<T>(dynamic key)
         {
-            dynamic ignored;
-            return GetSubStore<T>().TryRemove(key.ToString().Normalize(), out ignored);
+            return GetSubStore<T>().TryRemove(Sanitize(key), out dynamic _);
+        }
+
+        public bool RemoveIndex<T>(dynamic index)
+        {
+            return GetSubIndex<T>().TryRemove(Sanitize(index), out dynamic _);
         }
 
         // Convenience finder functions below for various non-generic types.
