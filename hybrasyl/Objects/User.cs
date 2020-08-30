@@ -1334,6 +1334,12 @@ namespace Hybrasyl.Objects
             SendUpdateToUser();
         }
 
+        public void SetHairColor(Xml.ItemColor itemColor)
+        {
+            HairColor = (byte)itemColor;
+            SendUpdateToUser();
+        }
+
         public void SendUpdateToUser(Client client = null)
         {
             var offset = Equipment.Armor?.BodyStyle ?? 0;
@@ -3236,7 +3242,7 @@ namespace Hybrasyl.Objects
             {
                 var reqStr = string.Empty;
                 //now we can learning!
-                learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_reqs");
+                learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn spell_reqs");
                 if (classReq.Items != null) reqStr = classReq.Items.Aggregate(reqStr, (current, req) => current + (req.Value + "(" + req.Quantity + "), "));
 
                 if (classReq.Gold != 0)
