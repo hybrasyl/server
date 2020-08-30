@@ -217,7 +217,7 @@ namespace Hybrasyl
             Target = target;
             if (!string.IsNullOrEmpty(serialized.Name))
             {
-                if (Game.World.WorldData.TryGetValueByIndex(serialized.Name, out Xml.Status status))
+                if (Game.World.WorldData.TryGetValue(serialized.Name, out Xml.Status status))
                 {
                     XmlStatus = status;
                     Start = DateTime.Now;               
