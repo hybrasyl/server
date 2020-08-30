@@ -2018,7 +2018,7 @@ namespace Hybrasyl
                 loginUser.SinceLastLogin > Hybrasyl.Constants.NATION_SPAWN_TIMEOUT)
             {
                 var spawnpoint = loginUser.Nation.RandomSpawnPoint;
-                if (spawnpoint != null) loginUser.Teleport(spawnpoint.MapName, spawnpoint.X, spawnpoint.Y);
+                if (spawnpoint != null && !string.IsNullOrEmpty(spawnpoint.MapName) loginUser.Teleport(spawnpoint.MapName, spawnpoint.X, spawnpoint.Y);
                 else loginUser.Teleport((ushort)500, (byte)50, (byte)(50));
             }
             else if (WorldData.ContainsKey<Map>(loginUser.Location.MapId))
@@ -4241,6 +4241,8 @@ namespace Hybrasyl
             lock (_lock)
             {
                 Objects.Remove(obj.Id);
+                if (obj is Creature creature)
+                    ActiveStatuses.Remove(creature);
             }
             obj.World = null;
             obj.Id = 0;

@@ -132,7 +132,6 @@ namespace Hybrasyl.Objects
             }
             Map.Remove(this);
             World.Remove(this);
-            World.RemoveStatusCheck(this);
 
         }
 

@@ -335,6 +335,16 @@ namespace Hybrasyl.Objects
         {
             GameLog.DebugFormat("Sending 0x{0:X2} to {1}", packet.Opcode, Name);
             Client.Enqueue(packet);
+            // TODO: later fixes 2020/08/30
+            //try
+            //{
+            //    Client.Enqueue(packet);
+            //}
+            //catch (ObjectDisposedException)
+            //{
+            //    GameLog.Warning("User {user}: socket enqueue failed due to disconnect");
+            //    Client = null;
+            //}
         }
 
         public override void AoiEntry(VisibleObject obj)
@@ -4858,7 +4868,14 @@ namespace Hybrasyl.Objects
         public void ReapplyStatuses()
         {
             foreach (var status in Statuses)
-                ApplyStatus(new CreatureStatus(status, this));
+                try
+                {
+                    ApplyStatus(new CreatureStatus(status, this));
+                }
+                catch (ArgumentException e)
+                {
+                    GameLog.Error("User {user}: status {status} could not be reapplied - exception occurred (likely not found): {e}", Name, status.Name, e);
+                }
             UpdateAttributes(StatUpdateFlags.Full);
             Statuses.Clear();
         }

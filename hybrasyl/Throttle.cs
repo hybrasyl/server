@@ -254,7 +254,7 @@ namespace Hybrasyl
                     result = ThrottleResult.Throttled;
                     if (acceptedInterval.TotalMilliseconds >= ThrottleDuration && acceptedInterval.TotalMilliseconds >= Interval)
                     {
-                        GameLog.Error($"Unthrottled: {acceptedInterval.TotalMilliseconds} > {ThrottleDuration} and {Interval}");
+                        //GameLog.Error($"Unthrottled: {acceptedInterval.TotalMilliseconds} > {ThrottleDuration} and {Interval}");
                         info.Throttled = false;
                         info.TotalThrottled = 0;
                         result = ThrottleResult.ThrottleEnd;
@@ -265,7 +265,7 @@ namespace Hybrasyl
                     else
                     {
                         info.TotalThrottled++;
-                        GameLog.Error($"Throttled, count is {info.TotalThrottled}");
+                        //GameLog.Error($"Throttled, count is {info.TotalThrottled}");
 
                         result = ThrottleResult.Throttled;
                         if (ThrottleDisconnectThreshold > 0 && info.TotalThrottled > ThrottleDisconnectThreshold)
