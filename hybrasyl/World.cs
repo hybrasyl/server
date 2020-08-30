@@ -842,6 +842,19 @@ namespace Hybrasyl
                         }
                         break;
                     }
+                case "dye":
+                    {
+                        if(variant.Properties.Restrictions?.Level != null)
+                        {
+                            variantItem.Properties.Restrictions.Level.Min = variant.Properties.Restrictions.Level.Min;
+                        }
+                        if(variant.Properties.Appearance != null)
+                        {
+                            variantItem.Properties.Appearance.Color = variant.Properties.Appearance.Color;
+                        }
+                        break;
+                    }
+
                 default:
                     break;
             }

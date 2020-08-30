@@ -1344,6 +1344,12 @@ namespace Hybrasyl.Objects
             SendUpdateToUser();
         }
 
+        public void SetHairColor(Xml.ItemColor itemColor)
+        {
+            HairColor = (byte)itemColor;
+            SendUpdateToUser();
+        }
+
         public void SendUpdateToUser(Client client = null)
         {
             var offset = Equipment.Armor?.BodyStyle ?? 0;

@@ -1072,5 +1072,15 @@ namespace Hybrasyl.Scripting
         {
             User.SetHairstyle((byte)hairStyle);
         }
+
+        /// <summary>
+        /// Set's a user's haircolor from a script
+        /// </summary>
+        /// <param name="itemColor">The color to apply</param>
+        public void SetHairColor(string itemColor)
+        {
+            Xml.ItemColor color = (Xml.ItemColor)Enum.Parse(typeof(Xml.ItemColor), itemColor);
+            User.SetHairColor(color);
+        }
     }
 }
