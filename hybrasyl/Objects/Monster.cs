@@ -55,7 +55,7 @@ namespace Hybrasyl.Objects
 
         public bool ScriptExists { get; set; }
 
-        public Dictionary<uint, double> AggroTable { get; set; }
+        public Dictionary<string, double> AggroTable { get; set; }
         public Xml.CastableGroup Castables => _castables;
 
         public bool HasCastNearDeath = false;
@@ -130,9 +130,9 @@ namespace Hybrasyl.Objects
                 World.Insert(golds);
                 Map.Insert(golds, X, Y);
             }
+            World.RemoveStatusCheck(this);
             Map.Remove(this);
             World.Remove(this);
-            World.RemoveStatusCheck(this);
 
         }
 
@@ -178,13 +178,13 @@ namespace Hybrasyl.Objects
         {
             if (attacker != null)
             {
-                if (!AggroTable.ContainsKey(attacker.Id))
+                if (!AggroTable.ContainsKey(attacker.Name))
                 {
-                    AggroTable.Add(attacker.Id, damage);
+                    AggroTable.Add(attacker.Name, damage);
                 }
                 else
                 {
-                    AggroTable[attacker.Id] += damage;
+                    AggroTable[attacker.Name] += damage;
                 }
             }
             IsHostile = true;
@@ -305,7 +305,7 @@ namespace Hybrasyl.Objects
             else
                 ShouldWander = IsHostile == false;
 
-            AggroTable = new Dictionary<uint, double>();
+            AggroTable = new Dictionary<string, double>();
         }
 
         public Creature Target
@@ -749,11 +749,12 @@ namespace Hybrasyl.Objects
             {
                 var user = (User)obj;
 
-                if(AggroTable.ContainsKey(user.Id))
+                if(AggroTable.ContainsKey(user.Name))
                 {
-                    AggroTable.Remove(user.Id);
+                    AggroTable.Remove(user.Name);
                     ShouldWander = true;
                     FirstHitter = null;
+                    Target = null;
                 }
             }
             base.AoiDeparture(obj);

@@ -427,8 +427,7 @@ namespace Hybrasyl
 
                     EntityTree.Add(obj);
 
-                    var user = obj as User;
-                    if (user != null)
+                    if (obj is User user)
                     {
                         if (updateClient)
                         {
@@ -442,8 +441,11 @@ namespace Hybrasyl
 
                     foreach (var target in affectedObjects)
                     {
-                        target.AoiEntry(obj);
-                        obj.AoiEntry(target);
+                        if (target is User usr)
+                        {
+                            usr.AoiEntry(obj);
+                            usr.AoiEntry(target);
+                        }
                     }
 
                 }
