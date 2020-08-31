@@ -1805,7 +1805,7 @@ namespace Hybrasyl
             var slot = packet.ReadByte();
             var x = packet.ReadInt16();
             var y = packet.ReadInt16();
-            var count = packet.ReadInt32();
+            var count = packet.ReadUInt32();
 
             GameLog.DebugFormat("{0} {1} {2} {3}", slot, x, y, count);
 
@@ -1844,11 +1844,11 @@ namespace Hybrasyl
 
             if (toDrop.Stackable && count < toDrop.Count)
             {
-                toDrop.Count -= count;
+                toDrop.Count -= (int)count;
                 user.SendItemUpdate(toDrop, slot);
 
                 toDrop = new ItemObject(toDrop);
-                toDrop.Count = count;
+                toDrop.Count = (int)count;
             }
             else
             {
@@ -2396,6 +2396,12 @@ namespace Hybrasyl
             var x = packet.ReadInt16();
             var y = packet.ReadInt16();
 
+            if(amount > user.Gold)
+            {
+                user.SendSystemMessage("You can't drop coin that you do not have.");
+                return;
+            }
+
             GameLog.DebugFormat("{0} {1} {2}", amount, x, y);
             // Do a few sanity checks
 
@@ -2570,7 +2576,11 @@ namespace Hybrasyl
             var user = (User)obj;
             // If the object is a creature or an NPC, simply give them the item, otherwise,
             // initiate an exchange
-
+            if (goldAmount > user.Gold)
+            {
+                user.SendSystemMessage("You can't give coin that you do not have.");
+                return;
+            }
             WorldObject target;
             if (!user.World.Objects.TryGetValue(targetId, out target))
                 return;

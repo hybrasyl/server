@@ -1315,7 +1315,11 @@ namespace Hybrasyl.Objects
             x07.WriteUInt16(itemObject.Y);
             x07.WriteUInt32(itemObject.Id);
             x07.WriteUInt16((ushort)(itemObject.Sprite + 0x8000));
-            x07.WriteInt32(0); // Unknown what this is
+            x07.WriteByte(itemObject.Color);
+            x07.WriteByte(0);
+            x07.WriteByte(0);
+            x07.WriteByte(0);
+            //x07.WriteInt32(0); // Unknown what this is
             x07.DumpPacket();
             Enqueue(x07);
         }
