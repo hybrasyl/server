@@ -441,11 +441,8 @@ namespace Hybrasyl
 
                     foreach (var target in affectedObjects)
                     {
-                        if (target is User usr)
-                        {
-                            usr.AoiEntry(obj);
-                            usr.AoiEntry(target);
-                        }
+                        target.AoiEntry(obj);
+                        target.AoiEntry(target);
                     }
 
                 }

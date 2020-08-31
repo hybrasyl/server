@@ -475,7 +475,16 @@ namespace Hybrasyl.Xml
         public string Filename { get; set; }
     }
 
-    public partial class SpawnCastable
+    public partial class SpawnCastableOffense
+    {
+        public DateTime LastCast { get; set; }
+    }
+
+    public partial class SpawnCastableDefense
+    {
+        public DateTime LastCast { get; set; }
+    }
+    public partial class SpawnCastableNearDeath
     {
         public DateTime LastCast { get; set; }
     }

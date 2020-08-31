@@ -19,7 +19,7 @@ using System.Text;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 
-[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.3752.0")]
+[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8")]
 [Serializable]
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -47,8 +47,8 @@ public partial class StatModifiers
     private float _reflectChance;
     private float _reflectIntensity;
     private static XmlSerializer _serializer;
-        #endregion
-
+    #endregion
+    
     public StatModifiers()
     {
         _str = ((sbyte)(0));
@@ -63,8 +63,10 @@ public partial class StatModifiers
         _ac = ((sbyte)(0));
         _regen = ((sbyte)(0));
         _mr = ((sbyte)(0));
-        _offensiveElement = Element.None;
-        _defensiveElement = Element.None;
+        _offensiveElement = new Element[] {
+                Element.None};
+        _defensiveElement = new Element[] {
+                Element.None};
     }
     
     [XmlAttribute]

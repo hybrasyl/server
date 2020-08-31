@@ -24,109 +24,43 @@ using System.Collections.Generic;
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-public partial class CastModifierModify
+public partial class SpawnCastableDefense
 {
     #region Private fields
-    private int _add;
-    private int _subtract;
-    private int _baseCount;
-    private int _min;
-    private int _max;
-    private int _replace;
+    private List<SpawnCastable> _castables;
+    private int _interval;
     private static XmlSerializer _serializer;
     #endregion
     
-    public CastModifierModify()
+    public SpawnCastableDefense()
     {
-        _add = -1;
-        _subtract = -1;
-        _baseCount = -1;
-        _min = -1;
-        _max = -1;
-        _replace = -1;
+        _interval = 15;
     }
     
-    [XmlAttribute]
-    [DefaultValue(-1)]
-    public int Add
+    [XmlArrayItemAttribute("Castable", typeof(SpawnCastable), IsNullable=false)]
+    public List<SpawnCastable> Castables
     {
         get
         {
-            return _add;
+            return _castables;
         }
         set
         {
-            _add = value;
+            _castables = value;
         }
     }
     
     [XmlAttribute]
-    [DefaultValue(-1)]
-    public int Subtract
+    [DefaultValue(15)]
+    public int Interval
     {
         get
         {
-            return _subtract;
+            return _interval;
         }
         set
         {
-            _subtract = value;
-        }
-    }
-    
-    [XmlAttribute]
-    [DefaultValue(-1)]
-    public int BaseCount
-    {
-        get
-        {
-            return _baseCount;
-        }
-        set
-        {
-            _baseCount = value;
-        }
-    }
-    
-    [XmlAttribute]
-    [DefaultValue(-1)]
-    public int Min
-    {
-        get
-        {
-            return _min;
-        }
-        set
-        {
-            _min = value;
-        }
-    }
-    
-    [XmlAttribute]
-    [DefaultValue(-1)]
-    public int Max
-    {
-        get
-        {
-            return _max;
-        }
-        set
-        {
-            _max = value;
-        }
-    }
-    
-    [XmlAttribute]
-    [DefaultValue(-1)]
-    public int Replace
-    {
-        get
-        {
-            return _replace;
-        }
-        set
-        {
-            _replace = value;
+            _interval = value;
         }
     }
     
@@ -136,7 +70,7 @@ public partial class CastModifierModify
         {
             if ((_serializer == null))
             {
-                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(CastModifierModify));
+                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(SpawnCastableDefense));
             }
             return _serializer;
         }
@@ -144,7 +78,7 @@ public partial class CastModifierModify
     
     #region Serialize/Deserialize
     /// <summary>
-    /// Serialize CastModifierModify object
+    /// Serialize SpawnCastableDefense object
     /// </summary>
     /// <returns>XML value</returns>
     public virtual string Serialize()
@@ -177,16 +111,16 @@ public partial class CastModifierModify
     }
     
     /// <summary>
-    /// Deserializes CastModifierModify object
+    /// Deserializes SpawnCastableDefense object
     /// </summary>
     /// <param name="input">string workflow markup to deserialize</param>
-    /// <param name="obj">Output CastModifierModify object</param>
+    /// <param name="obj">Output SpawnCastableDefense object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool Deserialize(string input, out CastModifierModify obj, out Exception exception)
+    public static bool Deserialize(string input, out SpawnCastableDefense obj, out Exception exception)
     {
         exception = null;
-        obj = default(CastModifierModify);
+        obj = default(SpawnCastableDefense);
         try
         {
             obj = Deserialize(input);
@@ -199,19 +133,19 @@ public partial class CastModifierModify
         }
     }
     
-    public static bool Deserialize(string input, out CastModifierModify obj)
+    public static bool Deserialize(string input, out SpawnCastableDefense obj)
     {
         Exception exception = null;
         return Deserialize(input, out obj, out exception);
     }
     
-    public static CastModifierModify Deserialize(string input)
+    public static SpawnCastableDefense Deserialize(string input)
     {
         StringReader stringReader = null;
         try
         {
             stringReader = new StringReader(input);
-            return ((CastModifierModify)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
+            return ((SpawnCastableDefense)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
         }
         finally
         {
@@ -222,14 +156,14 @@ public partial class CastModifierModify
         }
     }
     
-    public static CastModifierModify Deserialize(Stream s)
+    public static SpawnCastableDefense Deserialize(Stream s)
     {
-        return ((CastModifierModify)(SerializerXML.Deserialize(s)));
+        return ((SpawnCastableDefense)(SerializerXML.Deserialize(s)));
     }
     #endregion
     
     /// <summary>
-    /// Serializes current CastModifierModify object into file
+    /// Serializes current SpawnCastableDefense object into file
     /// </summary>
     /// <param name="fileName">full path of outupt xml file</param>
     /// <param name="exception">output Exception value if failed</param>
@@ -270,16 +204,16 @@ public partial class CastModifierModify
     }
     
     /// <summary>
-    /// Deserializes xml markup from file into an CastModifierModify object
+    /// Deserializes xml markup from file into an SpawnCastableDefense object
     /// </summary>
     /// <param name="fileName">string xml file to load and deserialize</param>
-    /// <param name="obj">Output CastModifierModify object</param>
+    /// <param name="obj">Output SpawnCastableDefense object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool LoadFromFile(string fileName, out CastModifierModify obj, out Exception exception)
+    public static bool LoadFromFile(string fileName, out SpawnCastableDefense obj, out Exception exception)
     {
         exception = null;
-        obj = default(CastModifierModify);
+        obj = default(SpawnCastableDefense);
         try
         {
             obj = LoadFromFile(fileName);
@@ -292,13 +226,13 @@ public partial class CastModifierModify
         }
     }
     
-    public static bool LoadFromFile(string fileName, out CastModifierModify obj)
+    public static bool LoadFromFile(string fileName, out SpawnCastableDefense obj)
     {
         Exception exception = null;
         return LoadFromFile(fileName, out obj, out exception);
     }
     
-    public static CastModifierModify LoadFromFile(string fileName)
+    public static SpawnCastableDefense LoadFromFile(string fileName)
     {
         FileStream file = null;
         StreamReader sr = null;

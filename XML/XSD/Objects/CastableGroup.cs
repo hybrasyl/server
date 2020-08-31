@@ -27,8 +27,8 @@ using System.Collections.Generic;
 public partial class CastableGroup
 {
     #region Private fields
-    private List<SpawnCastable> _offense;
-    private List<SpawnCastable> _defense;
+    private SpawnCastableOffense _offense;
+    private SpawnCastableDefense _defense;
     private SpawnCastableNearDeath _nearDeath;
     private List<SpawnCastable> _onDeath;
     private static XmlSerializer _serializer;
@@ -38,12 +38,11 @@ public partial class CastableGroup
     {
         _onDeath = new List<SpawnCastable>();
         _nearDeath = new SpawnCastableNearDeath();
-        _defense = new List<SpawnCastable>();
-        _offense = new List<SpawnCastable>();
+        _defense = new SpawnCastableDefense();
+        _offense = new SpawnCastableOffense();
     }
     
-    [XmlArrayItemAttribute("Castable", IsNullable=false)]
-    public List<SpawnCastable> Offense
+    public SpawnCastableOffense Offense
     {
         get
         {
@@ -55,8 +54,7 @@ public partial class CastableGroup
         }
     }
     
-    [XmlArrayItemAttribute("Castable", IsNullable=false)]
-    public List<SpawnCastable> Defense
+    public SpawnCastableDefense Defense
     {
         get
         {

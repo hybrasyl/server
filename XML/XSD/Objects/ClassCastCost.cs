@@ -267,3 +267,4 @@ public partial class ClassCastCost
 }
 }
 #pragma warning restore
+store
