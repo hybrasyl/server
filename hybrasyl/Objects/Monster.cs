@@ -387,7 +387,7 @@ namespace Hybrasyl.Objects
             {
                 //need to determine what it should do, and what is available to it.
                 var interval = 0;
-                var currentHpPercent = (double)(Stats.Hp / Stats.MaximumHp) * 100;
+                decimal currentHpPercent = ((decimal)Stats.Hp / Stats.MaximumHp) * 100m;
 
                 if (currentHpPercent < 1)
                 {
