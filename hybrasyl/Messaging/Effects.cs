@@ -50,19 +50,20 @@ namespace Hybrasyl.Messaging
     class HairstyleCommand : ChatCommand
     {
         public new static string Command = "hairstyle";
-        public new static string ArgumentText = "<byte hairstyle> [<byte haircolor>]";
+        public new static string ArgumentText = "<ushort hairstyle> [<byte haircolor>]";
         public new static string HelpText = "Change your hairstyle and hair color.";
         public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
-            if (byte.TryParse(args[0], out byte hairstyle))
+            if (ushort.TryParse(args[0], out ushort hairstyle))
             {
-                if (args.Length > 1 && byte.TryParse(args[1], out byte haircolor))
+                byte haircolor = 0;
+                if (args.Length > 1 && byte.TryParse(args[1], out haircolor))
                     user.HairColor = haircolor;
                 user.HairStyle = hairstyle;
                 user.SendUpdateToUser();
-                return Success($"Hair color and/or style updated.");
+                return Success($"Hair color and/or style updated to style:{user.HairStyle} color:{user.HairColor}.");
             }
             return Fail("The value you specified could not be parsed (byte)");
         }

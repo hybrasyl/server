@@ -1078,7 +1078,7 @@ namespace Hybrasyl.Scripting
         /// <param name="hairStyle">The target hairstyle</param>
         public void SetHairstyle(int hairStyle)
         {
-            User.SetHairstyle((byte)hairStyle);
+            User.SetHairstyle((ushort)hairStyle);
         }
 
         /// <summary>
