@@ -138,7 +138,7 @@ namespace Hybrasyl.Objects
         [JsonProperty]
         public ushort MonsterSprite { get; set; }
         [JsonProperty]
-        public byte HairStyle { get; set; }
+        public ushort HairStyle { get; set; }
         [JsonProperty]
         public byte HairColor { get; set; }
         #endregion
@@ -1345,7 +1345,7 @@ namespace Hybrasyl.Objects
             Enqueue(x07);
         }
 
-        public void SetHairstyle(byte hairStyle)
+        public void SetHairstyle(ushort hairStyle)
         {
             HairStyle = hairStyle;
             SendUpdateToUser();
