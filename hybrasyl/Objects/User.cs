@@ -3252,7 +3252,14 @@ namespace Hybrasyl.Objects
 
                 if (classReq.Gold != 0)
                 {
-                    reqStr += classReq.Gold + " coins";
+                    if(reqStr != string.Empty)
+                    {
+                        reqStr += $" and {classReq.Gold} coins";
+                    }
+                    else
+                    {
+                        reqStr += $"{classReq.Gold} coins";
+                    }
                 }
                 else
                 {
@@ -3262,12 +3269,12 @@ namespace Hybrasyl.Objects
 
                 options.Options.Add(new MerchantDialogOption()
                 {
-                    Id = (ushort)MerchantMenuItem.LearnSkillAccept,
+                    Id = (ushort)MerchantMenuItem.LearnSpellAccept,
                     Text = "Yes"
                 });
                 options.Options.Add(new MerchantDialogOption()
                 {
-                    Id = (ushort)MerchantMenuItem.LearnSkillDisagree,
+                    Id = (ushort)MerchantMenuItem.LearnSpellDisagree,
                     Text = "No"
                 });
 
@@ -3322,9 +3329,9 @@ namespace Hybrasyl.Objects
                 {
                     RemoveItem(req.Value, req.Quantity);
                 }
-                SkillBook.Add(castable);
+                SpellBook.Add(castable);
                 SendInventory();
-                SendSkills();
+                SendSpells();
                 learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_success");
                 prompt = learnString.Value;
             }
