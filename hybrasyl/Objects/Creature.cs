@@ -488,7 +488,7 @@ namespace Hybrasyl.Objects
 
             // Quick checks
             // If no targets and is not an assail, do nothing
-            if (targets.Count() == 0 && castObject.IsAssail == false)
+            if (targets.Count() == 0 && castObject.IsAssail == false && string.IsNullOrEmpty(castObject.Script))
             {
                 GameLog.UserActivityInfo($"UseCastable: {Name}: no targets and not assail");
                 return false;

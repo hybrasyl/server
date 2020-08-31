@@ -2538,22 +2538,6 @@ namespace Hybrasyl.Objects
                 return false;
             }
 
-            //if (castObject.Script != null)
-            //{
-            //    Script invokeScript;
-            //    if (!World.ScriptProcessor.TryGetScript(castObject.Script, out invokeScript))
-            //    {
-            //        SendSystemMessage("It doesn't work.");
-            //        return false;
-            //    }
-
-            //    if (!invokeScript.ExecuteFunction("OnUse", this, null, null))
-            //    {
-            //        SendSystemMessage("It doesn't work.");
-            //        return false;
-            //    }
-            //}
-
             if (base.UseCastable(castObject, target))
             {
                 // This may need to occur elsewhere, depends on how it looks in game
