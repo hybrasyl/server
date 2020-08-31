@@ -34,7 +34,8 @@ public partial class SpawnCastableOffense
     
     public SpawnCastableOffense()
     {
-        _interval = 15;
+            _castables = new List<SpawnCastable>();
+            _interval = 15;
     }
     
     [XmlArrayItemAttribute("Castable", typeof(SpawnCastable), IsNullable=false)]

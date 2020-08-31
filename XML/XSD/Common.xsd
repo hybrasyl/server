@@ -830,14 +830,14 @@
 
   <xs:complexType name="SpawnCastableOffense">
     <xs:sequence>
-      <xs:element name="Castables" type="hyb:SpawnCastableList" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Castables" type="hyb:SpawnCastableList" minOccurs="1" maxOccurs="1"/>
     </xs:sequence>
     <xs:attribute name="Interval" type="xs:int" use="optional" default="15"/>
   </xs:complexType>
 
   <xs:complexType name="SpawnCastableDefense">
     <xs:sequence>
-      <xs:element name="Castables" type="hyb:SpawnCastableList" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Castables" type="hyb:SpawnCastableList" minOccurs="1" maxOccurs="1"/>
     </xs:sequence>
     <xs:attribute name="Interval" type="xs:int" use="optional" default="15"/>
   </xs:complexType>
