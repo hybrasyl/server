@@ -1763,32 +1763,6 @@ namespace Hybrasyl.Objects
             return (User)contents.FirstOrDefault(y => y is User);
         }
 
-        public Monster GetFacingMonster()
-        {
-            List<VisibleObject> contents;
-
-            switch (Direction)
-            {
-                case Xml.Direction.North:
-                    contents = Map.GetTileContents(X, Y - 1);
-                    break;
-                case Xml.Direction.South:
-                    contents = Map.GetTileContents(X, Y + 1);
-                    break;
-                case Xml.Direction.West:
-                    contents = Map.GetTileContents(X - 1, Y);
-                    break;
-                case Xml.Direction.East:
-                    contents = Map.GetTileContents(X + 1, Y);
-                    break;
-                default:
-                    contents = new List<VisibleObject>();
-                    break;
-            }
-
-            return (Monster)contents.FirstOrDefault(y => y is Monster);
-        }
-
         /// <summary>
         /// Returns all the objects that are directly facing the user.
         /// </summary>

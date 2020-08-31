@@ -179,7 +179,7 @@ namespace Hybrasyl.Scripting
 
         public HybrasylMonster GetFacingMonster()
         {
-            var facing = User.GetFacingMonster();
+            var facing = (Monster)(User.GetFacingObjects().Where(X => X is Monster).FirstOrDefault());
             return facing != null ? new HybrasylMonster(facing) : null;
         }
 
