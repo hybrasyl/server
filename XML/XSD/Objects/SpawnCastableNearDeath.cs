@@ -29,6 +29,7 @@ public partial class SpawnCastableNearDeath
     #region Private fields
     private List<SpawnCastable> _castables;
     private int _healthPercent;
+    private int _interval;
     private static XmlSerializer _serializer;
     #endregion
     
@@ -36,6 +37,7 @@ public partial class SpawnCastableNearDeath
     {
         _castables = new List<SpawnCastable>();
         _healthPercent = 20;
+        _interval = 15;
     }
     
     [XmlArrayItemAttribute("Castable", IsNullable=false)]
@@ -62,6 +64,20 @@ public partial class SpawnCastableNearDeath
         set
         {
             _healthPercent = value;
+        }
+    }
+    
+    [XmlAttribute]
+    [DefaultValue(15)]
+    public int Interval
+    {
+        get
+        {
+            return _interval;
+        }
+        set
+        {
+            _interval = value;
         }
     }
     

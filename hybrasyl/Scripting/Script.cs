@@ -144,6 +144,8 @@ namespace Hybrasyl.Scripting
                 return DynValue.NewNil();
             if (obj is User)
                 return UserData.Create(new HybrasylUser(obj as User));
+            else if (obj is Monster)
+                return UserData.Create(new HybrasylMonster(obj as Monster));
             else if (obj is World)
                 return UserData.Create(new HybrasylWorld(obj as World));
             else if (obj is Map)

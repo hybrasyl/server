@@ -40,7 +40,7 @@ namespace Hybrasyl
                     else
                     {
                         var aggroid = monster.AggroTable.OrderByDescending(x => x.Value).FirstOrDefault().Key;
-                        aggroTarget = players.FirstOrDefault(x => x.Id == aggroid);
+                        aggroTarget = players.FirstOrDefault(x => x.Name == aggroid);
                     }
 
                     UserGroup targetGroup = null;

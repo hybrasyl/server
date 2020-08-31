@@ -137,7 +137,6 @@ namespace Hybrasyl.Scripting
                 // Add a castable to our casting list
                 var castInstruction = new Xml.SpawnCastable();
                 castInstruction.Element = element;
-                castInstruction.Interval = interval;
                 castInstruction.Name = name;
                 castInstruction.Target = targetType;
                 castInstruction.MinDmg = minDmg;
@@ -146,10 +145,10 @@ namespace Hybrasyl.Scripting
                 switch(type.ToLower())
                 {
                     case "offense":
-                        Spawn.Castables.Offense.Add(castInstruction);
+                        Spawn.Castables.Offense.Castables.Add(castInstruction);
                         break;
                     case "defense":
-                        Spawn.Castables.Defense.Add(castInstruction);
+                        Spawn.Castables.Defense.Castables.Add(castInstruction);
                         break;
                     case "neardeath":
                         Spawn.Castables.NearDeath.Castables.Add(castInstruction);

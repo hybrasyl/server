@@ -177,6 +177,12 @@ namespace Hybrasyl.Scripting
             return User.GetFacingObjects().Select(item => new HybrasylWorldObject(item)).ToList();
         }
 
+        public HybrasylMonster GetFacingMonster()
+        {
+            var facing = (Monster)(User.GetFacingObjects().Where(X => X is Monster).FirstOrDefault());
+            return facing != null ? new HybrasylMonster(facing) : null;
+        }
+
         /// <summary>
         /// End coma state (e.g. beothaich was used)
         /// </summary>
@@ -966,6 +972,8 @@ namespace Hybrasyl.Scripting
         /// </summary>
         /// <param name="message">The message to shout.</param>
         public void Shout(string message) => User.Shout(message);
+
+        public void SendMessage(string message, int type) => User.SendMessage(message, (byte)type);
 
         /// <summary>
         /// Sends an in-game mail to the current player. NOT TESTED.

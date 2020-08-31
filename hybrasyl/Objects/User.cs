@@ -32,6 +32,7 @@ using System.Reflection;
 using System.Text;
 using Hybrasyl.Utility;
 using Hybrasyl.Xml;
+using Hybrasyl.Scripting;
 
 namespace Hybrasyl.Objects
 {
@@ -2548,7 +2549,7 @@ namespace Hybrasyl.Objects
                 SendSystemMessage(restrictionMessage);
                 return false;
             }
-            
+
             if (base.UseCastable(castObject, target))
             {
                 // This may need to occur elsewhere, depends on how it looks in game

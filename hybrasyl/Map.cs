@@ -427,8 +427,7 @@ namespace Hybrasyl
 
                     EntityTree.Add(obj);
 
-                    var user = obj as User;
-                    if (user != null)
+                    if (obj is User user)
                     {
                         if (updateClient)
                         {

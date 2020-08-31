@@ -55,7 +55,7 @@ namespace Hybrasyl.Objects
 
         public bool ScriptExists { get; set; }
 
-        public Dictionary<uint, double> AggroTable { get; set; }
+        public Dictionary<string, double> AggroTable { get; set; }
         public Xml.CastableGroup Castables => _castables;
 
         public bool HasCastNearDeath = false;
@@ -65,7 +65,7 @@ namespace Hybrasyl.Objects
             get
             {
                 //if any of these are present, return true.
-                if (_spawn.Castables.Offense.Count > 0 || _spawn.Castables.Defense.Count > 0 || _spawn.Castables.NearDeath.Castables.Count > 0 || _spawn.Castables.OnDeath.Count > 0)
+                if (_spawn.Castables.Offense.Castables.Count > 0 || _spawn.Castables.Defense.Castables.Count > 0 || _spawn.Castables.NearDeath.Castables.Count > 0 || _spawn.Castables.OnDeath.Count > 0)
                 {
                     return true;
                 }
@@ -130,6 +130,7 @@ namespace Hybrasyl.Objects
                 World.Insert(golds);
                 Map.Insert(golds, X, Y);
             }
+            World.RemoveStatusCheck(this);
             Map.Remove(this);
             World.Remove(this);
 
@@ -177,13 +178,13 @@ namespace Hybrasyl.Objects
         {
             if (attacker != null)
             {
-                if (!AggroTable.ContainsKey(attacker.Id))
+                if (!AggroTable.ContainsKey(attacker.Name))
                 {
-                    AggroTable.Add(attacker.Id, damage);
+                    AggroTable.Add(attacker.Name, damage);
                 }
                 else
                 {
-                    AggroTable[attacker.Id] += damage;
+                    AggroTable[attacker.Name] += damage;
                 }
             }
             IsHostile = true;
@@ -304,7 +305,7 @@ namespace Hybrasyl.Objects
             else
                 ShouldWander = IsHostile == false;
 
-            AggroTable = new Dictionary<uint, double>();
+            AggroTable = new Dictionary<string, double>();
         }
 
         public Creature Target
@@ -385,56 +386,44 @@ namespace Hybrasyl.Objects
             if (CanCast)
             {
                 //need to determine what it should do, and what is available to it.
-
+                var interval = 0;
                 var currentHpPercent = (double)(Stats.Hp / Stats.MaximumHp) * 100;
 
                 if (currentHpPercent < 1)
                 {
+                    //ondeath does not need an interval check
                     var selectedCastable = SelectSpawnCastable(SpawnCastType.OnDeath);
 
                     if (selectedCastable.Target == Xml.TargetType.Attacker)
                     {
-                        if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
-                        {
-                            Cast(aggroTarget, selectedCastable);
-                            selectedCastable.LastCast = DateTime.Now;
-                        }
-                        
+                        Cast(aggroTarget, selectedCastable);   
                     }
 
                     if (selectedCastable.Target == Xml.TargetType.Group || selectedCastable.Target == Xml.TargetType.Random)
                     {
                         if (targetGroup != null)
                         {
-                            if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
-                            {
-                                Cast(targetGroup, selectedCastable, selectedCastable.Target);
-                                selectedCastable.LastCast = DateTime.Now;
-                            }
+                            Cast(targetGroup, selectedCastable, selectedCastable.Target);
                         }
                         else
                         {
-                            if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
-                            {
-                                Cast(aggroTarget, selectedCastable);
-                                selectedCastable.LastCast = DateTime.Now;
-                            }
+                            Cast(aggroTarget, selectedCastable);                            
                         }
                     }
                 }
 
-                if (currentHpPercent <= Castables.NearDeath.HealthPercent && HasCastNearDeath == false)
+                if (currentHpPercent <= Castables.NearDeath.HealthPercent)
                 {
-                    HasCastNearDeath = true;
+                    interval = _castables.NearDeath.Interval;
 
                     var selectedCastable = SelectSpawnCastable(SpawnCastType.NearDeath);
 
                     if (selectedCastable.Target == Xml.TargetType.Attacker)
                     {
-                        if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                        if (_castables.NearDeath.LastCast.AddSeconds(interval) < DateTime.Now)
                         {
                             Cast(aggroTarget, selectedCastable);
-                            selectedCastable.LastCast = DateTime.Now;
+                            _castables.NearDeath.LastCast = DateTime.Now;
                         }
                         
                     }
@@ -443,18 +432,18 @@ namespace Hybrasyl.Objects
                     {
                         if (targetGroup != null)
                         {
-                            if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                            if (_castables.NearDeath.LastCast.AddSeconds(interval) < DateTime.Now)
                             {
                                 Cast(targetGroup, selectedCastable, selectedCastable.Target);
-                                selectedCastable.LastCast = DateTime.Now;
+                                _castables.NearDeath.LastCast = DateTime.Now;
                             }
                         }
                         else
                         {
-                            if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                            if (_castables.NearDeath.LastCast.AddSeconds(interval) < DateTime.Now)
                             {
                                 Cast(aggroTarget, selectedCastable);
-                                selectedCastable.LastCast = DateTime.Now;
+                                _castables.NearDeath.LastCast = DateTime.Now;
                             }
                         }
                     }
@@ -464,14 +453,15 @@ namespace Hybrasyl.Objects
 
                 if (nextChoice == 0) //offense
                 {
+                    interval = _castables.Offense.Interval;
                     var selectedCastable = SelectSpawnCastable(SpawnCastType.Offensive);
 
                     if (selectedCastable.Target == Xml.TargetType.Attacker)
                     {
-                        if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                        if (_castables.Offense.LastCast.AddSeconds(interval) < DateTime.Now)
                         {
                             Cast(aggroTarget, selectedCastable);
-                            selectedCastable.LastCast = DateTime.Now;
+                            _castables.Offense.LastCast = DateTime.Now;
                         }                        
                     }
 
@@ -479,18 +469,18 @@ namespace Hybrasyl.Objects
                     {
                         if (targetGroup != null)
                         {
-                            if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                            if (_castables.Offense.LastCast.AddSeconds(interval) < DateTime.Now)
                             {
                                 Cast(targetGroup, selectedCastable, selectedCastable.Target);
-                                selectedCastable.LastCast = DateTime.Now;
+                                _castables.Offense.LastCast = DateTime.Now;
                             }
                         }
                         else
                         {
-                            if (selectedCastable.LastCast.AddSeconds(selectedCastable.Interval) < DateTime.Now)
+                            if (_castables.Offense.LastCast.AddSeconds(interval) < DateTime.Now)
                             {
                                 Cast(aggroTarget, selectedCastable);
-                                selectedCastable.LastCast = DateTime.Now;
+                                _castables.Offense.LastCast = DateTime.Now;
                             }
                         }
                     }
@@ -542,12 +532,12 @@ namespace Hybrasyl.Objects
             switch (castType)
             {
                 case SpawnCastType.Offensive:
-                    nextSpell = _random.Next(0, _castables.Offense.Count == 0 ? 0 : _castables.Offense.Count - 1);
-                    creatureCastable = _castables.Offense[nextSpell];
+                    nextSpell = _random.Next(0, _castables.Offense.Castables.Count == 0 ? 0 : _castables.Offense.Castables.Count - 1);
+                    creatureCastable = _castables.Offense.Castables[nextSpell];
                     break;
                 case SpawnCastType.Defensive:
-                    nextSpell = _random.Next(0, _castables.Defense.Count == 0 ? 0 : _castables.Defense.Count - 1);
-                    creatureCastable = _castables.Defense[nextSpell];
+                    nextSpell = _random.Next(0, _castables.Defense.Castables.Count == 0 ? 0 : _castables.Defense.Castables.Count - 1);
+                    creatureCastable = _castables.Defense.Castables[nextSpell];
                     break;
                 case SpawnCastType.NearDeath:
                     nextSpell = _random.Next(0, _castables.NearDeath.Castables.Count == 0 ? 0 : _castables.NearDeath.Castables.Count - 1);
@@ -748,11 +738,12 @@ namespace Hybrasyl.Objects
             {
                 var user = (User)obj;
 
-                if(AggroTable.ContainsKey(user.Id))
+                if(AggroTable.ContainsKey(user.Name))
                 {
-                    AggroTable.Remove(user.Id);
+                    AggroTable.Remove(user.Name);
                     ShouldWander = true;
                     FirstHitter = null;
+                    Target = null;
                 }
             }
             base.AoiDeparture(obj);

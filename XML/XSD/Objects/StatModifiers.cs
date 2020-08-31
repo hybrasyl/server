@@ -19,7 +19,7 @@ using System.Text;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 
-[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.3752.0")]
+[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8")]
 [Serializable]
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -47,8 +47,8 @@ public partial class StatModifiers
     private float _reflectChance;
     private float _reflectIntensity;
     private static XmlSerializer _serializer;
-        #endregion
-
+    #endregion
+    
     public StatModifiers()
     {
         _str = ((sbyte)(0));

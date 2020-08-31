@@ -824,28 +824,30 @@
         <xs:attribute name="MaxDmg" type="xs:int" use="optional" default="0"/>
         <xs:attribute name="Element" type="hyb:Element" use="optional"/>
         <xs:attribute name="Target" type="hyb:TargetType" use="required"/>
-        <xs:attribute name="Interval" type="xs:int" default="30" use="optional"/>
       </xs:extension>
     </xs:simpleContent>
   </xs:complexType>
 
   <xs:complexType name="SpawnCastableOffense">
     <xs:sequence>
-      <xs:element name="Castable" type="hyb:SpawnCastable" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Castables" type="hyb:SpawnCastableList" minOccurs="1" maxOccurs="1"/>
     </xs:sequence>
+    <xs:attribute name="Interval" type="xs:int" use="optional" default="15"/>
   </xs:complexType>
 
   <xs:complexType name="SpawnCastableDefense">
     <xs:sequence>
-      <xs:element name="Castable" type="hyb:SpawnCastable" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Castables" type="hyb:SpawnCastableList" minOccurs="1" maxOccurs="1"/>
     </xs:sequence>
+    <xs:attribute name="Interval" type="xs:int" use="optional" default="15"/>
   </xs:complexType>
 
   <xs:complexType name="SpawnCastableNearDeath">
     <xs:sequence>
-      <xs:element name="Castables" type="hyb:SpawnCastableNearDeathCastables" minOccurs="1" maxOccurs="1"/>      
+      <xs:element name="Castables" type="hyb:SpawnCastableList" minOccurs="1" maxOccurs="1"/>      
     </xs:sequence>
     <xs:attribute name="HealthPercent" type="xs:int" use="optional" default="20"/>
+    <xs:attribute name="Interval" type="xs:int" use="optional" default="15"/>
   </xs:complexType>
 
   <xs:complexType name="SpawnCastableOnDeath">
@@ -854,7 +856,7 @@
     </xs:sequence>
   </xs:complexType>
 
-  <xs:complexType name="SpawnCastableNearDeathCastables">
+  <xs:complexType name="SpawnCastableList">
     <xs:sequence>
       <xs:element name="Castable" type="hyb:SpawnCastable" minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>

@@ -43,9 +43,7 @@ public enum CreatureCondition
     IncreaseDamage = 32768,
     ReduceDamage = 65536,
     AbsorbSpell = 131072,
-    [XmlEnumAttribute("Prohibit                               ")]
-    [EnumMember(Value="Prohibit                               ")]
-    Prohibit = 262144,
+    ProhibitItemUse = 262144,
     ProhibitEquipChange = 524288,
     ProhibitSpeech = 1048576,
     ProhibitWhisper = 2097152,

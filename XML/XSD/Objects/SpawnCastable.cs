@@ -32,7 +32,6 @@ public partial class SpawnCastable
     private int _maxDmg;
     private Element _element;
     private TargetType _target;
-    private int _interval;
     private string _value;
     private static XmlSerializer _serializer;
     #endregion
@@ -41,7 +40,6 @@ public partial class SpawnCastable
     {
         _minDmg = 0;
         _maxDmg = 0;
-        _interval = 30;
     }
     
     [XmlAttribute]
@@ -108,20 +106,6 @@ public partial class SpawnCastable
         set
         {
             _target = value;
-        }
-    }
-    
-    [XmlAttribute]
-    [DefaultValue(30)]
-    public int Interval
-    {
-        get
-        {
-            return _interval;
-        }
-        set
-        {
-            _interval = value;
         }
     }
     
