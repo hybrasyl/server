@@ -304,6 +304,8 @@ namespace Hybrasyl.Objects
         // in the creation of a new ItemObject.
         public ItemObject(ItemObject previousItemObject)
         {
+            _count = new Lockable<int>(previousItemObject.Count);
+            _durability = new Lockable<double>(previousItemObject.Durability);
             World = previousItemObject.World;
             TemplateId = previousItemObject.TemplateId;
             Durability = previousItemObject.Durability;
