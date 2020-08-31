@@ -442,7 +442,7 @@ namespace Hybrasyl
                     foreach (var target in affectedObjects)
                     {
                         target.AoiEntry(obj);
-                        target.AoiEntry(target);
+                        obj.AoiEntry(target);
                     }
 
                 }
