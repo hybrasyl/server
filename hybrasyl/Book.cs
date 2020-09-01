@@ -65,7 +65,7 @@ namespace Hybrasyl
                     var castable = book[i];
                     if (castable != null)
                     {
-                        castable.UseCount = (ushort)(item.TotalUses == null ? 0 : item.TotalUses);
+                        castable.UseCount = (uint)(item.TotalUses ?? 0);
                         castable.MasteryLevel = (byte)(item.MasteryLevel == null ? (byte)0 : item.MasteryLevel);
                     }
                 }
@@ -83,7 +83,7 @@ namespace Hybrasyl
                     var castable = book[i];
                     if (castable != null)
                     {
-                        castable.UseCount = Convert.ToUInt16(item.TotalUses == null ? 0 : item.TotalUses);
+                        castable.UseCount = (uint)(item.TotalUses ?? 0);
                         castable.MasteryLevel = Convert.ToByte(item.MasteryLevel == null ? (byte)0 : item.MasteryLevel);
                         if (item.GetType().GetProperty("LastCast") != null)
                             castable.LastCast = (DateTime)item.LastCast;
