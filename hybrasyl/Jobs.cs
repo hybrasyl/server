@@ -339,26 +339,16 @@ namespace Hybrasyl
 
         public static class MerchantInventoryRefreshJob
         {
-            public static readonly int Interval = 10;
+            public static readonly int Interval = 60;
 
             public static void Execute(object obj, ElapsedEventArgs args)
             {
                 GameLog.Debug("MerchantInventoryRefresh Job starting");
                 try
                 {
-                    foreach (var merchant in Game.World.WorldData.Values<Merchant>())
+                    foreach (Merchant merchant in Game.World.Objects.Values.Where(x => x is Merchant))
                     {
-                        if (merchant.MerchantInventory != null)
-                        {
-                            for (var i = 0; i < merchant.MerchantInventory.Length; i++)
-                            {
-                                var inventoryItem = merchant.MerchantInventory[i];
-                                if (inventoryItem.LastRestock.AddMinutes(inventoryItem.RestockInterval) > DateTime.Now)
-                                {
-                                    merchant.MerchantInventory[i].OnHand = merchant.MerchantInventory[i].RestockAmount;
-                                }
-                            }
-                        }
+                        merchant.RestockInventory();
                     }
                 }
                 catch (Exception e)

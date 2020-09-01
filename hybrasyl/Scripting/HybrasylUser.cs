@@ -226,6 +226,13 @@ namespace Hybrasyl.Scripting
         public bool HasLegendMark(string prefix) => User.Legend.TryGetMark(prefix, out LegendMark _);
 
         /// <summary>
+        /// Check to see if the player has an item equipped with the specified name.
+        /// </summary>
+        /// <param name="item"></param>
+        /// <returns>boolean</returns>
+        public bool HasEquipment(string item) => User.Equipment.TryGetValueByName(item, out ItemObject _);
+
+        /// <summary>
         /// Change the class of a player to a new class. The player's class will immediately change and they will receive a legend mark that 
         /// reads "newClass by oath of oathGiver, XXX".
         /// </summary>

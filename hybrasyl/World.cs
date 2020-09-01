@@ -373,6 +373,61 @@ namespace Hybrasyl
                 }
             }
 
+            // Load item variants
+            foreach (var xml in GetXmlFiles(ItemVariantDirectory))
+            {
+                try
+                {
+                    Xml.VariantGroup newGroup = Xml.VariantGroup.LoadFromFile(xml);
+                    GameLog.DebugFormat("Item variants: loaded {0}", newGroup.Name);
+                    WorldData.Set(newGroup.Name, newGroup);
+
+                }
+                catch (Exception e)
+                {
+                    GameLog.ErrorFormat("Error parsing {0}: {1}", xml, e);
+                }
+            }
+
+            GameLog.InfoFormat("ItemObject variants: {0} variant sets loaded", WorldData.Values<Xml.VariantGroup>().Count());
+
+            // Load items
+            foreach (var xml in GetXmlFiles(ItemDirectory))
+            {
+                try
+                {
+                    Xml.Item newItem = Xml.Item.LoadFromFile(xml);
+                    var variants = new Dictionary<string, List<Xml.Item>>();
+
+                    GameLog.DebugFormat("Items: loaded {0}, id {1}", newItem.Name, newItem.Id);
+                    if (newItem.Properties.Variants != null)
+                    {
+                        foreach (var targetGroup in newItem.Properties.Variants.Group)
+                        {
+                            variants[targetGroup] = new List<Xml.Item>();
+                            foreach (var variant in WorldData.Get<Xml.VariantGroup>(targetGroup).Variant)
+                            {
+                                var variantItem = ResolveVariant(newItem, variant, targetGroup);
+                                GameLog.InfoFormat("ItemObject {0}: variantgroup {1}, subvariant {2}", variantItem.Name, targetGroup, variant.Name);
+                                if (WorldData.ContainsKey<Xml.Item>(variantItem.Id))
+                                {
+                                    GameLog.ErrorFormat("Item already exists with Key {0} : {1}. Cannot add {2}", variantItem.Id, WorldData.Get<Xml.Item>(variantItem.Id).Name, variantItem.Name);
+                                }
+                                WorldData.SetWithIndex(variantItem.Id, variantItem, variantItem.Name);
+                                variants[targetGroup].Add(variantItem);
+                            }
+                        }
+                    }
+                    newItem.Variants = variants;
+                    WorldData.SetWithIndex(newItem.Id, newItem, newItem.Name);
+
+                }
+                catch (Exception e)
+                {
+                    GameLog.ErrorFormat("Error parsing {0}: {1}", xml, e);
+                }
+            }
+
             //Load NPCs
             foreach (var xml in GetXmlFiles(NpcsDirectory))
             {
@@ -512,60 +567,6 @@ namespace Hybrasyl
 
             GameLog.InfoFormat("World Maps: {0} world maps loaded", WorldData.Count<WorldMap>());
 
-            // Load item variants
-            foreach (var xml in GetXmlFiles(ItemVariantDirectory))
-            {
-                try
-                {
-                    Xml.VariantGroup newGroup = Xml.VariantGroup.LoadFromFile(xml);
-                    GameLog.DebugFormat("Item variants: loaded {0}", newGroup.Name);
-                    WorldData.Set(newGroup.Name, newGroup);
-
-                }
-                catch (Exception e)
-                {
-                    GameLog.ErrorFormat("Error parsing {0}: {1}", xml, e);
-                }
-            }
-
-            GameLog.InfoFormat("ItemObject variants: {0} variant sets loaded", WorldData.Values<Xml.VariantGroup>().Count());
-
-            // Load items
-            foreach (var xml in GetXmlFiles(ItemDirectory))
-            {
-                try
-                {
-                    Xml.Item newItem = Xml.Item.LoadFromFile(xml);
-                    var variants = new Dictionary<string, List<Xml.Item>>();
-
-                    GameLog.DebugFormat("Items: loaded {0}, id {1}", newItem.Name, newItem.Id);
-                    if (newItem.Properties.Variants != null)
-                    {
-                        foreach (var targetGroup in newItem.Properties.Variants.Group)
-                        {
-                            variants[targetGroup] = new List<Xml.Item>();
-                            foreach (var variant in WorldData.Get<Xml.VariantGroup>(targetGroup).Variant)
-                            {
-                                var variantItem = ResolveVariant(newItem, variant, targetGroup);
-                                GameLog.InfoFormat("ItemObject {0}: variantgroup {1}, subvariant {2}", variantItem.Name, targetGroup, variant.Name);
-                                if (WorldData.ContainsKey<Xml.Item>(variantItem.Id))
-                                {
-                                    GameLog.ErrorFormat("Item already exists with Key {0} : {1}. Cannot add {2}", variantItem.Id, WorldData.Get<Xml.Item>(variantItem.Id).Name, variantItem.Name);
-                                }
-                                WorldData.SetWithIndex(variantItem.Id, variantItem, variantItem.Name);
-                                variants[targetGroup].Add(variantItem);
-                            }
-                        }
-                    }
-                    newItem.Variants = variants;
-                    WorldData.SetWithIndex(newItem.Id, newItem, newItem.Name);
-
-                }
-                catch (Exception e)
-                {
-                    GameLog.ErrorFormat("Error parsing {0}: {1}", xml, e);
-                }
-            }
 
             foreach (var xml in GetXmlFiles(StatusDirectory))
             {

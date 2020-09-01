@@ -931,6 +931,7 @@
   </xs:complexType>
 
   <xs:complexType name="NpcRoleBank">
+    <xs:attribute name="Nation" type="hyb:String8"/>
     <xs:attribute name="Discount" type="hyb:String8"/>
   </xs:complexType>
 

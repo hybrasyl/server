@@ -23,11 +23,14 @@ using Hybrasyl.Scripting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 namespace Hybrasyl.Objects
 {
     public class MerchantInventoryItem
     {
+        
+
         public Xml.Item Item { get; private set; }
         public uint OnHand { get; set; }
         public uint RestockAmount { get; private set; }
@@ -48,16 +51,68 @@ namespace Hybrasyl.Objects
 
     public class Merchant : Creature
     {
+        private readonly object inventoryLock = new object();
+
         public bool Ready;
         //public npc Data;
         public Xml.NpcRoleList Roles { get; set; }
         public MerchantJob Jobs { get; set; }
-        public MerchantInventoryItem[] MerchantInventory { get; set; }
+        public List<MerchantInventoryItem> MerchantInventory { get; set; }
 
         public Merchant()
             : base()
         {
             Ready = false;
+        }
+
+        public uint GetOnHand(string itemName)
+        {
+            lock(inventoryLock)
+            {
+                return MerchantInventory.FirstOrDefault(x => x.Item.Name == itemName).OnHand;
+            }
+        }
+
+        public void ReduceInventory(string itemName, uint quantity)
+        {
+            lock(inventoryLock)
+            {
+                MerchantInventory.FirstOrDefault(x => x.Item.Name == itemName).OnHand -= quantity;
+            }
+        }
+
+        public void RestockInventory()
+        {
+            lock(inventoryLock)
+            {
+                if (MerchantInventory != null)
+                {
+                    foreach(var inventoryItem in MerchantInventory)
+                    {
+                        if (inventoryItem.LastRestock.AddMinutes(inventoryItem.RestockInterval) < DateTime.Now)
+                        {
+                            inventoryItem.OnHand = inventoryItem.RestockAmount;
+                            inventoryItem.LastRestock = DateTime.Now;
+                        }
+                    }
+                }
+            }
+        }
+
+        public List<MerchantInventoryItem> GetOnHandInventory()
+        {
+            var ret = new List<MerchantInventoryItem>();
+            lock (inventoryLock)
+            {
+                if (MerchantInventory != null)
+                {
+                    for (var i = 0; i < MerchantInventory.Count; i++)
+                    {
+                        ret.Add(MerchantInventory[i]);
+                    }
+                }
+            }
+            return ret;
         }
 
         // Currently, NPCs can not be healed or damaged in any way whatsoever
@@ -68,13 +123,15 @@ namespace Hybrasyl.Objects
         {
             if (Roles != null && Roles.Vend != null)
             {
-                MerchantInventory = new MerchantInventoryItem[Roles.Vend.Items.Count];
+                MerchantInventory = new List<MerchantInventoryItem>();
 
-                for (var i = 0; i < Roles.Vend.Items.Count; i++)
+                lock (inventoryLock)
                 {
-                    var item = Roles.Vend.Items[i];
-                    var worldItem = Game.World.WorldData.GetByIndex<Xml.Item>(item.Name);
-                    MerchantInventory[i] = new MerchantInventoryItem(worldItem, (uint)item.Quantity, (uint)item.Quantity, item.Restock, DateTime.Now);
+                    foreach(var item in Roles.Vend.Items)
+                    {
+                        var worldItem = Game.World.WorldData.GetByIndex<Xml.Item>(item.Name);
+                        MerchantInventory.Add(new MerchantInventoryItem(worldItem, (uint)item.Quantity, (uint)item.Quantity, item.Restock, DateTime.Now));
+                    }
                 }
             }
 
@@ -88,6 +145,8 @@ namespace Hybrasyl.Objects
                 ResetPursuits();
                 Ready = Script.ExecuteFunction("OnSpawn");
             }
+            else
+                Ready = true;
         }
 
         public override void OnHear(VisibleObject speaker, string text, bool shout = false)

@@ -3388,11 +3388,11 @@ namespace Hybrasyl.Objects
             merchantItems.Items = new List<MerchantShopItem>();
             var itemsCount = 0;
 
-            for(int i = 0; i < merchant.MerchantInventory.Length; i++)
+            foreach(var item in merchant.GetOnHandInventory())
             {
-                if(merchant.MerchantInventory[i].OnHand > 0)
+                if (item.OnHand > 0)
                 {
-                    var worldItem = merchant.MerchantInventory[i].Item;
+                    var worldItem = item.Item;
                     merchantItems.Items.Add(new MerchantShopItem()
                     {
                         Tile = (ushort)(0x8000 + worldItem.Properties.Appearance.Sprite),
@@ -3405,6 +3405,7 @@ namespace Hybrasyl.Objects
                     itemsCount++;
                 }
             }
+
             merchantItems.Id = (ushort)MerchantMenuItem.BuyItemQuantity;
 
 
@@ -3473,9 +3474,9 @@ namespace Hybrasyl.Objects
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
 
-            var merchantItem = merchant.MerchantInventory.FirstOrDefault(x => x.Item == item);
+            
 
-            if (quantity > merchantItem.OnHand)
+            if (quantity > merchant.GetOnHand(PendingBuyableItem))
             {
                 buyString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "buy_failure_quantity");
                 prompt = buyString.Value;
@@ -3493,14 +3494,14 @@ namespace Hybrasyl.Objects
                 if (hasItem)
                 {
                     if (itemObj.Stackable)
-                    {                      
-                        
-                        merchantItem.OnHand -= quantity;
+                    {
+
+                        merchant.ReduceInventory(PendingBuyableItem, quantity);
                         AddItem(itemObj.Name, (ushort)quantity);
                     }
                     else
                     {
-                        merchantItem.OnHand -= quantity;
+                        merchant.ReduceInventory(PendingBuyableItem, quantity);
                         AddItem(itemObj);
                     }
                 }
@@ -3508,12 +3509,12 @@ namespace Hybrasyl.Objects
                 {
                     if (itemObj.Stackable)
                     {
-                        merchantItem.OnHand -= quantity;
+                        merchant.ReduceInventory(PendingBuyableItem, quantity);
                         AddItem(itemObj.Name, (ushort)quantity);
                     }
                     else
                     {
-                        merchantItem.OnHand -= quantity;
+                        merchant.ReduceInventory(PendingBuyableItem, quantity);
                         AddItem(itemObj);
                     }
                 }
@@ -3540,7 +3541,6 @@ namespace Hybrasyl.Objects
 
                 Enqueue(packet.Packet());
             }
-            World.Objects[merchant.Id] = merchant;
         }
 
         public void ShowSellMenu(Merchant merchant)
@@ -3588,7 +3588,7 @@ namespace Hybrasyl.Objects
             {
                 var sellString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_quantity");
                 var prompt = string.Empty;
-                if (sellString != null) prompt = sellString.Value ?? string.Empty;
+                if (sellString != null) prompt = sellString.Value.Replace("$QUANTITY", item.Count.ToString()).Replace("$ITEM", item.Name) ?? string.Empty;
 
                 var input = new MerchantInput();
 
@@ -3616,23 +3616,6 @@ namespace Hybrasyl.Objects
                 ShowSellConfirm(merchant, slot);
             }
 
-            //var x2F = new ServerPacket(0x2F);
-            //x2F.WriteByte(0x03); // type!
-            //x2F.WriteByte(0x01); // obj type
-            //x2F.WriteUInt32(merchant.Id);
-            //x2F.WriteByte(0x01); // ??
-            //x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
-            //x2F.WriteByte(0x00); // color
-            //x2F.WriteByte(0x01); // ??
-            //x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
-            //x2F.WriteByte(0x00); // color
-            //x2F.WriteByte(0x00); // ??
-            //x2F.WriteString8(merchant.Name);
-            //x2F.WriteString16("How many are you selling?");
-            //x2F.WriteByte(1);
-            //x2F.WriteByte(slot);
-            //x2F.WriteUInt16((ushort)MerchantMenuItem.SellItemQuantity);
-            //Enqueue(x2F);
         }
         public void ShowSellConfirm(Merchant merchant, byte slot, uint quantity = 1)
         {
