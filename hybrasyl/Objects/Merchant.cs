@@ -26,19 +26,38 @@ using System.Linq;
 
 namespace Hybrasyl.Objects
 {
+    public class MerchantInventoryItem
+    {
+        public Xml.Item Item { get; private set; }
+        public uint OnHand { get; set; }
+        public uint RestockAmount { get; private set; }
+        public int RestockInterval { get; private set; }
+        public DateTime LastRestock { get; set; }
+
+        public MerchantInventoryItem(Xml.Item item, uint onHand, uint restockAmount, int restockInterval, DateTime lastRestock)
+        {
+            Item = item;
+            OnHand = onHand;
+            RestockAmount = restockAmount;
+            RestockInterval = restockInterval;
+            LastRestock = lastRestock;
+        }
+
+    }
+
+
     public class Merchant : Creature
     {
         public bool Ready;
         //public npc Data;
         public Xml.NpcRoleList Roles { get; set; }
         public MerchantJob Jobs { get; set; }
-        public new Dictionary<string, Xml.Item> Inventory { get; private set; }
+        public MerchantInventoryItem[] MerchantInventory { get; set; }
 
         public Merchant()
             : base()
         {
             Ready = false;
-            Inventory = new Dictionary<string, Xml.Item>();
         }
 
         // Currently, NPCs can not be healed or damaged in any way whatsoever
@@ -47,7 +66,19 @@ namespace Hybrasyl.Objects
 
         public void OnSpawn()
         {
-            Script script;
+            if (Roles != null && Roles.Vend != null)
+            {
+                MerchantInventory = new MerchantInventoryItem[Roles.Vend.Items.Count];
+
+                for (var i = 0; i < Roles.Vend.Items.Count; i++)
+                {
+                    var item = Roles.Vend.Items[i];
+                    var worldItem = Game.World.WorldData.GetByIndex<Xml.Item>(item.Name);
+                    MerchantInventory[i] = new MerchantInventoryItem(worldItem, (uint)item.Quantity, (uint)item.Quantity, item.Restock, DateTime.Now);
+                }
+            }
+
+                Script script;
             // Do we have a script? If so, get it and run OnSpawn.
             if (World.ScriptProcessor.TryGetScript(Name, out script))
             {

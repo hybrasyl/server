@@ -1322,9 +1322,6 @@ namespace Hybrasyl
                     MerchantMenuItem.SellItemQuantity, new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_SellItemWithQuantity)
                 },
                 {
-                    MerchantMenuItem.SellItemConfirm, new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_SellItemConfirmation)
-                },
-                {
                     MerchantMenuItem.SellItemAccept, new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_SellItemAccept)
                 },
                 {
@@ -3908,52 +3905,6 @@ namespace Hybrasyl
             user.ShowSellMenu(merchant);
         }
 
-        private void MerchantMenuHandler_BuyItem(User user, Merchant merchant, ClientPacket packet)
-        {
-            string name = packet.ReadString8();
-
-            //if (!merchant.Inventory.ContainsKey(name))
-            //{
-            //    user.ShowMerchantGoBack(merchant, "I do not sell that item.", MerchantMenuItem.BuyItemMenu);
-            //    return;
-            //}
-
-            var template = merchant.Inventory[name];
-
-            if (template.Stackable)
-            {
-                user.ShowBuyMenuQuantity(merchant, name);
-                return;
-            }
-
-            if (user.Gold < template.Properties.Physical.Value)
-            {
-                user.ShowMerchantGoBack(merchant, "You do not have enough gold.", MerchantMenuItem.BuyItemMenu);
-                return;
-            }
-
-            if (user.CurrentWeight + template.Properties.Physical.Weight > user.MaximumWeight)
-            {
-                user.ShowMerchantGoBack(merchant, "That item is too heavy for you to carry.",
-                    MerchantMenuItem.BuyItemMenu);
-                return;
-            }
-
-            if (user.Inventory.IsFull)
-            {
-                user.ShowMerchantGoBack(merchant, "You cannot carry any more items.", MerchantMenuItem.BuyItemMenu);
-                return;
-            }
-
-            user.RemoveGold(template.Properties.Physical.Value);
-            var item = CreateItem(template.Id);
-            Insert(item);
-            user.AddItem(item);
-
-            user.UpdateAttributes(StatUpdateFlags.Experience);
-            user.ShowBuyMenu(merchant);
-        }
-
         private void MerchantMenuHandler_BuyItemWithQuantity(User user, Merchant merchant, ClientPacket packet)
         {
             string name = packet.ReadString8();
@@ -3965,7 +3916,7 @@ namespace Hybrasyl
         private void MerchantMenuHandler_BuyItemAccept(User user, Merchant merchant, ClientPacket packet)
         {
             var quantity = Convert.ToUInt32(packet.ReadString8());
-            user.ShowBuyItem(merchant, (int)quantity);
+            user.ShowBuyItem(merchant, quantity);
         }
 
         private void MerchantMenuHandler_SellItem(User user, Merchant merchant, ClientPacket packet)
@@ -3990,38 +3941,6 @@ namespace Hybrasyl
             {
                 user.ShowSellConfirm(merchant, slot, 1);
             }
-        }
-
-        private void MerchantMenuHandler_SellItemConfirmation(User user, Merchant merchant, ClientPacket packet)
-        {
-            packet.ReadByte();
-            byte slot = packet.ReadByte();
-            byte quantity = packet.ReadByte();
-
-            var item = user.Inventory[slot];
-            if (item == null) return;
-
-            if (!merchant.Inventory.ContainsKey(item.Name))
-            {
-                user.ShowMerchantGoBack(merchant, "I do not want that item.", MerchantMenuItem.SellItemMenu);
-                return;
-            }
-
-            if (item.Count < quantity)
-            {
-                user.ShowMerchantGoBack(merchant, "You don't have that many to sell.", MerchantMenuItem.SellItemMenu);
-                return;
-            }
-
-            uint profit = (uint)(Math.Round(item.Value * 0.50) * quantity);
-
-            if (item.Stackable && quantity < item.Count)
-                user.DecreaseItem(slot, quantity);
-            else user.RemoveItem(slot);
-
-            user.AddGold(profit);
-
-            merchant.DisplayPursuits(user);
         }
 
         private void MerchantMenuHandler_SellItemAccept(User user, Merchant merchant, ClientPacket packet) =>
