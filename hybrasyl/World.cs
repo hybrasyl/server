@@ -193,6 +193,10 @@ namespace Hybrasyl
             RegisterPacketThrottle(new GenericPacketThrottle(0x38, 600, 0, 500));  // refresh (f5)
             RegisterPacketThrottle(new GenericPacketThrottle(0x39, 200, 1000, 500));  // NPC main menu
             RegisterPacketThrottle(new GenericPacketThrottle(0x13, 800, 0, 0));        // Assail
+            RegisterPacketThrottle(new GenericPacketThrottle(0x3E, 800, 0, 0));
+            RegisterPacketThrottle(new GenericPacketThrottle(0x3E, 800, 0, 0));
+            RegisterPacketThrottle(new GenericPacketThrottle(0x0F, 800, 0, 0));
+            RegisterPacketThrottle(new GenericPacketThrottle(0x1C, 800, 0, 0));
         }
 
 
@@ -1766,21 +1770,17 @@ namespace Hybrasyl
 
                 if (item.Stackable && user.Inventory.Contains(item.TemplateId))
                 {
+                    
                     byte existingSlot = user.Inventory.SlotOf(item.TemplateId);
                     var existingItem = user.Inventory[existingSlot];
-
-                    int maxCanGive = existingItem.MaximumStack - existingItem.Count;
-                    int quantity = Math.Min(item.Count, maxCanGive);
-
-                    item.Count -= quantity;
-                    existingItem.Count += quantity;
+                    var success = user.AddItem(item.Name, (ushort)item.Count);
 
                     GameLog.DebugFormat("Removing {0}, qty {1} from {2}@{3},{4}",
                         item.Name, item.Count, user.Map.Name, x, y);
                     user.Map.Remove(item);
                     user.SendItemUpdate(existingItem, existingSlot);
 
-                    if (item.Count == 0) Remove(item);
+                    if (success) Remove(item);
                     else
                     {
                         user.Map.Insert(item, user.X, user.Y);
@@ -3972,47 +3972,26 @@ namespace Hybrasyl
 
         private void MerchantMenuHandler_SellItem(User user, Merchant merchant, ClientPacket packet)
         {
-            byte slot = packet.ReadByte();
+            var quantity = Convert.ToUInt32(packet.ReadString8());
 
-            var item = user.Inventory[slot];
-
-            if (item.Stackable && item.Count > 1)
-            {
-                user.ShowSellQuantity(merchant, slot);
-                return;
-            }
-
-            user.ShowSellConfirm(merchant, slot);
+            user.ShowSellConfirm(merchant, user.PendingSellableSlot, (uint)quantity);
         }
 
         private void MerchantMenuHandler_SellItemWithQuantity(User user, Merchant merchant, ClientPacket packet)
         {
             byte slot = packet.ReadByte();
-            byte quantity = packet.ReadByte();
 
+            var item = user.Inventory[slot];
 
-            if (quantity < 1)
+            if (item.Stackable)
             {
                 user.ShowSellQuantity(merchant, slot);
                 return;
             }
-
-            var item = user.Inventory[slot];
-            if (item == null || !item.Stackable) return;
-
-            //if (!merchant.Inventory.ContainsKey(item.Name))
-            //{
-            //    user.ShowMerchantGoBack(merchant, "I do not want that item.", MerchantMenuItem.SellItemMenu);
-            //    return;
-            //}
-
-            //if (item.Count < quantity)
-            //{
-            //    user.ShowMerchantGoBack(merchant, "You don't have that many to sell.", MerchantMenuItem.SellItemMenu);
-            //    return;
-            //}
-
-            user.ShowSellConfirm(merchant, slot, quantity);
+            else
+            {
+                user.ShowSellConfirm(merchant, slot, 1);
+            }
         }
 
         private void MerchantMenuHandler_SellItemConfirmation(User user, Merchant merchant, ClientPacket packet)
@@ -4162,18 +4141,21 @@ namespace Hybrasyl
         {
             byte slot = packet.ReadByte();
 
-            var quantity = packet.ReadByte();
+            var item = user.Inventory[slot];
 
-            if (quantity < 1)
+            if (item.Stackable)
             {
                 user.ShowDepositItemQuantity(merchant, slot);
                 return;
             }
+            else
+            {
+                user.DepositItemConfirm(merchant, slot, 1);
+            }
+            
+            
 
-            var item = user.Inventory[slot];
-            if (item == null || !item.Stackable) return;
-
-            user.DepositItemConfirm(merchant, slot, quantity);
+            
         }
 
         private void MerchantMenuHandler_DepositItemMenu(User user, Merchant merchant, ClientPacket packet)
@@ -4185,7 +4167,7 @@ namespace Hybrasyl
         {
             
             var quantity = Convert.ToUInt32(packet.ReadString8());
-            user.DepositItemConfirm(merchant, user.PendingDepositSlot, (byte)quantity);
+            user.DepositItemConfirm(merchant, user.PendingDepositSlot, quantity);
         }
 
         private void MerchantMenuHandler_DepositGoldQuantity(User user, Merchant merchant, ClientPacket packet)
