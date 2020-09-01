@@ -32,6 +32,7 @@ public partial class MapSign
     private string _message;
     private string _script;
     private BoardType _type;
+    private string _boardKey;
     private byte _x;
     private byte _y;
     private static XmlSerializer _serializer;
@@ -99,6 +100,19 @@ public partial class MapSign
         set
         {
             _type = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BoardKey
+    {
+        get
+        {
+            return _boardKey;
+        }
+        set
+        {
+            _boardKey = value;
         }
     }
     

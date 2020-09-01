@@ -43,6 +43,8 @@ namespace Hybrasyl
                 yield return str.Substring(i, Math.Min(n, str.Length - i));
             }
         }
+
+        public static bool IsAscii(this string value) => Regex.Match(value, "[^\x32 -\x7F]").Success;
     }
 
     public static class RandomExtensions
@@ -230,8 +232,11 @@ namespace Hybrasyl
                                                 "dmg", "ac", "mr", "regen" };
 
         public const int MESSAGE_RETURN_SIZE = 64;
-        // You must wait this long before sending another board/mail message
-        public const int SEND_MESSAGE_COOLDOWN = 2000; 
+        // You must wait this long in seconds before sending another board message
+        public const int BOARD_SEND_MESSAGE_COOLDOWN = 60;
+        // You must wait this long in seconds before sending another mail message to the same recipient
+        public const int MAIL_MESSAGE_COOLDOWN = 60;
+
     }
 
     public static class LevelCircles

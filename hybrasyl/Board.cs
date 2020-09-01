@@ -24,6 +24,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Hybrasyl.Objects;
 using Newtonsoft.Json;
 
 namespace Hybrasyl
@@ -169,6 +170,7 @@ namespace Hybrasyl
                 response.WriteString8(DisplayName);
                 response.WriteByte(Math.Min((byte) this.Count(),
                     (byte) Constants.MESSAGE_RETURN_SIZE));
+                if (this.Count() == 0) return response;
                 foreach (var message in this)
                 {
                     response.WriteBoolean(message.Highlighted);
@@ -245,9 +247,9 @@ namespace Hybrasyl
             switch (level)
             {
                 case BoardAccessLevel.Read:
-                    return ReaderList.Count == 0 || ReaderList.Contains(checkname) || WriterList.Contains(checkname);
+                    return ReaderList.Count == 0 || ReaderList.Contains(checkname) || WriterList.Contains(checkname) || ReaderList.Contains("*");
                 case BoardAccessLevel.Write:
-                    return WriterList.Count == 0 || WriterList.Contains(checkname);
+                    return WriterList.Count == 0 || WriterList.Contains(checkname) || WriterList.Contains("*");
                 case BoardAccessLevel.Moderate:
                     return ModeratorList.Contains(checkname);
             }
@@ -331,6 +333,5 @@ namespace Hybrasyl
 
             return response;
         }
-
     }
 }

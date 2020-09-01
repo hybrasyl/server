@@ -670,9 +670,7 @@ namespace Hybrasyl
                 }
                 // Messageboard IDs are fairly irrelevant and only matter to the client
                 messageboard.Id = WorldData.Count<Board>() + 1;
-                //Messageboards.Add(messageboard.Name, messageboard);
                 WorldData.SetWithIndex(messageboard.Name, messageboard, messageboard.Id);
-                //MessageboardIndex.Add(messageboard.Id, messageboard);
             }
 
             // Ensure global boards exist and are up to date with anything specified in the config
@@ -682,6 +680,7 @@ namespace Hybrasyl
                 {
                     var board = GetBoard(globalboard.Name);
                     board.DisplayName = globalboard.DisplayName;
+                    board.Global = true;
                     foreach (var reader in globalboard.AccessList.Read)
                     {
                         board.SetAccessLevel(Convert.ToString(reader), BoardAccessLevel.Read);
@@ -2737,8 +2736,6 @@ namespace Hybrasyl
             // Is the slot invalid? Does at least one of the slots contain an item?
         }
 
-        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
-        [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x3B_AccessMessages(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
@@ -2787,8 +2784,7 @@ namespace Hybrasyl
                         }
                         else
                         {
-                            Board board;
-                            if (WorldData.TryGetValueByIndex<Board>(boardId, out board))
+                            if (WorldData.TryGetValueByIndex(boardId, out Board board))
                             {
                                 user.Enqueue(board.RenderToPacket());
                                 return;
@@ -2877,8 +2873,7 @@ namespace Hybrasyl
                         else
                         {
                             // Get board message
-                            Board board;
-                            if (WorldData.TryGetValue<Board>(boardId, out board))
+                            if (WorldData.TryGetValueByIndex(boardId, out Board board))
                             {
                                 // TODO: handle this better
                                 if (!board.CheckAccessLevel(user.Name, BoardAccessLevel.Read))
@@ -2962,19 +2957,38 @@ namespace Hybrasyl
                         var body = packet.ReadString16();
                         Board board;
                         response.WriteByte(0x06); // Generic board response
-                        if (DateTime.Now.Ticks - user.LastMailboxMessageSent < Constants.SEND_MESSAGE_COOLDOWN)
+                        // Don't allow blank title or subject
+                        if (string.IsNullOrWhiteSpace(subject))
                         {
                             response.WriteBoolean(false);
-                            response.WriteString8("Try waiting a moment before sending another message.");
+                            response.WriteString8("The message had no subject.");
                         }
-                        if (WorldData.TryGetValue(boardId, out board))
+                        else if (string.IsNullOrWhiteSpace(body))
                         {
-                            if (board.CheckAccessLevel(user.Name, BoardAccessLevel.Write))
+                            response.WriteBoolean(false);
+                            response.WriteString8("You can't send empty messages.");
+                        }
+                        else if (!body.IsAscii() || !subject.IsAscii())
+                        {
+                            response.WriteBoolean(false);
+                            response.WriteString8("You can't send a message with special characters (ASCII only).");
+                        }
+                        else if (WorldData.TryGetValueByIndex(boardId, out board))
+                        {
+                            if ((DateTime.Now - user.LastBoardMessageSent).TotalSeconds < Constants.BOARD_SEND_MESSAGE_COOLDOWN 
+                                && user.LastBoardMessageTarget == board.Name)
+                            {
+                                response.WriteBoolean(false);
+                                response.WriteString8("Try waiting a moment before sending another message.");
+                            }
+                            else if (board.CheckAccessLevel(user.Name, BoardAccessLevel.Write))
                             {
                                 if (board.ReceiveMessage(new Message(board.Name, user.Name, subject, body)))
                                 {
                                     response.WriteBoolean(true);
                                     response.WriteString8("Your message has been sent.");
+                                    user.LastBoardMessageSent = DateTime.Now;
+                                    user.LastBoardMessageTarget = board.Name;
                                 }
                                 else
                                 {
@@ -3016,7 +3030,13 @@ namespace Hybrasyl
                         var boardId = packet.ReadUInt16();
                         var postId = packet.ReadUInt16();
                         Board board;
-                        if (WorldData.TryGetValue(boardId, out board))
+                        if (boardId == 0) // Mailbox access
+                        {
+                            user.Mailbox.DeleteMessage(postId - 1);
+                            response.WriteBoolean(true);
+                            response.WriteString8("The message was destroyed.");
+                        }
+                        else if (WorldData.TryGetValueByIndex(boardId, out board))
                         {
                             if (user.IsPrivileged || board.CheckAccessLevel(user.Name, BoardAccessLevel.Moderate))
                             {
@@ -3052,13 +3072,33 @@ namespace Hybrasyl
                         var subject = packet.ReadString8();
                         var body = packet.ReadString16();
                         bool continueProcessing = true;
+                        response.WriteByte(0x06); // Send post response
+
+                        // Don't allow blank title or subject
+                        if (string.IsNullOrWhiteSpace(subject))
+                        {
+                            response.WriteBoolean(false);
+                            response.WriteString8("The message had no subject.");
+                            continueProcessing = false;
+                        }
+                        else if (string.IsNullOrWhiteSpace(body))
+                        {
+                            response.WriteBoolean(false);
+                            response.WriteString8("You can't send empty messages.");
+                            continueProcessing = false;
+                        }
+                        else if (!body.IsAscii() || !subject.IsAscii())
+                        {
+                            response.WriteBoolean(false);
+                            response.WriteString8("You can't send a message with special characters (ASCII only).");
+                            continueProcessing = false;
+                        }
 
                         // Handle plugin response
                         var plugin = ResolveMessagingPlugin(Xml.MessageType.Mail, new Plugins.Message(Xml.MessageType.Mail, user.Name, recipient, subject, body));
 
-                        response.WriteByte(0x06); // Send post response
 
-                        if (plugin is IProcessingMessageHandler pmh)
+                        if (plugin is IProcessingMessageHandler pmh && continueProcessing)
                         {
                             var msg = new Plugins.Message(Xml.MessageType.Mail, user.Name, recipient, subject, body);
                             var resp = pmh.Process(msg);
@@ -3078,32 +3118,35 @@ namespace Hybrasyl
                             }
                         }
 
-                        User recipientUser;
-
-                        if (WorldData.TryGetValue(recipient, out recipientUser) && continueProcessing)
+                        if (WorldData.TryGetValue(recipient, out Mailbox mailbox) && continueProcessing)
                         {
                             try
                             {
-                                if (recipientUser.Mailbox.ReceiveMessage(new Message(recipientUser.Name, user.Name, subject,
-                                    body)))
+                                if ((DateTime.Now - user.LastMailboxMessageSent).TotalSeconds < Constants.MAIL_MESSAGE_COOLDOWN &&
+                                    user.LastMailboxRecipient == recipient)
+                                {
+                                    response.WriteBoolean(true);
+                                    response.WriteString8($"You've sent too much mail to {recipient} recently. Give it a rest.");
+                                }
+                                else if (mailbox.ReceiveMessage(new Message(recipient, user.Name, subject, body)))
                                 {
                                     response.WriteBoolean(true); // Post was successful
-                                    response.WriteString8("Your letter was sent.");
-                                    GameLog.InfoFormat("mail: {0} sent message to {1}", user.Name, recipientUser.Name);
+                                    response.WriteString8($"Your letter to {recipient} was sent.");
+                                    GameLog.InfoFormat("mail: {0} sent message to {1}", user.Name, recipient);
                                     ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MailNotifyUser,
-                                        recipientUser.Name));
+                                        recipient));
                                 }
                                 else
                                 {
                                     response.WriteBoolean(true);
-                                    response.WriteString8("{0}'s mailbox is full. Your message was discarded. Sorry!");
+                                    response.WriteString8($"{recipient}'s mailbox is full or locked. Your message was discarded. Sorry!");
                                 }
                             }
                             catch (MessageStoreLocked e)
                             {
                                 Game.ReportException(e);
                                 response.WriteBoolean(true);
-                                response.WriteString8("{0} cannot receive mail at this time. Sorry!");
+                                response.WriteString8($"{recipient} cannot receive mail at this time. Sorry!");
                             }
                         }
                         else
@@ -3130,7 +3173,7 @@ namespace Hybrasyl
                             GameLog.WarningFormat("mail: {0} tried to highlight message {1} but isn't GM! Hijinx suspected.",
                                 user.Name, postId);
                         }
-                        if (WorldData.TryGetValue(boardId, out board))
+                        if (WorldData.TryGetValueByIndex(boardId, out board))
                         {
                             board.Messages[postId - 1].Highlighted = true;
                             response.WriteBoolean(true);

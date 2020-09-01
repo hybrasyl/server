@@ -71,6 +71,7 @@
       <xs:element name="Script" type="hyb:String8" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
     <xs:attribute name="Type" type="hyb:BoardType" use="required"/>
+    <xs:attribute name="BoardKey" type="hyb:String8" use="optional"/>
     <xs:attribute name="X" type="xs:unsignedByte" use="required" />
     <xs:attribute name="Y" type="xs:unsignedByte" use="required" />
   </xs:complexType>

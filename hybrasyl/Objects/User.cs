@@ -309,8 +309,10 @@ namespace Hybrasyl.Objects
         public int NumSaidRepeated { get; set; }
 
         // Throttling checks for messaging
-        public long LastBoardMessageSent { get; set; }
-        public long LastMailboxMessageSent { get; set; }
+        public DateTime LastBoardMessageSent { get; set; }
+        public string LastBoardMessageTarget { get; set; }
+        public DateTime LastMailboxMessageSent { get; set; }
+        public string LastMailboxRecipient { get; set; }
         public Dictionary<string, bool> Flags { get; private set; }
 
         public bool CollisionsDisabled => Flags.ContainsKey("disablecollisions") ? Flags["disablecollisions"] : false;
