@@ -1761,21 +1761,17 @@ namespace Hybrasyl
 
                 if (item.Stackable && user.Inventory.Contains(item.TemplateId))
                 {
+                    
                     byte existingSlot = user.Inventory.SlotOf(item.TemplateId);
                     var existingItem = user.Inventory[existingSlot];
-
-                    int maxCanGive = existingItem.MaximumStack - existingItem.Count;
-                    int quantity = Math.Min(item.Count, maxCanGive);
-
-                    item.Count -= quantity;
-                    existingItem.Count += quantity;
+                    var success = user.AddItem(item.Name, (ushort)item.Count);
 
                     GameLog.DebugFormat("Removing {0}, qty {1} from {2}@{3},{4}",
                         item.Name, item.Count, user.Map.Name, x, y);
                     user.Map.Remove(item);
                     user.SendItemUpdate(existingItem, existingSlot);
 
-                    if (item.Count == 0) Remove(item);
+                    if (success) Remove(item);
                     else
                     {
                         user.Map.Insert(item, user.X, user.Y);
