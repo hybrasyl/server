@@ -23,22 +23,96 @@ using Hybrasyl.Scripting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 namespace Hybrasyl.Objects
 {
+    public class MerchantInventoryItem
+    {
+        
+
+        public Xml.Item Item { get; private set; }
+        public uint OnHand { get; set; }
+        public uint RestockAmount { get; private set; }
+        public int RestockInterval { get; private set; }
+        public DateTime LastRestock { get; set; }
+
+        public MerchantInventoryItem(Xml.Item item, uint onHand, uint restockAmount, int restockInterval, DateTime lastRestock)
+        {
+            Item = item;
+            OnHand = onHand;
+            RestockAmount = restockAmount;
+            RestockInterval = restockInterval;
+            LastRestock = lastRestock;
+        }
+
+    }
+
+
     public class Merchant : Creature
     {
+        private readonly object inventoryLock = new object();
+
         public bool Ready;
         //public npc Data;
         public Xml.NpcRoleList Roles { get; set; }
         public MerchantJob Jobs { get; set; }
-        public new Dictionary<string, Xml.Item> Inventory { get; private set; }
+        public List<MerchantInventoryItem> MerchantInventory { get; set; }
 
         public Merchant()
             : base()
         {
             Ready = false;
-            Inventory = new Dictionary<string, Xml.Item>();
+        }
+
+        public uint GetOnHand(string itemName)
+        {
+            lock(inventoryLock)
+            {
+                return MerchantInventory.FirstOrDefault(x => x.Item.Name == itemName).OnHand;
+            }
+        }
+
+        public void ReduceInventory(string itemName, uint quantity)
+        {
+            lock(inventoryLock)
+            {
+                MerchantInventory.FirstOrDefault(x => x.Item.Name == itemName).OnHand -= quantity;
+            }
+        }
+
+        public void RestockInventory()
+        {
+            lock(inventoryLock)
+            {
+                if (MerchantInventory != null)
+                {
+                    foreach(var inventoryItem in MerchantInventory)
+                    {
+                        if (inventoryItem.LastRestock.AddMinutes(inventoryItem.RestockInterval) < DateTime.Now)
+                        {
+                            inventoryItem.OnHand = inventoryItem.RestockAmount;
+                            inventoryItem.LastRestock = DateTime.Now;
+                        }
+                    }
+                }
+            }
+        }
+
+        public List<MerchantInventoryItem> GetOnHandInventory()
+        {
+            var ret = new List<MerchantInventoryItem>();
+            lock (inventoryLock)
+            {
+                if (MerchantInventory != null)
+                {
+                    for (var i = 0; i < MerchantInventory.Count; i++)
+                    {
+                        ret.Add(MerchantInventory[i]);
+                    }
+                }
+            }
+            return ret;
         }
 
         // Currently, NPCs can not be healed or damaged in any way whatsoever
@@ -47,7 +121,21 @@ namespace Hybrasyl.Objects
 
         public void OnSpawn()
         {
-            Script script;
+            if (Roles != null && Roles.Vend != null)
+            {
+                MerchantInventory = new List<MerchantInventoryItem>();
+
+                lock (inventoryLock)
+                {
+                    foreach(var item in Roles.Vend.Items)
+                    {
+                        var worldItem = Game.World.WorldData.GetByIndex<Xml.Item>(item.Name);
+                        MerchantInventory.Add(new MerchantInventoryItem(worldItem, (uint)item.Quantity, (uint)item.Quantity, item.Restock, DateTime.Now));
+                    }
+                }
+            }
+
+                Script script;
             // Do we have a script? If so, get it and run OnSpawn.
             if (World.ScriptProcessor.TryGetScript(Name, out script))
             {
@@ -57,6 +145,8 @@ namespace Hybrasyl.Objects
                 ResetPursuits();
                 Ready = Script.ExecuteFunction("OnSpawn");
             }
+            else
+                Ready = true;
         }
 
         public override void OnHear(VisibleObject speaker, string text, bool shout = false)

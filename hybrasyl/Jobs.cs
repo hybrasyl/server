@@ -336,5 +336,27 @@ namespace Hybrasyl
                 }
             }
         }
+
+        public static class MerchantInventoryRefreshJob
+        {
+            public static readonly int Interval = 60;
+
+            public static void Execute(object obj, ElapsedEventArgs args)
+            {
+                GameLog.Debug("MerchantInventoryRefresh Job starting");
+                try
+                {
+                    foreach (Merchant merchant in Game.World.Objects.Values.Where(x => x is Merchant))
+                    {
+                        merchant.RestockInventory();
+                    }
+                }
+                catch (Exception e)
+                {
+                    Game.ReportException(e);
+                    GameLog.Error("Exception occured in MerchantInventoryRefresh job:", e);
+                }
+            }
+        }
   }
 }

@@ -3399,20 +3399,25 @@ namespace Hybrasyl.Objects
             var merchantItems = new MerchantShopItems();
             merchantItems.Items = new List<MerchantShopItem>();
             var itemsCount = 0;
-            foreach (var item in merchant.Roles.Vend.Items)
-            {
-                var worldItem = Game.World.WorldData.GetByIndex<Xml.Item>(item.Name);
-                merchantItems.Items.Add(new MerchantShopItem()
-                {
-                    Tile = (ushort)(0x8000 + worldItem.Properties.Appearance.Sprite),
-                    Color = (byte)worldItem.Properties.Appearance.Color,
-                    Description = worldItem.Properties.Vendor?.Description ?? "",
-                    Name = worldItem.Name,
-                    Price = worldItem.Properties.Physical.Value
 
-                });
-                itemsCount++;
+            foreach(var item in merchant.GetOnHandInventory())
+            {
+                if (item.OnHand > 0)
+                {
+                    var worldItem = item.Item;
+                    merchantItems.Items.Add(new MerchantShopItem()
+                    {
+                        Tile = (ushort)(0x8000 + worldItem.Properties.Appearance.Sprite),
+                        Color = (byte)worldItem.Properties.Appearance.Color,
+                        Description = worldItem.Properties.Vendor?.Description ?? "",
+                        Name = worldItem.Name,
+                        Price = worldItem.Properties.Physical.Value
+
+                    });
+                    itemsCount++;
+                }
             }
+
             merchantItems.Id = (ushort)MerchantMenuItem.BuyItemQuantity;
 
 
@@ -3468,34 +3473,22 @@ namespace Hybrasyl.Objects
             {
                 ShowBuyItem(merchant);
             }
-            //var x2F = new ServerPacket(0x2F);
-            //x2F.WriteByte(0x03); // type!
-            //x2F.WriteByte(0x01); // obj type
-            //x2F.WriteUInt32(merchant.Id);
-            //x2F.WriteByte(0x01); // ??
-            //x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
-            //x2F.WriteByte(0x00); // color
-            //x2F.WriteByte(0x01); // ??
-            //x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
-            //x2F.WriteByte(0x00); // color
-            //x2F.WriteByte(0x00); // ??
-            //x2F.WriteString8(merchant.Name);
-            //x2F.WriteString16(string.Format("How many {0} would you like to buy?", name));
-            //x2F.WriteString8(name);
-            //x2F.WriteUInt16((ushort)MerchantMenuItem.BuyItemQuantity);
-            //Enqueue(x2F);
         }
 
-        public void ShowBuyItem(Merchant merchant, int quantity = 1)
+        public void ShowBuyItem(Merchant merchant, uint quantity = 1)
         {
             Xml.LocalizedString buyString;
             var prompt = string.Empty;
+            
             var item = Game.World.WorldData.GetByIndex<Xml.Item>(PendingBuyableItem);
             var itemObj = Game.World.CreateItem(item.Id);
             var reqGold = (uint)(itemObj.Value * quantity);
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
-            if (quantity > 10) //TODO: merchants need to hold their current inventory count.
+
+            
+
+            if (quantity > merchant.GetOnHand(PendingBuyableItem))
             {
                 buyString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "buy_failure_quantity");
                 prompt = buyString.Value;
@@ -3514,10 +3507,13 @@ namespace Hybrasyl.Objects
                 {
                     if (itemObj.Stackable)
                     {
+
+                        merchant.ReduceInventory(PendingBuyableItem, quantity);
                         AddItem(itemObj.Name, (ushort)quantity);
                     }
                     else
                     {
+                        merchant.ReduceInventory(PendingBuyableItem, quantity);
                         AddItem(itemObj);
                     }
                 }
@@ -3525,10 +3521,12 @@ namespace Hybrasyl.Objects
                 {
                     if (itemObj.Stackable)
                     {
+                        merchant.ReduceInventory(PendingBuyableItem, quantity);
                         AddItem(itemObj.Name, (ushort)quantity);
                     }
                     else
                     {
+                        merchant.ReduceInventory(PendingBuyableItem, quantity);
                         AddItem(itemObj);
                     }
                 }
@@ -3602,7 +3600,7 @@ namespace Hybrasyl.Objects
             {
                 var sellString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_quantity");
                 var prompt = string.Empty;
-                if (sellString != null) prompt = sellString.Value ?? string.Empty;
+                if (sellString != null) prompt = sellString.Value.Replace("$QUANTITY", item.Count.ToString()).Replace("$ITEM", item.Name) ?? string.Empty;
 
                 var input = new MerchantInput();
 
@@ -3630,23 +3628,6 @@ namespace Hybrasyl.Objects
                 ShowSellConfirm(merchant, slot);
             }
 
-            //var x2F = new ServerPacket(0x2F);
-            //x2F.WriteByte(0x03); // type!
-            //x2F.WriteByte(0x01); // obj type
-            //x2F.WriteUInt32(merchant.Id);
-            //x2F.WriteByte(0x01); // ??
-            //x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
-            //x2F.WriteByte(0x00); // color
-            //x2F.WriteByte(0x01); // ??
-            //x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
-            //x2F.WriteByte(0x00); // color
-            //x2F.WriteByte(0x00); // ??
-            //x2F.WriteString8(merchant.Name);
-            //x2F.WriteString16("How many are you selling?");
-            //x2F.WriteByte(1);
-            //x2F.WriteByte(slot);
-            //x2F.WriteUInt16((ushort)MerchantMenuItem.SellItemQuantity);
-            //Enqueue(x2F);
         }
         public void ShowSellConfirm(Merchant merchant, byte slot, uint quantity = 1)
         {

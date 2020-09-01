@@ -370,6 +370,61 @@ namespace Hybrasyl
                 }
             }
 
+            // Load item variants
+            foreach (var xml in GetXmlFiles(ItemVariantDirectory))
+            {
+                try
+                {
+                    Xml.VariantGroup newGroup = Xml.VariantGroup.LoadFromFile(xml);
+                    GameLog.DebugFormat("Item variants: loaded {0}", newGroup.Name);
+                    WorldData.Set(newGroup.Name, newGroup);
+
+                }
+                catch (Exception e)
+                {
+                    GameLog.ErrorFormat("Error parsing {0}: {1}", xml, e);
+                }
+            }
+
+            GameLog.InfoFormat("ItemObject variants: {0} variant sets loaded", WorldData.Values<Xml.VariantGroup>().Count());
+
+            // Load items
+            foreach (var xml in GetXmlFiles(ItemDirectory))
+            {
+                try
+                {
+                    Xml.Item newItem = Xml.Item.LoadFromFile(xml);
+                    var variants = new Dictionary<string, List<Xml.Item>>();
+
+                    GameLog.DebugFormat("Items: loaded {0}, id {1}", newItem.Name, newItem.Id);
+                    if (newItem.Properties.Variants != null)
+                    {
+                        foreach (var targetGroup in newItem.Properties.Variants.Group)
+                        {
+                            variants[targetGroup] = new List<Xml.Item>();
+                            foreach (var variant in WorldData.Get<Xml.VariantGroup>(targetGroup).Variant)
+                            {
+                                var variantItem = ResolveVariant(newItem, variant, targetGroup);
+                                GameLog.InfoFormat("ItemObject {0}: variantgroup {1}, subvariant {2}", variantItem.Name, targetGroup, variant.Name);
+                                if (WorldData.ContainsKey<Xml.Item>(variantItem.Id))
+                                {
+                                    GameLog.ErrorFormat("Item already exists with Key {0} : {1}. Cannot add {2}", variantItem.Id, WorldData.Get<Xml.Item>(variantItem.Id).Name, variantItem.Name);
+                                }
+                                WorldData.SetWithIndex(variantItem.Id, variantItem, variantItem.Name);
+                                variants[targetGroup].Add(variantItem);
+                            }
+                        }
+                    }
+                    newItem.Variants = variants;
+                    WorldData.SetWithIndex(newItem.Id, newItem, newItem.Name);
+
+                }
+                catch (Exception e)
+                {
+                    GameLog.ErrorFormat("Error parsing {0}: {1}", xml, e);
+                }
+            }
+
             //Load NPCs
             foreach (var xml in GetXmlFiles(NpcsDirectory))
             {
@@ -509,60 +564,6 @@ namespace Hybrasyl
 
             GameLog.InfoFormat("World Maps: {0} world maps loaded", WorldData.Count<WorldMap>());
 
-            // Load item variants
-            foreach (var xml in GetXmlFiles(ItemVariantDirectory))
-            {
-                try
-                {
-                    Xml.VariantGroup newGroup = Xml.VariantGroup.LoadFromFile(xml);
-                    GameLog.DebugFormat("Item variants: loaded {0}", newGroup.Name);
-                    WorldData.Set(newGroup.Name, newGroup);
-
-                }
-                catch (Exception e)
-                {
-                    GameLog.ErrorFormat("Error parsing {0}: {1}", xml, e);
-                }
-            }
-
-            GameLog.InfoFormat("ItemObject variants: {0} variant sets loaded", WorldData.Values<Xml.VariantGroup>().Count());
-
-            // Load items
-            foreach (var xml in GetXmlFiles(ItemDirectory))
-            {
-                try
-                {
-                    Xml.Item newItem = Xml.Item.LoadFromFile(xml);
-                    var variants = new Dictionary<string, List<Xml.Item>>();
-
-                    GameLog.DebugFormat("Items: loaded {0}, id {1}", newItem.Name, newItem.Id);
-                    if (newItem.Properties.Variants != null)
-                    {
-                        foreach (var targetGroup in newItem.Properties.Variants.Group)
-                        {
-                            variants[targetGroup] = new List<Xml.Item>();
-                            foreach (var variant in WorldData.Get<Xml.VariantGroup>(targetGroup).Variant)
-                            {
-                                var variantItem = ResolveVariant(newItem, variant, targetGroup);
-                                GameLog.InfoFormat("ItemObject {0}: variantgroup {1}, subvariant {2}", variantItem.Name, targetGroup, variant.Name);
-                                if (WorldData.ContainsKey<Xml.Item>(variantItem.Id))
-                                {
-                                    GameLog.ErrorFormat("Item already exists with Key {0} : {1}. Cannot add {2}", variantItem.Id, WorldData.Get<Xml.Item>(variantItem.Id).Name, variantItem.Name);
-                                }
-                                WorldData.SetWithIndex(variantItem.Id, variantItem, variantItem.Name);
-                                variants[targetGroup].Add(variantItem);
-                            }
-                        }
-                    }
-                    newItem.Variants = variants;
-                    WorldData.SetWithIndex(newItem.Id, newItem, newItem.Name);
-
-                }
-                catch (Exception e)
-                {
-                    GameLog.ErrorFormat("Error parsing {0}: {1}", xml, e);
-                }
-            }
 
             foreach (var xml in GetXmlFiles(StatusDirectory))
             {
@@ -1317,9 +1318,6 @@ namespace Hybrasyl
                 { MerchantMenuItem.SellItem, new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_SellItem)},
                 {
                     MerchantMenuItem.SellItemQuantity, new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_SellItemWithQuantity)
-                },
-                {
-                    MerchantMenuItem.SellItemConfirm, new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_SellItemConfirmation)
                 },
                 {
                     MerchantMenuItem.SellItemAccept, new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_SellItemAccept)
@@ -3910,52 +3908,6 @@ namespace Hybrasyl
             user.ShowSellMenu(merchant);
         }
 
-        private void MerchantMenuHandler_BuyItem(User user, Merchant merchant, ClientPacket packet)
-        {
-            string name = packet.ReadString8();
-
-            //if (!merchant.Inventory.ContainsKey(name))
-            //{
-            //    user.ShowMerchantGoBack(merchant, "I do not sell that item.", MerchantMenuItem.BuyItemMenu);
-            //    return;
-            //}
-
-            var template = merchant.Inventory[name];
-
-            if (template.Stackable)
-            {
-                user.ShowBuyMenuQuantity(merchant, name);
-                return;
-            }
-
-            if (user.Gold < template.Properties.Physical.Value)
-            {
-                user.ShowMerchantGoBack(merchant, "You do not have enough gold.", MerchantMenuItem.BuyItemMenu);
-                return;
-            }
-
-            if (user.CurrentWeight + template.Properties.Physical.Weight > user.MaximumWeight)
-            {
-                user.ShowMerchantGoBack(merchant, "That item is too heavy for you to carry.",
-                    MerchantMenuItem.BuyItemMenu);
-                return;
-            }
-
-            if (user.Inventory.IsFull)
-            {
-                user.ShowMerchantGoBack(merchant, "You cannot carry any more items.", MerchantMenuItem.BuyItemMenu);
-                return;
-            }
-
-            user.RemoveGold(template.Properties.Physical.Value);
-            var item = CreateItem(template.Id);
-            Insert(item);
-            user.AddItem(item);
-
-            user.UpdateAttributes(StatUpdateFlags.Experience);
-            user.ShowBuyMenu(merchant);
-        }
-
         private void MerchantMenuHandler_BuyItemWithQuantity(User user, Merchant merchant, ClientPacket packet)
         {
             string name = packet.ReadString8();
@@ -3967,7 +3919,7 @@ namespace Hybrasyl
         private void MerchantMenuHandler_BuyItemAccept(User user, Merchant merchant, ClientPacket packet)
         {
             var quantity = Convert.ToUInt32(packet.ReadString8());
-            user.ShowBuyItem(merchant, (int)quantity);
+            user.ShowBuyItem(merchant, quantity);
         }
 
         private void MerchantMenuHandler_SellItem(User user, Merchant merchant, ClientPacket packet)
@@ -3992,38 +3944,6 @@ namespace Hybrasyl
             {
                 user.ShowSellConfirm(merchant, slot, 1);
             }
-        }
-
-        private void MerchantMenuHandler_SellItemConfirmation(User user, Merchant merchant, ClientPacket packet)
-        {
-            packet.ReadByte();
-            byte slot = packet.ReadByte();
-            byte quantity = packet.ReadByte();
-
-            var item = user.Inventory[slot];
-            if (item == null) return;
-
-            if (!merchant.Inventory.ContainsKey(item.Name))
-            {
-                user.ShowMerchantGoBack(merchant, "I do not want that item.", MerchantMenuItem.SellItemMenu);
-                return;
-            }
-
-            if (item.Count < quantity)
-            {
-                user.ShowMerchantGoBack(merchant, "You don't have that many to sell.", MerchantMenuItem.SellItemMenu);
-                return;
-            }
-
-            uint profit = (uint)(Math.Round(item.Value * 0.50) * quantity);
-
-            if (item.Stackable && quantity < item.Count)
-                user.DecreaseItem(slot, quantity);
-            else user.RemoveItem(slot);
-
-            user.AddGold(profit);
-
-            merchant.DisplayPursuits(user);
         }
 
         private void MerchantMenuHandler_SellItemAccept(User user, Merchant merchant, ClientPacket packet) =>
