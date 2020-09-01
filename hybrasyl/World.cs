@@ -3970,47 +3970,26 @@ namespace Hybrasyl
 
         private void MerchantMenuHandler_SellItem(User user, Merchant merchant, ClientPacket packet)
         {
-            byte slot = packet.ReadByte();
+            var quantity = Convert.ToUInt32(packet.ReadString8());
 
-            var item = user.Inventory[slot];
-
-            if (item.Stackable && item.Count > 1)
-            {
-                user.ShowSellQuantity(merchant, slot);
-                return;
-            }
-
-            user.ShowSellConfirm(merchant, slot);
+            user.ShowSellConfirm(merchant, user.PendingSellableSlot, (uint)quantity);
         }
 
         private void MerchantMenuHandler_SellItemWithQuantity(User user, Merchant merchant, ClientPacket packet)
         {
             byte slot = packet.ReadByte();
-            byte quantity = packet.ReadByte();
 
+            var item = user.Inventory[slot];
 
-            if (quantity < 1)
+            if (item.Stackable)
             {
                 user.ShowSellQuantity(merchant, slot);
                 return;
             }
-
-            var item = user.Inventory[slot];
-            if (item == null || !item.Stackable) return;
-
-            //if (!merchant.Inventory.ContainsKey(item.Name))
-            //{
-            //    user.ShowMerchantGoBack(merchant, "I do not want that item.", MerchantMenuItem.SellItemMenu);
-            //    return;
-            //}
-
-            //if (item.Count < quantity)
-            //{
-            //    user.ShowMerchantGoBack(merchant, "You don't have that many to sell.", MerchantMenuItem.SellItemMenu);
-            //    return;
-            //}
-
-            user.ShowSellConfirm(merchant, slot, quantity);
+            else
+            {
+                user.ShowSellConfirm(merchant, slot, 1);
+            }
         }
 
         private void MerchantMenuHandler_SellItemConfirmation(User user, Merchant merchant, ClientPacket packet)
@@ -4160,18 +4139,21 @@ namespace Hybrasyl
         {
             byte slot = packet.ReadByte();
 
-            var quantity = packet.ReadByte();
+            var item = user.Inventory[slot];
 
-            if (quantity < 1)
+            if (item.Stackable)
             {
                 user.ShowDepositItemQuantity(merchant, slot);
                 return;
             }
+            else
+            {
+                user.DepositItemConfirm(merchant, slot, 1);
+            }
+            
+            
 
-            var item = user.Inventory[slot];
-            if (item == null || !item.Stackable) return;
-
-            user.DepositItemConfirm(merchant, slot, quantity);
+            
         }
 
         private void MerchantMenuHandler_DepositItemMenu(User user, Merchant merchant, ClientPacket packet)
@@ -4183,7 +4165,7 @@ namespace Hybrasyl
         {
             
             var quantity = Convert.ToUInt32(packet.ReadString8());
-            user.DepositItemConfirm(merchant, user.PendingDepositSlot, (byte)quantity);
+            user.DepositItemConfirm(merchant, user.PendingDepositSlot, quantity);
         }
 
         private void MerchantMenuHandler_DepositGoldQuantity(User user, Merchant merchant, ClientPacket packet)

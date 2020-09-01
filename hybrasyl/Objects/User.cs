@@ -164,7 +164,7 @@ namespace Hybrasyl.Objects
         public string PendingBuyableItem { get; private set; }
         public int PendingBuyableQuantity { get; private set; }
         public byte PendingSellableSlot { get; private set; }
-        public int PendingSellableQuantity { get; private set; }
+        public uint PendingSellableQuantity { get; private set; }
         public uint PendingMerchantOffer { get; private set; }
         public byte PendingDepositSlot { get; private set; }
         public string PendingWithdrawItem { get; private set; }
@@ -3598,7 +3598,7 @@ namespace Hybrasyl.Objects
 
                 var packet = new ServerPacketStructures.MerchantResponse()
                 {
-                    MerchantDialogType = MerchantDialogType.InputWithArgument,
+                    MerchantDialogType = MerchantDialogType.Input,
                     MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
                     ObjectId = merchant.Id,
                     Tile1 = (ushort)(0x4000 + merchant.Sprite),
@@ -3636,7 +3636,7 @@ namespace Hybrasyl.Objects
             //x2F.WriteUInt16((ushort)MerchantMenuItem.SellItemQuantity);
             //Enqueue(x2F);
         }
-        public void ShowSellConfirm(Merchant merchant, byte slot, int quantity = 1)
+        public void ShowSellConfirm(Merchant merchant, byte slot, uint quantity = 1)
         {
             PendingSellableQuantity = quantity;
             var item = Inventory[slot];
@@ -3646,6 +3646,8 @@ namespace Hybrasyl.Objects
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
             var prompt = string.Empty;
+
+            if (quantity > ushort.MaxValue) quantity = ushort.MaxValue;
 
             if (item.Durability != item.MaximumDurability)
             {
@@ -3664,7 +3666,7 @@ namespace Hybrasyl.Objects
 
             if (prompt == string.Empty)
             {
-                if (!Inventory.Contains(item.Name, quantity))
+                if (!Inventory.Contains(item.Name, (int)quantity))
                 {
                     offerString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_failure_quantity");
                     prompt = offerString.Value;
@@ -3715,7 +3717,7 @@ namespace Hybrasyl.Objects
         {
             if (Inventory[PendingSellableSlot].Count > PendingSellableQuantity)
             {
-                DecreaseItem(PendingSellableSlot, PendingSellableQuantity);
+                DecreaseItem(PendingSellableSlot, (int)PendingSellableQuantity);
                 AddGold(PendingMerchantOffer);
             }
             else
@@ -4100,15 +4102,18 @@ namespace Hybrasyl.Objects
             }
         }
 
-        public void DepositItemConfirm(Merchant merchant, byte slot, ushort quantity = 1)
+        public void DepositItemConfirm(Merchant merchant, byte slot, uint quantity = 1)
         {
             var failure = false;
 
             var item = Inventory[slot];
 
+            if (quantity > ushort.MaxValue) quantity = ushort.MaxValue;
+
             var fee = (uint)(Math.Round(item.Value * 0.10, 0) * quantity);
             
             var prompt = string.Empty;
+
 
             if (item.Durability != item.MaximumDurability)
             {
@@ -4117,19 +4122,19 @@ namespace Hybrasyl.Objects
             }
 
 
-            if (!Inventory.ContainsName(item.Name))
+            if (!Inventory.ContainsName(item.Name) && !failure)
             {
                 prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item_failure_quantity").Value;
                 failure = true;
             }
 
-            if (item.Stackable && item.Count < quantity)
+            if (item.Stackable && item.Count < quantity && !failure)
             {
                 prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item_failure_quantity").Value;
                 failure = true;
             }
 
-            if (fee > Gold)
+            if (fee > Gold && !failure)
             {
                 string coins = "coin";
                 if (fee > 1) coins = "coins";
@@ -4139,16 +4144,16 @@ namespace Hybrasyl.Objects
                 
             
 
-            if (prompt == string.Empty) //this is so bad
+            if (prompt == string.Empty && !failure) //this is so bad
             {
                 string coins = "coin";
                 if (fee > 1) coins = "coins";
                 //we can deposit!
                 prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item_success").Value.Replace("$ITEM", item.Name).Replace("$QUANTITY", quantity.ToString()).Replace("$COINS", fee.ToString()).Replace("$REF", coins);
-                Vault.AddItem(item.Name, quantity);
+                Vault.AddItem(item.Name, (ushort)quantity);
                 if(Inventory[slot].Stackable && Inventory[slot].Count > quantity)
                 {
-                    RemoveItem(item.Name, quantity);
+                    RemoveItem(item.Name, (ushort)quantity);
                     
                 }
                 else
