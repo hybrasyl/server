@@ -1189,7 +1189,8 @@ namespace Hybrasyl.Objects
             }
             if (UseCastable(castable))
             {
-                castable.UseCount += 1;
+                if(castable.UseCount != uint.MaxValue)
+                    castable.UseCount += 1;
                 if(castable.UseCount <= castable.Mastery.Uses)
                     SendSkillUpdate(castable, slot);
             }
