@@ -3634,6 +3634,7 @@ namespace Hybrasyl.Objects
         }
         public void ShowSellConfirm(Merchant merchant, byte slot, uint quantity = 1)
         {
+            PendingSellableSlot = slot;
             PendingSellableQuantity = quantity;
             var item = Inventory[slot];
             var offer = (uint)(Math.Round(item.Value * 0.10, 0) * quantity);
