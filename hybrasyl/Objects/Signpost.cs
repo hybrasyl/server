@@ -25,21 +25,21 @@ namespace Hybrasyl.Objects
     {
         public string Message { get; set; }
         public bool IsMessageboard { get; set; }
-        public string BoardName { get; set; }
+        public string BoardKey { get; set; }
         public Board Board { get; private set; }
 
         public Signpost(byte postX, byte postY, string message, bool messageboard = false,
-            string boardname = null)
+            string boardkey = null)
             : base()
         {
             X = postX;
             Y = postY;
             Message = message;
             IsMessageboard = messageboard;
-            BoardName = boardname;
+            BoardKey = boardkey;
             Board = null;
-            if (IsMessageboard && !string.IsNullOrEmpty(boardname))
-                Board = Game.World.GetBoard(BoardName);
+            if (IsMessageboard && !string.IsNullOrEmpty(boardkey))
+                Board = Game.World.GetBoard(BoardKey);
         }
 
         public override void OnClick(User invoker)

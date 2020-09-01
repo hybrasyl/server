@@ -268,7 +268,6 @@ namespace Hybrasyl
                 InsertNpc(merchant);
                 // Keep the actual spawned object around in the index for later use
                 World.WorldData.Set(merchant.Name, merchant);
-
             }
 
             foreach (var reactorElement in newMap.Reactors)
@@ -281,8 +280,12 @@ namespace Hybrasyl
             }
             foreach (var sign in newMap.Signs)
             {
-                var signpost = new Signpost(sign.X, sign.Y, sign.Message, sign.Type == Xml.BoardType.Messageboard, sign.Name);
-                InsertSignpost(signpost);
+                Signpost post;
+                if (sign.Type == Xml.BoardType.Sign)
+                    post = new Signpost(sign.X, sign.Y, sign.Message);
+                else
+                    post = new Signpost(sign.X, sign.Y, sign.Message, true, sign.BoardKey);
+                InsertSignpost(post);
             }
             Load();
         }
