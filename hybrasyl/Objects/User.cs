@@ -3489,7 +3489,10 @@ namespace Hybrasyl.Objects
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
 
-            
+            if(MaximumWeight < (CurrentWeight + item.Properties.Physical.Weight))
+            {
+                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "buy_failure_weight").Value;
+            }
 
             if (quantity > merchant.GetOnHand(PendingBuyableItem))
             {
