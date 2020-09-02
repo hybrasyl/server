@@ -574,12 +574,10 @@ namespace Hybrasyl
             internal User Player { get; set; }
             internal byte NationFlag { get; set; }
             internal string GuildRank { get; set; }
-            internal byte TitleCount { get; set; }
-            internal List<byte> TitleIds { get; set; }
-            internal byte CurrentTitle { get; set; }
+            internal string CurrentTitle { get; set; }
             internal UserGroup Group { get; set; }
             internal bool IsGrouped { get; set; }
-            internal byte CanGroup { get; set; }
+            internal bool CanGroup { get; set; }
             internal byte Class { get; set; }
             internal string ClassName { get; set; }
             internal ushort PlayerDisplay { get; set; }
@@ -590,23 +588,20 @@ namespace Hybrasyl
                 ServerPacket packet = new ServerPacket(OpCode);
                 packet.WriteByte(NationFlag);
                 packet.WriteString8(GuildRank);
-                packet.WriteByte(TitleCount);
-                foreach (var id in TitleIds)
-                {
-                    packet.WriteByte(id);
-                }
-                packet.WriteByte(CurrentTitle);
-                if (!IsGrouped) packet.WriteString8("No Group");
+                packet.WriteString8(CurrentTitle);
+                if (!IsGrouped) packet.WriteString8("Adventuring Alone");
                 else
                 {
-                    var ret = "Group\n";
+                    var ret = "Group members\n";
                     foreach (var member in Group.Members)
                     {
-                        ret += $"{member.Name}\n";
+                        ret += member == Group.Founder ? $"* {member.Name}\n" : $"  {member.Name}\n";
                     }
+                    ret += $"Total {Group.Members.Count}";
+
                     packet.WriteString8(ret);
                 }
-                packet.WriteByte(CanGroup);
+                packet.WriteBoolean(CanGroup);
                 packet.WriteByte(0x00);
                 packet.WriteByte(Class);
                 packet.WriteByte(0x01);
