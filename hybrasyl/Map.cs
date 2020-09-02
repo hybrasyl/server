@@ -326,6 +326,11 @@ namespace Hybrasyl
         {
             World.Insert(toInsert);
             Insert(toInsert, toInsert.X, toInsert.Y);
+            foreach (var obj in toInsert.Map.EntityTree.GetObjects(toInsert.GetViewport()))
+            {
+                obj.AoiEntry(toInsert);
+                toInsert.AoiEntry(obj);
+            }
             GameLog.DebugFormat("Monster {0} with id {1} spawned.", toInsert.Name, toInsert.Id);
         }
 
