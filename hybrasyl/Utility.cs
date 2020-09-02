@@ -44,7 +44,8 @@ namespace Hybrasyl
             }
         }
 
-        public static bool IsAscii(this string value) => Regex.Match(value, "[^\x32 -\x7F]").Success;
+	public static bool IsAscii(this string value) => !Regex.Match(value, "[^\x00-\x7F]").Success;
+
     }
 
     public static class RandomExtensions
