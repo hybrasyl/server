@@ -280,7 +280,7 @@ namespace Hybrasyl
                                     var maxdmg = (int)_caster.Equipment.Weapon.MaxSDamage;
                                     if (mindmg == 0) mindmg = 1;
                                     if (maxdmg == 0) maxdmg = 1;
-                                    tokens[i] = rand.Next(mindmg, maxdmg).ToString();
+                                    tokens[i] = rand.Next(mindmg, maxdmg + 1).ToString();
                                 }
                             }
                             break;
@@ -295,7 +295,7 @@ namespace Hybrasyl
                                     var maxdmg = (int)_caster.Equipment.Weapon.MaxSDamage;
                                     if (mindmg == 0) mindmg = 1;
                                     if (maxdmg == 0) maxdmg = 1;
-                                    tokens[i] = rand.Next(mindmg, maxdmg).ToString();
+                                    tokens[i] = rand.Next(mindmg, maxdmg + 1).ToString();
                                 }
                             }
                             break;
@@ -320,7 +320,7 @@ namespace Hybrasyl
                                     var maxdmg = (int)_caster.Equipment.Weapon.MaxLDamage;
                                     if (mindmg == 0) mindmg = 1;
                                     if (maxdmg == 0) maxdmg = 1;
-                                    tokens[i] = rand.Next(mindmg, maxdmg).ToString();
+                                    tokens[i] = rand.Next(mindmg, maxdmg + 1).ToString();
                                 }
                             }
                             break;
@@ -439,13 +439,13 @@ namespace Hybrasyl
                             tokens[i] = _target.Stats.BonusAc.ToString();
                             break;
                         case "$RAND_10":
-                            tokens[i] = _rnd.Next(0, 10).ToString();
+                            tokens[i] = _rnd.Next(0, 11).ToString();
                             break;
                         case "$RAND_100":
-                            tokens[i] = _rnd.Next(0, 100).ToString();
+                            tokens[i] = _rnd.Next(0, 101).ToString();
                             break;
                         case "$RAND_1000":
-                            tokens[i] = _rnd.Next(0, 1000).ToString();
+                            tokens[i] = _rnd.Next(0, 1001).ToString();
                             break;
                         default:
                             tokens[i] = "0";

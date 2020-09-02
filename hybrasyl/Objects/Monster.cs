@@ -39,7 +39,7 @@ namespace Hybrasyl.Objects
 
         private Xml.Spawn _spawn;
 
-        private uint _simpleDamage => Convert.ToUInt32(Rng.Next(_spawn.Damage.Min, _spawn.Damage.Max) * _variance);
+        private uint _simpleDamage => Convert.ToUInt32(Rng.Next(_spawn.Damage.Min, _spawn.Damage.Max +1) * _variance);
 
         private Xml.CastableGroup _castables;
         private double _variance;
@@ -298,7 +298,7 @@ namespace Hybrasyl.Objects
             if (spawn.Flags.HasFlag(Xml.SpawnFlags.AiDisabled))
                 IsHostile = false;
             else
-                IsHostile = _random.Next(0, 7) < 2;
+                IsHostile = _random.Next(0, 8) < 2;
 
             if (spawn.Flags.HasFlag(Xml.SpawnFlags.MovementDisabled))
                 ShouldWander = false;
@@ -449,7 +449,7 @@ namespace Hybrasyl.Objects
                     }
                 }
 
-                var nextChoice = _random.Next(0, 1);
+                var nextChoice = _random.Next(0, 2);
 
                 if (nextChoice == 0) //offense
                 {
@@ -503,11 +503,16 @@ namespace Hybrasyl.Objects
 
         public void Cast(UserGroup target, Xml.SpawnCastable creatureCastable, Xml.TargetType targetType)
         {
+
+            var inRange = Map.EntityTree.GetObjects(GetViewport()).OfType<User>();
+
+            var result = inRange.Intersect(target.Members).ToList();
+
             var castable = World.WorldData.GetByIndex<Xml.Castable>(creatureCastable.Name);
 
             if (targetType == Xml.TargetType.Group)
             {
-                foreach(var user in target.Members)
+                foreach(var user in result)
                 {
                     UseCastable(castable, user, creatureCastable);
                 }
@@ -515,9 +520,9 @@ namespace Hybrasyl.Objects
 
             if(targetType == Xml.TargetType.Random)
             {
-                var rngSelection = _random.Next(0, target.Count - 1);
+                var rngSelection = _random.Next(0, result.Count);
 
-                var user = target.Members[rngSelection];
+                var user = result[rngSelection];
 
                 UseCastable(castable, user, creatureCastable);
             }
@@ -532,19 +537,19 @@ namespace Hybrasyl.Objects
             switch (castType)
             {
                 case SpawnCastType.Offensive:
-                    nextSpell = _random.Next(0, _castables.Offense.Castables.Count == 0 ? 0 : _castables.Offense.Castables.Count - 1);
+                    nextSpell = _random.Next(0, _castables.Offense.Castables.Count == 0 ? 0 : _castables.Offense.Castables.Count);
                     creatureCastable = _castables.Offense.Castables[nextSpell];
                     break;
                 case SpawnCastType.Defensive:
-                    nextSpell = _random.Next(0, _castables.Defense.Castables.Count == 0 ? 0 : _castables.Defense.Castables.Count - 1);
+                    nextSpell = _random.Next(0, _castables.Defense.Castables.Count == 0 ? 0 : _castables.Defense.Castables.Count);
                     creatureCastable = _castables.Defense.Castables[nextSpell];
                     break;
                 case SpawnCastType.NearDeath:
-                    nextSpell = _random.Next(0, _castables.NearDeath.Castables.Count == 0 ? 0 : _castables.NearDeath.Castables.Count - 1);
+                    nextSpell = _random.Next(0, _castables.NearDeath.Castables.Count == 0 ? 0 : _castables.NearDeath.Castables.Count);
                     creatureCastable = _castables.NearDeath.Castables[nextSpell];
                     break;
                 case SpawnCastType.OnDeath:
-                    nextSpell = _random.Next(0, _castables.OnDeath.Count == 0 ? 0 : _castables.OnDeath.Count - 1);
+                    nextSpell = _random.Next(0, _castables.OnDeath.Count == 0 ? 0 : _castables.OnDeath.Count);
                     creatureCastable = _castables.OnDeath[nextSpell];
                     break;
             }
