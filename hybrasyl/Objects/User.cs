@@ -1070,6 +1070,35 @@ namespace Hybrasyl.Objects
             x04.WriteUInt16(11);
             x04.WriteUInt16(11);
             Enqueue(x04);
+
+            var doors = GetDoorsInView(GetViewport());
+
+            if(doors.Count > 0)
+            {
+                foreach(var door in doors)
+                {
+                    SendDoorUpdate(door.Item1, door.Item2, Map.Doors[door].Closed, Map.Doors[door].IsLeftRight);
+                }
+            }
+
+        }
+
+        public List<Tuple<byte,byte>> GetDoorsInView(Rectangle viewPort)
+        {
+            var ret = new List<Tuple<byte, byte>>();
+
+            for(int x = viewPort.X; x < viewPort.X + viewPort.Width; x++)
+            {
+                for(int y = viewPort.Y; y < viewPort.Y + viewPort.Height; y++)
+                {
+                    var loc = new Tuple<byte, byte>((byte)x, (byte)y);
+                    if (Map.Doors.ContainsKey(loc))
+                    {
+                        ret.Add(loc);
+                    }
+                }
+            }
+            return ret;
         }
 
         public void SendRefresh()
