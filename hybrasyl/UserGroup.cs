@@ -37,6 +37,7 @@ namespace Hybrasyl
         private List<User> _expShareInRange = new List<User>();
  
         // Group-related info
+        public User Founder { get; private set; }
         public List<User> Members { get; private set; }
         public DateTime CreatedOn { get; private set; }
         public Dictionary<Xml.Class, uint> ClassCount { get; private set; }
@@ -50,6 +51,7 @@ namespace Hybrasyl
 
         public UserGroup(User founder)
         {
+            Founder = founder;
             Members = new List<User>();
             ClassCount = new Dictionary<Xml.Class, uint>();
             foreach (var cl in Enum.GetValues(typeof(Xml.Class)).Cast<Xml.Class>())

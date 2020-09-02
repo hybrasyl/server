@@ -33,6 +33,7 @@ using System.Text;
 using Hybrasyl.Utility;
 using Hybrasyl.Xml;
 using Hybrasyl.Scripting;
+using Discord.Rest;
 
 namespace Hybrasyl.Objects
 {
@@ -2705,33 +2706,22 @@ namespace Hybrasyl.Objects
         /// </summary>
         public void SendProfile()
         {
-            var guildInfo = GetGuildInfo();
-
-            var profilePacket = new ServerPacket(0x39);
-            profilePacket.WriteByte((byte)Nation.Flag); // citizenship
-            profilePacket.WriteString8(guildInfo.GuildRank);
-
-            profilePacket.WriteString8(Title);
-            profilePacket.WriteString8(GroupText);
-            profilePacket.WriteBoolean(Grouping);
-            profilePacket.WriteByte(0); // ??
-            profilePacket.WriteByte((byte)Class);
-            //            profilePacket.WriteByte(1); // ??
-            profilePacket.WriteByte(0);
-            profilePacket.WriteByte(0); // ??
-            profilePacket.WriteString8(IsMaster ? "Master" : Hybrasyl.Constants.REVERSE_CLASSES[(int)Class].Capitalize());
-            profilePacket.WriteString8(guildInfo.GuildName);
-            profilePacket.WriteByte((byte)Legend.Count);
-            foreach (var mark in Legend)
+            var profile = new ServerPacketStructures.PlayerProfile()
             {
-                profilePacket.WriteByte((byte)mark.Icon);
-                profilePacket.WriteByte((byte)mark.Color);
-                profilePacket.WriteString8(mark.Prefix);
-                profilePacket.WriteString8(mark.ToString());
-            }
+                Player = this,
+                NationFlag = Nation.Flag,
+                GuildRank = GetGuildInfo().GuildRank,
+                CurrentTitle = Title,
+                Group = Group,
+                IsGrouped = Grouped,
+                CanGroup = Grouping,
+                Class = (byte)Class,
+                ClassName = IsMaster ? "Master" : Hybrasyl.Constants.REVERSE_CLASSES[(int)Class].Capitalize(),
+                GuildName = GetGuildInfo().GuildName,
+                PlayerDisplay = Equipment.Armor?.BodyStyle ?? 0
+            };
 
-            Enqueue(profilePacket);
-
+            Enqueue(profile.Packet());
         }
 
         /// <summary>
