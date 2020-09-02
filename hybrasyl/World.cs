@@ -169,16 +169,18 @@ namespace Hybrasyl
 
         public static bool TryGetUser(string name, out User userobj)
         {
-            //            userobj = JsonConvert.DeserializeObject<User>(jsonstring, settings);
-            userobj = DatastoreConnection.GetDatabase().Get<User>(User.GetStorageKey(name));
-
-            if (userobj == null)
+            try
             {
-                GameLog.Fatal("{Name}: JSON object could not be deserialized!", name);
+                userobj = DatastoreConnection.GetDatabase().Get<User>(User.GetStorageKey(name));
+                return true;
+            } 
+            catch (Exception e)
+            {
+                GameLog.Fatal("{name}: DESERIALIZATION ERROR, bug or corrupt user data: {e}", name, e);
+                userobj = null;
                 return false;
             }
 
-            return true;
         }
 
         /// <summary>
@@ -279,7 +281,7 @@ namespace Hybrasyl
             GlobalSequences.Add((uint)sequence.Id, sequence.Name, sequence);
         }
 
-        public bool PlayerExists(string name)
+        public static bool PlayerExists(string name)
         {
             var redis = DatastoreConnection.GetDatabase();
             return redis.KeyExists(User.GetStorageKey(name));
@@ -1984,9 +1986,14 @@ namespace Hybrasyl
             
             ((IDictionary)ExpectedConnections).Remove(id);
 
-            User loginUser;
-
-            if (!TryGetUser(name, out loginUser)) return;
+            if (!TryGetUser(name, out User loginUser))
+            {
+                // Disconnect connection immediately, nothing good can come of this
+                GameLog.Fatal("cid {id}: DESERIALIZATION FAILURE due to bug or corrupt user data, disconnecting", connectionId);
+                if (GlobalConnectionManifest.ConnectedClients.TryGetValue(connectionId, out Client client))
+                    client.Disconnect();
+                return;
+            }
 
             loginUser.AssociateConnection(this, connectionId);
             loginUser.SetEncryptionParameters(key, seed, name);
