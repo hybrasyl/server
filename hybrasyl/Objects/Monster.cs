@@ -503,11 +503,16 @@ namespace Hybrasyl.Objects
 
         public void Cast(UserGroup target, Xml.SpawnCastable creatureCastable, Xml.TargetType targetType)
         {
+
+            var inRange = Map.EntityTree.GetObjects(GetViewport()).OfType<User>();
+
+            var result = inRange.Intersect(target.Members).ToList();
+
             var castable = World.WorldData.GetByIndex<Xml.Castable>(creatureCastable.Name);
 
             if (targetType == Xml.TargetType.Group)
             {
-                foreach(var user in target.Members)
+                foreach(var user in result)
                 {
                     UseCastable(castable, user, creatureCastable);
                 }
@@ -515,9 +520,9 @@ namespace Hybrasyl.Objects
 
             if(targetType == Xml.TargetType.Random)
             {
-                var rngSelection = _random.Next(0, target.Count);
+                var rngSelection = _random.Next(0, result.Count);
 
-                var user = target.Members[rngSelection];
+                var user = result[rngSelection];
 
                 UseCastable(castable, user, creatureCastable);
             }
