@@ -61,8 +61,9 @@ namespace Hybrasyl
 
     public static class EnumerableExtension
     {
-        public static T PickRandom<T>(this IEnumerable<T> source)
+        public static T PickRandom<T>(this IEnumerable<T> source, bool nullifempty = false)
         {
+            if (nullifempty && source.Count() == 0) return default;
             return source.PickRandom(1).Single();
         }
 

@@ -35,6 +35,8 @@ namespace Hybrasyl.Scripting
             Map = map;
         }
 
+        public string Name => Map.Name;
+
         public bool CreateItem(string name, int x = -1, int y = -1)
         {
             return false;

@@ -4781,7 +4781,6 @@ namespace Hybrasyl.Objects
                 }
                 catch (ObjectDisposedException e)
                 {
-                    Game.ReportException(e);
                     Client.ClientState = null;
                 }
         }
