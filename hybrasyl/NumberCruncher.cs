@@ -50,7 +50,7 @@ namespace Hybrasyl
                 // Simple damage can either be expressed as a fixed value <Simple>50</Simple> or a min/max <Simple Min="50" Max="100"/>
                 if (!string.IsNullOrEmpty(simple.Value)) return Convert.ToInt32(simple.Value);
                 var rand = new Random();
-                return rand.Next(Convert.ToInt32(simple.Min), Convert.ToInt32(simple.Max));
+                return rand.Next(Convert.ToInt32(simple.Min), Convert.ToInt32(simple.Max +1));
             }
             throw new InvalidOperationException("Invalid type passed to _evalSimple");
         }

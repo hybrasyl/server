@@ -775,7 +775,7 @@ namespace Hybrasyl.Messaging
                         };
                         Monster newMob = new Monster(creature, spawn, user.Location.MapId);
                         user.World.Insert(newMob);
-                        user.Map.Insert(newMob, (byte)rand.Next(0, map.X), (byte)rand.Next(0, map.Y));
+                        user.Map.Insert(newMob, (byte)rand.Next(0, map.X +1), (byte)rand.Next(0, map.Y +1));
                     }
                 }
 

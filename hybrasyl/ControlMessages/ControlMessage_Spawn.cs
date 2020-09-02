@@ -58,7 +58,7 @@ namespace Hybrasyl
 
                         if (monster.Distance(aggroTarget) >= 2)
                         {
-                            var nextAction = _random.Next(1, 6);
+                            var nextAction = _random.Next(1, 7);
 
                             if (nextAction > 1)
                             {
@@ -75,7 +75,7 @@ namespace Hybrasyl
                         {
                             //check facing and attack or cast
 
-                            var nextAction = _random.Next(1, 5);
+                            var nextAction = _random.Next(1, 6);
                             if (nextAction > 1)
                             {
                                 var facing = monster.CheckFacing(monster.Direction, aggroTarget);
