@@ -1071,7 +1071,7 @@ namespace Hybrasyl.Objects
             x04.WriteUInt16(11);
             Enqueue(x04);
 
-            var doors = GetDoorsInView(GetViewport());
+            var doors = GetDoorsCoordsInView(GetViewport());
 
             if(doors.Count > 0)
             {
@@ -1083,7 +1083,7 @@ namespace Hybrasyl.Objects
 
         }
 
-        public List<Tuple<byte,byte>> GetDoorsInView(Rectangle viewPort)
+        public List<Tuple<byte,byte>> GetDoorsCoordsInView(Rectangle viewPort)
         {
             var ret = new List<Tuple<byte, byte>>();
 
