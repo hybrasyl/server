@@ -430,28 +430,31 @@ namespace Hybrasyl
 
                     EntityTree.Add(obj);
 
-                    if (obj is User user)
+                    if (obj is User u)
                     {
-                        if (updateClient)
-                        {
-                            obj.SendMapInfo();
-                            obj.SendLocation();
-                        }
-                        Users.Add(user.Name, user);
+                        Users.Add(u.Name, u);
                     }
+                }
 
-                    var affectedObjects = EntityTree.GetObjects(obj.GetViewport());
-
-                    foreach (var target in affectedObjects)
+                if (obj is User user)
+                {
+                    if (updateClient)
                     {
-                        target.AoiEntry(obj);
-                        obj.AoiEntry(target);
+                        obj.SendMapInfo();
+                        obj.SendLocation();
                     }
 
                 }
+
+                var affectedObjects = EntityTree.GetObjects(obj.GetViewport());
+
+                foreach (var target in affectedObjects)
+                {
+                    target.AoiEntry(obj);
+                    obj.AoiEntry(target);
+                }
             }
         }
-
 
         /// <summary>
         /// Toggle a given door's state (open/closed) and send updates to users nearby.

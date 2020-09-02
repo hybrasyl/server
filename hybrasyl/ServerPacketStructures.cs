@@ -734,6 +734,24 @@ namespace Hybrasyl
             }
         }
 
+        internal partial class MapLoadComplete
+        {
+            private readonly byte OpCode;
+            
+            internal MapLoadComplete()
+            {
+                OpCode = OpCodes.MapLoadComplete;
+            }
+
+            internal ServerPacket Packet()
+            {
+                ServerPacket packet = new ServerPacket(OpCode);
+                packet.WriteUInt16(0);
+
+                return packet;
+            }
+        }
+
         internal partial class MapData
         {
             private readonly byte OpCode;

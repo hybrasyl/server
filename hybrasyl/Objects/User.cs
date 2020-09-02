@@ -1052,14 +1052,11 @@ namespace Hybrasyl.Objects
             x15.WriteByte(Map.Y);
             x15.WriteByte(Map.Flags);
             x15.WriteUInt16(0);
-            x15.WriteUInt16(Map.Checksum);
+            //x15.WriteUInt16(Map.Checksum);
+            x15.WriteByte((byte)(Map.Checksum % 256));
+            x15.WriteByte((byte)(Map.Checksum / 256));
             x15.WriteString8(Map.Name);
             Enqueue(x15);
-
-            var x22 = new ServerPacket(0x22);
-            x22.WriteByte(0x00);
-            x22.TransmitDelay = 100;
-            Enqueue(x22);
 
             if (Map.Music != 0xFF && Map.Music != CurrentMusicTrack) SendMusic(Map.Music);
             if (!string.IsNullOrEmpty(Map.Message)) SendMessage(Map.Message, 18);
@@ -1073,6 +1070,43 @@ namespace Hybrasyl.Objects
             x04.WriteUInt16(11);
             x04.WriteUInt16(11);
             Enqueue(x04);
+
+            var doors = GetDoorsCoordsInView(GetViewport());
+
+            if(doors.Count > 0)
+            {
+                foreach(var door in doors)
+                {
+                    SendDoorUpdate(door.Item1, door.Item2, Map.Doors[door].Closed, Map.Doors[door].IsLeftRight);
+                }
+            }
+
+        }
+
+        public List<Tuple<byte,byte>> GetDoorsCoordsInView(Rectangle viewPort)
+        {
+            var ret = new List<Tuple<byte, byte>>();
+
+            for(int x = viewPort.X; x < viewPort.X + viewPort.Width; x++)
+            {
+                for(int y = viewPort.Y; y < viewPort.Y + viewPort.Height; y++)
+                {
+                    var loc = new Tuple<byte, byte>((byte)x, (byte)y);
+                    if (Map.Doors.ContainsKey(loc))
+                    {
+                        ret.Add(loc);
+                    }
+                }
+            }
+            return ret;
+        }
+
+        public void SendRefresh()
+        {
+            var x22 = new ServerPacket(0x22);
+            x22.WriteByte(0x00);
+            x22.TransmitDelay = 100;
+            Enqueue(x22);
         }
 
         public void DisplayIncomingWhisper(string charname, string message)
@@ -1352,12 +1386,25 @@ namespace Hybrasyl.Objects
         {
             HairStyle = hairStyle;
             SendUpdateToUser();
+
+            foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
+            {
+                obj.AoiEntry(this);
+                AoiEntry(obj);
+            }
         }
 
         public void SetHairColor(Xml.ItemColor itemColor)
         {
             HairColor = (byte)itemColor;
             SendUpdateToUser();
+
+            foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
+            {
+                obj.AoiEntry(this);
+                AoiEntry(obj);
+            }
+
         }
 
         public void SendUpdateToUser(Client client = null)
@@ -2403,7 +2450,9 @@ namespace Hybrasyl.Objects
         {
             SendMapInfo();
             SendLocation();
-            SendInventory();
+            SendUpdateToUser();
+            SendRefresh();
+
 
             foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
             {
@@ -3489,7 +3538,10 @@ namespace Hybrasyl.Objects
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
 
-            
+            if(MaximumWeight < (CurrentWeight + item.Properties.Physical.Weight))
+            {
+                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "buy_failure_weight").Value;
+            }
 
             if (quantity > merchant.GetOnHand(PendingBuyableItem))
             {
@@ -4457,6 +4509,7 @@ namespace Hybrasyl.Objects
                     if (Inventory[i].Durability != Inventory[i].MaximumDurability)
                     {
                         Inventory[i].Durability = Inventory[i].MaximumDurability;
+                        SendItemUpdate(Inventory[i], i);
                     }
                 }
 
@@ -4466,6 +4519,7 @@ namespace Hybrasyl.Objects
                     if (Equipment[i].Durability != Inventory[i].MaximumDurability)
                     {
                         Equipment[i].Durability = Equipment[i].MaximumDurability;
+                        SendItemUpdate(Equipment[i], i);
                     }
                 }
                 var packet = new ServerPacketStructures.MerchantResponse()
