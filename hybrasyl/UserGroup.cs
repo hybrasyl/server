@@ -33,6 +33,8 @@ namespace Hybrasyl
 
     public class UserGroup
     {
+
+        private List<User> _expShareInRange = new List<User>();
  
         // Group-related info
         public List<User> Members { get; private set; }
@@ -157,17 +159,11 @@ namespace Hybrasyl
          * (b) really far away on the same map.
          */
 
-        private bool WithinRange(User user, User target)
+        private List<User> MembersWithinRange(User user)
         {
-            if (user.Map.Id == target.Map.Id)
-            {
-                int xDelta = Math.Abs(user.Map.X - target.Map.X);
-                int yDelta = Math.Abs(user.Map.Y - target.Map.Y);
+            var inRange = user.Map.EntityTree.GetObjects(user.GetViewport()).OfType<User>();
 
-                return (xDelta + yDelta < Constants.GROUP_SHARING_DISTANCE);
-            }
-
-            return false;
+            return inRange.Intersect(Members).ToList();
         }
 
         /**
@@ -177,33 +173,34 @@ namespace Hybrasyl
         public void ShareExperience(User source, uint experience, byte mobLevel)
         {
             Dictionary<uint, uint> share = ExperienceDistributionFunc(source, experience);
+            var inRange = MembersWithinRange(source);
 
-            for (int i = 0; i < Members.Count; i++)
+            for (int i = 0; i < inRange.Count; i++)
             {
-                var absoluteLevel = (byte)Math.Abs(Members[i].Stats.Level - mobLevel);
+                var absoluteLevel = (byte)Math.Abs(inRange[i].Stats.Level - mobLevel);
                 if (absoluteLevel > 3)
                 {
                     switch (absoluteLevel)
                     {
                         case 4:
-                            share[Members[i].Id] = (uint)Math.Ceiling(share[Members[i].Id] * .8);
+                            share[inRange[i].Id] = (uint)Math.Ceiling(share[inRange[i].Id] * .8);
                             break;
                         case 5:
-                            share[Members[i].Id] = (uint)Math.Ceiling(share[Members[i].Id] * .6);
+                            share[inRange[i].Id] = (uint)Math.Ceiling(share[inRange[i].Id] * .6);
                             break;
                         case 6:
-                            share[Members[i].Id] = (uint)Math.Ceiling(share[Members[i].Id] * .4);
+                            share[inRange[i].Id] = (uint)Math.Ceiling(share[inRange[i].Id] * .4);
                             break;
                         case 7:
-                            share[Members[i].Id] = (uint)Math.Ceiling(share[Members[i].Id] * .2);
+                            share[inRange[i].Id] = (uint)Math.Ceiling(share[inRange[i].Id] * .2);
                             break;
                         default:
-                            share[Members[i].Id] = 1;
+                            share[inRange[i].Id] = 1;
                             break;
                     }
                 }
                 // Note: this will only work for positive numbers at this point.
-                Members[i].GiveExperience((uint)share[Members[i].Id]);
+                inRange[i].GiveExperience(share[inRange[i].Id]);
             }
         }
 
@@ -223,9 +220,9 @@ namespace Hybrasyl
         {
             Dictionary<uint, uint> share = new Dictionary<uint, uint>();
 
-            foreach (var member in Members)
+            foreach (var member in MembersWithinRange(source))
             {
-                share[member.Id] = WithinRange(member, source) ? full : 0;
+                share[member.Id] = full;
             }
 
             return share;
@@ -239,9 +236,12 @@ namespace Hybrasyl
         private Dictionary<uint, uint> Distribution_AllClassBonus(User source, uint full)
         {
             // Check to see if at least one representative from each class is in the group.
-            if (ContainsAllClasses())
+            if (!ContainsAllClasses())
             {
-                full = (uint) Math.Round(full* 1.10);
+                var inRange = MembersWithinRange(source).Count - 1; // will always be 1 when source is in range. set back to 0 to not penalize solo while grouped.
+                if (inRange > 5) inRange = 5; //limit to max 45% decrease
+
+                full = (uint)(full * (( 100 - (inRange * 7.5)) / 100));
             }
 
             return Distribution_Full(source, full);
