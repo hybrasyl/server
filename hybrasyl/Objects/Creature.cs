@@ -178,7 +178,7 @@ namespace Hybrasyl.Objects
                         possibleTargets.Add(target);                        
                         GameLog.UserActivityInfo("GetTarget: exact clicked target");
                     }
-                    if (intent.UseType == Xml.SpellUseType.NoTarget)
+                    else if (intent.UseType == Xml.SpellUseType.NoTarget)
                     {
                         possibleTargets.Add(this);
                         GameLog.UserActivityInfo("GetTarget: notarget, self");
