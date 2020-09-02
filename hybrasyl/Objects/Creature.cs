@@ -501,7 +501,7 @@ namespace Hybrasyl.Objects
             {
                 foreach (var tar in targets)
                 {
-                    foreach (var user in tar.viewportUsers)
+                    foreach (var user in tar.viewportUsers.ToList())
                     {
                         GameLog.UserActivityInfo($"UseCastable: Sending {user.Name} effect for {Name}: {castObject.Effects.Animations.OnCast.Target.Id}");
                         user.SendEffect(tar.Id, castObject.Effects.Animations.OnCast.Target.Id, castObject.Effects.Animations.OnCast.Target.Speed);

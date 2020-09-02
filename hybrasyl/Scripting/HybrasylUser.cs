@@ -124,6 +124,9 @@ namespace Hybrasyl.Scripting
             }
         }
 
+        public string GetNation() => User.Nation?.Name ?? string.Empty;
+
+        public bool SetNation(string nationName) => User.ChangeCitizenship(nationName);
 
         public HybrasylUser(User user)
         {

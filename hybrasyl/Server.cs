@@ -142,7 +142,6 @@ namespace Hybrasyl
             }
             catch (ObjectDisposedException e)
             {
-                Game.ReportException(e);
                 GameLog.Error($"Disposed socket {e.Message}");
                 return;
             }
@@ -255,14 +254,12 @@ namespace Hybrasyl
             }
             catch (ObjectDisposedException e)
             {
-                Game.ReportException(e);
                 GameLog.Fatal(e.Message);
                 //client.Disconnect();
                 state.WorkSocket.Close();
             }
             catch (SocketException e)
             {
-                Game.ReportException(e);
                 GameLog.Fatal(e.Message);
                 client.Disconnect();
             }
