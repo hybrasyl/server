@@ -717,7 +717,7 @@ namespace Hybrasyl.Scripting
         public bool GiveItem(HybrasylWorldObject obj)
         {
             if (obj.Obj is ItemObject io)
-                return User.AddItem((io.Name, 1);
+                return User.AddItem(io.Name, 1);
             else
             {
                 GameLog.ScriptingError("GiveItem: {user} - object (first argument) was either null, or not an item", User.Name);
