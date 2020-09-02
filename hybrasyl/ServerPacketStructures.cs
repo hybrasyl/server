@@ -614,7 +614,7 @@ namespace Hybrasyl
                     packet.WriteByte((byte)mark.Icon);
                     packet.WriteByte((byte)mark.Color);
                     packet.WriteString8(mark.Prefix);
-                    packet.WriteString8(mark.Text);
+                    packet.WriteString8(mark.ToString());
                 }
                 packet.WriteByte(0x00);
                 packet.WriteUInt16(PlayerDisplay);
