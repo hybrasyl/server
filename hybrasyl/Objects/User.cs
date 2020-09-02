@@ -2481,9 +2481,37 @@ namespace Hybrasyl.Objects
 
         public void SwapItem(byte oldSlot, byte newSlot)
         {
-            Inventory.Swap(oldSlot, newSlot);
-            SendItemUpdate(Inventory[oldSlot], oldSlot);
-            SendItemUpdate(Inventory[newSlot], newSlot);
+            var oldSlotItem = Inventory[oldSlot];
+            var newSlotItem = Inventory[newSlot];
+
+            if (oldSlotItem.Name == newSlotItem.Name && newSlotItem.Stackable)
+            {
+                if(newSlotItem.Count < newSlotItem.MaximumStack)
+                {
+                    var diff = newSlotItem.MaximumStack - newSlotItem.Count;
+
+                    if(diff > oldSlotItem.Count)
+                    {
+                        newSlotItem.Count += oldSlotItem.Count;
+                        RemoveItem(oldSlot);
+                        SendItemUpdate(newSlotItem, newSlot);
+                    }
+                    else
+                    {
+                        newSlotItem.Count += diff;
+                        oldSlotItem.Count -= diff;
+                        SendItemUpdate(oldSlotItem, oldSlot);
+                        SendItemUpdate(newSlotItem, newSlot);
+                    }
+                }
+            }
+            else
+            {
+                Inventory.Swap(oldSlot, newSlot);
+                SendItemUpdate(Inventory[oldSlot], oldSlot);
+                SendItemUpdate(Inventory[newSlot], newSlot);
+            }
+            
         }
 
         public void SwapCastable(byte oldSlot, byte newSlot, Book book)

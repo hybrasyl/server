@@ -142,7 +142,7 @@ namespace Hybrasyl
                 }
             }
 
-            return (uint) _local.Next((int)a,(int)b);
+            return (uint) _local.Next((int)a,(int)b +1);
         }
 
 
@@ -457,7 +457,7 @@ namespace Hybrasyl
 
                     map.LastSpawn = DateTime.Now;
 
-                    var thisSpawn = _random.Next(map.MinSpawn, map.MaxSpawn);
+                    var thisSpawn = _random.Next(map.MinSpawn, map.MaxSpawn + 1);
 
                     GameLog.SpawnInfo($"Spawn: {map.Name}: spawning {thisSpawn} mobs ");
 
@@ -507,8 +507,8 @@ namespace Hybrasyl
                         {
                             do
                             {
-                                xcoord = _random.Next(0, spawnMap.X - 1);
-                                ycoord = _random.Next(0, spawnMap.Y - 1);
+                                xcoord = _random.Next(0, spawnMap.X);
+                                ycoord = _random.Next(0, spawnMap.Y);
                             } while (spawnMap.IsWall[xcoord, ycoord]);
                         }
                         mob.X = (byte)xcoord;
