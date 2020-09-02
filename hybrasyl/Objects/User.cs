@@ -1386,9 +1386,14 @@ namespace Hybrasyl.Objects
             x07.WriteByte(0);
             x07.WriteByte((byte)creature.Direction);
             x07.WriteByte(0);
-            x07.WriteByte(0);
-            x07.WriteString8(creature.Name);
-            x07.DumpPacket();
+            if (creature is Merchant)
+            {
+                x07.WriteByte(0x02);
+                x07.WriteString8(creature.Name);
+            }
+            else
+                x07.WriteByte(0);
+            //x07.DumpPacket();
             Enqueue(x07);
         }
 
