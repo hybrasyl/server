@@ -262,6 +262,16 @@ namespace Hybrasyl.Objects
             }
         }
 
+        public bool ChangeCitizenship(string nationName)
+        {
+            if (World.WorldData.TryGetValue(nationName, out Nation theNation))
+            {
+                Nation = theNation;
+                return true;
+            }
+            return false;            
+        }
+
         public void ChrysalisMark()
         {
             // TODO: move to config
