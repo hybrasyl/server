@@ -33,6 +33,7 @@ namespace Hybrasyl
         public Xml.DamageType Type { get; set; }
         public Xml.DamageFlags Flags { get; set; }
         public Xml.Element Element { get; set; }
+        public override string ToString() => $"{Element}, {Amount}: {Type} {Flags}";
     }
     /// <summary>
     /// This class is used to do a variety of numerical calculations, in order to consolidate those into
@@ -45,12 +46,12 @@ namespace Hybrasyl
         // This is dumb, but it's a consequence of how xsd2code works
         private static double _evalSimple(dynamic simple)
         {
-            if (simple is Xml.SimpleQuantity)
+            if (simple is Xml.SimpleQuantity sq)
             {
                 // Simple damage can either be expressed as a fixed value <Simple>50</Simple> or a min/max <Simple Min="50" Max="100"/>
-                if (!string.IsNullOrEmpty(simple.Value)) return Convert.ToInt32(simple.Value);
+                if (sq.Value != 0) return sq.Value;
                 var rand = new Random();
-                return rand.Next(Convert.ToInt32(simple.Min), Convert.ToInt32(simple.Max +1));
+                return rand.Next((int)sq.Min, (int)(sq.Max + 1));
             }
             throw new InvalidOperationException("Invalid type passed to _evalSimple");
         }
