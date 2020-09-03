@@ -37,7 +37,7 @@ namespace Hybrasyl.Objects
 
         private uint _mTarget;
 
-        private Xml.Spawn _spawn;
+        internal Xml.Spawn _spawn;
 
         private uint _simpleDamage => Convert.ToUInt32(Rng.Next(_spawn.Damage.Min, _spawn.Damage.Max +1) * _variance);
 
