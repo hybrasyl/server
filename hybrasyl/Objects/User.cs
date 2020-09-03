@@ -2467,7 +2467,8 @@ namespace Hybrasyl.Objects
             var oldSlotItem = Inventory[oldSlot];
             var newSlotItem = Inventory[newSlot];
 
-            if (oldSlotItem.Name == newSlotItem.Name && newSlotItem.Stackable)
+            
+            if (newSlotItem != null && oldSlotItem.Name == newSlotItem.Name && newSlotItem.Stackable)
             {
                 if(newSlotItem.Count < newSlotItem.MaximumStack)
                 {
