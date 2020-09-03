@@ -24,163 +24,37 @@ using System.Collections.Generic;
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-[XmlRootAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02", IsNullable=false)]
-public partial class ServerConfig
+public partial class ClientSetting
 {
     #region Private fields
-    private LogConfig _logging;
-    private DataStore _dataStore;
-    private Network _network;
-    private ApiEndpoints _apiEndpoints;
-    private Access _access;
-    private List<GlobalBoard> _boards;
-    private Time _time;
-    private Handlers _handlers;
-    private string _motd;
-    private ServerPlugins _plugins;
-    private List<ClientSetting> _clientSettings;
+    private int _number;
+    private string _value;
     private static XmlSerializer _serializer;
     #endregion
     
-    public ServerConfig()
-    {
-        _apiEndpoints = new ApiEndpoints();
-        _network = new Network();
-        _dataStore = new DataStore();
-    }
-    
-    public LogConfig Logging
+    [XmlAttribute]
+    public int Number
     {
         get
         {
-            return _logging;
+            return _number;
         }
         set
         {
-            _logging = value;
+            _number = value;
         }
     }
     
-    public DataStore DataStore
+    [XmlTextAttribute]
+    public string Value
     {
         get
         {
-            return _dataStore;
+            return _value;
         }
         set
         {
-            _dataStore = value;
-        }
-    }
-    
-    public Network Network
-    {
-        get
-        {
-            return _network;
-        }
-        set
-        {
-            _network = value;
-        }
-    }
-    
-    public ApiEndpoints ApiEndpoints
-    {
-        get
-        {
-            return _apiEndpoints;
-        }
-        set
-        {
-            _apiEndpoints = value;
-        }
-    }
-    
-    public Access Access
-    {
-        get
-        {
-            return _access;
-        }
-        set
-        {
-            _access = value;
-        }
-    }
-    
-    [XmlArrayItemAttribute("Board", IsNullable=false)]
-    public List<GlobalBoard> Boards
-    {
-        get
-        {
-            return _boards;
-        }
-        set
-        {
-            _boards = value;
-        }
-    }
-    
-    public Time Time
-    {
-        get
-        {
-            return _time;
-        }
-        set
-        {
-            _time = value;
-        }
-    }
-    
-    public Handlers Handlers
-    {
-        get
-        {
-            return _handlers;
-        }
-        set
-        {
-            _handlers = value;
-        }
-    }
-    
-    [StringLengthAttribute(65534, MinimumLength=1)]
-    public string Motd
-    {
-        get
-        {
-            return _motd;
-        }
-        set
-        {
-            _motd = value;
-        }
-    }
-    
-    public ServerPlugins Plugins
-    {
-        get
-        {
-            return _plugins;
-        }
-        set
-        {
-            _plugins = value;
-        }
-    }
-    
-    [XmlArrayItemAttribute("Setting", IsNullable=false)]
-    public List<ClientSetting> ClientSettings
-    {
-        get
-        {
-            return _clientSettings;
-        }
-        set
-        {
-            _clientSettings = value;
+            _value = value;
         }
     }
     
@@ -190,7 +64,7 @@ public partial class ServerConfig
         {
             if ((_serializer == null))
             {
-                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(ServerConfig));
+                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(ClientSetting));
             }
             return _serializer;
         }
@@ -198,7 +72,7 @@ public partial class ServerConfig
     
     #region Serialize/Deserialize
     /// <summary>
-    /// Serialize ServerConfig object
+    /// Serialize ClientSetting object
     /// </summary>
     /// <returns>XML value</returns>
     public virtual string Serialize()
@@ -231,16 +105,16 @@ public partial class ServerConfig
     }
     
     /// <summary>
-    /// Deserializes ServerConfig object
+    /// Deserializes ClientSetting object
     /// </summary>
     /// <param name="input">string workflow markup to deserialize</param>
-    /// <param name="obj">Output ServerConfig object</param>
+    /// <param name="obj">Output ClientSetting object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool Deserialize(string input, out ServerConfig obj, out Exception exception)
+    public static bool Deserialize(string input, out ClientSetting obj, out Exception exception)
     {
         exception = null;
-        obj = default(ServerConfig);
+        obj = default(ClientSetting);
         try
         {
             obj = Deserialize(input);
@@ -253,19 +127,19 @@ public partial class ServerConfig
         }
     }
     
-    public static bool Deserialize(string input, out ServerConfig obj)
+    public static bool Deserialize(string input, out ClientSetting obj)
     {
         Exception exception = null;
         return Deserialize(input, out obj, out exception);
     }
     
-    public static ServerConfig Deserialize(string input)
+    public static ClientSetting Deserialize(string input)
     {
         StringReader stringReader = null;
         try
         {
             stringReader = new StringReader(input);
-            return ((ServerConfig)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
+            return ((ClientSetting)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
         }
         finally
         {
@@ -276,14 +150,14 @@ public partial class ServerConfig
         }
     }
     
-    public static ServerConfig Deserialize(Stream s)
+    public static ClientSetting Deserialize(Stream s)
     {
-        return ((ServerConfig)(SerializerXML.Deserialize(s)));
+        return ((ClientSetting)(SerializerXML.Deserialize(s)));
     }
     #endregion
     
     /// <summary>
-    /// Serializes current ServerConfig object into file
+    /// Serializes current ClientSetting object into file
     /// </summary>
     /// <param name="fileName">full path of outupt xml file</param>
     /// <param name="exception">output Exception value if failed</param>
@@ -324,16 +198,16 @@ public partial class ServerConfig
     }
     
     /// <summary>
-    /// Deserializes xml markup from file into an ServerConfig object
+    /// Deserializes xml markup from file into an ClientSetting object
     /// </summary>
     /// <param name="fileName">string xml file to load and deserialize</param>
-    /// <param name="obj">Output ServerConfig object</param>
+    /// <param name="obj">Output ClientSetting object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool LoadFromFile(string fileName, out ServerConfig obj, out Exception exception)
+    public static bool LoadFromFile(string fileName, out ClientSetting obj, out Exception exception)
     {
         exception = null;
-        obj = default(ServerConfig);
+        obj = default(ClientSetting);
         try
         {
             obj = LoadFromFile(fileName);
@@ -346,13 +220,13 @@ public partial class ServerConfig
         }
     }
     
-    public static bool LoadFromFile(string fileName, out ServerConfig obj)
+    public static bool LoadFromFile(string fileName, out ClientSetting obj)
     {
         Exception exception = null;
         return LoadFromFile(fileName, out obj, out exception);
     }
     
-    public static ServerConfig LoadFromFile(string fileName)
+    public static ClientSetting LoadFromFile(string fileName)
     {
         FileStream file = null;
         StreamReader sr = null;
