@@ -509,9 +509,8 @@ namespace Hybrasyl
                             await Task.Delay(transmitDelay);
                         Socket.BeginSend(socketbuf, 0, socketbuf.Length, 0, SendCallback, ClientState);
                     }
-                    catch (ObjectDisposedException e)
+                    catch (ObjectDisposedException)
                     {
-                        Game.ReportException(e);
                         ClientState.Dispose();
                     }
                 });
@@ -519,7 +518,6 @@ namespace Hybrasyl
             catch (ObjectDisposedException e)
             {
                 // Socket is gone, peace out
-                Game.ReportException(e);
                 ClientState.Dispose();
             }
             catch (Exception e)
@@ -627,9 +625,8 @@ namespace Hybrasyl
                 GameLog.Error($"Error Code: {e.ErrorCode}, {e.Message}");
                 state.WorkSocket.Close();
             }
-            catch (ObjectDisposedException e)
+            catch (ObjectDisposedException)
             {
-                Game.ReportException(e);
                 //client.Disconnect();
                 GameLog.Error($"ObjectDisposedException");
                 state.WorkSocket.Close();

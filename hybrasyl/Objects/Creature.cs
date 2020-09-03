@@ -178,6 +178,18 @@ namespace Hybrasyl.Objects
                         possibleTargets.Add(target);                        
                         GameLog.UserActivityInfo("GetTarget: exact clicked target");
                     }
+                    else if (intent.UseType == Xml.SpellUseType.NoTarget)
+                    {
+                        possibleTargets.Add(this);
+                        GameLog.UserActivityInfo("GetTarget: notarget, self");
+                        if (intent.Flags.Contains(Xml.IntentFlags.Group))
+                        {
+                            // Add group members
+                            if (this is User uo)
+                                if (uo.Group != null)
+                                    possibleTargets.AddRange(uo.Group.Members.Where(x => x.Connected));
+                        }
+                    }
                     else if (intent.UseType != Xml.SpellUseType.NoTarget)
                         GameLog.UserActivityWarning($"Unhandled intent type {intent.UseType}, ignoring");
                 }
@@ -501,7 +513,7 @@ namespace Hybrasyl.Objects
             {
                 foreach (var tar in targets)
                 {
-                    foreach (var user in tar.viewportUsers)
+                    foreach (var user in tar.viewportUsers.ToList())
                     {
                         GameLog.UserActivityInfo($"UseCastable: Sending {user.Name} effect for {Name}: {castObject.Effects.Animations.OnCast.Target.Id}");
                         user.SendEffect(tar.Id, castObject.Effects.Animations.OnCast.Target.Id, castObject.Effects.Animations.OnCast.Target.Speed);
