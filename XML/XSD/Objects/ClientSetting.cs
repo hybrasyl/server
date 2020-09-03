@@ -28,9 +28,15 @@ public partial class ClientSetting
 {
     #region Private fields
     private int _number;
+    private bool _default;
     private string _value;
     private static XmlSerializer _serializer;
     #endregion
+    
+    public ClientSetting()
+    {
+        _default = false;
+    }
     
     [XmlAttribute]
     public int Number
@@ -42,6 +48,20 @@ public partial class ClientSetting
         set
         {
             _number = value;
+        }
+    }
+    
+    [XmlAttribute]
+    [DefaultValue(false)]
+    public bool Default
+    {
+        get
+        {
+            return _default;
+        }
+        set
+        {
+            _default = value;
         }
     }
     
