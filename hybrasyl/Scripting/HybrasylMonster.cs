@@ -47,7 +47,7 @@ namespace Hybrasyl.Scripting
             foreach (var castable in Monster._spawn.Castables.Offense.Castables)
             {
                 s += $"    {castable.Name}:\n";
-                s += $"      Damage: {castable.MaxDmg}-{castable.MaxDmg}\n";
+                s += $"      Damage: {castable.MinDmg}-{castable.MaxDmg}\n";
                 s += $"      Element: {castable.Element}\n";
                 s += $"      TargetType: {castable.Target.ToString()}\n";
             }
@@ -55,7 +55,7 @@ namespace Hybrasyl.Scripting
             foreach (var castable in Monster._spawn.Castables.Defense.Castables)
             {
                 s += $"    {castable.Name}:\n";
-                s += $"      Damage: {castable.MaxDmg}-{castable.MaxDmg}\n";
+                s += $"      Damage: {castable.MinDmg}-{castable.MaxDmg}\n";
                 s += $"      Element: {castable.Element}\n";
                 s += $"      TargetType: {castable.Target.ToString()}\n";
             }
@@ -63,7 +63,7 @@ namespace Hybrasyl.Scripting
             foreach (var castable in Monster._spawn.Castables.NearDeath.Castables)
             {
                 s += $"    {castable.Name}:\n";
-                s += $"      Damage: {castable.MaxDmg}-{castable.MaxDmg}\n";
+                s += $"      Damage: {castable.MinDmg}-{castable.MaxDmg}\n";
                 s += $"      Element: {castable.Element}\n";
                 s += $"      TargetType: {castable.Target.ToString()}\n";
             }
@@ -71,7 +71,7 @@ namespace Hybrasyl.Scripting
             foreach (var castable in Monster._spawn.Castables.OnDeath)
             {
                 s += $"    {castable.Name}:\n";
-                s += $"      Damage: {castable.MaxDmg}-{castable.MaxDmg}\n";
+                s += $"      Damage: {castable.MinDmg}-{castable.MaxDmg}\n";
                 s += $"      Element: {castable.Element}\n";
                 s += $"      TargetType: {castable.Target.ToString()}\n";
             }
