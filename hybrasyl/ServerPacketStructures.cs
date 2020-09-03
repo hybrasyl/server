@@ -38,10 +38,41 @@ namespace Hybrasyl
 
     internal class ServerPacketStructures
     {
+
+        internal partial class AddSpell
+        {
+            private static byte OpCode;
+
+            internal AddSpell()
+            {
+                OpCode = OpCodes.AddSpell;
+            }
+
+            internal byte Slot { get; set; }
+            internal byte Icon { get; set; }
+            internal byte UseType { get; set; }
+            internal byte Lines { get; set; }
+            internal string Name { get; set; }
+            internal string Prompt { get; set; }
+
+            internal ServerPacket Packet()
+            {
+                var packet = new ServerPacket(OpCode);
+                packet.WriteByte(Slot);
+                packet.WriteUInt16(Icon);
+                packet.WriteByte(UseType);
+                packet.WriteString8(Name);
+                packet.WriteString8(Prompt);
+                packet.WriteByte(Lines);
+
+                return packet;
+            }
+        }
+
         
         internal partial class UseSkill
         {
-            private byte OpCode;
+            private static byte OpCode;
 
             internal UseSkill()
             {

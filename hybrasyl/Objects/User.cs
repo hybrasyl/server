@@ -1597,9 +1597,9 @@ namespace Hybrasyl.Objects
             {
                 double percent;
                 if (item.UseCount > item.Mastery.Uses) percent = 100;
-                else percent = Math.Round((item.UseCount / (double)item.Mastery.Uses) * 100, 2);
+                else percent = Math.Round((item.UseCount / (double)item.Mastery.Uses) * 100, 0);
 
-                x2C.WriteString8($"{item.Name} (Mastery{mastery}: {percent}%)");
+                x2C.WriteString8($"{item.Name} (Lev:{percent}/100)");
             }
             else
             {
@@ -1621,34 +1621,32 @@ namespace Hybrasyl.Objects
                 castable.Name, slot);
             GameLog.InfoFormat($"{Name}: adding {castable.Name} to slot {slot}");
 
-            var mastery = "";
-
-            if (castable.Mastery.Tiered)
-            {
-                mastery = $"[{castable.MasteryLevel}]";
-            }
-
-            var x17 = new ServerPacket(0x17);
-            x17.WriteByte((byte)slot);
-            x17.WriteUInt16((ushort)(castable.Icon));
-            var spellType = castable.Intents[0].UseType;
-            x17.WriteByte((byte)spellType); //spell type? how are we determining this?
+            
+            string name = "";
             if (castable.Mastery.Uses != 1)
             {
                 double percent;
                 if (castable.UseCount > castable.Mastery.Uses) percent = 100;
-                else percent = Math.Round((castable.UseCount / (double)castable.Mastery.Uses) * 100, 2);
+                else percent = Math.Round((castable.UseCount / (double)castable.Mastery.Uses) * 100, 0);
 
-                x17.WriteString8($"{castable.Name} (Mastery{mastery}: {percent}%)");
+                name = $"{castable.Name} (Lev:{percent}/100)";
             }
             else
             {
-                x17.WriteString8(castable.Name);
+                name = castable.Name;
             }
-            x17.WriteString8(castable.Name); //prompt? what is this?
-            x17.WriteByte((byte)CalculateLines(castable));
+
+            var spellUpdate = new ServerPacketStructures.AddSpell()
+            {
+                Slot = (byte)slot,
+                Icon = castable.Icon,
+                UseType = (byte)castable.Intents[0].UseType,
+                Name = name,
+                Prompt = "\0",
+                Lines = (byte)CalculateLines(castable)
+            };
             GameLog.InfoFormat($"{Name}: enqueuing {castable.Name} to slot {slot}");
-            Enqueue(x17);
+            Enqueue(spellUpdate.Packet());
         }
 
         private int CalculateLines(Xml.Castable castable)
