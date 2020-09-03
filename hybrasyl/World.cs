@@ -1068,7 +1068,7 @@ namespace Hybrasyl
 
                     sclass.Nodes.Add(new MetafileNode(skill.Name,
                         string.Format("{0}/{1}/{2}",requirements.Level.Min == 0 ? 1 : requirements.Level.Min, 0, requirements.Ab != null ? (requirements.Ab.Min == 0 ? 1 : requirements.Ab.Min) : 0), // req level, master (0/1), req ab
-                        string.Format("{0}/{1}/{2}", 0, 0, 0), // skill icon, x position (defunct), y position (defunct)
+                        string.Format("{0}/{1}/{2}", skill.Icon, 0, 0), // skill icon, x position (defunct), y position (defunct)
                         string.Format("{0}/{1}/{2}/{3}/{4}", 
                                     requirements?.Physical == null ? 3 : requirements.Physical.Str, 
                                     requirements?.Physical == null ? 3 : requirements.Physical.Int, 
@@ -1152,7 +1152,7 @@ namespace Hybrasyl
 
                     sclass.Nodes.Add(new MetafileNode(spell.Name,
                         string.Format("{0}/{1}/{2}", requirements.Level.Min == 0 ? 1 : requirements.Level.Min, 0, requirements.Ab != null ? (requirements.Ab.Min == 0 ? 1 : requirements.Ab.Min) : 0), // req level, master (0/1), req ab
-                        string.Format("{0}/{1}/{2}", 0, 0, 0), // spell icon, x position (defunct), y position (defunct)
+                        string.Format("{0}/{1}/{2}", spell.Icon, 0, 0), // spell icon, x position (defunct), y position (defunct)
                         string.Format("{0}/{1}/{2}/{3}/{4}", 
                         requirements?.Physical == null ? 3 : requirements.Physical.Str, 
                         requirements?.Physical == null ? 3 : requirements.Physical.Dex, 
