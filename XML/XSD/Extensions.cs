@@ -203,7 +203,7 @@ namespace Hybrasyl.Xml
         {
             get
             {
-                return IsSimple && (string.IsNullOrEmpty(Simple.Value) && Simple.Min == "0" && Simple.Max == "0");
+                return IsSimple && (Simple.Value == 0 && Simple.Min == 0 && Simple.Max == 0);
             }
         }
     }
@@ -219,7 +219,7 @@ namespace Hybrasyl.Xml
         {
             get
             {
-                return IsSimple && (string.IsNullOrEmpty(Simple.Value) && Simple.Min == "0" && Simple.Max == "0");
+                return IsSimple && (Simple.Value == 0 && Simple.Min == 0 && Simple.Max == 0);
             }
 
         }
@@ -309,7 +309,7 @@ namespace Hybrasyl.Xml
         {
             get
             {
-                return IsSimple && (string.IsNullOrEmpty(Simple.Value) && Simple.Min == "0" && Simple.Max == "0");
+                return IsSimple && (Simple.Value == 0 && Simple.Min == 0 && Simple.Max == 0);
             }
 
         }
@@ -326,7 +326,7 @@ namespace Hybrasyl.Xml
         {
             get
             {
-                return IsSimple && (string.IsNullOrEmpty(Simple.Value) && Simple.Min == "0" && Simple.Max == "0");
+                return IsSimple && (Simple.Value == 0 && Simple.Min == 0 && Simple.Max == 0);
             }
 
         }

@@ -67,9 +67,9 @@
   <!-- Generic type for expressing a simple quantity, either rnd(Min/Max) or a specific value -->
   <xs:complexType name="SimpleQuantity">
     <xs:simpleContent>
-      <xs:extension base="xs:nonNegativeInteger">
-        <xs:attribute name="Min" default="0" type="xs:nonNegativeInteger" />
-        <xs:attribute name="Max" default="0" type="xs:nonNegativeInteger" />
+      <xs:extension base="xs:unsignedInt">
+        <xs:attribute name="Min" default="0" type="xs:unsignedInt" />
+        <xs:attribute name="Max" default="0" type="xs:unsignedInt" />
       </xs:extension>
     </xs:simpleContent>
   </xs:complexType>

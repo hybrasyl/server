@@ -34,11 +34,11 @@ public partial class SpawnCastableDefense
     
     public SpawnCastableDefense()
     {
-            _castables = new List<SpawnCastable>();
-            _interval = 15;
+        _castables = new List<SpawnCastable>();
+        _interval = 15;
     }
     
-    [XmlArrayItemAttribute("Castable", typeof(SpawnCastable), IsNullable=false)]
+    [XmlArrayItemAttribute("Castable", IsNullable=false)]
     public List<SpawnCastable> Castables
     {
         get

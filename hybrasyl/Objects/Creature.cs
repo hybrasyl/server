@@ -486,8 +486,8 @@ namespace Hybrasyl.Objects
                     {
                         Simple = new Xml.SimpleQuantity
                         {
-                            Min = spawnCastable.MinDmg.ToString(),
-                            Max = spawnCastable.MaxDmg.ToString()
+                            Min = (uint)spawnCastable.MinDmg,
+                            Max = (uint)spawnCastable.MaxDmg
                         }
                     };
 

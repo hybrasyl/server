@@ -27,21 +27,21 @@ using System.Collections.Generic;
 public partial class SimpleQuantity
 {
     #region Private fields
-    private string _min;
-    private string _max;
-    private string _value;
+    private uint _min;
+    private uint _max;
+    private uint _value;
     private static XmlSerializer _serializer;
     #endregion
     
     public SimpleQuantity()
     {
-        _min = "0";
-        _max = "0";
+        _min = ((uint)(0));
+        _max = ((uint)(0));
     }
     
-    [XmlAttribute(DataType="nonNegativeInteger")]
-    [DefaultValue("0")]
-    public string Min
+    [XmlAttribute]
+    [DefaultValue(typeof(uint), "0")]
+    public uint Min
     {
         get
         {
@@ -53,9 +53,9 @@ public partial class SimpleQuantity
         }
     }
     
-    [XmlAttribute(DataType="nonNegativeInteger")]
-    [DefaultValue("0")]
-    public string Max
+    [XmlAttribute]
+    [DefaultValue(typeof(uint), "0")]
+    public uint Max
     {
         get
         {
@@ -67,8 +67,8 @@ public partial class SimpleQuantity
         }
     }
     
-    [XmlTextAttribute(DataType="nonNegativeInteger")]
-    public string Value
+    [XmlTextAttribute]
+    public uint Value
     {
         get
         {
