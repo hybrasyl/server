@@ -393,6 +393,7 @@ namespace Hybrasyl.Objects
                 {
                     //ondeath does not need an interval check
                     var selectedCastable = SelectSpawnCastable(SpawnCastType.OnDeath);
+                    if (selectedCastable == null) return;
 
                     if (selectedCastable.Target == Xml.TargetType.Attacker)
                     {
@@ -417,6 +418,8 @@ namespace Hybrasyl.Objects
                     interval = _castables.NearDeath.Interval;
 
                     var selectedCastable = SelectSpawnCastable(SpawnCastType.NearDeath);
+
+                    if (selectedCastable == null) return;
 
                     if (selectedCastable.Target == Xml.TargetType.Attacker)
                     {
@@ -455,6 +458,7 @@ namespace Hybrasyl.Objects
                 {
                     interval = _castables.Offense.Interval;
                     var selectedCastable = SelectSpawnCastable(SpawnCastType.Offensive);
+                    if (selectedCastable == null) return;
 
                     if (selectedCastable.Target == Xml.TargetType.Attacker)
                     {
@@ -532,25 +536,20 @@ namespace Hybrasyl.Objects
 
         public Xml.SpawnCastable SelectSpawnCastable(SpawnCastType castType)
         {
-            var nextSpell = 0;
             Xml.SpawnCastable creatureCastable = null;
             switch (castType)
             {
                 case SpawnCastType.Offensive:
-                    nextSpell = _random.Next(0, _castables.Offense.Castables.Count == 0 ? 0 : _castables.Offense.Castables.Count);
-                    creatureCastable = _castables.Offense.Castables[nextSpell];
+                    creatureCastable = _castables.Offense.Castables.PickRandom(true);
                     break;
                 case SpawnCastType.Defensive:
-                    nextSpell = _random.Next(0, _castables.Defense.Castables.Count == 0 ? 0 : _castables.Defense.Castables.Count);
-                    creatureCastable = _castables.Defense.Castables[nextSpell];
+                    creatureCastable = _castables.Defense.Castables.PickRandom(true);
                     break;
                 case SpawnCastType.NearDeath:
-                    nextSpell = _random.Next(0, _castables.NearDeath.Castables.Count == 0 ? 0 : _castables.NearDeath.Castables.Count);
-                    creatureCastable = _castables.NearDeath.Castables[nextSpell];
+                    creatureCastable = _castables.NearDeath.Castables.PickRandom(true);
                     break;
                 case SpawnCastType.OnDeath:
-                    nextSpell = _random.Next(0, _castables.OnDeath.Count == 0 ? 0 : _castables.OnDeath.Count);
-                    creatureCastable = _castables.OnDeath[nextSpell];
+                    creatureCastable = _castables.OnDeath.PickRandom(true);
                     break;
             }
 
@@ -663,8 +662,7 @@ namespace Hybrasyl.Objects
 
             (int x, int y) point = NextPoint(direction, currentPoint);
 
-
-            if(!Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
+            if(point.x <= Map.X && point.y <= Map.Y && !Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
             {
                 Walk(direction);
             }

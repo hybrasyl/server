@@ -263,6 +263,16 @@ namespace Hybrasyl.Objects
             }
         }
 
+        public bool ChangeCitizenship(string nationName)
+        {
+            if (World.WorldData.TryGetValue(nationName, out Nation theNation))
+            {
+                Nation = theNation;
+                return true;
+            }
+            return false;            
+        }
+
         public void ChrysalisMark()
         {
             // TODO: move to config
@@ -1377,9 +1387,14 @@ namespace Hybrasyl.Objects
             x07.WriteByte(0);
             x07.WriteByte((byte)creature.Direction);
             x07.WriteByte(0);
-            x07.WriteByte(0);
-            x07.WriteString8(creature.Name);
-            x07.DumpPacket();
+            if (creature is Merchant)
+            {
+                x07.WriteByte(0x02);
+                x07.WriteString8(creature.Name);
+            }
+            else
+                x07.WriteByte(0);
+            //x07.DumpPacket();
             Enqueue(x07);
         }
 
@@ -1638,49 +1653,57 @@ namespace Hybrasyl.Objects
 
         private int CalculateLines(Xml.Castable castable)
         {
-            // TODO: potentially add additional equipment types. for now only weapons
-            if (Equipment.Weapon?.CastModifiers != null)
+            try
             {
-                object modifier = null;
-                foreach (var castmodifier in Equipment.Weapon.CastModifiers)
+                // TODO: potentially add additional equipment types. for now only weapons
+                if (Equipment.Weapon?.CastModifiers != null)
                 {
-                    // Matches most to least specific, first match wins
-                    if (!string.IsNullOrEmpty(castmodifier.Castable) && castmodifier.Castable.ToLower() == castable.Name.ToLower())
+                    object modifier = null;
+                    foreach (var castmodifier in Equipment.Weapon.CastModifiers)
                     {
-                        modifier = castmodifier.Item;
-                        break;
+                        // Matches most to least specific, first match wins
+                        if (!string.IsNullOrEmpty(castmodifier.Castable) && castmodifier.Castable.ToLower() == castable.Name.ToLower())
+                        {
+                            modifier = castmodifier.Item;
+                            break;
+                        }
+                        else if (!string.IsNullOrEmpty(castmodifier.Group) &&
+                            castable.Categories.Select(x => x.Value.ToLower()).Contains(castmodifier.Group.ToLower()))
+                        {
+                            modifier = castmodifier.Item;
+                            break;
+                        }
+                        else if (castmodifier.All == true)
+                        {
+                            modifier = castmodifier.Item;
+                            break;
+                        }
                     }
-                    else if (!string.IsNullOrEmpty(castmodifier.Castable) && 
-                        castable.Categories.Select(x => x.Value.ToLower()).Contains(castmodifier.Group.ToLower()))
+                    // Evaluate modifier match.
+                    // Exact match first, then between min / max, which is same as "all" if no min/max defined (default -1 / 255)
+                    if (modifier is Xml.CastModifierAdd add)
                     {
-                        modifier = castmodifier.Item;
-                        break;
+                        if (castable.Lines == add.Match || (add.Match == -1 && castable.Lines >= add.Min && castable.Lines <= add.Max))
+                            return Math.Min(255, castable.Lines + add.Amount);
                     }
-                    else if (castmodifier.All == true)
+                    else if (modifier is Xml.CastModifierSubtract sub)
                     {
-                        modifier = castmodifier.Item;
-                        break;
+                        if (castable.Lines == sub.Match || (sub.Match == -1 && castable.Lines >= sub.Min && castable.Lines <= sub.Max))
+                            return Math.Max(0, castable.Lines - sub.Amount);
+                    }
+                    else if (modifier is Xml.CastModifierReplace repl)
+                    {
+                        if (castable.Lines == repl.Match || (repl.Match == -1 && castable.Lines >= repl.Min && castable.Lines <= repl.Max))
+                            return repl.Amount;
                     }
                 }
-                // Evaluate modifier match.
-                // Exact match first, then between min / max, which is same as "all" if no min/max defined (default -1 / 255)
-                if (modifier is Xml.CastModifierAdd add)
-                {
-                    if (castable.Lines == add.Match || (add.Match == -1 && castable.Lines >= add.Min && castable.Lines <= add.Max))
-                        return Math.Min(255, castable.Lines + add.Amount);
-                }
-                else if (modifier is Xml.CastModifierSubtract sub)
-                {
-                    if (castable.Lines == sub.Match || (sub.Match == -1 && castable.Lines >= sub.Min && castable.Lines <= sub.Max))
-                        return Math.Max(0, castable.Lines - sub.Amount);
-                }
-                else if (modifier is Xml.CastModifierReplace repl)
-                {
-                    if (castable.Lines == repl.Match || (repl.Match == -1 && castable.Lines >= repl.Min && castable.Lines <= repl.Max))
-                        return repl.Amount;
-                }
+                return castable.Lines;
             }
-            return castable.Lines;
+            catch (Exception e)
+            {
+                GameLog.Error("Lines calculation error: {e}, returning default of 3", e);
+                return 3; 
+            }
         }
 
         public void SetCookie(string cookieName, string value)
@@ -4792,7 +4815,6 @@ namespace Hybrasyl.Objects
                 }
                 catch (ObjectDisposedException e)
                 {
-                    Game.ReportException(e);
                     Client.ClientState = null;
                 }
         }

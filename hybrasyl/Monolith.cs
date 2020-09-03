@@ -463,9 +463,22 @@ namespace Hybrasyl
 
                     for (var i = 0; i < thisSpawn; i++)
                     {
-                        var idx = _random.Next(0, spawnGroup.Spawns.Count);
-                        var spawn = spawnGroup.Spawns[idx];
-                        var creature = _creatures.Single(x => x.Name == spawn.Base);
+                        var spawn = spawnGroup.Spawns.PickRandom(true);
+
+                        if (spawn == null)
+                        {
+                            GameLog.SpawnError("Spawngroup empty, skipping");
+                            break;
+                        }
+
+                        var creature = _creatures.FirstOrDefault(x => x.Name == spawn.Base);
+
+                        if (creature is default(Xml.Creature))
+                        {
+                            GameLog.SpawnError("Base monster {spawn.Base} not found");
+                            break;
+                        }
+                        
                         var newSpawnLoot = LootBox.CalculateLoot(spawn);
 
                         if (spawnMap.SpawnDebug)
