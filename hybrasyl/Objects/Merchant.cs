@@ -293,14 +293,12 @@ namespace Hybrasyl.Objects
 
         SendParcel = 0xFF50,
         SendParcelRecipient = 0xFF51,
-        SendLetter = 0xFF52,
-        SendLetterRecipient = 0xFF53,
-        SendParcelAccept = 0xFF54,
-        SendParcelSuccess = 0xFF55,
-        SendParcelFailure = 0xFF56,
-        SendLetterAccept = 0xFF57,
-        SendLetterSuccess = 0xFF59,
-        SendLetterFailure = 0xFF59,
+        SendParcelAccept = 0xFF52,
+        SendParcelSuccess = 0xFF53,
+        SendParcelFailure = 0xFF54,
+        SendParcelQuantity = 0xFF55,
+        
+        
 
     }
 

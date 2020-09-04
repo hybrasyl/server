@@ -25,6 +25,7 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.Xml.Serialization;
 using System.Security.Cryptography;
 using System.Text;
+using System.Xml;
 
 public static class EnumerableExtension
 {
@@ -203,7 +204,7 @@ namespace Hybrasyl.Xml
         {
             get
             {
-                return IsSimple && (string.IsNullOrEmpty(Simple.Value) && Simple.Min == "0" && Simple.Max == "0");
+                return IsSimple && (Simple.Value == 0 && Simple.Min == 0 && Simple.Max == 0);
             }
         }
     }
@@ -219,7 +220,7 @@ namespace Hybrasyl.Xml
         {
             get
             {
-                return IsSimple && (string.IsNullOrEmpty(Simple.Value) && Simple.Min == "0" && Simple.Max == "0");
+                return IsSimple && (Simple.Value == 0 && Simple.Min == 0 && Simple.Max == 0);
             }
 
         }
@@ -309,7 +310,7 @@ namespace Hybrasyl.Xml
         {
             get
             {
-                return IsSimple && (string.IsNullOrEmpty(Simple.Value) && Simple.Min == "0" && Simple.Max == "0");
+                return IsSimple && (Simple.Value == 0 && Simple.Min == 0 && Simple.Max == 0);
             }
 
         }
@@ -326,7 +327,7 @@ namespace Hybrasyl.Xml
         {
             get
             {
-                return IsSimple && (string.IsNullOrEmpty(Simple.Value) && Simple.Min == "0" && Simple.Max == "0");
+                return IsSimple && (Simple.Value == 0 && Simple.Min == 0 && Simple.Max == 0);
             }
 
         }
@@ -511,6 +512,68 @@ namespace Hybrasyl.Xml
 
 namespace Hybrasyl.Xml
 {
+
+    public partial class ServerConfig
+    {
+
+        // In case there is nothing defined in XML, we still need some associations for basic
+        // functionality
+        [XmlIgnoreAttribute]
+        static Dictionary<byte, (string key, string setting)> Default = new Dictionary<byte, (string key, string setting)>()
+        {
+            { 6, ("exchange", "Exchange") },
+            { 2, ("group", "Allow Grouping") }
+        };
+
+        [XmlIgnoreAttribute]
+        public Dictionary<byte, ClientSetting> SettingsNumberIndex { get; set; }
+
+        [XmlIgnoreAttribute]
+        public Dictionary<string, ClientSetting> SettingsKeyIndex { get; set; }
+
+        public void InitializeClientSettings()
+        {
+            SettingsNumberIndex = new Dictionary<byte, ClientSetting>();
+            SettingsKeyIndex = new Dictionary<string, ClientSetting>();
+
+            for (byte x = 1; x <= 8; x++)
+            {
+                var newcs = new ClientSetting()
+                {
+                    Default = true,
+                    Number = x,
+                    Key = Default.ContainsKey(x) ? Default[x].key : $"setting{x}",
+                    Value = Default.ContainsKey(x) ? Default[x].setting : $"Setting {x}"
+                };
+
+                if (ClientSettings == null) // No settings at all in xml
+                {
+                    SettingsNumberIndex.Add(x, newcs);
+                    SettingsKeyIndex.Add(newcs.Key, newcs);
+                }
+                else
+                {
+                    var cs = ClientSettings.Where(val => val.Number == x).FirstOrDefault();
+                    if (cs == default(ClientSetting))
+                    {
+                        // No specified setting for this number
+                        SettingsNumberIndex.Add(x, newcs);
+                        SettingsKeyIndex.Add(newcs.Key, newcs);
+                    }
+                    else
+                    {
+                        // We have a defined setting in xml, use it
+                        SettingsNumberIndex.Add(x, cs);
+                        SettingsKeyIndex.Add(cs.Key.ToLower(), cs);
+                    }
+                }
+            }
+        }
+
+        public string GetSettingLabel(byte number) => SettingsNumberIndex[number].Value;
+        public byte GetSettingNumber(string key) => SettingsKeyIndex[key.ToLower()].Number;
+    }
+
     public partial class Access
     {
         private List<string> _privilegedUsers = new List<String>();

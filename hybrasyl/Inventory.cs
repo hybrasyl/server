@@ -65,14 +65,27 @@ namespace Hybrasyl
             _targetSize = target.Inventory.EmptySlots;
         }
 
-        public static bool StartConditionsValid(User source, User target)
+        public static bool StartConditionsValid(User source, User target, out string errorMessage)
         {
-            return source.Map == target.Map && source.IsInViewport(target) &&
-                   target.IsInViewport(source) &&
-                   source.Condition.NoFlags &&
-                   target.Condition.NoFlags && 
-                   target.Distance(source) <= Constants.EXCHANGE_DISTANCE;
+            errorMessage = string.Empty;
+            var locationCheck = source.Map == target.Map && source.IsInViewport(target) &&
+                   target.IsInViewport(source) && target.Distance(source) <= Constants.EXCHANGE_DISTANCE;
 
+            var flagCheck = source.Condition.NoFlags && target.Condition.NoFlags;
+
+            if (!locationCheck)
+                errorMessage = "They are too far away.";
+
+            if (!flagCheck)
+                errorMessage = "That is not possible now.";
+
+            if (!source.GetClientSetting("exchange"))
+                errorMessage = "You have exchange turned off.";
+
+            if (!target.GetClientSetting("exchange"))
+                errorMessage = "They do not wish to trade with you.";
+
+            return errorMessage == string.Empty;
         }
 
         public bool ConditionsValid
@@ -500,7 +513,125 @@ namespace Hybrasyl
         public GuildVault(string ownerUuid, uint goldLimit, ushort itemLimit) : base(ownerUuid, goldLimit, itemLimit) { }
     }
 
+    public class Parcel
+    {
+        public string Sender { get; set; }
+        public string Item { get; set; }
+        public uint Quantity { get; set; }
 
+        public Parcel() { }
+
+        public Parcel(string sender, string item, uint quantity)
+        {
+            Sender = sender;
+            Item = item;
+            Quantity = quantity;
+        }
+    }
+
+    public class Moneygram
+    {
+        public string Sender { get; set; }
+        public uint Amount { get; set; }
+
+        public Moneygram() { }
+        public Moneygram(string sender, uint amount)
+        {
+            Sender = sender;
+            Amount = amount;
+        }
+    }
+
+    [JsonObject(MemberSerialization.OptIn)]
+    public class ParcelStore
+    {
+        private readonly object _lock = new object();
+
+        [JsonProperty]
+        public string OwnerUuid { get; set; }
+        [JsonProperty]
+        public List<Parcel> Items { get; set; } //storage id, named tuple
+        [JsonProperty]
+        public List<Moneygram> Gold { get; set; } //storage id, named tuple
+
+        public bool IsSaving;
+
+        public string StorageKey => string.Concat(GetType(), ':', OwnerUuid);
+
+        public ParcelStore() { }
+
+        public ParcelStore(string ownerUuid)
+        {
+            Items = new List<Parcel>();
+            Gold = new List<Moneygram>();
+            OwnerUuid = ownerUuid;
+        }
+
+        public void Save()
+        {
+            if (IsSaving) return;
+            lock (_lock)
+            {
+                IsSaving = true;
+                var cache = World.DatastoreConnection.GetDatabase();
+                cache.Set(StorageKey, this);
+                Game.World.WorldData.Set<ParcelStore>(OwnerUuid, this);
+                IsSaving = false;
+            }
+        }
+
+        public void AddItem(string sender, string item, uint quantity = 1)
+        {
+            lock (_lock)
+            {
+                
+                Items.Add(new Parcel(sender, item, quantity));
+            }
+            Save();
+        }
+
+        public void RemoveItem(User receiver)
+        {
+            lock (_lock)
+            {
+                var parcel = Items.FirstOrDefault();
+                if(receiver.AddItem(parcel.Item, (ushort)parcel.Quantity))
+                {
+                    receiver.SendSystemMessage($"Your package from {parcel.Sender} has been delivered.");
+                    Items.RemoveAt(0);
+                }
+                else
+                {
+                    receiver.SendSystemMessage($"Sorry, you can't receive the package from {parcel.Sender} right now.");
+                }
+            }
+            Save();
+        }
+
+        public void AddGold(string sender, uint quantity)
+        {
+            lock(_lock)
+            {
+                Gold.Add(new Moneygram(sender, quantity));
+            }
+            Save();
+        }
+
+        public void RemoveGold(User receiver)
+        {
+            lock(_lock)
+            {
+                var gold = Gold.FirstOrDefault();
+
+                if(receiver.AddGold(gold.Amount))
+                {
+                    receiver.SendSystemMessage($"Your gold from {gold.Sender} has been delivered.");
+                    Items.RemoveAt(0);
+                }
+            }
+            Save();
+        }
+    }
 
     public class InventoryConverter : JsonConverter
     {

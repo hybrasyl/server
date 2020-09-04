@@ -325,4 +325,37 @@ namespace Hybrasyl.Messaging
         }
 
     }
+
+    class EquipmentDurabilityCommand : ChatCommand
+    {
+        public new static string Command = "dura";
+        public new static string ArgumentText = "<uint value>";
+        public new static string HelpText = "Set durability of all inventory and equipment to the specified uint value.";
+        public new static bool Privileged = true;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            if (uint.TryParse(args[0], out uint dura))
+            {
+                for (byte i = 0; i < user.Equipment.Size; i++)
+                {
+                    if (user.Equipment[i] == null) continue;
+                    if (user.Equipment[i].MaximumDurability < dura) continue;
+                    user.Equipment[i].Durability = dura;
+                    user.AddEquipment(user.Equipment[i], i);
+                }
+
+                for (byte i = 0; i < user.Inventory.Size; i++)
+                {
+                    if (user.Inventory[i] == null) continue;
+                    if (user.Inventory[i].MaximumDurability < dura) continue;
+                    user.Inventory[i].Durability = dura;
+                    user.SendItemUpdate(user.Inventory[i], i);
+                }
+                user.UpdateAttributes(StatUpdateFlags.Full);
+                return Success($"Durability is now {dura} for all items.");
+            }
+            return Fail("The value you specified could not be parsed (uint)");
+        }
+    }
 }

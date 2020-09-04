@@ -196,9 +196,8 @@ namespace Hybrasyl
             RegisterPacketThrottle(new GenericPacketThrottle(0x39, 200, 1000, 500));  // NPC main menu
             RegisterPacketThrottle(new GenericPacketThrottle(0x13, 800, 0, 0));        // Assail
             RegisterPacketThrottle(new GenericPacketThrottle(0x3E, 800, 0, 0));
-            RegisterPacketThrottle(new GenericPacketThrottle(0x3E, 800, 0, 0));
             RegisterPacketThrottle(new GenericPacketThrottle(0x0F, 800, 0, 0));
-            RegisterPacketThrottle(new GenericPacketThrottle(0x1C, 800, 0, 0));
+            RegisterPacketThrottle(new GenericPacketThrottle(0x1C, 200, 0, 0));
         }
 
 
@@ -627,9 +626,9 @@ namespace Hybrasyl
             }
 
 
-                // Load data from Redis
-                // Load mailboxes
-                var server = World.DatastoreConnection.GetServer(World.DatastoreConnection.GetEndPoints()[0]);
+            // Load data from Redis
+            // Load mailboxes
+            var server = World.DatastoreConnection.GetServer(World.DatastoreConnection.GetEndPoints()[0]);
             foreach (var key in server.Keys(pattern: "Hybrasyl.Mailbox*"))
             {
                 GameLog.InfoFormat("Loading mailbox at {0}", key);
@@ -659,6 +658,13 @@ namespace Hybrasyl
                 WorldData.Set(vault.OwnerUuid, vault);
             }
 
+            //Load ParcelStores
+            foreach (var key in server.Keys(pattern: "Hybrasyl.ParcelStore*"))
+            {
+                GameLog.InfoFormat($"Loading parcelstore with key {key}");
+                var parcels = DatastoreConnection.GetDatabase().Get<ParcelStore>(key);
+                WorldData.Set(parcels.OwnerUuid, parcels);
+            }
             // Load all boards
             foreach (var key in server.Keys(pattern: "Hybrasyl.Board*"))
             {
@@ -674,6 +680,36 @@ namespace Hybrasyl
                 messageboard.Id = WorldData.Count<Board>() + 1;
                 WorldData.SetWithIndex(messageboard.Name, messageboard, messageboard.Id);
             }
+
+            // Load user uuid reference and initialize
+            foreach (var key in server.Keys(pattern: "User*"))
+            {
+                var user = DatastoreConnection.GetDatabase().Get<User>(key);
+                var name = key.ToString().Split(':')[1];
+                
+                if (name == string.Empty)
+                {
+                    GameLog.Warning("Potentially corrupt user data in Redis; ignoring");
+                    continue;
+                }
+                GameLog.InfoFormat("Loading uuidreference for {0}", name);
+                var uuidRef = new UuidReference(name);
+                uuidRef.AccountUuid = user.AccountUuid;
+                uuidRef.UserUuid = user.Uuid;
+
+                //sanity check to make sure user has this object
+                if (!WorldData.ContainsKey<ParcelStore>($"Hybrasyl.ParcelStore:{uuidRef.UserUuid}"))
+                {
+                    GameLog.InfoFormat("No parcelstore found for {0}, creating", name);
+                    var parcelStore = new ParcelStore(uuidRef.UserUuid);
+                    WorldData.Set(parcelStore.OwnerUuid, parcelStore);
+                    parcelStore.Save();
+
+                }
+                
+                WorldData.SetWithIndex(user.Name, uuidRef, user.Uuid);
+            }
+
 
             // Ensure global boards exist and are up to date with anything specified in the config
             if (Game.Config.Boards != null)
@@ -865,6 +901,19 @@ namespace Hybrasyl
         }
 
         /*End ItemVariants*/
+        public ParcelStore GetParcelStore(string uuid)
+        {
+            if (WorldData.ContainsKey<ParcelStore>(uuid))
+            {
+                WorldData.Get<ParcelStore>(uuid).Save();
+                return WorldData.Get<ParcelStore>(uuid);
+            }
+            WorldData.Set<ParcelStore>(uuid, new ParcelStore(uuid));
+            WorldData.Get<ParcelStore>(uuid).Save();
+            GameLog.InfoFormat("ParcelStore: Creating parrots for {0}", uuid);
+            return WorldData.Get<ParcelStore>(uuid);
+        }
+
 
         public Vault GetVault(string uuid)
         {
@@ -924,7 +973,6 @@ namespace Hybrasyl
         private void LoadMetafiles()
         {
             // these might be better suited in LoadData as the database is being read, but only items are in database atm
-
             #region ItemInfo
             var itmIndex = 0;
             var itmPerFile = (WorldData.Values<Xml.Item>().Count() / 8);
@@ -988,8 +1036,8 @@ namespace Hybrasyl
                 skills = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySkill || x.Book == Xml.Book.SecondarySkill || x.Book == Xml.Book.UtilitySkill) && (x.Class.Contains(@class))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)).Level?.Min ?? 1).ThenBy(x => x.Name).ToList();
                 spells = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySpell || x.Book == Xml.Book.SecondarySpell || x.Book == Xml.Book.UtilitySpell) && (x.Class.Contains(@class))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)).Level?.Min ?? 1).ThenBy(x => x.Name).ToList();
 
-                var ignoreSpells = spells.Where(x => x.Categories.Any(x => x.Value == "Politics" || x.Value == "Religion" || x.Value == "Profession")).ToList();
-                var ignoreSkills = skills.Where(x => x.Categories.Any(x => x.Value == "Politics" || x.Value == "Religion" || x.Value == "Profession")).ToList();
+                var ignoreSpells = spells.Where(x => x.Categories.Any(x => x.Value.ToLower() == "ignore")).ToList();
+                var ignoreSkills = skills.Where(x => x.Categories.Any(x => x.Value.ToLower() == "ignore")).ToList();
 
                 foreach (var spell in ignoreSpells)
                 {
@@ -1068,7 +1116,7 @@ namespace Hybrasyl
 
                     sclass.Nodes.Add(new MetafileNode(skill.Name,
                         string.Format("{0}/{1}/{2}",requirements.Level.Min == 0 ? 1 : requirements.Level.Min, 0, requirements.Ab != null ? (requirements.Ab.Min == 0 ? 1 : requirements.Ab.Min) : 0), // req level, master (0/1), req ab
-                        string.Format("{0}/{1}/{2}", 0, 0, 0), // skill icon, x position (defunct), y position (defunct)
+                        string.Format("{0}/{1}/{2}", skill.Icon, 0, 0), // skill icon, x position (defunct), y position (defunct)
                         string.Format("{0}/{1}/{2}/{3}/{4}", 
                                     requirements?.Physical == null ? 3 : requirements.Physical.Str, 
                                     requirements?.Physical == null ? 3 : requirements.Physical.Int, 
@@ -1152,7 +1200,7 @@ namespace Hybrasyl
 
                     sclass.Nodes.Add(new MetafileNode(spell.Name,
                         string.Format("{0}/{1}/{2}", requirements.Level.Min == 0 ? 1 : requirements.Level.Min, 0, requirements.Ab != null ? (requirements.Ab.Min == 0 ? 1 : requirements.Ab.Min) : 0), // req level, master (0/1), req ab
-                        string.Format("{0}/{1}/{2}", 0, 0, 0), // spell icon, x position (defunct), y position (defunct)
+                        string.Format("{0}/{1}/{2}", spell.Icon, 0, 0), // spell icon, x position (defunct), y position (defunct)
                         string.Format("{0}/{1}/{2}/{3}/{4}", 
                         requirements?.Physical == null ? 3 : requirements.Physical.Str, 
                         requirements?.Physical == null ? 3 : requirements.Physical.Dex, 
@@ -1390,10 +1438,16 @@ namespace Hybrasyl
                     MerchantMenuItem.SendParcel, new MerchantMenuHandler(MerchantJob.Post, MerchantMenuHandler_SendParcel)
                 },
                 {
+                    MerchantMenuItem.SendParcelQuantity, new MerchantMenuHandler(MerchantJob.Post, MerchantMenuHandler_SendParcelQuantity)
+                },
+                {
                     MerchantMenuItem.SendParcelRecipient, new MerchantMenuHandler(MerchantJob.Post, MerchantMenuHandler_SendParcelRecipient)
                 },
                 {
                     MerchantMenuItem.SendParcelFailure, new MerchantMenuHandler(MerchantJob.Post, MerchantMenuHandler_SendParcelFailure)
+                },
+                {
+                    MerchantMenuItem.ReceiveParcel, new MerchantMenuHandler(MerchantJob.Post, MerchantMenuHandler_ReceiveParcel)
                 },
                 {
                     MerchantMenuItem.DepositItem, new MerchantMenuHandler(MerchantJob.Bank, MerchantMenuHandler_DepositItem)
@@ -1526,6 +1580,8 @@ namespace Hybrasyl
                 GameLog.DebugFormat("cid {0}: {1} cleaned up successfully", user.Name);
                 DeleteUser(user.Name);
             }
+            else
+                GameLog.Error($"CleanupUser request for user already cleaned up, ignoring");
         }
 
         private void ControlMessage_RegenerateUser(HybrasylControlMessage message)
@@ -1799,8 +1855,14 @@ namespace Hybrasyl
                 {
                     GameLog.DebugFormat("Removing {0}, qty {1} from {2}@{3},{4}",
                         item.Name, item.Count, user.Map.Name, x, y);
+
+                    var success = user.AddItem(item, slot);
                     user.Map.Remove(item);
-                    user.AddItem(item, slot);
+                    if (!success)
+                    {
+                        user.Map.Insert(item, user.X, user.Y);
+                    }
+                        
                 }
             }
         }
@@ -1967,6 +2029,13 @@ namespace Hybrasyl
 
         private void PacketHandler_0X0C_PutGround(object obj, ClientPacket packet)
         {
+            //if (obj is VisibleObject vo)
+            //{ 
+            //    foreach(var entity in vo.Map.EntityTree.GetObjects(vo.GetViewport()))
+            //    {
+            //        vo.AoiEntry(entity);
+            //    }
+            //}
             //do nothing. only here to remove the stupid spam.
         }
 
@@ -2197,7 +2266,7 @@ namespace Hybrasyl
             var settingNumber = packet.ReadByte();
             var user = obj as User;
             // Only seven of these are usable by the client (1-6, and 8), 
-            // the seventh one is sent to keep the ordering consistent but does nothing
+            // the seventh one is sent to keep the ordering consistent but seemingly does nothing
             var settings = new List<byte>() { 1, 2, 3, 4, 5, 6, 7, 8 };
             if (settingNumber == 0)
             {
@@ -2205,18 +2274,21 @@ namespace Hybrasyl
                 foreach (var x in settings)
                 {
                     if (!user.ClientSettings.ContainsKey(x))
-                        user.ClientSettings[x] = false;
+                        user.ClientSettings[x] = Game.Config.SettingsNumberIndex[x].Default;
                 }
+
                 // for the record this is a very strange usage of a message packet
-                var settingsString = string.Join(" \t", settings.Select(x => string.Format("Setting {0}: {1}", x, user.ClientSettings[x])));
+                var settingsString = string.Join("\t",
+                    Game.Config.SettingsNumberIndex.Select(kvp => string.Format("{0}  :{1}", kvp.Value.Value, 
+                    user.ClientSettings[kvp.Key] == true ? "ON" : "OFF" )));
                 var x0a = new ServerPacketStructures.SettingsMessage()
                 {
                     DisplayString = settingsString,
                     Number = 0
                 };
                 var settingsPacket = x0a.Packet();
+                x0a.Packet().DumpPacket();
                 user.Enqueue(settingsPacket);
-
             }
             else
             {
@@ -2224,10 +2296,11 @@ namespace Hybrasyl
                 if (!user.ClientSettings.ContainsKey(settingNumber))
                     user.ClientSettings[settingNumber] = false;
                 else
-                    user.ClientSettings[settingNumber] = !user.ClientSettings[settingNumber];
-                var displayString = $"Setting {settingNumber}: {user.ClientSettings[settingNumber]}";
+                    user.ToggleClientSetting(settingNumber);
+                var displayString = $"{Game.Config.GetSettingLabel(settingNumber)}  :{(user.ClientSettings[settingNumber] == true ? "ON" : "OFF")}";
                 var x0a = new ServerPacketStructures.SettingsMessage() { DisplayString = displayString, Number = settingNumber };
                 var settingspacket = x0a.Packet();
+                x0a.Packet().DumpPacket();
                 user.Enqueue(settingspacket);
             }
         }
@@ -2606,19 +2679,10 @@ namespace Hybrasyl
                     var playerTarget = (User)target;
 
                     // Pre-flight checks
-                    if (!Exchange.StartConditionsValid(user, playerTarget))
+                    if (!Exchange.StartConditionsValid(user, playerTarget, out string errorMessage))
                     {
-                        user.SendSystemMessage("You can't do that.");
+                        user.SendSystemMessage(errorMessage);
                         return;
-                    }
-                    if (!playerTarget.IsAvailableForExchange)
-                    {
-                        user.SendMessage("They can't do that right now.", MessageTypes.SYSTEM);
-                        return;
-                    }
-                    if (!user.IsAvailableForExchange)
-                    {
-                        user.SendMessage("You can't do that right now.", MessageTypes.SYSTEM);
                     }
                     // Start exchange
                     var exchange = new Exchange(user, playerTarget);
@@ -2649,6 +2713,7 @@ namespace Hybrasyl
             var quantity = packet.ReadByte();
             var user = (User)obj;
 
+
             // If the object is a creature or an NPC, simply give them the item, otherwise,
             // initiate an exchange
 
@@ -2664,19 +2729,10 @@ namespace Hybrasyl
 
                     // Pre-flight checks
 
-                    if (!Exchange.StartConditionsValid(user, playerTarget))
+                    if (!Exchange.StartConditionsValid(user, playerTarget, out string errorMessage))
                     {
-                        user.SendSystemMessage("You can't do that.");
+                        user.SendSystemMessage(errorMessage);
                         return;
-                    }
-                    if (!playerTarget.IsAvailableForExchange)
-                    {
-                        user.SendSystemMessage("They can't do that right now.");
-                        return;
-                    }
-                    if (!user.IsAvailableForExchange)
-                    {
-                        user.SendSystemMessage("You can't do that right now.");
                     }
                     // Initiate exchange and put item in it
                     var exchange = new Exchange(user, playerTarget);
@@ -2765,7 +2821,7 @@ namespace Hybrasyl
             {
                 case 0x01:
                     {
-                        // Display board list
+                        // Display board list.....
                         response.WriteByte(0x01);
 
                         // TODO: This has the potential to be a somewhat expensive operation, optimize this.
@@ -3111,27 +3167,37 @@ namespace Hybrasyl
                         }
 
                         // Handle plugin response
-                        var plugin = ResolveMessagingPlugin(Xml.MessageType.Mail, new Plugins.Message(Xml.MessageType.Mail, user.Name, recipient, subject, body));
 
-
-                        if (plugin is IProcessingMessageHandler pmh && continueProcessing)
+                        try
                         {
-                            var msg = new Plugins.Message(Xml.MessageType.Mail, user.Name, recipient, subject, body);
-                            var resp = pmh.Process(msg);
-                            if (!pmh.Passthrough)
+                            var plugin = ResolveMessagingPlugin(Xml.MessageType.Mail, new Plugins.Message(Xml.MessageType.Mail, user.Name, recipient, subject, body));
+
+                            if (plugin is IProcessingMessageHandler pmh && continueProcessing)
                             {
-                                // Plugin is "last destination" for message
-                                continueProcessing = false;
-                                response.WriteBoolean(resp.Success); 
-                                response.WriteString8(resp.PluginResponse);
+                                var msg = new Plugins.Message(Xml.MessageType.Mail, user.Name, recipient, subject, body);
+                                var resp = pmh.Process(msg);
+                                if (!pmh.Passthrough)
+                                {
+                                    // Plugin is "last destination" for message
+                                    continueProcessing = false;
+                                    response.WriteBoolean(resp.Success);
+                                    response.WriteString8(resp.PluginResponse);
+                                }
+                                else if (resp.Transformed)
+                                {
+                                    // Update message if transformed, and keep going
+                                    recipient = resp.Message.Recipient;
+                                    subject = resp.Message.Subject;
+                                    body = resp.Message.Text;
+                                }
                             }
-                            else if (resp.Transformed)
-                            {
-                                // Update message if transformed, and keep going
-                                recipient = resp.Message.Recipient;
-                                subject = resp.Message.Subject;
-                                body = resp.Message.Text;                              
-                            }
+                        }
+                        catch (Exception e)
+                        {
+                            Game.ReportException(e);
+                            response.WriteBoolean(false);
+                            response.WriteString8($"An unknown error occurred. Sorry!");
+                            continueProcessing = false;
                         }
 
                         if (WorldData.TryGetValue(recipient, out Mailbox mailbox) && continueProcessing)
@@ -3141,7 +3207,7 @@ namespace Hybrasyl
                                 if ((DateTime.Now - user.LastMailboxMessageSent).TotalSeconds < Constants.MAIL_MESSAGE_COOLDOWN &&
                                     user.LastMailboxRecipient == recipient)
                                 {
-                                    response.WriteBoolean(true);
+                                    response.WriteBoolean(false); ;
                                     response.WriteString8($"You've sent too much mail to {recipient} recently. Give it a rest.");
                                 }
                                 else if (mailbox.ReceiveMessage(new Message(recipient, user.Name, subject, body)))
@@ -3154,20 +3220,20 @@ namespace Hybrasyl
                                 }
                                 else
                                 {
-                                    response.WriteBoolean(true);
+                                    response.WriteBoolean(false);
                                     response.WriteString8($"{recipient}'s mailbox is full or locked. Your message was discarded. Sorry!");
                                 }
                             }
                             catch (MessageStoreLocked e)
                             {
                                 Game.ReportException(e);
-                                response.WriteBoolean(true);
+                                response.WriteBoolean(false);
                                 response.WriteString8($"{recipient} cannot receive mail at this time. Sorry!");
                             }
                         }
                         else
                         {
-                            response.WriteBoolean(true);
+                            response.WriteBoolean(false);
                             response.WriteString8("Sadly, no record of that person exists in the realm.");
                         }
                     }
@@ -3780,13 +3846,11 @@ namespace Hybrasyl
                         WorldObject target;
                         if (Objects.TryGetValue((uint)x0PlayerId, out target))
                         {
-                            if (target is User)
+                            if (target is User playerTarget)
                             {
-                                var playerTarget = (User)target;
-
-                                if (Exchange.StartConditionsValid(user, playerTarget))
+                                if (!Exchange.StartConditionsValid(user, playerTarget, out string errorMessage))
                                 {
-                                    user.SendMessage("That can't be done right now.", MessageTypes.SYSTEM);
+                                    user.SendSystemMessage(errorMessage);
                                     return;
                                 }
                                 // Initiate exchange
@@ -4071,11 +4135,19 @@ namespace Hybrasyl
         private void MerchantMenuHandler_SendParcelMenu(User user, Merchant merchant, ClientPacket packet) =>
             user.ShowMerchantSendParcel(merchant);
 
-        private void MerchantMenuHandler_SendParcelRecipient(User user, Merchant merchant, ClientPacket packet)
+        private void MerchantMenuHandler_SendParcelQuantity(User user, Merchant merchant, ClientPacket packet)
         {
             var item = packet.ReadByte();
             var itemObj = user.Inventory[item];
-            user.ShowMerchantSendParcelRecipient(merchant, itemObj);
+
+            user.ShowMerchantSendParcelQuantity(merchant, itemObj);
+        }
+
+        private void MerchantMenuHandler_SendParcelRecipient(User user, Merchant merchant, ClientPacket packet)
+        {
+            var quantity = Convert.ToUInt32(packet.ReadString8());
+
+            user.ShowMerchantSendParcelRecipient(merchant, quantity);
         }
 
         private void MerchantMenuHandler_SendParcel(User user, Merchant merchant, ClientPacket packet) { }
@@ -4086,6 +4158,11 @@ namespace Hybrasyl
         {
             var recipient = packet.ReadString8();
             user.ShowMerchantSendParcelAccept(merchant, recipient);
+        }
+
+        private void MerchantMenuHandler_ReceiveParcel(User user, Merchant merchant, ClientPacket packet)
+        {
+            user.ShowMerchantReceiveParcelAccept(merchant);
         }
 
         private void MerchantMenuHandler_WithdrawItemQuantity(User user, Merchant merchant, ClientPacket packet)
@@ -4325,9 +4402,10 @@ namespace Hybrasyl
                                 continue;
                             }
                             // Handle board usage
-                            if (user.Condition.Flags.HasFlag(PlayerFlags.InDialog) && clientMessage.Packet.Opcode != 0x3b &&
+                            if (user.Condition.Flags.HasFlag(PlayerFlags.InBoard) && clientMessage.Packet.Opcode != 0x3b &&
                                 clientMessage.Packet.Opcode != 0x45 && clientMessage.Packet.Opcode != 0x75)
-                                user.Condition.Flags = user.Condition.Flags & ~PlayerFlags.InDialog;
+                                user.Condition.Flags = user.Condition.Flags & ~PlayerFlags.InBoard;
+
                             // Last but not least, invoke the handler
 
                             handler.Invoke(user, clientMessage.Packet);

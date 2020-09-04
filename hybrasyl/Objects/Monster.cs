@@ -29,6 +29,44 @@ using Hybrasyl.Scripting;
 
 namespace Hybrasyl.Objects
 {
+    public class ThreatInfo
+    {
+        public Creature ThreatTarget => ThreatTable.Aggregate((l, r) => l.Value > r.Value ? l : r).Key ?? null;
+
+        public Dictionary<Creature, uint> ThreatTable { get; set; }
+
+        public ThreatInfo()
+        {
+            ThreatTable = new Dictionary<Creature, uint>();
+        }
+
+        public void IncreaseThreat(Creature threat, uint amount)
+        {
+            ThreatTable[threat] += amount;
+        }
+
+        public void DecreaseThreat(Creature threat, uint amount)
+        {
+            ThreatTable[threat] -= amount;
+        }
+
+        public void WipeThreat(Creature threat)
+        {
+            ThreatTable[threat] = 0;
+        }
+
+        public void AddNewThreat(Creature newThreat)
+        {
+            ThreatTable.Add(newThreat, 0);
+        }
+
+        public void RemoveThreat(Creature threat)
+        {
+            ThreatTable.Remove(threat);
+        }
+
+    }
+
     public class Monster : Creature, ICloneable
     {
         protected static Random Rng = new Random();
@@ -37,7 +75,7 @@ namespace Hybrasyl.Objects
 
         private uint _mTarget;
 
-        private Xml.Spawn _spawn;
+        internal Xml.Spawn _spawn;
 
         private uint _simpleDamage => Convert.ToUInt32(Rng.Next(_spawn.Damage.Min, _spawn.Damage.Max +1) * _variance);
 
@@ -90,45 +128,53 @@ namespace Hybrasyl.Objects
                 return; // Don't handle cases of MOB ON MOB COMBAT just yet
             }
 
-            var deadTime = DateTime.Now;
-
-            if (hitter.Grouped)
+            try
             {
-                ItemDropAllowedLooters = hitter.Group.Members.Select(user => user.Name).ToList();
-                hitter.Group.Members.ForEach(x => x.TrackKill(Name, deadTime));
-            }
-            else
-            {
-                ItemDropAllowedLooters.Add(hitter.Name);
-                hitter.TrackKill(Name, deadTime);
-            }
+                var deadTime = DateTime.Now;
 
-            hitter.ShareExperience(LootableXP, Stats.Level);
-            var itemDropTime = DateTime.Now;
-
-            foreach (var itemname in LootableItems)
-            {
-                var item = Game.World.CreateItem(itemname);
-                if (item == null)
+                if (hitter.Grouped)
                 {
-                    GameLog.UserActivityError("User {player}: looting {monster}, loot item {item} is missing", hitter.Name, Name, itemname);
-                    continue;
+                    ItemDropAllowedLooters = hitter.Group.Members.Select(user => user.Name).ToList();
+                    hitter.Group.Members.ForEach(x => x.TrackKill(Name, deadTime));
                 }
-                item.ItemDropType = ItemDropType.MonsterLootPile;
-                item.ItemDropAllowedLooters = ItemDropAllowedLooters;
-                item.ItemDropTime = itemDropTime;
-                World.Insert(item);
-                Map.Insert(item, X, Y);
-            }
+                else
+                {
+                    ItemDropAllowedLooters.Add(hitter.Name);
+                    hitter.TrackKill(Name, deadTime);
+                }
 
-            if (LootableGold > 0)
+                hitter.ShareExperience(LootableXP, Stats.Level);
+                var itemDropTime = DateTime.Now;
+
+                foreach (var itemname in LootableItems)
+                {
+                    var item = Game.World.CreateItem(itemname);
+                    if (item == null)
+                    {
+                        GameLog.UserActivityError("User {player}: looting {monster}, loot item {item} is missing", hitter.Name, Name, itemname);
+                        continue;
+                    }
+                    item.ItemDropType = ItemDropType.MonsterLootPile;
+                    item.ItemDropAllowedLooters = ItemDropAllowedLooters;
+                    item.ItemDropTime = itemDropTime;
+                    World.Insert(item);
+                    Map.Insert(item, X, Y);
+                }
+
+                if (LootableGold > 0)
+                {
+                    var golds = new Gold(LootableGold);
+                    golds.ItemDropType = ItemDropType.MonsterLootPile;
+                    golds.ItemDropAllowedLooters = ItemDropAllowedLooters;
+                    golds.ItemDropTime = itemDropTime;
+                    World.Insert(golds);
+                    Map.Insert(golds, X, Y);
+                }
+            }
+            catch (Exception e)
             {
-                var golds = new Gold(LootableGold);
-                golds.ItemDropType = ItemDropType.MonsterLootPile;
-                golds.ItemDropAllowedLooters = ItemDropAllowedLooters;
-                golds.ItemDropTime = itemDropTime;
-                World.Insert(golds);
-                Map.Insert(golds, X, Y);
+                GameLog.Error("OnDeath for {Name}: exception encountered, loot/gold cancelled {e}", Name, e);
+                Game.ReportException(e);
             }
             World.RemoveStatusCheck(this);
             Map.Remove(this);

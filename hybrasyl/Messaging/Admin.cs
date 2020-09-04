@@ -625,6 +625,20 @@ namespace Hybrasyl.Messaging
         }
     }
 
+    class QueuedepthCommand : ChatCommand
+    {
+        public new static string Command = "queuedepth";
+        public new static string ArgumentText = "None";
+        public new static string HelpText = "Display current queue depths.";
+        public new static bool Privileged = true;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            return Success($"Packet Queue Depth: {World.MessageQueue.Count}\n\nControl Message Queue Depth: {World.ControlMessageQueue.Count}", 
+                MessageTypes.SLATE_WITH_SCROLLBAR);
+        }
+
+    }
     class ResurrectCommand : ChatCommand
     {
         public new static string Command = "resurrect";

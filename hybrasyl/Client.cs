@@ -90,15 +90,12 @@ namespace Hybrasyl
 
         public IEnumerable<byte> ReceiveBufferPop(int range)
         {
-            lock (ReceiveLock)
-            {
-                var ret = _buffer.Take(range);
-                var asList = _buffer.ToList();
-                asList.RemoveRange(0, range);
-                _buffer = new byte[BufferSize];
-                Array.ConstrainedCopy(asList.ToArray(), 0, _buffer, 0, asList.ToArray().Length);
-                return ret;
-            }
+            var ret = _buffer.Take(range);
+            var asList = _buffer.ToList();
+            asList.RemoveRange(0, range);
+            _buffer = new byte[BufferSize];
+            Array.ConstrainedCopy(asList.ToArray(), 0, _buffer, 0, asList.ToArray().Length);
+            return ret;
         }
 
         public void SendBufferAdd(ServerPacket packet) => _sendBuffer.Enqueue(packet);
@@ -420,7 +417,6 @@ namespace Hybrasyl
                 }
 
             }
-
             
             EncryptionKeyTable = new byte[1024];
             _lastReceived = DateTime.Now.Ticks;
@@ -434,9 +430,9 @@ namespace Hybrasyl
         public void Disconnect()
         {
             GlobalConnectionManifest.DeregisterClient(this);
-            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.CleanupUser, ConnectionId));
+            // Force the issue
+            Socket.Close();
             ClientState.Dispose();
-
         }
 
         public byte[] GenerateKey(ushort bRand, byte sRand)

@@ -328,6 +328,11 @@ namespace Hybrasyl.Objects
             }
             if (merchant?.Jobs.HasFlag(MerchantJob.Post) ?? false)
             {
+                if (invoker.HasParcels)
+                {
+                    options.Options.Add(new MerchantDialogOption { Id = (ushort)MerchantMenuItem.ReceiveParcel, Text = "Receive Parcel" });
+                    optionsCount++;
+                }
                 options.Options.Add(new MerchantDialogOption { Id = (ushort)MerchantMenuItem.SendParcelMenu, Text = "Send Parcel" });
                 optionsCount++;
 
