@@ -1526,6 +1526,8 @@ namespace Hybrasyl
                 GameLog.DebugFormat("cid {0}: {1} cleaned up successfully", user.Name);
                 DeleteUser(user.Name);
             }
+            else
+                GameLog.Error($"CleanupUser request for user already cleaned up, ignoring");
         }
 
         private void ControlMessage_RegenerateUser(HybrasylControlMessage message)
@@ -3098,27 +3100,37 @@ namespace Hybrasyl
                         }
 
                         // Handle plugin response
-                        var plugin = ResolveMessagingPlugin(Xml.MessageType.Mail, new Plugins.Message(Xml.MessageType.Mail, user.Name, recipient, subject, body));
 
-
-                        if (plugin is IProcessingMessageHandler pmh && continueProcessing)
+                        try
                         {
-                            var msg = new Plugins.Message(Xml.MessageType.Mail, user.Name, recipient, subject, body);
-                            var resp = pmh.Process(msg);
-                            if (!pmh.Passthrough)
+                            var plugin = ResolveMessagingPlugin(Xml.MessageType.Mail, new Plugins.Message(Xml.MessageType.Mail, user.Name, recipient, subject, body));
+
+                            if (plugin is IProcessingMessageHandler pmh && continueProcessing)
                             {
-                                // Plugin is "last destination" for message
-                                continueProcessing = false;
-                                response.WriteBoolean(resp.Success); 
-                                response.WriteString8(resp.PluginResponse);
+                                var msg = new Plugins.Message(Xml.MessageType.Mail, user.Name, recipient, subject, body);
+                                var resp = pmh.Process(msg);
+                                if (!pmh.Passthrough)
+                                {
+                                    // Plugin is "last destination" for message
+                                    continueProcessing = false;
+                                    response.WriteBoolean(resp.Success);
+                                    response.WriteString8(resp.PluginResponse);
+                                }
+                                else if (resp.Transformed)
+                                {
+                                    // Update message if transformed, and keep going
+                                    recipient = resp.Message.Recipient;
+                                    subject = resp.Message.Subject;
+                                    body = resp.Message.Text;
+                                }
                             }
-                            else if (resp.Transformed)
-                            {
-                                // Update message if transformed, and keep going
-                                recipient = resp.Message.Recipient;
-                                subject = resp.Message.Subject;
-                                body = resp.Message.Text;                              
-                            }
+                        }
+                        catch (Exception e)
+                        {
+                            Game.ReportException(e);
+                            response.WriteBoolean(false);
+                            response.WriteString8($"An unknown error occurred. Sorry!");
+                            continueProcessing = false;
                         }
 
                         if (WorldData.TryGetValue(recipient, out Mailbox mailbox) && continueProcessing)
@@ -3128,7 +3140,7 @@ namespace Hybrasyl
                                 if ((DateTime.Now - user.LastMailboxMessageSent).TotalSeconds < Constants.MAIL_MESSAGE_COOLDOWN &&
                                     user.LastMailboxRecipient == recipient)
                                 {
-                                    response.WriteBoolean(true);
+                                    response.WriteBoolean(false); ;
                                     response.WriteString8($"You've sent too much mail to {recipient} recently. Give it a rest.");
                                 }
                                 else if (mailbox.ReceiveMessage(new Message(recipient, user.Name, subject, body)))
@@ -3141,20 +3153,20 @@ namespace Hybrasyl
                                 }
                                 else
                                 {
-                                    response.WriteBoolean(true);
+                                    response.WriteBoolean(false);
                                     response.WriteString8($"{recipient}'s mailbox is full or locked. Your message was discarded. Sorry!");
                                 }
                             }
                             catch (MessageStoreLocked e)
                             {
                                 Game.ReportException(e);
-                                response.WriteBoolean(true);
+                                response.WriteBoolean(false);
                                 response.WriteString8($"{recipient} cannot receive mail at this time. Sorry!");
                             }
                         }
                         else
                         {
-                            response.WriteBoolean(true);
+                            response.WriteBoolean(false);
                             response.WriteString8("Sadly, no record of that person exists in the realm.");
                         }
                     }

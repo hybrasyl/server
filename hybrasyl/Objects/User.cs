@@ -1170,6 +1170,9 @@ namespace Hybrasyl.Objects
                 return;
             }
 
+            if (target.Condition.Flags.HasFlag(PlayerFlags.InBoard))
+                SendSystemMessage($"{target.Name} is reading a board.");
+
             if (CanTalkTo(target, out string err))
             {
                 // To implement: ACLs (ignore list)
