@@ -34,7 +34,7 @@ namespace Hybrasyl.Scripting
     {
         internal User User { get; set; }
         internal HybrasylWorld World { get; set; }
-        internal HybrasylMap Map { get; set; }
+        public HybrasylMap Map { get; set; }
         /// <summary>
         /// The name of the player.
         /// </summary>
