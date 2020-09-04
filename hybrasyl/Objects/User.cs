@@ -3988,7 +3988,7 @@ namespace Hybrasyl.Objects
                 prompt = parcelString.Value.Replace("$FEE", parcelFee.ToString());
 
                 //TODO: Send parcel to recipient
-                var uuidRef = World.WorldData.GetByIndex<UuidReference>(recipient);
+                var uuidRef = World.WorldData.Get<UuidReference>(recipient);
                 var parcelStore = World.WorldData.Get<ParcelStore>(uuidRef.UserUuid);
                 var recipientMailbox = World.WorldData.Get<Mailbox>(recipient);
                 parcelStore.AddItem(Name, itemObj.Name, quantity);

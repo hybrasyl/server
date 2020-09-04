@@ -196,9 +196,8 @@ namespace Hybrasyl
             RegisterPacketThrottle(new GenericPacketThrottle(0x39, 200, 1000, 500));  // NPC main menu
             RegisterPacketThrottle(new GenericPacketThrottle(0x13, 800, 0, 0));        // Assail
             RegisterPacketThrottle(new GenericPacketThrottle(0x3E, 800, 0, 0));
-            RegisterPacketThrottle(new GenericPacketThrottle(0x3E, 800, 0, 0));
             RegisterPacketThrottle(new GenericPacketThrottle(0x0F, 800, 0, 0));
-            RegisterPacketThrottle(new GenericPacketThrottle(0x1C, 800, 0, 0));
+            RegisterPacketThrottle(new GenericPacketThrottle(0x1C, 200, 0, 0));
         }
 
 
@@ -627,9 +626,9 @@ namespace Hybrasyl
             }
 
 
-                // Load data from Redis
-                // Load mailboxes
-                var server = World.DatastoreConnection.GetServer(World.DatastoreConnection.GetEndPoints()[0]);
+            // Load data from Redis
+            // Load mailboxes
+            var server = World.DatastoreConnection.GetServer(World.DatastoreConnection.GetEndPoints()[0]);
             foreach (var key in server.Keys(pattern: "Hybrasyl.Mailbox*"))
             {
                 GameLog.InfoFormat("Loading mailbox at {0}", key);
@@ -685,32 +684,30 @@ namespace Hybrasyl
             // Load user uuid reference and initialize
             foreach (var key in server.Keys(pattern: "User*"))
             {
-                GameLog.InfoFormat("Loading Uuid references for {0}", key);
                 var user = DatastoreConnection.GetDatabase().Get<User>(key);
                 var name = key.ToString().Split(':')[1];
+                
                 if (name == string.Empty)
                 {
                     GameLog.Warning("Potentially corrupt user data in Redis; ignoring");
                     continue;
                 }
-                var uuidKey = $"Hybrasyl.UuidReference:{name}";
-                var uuidRef = DatastoreConnection.GetDatabase().Get<UuidReference>(uuidKey);
-                if (uuidRef == null)
-                {
-                    GameLog.WarningFormat("No Uuid Reference found for {0}, rebuilding", user.Name);
-                    uuidRef = new UuidReference(name);
-                    uuidRef.AccountUuid = user.AccountUuid;
-                    uuidRef.UserUuid = user.Uuid;
+                GameLog.InfoFormat("Loading uuidreference for {0}", name);
+                var uuidRef = new UuidReference(name);
+                uuidRef.AccountUuid = user.AccountUuid;
+                uuidRef.UserUuid = user.Uuid;
 
-                    //sanity check to make sure user has this object
-                    if(!WorldData.ContainsKey<ParcelStore>($"Hybrasyl.ParcelStore:{uuidRef.UserUuid}"))
-                    {
-                        var parcelStore = new ParcelStore(uuidRef.UserUuid);
-                        WorldData.Set(parcelStore.OwnerUuid, parcelStore);
-                        parcelStore.Save();
-                    }
+                //sanity check to make sure user has this object
+                if (!WorldData.ContainsKey<ParcelStore>($"Hybrasyl.ParcelStore:{uuidRef.UserUuid}"))
+                {
+                    GameLog.InfoFormat("No parcelstore found for {0}, creating", name);
+                    var parcelStore = new ParcelStore(uuidRef.UserUuid);
+                    WorldData.Set(parcelStore.OwnerUuid, parcelStore);
+                    parcelStore.Save();
+
                 }
-                WorldData.SetWithIndex(user.Name, uuidRef, user.Name);
+                
+                WorldData.SetWithIndex(user.Name, uuidRef, user.Uuid);
             }
 
 

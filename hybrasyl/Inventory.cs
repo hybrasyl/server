@@ -500,6 +500,35 @@ namespace Hybrasyl
         public GuildVault(string ownerUuid, uint goldLimit, ushort itemLimit) : base(ownerUuid, goldLimit, itemLimit) { }
     }
 
+    public class Parcel
+    {
+        public string Sender { get; set; }
+        public string Item { get; set; }
+        public uint Quantity { get; set; }
+
+        public Parcel() { }
+
+        public Parcel(string sender, string item, uint quantity)
+        {
+            Sender = sender;
+            Item = item;
+            Quantity = quantity;
+        }
+    }
+
+    public class Moneygram
+    {
+        public string Sender { get; set; }
+        public uint Amount { get; set; }
+
+        public Moneygram() { }
+        public Moneygram(string sender, uint amount)
+        {
+            Sender = sender;
+            Amount = amount;
+        }
+    }
+
     [JsonObject(MemberSerialization.OptIn)]
     public class ParcelStore
     {
@@ -508,9 +537,9 @@ namespace Hybrasyl
         [JsonProperty]
         public string OwnerUuid { get; set; }
         [JsonProperty]
-        public Dictionary<string, (string Sender, string Item, uint Quantity)> Items { get; set; } //storage id, named tuple
+        public List<Parcel> Items { get; set; } //storage id, named tuple
         [JsonProperty]
-        public Dictionary<string, (string Sender, uint Amount)> Gold { get; set; } //storage id, named tuple
+        public List<Moneygram> Gold { get; set; } //storage id, named tuple
 
         public bool IsSaving;
 
@@ -520,8 +549,8 @@ namespace Hybrasyl
 
         public ParcelStore(string ownerUuid)
         {
-            Items = new Dictionary<string, (string Sender, string Item, uint Quantity)>();
-            Gold = new Dictionary<string, (string Sender, uint Amount)>();
+            Items = new List<Parcel>();
+            Gold = new List<Moneygram>();
             OwnerUuid = ownerUuid;
         }
 
@@ -542,8 +571,8 @@ namespace Hybrasyl
         {
             lock (_lock)
             {
-                string itemKey = (sender + DateTime.Now).GetHashCode().ToString();
-                Items.Add(itemKey, (sender, item, quantity));
+                
+                Items.Add(new Parcel(sender, item, quantity));
             }
             Save();
         }
@@ -552,17 +581,15 @@ namespace Hybrasyl
         {
             lock (_lock)
             {
-                var parcelObj = Items.FirstOrDefault();
-                var item = parcelObj.Value;
-                
-                if(receiver.AddItem(item.Item, (ushort)item.Quantity))
+                var parcel = Items.FirstOrDefault();
+                if(receiver.AddItem(parcel.Item, (ushort)parcel.Quantity))
                 {
-                    receiver.SendSystemMessage($"Your package from {parcelObj.Value.Sender} has been delivered.");
-                    Items.Remove(parcelObj.Key);
+                    receiver.SendSystemMessage($"Your package from {parcel.Sender} has been delivered.");
+                    Items.RemoveAt(0);
                 }
                 else
                 {
-                    receiver.SendSystemMessage($"Sorry, you can't receive the package from {parcelObj.Value.Sender} right now.");
+                    receiver.SendSystemMessage($"Sorry, you can't receive the package from {parcel.Sender} right now.");
                 }
             }
             Save();
@@ -572,8 +599,7 @@ namespace Hybrasyl
         {
             lock(_lock)
             {
-                var goldKey = (sender + DateTime.Now).GetHashCode().ToString();
-                Gold.Add(goldKey, (sender, quantity));
+                Gold.Add(new Moneygram(sender, quantity));
             }
             Save();
         }
@@ -582,13 +608,12 @@ namespace Hybrasyl
         {
             lock(_lock)
             {
-                var goldObj = Gold.FirstOrDefault();
-                var gold = goldObj.Value;
+                var gold = Gold.FirstOrDefault();
 
                 if(receiver.AddGold(gold.Amount))
                 {
                     receiver.SendSystemMessage($"Your gold from {gold.Sender} has been delivered.");
-                    Items.Remove(goldObj.Key);
+                    Items.RemoveAt(0);
                 }
             }
             Save();
