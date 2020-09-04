@@ -52,6 +52,8 @@ namespace Hybrasyl.Scripting
         /// </summary>
         public Xml.Class Class => User.Class;
 
+        public string MapName => User.Map?.Name ?? "Unknown Kadath";
+
         /// <summary>
         /// The user's previous class, if a subpath.
         /// </summary>
