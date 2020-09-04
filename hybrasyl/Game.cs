@@ -190,6 +190,7 @@ namespace Hybrasyl
                 {
                     Log.Information("Configuration file {file} loaded", hybconfig);
                     Config = gameConfig;
+                    Config.InitializeClientSettings();
                 }
                 else
                 {
