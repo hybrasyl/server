@@ -27,7 +27,8 @@ using System.Collections.Generic;
 public partial class ClientSetting
 {
     #region Private fields
-    private int _number;
+    private byte _number;
+    private string _key;
     private bool _default;
     private string _value;
     private static XmlSerializer _serializer;
@@ -39,7 +40,7 @@ public partial class ClientSetting
     }
     
     [XmlAttribute]
-    public int Number
+    public byte Number
     {
         get
         {
@@ -48,6 +49,19 @@ public partial class ClientSetting
         set
         {
             _number = value;
+        }
+    }
+    
+    [XmlAttribute(DataType="token")]
+    public string Key
+    {
+        get
+        {
+            return _key;
+        }
+        set
+        {
+            _key = value;
         }
     }
     

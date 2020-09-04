@@ -2197,7 +2197,7 @@ namespace Hybrasyl
             var settingNumber = packet.ReadByte();
             var user = obj as User;
             // Only seven of these are usable by the client (1-6, and 8), 
-            // the seventh one is sent to keep the ordering consistent but does nothing
+            // the seventh one is sent to keep the ordering consistent but seemingly does nothing
             var settings = new List<byte>() { 1, 2, 3, 4, 5, 6, 7, 8 };
             if (settingNumber == 0)
             {
@@ -2205,18 +2205,21 @@ namespace Hybrasyl
                 foreach (var x in settings)
                 {
                     if (!user.ClientSettings.ContainsKey(x))
-                        user.ClientSettings[x] = false;
+                        user.ClientSettings[x] = Game.Config.SettingsNumberIndex[x].Default;
                 }
+
                 // for the record this is a very strange usage of a message packet
-                var settingsString = string.Join(" \t", settings.Select(x => string.Format("Setting {0}: {1}", x, user.ClientSettings[x])));
+                var settingsString = string.Join("\t",
+                    Game.Config.SettingsNumberIndex.Select(kvp => string.Format("{0}  :{1}", kvp.Value.Value, 
+                    user.ClientSettings[kvp.Key] == true ? "ON" : "OFF" )));
                 var x0a = new ServerPacketStructures.SettingsMessage()
                 {
                     DisplayString = settingsString,
                     Number = 0
                 };
                 var settingsPacket = x0a.Packet();
+                x0a.Packet().DumpPacket();
                 user.Enqueue(settingsPacket);
-
             }
             else
             {
@@ -2224,10 +2227,11 @@ namespace Hybrasyl
                 if (!user.ClientSettings.ContainsKey(settingNumber))
                     user.ClientSettings[settingNumber] = false;
                 else
-                    user.ClientSettings[settingNumber] = !user.ClientSettings[settingNumber];
-                var displayString = $"Setting {settingNumber}: {user.ClientSettings[settingNumber]}";
+                    user.ToggleClientSetting(settingNumber);
+                var displayString = $"{Game.Config.GetSettingLabel(settingNumber)}  :{(user.ClientSettings[settingNumber] == true ? "ON" : "OFF")}";
                 var x0a = new ServerPacketStructures.SettingsMessage() { DisplayString = displayString, Number = settingNumber };
                 var settingspacket = x0a.Packet();
+                x0a.Packet().DumpPacket();
                 user.Enqueue(settingspacket);
             }
         }
@@ -2606,19 +2610,10 @@ namespace Hybrasyl
                     var playerTarget = (User)target;
 
                     // Pre-flight checks
-                    if (!Exchange.StartConditionsValid(user, playerTarget))
+                    if (!Exchange.StartConditionsValid(user, playerTarget, out string errorMessage))
                     {
-                        user.SendSystemMessage("You can't do that.");
+                        user.SendSystemMessage(errorMessage);
                         return;
-                    }
-                    if (!playerTarget.IsAvailableForExchange)
-                    {
-                        user.SendMessage("They can't do that right now.", MessageTypes.SYSTEM);
-                        return;
-                    }
-                    if (!user.IsAvailableForExchange)
-                    {
-                        user.SendMessage("You can't do that right now.", MessageTypes.SYSTEM);
                     }
                     // Start exchange
                     var exchange = new Exchange(user, playerTarget);
@@ -2649,6 +2644,7 @@ namespace Hybrasyl
             var quantity = packet.ReadByte();
             var user = (User)obj;
 
+
             // If the object is a creature or an NPC, simply give them the item, otherwise,
             // initiate an exchange
 
@@ -2664,19 +2660,10 @@ namespace Hybrasyl
 
                     // Pre-flight checks
 
-                    if (!Exchange.StartConditionsValid(user, playerTarget))
+                    if (!Exchange.StartConditionsValid(user, playerTarget, out string errorMessage))
                     {
-                        user.SendSystemMessage("You can't do that.");
+                        user.SendSystemMessage(errorMessage);
                         return;
-                    }
-                    if (!playerTarget.IsAvailableForExchange)
-                    {
-                        user.SendSystemMessage("They can't do that right now.");
-                        return;
-                    }
-                    if (!user.IsAvailableForExchange)
-                    {
-                        user.SendSystemMessage("You can't do that right now.");
                     }
                     // Initiate exchange and put item in it
                     var exchange = new Exchange(user, playerTarget);
@@ -2765,7 +2752,7 @@ namespace Hybrasyl
             {
                 case 0x01:
                     {
-                        // Display board list
+                        // Display board list.....
                         response.WriteByte(0x01);
 
                         // TODO: This has the potential to be a somewhat expensive operation, optimize this.
@@ -3780,13 +3767,11 @@ namespace Hybrasyl
                         WorldObject target;
                         if (Objects.TryGetValue((uint)x0PlayerId, out target))
                         {
-                            if (target is User)
+                            if (target is User playerTarget)
                             {
-                                var playerTarget = (User)target;
-
-                                if (Exchange.StartConditionsValid(user, playerTarget))
+                                if (!Exchange.StartConditionsValid(user, playerTarget, out string errorMessage))
                                 {
-                                    user.SendMessage("That can't be done right now.", MessageTypes.SYSTEM);
+                                    user.SendSystemMessage(errorMessage);
                                     return;
                                 }
                                 // Initiate exchange
@@ -4325,9 +4310,10 @@ namespace Hybrasyl
                                 continue;
                             }
                             // Handle board usage
-                            if (user.Condition.Flags.HasFlag(PlayerFlags.InDialog) && clientMessage.Packet.Opcode != 0x3b &&
+                            if (user.Condition.Flags.HasFlag(PlayerFlags.InBoard) && clientMessage.Packet.Opcode != 0x3b &&
                                 clientMessage.Packet.Opcode != 0x45 && clientMessage.Packet.Opcode != 0x75)
-                                user.Condition.Flags = user.Condition.Flags & ~PlayerFlags.InDialog;
+                                user.Condition.Flags = user.Condition.Flags & ~PlayerFlags.InBoard;
+
                             // Last but not least, invoke the handler
 
                             handler.Invoke(user, clientMessage.Packet);

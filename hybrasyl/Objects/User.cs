@@ -340,6 +340,20 @@ namespace Hybrasyl.Objects
         [JsonProperty]
         public Dictionary<byte, bool> ClientSettings { get; set; }
 
+        public bool GetClientSetting(string key) => ClientSettings[Game.Config.GetSettingNumber(key)];
+        public bool ToggleClientSetting(string key)
+        {
+            var num = Game.Config.GetSettingNumber(key);
+            ClientSettings[num] = !ClientSettings[num];
+            return ClientSettings[num];
+        }
+        public bool ToggleClientSetting(byte number)
+        {
+            ClientSettings[number] = !ClientSettings[number];
+            return ClientSettings[number];
+        }
+
+
         [JsonProperty]
         public bool IsMuted { get; set; }
         [JsonProperty]
@@ -1476,10 +1490,12 @@ namespace Hybrasyl.Objects
         {
             var x05 = new ServerPacket(0x05);
             x05.WriteUInt32(Id);
-            x05.WriteByte(1);
-            x05.WriteByte(213);
+            x05.WriteByte(0x02);
             x05.WriteByte(0x00);
-            x05.WriteUInt16(0x00);
+            x05.WriteByte(0x01);
+            x05.WriteByte(0x00);
+            x05.WriteByte(0x00);
+            x05.WriteByte(0x00);
             Enqueue(x05);
         }
 

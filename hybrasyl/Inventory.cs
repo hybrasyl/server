@@ -65,14 +65,27 @@ namespace Hybrasyl
             _targetSize = target.Inventory.EmptySlots;
         }
 
-        public static bool StartConditionsValid(User source, User target)
+        public static bool StartConditionsValid(User source, User target, out string errorMessage)
         {
-            return source.Map == target.Map && source.IsInViewport(target) &&
-                   target.IsInViewport(source) &&
-                   source.Condition.NoFlags &&
-                   target.Condition.NoFlags && 
-                   target.Distance(source) <= Constants.EXCHANGE_DISTANCE;
+            errorMessage = string.Empty;
+            var locationCheck = source.Map == target.Map && source.IsInViewport(target) &&
+                   target.IsInViewport(source) && target.Distance(source) <= Constants.EXCHANGE_DISTANCE;
 
+            var flagCheck = source.Condition.NoFlags && target.Condition.NoFlags;
+
+            if (!locationCheck)
+                errorMessage = "They are too far away.";
+
+            if (!flagCheck)
+                errorMessage = "That is not possible now.";
+
+            if (!source.GetClientSetting("exchange"))
+                errorMessage = "You have exchange turned off.";
+
+            if (!target.GetClientSetting("exchange"))
+                errorMessage = "They do not wish to trade with you.";
+
+            return errorMessage == string.Empty;
         }
 
         public bool ConditionsValid

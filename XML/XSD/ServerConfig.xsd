@@ -176,7 +176,8 @@
   <xs:complexType name="ClientSetting">
     <xs:simpleContent>
       <xs:extension base="hyb:String8">
-        <xs:attribute type="xs:int" name="Number" use="required"/>
+        <xs:attribute type="xs:unsignedByte" name="Number" use="required"/>
+        <xs:attribute type="xs:token" name="Key" use="required"/>
         <xs:attribute type="xs:boolean" name="Default" default="false"/>
       </xs:extension>
     </xs:simpleContent>
