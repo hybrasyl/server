@@ -4731,28 +4731,35 @@ namespace Hybrasyl.Objects
                 prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item_failure_quantity_bank").Value.Replace("$QUANTITY", quantity.ToString()).Replace("$ITEM", item);
                 failure = true;
             }
-            else if (worldItem.Stackable)
+            else if (!failure && worldItem.Stackable)
             {
-                if (Inventory.Contains(item, 1))
+                if (CurrentWeight + worldItem.Properties.Physical.Weight > MaximumWeight)
                 {
-                    var maxQuantity = 0;
-                    var existingStacks = Inventory.SlotByName(item);
-                    foreach(var slot in existingStacks)
-                    {
-                        maxQuantity += Inventory[slot].MaximumStack - Inventory[slot].Count;
-                    }
-                    maxQuantity += (Inventory.EmptySlots - 2 ) * worldItem.MaximumStack; //account for slot 0 and gold slot
-
-                    if (quantity > maxQuantity)
-                    {
-                        prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item_failure_quantity_inventory_diff").Value.Replace("$ITEM", item).Replace("$QUANTITY", maxQuantity.ToString());
-                    }
+                    prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item_failure_weight").Value;
                 }
                 else
                 {
-                    if(Inventory.EmptySlots == 0)
+                    if (Inventory.Contains(item, 1))
                     {
-                        prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item_failure_slot").Value;
+                        var maxQuantity = 0;
+                        var existingStacks = Inventory.SlotByName(item);
+                        foreach (var slot in existingStacks)
+                        {
+                            maxQuantity += Inventory[slot].MaximumStack - Inventory[slot].Count;
+                        }
+                        maxQuantity += (Inventory.EmptySlots - 2) * worldItem.MaximumStack; //account for slot 0 and gold slot
+
+                        if (quantity > maxQuantity)
+                        {
+                            prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item_failure_quantity_inventory_diff").Value.Replace("$ITEM", item).Replace("$QUANTITY", maxQuantity.ToString());
+                        }
+                    }
+                    else
+                    {
+                        if (Inventory.EmptySlots == 0)
+                        {
+                            prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item_failure_slot").Value;
+                        }
                     }
                 }
             }
@@ -4768,7 +4775,7 @@ namespace Hybrasyl.Objects
                 }
             }
 
-            if(prompt == string.Empty)
+            if(!failure && prompt == string.Empty)
             {
                 prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item_success").Value.Replace("$ITEM", item).Replace("$QUANTITY", quantity.ToString());
                 if (worldItem.Stackable)
