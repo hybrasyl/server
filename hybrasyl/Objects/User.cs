@@ -4339,6 +4339,7 @@ namespace Hybrasyl.Objects
 
         public void ShowRepairItemMenu(Merchant merchant)
         {
+            PendingRepairCost = 0;
             var inventoryItems = new UserInventoryItems();
             inventoryItems.InventorySlots = new List<byte>();
             inventoryItems.Id = (ushort)MerchantMenuItem.RepairItem;
@@ -4611,12 +4612,14 @@ namespace Hybrasyl.Objects
                 for (byte i = 0; i < Equipment.Size; i++)
                 {
                     if (Equipment[i] == null) continue;
-                    if (Equipment[i].Durability != Inventory[i].MaximumDurability)
+                    if (Equipment[i].Durability != Equipment[i].MaximumDurability)
                     {
                         Equipment[i].Durability = Equipment[i].MaximumDurability;
-                        SendItemUpdate(Equipment[i], i);
+                        //SendItemUpdate(Equipment[i], i);
+                        AddEquipment(Equipment[i], i);
                     }
                 }
+                
                 var packet = new ServerPacketStructures.MerchantResponse()
                 {
                     MerchantDialogType = MerchantDialogType.Options,
