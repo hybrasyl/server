@@ -2322,6 +2322,7 @@ namespace Hybrasyl.Objects
                 do
                 {
                     var item = World.CreateItem(xmlItem.Id);
+                    World.Insert(item);
                     AddItem(item, updateWeight);
                     quantity -= 1;
                 }
