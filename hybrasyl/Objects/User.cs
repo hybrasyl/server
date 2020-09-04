@@ -2302,12 +2302,14 @@ namespace Hybrasyl.Objects
                         {
                             item.Count = item.MaximumStack;
                             quantity -= (byte)item.MaximumStack;
+                            World.Insert(item);
                             AddItem(item, updateWeight);
                         }
                         else
                         {
                             item.Count = quantity;
                             quantity -= quantity;
+                            World.Insert(item);
                             AddItem(item, updateWeight);
                         }
                     }
@@ -2647,6 +2649,11 @@ namespace Hybrasyl.Objects
 
         public override bool UseCastable(Xml.Castable castObject, Creature target = null, SpawnCastable spawnCastable = null)
         {
+            if(castObject.Intents[0].UseType == SpellUseType.Prompt)
+            {
+                //do something.
+            }
+
             // Check casting costs
             if (!ProcessCastingCost(castObject, out string message))
             {

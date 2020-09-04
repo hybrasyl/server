@@ -973,7 +973,6 @@ namespace Hybrasyl
         private void LoadMetafiles()
         {
             // these might be better suited in LoadData as the database is being read, but only items are in database atm
-
             #region ItemInfo
             var itmIndex = 0;
             var itmPerFile = (WorldData.Values<Xml.Item>().Count() / 8);
@@ -1854,8 +1853,14 @@ namespace Hybrasyl
                 {
                     GameLog.DebugFormat("Removing {0}, qty {1} from {2}@{3},{4}",
                         item.Name, item.Count, user.Map.Name, x, y);
+
+                    var success = user.AddItem(item, slot);
                     user.Map.Remove(item);
-                    user.AddItem(item, slot);
+                    if (!success)
+                    {
+                        user.Map.Insert(item, user.X, user.Y);
+                    }
+                        
                 }
             }
         }
@@ -2022,6 +2027,13 @@ namespace Hybrasyl
 
         private void PacketHandler_0X0C_PutGround(object obj, ClientPacket packet)
         {
+            //if (obj is VisibleObject vo)
+            //{ 
+            //    foreach(var entity in vo.Map.EntityTree.GetObjects(vo.GetViewport()))
+            //    {
+            //        vo.AoiEntry(entity);
+            //    }
+            //}
             //do nothing. only here to remove the stupid spam.
         }
 
