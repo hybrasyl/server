@@ -27,9 +27,23 @@ using System.Collections.Generic;
 public partial class NpcRoleBank
 {
     #region Private fields
+    private string _nation;
     private string _discount;
     private static XmlSerializer _serializer;
     #endregion
+    
+    [XmlAttribute]
+    public string Nation
+    {
+        get
+        {
+            return _nation;
+        }
+        set
+        {
+            _nation = value;
+        }
+    }
     
     [XmlAttribute]
     public string Discount

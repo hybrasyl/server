@@ -118,8 +118,10 @@ namespace Hybrasyl.Objects
         }
 
         public Mailbox Mailbox => World.GetMailbox(Name);
-        public Vault Vault => World.GetVault(AccountUuid == null ? Uuid : AccountUuid);
+        public Vault Vault => World.GetVault(AccountUuid ?? Uuid);
+        public ParcelStore ParcelStore => World.GetParcelStore(Uuid);
         public bool UnreadMail => Mailbox.HasUnreadMessages;
+        public bool HasParcels => ParcelStore.Items.Count > 0;
 
         #region Appearance settings 
         [JsonProperty]
@@ -163,6 +165,7 @@ namespace Hybrasyl.Objects
 
         public Xml.Castable PendingLearnableCastable { get; private set; }
         public ItemObject PendingSendableParcel { get; private set; }
+        public uint PendingSendableQuantity { get; private set; }
         public string PendingParcelRecipient { get; private set; }
         public string PendingBuyableItem { get; private set; }
         public int PendingBuyableQuantity { get; private set; }
@@ -1597,9 +1600,9 @@ namespace Hybrasyl.Objects
             {
                 double percent;
                 if (item.UseCount > item.Mastery.Uses) percent = 100;
-                else percent = Math.Round((item.UseCount / (double)item.Mastery.Uses) * 100, 2);
+                else percent = Math.Round((item.UseCount / (double)item.Mastery.Uses) * 100, 0);
 
-                x2C.WriteString8($"{item.Name} (Mastery{mastery}: {percent}%)");
+                x2C.WriteString8($"{item.Name} (Lev:{percent}/100)");
             }
             else
             {
@@ -1621,34 +1624,32 @@ namespace Hybrasyl.Objects
                 castable.Name, slot);
             GameLog.InfoFormat($"{Name}: adding {castable.Name} to slot {slot}");
 
-            var mastery = "";
-
-            if (castable.Mastery.Tiered)
-            {
-                mastery = $"[{castable.MasteryLevel}]";
-            }
-
-            var x17 = new ServerPacket(0x17);
-            x17.WriteByte((byte)slot);
-            x17.WriteUInt16((ushort)(castable.Icon));
-            var spellType = castable.Intents[0].UseType;
-            x17.WriteByte((byte)spellType); //spell type? how are we determining this?
+            
+            string name = "";
             if (castable.Mastery.Uses != 1)
             {
                 double percent;
                 if (castable.UseCount > castable.Mastery.Uses) percent = 100;
-                else percent = Math.Round((castable.UseCount / (double)castable.Mastery.Uses) * 100, 2);
+                else percent = Math.Round((castable.UseCount / (double)castable.Mastery.Uses) * 100, 0);
 
-                x17.WriteString8($"{castable.Name} (Mastery{mastery}: {percent}%)");
+                name = $"{castable.Name} (Lev:{percent}/100)";
             }
             else
             {
-                x17.WriteString8(castable.Name);
+                name = castable.Name;
             }
-            x17.WriteString8(castable.Name); //prompt? what is this?
-            x17.WriteByte((byte)CalculateLines(castable));
+
+            var spellUpdate = new ServerPacketStructures.AddSpell()
+            {
+                Slot = (byte)slot,
+                Icon = castable.Icon,
+                UseType = (byte)castable.Intents[0].UseType,
+                Name = name,
+                Prompt = "\0",
+                Lines = (byte)CalculateLines(castable)
+            };
             GameLog.InfoFormat($"{Name}: enqueuing {castable.Name} to slot {slot}");
-            Enqueue(x17);
+            Enqueue(spellUpdate.Packet());
         }
 
         private int CalculateLines(Xml.Castable castable)
@@ -1756,7 +1757,7 @@ namespace Hybrasyl.Objects
         {
             
             var x08 = new ServerPacket(0x08);
-            if (UnreadMail)
+            if (UnreadMail || HasParcels)
             {
                 flags |= StatUpdateFlags.UnreadMail;
             }
@@ -2301,12 +2302,14 @@ namespace Hybrasyl.Objects
                         {
                             item.Count = item.MaximumStack;
                             quantity -= (byte)item.MaximumStack;
+                            World.Insert(item);
                             AddItem(item, updateWeight);
                         }
                         else
                         {
                             item.Count = quantity;
                             quantity -= quantity;
+                            World.Insert(item);
                             AddItem(item, updateWeight);
                         }
                     }
@@ -2490,7 +2493,8 @@ namespace Hybrasyl.Objects
             var oldSlotItem = Inventory[oldSlot];
             var newSlotItem = Inventory[newSlot];
 
-            if (oldSlotItem.Name == newSlotItem.Name && newSlotItem.Stackable)
+            
+            if (newSlotItem != null && oldSlotItem.Name == newSlotItem.Name && newSlotItem.Stackable)
             {
                 if(newSlotItem.Count < newSlotItem.MaximumStack)
                 {
@@ -2645,6 +2649,11 @@ namespace Hybrasyl.Objects
 
         public override bool UseCastable(Xml.Castable castObject, Creature target = null, SpawnCastable spawnCastable = null)
         {
+            if(castObject.Intents[0].UseType == SpellUseType.Prompt)
+            {
+                //do something.
+            }
+
             // Check casting costs
             if (!ProcessCastingCost(castObject, out string message))
             {
@@ -3877,7 +3886,7 @@ namespace Hybrasyl.Objects
                     itemsCount++;
                 }
             }
-            userItems.Id = (ushort)MerchantMenuItem.SendParcelRecipient;
+            userItems.Id = (ushort)MerchantMenuItem.SendParcelQuantity;
 
 
             var packet = new ServerPacketStructures.MerchantResponse()
@@ -3897,8 +3906,44 @@ namespace Hybrasyl.Objects
             Enqueue(packet.Packet());
         }
 
-        public void ShowMerchantSendParcelRecipient(Merchant merchant, ItemObject item)
+        public void ShowMerchantSendParcelQuantity(Merchant merchant, ItemObject item)
         {
+            if (item.Stackable && item.Count > 1)
+            {
+                var prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel_quantity").Value.Replace("$QUANTITY", item.Count.ToString()).Replace("$ITEM", item.Name);
+
+                var input = new MerchantInput();
+
+                input.Id = (ushort)MerchantMenuItem.SendParcelRecipient;
+
+                var packet = new ServerPacketStructures.MerchantResponse()
+                {
+                    MerchantDialogType = MerchantDialogType.Input,
+                    MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                    ObjectId = merchant.Id,
+                    Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                    Color1 = 0,
+                    Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                    Color2 = 0,
+                    PortraitType = 0,
+                    Name = merchant.Name,
+                    Text = prompt,
+                    Input = input
+
+                };
+                Enqueue(packet.Packet());
+            }
+            else
+            {
+                ShowMerchantSendParcelRecipient(merchant);
+            }
+            PendingSendableParcel = item;
+
+        }
+
+        public void ShowMerchantSendParcelRecipient(Merchant merchant, uint quantity = 1)
+        {
+            PendingSendableQuantity = quantity;
             var sendString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel_recipient");
             var prompt = sendString.Value;
 
@@ -3920,7 +3965,7 @@ namespace Hybrasyl.Objects
                 Input = input
             };
 
-            PendingSendableParcel = item;
+            
 
             Enqueue(packet.Packet());
         }
@@ -3928,13 +3973,14 @@ namespace Hybrasyl.Objects
         public void ShowMerchantSendParcelAccept(Merchant merchant, string recipient)
         {
             var itemObj = PendingSendableParcel;
+            var quantity = PendingSendableQuantity;
             PendingParcelRecipient = recipient;
             Xml.LocalizedString parcelString;
             var prompt = string.Empty;
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
             //verify user has required items.
-            var parcelFee = (uint)Math.Round(itemObj.Value * .10, 0);
+            var parcelFee = (uint)Math.Round((itemObj.Value * .10) * quantity, 0);
             if (!(Gold > parcelFee))
             {
                 parcelString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel_fail");
@@ -3943,13 +3989,21 @@ namespace Hybrasyl.Objects
             if (prompt == string.Empty)
             {
                 RemoveGold(parcelFee);
-                RemoveItem(itemObj.Name);
+                RemoveItem(itemObj.Name, (ushort)quantity);
                 SendInventory();
                 parcelString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel_success");
                 prompt = parcelString.Value.Replace("$FEE", parcelFee.ToString());
 
                 //TODO: Send parcel to recipient
+                var uuidRef = World.WorldData.Get<UuidReference>(recipient);
+                var parcelStore = World.WorldData.Get<ParcelStore>(uuidRef.UserUuid);
+                var recipientMailbox = World.WorldData.Get<Mailbox>(recipient);
+                parcelStore.AddItem(Name, itemObj.Name, quantity);
+                recipientMailbox.ReceiveMessage(new Message(recipient, merchant.Name, "You've received a package.", "Please visit a messenger to collect your package."));
+
+                PendingSellableQuantity = 0;
                 PendingSendableParcel = null;
+                
             }
             var packet = new ServerPacketStructures.MerchantResponse()
             {
@@ -3974,9 +4028,8 @@ namespace Hybrasyl.Objects
             var sendString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "receive_parcel");
             var prompt = sendString.Value;
 
-            var input = new MerchantInput();
-            input.Id = (ushort)MerchantMenuItem.SendParcelAccept;
-
+            var options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
             var packet = new ServerPacketStructures.MerchantResponse()
             {
                 MerchantDialogType = MerchantDialogType.Options,
@@ -3989,10 +4042,11 @@ namespace Hybrasyl.Objects
                 PortraitType = 0,
                 Name = merchant.Name,
                 Text = prompt,
-                Input = input
+                Options = options
             };
 
             //TODO: Get Parcel from pending mail.
+            ParcelStore.RemoveItem(this);
 
             Enqueue(packet.Packet());
         }
@@ -4285,6 +4339,7 @@ namespace Hybrasyl.Objects
 
         public void ShowRepairItemMenu(Merchant merchant)
         {
+            PendingRepairCost = 0;
             var inventoryItems = new UserInventoryItems();
             inventoryItems.InventorySlots = new List<byte>();
             inventoryItems.Id = (ushort)MerchantMenuItem.RepairItem;
@@ -4557,12 +4612,14 @@ namespace Hybrasyl.Objects
                 for (byte i = 0; i < Equipment.Size; i++)
                 {
                     if (Equipment[i] == null) continue;
-                    if (Equipment[i].Durability != Inventory[i].MaximumDurability)
+                    if (Equipment[i].Durability != Equipment[i].MaximumDurability)
                     {
                         Equipment[i].Durability = Equipment[i].MaximumDurability;
-                        SendItemUpdate(Equipment[i], i);
+                        //SendItemUpdate(Equipment[i], i);
+                        AddEquipment(Equipment[i], i);
                     }
                 }
+                
                 var packet = new ServerPacketStructures.MerchantResponse()
                 {
                     MerchantDialogType = MerchantDialogType.Options,
@@ -4674,28 +4731,35 @@ namespace Hybrasyl.Objects
                 prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item_failure_quantity_bank").Value.Replace("$QUANTITY", quantity.ToString()).Replace("$ITEM", item);
                 failure = true;
             }
-            else if (worldItem.Stackable)
+            else if (!failure && worldItem.Stackable)
             {
-                if (Inventory.Contains(item, 1))
+                if (CurrentWeight + worldItem.Properties.Physical.Weight > MaximumWeight)
                 {
-                    var maxQuantity = 0;
-                    var existingStacks = Inventory.SlotByName(item);
-                    foreach(var slot in existingStacks)
-                    {
-                        maxQuantity += Inventory[slot].MaximumStack - Inventory[slot].Count;
-                    }
-                    maxQuantity += (Inventory.EmptySlots - 2 ) * worldItem.MaximumStack; //account for slot 0 and gold slot
-
-                    if (quantity > maxQuantity)
-                    {
-                        prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item_failure_quantity_inventory_diff").Value.Replace("$ITEM", item).Replace("$QUANTITY", maxQuantity.ToString());
-                    }
+                    prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item_failure_weight").Value;
                 }
                 else
                 {
-                    if(Inventory.EmptySlots == 0)
+                    if (Inventory.Contains(item, 1))
                     {
-                        prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item_failure_slot").Value;
+                        var maxQuantity = 0;
+                        var existingStacks = Inventory.SlotByName(item);
+                        foreach (var slot in existingStacks)
+                        {
+                            maxQuantity += Inventory[slot].MaximumStack - Inventory[slot].Count;
+                        }
+                        maxQuantity += (Inventory.EmptySlots - 2) * worldItem.MaximumStack; //account for slot 0 and gold slot
+
+                        if (quantity > maxQuantity)
+                        {
+                            prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item_failure_quantity_inventory_diff").Value.Replace("$ITEM", item).Replace("$QUANTITY", maxQuantity.ToString());
+                        }
+                    }
+                    else
+                    {
+                        if (Inventory.EmptySlots == 0)
+                        {
+                            prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item_failure_slot").Value;
+                        }
                     }
                 }
             }
@@ -4711,7 +4775,7 @@ namespace Hybrasyl.Objects
                 }
             }
 
-            if(prompt == string.Empty)
+            if(!failure && prompt == string.Empty)
             {
                 prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item_success").Value.Replace("$ITEM", item).Replace("$QUANTITY", quantity.ToString());
                 if (worldItem.Stackable)

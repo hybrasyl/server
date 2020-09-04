@@ -29,6 +29,44 @@ using Hybrasyl.Scripting;
 
 namespace Hybrasyl.Objects
 {
+    public class ThreatInfo
+    {
+        public Creature ThreatTarget => ThreatTable.Aggregate((l, r) => l.Value > r.Value ? l : r).Key ?? null;
+
+        public Dictionary<Creature, uint> ThreatTable { get; set; }
+
+        public ThreatInfo()
+        {
+            ThreatTable = new Dictionary<Creature, uint>();
+        }
+
+        public void IncreaseThreat(Creature threat, uint amount)
+        {
+            ThreatTable[threat] += amount;
+        }
+
+        public void DecreaseThreat(Creature threat, uint amount)
+        {
+            ThreatTable[threat] -= amount;
+        }
+
+        public void WipeThreat(Creature threat)
+        {
+            ThreatTable[threat] = 0;
+        }
+
+        public void AddNewThreat(Creature newThreat)
+        {
+            ThreatTable.Add(newThreat, 0);
+        }
+
+        public void RemoveThreat(Creature threat)
+        {
+            ThreatTable.Remove(threat);
+        }
+
+    }
+
     public class Monster : Creature, ICloneable
     {
         protected static Random Rng = new Random();
@@ -37,7 +75,7 @@ namespace Hybrasyl.Objects
 
         private uint _mTarget;
 
-        private Xml.Spawn _spawn;
+        internal Xml.Spawn _spawn;
 
         private uint _simpleDamage => Convert.ToUInt32(Rng.Next(_spawn.Damage.Min, _spawn.Damage.Max +1) * _variance);
 
