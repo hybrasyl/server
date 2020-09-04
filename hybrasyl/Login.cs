@@ -201,10 +201,8 @@ namespace Hybrasyl
                 cache.Set(User.GetStorageKey(newPlayer.Name), newPlayer);
                 var vault = new Vault(newPlayer.Uuid);
                 vault.Save();
-//                    GameLog.ErrorFormat("Error saving new player!");
-  //                  GameLog.ErrorFormat(e.ToString());
-    //                client.LoginMessage("Unknown error. Contact admin@hybrasyl.com", 3);
-      //          }
+                var parcelStore = new ParcelStore(newPlayer.Uuid);
+                parcelStore.Save();
                 client.LoginMessage("\0", 0);
             }
         }

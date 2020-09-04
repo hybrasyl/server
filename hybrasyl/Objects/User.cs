@@ -118,8 +118,10 @@ namespace Hybrasyl.Objects
         }
 
         public Mailbox Mailbox => World.GetMailbox(Name);
-        public Vault Vault => World.GetVault(AccountUuid == null ? Uuid : AccountUuid);
+        public Vault Vault => World.GetVault(AccountUuid ?? Uuid);
+        public ParcelStore ParcelStore => World.GetParcelStore(Uuid);
         public bool UnreadMail => Mailbox.HasUnreadMessages;
+        public bool HasParcels => ParcelStore.Items.Count > 0;
 
         #region Appearance settings 
         [JsonProperty]
@@ -163,6 +165,7 @@ namespace Hybrasyl.Objects
 
         public Xml.Castable PendingLearnableCastable { get; private set; }
         public ItemObject PendingSendableParcel { get; private set; }
+        public uint PendingSendableQuantity { get; private set; }
         public string PendingParcelRecipient { get; private set; }
         public string PendingBuyableItem { get; private set; }
         public int PendingBuyableQuantity { get; private set; }
@@ -1754,7 +1757,7 @@ namespace Hybrasyl.Objects
         {
             
             var x08 = new ServerPacket(0x08);
-            if (UnreadMail)
+            if (UnreadMail || HasParcels)
             {
                 flags |= StatUpdateFlags.UnreadMail;
             }
@@ -3876,7 +3879,7 @@ namespace Hybrasyl.Objects
                     itemsCount++;
                 }
             }
-            userItems.Id = (ushort)MerchantMenuItem.SendParcelRecipient;
+            userItems.Id = (ushort)MerchantMenuItem.SendParcelQuantity;
 
 
             var packet = new ServerPacketStructures.MerchantResponse()
@@ -3896,8 +3899,44 @@ namespace Hybrasyl.Objects
             Enqueue(packet.Packet());
         }
 
-        public void ShowMerchantSendParcelRecipient(Merchant merchant, ItemObject item)
+        public void ShowMerchantSendParcelQuantity(Merchant merchant, ItemObject item)
         {
+            if (item.Stackable && item.Count > 1)
+            {
+                var prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel_quantity").Value.Replace("$QUANTITY", item.Count.ToString()).Replace("$ITEM", item.Name);
+
+                var input = new MerchantInput();
+
+                input.Id = (ushort)MerchantMenuItem.SendParcelRecipient;
+
+                var packet = new ServerPacketStructures.MerchantResponse()
+                {
+                    MerchantDialogType = MerchantDialogType.Input,
+                    MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
+                    ObjectId = merchant.Id,
+                    Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                    Color1 = 0,
+                    Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                    Color2 = 0,
+                    PortraitType = 0,
+                    Name = merchant.Name,
+                    Text = prompt,
+                    Input = input
+
+                };
+                Enqueue(packet.Packet());
+            }
+            else
+            {
+                ShowMerchantSendParcelRecipient(merchant);
+            }
+            PendingSendableParcel = item;
+
+        }
+
+        public void ShowMerchantSendParcelRecipient(Merchant merchant, uint quantity = 1)
+        {
+            PendingSendableQuantity = quantity;
             var sendString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel_recipient");
             var prompt = sendString.Value;
 
@@ -3919,7 +3958,7 @@ namespace Hybrasyl.Objects
                 Input = input
             };
 
-            PendingSendableParcel = item;
+            
 
             Enqueue(packet.Packet());
         }
@@ -3927,13 +3966,14 @@ namespace Hybrasyl.Objects
         public void ShowMerchantSendParcelAccept(Merchant merchant, string recipient)
         {
             var itemObj = PendingSendableParcel;
+            var quantity = PendingSendableQuantity;
             PendingParcelRecipient = recipient;
             Xml.LocalizedString parcelString;
             var prompt = string.Empty;
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
             //verify user has required items.
-            var parcelFee = (uint)Math.Round(itemObj.Value * .10, 0);
+            var parcelFee = (uint)Math.Round((itemObj.Value * .10) * quantity, 0);
             if (!(Gold > parcelFee))
             {
                 parcelString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel_fail");
@@ -3942,13 +3982,21 @@ namespace Hybrasyl.Objects
             if (prompt == string.Empty)
             {
                 RemoveGold(parcelFee);
-                RemoveItem(itemObj.Name);
+                RemoveItem(itemObj.Name, (ushort)quantity);
                 SendInventory();
                 parcelString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel_success");
                 prompt = parcelString.Value.Replace("$FEE", parcelFee.ToString());
 
                 //TODO: Send parcel to recipient
+                var uuidRef = World.WorldData.GetByIndex<UuidReference>(recipient);
+                var parcelStore = World.WorldData.Get<ParcelStore>(uuidRef.UserUuid);
+                var recipientMailbox = World.WorldData.Get<Mailbox>(recipient);
+                parcelStore.AddItem(Name, itemObj.Name, quantity);
+                recipientMailbox.ReceiveMessage(new Message(recipient, merchant.Name, "You've received a package.", "Please visit a messenger to collect your package."));
+
+                PendingSellableQuantity = 0;
                 PendingSendableParcel = null;
+                
             }
             var packet = new ServerPacketStructures.MerchantResponse()
             {
@@ -3973,9 +4021,8 @@ namespace Hybrasyl.Objects
             var sendString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "receive_parcel");
             var prompt = sendString.Value;
 
-            var input = new MerchantInput();
-            input.Id = (ushort)MerchantMenuItem.SendParcelAccept;
-
+            var options = new MerchantOptions();
+            options.Options = new List<MerchantDialogOption>();
             var packet = new ServerPacketStructures.MerchantResponse()
             {
                 MerchantDialogType = MerchantDialogType.Options,
@@ -3988,10 +4035,11 @@ namespace Hybrasyl.Objects
                 PortraitType = 0,
                 Name = merchant.Name,
                 Text = prompt,
-                Input = input
+                Options = options
             };
 
             //TODO: Get Parcel from pending mail.
+            ParcelStore.RemoveItem(this);
 
             Enqueue(packet.Packet());
         }

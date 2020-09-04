@@ -659,6 +659,13 @@ namespace Hybrasyl
                 WorldData.Set(vault.OwnerUuid, vault);
             }
 
+            //Load ParcelStores
+            foreach (var key in server.Keys(pattern: "Hybrasyl.ParcelStore*"))
+            {
+                GameLog.InfoFormat($"Loading parcelstore with key {key}");
+                var parcels = DatastoreConnection.GetDatabase().Get<ParcelStore>(key);
+                WorldData.Set(parcels.OwnerUuid, parcels);
+            }
             // Load all boards
             foreach (var key in server.Keys(pattern: "Hybrasyl.Board*"))
             {
@@ -674,6 +681,38 @@ namespace Hybrasyl
                 messageboard.Id = WorldData.Count<Board>() + 1;
                 WorldData.SetWithIndex(messageboard.Name, messageboard, messageboard.Id);
             }
+
+            // Load user uuid reference and initialize
+            foreach (var key in server.Keys(pattern: "User*"))
+            {
+                GameLog.InfoFormat("Loading Uuid references for {0}", key);
+                var user = DatastoreConnection.GetDatabase().Get<User>(key);
+                var name = key.ToString().Split(':')[1];
+                if (name == string.Empty)
+                {
+                    GameLog.Warning("Potentially corrupt user data in Redis; ignoring");
+                    continue;
+                }
+                var uuidKey = $"Hybrasyl.UuidReference:{name}";
+                var uuidRef = DatastoreConnection.GetDatabase().Get<UuidReference>(uuidKey);
+                if (uuidRef == null)
+                {
+                    GameLog.WarningFormat("No Uuid Reference found for {0}, rebuilding", user.Name);
+                    uuidRef = new UuidReference(name);
+                    uuidRef.AccountUuid = user.AccountUuid;
+                    uuidRef.UserUuid = user.Uuid;
+
+                    //sanity check to make sure user has this object
+                    if(!WorldData.ContainsKey<ParcelStore>($"Hybrasyl.ParcelStore:{uuidRef.UserUuid}"))
+                    {
+                        var parcelStore = new ParcelStore(uuidRef.UserUuid);
+                        WorldData.Set(parcelStore.OwnerUuid, parcelStore);
+                        parcelStore.Save();
+                    }
+                }
+                WorldData.SetWithIndex(user.Name, uuidRef, user.Name);
+            }
+
 
             // Ensure global boards exist and are up to date with anything specified in the config
             if (Game.Config.Boards != null)
@@ -865,6 +904,19 @@ namespace Hybrasyl
         }
 
         /*End ItemVariants*/
+        public ParcelStore GetParcelStore(string uuid)
+        {
+            if (WorldData.ContainsKey<ParcelStore>(uuid))
+            {
+                WorldData.Get<ParcelStore>(uuid).Save();
+                return WorldData.Get<ParcelStore>(uuid);
+            }
+            WorldData.Set<ParcelStore>(uuid, new ParcelStore(uuid));
+            WorldData.Get<ParcelStore>(uuid).Save();
+            GameLog.InfoFormat("ParcelStore: Creating parrots for {0}", uuid);
+            return WorldData.Get<ParcelStore>(uuid);
+        }
+
 
         public Vault GetVault(string uuid)
         {
@@ -1390,10 +1442,16 @@ namespace Hybrasyl
                     MerchantMenuItem.SendParcel, new MerchantMenuHandler(MerchantJob.Post, MerchantMenuHandler_SendParcel)
                 },
                 {
+                    MerchantMenuItem.SendParcelQuantity, new MerchantMenuHandler(MerchantJob.Post, MerchantMenuHandler_SendParcelQuantity)
+                },
+                {
                     MerchantMenuItem.SendParcelRecipient, new MerchantMenuHandler(MerchantJob.Post, MerchantMenuHandler_SendParcelRecipient)
                 },
                 {
                     MerchantMenuItem.SendParcelFailure, new MerchantMenuHandler(MerchantJob.Post, MerchantMenuHandler_SendParcelFailure)
+                },
+                {
+                    MerchantMenuItem.ReceiveParcel, new MerchantMenuHandler(MerchantJob.Post, MerchantMenuHandler_ReceiveParcel)
                 },
                 {
                     MerchantMenuItem.DepositItem, new MerchantMenuHandler(MerchantJob.Bank, MerchantMenuHandler_DepositItem)
@@ -4071,11 +4129,19 @@ namespace Hybrasyl
         private void MerchantMenuHandler_SendParcelMenu(User user, Merchant merchant, ClientPacket packet) =>
             user.ShowMerchantSendParcel(merchant);
 
-        private void MerchantMenuHandler_SendParcelRecipient(User user, Merchant merchant, ClientPacket packet)
+        private void MerchantMenuHandler_SendParcelQuantity(User user, Merchant merchant, ClientPacket packet)
         {
             var item = packet.ReadByte();
             var itemObj = user.Inventory[item];
-            user.ShowMerchantSendParcelRecipient(merchant, itemObj);
+
+            user.ShowMerchantSendParcelQuantity(merchant, itemObj);
+        }
+
+        private void MerchantMenuHandler_SendParcelRecipient(User user, Merchant merchant, ClientPacket packet)
+        {
+            var quantity = Convert.ToUInt32(packet.ReadString8());
+
+            user.ShowMerchantSendParcelRecipient(merchant, quantity);
         }
 
         private void MerchantMenuHandler_SendParcel(User user, Merchant merchant, ClientPacket packet) { }
@@ -4086,6 +4152,11 @@ namespace Hybrasyl
         {
             var recipient = packet.ReadString8();
             user.ShowMerchantSendParcelAccept(merchant, recipient);
+        }
+
+        private void MerchantMenuHandler_ReceiveParcel(User user, Merchant merchant, ClientPacket packet)
+        {
+            user.ShowMerchantReceiveParcelAccept(merchant);
         }
 
         private void MerchantMenuHandler_WithdrawItemQuantity(User user, Merchant merchant, ClientPacket packet)

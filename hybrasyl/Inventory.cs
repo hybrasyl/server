@@ -500,7 +500,100 @@ namespace Hybrasyl
         public GuildVault(string ownerUuid, uint goldLimit, ushort itemLimit) : base(ownerUuid, goldLimit, itemLimit) { }
     }
 
+    [JsonObject(MemberSerialization.OptIn)]
+    public class ParcelStore
+    {
+        private readonly object _lock = new object();
 
+        [JsonProperty]
+        public string OwnerUuid { get; set; }
+        [JsonProperty]
+        public Dictionary<string, (string Sender, string Item, uint Quantity)> Items { get; set; } //storage id, named tuple
+        [JsonProperty]
+        public Dictionary<string, (string Sender, uint Amount)> Gold { get; set; } //storage id, named tuple
+
+        public bool IsSaving;
+
+        public string StorageKey => string.Concat(GetType(), ':', OwnerUuid);
+
+        public ParcelStore() { }
+
+        public ParcelStore(string ownerUuid)
+        {
+            Items = new Dictionary<string, (string Sender, string Item, uint Quantity)>();
+            Gold = new Dictionary<string, (string Sender, uint Amount)>();
+            OwnerUuid = ownerUuid;
+        }
+
+        public void Save()
+        {
+            if (IsSaving) return;
+            lock (_lock)
+            {
+                IsSaving = true;
+                var cache = World.DatastoreConnection.GetDatabase();
+                cache.Set(StorageKey, this);
+                Game.World.WorldData.Set<ParcelStore>(OwnerUuid, this);
+                IsSaving = false;
+            }
+        }
+
+        public void AddItem(string sender, string item, uint quantity = 1)
+        {
+            lock (_lock)
+            {
+                string itemKey = (sender + DateTime.Now).GetHashCode().ToString();
+                Items.Add(itemKey, (sender, item, quantity));
+            }
+            Save();
+        }
+
+        public void RemoveItem(User receiver)
+        {
+            lock (_lock)
+            {
+                var parcelObj = Items.FirstOrDefault();
+                var item = parcelObj.Value;
+                
+                if(receiver.AddItem(item.Item, (ushort)item.Quantity))
+                {
+                    receiver.SendSystemMessage($"Your package from {parcelObj.Value.Sender} has been delivered.");
+                    Items.Remove(parcelObj.Key);
+                }
+                else
+                {
+                    receiver.SendSystemMessage($"Sorry, you can't receive the package from {parcelObj.Value.Sender} right now.");
+                }
+            }
+            Save();
+        }
+
+        public void AddGold(string sender, uint quantity)
+        {
+            lock(_lock)
+            {
+                var goldKey = (sender + DateTime.Now).GetHashCode().ToString();
+                Gold.Add(goldKey, (sender, quantity));
+            }
+            Save();
+        }
+
+        public void RemoveGold(User receiver)
+        {
+            lock(_lock)
+            {
+                var goldObj = Gold.FirstOrDefault();
+                var gold = goldObj.Value;
+
+                if(receiver.AddGold(gold.Amount))
+                {
+                    receiver.SendSystemMessage($"Your gold from {gold.Sender} has been delivered.");
+                    Items.Remove(goldObj.Key);
+                }
+            }
+            Save();
+        }
+    }
 
     public class InventoryConverter : JsonConverter
     {
