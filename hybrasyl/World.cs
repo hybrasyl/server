@@ -1089,7 +1089,22 @@ namespace Hybrasyl
                         requirements.Level.Min = 0;
                     }
 
-                    
+                    if(requirements.Items != null)
+                    {
+                        desc += "\n\nRequired Items:\n";
+
+                        foreach(var item in requirements.Items)
+                        {
+                            desc += $"  ({item.Quantity}) {item.Value}";
+                        }
+                        desc += "\n\n";
+                    }
+
+                    if (requirements.Gold != 0)
+                    {
+                        desc += $"Required Gold: {requirements.Gold}";                        
+                    }
+
                     var prereq1 = "0";
                     var prereq1level = "0";
                     var prereq2 = "0";
@@ -1172,6 +1187,22 @@ namespace Hybrasyl
                     {
                         requirements.Level = new Xml.ClassRequirementLevel();
                         requirements.Level.Min = 0;
+                    }
+
+                    if (requirements.Items != null && requirements.Items.Count > 0)
+                    {
+                        desc += "\n\nRequired Items:\n";
+
+                        foreach (var item in requirements.Items)
+                        {
+                            desc += $"  ({item.Quantity}) {item.Value}\n";
+                        }
+                        desc = desc.Remove(desc.Length - 1);
+                    }
+
+                    if (requirements.Gold != 0)
+                    {
+                        desc += $"\n\nRequired Gold: {requirements.Gold}";
                     }
 
                     var prereq1 = "0";
