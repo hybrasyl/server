@@ -75,6 +75,18 @@ namespace Hybrasyl.Objects
             return ThreatTable.ContainsKey(threat);
         }
 
+        public bool ContainsAny(List<User> users)
+        {
+            foreach(var user in users)
+            {
+                if(ThreatTable.ContainsKey(user))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         public void OnRangeExit(Creature threat)
         {
             if(ContainsThreat(threat))
@@ -127,6 +139,24 @@ namespace Hybrasyl.Objects
                         RemoveAllThreats();
                         AddNewThreat(threat, 1);
                     }
+                }
+            }
+        }
+
+        public void OnNearbyHeal(Creature threat, uint amount)
+        {
+            if(threat is User user)
+            {
+                if(ContainsThreat(user))
+                {
+                    IncreaseThreat(threat, amount);
+                    return;
+                }
+
+                if(user.Grouped && ContainsAny(user.Group.Members))
+                {
+                    AddNewThreat(threat, amount);
+                    return;
                 }
             }
         }
