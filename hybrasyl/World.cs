@@ -4437,7 +4437,7 @@ namespace Hybrasyl
                                 clientMessage.Packet.Opcode != 0x45 && clientMessage.Packet.Opcode != 0x75)
                                 user.Condition.Flags = user.Condition.Flags & ~PlayerFlags.InBoard;
 
-                            if (user.Condition.Casting && clientMessage.Packet.Opcode != 0x4E)
+                            if (user.Condition.Casting && clientMessage.Packet.Opcode != 0x4E && clientMessage.Packet.Opcode != 0x4D && clientMessage.Packet.Opcode != 0x0C && clientMessage.Packet.Opcode != 0x0F)
                                 user.CancelCasting();
 
                             // Last but not least, invoke the handler
