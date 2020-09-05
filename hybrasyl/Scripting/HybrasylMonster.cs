@@ -16,7 +16,7 @@ namespace Hybrasyl.Scripting
 
         public string Name => Monster.Name;
 
-        public Dictionary<string, double> AggroTable => Monster.AggroTable;
+        public ThreatInfo ThreatInfo => Monster.ThreatInfo;
         public WorldObject Target => Monster.Target;
         public bool AbsoluteImmortal => Monster.AbsoluteImmortal;
         public bool PhysicalImmortal => Monster.PhysicalImmortal;
@@ -84,12 +84,12 @@ namespace Hybrasyl.Scripting
             if (Monster.FirstHitter != null) s += $"FirstHitter: {Monster.FirstHitter.Name}\n";
             //if (Monster.LastHitter != null) s += $"LastHitter: {Monster.LastHitter.Name}\n";
             if (Monster.LastHitTime != null) s += $"LastHitTime: {Monster.LastHitTime}\n";
-            if (Monster.AggroTable != null)
+            if (Monster.ThreatInfo != null)
             {
-                s += $"AggroTable:\n";
-                foreach(var aggro in AggroTable)
+                s += $"ThreatInfo:\n";
+                foreach(var user in Monster.ThreatInfo.ThreatTable)
                 {
-                    s += $"Name: {aggro.Key} | Damage: {aggro.Value}\n";
+                    s += $"Name: {user.Key.Name} | Threat: {user.Value}\n";
                 }
             }
 

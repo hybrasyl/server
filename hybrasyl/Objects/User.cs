@@ -1619,7 +1619,7 @@ namespace Hybrasyl.Objects
             {
                 double percent;
                 if (item.UseCount > item.Castable.Mastery.Uses) percent = 100;
-                else percent = Math.Round((item.UseCount / (double)item.Castable.Mastery.Uses) * 100, 0);
+                else percent = Math.Floor((item.UseCount / (double)item.Castable.Mastery.Uses) * 100);
 
                 x2C.WriteString8($"{item.Castable.Name} (Lev:{percent}/100)");
             }
@@ -1649,7 +1649,7 @@ namespace Hybrasyl.Objects
             {
                 double percent;
                 if (item.UseCount > item.Castable.Mastery.Uses) percent = 100;
-                else percent = Math.Round((item.UseCount / (double)item.Castable.Mastery.Uses) * 100, 0);
+                else percent = Math.Floor((item.UseCount / (double)item.Castable.Mastery.Uses) * 100);
 
                 name = $"{item.Castable.Name} (Lev:{percent}/100)";
             }
@@ -3112,7 +3112,7 @@ namespace Hybrasyl.Objects
                     else if (SkillBook.Contains(Game.World.WorldData.GetByIndex<Xml.Castable>(preReq.Value).Id))
                     {
                         var preReqSkill = SkillBook.Single(x => x.Castable.Name == preReq.Value);
-                        if (Math.Round((preReqSkill.UseCount / (double)preReqSkill.Castable.Mastery.Uses) * 100) < preReq.Level)
+                        if (Math.Floor((preReqSkill.UseCount / (double)preReqSkill.Castable.Mastery.Uses) * 100) < preReq.Level)
                         {
                             learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_level");
                             prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$PREREQ", preReq.Value).Replace("$LEVEL", preReq.Level.ToString());
@@ -3368,7 +3368,7 @@ namespace Hybrasyl.Objects
                     else if (SpellBook.Contains(Game.World.WorldData.GetByIndex<Xml.Castable>(preReq.Value).Id))
                     {
                         var preReqSpell = SpellBook.Single(x => x.Castable.Name == preReq.Value);
-                        if (Math.Round((preReqSpell.UseCount / (double)preReqSpell.Castable.Mastery.Uses) * 100, 0) < preReq.Level)
+                        if (Math.Floor((preReqSpell.UseCount / (double)preReqSpell.Castable.Mastery.Uses) * 100) < preReq.Level)
                         {
                             learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_level");
                             prompt = learnString.Value.Replace("$SPELLNAME", castable.Name).Replace("$PREREQ", preReq.Value).Replace("$LEVEL", preReq.Level.ToString());

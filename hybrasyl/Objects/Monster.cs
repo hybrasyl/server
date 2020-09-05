@@ -31,9 +31,9 @@ namespace Hybrasyl.Objects
 {
     public class ThreatInfo
     {
-        public Creature ThreatTarget => ThreatTable.Aggregate((l, r) => l.Value > r.Value ? l : r).Key ?? null;
+        public Creature ThreatTarget => ThreatTable.Count > 0 ? ThreatTable.Aggregate((l, r) => l.Value > r.Value ? l : r).Key : null;
 
-        public Dictionary<Creature, uint> ThreatTable { get; set; }
+        public Dictionary<Creature, uint> ThreatTable { get; private set; }
 
         public ThreatInfo()
         {
@@ -55,9 +55,9 @@ namespace Hybrasyl.Objects
             ThreatTable[threat] = 0;
         }
 
-        public void AddNewThreat(Creature newThreat)
+        public void AddNewThreat(Creature newThreat, uint amount = 0)
         {
-            ThreatTable.Add(newThreat, 0);
+            ThreatTable.Add(newThreat, amount);
         }
 
         public void RemoveThreat(Creature threat)
@@ -65,6 +65,78 @@ namespace Hybrasyl.Objects
             ThreatTable.Remove(threat);
         }
 
+        public void RemoveAllThreats()
+        {
+            ThreatTable = new Dictionary<Creature, uint>();
+        }
+
+        public bool ContainsThreat(Creature threat)
+        {
+            return ThreatTable.ContainsKey(threat);
+        }
+
+        public void OnRangeExit(Creature threat)
+        {
+            if(ContainsThreat(threat))
+            {
+                ThreatTable.Remove(threat);
+            }
+        }
+
+        public void OnRangeEnter(Creature threat)
+        {
+            if (threat is User userThreat)
+            {
+                if (ThreatTarget != null)
+                {
+                    if (ThreatTarget is User user)
+                    {
+                        if (user.Group.Members.Contains(userThreat))
+                        {
+                            AddNewThreat(userThreat);
+                        }
+                    }
+                }
+                else
+                {
+                    AddNewThreat(userThreat, 1);
+                }
+            }
+        }
+
+        public void ForceThreatChange(Creature threat)
+        {
+            if (threat is User userThreat)
+            {
+                if (ThreatTarget is User user)
+                {
+                    if (user.Group.Members.Contains(userThreat))
+                    {
+                        var newTopThreat = (uint)Math.Ceiling(ThreatTable[ThreatTarget] * 1.1);
+                        if (ContainsThreat(userThreat))
+                        {
+                            ThreatTable[threat] = newTopThreat;
+                        }
+                        else
+                        {
+                            AddNewThreat(userThreat, newTopThreat);
+                        }
+                    }
+                    else
+                    {
+                        RemoveAllThreats();
+                        AddNewThreat(threat, 1);
+                    }
+                }
+            }
+        }
+
+
+        public uint this[Creature threat] 
+        {
+            get { return ThreatTable[threat]; }
+            set { ThreatTable[threat] = value; }
+        }
     }
 
     public class Monster : Creature, ICloneable
@@ -77,7 +149,7 @@ namespace Hybrasyl.Objects
 
         internal Xml.Spawn _spawn;
 
-        private uint _simpleDamage => Convert.ToUInt32(Rng.Next(_spawn.Damage.Min, _spawn.Damage.Max +1) * _variance);
+        private uint _simpleDamage => Convert.ToUInt32(Rng.Next(_spawn.Damage.Min, _spawn.Damage.Max + 1) * _variance);
 
         private Xml.CastableGroup _castables;
         private double _variance;
@@ -93,11 +165,12 @@ namespace Hybrasyl.Objects
 
         public bool ScriptExists { get; set; }
 
-        public Dictionary<string, double> AggroTable { get; set; }
+        //public Dictionary<string, double> AggroTable { get; set; }
+        public ThreatInfo ThreatInfo {get; private set; }
         public Xml.CastableGroup Castables => _castables;
 
         public bool HasCastNearDeath = false;
-        
+                
         
         public bool CanCast {
             get
@@ -222,15 +295,15 @@ namespace Hybrasyl.Objects
 
         public override void OnDamage(Creature attacker, uint damage)
         {
-            if (attacker != null)
+            //if (attacker != null)
             {
-                if (!AggroTable.ContainsKey(attacker.Name))
+                if(!ThreatInfo.ContainsThreat(attacker))
                 {
-                    AggroTable.Add(attacker.Name, damage);
+                    ThreatInfo.AddNewThreat(attacker, damage);
                 }
                 else
                 {
-                    AggroTable[attacker.Name] += damage;
+                    ThreatInfo.IncreaseThreat(attacker, damage);
                 }
             }
             IsHostile = true;
@@ -351,7 +424,7 @@ namespace Hybrasyl.Objects
             else
                 ShouldWander = IsHostile == false;
 
-            AggroTable = new Dictionary<string, double>();
+            ThreatInfo = new ThreatInfo();
         }
 
         public Creature Target
@@ -783,19 +856,31 @@ namespace Hybrasyl.Objects
 
         public override void AoiDeparture(VisibleObject obj)
         {
-            if(obj is User)
+            if(obj is User user)
             {
-                var user = (User)obj;
+                ThreatInfo.OnRangeExit(user);
 
-                if(AggroTable.ContainsKey(user.Name))
+                if(ThreatInfo.ThreatTarget == null && ThreatInfo.ThreatTable.Count == 0)
                 {
-                    AggroTable.Remove(user.Name);
                     ShouldWander = true;
                     FirstHitter = null;
                     Target = null;
                 }
             }
             base.AoiDeparture(obj);
+        }
+
+        public override void AoiEntry(VisibleObject obj)
+        {
+            if (obj is User user)
+            {
+                if(IsHostile && ThreatInfo.ThreatTarget == null)
+                {
+                    ThreatInfo.OnRangeEnter(user);
+                    ShouldWander = false;
+                }
+            }
+            base.AoiEntry(obj);
         }
     }
 
