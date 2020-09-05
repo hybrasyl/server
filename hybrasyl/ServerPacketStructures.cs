@@ -758,7 +758,7 @@ namespace Hybrasyl
                 packet.WriteByte((byte)(User.Map.X % 256));
                 packet.WriteByte((byte)(User.Map.Y % 256));
                 byte flags = 0;
-                //if ((User.Map.Flags & MapFlags.Snow) == MapFlags.Snow)
+                if ((User.Map.Flags & MapFlags.Snow) == MapFlags.Snow)
                 //    flags |= 1;
                 //if ((User.Map.Flags & MapFlags.Rain) == MapFlags.Rain)
                 //    flags |= 2;
