@@ -4851,10 +4851,10 @@ namespace Hybrasyl.Objects
             Enqueue(x0A);
         }
 
-        public void SendRedirectAndLogoff(World world, Login login, string name)
+        public void SendRedirectAndLogoff(World world, Login login, string name, int transmitDelay = 800)
         {
             GlobalConnectionManifest.DeregisterClient(Client);
-            Client.Redirect(new Redirect(Client, world, Game.Login, name, Client.EncryptionSeed, Client.EncryptionKey), true);
+            Client.Redirect(new Redirect(Client, world, Game.Login, name, Client.EncryptionSeed, Client.EncryptionKey), true, transmitDelay);
         }
 
         public bool IsHeartbeatValid(byte a, byte b)
