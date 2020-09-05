@@ -3773,6 +3773,15 @@ namespace Hybrasyl.Objects
                 }
             }
 
+            if (prompt == string.Empty)
+            {
+                if (PendingMerchantOffer + Gold > Constants.MAXIMUM_GOLD)
+                {
+                    offerString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_failure_gold_limit");
+                    prompt = offerString.Value;
+                }
+            }
+
             if (prompt == string.Empty) //this is so bad
             {
                 var quant = quantity > 1 ? "those" : "that";
