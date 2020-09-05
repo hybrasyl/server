@@ -34,7 +34,7 @@ namespace Hybrasyl.Scripting
     {
         internal User User { get; set; }
         internal HybrasylWorld World { get; set; }
-        internal HybrasylMap Map { get; set; }
+        public HybrasylMap Map { get; set; }
         /// <summary>
         /// The name of the player.
         /// </summary>
@@ -51,6 +51,8 @@ namespace Hybrasyl.Scripting
         /// The user's class (e.g. Rogue, Warrior, etc)
         /// </summary>
         public Xml.Class Class => User.Class;
+
+        public string MapName => User.Map?.Name ?? "Unknown Kadath";
 
         /// <summary>
         /// The user's previous class, if a subpath.
