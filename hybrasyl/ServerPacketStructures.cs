@@ -99,6 +99,23 @@ namespace Hybrasyl
         }
 
 
+        internal partial class CancelCast
+        {
+            private static byte OpCode;
+            
+            internal CancelCast()
+            {
+                OpCode = OpCodes.CancelCast;
+            }
+
+            internal ServerPacket Packet()
+            {
+                ServerPacket packet = new ServerPacket(OpCode);
+                packet.WriteByte(0);
+                return packet;
+            }
+        }
+
         internal partial class Cooldown
         {
             private static byte OpCode = OpCodes.Cooldown;
@@ -741,7 +758,7 @@ namespace Hybrasyl
                 packet.WriteByte((byte)(User.Map.X % 256));
                 packet.WriteByte((byte)(User.Map.Y % 256));
                 byte flags = 0;
-                //if ((User.Map.Flags & MapFlags.Snow) == MapFlags.Snow)
+                if ((User.Map.Flags & MapFlags.Snow) == MapFlags.Snow)
                 //    flags |= 1;
                 //if ((User.Map.Flags & MapFlags.Rain) == MapFlags.Rain)
                 //    flags |= 2;

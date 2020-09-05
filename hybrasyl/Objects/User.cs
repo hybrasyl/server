@@ -2011,7 +2011,6 @@ namespace Hybrasyl.Objects
             Direction = direction;
 
             // Transmit update to the moving client, as we are actually walking now
-
             var x0B = new ServerPacket(0x0B);
             x0B.WriteByte((byte)direction);
             x0B.WriteUInt16((byte)oldX);
@@ -2341,6 +2340,7 @@ namespace Hybrasyl.Objects
                 do
                 {
                     var item = World.CreateItem(xmlItem.Id);
+                    World.Insert(item);
                     AddItem(item, updateWeight);
                     quantity -= 1;
                 }
@@ -2670,7 +2670,8 @@ namespace Hybrasyl.Objects
         {
             if(castObject.Intents[0].UseType == SpellUseType.Prompt)
             {
-                //do something.
+                //do something. 
+                return false;
             }
 
             // Check casting costs
@@ -3791,6 +3792,15 @@ namespace Hybrasyl.Objects
                 }
             }
 
+            if (prompt == string.Empty)
+            {
+                if (PendingMerchantOffer + Gold > Constants.MAXIMUM_GOLD)
+                {
+                    offerString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_failure_gold_limit");
+                    prompt = offerString.Value;
+                }
+            }
+
             if (prompt == string.Empty) //this is so bad
             {
                 var quant = quantity > 1 ? "those" : "that";
@@ -4237,7 +4247,7 @@ namespace Hybrasyl.Objects
             PendingDepositSlot = slot;
             if (item.Stackable)
             {
-                var prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item_quantity").Value;
+                var prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item_quantity").Value.Replace("$QUANTITY", item.Count.ToString()).Replace("$ITEM", item.Name);
                 var input = new MerchantInput();
 
                 input.Id = (ushort)MerchantMenuItem.DepositItem;
@@ -4860,10 +4870,10 @@ namespace Hybrasyl.Objects
             Enqueue(x0A);
         }
 
-        public void SendRedirectAndLogoff(World world, Login login, string name)
+        public void SendRedirectAndLogoff(World world, Login login, string name, int transmitDelay = 800)
         {
             GlobalConnectionManifest.DeregisterClient(Client);
-            Client.Redirect(new Redirect(Client, world, Game.Login, name, Client.EncryptionSeed, Client.EncryptionKey), true);
+            Client.Redirect(new Redirect(Client, world, Game.Login, name, Client.EncryptionSeed, Client.EncryptionKey), true, transmitDelay);
         }
 
         public bool IsHeartbeatValid(byte a, byte b)
@@ -5077,6 +5087,17 @@ namespace Hybrasyl.Objects
         public void SendSystemMessage(string p)
         {
             Client.SendMessage(p, 3);
+        }
+
+        public void CancelCasting()
+        {
+            if(Condition.Casting)
+            {
+                var packet = new ServerPacketStructures.CancelCast();
+                Enqueue(packet.Packet());
+                Condition.Casting = false;
+
+            }
         }
 
     }
