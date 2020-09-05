@@ -28,6 +28,15 @@ using System.Linq;
 
 namespace Hybrasyl
 {
+    public class BookSlot
+    {
+        public Xml.Castable Castable { get; set; }
+        public uint UseCount { get; set; }
+        public uint MasteryLevel { get; set; }
+        public DateTime LastCast { get; set; }
+
+    }
+
     public class BookConverter : JsonConverter
     {
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
@@ -39,7 +48,7 @@ namespace Hybrasyl
             {
                 dynamic itemInfo = new JObject();
                 if (book[i] == null) continue;
-                itemInfo.Name = book[i].Name.ToLower();
+                itemInfo.Name = book[i].Castable.Name.ToLower();
                 itemInfo.LastCast = book[i].LastCast;
                 itemInfo.TotalUses = book[i].UseCount;
                 itemInfo.MasteryLevel = book[i].MasteryLevel;
@@ -61,12 +70,13 @@ namespace Hybrasyl
                 {
                     dynamic item;
                     if (!TryGetValue(jArray[i], out item)) continue;
-                    book[i] = Game.World.WorldData.Values<Xml.Castable>().SingleOrDefault(x => x.Name.ToLower() == (string)item.Name);
-                    var castable = book[i];
-                    if (castable != null)
+                    book[i] = new BookSlot() { Castable = Game.World.WorldData.Values<Xml.Castable>().SingleOrDefault(x => x.Name.ToLower() == (string)item.Name) };
+                    var bookSlot = book[i];
+                    if (bookSlot != null)
                     {
-                        castable.UseCount = (uint)(item.TotalUses ?? 0);
-                        castable.MasteryLevel = (byte)(item.MasteryLevel == null ? (byte)0 : item.MasteryLevel);
+                        bookSlot.UseCount = (uint)(item.TotalUses ?? 0);
+                        bookSlot.MasteryLevel = (byte)(item.MasteryLevel == null ? (byte)0 : item.MasteryLevel);
+                        bookSlot.LastCast = (DateTime)item.LastCast;
                     }
                 }
                 return book;
@@ -79,16 +89,14 @@ namespace Hybrasyl
                 {
                     dynamic item;
                     if (!TryGetValue(jArray[i], out item)) continue;
-                    book[i] = Game.World.WorldData.Values<Xml.Castable>().SingleOrDefault(x => x.Name.ToLower() == (string)item.Name);
+                    book[i] = new BookSlot() { Castable = Game.World.WorldData.Values<Xml.Castable>().SingleOrDefault(x => x.Name.ToLower() == (string)item.Name) };
                     var castable = book[i];
-                    if (castable != null)
+                    var bookSlot = book[i];
+                    if (bookSlot != null)
                     {
-                        castable.UseCount = (uint)(item.TotalUses ?? 0);
-                        castable.MasteryLevel = Convert.ToByte(item.MasteryLevel == null ? (byte)0 : item.MasteryLevel);
-                        if (item.GetType().GetProperty("LastCast") != null)
-                            castable.LastCast = (DateTime)item.LastCast;
-                        else
-                            castable.LastCast = DateTime.MinValue;
+                        bookSlot.UseCount = (uint)(item.TotalUses ?? 0);
+                        bookSlot.MasteryLevel = (byte)(item.MasteryLevel == null ? (byte)0 : item.MasteryLevel);
+                        bookSlot.LastCast = (DateTime)item.LastCast;
                     }
                 }
                 return book;
@@ -113,10 +121,10 @@ namespace Hybrasyl
     }
 
     [JsonConverter(typeof(BookConverter))]
-    public class Book : IEnumerable<Xml.Castable>
+    public class Book : IEnumerable<BookSlot>
     {
-        private Xml.Castable[] _items;
-        private Dictionary<int, Xml.Castable> _itemIndex;
+        private BookSlot[] _items;
+        private Dictionary<int, BookSlot> _itemIndex;
 
         public bool IsFull(Xml.Book book)
         {
@@ -144,7 +152,7 @@ namespace Hybrasyl
         public int Size { get; private set; }
         public int Count { get; private set; }
 
-        public Xml.Castable this[byte slot]
+        public BookSlot this[byte slot]
         {
             get
             {
@@ -166,32 +174,32 @@ namespace Hybrasyl
             }
         }
 
-        private void _AddToIndex(Xml.Castable item)
+        private void _AddToIndex(BookSlot item)
         {
-            _itemIndex[item.Id] = item;
+            _itemIndex[item.Castable.Id] = item;
         }
 
-        private void _RemoveFromIndex(Xml.Castable item)
+        private void _RemoveFromIndex(BookSlot item)
         {
             if (item != null)
             {
-                if (_itemIndex.Keys.Contains(item.Id))
-                    _itemIndex.Remove(item.Id);
+                if (_itemIndex.Keys.Contains(item.Castable.Id))
+                    _itemIndex.Remove(item.Castable.Id);
             }
         }
 
         public Book()
         {
-            this._items = new Xml.Castable[90];
+            this._items = new BookSlot[90];
             Size = 90;
-            this._itemIndex = new Dictionary<int, Xml.Castable>();
+            this._itemIndex = new Dictionary<int, BookSlot>();
         }
 
         public Book(int size)
         {
-            this._items = new Xml.Castable[size];
+            this._items = new BookSlot[size];
             Size = size;
-            this._itemIndex = new Dictionary<int, Xml.Castable>();
+            this._itemIndex = new Dictionary<int, BookSlot>();
         }
 
         public bool Contains(int id)
@@ -228,7 +236,7 @@ namespace Hybrasyl
         {
             for (var i = 0; i < Size; ++i)
             {
-                if (_items[i] != null && _items[i].Id == id)
+                if (_items[i] != null && _items[i].Castable.Id == id)
                     return i;
             }
             return -1;
@@ -237,7 +245,7 @@ namespace Hybrasyl
         {
             for (var i = 0; i < Size; ++i)
             {
-                if (_items[i] != null && _items[i].Name == name)
+                if (_items[i] != null && _items[i].Castable.Name == name)
                     return i;
             }
             return -1;
@@ -264,9 +272,10 @@ namespace Hybrasyl
             var index = slot - 1;
             if (index < 0 || index >= Size || _items[index] != null)
                 return false;
-            _items[index] = item;
+            var bookSlot = new BookSlot() { Castable = item, UseCount = 0, LastCast = DateTime.Now };
+            _items[index] = bookSlot;
             Count += 1;
-            _AddToIndex(item);
+            _AddToIndex(bookSlot);
 
             return true;
         }
@@ -302,7 +311,7 @@ namespace Hybrasyl
             _itemIndex.Clear();
         }
 
-        public IEnumerator<Xml.Castable> GetEnumerator()
+        public IEnumerator<BookSlot> GetEnumerator()
         {
             for (var i = 0; i < Size; ++i)
             {
