@@ -649,6 +649,7 @@ namespace Hybrasyl
                     itemInfo.Name = inventory[i].Name;
                     itemInfo.Count = inventory[i].Count;
                     itemInfo.Id = inventory[i].TemplateId;
+                    itemInfo.Durability = inventory[i].Durability;
                     output[i] = itemInfo;
                 }               
             }
@@ -671,7 +672,8 @@ namespace Hybrasyl
                     {
                         inv[i] = new ItemObject(itemTemplate.Id, Game.World)
                         {
-                            Count = item.Count ?? 1
+                            Count = item.Count ?? 1,
+                            Durability = item.Durability ?? itemTemplate.Properties.Physical.Durability
                         };
                             //this will need to be expanded later based on ItemObject properties being saved back to the database.
                     }
