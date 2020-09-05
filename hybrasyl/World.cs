@@ -4408,6 +4408,9 @@ namespace Hybrasyl
                             if (user.Condition.Flags.HasFlag(PlayerFlags.InDialog) && clientMessage.Packet.Opcode != 0x3b &&
                                 clientMessage.Packet.Opcode != 0x45 && clientMessage.Packet.Opcode != 0x75)
                                 user.Condition.Flags = user.Condition.Flags & ~PlayerFlags.InDialog;
+
+                            if (user.Condition.Casting && clientMessage.Packet.Opcode != 0x4E)
+                                user.CancelCasting();
                             // Last but not least, invoke the handler
 
                             handler.Invoke(user, clientMessage.Packet);

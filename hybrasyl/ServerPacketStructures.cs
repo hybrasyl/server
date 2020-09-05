@@ -99,6 +99,23 @@ namespace Hybrasyl
         }
 
 
+        internal partial class CancelCast
+        {
+            private static byte OpCode;
+            
+            internal CancelCast()
+            {
+                OpCode = OpCodes.CancelCast;
+            }
+
+            internal ServerPacket Packet()
+            {
+                ServerPacket packet = new ServerPacket(OpCode);
+                packet.WriteByte(0);
+                return packet;
+            }
+        }
+
         internal partial class Cooldown
         {
             private static byte OpCode = OpCodes.Cooldown;

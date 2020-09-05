@@ -1992,7 +1992,6 @@ namespace Hybrasyl.Objects
             Direction = direction;
 
             // Transmit update to the moving client, as we are actually walking now
-
             var x0B = new ServerPacket(0x0B);
             x0B.WriteByte((byte)direction);
             x0B.WriteUInt16((byte)oldX);
@@ -2652,7 +2651,8 @@ namespace Hybrasyl.Objects
         {
             if(castObject.Intents[0].UseType == SpellUseType.Prompt)
             {
-                //do something.
+                //do something. 
+                return false;
             }
 
             // Check casting costs
@@ -5068,6 +5068,17 @@ namespace Hybrasyl.Objects
         public void SendSystemMessage(string p)
         {
             Client.SendMessage(p, 3);
+        }
+
+        public void CancelCasting()
+        {
+            if(Condition.Casting)
+            {
+                var packet = new ServerPacketStructures.CancelCast();
+                Enqueue(packet.Packet());
+                Condition.Casting = false;
+
+            }
         }
 
     }
