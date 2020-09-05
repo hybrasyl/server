@@ -173,6 +173,22 @@
     </xs:sequence>
   </xs:complexType>
 
+  <xs:complexType name="ClientSetting">
+    <xs:simpleContent>
+      <xs:extension base="hyb:String8">
+        <xs:attribute type="xs:unsignedByte" name="Number" use="required"/>
+        <xs:attribute type="xs:token" name="Key" use="required"/>
+        <xs:attribute type="xs:boolean" name="Default" default="false"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+    
+  <xs:complexType name="ClientSettings">
+    <xs:sequence>
+      <xs:element name="Setting" type="hyb:ClientSetting" minOccurs="1" maxOccurs="8"/>
+    </xs:sequence>
+  </xs:complexType>
+
   <xs:complexType name="ServerConfig">
     <xs:sequence>
       <xs:element name="Logging" type="hyb:LogConfig" minOccurs="0" maxOccurs="1" />
@@ -185,6 +201,7 @@
       <xs:element name="Handlers" type="hyb:Handlers" minOccurs="0" maxOccurs="1"/>
       <xs:element name="Motd" type="hyb:String16" minOccurs="0" maxOccurs="1"/>
       <xs:element name="Plugins" type="hyb:ServerPlugins" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="ClientSettings" type="hyb:ClientSettings" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
   </xs:complexType>
 
