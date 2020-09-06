@@ -26,6 +26,7 @@ using System.Linq;
 using System.Transactions;
 using Hybrasyl.Enums;
 using Hybrasyl.Scripting;
+using Hybrasyl.Utility;
 
 namespace Hybrasyl.Objects
 {
@@ -122,7 +123,7 @@ namespace Hybrasyl.Objects
             {
                 if (ThreatTarget is User user)
                 {
-                    if (user.Group.Members.Contains(userThreat))
+                    if (user.Grouped && user.Group.Members.Contains(userThreat))
                     {
                         var newTopThreat = (uint)Math.Ceiling(ThreatTable[ThreatTarget] * 1.1);
                         if (ContainsThreat(userThreat))
@@ -140,7 +141,12 @@ namespace Hybrasyl.Objects
                         AddNewThreat(threat, 1);
                     }
                 }
+                else
+                {
+                    AddNewThreat(threat, 1);
+                }
             }
+            
         }
 
         public void OnNearbyHeal(Creature threat, uint amount)

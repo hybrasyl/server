@@ -1,4 +1,5 @@
-﻿using Hybrasyl.Objects;
+﻿using Grpc.Core;
+using Hybrasyl.Objects;
 using MoonSharp.Interpreter;
 using System;
 using System.Collections.Generic;
@@ -25,6 +26,9 @@ namespace Hybrasyl.Scripting
         public WorldObject FirstHitter => Monster.FirstHitter;
         public WorldObject LastHitter => Monster.LastHitter;
         public string LastHitTime => Monster.LastHitTime.ToString();
+
+        public void ForceThreatChange(HybrasylUser invoker) => Monster.ThreatInfo.ForceThreatChange(invoker.User);
+        public void OnDamage(HybrasylUser invoker, int amount) => Monster.OnDamage(invoker.User, (uint)amount);
 
         public HybrasylMonster(Monster monster)
         {
