@@ -1,4 +1,5 @@
-﻿using Hybrasyl.Objects;
+﻿using Grpc.Core;
+using Hybrasyl.Objects;
 using MoonSharp.Interpreter;
 using System;
 using System.Collections.Generic;
@@ -16,7 +17,9 @@ namespace Hybrasyl.Scripting
 
         public string Name => Monster.Name;
 
-        public Dictionary<string, double> AggroTable => Monster.AggroTable;
+        public Xml.Direction Direction => Monster.Direction;
+
+        public ThreatInfo ThreatInfo => Monster.ThreatInfo;
         public WorldObject Target => Monster.Target;
         public bool AbsoluteImmortal => Monster.AbsoluteImmortal;
         public bool PhysicalImmortal => Monster.PhysicalImmortal;
@@ -25,6 +28,9 @@ namespace Hybrasyl.Scripting
         public WorldObject FirstHitter => Monster.FirstHitter;
         public WorldObject LastHitter => Monster.LastHitter;
         public string LastHitTime => Monster.LastHitTime.ToString();
+
+        public void ForceThreatChange(HybrasylUser invoker) => Monster.ThreatInfo.ForceThreatChange(invoker.User);
+        public void MakeHostile() => Monster.MakeHostile();
 
         public HybrasylMonster(Monster monster)
         {
@@ -84,12 +90,12 @@ namespace Hybrasyl.Scripting
             if (Monster.FirstHitter != null) s += $"FirstHitter: {Monster.FirstHitter.Name}\n";
             //if (Monster.LastHitter != null) s += $"LastHitter: {Monster.LastHitter.Name}\n";
             if (Monster.LastHitTime != null) s += $"LastHitTime: {Monster.LastHitTime}\n";
-            if (Monster.AggroTable != null)
+            if (Monster.ThreatInfo != null)
             {
-                s += $"AggroTable:\n";
-                foreach(var aggro in AggroTable)
+                s += $"ThreatInfo:\n";
+                foreach(var user in Monster.ThreatInfo.ThreatTable)
                 {
-                    s += $"Name: {aggro.Key} | Damage: {aggro.Value}\n";
+                    s += $"Name: {user.Key.Name} | Threat: {user.Value}\n";
                 }
             }
 

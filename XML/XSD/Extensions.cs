@@ -243,10 +243,6 @@ namespace Hybrasyl.Xml
 
         public DateTime LastCast { get; set; }
 
-        public uint UseCount { get; set; }
-
-        public byte MasteryLevel { get; set; }
-
         public bool OnCooldown
         {
             get

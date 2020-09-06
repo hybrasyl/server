@@ -65,6 +65,10 @@ namespace Hybrasyl.Scripting
         /// e.g. invoker.Type == "player"
         /// </summary>
         public string Type => "player";
+        /// <summary>
+        /// The direction this object is facing.
+        /// </summary>
+        public Xml.Direction Direction => User.Direction;
 
 
         /// <summary>
@@ -900,7 +904,7 @@ namespace Hybrasyl.Scripting
             if (string.IsNullOrEmpty(skillname))
                 GameLog.ScriptingError("HasSkill: {user} - skill name (first argument) cannot be null or empty");
             else if (Game.World.WorldData.TryGetValueByIndex(skillname, out Xml.Castable result))
-                return User.SkillBook.Contains(result);
+                return User.SkillBook.Contains(result.Id);
             else
                 GameLog.ScriptingError("HasSkill: {user} - skill {skill} not found", User.Name, skillname);
             return false;
@@ -936,7 +940,7 @@ namespace Hybrasyl.Scripting
             if (string.IsNullOrEmpty(spellname))
                 GameLog.ScriptingError("HasSpell: {user} - spell name (first argument) cannot be null or empty");
             else if (Game.World.WorldData.TryGetValueByIndex(spellname, out Xml.Castable result))
-                return User.SpellBook.Contains(result);
+                return User.SpellBook.Contains(result.Id);
             else
                 GameLog.ScriptingError("HasSpell: {user} - spell {spell} not found", User.Name, spellname);
             return false;

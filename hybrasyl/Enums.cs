@@ -185,12 +185,15 @@ namespace Hybrasyl
         internal static class OpCodes
         {
             public const byte CryptoKey = 0x00;
+            public const byte NewUserCheck = 0x01;
             public const byte LoginMessage = 0x02;
             public const byte Redirect = 0x03;
             public const byte Location = 0x04;
             public const byte UserId = 0x05;
+            public const byte MapEdit = 0x06;
             public const byte AddWorldObject = 0x07;
             public const byte Attributes = 0x08;
+            public const byte Inventory = 0x09;
             public const byte SystemMessage = 0x0A;
             public const byte UserMove = 0x0B;
             public const byte CreatureMove = 0x0C;
@@ -199,17 +202,34 @@ namespace Hybrasyl
             public const byte AddItem = 0x0F;
             public const byte RemoveItem = 0x10;
             public const byte CreatureDirection = 0x11;
+            public const byte Guild = 0x12;
             public const byte HealthBar = 0x13;
+            public const byte PasswordCheck = 0x14;
             public const byte MapInfo = 0x15;
+            public const byte PacketMapping = 0x16;
             public const byte AddSpell = 0x17;
             public const byte RemoveSpell = 0x18;
             public const byte PlaySound = 0x19;
             public const byte PlayerAnimation = 0x1A;
             public const byte EditablePaper = 0x1B;
-            public const byte MapChangeCompled = 0x1F;
+            public const byte Icon = 0x1C;
+            public const byte ChangeShape = 0x1D;
+            public const byte ChangeDay = 0x1E;
+            public const byte MapChangeCompleted = 0x1F; //also change weather?
+            public const byte ChangeHour = 0x20;
+            public const byte SelfSave = 0x21;
             public const byte Refresh = 0x22;
+            public const byte BattlefieldInfo = 0x24;
+            public const byte DirectMove = 0x25;
+            public const byte ActionChange = 0x26;
+            public const byte GeneralEffect = 0x27;
+            public const byte CloseConnection = 0x28;
             public const byte SpellAnimation = 0x29;
+            public const byte AddContainer = 0x2A;
+            public const byte RemoveContainer = 0x2B;
+            public const byte AddSkill = 0x2C;
             public const byte RemoveSkill = 0x2D;
+            public const byte FieldMap = 0x2E;
             public const byte NpcReply = 0x2F;
             public const byte Pursuit = 0x30;
             public const byte Board = 0x31;
@@ -224,22 +244,42 @@ namespace Hybrasyl
             public const byte StatusBar = 0x3A;
             public const byte PingA = 0x3B;
             public const byte MapData = 0x3C;
+            public const byte LevelPoint = 0x3D;
             public const byte UseSkill = 0x3E;
             public const byte Cooldown = 0x3F;
+            public const byte SendPatch = 0x40;
             public const byte Exchange = 0x42;
-            public const byte ClickObject = 0x43;           
+            public const byte ClickObject = 0x43; //worldmapinfo as well?
+            public const byte AddUser = 0x44;
+            public const byte ItemShop = 0x45;
+            public const byte GambleStart = 0x46;
+            public const byte TotalUsers = 0x47;
             public const byte CancelCast = 0x48;
+            public const byte RequestPortrait = 0x49;
+            public const byte Bounce = 0x4B;
+            public const byte Reconnect = 0x4C;
+            public const byte Emblem = 0x4D;
             public const byte PlayerShop = 0x4F;
             public const byte Manufacture = 0x50;
-            public const byte ManufactureTimer = 0x51;
+            public const byte BlockInput = 0x51;
+            public const byte ServerClose = 0x53;
+            public const byte UnitedSlot = 0x54;
+            public const byte MultiServer = 0x56;
             public const byte ServerSelect = 0x57;
             public const byte MapLoadComplete = 0x58;
+            public const byte Advertisement = 0x5B;
             public const byte Notification = 0x60;
+            public const byte WebBoard = 0x62;
+            public const byte Group = 0x63;
+            public const byte MiniGame = 0x64;
             public const byte Website = 0x66;
             public const byte MapChangePending = 0x67;
             public const byte PingB = 0x68;
+            public const byte Screenshot = 0x6B;
+            public const byte LoverName = 0x6D;
             public const byte MetaData = 0x6F;
-
+            public const byte TownMap = 0x7E;
+            public const byte QuestInfo = 0x8A;
         }
         #endregion
 

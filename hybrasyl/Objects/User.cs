@@ -1249,23 +1249,23 @@ namespace Hybrasyl.Objects
 
         internal void UseSkill(byte slot)
         {
-            var castable = SkillBook[slot];
-            if (castable.OnCooldown)
+            var bookSlot = SkillBook[slot];
+            if (bookSlot.Castable.OnCooldown)
             {
                 SendSystemMessage("You must wait longer to use that.");
                 return;
             }
-            if (UseCastable(castable))
+            if (UseCastable(bookSlot.Castable))
             {
-                if(castable.UseCount != uint.MaxValue)
-                    castable.UseCount += 1;
-                if(castable.UseCount <= castable.Mastery.Uses)
-                    SendSkillUpdate(castable, slot);
+                if(bookSlot.UseCount != uint.MaxValue)
+                    bookSlot.UseCount += 1;
+                if(bookSlot.UseCount <= bookSlot.Castable.Mastery.Uses)
+                    SendSkillUpdate(bookSlot, slot);
             }
-            castable.LastCast = DateTime.Now;
+            bookSlot.Castable.LastCast = DateTime.Now;
             Client.Enqueue(new ServerPacketStructures.Cooldown()
             {
-                Length = (uint)castable.Cooldown,
+                Length = (uint)bookSlot.Castable.Cooldown,
                 Pane = 1,
                 Slot = slot
             }.Packet());
@@ -1274,16 +1274,16 @@ namespace Hybrasyl.Objects
 
         internal void UseSpell(byte slot, uint target = 0)
         {
-            var castable = SpellBook[slot];
+            var bookSlot = SpellBook[slot];
             Creature targetCreature = Map.EntityTree.OfType<Creature>().SingleOrDefault(x => x.Id == target) ?? null;
 
-            if (castable.OnCooldown)
+            if (bookSlot.Castable.OnCooldown)
             {
                 SendSystemMessage("You must wait longer to use that.");
                 return;
             }
 
-            var intersect = UseCastRestrictions.Intersect(castable.Categories.Select(x => x.Value), StringComparer.InvariantCultureIgnoreCase);
+            var intersect = UseCastRestrictions.Intersect(bookSlot.Castable.Categories.Select(x => x.Value), StringComparer.InvariantCultureIgnoreCase);
 
             if (intersect.Count() > 0)
             {
@@ -1291,19 +1291,19 @@ namespace Hybrasyl.Objects
                 return;
             }
 
-            if (UseCastable(castable, targetCreature))
+            if (UseCastable(bookSlot.Castable, targetCreature))
             {
-                castable.UseCount += 1;
-                if (castable.UseCount <= castable.Mastery.Uses)
-                    SendSpellUpdate(castable, slot);               
+                bookSlot.UseCount += 1;
+                if (bookSlot.UseCount <= bookSlot.Castable.Mastery.Uses)
+                    SendSpellUpdate(bookSlot, slot);               
             }
             Client.Enqueue(new ServerPacketStructures.Cooldown()
             {
-                Length = (uint)castable.Cooldown,
+                Length = (uint)bookSlot.Castable.Cooldown,
                 Pane = 0,
                 Slot = slot
             }.Packet());
-            castable.LastCast = DateTime.Now;
+            bookSlot.LastCast = DateTime.Now;
         }
 
         /// <summary>
@@ -1598,7 +1598,7 @@ namespace Hybrasyl.Objects
             Enqueue(x0F);
         }
 
-        public void SendSkillUpdate(Xml.Castable item, int slot)
+        public void SendSkillUpdate(BookSlot item, int slot)
         {
             if (item == null)
             {
@@ -1606,66 +1606,66 @@ namespace Hybrasyl.Objects
                 return;
             }
             GameLog.DebugFormat("Adding skill {0} to slot {2}",
-                item.Name, slot);
+                item.Castable.Name, slot);
 
             var mastery = "";
 
-            if(item.Mastery.Tiered)
-            {
-                mastery = $"[{item.MasteryLevel}]";
-            }
+            //if(item.Castable.Mastery.Tiered)
+            //{
+            //    mastery = $"[{item.MasteryLevel}]";
+            //}
 
             var x2C = new ServerPacket(0x2C);
             x2C.WriteByte((byte)slot);
-            x2C.WriteUInt16((ushort)(item.Icon));
-            if(item.Mastery.Uses != 1)
+            x2C.WriteUInt16((ushort)(item.Castable.Icon));
+            if(item.Castable.Mastery.Uses != 1)
             {
                 double percent;
-                if (item.UseCount > item.Mastery.Uses) percent = 100;
-                else percent = Math.Round((item.UseCount / (double)item.Mastery.Uses) * 100, 0);
+                if (item.UseCount > item.Castable.Mastery.Uses) percent = 100;
+                else percent = Math.Floor((item.UseCount / (double)item.Castable.Mastery.Uses) * 100);
 
-                x2C.WriteString8($"{item.Name} (Lev:{percent}/100)");
+                x2C.WriteString8($"{item.Castable.Name} (Lev:{percent}/100)");
             }
             else
             {
-                x2C.WriteString8(item.Name);
+                x2C.WriteString8(item.Castable.Name);
             }
             
             Enqueue(x2C);
         }
 
-        public void SendSpellUpdate(Xml.Castable castable, int slot)
+        public void SendSpellUpdate(BookSlot item, int slot)
         {
-            if (castable == null)
+            if (item == null)
             {
                 SendClearSpell(slot);
                 return;
             }
             GameLog.DebugFormat("Adding spell {0} to slot {2}",
-                castable.Name, slot);
-           
+                item.Castable.Name, slot);
+
             string name = "";
-            if (castable.Mastery.Uses != 1)
+            if (item.Castable.Mastery.Uses != 1)
             {
                 double percent;
-                if (castable.UseCount > castable.Mastery.Uses) percent = 100;
-                else percent = Math.Round((castable.UseCount / (double)castable.Mastery.Uses) * 100, 0);
+                if (item.UseCount > item.Castable.Mastery.Uses) percent = 100;
+                else percent = Math.Floor((item.UseCount / (double)item.Castable.Mastery.Uses) * 100);
 
-                name = $"{castable.Name} (Lev:{percent}/100)";
+                name = $"{item.Castable.Name} (Lev:{percent}/100)";
             }
             else
             {
-                name = castable.Name;
+                name = item.Castable.Name;
             }
 
             var spellUpdate = new ServerPacketStructures.AddSpell()
             {
                 Slot = (byte)slot,
-                Icon = castable.Icon,
-                UseType = (byte)castable.Intents[0].UseType,
+                Icon = item.Castable.Icon,
+                UseType = (byte)item.Castable.Intents[0].UseType,
                 Name = name,
                 Prompt = "\0",
-                Lines = (byte)CalculateLines(castable)
+                Lines = (byte)CalculateLines(item.Castable)
             };
             Enqueue(spellUpdate.Packet());
         }
@@ -2010,7 +2010,6 @@ namespace Hybrasyl.Objects
             Direction = direction;
 
             // Transmit update to the moving client, as we are actually walking now
-
             var x0B = new ServerPacket(0x0B);
             x0B.WriteByte((byte)direction);
             x0B.WriteUInt16((byte)oldX);
@@ -2156,7 +2155,7 @@ namespace Hybrasyl.Objects
                 return false;
             }
 
-            SendSkillUpdate(item, slot);
+            SendSkillUpdate(SkillBook[slot], slot);
             return true;
         }
 
@@ -2190,7 +2189,7 @@ namespace Hybrasyl.Objects
                 return false;
             }
 
-            SendSpellUpdate(item, slot);
+            SendSpellUpdate(SpellBook[slot], slot);
             return true;
         }
 
@@ -2340,6 +2339,7 @@ namespace Hybrasyl.Objects
                 do
                 {
                     var item = World.CreateItem(xmlItem.Id);
+                    World.Insert(item);
                     AddItem(item, updateWeight);
                     quantity -= 1;
                 }
@@ -2669,7 +2669,8 @@ namespace Hybrasyl.Objects
         {
             if(castObject.Intents[0].UseType == SpellUseType.Prompt)
             {
-                //do something.
+                //do something. 
+                return false;
             }
 
             // Check casting costs
@@ -2700,21 +2701,21 @@ namespace Hybrasyl.Objects
             if (target == null)
                 target = GetDirectionalTarget(direction);
 
-            foreach (var c in SkillBook.Where(c => c.IsAssail))
+            foreach (var c in SkillBook.Where(c => c.Castable.IsAssail))
             {
                 if (target != null && target.GetType() != typeof(Merchant))
                 {
-                    UseSkill(SkillBook.SlotOf(c.Name));
+                    UseSkill(SkillBook.SlotOf(c.Castable.Name));
                     //UseCastable(c, target);
                 }
             }
             //animation handled here as to not repeatedly send assails.
-            var firstAssail = SkillBook.FirstOrDefault(x => x.IsAssail);
-            var motion = firstAssail?.Effects.Animations.OnCast.Player.FirstOrDefault(y => y.Class.Contains(Class));
+            var firstAssail = SkillBook.FirstOrDefault(x => x.Castable.IsAssail);
+            var motion = firstAssail?.Castable?.Effects.Animations.OnCast.Player.FirstOrDefault(y => y.Class.Contains(Class));
 
             var motionId = motion != null ? (byte)motion.Id : (byte)1;
             var assail = new ServerPacketStructures.PlayerAnimation() { Animation = motionId, Speed = 20, UserId = this.Id };
-            var soundId = firstAssail != null ? firstAssail.Effects.Sound.Id : (byte)1;
+            var soundId = firstAssail != null ? firstAssail.Castable.Effects.Sound.Id : (byte)1;
             Enqueue(assail.Packet());
             PlaySound(soundId);
             SendAnimation(assail.Packet());
@@ -2894,7 +2895,7 @@ namespace Hybrasyl.Objects
             {
                 if (Game.World.WorldData.TryGetValueByIndex(skill.Name, out Xml.Castable result))
                 {
-                    if (SkillBook.Contains(result)) continue;
+                    if (SkillBook.Contains(result.Id)) continue;
                     merchantSkills.Skills.Add(new MerchantSkill()
                     {
                         IconType = 3,
@@ -3101,16 +3102,16 @@ namespace Hybrasyl.Objects
             {
                 foreach (var preReq in classReq.Prerequisites)
                 {
-                    if (!SkillBook.Contains(Game.World.WorldData.GetByIndex<Xml.Castable>(preReq.Value)))
+                    if (!SkillBook.Contains(Game.World.WorldData.GetByIndex<Xml.Castable>(preReq.Value).Id))
                     {
                         learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_level");
                         prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$PREREQ", preReq.Value).Replace("$LEVEL", preReq.Level.ToString());
                         break;
                     }
-                    else if (SkillBook.Contains(Game.World.WorldData.GetByIndex<Xml.Castable>(preReq.Value)))
+                    else if (SkillBook.Contains(Game.World.WorldData.GetByIndex<Xml.Castable>(preReq.Value).Id))
                     {
-                        var preReqSkill = SkillBook.Single(x => x.Name == preReq.Value);
-                        if (Math.Round((preReqSkill.UseCount / (double)preReqSkill.Mastery.Uses) * 100, 2) < preReq.Level)
+                        var preReqSkill = SkillBook.Single(x => x.Castable.Name == preReq.Value);
+                        if (Math.Floor((preReqSkill.UseCount / (double)preReqSkill.Castable.Mastery.Uses) * 100) < preReq.Level)
                         {
                             learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_level");
                             prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$PREREQ", preReq.Value).Replace("$LEVEL", preReq.Level.ToString());
@@ -3260,7 +3261,7 @@ namespace Hybrasyl.Objects
                 // Verify the spell exists first
                 if (Game.World.WorldData.TryGetValueByIndex(spell.Name, out Xml.Castable result))
                 {
-                    if (SpellBook.Contains(result)) continue;
+                    if (SpellBook.Contains(result.Id)) continue;
                     merchantSpells.Spells.Add(new MerchantSpell()
                     {
                         IconType = 2,
@@ -3357,16 +3358,16 @@ namespace Hybrasyl.Objects
             {
                 foreach (var preReq in classReq.Prerequisites)
                 {
-                    if (!SpellBook.Contains(Game.World.WorldData.GetByIndex<Xml.Castable>(preReq.Value)))
+                    if (!SpellBook.Contains(Game.World.WorldData.GetByIndex<Xml.Castable>(preReq.Value).Id))
                     {
                         learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_level");
                         prompt = learnString.Value.Replace("$SPELLNAME", castable.Name).Replace("$PREREQ", preReq.Value).Replace("$LEVEL", preReq.Level.ToString());
                         break;
                     }
-                    else if (SpellBook.Contains(Game.World.WorldData.GetByIndex<Xml.Castable>(preReq.Value)))
+                    else if (SpellBook.Contains(Game.World.WorldData.GetByIndex<Xml.Castable>(preReq.Value).Id))
                     {
-                        var preReqSpell = SpellBook.Single(x => x.Name == preReq.Value);
-                        if (Math.Round((preReqSpell.UseCount / (double)preReqSpell.Mastery.Uses) * 100, 2) < preReq.Level)
+                        var preReqSpell = SpellBook.Single(x => x.Castable.Name == preReq.Value);
+                        if (Math.Floor((preReqSpell.UseCount / (double)preReqSpell.Castable.Mastery.Uses) * 100) < preReq.Level)
                         {
                             learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_level");
                             prompt = learnString.Value.Replace("$SPELLNAME", castable.Name).Replace("$PREREQ", preReq.Value).Replace("$LEVEL", preReq.Level.ToString());
@@ -3786,6 +3787,15 @@ namespace Hybrasyl.Objects
                 if (!Inventory.Contains(item.Name, (int)quantity))
                 {
                     offerString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_failure_quantity");
+                    prompt = offerString.Value;
+                }
+            }
+
+            if (prompt == string.Empty)
+            {
+                if (PendingMerchantOffer + Gold > Constants.MAXIMUM_GOLD)
+                {
+                    offerString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_failure_gold_limit");
                     prompt = offerString.Value;
                 }
             }
@@ -4236,7 +4246,7 @@ namespace Hybrasyl.Objects
             PendingDepositSlot = slot;
             if (item.Stackable)
             {
-                var prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item_quantity").Value;
+                var prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item_quantity").Value.Replace("$QUANTITY", item.Count.ToString()).Replace("$ITEM", item.Name);
                 var input = new MerchantInput();
 
                 input.Id = (ushort)MerchantMenuItem.DepositItem;
@@ -4859,10 +4869,10 @@ namespace Hybrasyl.Objects
             Enqueue(x0A);
         }
 
-        public void SendRedirectAndLogoff(World world, Login login, string name)
+        public void SendRedirectAndLogoff(World world, Login login, string name, int transmitDelay = 800)
         {
             GlobalConnectionManifest.DeregisterClient(Client);
-            Client.Redirect(new Redirect(Client, world, Game.Login, name, Client.EncryptionSeed, Client.EncryptionKey), true);
+            Client.Redirect(new Redirect(Client, world, Game.Login, name, Client.EncryptionSeed, Client.EncryptionKey), true, transmitDelay);
         }
 
         public bool IsHeartbeatValid(byte a, byte b)
@@ -5076,6 +5086,17 @@ namespace Hybrasyl.Objects
         public void SendSystemMessage(string p)
         {
             Client.SendMessage(p, 3);
+        }
+
+        public void CancelCasting()
+        {
+            if(Condition.Casting)
+            {
+                var packet = new ServerPacketStructures.CancelCast();
+                Enqueue(packet.Packet());
+                Condition.Casting = false;
+
+            }
         }
 
     }
