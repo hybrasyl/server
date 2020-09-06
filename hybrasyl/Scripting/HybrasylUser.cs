@@ -65,6 +65,10 @@ namespace Hybrasyl.Scripting
         /// e.g. invoker.Type == "player"
         /// </summary>
         public string Type => "player";
+        /// <summary>
+        /// The direction this object is facing.
+        /// </summary>
+        public Xml.Direction Direction => User.Direction;
 
 
         /// <summary>

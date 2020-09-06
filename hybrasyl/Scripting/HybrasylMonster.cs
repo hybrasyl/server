@@ -17,6 +17,8 @@ namespace Hybrasyl.Scripting
 
         public string Name => Monster.Name;
 
+        public Xml.Direction Direction => Monster.Direction;
+
         public ThreatInfo ThreatInfo => Monster.ThreatInfo;
         public WorldObject Target => Monster.Target;
         public bool AbsoluteImmortal => Monster.AbsoluteImmortal;
