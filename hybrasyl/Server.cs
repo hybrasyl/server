@@ -238,7 +238,7 @@ namespace Hybrasyl
             catch (Exception e)
             {
                 Game.ReportException(e);
-                GameLog.Error($"ReadCallback error: {e.Message}");
+                GameLog.Error("ReadCallback error: {e}", e);
             }
             ContinueReceiving(state, client);
         }

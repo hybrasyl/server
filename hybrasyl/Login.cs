@@ -113,7 +113,9 @@ namespace Hybrasyl
                     {
                         GameLog.InfoFormat("cid {0}: {1} logging on again, disconnecting previous connection",
                             client.ConnectionId, name);
+                        client.LoginMessage("That character is already online. Please try again.", 3);
                         World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.LogoffUser, name));
+                        return;
                     }
 
                     GameLog.DebugFormat("cid {0} ({1}): logging in", client.ConnectionId, name);

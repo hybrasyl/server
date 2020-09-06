@@ -372,7 +372,7 @@ namespace Hybrasyl
             // We store loot as strings inside mobs to avoid having tens or hundreds of thousands of ItemObjects or
             // Items lying around - they're made into real objects at the time of mob death
             if (itemList.Count > 0)
-                return itemList.Select(x => x.Name).ToList();
+                return itemList.Where(x => x != null).Select(y => y.Name).ToList();
             return new List<String>();
         }
     }
@@ -416,11 +416,12 @@ namespace Hybrasyl
 
             while (true)
             {
+                if (World.ControlMessageQueue.IsCompleted)
+                    break;
                 foreach (var spawnGroup in _spawnGroups)
                     if (!spawnGroup.Disabled)
                         Spawn(spawnGroup);
                 Thread.Sleep(5000);
-
             }
         }
     
@@ -475,7 +476,7 @@ namespace Hybrasyl
 
                         if (creature is default(Xml.Creature))
                         {
-                            GameLog.SpawnError("Base monster {spawn.Base} not found");
+                            GameLog.SpawnError($"Base monster {spawn.Base} not found");
                             break;
                         }
                         
@@ -528,10 +529,13 @@ namespace Hybrasyl
         }
         private static void SpawnMonster(Monster monster, Map map)
         {
-            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MonolithSpawn, monster, map));
-            //Game.World.Maps[mapId].InsertCreature(monster);
-            if (map.SpawnDebug)
-                GameLog.SpawnInfo("Spawning monster: {0} {1} at {2}, {3}", map.Name, monster.Name, (int) monster.X, (int) monster.Y);
+            if (!World.ControlMessageQueue.IsCompleted)
+            {
+                World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MonolithSpawn, monster, map));
+                //Game.World.Maps[mapId].InsertCreature(monster);
+                if (map.SpawnDebug)
+                    GameLog.SpawnInfo("Spawning monster: {0} {1} at {2}, {3}", map.Name, monster.Name, (int)monster.X, (int)monster.Y);
+            }
         }
     }
 
@@ -575,8 +579,8 @@ namespace Hybrasyl
             if (map.Users.Count == 0)
                 // Mobs on empty maps don't move, it's a waste of time
                 return;
-
-            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MonolithControl, monster, map));
+            if (!World.ControlMessageQueue.IsCompleted)
+                World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MonolithControl, monster, map));
         }
     }
 }

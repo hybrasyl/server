@@ -32,7 +32,7 @@ namespace Hybrasyl
         private Creature _caster;
         private Xml.Castable _castable;
         private Creature _target;
-        private Random _rnd = new Random();
+        private static Random _rnd = new Random();
 
         public FormulaParser(Creature caster, Xml.Castable castable, Creature target = null)
         {
@@ -452,7 +452,6 @@ namespace Hybrasyl
                             return false;
                             //handles an undefined token.
                     }
-
                 }
             }
             return true;

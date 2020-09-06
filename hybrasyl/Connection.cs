@@ -19,6 +19,7 @@
  * 
  */
 
+using Hybrasyl.Enums;
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -63,16 +64,18 @@ namespace Hybrasyl
 
         public static void DeregisterClient(Client client)
         {
-            ((IDictionary) ConnectedClients).Remove(client.ConnectionId);
-                GameLog.InfoFormat("Deregistering {0}", client.ConnectionId);
+            ConnectedClients.TryRemove(client.ConnectionId, out Client _);
+            GameLog.InfoFormat("Deregistering {0}", client.ConnectionId);
             // Send a control message to clean up after World users; Lobby and Login handle themselves
             if (client.ServerType == ServerTypes.World)
             {
-                ((IDictionary)WorldClients).Remove(client.ConnectionId);
-                // This will also handle removing the user from WorldClients if necessary
+                if (!WorldClients.TryRemove(client.ConnectionId, out Client _))
+                    GameLog.Error("Couldn't deregister cid {id}", client.ConnectionId);
                 try
                 {
-                    World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.CleanupUser, client.ConnectionId));
+                    if (!World.ControlMessageQueue.IsCompleted)
+                        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.CleanupUser, 
+                            CleanupType.ByConnectionId, client.ConnectionId));
                 }
                 catch (InvalidOperationException e)
                 {
