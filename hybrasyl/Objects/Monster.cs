@@ -329,9 +329,15 @@ namespace Hybrasyl.Objects
             }
         }
 
+        public void MakeHostile()
+        {
+            ShouldWander = false;
+            IsHostile = true;
+        }
+
         public override void OnDamage(Creature attacker, uint damage)
         {
-            //if (attacker != null)
+            if (attacker != null)
             {
                 if(!ThreatInfo.ContainsThreat(attacker))
                 {

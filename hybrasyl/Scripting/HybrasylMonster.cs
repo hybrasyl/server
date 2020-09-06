@@ -28,7 +28,7 @@ namespace Hybrasyl.Scripting
         public string LastHitTime => Monster.LastHitTime.ToString();
 
         public void ForceThreatChange(HybrasylUser invoker) => Monster.ThreatInfo.ForceThreatChange(invoker.User);
-        public void OnDamage(HybrasylUser invoker, int amount) => Monster.OnDamage(invoker.User, (uint)amount);
+        public void MakeHostile() => Monster.MakeHostile();
 
         public HybrasylMonster(Monster monster)
         {
