@@ -234,6 +234,7 @@ namespace Hybrasyl.Objects
             {
                 Map.Remove(this);
                 World.Remove(this);
+                GameLog.Error("OnDeath: lasthitter was null");
                 return; // Don't handle cases of MOB ON MOB COMBAT just yet
             }
 

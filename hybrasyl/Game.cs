@@ -84,6 +84,9 @@ namespace Hybrasyl
         public static IDisposable Sentry { get; private set; }
         public static bool SentryEnabled { get; private set; }
 
+        public static int ShutdownTimeRemaining = -1;
+        public static bool ShutdownComplete = false;
+
         public static void ToggleActive()
         {
             if (Interlocked.Read(ref Active) == 0)
@@ -128,6 +131,7 @@ namespace Hybrasyl
            
             Thread.Sleep(2000);
             Log.Warning("Hybrasyl {Version}: shutdown complete.", Assemblyinfo.Version);
+            ShutdownComplete = true;
             //host.Close();
         }
 

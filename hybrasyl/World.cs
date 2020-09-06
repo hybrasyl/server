@@ -684,18 +684,27 @@ namespace Hybrasyl
             // Load user uuid reference and initialize
             foreach (var key in server.Keys(pattern: "User*"))
             {
-                var user = DatastoreConnection.GetDatabase().Get<User>(key);
                 var name = key.ToString().Split(':')[1];
-                
+               
                 if (name == string.Empty)
                 {
                     GameLog.Warning("Potentially corrupt user data in Redis; ignoring");
                     continue;
                 }
+
+                TryGetUser(key, out User user);
+                if (user == null)
+                {
+                    GameLog.Warning("User {user}: could not be loaded", key);
+                    continue;
+                }
+
                 GameLog.InfoFormat("Loading uuidreference for {0}", name);
-                var uuidRef = new UuidReference(name);
-                uuidRef.AccountUuid = user.AccountUuid;
-                uuidRef.UserUuid = user.Uuid;
+                var uuidRef = new UuidReference(name)
+                {
+                    AccountUuid = user.AccountUuid,
+                    UserUuid = user.Uuid
+                };
 
                 //sanity check to make sure user has this object
                 if (!WorldData.ContainsKey<ParcelStore>($"Hybrasyl.ParcelStore:{uuidRef.UserUuid}"))
@@ -1579,15 +1588,15 @@ namespace Hybrasyl
         {
 
         }
+
         public override void Shutdown()
         {
             GameLog.WarningFormat("Shutdown initiated, disconnecting {0} active users", ActiveUsers.Count());
 
             Active = false;
             foreach (var user in ActiveUsers)
-            {
                 user.Logoff(true);
-            }
+            
             Listener?.Close();
             GameLog.Warning("World: Shutdown complete");
         }
@@ -1597,22 +1606,51 @@ namespace Hybrasyl
         private void ControlMessage_CleanupUser(HybrasylControlMessage message)
         {
             // clean up after a broken connection
-            var connectionId = (long)message.Arguments[0];
-
-            if (TryGetActiveUserById(connectionId, out User user))
+            var cleanupType = (CleanupType) message.Arguments[0];
+            dynamic searchKey;
+            User cleanup;
+            if (cleanupType == CleanupType.ByConnectionId)
             {
-                GameLog.InfoFormat("cid {0}: closed, player {1} removed", connectionId, user.Name);
-                if (user.ActiveExchange != null)
-                    user.ActiveExchange.CancelExchange(user);
-                user.UpdateLogoffTime();
-                user.Map?.Remove(user);
-                user.Group?.Remove(user);
-                Remove(user);
-                GameLog.DebugFormat("cid {0}: {1} cleaned up successfully", user.Name);
-                DeleteUser(user.Name);
+                searchKey = (long)message.Arguments[1];
+                // Already cleaned up, ignore
+                if (!TryGetActiveUserById(searchKey, out cleanup))
+                    return;
             }
             else
-                GameLog.Error($"CleanupUser request for user already cleaned up, ignoring");
+            {
+                searchKey = (string)message.Arguments[1];
+                // Already cleaned up, ignore
+                if (!TryGetActiveUser(searchKey, out cleanup))
+                    return;
+            }
+            // One last check
+            if (cleanup == null)
+            {
+                GameLog.Error("Cleanup error: user object, key {key} was null..?", searchKey);
+                return;
+            }
+
+            try
+            {
+                GameLog.InfoFormat("cid {0}: closed, player {1} removed", cleanup.ConnectionId, cleanup.Name);
+                if (!World.ControlMessageQueue.IsCompleted && Game.IsActive()) 
+                {
+                    // If the world is shutting down, none of the below matters
+                    if (cleanup.ActiveExchange != null)
+                        cleanup.ActiveExchange.CancelExchange(cleanup);
+                    cleanup.UpdateLogoffTime();
+                    cleanup.Map?.Remove(cleanup);
+                    cleanup.Group?.Remove(cleanup);
+                }
+                Remove(cleanup);
+                GameLog.DebugFormat("cid {0}: {1} cleaned up successfully", cleanup.Name);
+                DeleteUser(cleanup.Name);
+            }
+            catch (Exception e)
+            {
+                Game.ReportException(e);
+                GameLog.Error("Cleanup of cid or user {key} failed: {e}", searchKey, e); 
+            }
         }
 
         private void ControlMessage_RegenerateUser(HybrasylControlMessage message)
@@ -1671,19 +1709,33 @@ namespace Hybrasyl
         {
             // Initiate an orderly shutdown
             var userName = (string)message.Arguments[0];
-            GameLog.WarningFormat("Server shutdown request initiated by {0}", userName);
-            // Chaos is Rising Up, yo.
-            foreach (var user in ActiveUsers)
+            var delay = (int)message.Arguments[1];
+
+            if (delay == 0)
             {
-                user.SendMessage("Chaos is rising up. Please re-enter in a few minutes.",
-                    MessageTypes.SYSTEM_WITH_OVERHEAD);
+                if (userName.ToLower() == "job")
+                    GameLog.Warning("Server shutdown time has arrived, beginning shutdown");
+                else
+                    GameLog.Warning("Immediate shutdown requested by {name}", userName);
+
+                foreach (var user in ActiveUsers)
+                    user.SendSystemMessage("Chaos is rising up. Please re-enter in a few minutes.");
+                // Actually shut down the server. This terminates the listener loop in Game.
+                // Game will then shut down world server(s) and everything else for us.
+
+                // Doing this here is a rare instance of it being acceptable, to ensure users get our last message
+                Task.Delay(1000).Wait();
+                if (Game.IsActive())
+                    Game.ToggleActive();
+
+                GameLog.Warning("Server is shutting down");
             }
-
-            // Actually shut down the server. This terminates the listener loop in Game.
-            if (Game.IsActive())
-                Game.ToggleActive();
-
-            GameLog.WarningFormat("Server has begun shutdown");
+            else
+            {
+                GameLog.Warning("Server shutdown request initiated by {name}, delay {delay} minutes", userName, delay);
+                // Job will handle it from here
+                Game.ShutdownTimeRemaining = delay * 60;
+            }
         }
 
         private void ControlMessage_LogoffUser(HybrasylControlMessage message)
@@ -1694,7 +1746,7 @@ namespace Hybrasyl
             User user;
             if (TryGetActiveUser(userName, out user))
             {
-                user.Logoff();
+                user.Logoff(true);
             }
         }
 
@@ -1744,8 +1796,8 @@ namespace Hybrasyl
         private void ControlMessage_HandleDeath(HybrasylControlMessage message)
         {
             var creature = (Objects.Creature)message.Arguments[0];
-            if (creature is User) { (creature as User).OnDeath(); }
-            if (creature is Monster) { (creature as Monster).OnDeath(); }
+            if (creature is User u) { u.OnDeath(); }
+            if (creature is Monster ms) { ms.OnDeath(); }
         }
 
         
@@ -4327,8 +4379,9 @@ namespace Hybrasyl
                 if (obj is Creature creature)
                     ActiveStatuses.Remove(creature);
             }
+            GameLog.Info($"Object {obj.Name}: {obj.Id} removed");
             obj.World = null;
-            obj.Id = 0;
+            obj.Id = 0;            
         }
 
         public ItemObject CreateItem(string id, int quantity = 1)

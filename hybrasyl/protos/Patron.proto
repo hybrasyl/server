@@ -21,11 +21,29 @@
 
 syntax = "proto3";
 
+import "google/protobuf/empty.proto";
+
 option csharp_namespace = "HybrasylGrpc";
 
 service Patron {
-  rpc Auth (AuthRequest) returns (AuthReply) {}
-  rpc ResetPassword (ResetPasswordRequest) returns (ResetPasswordReply) {}
+  rpc Auth (AuthRequest) returns (BooleanMessageReply) {}
+  rpc ResetPassword (ResetPasswordRequest) returns (BooleanMessageReply) {}
+  rpc BeginShutdown (BeginShutdownRequest) returns (BooleanMessageReply) {}
+  rpc TotalUserCount (google.protobuf.Empty) returns (UserCountReply) {}
+  rpc IsShutdownComplete (google.protobuf.Empty) returns (BooleanMessageReply) {}
+}
+
+message BeginShutdownRequest {
+	int32 Delay = 1;
+}
+
+message BooleanMessageReply {
+	bool Success = 1;
+	string Message = 2;
+}
+
+message UserCountReply {
+	int32 Number = 1;
 }
 
 message AuthRequest {
@@ -33,17 +51,7 @@ message AuthRequest {
   string Password = 2;
 }
 
-message AuthReply {
-  bool Success = 1;
-  string Message = 2;
-}
-
 message ResetPasswordRequest {
   string Username = 1;
   string NewPassword = 2;
-}
-
-message ResetPasswordReply {
-  bool Success = 1;
-  string Message = 2;
 }

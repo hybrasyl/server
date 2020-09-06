@@ -121,15 +121,17 @@ namespace Hybrasyl
         {
             try
             {
+                WorkSocket.Shutdown(SocketShutdown.Both);
                 ResetReceive();
                 ResetSend();
-                WorkSocket.Shutdown(SocketShutdown.Both);
                 WorkSocket.Close();
+                WorkSocket.Dispose();
             }
             catch (Exception e)
             {
                 Game.ReportException(e);
                 WorkSocket.Close();
+                WorkSocket.Dispose();
             }
 
             Connected = false;
@@ -429,10 +431,8 @@ namespace Hybrasyl
 
         public void Disconnect()
         {
-            GlobalConnectionManifest.DeregisterClient(this);
-            // Force the issue
-            Socket.Close();
             ClientState.Dispose();
+            GlobalConnectionManifest.DeregisterClient(this);
         }
 
         public byte[] GenerateKey(ushort bRand, byte sRand)
@@ -645,24 +645,29 @@ namespace Hybrasyl
         public void Enqueue(ServerPacket packet)
         {
             GameLog.DebugFormat("Enqueueing ServerPacket {0}", packet.Opcode);
-            if (Connected)
-                ClientState.SendBufferAdd(packet);
-            else
+            if (!Connected)
             {
-                // Trigger cleanup
                 Disconnect();
-                return;
+                throw new ObjectDisposedException($"cid {ConnectionId}");
             }
+            else
+                ClientState.SendBufferAdd(packet);
         }
 
         public void Enqueue(ClientPacket packet)
         {
             GameLog.DebugFormat("Enqueueing ClientPacket {0}", packet.Opcode);
-            ClientState.ReceiveBufferAdd(packet);
             if (!Connected)
+            {
                 Disconnect();
-            if (!packet.ShouldEncrypt || (packet.ShouldEncrypt && EncryptionKey != null))
-                FlushReceiveBuffer();
+                throw new ObjectDisposedException($"cid {ConnectionId}");
+            }
+            else
+            {
+                ClientState.ReceiveBufferAdd(packet);
+                if (!packet.ShouldEncrypt || (packet.ShouldEncrypt && EncryptionKey != null))
+                    FlushReceiveBuffer();
+            }
         }
 
         public void Redirect(Redirect redirect, bool isLogoff = false, int transmitDelay = 0)

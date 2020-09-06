@@ -442,6 +442,12 @@ namespace Hybrasyl
             ProhibitCast = (InExchange | InDialog | Casting)
         }
 
+        public enum CleanupType : int
+        {
+            ByConnectionId = 0,
+            ByName = 1
+        }
+
         [Flags]
         public enum StatUpdateFlags : byte
         {

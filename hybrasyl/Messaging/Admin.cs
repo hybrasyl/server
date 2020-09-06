@@ -461,15 +461,23 @@ namespace Hybrasyl.Messaging
     class ShutdownCommand : ChatCommand
     {
         public new static string Command = "shutdown";
-        public new static string ArgumentText = "<string shutdownpassword>";
-        public new static string HelpText = "Request an orderly shutdown of the server.";
+        public new static string ArgumentText = "<string noreally> [<int delay>]";
+        public new static string HelpText = "Request an orderly shutdown of the server, optionally with a delay.";
         public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
-            if (string.Equals(args[0], Constants.ShutdownPassword))
-                World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.ShutdownServer, user.Name));
-            return Success("Chaos is rising up. Please re-enter in a few minutes");
+            if (string.Equals(args[0], "noreally"))
+            {
+                var delay = 0;
+                if (args.Length == 2)
+                    if (!int.TryParse(args[1], out delay))
+                        return Fail("Delay must be a number");
+
+                World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.ShutdownServer, user.Name, delay));
+                return Success("Shutdown request submitted.");
+            }
+            return Fail("You have to really mean it.");
         }
     }
 

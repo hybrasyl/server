@@ -84,8 +84,10 @@ namespace Hybrasyl.Objects
         public string AccountUuid { get; set; }
 
         private Client Client;
-        public bool Connected => Client.Connected;
-        public long ConnectionId => Client.ConnectionId;
+
+        public bool Connected => Client?.Connected ?? false;
+        public long ConnectionId => Client?.ConnectionId ?? PreviousConnectionId;
+        public long PreviousConnectionId { get; set; }
 
         [JsonProperty]
         public Xml.Gender Gender { get; set; }
@@ -367,17 +369,18 @@ namespace Hybrasyl.Objects
         public void Enqueue(ServerPacket packet)
         {
             GameLog.DebugFormat("Sending 0x{0:X2} to {1}", packet.Opcode, Name);
-            Client.Enqueue(packet);
-            // TODO: later fixes 2020/08/30
-            //try
-            //{
-            //    Client.Enqueue(packet);
-            //}
-            //catch (ObjectDisposedException)
-            //{
-            //    GameLog.Warning("User {user}: socket enqueue failed due to disconnect");
-            //    Client = null;
-            //}
+            try
+            {
+                Client?.Enqueue(packet);
+            }
+            catch (ObjectDisposedException)
+            {
+                GameLog.Warning("User {user}: socket enqueue failed due to disconnect, removing", Name);
+                // Forcibly destroy client and remove user from world
+                PreviousConnectionId = Client.ConnectionId;
+                Client = null;
+                World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.CleanupUser, CleanupType.ByName, Name));
+            }
         }
 
         public override void AoiEntry(VisibleObject obj)
@@ -1636,14 +1639,11 @@ namespace Hybrasyl.Objects
             if (item == null)
             {
                 SendClearSpell(slot);
-                GameLog.InfoFormat($"{Name}: cleared spell slot {slot}");
                 return;
             }
             GameLog.DebugFormat("Adding spell {0} to slot {2}",
                 item.Castable.Name, slot);
-            GameLog.InfoFormat($"{Name}: adding {item.Castable.Name} to slot {slot}");
 
-            
             string name = "";
             if (item.Castable.Mastery.Uses != 1)
             {
@@ -1667,7 +1667,6 @@ namespace Hybrasyl.Objects
                 Prompt = "\0",
                 Lines = (byte)CalculateLines(item.Castable)
             };
-            GameLog.InfoFormat($"{Name}: enqueuing {item.Castable.Name} to slot {slot}");
             Enqueue(spellUpdate.Packet());
         }
 
@@ -1730,7 +1729,7 @@ namespace Hybrasyl.Objects
         {
             UserCookies[cookieName] = value;
         }
-
+        
         public void SetSessionCookie(string cookieName, string value)
         {
             UserSessionCookies[cookieName] = value;
@@ -4894,7 +4893,6 @@ namespace Hybrasyl.Objects
         public void Logoff(bool disconnect = false)
         {
             UpdateLogoffTime();
-            Save();
             if (!disconnect)
             {
                 var redirect = new Redirect(Client, Game.World, Game.Login, "socket", Client.EncryptionSeed, Client.EncryptionKey);
@@ -4905,9 +4903,10 @@ namespace Hybrasyl.Objects
                 {
                     Client.Disconnect();
                 }
-                catch (ObjectDisposedException e)
+                catch (Exception)
                 {
-                    Client.ClientState = null;
+                    PreviousConnectionId = Client?.ConnectionId ?? -1;
+                    Client = null;
                 }
         }
 

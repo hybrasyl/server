@@ -192,12 +192,6 @@ namespace Hybrasyl
         public const int IDLE_TIME = 60;
         public const int IDLE_CHECK = 10;
 
-        // Shutdown password
-        // This is a dirty hack until we have better role / auth support
-
-        public const string ShutdownPassword = "batterystaple8!";
-        public const int ControlServicePort = 4949;
-
         // Dialog settings
         // Dialog sequence IDs between 1 and DIALOG_SEQUENCE_SHARED are processed as 
         // "shared" (globally available) sequences; sequence IDs between DIALOG_SEQUENCE_SHARED
