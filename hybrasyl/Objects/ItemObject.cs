@@ -157,7 +157,7 @@ namespace Hybrasyl.Objects
 
         public List<Xml.CastModifier> CastModifiers => Template.Properties.CastModifiers;
 
-        public uint MaximumDurability => Template.Properties?.Physical?.Durability ?? 1;
+        public uint MaximumDurability => Template.Properties?.Physical?.Durability ?? 0;
 
         // For future use / expansion re: unidentified items.
         // Should pull from template and only allow false to be set when
