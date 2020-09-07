@@ -1638,12 +1638,10 @@ namespace Hybrasyl.Objects
             if (item == null)
             {
                 SendClearSpell(slot);
-                GameLog.InfoFormat($"{Name}: cleared spell slot {slot}");
                 return;
             }
             GameLog.DebugFormat("Adding spell {0} to slot {2}",
                 item.Castable.Name, slot);
-            GameLog.InfoFormat($"{Name}: adding {item.Castable.Name} to slot {slot}");
 
             
             string name = "";
@@ -4895,9 +4893,7 @@ namespace Hybrasyl.Objects
 
         public void Logoff(bool disconnect = false)
         {
-            InGame = false;
             UpdateLogoffTime();
-            Save();
             if (!disconnect)
             {
                 var redirect = new Redirect(Client, Game.World, Game.Login, "socket", Client.EncryptionSeed, Client.EncryptionKey);
@@ -4908,9 +4904,10 @@ namespace Hybrasyl.Objects
                 {
                     Client.Disconnect();
                 }
-                catch (ObjectDisposedException e)
+                catch (Exception)
                 {
-                    Client.ClientState = null;
+                    PreviousConnectionId = Client?.ConnectionId ?? -1;
+                    Client = null;
                 }
         }
 
