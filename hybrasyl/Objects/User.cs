@@ -1667,7 +1667,6 @@ namespace Hybrasyl.Objects
                 Prompt = "\0",
                 Lines = (byte)CalculateLines(item.Castable)
             };
-            GameLog.InfoFormat($"{Name}: enqueuing {item.Castable.Name} to slot {slot}");
             Enqueue(spellUpdate.Packet());
         }
 
