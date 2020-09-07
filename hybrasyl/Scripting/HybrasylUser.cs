@@ -118,6 +118,20 @@ namespace Hybrasyl.Scripting
         public bool RemoveGold(uint gold) => User.RemoveGold(gold);
 
         /// <summary>
+        /// Removes a skill from the user's skillbook
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public bool RemoveSkill(string name) => User.SkillBook.Remove(User.SkillBook.SlotOf(name));
+        /// <summary>
+        /// Removes a spel from the user's spellbook
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public bool RemoveSpell(string name) => User.SpellBook.Remove(User.SpellBook.SlotOf(name));
+
+
+        /// <summary>
         /// The current MP (magic points) of the user. This can be set to an arbitrary value; the player's MP display is automatically updated.
         /// </summary>
         public uint Mp
