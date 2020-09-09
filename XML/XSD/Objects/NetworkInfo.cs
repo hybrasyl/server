@@ -28,6 +28,7 @@ public partial class NetworkInfo
 {
     #region Private fields
     private string _bindAddress;
+    private string _externalAddress;
     private ushort _port;
     private static XmlSerializer _serializer;
     #endregion
@@ -48,6 +49,19 @@ public partial class NetworkInfo
         set
         {
             _bindAddress = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string ExternalAddress
+    {
+        get
+        {
+            return _externalAddress;
+        }
+        set
+        {
+            _externalAddress = value;
         }
     }
     

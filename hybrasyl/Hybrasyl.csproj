@@ -47,6 +47,7 @@
   </ItemGroup>
   
   <ItemGroup>
+    <PackageReference Include="App.Metrics" Version="4.1.0" />
     <PackageReference Include="BCrypt.Net-Core" Version="1.6.0" />
     <PackageReference Include="Discord.Net.Webhook" Version="2.2.0" />
     <PackageReference Include="docfx" Version="2.56.2" />
@@ -66,7 +67,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
-    <PackageReference Include="Sentry" Version="2.1.5" />
+    <PackageReference Include="Sentry" Version="2.1.6" />
     <PackageReference Include="Serilog" Version="2.9.0" />
     <PackageReference Include="Serilog.Enrichers.ExceptionData" Version="1.0.0" />
     <PackageReference Include="Serilog.Enrichers.Thread" Version="3.1.0" />
@@ -90,6 +91,10 @@
     <None Update="Log4Net.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
   </ItemGroup>
 
 </Project>

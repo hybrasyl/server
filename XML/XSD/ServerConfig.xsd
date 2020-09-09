@@ -39,6 +39,7 @@
 
   <xs:complexType name="NetworkInfo">
     <xs:attribute name="BindAddress" type="hyb:IpAddress" default="127.0.0.1" />
+    <xs:attribute name="ExternalAddress" type="hyb:IpAddress" />
     <xs:attribute name="Port" type="xs:unsignedShort" use="required" />
   </xs:complexType>
 

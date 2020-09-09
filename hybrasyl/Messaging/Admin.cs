@@ -24,6 +24,7 @@ using Hybrasyl.Scripting;
 using System;
 using System.IO;
 using System.Net;
+using System.Text;
 
 namespace Hybrasyl.Messaging
 {
@@ -479,6 +480,15 @@ namespace Hybrasyl.Messaging
             }
             return Fail("You have to really mean it.");
         }
+    }
+
+    class ServicetimeCommand : ChatCommand
+    {
+        public new static string Command = "servicetime";
+        public new static string ArgumentText = "none";
+        public new static string HelpText = "Display current service metrics.";
+        public new static bool Privileged = true;
+
     }
 
     class ScriptingCommand : ChatCommand

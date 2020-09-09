@@ -683,8 +683,12 @@ namespace Hybrasyl
             redirect.Destination.ExpectedConnections.TryAdd(redirect.Id, redirect);
 
             var endPoint = Socket.RemoteEndPoint as IPEndPoint;
+            byte[] addressBytes;
 
-            byte[] addressBytes = IPAddress.IsLoopback(endPoint.Address) ? IPAddress.Loopback.GetAddressBytes() : Game.IpAddress.GetAddressBytes();
+            if (Game.RedirectTarget != null)
+                addressBytes = Game.RedirectTarget.GetAddressBytes();
+            else 
+                addressBytes = IPAddress.IsLoopback(endPoint.Address) ? IPAddress.Loopback.GetAddressBytes() : Game.IpAddress.GetAddressBytes();
 
             Array.Reverse(addressBytes);
 
