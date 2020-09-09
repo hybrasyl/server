@@ -30,45 +30,42 @@ namespace Hybrasyl
                     //get players on screen
                     var players = entityTree.OfType<User>();
 
-                    Creature aggroTarget;
-                    //get closest
-                    if (monster.AggroTable.Count == 0)
+                    if (players.Count() > 0)
                     {
-                        //get 
-                        aggroTarget = players.OrderBy(x => x.Distance(monster)).FirstOrDefault();
-                    }
-                    else
-                    {
-                        var aggroid = monster.AggroTable.OrderByDescending(x => x.Value).FirstOrDefault().Key;
-                        aggroTarget = players.FirstOrDefault(x => x.Name == aggroid);
+                        //get closest
+                        if (monster.ThreatInfo.ThreatTable.Count == 0)
+                        {
+                            //get 
+                            monster.ThreatInfo.AddNewThreat(players.OrderBy(x => x.Distance(monster)).FirstOrDefault(), 1);
+                        }
                     }
 
                     UserGroup targetGroup = null;
 
                     //get aggro target's group
-                    if (aggroTarget is User)
+                    if (monster.ThreatInfo.ThreatTarget != null && monster.ThreatInfo.ThreatTarget is User)
                     {
-                        targetGroup = ((User)aggroTarget).Group;
+                        targetGroup = ((User)monster.ThreatInfo.ThreatTarget).Group;
                     }
 
-                    if (aggroTarget != null)
+                    if (monster.ThreatInfo.ThreatTarget != null)
                     {
 
                         //pathfind or cast if far away
 
-                        if (monster.Distance(aggroTarget) >= 2)
+                        if (monster.Distance(monster.ThreatInfo.ThreatTarget) >= 2)
                         {
                             var nextAction = _random.Next(1, 7);
 
                             if (nextAction > 1)
                             {
                                 //pathfind;
-                                monster.PathFind((monster.Location.X, monster.Location.Y), (aggroTarget.Location.X, aggroTarget.Location.Y));
+                                monster.PathFind((monster.Location.X, monster.Location.Y), (monster.ThreatInfo.ThreatTarget.Location.X, monster.ThreatInfo.ThreatTarget.Location.Y));
                             }
                             else
                             {
                                 //cast
-                                monster.Cast(aggroTarget, targetGroup);
+                                monster.Cast(monster.ThreatInfo.ThreatTarget, targetGroup);
                             }
                         }
                         else
@@ -78,15 +75,15 @@ namespace Hybrasyl
                             var nextAction = _random.Next(1, 6);
                             if (nextAction > 1)
                             {
-                                var facing = monster.CheckFacing(monster.Direction, aggroTarget);
+                                var facing = monster.CheckFacing(monster.Direction, monster.ThreatInfo.ThreatTarget);
                                 if (facing)
                                 {
-                                    monster.AssailAttack(monster.Direction, aggroTarget);
+                                    monster.AssailAttack(monster.Direction, monster.ThreatInfo.ThreatTarget);
                                 }
                             }
                             else
                             {
-                                monster.Cast(aggroTarget, targetGroup);
+                                monster.Cast(monster.ThreatInfo.ThreatTarget, targetGroup);
                             }
                         }
                     }

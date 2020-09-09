@@ -228,7 +228,7 @@
       <xs:element name="Animations" type="hyb:SpellAnimations" minOccurs="0" maxOccurs="1" />
       <xs:element name="Sound" minOccurs="0" maxOccurs="1">
         <xs:complexType>
-          <xs:attribute name="Id" type="xs:unsignedByte" use="required" />
+          <xs:attribute name="Id" type="xs:unsignedByte" use="optional" default="255" />
         </xs:complexType>
       </xs:element>
       <xs:element name="Heal" minOccurs="0" maxOccurs="1" type="hyb:CastableHeal" />

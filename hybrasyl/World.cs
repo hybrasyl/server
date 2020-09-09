@@ -1098,7 +1098,22 @@ namespace Hybrasyl
                         requirements.Level.Min = 0;
                     }
 
-                    
+                    if(requirements.Items != null)
+                    {
+                        desc += "\n\nRequired Items:\n";
+
+                        foreach(var item in requirements.Items)
+                        {
+                            desc += $"  ({item.Quantity}) {item.Value}";
+                        }
+                        desc += "\n\n";
+                    }
+
+                    if (requirements.Gold != 0)
+                    {
+                        desc += $"Required Gold: {requirements.Gold}";                        
+                    }
+
                     var prereq1 = "0";
                     var prereq1level = "0";
                     var prereq2 = "0";
@@ -1181,6 +1196,22 @@ namespace Hybrasyl
                     {
                         requirements.Level = new Xml.ClassRequirementLevel();
                         requirements.Level.Min = 0;
+                    }
+
+                    if (requirements.Items != null && requirements.Items.Count > 0)
+                    {
+                        desc += "\n\nRequired Items:\n";
+
+                        foreach (var item in requirements.Items)
+                        {
+                            desc += $"  ({item.Quantity}) {item.Value}\n";
+                        }
+                        desc = desc.Remove(desc.Length - 1);
+                    }
+
+                    if (requirements.Gold != 0)
+                    {
+                        desc += $"\n\nRequired Gold: {requirements.Gold}";
                     }
 
                     var prereq1 = "0";
@@ -4462,8 +4493,10 @@ namespace Hybrasyl
                                 clientMessage.Packet.Opcode != 0x45 && clientMessage.Packet.Opcode != 0x75)
                                 user.Condition.Flags = user.Condition.Flags & ~PlayerFlags.InBoard;
 
-                            // Last but not least, invoke the handler
+                            if (user.Condition.Casting && clientMessage.Packet.Opcode != 0x4E && clientMessage.Packet.Opcode != 0x4D && clientMessage.Packet.Opcode != 0x0C && clientMessage.Packet.Opcode != 0x0F)
+                                user.CancelCasting();
 
+                            // Last but not least, invoke the handler
                             handler.Invoke(user, clientMessage.Packet);
                             stopwatch.Stop();
                             Game.MetricsStore.Measure.Histogram.Update(HybrasylMetricsRegistry.ServiceTime, 
