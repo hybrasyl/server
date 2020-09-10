@@ -2895,21 +2895,9 @@ namespace Hybrasyl
         {
             var user = (User)obj;
             var response = new ServerPacket(0x31);
-            // hur
-            try
-            {
-                MemoryStream s = new MemoryStream(packet.ToArray());
-                MemoryStream d = new MemoryStream();
-                ZlibCompression.Decompress(s, d);
-                GameLog.Error(BitConverter.ToString(d.ToArray()));
-            }
-            catch (Exception e)
-            {
-                GameLog.Error(e);
-            }
-
             var action = packet.ReadByte();
-
+            
+            GameLog.Error($"0x3B length is {packet.ToArray().Length}");
 
             // The moment we get a 3B packet, we assume a user is "in a board"
             user.Condition.Flags = user.Condition.Flags | PlayerFlags.InBoard;
