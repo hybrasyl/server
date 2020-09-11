@@ -2898,6 +2898,7 @@ namespace Hybrasyl
             var action = packet.ReadByte();
             
             GameLog.Error($"0x3B length is {packet.ToArray().Length}");
+            GameLog.Error($"0x3B action is {action}");
 
             // The moment we get a 3B packet, we assume a user is "in a board"
             user.Condition.Flags = user.Condition.Flags | PlayerFlags.InBoard;
