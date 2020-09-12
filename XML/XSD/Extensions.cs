@@ -226,6 +226,34 @@ namespace Hybrasyl.Xml
         }
     }
 
+    public partial class SpawnGroup
+    {
+        public int Id
+        {
+            get
+            {
+                unchecked
+                {
+                    return 31 * (Filename.GetHashCode() + 1);
+                }
+            }
+        }
+    }
+
+    public partial class LootSet
+    {
+        public int Id
+        {
+            get
+            {
+                unchecked
+                {
+                    return 31 * (Name.GetHashCode() + 1);
+                }
+            }
+        }
+    }
+
     public partial class Castable
     {
         public int Id
