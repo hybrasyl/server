@@ -792,6 +792,11 @@ namespace Hybrasyl.Objects
             {
                 return;
             }
+            if(endPoint.x >= Map.X || endPoint.y >= Map.Y)
+            {
+                return;
+            }
+
             if(Map.IsWall[endPoint.x, endPoint.y])
             {
                 return;
