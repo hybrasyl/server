@@ -286,9 +286,9 @@ namespace Hybrasyl.Objects
                 GameLog.Error("OnDeath for {Name}: exception encountered, loot/gold cancelled {e}", Name, e);
                 Game.ReportException(e);
             }
-            World.RemoveStatusCheck(this);
-            Map.Remove(this);
-            World.Remove(this);
+            Game.World.RemoveStatusCheck(this);
+            Map?.Remove(this);
+            World?.Remove(this);
 
         }
 
