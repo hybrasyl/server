@@ -45,7 +45,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
 using System.Xml.Schema;
-
+using System.Diagnostics;
 
 namespace Hybrasyl
 {
@@ -2957,6 +2957,9 @@ namespace Hybrasyl
             var user = (User)obj;
             var response = new ServerPacket(0x31);
             var action = packet.ReadByte();
+            
+            GameLog.Error($"0x3B length is {packet.ToArray().Length}");
+            GameLog.Error($"0x3B action is {action}");
 
             // The moment we get a 3B packet, we assume a user is "in a board"
             user.Condition.Flags = user.Condition.Flags | PlayerFlags.InBoard;
@@ -3415,6 +3418,9 @@ namespace Hybrasyl
 
                 default:
                     {
+                        response.WriteByte(0x06);
+                        response.WriteBoolean(false);
+                        response.WriteString8("Something has broken terribly.");
                     }
                     break;
             }
@@ -4474,8 +4480,9 @@ namespace Hybrasyl
 
         private void QueueConsumer()
         {
+            var watch = new Stopwatch();
             while (!MessageQueue.IsCompleted)
-            {
+            {                
                 if (StopToken.IsCancellationRequested)
                     return;
                 // Process messages.
@@ -4497,6 +4504,7 @@ namespace Hybrasyl
                 {                   
                     var clientMessage = (HybrasylClientMessage)message;
                     var handler = PacketHandlers[clientMessage.Packet.Opcode];
+                    var timerOptions = HybrasylMetricsRegistry.OpcodeTimerIndex[clientMessage.Packet.Opcode];
                     try
                     {
                         if (TryGetActiveUserById(clientMessage.ConnectionId, out user))
@@ -4555,11 +4563,26 @@ namespace Hybrasyl
                                 user.CancelCasting();
 
                             // Last but not least, invoke the handler
-                            handler.Invoke(user, clientMessage.Packet);
+                            if (timerOptions != null)
+                            {
+                                watch.Start();
+                                PacketHandlers[clientMessage.Packet.Opcode].Invoke(user, clientMessage.Packet);
+                                watch.Stop();
+                                Game.MetricsStore.Measure.Timer.Time(timerOptions, watch.ElapsedMilliseconds);
+
+                            }
+                            else
+                            {
+                                GameLog.Error("No metric for {clientMessage.Packet.Opcode}");
+                                handler.Invoke(user, clientMessage.Packet);
+                            }
                         }
                         else if (clientMessage.Packet.Opcode == 0x10) // Handle special case of join world
                         {
+                            watch.Start();
                             PacketHandlers[0x10].Invoke(clientMessage.ConnectionId, clientMessage.Packet);
+                            watch.Stop();
+                            Game.MetricsStore.Measure.Timer.Time(timerOptions, watch.ElapsedMilliseconds);
                         }
                         else
                         {
@@ -4573,6 +4596,9 @@ namespace Hybrasyl
                     catch (Exception e)
                     {
                         Game.ReportException(e);
+                        Game.MetricsStore.Measure.Meter.Mark(HybrasylMetricsRegistry.ExceptionMeter, 
+                            $"0x{clientMessage.Packet.Opcode}");
+                        watch.Stop();
                         GameLog.Error(e, "{Opcode}: Unhandled exception encountered in packet handler!", clientMessage.Packet.Opcode);
                     }
                 }
@@ -4583,6 +4609,7 @@ namespace Hybrasyl
 
         public void ControlQueueConsumer()
         {
+            var watch = new Stopwatch();
             while (!ControlMessageQueue.IsCompleted)
             {
                 if (StopToken.IsCancellationRequested)
@@ -4600,16 +4627,23 @@ namespace Hybrasyl
                     continue;
                 }
 
-                if (message is HybrasylControlMessage)
+                if (message is HybrasylControlMessage hcm)
                 {
+
                     try
                     {
-                        var controlMessage = (HybrasylControlMessage)message;
-                        ControlMessageHandlers[controlMessage.Opcode].Invoke(controlMessage);                       
+                        var timerOptions = HybrasylMetricsRegistry.ControlMessageTimerIndex[hcm.Opcode];
+                        watch.Start();
+                        ControlMessageHandlers[hcm.Opcode].Invoke(hcm);
+                        watch.Stop();
+                        Game.MetricsStore.Measure.Timer.Time(timerOptions, watch.ElapsedMilliseconds);
                     }
                     catch (Exception e)
                     {
                         Game.ReportException(e);
+                        Game.MetricsStore.Measure.Meter.Mark(HybrasylMetricsRegistry.ExceptionMeter,
+                            $"cm_{hcm.Opcode}");
+                        watch.Stop();
                         GameLog.Error("Exception encountered in control message handler: {exception}", e);
                     }
                 }

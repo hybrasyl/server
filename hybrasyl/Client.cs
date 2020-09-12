@@ -532,6 +532,9 @@ namespace Hybrasyl
                     ClientPacket packet;
                     while (ClientState.ReceiveBufferTake(out packet))
                     {
+                        //GameLog.Info("Debug - packet before decryption");
+                        //packet.DumpPacket();
+
                         if (packet.ShouldEncrypt)
                         {
                             packet.Decrypt(this);
@@ -562,6 +565,7 @@ namespace Hybrasyl
                                 UpdateLastReceived(packet.Opcode != 0x45 &&
                                                           packet.Opcode != 0x75);
                                 GameLog.Debug($"Queuing: 0x{packet.Opcode:X2}");
+                                //packet.DumpPacket();
                                 // Check for throttling
                                 var throttleResult = Server.PacketThrottleCheck(this, packet);
                                 if (throttleResult == ThrottleResult.OK || throttleResult == ThrottleResult.ThrottleEnd || throttleResult == ThrottleResult.SquelchEnd)
@@ -683,8 +687,12 @@ namespace Hybrasyl
             redirect.Destination.ExpectedConnections.TryAdd(redirect.Id, redirect);
 
             var endPoint = Socket.RemoteEndPoint as IPEndPoint;
+            byte[] addressBytes;
 
-            byte[] addressBytes = IPAddress.IsLoopback(endPoint.Address) ? IPAddress.Loopback.GetAddressBytes() : Game.IpAddress.GetAddressBytes();
+            if (Game.RedirectTarget != null)
+                addressBytes = Game.RedirectTarget.GetAddressBytes();
+            else 
+                addressBytes = IPAddress.IsLoopback(endPoint.Address) ? IPAddress.Loopback.GetAddressBytes() : Game.IpAddress.GetAddressBytes();
 
             Array.Reverse(addressBytes);
 

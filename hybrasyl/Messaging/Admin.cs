@@ -24,6 +24,7 @@ using Hybrasyl.Scripting;
 using System;
 using System.IO;
 using System.Net;
+using System.Text;
 
 namespace Hybrasyl.Messaging
 {

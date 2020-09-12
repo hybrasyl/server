@@ -100,6 +100,7 @@ namespace Hybrasyl
         }
     }
 
+    // If you add a new control opcode here, also add it to metricsincludes.tt
     static class ControlOpcodes
     {
         public const int CleanupUser = 0;

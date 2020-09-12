@@ -35,6 +35,7 @@ using System.Threading.Tasks;
 using System.Net.Http;
 using Newtonsoft.Json.Linq;
 using Sentry;
+using App.Metrics;
 
 namespace Hybrasyl
 {
@@ -43,6 +44,7 @@ namespace Hybrasyl
 
         public static readonly object SyncObj = new object();
         public static IPAddress IpAddress;
+        public static IPAddress RedirectTarget = null;
 
         public static ManualResetEvent allDone = new ManualResetEvent(false);
 
@@ -86,6 +88,8 @@ namespace Hybrasyl
 
         public static int ShutdownTimeRemaining = -1;
         public static bool ShutdownComplete = false;
+
+        public static IMetricsRoot MetricsStore { get; private set; }
 
         public static void ToggleActive()
         {
@@ -221,9 +225,37 @@ namespace Hybrasyl
             Log.Information("{Copyright} - this program is licensed under the GNU AGPL, version 3.", Assemblyinfo.Copyright);
 
 
+            // Set up metrics collection
+            // TODO: make configurable
+            var env = Environment.GetEnvironmentVariable("HYB_ENV");
+
+            var builder = new MetricsBuilder().Configuration.Configure(
+                options =>
+                {
+                    options.DefaultContextLabel = "Hybrasyl";
+                    options.GlobalTags.Add("Environment", env ?? "dev");
+                    options.Enabled = true;
+                    options.ReportingEnabled = true;
+                });
+
+            if (Game.Config.ApiEndpoints?.MetricsEndpoint != null)
+            {
+                MetricsStore = builder.Report.ToHostedMetrics(
+                io =>
+                {
+                    io.HostedMetrics.BaseUri = new Uri(Game.Config.ApiEndpoints.MetricsEndpoint.Url);
+                    io.HostedMetrics.ApiKey = Game.Config.ApiEndpoints.MetricsEndpoint.ApiKey;
+                    io.HttpPolicy.BackoffPeriod = TimeSpan.FromSeconds(15);
+                    io.HttpPolicy.FailuresBeforeBackoff = 5;
+                    io.HttpPolicy.Timeout = TimeSpan.FromSeconds(10);
+                    io.FlushInterval = TimeSpan.FromSeconds(20);
+                }).Build();
+            }
+            else
+                MetricsStore = builder.Build();
+
             try
             {
-                var env = Environment.GetEnvironmentVariable("HYB_ENV");
                 if (!string.IsNullOrEmpty(Config.ApiEndpoints.Sentry?.Url ?? null))
                 {
                     Sentry = SentrySdk.Init(i =>
@@ -251,6 +283,8 @@ namespace Hybrasyl
 
             // For right now we don't support binding to different addresses; the support in the XML
             // is for a distant future where that may be desirable.
+            if (Config.Network.Login.ExternalAddress != null)
+                RedirectTarget = IPAddress.Parse(Config.Network.Lobby.ExternalAddress);
             IpAddress = IPAddress.Parse(Config.Network.Lobby.BindAddress);
             Lobby = new Lobby(Config.Network.Lobby.Port);
             Login = new Login(Config.Network.Login.Port);
