@@ -1249,7 +1249,7 @@ namespace Hybrasyl.Objects
         internal void UseSkill(byte slot)
         {
             var bookSlot = SkillBook[slot];
-            if (bookSlot.Castable.OnCooldown)
+            if (bookSlot.OnCooldown)
             {
                 SendSystemMessage("You must wait longer to use that.");
                 return;
@@ -1276,7 +1276,7 @@ namespace Hybrasyl.Objects
             var bookSlot = SpellBook[slot];
             Creature targetCreature = Map.EntityTree.OfType<Creature>().SingleOrDefault(x => x.Id == target) ?? null;
 
-            if (bookSlot.Castable.OnCooldown)
+            if (bookSlot.OnCooldown)
             {
                 SendSystemMessage("You must wait longer to use that.");
                 return;
