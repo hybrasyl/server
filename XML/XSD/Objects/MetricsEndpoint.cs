@@ -28,7 +28,7 @@ public partial class MetricsEndpoint
 {
     #region Private fields
     private string _apiKey;
-    private string _value;
+    private string _url;
     private static XmlSerializer _serializer;
     #endregion
     
@@ -45,16 +45,16 @@ public partial class MetricsEndpoint
         }
     }
     
-    [XmlTextAttribute(DataType="anyURI")]
-    public string Value
+    [XmlAttribute(DataType="anyURI")]
+    public string Url
     {
         get
         {
-            return _value;
+            return _url;
         }
         set
         {
-            _value = value;
+            _url = value;
         }
     }
     

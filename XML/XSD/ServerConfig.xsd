@@ -192,11 +192,8 @@
   </xs:complexType>
 
   <xs:complexType name="MetricsEndpoint">
-    <xs:simpleContent>
-      <xs:extension base="xs:anyURI">
-        <xs:attribute type="xs:string" name="ApiKey" use="required"/>
-      </xs:extension>
-    </xs:simpleContent>
+    <xs:attribute type="xs:string" name="ApiKey" use="required"/>
+    <xs:attribute name="Url" type="xs:anyURI" use="required"/>
   </xs:complexType>
 
   <xs:complexType name="ServerConfig">
