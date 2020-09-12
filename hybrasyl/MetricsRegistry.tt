@@ -94,7 +94,7 @@ namespace Hybrasyl
   foreach (var co in Enum.GetNames(typeof(ClientOpcode)))
   {
 #>
-    public static TimerOptions OpcodeServiceTime_<#= co #> => new TimerOptions
+    public static TimerOptions Opcode_<#= co #> => new TimerOptions
     {
         Name = "<#= co #> Packet Service Time",
         MeasurementUnit = Unit.Requests,
@@ -111,7 +111,7 @@ namespace Hybrasyl
   {
 #>
 
-    public static TimerOptions ControlMessageServiceTime_<#= cmo #> => new TimerOptions
+    public static TimerOptions ControlMessage_<#= cmo #> => new TimerOptions
     {
         Name = "<#= cmo #> Control Message Service Time",
         MeasurementUnit = Unit.Requests,
