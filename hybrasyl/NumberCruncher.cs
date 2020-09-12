@@ -172,7 +172,7 @@ namespace Hybrasyl
             if (effect.Heal.IsSimple)
                 heal = _evalSimple(effect.Heal.Simple);
             else
-                heal = _evalFormula(effect.Damage.Formula, castable, target, source);
+                heal = _evalFormula(effect.Heal.Formula, castable, target, source);
 
             return heal * intensity * target.Stats.HealModifier;
 

@@ -329,6 +329,67 @@ namespace Hybrasyl
             }
         }
 
+        public string GetXmlFile(string type, string name)
+        {
+            var ret = "";
+            string path = "";
+            try
+            {
+                switch(type)
+                {
+                    case "castable":
+                        path = CastableDirectory;
+                        break;
+                    case "npc":
+                        path = NpcsDirectory;
+                        break;
+                    case "item":
+                        path = ItemDirectory;
+                        break;
+                    case "nation":
+                        path = NationDirectory;
+                        break;
+                    case "lootset":
+                        path = LootSetDirectory;
+                        break;
+                    case "spawngroup":
+                        path = SpawnGroupDirectory;
+                        break;
+                    case "element":
+                        path = ElementDirectory;
+                        break;
+                    case "itemvariant":
+                        path = ItemVariantDirectory;
+                        break;
+                    case "status":
+                        path = StatusDirectory;
+                        break;
+                    case "map":
+                        path = MapDirectory;
+                        break;
+                    case "worldmap":
+                        path = WorldMapDirectory;
+                        break;
+                    case "localization":
+                        path = LocalizationDirectory;
+                        break;
+                    default:
+                        path = "";
+                        break;
+                }
+
+                if (Directory.Exists(path))
+                {
+                    return Directory.GetFiles(path, $"{name}.xml", SearchOption.AllDirectories).Where(e => !e.Replace(path, "").StartsWith("\\_")).ToArray()[0] ?? "";
+                }
+            }
+            catch (Exception e)
+            {
+                GameLog.Error("Data directory {dir} not found or not accessible: {e}", path, e);
+            }
+            return ret;
+        }
+
         public static string[] GetXmlFiles(string Path)
         {
             var ret = new List<string>();
@@ -515,7 +576,7 @@ namespace Hybrasyl
                     var spawnGroup = Xml.SpawnGroup.LoadFromFile(xml);
                     spawnGroup.Filename = Path.GetFileNameWithoutExtension(xml);
                     GameLog.InfoFormat("SpawnGroup: loaded {0}", spawnGroup.Filename);
-                    WorldData.SetWithIndex(spawnGroup.GetHashCode(), spawnGroup, spawnGroup.Filename);
+                    WorldData.SetWithIndex(spawnGroup.Id, spawnGroup, spawnGroup.Filename);
                 }
                 catch (Exception e)
                 {
@@ -533,7 +594,7 @@ namespace Hybrasyl
                     var lootSet = Xml.LootSet.LoadFromFile(xml);
 
                     GameLog.DebugFormat("LootSets: loaded {0}", lootSet.Name);
-                    WorldData.SetWithIndex(lootSet.GetHashCode(), lootSet, lootSet.Name);
+                    WorldData.SetWithIndex(lootSet.Id, lootSet, lootSet.Name);
                 }
                 catch (Exception e)
                 {

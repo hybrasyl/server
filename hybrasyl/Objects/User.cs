@@ -84,7 +84,6 @@ namespace Hybrasyl.Objects
         public string AccountUuid { get; set; }
 
         private Client Client;
-
         public bool Connected => Client?.Connected ?? false;
         public long ConnectionId => Client?.ConnectionId ?? PreviousConnectionId;
         public long PreviousConnectionId { get; set; }
@@ -1644,6 +1643,7 @@ namespace Hybrasyl.Objects
             GameLog.DebugFormat("Adding spell {0} to slot {2}",
                 item.Castable.Name, slot);
 
+            
             string name = "";
             if (item.Castable.Mastery.Uses != 1)
             {
@@ -1729,7 +1729,7 @@ namespace Hybrasyl.Objects
         {
             UserCookies[cookieName] = value;
         }
-        
+
         public void SetSessionCookie(string cookieName, string value)
         {
             UserSessionCookies[cookieName] = value;

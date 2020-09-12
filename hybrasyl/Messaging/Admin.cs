@@ -807,6 +807,301 @@ namespace Hybrasyl.Messaging
 
         }
     }
+
+    class ReloadXml : ChatCommand
+    {
+        public new static string Command = "reloadxml";
+        public new static string ArgumentText = "<string> type <string> filename";
+        public new static string HelpText = "Reloads a specified xml file into world data, i.e. \"castable\" \"all_psk_assail\" (Valid arguments are:\ncastable npc item element lootset nation map itemvariant spawngroup status worldmap localization";
+        public new static bool Privileged = true;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            if (args.Length < 2) return Fail($"Wrong number of arguments supplied.");
+            
+            switch(args[0].ToLower())
+            {
+                case "castable":
+                    {
+                        var reloaded = Game.World.GetXmlFile(args[0], args[1]);
+                        var reloadedCastable = Xml.Castable.LoadFromFile(reloaded);
+
+                        if (Game.World.WorldData.TryGetValue(reloadedCastable.Id, out Xml.Castable castable))
+                        {
+                            Game.World.WorldData.Remove<Xml.Castable>(castable.Id);
+                            Game.World.WorldData.SetWithIndex(reloadedCastable.Id, reloadedCastable, reloadedCastable.Name);
+                            foreach (var activeuser in Game.World.ActiveUsers)
+                            {
+                                if(reloadedCastable.Book == Xml.Book.PrimarySkill || reloadedCastable.Book == Xml.Book.SecondarySkill || reloadedCastable.Book == Xml.Book.UtilitySkill)
+                                {
+                                    if(activeuser.SkillBook.Contains(reloadedCastable.Id))
+                                    {
+                                        activeuser.SkillBook[activeuser.SkillBook.SlotOf(reloadedCastable.Id)].Castable = reloadedCastable;
+                                    }
+                                }
+                                else
+                                {
+                                    if (activeuser.SpellBook.Contains(reloadedCastable.Id))
+                                    {
+                                        activeuser.SpellBook[activeuser.SpellBook.SlotOf(reloadedCastable.Id)].Castable = reloadedCastable;
+                                    }
+                                }
+                            }
+
+                            return Success($"Castable {reloadedCastable.Name} set to world data");
+                        }
+                        return Fail($"{args[0]} {args[1]} was not found");
+                    }
+                case "npc":
+                    {
+                        var reloaded = Game.World.GetXmlFile(args[0], args[1]);
+                        var reloadedNpc = Xml.Npc.LoadFromFile(reloaded);
+
+                        if (Game.World.WorldData.TryGetValue(reloadedNpc.Name, out Xml.Npc npc))
+                        {
+                            Game.World.WorldData.Remove<Xml.Npc>(npc.Name);
+                            Game.World.WorldData.Set(reloadedNpc.Name, reloadedNpc);
+                            return Success($"Npc {reloadedNpc.Name} set to world data. Reload NPC to activate.");
+                        }
+                        return Fail($"{args[0]} {args[1]} was not found");
+                    }
+                case "lootset":
+                    {
+                        var reloaded = Game.World.GetXmlFile(args[0], args[1]);
+                        var reloadedLootSet = Xml.LootSet.LoadFromFile(reloaded);
+
+                        if (Game.World.WorldData.TryGetValue(reloadedLootSet.Id, out Xml.LootSet lootSet))
+                        {
+                            Game.World.WorldData.Remove<Xml.LootSet>(lootSet.Id);
+                            Game.World.WorldData.SetWithIndex(reloadedLootSet.Id, reloadedLootSet, reloadedLootSet.Name);
+                            return Success($"LootSet {reloadedLootSet.Name} set to world data");
+                        }
+                        return Fail($"{args[0]} {args[1]} was not found");
+                    }
+                case "nation":
+                    {
+                        var reloaded = Game.World.GetXmlFile(args[0], args[1]);
+                        var reloadedNation = Xml.Nation.LoadFromFile(reloaded);
+
+                        if (Game.World.WorldData.TryGetValue(reloadedNation.Name, out Xml.Nation nation))
+                        {
+                            Game.World.WorldData.Remove<Xml.Nation>(nation.Name);
+                            Game.World.WorldData.Set(reloadedNation.Name, reloadedNation);
+                            return Success($"Nation {reloadedNation.Name} set to world data");
+                        }
+                        return Fail($"{args[0]} {args[1]} was not found");
+                    }
+                case "map":
+                    {
+                        var reloaded = Game.World.GetXmlFile(args[0], args[1]);
+                        var reloadedMap = Xml.Map.LoadFromFile(reloaded);
+
+                        if (Game.World.WorldData.TryGetValue(reloadedMap.Id, out Map map))
+                        {
+                            var newMap = new Map(reloadedMap, Game.World);
+                            Game.World.WorldData.Remove<Map>(map.Id);
+                            Game.World.WorldData.SetWithIndex(newMap.Id, newMap, newMap.Name);
+                            return Success($"Map {reloadedMap.Name} set to world data");
+                        }
+                        return Fail($"{args[0]} {args[1]} was not found");
+                    }
+                case "item":
+                    {
+                        return Fail("Not yet supported.");
+                    }
+                case "itemvariant":
+                    {
+                        return Fail("Not supported.");
+                    }
+                case "spawngroup":
+                    {
+                        var reloaded = Game.World.GetXmlFile(args[0], args[1]);
+                        var reloadedSpawnGroup = Xml.SpawnGroup.LoadFromFile(reloaded);
+
+                        if (Game.World.WorldData.TryGetValue(reloadedSpawnGroup.Id, out Xml.SpawnGroup spawngroup))
+                        {
+                            Game.World.WorldData.Remove<Xml.SpawnGroup>(spawngroup.Id);
+                            Game.World.WorldData.SetWithIndex(reloadedSpawnGroup.Id, reloadedSpawnGroup, reloadedSpawnGroup.Filename);
+                            return Success($"SpawnGroup {reloadedSpawnGroup.Filename} set to world data");
+                        }
+                        return Fail($"{args[0]} {args[1]} was not found");
+                    }
+                case "status":
+                    {
+                        var reloaded = Game.World.GetXmlFile(args[0], args[1]);
+                        var reloadedStatus = Xml.Status.LoadFromFile(reloaded);
+
+                        if (Game.World.WorldData.TryGetValue(reloadedStatus.Name, out Xml.Status status))
+                        {
+                            Game.World.WorldData.Remove<Xml.Status>(status.Name);
+                            Game.World.WorldData.Set(reloadedStatus.Name, reloadedStatus);
+                            return Success($"Status {reloadedStatus.Name} set to world data");
+                        }
+                        return Fail($"{args[0]} {args[1]} was not found");
+                    }
+                case "worldmap":
+                    {
+                        var reloaded = Game.World.GetXmlFile(args[0], args[1]);
+                        var reloadedWorldMap = Xml.WorldMap.LoadFromFile(reloaded);
+
+                        if (Game.World.WorldData.TryGetValue(reloadedWorldMap.Name, out Xml.WorldMap status))
+                        {
+                            Game.World.WorldData.Remove<Xml.WorldMap>(status.Name);
+                            Game.World.WorldData.Set(reloadedWorldMap.Name, reloadedWorldMap);
+                            return Success($"WorldMap {reloadedWorldMap.Name} set to world data");
+                        }
+                        return Fail($"{args[0]} {args[1]} was not found");
+                    }
+                case "element":
+                    {
+                        var reloaded = Game.World.GetXmlFile(args[0], args[1]);
+                        var reloadedElementTable = Xml.ElementTable.LoadFromFile(reloaded);
+
+                        if (Game.World.WorldData.TryGetValue("ElementTable", out Xml.ElementTable table))
+                        {
+                            Game.World.WorldData.Remove<Xml.ElementTable>("ElementTable");
+                            Game.World.WorldData.Set("ElementTable", reloadedElementTable);
+                            return Success($"ElementTable set to world data");
+                        }
+                        return Fail($"{args[0]} {args[1]} was not found");
+                    }
+                case "localization":
+                    {
+                        var reloaded = Game.World.GetXmlFile(args[0], args[1]);
+                        Game.World.Strings = Xml.LocalizedStrings.LoadFromFile(reloaded);
+                        return Success($"Localization strings set to World");
+                    }
+                default:
+                    return Fail("Bad input.");
+            }
+
+        }
+    }
+
+    class LoadXml : ChatCommand
+    {
+        public new static string Command = "loadxml";
+        public new static string ArgumentText = "<string> type <string> filename";
+        public new static string HelpText = "Loads a specified xml file into world data, i.e. \"castable\" \"wizard_psp_srad\" (Valid arguments are: \n\n castable npc item lootset nation map itemvariant spawngroup status worldmap";
+        public new static bool Privileged = true;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            if (args.Length < 2) return Fail($"Wrong number of arguments supplied.");
+
+            switch (args[0].ToLower())
+            {
+                case "castable":
+                    {
+                        var reloaded = Game.World.GetXmlFile(args[0], args[1]);
+                        var reloadedCastable = Xml.Castable.LoadFromFile(reloaded);
+
+                        if (Game.World.WorldData.TryGetValue(reloadedCastable.Id, out Xml.Castable castable))
+                        {
+                            return Fail($"{args[0]} {args[1]} already exists.");
+                        }
+                        Game.World.WorldData.SetWithIndex(reloadedCastable.Id, reloadedCastable, reloadedCastable.Name);
+                        return Success($"Castable {reloadedCastable.Name} set to world data");
+                    }
+                case "npc":
+                    {
+                        var reloaded = Game.World.GetXmlFile(args[0], args[1]);
+                        var reloadedNpc = Xml.Npc.LoadFromFile(reloaded);
+
+                        if (Game.World.WorldData.TryGetValue(reloadedNpc.Name, out Xml.Npc npc))
+                        {
+                            return Fail($"{args[0]} {args[1]} already exists.");
+                        }
+                        Game.World.WorldData.Set(reloadedNpc.Name, reloadedNpc);
+                        return Success($"Npc {reloadedNpc.Name} set to world data.");
+                    }
+                case "lootset":
+                    {
+                        var reloaded = Game.World.GetXmlFile(args[0], args[1]);
+                        var reloadedLootSet = Xml.LootSet.LoadFromFile(reloaded);
+
+                        if (Game.World.WorldData.TryGetValue(reloadedLootSet.Id, out Xml.LootSet lootSet))
+                        {
+                            return Fail($"{args[0]} {args[1]} already exists.");
+                        }
+                        Game.World.WorldData.SetWithIndex(reloadedLootSet.Id, reloadedLootSet, reloadedLootSet.Name);
+                        return Success($"Npc {reloadedLootSet.Name} set to world data.");
+                    }
+                case "nation":
+                    {
+                        var reloaded = Game.World.GetXmlFile(args[0], args[1]);
+                        var reloadedNation = Xml.Nation.LoadFromFile(reloaded);
+
+                        if (Game.World.WorldData.TryGetValue(reloadedNation.Name, out Xml.Nation nation))
+                        {                            
+                            return Fail($"{args[0]} {args[1]} already exists.");
+                        }
+                        Game.World.WorldData.Set(reloadedNation.Name, reloadedNation);
+                        return Success($"Nation {reloadedNation.Name} set to world data");
+                    }
+                case "map":
+                    {
+                        var reloaded = Game.World.GetXmlFile(args[0], args[1]);
+                        var reloadedMap = Xml.Map.LoadFromFile(reloaded);
+
+                        if (Game.World.WorldData.TryGetValue(reloadedMap.Id, out Map map))
+                        {
+                            return Fail($"{args[0]} {args[1]} already exists.");
+                        }
+                        var newMap = new Map(reloadedMap, Game.World);
+                        Game.World.WorldData.SetWithIndex(newMap.Id, newMap, newMap.Name);
+                        return Success($"Map {reloadedMap.Name} set to world data");
+                    }
+                case "item":
+                    {
+                        return Fail("Not yet supported.");
+                    }
+                case "itemvariant":
+                    {
+                        return Fail("Not supported.");
+                    }
+                case "spawngroup":
+                    {
+                        var reloaded = Game.World.GetXmlFile(args[0], args[1]);
+                        var reloadedSpawnGroup = Xml.SpawnGroup.LoadFromFile(reloaded);
+
+                        if (Game.World.WorldData.TryGetValue(reloadedSpawnGroup.Id, out Xml.SpawnGroup spawngroup))
+                        {
+                            return Fail($"{args[0]} {args[1]} already exists.");
+                        }
+                        Game.World.WorldData.SetWithIndex(reloadedSpawnGroup.Id, reloadedSpawnGroup, reloadedSpawnGroup.Filename);
+                        return Success($"SpawnGroup {reloadedSpawnGroup.Filename} set to world data");
+                    }
+                case "status":
+                    {
+                        var reloaded = Game.World.GetXmlFile(args[0], args[1]);
+                        var reloadedStatus = Xml.Status.LoadFromFile(reloaded);
+
+                        if (Game.World.WorldData.TryGetValue(reloadedStatus.Name, out Xml.Status status))
+                        {
+                            return Fail($"{args[0]} {args[1]} already exists.");
+                        }
+                        Game.World.WorldData.Set(reloadedStatus.Name, reloadedStatus);
+                        return Success($"Status {reloadedStatus.Name} set to world data");
+                    }
+                case "worldmap":
+                    {
+                        var reloaded = Game.World.GetXmlFile(args[0], args[1]);
+                        var reloadedWorldMap = Xml.WorldMap.LoadFromFile(reloaded);
+
+                        if (Game.World.WorldData.TryGetValue(reloadedWorldMap.Name, out Xml.WorldMap status))
+                        {
+                            return Fail($"{args[0]} {args[1]} already exists.");
+                        }
+                        Game.World.WorldData.Set(reloadedWorldMap.Name, reloadedWorldMap);
+                        return Success($"WorldMap {reloadedWorldMap.Name} set to world data");
+                    }
+                default:
+                    return Fail("Bad input.");
+            }
+
+        }
+    }
 }
 
 
