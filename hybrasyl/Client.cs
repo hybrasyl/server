@@ -532,8 +532,8 @@ namespace Hybrasyl
                     ClientPacket packet;
                     while (ClientState.ReceiveBufferTake(out packet))
                     {
-                        GameLog.Info("Debug - packet before decryption");
-                        packet.DumpPacket();
+                        //GameLog.Info("Debug - packet before decryption");
+                        //packet.DumpPacket();
 
                         if (packet.ShouldEncrypt)
                         {
@@ -565,7 +565,7 @@ namespace Hybrasyl
                                 UpdateLastReceived(packet.Opcode != 0x45 &&
                                                           packet.Opcode != 0x75);
                                 GameLog.Debug($"Queuing: 0x{packet.Opcode:X2}");
-                                packet.DumpPacket();
+                                //packet.DumpPacket();
                                 // Check for throttling
                                 var throttleResult = Server.PacketThrottleCheck(this, packet);
                                 if (throttleResult == ThrottleResult.OK || throttleResult == ThrottleResult.ThrottleEnd || throttleResult == ThrottleResult.SquelchEnd)

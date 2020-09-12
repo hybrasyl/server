@@ -266,8 +266,8 @@ namespace Hybrasyl
         public void DumpPacket()
         {
             // Dump the packet to the console.
-            GameLog.Info($"Dumping packet: {Opcode:X2}");
-            GameLog.Info(ToString());
+            GameLog.Debug($"Dumping packet: {Opcode:X2}");
+            GameLog.Debug(ToString());
         }
 
         public byte[] ToArray()

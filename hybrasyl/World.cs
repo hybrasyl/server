@@ -4555,7 +4555,6 @@ namespace Hybrasyl
                     return;
                 // Process messages.
                 HybrasylMessage message;
-                var startTime = DateTime.Now;
                 try
                 {
                     message = ControlMessageQueue.Take();
@@ -4575,8 +4574,8 @@ namespace Hybrasyl
                         var timerOptions = HybrasylMetricsRegistry.ControlMessageTimerIndex[hcm.Opcode];
                         watch.Start();
                         ControlMessageHandlers[hcm.Opcode].Invoke(hcm);
-                        Game.MetricsStore.Measure.Timer.Time(timerOptions, watch.ElapsedMilliseconds);
                         watch.Stop();
+                        Game.MetricsStore.Measure.Timer.Time(timerOptions, watch.ElapsedMilliseconds);
                     }
                     catch (Exception e)
                     {
