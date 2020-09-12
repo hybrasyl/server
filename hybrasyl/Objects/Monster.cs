@@ -824,7 +824,7 @@ namespace Hybrasyl.Objects
 
             (int x, int y) point = NextPoint(direction, currentPoint);
 
-            if(point.x <= Map.X && point.y <= Map.Y && !Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
+            if(point.x < Map.X && point.y < Map.Y && !Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
             {
                 Walk(direction);
             }
