@@ -4580,7 +4580,6 @@ namespace Hybrasyl
                             }
                             else
                             {
-                                GameLog.Error("No metric for {clientMessage.Packet.Opcode}");
                                 handler.Invoke(user, clientMessage.Packet);
                             }
                         }

@@ -96,7 +96,7 @@ namespace Hybrasyl
 #>
     public static TimerOptions Opcode_<#= co #> => new TimerOptions
     {
-        Name = "<#= co #> Packet Service Time",
+        Name = "<#= co #> Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -113,7 +113,7 @@ namespace Hybrasyl
 
     public static TimerOptions ControlMessage_<#= cmo #> => new TimerOptions
     {
-        Name = "<#= cmo #> Control Message Service Time",
+        Name = "<#= cmo #> Control Message",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,

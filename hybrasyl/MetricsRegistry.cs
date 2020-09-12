@@ -323,7 +323,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_RequestMap => new TimerOptions
     {
-        Name = "RequestMap Packet Service Time",
+        Name = "RequestMap Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -331,7 +331,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_Walk => new TimerOptions
     {
-        Name = "Walk Packet Service Time",
+        Name = "Walk Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -339,7 +339,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_PickupItem => new TimerOptions
     {
-        Name = "PickupItem Packet Service Time",
+        Name = "PickupItem Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -347,7 +347,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_DropItem => new TimerOptions
     {
-        Name = "DropItem Packet Service Time",
+        Name = "DropItem Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -355,7 +355,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_ClientExit => new TimerOptions
     {
-        Name = "ClientExit Packet Service Time",
+        Name = "ClientExit Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -363,7 +363,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_Talk => new TimerOptions
     {
-        Name = "Talk Packet Service Time",
+        Name = "Talk Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -371,7 +371,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_UseSpell => new TimerOptions
     {
-        Name = "UseSpell Packet Service Time",
+        Name = "UseSpell Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -379,7 +379,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_ClientJoin => new TimerOptions
     {
-        Name = "ClientJoin Packet Service Time",
+        Name = "ClientJoin Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -387,7 +387,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_Turn => new TimerOptions
     {
-        Name = "Turn Packet Service Time",
+        Name = "Turn Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -395,7 +395,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_Attack => new TimerOptions
     {
-        Name = "Attack Packet Service Time",
+        Name = "Attack Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -403,7 +403,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_ShowPlayerList => new TimerOptions
     {
-        Name = "ShowPlayerList Packet Service Time",
+        Name = "ShowPlayerList Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -411,7 +411,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_Whisper => new TimerOptions
     {
-        Name = "Whisper Packet Service Time",
+        Name = "Whisper Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -419,7 +419,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_Settings => new TimerOptions
     {
-        Name = "Settings Packet Service Time",
+        Name = "Settings Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -427,7 +427,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_UseItem => new TimerOptions
     {
-        Name = "UseItem Packet Service Time",
+        Name = "UseItem Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -435,7 +435,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_Emote => new TimerOptions
     {
-        Name = "Emote Packet Service Time",
+        Name = "Emote Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -443,7 +443,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_DropGold => new TimerOptions
     {
-        Name = "DropGold Packet Service Time",
+        Name = "DropGold Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -451,7 +451,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_DropItemOnCreature => new TimerOptions
     {
-        Name = "DropItemOnCreature Packet Service Time",
+        Name = "DropItemOnCreature Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -459,7 +459,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_DropGoldOnCreature => new TimerOptions
     {
-        Name = "DropGoldOnCreature Packet Service Time",
+        Name = "DropGoldOnCreature Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -467,7 +467,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_PlayerInfo => new TimerOptions
     {
-        Name = "PlayerInfo Packet Service Time",
+        Name = "PlayerInfo Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -475,7 +475,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_GroupRequest => new TimerOptions
     {
-        Name = "GroupRequest Packet Service Time",
+        Name = "GroupRequest Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -483,7 +483,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_GroupToggle => new TimerOptions
     {
-        Name = "GroupToggle Packet Service Time",
+        Name = "GroupToggle Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -491,7 +491,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_MoveUIElement => new TimerOptions
     {
-        Name = "MoveUIElement Packet Service Time",
+        Name = "MoveUIElement Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -499,7 +499,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_Refresh => new TimerOptions
     {
-        Name = "Refresh Packet Service Time",
+        Name = "Refresh Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -507,7 +507,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_NPCMainMenu => new TimerOptions
     {
-        Name = "NPCMainMenu Packet Service Time",
+        Name = "NPCMainMenu Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -515,7 +515,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_DialogUse => new TimerOptions
     {
-        Name = "DialogUse Packet Service Time",
+        Name = "DialogUse Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -523,7 +523,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_AccessMessages => new TimerOptions
     {
-        Name = "AccessMessages Packet Service Time",
+        Name = "AccessMessages Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -531,7 +531,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_UseSkill => new TimerOptions
     {
-        Name = "UseSkill Packet Service Time",
+        Name = "UseSkill Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -539,7 +539,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_MapPointClick => new TimerOptions
     {
-        Name = "MapPointClick Packet Service Time",
+        Name = "MapPointClick Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -547,7 +547,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_PointClick => new TimerOptions
     {
-        Name = "PointClick Packet Service Time",
+        Name = "PointClick Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -555,7 +555,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_EquippedItemClick => new TimerOptions
     {
-        Name = "EquippedItemClick Packet Service Time",
+        Name = "EquippedItemClick Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -563,7 +563,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_ByteHeartbeat => new TimerOptions
     {
-        Name = "ByteHeartbeat Packet Service Time",
+        Name = "ByteHeartbeat Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -571,7 +571,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_StatPoint => new TimerOptions
     {
-        Name = "StatPoint Packet Service Time",
+        Name = "StatPoint Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -579,7 +579,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_Trade => new TimerOptions
     {
-        Name = "Trade Packet Service Time",
+        Name = "Trade Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -587,7 +587,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_BeginCasting => new TimerOptions
     {
-        Name = "BeginCasting Packet Service Time",
+        Name = "BeginCasting Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -595,7 +595,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_CastLine => new TimerOptions
     {
-        Name = "CastLine Packet Service Time",
+        Name = "CastLine Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -603,7 +603,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_ProfileTextPortrait => new TimerOptions
     {
-        Name = "ProfileTextPortrait Packet Service Time",
+        Name = "ProfileTextPortrait Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -611,7 +611,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_TickHeartbeat => new TimerOptions
     {
-        Name = "TickHeartbeat Packet Service Time",
+        Name = "TickHeartbeat Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -619,7 +619,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_Status => new TimerOptions
     {
-        Name = "Status Packet Service Time",
+        Name = "Status Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -627,7 +627,7 @@ namespace Hybrasyl
 
     public static TimerOptions Opcode_RequestMetafile => new TimerOptions
     {
-        Name = "RequestMetafile Packet Service Time",
+        Name = "RequestMetafile Packet",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -637,7 +637,7 @@ namespace Hybrasyl
 
     public static TimerOptions ControlMessage_CleanupUser => new TimerOptions
     {
-        Name = "CleanupUser Control Message Service Time",
+        Name = "CleanupUser Control Message",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -646,7 +646,7 @@ namespace Hybrasyl
 
     public static TimerOptions ControlMessage_SaveUser => new TimerOptions
     {
-        Name = "SaveUser Control Message Service Time",
+        Name = "SaveUser Control Message",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -655,7 +655,7 @@ namespace Hybrasyl
 
     public static TimerOptions ControlMessage_ChaosRising => new TimerOptions
     {
-        Name = "ChaosRising Control Message Service Time",
+        Name = "ChaosRising Control Message",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -664,7 +664,7 @@ namespace Hybrasyl
 
     public static TimerOptions ControlMessage_ShutdownServer => new TimerOptions
     {
-        Name = "ShutdownServer Control Message Service Time",
+        Name = "ShutdownServer Control Message",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -673,7 +673,7 @@ namespace Hybrasyl
 
     public static TimerOptions ControlMessage_RegenUser => new TimerOptions
     {
-        Name = "RegenUser Control Message Service Time",
+        Name = "RegenUser Control Message",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -682,7 +682,7 @@ namespace Hybrasyl
 
     public static TimerOptions ControlMessage_LogoffUser => new TimerOptions
     {
-        Name = "LogoffUser Control Message Service Time",
+        Name = "LogoffUser Control Message",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -691,7 +691,7 @@ namespace Hybrasyl
 
     public static TimerOptions ControlMessage_MailNotifyUser => new TimerOptions
     {
-        Name = "MailNotifyUser Control Message Service Time",
+        Name = "MailNotifyUser Control Message",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -700,7 +700,7 @@ namespace Hybrasyl
 
     public static TimerOptions ControlMessage_StatusTick => new TimerOptions
     {
-        Name = "StatusTick Control Message Service Time",
+        Name = "StatusTick Control Message",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -709,7 +709,7 @@ namespace Hybrasyl
 
     public static TimerOptions ControlMessage_MonolithSpawn => new TimerOptions
     {
-        Name = "MonolithSpawn Control Message Service Time",
+        Name = "MonolithSpawn Control Message",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -718,7 +718,7 @@ namespace Hybrasyl
 
     public static TimerOptions ControlMessage_MonolithControl => new TimerOptions
     {
-        Name = "MonolithControl Control Message Service Time",
+        Name = "MonolithControl Control Message",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -727,7 +727,7 @@ namespace Hybrasyl
 
     public static TimerOptions ControlMessage_TriggerRefresh => new TimerOptions
     {
-        Name = "TriggerRefresh Control Message Service Time",
+        Name = "TriggerRefresh Control Message",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -736,7 +736,7 @@ namespace Hybrasyl
 
     public static TimerOptions ControlMessage_HandleDeath => new TimerOptions
     {
-        Name = "HandleDeath Control Message Service Time",
+        Name = "HandleDeath Control Message",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
@@ -745,7 +745,7 @@ namespace Hybrasyl
 
     public static TimerOptions ControlMessage_DialogRequest => new TimerOptions
     {
-        Name = "DialogRequest Control Message Service Time",
+        Name = "DialogRequest Control Message",
         MeasurementUnit = Unit.Requests,
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,

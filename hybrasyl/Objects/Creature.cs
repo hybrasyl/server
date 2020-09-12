@@ -630,9 +630,8 @@ namespace Hybrasyl.Objects
             }
 
             // Now flood away
-            // TODO: actually implement this, as is now it's duplicative
-            //foreach (var dead in deadMobs)
-            //    World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.HandleDeath, dead));
+            foreach (var dead in deadMobs)
+                World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.HandleDeath, dead));
             Condition.Casting = false;
             return true;
         }
