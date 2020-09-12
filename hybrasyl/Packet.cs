@@ -266,8 +266,8 @@ namespace Hybrasyl
         public void DumpPacket()
         {
             // Dump the packet to the console.
-            GameLog.Info($"Dumping packet: {Opcode}");
-            GameLog.Info(BitConverter.ToString(Data));
+            GameLog.Info($"Dumping packet: {Opcode:X2}");
+            GameLog.Info(ToString());
         }
 
         public byte[] ToArray()
@@ -636,8 +636,8 @@ namespace Hybrasyl
         {
             var length = Data.Length - 3;
 
-            var bRand = (ushort)((Data[length + 2] << 8 | Data[length]) ^ 0x6474);
-            var sRand = (byte)(Data[length + 1] ^ 0x24);
+            var bRand = (ushort)((Data[length + 2] << 8 | Data[length]) ^ 0x7470);
+            var sRand = (byte)(Data[length + 1] ^ 0x23);
 
             var key = (UseDefaultKey) ? client.EncryptionKey : client.GenerateKey(bRand, sRand);
 

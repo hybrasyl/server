@@ -229,14 +229,30 @@ namespace Hybrasyl
             // TODO: make configurable
             var env = Environment.GetEnvironmentVariable("HYB_ENV");
 
-            MetricsStore = new MetricsBuilder().Configuration.Configure(
+            var builder = new MetricsBuilder().Configuration.Configure(
                 options =>
                 {
                     options.DefaultContextLabel = "Hybrasyl";
                     options.GlobalTags.Add("Environment", env ?? "dev");
                     options.Enabled = true;
                     options.ReportingEnabled = true;
-                }).OutputMetrics.AsPlainText().Build();
+                });
+
+            if (Game.Config.ApiEndpoints?.MetricsEndpoint != null)
+            {
+                MetricsStore = builder.Report.ToHostedMetrics(
+                io =>
+                {
+                    io.HostedMetrics.BaseUri = new Uri(Game.Config.ApiEndpoints.MetricsEndpoint.Value);
+                    io.HostedMetrics.ApiKey = Game.Config.ApiEndpoints.MetricsEndpoint.ApiKey;
+                    io.HttpPolicy.BackoffPeriod = TimeSpan.FromSeconds(15);
+                    io.HttpPolicy.FailuresBeforeBackoff = 5;
+                    io.HttpPolicy.Timeout = TimeSpan.FromSeconds(10);
+                    io.FlushInterval = TimeSpan.FromSeconds(20);
+                }).Build();
+            }
+            else
+                MetricsStore = builder.Build();
 
             try
             {

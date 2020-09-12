@@ -482,15 +482,6 @@ namespace Hybrasyl.Messaging
         }
     }
 
-    class ServicetimeCommand : ChatCommand
-    {
-        public new static string Command = "servicetime";
-        public new static string ArgumentText = "none";
-        public new static string HelpText = "Display current service metrics.";
-        public new static bool Privileged = true;
-
-    }
-
     class ScriptingCommand : ChatCommand
     {
         public new static string Command = "scripting";

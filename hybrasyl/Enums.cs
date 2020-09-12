@@ -25,7 +25,6 @@ namespace Hybrasyl
 {
     namespace Enums
     {
-
         #region Colors and display enumerations
         /// <summary>
         /// how big is ye lantern

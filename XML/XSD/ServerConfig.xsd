@@ -76,6 +76,7 @@
       <xs:element name="RemoteAdminHost" type="hyb:TargetUrl" />
       <xs:element name="EncryptionEndpoint" type="hyb:TargetUrl" maxOccurs="1" minOccurs="0" />
       <xs:element name="ValidationEndpoint" type="hyb:TargetUrl" minOccurs="0" maxOccurs="1" />
+      <xs:element name="MetricsEndpoint" type="hyb:MetricsEndpoint" minOccurs="0" maxOccurs="1" />
       <xs:element name="Sentry" minOccurs="0" maxOccurs="1" type="hyb:TargetUrl"/>
     </xs:sequence>
   </xs:complexType>
@@ -188,6 +189,14 @@
     <xs:sequence>
       <xs:element name="Setting" type="hyb:ClientSetting" minOccurs="1" maxOccurs="8"/>
     </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="MetricsEndpoint">
+    <xs:simpleContent>
+      <xs:extension base="xs:anyURI">
+        <xs:attribute type="xs:string" name="ApiKey" use="required"/>
+      </xs:extension>
+    </xs:simpleContent>
   </xs:complexType>
 
   <xs:complexType name="ServerConfig">
