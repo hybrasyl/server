@@ -26,7 +26,8 @@ public enum ClientOpcode : byte
   PickupItem = 0x07,
   DropItem = 0x08,
   ClientExit = 0x0B,
-  PutGround = 0x0C,
+  // generating a ton of spam, we don't care
+  //PutGround = 0x0C,
   Talk = 0x0E,
   UseSpell = 0x0F,
   ClientJoin = 0x10,

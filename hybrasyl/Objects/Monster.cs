@@ -286,9 +286,9 @@ namespace Hybrasyl.Objects
                 GameLog.Error("OnDeath for {Name}: exception encountered, loot/gold cancelled {e}", Name, e);
                 Game.ReportException(e);
             }
-            World.RemoveStatusCheck(this);
-            Map.Remove(this);
-            World.Remove(this);
+            Game.World.RemoveStatusCheck(this);
+            Map?.Remove(this);
+            World?.Remove(this);
 
         }
 
@@ -298,10 +298,10 @@ namespace Hybrasyl.Objects
         // OnSpawn) when not needed 99% of the time.
         private void InitScript()
         {
-            if (Script != null || ScriptExists)               
+            if (Script != null || ScriptExists || string.IsNullOrEmpty(Name))               
                 return;
 
-            if (World.ScriptProcessor.TryGetScript(Name, out Script damageScript))
+            if (Game.World.ScriptProcessor.TryGetScript(Name, out Script damageScript))
             {
                 Script = damageScript;
                 Script.AssociateScriptWithObject(this);
@@ -824,7 +824,7 @@ namespace Hybrasyl.Objects
 
             (int x, int y) point = NextPoint(direction, currentPoint);
 
-            if(point.x <= Map.X && point.y <= Map.Y && !Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
+            if(point.x < Map.X && point.y < Map.Y && !Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
             {
                 Walk(direction);
             }

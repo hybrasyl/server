@@ -2719,7 +2719,6 @@ namespace Hybrasyl.Objects
             Enqueue(assail.Packet());
             PlaySound(soundId);
             SendAnimation(assail.Packet());
-            PlaySound(soundId);
         }
 
 
