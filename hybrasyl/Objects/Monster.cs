@@ -298,7 +298,7 @@ namespace Hybrasyl.Objects
         // OnSpawn) when not needed 99% of the time.
         private void InitScript()
         {
-            if (Script != null || ScriptExists)               
+            if (Script != null || ScriptExists || string.IsNullOrEmpty(Name))               
                 return;
 
             if (Game.World.ScriptProcessor.TryGetScript(Name, out Script damageScript))

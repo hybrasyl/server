@@ -4485,7 +4485,6 @@ namespace Hybrasyl
 
         private void QueueConsumer()
         {
-            var watch = new Stopwatch();
             while (!MessageQueue.IsCompleted)
             {                
                 if (StopToken.IsCancellationRequested)
@@ -4526,9 +4525,11 @@ namespace Hybrasyl
                                 var prohibitedCondition = prohibited as Prohibited;
                                 if (prohibitedCondition == null) continue;
                                 if (prohibitedCondition.Check(user.Condition)) continue;
-                                // TODO: fix this to be per-flag/status
+                                // TODO: fix this to be per-flag/status 
                                 if (clientMessage.Packet.Opcode == 0x06 && user.Condition.Flags.HasFlag(PlayerFlags.InDialog))
+                                {
                                     sendRefresh = true;
+                                }
                                 else
                                     systemMessage = "It cannot be done in your current state.";
                                 ignore = true;
@@ -4570,6 +4571,7 @@ namespace Hybrasyl
                             // Last but not least, invoke the handler
                             if (timerOptions != null)
                             {
+                                var watch = new Stopwatch();
                                 watch.Start();
                                 PacketHandlers[clientMessage.Packet.Opcode].Invoke(user, clientMessage.Packet);
                                 watch.Stop();
@@ -4584,6 +4586,7 @@ namespace Hybrasyl
                         }
                         else if (clientMessage.Packet.Opcode == 0x10) // Handle special case of join world
                         {
+                            var watch = new Stopwatch();
                             watch.Start();
                             PacketHandlers[0x10].Invoke(clientMessage.ConnectionId, clientMessage.Packet);
                             watch.Stop();
@@ -4603,7 +4606,6 @@ namespace Hybrasyl
                         Game.ReportException(e);
                         Game.MetricsStore.Measure.Meter.Mark(HybrasylMetricsRegistry.ExceptionMeter, 
                             $"0x{clientMessage.Packet.Opcode}");
-                        watch.Stop();
                         GameLog.Error(e, "{Opcode}: Unhandled exception encountered in packet handler!", clientMessage.Packet.Opcode);
                     }
                 }
@@ -4614,7 +4616,6 @@ namespace Hybrasyl
 
         public void ControlQueueConsumer()
         {
-            var watch = new Stopwatch();
             while (!ControlMessageQueue.IsCompleted)
             {
                 if (StopToken.IsCancellationRequested)
@@ -4637,10 +4638,12 @@ namespace Hybrasyl
 
                     try
                     {
+                        var watch = new Stopwatch();
                         var timerOptions = HybrasylMetricsRegistry.ControlMessageTimerIndex[hcm.Opcode];
                         watch.Start();
                         ControlMessageHandlers[hcm.Opcode].Invoke(hcm);
                         watch.Stop();
+
                         Game.MetricsStore.Measure.Timer.Time(timerOptions, watch.ElapsedMilliseconds);
                     }
                     catch (Exception e)
@@ -4648,7 +4651,6 @@ namespace Hybrasyl
                         Game.ReportException(e);
                         Game.MetricsStore.Measure.Meter.Mark(HybrasylMetricsRegistry.ExceptionMeter,
                             $"cm_{hcm.Opcode}");
-                        watch.Stop();
                         GameLog.Error("Exception encountered in control message handler: {exception}", e);
                     }
                 }
