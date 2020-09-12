@@ -301,7 +301,7 @@ namespace Hybrasyl.Objects
             if (Script != null || ScriptExists)               
                 return;
 
-            if (World.ScriptProcessor.TryGetScript(Name, out Script damageScript))
+            if (Game.World.ScriptProcessor.TryGetScript(Name, out Script damageScript))
             {
                 Script = damageScript;
                 Script.AssociateScriptWithObject(this);

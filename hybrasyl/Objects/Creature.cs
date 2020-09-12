@@ -919,6 +919,7 @@ namespace Hybrasyl.Objects
 
         private void SendDamageUpdate(Creature creature)
         {
+            if (Map == null) return;
             var percent = ((creature.Stats.Hp / (double)creature.Stats.MaximumHp) * 100);
             var healthbar = new ServerPacketStructures.HealthBar() { CurrentPercent = (byte)percent, ObjId = creature.Id };
 

@@ -1703,6 +1703,11 @@ namespace Hybrasyl
                     cleanup.Map?.Remove(cleanup);
                     cleanup.Group?.Remove(cleanup);
                 }
+                if (cleanup.Condition.Alive)
+                    // Remove all other flags
+                    cleanup.Condition.Flags = PlayerFlags.Alive;
+                else
+                    cleanup.Condition.Flags = 0;
                 Remove(cleanup);
                 GameLog.DebugFormat("cid {0}: {1} cleaned up successfully", cleanup.Name);
                 DeleteUser(cleanup.Name);
