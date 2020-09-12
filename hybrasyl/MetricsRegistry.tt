@@ -49,7 +49,7 @@ namespace Hybrasyl
   if (Enum.IsDefined(typeof(ControlOpcodes), (int) x))
   {
 #>
-       {<#= (byte) x #>, ControlMessageServiceTime_<#= Enum.GetName(typeof(ControlOpcodes), (int) x) #>},
+       {<#= (byte) x #>, ControlMessage_<#= Enum.GetName(typeof(ControlOpcodes), (int) x) #>},
 <# 
    }
    else
@@ -70,7 +70,7 @@ namespace Hybrasyl
   if (Enum.IsDefined(typeof(ClientOpcode), (byte) x))
   {
 #>
-       {<#= (byte) x #>, OpcodeServiceTime_<#= Enum.GetName(typeof(ClientOpcode), (byte) x) #>},
+       {<#= (byte) x #>, Opcode_<#= Enum.GetName(typeof(ClientOpcode), (byte) x) #>},
 <# 
    }
    else
