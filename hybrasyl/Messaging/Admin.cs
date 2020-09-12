@@ -23,6 +23,7 @@ using Hybrasyl.Objects;
 using Hybrasyl.Scripting;
 using System;
 using System.IO;
+using System.Linq;
 using System.Net;
 
 namespace Hybrasyl.Messaging
@@ -898,9 +899,30 @@ namespace Hybrasyl.Messaging
 
                         if (Game.World.WorldData.TryGetValue(reloadedMap.Id, out Map map))
                         {
+                            
                             var newMap = new Map(reloadedMap, Game.World);
+                            Game.World.WorldData.RemoveIndex<Map>(map.Name);
                             Game.World.WorldData.Remove<Map>(map.Id);
                             Game.World.WorldData.SetWithIndex(newMap.Id, newMap, newMap.Name);
+                            var mapObjs = map.Objects.ToList();
+                            for(var i = 0; i<mapObjs.Count; i++)
+                            {
+                                var obj = mapObjs[i];
+                                map.Remove(obj);
+                                if(obj is User usr)
+                                {
+                                    newMap.Insert(usr, usr.X, usr.Y);
+                                }
+                                if(obj is Monster mob)
+                                {
+                                    Game.World.Remove(mob);
+                                }
+                                if(obj is ItemObject itm)
+                                {
+                                    Game.World.Remove(itm);
+                                }
+                            }
+
                             return Success($"Map {reloadedMap.Name} set to world data");
                         }
                         return Fail($"{args[0]} {args[1]} was not found");
