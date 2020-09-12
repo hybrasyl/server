@@ -166,7 +166,7 @@ namespace Hybrasyl.Objects
             {
                 if (intent.IsShapeless)
                 {
-                    GameLog.UserActivityInfo("GetTarget: Shapeless");
+                    //GameLog.UserActivityInfo("GetTarget: Shapeless");
                     // No shapes specified. 
                     // If UseType=Target, exact clicked target.
                     // If UseType=NoTarget Target=Self, caster.
@@ -176,12 +176,12 @@ namespace Hybrasyl.Objects
                     {
                         // Exact clicked target
                         possibleTargets.Add(target);                        
-                        GameLog.UserActivityInfo("GetTarget: exact clicked target");
+                        //GameLog.UserActivityInfo("GetTarget: exact clicked target");
                     }
                     else if (intent.UseType == Xml.SpellUseType.NoTarget)
                     {
                         possibleTargets.Add(this);
-                        GameLog.UserActivityInfo("GetTarget: notarget, self");
+                        //GameLog.UserActivityInfo("GetTarget: notarget, self");
                         if (intent.Flags.Contains(Xml.IntentFlags.Group))
                         {
                             // Add group members
@@ -197,19 +197,18 @@ namespace Hybrasyl.Objects
                 if (intent.Map != null)
                 {
                     // add entire map
-                    GameLog.UserActivityInfo("GetTarget: adding map targets");
+                    //GameLog.UserActivityInfo("GetTarget: adding map targets");
                     possibleTargets.AddRange(Map.EntityTree.GetAllObjects().Where(e => e is Creature));
                 }
 
                 if (intent.UseType == Xml.SpellUseType.NoTarget)
                 {
                     origin = this;
-                    GameLog.UserActivityInfo($"GetTarget: origin is {this.Name} at {this.X}, {this.Y}");
-
+                    //GameLog.UserActivityInfo($"GetTarget: origin is {this.Name} at {this.X}, {this.Y}");
                 }
                 else
                 {
-                    GameLog.UserActivityInfo($"GetTarget: origin is {target.Name} at {target.X}, {target.Y}");
+                    //GameLog.UserActivityInfo($"GetTarget: origin is {target.Name} at {target.X}, {target.Y}");
                     origin = target;
                 }
 
@@ -219,7 +218,7 @@ namespace Hybrasyl.Objects
                     // Process cross targets
                     foreach (Xml.Direction direction in Enum.GetValues(typeof(Xml.Direction)))
                     {
-                        GameLog.UserActivityInfo($"GetTarget: cross, {direction}, origin {origin.Name}, radius {cross.Radius}");
+                        //GameLog.UserActivityInfo($"GetTarget: cross, {direction}, origin {origin.Name}, radius {cross.Radius}");
                         possibleTargets.AddRange(origin.GetDirectionalTargets(direction, cross.Radius));                       
                     }
                     // Add origin and let flags sort it out
@@ -228,7 +227,7 @@ namespace Hybrasyl.Objects
                 foreach (var line in intent.Line)
                 {
                     // Process line targets
-                    GameLog.UserActivityInfo($"GetTarget: line, {line.Direction}, origin {origin.Name}, length {line.Length}");
+                    //GameLog.UserActivityInfo($"GetTarget: line, {line.Direction}, origin {origin.Name}, length {line.Length}");
                     possibleTargets.AddRange(origin.GetDirectionalTargets(origin.GetIntentDirection(line.Direction), line.Length));
                     // Similar to above, add origin
                     possibleTargets.Add(origin);
@@ -238,7 +237,7 @@ namespace Hybrasyl.Objects
                     // Process square targets
                     var r = (square.Side - 1) / 2;
                     var rect = new Rectangle(origin.X - r, origin.Y - r, square.Side, square.Side);
-                    GameLog.UserActivityInfo($"GetTarget: square, {origin.X - r}, {origin.Y - r} - origin {origin.Name}, side length {square.Side}");
+                    //GameLog.UserActivityInfo($"GetTarget: square, {origin.X - r}, {origin.Y - r} - origin {origin.Name}, side length {square.Side}");
                     possibleTargets.AddRange(origin.Map.EntityTree.GetObjects(rect).Where(e => e is Creature));
                 }
                 foreach (var tile in intent.Tile)
@@ -248,18 +247,18 @@ namespace Hybrasyl.Objects
                     {
                         if (tile.RelativeX == 0 && tile.RelativeY == 0)
                         {
-                            GameLog.UserActivityInfo($"GetTarget: tile, origin {origin.Name}, RelativeX && RelativeY == 0, skipping");
+                            //GameLog.UserActivityInfo($"GetTarget: tile, origin {origin.Name}, RelativeX && RelativeY == 0, skipping");
                             continue;
                         }
                         else
                         {
-                            GameLog.UserActivityInfo($"GetTarget: tile, ({origin.X + tile.RelativeX}, {origin.Y + tile.RelativeY}, origin {origin.Name}");
+                            //GameLog.UserActivityInfo($"GetTarget: tile, ({origin.X + tile.RelativeX}, {origin.Y + tile.RelativeY}, origin {origin.Name}");
                             possibleTargets.AddRange(origin.Map.GetTileContents(origin.X + tile.RelativeX, origin.Y + tile.RelativeY).Where(e => e is Creature));
                         }
                     }
                     else
                     {
-                        GameLog.UserActivityInfo($"GetTarget: tile, intent {tile.Direction}, direction {origin.GetIntentDirection(tile.Direction)}, origin {origin.Name}");
+                        //GameLog.UserActivityInfo($"GetTarget: tile, intent {tile.Direction}, direction {origin.GetIntentDirection(tile.Direction)}, origin {origin.Name}");
                         possibleTargets.Add(origin.GetDirectionalTarget(origin.GetIntentDirection(tile.Direction)));
                     }
 
@@ -320,9 +319,9 @@ namespace Hybrasyl.Objects
                 // No Self flag: remove self 
                 if (!intent.Flags.Contains(Xml.IntentFlags.Self))
                 {
-                    GameLog.UserActivityInfo($"Trying to remove self: my id is {this.Id} and actualtargets contains {String.Join(',',actualTargets.Select(e => e.Id).ToList())}");
+                    //GameLog.UserActivityInfo($"Trying to remove self: my id is {this.Id} and actualtargets contains {String.Join(',',actualTargets.Select(e => e.Id).ToList())}");
                     actualTargets = actualTargets.Where(e => e.Id != this_id);
-                    GameLog.UserActivityInfo($"did it happen :o -  my id is {this.Id} and actualtargets contains {String.Join(',', actualTargets.Select(e => e.Id).ToList())}");
+                    //GameLog.UserActivityInfo($"did it happen :o -  my id is {this.Id} and actualtargets contains {String.Join(',', actualTargets.Select(e => e.Id).ToList())}");
                 }
 
             }
@@ -629,9 +628,11 @@ namespace Hybrasyl.Objects
 
                 }
             }
+
             // Now flood away
-            foreach (var dead in deadMobs)
-                World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.HandleDeath, dead));
+            // TODO: actually implement this, as is now it's duplicative
+            //foreach (var dead in deadMobs)
+            //    World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.HandleDeath, dead));
             Condition.Casting = false;
             return true;
         }
@@ -919,6 +920,7 @@ namespace Hybrasyl.Objects
 
         private void SendDamageUpdate(Creature creature)
         {
+            if (Map == null) return;
             var percent = ((creature.Stats.Hp / (double)creature.Stats.MaximumHp) * 100);
             var healthbar = new ServerPacketStructures.HealthBar() { CurrentPercent = (byte)percent, ObjId = creature.Id };
 
