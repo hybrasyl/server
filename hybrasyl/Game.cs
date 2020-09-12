@@ -243,7 +243,7 @@ namespace Hybrasyl
                 MetricsStore = builder.Report.ToHostedMetrics(
                 io =>
                 {
-                    io.HostedMetrics.BaseUri = new Uri(Game.Config.ApiEndpoints.MetricsEndpoint.Value);
+                    io.HostedMetrics.BaseUri = new Uri(Game.Config.ApiEndpoints.MetricsEndpoint.Url);
                     io.HostedMetrics.ApiKey = Game.Config.ApiEndpoints.MetricsEndpoint.ApiKey;
                     io.HttpPolicy.BackoffPeriod = TimeSpan.FromSeconds(15);
                     io.HttpPolicy.FailuresBeforeBackoff = 5;
