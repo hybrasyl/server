@@ -21,6 +21,7 @@
 
 using System;
 using System.IO;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace Hybrasyl
@@ -248,6 +249,14 @@ namespace Hybrasyl
         protected Packet()
         {
             TransmitDelay = 0;
+        }
+
+        private static SHA1CryptoServiceProvider hashAlgorithm = new SHA1CryptoServiceProvider();
+
+        public string Hash()
+        {
+            var hash = hashAlgorithm.ComputeHash(Data);
+            return BitConverter.ToString(hash).Substring(0, 8);          
         }
 
         public int Position

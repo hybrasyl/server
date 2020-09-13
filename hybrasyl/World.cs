@@ -2961,6 +2961,8 @@ namespace Hybrasyl
         {
             var user = (User)obj;
             var response = new ServerPacket(0x31);
+            GameLog.PacketInfo("0x3b: [Handler] [DEC] ({hash}) {data}", packet.Hash(), packet.ToString());
+
             var action = packet.ReadByte();
             
             GameLog.Error($"0x3B length is {packet.ToArray().Length}");
@@ -4509,6 +4511,11 @@ namespace Hybrasyl
                     var clientMessage = (HybrasylClientMessage)message;
                     var handler = PacketHandlers[clientMessage.Packet.Opcode];
                     var timerOptions = HybrasylMetricsRegistry.OpcodeTimerIndex[clientMessage.Packet.Opcode];
+
+                    // Debug for board access issue 
+                    if (clientMessage.Packet.Opcode == 0x3b)
+                        GameLog.PacketInfo("0x3b: [WorldQueue] [DEC] ({hash}) {data}", clientMessage.Packet.Hash(), clientMessage.Packet.ToString());
+
                     try
                     {
                         if (TryGetActiveUserById(clientMessage.ConnectionId, out user))
@@ -4555,6 +4562,7 @@ namespace Hybrasyl
                             if (user.ActiveExchange != null && (clientMessage.Packet.Opcode != 0x4a &&
                                 clientMessage.Packet.Opcode != 0x45 && clientMessage.Packet.Opcode != 0x75))
                                 user.ActiveExchange.CancelExchange(user);
+
                             if (ignore)
                             {
                                 if (clientMessage.Packet.Opcode == 0x06) user.Refresh();
@@ -4576,6 +4584,7 @@ namespace Hybrasyl
                                 PacketHandlers[clientMessage.Packet.Opcode].Invoke(user, clientMessage.Packet);
                                 watch.Stop();
                                 Game.MetricsStore.Measure.Timer.Time(timerOptions, watch.ElapsedMilliseconds);
+                                GameLog.Info($"opcode: {watch.ElapsedMilliseconds}");
 
                             }
                             else
@@ -4585,8 +4594,7 @@ namespace Hybrasyl
                         }
                         else if (clientMessage.Packet.Opcode == 0x10) // Handle special case of join world
                         {
-                            var watch = new Stopwatch();
-                            watch.Start();
+                            var watch = Stopwatch.StartNew();
                             PacketHandlers[0x10].Invoke(clientMessage.ConnectionId, clientMessage.Packet);
                             watch.Stop();
                             Game.MetricsStore.Measure.Timer.Time(timerOptions, watch.ElapsedMilliseconds);
@@ -4637,12 +4645,11 @@ namespace Hybrasyl
 
                     try
                     {
-                        var watch = new Stopwatch();
+                        var watch = Stopwatch.StartNew();
                         var timerOptions = HybrasylMetricsRegistry.ControlMessageTimerIndex[hcm.Opcode];
-                        watch.Start();
                         ControlMessageHandlers[hcm.Opcode].Invoke(hcm);
                         watch.Stop();
-
+                        GameLog.Info($"hcm: {watch.ElapsedMilliseconds}");
                         Game.MetricsStore.Measure.Timer.Time(timerOptions, watch.ElapsedMilliseconds);
                     }
                     catch (Exception e)
