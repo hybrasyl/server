@@ -1304,10 +1304,10 @@ namespace Hybrasyl
                         string.Format("{0}/{1}/{2}", spell.Icon, 0, 0), // spell icon, x position (defunct), y position (defunct)
                         string.Format("{0}/{1}/{2}/{3}/{4}", 
                         requirements?.Physical == null ? 3 : requirements.Physical.Str, 
-                        requirements?.Physical == null ? 3 : requirements.Physical.Dex, 
                         requirements?.Physical == null ? 3 : requirements.Physical.Int, 
-                        requirements?.Physical == null ? 3 : requirements.Physical.Con, 
-                        requirements?.Physical == null ? 3 : requirements.Physical.Wis),
+                        requirements?.Physical == null ? 3 : requirements.Physical.Wis, 
+                        requirements?.Physical == null ? 3 : requirements.Physical.Dex, 
+                        requirements?.Physical == null ? 3 : requirements.Physical.Con),
                         //spell: str/dex/int/con/wis
                         string.Format("{0}/{1}", prereq1, prereq1level), // req spell 1 (spell name or 0 for none), req skill 1 level
                         string.Format("{0}/{1}", prereq2, prereq2level), // req spell 2 (spell name or 0 for none), req skill 2 level
