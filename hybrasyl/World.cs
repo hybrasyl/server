@@ -2961,13 +2961,9 @@ namespace Hybrasyl
         {
             var user = (User)obj;
             var response = new ServerPacket(0x31);
-            GameLog.PacketInfo("0x3b: [Handler] [DEC] ({hash}) {data}", packet.Hash(), packet.ToString());
 
             var action = packet.ReadByte();
             
-            GameLog.Error($"0x3B length is {packet.ToArray().Length}");
-            GameLog.Error($"0x3B action is {action}");
-
             // The moment we get a 3B packet, we assume a user is "in a board"
             user.Condition.Flags = user.Condition.Flags | PlayerFlags.InBoard;
 
@@ -4511,10 +4507,6 @@ namespace Hybrasyl
                     var clientMessage = (HybrasylClientMessage)message;
                     var handler = PacketHandlers[clientMessage.Packet.Opcode];
                     var timerOptions = HybrasylMetricsRegistry.OpcodeTimerIndex[clientMessage.Packet.Opcode];
-
-                    // Debug for board access issue 
-                    if (clientMessage.Packet.Opcode == 0x3b)
-                        GameLog.PacketInfo("0x3b: [WorldQueue] [DEC] ({hash}) {data}", clientMessage.Packet.Hash(), clientMessage.Packet.ToString());
 
                     try
                     {

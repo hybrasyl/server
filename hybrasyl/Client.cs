@@ -150,8 +150,6 @@ namespace Hybrasyl
                     {
                         BytesReceived -= packetLength;
                         packet = new ClientPacket(ReceiveBufferPop(packetLength).ToArray());
-                        if (packet.Opcode == 0x3B)
-                            GameLog.PacketInfo("0x3B: [TryGetPacket] [ENC] ({hash}) {data}", packet.Hash(), packet.ToString());
                         return true;
                     }
                 }
@@ -537,18 +535,11 @@ namespace Hybrasyl
                     ClientPacket packet;
                     while (ClientState.ReceiveBufferTake(out packet))
                     {
-                        //GameLog.Info("Debug - packet before decryption");
-                        //packet.DumpPacket();
-                        if (packet.Opcode == 0x3B)
-                            GameLog.PacketInfo("0x3B: [ClientTake] [ENC] ({hash}) {data}", packet.Hash(), packet.ToString());
 
                         if (packet.ShouldEncrypt)
                         {
                             packet.Decrypt(this);
                         }
-
-                        if (packet.Opcode == 0x3B)
-                            GameLog.PacketInfo("0x3B: [ClientTake] [DEC] ({hash}) {data}", packet.Hash(), packet.ToString());
 
                         if (packet.Opcode == 0x39 || packet.Opcode == 0x3A)
                             packet.DecryptDialog();
@@ -580,8 +571,6 @@ namespace Hybrasyl
                                 var throttleResult = Server.PacketThrottleCheck(this, packet);
                                 if (throttleResult == ThrottleResult.OK || throttleResult == ThrottleResult.ThrottleEnd || throttleResult == ThrottleResult.SquelchEnd)
                                 {
-                                    if (packet.Opcode == 0x3B)
-                                        GameLog.PacketInfo("0x3B: [ClientTake] [ENC] ({hash}) {data}", packet.Hash(), packet.ToString());
                                     World.MessageQueue.Add(new HybrasylClientMessage(packet, ConnectionId));
                                 }
                                 else
