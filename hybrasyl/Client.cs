@@ -146,8 +146,9 @@ namespace Hybrasyl
                 {
                     var packetLength = (_buffer[1] << 8) + _buffer[2] + 3;
                     // Complete packet, pop it off and return it
-                    if (_buffer.Length >= packetLength)
+                    if (BytesReceived >= packetLength)
                     {
+                        BytesReceived -= packetLength;
                         packet = new ClientPacket(ReceiveBufferPop(packetLength).ToArray());
                         if (packet.Opcode == 0x3B)
                             GameLog.PacketInfo("0x3B: [TryGetPacket] [ENC] ({hash}) {data}", packet.Hash(), packet.ToString());
@@ -157,6 +158,8 @@ namespace Hybrasyl
                 return false;
             }
         }
+
+        public int BytesReceived = 0;
 
         public void ReceiveBufferAdd(ClientPacket packet) => _receiveBuffer.Enqueue(packet);
 
