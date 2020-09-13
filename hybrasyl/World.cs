@@ -4576,8 +4576,6 @@ namespace Hybrasyl
                                 PacketHandlers[clientMessage.Packet.Opcode].Invoke(user, clientMessage.Packet);
                                 watch.Stop();
                                 Game.MetricsStore.Measure.Timer.Time(timerOptions, watch.ElapsedMilliseconds);
-                                GameLog.Info($"opcode: {watch.ElapsedMilliseconds}");
-
                             }
                             else
                             {
@@ -4641,7 +4639,6 @@ namespace Hybrasyl
                         var timerOptions = HybrasylMetricsRegistry.ControlMessageTimerIndex[hcm.Opcode];
                         ControlMessageHandlers[hcm.Opcode].Invoke(hcm);
                         watch.Stop();
-                        GameLog.Info($"hcm: {watch.ElapsedMilliseconds}");
                         Game.MetricsStore.Measure.Timer.Time(timerOptions, watch.ElapsedMilliseconds);
                     }
                     catch (Exception e)
