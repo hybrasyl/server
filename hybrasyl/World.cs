@@ -753,7 +753,7 @@ namespace Hybrasyl
                     continue;
                 }
 
-                TryGetUser(key, out User user);
+                TryGetUser(name, out User user);
                 if (user == null)
                 {
                     GameLog.Warning("User {user}: could not be loaded", key);

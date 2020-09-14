@@ -431,6 +431,7 @@ namespace Hybrasyl
             foreach (var map in spawnGroup.Maps)
             {
                 if (map.Disabled) continue;
+                var toSpawn = new Dictionary<uint, Monster>();
                 try
                 {
                     var spawnMap = Game.World.WorldData.Get<Map>(map.Id);
@@ -488,6 +489,7 @@ namespace Hybrasyl
 
                         var baseMob = new Monster(creature, spawn, map.Id, newSpawnLoot);
                         var mob = (Monster)baseMob.Clone();
+                        mob.Id = (uint)i;
                         var xcoord = 0;
                         var ycoord = 0;
 
@@ -515,8 +517,19 @@ namespace Hybrasyl
                         mob.X = (byte)xcoord;
                         mob.Y = (byte)ycoord;
                         if (spawnMap.SpawnDebug) GameLog.SpawnInfo($"Spawn: spawning {mob.Name} on {spawnMap.Name}");
+                        if(!toSpawn.TryAdd(mob.Id, mob))
+                        {
+                            GameLog.SpawnError($"Attempt to add duplicated monster {mob.Name} with id {mob.Id}");
+                        }
+
+                    }
+
+                    GameLog.SpawnInfo($"Spawning {toSpawn.Count} monsters on {spawnMap.Name}");
+                    foreach (var mob in toSpawn.Values)
+                    {
                         SpawnMonster(mob, spawnMap);
                     }
+                   
                 }
                 catch (Exception e)
                 {
