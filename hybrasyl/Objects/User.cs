@@ -1921,23 +1921,23 @@ namespace Hybrasyl.Objects
 
                 case Xml.Direction.North:
                     --newY;
-                    arrivingViewport = new Rectangle(oldX - halfViewport + 2, newY - halfViewport + 4, Constants.VIEWPORT_SIZE, 1);
-                    departingViewport = new Rectangle(oldX - halfViewport + 2, oldY + halfViewport - 2, Constants.VIEWPORT_SIZE, 1);
+                    arrivingViewport = new Rectangle(oldX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE, 1);
+                    departingViewport = new Rectangle(oldX - halfViewport, oldY + halfViewport, Constants.VIEWPORT_SIZE, 1);
                     break;
                 case Xml.Direction.South:
                     ++newY;
-                    arrivingViewport = new Rectangle(oldX - halfViewport - 2, oldY + halfViewport - 4, Constants.VIEWPORT_SIZE, 1);
-                    departingViewport = new Rectangle(oldX - halfViewport + 2, newY - halfViewport + 2, Constants.VIEWPORT_SIZE, 1);
+                    arrivingViewport = new Rectangle(oldX - halfViewport, oldY + halfViewport, Constants.VIEWPORT_SIZE, 1);
+                    departingViewport = new Rectangle(oldX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE, 1);
                     break;
                 case Xml.Direction.West:
                     --newX;
-                    arrivingViewport = new Rectangle(newX - halfViewport + 4, oldY - halfViewport + 2, 1, Constants.VIEWPORT_SIZE);
-                    departingViewport = new Rectangle(oldX + halfViewport - 2, oldY - halfViewport - 2, 1, Constants.VIEWPORT_SIZE);
+                    arrivingViewport = new Rectangle(newX - halfViewport, oldY - halfViewport, 1, Constants.VIEWPORT_SIZE);
+                    departingViewport = new Rectangle(oldX + halfViewport, oldY - halfViewport, 1, Constants.VIEWPORT_SIZE);
                     break;
                 case Xml.Direction.East:
                     ++newX;
-                    arrivingViewport = new Rectangle(oldX + halfViewport - 4, oldY - halfViewport + 2, 1, Constants.VIEWPORT_SIZE);
-                    departingViewport = new Rectangle(oldX - halfViewport + 2, oldY - halfViewport + 2, 1, Constants.VIEWPORT_SIZE);
+                    arrivingViewport = new Rectangle(oldX + halfViewport, oldY - halfViewport, 1, Constants.VIEWPORT_SIZE);
+                    departingViewport = new Rectangle(oldX - halfViewport, oldY - halfViewport, 1, Constants.VIEWPORT_SIZE);
                     break;
             }
             var isWarp = Map.Warps.TryGetValue(new Tuple<byte, byte>((byte)newX, (byte)newY), out Warp targetWarp);

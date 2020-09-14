@@ -2183,8 +2183,13 @@ namespace Hybrasyl
                     {
                         foreach (var entity in user.Map.EntityTree.GetObjects(mob.GetViewport()))
                         {
-                            mob.AoiEntry(entity);
-                            entity.AoiEntry(mob);
+                            if (entity is User usr)
+                            {
+                                GameLog.InfoFormat("Showing missing object {0} with ID {1} to {2}", mob.Name, mob.Id, entity.Name);
+                                usr.AoiEntry(mob);
+                                mob.AoiEntry(usr);
+                                usr.SendRefresh();
+                            }
                         }
                     }
                 }
