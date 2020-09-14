@@ -753,7 +753,7 @@ namespace Hybrasyl
                     continue;
                 }
 
-                TryGetUser(key, out User user);
+                TryGetUser(name, out User user);
                 if (user == null)
                 {
                     GameLog.Warning("User {user}: could not be loaded", key);
@@ -1304,10 +1304,10 @@ namespace Hybrasyl
                         string.Format("{0}/{1}/{2}", spell.Icon, 0, 0), // spell icon, x position (defunct), y position (defunct)
                         string.Format("{0}/{1}/{2}/{3}/{4}", 
                         requirements?.Physical == null ? 3 : requirements.Physical.Str, 
-                        requirements?.Physical == null ? 3 : requirements.Physical.Dex, 
                         requirements?.Physical == null ? 3 : requirements.Physical.Int, 
-                        requirements?.Physical == null ? 3 : requirements.Physical.Con, 
-                        requirements?.Physical == null ? 3 : requirements.Physical.Wis),
+                        requirements?.Physical == null ? 3 : requirements.Physical.Wis, 
+                        requirements?.Physical == null ? 3 : requirements.Physical.Dex, 
+                        requirements?.Physical == null ? 3 : requirements.Physical.Con),
                         //spell: str/dex/int/con/wis
                         string.Format("{0}/{1}", prereq1, prereq1level), // req spell 1 (spell name or 0 for none), req skill 1 level
                         string.Format("{0}/{1}", prereq2, prereq2level), // req spell 2 (spell name or 0 for none), req skill 2 level
@@ -2177,15 +2177,28 @@ namespace Hybrasyl
         }
 
         private void PacketHandler_0X0C_PutGround(object obj, ClientPacket packet)
-        {
-            //if (obj is VisibleObject vo)
-            //{ 
-            //    foreach(var entity in vo.Map.EntityTree.GetObjects(vo.GetViewport()))
-            //    {
-            //        vo.AoiEntry(entity);
-            //    }
-            //}
-            //do nothing. only here to remove the stupid spam.
+        {   
+            if (obj is User user)
+            {
+                var invis = packet.ReadUInt32();
+                Game.World.Objects.TryGetValue(invis, out var missingObj);
+                if (user.Map.Objects.Contains(missingObj))
+                {
+                    if (missingObj is Monster mob)
+                    {
+                        foreach (var entity in user.Map.EntityTree.GetObjects(mob.GetViewport()))
+                        {
+                            if (entity is User usr)
+                            {
+                                GameLog.InfoFormat("Showing missing object {0} with ID {1} to {2}", mob.Name, mob.Id, entity.Name);
+                                usr.AoiEntry(mob);
+                                mob.AoiEntry(usr);
+                                usr.SendRefresh();
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         private void PacketHandler_0x10_ClientJoin(Object obj, ClientPacket packet)

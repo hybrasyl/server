@@ -1921,23 +1921,23 @@ namespace Hybrasyl.Objects
 
                 case Xml.Direction.North:
                     --newY;
-                    arrivingViewport = new Rectangle(oldX - halfViewport + 2, newY - halfViewport + 4, Constants.VIEWPORT_SIZE, 1);
-                    departingViewport = new Rectangle(oldX - halfViewport + 2, oldY + halfViewport - 2, Constants.VIEWPORT_SIZE, 1);
+                    arrivingViewport = new Rectangle(oldX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE, 1);
+                    departingViewport = new Rectangle(oldX - halfViewport, oldY + halfViewport, Constants.VIEWPORT_SIZE, 1);
                     break;
                 case Xml.Direction.South:
                     ++newY;
-                    arrivingViewport = new Rectangle(oldX - halfViewport - 2, oldY + halfViewport - 4, Constants.VIEWPORT_SIZE, 1);
-                    departingViewport = new Rectangle(oldX - halfViewport + 2, newY - halfViewport + 2, Constants.VIEWPORT_SIZE, 1);
+                    arrivingViewport = new Rectangle(oldX - halfViewport, oldY + halfViewport, Constants.VIEWPORT_SIZE, 1);
+                    departingViewport = new Rectangle(oldX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE, 1);
                     break;
                 case Xml.Direction.West:
                     --newX;
-                    arrivingViewport = new Rectangle(newX - halfViewport + 4, oldY - halfViewport + 2, 1, Constants.VIEWPORT_SIZE);
-                    departingViewport = new Rectangle(oldX + halfViewport - 2, oldY - halfViewport - 2, 1, Constants.VIEWPORT_SIZE);
+                    arrivingViewport = new Rectangle(newX - halfViewport, oldY - halfViewport, 1, Constants.VIEWPORT_SIZE);
+                    departingViewport = new Rectangle(oldX + halfViewport, oldY - halfViewport, 1, Constants.VIEWPORT_SIZE);
                     break;
                 case Xml.Direction.East:
                     ++newX;
-                    arrivingViewport = new Rectangle(oldX + halfViewport - 4, oldY - halfViewport + 2, 1, Constants.VIEWPORT_SIZE);
-                    departingViewport = new Rectangle(oldX - halfViewport + 2, oldY - halfViewport + 2, 1, Constants.VIEWPORT_SIZE);
+                    arrivingViewport = new Rectangle(oldX + halfViewport, oldY - halfViewport, 1, Constants.VIEWPORT_SIZE);
+                    departingViewport = new Rectangle(oldX - halfViewport, oldY - halfViewport, 1, Constants.VIEWPORT_SIZE);
                     break;
             }
             var isWarp = Map.Warps.TryGetValue(new Tuple<byte, byte>((byte)newX, (byte)newY), out Warp targetWarp);
@@ -4018,14 +4018,22 @@ namespace Hybrasyl.Objects
                 RemoveGold(parcelFee);
                 RemoveItem(itemObj.Name, (ushort)quantity);
                 SendInventory();
-                parcelString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel_success");
+                if (itemObj.Name == "Sausages")
+                {
+                    parcelString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_sausage");
+                }
+                else
+                {
+                    parcelString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel_success");
+                }
+                
                 prompt = parcelString.Value.Replace("$FEE", parcelFee.ToString());
 
                 //TODO: Send parcel to recipient
                 var uuidRef = World.WorldData.Get<UuidReference>(recipient);
                 var parcelStore = World.WorldData.Get<ParcelStore>(uuidRef.UserUuid);
                 var recipientMailbox = World.WorldData.Get<Mailbox>(recipient);
-                parcelStore.AddItem(Name, itemObj.Name, quantity);
+                parcelStore.AddItem(Name, itemObj.Name == "Sausages" ? "Rotten Sausages" : itemObj.Name, quantity);
                 recipientMailbox.ReceiveMessage(new Message(recipient, merchant.Name, "You've received a package.", "Please visit a messenger to collect your package."));
 
                 PendingSellableQuantity = 0;
@@ -4868,7 +4876,7 @@ namespace Hybrasyl.Objects
             Enqueue(x0A);
         }
 
-        public void SendRedirectAndLogoff(World world, Login login, string name, int transmitDelay = 800)
+        public void SendRedirectAndLogoff(World world, Login login, string name, int transmitDelay = 1200)
         {
             GlobalConnectionManifest.DeregisterClient(Client);
             Client.Redirect(new Redirect(Client, world, Game.Login, name, Client.EncryptionSeed, Client.EncryptionKey), true, transmitDelay);
