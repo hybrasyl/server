@@ -1161,6 +1161,72 @@ namespace Hybrasyl
                 return packet;
             }
         }
+
+        internal partial class BoardResponse
+        {
+            private readonly byte OpCode;
+            public BoardResponseType ResponseType { get; set; }
+            public List<(ushort Id, string Name)> Boards { get; set; }
+            public List<(bool Highlight, short Id, string Sender, byte Month, byte Day, string Subject)> Messages { get; set; }
+            public bool isClick { get; set; }
+            public byte BoardId { get; set; }
+
+            public BoardResponse()
+            {
+                OpCode = OpCodes.Board;
+                Boards = new List<(ushort Id, string Name)>();
+                Messages = new List<(bool Highlight, short Id, string Sender, byte Month, byte Day, string Subject)>();
+                BoardId = 0;
+            }
+
+            public ServerPacket Packet()
+            {
+                var packet = new ServerPacket(OpCode);
+                if (ResponseType == BoardResponseType.GetMailboxIndex || 
+                    ResponseType == BoardResponseType.GetBoardIndex)
+                {
+                    if (ResponseType == BoardResponseType.GetMailboxIndex)
+                    {
+                        packet.WriteByte(0x04); // 0x02 - public, 0x04 - mail
+                        packet.WriteByte(0x01); // ??? - needs to be odd number unless board in world has been clicked
+                        packet.WriteUInt16(0); // board ID;
+                        packet.WriteString8("Mail");
+                    }
+                    else
+                    {
+                        packet.WriteByte(0x02);
+                        packet.WriteByte((byte)(isClick == true ? 0x02 : 0x01));
+                    }
+                    packet.WriteByte((byte)Messages.Count);
+                    foreach (var message in Messages)
+                    {
+                        packet.WriteBoolean(!message.Highlight);
+                        packet.WriteInt16((short)message.Id);
+                        packet.WriteString8(message.Sender);
+                        packet.WriteByte(message.Month);
+                        packet.WriteByte(message.Day);
+                        packet.WriteString8(message.Subject);
+                    }
+                }
+                else if (ResponseType == BoardResponseType.DisplayList)
+                {
+                    packet.WriteByte((byte)0x01);
+                    packet.WriteUInt16((ushort)(Boards.Count + 1));
+                    packet.WriteUInt16(0);
+                    packet.WriteString8("Mail");
+                    foreach (var board in Boards)
+                    {
+                        packet.WriteUInt16((ushort)board.Id);
+                        packet.WriteString8(board.Name);
+                    }
+                    // This is required to correctly display the messaging pane
+                    packet.TransmitDelay = 600;
+                }
+                return packet;
+            }
+
+
+        }
     }
 
 }

@@ -29,7 +29,7 @@ using Newtonsoft.Json;
 
 namespace Hybrasyl
 {
-     
+
     public class MessageStoreLocked : Exception
     {
 
@@ -38,7 +38,7 @@ namespace Hybrasyl
     [JsonObject(MemberSerialization.OptIn)]
     public class MessageStore : IEnumerable<Message>
     {
-        [JsonProperty] public string Name;   
+        [JsonProperty] public string Name;
         [JsonProperty] public string DisplayName;
         [JsonProperty] public List<Message> Messages;
         [JsonProperty] public string Guid;
@@ -46,11 +46,11 @@ namespace Hybrasyl
         public int Id;
 
         public bool Full => Messages.Count == short.MaxValue;
-        private int _lock; 
+        private int _lock;
         public bool IsSaving;
         public bool IsLocked => _lock == 1;
 
-        public MessageStore(string name, string displayName="")
+        public MessageStore(string name, string displayName = "")
         {
             Name = name;
             IsSaving = false;
@@ -77,7 +77,7 @@ namespace Hybrasyl
             if (_lock == 0)
                 Interlocked.Exchange(ref _lock, 1);
             else
-                throw new MessageStoreLocked();          
+                throw new MessageStoreLocked();
         }
 
         public void Unlock()
@@ -113,7 +113,7 @@ namespace Hybrasyl
         {
             return GetEnumerator();
         }
- 
+
         public void Cleanup()
         {
             // Lock the mailbox during this process.
@@ -124,7 +124,7 @@ namespace Hybrasyl
             if (Messages.Count > short.MaxValue - 100)
             {
                 // Delete up to 10% of the mailbox, consisting of the oldest messages
-                Messages.RemoveRange(0, Messages.Count/10);
+                Messages.RemoveRange(0, Messages.Count / 10);
             }
             // Renumber mailbox.
             // This sucks, but I'm not sure how to make it better given the client restrictions.
@@ -139,6 +139,21 @@ namespace Hybrasyl
             Save();
         }
 
+        public List<(bool Highlight, short Id, string Sender, byte Month, byte Day, string Subject)> GetIndex()
+        {
+            var messagelist = new List<(bool Highlight, short, string, byte, byte, string>);
+            foreach (var message in this.Take(Constants.MESSAGE_RETURN_SIZE))
+            {
+                messagelist.Add((message.Read || message.Highlighted,
+                    (short)message.Id,
+                    message.Sender,
+                    (byte)message.Created.Month,
+                    (byte)message.Created.Day,
+                    message.Subject));
+            }
+            return messagelist;
+        }
+
         public ServerPacket RenderToPacket(bool isClick = false)
         {
             var response = new ServerPacket(0x31);
@@ -148,7 +163,7 @@ namespace Hybrasyl
                 response.WriteByte(0x01); // ??? - needs to be odd number unless board in world has been clicked
                 response.WriteUInt16(0); // board ID;
                 response.WriteString8("Mail");
-                response.WriteByte(Math.Min((byte)this.Count(),(byte)Constants.MESSAGE_RETURN_SIZE));
+                response.WriteByte(Math.Min((byte)this.Count(), (byte)Constants.MESSAGE_RETURN_SIZE));
                 foreach (var message in this)
                 {
                     response.WriteBoolean(!message.Read);
@@ -166,18 +181,18 @@ namespace Hybrasyl
                 response.WriteByte(0x02); // 0x02 - public, 0x04 - mail
                 response.WriteByte((byte)(isClick == true ? 0x02 : 0x01));
                 // ??? - needs to be odd number unless board in world has been clicked
-                response.WriteUInt16((ushort) Id); // board ID;
+                response.WriteUInt16((ushort)Id); // board ID;
                 response.WriteString8(DisplayName);
-                response.WriteByte(Math.Min((byte) this.Count(),
-                    (byte) Constants.MESSAGE_RETURN_SIZE));
+                response.WriteByte(Math.Min((byte)this.Count(),
+                    (byte)Constants.MESSAGE_RETURN_SIZE));
                 if (this.Count() == 0) return response;
                 foreach (var message in this)
                 {
                     response.WriteBoolean(message.Highlighted);
-                    response.WriteInt16((short) message.Id);
+                    response.WriteInt16((short)message.Id);
                     response.WriteString8(message.Sender);
-                    response.WriteByte((byte) message.Created.Month);
-                    response.WriteByte((byte) message.Created.Day);
+                    response.WriteByte((byte)message.Created.Month);
+                    response.WriteByte((byte)message.Created.Day);
                     response.WriteString8(message.Subject);
                 }
             }
@@ -224,7 +239,7 @@ namespace Hybrasyl
             Global = false;
             InitializeStorage();
         }
-       
+
         public override bool ReceiveMessage(Message newMessage)
         {
             if (CheckAccessLevel(newMessage.Sender, BoardAccessLevel.Write))
@@ -266,7 +281,20 @@ namespace Hybrasyl
                 WriterList.Add(charName.ToLower());
         }
 
-
+        public List<(bool Highlight, short Id, string Sender, byte Month, byte Day, string Subject)> GetIndex()
+        {
+            var messagelist = new List<(bool Highlight, short, string, byte, byte, string>);
+            foreach (var message in this.Take(Constants.MESSAGE_RETURN_SIZE))
+            {
+                messagelist.Add((message.Read,
+                    (short)message.Id,
+                    message.Sender,
+                    (byte)message.Created.Month,
+                    (byte)message.Created.Day,
+                    message.Subject));
+            }
+            return messagelist;
+        }
     }
 
     public class Message
@@ -309,13 +337,14 @@ namespace Hybrasyl
             Read = false;
         }
 
+        
         public ServerPacket RenderToPacket(bool Mailbox = true)
         {
             var response = new ServerPacket(0x31);
             // Functionality unknown but necessary
             if (Mailbox)
             {
-                response.WriteByte(0x05);  
+                response.WriteByte(0x05);
                 response.WriteByte(0x03);
             }
             else
@@ -332,6 +361,59 @@ namespace Hybrasyl
             response.WriteString16(Body);
 
             return response;
+        }
+    }
+
+    public enum BoardResponseType : byte
+    {
+        DisplayList = 0x01,
+        GetMailboxIndex = 0x02,
+        GetBoardIndex = 0x03
+
+    }
+
+    internal static class BoardController
+    {
+
+        public static ServerPacketStructures.BoardResponse Post(int boardid, ) { }
+        public static ServerPacketStructures.BoardResponse BoardList(string user)
+        {
+            var boards = new List<(ushort Id, string Name)>();
+
+            foreach (var board in Game.World.WorldData.Values<Board>().Where(mb => mb.Global &&
+                mb.CheckAccessLevel(user, BoardAccessLevel.Read)))
+            {
+                boards.Append(((ushort)board.Id, board.DisplayName));
+            }
+
+            return new ServerPacketStructures.BoardResponse()
+            {
+                ResponseType = BoardResponseType.DisplayList,
+                Boards = boards
+            };
+        }
+        public static ServerPacketStructures.BoardResponse GetMessages(string username, ushort boardId, ushort startPostId)
+        {
+            MessageStore store;
+            if (boardId == 0)
+                store = Game.World.GetMailbox(username);
+            else
+            {
+                if (Game.World.WorldData.TryGetValueByIndex(boardId, out Board board))
+                    store = board;
+                else
+                {
+                    return new ServerPacketStructures.BoardResponse();
+                }
+            }
+            return new ServerPacketStructures.BoardResponse()
+            {
+                ResponseType = BoardResponseType.GetMailboxIndex,
+                isClick = false,
+                BoardId = 0,
+                BoardName = "Mail",
+                Messages = store.GetIndex()
+            };
         }
     }
 }
