@@ -146,8 +146,9 @@ namespace Hybrasyl
                 {
                     var packetLength = (_buffer[1] << 8) + _buffer[2] + 3;
                     // Complete packet, pop it off and return it
-                    if (_buffer.Length >= packetLength)
+                    if (BytesReceived >= packetLength)
                     {
+                        BytesReceived -= packetLength;
                         packet = new ClientPacket(ReceiveBufferPop(packetLength).ToArray());
                         return true;
                     }
@@ -155,6 +156,8 @@ namespace Hybrasyl
                 return false;
             }
         }
+
+        public int BytesReceived = 0;
 
         public void ReceiveBufferAdd(ClientPacket packet) => _receiveBuffer.Enqueue(packet);
 
@@ -532,8 +535,6 @@ namespace Hybrasyl
                     ClientPacket packet;
                     while (ClientState.ReceiveBufferTake(out packet))
                     {
-                        //GameLog.Info("Debug - packet before decryption");
-                        //packet.DumpPacket();
 
                         if (packet.ShouldEncrypt)
                         {
