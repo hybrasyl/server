@@ -446,7 +446,7 @@ namespace Hybrasyl
 
                 }
 
-                var affectedObjects = EntityTree.GetObjects(obj.GetViewport()).Distinct();
+                var affectedObjects = EntityTree.GetObjects(obj.GetViewport());
 
                 foreach (var target in affectedObjects)
                 {
