@@ -1863,7 +1863,7 @@ namespace Hybrasyl
         {
             var creature = (Objects.Creature)message.Arguments[0];
             if (creature is User u) { u.OnDeath(); }
-            if (creature is Monster ms) { ms.OnDeath(); }
+            if (creature is Monster ms && !ms.DeathProcessed) { ms.OnDeath(); }
         }
 
         

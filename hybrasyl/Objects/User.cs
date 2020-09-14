@@ -118,12 +118,12 @@ namespace Hybrasyl.Objects
             }
         }
 
-        public Mailbox Mailbox => World.GetMailbox(Name);
-        public Vault Vault => World.GetVault(AccountUuid ?? Uuid);
-        public ParcelStore ParcelStore => World.GetParcelStore(Uuid);
+        public Mailbox Mailbox => Game.World.GetMailbox(Name);
+        public Vault Vault => Game.World.GetVault(AccountUuid ?? Uuid);
+        public ParcelStore ParcelStore => Game.World.GetParcelStore(Uuid);
         public bool UnreadMail => Mailbox.HasUnreadMessages;
         public bool HasParcels => ParcelStore.Items.Count > 0;
-
+       
         #region Appearance settings 
         [JsonProperty]
         public RestPosition RestPosition { get; set; }
