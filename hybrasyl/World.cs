@@ -2172,15 +2172,23 @@ namespace Hybrasyl
         }
 
         private void PacketHandler_0X0C_PutGround(object obj, ClientPacket packet)
-        {
-            //if (obj is VisibleObject vo)
-            //{ 
-            //    foreach(var entity in vo.Map.EntityTree.GetObjects(vo.GetViewport()))
-            //    {
-            //        vo.AoiEntry(entity);
-            //    }
-            //}
-            //do nothing. only here to remove the stupid spam.
+        {   
+            if (obj is User user)
+            {
+                var invis = packet.ReadUInt32();
+                Game.World.Objects.TryGetValue(invis, out var missingObj);
+                if (user.Map.Objects.Contains(missingObj))
+                {
+                    if (missingObj is Monster mob)
+                    {
+                        foreach (var entity in user.Map.EntityTree.GetObjects(mob.GetViewport()))
+                        {
+                            mob.AoiEntry(entity);
+                            entity.AoiEntry(mob);
+                        }
+                    }
+                }
+            }
         }
 
         private void PacketHandler_0x10_ClientJoin(Object obj, ClientPacket packet)
