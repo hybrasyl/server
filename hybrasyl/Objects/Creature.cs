@@ -874,6 +874,7 @@ namespace Hybrasyl.Objects
 
         public virtual void Damage(double damage, Xml.Element element = Xml.Element.None, Xml.DamageType damageType = Xml.DamageType.Direct, Xml.DamageFlags damageFlags = Xml.DamageFlags.None, Creature attacker = null, bool onDeath=true)
         {
+            if (this is Monster ms && !Condition.Alive) return;
             if (attacker is User && this is Monster)
             {
                 if (FirstHitter == null || !World.UserConnected(FirstHitter.Name) || ((DateTime.Now - LastHitTime).TotalSeconds > Constants.MONSTER_TAGGING_TIMEOUT)) FirstHitter = attacker;
@@ -914,10 +915,13 @@ namespace Hybrasyl.Objects
             Stats.Hp -= normalized;
 
             SendDamageUpdate(this);
-                        
+
             // TODO: Separate this out into a control message
             if (Stats.Hp == 0 && onDeath)
+            {
+                if (this is Monster) Condition.Alive = false;
                 OnDeath();
+            }
         }
 
         private void SendDamageUpdate(Creature creature)

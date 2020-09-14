@@ -198,6 +198,7 @@ namespace Hybrasyl.Objects
         public bool DeathDisabled => _spawn.Flags.HasFlag(Xml.SpawnFlags.DeathDisabled);
         public bool MovementDisabled => _spawn.Flags.HasFlag(Xml.SpawnFlags.MovementDisabled);
         public bool AiDisabled => _spawn.Flags.HasFlag(Xml.SpawnFlags.AiDisabled);
+        public bool DeathProcessed { get; set; }
 
         public bool ScriptExists { get; set; }
 
@@ -228,7 +229,13 @@ namespace Hybrasyl.Objects
                 return;
             }
 
-            Condition.Alive = false;
+            // Don't die twice
+            if (DeathProcessed == true) return;
+
+            // Even if we encounter an error, we still count the death as processed to avoid 
+            // repeated processiong
+            DeathProcessed = true;
+
             var hitter = LastHitter as User;
             if (hitter == null)
             {
@@ -468,6 +475,7 @@ namespace Hybrasyl.Objects
                 ShouldWander = IsHostile == false;
 
             ThreatInfo = new ThreatInfo();
+            DeathProcessed = false;
         }
 
         public Creature Target
