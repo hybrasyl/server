@@ -166,5 +166,7 @@ namespace Hybrasyl
         public static void SpawnDebug(Exception ex, string messageTemplate, params object[] propertyValues) => LogWithException(ex, LogEventLevel.Debug, LogType.Spawn, messageTemplate, propertyValues);
         public static void SpawnFatal(Exception ex, string messageTemplate, params object[] propertyValues) => LogWithException(ex, LogEventLevel.Fatal, LogType.Spawn, messageTemplate, propertyValues);
 
+        // Packet log
+        public static void PacketInfo(string messageTemplate, params object[] propertyValues) => Log(LogEventLevel.Information, LogType.Packet, messageTemplate, propertyValues);
     }
 }

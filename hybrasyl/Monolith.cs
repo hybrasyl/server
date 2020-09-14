@@ -517,6 +517,7 @@ namespace Hybrasyl
                         if (spawnMap.SpawnDebug) GameLog.SpawnInfo($"Spawn: spawning {mob.Name} on {spawnMap.Name}");
                         SpawnMonster(mob, spawnMap);
                     }
+                   
                 }
                 catch (Exception e)
                 {

@@ -753,7 +753,7 @@ namespace Hybrasyl
                     continue;
                 }
 
-                TryGetUser(key, out User user);
+                TryGetUser(name, out User user);
                 if (user == null)
                 {
                     GameLog.Warning("User {user}: could not be loaded", key);
@@ -1304,10 +1304,10 @@ namespace Hybrasyl
                         string.Format("{0}/{1}/{2}", spell.Icon, 0, 0), // spell icon, x position (defunct), y position (defunct)
                         string.Format("{0}/{1}/{2}/{3}/{4}", 
                         requirements?.Physical == null ? 3 : requirements.Physical.Str, 
-                        requirements?.Physical == null ? 3 : requirements.Physical.Dex, 
                         requirements?.Physical == null ? 3 : requirements.Physical.Int, 
-                        requirements?.Physical == null ? 3 : requirements.Physical.Con, 
-                        requirements?.Physical == null ? 3 : requirements.Physical.Wis),
+                        requirements?.Physical == null ? 3 : requirements.Physical.Wis, 
+                        requirements?.Physical == null ? 3 : requirements.Physical.Dex, 
+                        requirements?.Physical == null ? 3 : requirements.Physical.Con),
                         //spell: str/dex/int/con/wis
                         string.Format("{0}/{1}", prereq1, prereq1level), // req spell 1 (spell name or 0 for none), req skill 1 level
                         string.Format("{0}/{1}", prereq2, prereq2level), // req spell 2 (spell name or 0 for none), req skill 2 level
@@ -1863,7 +1863,7 @@ namespace Hybrasyl
         {
             var creature = (Objects.Creature)message.Arguments[0];
             if (creature is User u) { u.OnDeath(); }
-            if (creature is Monster ms) { ms.OnDeath(); }
+            if (creature is Monster ms && !ms.DeathProcessed) { ms.OnDeath(); }
         }
 
         
@@ -2177,15 +2177,28 @@ namespace Hybrasyl
         }
 
         private void PacketHandler_0X0C_PutGround(object obj, ClientPacket packet)
-        {
-            //if (obj is VisibleObject vo)
-            //{ 
-            //    foreach(var entity in vo.Map.EntityTree.GetObjects(vo.GetViewport()))
-            //    {
-            //        vo.AoiEntry(entity);
-            //    }
-            //}
-            //do nothing. only here to remove the stupid spam.
+        {   
+            if (obj is User user)
+            {
+                var invis = packet.ReadUInt32();
+                Game.World.Objects.TryGetValue(invis, out var missingObj);
+                if (user.Map.Objects.Contains(missingObj))
+                {
+                    if (missingObj is Monster mob)
+                    {
+                        foreach (var entity in user.Map.EntityTree.GetObjects(mob.GetViewport()))
+                        {
+                            if (entity is User usr)
+                            {
+                                GameLog.InfoFormat("Showing missing object {0} with ID {1} to {2}", mob.Name, mob.Id, entity.Name);
+                                usr.AoiEntry(mob);
+                                mob.AoiEntry(usr);
+                                usr.SendRefresh();
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         private void PacketHandler_0x10_ClientJoin(Object obj, ClientPacket packet)
@@ -2961,11 +2974,9 @@ namespace Hybrasyl
         {
             var user = (User)obj;
             var response = new ServerPacket(0x31);
+
             var action = packet.ReadByte();
             
-            GameLog.Error($"0x3B length is {packet.ToArray().Length}");
-            GameLog.Error($"0x3B action is {action}");
-
             // The moment we get a 3B packet, we assume a user is "in a board"
             user.Condition.Flags = user.Condition.Flags | PlayerFlags.InBoard;
 
@@ -4509,6 +4520,7 @@ namespace Hybrasyl
                     var clientMessage = (HybrasylClientMessage)message;
                     var handler = PacketHandlers[clientMessage.Packet.Opcode];
                     var timerOptions = HybrasylMetricsRegistry.OpcodeTimerIndex[clientMessage.Packet.Opcode];
+
                     try
                     {
                         if (TryGetActiveUserById(clientMessage.ConnectionId, out user))
@@ -4555,6 +4567,7 @@ namespace Hybrasyl
                             if (user.ActiveExchange != null && (clientMessage.Packet.Opcode != 0x4a &&
                                 clientMessage.Packet.Opcode != 0x45 && clientMessage.Packet.Opcode != 0x75))
                                 user.ActiveExchange.CancelExchange(user);
+
                             if (ignore)
                             {
                                 if (clientMessage.Packet.Opcode == 0x06) user.Refresh();
@@ -4576,7 +4589,6 @@ namespace Hybrasyl
                                 PacketHandlers[clientMessage.Packet.Opcode].Invoke(user, clientMessage.Packet);
                                 watch.Stop();
                                 Game.MetricsStore.Measure.Timer.Time(timerOptions, watch.ElapsedMilliseconds);
-
                             }
                             else
                             {
@@ -4585,8 +4597,7 @@ namespace Hybrasyl
                         }
                         else if (clientMessage.Packet.Opcode == 0x10) // Handle special case of join world
                         {
-                            var watch = new Stopwatch();
-                            watch.Start();
+                            var watch = Stopwatch.StartNew();
                             PacketHandlers[0x10].Invoke(clientMessage.ConnectionId, clientMessage.Packet);
                             watch.Stop();
                             Game.MetricsStore.Measure.Timer.Time(timerOptions, watch.ElapsedMilliseconds);
@@ -4637,12 +4648,10 @@ namespace Hybrasyl
 
                     try
                     {
-                        var watch = new Stopwatch();
+                        var watch = Stopwatch.StartNew();
                         var timerOptions = HybrasylMetricsRegistry.ControlMessageTimerIndex[hcm.Opcode];
-                        watch.Start();
                         ControlMessageHandlers[hcm.Opcode].Invoke(hcm);
                         watch.Stop();
-
                         Game.MetricsStore.Measure.Timer.Time(timerOptions, watch.ElapsedMilliseconds);
                     }
                     catch (Exception e)
