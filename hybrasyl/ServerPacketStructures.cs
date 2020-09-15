@@ -1170,6 +1170,7 @@ namespace Hybrasyl
             public List<(bool Highlight, short Id, string Sender, byte Month, byte Day, string Subject)> Messages { get; set; }
             public bool isClick { get; set; }
             public byte BoardId { get; set; }
+            public string BoardName { get; set; }
 
             public BoardResponse()
             {
@@ -1177,6 +1178,7 @@ namespace Hybrasyl
                 Boards = new List<(ushort Id, string Name)>();
                 Messages = new List<(bool Highlight, short Id, string Sender, byte Month, byte Day, string Subject)>();
                 BoardId = 0;
+                BoardName = "Mail";
             }
 
             public ServerPacket Packet()

@@ -141,7 +141,7 @@ namespace Hybrasyl
 
         public List<(bool Highlight, short Id, string Sender, byte Month, byte Day, string Subject)> GetIndex()
         {
-            var messagelist = new List<(bool Highlight, short, string, byte, byte, string>);
+            var messagelist = new List<(bool Highlight, short, string, byte, byte, string)>();
             foreach (var message in this.Take(Constants.MESSAGE_RETURN_SIZE))
             {
                 messagelist.Add((message.Read || message.Highlighted,
@@ -283,7 +283,7 @@ namespace Hybrasyl
 
         public List<(bool Highlight, short Id, string Sender, byte Month, byte Day, string Subject)> GetIndex()
         {
-            var messagelist = new List<(bool Highlight, short, string, byte, byte, string>);
+            var messagelist = new List<(bool Highlight, short, string, byte, byte, string)>();
             foreach (var message in this.Take(Constants.MESSAGE_RETURN_SIZE))
             {
                 messagelist.Add((message.Read,
@@ -375,7 +375,7 @@ namespace Hybrasyl
     internal static class BoardController
     {
 
-        public static ServerPacketStructures.BoardResponse Post(int boardid, ) { }
+        //public static ServerPacketStructures.BoardResponse Post(int boardid, ) { }
         public static ServerPacketStructures.BoardResponse BoardList(string user)
         {
             var boards = new List<(ushort Id, string Name)>();

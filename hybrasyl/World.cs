@@ -2984,25 +2984,7 @@ namespace Hybrasyl
             {
                 case 0x01:
                     {
-                        // Display board list.....
-                        response.WriteByte(0x01);
-
-                        // TODO: This has the potential to be a somewhat expensive operation, optimize this.
-                        var boardList =
-                            WorldData.Values<Board>().Where(mb => mb.Global && mb.CheckAccessLevel(user.Name, BoardAccessLevel.Read));
-
-                        // Mail is always the first board and has a fixed id of 0
-                        response.WriteUInt16((ushort)(boardList.Count() + 1));
-                        response.WriteUInt16(0);
-                        response.WriteString8("Mail");
-
-                        foreach (var board in boardList)
-                        {
-                            response.WriteUInt16((ushort)board.Id);
-                            response.WriteString8(board.DisplayName);
-                        }
-                        response.TransmitDelay = 600; // This is so the 'w' key in the client works
-                                                      // Without this, the messaging panel is a jittery piece of crap that never opens
+                        user.Enqueue(BoardController.BoardList(user.Name).Packet());
                     }
                     break;
 
