@@ -219,6 +219,7 @@ namespace Hybrasyl
                     GameLog.Error($"bytesRead: {bytesRead}, errorCode: {errorCode}");
                     client.Disconnect();
                 }
+                client.ClientState.BytesReceived += bytesRead;
             }
             catch (Exception e)
             {
@@ -248,7 +249,7 @@ namespace Hybrasyl
             // Continue getting dem bytes
             try
             {
-                state.WorkSocket.BeginReceive(state.Buffer, 0, state.Buffer.Length, 0,
+                state.WorkSocket.BeginReceive(state.Buffer, state.BytesReceived, state.Buffer.Length - state.BytesReceived, 0,
                     new AsyncCallback(this.ReadCallback), state);
                 GameLog.DebugFormat("Triggering receive callback");
             }

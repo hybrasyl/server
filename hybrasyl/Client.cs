@@ -146,8 +146,9 @@ namespace Hybrasyl
                 {
                     var packetLength = (_buffer[1] << 8) + _buffer[2] + 3;
                     // Complete packet, pop it off and return it
-                    if (_buffer.Length >= packetLength)
+                    if (BytesReceived >= packetLength)
                     {
+                        BytesReceived -= packetLength;
                         packet = new ClientPacket(ReceiveBufferPop(packetLength).ToArray());
                         return true;
                     }
@@ -155,6 +156,8 @@ namespace Hybrasyl
                 return false;
             }
         }
+
+        public int BytesReceived = 0;
 
         public void ReceiveBufferAdd(ClientPacket packet) => _receiveBuffer.Enqueue(packet);
 
@@ -532,6 +535,7 @@ namespace Hybrasyl
                     ClientPacket packet;
                     while (ClientState.ReceiveBufferTake(out packet))
                     {
+
                         if (packet.ShouldEncrypt)
                         {
                             packet.Decrypt(this);
@@ -562,6 +566,7 @@ namespace Hybrasyl
                                 UpdateLastReceived(packet.Opcode != 0x45 &&
                                                           packet.Opcode != 0x75);
                                 GameLog.Debug($"Queuing: 0x{packet.Opcode:X2}");
+                                //packet.DumpPacket();
                                 // Check for throttling
                                 var throttleResult = Server.PacketThrottleCheck(this, packet);
                                 if (throttleResult == ThrottleResult.OK || throttleResult == ThrottleResult.ThrottleEnd || throttleResult == ThrottleResult.SquelchEnd)
@@ -683,8 +688,12 @@ namespace Hybrasyl
             redirect.Destination.ExpectedConnections.TryAdd(redirect.Id, redirect);
 
             var endPoint = Socket.RemoteEndPoint as IPEndPoint;
+            byte[] addressBytes;
 
-            byte[] addressBytes = IPAddress.IsLoopback(endPoint.Address) ? IPAddress.Loopback.GetAddressBytes() : Game.IpAddress.GetAddressBytes();
+            if (Game.RedirectTarget != null)
+                addressBytes = Game.RedirectTarget.GetAddressBytes();
+            else 
+                addressBytes = IPAddress.IsLoopback(endPoint.Address) ? IPAddress.Loopback.GetAddressBytes() : Game.IpAddress.GetAddressBytes();
 
             Array.Reverse(addressBytes);
 

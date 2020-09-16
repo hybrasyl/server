@@ -1,0 +1,66 @@
+﻿<#+
+
+public enum ControlOpcodes
+{
+  CleanupUser = 0,
+  SaveUser = 1,
+  ChaosRising = 2,
+  ShutdownServer = 3,
+  RegenUser = 4,
+  LogoffUser = 5,
+  MailNotifyUser = 6,
+  StatusTick = 7,
+  MonolithSpawn = 8,
+  MonolithControl = 9,
+  TriggerRefresh = 10,
+  HandleDeath = 11,
+  DialogRequest = 12
+}
+#>
+<#+
+
+public enum ClientOpcode : byte
+{
+  RequestMap = 0x05,
+  Walk = 0x06,
+  PickupItem = 0x07,
+  DropItem = 0x08,
+  ClientExit = 0x0B,
+  // generating a ton of spam, we don't care
+  //PutGround = 0x0C,
+  Talk = 0x0E,
+  UseSpell = 0x0F,
+  ClientJoin = 0x10,
+  Turn = 0x11,
+  Attack = 0x13,
+  ShowPlayerList = 0x18,
+  Whisper = 0x19,
+  Settings = 0x1B,
+  UseItem = 0x1C,
+  Emote = 0x1D,
+  DropGold = 0x24,
+  DropItemOnCreature = 0x29,
+  DropGoldOnCreature = 0x2A,
+  PlayerInfo = 0x2D,
+  GroupRequest = 0x2E,
+  GroupToggle = 0x2F,
+  MoveUIElement = 0x30,
+  Refresh = 0x38,
+  NPCMainMenu = 0x39,
+  DialogUse = 0x3A,
+  AccessMessages = 0x3B,
+  UseSkill = 0x3E,
+  MapPointClick = 0x3F,
+  PointClick = 0x43,
+  EquippedItemClick = 0x44,
+  ByteHeartbeat = 0x45,
+  StatPoint = 0x47,
+  Trade = 0x4A,
+  BeginCasting = 0x4D,
+  CastLine = 0x4E,
+  ProfileTextPortrait = 0x4F,
+  TickHeartbeat = 0x75,
+  Status = 0x79,
+  RequestMetafile = 0x7B
+}
+#>

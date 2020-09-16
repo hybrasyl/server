@@ -45,7 +45,7 @@ namespace Hybrasyl.Messaging
     class ClearStatusCommand : ChatCommand
     {
         public new static string Command = "clearstatus";
-        public new static string ArgumentText = "none";
+        public new static string ArgumentText = "<string playername> | none";
         public new static string HelpText = "Clear all statuses and conditions.";
         public new static bool Privileged = true;
 
@@ -62,15 +62,18 @@ namespace Hybrasyl.Messaging
     class ClearFlagsCommand : ChatCommand
     {
         public new static string Command = "clearflags";
-        public new static string ArgumentText = "none";
-        public new static string HelpText = "Clear all player flags.";
+        public new static string ArgumentText = "<string username>";
+        public new static string HelpText = "Clear player flags for a specified user.";
         public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
-
-            user.Condition.ClearFlags();
-            return Success("Alive, all flags cleared");
+            if (Game.World.TryGetActiveUser(args[1], out User target))
+            {
+                target.Condition.ClearFlags();
+                return Success($"{target.Name}: Alive, all flags cleared");
+            }
+            return Fail($"{args[1]} is not online");
         }
 
     }

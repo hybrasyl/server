@@ -24,57 +24,37 @@ using System.Collections.Generic;
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-public partial class NetworkInfo
+public partial class MetricsEndpoint
 {
     #region Private fields
-    private string _bindAddress;
-    private string _externalAddress;
-    private ushort _port;
+    private string _apiKey;
+    private string _url;
     private static XmlSerializer _serializer;
     #endregion
     
-    public NetworkInfo()
-    {
-        _bindAddress = "127.0.0.1";
-    }
-    
     [XmlAttribute]
-    [DefaultValue("127.0.0.1")]
-    public string BindAddress
+    public string ApiKey
     {
         get
         {
-            return _bindAddress;
+            return _apiKey;
         }
         set
         {
-            _bindAddress = value;
+            _apiKey = value;
         }
     }
     
-    [XmlAttribute]
-    public string ExternalAddress
+    [XmlAttribute(DataType="anyURI")]
+    public string Url
     {
         get
         {
-            return _externalAddress;
+            return _url;
         }
         set
         {
-            _externalAddress = value;
-        }
-    }
-    
-    [XmlAttribute]
-    public ushort Port
-    {
-        get
-        {
-            return _port;
-        }
-        set
-        {
-            _port = value;
+            _url = value;
         }
     }
     
@@ -84,7 +64,7 @@ public partial class NetworkInfo
         {
             if ((_serializer == null))
             {
-                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(NetworkInfo));
+                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(MetricsEndpoint));
             }
             return _serializer;
         }
@@ -92,7 +72,7 @@ public partial class NetworkInfo
     
     #region Serialize/Deserialize
     /// <summary>
-    /// Serialize NetworkInfo object
+    /// Serialize MetricsEndpoint object
     /// </summary>
     /// <returns>XML value</returns>
     public virtual string Serialize()
@@ -125,16 +105,16 @@ public partial class NetworkInfo
     }
     
     /// <summary>
-    /// Deserializes NetworkInfo object
+    /// Deserializes MetricsEndpoint object
     /// </summary>
     /// <param name="input">string workflow markup to deserialize</param>
-    /// <param name="obj">Output NetworkInfo object</param>
+    /// <param name="obj">Output MetricsEndpoint object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool Deserialize(string input, out NetworkInfo obj, out Exception exception)
+    public static bool Deserialize(string input, out MetricsEndpoint obj, out Exception exception)
     {
         exception = null;
-        obj = default(NetworkInfo);
+        obj = default(MetricsEndpoint);
         try
         {
             obj = Deserialize(input);
@@ -147,19 +127,19 @@ public partial class NetworkInfo
         }
     }
     
-    public static bool Deserialize(string input, out NetworkInfo obj)
+    public static bool Deserialize(string input, out MetricsEndpoint obj)
     {
         Exception exception = null;
         return Deserialize(input, out obj, out exception);
     }
     
-    public static NetworkInfo Deserialize(string input)
+    public static MetricsEndpoint Deserialize(string input)
     {
         StringReader stringReader = null;
         try
         {
             stringReader = new StringReader(input);
-            return ((NetworkInfo)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
+            return ((MetricsEndpoint)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
         }
         finally
         {
@@ -170,14 +150,14 @@ public partial class NetworkInfo
         }
     }
     
-    public static NetworkInfo Deserialize(Stream s)
+    public static MetricsEndpoint Deserialize(Stream s)
     {
-        return ((NetworkInfo)(SerializerXML.Deserialize(s)));
+        return ((MetricsEndpoint)(SerializerXML.Deserialize(s)));
     }
     #endregion
     
     /// <summary>
-    /// Serializes current NetworkInfo object into file
+    /// Serializes current MetricsEndpoint object into file
     /// </summary>
     /// <param name="fileName">full path of outupt xml file</param>
     /// <param name="exception">output Exception value if failed</param>
@@ -218,16 +198,16 @@ public partial class NetworkInfo
     }
     
     /// <summary>
-    /// Deserializes xml markup from file into an NetworkInfo object
+    /// Deserializes xml markup from file into an MetricsEndpoint object
     /// </summary>
     /// <param name="fileName">string xml file to load and deserialize</param>
-    /// <param name="obj">Output NetworkInfo object</param>
+    /// <param name="obj">Output MetricsEndpoint object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool LoadFromFile(string fileName, out NetworkInfo obj, out Exception exception)
+    public static bool LoadFromFile(string fileName, out MetricsEndpoint obj, out Exception exception)
     {
         exception = null;
-        obj = default(NetworkInfo);
+        obj = default(MetricsEndpoint);
         try
         {
             obj = LoadFromFile(fileName);
@@ -240,13 +220,13 @@ public partial class NetworkInfo
         }
     }
     
-    public static bool LoadFromFile(string fileName, out NetworkInfo obj)
+    public static bool LoadFromFile(string fileName, out MetricsEndpoint obj)
     {
         Exception exception = null;
         return LoadFromFile(fileName, out obj, out exception);
     }
     
-    public static NetworkInfo LoadFromFile(string fileName)
+    public static MetricsEndpoint LoadFromFile(string fileName)
     {
         FileStream file = null;
         StreamReader sr = null;

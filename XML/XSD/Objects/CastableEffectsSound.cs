@@ -27,11 +27,17 @@ using System.Collections.Generic;
 public partial class CastableEffectsSound
 {
     #region Private fields
-    private byte _id = 255;
+    private byte _id;
     private static XmlSerializer _serializer;
     #endregion
     
+    public CastableEffectsSound()
+    {
+        _id = ((byte)(255));
+    }
+    
     [XmlAttribute]
+    [DefaultValue(typeof(byte), "255")]
     public byte Id
     {
         get

@@ -198,6 +198,7 @@ namespace Hybrasyl.Objects
         public bool DeathDisabled => _spawn.Flags.HasFlag(Xml.SpawnFlags.DeathDisabled);
         public bool MovementDisabled => _spawn.Flags.HasFlag(Xml.SpawnFlags.MovementDisabled);
         public bool AiDisabled => _spawn.Flags.HasFlag(Xml.SpawnFlags.AiDisabled);
+        public bool DeathProcessed { get; set; }
 
         public bool ScriptExists { get; set; }
 
@@ -228,7 +229,13 @@ namespace Hybrasyl.Objects
                 return;
             }
 
-            Condition.Alive = false;
+            // Don't die twice
+            if (DeathProcessed == true) return;
+
+            // Even if we encounter an error, we still count the death as processed to avoid 
+            // repeated processiong
+            DeathProcessed = true;
+
             var hitter = LastHitter as User;
             if (hitter == null)
             {
@@ -286,9 +293,9 @@ namespace Hybrasyl.Objects
                 GameLog.Error("OnDeath for {Name}: exception encountered, loot/gold cancelled {e}", Name, e);
                 Game.ReportException(e);
             }
-            World.RemoveStatusCheck(this);
-            Map.Remove(this);
-            World.Remove(this);
+            Game.World.RemoveStatusCheck(this);
+            Map?.Remove(this);
+            World?.Remove(this);
 
         }
 
@@ -298,10 +305,10 @@ namespace Hybrasyl.Objects
         // OnSpawn) when not needed 99% of the time.
         private void InitScript()
         {
-            if (Script != null || ScriptExists)               
+            if (Script != null || ScriptExists || string.IsNullOrEmpty(Name))               
                 return;
 
-            if (World.ScriptProcessor.TryGetScript(Name, out Script damageScript))
+            if (Game.World.ScriptProcessor.TryGetScript(Name, out Script damageScript))
             {
                 Script = damageScript;
                 Script.AssociateScriptWithObject(this);
@@ -468,6 +475,7 @@ namespace Hybrasyl.Objects
                 ShouldWander = IsHostile == false;
 
             ThreatInfo = new ThreatInfo();
+            DeathProcessed = false;
         }
 
         public Creature Target

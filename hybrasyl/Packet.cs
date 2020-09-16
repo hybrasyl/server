@@ -21,6 +21,7 @@
 
 using System;
 using System.IO;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace Hybrasyl
@@ -250,6 +251,14 @@ namespace Hybrasyl
             TransmitDelay = 0;
         }
 
+        private static SHA1CryptoServiceProvider hashAlgorithm = new SHA1CryptoServiceProvider();
+
+        public string Hash()
+        {
+            var hash = hashAlgorithm.ComputeHash(Data);
+            return BitConverter.ToString(hash).Substring(0, 8);          
+        }
+
         public int Position
         {
             get { return _position; }
@@ -266,8 +275,8 @@ namespace Hybrasyl
         public void DumpPacket()
         {
             // Dump the packet to the console.
-            GameLog.DebugFormat("Dumping packet:");
-            GameLog.DebugFormat(BitConverter.ToString(Data));
+            GameLog.Debug($"Dumping packet: {Opcode:X2}");
+            GameLog.Debug(ToString());
         }
 
         public byte[] ToArray()

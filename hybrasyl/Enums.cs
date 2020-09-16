@@ -25,7 +25,6 @@ namespace Hybrasyl
 {
     namespace Enums
     {
-
         #region Colors and display enumerations
         /// <summary>
         /// how big is ye lantern
@@ -310,7 +309,8 @@ namespace Hybrasyl
             Scripting = 1,
             GmActivity = 2,
             UserActivity = 3,
-            Spawn = 4
+            Spawn = 4,
+            Packet = 5
         }
 
         public enum UserStatus : byte
