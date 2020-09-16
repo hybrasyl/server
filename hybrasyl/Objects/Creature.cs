@@ -555,7 +555,7 @@ namespace Hybrasyl.Objects
                 if (intent.Flags.Contains(Xml.IntentFlags.Self))
                 {
                     GameLog.UserActivityInfo($"Trying to remove self: my id is {this.Id} and actualtargets contains {String.Join(',',actualTargets.Select(e => e.Id).ToList())}");
-                    finalTargets.AddRange(actualTargets.Where(e => e.Id != Id));
+                    finalTargets.AddRange(actualTargets.Where(e => e.Id == Id));
                     GameLog.UserActivityInfo($"did it happen :o -  my id is {this.Id} and actualtargets contains {String.Join(',', actualTargets.Select(e => e.Id).ToList())}");
                 }
 
