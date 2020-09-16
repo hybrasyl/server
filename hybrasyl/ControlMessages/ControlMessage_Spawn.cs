@@ -21,7 +21,7 @@ namespace Hybrasyl
             var map = (Map)message.Arguments[1];
 
             // Don't handle control messages for dead/removed mobs
-            if (!monster.Condition.Alive || monster.Id == 0 || monster.Map == null) return;
+            if (!monster.Condition.Alive || monster.DeathProcessed || monster.Id == 0 || monster.Map == null) return;
             if (monster.IsHostile)
             {
                 if (map.Users.Count > 0)
