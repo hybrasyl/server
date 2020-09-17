@@ -542,30 +542,46 @@ namespace Hybrasyl
 
     internal class MonolithControl
     {
-        private IEnumerable<Map> _maps => Game.World.WorldData.Values<Map>();
+        private IEnumerable<Map> _maps { get; set; }
         private static Random _random;
 
         internal MonolithControl()
         {
             _random = new Random();
+            _maps = Game.World.WorldData.Values<Map>().ToList();
         }
         
         public void Start()
         {
+            var x = 0;
             while (true)
-            {
+            {               
                 // Ignore processing if no one is logged in, what's the point
 
-                foreach (var map in _maps)
+                try
                 {
-                    if (map.Users.Count == 0) continue;
-                                        
-                    foreach (var mob in map.Objects.Where(x => x is Monster).ToList())
+                    foreach (var map in _maps)
                     {
-                        Evaluate(mob as Monster, map);
-                    }                   
+                        if (map.Users.Count == 0) continue;
+
+                        foreach (var mob in map.Objects.Where(x => x is Monster).ToList())
+                        {
+                            Evaluate(mob as Monster, map);
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    GameLog.Fatal("Monolith thread error: {e}", e);
                 }
                 Thread.Sleep(1000);
+                x++;
+                // Refresh our list every 15 seconds in case of XML reloading
+                if (x == 15)
+                {
+                    _maps = Game.World.WorldData.Values<Map>().ToList();
+                    x = 0;
+                }
             }
         }
 
