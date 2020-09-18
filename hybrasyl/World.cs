@@ -866,8 +866,12 @@ namespace Hybrasyl
             {
                 case "consecratable":
                     {
-                        if (variant.Properties.Restrictions?.Level != null) 
+                        if (variant.Properties.Restrictions?.Level != null)
+                        {
                             variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
+                            if (variantItem.Properties.Restrictions.Level.Min > 99) variantItem.Properties.Restrictions.Level.Min = 99; //sanity check for items going over level 99.
+                        }
+                            
                         if (variant.Properties.StatModifiers?.Base != null)
                         {
                             variantItem.Properties.StatModifiers.Base.Dex += variant.Properties.StatModifiers.Base.Dex;
@@ -896,6 +900,7 @@ namespace Hybrasyl
                         if (variant.Properties.Restrictions?.Level != null)
                         {
                             variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
+                            if (variantItem.Properties.Restrictions.Level.Min > 99) variantItem.Properties.Restrictions.Level.Min = 99; //sanity check for items going over level 99.
                         }
                         if (variant.Properties.StatModifiers?.Combat != null)
                         {
@@ -922,6 +927,7 @@ namespace Hybrasyl
                         if (variant.Properties.Restrictions?.Level != null)
                         {
                             variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
+                            if (variantItem.Properties.Restrictions.Level.Min > 99) variantItem.Properties.Restrictions.Level.Min = 99; //sanity check for items going over level 99.
                         }
                         if (variant.Properties.Damage?.Large != null)
                         {
@@ -940,6 +946,7 @@ namespace Hybrasyl
                         if (variant.Properties.Restrictions?.Level != null)
                         {
                             variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
+                            if (variantItem.Properties.Restrictions.Level.Min > 99) variantItem.Properties.Restrictions.Level.Min = 99; //sanity check for items going over level 99.
                         }
                         if (variant.Properties.StatModifiers?.Combat != null)
                         {
@@ -953,11 +960,12 @@ namespace Hybrasyl
                     }
                 case "dye":
                     {
-                        if(variant.Properties.Restrictions?.Level != null)
+                        if (variant.Properties.Restrictions?.Level != null)
                         {
-                            variantItem.Properties.Restrictions.Level.Min = variant.Properties.Restrictions.Level.Min;
+                            variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
+                            if (variantItem.Properties.Restrictions.Level.Min > 99) variantItem.Properties.Restrictions.Level.Min = 99; //sanity check for items going over level 99.
                         }
-                        if(variant.Properties.Appearance != null)
+                        if (variant.Properties.Appearance != null)
                         {
                             variantItem.Properties.Appearance.Color = variant.Properties.Appearance.Color;
                         }
