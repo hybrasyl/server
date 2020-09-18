@@ -863,8 +863,6 @@ namespace Hybrasyl.Objects
             if (AbsoluteImmortal || PhysicalImmortal) return;
             if (Stats.Hp == Stats.MaximumHp) return;
             Stats.Hp = heal > uint.MaxValue ? Stats.MaximumHp : Math.Min(Stats.MaximumHp, (uint)(Stats.Hp + heal));
-
-            Stats.Hp = heal > uint.MaxValue ? Stats.MaximumHp : Math.Min(Stats.MaximumHp, (uint)(Stats.Hp + heal));
             SendDamageUpdate(this);
         }
 
