@@ -3101,22 +3101,30 @@ namespace Hybrasyl.Objects
             {
                 foreach (var preReq in classReq.Prerequisites)
                 {
-                    if (!SkillBook.Contains(Game.World.WorldData.GetByIndex<Xml.Castable>(preReq.Value).Id))
+                    BookSlot slot;
+                    if (Game.World.WorldData.TryGetValueByIndex(preReq.Value, out Castable castablePrereq))
                     {
-                        learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_level");
-                        prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$PREREQ", preReq.Value).Replace("$LEVEL", preReq.Level.ToString());
-                        break;
-                    }
-                    else if (SkillBook.Contains(Game.World.WorldData.GetByIndex<Xml.Castable>(preReq.Value).Id))
-                    {
-                        var preReqSkill = SkillBook.Single(x => x.Castable.Name == preReq.Value);
-                        if (Math.Floor((preReqSkill.UseCount / (double)preReqSkill.Castable.Mastery.Uses) * 100) < preReq.Level)
+                        if (!SkillBook.Contains(castablePrereq.Id) && !SpellBook.Contains(castablePrereq.Id))
+                        {
+                            learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_level");
+                            prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$PREREQ", preReq.Value).Replace("$LEVEL", preReq.Level.ToString());
+                            break;
+                        }
+                        if (SkillBook.Contains(castablePrereq.Id))
+                            slot = SkillBook.Single(x => x.Castable.Name == preReq.Value);
+                        else
+                            slot = SpellBook.Single(x => x.Castable.Name == preReq.Value);
+
+                        if (Math.Floor((slot.UseCount / (double)slot.Castable.Mastery.Uses) * 100) < preReq.Level)
                         {
                             learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_level");
                             prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$PREREQ", preReq.Value).Replace("$LEVEL", preReq.Level.ToString());
                             break;
                         }
                     }
+                    else
+                        prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_error")?.Value;
+
                 }
             }
             if (prompt == string.Empty) //this is so bad
@@ -3357,22 +3365,30 @@ namespace Hybrasyl.Objects
             {
                 foreach (var preReq in classReq.Prerequisites)
                 {
-                    if (!SpellBook.Contains(Game.World.WorldData.GetByIndex<Xml.Castable>(preReq.Value).Id))
+                    BookSlot slot;
+                    if (Game.World.WorldData.TryGetValueByIndex(preReq.Value, out Castable castablePrereq))
                     {
-                        learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_level");
-                        prompt = learnString.Value.Replace("$SPELLNAME", castable.Name).Replace("$PREREQ", preReq.Value).Replace("$LEVEL", preReq.Level.ToString());
-                        break;
-                    }
-                    else if (SpellBook.Contains(Game.World.WorldData.GetByIndex<Xml.Castable>(preReq.Value).Id))
-                    {
-                        var preReqSpell = SpellBook.Single(x => x.Castable.Name == preReq.Value);
-                        if (Math.Floor((preReqSpell.UseCount / (double)preReqSpell.Castable.Mastery.Uses) * 100) < preReq.Level)
+                        if (!SkillBook.Contains(castablePrereq.Id) && !SpellBook.Contains(castablePrereq.Id))
                         {
                             learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_level");
                             prompt = learnString.Value.Replace("$SPELLNAME", castable.Name).Replace("$PREREQ", preReq.Value).Replace("$LEVEL", preReq.Level.ToString());
                             break;
                         }
+
+                        if (SkillBook.Contains(castablePrereq.Id))
+                            slot = SkillBook.Single(x => x.Castable.Name == preReq.Value);
+                        else
+                            slot = SpellBook.Single(x => x.Castable.Name == preReq.Value);
+                        if (Math.Floor((slot.UseCount / (double)slot.Castable.Mastery.Uses) * 100) < preReq.Level)
+                        {
+                            learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_level");
+                            prompt = learnString.Value.Replace("$SPELLNAME", castable.Name).Replace("$PREREQ", preReq.Value).Replace("$LEVEL", preReq.Level.ToString());
+                            break;
+
+                        }
                     }
+                    else
+                        prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_error")?.Value;
                 }
             }
             if (prompt == string.Empty) //this is so bad
