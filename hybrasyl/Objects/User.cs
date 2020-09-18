@@ -4252,7 +4252,7 @@ namespace Hybrasyl.Objects
         {
             var item = Inventory[slot];
             PendingDepositSlot = slot;
-            if (item.Stackable)
+            if (item.Stackable && item.Count > 0)
             {
                 var prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item_quantity").Value.Replace("$QUANTITY", item.Count.ToString()).Replace("$ITEM", item.Name);
                 var input = new MerchantInput();
