@@ -68,8 +68,12 @@ namespace Hybrasyl.Objects
             Statuses = new List<StatusInfo>();
         }
 
-        public override void OnClick(User invoker) =>
-            invoker.SendSystemMessage(Name);
+        public override void OnClick(User invoker)
+        {
+            var prepend = "";
+            
+            invoker.SendSystemMessage(prepend + Name);
+        }
 
         public Creature GetDirectionalTarget(Xml.Direction direction)
         {
@@ -161,6 +165,7 @@ namespace Hybrasyl.Objects
             IEnumerable<Creature> actualTargets = new List<Creature>();
             var intents = castable.Intents;
             List<VisibleObject> possibleTargets = new List<VisibleObject>();
+            var finalTargets = new List<Creature>();
             Creature origin;
 
             foreach (var intent in intents)
@@ -271,23 +276,25 @@ namespace Hybrasyl.Objects
 
                 // Remove all merchants
                 // TODO: perhaps improve with a flag or extend in the future
-                actualTargets = actualTargets.SkipWhile(e => e is Merchant);
+                actualTargets = actualTargets.Where(e => e is User || e is Monster);
 
+
+                
                 // Process intent flags
 
                 var this_id = this.Id;
-
+                
                 if (this is Monster)
                 {
                     // No hostile flag: remove players
                     if (!intent.Flags.Contains(Xml.IntentFlags.Hostile))
                     { 
-                        actualTargets = actualTargets.SkipWhile(e => e is User);
+                        finalTargets.AddRange(actualTargets.OfType<User>());
                     }
                     // No friendly flag: remove monsters
                     if (!intent.Flags.Contains(Xml.IntentFlags.Friendly))
                     {
-                        actualTargets = actualTargets.SkipWhile(e => e is Monster);
+                        finalTargets.AddRange(actualTargets.OfType<Monster>());
                     }
                     // Group / pvp: n/a
                 }
@@ -297,37 +304,37 @@ namespace Hybrasyl.Objects
                     // No hostile flag: remove monsters
                     // No friendly flag: remove non-PVP flagged players
                     // No group flag: remove group members
-                    if (!intent.Flags.Contains(Xml.IntentFlags.Hostile))
+                    if (intent.Flags.Contains(Xml.IntentFlags.Hostile))
                     {
-                        actualTargets = actualTargets.SkipWhile(e => e is Monster);
+                        finalTargets.AddRange(actualTargets.OfType<Monster>());
                     }
-                    if (!intent.Flags.Contains(Xml.IntentFlags.Friendly))
+                    if (intent.Flags.Contains(Xml.IntentFlags.Friendly))
                     {
-                        actualTargets = actualTargets.SkipWhile(e => e is User && !(e as User).Condition.PvpEnabled && e.Id != this_id);
+                        finalTargets.AddRange(actualTargets.OfType<User>().Where(e => e.Condition.PvpEnabled == false && e.Id != Id));
                     }
-                    if (!intent.Flags.Contains(Xml.IntentFlags.Pvp))
+                    if (intent.Flags.Contains(Xml.IntentFlags.Pvp))
                     {
-                        
-                        actualTargets = actualTargets.SkipWhile(e => (e is User) && (e as User).Condition.PvpEnabled && e.Id != this_id);
+
+                        finalTargets.AddRange(actualTargets.OfType<User>().Where(e => e.Condition.PvpEnabled && e.Id != Id));
                     }
-                    if (!intent.Flags.Contains(Xml.IntentFlags.Group))
+                    if (intent.Flags.Contains(Xml.IntentFlags.Group))
                     {
                         // Remove group members
                         if (userobj.Group != null)
-                            actualTargets = actualTargets.SkipWhile(e => (e is User) && userobj.Group.Contains(e as User));
+                            finalTargets.AddRange(actualTargets.OfType<User>().Where(e => userobj.Group.Contains(e)));
                     }
                 }
                 // No Self flag: remove self 
-                if (!intent.Flags.Contains(Xml.IntentFlags.Self))
+                if (intent.Flags.Contains(Xml.IntentFlags.Self))
                 {
-                    //GameLog.UserActivityInfo($"Trying to remove self: my id is {this.Id} and actualtargets contains {String.Join(',',actualTargets.Select(e => e.Id).ToList())}");
-                    actualTargets = actualTargets.Where(e => e.Id != this_id);
-                    //GameLog.UserActivityInfo($"did it happen :o -  my id is {this.Id} and actualtargets contains {String.Join(',', actualTargets.Select(e => e.Id).ToList())}");
+                    GameLog.UserActivityInfo($"Trying to remove self: my id is {this.Id} and actualtargets contains {String.Join(',',actualTargets.Select(e => e.Id).ToList())}");
+                    finalTargets.AddRange(actualTargets.Where(e => e.Id == Id));
+                    GameLog.UserActivityInfo($"did it happen :o -  my id is {this.Id} and actualtargets contains {String.Join(',', actualTargets.Select(e => e.Id).ToList())}");
                 }
 
             }
 
-            return actualTargets.ToList();
+            return finalTargets;
         }
 
 
