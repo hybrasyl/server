@@ -4969,7 +4969,7 @@ namespace Hybrasyl.Objects
                 ItemSlot = slot,
                 ItemSprite = toAdd.Sprite,
                 ItemColor = toAdd.Color,
-                ItemName = toAdd.Stackable && toAdd.Count > 1 ? $"{toAdd.Name} ({toAdd.Count}" : toAdd.Name
+                ItemName = toAdd.Stackable && toAdd.Count > 1 ? $"{toAdd.Name} [{toAdd.Count}]" : toAdd.Name
             };
             Enqueue(update.Packet());
         }
