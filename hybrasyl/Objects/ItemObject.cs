@@ -244,6 +244,11 @@ namespace Hybrasyl.Objects
 
         public void Invoke(User trigger)
         {
+            if (Stackable && Count <= 0)
+            {
+                trigger.RemoveItem(Name);
+                return;
+            }
             // Run through all the different potential uses. We allow combinations of any
             // use specified in the item XML.
             GameLog.InfoFormat($"User {trigger.Name}: used item {Name}");
