@@ -567,11 +567,10 @@ namespace Hybrasyl.Objects
                 {
                     uint hpPenalty;
 
-                    if (handler.Penalty.Xp.Contains('.'))
-                        hpPenalty = (uint)Math.Ceiling(Stats.Experience * Convert.ToDouble(handler.Penalty.Hp));
+                    if (handler.Penalty.Hp.Contains('.'))
+                        hpPenalty = (uint)Math.Ceiling(Stats.BaseHp * Convert.ToDouble(handler.Penalty.Hp));
                     else
                         hpPenalty = Convert.ToUInt32(handler.Penalty.Hp);
-
                     Stats.BaseHp -= hpPenalty;
                     SendSystemMessage($"You lose {hpPenalty} HP!");
                 }
@@ -2508,6 +2507,7 @@ namespace Hybrasyl.Objects
 
         public void SwapItem(byte oldSlot, byte newSlot)
         {
+            if (oldSlot == newSlot) return;
             var oldSlotItem = Inventory[oldSlot];
             var newSlotItem = Inventory[newSlot];
 
@@ -4251,7 +4251,7 @@ namespace Hybrasyl.Objects
         {
             var item = Inventory[slot];
             PendingDepositSlot = slot;
-            if (item.Stackable)
+            if (item.Stackable && item.Count > 0)
             {
                 var prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item_quantity").Value.Replace("$QUANTITY", item.Count.ToString()).Replace("$ITEM", item.Name);
                 var input = new MerchantInput();
@@ -4969,7 +4969,7 @@ namespace Hybrasyl.Objects
                 ItemSlot = slot,
                 ItemSprite = toAdd.Sprite,
                 ItemColor = toAdd.Color,
-                ItemName = toAdd.Stackable && toAdd.Count > 1 ? $"{toAdd.Name} ({toAdd.Count}" : toAdd.Name
+                ItemName = toAdd.Stackable && toAdd.Count > 1 ? $"{toAdd.Name} [{toAdd.Count}]" : toAdd.Name
             };
             Enqueue(update.Packet());
         }
