@@ -577,7 +577,7 @@ namespace Hybrasyl
                 Thread.Sleep(1000);
                 x++;
                 // Refresh our list every 15 seconds in case of XML reloading
-                if (x == 15)
+                if (x == 30)
                 {
                     _maps = Game.World.WorldData.Values<Map>().ToList();
                     x = 0;
