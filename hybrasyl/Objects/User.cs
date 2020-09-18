@@ -2508,6 +2508,7 @@ namespace Hybrasyl.Objects
 
         public void SwapItem(byte oldSlot, byte newSlot)
         {
+            if (oldSlot == newSlot) return;
             var oldSlotItem = Inventory[oldSlot];
             var newSlotItem = Inventory[newSlot];
 
