@@ -253,7 +253,7 @@ namespace Hybrasyl.Scripting
         /// </summary>
         /// <param name="item"></param>
         /// <returns>boolean</returns>
-        public bool HasEquipment(string item) => User.Equipment.TryGetValueByName(item, out ItemObject _);
+        public bool HasEquipment(string item) => User.Equipment.Contains(item, 1);
 
         /// <summary>
         /// Change the class of a player to a new class. The player's class will immediately change and they will receive a legend mark that 
