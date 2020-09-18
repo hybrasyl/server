@@ -567,8 +567,8 @@ namespace Hybrasyl.Objects
                 {
                     uint hpPenalty;
 
-                    if (handler.Penalty.Xp.Contains('.'))
-                        hpPenalty = (uint)Math.Ceiling(Stats.Experience * Convert.ToDouble(handler.Penalty.Hp));
+                    if (handler.Penalty.Hp.Contains('.'))
+                        hpPenalty = (uint)Math.Ceiling(Stats.BaseHp * Convert.ToDouble(handler.Penalty.Hp));
                     else
                         hpPenalty = Convert.ToUInt32(handler.Penalty.Hp);
 
