@@ -129,8 +129,10 @@ namespace Hybrasyl.Objects
                 {
                     foreach(var item in Roles.Vend.Items)
                     {
-                        var worldItem = Game.World.WorldData.GetByIndex<Xml.Item>(item.Name);
-                        MerchantInventory.Add(new MerchantInventoryItem(worldItem, (uint)item.Quantity, (uint)item.Quantity, item.Restock, DateTime.Now));
+                        if (Game.World.WorldData.TryGetValueByIndex(item.Name, out Xml.Item worldItem))
+                            MerchantInventory.Add(new MerchantInventoryItem(worldItem, (uint)item.Quantity, (uint)item.Quantity, item.Restock, DateTime.Now));
+                        else
+                            GameLog.Warning("NPC inventory: {name}: {item} not found", Name, item.Name);
                     }
                 }
             }
