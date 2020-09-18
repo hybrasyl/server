@@ -184,8 +184,7 @@ namespace Hybrasyl
                     }
                     return false;
                 }
-                theItem.Count -= quantity;
-                giver.SendItemUpdate(theItem, slot);
+                giver.RemoveItem(theItem.Name, quantity);
                 toAdd = new ItemObject(theItem);
                 toAdd.Count = quantity;
             }
