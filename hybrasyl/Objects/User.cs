@@ -571,7 +571,6 @@ namespace Hybrasyl.Objects
                         hpPenalty = (uint)Math.Ceiling(Stats.BaseHp * Convert.ToDouble(handler.Penalty.Hp));
                     else
                         hpPenalty = Convert.ToUInt32(handler.Penalty.Hp);
-
                     Stats.BaseHp -= hpPenalty;
                     SendSystemMessage($"You lose {hpPenalty} HP!");
                 }
