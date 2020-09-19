@@ -614,9 +614,10 @@ namespace Hybrasyl
                     WorldData.Set(worldmap.Name, worldmap);
                     foreach (var point in worldmap.Points)
                     {
+                        GameLog.Info("Point: {id}, to {dest}", point.Id, point.Name);
                         WorldData.Set(point.Id, point);
                     }
-                    GameLog.DebugFormat("World Maps: Loaded {0}", worldmap.Name);
+                    GameLog.Info("World Maps: Loaded {name}", worldmap.Name);
                 }
                 catch (Exception e)
                 {
@@ -2367,6 +2368,10 @@ namespace Hybrasyl
             if (target == "!!")
             {
                 user.SendGroupWhisper(message);
+            }
+            else if (target == "@" && user.IsPrivileged)
+            {
+                
             }
             else if (target == "$")
             {
