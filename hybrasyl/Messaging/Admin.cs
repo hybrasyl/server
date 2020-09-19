@@ -1150,6 +1150,13 @@ namespace Hybrasyl.Messaging
                             Name = "GeneratedArmor" + GeneratedId,
                             Properties = new Xml.ItemProperties()
                             {
+                                Stackable = new Xml.Stackable() { Max = 1 },
+                                Physical = new Xml.Physical()
+                                {
+                                    Durability = 1000,
+                                    Value = 1,
+                                    Weight = 1
+                                },
                                 Restrictions = new Xml.ItemRestrictions()
                                 {
                                     Gender = (Xml.Gender)Enum.Parse(typeof(Xml.Gender), args[1]),
@@ -1171,7 +1178,6 @@ namespace Hybrasyl.Messaging
                             }
                         };
                         Game.World.WorldData.SetWithIndex<Xml.Item>(item.Id, item, item.Name);
-                        GeneratedId++;
                         user.AddItem(item.Name, 1);
                     }
                     break;
@@ -1182,6 +1188,13 @@ namespace Hybrasyl.Messaging
                             Name = "GeneratedArmor" + GeneratedId,
                             Properties = new Xml.ItemProperties()
                             {
+                                Stackable = new Xml.Stackable() { Max = 1 },
+                                Physical = new Xml.Physical()
+                                {
+                                    Durability = 1000,
+                                    Value = 1,
+                                    Weight = 1
+                                },
                                 Restrictions = new Xml.ItemRestrictions()
                                 {
                                     Gender = (Xml.Gender)Enum.Parse(typeof(Xml.Gender), args[1]),
@@ -1198,17 +1211,17 @@ namespace Hybrasyl.Messaging
                                 },
                                 Equipment = new Xml.Equipment()
                                 {
-                                    Slot = Xml.EquipmentSlot.Coat
+                                    Slot = Xml.EquipmentSlot.Trousers
                                 }
                             }
                         };
                         Game.World.WorldData.SetWithIndex<Xml.Item>(item.Id, item, item.Name);
-                        GeneratedId++;
                         user.AddItem(item.Name, 1);
                     }
                     break;
             }
-            return Success($"GeneratedArmor{GeneratedId} added to World Data.");
+            GeneratedId++;
+            return Success($"GeneratedArmor{GeneratedId -1} added to World Data.");
         }
     }
 }
