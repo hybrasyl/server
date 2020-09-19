@@ -320,7 +320,14 @@ namespace Hybrasyl
         {
             World.Insert(toInsert);
             Insert(toInsert, toInsert.X, toInsert.Y);
-            toInsert.OnSpawn();
+            try
+            {
+                toInsert.OnSpawn();
+            }
+            catch (Exception e)
+            {
+                GameLog.Error("NPC {name}: exception occurred, aborting: {e}", toInsert.Name, e);
+            }
         }
         public void InsertCreature(Creature toInsert)
         {
