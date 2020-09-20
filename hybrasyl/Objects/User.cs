@@ -4528,7 +4528,7 @@ namespace Hybrasyl.Objects
                 Inventory[PendingRepairSlot].Durability = Inventory[PendingRepairSlot].MaximumDurability;
                 PendingRepairSlot = 0;
                 PendingRepairCost = 0;
-                DisplayPursuits(this);
+                merchant.DisplayPursuits(this);
             }
         }
 
