@@ -195,9 +195,9 @@ namespace Hybrasyl
             RegisterPacketThrottle(new GenericPacketThrottle(0x38, 600, 0, 500));  // refresh (f5)
             RegisterPacketThrottle(new GenericPacketThrottle(0x39, 200, 1000, 500));  // NPC main menu
             RegisterPacketThrottle(new GenericPacketThrottle(0x13, 800, 0, 0));        // Assail
-            RegisterPacketThrottle(new GenericPacketThrottle(0x3E, 800, 0, 0));
-            RegisterPacketThrottle(new GenericPacketThrottle(0x0F, 800, 0, 0));
-            RegisterPacketThrottle(new GenericPacketThrottle(0x1C, 200, 0, 0));
+            RegisterPacketThrottle(new GenericPacketThrottle(0x3E, 500, 0, 0));         //Skill
+            RegisterPacketThrottle(new GenericPacketThrottle(0x0F, 500, 0, 0));         //Spell
+            RegisterPacketThrottle(new GenericPacketThrottle(0x1C, 200, 0, 0));         //Item
         }
 
 
