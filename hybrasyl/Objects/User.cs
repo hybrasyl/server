@@ -2194,6 +2194,7 @@ namespace Hybrasyl.Objects
 
         public bool AddItem(ItemObject itemObject, bool updateWeight = true)
         {
+            Game.World.Insert(itemObject);
             if (Inventory.IsFull)
             {
                 SendSystemMessage("You cannot carry any more items.");
@@ -2234,7 +2235,7 @@ namespace Hybrasyl.Objects
                 inventoryItem.Count += itemObject.Count;
                 itemObject.Count = 0;
                 SendItemUpdate(inventoryItem, Inventory.SlotByName(inventoryItem.Name).First());
-                World.Remove(itemObject);
+                Game.World.Remove(itemObject);
                 return true;
             }
 
