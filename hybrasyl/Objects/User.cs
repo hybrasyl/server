@@ -871,7 +871,7 @@ namespace Hybrasyl.Objects
                 if (levelsGained > 0)
                 {
                     Client.SendMessage("A rush of insight fills you!", MessageTypes.SYSTEM);
-                    Effect(50, 250);
+                    Effect(50, 100);
                     UpdateAttributes(StatUpdateFlags.Full);
                 }
             }
