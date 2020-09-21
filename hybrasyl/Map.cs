@@ -611,7 +611,7 @@ namespace Hybrasyl
                     obj.Map = null;
                 }
                 else
-                    GameLog.Fatal("AIEEEEEEEEEEEEEEEE");
+                    GameLog.Fatal("Failed to remove gameobject id: {0} name: {1}", obj.Id, obj.Name);
             }
         }
 

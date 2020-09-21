@@ -1892,23 +1892,43 @@ namespace Hybrasyl.Objects
         /// Returns all the objects that are directly facing the user.
         /// </summary>
         /// <returns>A list of visible objects.</returns>
-        public List<VisibleObject> GetFacingObjects()
+        public List<VisibleObject> GetFacingObjects(int distance = 1)
         {
-            List<VisibleObject> contents;
+            List<VisibleObject> contents = new List<VisibleObject>();
 
             switch (Direction)
             {
                 case Xml.Direction.North:
-                    contents = Map.GetTileContents(X, Y - 1);
+                    {
+                        for (var i = 1; i <= distance; i++)
+                        {
+                            contents.AddRange(Map.GetTileContents(X, Y - i));
+                        }
+                    }
                     break;
                 case Xml.Direction.South:
-                    contents = Map.GetTileContents(X, Y + 1);
+                    {
+                        for (var i = 1; i <= distance; i++)
+                        {
+                            contents.AddRange(Map.GetTileContents(X, Y + i));
+                        }
+                    }
                     break;
                 case Xml.Direction.West:
-                    contents = Map.GetTileContents(X - 1, Y);
+                    {
+                        for (var i = 1; i <= distance; i++)
+                        {
+                            contents.AddRange(Map.GetTileContents(X - i, Y));
+                        }
+                    }
                     break;
                 case Xml.Direction.East:
-                    contents = Map.GetTileContents(X + 1, Y);
+                    {
+                        for (var i = 1; i <= distance; i++)
+                        {
+                            contents.AddRange(Map.GetTileContents(X + i, Y));
+                        }
+                    }
                     break;
                 default:
                     contents = new List<VisibleObject>();

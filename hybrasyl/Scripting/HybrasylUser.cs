@@ -192,18 +192,42 @@ namespace Hybrasyl.Scripting
         }
 
         /// <summary>
-        /// Get the objects a player is facing (for instance, items on the ground in front of the player)/
+        /// Get the objects a player is facing (for instance, items on the ground in front of the player)
         /// </summary>
+        /// <param name="distance"></param>
         /// <returns>A list of HybrasylWorldObjects that the player is facing.</returns>
-        public List<HybrasylWorldObject> GetFacingObjects()
+        public List<HybrasylWorldObject> GetFacingObjects(int distance = 1)
         {
-            return User.GetFacingObjects().Select(item => new HybrasylWorldObject(item)).ToList();
+            return User.GetFacingObjects(distance).Select(item => new HybrasylWorldObject(item)).ToList();
         }
 
+        /// <summary>
+        /// Get the monster that the placer is facing.
+        /// </summary>
+        /// <returns>A HybrasylMonster object.</returns>
         public HybrasylMonster GetFacingMonster()
         {
             var facing = (Monster)(User.GetFacingObjects().Where(X => X is Monster).FirstOrDefault());
             return facing != null ? new HybrasylMonster(facing) : null;
+        }
+
+        /// <summary>
+        /// Get the direction the user is facing.
+        /// </summary>
+        /// <returns>A string representation of the user's direction.</returns>
+        public string GetDirection()
+        {
+            return Enum.GetName(typeof(Xml.Direction), User.Direction);
+        }
+
+        /// <summary>
+        /// Set the users facing direction.
+        /// </summary>
+        /// <param name="direction"></param>
+        public void ChangeDirection(string direction)
+        {
+            Enum.TryParse(typeof(Xml.Direction), direction, out var result);
+            User.Direction = (Xml.Direction)result;
         }
 
         /// <summary>
