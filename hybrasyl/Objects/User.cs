@@ -1247,6 +1247,14 @@ namespace Hybrasyl.Objects
 
         internal void UseSkill(byte slot)
         {
+            if(!Map.AllowCasting)
+            {
+                if (!IsPrivileged)
+                {
+                    SendSystemMessage("You can't use that here.");
+                    return;
+                }
+            }
             var bookSlot = SkillBook[slot];
             if (bookSlot.OnCooldown)
             {
@@ -1272,6 +1280,15 @@ namespace Hybrasyl.Objects
 
         internal void UseSpell(byte slot, uint target = 0)
         {
+            if (!Map.AllowCasting)
+            {
+                if (!IsPrivileged)
+                {
+                    SendSystemMessage("You can't cast that here.");
+                    return;
+                }
+            }
+
             var bookSlot = SpellBook[slot];
             Creature targetCreature = Map.EntityTree.OfType<Creature>().SingleOrDefault(x => x.Id == target) ?? null;
 

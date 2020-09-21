@@ -157,6 +157,7 @@ namespace Hybrasyl
         public byte[] RawData { get; set; }
         public ushort Checksum { get; set; }
         public bool[,] IsWall { get; set; }
+        public bool AllowCasting { get; set; }
 
         public Dictionary<Tuple<byte, byte>, Warp> Warps { get; set; }
         public string Message { get; set; }
@@ -194,6 +195,7 @@ namespace Hybrasyl
             X = newMap.X;
             Y = newMap.Y;
             Name = newMap.Name;
+            AllowCasting = newMap.AllowCasting;
             EntityTree = new QuadTree<VisibleObject>(0, 0, X, Y);
             Music = newMap.Music;
 
