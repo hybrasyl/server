@@ -1261,6 +1261,34 @@ namespace Hybrasyl.Objects
                 SendSystemMessage("You must wait longer to use that.");
                 return;
             }
+
+            foreach (var cost in bookSlot.Castable.CastCosts)
+            {
+                if (Convert.ToUInt32(cost.Stat.Hp) > Stats.Hp)
+                {
+                    SendSystemMessage("You require more vitality.");
+                    return;
+                }
+                if (Convert.ToUInt32(cost.Stat.Mp) > Stats.Mp)
+                {
+                    SendSystemMessage("You require more mana.");
+                    return;
+                }
+                if (cost.Gold > Gold)
+                {
+                    SendSystemMessage("You require more gold.");
+                    return;
+                }
+                foreach (var item in cost.Items)
+                {
+                    if (!Inventory.Contains(item.Value, item.Quantity))
+                    {
+                        SendSystemMessage($"You require {item.Value}.");
+                        return;
+                    }
+                }
+            }
+
             if (UseCastable(bookSlot.Castable))
             {
                 if(bookSlot.UseCount != uint.MaxValue)
@@ -1296,6 +1324,33 @@ namespace Hybrasyl.Objects
             {
                 SendSystemMessage("You must wait longer to use that.");
                 return;
+            }
+
+            foreach(var cost in bookSlot.Castable.CastCosts)
+            {
+                if(Convert.ToUInt32(cost.Stat.Hp) > Stats.Hp)
+                {
+                    SendSystemMessage("You require more vitality.");
+                    return;
+                }
+                if (Convert.ToUInt32(cost.Stat.Mp) > Stats.Mp)
+                {
+                    SendSystemMessage("You require more mana.");
+                    return;
+                }
+                if (cost.Gold > Gold)
+                {
+                    SendSystemMessage("You require more gold.");
+                    return;
+                }
+                foreach(var item in cost.Items)
+                {
+                    if(!Inventory.Contains(item.Value, item.Quantity))
+                    {
+                        SendSystemMessage($"You require {item.Value}.");
+                        return;
+                    }
+                }
             }
 
             var intersect = UseCastRestrictions.Intersect(bookSlot.Castable.Categories.Select(x => x.Value), StringComparer.InvariantCultureIgnoreCase);
