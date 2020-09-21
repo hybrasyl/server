@@ -124,6 +124,7 @@ namespace Hybrasyl
     public class StatusInfo
     {
         public string Name { get; set; }
+        public string Category { get; set; }
         public SimpleStatusEffect OnStartEffect { get; set; }
         public SimpleStatusEffect OnTickEffect { get; set; }
         public SimpleStatusEffect OnRemoveEffect { get; set; }
@@ -147,13 +148,14 @@ namespace Hybrasyl
     public class CreatureStatus : ICreatureStatus
     {
         public string Name => XmlStatus.Name;
+        public string Category => XmlStatus.Category;
         public ushort Icon => XmlStatus.Icon;
         public double Tick { get; }
         public double Duration { get; }
         public string UseCastRestrictions => XmlStatus.CastRestriction?.Use ?? string.Empty;
         public string ReceiveCastRestrictions => XmlStatus.CastRestriction?.Receive ?? string.Empty;
 
-        public StatusInfo Info => new StatusInfo() { Name = Name, OnStartEffect = OnStartEffect, OnRemoveEffect = OnRemoveEffect, OnTickEffect = OnTickEffect, OnExpireEffect = OnExpireEffect, Remaining = Remaining, Tick = Tick};
+        public StatusInfo Info => new StatusInfo() { Name = Name, OnStartEffect = OnStartEffect, OnRemoveEffect = OnRemoveEffect, OnTickEffect = OnTickEffect, OnExpireEffect = OnExpireEffect, Remaining = Remaining, Tick = Tick, Category = Category};
 
         public Creature Target { get; }
         public Creature Source { get; }
