@@ -2492,7 +2492,7 @@ namespace Hybrasyl
                     }
 
                     item.Invoke(user);
-                    if (item.Count == 0)
+                    if (item.Consumable && item.Count == 0)
                         user.RemoveItem(slot);
                     else
                         user.SendItemUpdate(item, slot);

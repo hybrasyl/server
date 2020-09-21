@@ -143,7 +143,7 @@ namespace Hybrasyl.Objects
             {
                 if ((Template?.Properties?.Equipment?.Slot ?? Xml.EquipmentSlot.None) != Xml.EquipmentSlot.None)
                     return ItemObjectType.Equipment;
-                else if (Template.Properties.Flags.HasFlag(Xml.ItemFlags.Consumable))
+                else if (Template.Properties.Flags.HasFlag(Xml.ItemFlags.Consumable) || Template.Use != null)
                     return ItemObjectType.CanUse;
                 return ItemObjectType.CannotUse;
             }
