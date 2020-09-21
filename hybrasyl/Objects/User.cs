@@ -4062,10 +4062,17 @@ namespace Hybrasyl.Objects
             options.Options = new List<MerchantDialogOption>();
             //verify user has required items.
             var parcelFee = (uint)Math.Round((itemObj.Value * .10) * quantity, 0);
-            if (!(Gold > parcelFee))
+            if (!World.TryGetUser(recipient, out var _))
             {
-                parcelString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel_fail");
-                prompt = parcelString.Value.Replace("$FEE", parcelFee.ToString());
+                prompt = "I'm sorry, I don't know of anyone by that name.";
+            }
+            if (prompt == string.Empty)
+            {
+                if (!(Gold > parcelFee))
+                {
+                    parcelString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel_fail");
+                    prompt = parcelString.Value.Replace("$FEE", parcelFee.ToString());
+                }
             }
             if (prompt == string.Empty)
             {
