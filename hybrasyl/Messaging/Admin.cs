@@ -393,7 +393,7 @@ namespace Hybrasyl.Messaging
         public new static ChatCommandResult Run(User user, params string[] args)
         {
             if (Game.World.TryGetActiveUser(args[0], out User target))
-            { 
+            {
                 if (target.IsExempt)
                     return Fail($"User {target.Name} is exempt from your meddling.");
                 else
@@ -644,7 +644,7 @@ namespace Hybrasyl.Messaging
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
-            return Success($"Packet Queue Depth: {World.MessageQueue.Count}\n\nControl Message Queue Depth: {World.ControlMessageQueue.Count}", 
+            return Success($"Packet Queue Depth: {World.MessageQueue.Count}\n\nControl Message Queue Depth: {World.ControlMessageQueue.Count}",
                 MessageTypes.SLATE_WITH_SCROLLBAR);
         }
 
@@ -799,7 +799,7 @@ namespace Hybrasyl.Messaging
                         };
                         Monster newMob = new Monster(creature, spawn, user.Location.MapId);
                         user.World.Insert(newMob);
-                        user.Map.Insert(newMob, (byte)rand.Next(0, map.X +1), (byte)rand.Next(0, map.Y +1));
+                        user.Map.Insert(newMob, (byte)rand.Next(0, map.X + 1), (byte)rand.Next(0, map.Y + 1));
                     }
                 }
 
@@ -820,8 +820,8 @@ namespace Hybrasyl.Messaging
         public new static ChatCommandResult Run(User user, params string[] args)
         {
             if (args.Length < 2) return Fail($"Wrong number of arguments supplied.");
-            
-            switch(args[0].ToLower())
+
+            switch (args[0].ToLower())
             {
                 case "castable":
                     {
@@ -834,9 +834,9 @@ namespace Hybrasyl.Messaging
                             Game.World.WorldData.SetWithIndex(reloadedCastable.Id, reloadedCastable, reloadedCastable.Name);
                             foreach (var activeuser in Game.World.ActiveUsers)
                             {
-                                if(reloadedCastable.Book == Xml.Book.PrimarySkill || reloadedCastable.Book == Xml.Book.SecondarySkill || reloadedCastable.Book == Xml.Book.UtilitySkill)
+                                if (reloadedCastable.Book == Xml.Book.PrimarySkill || reloadedCastable.Book == Xml.Book.SecondarySkill || reloadedCastable.Book == Xml.Book.UtilitySkill)
                                 {
-                                    if(activeuser.SkillBook.Contains(reloadedCastable.Id))
+                                    if (activeuser.SkillBook.Contains(reloadedCastable.Id))
                                     {
                                         activeuser.SkillBook[activeuser.SkillBook.SlotOf(reloadedCastable.Id)].Castable = reloadedCastable;
                                     }
@@ -900,25 +900,25 @@ namespace Hybrasyl.Messaging
 
                         if (Game.World.WorldData.TryGetValue(reloadedMap.Id, out Map map))
                         {
-                            
+
                             var newMap = new Map(reloadedMap, Game.World);
                             Game.World.WorldData.RemoveIndex<Map>(map.Name);
                             Game.World.WorldData.Remove<Map>(map.Id);
                             Game.World.WorldData.SetWithIndex(newMap.Id, newMap, newMap.Name);
                             var mapObjs = map.Objects.ToList();
-                            for(var i = 0; i<mapObjs.Count; i++)
+                            for (var i = 0; i < mapObjs.Count; i++)
                             {
                                 var obj = mapObjs[i];
                                 map.Remove(obj);
-                                if(obj is User usr)
+                                if (obj is User usr)
                                 {
                                     newMap.Insert(usr, usr.X, usr.Y);
                                 }
-                                if(obj is Monster mob)
+                                if (obj is Monster mob)
                                 {
                                     Game.World.Remove(mob);
                                 }
-                                if(obj is ItemObject itm)
+                                if (obj is ItemObject itm)
                                 {
                                     Game.World.Remove(itm);
                                 }
@@ -1056,7 +1056,7 @@ namespace Hybrasyl.Messaging
                         var reloadedNation = Xml.Nation.LoadFromFile(reloaded);
 
                         if (Game.World.WorldData.TryGetValue(reloadedNation.Name, out Xml.Nation nation))
-                        {                            
+                        {
                             return Fail($"{args[0]} {args[1]} already exists.");
                         }
                         Game.World.WorldData.Set(reloadedNation.Name, reloadedNation);
@@ -1123,6 +1123,105 @@ namespace Hybrasyl.Messaging
                     return Fail("Bad input.");
             }
 
+        }
+    }
+
+    class GenerateArmor : ChatCommand
+    {
+        public static int GeneratedId = 0;
+        public new static string Command = "generate";
+        public new static string ArgumentText = "<string> type <string> gender <ushort> sprite <ushort> sprite";
+        public new static string HelpText = "Used for testing sprite vs display sprite. armor Female 1 1";
+        public new static bool Privileged = true;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            if (args.Length < 4) return Fail($"Wrong number of arguments supplied.");
+            ushort sprite;
+            ushort displaysprite;
+            if(!ushort.TryParse(args[2], out sprite)) return Fail($"Sprite must be a number.");
+            if (!ushort.TryParse(args[3], out displaysprite)) return Fail($"Displaysprite must be a number.");
+            switch (args[0].ToLower())
+            {
+                case "armor":
+                    {
+                        var item = new Xml.Item()
+                        {
+                            Name = "GeneratedArmor" + GeneratedId,
+                            Properties = new Xml.ItemProperties()
+                            {
+                                Stackable = new Xml.Stackable() { Max = 1 },
+                                Physical = new Xml.Physical()
+                                {
+                                    Durability = 1000,
+                                    Value = 1,
+                                    Weight = 1
+                                },
+                                Restrictions = new Xml.ItemRestrictions()
+                                {
+                                    Gender = (Xml.Gender)Enum.Parse(typeof(Xml.Gender), args[1]),
+                                    Level = new Xml.RestrictionsLevel()
+                                    {
+                                        Min = 1
+                                    }
+                                },
+                                Appearance = new Xml.Appearance()
+                                {
+                                    BodyStyle = (Xml.ItemBodyStyle)Enum.Parse(typeof(Xml.ItemBodyStyle), args[1]),
+                                    Sprite = sprite,
+                                    DisplaySprite = displaysprite
+                                },
+                                Equipment = new Xml.Equipment()
+                                {
+                                    Slot = Xml.EquipmentSlot.Armor
+                                }
+                            }
+                        };
+                        Game.World.WorldData.SetWithIndex<Xml.Item>(item.Id, item, item.Name);
+                        user.AddItem(item.Name, 1);
+                    }
+                    break;
+                case "coat":
+                    {
+                        var item = new Xml.Item()
+                        {
+                            Name = "GeneratedArmor" + GeneratedId,
+                            Properties = new Xml.ItemProperties()
+                            {
+                                Stackable = new Xml.Stackable() { Max = 1 },
+                                Physical = new Xml.Physical()
+                                {
+                                    Durability = 1000,
+                                    Value = 1,
+                                    Weight = 1
+                                },
+                                Restrictions = new Xml.ItemRestrictions()
+                                {
+                                    Gender = (Xml.Gender)Enum.Parse(typeof(Xml.Gender), args[1]),
+                                    Level = new Xml.RestrictionsLevel()
+                                    {
+                                        Min = 1
+                                    }
+                                },
+                                Appearance = new Xml.Appearance()
+                                {
+                                    BodyStyle = (Xml.ItemBodyStyle)Enum.Parse(typeof(Xml.ItemBodyStyle), args[1]),
+                                    Sprite = sprite,
+                                    DisplaySprite = displaysprite
+                                },
+                                Equipment = new Xml.Equipment()
+                                {
+                                    Slot = Xml.EquipmentSlot.Trousers
+                                }
+                            }
+                        };
+                        Game.World.WorldData.SetWithIndex<Xml.Item>(item.Id, item, item.Name);
+                        user.AddItem(item.Name, 1);
+                    }
+                    break;
+            }
+            GeneratedId++;
+            return Success($"GeneratedArmor{GeneratedId -1} added to World Data.");
         }
     }
 }

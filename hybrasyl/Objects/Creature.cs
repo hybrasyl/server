@@ -617,7 +617,15 @@ namespace Hybrasyl.Objects
                     {
                         var duration = status.Duration == 0 ? applyStatus.Duration : status.Duration;
                         GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - applying status {status.Value} - duration {duration}");
-                        tar.ApplyStatus(new CreatureStatus(applyStatus, tar, castObject, this, duration));
+                        if(tar.CurrentStatusInfo.Any(x => x.Category == applyStatus.Category))
+                        {
+                            if(this is User user)
+                            {
+                                user.SendSystemMessage($"Another {applyStatus.Category} already affects your target.");
+                            }
+                        }
+                        else
+                            tar.ApplyStatus(new CreatureStatus(applyStatus, tar, castObject, this, duration));
                     }
                     else
                         GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name} - failed to add status {status.Value}, does not exist!");
@@ -917,7 +925,8 @@ namespace Hybrasyl.Objects
             if (damageType == Xml.DamageType.Magical && (AbsoluteImmortal || MagicalImmortal))
                 return;
 
-            Stats.Hp -= normalized;
+            Stats.Hp = ((int)Stats.Hp - (int)normalized) < 0 ? 0 : Stats.Hp - normalized;
+            //Stats.Hp -= normalized;
 
             SendDamageUpdate(this);
 
