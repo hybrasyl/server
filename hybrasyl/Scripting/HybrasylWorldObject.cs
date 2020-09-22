@@ -51,6 +51,7 @@ namespace Hybrasyl.Scripting
                 else if (Obj is ItemObject) return "item";
                 else if (Obj is Monster) return "monster";
                 else if (Obj is User) return "user";
+                else if (Obj is Gold) return "gold";
                 return "idk";
             }
         }
