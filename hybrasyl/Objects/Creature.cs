@@ -387,8 +387,7 @@ namespace Hybrasyl.Objects
             status.OnStart(sendUpdates);
             if (sendUpdates)
                 UpdateAttributes(StatUpdateFlags.Full);
-            if (this is Monster)
-                Game.World.EnqueueStatusCheck(this);
+            Game.World.EnqueueStatusCheck(this);
             return true;
         }
 
@@ -461,6 +460,11 @@ namespace Hybrasyl.Objects
                 if (kvp.Value.Expired)
                 {
                     var removed = RemoveStatus(kvp.Key);
+                    if (removed && kvp.Value.Name.ToLower() == "coma")
+                    {
+                        // Coma removal from expiration means: dead
+                        (this as User).OnDeath();
+                    }
                     GameLog.DebugFormat($"Status {kvp.Value.Name} has expired: removal was {removed}");
                 }
 
@@ -625,7 +629,7 @@ namespace Hybrasyl.Objects
                             }
                         }
                         else
-                            tar.ApplyStatus(new CreatureStatus(applyStatus, tar, castObject, this, duration));
+                            tar.ApplyStatus(new CreatureStatus(applyStatus, tar, castObject, this, duration, -1, status.Intensity));
                     }
                     else
                         GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name} - failed to add status {status.Value}, does not exist!");

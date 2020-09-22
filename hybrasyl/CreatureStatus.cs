@@ -106,6 +106,7 @@ namespace Hybrasyl
         Creature Target { get; }
         Creature Source { get; }
         bool Expired { get; }
+        double Intensity { get; set; }
         double Elapsed { get; }
         double Remaining { get; }
         double ElapsedSinceTick { get; }
@@ -131,6 +132,7 @@ namespace Hybrasyl
         public SimpleStatusEffect OnExpireEffect { get; set; }
         public double Remaining { get; set; }
         public double Tick { get; set; }
+        public double Intensity { get; set; }
     }
 
     public class SimpleStatusEffect
@@ -154,8 +156,11 @@ namespace Hybrasyl
         public double Duration { get; }
         public string UseCastRestrictions => XmlStatus.CastRestriction?.Use ?? string.Empty;
         public string ReceiveCastRestrictions => XmlStatus.CastRestriction?.Receive ?? string.Empty;
+        public double Intensity { get; } = 1;
 
-        public StatusInfo Info => new StatusInfo() { Name = Name, OnStartEffect = OnStartEffect, OnRemoveEffect = OnRemoveEffect, OnTickEffect = OnTickEffect, OnExpireEffect = OnExpireEffect, Remaining = Remaining, Tick = Tick, Category = Category};
+        public StatusInfo Info => new StatusInfo() { Name = Name, OnStartEffect = OnStartEffect, 
+            OnRemoveEffect = OnRemoveEffect, OnTickEffect = OnTickEffect, OnExpireEffect = OnExpireEffect, 
+            Remaining = Remaining, Tick = Tick, Category = Category, Intensity = Intensity};
 
         public Creature Target { get; }
         public Creature Source { get; }
@@ -187,7 +192,7 @@ namespace Hybrasyl
 
         public double ElapsedSinceTick => (DateTime.Now - LastTick).TotalSeconds;
 
-        public CreatureStatus(Xml.Status xmlstatus, Creature target, Xml.Castable castable = null, Creature source = null, int duration = -1, int tickFrequency = -1)
+        public CreatureStatus(Xml.Status xmlstatus, Creature target, Xml.Castable castable = null, Creature source = null, int duration = -1, int tickFrequency = -1, double intensity = 1.0)
         {
             Target = target;
             XmlStatus = xmlstatus;
@@ -196,13 +201,14 @@ namespace Hybrasyl
             Source = source;
             Duration = duration == -1 ? xmlstatus.Duration : duration;
             Tick = tickFrequency == -1 ? xmlstatus.Tick : tickFrequency;
+            Intensity = intensity;
 
             // Calculate damage/heal effects. Note that a castable MUST be passed here for a status 
             // to have damage effects as the castable itself has fields we need to access 
             // (intensity, etc) in order to do damage calculations.
 
             if (castable != null)
-            {
+            {             
                 var start = CalculateNumericEffects(castable, xmlstatus.Effects.OnApply, source);
                 var tick = CalculateNumericEffects(castable, xmlstatus.Effects.OnTick, source);
                 var end = CalculateNumericEffects(castable, xmlstatus.Effects.OnRemove, source);
@@ -229,6 +235,7 @@ namespace Hybrasyl
                     OnRemoveEffect = serialized.OnRemoveEffect;
                     OnStartEffect = serialized.OnStartEffect;
                     OnRemoveEffect = serialized.OnRemoveEffect;
+                    Intensity = serialized.Intensity;
                 }
                 else
                 {
@@ -288,22 +295,22 @@ namespace Hybrasyl
 
             if (remove)
             {
-                Target.Stats.BonusStr -= effect.Str;
-                Target.Stats.BonusInt -= effect.Int;
-                Target.Stats.BonusWis -= effect.Wis;
-                Target.Stats.BonusCon -= effect.Con;
-                Target.Stats.BonusDex -= effect.Dex;
-                Target.Stats.BonusHp -= effect.Hp;
-                Target.Stats.BonusMp -= effect.Mp;
-                Target.Stats.BonusHit -= effect.Hit;
-                Target.Stats.BonusDmg -= effect.Dmg;
-                Target.Stats.BonusAc -= effect.Ac;
-                Target.Stats.BonusRegen -= effect.Regen;
-                Target.Stats.BonusMr -= effect.Mr;
-                Target.Stats.BonusDamageModifier = effect.DamageModifier;
-                Target.Stats.BonusHealModifier = effect.HealModifier;
-                Target.Stats.BonusReflectChance -= effect.ReflectChance;
-                Target.Stats.BonusReflectIntensity -= effect.ReflectIntensity;
+                Target.Stats.BonusStr -= (long) Math.Ceiling(effect.Str * Intensity);
+                Target.Stats.BonusInt -= (long) Math.Ceiling(effect.Int * Intensity);
+                Target.Stats.BonusWis -= (long) Math.Ceiling(effect.Wis * Intensity);
+                Target.Stats.BonusCon -= (long) Math.Ceiling(effect.Con * Intensity);
+                Target.Stats.BonusDex -= (long) Math.Ceiling(effect.Dex * Intensity);
+                Target.Stats.BonusHp -= (long) Math.Ceiling(effect.Hp * Intensity);
+                Target.Stats.BonusMp -= (long) Math.Ceiling(effect.Mp * Intensity);
+                Target.Stats.BonusHit -= (long) Math.Ceiling(effect.Hit * Intensity);
+                Target.Stats.BonusDmg -= (long) Math.Ceiling(effect.Dmg * Intensity);
+                Target.Stats.BonusAc -= (long) Math.Ceiling(effect.Ac * Intensity);
+                Target.Stats.BonusRegen -= (long )Math.Ceiling(effect.Regen * Intensity);
+                Target.Stats.BonusMr -= (long)Math.Ceiling(effect.Mr * Intensity);
+                Target.Stats.BonusDamageModifier -= effect.DamageModifier * Intensity;
+                Target.Stats.BonusHealModifier -= effect.HealModifier * Intensity;
+                Target.Stats.BonusReflectChance -= effect.ReflectChance * Intensity;
+                Target.Stats.BonusReflectIntensity -= effect.ReflectIntensity * Intensity;
                 if (effect.OffensiveElement == Target.Stats.OffensiveElementOverride)
                     Target.Stats.OffensiveElementOverride = Xml.Element.None;
                 if (effect.DefensiveElement == Target.Stats.DefensiveElementOverride)
@@ -311,22 +318,22 @@ namespace Hybrasyl
             }
             else
             {
-                Target.Stats.BonusStr += effect.Str;
-                Target.Stats.BonusInt += effect.Int;
-                Target.Stats.BonusWis += effect.Wis;
-                Target.Stats.BonusCon += effect.Con;
-                Target.Stats.BonusDex += effect.Dex;
-                Target.Stats.BonusHp += effect.Hp;
-                Target.Stats.BonusMp += effect.Mp;
-                Target.Stats.BonusHit += effect.Hit;
-                Target.Stats.BonusDmg += effect.Dmg;
-                Target.Stats.BonusAc += effect.Ac;
-                Target.Stats.BonusRegen += effect.Regen;
-                Target.Stats.BonusMr += effect.Mr;
-                Target.Stats.BonusDamageModifier = effect.DamageModifier;
-                Target.Stats.BonusHealModifier = effect.HealModifier;
-                Target.Stats.BonusReflectChance += effect.ReflectChance;
-                Target.Stats.BonusReflectIntensity += effect.ReflectIntensity;
+                Target.Stats.BonusStr += (long) Math.Ceiling(effect.Str * Intensity);
+                Target.Stats.BonusInt += (long) Math.Ceiling(effect.Int * Intensity);
+                Target.Stats.BonusWis += (long) Math.Ceiling(effect.Wis * Intensity);
+                Target.Stats.BonusCon += (long) Math.Ceiling(effect.Con * Intensity);
+                Target.Stats.BonusDex += (long) Math.Ceiling(effect.Dex * Intensity);
+                Target.Stats.BonusHp += (long) Math.Ceiling(effect.Hp * Intensity);
+                Target.Stats.BonusMp += (long) Math.Ceiling(effect.Mp * Intensity);
+                Target.Stats.BonusHit += (long) Math.Ceiling(effect.Hit * Intensity);
+                Target.Stats.BonusDmg += (long) Math.Ceiling(effect.Dmg * Intensity);
+                Target.Stats.BonusAc += (long) Math.Ceiling(effect.Ac * Intensity);
+                Target.Stats.BonusRegen += (long) Math.Ceiling(effect.Regen * Intensity);
+                Target.Stats.BonusMr += (long)Math.Ceiling(effect.Mr * Intensity);
+                Target.Stats.BonusDamageModifier += effect.DamageModifier * Intensity;
+                Target.Stats.BonusHealModifier += effect.HealModifier * Intensity;
+                Target.Stats.BonusReflectChance += effect.ReflectChance * Intensity;
+                Target.Stats.BonusReflectIntensity += effect.ReflectIntensity * Intensity;
                 Target.Stats.OffensiveElementOverride = effect.OffensiveElement;
                 Target.Stats.DefensiveElementOverride = effect.OffensiveElement;
             }
@@ -343,7 +350,6 @@ namespace Hybrasyl
             if (!effect.Damage.IsEmpty)
             {
                 dmg = NumberCruncher.CalculateDamage(castable, effect, Target, source, Name);
-               //      if (dmg.Amount != 0) Target.Damage(dmg.Amount, Element.None, dmg.Type);
             }
             return (heal, dmg);
         }

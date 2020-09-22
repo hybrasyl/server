@@ -609,10 +609,10 @@ namespace Hybrasyl.Objects
             if (!Condition.Comatose) return;
             Condition.Comatose = false;
             var handler = Game.Config.Handlers?.Death;
-            if (handler?.Coma != null && Game.World.WorldData.TryGetValueByIndex(handler.Coma.Value, out Xml.Status status))
+            if (handler?.Coma != null && Game.World.WorldData.TryGetValue(handler.Coma.Value, out Xml.Status status))
                 RemoveStatus(status.Icon);
         }
-
+        
         /// <summary>
         /// Resurrect a player, optionally, instantly returning them to their point of death.
         /// </summary>
@@ -1062,13 +1062,16 @@ namespace Hybrasyl.Objects
 
         }
 
-        public void Save()
+        public void Save(bool serializeStatus = false)
         {
             lock (_serializeLock)
             {
                 var cache = World.DatastoreConnection.GetDatabase();
-                if (Statuses.Count == 0)
-                    Statuses = CurrentStatusInfo;
+                if (serializeStatus)
+                    if (ActiveStatusCount > 0)
+                        Statuses = CurrentStatusInfo.ToList();
+                    else
+                        Statuses.Clear();
                 cache.Set(GetStorageKey(Name), this);
             }
         }
@@ -2612,8 +2615,9 @@ namespace Hybrasyl.Objects
             {
                 Stats.Hp = 1;
                 var handler = Game.Config.Handlers?.Death?.Coma;
-                if (handler?.Value != null && World.WorldData.TryGetValueByIndex(handler.Value, out Xml.Status status))
+                if (handler?.Value != null && World.WorldData.TryGetValue(handler.Value, out Xml.Status status))
                 {
+                    Condition.Comatose = true;
                     ApplyStatus(new CreatureStatus(status, this, null, attacker));
                 }
                 else
@@ -2816,20 +2820,12 @@ namespace Hybrasyl.Objects
         /// <summary>
         /// Update a player's last login time in the database and the live object.
         /// </summary>
-        public void UpdateLoginTime()
-        {
-            Login.LastLogin = DateTime.Now;
-            Save();
-        }
+        public void UpdateLoginTime() => Login.LastLogin = DateTime.Now;
 
         /// <summary>
         /// Update a player's last logoff time in the database and the live object.
         /// </summary>
-        public void UpdateLogoffTime()
-        {
-            Login.LastLogoff = DateTime.Now;
-            Save();
-        }
+        public void UpdateLogoffTime() => Login.LastLogoff = DateTime.Now;
 
         public void SendWorldMap(WorldMap map)
         {
@@ -4962,6 +4958,7 @@ namespace Hybrasyl.Objects
         public void Logoff(bool disconnect = false)
         {
             UpdateLogoffTime();
+            Save(true);
             if (!disconnect)
             {
                 var redirect = new Redirect(Client, Game.World, Game.Login, "socket", Client.EncryptionSeed, Client.EncryptionKey);

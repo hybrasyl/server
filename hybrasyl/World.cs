@@ -1703,6 +1703,7 @@ namespace Hybrasyl
                     cleanup.UpdateLogoffTime();
                     cleanup.Map?.Remove(cleanup);
                     cleanup.Group?.Remove(cleanup);
+                    cleanup.Save(true);
                 }
                 if (cleanup.Condition.Alive)
                     // Remove all other flags
@@ -1730,6 +1731,7 @@ namespace Hybrasyl
             var connectionId = (long)message.Arguments[0];
             if (TryGetActiveUserById(connectionId, out user))
             {
+                if (user.Condition.Comatose || !user.Condition.Alive) return;
                 uint hpRegen = 0;
                 uint mpRegen = 0;
                 double fixedRegenBuff = Math.Min(user.Stats.Regen * 0.0015, 0.15);
@@ -1763,7 +1765,7 @@ namespace Hybrasyl
             if (TryGetActiveUserById(connectionId, out user))
             {
                 GameLog.DebugFormat("Saving user {0}", user.Name);
-                user.Save();
+                user.Save(true);
             }
             else
             {
@@ -2051,11 +2053,15 @@ namespace Hybrasyl
             // Does the player actually have an item in the slot? Does the count in the packet exceed the
             // count in the player's inventory?  Are they trying to drop the item on something that
             // is impassable (i.e. a wall)?
-            if ((user.Inventory[slot] == null) || (count > user.Inventory[slot].Count) ||
+            if (user.Inventory[slot] == null)
+            {
+                GameLog.Error("Drop: Slot {slot} is null", slot);
+            }
+            else if ((count > user.Inventory[slot].Count) ||
                 (user.Map.IsWall[x, y] == true) || !user.Map.IsValidPoint(x, y))
             {
                 GameLog.ErrorFormat(
-                    "Slot {0} is null, or count {1} exceeds count {2}, or {3},{4} is a wall, or {3},{4} is out of bounds",
+                    "Drop: count {1} exceeds count {2}, or {3},{4} is a wall, or {3},{4} is out of bounds",
                     slot, count, user.Inventory[slot].Count, x, y);
                 return;
             }
@@ -2163,7 +2169,7 @@ namespace Hybrasyl
                 }
                 Remove(user);
                 user.SendRedirectAndLogoff(this, Game.Login, user.Name);
-                user.Save();
+                user.Save(true);
                 DeleteUser(user.Name);
 
                 // Remove any active async dialog sessions
@@ -2371,7 +2377,24 @@ namespace Hybrasyl
             }
             else if (target == "@" && user.IsPrivileged)
             {
-                
+                if (Game.Config.Access == null)
+                {
+                    user.SendSystemMessage("No privileged users defined in server config.");
+                    return;
+                }
+                if (Game.Config.Access.AllPrivileged)
+                {
+                    foreach (var u in ActiveUsers)
+                        u.SendMessage($"{{=w[{user.Name}] {message}", MessageTypes.GUILD);
+                }
+                else
+                {
+                    foreach (var name in Game.Config.Access.PrivilegedUsers)
+                    {
+                        if (TryGetActiveUser(name, out User u))
+                            u.SendMessage($"{{=w[{user.Name}] {message}", MessageTypes.GUILD);
+                    }
+                }
             }
             else if (target == "$")
             {
