@@ -1068,10 +1068,12 @@ namespace Hybrasyl.Objects
             {
                 var cache = World.DatastoreConnection.GetDatabase();
                 if (serializeStatus)
+                {
                     if (ActiveStatusCount > 0)
                         Statuses = CurrentStatusInfo.ToList();
                     else
                         Statuses.Clear();
+                }                
                 cache.Set(GetStorageKey(Name), this);
             }
         }
