@@ -2056,6 +2056,7 @@ namespace Hybrasyl
             if (user.Inventory[slot] == null)
             {
                 GameLog.Error("Drop: Slot {slot} is null", slot);
+                return;
             }
             else if ((count > user.Inventory[slot].Count) ||
                 (user.Map.IsWall[x, y] == true) || !user.Map.IsValidPoint(x, y))
