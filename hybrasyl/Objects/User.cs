@@ -567,11 +567,10 @@ namespace Hybrasyl.Objects
                 {
                     uint hpPenalty;
 
-                    if (handler.Penalty.Xp.Contains('.'))
-                        hpPenalty = (uint)Math.Ceiling(Stats.Experience * Convert.ToDouble(handler.Penalty.Hp));
+                    if (handler.Penalty.Hp.Contains('.'))
+                        hpPenalty = (uint)Math.Ceiling(Stats.BaseHp * Convert.ToDouble(handler.Penalty.Hp));
                     else
                         hpPenalty = Convert.ToUInt32(handler.Penalty.Hp);
-
                     Stats.BaseHp -= hpPenalty;
                     SendSystemMessage($"You lose {hpPenalty} HP!");
                 }
@@ -872,7 +871,7 @@ namespace Hybrasyl.Objects
                 if (levelsGained > 0)
                 {
                     Client.SendMessage("A rush of insight fills you!", MessageTypes.SYSTEM);
-                    Effect(50, 250);
+                    Effect(50, 100);
                     UpdateAttributes(StatUpdateFlags.Full);
                 }
             }
@@ -1248,12 +1247,21 @@ namespace Hybrasyl.Objects
 
         internal void UseSkill(byte slot)
         {
+            if(!Map.AllowCasting)
+            {
+                if (!IsPrivileged)
+                {
+                    SendSystemMessage("You can't use that here.");
+                    return;
+                }
+            }
             var bookSlot = SkillBook[slot];
             if (bookSlot.OnCooldown)
             {
                 SendSystemMessage("You must wait longer to use that.");
                 return;
             }
+
             if (UseCastable(bookSlot.Castable))
             {
                 if(bookSlot.UseCount != uint.MaxValue)
@@ -1273,6 +1281,15 @@ namespace Hybrasyl.Objects
 
         internal void UseSpell(byte slot, uint target = 0)
         {
+            if (!Map.AllowCasting)
+            {
+                if (!IsPrivileged)
+                {
+                    SendSystemMessage("You can't cast that here.");
+                    return;
+                }
+            }
+
             var bookSlot = SpellBook[slot];
             Creature targetCreature = Map.EntityTree.OfType<Creature>().SingleOrDefault(x => x.Id == target) ?? null;
 
@@ -1876,23 +1893,43 @@ namespace Hybrasyl.Objects
         /// Returns all the objects that are directly facing the user.
         /// </summary>
         /// <returns>A list of visible objects.</returns>
-        public List<VisibleObject> GetFacingObjects()
+        public List<VisibleObject> GetFacingObjects(int distance = 1)
         {
-            List<VisibleObject> contents;
+            List<VisibleObject> contents = new List<VisibleObject>();
 
             switch (Direction)
             {
                 case Xml.Direction.North:
-                    contents = Map.GetTileContents(X, Y - 1);
+                    {
+                        for (var i = 1; i <= distance; i++)
+                        {
+                            contents.AddRange(Map.GetTileContents(X, Y - i));
+                        }
+                    }
                     break;
                 case Xml.Direction.South:
-                    contents = Map.GetTileContents(X, Y + 1);
+                    {
+                        for (var i = 1; i <= distance; i++)
+                        {
+                            contents.AddRange(Map.GetTileContents(X, Y + i));
+                        }
+                    }
                     break;
                 case Xml.Direction.West:
-                    contents = Map.GetTileContents(X - 1, Y);
+                    {
+                        for (var i = 1; i <= distance; i++)
+                        {
+                            contents.AddRange(Map.GetTileContents(X - i, Y));
+                        }
+                    }
                     break;
                 case Xml.Direction.East:
-                    contents = Map.GetTileContents(X + 1, Y);
+                    {
+                        for (var i = 1; i <= distance; i++)
+                        {
+                            contents.AddRange(Map.GetTileContents(X + i, Y));
+                        }
+                    }
                     break;
                 default:
                     contents = new List<VisibleObject>();
@@ -2195,6 +2232,7 @@ namespace Hybrasyl.Objects
 
         public bool AddItem(ItemObject itemObject, bool updateWeight = true)
         {
+            Game.World.Insert(itemObject);
             if (Inventory.IsFull)
             {
                 SendSystemMessage("You cannot carry any more items.");
@@ -2235,7 +2273,7 @@ namespace Hybrasyl.Objects
                 inventoryItem.Count += itemObject.Count;
                 itemObject.Count = 0;
                 SendItemUpdate(inventoryItem, Inventory.SlotByName(inventoryItem.Name).First());
-                World.Remove(itemObject);
+                Game.World.Remove(itemObject);
                 return true;
             }
 
@@ -2508,6 +2546,7 @@ namespace Hybrasyl.Objects
 
         public void SwapItem(byte oldSlot, byte newSlot)
         {
+            if (oldSlot == newSlot) return;
             var oldSlotItem = Inventory[oldSlot];
             var newSlotItem = Inventory[newSlot];
 
@@ -4024,10 +4063,17 @@ namespace Hybrasyl.Objects
             options.Options = new List<MerchantDialogOption>();
             //verify user has required items.
             var parcelFee = (uint)Math.Round((itemObj.Value * .10) * quantity, 0);
-            if (!(Gold > parcelFee))
+            if (!World.TryGetUser(recipient, out var _))
             {
-                parcelString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel_fail");
-                prompt = parcelString.Value.Replace("$FEE", parcelFee.ToString());
+                prompt = "I'm sorry, I don't know of anyone by that name.";
+            }
+            if (prompt == string.Empty)
+            {
+                if (!(Gold > parcelFee))
+                {
+                    parcelString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel_fail");
+                    prompt = parcelString.Value.Replace("$FEE", parcelFee.ToString());
+                }
             }
             if (prompt == string.Empty)
             {
@@ -4267,7 +4313,7 @@ namespace Hybrasyl.Objects
         {
             var item = Inventory[slot];
             PendingDepositSlot = slot;
-            if (item.Stackable)
+            if (item.Stackable && item.Count > 0)
             {
                 var prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item_quantity").Value.Replace("$QUANTITY", item.Count.ToString()).Replace("$ITEM", item.Name);
                 var input = new MerchantInput();
@@ -4527,7 +4573,7 @@ namespace Hybrasyl.Objects
                 Inventory[PendingRepairSlot].Durability = Inventory[PendingRepairSlot].MaximumDurability;
                 PendingRepairSlot = 0;
                 PendingRepairCost = 0;
-                DisplayPursuits(this);
+                merchant.DisplayPursuits(this);
             }
         }
 
@@ -4985,7 +5031,7 @@ namespace Hybrasyl.Objects
                 ItemSlot = slot,
                 ItemSprite = toAdd.Sprite,
                 ItemColor = toAdd.Color,
-                ItemName = toAdd.Stackable && toAdd.Count > 1 ? $"{toAdd.Name} ({toAdd.Count}" : toAdd.Name
+                ItemName = toAdd.Stackable && toAdd.Count > 1 ? $"{toAdd.Name} [{toAdd.Count}]" : toAdd.Name
             };
             Enqueue(update.Packet());
         }

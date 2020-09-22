@@ -143,7 +143,7 @@ namespace Hybrasyl.Objects
             {
                 if ((Template?.Properties?.Equipment?.Slot ?? Xml.EquipmentSlot.None) != Xml.EquipmentSlot.None)
                     return ItemObjectType.Equipment;
-                else if (Template.Properties.Flags.HasFlag(Xml.ItemFlags.Consumable))
+                else if (Template.Properties.Flags.HasFlag(Xml.ItemFlags.Consumable) || Template.Use != null)
                     return ItemObjectType.CanUse;
                 return ItemObjectType.CannotUse;
             }
@@ -244,6 +244,11 @@ namespace Hybrasyl.Objects
 
         public void Invoke(User trigger)
         {
+            if (Stackable && Count <= 0)
+            {
+                trigger.RemoveItem(Name);
+                return;
+            }
             // Run through all the different potential uses. We allow combinations of any
             // use specified in the item XML.
             GameLog.InfoFormat($"User {trigger.Name}: used item {Name}");

@@ -25,6 +25,8 @@ using Hybrasyl.Objects;
 using Serilog;
 using MoonSharp.Interpreter;
 using Hybrasyl.Dialogs;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Hybrasyl.Scripting
 {
@@ -48,6 +50,8 @@ namespace Hybrasyl.Scripting
                 else if (Obj is Reactor) return "reactor";
                 else if (Obj is ItemObject) return "item";
                 else if (Obj is Monster) return "monster";
+                else if (Obj is User) return "user";
+                else if (Obj is Gold) return "gold";
                 return "idk";
             }
         }
@@ -374,6 +378,43 @@ namespace Hybrasyl.Scripting
             }
             else
                 GameLog.ScriptingError("ShowTo: only monsters can use this currently, ignoring");
+        }
+
+        /// <summary>
+        /// Gets the objects facing direction.
+        /// </summary>
+        /// <returns>Returns the direction for all world objects, if a form of creature (merchant, monster, user) returns direction, all others return north.</returns>
+        public Xml.Direction GetFacingDirection()
+        {
+            if (Obj is Creature creature)
+            {
+                return creature.Direction;
+            }
+            else
+                return Xml.Direction.North;
+        }
+
+        /// <summary>
+        /// Checks the specified X/Y point is free of creatures and is not a wall, if the object is a creature base type.
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <returns>true/false</returns>
+        public bool IsFreePoint(int x, int y)
+        {
+            if (Obj is Creature creature)
+            {
+                if (!creature.Map.IsWall[x, y])
+                {
+                    if (!creature.Map.GetTileContents(x, y).Any(o => o is Creature))
+                    {
+                        return true;
+                    }
+                    else return false;
+                }
+                else return false;
+            }
+            else return false;
         }
     }
 }
