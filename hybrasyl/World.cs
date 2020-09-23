@@ -2198,10 +2198,9 @@ namespace Hybrasyl
                         {
                             if (entity is User usr)
                             {
-                                GameLog.InfoFormat("Showing missing object {0} with ID {1} to {2}", mob.Name, mob.Id, entity.Name);
+                                //GameLog.InfoFormat("Showing missing object {0} with ID {1} to {2}", mob.Name, mob.Id, entity.Name);
                                 usr.AoiEntry(mob);
                                 mob.AoiEntry(usr);
-                                //usr.SendRefresh();
                             }
                         }
                     }

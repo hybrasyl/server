@@ -1562,6 +1562,11 @@ namespace Hybrasyl.Objects
             equipPacket.WriteUInt32(itemObject.DisplayDurability);
             equipPacket.DumpPacket();
             Enqueue(equipPacket);
+            if (itemObject.EquipmentSlot == (byte)Xml.EquipmentSlot.Weapon)
+                SendSystemMessage($"Equipped {itemObject.SlotName}: {itemObject.Name}");
+            else
+                SendSystemMessage($"Equipped {itemObject.SlotName}: {itemObject.Name} (AC {Stats.Ac} MR {Stats.Mr} Regen {Stats.Regen})");
+
         }
 
         /// <summary>
@@ -2497,10 +2502,10 @@ namespace Hybrasyl.Objects
                 return false;
             }
             
-            SendEquipItem(itemObject, slot);
-            Client.SendMessage(string.Format("Equipped {0}", itemObject.Name), 3);
             ApplyBonuses(itemObject);
             UpdateAttributes(StatUpdateFlags.Stats);
+            SendEquipItem(itemObject, slot);
+
             if (sendUpdate) Show();
             // TODO: target this recalculation, this is a mildly expensive operation
             if (itemObject.CastModifiers != null)
