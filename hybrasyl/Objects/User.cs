@@ -2748,11 +2748,50 @@ namespace Hybrasyl.Objects
                     //UseCastable(c, target);
                 }
             }
+            var motionId = (byte)1;
             //animation handled here as to not repeatedly send assails.
-            var firstAssail = SkillBook.FirstOrDefault(x => x.Castable.IsAssail);
-            var motion = firstAssail?.Castable?.Effects.Animations.OnCast.Player.FirstOrDefault(y => y.Class.Contains(Class));
+            if(Class == Xml.Class.Warrior)
+            {
+                if(SkillBook.Any(b => b.Castable.Name == "Wield Two-Handed Weapon"))
+                {
+                    if (Equipment.Weapon != null && Equipment.Armor != null)
+                    {
+                        if (Equipment.Armor.Class == Xml.Class.Warrior)
+                        {
+                            if (Equipment.Weapon != null)
+                            {
+                                if (Equipment.Weapon.WeaponType == WeaponType.TwoHand)
+                                {
+                                    motionId = 129;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if(Class == Xml.Class.Monk)
+            {
+                if(Equipment.Armor != null) 
+                {
+                    if(Equipment.Armor.Class == Xml.Class.Monk)
+                    {
+                        motionId = 132;
+                        if(Equipment.Weapon != null)
+                        {
+                            if (Equipment.Weapon.WeaponType == WeaponType.OneHand || Equipment.Weapon.WeaponType == WeaponType.Dagger || Equipment.Weapon.WeaponType == WeaponType.Staff)
+                            {
+                                motionId = 1;
+                            }
+                        }
+                    }
+                }
+                if(Equipment.Shield != null)
+                {
+                    motionId = 1;
+                }
+            }
 
-            var motionId = motion != null ? (byte)motion.Id : (byte)1;
+            var firstAssail = SkillBook.FirstOrDefault(x => x.Castable.IsAssail);
             var assail = new ServerPacketStructures.PlayerAnimation() { Animation = motionId, Speed = 20, UserId = this.Id };
             var soundId = firstAssail != null ? firstAssail.Castable.Effects.Sound.Id : (byte)1;
             Enqueue(assail.Packet());
