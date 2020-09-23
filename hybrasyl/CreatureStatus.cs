@@ -156,7 +156,7 @@ namespace Hybrasyl
         public double Duration { get; }
         public string UseCastRestrictions => XmlStatus.CastRestriction?.Use ?? string.Empty;
         public string ReceiveCastRestrictions => XmlStatus.CastRestriction?.Receive ?? string.Empty;
-        public double Intensity { get; } = 1;
+        public double Intensity { get; set; } = 1;
 
         public StatusInfo Info => new StatusInfo() { Name = Name, OnStartEffect = OnStartEffect, 
             OnRemoveEffect = OnRemoveEffect, OnTickEffect = OnTickEffect, OnExpireEffect = OnExpireEffect, 
