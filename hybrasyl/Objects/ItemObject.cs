@@ -277,8 +277,12 @@ namespace Hybrasyl.Objects
                     trigger.AddGold(new Gold((uint)Use.PlayerEffect.Gold));
                 if (Use.PlayerEffect.Hp > 0)
                     trigger.Heal(Use.PlayerEffect.Hp);
+                else
+                    trigger.Damage(Math.Abs(Use.PlayerEffect.Hp));
                 if (Use.PlayerEffect.Mp > 0)
                     trigger.RegenerateMp(Use.PlayerEffect.Mp);
+                else
+                    trigger.Stats.Mp += (uint) Use.PlayerEffect.Mp;
                 if (Use.PlayerEffect.Xp > 0)
                     trigger.GiveExperience((uint)Use.PlayerEffect.Xp);
                 trigger.UpdateAttributes(StatUpdateFlags.Current|StatUpdateFlags.Experience);

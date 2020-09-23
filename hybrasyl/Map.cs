@@ -41,12 +41,12 @@ namespace Hybrasyl
             {
                 unchecked
                 {
-                    return 31*Name.GetHashCode()*X*Y;
+                    return Name.GetHashCode() + X + Y + Parent.GetHashCode();
                 }
             }
         }
 
-        public WorldMap Parent { get; set; }
+        public string Parent { get; set; }
         public int X { get; set; }
         public int Y { get; set; }
         public string Name { get; set; }
@@ -111,8 +111,8 @@ namespace Hybrasyl
                     DestinationMap = point.Target.Value,
                     DestinationX = point.Target.X,
                     DestinationY = point.Target.Y,
-                    Name = point.Name
-
+                    Name = point.Name,
+                    Parent = this.Name
                 };
                 // We don't implement world map point restrictions yet, so we're done here
                 Points.Add(mapPoint);

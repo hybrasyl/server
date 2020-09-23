@@ -603,13 +603,19 @@ namespace Hybrasyl.Xml
         private List<string> _privilegedUsers = new List<String>();
         private List<string> _reservedNames = new List<String>();
 
+        public bool AllPrivileged { get; set; } = false;
+
         public List<string> PrivilegedUsers
         {
             get
             {
                 if (!string.IsNullOrEmpty(Privileged) && _privilegedUsers.Count == 0)
-                  foreach (var p in Privileged.Trim().Split(' '))
-                    _privilegedUsers.Add(p.Trim().ToLower());
+                    foreach (var p in Privileged.Trim().Split(' '))
+                    {
+                        _privilegedUsers.Add(p.Trim().ToLower());
+                        if (p.Trim().ToLower() == "*")
+                            AllPrivileged = true;
+                    }
                 return _privilegedUsers;
             }
         }
