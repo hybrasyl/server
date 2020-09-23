@@ -71,7 +71,7 @@ namespace Hybrasyl.Objects
 
             if (userobj.Equipment.Weight + Weight > userobj.MaximumWeight/2)
             {
-                message = "You can't even lift it above your head, let alone wield it!";
+                message = "With all your other equipment on, you can barely lift this.";
                 return false;
             }
 
