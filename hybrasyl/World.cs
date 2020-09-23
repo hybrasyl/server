@@ -1927,17 +1927,29 @@ namespace Hybrasyl
             var tile = new Rectangle(x, y, 1, 1);
 
             // We don't want to pick up people
-            var pickupObject = user.Map.EntityTree.GetObjects(tile).FindLast(i => i is Gold || i is ItemObject);
+            var pickupList = user.Map.EntityTree.GetObjects(tile).Where(i => i is Gold || i is ItemObject);
 
-            if (pickupObject == null) return;
+            if (pickupList.Count() == 0) return;
 
-            string error;
-            if (!pickupObject.CanBeLooted(user.Name, out error))
+            VisibleObject pickupObject = null;
+            string error = string.Empty;
+
+            foreach (var po in pickupList)
             {
-                user.SendSystemMessage(error);
-                return;
+                if (po.CanBeLooted(user.Name, out error))
+                {
+                    pickupObject = po;
+                    break;
+                }
             }
 
+            if (pickupObject == null)
+            {
+                if (!string.IsNullOrEmpty(error))
+                    user.SendSystemMessage(error);
+                return;
+            }
+            
             // Are we picking up an item from a reactor tile? 
             // If so, we remove the item from the map and pass it onto the reactor
             // for handling. Note that if the reactor does something stupid, the
@@ -1960,15 +1972,26 @@ namespace Hybrasyl
             }
 
             // If the add is successful, remove the item from the map quadtree
-            if (pickupObject is Gold)
+            if (pickupObject is Gold gold)
             {
-                var gold = (Gold)pickupObject;
-                if (user.AddGold(gold))
+                var pickupAmount = Constants.MAXIMUM_GOLD - user.Gold;
+                if (gold.Amount > pickupAmount && pickupAmount > 0)
                 {
-                    GameLog.DebugFormat("Removing {0}, qty {1} from {2}@{3},{4}",
-                        gold.Name, gold.Amount, user.Map.Name, x, y);
-                    user.Map.RemoveGold(gold);
+                    gold.Amount -= pickupAmount;
+                    user.AddGold(pickupAmount);
+                    user.SendSystemMessage("You take as much gold as you can carry from the massive pile.");
+                    user.ShowTo(gold);
                 }
+                else
+                {
+                    if (user.AddGold(gold))
+                    {
+                        GameLog.DebugFormat("Removing {0}, qty {1} from {2}@{3},{4}",
+                            gold.Name, gold.Amount, user.Map.Name, x, y);
+                        user.Map.RemoveGold(gold);
+                    }
+                }
+            
             }
             else if (pickupObject is ItemObject)
             {
