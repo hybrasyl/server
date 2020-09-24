@@ -1979,7 +1979,7 @@ namespace Hybrasyl
                 {
                     gold.Amount -= pickupAmount;
                     user.AddGold(pickupAmount);
-                    user.SendSystemMessage("You take as much gold as you can carry from the massive pile.");
+                    user.SendSystemMessage("You take as much gold as you can possibly carry.");
                     user.ShowTo(gold);
                 }
                 else
@@ -2273,6 +2273,15 @@ namespace Hybrasyl
 
             // Clear conditions and dialog states
             loginUser.Condition.Casting = false;
+
+            // Ensure settings exist
+
+            foreach (var x in new List<byte>() { 1, 2, 3, 4, 5, 6, 7, 8 })
+            {
+                if (!loginUser.ClientSettings.ContainsKey(x))
+                    loginUser.ClientSettings[x] = Game.Config.SettingsNumberIndex[x].Default;
+            }
+
 
             Insert(loginUser);
             GameLog.DebugFormat("Adding {0} to hash", loginUser.Name);
