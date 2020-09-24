@@ -62,13 +62,14 @@ namespace Hybrasyl
                             if (nextAction > 1)
                             {
                                 //pathfind, only if not paralyzed
-                                if (!monster.Condition.Paralyzed)
+                                if (!monster.Condition.Paralyzed && !monster.Condition.Blinded)
                                     monster.PathFind((monster.Location.X, monster.Location.Y), (monster.ThreatInfo.ThreatTarget.Location.X, monster.ThreatInfo.ThreatTarget.Location.Y));
                             }
                             else
                             {
                                 //cast
-                                monster.Cast(monster.ThreatInfo.ThreatTarget, targetGroup);
+                                if (!monster.Condition.Blinded)
+                                    monster.Cast(monster.ThreatInfo.ThreatTarget, targetGroup);
                             }
                         }
                         else
@@ -85,7 +86,8 @@ namespace Hybrasyl
                             }
                             else
                             {
-                                monster.Cast(monster.ThreatInfo.ThreatTarget, targetGroup);
+                                if (!monster.Condition.Blinded)
+                                    monster.Cast(monster.ThreatInfo.ThreatTarget, targetGroup);
                             }
                         }
                     }
