@@ -3228,7 +3228,7 @@ namespace Hybrasyl.Objects
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
             //verify user has required items.
-            if (!(Gold > classReq.Gold))
+            if (!(Gold >= classReq.Gold))
             {
                 learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_gold");
                 prompt = learnString.Value;
@@ -3499,7 +3499,7 @@ namespace Hybrasyl.Objects
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
             //verify user has required items.
-            if (!(Gold > classReq.Gold))
+            if (!(Gold >= classReq.Gold))
             {
                 learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_gold");
                 prompt = learnString.Value;
