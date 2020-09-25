@@ -55,7 +55,7 @@ namespace Hybrasyl
             for (byte i = 0; i < book.Size; i++)
             {
                 dynamic itemInfo = new JObject();
-                if (book[i] == null) continue;
+                if (book[i] == null || book[i].Castable == null) continue;
                 itemInfo.Name = book[i].Castable.Name.ToLower();
                 itemInfo.LastCast = book[i].LastCast;
                 itemInfo.TotalUses = book[i].UseCount;
@@ -184,7 +184,8 @@ namespace Hybrasyl
 
         private void _AddToIndex(BookSlot item)
         {
-            _itemIndex[item.Castable.Id] = item;
+            if (item.Castable != null)
+                _itemIndex[item.Castable.Id] = item;
         }
 
         private void _RemoveFromIndex(BookSlot item)
