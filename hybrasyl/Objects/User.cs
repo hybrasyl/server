@@ -2754,34 +2754,23 @@ namespace Hybrasyl.Objects
             {
                 if(SkillBook.Any(b => b.Castable.Name == "Wield Two-Handed Weapon"))
                 {
-                    if (Equipment.Weapon != null && Equipment.Armor != null)
+                    if (Equipment.Weapon?.WeaponType == WeaponType.TwoHand && Equipment.Armor?.Class == Xml.Class.Warrior)
                     {
-                        if (Equipment.Armor.Class == Xml.Class.Warrior)
-                        {
-                            if (Equipment.Weapon != null)
-                            {
-                                if (Equipment.Weapon.WeaponType == WeaponType.TwoHand)
-                                {
-                                    motionId = 129;
-                                }
-                            }
-                        }
+
+                        motionId = 129;
                     }
                 }
             }
             if(Class == Xml.Class.Monk)
             {
-                if(Equipment.Armor != null) 
+                if (Equipment.Armor?.Class == Xml.Class.Monk)
                 {
-                    if(Equipment.Armor.Class == Xml.Class.Monk)
+                    motionId = 132;
+                    if (Equipment.Weapon != null)
                     {
-                        motionId = 132;
-                        if(Equipment.Weapon != null)
+                        if (Equipment.Weapon?.WeaponType == WeaponType.OneHand || Equipment.Weapon?.WeaponType == WeaponType.Dagger || Equipment.Weapon?.WeaponType == WeaponType.Staff)
                         {
-                            if (Equipment.Weapon.WeaponType == WeaponType.OneHand || Equipment.Weapon.WeaponType == WeaponType.Dagger || Equipment.Weapon.WeaponType == WeaponType.Staff)
-                            {
-                                motionId = 1;
-                            }
+                            motionId = 1;
                         }
                     }
                 }
