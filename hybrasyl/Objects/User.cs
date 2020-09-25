@@ -1250,7 +1250,7 @@ namespace Hybrasyl.Objects
             Enqueue(x07);
         }
 
-        internal void UseSkill(byte slot)
+        internal void UseSkill(byte slot, bool AssailAttack = false)
         {
             if(!Map.AllowCasting)
             {
@@ -1267,7 +1267,7 @@ namespace Hybrasyl.Objects
                 return;
             }
 
-            if (UseCastable(bookSlot.Castable))
+            if (UseCastable(bookSlot.Castable, null, null, true))
             {
                 if(bookSlot.UseCount != uint.MaxValue)
                     bookSlot.UseCount += 1;
@@ -2715,7 +2715,7 @@ namespace Hybrasyl.Objects
         }
 
 
-        public override bool UseCastable(Xml.Castable castObject, Creature target = null, SpawnCastable spawnCastable = null)
+        public override bool UseCastable(Xml.Castable castObject, Creature target = null, SpawnCastable spawnCastable = null, bool assailAttack = false)
         {
             if(castObject.Intents[0].UseType == SpellUseType.Prompt)
             {
@@ -2739,8 +2739,12 @@ namespace Hybrasyl.Objects
             if (base.UseCastable(castObject, target))
             {
                 // This may need to occur elsewhere, depends on how it looks in game
-                if (castObject.TryGetMotion(Class, out Xml.CastableMotion motion))
-                    SendMotion(Id, motion.Id, motion.Speed);
+                if (!assailAttack)
+                {
+                    if (castObject.TryGetMotion(Class, out Xml.CastableMotion motion))
+                        SendMotion(Id, motion.Id, motion.Speed);
+                    
+                }
                 return true;
             }
             return false;
@@ -2755,7 +2759,7 @@ namespace Hybrasyl.Objects
             {
                 if (target != null && target.GetType() != typeof(Merchant))
                 {
-                    UseSkill(SkillBook.SlotOf(c.Castable.Name));
+                    UseSkill(SkillBook.SlotOf(c.Castable.Name), true);
                     //UseCastable(c, target);
                 }
             }
