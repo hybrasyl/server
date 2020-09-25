@@ -71,7 +71,7 @@ namespace Hybrasyl.Objects
 
             if (userobj.Equipment.Weight + Weight > userobj.MaximumWeight/2)
             {
-                message = "You can't even lift it above your head, let alone wield it!";
+                message = "With all your other equipment on, you can barely lift this.";
                 return false;
             }
 
@@ -136,7 +136,7 @@ namespace Hybrasyl.Objects
         public Xml.Use Use => Template.Properties.Use;
 
         public ushort EquipSprite => Template.Properties.Appearance.EquipSprite == 0 ? Template.Properties.Appearance.Sprite : Template.Properties.Appearance.EquipSprite;
-           
+
         public ItemObjectType ItemObjectType
         {
             get
@@ -151,6 +151,7 @@ namespace Hybrasyl.Objects
 
         public Xml.WeaponType WeaponType => Template.Properties.Equipment.WeaponType;
         public byte EquipmentSlot => Convert.ToByte(Template.Properties.Equipment.Slot);
+        public string SlotName => Enum.GetName(typeof(Xml.EquipmentSlot), EquipmentSlot) ?? "None";
         public int Weight => Template.Properties.Physical.Weight;
         public int MaximumStack => Template.MaximumStack;
         public bool Stackable => Template.Stackable;

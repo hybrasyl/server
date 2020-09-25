@@ -1562,6 +1562,11 @@ namespace Hybrasyl.Objects
             equipPacket.WriteUInt32(itemObject.DisplayDurability);
             equipPacket.DumpPacket();
             Enqueue(equipPacket);
+            if (itemObject.EquipmentSlot == (byte)Xml.EquipmentSlot.Weapon)
+                SendSystemMessage($"Equipped {itemObject.SlotName}: {itemObject.Name}");
+            else
+                SendSystemMessage($"Equipped {itemObject.SlotName}: {itemObject.Name} (AC {Stats.Ac} MR {Stats.Mr} Regen {Stats.Regen})");
+
         }
 
         /// <summary>
@@ -2497,10 +2502,10 @@ namespace Hybrasyl.Objects
                 return false;
             }
             
-            SendEquipItem(itemObject, slot);
-            Client.SendMessage(string.Format("Equipped {0}", itemObject.Name), 3);
             ApplyBonuses(itemObject);
             UpdateAttributes(StatUpdateFlags.Stats);
+            SendEquipItem(itemObject, slot);
+
             if (sendUpdate) Show();
             // TODO: target this recalculation, this is a mildly expensive operation
             if (itemObject.CastModifiers != null)
@@ -3223,7 +3228,7 @@ namespace Hybrasyl.Objects
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
             //verify user has required items.
-            if (!(Gold > classReq.Gold))
+            if (!(Gold >= classReq.Gold))
             {
                 learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_gold");
                 prompt = learnString.Value;
@@ -3494,7 +3499,7 @@ namespace Hybrasyl.Objects
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
             //verify user has required items.
-            if (!(Gold > classReq.Gold))
+            if (!(Gold >= classReq.Gold))
             {
                 learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_gold");
                 prompt = learnString.Value;

@@ -20,8 +20,10 @@ namespace Hybrasyl
             var monster = (Monster)message.Arguments[0];
             var map = (Map)message.Arguments[1];
 
-            // Don't handle control messages for dead/removed mobs
-            if (!monster.Condition.Alive || monster.DeathProcessed || monster.Id == 0 || monster.Map == null) return;
+            // Don't handle control messages for dead/removed mobs, or mobs that cannot move or attack
+            if (!monster.Condition.Alive || monster.DeathProcessed || 
+                monster.Id == 0 || monster.Map == null || 
+                monster.Condition.Asleep || monster.Condition.Frozen) return;
             if (monster.IsHostile)
             {
                 if (map.Users.Count > 0)
@@ -59,19 +61,20 @@ namespace Hybrasyl
 
                             if (nextAction > 1)
                             {
-                                //pathfind;
-                                monster.PathFind((monster.Location.X, monster.Location.Y), (monster.ThreatInfo.ThreatTarget.Location.X, monster.ThreatInfo.ThreatTarget.Location.Y));
+                                //pathfind, only if not paralyzed
+                                if (!monster.Condition.Paralyzed && !monster.Condition.Blinded)
+                                    monster.PathFind((monster.Location.X, monster.Location.Y), (monster.ThreatInfo.ThreatTarget.Location.X, monster.ThreatInfo.ThreatTarget.Location.Y));
                             }
                             else
                             {
                                 //cast
-                                monster.Cast(monster.ThreatInfo.ThreatTarget, targetGroup);
+                                if (!monster.Condition.Blinded)
+                                    monster.Cast(monster.ThreatInfo.ThreatTarget, targetGroup);
                             }
                         }
                         else
                         {
                             //check facing and attack or cast
-
                             var nextAction = _random.Next(1, 6);
                             if (nextAction > 1)
                             {
@@ -83,7 +86,8 @@ namespace Hybrasyl
                             }
                             else
                             {
-                                monster.Cast(monster.ThreatInfo.ThreatTarget, targetGroup);
+                                if (!monster.Condition.Blinded)
+                                    monster.Cast(monster.ThreatInfo.ThreatTarget, targetGroup);
                             }
                         }
                     }
