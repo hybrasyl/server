@@ -1250,7 +1250,7 @@ namespace Hybrasyl.Objects
             Enqueue(x07);
         }
 
-        internal void UseSkill(byte slot, bool AssailAttack = false)
+        internal void UseSkill(byte slot, bool assailAttack = false)
         {
             if(!Map.AllowCasting)
             {
@@ -1267,7 +1267,7 @@ namespace Hybrasyl.Objects
                 return;
             }
 
-            if (UseCastable(bookSlot.Castable, null, null, true))
+            if (UseCastable(bookSlot.Castable, null, null, assailAttack))
             {
                 if(bookSlot.UseCount != uint.MaxValue)
                     bookSlot.UseCount += 1;
