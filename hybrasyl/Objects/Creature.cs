@@ -480,7 +480,7 @@ namespace Hybrasyl.Objects
 
         #endregion
 
-        public virtual bool UseCastable(Xml.Castable castObject, Creature target = null, Xml.SpawnCastable spawnCastable = null)
+        public virtual bool UseCastable(Xml.Castable castObject, Creature target = null, Xml.SpawnCastable spawnCastable = null, bool assailAttack = false)
         {
             if (!Condition.CastingAllowed) return false;
             
