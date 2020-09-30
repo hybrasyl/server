@@ -169,6 +169,7 @@ namespace Hybrasyl
 
         public static bool TryGetUser(string name, out User userobj)
         {
+            userobj = null;
             try
             {
                 userobj = DatastoreConnection.GetDatabase().Get<User>(User.GetStorageKey(name));
@@ -177,9 +178,30 @@ namespace Hybrasyl
             catch (Exception e)
             {
                 GameLog.Fatal("{name}: DESERIALIZATION ERROR, bug or corrupt user data: {e}", name, e);
-                userobj = null;
                 return false;
             }
+        }
+
+        public bool TryGetAuthInfo(string name, out AuthInfo info)
+        {
+            info = null;
+            try
+            {
+                if (WorldData.TryGetValue(name, out UuidReference reference))
+                {
+                    if (!string.IsNullOrEmpty(reference.UserUuid) &&
+                            WorldData.TryGetValue(reference.UserUuid, out AuthInfo foundinfo))
+                    {
+                        info = foundinfo;
+                        return true;
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                GameLog.Fatal("{name}: AuthInfo retrieval error: {e}", name, e);
+            }
+            return false;
 
         }
 
@@ -244,8 +266,54 @@ namespace Hybrasyl
                 Game.LevelSwitch.MinimumLevel = Serilog.Events.LogEventLevel.Information;
             return DebugEnabled;
         }
+
+        /// <summary>
+        /// Check to see if Redis migrations are run for the current data set.
+        /// </summary>
+        public static bool CheckDataMigrations()
+        {
+            GameLog.InfoFormat($"Checking Redis for current migration status");
+            var migrations = DatastoreConnection.GetDatabase().Get<RedisMigrations>("Hybrasyl.RedisMigrations");
+            if (migrations == null)
+            {
+                GameLog.Error("Migration store not found; assuming migrations have never been run");
+                return false;
+            }
+            var assembly = Assembly.GetExecutingAssembly();
+            RedisActiveMigrations Active;
+            try
+            {
+                var serializer = new JsonSerializer();               
+                using var sr = new StreamReader(assembly.GetManifestResourceStream("Hybrasyl.RedisMigrations.active.json"));
+                using var jtr = new JsonTextReader(sr);
+                Active = serializer.Deserialize<RedisActiveMigrations>(jtr);               
+            }
+            catch (Exception e)
+            {
+                GameLog.Error("Redis migrations could not be evaluated, an error occurred: {e} - Redis data may be in an inconsistent state!", e);
+                return false;
+            }
+            foreach (var migration in Active.ActiveMigrations)
+            {
+                if (!migrations.Migrations.Contains(migration))
+                {
+                    GameLog.Error("Redis migration {migration}: not applied. Please apply before starting the server.", migration);
+                    return false;
+                }
+                else
+                    GameLog.Info("Redis migration {migration}: applied", migration);
+            }
+            return true;
+        }
+
         public bool InitWorld()
         {
+            if (!CheckDataMigrations())
+            {
+                GameLog.Fatal("Migrations in inconsistent or unapplied state. Hybrasyl has halted.");
+                GameLog.Fatal("Please apply migrations by running run_migrations.sh.");
+                return false;
+            }
             CompileScripts(); // We compile scripts first so that all future operations requiring scripts work
             if (!LoadData())
             {
@@ -727,6 +795,15 @@ namespace Hybrasyl
                 var parcels = DatastoreConnection.GetDatabase().Get<ParcelStore>(key);
                 WorldData.Set(parcels.OwnerUuid, parcels);
             }
+
+            //Load AuthInfo structures
+            foreach (var key in server.Keys(pattern: "Hybrasyl.AuthInfo*"))
+            {
+                GameLog.InfoFormat($"Loading authinfo with key {key}");
+                var authinfo = DatastoreConnection.GetDatabase().Get<AuthInfo>(key);
+                WorldData.Set(authinfo.UserUuid, authinfo);
+            }
+
             // Load all boards
             foreach (var key in server.Keys(pattern: "Hybrasyl.Board*"))
             {
@@ -761,11 +838,12 @@ namespace Hybrasyl
                     continue;
                 }
 
-                GameLog.InfoFormat("Loading uuidreference for {0}", name);
+                GameLog.InfoFormat("Generating uuidreference for {0}", name);
                 var uuidRef = new UuidReference(name)
                 {
                     AccountUuid = user.AccountUuid,
-                    UserUuid = user.Uuid
+                    UserUuid = user.Uuid,
+                    UserName = name
                 };
 
                 //sanity check to make sure user has this object
@@ -775,7 +853,6 @@ namespace Hybrasyl
                     var parcelStore = new ParcelStore(uuidRef.UserUuid);
                     WorldData.Set(parcelStore.OwnerUuid, parcelStore);
                     parcelStore.Save();
-
                 }
                 
                 WorldData.SetWithIndex(user.Name, uuidRef, user.Uuid);
@@ -999,6 +1076,20 @@ namespace Hybrasyl
             GameLog.InfoFormat("Vault: Creating vault for {0}", uuid);
             return WorldData.Get<Vault>(uuid);
         }
+
+        public AuthInfo GetAuthInfo(string uuid)
+        {
+            if (WorldData.TryGetValue(uuid, out AuthInfo info))
+            {
+                return info;
+            }
+            var authinfo = new AuthInfo(uuid);
+            authinfo.Save();
+            WorldData.Set<AuthInfo>(uuid, authinfo);
+            GameLog.InfoFormat("AuthInfo: creating info for {0}", uuid);
+            return WorldData.Get<AuthInfo>(uuid);
+        }
+
         public GuildVault GetGuildVault(string uuid)
         {
 
@@ -1329,7 +1420,7 @@ namespace Hybrasyl
                 if (npc.Appearance.Portrait != null)
                 {
                     npcillust.Nodes.Add(new MetafileNode(npc.Name, npc.Appearance.Portrait /* portrait filename */));
-                    GameLog.Info("metafile: set {Name} to {Portrait}", npc.Name, npc.Appearance.Portrait);
+                    GameLog.Debug("metafile: set {Name} to {Portrait}", npc.Name, npc.Appearance.Portrait);
                 }
             }
             WorldData.Set(npcillust.Name, npcillust.Compile());
@@ -1700,6 +1791,7 @@ namespace Hybrasyl
                     // If the world is shutting down, none of the below matters
                     if (cleanup.ActiveExchange != null)
                         cleanup.ActiveExchange.CancelExchange(cleanup);
+                    cleanup.AuthInfo.CurrentState = UserState.Disconnected;
                     cleanup.UpdateLogoffTime();
                     cleanup.Map?.Remove(cleanup);
                     cleanup.Group?.Remove(cleanup);
@@ -2193,6 +2285,7 @@ namespace Hybrasyl
                 }
                 Remove(user);
                 user.SendRedirectAndLogoff(this, Game.Login, user.Name);
+                user.AuthInfo.CurrentState = UserState.Disconnected;
                 user.Save(true);
                 DeleteUser(user.Name);
 
@@ -2256,6 +2349,17 @@ namespace Hybrasyl
                 return;
             }
 
+            if (loginUser.AuthInfo.CurrentState == UserState.InWorld)
+            {
+                if (GlobalConnectionManifest.ConnectedClients.TryGetValue(connectionId, out Client client))
+                    client.Disconnect();
+                loginUser.AuthInfo.CurrentState = UserState.Disconnected;
+                return;
+            }
+            else
+                loginUser.AuthInfo.CurrentState = UserState.InWorld;
+
+            loginUser.AuthInfo.Save();
             loginUser.AssociateConnection(this, connectionId);
             loginUser.SetEncryptionParameters(key, seed, name);
             loginUser.UpdateLoginTime();
@@ -2293,14 +2397,14 @@ namespace Hybrasyl
             {
                 loginUser.Teleport("Chaotic Threshold", 10, 10);
             }
-            else if (loginUser.Login.FirstLogin)
+            else if (loginUser.AuthInfo.FirstLogin)
             {
                 Xml.NewPlayer handler = Game.Config.Handlers?.NewPlayer;
                 var targetmap = WorldData.First<Map>();
                 if (handler != null)
                 {
                     Xml.StartMap startmap = handler.GetStartMap();
-                    loginUser.Login.FirstLogin = false;
+                    loginUser.AuthInfo.FirstLogin = false;
                     if (WorldData.TryGetValueByIndex(startmap.Value, out Map map))
                         loginUser.Teleport(map.Id, startmap.X, startmap.Y);
                     else
@@ -2337,7 +2441,7 @@ namespace Hybrasyl
             GameLog.InfoFormat("cid {0}: {1} entering world", connectionId, loginUser.Name);
             GameLog.InfoFormat($"{loginUser.SinceLastLoginstring}");
             // If the user's never logged off before (new character), don't display this message.
-            if (loginUser.Login.LastLogoff != default(DateTime))
+            if (loginUser.AuthInfo.LastLogoff != default(DateTime))
             {
                 loginUser.SendSystemMessage($"It has been {loginUser.SinceLastLoginstring} since your last login.");
             }

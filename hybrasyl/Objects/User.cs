@@ -39,30 +39,10 @@ namespace Hybrasyl.Objects
 {
     
     [JsonObject]
-    public class PasswordInfo
-    {
-        public string Hash { get; set; }
-        public DateTime LastChanged { get; set; }
-        public string LastChangedFrom { get; set; }
-    }
-
-    [JsonObject]
     public class KillRecord
     {
         public string Name { get; set; }
         public DateTime Timestamp { get; set; }
-    }
-
-    [JsonObject]
-    public class LoginInfo
-    {
-        public DateTime LastLogin { get; set; }
-        public DateTime LastLogoff { get; set; }
-        public DateTime LastLoginFailure { get; set; }
-        public string LastLoginFrom { get; set; }
-        public Int64 LoginFailureCount { get; set; }
-        public DateTime CreatedTime { get; set; }
-        public bool FirstLogin { get; set; }
     }
 
     [JsonObject(MemberSerialization.OptIn)]
@@ -149,12 +129,11 @@ namespace Hybrasyl.Objects
 
         #region User 
         // Some structs helping us to define various metadata 
-        [JsonProperty]
-        public LoginInfo Login { get; set; }
-        [JsonProperty]
-        public PasswordInfo Password { get; set; }
+        public AuthInfo AuthInfo => Game.World.GetAuthInfo(Uuid);
+ 
         [JsonProperty]
         public SkillBook SkillBook { get; private set; }
+        
         [JsonProperty]
         public SpellBook SpellBook { get; private set; }
 
@@ -308,7 +287,7 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                var span = (Login.LastLogin - Login.LastLogoff);
+                var span = (AuthInfo.LastLogin - AuthInfo.LastLogoff);
                 return span.TotalSeconds < 0 ? 0 : span.TotalSeconds;
             }
         }
@@ -696,11 +675,6 @@ namespace Hybrasyl.Objects
             get { return (ushort)(Stats.BaseStr + Stats.Level / 4 + 48); }
         }
 
-        public bool VerifyPassword(string password)
-        {
-            return BCrypt.Net.BCrypt.Verify(password, Password.Hash);
-        }
-
         public User() : base()
         {
             _initializeUser();
@@ -714,8 +688,6 @@ namespace Hybrasyl.Objects
             SkillBook = new SkillBook();
             SpellBook = new SpellBook();
             IsAtWorldMap = false;
-            Login = new LoginInfo();
-            Password = new PasswordInfo();
             Location = new LocationInfo();
             Legend = new Legend();
             LastSaid = string.Empty;
@@ -1073,7 +1045,8 @@ namespace Hybrasyl.Objects
                         Statuses = CurrentStatusInfo.ToList();
                     else
                         Statuses.Clear();
-                }                
+                }
+                AuthInfo.Save();
                 cache.Set(GetStorageKey(Name), this);
             }
         }
@@ -2855,12 +2828,12 @@ namespace Hybrasyl.Objects
         /// <summary>
         /// Update a player's last login time in the database and the live object.
         /// </summary>
-        public void UpdateLoginTime() => Login.LastLogin = DateTime.Now;
+        public void UpdateLoginTime() => AuthInfo.LastLogin = DateTime.Now;
 
         /// <summary>
         /// Update a player's last logoff time in the database and the live object.
         /// </summary>
-        public void UpdateLogoffTime() => Login.LastLogoff = DateTime.Now;
+        public void UpdateLogoffTime() => AuthInfo.LastLogoff = DateTime.Now;
 
         public void SendWorldMap(WorldMap map)
         {
