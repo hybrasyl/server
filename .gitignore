@@ -294,4 +294,4 @@ hybrasyl/docfx.json
 hybrasyl/toc.yml
 
 # Redis dumps
-dump.rdb
+*.rdb
