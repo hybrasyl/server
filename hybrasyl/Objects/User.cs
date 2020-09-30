@@ -39,30 +39,10 @@ namespace Hybrasyl.Objects
 {
     
     [JsonObject]
-    public class PasswordInfo
-    {
-        public string Hash { get; set; }
-        public DateTime LastChanged { get; set; }
-        public string LastChangedFrom { get; set; }
-    }
-
-    [JsonObject]
     public class KillRecord
     {
         public string Name { get; set; }
         public DateTime Timestamp { get; set; }
-    }
-
-    [JsonObject]
-    public class LoginInfo
-    {
-        public DateTime LastLogin { get; set; }
-        public DateTime LastLogoff { get; set; }
-        public DateTime LastLoginFailure { get; set; }
-        public string LastLoginFrom { get; set; }
-        public Int64 LoginFailureCount { get; set; }
-        public DateTime CreatedTime { get; set; }
-        public bool FirstLogin { get; set; }
     }
 
     [JsonObject(MemberSerialization.OptIn)]
@@ -149,12 +129,11 @@ namespace Hybrasyl.Objects
 
         #region User 
         // Some structs helping us to define various metadata 
-        [JsonProperty]
-        public LoginInfo Login { get; set; }
-        [JsonProperty]
-        public PasswordInfo Password { get; set; }
+        public AuthInfo AuthInfo => Game.World.GetAuthInfo(Uuid);
+ 
         [JsonProperty]
         public SkillBook SkillBook { get; private set; }
+        
         [JsonProperty]
         public SpellBook SpellBook { get; private set; }
 
@@ -308,7 +287,7 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                var span = (Login.LastLogin - Login.LastLogoff);
+                var span = (AuthInfo.LastLogin - AuthInfo.LastLogoff);
                 return span.TotalSeconds < 0 ? 0 : span.TotalSeconds;
             }
         }
@@ -567,11 +546,10 @@ namespace Hybrasyl.Objects
                 {
                     uint hpPenalty;
 
-                    if (handler.Penalty.Xp.Contains('.'))
-                        hpPenalty = (uint)Math.Ceiling(Stats.Experience * Convert.ToDouble(handler.Penalty.Hp));
+                    if (handler.Penalty.Hp.Contains('.'))
+                        hpPenalty = (uint)Math.Ceiling(Stats.BaseHp * Convert.ToDouble(handler.Penalty.Hp));
                     else
                         hpPenalty = Convert.ToUInt32(handler.Penalty.Hp);
-
                     Stats.BaseHp -= hpPenalty;
                     SendSystemMessage($"You lose {hpPenalty} HP!");
                 }
@@ -610,10 +588,10 @@ namespace Hybrasyl.Objects
             if (!Condition.Comatose) return;
             Condition.Comatose = false;
             var handler = Game.Config.Handlers?.Death;
-            if (handler?.Coma != null && Game.World.WorldData.TryGetValueByIndex(handler.Coma.Value, out Xml.Status status))
+            if (handler?.Coma != null && Game.World.WorldData.TryGetValue(handler.Coma.Value, out Xml.Status status))
                 RemoveStatus(status.Icon);
         }
-
+        
         /// <summary>
         /// Resurrect a player, optionally, instantly returning them to their point of death.
         /// </summary>
@@ -697,11 +675,6 @@ namespace Hybrasyl.Objects
             get { return (ushort)(Stats.BaseStr + Stats.Level / 4 + 48); }
         }
 
-        public bool VerifyPassword(string password)
-        {
-            return BCrypt.Net.BCrypt.Verify(password, Password.Hash);
-        }
-
         public User() : base()
         {
             _initializeUser();
@@ -715,8 +688,6 @@ namespace Hybrasyl.Objects
             SkillBook = new SkillBook();
             SpellBook = new SpellBook();
             IsAtWorldMap = false;
-            Login = new LoginInfo();
-            Password = new PasswordInfo();
             Location = new LocationInfo();
             Legend = new Legend();
             LastSaid = string.Empty;
@@ -872,7 +843,7 @@ namespace Hybrasyl.Objects
                 if (levelsGained > 0)
                 {
                     Client.SendMessage("A rush of insight fills you!", MessageTypes.SYSTEM);
-                    Effect(50, 250);
+                    Effect(50, 100);
                     UpdateAttributes(StatUpdateFlags.Full);
                 }
             }
@@ -1063,13 +1034,19 @@ namespace Hybrasyl.Objects
 
         }
 
-        public void Save()
+        public void Save(bool serializeStatus = false)
         {
             lock (_serializeLock)
             {
                 var cache = World.DatastoreConnection.GetDatabase();
-                if (Statuses.Count == 0)
-                    Statuses = CurrentStatusInfo;
+                if (serializeStatus)
+                {
+                    if (ActiveStatusCount > 0)
+                        Statuses = CurrentStatusInfo.ToList();
+                    else
+                        Statuses.Clear();
+                }
+                AuthInfo.Save();
                 cache.Set(GetStorageKey(Name), this);
             }
         }
@@ -1248,12 +1225,21 @@ namespace Hybrasyl.Objects
 
         internal void UseSkill(byte slot)
         {
+            if(!Map.AllowCasting)
+            {
+                if (!IsPrivileged)
+                {
+                    SendSystemMessage("You can't use that here.");
+                    return;
+                }
+            }
             var bookSlot = SkillBook[slot];
             if (bookSlot.OnCooldown)
             {
                 SendSystemMessage("You must wait longer to use that.");
                 return;
             }
+
             if (UseCastable(bookSlot.Castable))
             {
                 if(bookSlot.UseCount != uint.MaxValue)
@@ -1273,6 +1259,15 @@ namespace Hybrasyl.Objects
 
         internal void UseSpell(byte slot, uint target = 0)
         {
+            if (!Map.AllowCasting)
+            {
+                if (!IsPrivileged)
+                {
+                    SendSystemMessage("You can't cast that here.");
+                    return;
+                }
+            }
+
             var bookSlot = SpellBook[slot];
             Creature targetCreature = Map.EntityTree.OfType<Creature>().SingleOrDefault(x => x.Id == target) ?? null;
 
@@ -1540,6 +1535,11 @@ namespace Hybrasyl.Objects
             equipPacket.WriteUInt32(itemObject.DisplayDurability);
             equipPacket.DumpPacket();
             Enqueue(equipPacket);
+            if (itemObject.EquipmentSlot == (byte)Xml.EquipmentSlot.Weapon)
+                SendSystemMessage($"Equipped {itemObject.SlotName}: {itemObject.Name}");
+            else
+                SendSystemMessage($"Equipped {itemObject.SlotName}: {itemObject.Name} (AC {Stats.Ac} MR {Stats.Mr} Regen {Stats.Regen})");
+
         }
 
         /// <summary>
@@ -1876,23 +1876,43 @@ namespace Hybrasyl.Objects
         /// Returns all the objects that are directly facing the user.
         /// </summary>
         /// <returns>A list of visible objects.</returns>
-        public List<VisibleObject> GetFacingObjects()
+        public List<VisibleObject> GetFacingObjects(int distance = 1)
         {
-            List<VisibleObject> contents;
+            List<VisibleObject> contents = new List<VisibleObject>();
 
             switch (Direction)
             {
                 case Xml.Direction.North:
-                    contents = Map.GetTileContents(X, Y - 1);
+                    {
+                        for (var i = 1; i <= distance; i++)
+                        {
+                            contents.AddRange(Map.GetTileContents(X, Y - i));
+                        }
+                    }
                     break;
                 case Xml.Direction.South:
-                    contents = Map.GetTileContents(X, Y + 1);
+                    {
+                        for (var i = 1; i <= distance; i++)
+                        {
+                            contents.AddRange(Map.GetTileContents(X, Y + i));
+                        }
+                    }
                     break;
                 case Xml.Direction.West:
-                    contents = Map.GetTileContents(X - 1, Y);
+                    {
+                        for (var i = 1; i <= distance; i++)
+                        {
+                            contents.AddRange(Map.GetTileContents(X - i, Y));
+                        }
+                    }
                     break;
                 case Xml.Direction.East:
-                    contents = Map.GetTileContents(X + 1, Y);
+                    {
+                        for (var i = 1; i <= distance; i++)
+                        {
+                            contents.AddRange(Map.GetTileContents(X + i, Y));
+                        }
+                    }
                     break;
                 default:
                     contents = new List<VisibleObject>();
@@ -1921,23 +1941,23 @@ namespace Hybrasyl.Objects
 
                 case Xml.Direction.North:
                     --newY;
-                    arrivingViewport = new Rectangle(oldX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE, 1);
-                    departingViewport = new Rectangle(oldX - halfViewport, oldY + halfViewport, Constants.VIEWPORT_SIZE, 1);
+                    arrivingViewport = new Rectangle(oldX - halfViewport + 2, newY - halfViewport + 4, Constants.VIEWPORT_SIZE, 1);
+                    departingViewport = new Rectangle(oldX - halfViewport + 2, oldY + halfViewport - 2, Constants.VIEWPORT_SIZE, 1);
                     break;
                 case Xml.Direction.South:
                     ++newY;
-                    arrivingViewport = new Rectangle(oldX - halfViewport, oldY + halfViewport, Constants.VIEWPORT_SIZE, 1);
-                    departingViewport = new Rectangle(oldX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE, 1);
+                    arrivingViewport = new Rectangle(oldX - halfViewport - 2, oldY + halfViewport - 4, Constants.VIEWPORT_SIZE, 1);
+                    departingViewport = new Rectangle(oldX - halfViewport + 2, newY - halfViewport + 2, Constants.VIEWPORT_SIZE, 1);
                     break;
                 case Xml.Direction.West:
                     --newX;
-                    arrivingViewport = new Rectangle(newX - halfViewport, oldY - halfViewport, 1, Constants.VIEWPORT_SIZE);
-                    departingViewport = new Rectangle(oldX + halfViewport, oldY - halfViewport, 1, Constants.VIEWPORT_SIZE);
+                    arrivingViewport = new Rectangle(newX - halfViewport + 4, oldY - halfViewport + 2, 1, Constants.VIEWPORT_SIZE);
+                    departingViewport = new Rectangle(oldX + halfViewport - 2, oldY - halfViewport - 2, 1, Constants.VIEWPORT_SIZE);
                     break;
                 case Xml.Direction.East:
                     ++newX;
-                    arrivingViewport = new Rectangle(oldX + halfViewport, oldY - halfViewport, 1, Constants.VIEWPORT_SIZE);
-                    departingViewport = new Rectangle(oldX - halfViewport, oldY - halfViewport, 1, Constants.VIEWPORT_SIZE);
+                    arrivingViewport = new Rectangle(oldX + halfViewport - 4, oldY - halfViewport + 2, 1, Constants.VIEWPORT_SIZE);
+                    departingViewport = new Rectangle(oldX - halfViewport + 2, oldY - halfViewport + 2, 1, Constants.VIEWPORT_SIZE);
                     break;
             }
             var isWarp = Map.Warps.TryGetValue(new Tuple<byte, byte>((byte)newX, (byte)newY), out Warp targetWarp);
@@ -2195,6 +2215,7 @@ namespace Hybrasyl.Objects
 
         public bool AddItem(ItemObject itemObject, bool updateWeight = true)
         {
+            Game.World.Insert(itemObject);
             if (Inventory.IsFull)
             {
                 SendSystemMessage("You cannot carry any more items.");
@@ -2235,7 +2256,7 @@ namespace Hybrasyl.Objects
                 inventoryItem.Count += itemObject.Count;
                 itemObject.Count = 0;
                 SendItemUpdate(inventoryItem, Inventory.SlotByName(inventoryItem.Name).First());
-                World.Remove(itemObject);
+                Game.World.Remove(itemObject);
                 return true;
             }
 
@@ -2454,10 +2475,10 @@ namespace Hybrasyl.Objects
                 return false;
             }
             
-            SendEquipItem(itemObject, slot);
-            Client.SendMessage(string.Format("Equipped {0}", itemObject.Name), 3);
             ApplyBonuses(itemObject);
             UpdateAttributes(StatUpdateFlags.Stats);
+            SendEquipItem(itemObject, slot);
+
             if (sendUpdate) Show();
             // TODO: target this recalculation, this is a mildly expensive operation
             if (itemObject.CastModifiers != null)
@@ -2508,6 +2529,7 @@ namespace Hybrasyl.Objects
 
         public void SwapItem(byte oldSlot, byte newSlot)
         {
+            if (oldSlot == newSlot) return;
             var oldSlotItem = Inventory[oldSlot];
             var newSlotItem = Inventory[newSlot];
 
@@ -2573,8 +2595,9 @@ namespace Hybrasyl.Objects
             {
                 Stats.Hp = 1;
                 var handler = Game.Config.Handlers?.Death?.Coma;
-                if (handler?.Value != null && World.WorldData.TryGetValueByIndex(handler.Value, out Xml.Status status))
+                if (handler?.Value != null && World.WorldData.TryGetValue(handler.Value, out Xml.Status status))
                 {
+                    Condition.Comatose = true;
                     ApplyStatus(new CreatureStatus(status, this, null, attacker));
                 }
                 else
@@ -2709,11 +2732,39 @@ namespace Hybrasyl.Objects
                     //UseCastable(c, target);
                 }
             }
+            var motionId = (byte)1;
             //animation handled here as to not repeatedly send assails.
-            var firstAssail = SkillBook.FirstOrDefault(x => x.Castable.IsAssail);
-            var motion = firstAssail?.Castable?.Effects.Animations.OnCast.Player.FirstOrDefault(y => y.Class.Contains(Class));
+            if(Class == Xml.Class.Warrior)
+            {
+                if(SkillBook.Any(b => b.Castable.Name == "Wield Two-Handed Weapon"))
+                {
+                    if (Equipment.Weapon?.WeaponType == WeaponType.TwoHand && Equipment.Armor?.Class == Xml.Class.Warrior)
+                    {
 
-            var motionId = motion != null ? (byte)motion.Id : (byte)1;
+                        motionId = 129;
+                    }
+                }
+            }
+            if(Class == Xml.Class.Monk)
+            {
+                if (Equipment.Armor?.Class == Xml.Class.Monk)
+                {
+                    motionId = 132;
+                    if (Equipment.Weapon != null)
+                    {
+                        if (Equipment.Weapon?.WeaponType == WeaponType.OneHand || Equipment.Weapon?.WeaponType == WeaponType.Dagger || Equipment.Weapon?.WeaponType == WeaponType.Staff)
+                        {
+                            motionId = 1;
+                        }
+                    }
+                }
+                if(Equipment.Shield != null)
+                {
+                    motionId = 1;
+                }
+            }
+
+            var firstAssail = SkillBook.FirstOrDefault(x => x.Castable.IsAssail);
             var assail = new ServerPacketStructures.PlayerAnimation() { Animation = motionId, Speed = 20, UserId = this.Id };
             var soundId = firstAssail != null ? firstAssail.Castable.Effects.Sound.Id : (byte)1;
             Enqueue(assail.Packet());
@@ -2777,20 +2828,12 @@ namespace Hybrasyl.Objects
         /// <summary>
         /// Update a player's last login time in the database and the live object.
         /// </summary>
-        public void UpdateLoginTime()
-        {
-            Login.LastLogin = DateTime.Now;
-            Save();
-        }
+        public void UpdateLoginTime() => AuthInfo.LastLogin = DateTime.Now;
 
         /// <summary>
         /// Update a player's last logoff time in the database and the live object.
         /// </summary>
-        public void UpdateLogoffTime()
-        {
-            Login.LastLogoff = DateTime.Now;
-            Save();
-        }
+        public void UpdateLogoffTime() => AuthInfo.LastLogoff = DateTime.Now;
 
         public void SendWorldMap(WorldMap map)
         {
@@ -3101,22 +3144,30 @@ namespace Hybrasyl.Objects
             {
                 foreach (var preReq in classReq.Prerequisites)
                 {
-                    if (!SkillBook.Contains(Game.World.WorldData.GetByIndex<Xml.Castable>(preReq.Value).Id))
+                    BookSlot slot;
+                    if (Game.World.WorldData.TryGetValueByIndex(preReq.Value, out Castable castablePrereq))
                     {
-                        learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_level");
-                        prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$PREREQ", preReq.Value).Replace("$LEVEL", preReq.Level.ToString());
-                        break;
-                    }
-                    else if (SkillBook.Contains(Game.World.WorldData.GetByIndex<Xml.Castable>(preReq.Value).Id))
-                    {
-                        var preReqSkill = SkillBook.Single(x => x.Castable.Name == preReq.Value);
-                        if (Math.Floor((preReqSkill.UseCount / (double)preReqSkill.Castable.Mastery.Uses) * 100) < preReq.Level)
+                        if (!SkillBook.Contains(castablePrereq.Id) && !SpellBook.Contains(castablePrereq.Id))
+                        {
+                            learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_level");
+                            prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$PREREQ", preReq.Value).Replace("$LEVEL", preReq.Level.ToString());
+                            break;
+                        }
+                        if (SkillBook.Contains(castablePrereq.Id))
+                            slot = SkillBook.Single(x => x.Castable.Name == preReq.Value);
+                        else
+                            slot = SpellBook.Single(x => x.Castable.Name == preReq.Value);
+
+                        if (Math.Floor((slot.UseCount / (double)slot.Castable.Mastery.Uses) * 100) < preReq.Level)
                         {
                             learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_level");
                             prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$PREREQ", preReq.Value).Replace("$LEVEL", preReq.Level.ToString());
                             break;
                         }
                     }
+                    else
+                        prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_error")?.Value;
+
                 }
             }
             if (prompt == string.Empty) //this is so bad
@@ -3178,7 +3229,7 @@ namespace Hybrasyl.Objects
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
             //verify user has required items.
-            if (!(Gold > classReq.Gold))
+            if (!(Gold >= classReq.Gold))
             {
                 learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_gold");
                 prompt = learnString.Value;
@@ -3357,22 +3408,30 @@ namespace Hybrasyl.Objects
             {
                 foreach (var preReq in classReq.Prerequisites)
                 {
-                    if (!SpellBook.Contains(Game.World.WorldData.GetByIndex<Xml.Castable>(preReq.Value).Id))
+                    BookSlot slot;
+                    if (Game.World.WorldData.TryGetValueByIndex(preReq.Value, out Castable castablePrereq))
                     {
-                        learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_level");
-                        prompt = learnString.Value.Replace("$SPELLNAME", castable.Name).Replace("$PREREQ", preReq.Value).Replace("$LEVEL", preReq.Level.ToString());
-                        break;
-                    }
-                    else if (SpellBook.Contains(Game.World.WorldData.GetByIndex<Xml.Castable>(preReq.Value).Id))
-                    {
-                        var preReqSpell = SpellBook.Single(x => x.Castable.Name == preReq.Value);
-                        if (Math.Floor((preReqSpell.UseCount / (double)preReqSpell.Castable.Mastery.Uses) * 100) < preReq.Level)
+                        if (!SkillBook.Contains(castablePrereq.Id) && !SpellBook.Contains(castablePrereq.Id))
                         {
                             learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_level");
                             prompt = learnString.Value.Replace("$SPELLNAME", castable.Name).Replace("$PREREQ", preReq.Value).Replace("$LEVEL", preReq.Level.ToString());
                             break;
                         }
+
+                        if (SkillBook.Contains(castablePrereq.Id))
+                            slot = SkillBook.Single(x => x.Castable.Name == preReq.Value);
+                        else
+                            slot = SpellBook.Single(x => x.Castable.Name == preReq.Value);
+                        if (Math.Floor((slot.UseCount / (double)slot.Castable.Mastery.Uses) * 100) < preReq.Level)
+                        {
+                            learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_level");
+                            prompt = learnString.Value.Replace("$SPELLNAME", castable.Name).Replace("$PREREQ", preReq.Value).Replace("$LEVEL", preReq.Level.ToString());
+                            break;
+
+                        }
                     }
+                    else
+                        prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_error")?.Value;
                 }
             }
             if (prompt == string.Empty) //this is so bad
@@ -3441,7 +3500,7 @@ namespace Hybrasyl.Objects
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
             //verify user has required items.
-            if (!(Gold > classReq.Gold))
+            if (!(Gold >= classReq.Gold))
             {
                 learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_gold");
                 prompt = learnString.Value;
@@ -4008,10 +4067,17 @@ namespace Hybrasyl.Objects
             options.Options = new List<MerchantDialogOption>();
             //verify user has required items.
             var parcelFee = (uint)Math.Round((itemObj.Value * .10) * quantity, 0);
-            if (!(Gold > parcelFee))
+            if (!World.TryGetUser(recipient, out var _))
             {
-                parcelString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel_fail");
-                prompt = parcelString.Value.Replace("$FEE", parcelFee.ToString());
+                prompt = "I'm sorry, I don't know of anyone by that name.";
+            }
+            if (prompt == string.Empty)
+            {
+                if (!(Gold > parcelFee))
+                {
+                    parcelString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel_fail");
+                    prompt = parcelString.Value.Replace("$FEE", parcelFee.ToString());
+                }
             }
             if (prompt == string.Empty)
             {
@@ -4251,7 +4317,7 @@ namespace Hybrasyl.Objects
         {
             var item = Inventory[slot];
             PendingDepositSlot = slot;
-            if (item.Stackable)
+            if (item.Stackable && item.Count > 0)
             {
                 var prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item_quantity").Value.Replace("$QUANTITY", item.Count.ToString()).Replace("$ITEM", item.Name);
                 var input = new MerchantInput();
@@ -4511,7 +4577,7 @@ namespace Hybrasyl.Objects
                 Inventory[PendingRepairSlot].Durability = Inventory[PendingRepairSlot].MaximumDurability;
                 PendingRepairSlot = 0;
                 PendingRepairCost = 0;
-                DisplayPursuits(this);
+                merchant.DisplayPursuits(this);
             }
         }
 
@@ -4900,6 +4966,7 @@ namespace Hybrasyl.Objects
         public void Logoff(bool disconnect = false)
         {
             UpdateLogoffTime();
+            Save(true);
             if (!disconnect)
             {
                 var redirect = new Redirect(Client, Game.World, Game.Login, "socket", Client.EncryptionSeed, Client.EncryptionKey);
@@ -4969,7 +5036,7 @@ namespace Hybrasyl.Objects
                 ItemSlot = slot,
                 ItemSprite = toAdd.Sprite,
                 ItemColor = toAdd.Color,
-                ItemName = toAdd.Stackable && toAdd.Count > 1 ? $"{toAdd.Name} ({toAdd.Count}" : toAdd.Name
+                ItemName = toAdd.Stackable && toAdd.Count > 1 ? $"{toAdd.Name} [{toAdd.Count}]" : toAdd.Name
             };
             Enqueue(update.Packet());
         }

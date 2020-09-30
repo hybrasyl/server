@@ -11,7 +11,7 @@
     <Company>Project Hybrasyl</Company>
     <Product>Hybrasyl Server</Product>
     <Description>Hybrasyl, a DOOMVAS v1 emulator</Description>
-    <Version>0.7.2</Version>
+    <Version>0.7.3</Version>
     <BuildDocFx Condition="'$(Configuration)'=='Debug' ">false</BuildDocFx>
   </PropertyGroup>
   
@@ -88,6 +88,10 @@
     <EmbeddedResource Include="Resources\sotp.dat" />
   </ItemGroup>
 
+  <ItemGroup>	
+    <EmbeddedResource Include="RedisMigrations\active.json"/>
+  </ItemGroup>
+
   <ItemGroup>
     <None Include="MetricsIncludes.cs">
       <DesignTime>True</DesignTime>
@@ -137,4 +141,10 @@
     </Compile>
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="RedisMigrations\Scripts\*.*">
+      <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 </Project>

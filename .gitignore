@@ -292,3 +292,6 @@ hybrasyl/articles
 hybrasyl/site
 hybrasyl/docfx.json
 hybrasyl/toc.yml
+
+# Redis dumps
+*.rdb

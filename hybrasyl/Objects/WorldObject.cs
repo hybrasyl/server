@@ -47,7 +47,7 @@ namespace Hybrasyl.Objects
         public uint Id { get; set; }
 
         [JsonProperty(Order = 0)]
-        public string Name { get; set; }
+        public virtual string Name { get; set; }
 
         public Script Script { get; set; }
         public World World { get; set; }

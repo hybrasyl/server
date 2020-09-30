@@ -71,7 +71,7 @@ namespace Hybrasyl.Objects
 
             if (userobj.Equipment.Weight + Weight > userobj.MaximumWeight/2)
             {
-                message = "You can't even lift it above your head, let alone wield it!";
+                message = "With all your other equipment on, you can barely lift this.";
                 return false;
             }
 
@@ -136,14 +136,14 @@ namespace Hybrasyl.Objects
         public Xml.Use Use => Template.Properties.Use;
 
         public ushort EquipSprite => Template.Properties.Appearance.EquipSprite == 0 ? Template.Properties.Appearance.Sprite : Template.Properties.Appearance.EquipSprite;
-           
+
         public ItemObjectType ItemObjectType
         {
             get
             {
                 if ((Template?.Properties?.Equipment?.Slot ?? Xml.EquipmentSlot.None) != Xml.EquipmentSlot.None)
                     return ItemObjectType.Equipment;
-                else if (Template.Properties.Flags.HasFlag(Xml.ItemFlags.Consumable))
+                else if (Template.Properties.Flags.HasFlag(Xml.ItemFlags.Consumable) || Template.Use != null)
                     return ItemObjectType.CanUse;
                 return ItemObjectType.CannotUse;
             }
@@ -151,6 +151,7 @@ namespace Hybrasyl.Objects
 
         public Xml.WeaponType WeaponType => Template.Properties.Equipment.WeaponType;
         public byte EquipmentSlot => Convert.ToByte(Template.Properties.Equipment.Slot);
+        public string SlotName => Enum.GetName(typeof(Xml.EquipmentSlot), EquipmentSlot) ?? "None";
         public int Weight => Template.Properties.Physical.Weight;
         public int MaximumStack => Template.MaximumStack;
         public bool Stackable => Template.Stackable;
@@ -244,6 +245,11 @@ namespace Hybrasyl.Objects
 
         public void Invoke(User trigger)
         {
+            if (Stackable && Count <= 0)
+            {
+                trigger.RemoveItem(Name);
+                return;
+            }
             // Run through all the different potential uses. We allow combinations of any
             // use specified in the item XML.
             GameLog.InfoFormat($"User {trigger.Name}: used item {Name}");
@@ -272,8 +278,12 @@ namespace Hybrasyl.Objects
                     trigger.AddGold(new Gold((uint)Use.PlayerEffect.Gold));
                 if (Use.PlayerEffect.Hp > 0)
                     trigger.Heal(Use.PlayerEffect.Hp);
+                else
+                    trigger.Damage(Math.Abs(Use.PlayerEffect.Hp));
                 if (Use.PlayerEffect.Mp > 0)
                     trigger.RegenerateMp(Use.PlayerEffect.Mp);
+                else
+                    trigger.Stats.Mp += (uint) Use.PlayerEffect.Mp;
                 if (Use.PlayerEffect.Xp > 0)
                     trigger.GiveExperience((uint)Use.PlayerEffect.Xp);
                 trigger.UpdateAttributes(StatUpdateFlags.Current|StatUpdateFlags.Experience);

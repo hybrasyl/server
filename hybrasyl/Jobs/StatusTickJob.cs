@@ -36,7 +36,7 @@ namespace Hybrasyl.Jobs
                 User user;
                 if (Game.World.WorldData.TryGetValueByIndex(connectionId, out user))
                 {
-                    if (user.Statuses.Count > 0 && user.Condition.Alive)
+                    if (user.ActiveStatusCount > 0 && user.Condition.Alive)
                         World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.StatusTick, user.Id));
                 }
             }

@@ -169,6 +169,7 @@ namespace Hybrasyl
 
         public static bool TryGetUser(string name, out User userobj)
         {
+            userobj = null;
             try
             {
                 userobj = DatastoreConnection.GetDatabase().Get<User>(User.GetStorageKey(name));
@@ -177,9 +178,30 @@ namespace Hybrasyl
             catch (Exception e)
             {
                 GameLog.Fatal("{name}: DESERIALIZATION ERROR, bug or corrupt user data: {e}", name, e);
-                userobj = null;
                 return false;
             }
+        }
+
+        public bool TryGetAuthInfo(string name, out AuthInfo info)
+        {
+            info = null;
+            try
+            {
+                if (WorldData.TryGetValue(name, out UuidReference reference))
+                {
+                    if (!string.IsNullOrEmpty(reference.UserUuid) &&
+                            WorldData.TryGetValue(reference.UserUuid, out AuthInfo foundinfo))
+                    {
+                        info = foundinfo;
+                        return true;
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                GameLog.Fatal("{name}: AuthInfo retrieval error: {e}", name, e);
+            }
+            return false;
 
         }
 
@@ -195,9 +217,9 @@ namespace Hybrasyl
             RegisterPacketThrottle(new GenericPacketThrottle(0x38, 600, 0, 500));  // refresh (f5)
             RegisterPacketThrottle(new GenericPacketThrottle(0x39, 200, 1000, 500));  // NPC main menu
             RegisterPacketThrottle(new GenericPacketThrottle(0x13, 800, 0, 0));        // Assail
-            RegisterPacketThrottle(new GenericPacketThrottle(0x3E, 800, 0, 0));
-            RegisterPacketThrottle(new GenericPacketThrottle(0x0F, 800, 0, 0));
-            RegisterPacketThrottle(new GenericPacketThrottle(0x1C, 200, 0, 0));
+            RegisterPacketThrottle(new GenericPacketThrottle(0x3E, 500, 0, 0));         //Skill
+            RegisterPacketThrottle(new GenericPacketThrottle(0x0F, 500, 0, 0));         //Spell
+            RegisterPacketThrottle(new GenericPacketThrottle(0x1C, 200, 0, 0));         //Item
         }
 
 
@@ -244,8 +266,54 @@ namespace Hybrasyl
                 Game.LevelSwitch.MinimumLevel = Serilog.Events.LogEventLevel.Information;
             return DebugEnabled;
         }
+
+        /// <summary>
+        /// Check to see if Redis migrations are run for the current data set.
+        /// </summary>
+        public static bool CheckDataMigrations()
+        {
+            GameLog.InfoFormat($"Checking Redis for current migration status");
+            var migrations = DatastoreConnection.GetDatabase().Get<RedisMigrations>("Hybrasyl.RedisMigrations");
+            if (migrations == null)
+            {
+                GameLog.Error("Migration store not found; assuming migrations have never been run");
+                return false;
+            }
+            var assembly = Assembly.GetExecutingAssembly();
+            RedisActiveMigrations Active;
+            try
+            {
+                var serializer = new JsonSerializer();               
+                using var sr = new StreamReader(assembly.GetManifestResourceStream("Hybrasyl.RedisMigrations.active.json"));
+                using var jtr = new JsonTextReader(sr);
+                Active = serializer.Deserialize<RedisActiveMigrations>(jtr);               
+            }
+            catch (Exception e)
+            {
+                GameLog.Error("Redis migrations could not be evaluated, an error occurred: {e} - Redis data may be in an inconsistent state!", e);
+                return false;
+            }
+            foreach (var migration in Active.ActiveMigrations)
+            {
+                if (!migrations.Migrations.Contains(migration))
+                {
+                    GameLog.Error("Redis migration {migration}: not applied. Please apply before starting the server.", migration);
+                    return false;
+                }
+                else
+                    GameLog.Info("Redis migration {migration}: applied", migration);
+            }
+            return true;
+        }
+
         public bool InitWorld()
         {
+            if (!CheckDataMigrations())
+            {
+                GameLog.Fatal("Migrations in inconsistent or unapplied state. Hybrasyl has halted.");
+                GameLog.Fatal("Please apply migrations by running run_migrations.sh.");
+                return false;
+            }
             CompileScripts(); // We compile scripts first so that all future operations requiring scripts work
             if (!LoadData())
             {
@@ -614,9 +682,10 @@ namespace Hybrasyl
                     WorldData.Set(worldmap.Name, worldmap);
                     foreach (var point in worldmap.Points)
                     {
+                        GameLog.Info("Point: {id}, to {dest}", point.Id, point.Name);
                         WorldData.Set(point.Id, point);
                     }
-                    GameLog.DebugFormat("World Maps: Loaded {0}", worldmap.Name);
+                    GameLog.Info("World Maps: Loaded {name}", worldmap.Name);
                 }
                 catch (Exception e)
                 {
@@ -726,6 +795,15 @@ namespace Hybrasyl
                 var parcels = DatastoreConnection.GetDatabase().Get<ParcelStore>(key);
                 WorldData.Set(parcels.OwnerUuid, parcels);
             }
+
+            //Load AuthInfo structures
+            foreach (var key in server.Keys(pattern: "Hybrasyl.AuthInfo*"))
+            {
+                GameLog.InfoFormat($"Loading authinfo with key {key}");
+                var authinfo = DatastoreConnection.GetDatabase().Get<AuthInfo>(key);
+                WorldData.Set(authinfo.UserUuid, authinfo);
+            }
+
             // Load all boards
             foreach (var key in server.Keys(pattern: "Hybrasyl.Board*"))
             {
@@ -760,21 +838,21 @@ namespace Hybrasyl
                     continue;
                 }
 
-                GameLog.InfoFormat("Loading uuidreference for {0}", name);
+                GameLog.InfoFormat("Generating uuidreference for {0}", name);
                 var uuidRef = new UuidReference(name)
                 {
                     AccountUuid = user.AccountUuid,
-                    UserUuid = user.Uuid
+                    UserUuid = user.Uuid,
+                    UserName = name
                 };
 
                 //sanity check to make sure user has this object
-                if (!WorldData.ContainsKey<ParcelStore>($"Hybrasyl.ParcelStore:{uuidRef.UserUuid}"))
+                if (!WorldData.ContainsKey<ParcelStore>(uuidRef.UserUuid))
                 {
                     GameLog.InfoFormat("No parcelstore found for {0}, creating", name);
                     var parcelStore = new ParcelStore(uuidRef.UserUuid);
                     WorldData.Set(parcelStore.OwnerUuid, parcelStore);
                     parcelStore.Save();
-
                 }
                 
                 WorldData.SetWithIndex(user.Name, uuidRef, user.Uuid);
@@ -867,7 +945,7 @@ namespace Hybrasyl
                 case "consecratable":
                     {
                         if (variant.Properties.Restrictions?.Level != null) 
-                            variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
+                            variantItem.Properties.Restrictions.Level.Min = (byte) Math.Min(99, variantItem.Properties.Restrictions.Level.Min + variant.Properties.Restrictions.Level.Min);
                         if (variant.Properties.StatModifiers?.Base != null)
                         {
                             variantItem.Properties.StatModifiers.Base.Dex += variant.Properties.StatModifiers.Base.Dex;
@@ -895,7 +973,7 @@ namespace Hybrasyl
                     {
                         if (variant.Properties.Restrictions?.Level != null)
                         {
-                            variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
+                            variantItem.Properties.Restrictions.Level.Min = (byte)Math.Min(99, variantItem.Properties.Restrictions.Level.Min + variant.Properties.Restrictions.Level.Min);
                         }
                         if (variant.Properties.StatModifiers?.Combat != null)
                         {
@@ -921,7 +999,7 @@ namespace Hybrasyl
                     {
                         if (variant.Properties.Restrictions?.Level != null)
                         {
-                            variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
+                            variantItem.Properties.Restrictions.Level.Min = (byte)Math.Min(99, variantItem.Properties.Restrictions.Level.Min + variant.Properties.Restrictions.Level.Min);
                         }
                         if (variant.Properties.Damage?.Large != null)
                         {
@@ -939,7 +1017,7 @@ namespace Hybrasyl
                     {
                         if (variant.Properties.Restrictions?.Level != null)
                         {
-                            variantItem.Properties.Restrictions.Level.Min += variant.Properties.Restrictions.Level.Min;
+                            variantItem.Properties.Restrictions.Level.Min = (byte)Math.Min(99, variantItem.Properties.Restrictions.Level.Min + variant.Properties.Restrictions.Level.Min);
                         }
                         if (variant.Properties.StatModifiers?.Combat != null)
                         {
@@ -955,9 +1033,9 @@ namespace Hybrasyl
                     {
                         if(variant.Properties.Restrictions?.Level != null)
                         {
-                            variantItem.Properties.Restrictions.Level.Min = variant.Properties.Restrictions.Level.Min;
+                            variantItem.Properties.Restrictions.Level.Min = (byte)Math.Min(99, variantItem.Properties.Restrictions.Level.Min + variant.Properties.Restrictions.Level.Min);
                         }
-                        if(variant.Properties.Appearance != null)
+                        if (variant.Properties.Appearance != null)
                         {
                             variantItem.Properties.Appearance.Color = variant.Properties.Appearance.Color;
                         }
@@ -998,6 +1076,20 @@ namespace Hybrasyl
             GameLog.InfoFormat("Vault: Creating vault for {0}", uuid);
             return WorldData.Get<Vault>(uuid);
         }
+
+        public AuthInfo GetAuthInfo(string uuid)
+        {
+            if (WorldData.TryGetValue(uuid, out AuthInfo info))
+            {
+                return info;
+            }
+            var authinfo = new AuthInfo(uuid);
+            authinfo.Save();
+            WorldData.Set<AuthInfo>(uuid, authinfo);
+            GameLog.InfoFormat("AuthInfo: creating info for {0}", uuid);
+            return WorldData.Get<AuthInfo>(uuid);
+        }
+
         public GuildVault GetGuildVault(string uuid)
         {
 
@@ -1328,7 +1420,7 @@ namespace Hybrasyl
                 if (npc.Appearance.Portrait != null)
                 {
                     npcillust.Nodes.Add(new MetafileNode(npc.Name, npc.Appearance.Portrait /* portrait filename */));
-                    GameLog.Info("metafile: set {Name} to {Portrait}", npc.Name, npc.Appearance.Portrait);
+                    GameLog.Debug("metafile: set {Name} to {Portrait}", npc.Name, npc.Appearance.Portrait);
                 }
             }
             WorldData.Set(npcillust.Name, npcillust.Compile());
@@ -1699,9 +1791,11 @@ namespace Hybrasyl
                     // If the world is shutting down, none of the below matters
                     if (cleanup.ActiveExchange != null)
                         cleanup.ActiveExchange.CancelExchange(cleanup);
+                    cleanup.AuthInfo.CurrentState = UserState.Disconnected;
                     cleanup.UpdateLogoffTime();
                     cleanup.Map?.Remove(cleanup);
                     cleanup.Group?.Remove(cleanup);
+                    cleanup.Save(true);
                 }
                 if (cleanup.Condition.Alive)
                     // Remove all other flags
@@ -1729,6 +1823,7 @@ namespace Hybrasyl
             var connectionId = (long)message.Arguments[0];
             if (TryGetActiveUserById(connectionId, out user))
             {
+                if (user.Condition.Comatose || !user.Condition.Alive) return;
                 uint hpRegen = 0;
                 uint mpRegen = 0;
                 double fixedRegenBuff = Math.Min(user.Stats.Regen * 0.0015, 0.15);
@@ -1762,7 +1857,7 @@ namespace Hybrasyl
             if (TryGetActiveUserById(connectionId, out user))
             {
                 GameLog.DebugFormat("Saving user {0}", user.Name);
-                user.Save();
+                user.Save(true);
             }
             else
             {
@@ -1924,17 +2019,29 @@ namespace Hybrasyl
             var tile = new Rectangle(x, y, 1, 1);
 
             // We don't want to pick up people
-            var pickupObject = user.Map.EntityTree.GetObjects(tile).FindLast(i => i is Gold || i is ItemObject);
+            var pickupList = user.Map.EntityTree.GetObjects(tile).Where(i => i is Gold || i is ItemObject);
 
-            if (pickupObject == null) return;
+            if (pickupList.Count() == 0) return;
 
-            string error;
-            if (!pickupObject.CanBeLooted(user.Name, out error))
+            VisibleObject pickupObject = null;
+            string error = string.Empty;
+
+            foreach (var po in pickupList)
             {
-                user.SendSystemMessage(error);
-                return;
+                if (po.CanBeLooted(user.Name, out error))
+                {
+                    pickupObject = po;
+                    break;
+                }
             }
 
+            if (pickupObject == null)
+            {
+                if (!string.IsNullOrEmpty(error))
+                    user.SendSystemMessage(error);
+                return;
+            }
+            
             // Are we picking up an item from a reactor tile? 
             // If so, we remove the item from the map and pass it onto the reactor
             // for handling. Note that if the reactor does something stupid, the
@@ -1957,15 +2064,26 @@ namespace Hybrasyl
             }
 
             // If the add is successful, remove the item from the map quadtree
-            if (pickupObject is Gold)
+            if (pickupObject is Gold gold)
             {
-                var gold = (Gold)pickupObject;
-                if (user.AddGold(gold))
+                var pickupAmount = Constants.MAXIMUM_GOLD - user.Gold;
+                if (gold.Amount > pickupAmount && pickupAmount > 0)
                 {
-                    GameLog.DebugFormat("Removing {0}, qty {1} from {2}@{3},{4}",
-                        gold.Name, gold.Amount, user.Map.Name, x, y);
-                    user.Map.RemoveGold(gold);
+                    gold.Amount -= pickupAmount;
+                    user.AddGold(pickupAmount);
+                    user.SendSystemMessage("You take as much gold as you can possibly carry.");
+                    user.ShowTo(gold);
                 }
+                else
+                {
+                    if (user.AddGold(gold))
+                    {
+                        GameLog.DebugFormat("Removing {0}, qty {1} from {2}@{3},{4}",
+                            gold.Name, gold.Amount, user.Map.Name, x, y);
+                        user.Map.RemoveGold(gold);
+                    }
+                }
+            
             }
             else if (pickupObject is ItemObject)
             {
@@ -2050,11 +2168,16 @@ namespace Hybrasyl
             // Does the player actually have an item in the slot? Does the count in the packet exceed the
             // count in the player's inventory?  Are they trying to drop the item on something that
             // is impassable (i.e. a wall)?
-            if ((user.Inventory[slot] == null) || (count > user.Inventory[slot].Count) ||
+            if (user.Inventory[slot] == null)
+            {
+                GameLog.Error("Drop: Slot {slot} is null", slot);
+                return;
+            }
+            else if ((count > user.Inventory[slot].Count) ||
                 (user.Map.IsWall[x, y] == true) || !user.Map.IsValidPoint(x, y))
             {
                 GameLog.ErrorFormat(
-                    "Slot {0} is null, or count {1} exceeds count {2}, or {3},{4} is a wall, or {3},{4} is out of bounds",
+                    "Drop: count {1} exceeds count {2}, or {3},{4} is a wall, or {3},{4} is out of bounds",
                     slot, count, user.Inventory[slot].Count, x, y);
                 return;
             }
@@ -2162,7 +2285,8 @@ namespace Hybrasyl
                 }
                 Remove(user);
                 user.SendRedirectAndLogoff(this, Game.Login, user.Name);
-                user.Save();
+                user.AuthInfo.CurrentState = UserState.Disconnected;
+                user.Save(true);
                 DeleteUser(user.Name);
 
                 // Remove any active async dialog sessions
@@ -2190,10 +2314,9 @@ namespace Hybrasyl
                         {
                             if (entity is User usr)
                             {
-                                GameLog.InfoFormat("Showing missing object {0} with ID {1} to {2}", mob.Name, mob.Id, entity.Name);
+                                //GameLog.InfoFormat("Showing missing object {0} with ID {1} to {2}", mob.Name, mob.Id, entity.Name);
                                 usr.AoiEntry(mob);
                                 mob.AoiEntry(usr);
-                                usr.SendRefresh();
                             }
                         }
                     }
@@ -2226,6 +2349,17 @@ namespace Hybrasyl
                 return;
             }
 
+            if (loginUser.AuthInfo.CurrentState == UserState.InWorld)
+            {
+                if (GlobalConnectionManifest.ConnectedClients.TryGetValue(connectionId, out Client client))
+                    client.Disconnect();
+                loginUser.AuthInfo.CurrentState = UserState.Disconnected;
+                return;
+            }
+            else
+                loginUser.AuthInfo.CurrentState = UserState.InWorld;
+
+            loginUser.AuthInfo.Save();
             loginUser.AssociateConnection(this, connectionId);
             loginUser.SetEncryptionParameters(key, seed, name);
             loginUser.UpdateLoginTime();
@@ -2244,6 +2378,15 @@ namespace Hybrasyl
             // Clear conditions and dialog states
             loginUser.Condition.Casting = false;
 
+            // Ensure settings exist
+
+            foreach (var x in new List<byte>() { 1, 2, 3, 4, 5, 6, 7, 8 })
+            {
+                if (!loginUser.ClientSettings.ContainsKey(x))
+                    loginUser.ClientSettings[x] = Game.Config.SettingsNumberIndex[x].Default;
+            }
+
+
             Insert(loginUser);
             GameLog.DebugFormat("Adding {0} to hash", loginUser.Name);
             AddUser(loginUser, connectionId);
@@ -2254,14 +2397,14 @@ namespace Hybrasyl
             {
                 loginUser.Teleport("Chaotic Threshold", 10, 10);
             }
-            else if (loginUser.Login.FirstLogin)
+            else if (loginUser.AuthInfo.FirstLogin)
             {
                 Xml.NewPlayer handler = Game.Config.Handlers?.NewPlayer;
                 var targetmap = WorldData.First<Map>();
                 if (handler != null)
                 {
                     Xml.StartMap startmap = handler.GetStartMap();
-                    loginUser.Login.FirstLogin = false;
+                    loginUser.AuthInfo.FirstLogin = false;
                     if (WorldData.TryGetValueByIndex(startmap.Value, out Map map))
                         loginUser.Teleport(map.Id, startmap.X, startmap.Y);
                     else
@@ -2298,7 +2441,7 @@ namespace Hybrasyl
             GameLog.InfoFormat("cid {0}: {1} entering world", connectionId, loginUser.Name);
             GameLog.InfoFormat($"{loginUser.SinceLastLoginstring}");
             // If the user's never logged off before (new character), don't display this message.
-            if (loginUser.Login.LastLogoff != default(DateTime))
+            if (loginUser.AuthInfo.LastLogoff != default(DateTime))
             {
                 loginUser.SendSystemMessage($"It has been {loginUser.SinceLastLoginstring} since your last login.");
             }
@@ -2367,6 +2510,27 @@ namespace Hybrasyl
             if (target == "!!")
             {
                 user.SendGroupWhisper(message);
+            }
+            else if (target == "@" && user.IsPrivileged)
+            {
+                if (Game.Config.Access == null)
+                {
+                    user.SendSystemMessage("No privileged users defined in server config.");
+                    return;
+                }
+                if (Game.Config.Access.AllPrivileged)
+                {
+                    foreach (var u in ActiveUsers)
+                        u.SendMessage($"{{=w[{user.Name}] {message}", MessageTypes.GUILD);
+                }
+                else
+                {
+                    foreach (var name in Game.Config.Access.PrivilegedUsers)
+                    {
+                        if (TryGetActiveUser(name, out User u))
+                            u.SendMessage($"{{=w[{user.Name}] {message}", MessageTypes.GUILD);
+                    }
+                }
             }
             else if (target == "$")
             {
@@ -2492,7 +2656,7 @@ namespace Hybrasyl
                     }
 
                     item.Invoke(user);
-                    if (item.Count == 0)
+                    if (item.Consumable && item.Count == 0)
                         user.RemoveItem(slot);
                     else
                         user.SendItemUpdate(item, slot);

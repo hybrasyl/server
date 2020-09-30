@@ -41,12 +41,12 @@ namespace Hybrasyl
             {
                 unchecked
                 {
-                    return 31*Name.GetHashCode()*X*Y;
+                    return Name.GetHashCode() + X + Y + Parent.GetHashCode();
                 }
             }
         }
 
-        public WorldMap Parent { get; set; }
+        public string Parent { get; set; }
         public int X { get; set; }
         public int Y { get; set; }
         public string Name { get; set; }
@@ -111,8 +111,8 @@ namespace Hybrasyl
                     DestinationMap = point.Target.Value,
                     DestinationX = point.Target.X,
                     DestinationY = point.Target.Y,
-                    Name = point.Name
-
+                    Name = point.Name,
+                    Parent = this.Name
                 };
                 // We don't implement world map point restrictions yet, so we're done here
                 Points.Add(mapPoint);
@@ -157,6 +157,7 @@ namespace Hybrasyl
         public byte[] RawData { get; set; }
         public ushort Checksum { get; set; }
         public bool[,] IsWall { get; set; }
+        public bool AllowCasting { get; set; }
 
         public Dictionary<Tuple<byte, byte>, Warp> Warps { get; set; }
         public string Message { get; set; }
@@ -194,6 +195,7 @@ namespace Hybrasyl
             X = newMap.X;
             Y = newMap.Y;
             Name = newMap.Name;
+            AllowCasting = newMap.AllowCasting;
             EntityTree = new QuadTree<VisibleObject>(0, 0, X, Y);
             Music = newMap.Music;
 
@@ -320,7 +322,14 @@ namespace Hybrasyl
         {
             World.Insert(toInsert);
             Insert(toInsert, toInsert.X, toInsert.Y);
-            toInsert.OnSpawn();
+            try
+            {
+                toInsert.OnSpawn();
+            }
+            catch (Exception e)
+            {
+                GameLog.Error("NPC {name}: exception occurred, aborting: {e}", toInsert.Name, e);
+            }
         }
         public void InsertCreature(Creature toInsert)
         {
@@ -602,7 +611,7 @@ namespace Hybrasyl
                     obj.Map = null;
                 }
                 else
-                    GameLog.Fatal("AIEEEEEEEEEEEEEEEE");
+                    GameLog.Fatal("Failed to remove gameobject id: {0} name: {1}", obj.Id, obj.Name);
             }
         }
 

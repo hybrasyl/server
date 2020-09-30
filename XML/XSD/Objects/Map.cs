@@ -40,6 +40,7 @@ public partial class Map
     private byte _x;
     private byte _y;
     private bool _isEnabled;
+    private bool _allowCasting;
     private static XmlSerializer _serializer;
     #endregion
     
@@ -51,6 +52,7 @@ public partial class Map
         _warps = new List<Warp>();
         _music = ((byte)(0));
         _isEnabled = true;
+        _allowCasting = true;
     }
     
     public string Name
@@ -205,6 +207,20 @@ public partial class Map
         set
         {
             _isEnabled = value;
+        }
+    }
+    
+    [XmlAttribute]
+    [DefaultValue(true)]
+    public bool AllowCasting
+    {
+        get
+        {
+            return _allowCasting;
+        }
+        set
+        {
+            _allowCasting = value;
         }
     }
     

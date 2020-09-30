@@ -356,6 +356,8 @@ namespace Hybrasyl.Objects
                     ThreatInfo.IncreaseThreat(attacker, damage);
                 }
             }
+
+            Condition.Asleep = false;
             IsHostile = true;
             ShouldWander = false;
 

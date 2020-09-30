@@ -4,8 +4,8 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <AssemblyName>Hybrasyl.Xml</AssemblyName>
     <RootNamespace>Hybrasyl.Xml</RootNamespace>
-    <PackageVersion>0.7.2</PackageVersion>
-    <Version>0.7.2</Version>
+    <PackageVersion>0.7.3</PackageVersion>
+    <Version>0.7.3</Version>
     <BuildDocFx Condition="'$(Configuration)'=='Debug'">false</BuildDocFx>
   </PropertyGroup>
 

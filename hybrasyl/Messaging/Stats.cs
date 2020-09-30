@@ -23,6 +23,7 @@ using Hybrasyl.Enums;
 using Hybrasyl.Xml;
 using Hybrasyl.Objects;
 using System;
+using System.Linq;
 
 namespace Hybrasyl.Messaging
 {
@@ -269,6 +270,74 @@ namespace Hybrasyl.Messaging
             }
             else return Fail("The value you specified could not be parsed (byte)");
 
+        }
+    }
+
+    class ForgetCommand : ChatCommand
+    {
+        public new static string Command = "forget";
+        public new static string ArgumentText = "<string castable>";
+        public new static string HelpText = "Forget the specified castable (remove from skill or spell book)";
+        public new static bool Privileged = true;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            if (Game.World.WorldData.TryGetValueByIndex(args[0], out Castable castable))
+            {
+                if (user.SpellBook.Contains(castable.Id))
+                {
+                    var i = user.SpellBook.SlotOf(castable.Id);
+                    user.SpellBook.Remove(i);
+                    user.SendClearSpell(i);
+                }
+                else if (user.SkillBook.Contains(castable.Id))
+                {
+                    var i = user.SkillBook.SlotOf(castable.Id);
+                    user.SkillBook.Remove(i);
+                    user.SendClearSkill(i);
+                }
+                else
+                    return Fail("You don't know that skill or spell.");
+                return Success($"{args[0]} removed.");
+            }
+            return Fail("That castable does not exist.");
+        }
+    }
+
+    class ClevelCommand : ChatCommand
+    {
+        public new static string Command = "clevel";
+        public new static string ArgumentText = "<string skillName> <int level>";
+        public new static string HelpText = "Change the specified skill or spell to a given mastery level.";
+        public new static bool Privileged = true;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            BookSlot slot;
+            if (Game.World.WorldData.TryGetValueByIndex(args[0], out Castable castable))
+            {
+                if (!uint.TryParse(args[1], out uint i))
+                    return Fail("What kind of level is that?");
+
+                if (user.SpellBook.Contains(castable.Id))
+                {
+                    slot = user.SpellBook.Single(x => x.Castable.Name == castable.Name);
+                    var uses = ((double)castable.Mastery.Uses) * ((double)i / 100);
+                    slot.UseCount = Convert.ToUInt32(uses);
+                    user.SendSpellUpdate(slot, user.SpellBook.SlotOf(castable.Id));
+                }
+                else if (user.SkillBook.Contains(castable.Id))
+                {
+                    slot = user.SkillBook.Single(x => x.Castable.Name == castable.Name);
+                    var uses = ((double)castable.Mastery.Uses) * ((double)i / 100);
+                    slot.UseCount = Convert.ToUInt32(uses);
+                    user.SendSkillUpdate(slot, user.SkillBook.SlotOf(castable.Id));
+                }
+                else
+                    return Fail("You don't know that spell or skill.");
+                return Success($"Castable {slot.Castable.Name} set to level {i}.");
+            }
+            return Fail("Castable not found");
         }
     }
 
