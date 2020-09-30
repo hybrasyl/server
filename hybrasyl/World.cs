@@ -847,7 +847,7 @@ namespace Hybrasyl
                 };
 
                 //sanity check to make sure user has this object
-                if (!WorldData.ContainsKey<ParcelStore>($"Hybrasyl.ParcelStore:{uuidRef.UserUuid}"))
+                if (!WorldData.ContainsKey<ParcelStore>(uuidRef.UserUuid))
                 {
                     GameLog.InfoFormat("No parcelstore found for {0}, creating", name);
                     var parcelStore = new ParcelStore(uuidRef.UserUuid);
