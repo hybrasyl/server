@@ -4149,13 +4149,6 @@ namespace Hybrasyl
             var user = (User)obj;
             var text = packet.ReadString8();
 
-            if(text.Contains("Mastery"))
-            {
-                text = text.Remove(text.IndexOf(" (Mastery"));
-            }
-            //var textLength = packet.ReadByte();
-            //var text = packet.Read(textLength);
-            if (!user.Condition.Casting) return;
             var x0D = new ServerPacketStructures.CastLine() { ChatType = 2, LineLength = (byte)text.Length, LineText = text, TargetId = user.Id };
             var enqueue = x0D.Packet();
 

@@ -263,6 +263,16 @@ namespace Hybrasyl.Objects
                 hitter.ShareExperience(LootableXP, Stats.Level);
                 var itemDropTime = DateTime.Now;
 
+                if (LootableGold > 0)
+                {
+                    var golds = new Gold(LootableGold);
+                    golds.ItemDropType = ItemDropType.MonsterLootPile;
+                    golds.ItemDropAllowedLooters = ItemDropAllowedLooters;
+                    golds.ItemDropTime = itemDropTime;
+                    World.Insert(golds);
+                    Map.Insert(golds, X, Y);
+                }
+
                 foreach (var itemname in LootableItems)
                 {
                     var item = Game.World.CreateItem(itemname);
@@ -278,15 +288,7 @@ namespace Hybrasyl.Objects
                     Map.Insert(item, X, Y);
                 }
 
-                if (LootableGold > 0)
-                {
-                    var golds = new Gold(LootableGold);
-                    golds.ItemDropType = ItemDropType.MonsterLootPile;
-                    golds.ItemDropAllowedLooters = ItemDropAllowedLooters;
-                    golds.ItemDropTime = itemDropTime;
-                    World.Insert(golds);
-                    Map.Insert(golds, X, Y);
-                }
+                
             }
             catch (Exception e)
             {
