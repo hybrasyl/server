@@ -906,7 +906,7 @@ namespace Hybrasyl.Objects
 
         public void PathNextPoint(Xml.Direction direction, (int x, int y) currentPoint)
         {
-            var rect = Map.GetViewport(12, 12);
+            var rect = GetViewport();
             var invalidPoints = new HashSet<(int x, int y)>(
                 from obj in Map.EntityTree.GetObjects(rect)
                 where Map.GetTileContents(obj.Location.X, obj.Location.Y).Any(x => x is Creature)
@@ -930,7 +930,7 @@ namespace Hybrasyl.Objects
                         if(next < 5) //try east
                         {
                             point = NextPoint(Xml.Direction.East, currentPoint);
-                            if (!Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
+                            if (point.x < Map.X && point.y < Map.Y && !Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
                             {
                                 Walk(Xml.Direction.East);
                             }
@@ -938,7 +938,7 @@ namespace Hybrasyl.Objects
                         else //try west
                         {
                             point = NextPoint(Xml.Direction.West, currentPoint);
-                            if (!Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
+                            if (point.x < Map.X && point.y < Map.Y && !Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
                             {
                                 Walk(Xml.Direction.West);
                             }
@@ -949,7 +949,7 @@ namespace Hybrasyl.Objects
                         if (next < 5) //try north
                         {
                             point = NextPoint(Xml.Direction.North, currentPoint);
-                            if (!Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
+                            if (point.x < Map.X && point.y < Map.Y && !Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
                             {
                                 Walk(Xml.Direction.North);
                             }
@@ -957,7 +957,7 @@ namespace Hybrasyl.Objects
                         else //try south
                         {
                             point = NextPoint(Xml.Direction.South, currentPoint);
-                            if (!Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
+                            if (point.x < Map.X && point.y < Map.Y && !Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
                             {
                                 Walk(Xml.Direction.South);
                             }
