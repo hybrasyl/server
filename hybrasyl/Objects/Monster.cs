@@ -20,9 +20,11 @@
  */
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Transactions;
 using Hybrasyl.Enums;
 using Hybrasyl.Scripting;
@@ -175,8 +177,24 @@ namespace Hybrasyl.Objects
         }
     }
 
+
+    public enum MobAction
+    {
+        Attack,
+        Cast,
+        Move,
+        Idle,
+        Death
+    }
+
+    
+
     public class Monster : Creature, ICloneable
     {
+        private readonly object _lock = new object();
+
+        private ConcurrentQueue<MobAction> _actionQueue;
+
         protected static Random Rng = new Random();
 
         private bool _idle = true;
@@ -207,6 +225,8 @@ namespace Hybrasyl.Objects
         public Xml.CastableGroup Castables => _castables;
 
         public bool HasCastNearDeath = false;
+
+        public bool Active = false;
                 
         
         public bool CanCast {
@@ -223,82 +243,85 @@ namespace Hybrasyl.Objects
 
         public override void OnDeath()
         {
-            if (DeathDisabled)
+            lock (_lock)
             {
-                Stats.Hp = Stats.MaximumHp;               
-                return;
-            }
-
-            // Don't die twice
-            if (DeathProcessed == true) return;
-
-            // Even if we encounter an error, we still count the death as processed to avoid 
-            // repeated processiong
-            DeathProcessed = true;
-
-            var hitter = LastHitter as User;
-            if (hitter == null)
-            {
-                Map.Remove(this);
-                World.Remove(this);
-                GameLog.Error("OnDeath: lasthitter was null");
-                return; // Don't handle cases of MOB ON MOB COMBAT just yet
-            }
-
-            try
-            {
-                var deadTime = DateTime.Now;
-
-                if (hitter.Grouped)
+                if (DeathDisabled)
                 {
-                    ItemDropAllowedLooters = hitter.Group.Members.Select(user => user.Name).ToList();
-                    hitter.Group.Members.ForEach(x => x.TrackKill(Name, deadTime));
-                }
-                else
-                {
-                    ItemDropAllowedLooters.Add(hitter.Name);
-                    hitter.TrackKill(Name, deadTime);
+                    Stats.Hp = Stats.MaximumHp;
+                    return;
                 }
 
-                hitter.ShareExperience(LootableXP, Stats.Level);
-                var itemDropTime = DateTime.Now;
+                // Don't die twice
+                if (DeathProcessed == true) return;
 
-                if (LootableGold > 0)
+                // Even if we encounter an error, we still count the death as processed to avoid 
+                // repeated processing
+                DeathProcessed = true;
+                _actionQueue.Clear();
+
+                var hitter = LastHitter as User;
+                if (hitter == null)
                 {
-                    var golds = new Gold(LootableGold);
-                    golds.ItemDropType = ItemDropType.MonsterLootPile;
-                    golds.ItemDropAllowedLooters = ItemDropAllowedLooters;
-                    golds.ItemDropTime = itemDropTime;
-                    World.Insert(golds);
-                    Map.Insert(golds, X, Y);
+                    Map.Remove(this);
+                    World.Remove(this);
+                    GameLog.Error("OnDeath: lasthitter was null");
+                    return; // Don't handle cases of MOB ON MOB COMBAT just yet
                 }
 
-                foreach (var itemname in LootableItems)
+                try
                 {
-                    var item = Game.World.CreateItem(itemname);
-                    if (item == null)
+                    var deadTime = DateTime.Now;
+
+                    if (hitter.Grouped)
                     {
-                        GameLog.UserActivityError("User {player}: looting {monster}, loot item {item} is missing", hitter.Name, Name, itemname);
-                        continue;
+                        ItemDropAllowedLooters = hitter.Group.Members.Select(user => user.Name).ToList();
+                        hitter.Group.Members.ForEach(x => x.TrackKill(Name, deadTime));
                     }
-                    item.ItemDropType = ItemDropType.MonsterLootPile;
-                    item.ItemDropAllowedLooters = ItemDropAllowedLooters;
-                    item.ItemDropTime = itemDropTime;
-                    World.Insert(item);
-                    Map.Insert(item, X, Y);
+                    else
+                    {
+                        ItemDropAllowedLooters.Add(hitter.Name);
+                        hitter.TrackKill(Name, deadTime);
+                    }
+
+                    hitter.ShareExperience(LootableXP, Stats.Level);
+                    var itemDropTime = DateTime.Now;
+
+                    if (LootableGold > 0)
+                    {
+                        var golds = new Gold(LootableGold);
+                        golds.ItemDropType = ItemDropType.MonsterLootPile;
+                        golds.ItemDropAllowedLooters = ItemDropAllowedLooters;
+                        golds.ItemDropTime = itemDropTime;
+                        World.Insert(golds);
+                        Map.Insert(golds, X, Y);
+                    }
+
+                    foreach (var itemname in LootableItems)
+                    {
+                        var item = Game.World.CreateItem(itemname);
+                        if (item == null)
+                        {
+                            GameLog.UserActivityError("User {player}: looting {monster}, loot item {item} is missing", hitter.Name, Name, itemname);
+                            continue;
+                        }
+                        item.ItemDropType = ItemDropType.MonsterLootPile;
+                        item.ItemDropAllowedLooters = ItemDropAllowedLooters;
+                        item.ItemDropTime = itemDropTime;
+                        World.Insert(item);
+                        Map.Insert(item, X, Y);
+                    }
+
+
                 }
-
-                
+                catch (Exception e)
+                {
+                    GameLog.Error("OnDeath for {Name}: exception encountered, loot/gold cancelled {e}", Name, e);
+                    Game.ReportException(e);
+                }
+                Game.World.RemoveStatusCheck(this);
+                Map?.Remove(this);
+                World?.Remove(this);
             }
-            catch (Exception e)
-            {
-                GameLog.Error("OnDeath for {Name}: exception encountered, loot/gold cancelled {e}", Name, e);
-                Game.ReportException(e);
-            }
-            Game.World.RemoveStatusCheck(this);
-            Map?.Remove(this);
-            World?.Remove(this);
-
         }
 
         // We follow a different pattern here due to the fact that monsters
@@ -347,29 +370,32 @@ namespace Hybrasyl.Objects
 
         public override void OnDamage(Creature attacker, uint damage)
         {
-            if (attacker != null)
+            lock (_lock)
             {
-                if(!ThreatInfo.ContainsThreat(attacker))
+                if (attacker != null)
                 {
-                    ThreatInfo.AddNewThreat(attacker, damage);
+                    if (!ThreatInfo.ContainsThreat(attacker))
+                    {
+                        ThreatInfo.AddNewThreat(attacker, damage);
+                    }
+                    else
+                    {
+                        ThreatInfo.IncreaseThreat(attacker, damage);
+                    }
                 }
-                else
+
+                Condition.Asleep = false;
+                IsHostile = true;
+                ShouldWander = false;
+
+                // FIXME: in the glorious future, run asynchronously with locking
+                InitScript();
+
+                if (Script != null)
                 {
-                    ThreatInfo.IncreaseThreat(attacker, damage);
+                    Script.SetGlobalValue("damage", damage);
+                    Script.ExecuteFunction("OnDamage", this, attacker);
                 }
-            }
-
-            Condition.Asleep = false;
-            IsHostile = true;
-            ShouldWander = false;
-
-            // FIXME: in the glorious future, run asynchronously with locking
-            InitScript();
-
-            if (Script != null)
-            {
-                Script.SetGlobalValue("damage", damage);
-                Script.ExecuteFunction("OnDamage", this, attacker);
             }
         }
 
@@ -437,7 +463,7 @@ namespace Hybrasyl.Objects
 
         public Monster(Xml.Creature creature, Xml.Spawn spawn, int map, Loot loot = null)
         {
-
+            _actionQueue = new ConcurrentQueue<MobAction>();
             _spawn = spawn;
             var buffed = Rng.Next() > 50;
             if (buffed)
@@ -568,10 +594,9 @@ namespace Hybrasyl.Objects
                     //ondeath does not need an interval check
                     var selectedCastable = SelectSpawnCastable(SpawnCastType.OnDeath);
                     if (selectedCastable == null) return;
-
                     if (selectedCastable.Target == Xml.TargetType.Attacker)
                     {
-                        Cast(aggroTarget, selectedCastable);   
+                        Cast(aggroTarget, selectedCastable);
                     }
 
                     if (selectedCastable.Target == Xml.TargetType.Group || selectedCastable.Target == Xml.TargetType.Random)
@@ -602,7 +627,14 @@ namespace Hybrasyl.Objects
                             Cast(aggroTarget, selectedCastable);
                             _castables.NearDeath.LastCast = DateTime.Now;
                         }
-                        
+                        else
+                        {
+                            if (Distance(ThreatInfo.ThreatTarget) == 1)
+                            {
+                                AssailAttack(Direction, aggroTarget);
+                            }
+                        }
+
                     }
 
                     if (selectedCastable.Target == Xml.TargetType.Group || selectedCastable.Target == Xml.TargetType.Random)
@@ -614,6 +646,13 @@ namespace Hybrasyl.Objects
                                 Cast(targetGroup, selectedCastable, selectedCastable.Target);
                                 _castables.NearDeath.LastCast = DateTime.Now;
                             }
+                            else
+                            {
+                                if (Distance(ThreatInfo.ThreatTarget) == 1)
+                                {
+                                    AssailAttack(Direction, aggroTarget);
+                                }
+                            }
                         }
                         else
                         {
@@ -621,6 +660,13 @@ namespace Hybrasyl.Objects
                             {
                                 Cast(aggroTarget, selectedCastable);
                                 _castables.NearDeath.LastCast = DateTime.Now;
+                            }
+                            else
+                            {
+                                if (Distance(ThreatInfo.ThreatTarget) == 1)
+                                {
+                                    AssailAttack(Direction, aggroTarget);
+                                }
                             }
                         }
                     }
@@ -640,7 +686,14 @@ namespace Hybrasyl.Objects
                         {
                             Cast(aggroTarget, selectedCastable);
                             _castables.Offense.LastCast = DateTime.Now;
-                        }                        
+                        } 
+                        else
+                        {
+                            if(Distance(ThreatInfo.ThreatTarget) == 1)
+                            {
+                                AssailAttack(Direction, aggroTarget);
+                            }
+                        }
                     }
 
                     if (selectedCastable.Target == Xml.TargetType.Group || selectedCastable.Target == Xml.TargetType.Random)
@@ -652,6 +705,13 @@ namespace Hybrasyl.Objects
                                 Cast(targetGroup, selectedCastable, selectedCastable.Target);
                                 _castables.Offense.LastCast = DateTime.Now;
                             }
+                            else
+                            {
+                                if (Distance(ThreatInfo.ThreatTarget) == 1)
+                                {
+                                    AssailAttack(Direction, aggroTarget);
+                                }
+                            }
                         }
                         else
                         {
@@ -660,6 +720,13 @@ namespace Hybrasyl.Objects
                                 Cast(aggroTarget, selectedCastable);
                                 _castables.Offense.LastCast = DateTime.Now;
                             }
+                            else
+                            {
+                                if (Distance(ThreatInfo.ThreatTarget) == 1)
+                                {
+                                    AssailAttack(Direction, aggroTarget);
+                                }
+                            }
                         }
                     }
                 }
@@ -667,6 +734,13 @@ namespace Hybrasyl.Objects
                 if (nextChoice == 1) //defense
                 {
                     //not sure how to handle this one
+                }
+            }
+            else
+            {
+                if (Distance(ThreatInfo.ThreatTarget) == 1)
+                {
+                    AssailAttack(Direction, aggroTarget);
                 }
             }
         }
@@ -832,7 +906,7 @@ namespace Hybrasyl.Objects
 
         public void PathNextPoint(Xml.Direction direction, (int x, int y) currentPoint)
         {
-            var rect = Map.GetViewport(12, 12);
+            var rect = GetViewport();
             var invalidPoints = new HashSet<(int x, int y)>(
                 from obj in Map.EntityTree.GetObjects(rect)
                 where Map.GetTileContents(obj.Location.X, obj.Location.Y).Any(x => x is Creature)
@@ -856,7 +930,7 @@ namespace Hybrasyl.Objects
                         if(next < 5) //try east
                         {
                             point = NextPoint(Xml.Direction.East, currentPoint);
-                            if (!Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
+                            if (point.x < Map.X && point.y < Map.Y && !Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
                             {
                                 Walk(Xml.Direction.East);
                             }
@@ -864,7 +938,7 @@ namespace Hybrasyl.Objects
                         else //try west
                         {
                             point = NextPoint(Xml.Direction.West, currentPoint);
-                            if (!Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
+                            if (point.x < Map.X && point.y < Map.Y && !Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
                             {
                                 Walk(Xml.Direction.West);
                             }
@@ -875,7 +949,7 @@ namespace Hybrasyl.Objects
                         if (next < 5) //try north
                         {
                             point = NextPoint(Xml.Direction.North, currentPoint);
-                            if (!Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
+                            if (point.x < Map.X && point.y < Map.Y && !Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
                             {
                                 Walk(Xml.Direction.North);
                             }
@@ -883,7 +957,7 @@ namespace Hybrasyl.Objects
                         else //try south
                         {
                             point = NextPoint(Xml.Direction.South, currentPoint);
-                            if (!Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
+                            if (point.x < Map.X && point.y < Map.Y && !Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
                             {
                                 Walk(Xml.Direction.South);
                             }
@@ -914,33 +988,156 @@ namespace Hybrasyl.Objects
             return point;
         }
 
-        public override void AoiDeparture(VisibleObject obj)
+        public void NextAction()
         {
-            if(obj is User user)
+            var next = 0;
+            if(Stats.Hp == 0)
             {
-                ThreatInfo.OnRangeExit(user);
-
-                if(ThreatInfo.ThreatTarget == null && ThreatInfo.ThreatTable.Count == 0)
+                _actionQueue.Enqueue(MobAction.Death);
+            }
+            if(!IsHostile)
+            {
+                next = _random.Next(2, 4); //move or idle
+                _actionQueue.Enqueue((MobAction)next);
+            }
+            else
+            {
+                if(ThreatInfo.ThreatTarget != null)
                 {
-                    ShouldWander = true;
-                    FirstHitter = null;
-                    Target = null;
+                    if (Distance(ThreatInfo.ThreatTarget) == 1)
+                    {
+                        next = _random.Next(0, 2); //attack or cast
+                        _actionQueue.Enqueue((MobAction)next);
+                    }
+                    else
+                    {
+                        next = _random.Next(1, 3); //cast or move
+                        _actionQueue.Enqueue((MobAction)next);
+                    }
+                }
+                else
+                {
+                    next = 2; //move
+                    _actionQueue.Enqueue((MobAction)next);
                 }
             }
-            base.AoiDeparture(obj);
+
+            ProcessActions();
+        }
+
+        private void ProcessActions()
+        {
+            lock (_lock)
+            {
+                while (_actionQueue.Count > 0)
+                {
+                    _actionQueue.TryDequeue(out var action);
+                    if (action == MobAction.Attack)
+                    {
+                        if (ThreatInfo.ThreatTarget == null) return;
+                        if (CheckFacing(Direction, ThreatInfo.ThreatTarget))
+                        {
+                            AssailAttack(Direction, ThreatInfo.ThreatTarget);
+                        }
+                        else
+                        {
+                            Turn(Relation((ThreatInfo.ThreatTarget.X, ThreatInfo.ThreatTarget.Y)));
+                        }
+                    }
+                    if (action == MobAction.Cast)
+                    {
+                        
+                        if (!Condition.Blinded)
+                        {
+                            Cast(ThreatInfo.ThreatTarget, ((User)ThreatInfo.ThreatTarget).Group);
+                        }
+                    }
+                    if (action == MobAction.Move)
+                    {
+                        if (!IsHostile && ShouldWander)
+                        {
+                            var which = _random.Next(0, 2); //turn or move
+                            if (which == 0)
+                            {
+                                var next = _random.Next(0, 4);
+                                if (Direction == (Xml.Direction)next)
+                                {
+                                    Walk((Xml.Direction)next);
+                                }
+                                else
+                                {
+                                    Turn((Xml.Direction)next);
+                                }
+                            }
+                            else
+                            {
+                                var next = _random.Next(0, 4);
+                                Turn((Xml.Direction)next);
+                            }
+                        }
+                        else
+                        {
+                            if (ThreatInfo.ThreatTarget == null) return;
+                            if (!Condition.Paralyzed && !Condition.Blinded)
+                                PathFind((Location.X, Location.Y), (ThreatInfo.ThreatTarget.Location.X, ThreatInfo.ThreatTarget.Location.Y));
+                        }
+                    }
+                    if (action == MobAction.Idle)
+                    {
+                        //do nothing
+                    }
+                    if (action == MobAction.Death)
+                    {
+                        _actionQueue.Clear();
+
+                    }
+                }
+                
+            }
+        }
+
+        public override void AoiDeparture(VisibleObject obj)
+        {
+            lock (_lock)
+            {
+                if (obj is User user)
+                {
+                    ThreatInfo.OnRangeExit(user);
+
+                    if (ThreatInfo.ThreatTarget == null && ThreatInfo.ThreatTable.Count == 0)
+                    {
+                        ShouldWander = true;
+                        FirstHitter = null;
+                        Target = null;
+                        Stats.Hp = Stats.MaximumHp;
+                    }
+                }
+                if (Map.EntityTree.GetObjects(GetViewport()).OfType<User>().ToList().Count == 0)
+                {
+                    Active = false;
+                }
+                base.AoiDeparture(obj);
+            }
         }
 
         public override void AoiEntry(VisibleObject obj)
         {
-            if (obj is User user)
+            lock (_lock)
             {
-                if(IsHostile && ThreatInfo.ThreatTarget == null)
+                if (obj is User user)
                 {
-                    ThreatInfo.OnRangeEnter(user);
-                    ShouldWander = false;
+                    if (Map.EntityTree.GetObjects(GetViewport()).OfType<User>().ToList().Count > 0)
+                    {
+                        Active = true;
+                    }
+                    if (IsHostile && ThreatInfo.ThreatTarget == null)
+                    {
+                        ThreatInfo.OnRangeEnter(user);
+                        ShouldWander = false;
+                    }
                 }
+                base.AoiEntry(obj);
             }
-            base.AoiEntry(obj);
         }
     }
 

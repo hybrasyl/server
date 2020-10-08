@@ -24,90 +24,9 @@ namespace Hybrasyl
             if (!monster.Condition.Alive || monster.DeathProcessed || 
                 monster.Id == 0 || monster.Map == null || 
                 monster.Condition.Asleep || monster.Condition.Frozen) return;
-            if (monster.IsHostile)
-            {
-                if (map.Users.Count > 0)
-                {
-                    var entityTree = map.EntityTree.GetObjects(monster.GetViewport());
-                    //get players on screen
-                    var players = entityTree.OfType<User>();
 
-                    if (players.Count() > 0)
-                    {
-                        //get closest
-                        if (monster.ThreatInfo.ThreatTable.Count == 0)
-                        {
-                            //get 
-                            monster.ThreatInfo.AddNewThreat(players.OrderBy(x => x.Distance(monster)).FirstOrDefault(), 1);
-                        }
-                    }
-
-                    UserGroup targetGroup = null;
-
-                    //get aggro target's group
-                    if (monster.ThreatInfo.ThreatTarget != null && monster.ThreatInfo.ThreatTarget is User)
-                    {
-                        targetGroup = ((User)monster.ThreatInfo.ThreatTarget).Group;
-                    }
-
-                    if (monster.ThreatInfo.ThreatTarget != null)
-                    {
-
-                        //pathfind or cast if far away
-
-                        if (monster.Distance(monster.ThreatInfo.ThreatTarget) >= 2)
-                        {
-                            var nextAction = _random.Next(1, 7);
-
-                            if (nextAction > 1)
-                            {
-                                //pathfind, only if not paralyzed
-                                if (!monster.Condition.Paralyzed && !monster.Condition.Blinded)
-                                    monster.PathFind((monster.Location.X, monster.Location.Y), (monster.ThreatInfo.ThreatTarget.Location.X, monster.ThreatInfo.ThreatTarget.Location.Y));
-                            }
-                            else
-                            {
-                                //cast
-                                if (!monster.Condition.Blinded)
-                                    monster.Cast(monster.ThreatInfo.ThreatTarget, targetGroup);
-                            }
-                        }
-                        else
-                        {
-                            //check facing and attack or cast
-                            var nextAction = _random.Next(1, 6);
-                            if (nextAction > 1)
-                            {
-                                var facing = monster.CheckFacing(monster.Direction, monster.ThreatInfo.ThreatTarget);
-                                if (facing)
-                                {
-                                    monster.AssailAttack(monster.Direction, monster.ThreatInfo.ThreatTarget);
-                                }
-                            }
-                            else
-                            {
-                                if (!monster.Condition.Blinded)
-                                    monster.Cast(monster.ThreatInfo.ThreatTarget, targetGroup);
-                            }
-                        }
-                    }
-                }
-            }
-            if (monster.ShouldWander)
-            {
-                var nextAction = _random.Next(0, 2);
-
-                if (nextAction == 1)
-                {
-                    var nextMove = _random.Next(0, 4);
-                    monster.Walk((Xml.Direction)nextMove);
-                }
-                else
-                {
-                    var nextMove = _random.Next(0, 4);
-                    monster.Turn((Xml.Direction)nextMove);
-                }
-            }
+            monster.NextAction();
+            
         }
     }
 }

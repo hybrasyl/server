@@ -564,9 +564,16 @@ namespace Hybrasyl
                     {
                         if (map.Users.Count == 0) continue;
 
-                        foreach (var mob in map.Objects.Where(x => x is Monster).ToList())
+                        foreach (var obj in map.Objects.Where(x => x is Monster).ToList())
                         {
-                            Evaluate(mob as Monster, map);
+                            if(obj is Monster mob)
+                            {
+                                if(mob.Active)
+                                {
+                                    Evaluate(mob, map);
+                                }
+                            }
+                            
                         }
                     }
                 }
