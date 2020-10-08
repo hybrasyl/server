@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Hybrasyl.Objects
+namespace Hybrasyl
 {
     public enum UserState : byte
     {
@@ -14,6 +14,7 @@ namespace Hybrasyl.Objects
     }
 
     [JsonObject(MemberSerialization.OptIn)]
+    [RedisType]
     public class AuthInfo
     {
         [JsonProperty]
@@ -53,11 +54,14 @@ namespace Hybrasyl.Objects
         public string LastPasswordChangeFrom { get; set; }
         public string StorageKey => string.Concat(GetType(), ':', UserUuid);
         public bool IsSaving { get; set; }
+        public bool IsGamemaster { get; set; } = false;
 
         public AuthInfo(string uuid)
         {
             UserUuid = uuid;
         }
+
+        public string Username => Game.World.WorldData.GetNameByUuid(UserUuid);
 
         public void Save()
         {
@@ -72,6 +76,23 @@ namespace Hybrasyl.Objects
         public bool VerifyPassword(string password)
         {
             return BCrypt.Net.BCrypt.Verify(password, PasswordHash);
+        }
+
+        public bool IsPrivileged
+        {
+            get
+            {
+                return IsExempt || IsGamemaster || (Game.Config.Access?.IsPrivileged(Username) ?? false);
+            }
+        }
+
+        public bool IsExempt
+        {
+            get
+            {
+                // This is hax, obvs, and so can you
+                return Username == "Kedian"; // ||(Account != null && Account.email == "baughj@discordians.net");
+            }
         }
 
     }

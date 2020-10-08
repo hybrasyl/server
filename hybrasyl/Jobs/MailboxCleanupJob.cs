@@ -19,6 +19,7 @@
  * 
  */
 
+using Hybrasyl.Messaging;
 using System;
 using System.Linq;
 using System.Timers;
@@ -41,9 +42,7 @@ namespace Hybrasyl.Jobs
                 {
                     try
                     {
-                        mailbox.Lock();
                         mailbox.Cleanup();
-                        mailbox.Unlock();
                     }
                     catch (MessageStoreLocked e)
                     {
@@ -55,9 +54,7 @@ namespace Hybrasyl.Jobs
                 {
                     try
                     {
-                        board.Lock();
                         board.Cleanup();
-                        board.Unlock();
                     }
                     catch (MessageStoreLocked e)
                     {

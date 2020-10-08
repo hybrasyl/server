@@ -1,4 +1,5 @@
-﻿using Hybrasyl.Objects;
+﻿using Hybrasyl.Messaging;
+using Hybrasyl.Objects;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -30,8 +31,8 @@ namespace Hybrasyl
         public string Name { get; set; }
         [JsonProperty]
         public List<GuildRank> Ranks { get; set; }
-        public Board Board => Game.World.GetBoard(Uuid);
-        public GuildVault Vault => Game.World.GetGuildVault(Uuid);
+        public Board Board => Game.World.WorldData.GetBoard(Uuid);
+        public GuildVault Vault => Game.World.WorldData.GetOrCreateByUuid<GuildVault>(Uuid, Name);
         [JsonProperty]
         public Dictionary<string, GuildMember> Members { get; set; }
 

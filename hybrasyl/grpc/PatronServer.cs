@@ -97,7 +97,7 @@ namespace HybrasylGrpc
         {
             try
             {
-                if (Game.World.TryGetAuthInfo(request.Username, out AuthInfo login))
+                if (Game.World.WorldData.TryGetAuthInfo(request.Username, out AuthInfo login))
                 {
                     if (login.VerifyPassword(request.Password))
                         return Task.FromResult(new BooleanMessageReply() { Message = "", Success = true });
@@ -116,7 +116,7 @@ namespace HybrasylGrpc
         {
             try
             {
-                if (Game.World.TryGetAuthInfo(request.Username, out AuthInfo login))
+                if (Game.World.WorldData.TryGetAuthInfo(request.Username, out AuthInfo login))
                 {
                     // Simple length check
                     if (request.NewPassword.Length > 8 || request.NewPassword.Length < 4)

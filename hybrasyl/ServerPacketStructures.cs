@@ -22,6 +22,7 @@
 using System;
 using System.Collections.Generic;
 using Hybrasyl.Enums;
+using Hybrasyl.Messaging;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml;
 
@@ -69,7 +70,7 @@ namespace Hybrasyl
             }
         }
 
-        
+
         internal partial class UseSkill
         {
             private static byte OpCode;
@@ -93,7 +94,7 @@ namespace Hybrasyl
             {
                 ServerPacket packet = new ServerPacket(OpCode);
                 packet.WriteUInt16(Icon);
-                packet.WriteByte((byte) BarColor);
+                packet.WriteByte((byte)BarColor);
                 return packet;
             }
         }
@@ -102,7 +103,7 @@ namespace Hybrasyl
         internal partial class CancelCast
         {
             private static byte OpCode;
-            
+
             internal CancelCast()
             {
                 OpCode = OpCodes.CancelCast;
@@ -185,43 +186,43 @@ namespace Hybrasyl
                 switch (Action)
                 {
                     case ExchangeActions.Initiate:
-                    {
-                        packet.WriteUInt32(RequestorId);
-                        packet.WriteString8(RequestorName);
-                    }
+                        {
+                            packet.WriteUInt32(RequestorId);
+                            packet.WriteString8(RequestorName);
+                        }
                         break;
                     case ExchangeActions.QuantityPrompt:
-                    {
-                        packet.WriteByte(ItemSlot);
-                    }
+                        {
+                            packet.WriteByte(ItemSlot);
+                        }
                         break;
                     case ExchangeActions.ItemUpdate:
-                    {
-                        packet.WriteByte((byte) (Side ? 0 : 1));
-                        packet.WriteByte(ItemSlot);
-                        packet.WriteUInt16((ushort) (0x8000 + ItemSprite));
-                        packet.WriteByte(ItemColor);
-                        packet.WriteString8(ItemName);
-                    }
+                        {
+                            packet.WriteByte((byte)(Side ? 0 : 1));
+                            packet.WriteByte(ItemSlot);
+                            packet.WriteUInt16((ushort)(0x8000 + ItemSprite));
+                            packet.WriteByte(ItemColor);
+                            packet.WriteString8(ItemName);
+                        }
                         break;
                     case ExchangeActions.GoldUpdate:
-                    {
-                        packet.WriteByte((byte) (Side ? 0 : 1));
-                        packet.WriteUInt32(Gold);
-                    }
+                        {
+                            packet.WriteByte((byte)(Side ? 0 : 1));
+                            packet.WriteUInt32(Gold);
+                        }
                         break;
                     case ExchangeActions.Cancel:
-                    {
-                        packet.WriteByte((byte) (Side ? 0 : 1));
-                        packet.WriteString8(CancelMessage);
+                        {
+                            packet.WriteByte((byte)(Side ? 0 : 1));
+                            packet.WriteString8(CancelMessage);
 
-                    }
+                        }
                         break;
                     case ExchangeActions.Confirm:
-                    {
-                        packet.WriteByte((byte) (Side ? 0 : 1));
-                        packet.WriteString8(ConfirmMessage);
-                    }
+                        {
+                            packet.WriteByte((byte)(Side ? 0 : 1));
+                            packet.WriteString8(ConfirmMessage);
+                        }
                         break;
                 }
                 return packet;
@@ -322,8 +323,8 @@ namespace Hybrasyl
                 int position = packet.Position;
                 packet.WriteUInt32(TargetId);
                 packet.WriteUInt32(SourceId ?? 0);
-                packet.WriteUInt16((ushort) TargetAnimation);
-                packet.WriteUInt16((ushort) (SourceAnimation ?? 0));
+                packet.WriteUInt16((ushort)TargetAnimation);
+                packet.WriteUInt16((ushort)(SourceAnimation ?? 0));
                 packet.WriteInt16(Speed);
                 packet.WriteInt32(0);
                 return packet;
@@ -400,13 +401,13 @@ namespace Hybrasyl
                 ServerPacket packet = new ServerPacket(OpCode);
                 packet.WriteUInt16(X);
                 packet.WriteUInt16(Y);
-                packet.WriteByte((byte) Direction);
+                packet.WriteByte((byte)Direction);
                 packet.WriteUInt32(Id);
                 packet.WriteUInt16(Helmet);
 
                 if (!DisplayAsMonster)
                 {
-                    packet.WriteByte((byte) (((byte) Gender*16) + BodySpriteOffset));
+                    packet.WriteByte((byte)(((byte)Gender * 16) + BodySpriteOffset));
                     packet.WriteUInt16(Armor);
                     packet.WriteByte(Boots);
                     packet.WriteUInt16(Armor);
@@ -420,11 +421,11 @@ namespace Hybrasyl
                     packet.WriteUInt16(SecondAcc);
                     packet.WriteByte(ThirdAccColor);
                     packet.WriteUInt16(ThirdAcc);
-                    packet.WriteByte((byte) LanternSize);
-                    packet.WriteByte((byte) RestPosition);
+                    packet.WriteByte((byte)LanternSize);
+                    packet.WriteByte((byte)RestPosition);
                     packet.WriteUInt16(Overcoat);
                     packet.WriteByte(OvercoatColor);
-                    packet.WriteByte((byte) SkinColor);
+                    packet.WriteByte((byte)SkinColor);
                     packet.WriteBoolean(Invisible);
                     packet.WriteByte(FaceShape);
                 }
@@ -441,7 +442,7 @@ namespace Hybrasyl
                     packet.WriteByte(0x00);
                     packet.WriteByte(0x00);
                 }
-                packet.WriteByte((byte) NameStyle);
+                packet.WriteByte((byte)NameStyle);
                 packet.WriteString8(Name ?? string.Empty);
                 packet.WriteString8(GroupName ?? string.Empty);
 
@@ -472,7 +473,7 @@ namespace Hybrasyl
             internal uint Quantity { get; set; }
 
             internal MerchantOptions Options { get; set; }
-            internal MerchantOptionsWithArgument OptionsWithArgument { get;set;}
+            internal MerchantOptionsWithArgument OptionsWithArgument { get; set; }
             internal MerchantInput Input { get; set; }
             internal MerchantInputWithArgument InputWithArgument { get; set; }
             internal UserInventoryItems UserInventoryItems { get; set; }
@@ -780,7 +781,7 @@ namespace Hybrasyl
         internal partial class MapLoadComplete
         {
             private readonly byte OpCode;
-            
+
             internal MapLoadComplete()
             {
                 OpCode = OpCodes.MapLoadComplete;
@@ -814,7 +815,7 @@ namespace Hybrasyl
                 {
                     ServerPacket packet = new ServerPacket(OpCode);
 
-                    packet.WriteUInt16((ushort) row);
+                    packet.WriteUInt16((ushort)row);
                     for (int column = 0; column < Map.X * 6; column += 2)
                     {
                         packet.WriteByte(Map.RawData[tile + 1]);
@@ -955,7 +956,7 @@ namespace Hybrasyl
             }
         }
 
-        internal partial class RemoveSkill  
+        internal partial class RemoveSkill
         {
             private readonly byte OpCode;
 
@@ -1028,7 +1029,7 @@ namespace Hybrasyl
                     packet.WriteString16(RecipeDescription);
 
                     var ing = "Ingredients: \n";
-                    foreach(var ingredient in RecipeIngredients)
+                    foreach (var ingredient in RecipeIngredients)
                     {
                         ing += $"{ingredient.Value} {ingredient.Key}\n";
                     }
@@ -1081,7 +1082,7 @@ namespace Hybrasyl
                 var packet = new ServerPacket(OpCode);
                 packet.WriteByte(0x01);
                 packet.WriteUInt32(ShopId);
-                if(NameOnly)
+                if (NameOnly)
                 {
                     packet.WriteByte(0x04);
                     packet.WriteString8(ShopName);
@@ -1092,7 +1093,7 @@ namespace Hybrasyl
                     packet.WriteUInt32(ShopGold);
                     packet.WriteByte(0x64); // unknown
                     packet.WriteByte((byte)ShopItems.Length);
-                    foreach(var listing in ShopItems)
+                    foreach (var listing in ShopItems)
                     {
                         packet.WriteUInt32(listing.id);
                         packet.WriteUInt16(listing.item.Sprite);
@@ -1162,21 +1163,23 @@ namespace Hybrasyl
             }
         }
 
-        internal partial class BoardResponse
+        internal partial class MessagingResponse
         {
             private readonly byte OpCode;
             public BoardResponseType ResponseType { get; set; }
             public List<(ushort Id, string Name)> Boards { get; set; }
-            public List<(bool Highlight, short Id, string Sender, byte Month, byte Day, string Subject)> Messages { get; set; }
+            public List<MessageInfo> Messages { get; set; }
             public bool isClick { get; set; }
-            public byte BoardId { get; set; }
+            public ushort BoardId { get; set; }
             public string BoardName { get; set; }
+            public string ResponseString { get; set; }
+            public bool ResponseSuccess { get; set; }
 
-            public BoardResponse()
+            public MessagingResponse()
             {
                 OpCode = OpCodes.Board;
                 Boards = new List<(ushort Id, string Name)>();
-                Messages = new List<(bool Highlight, short Id, string Sender, byte Month, byte Day, string Subject)>();
+                Messages = new List<MessageInfo>();
                 BoardId = 0;
                 BoardName = "Mail";
             }
@@ -1184,25 +1187,34 @@ namespace Hybrasyl
             public ServerPacket Packet()
             {
                 var packet = new ServerPacket(OpCode);
-                if (ResponseType == BoardResponseType.GetMailboxIndex || 
+                
+                if (ResponseType == BoardResponseType.EndResult || 
+                    ResponseType == BoardResponseType.DeleteMessage || 
+                    ResponseType == BoardResponseType.HighlightMessage)
+                {
+                    packet.WriteByte((byte) ResponseType);
+                    packet.WriteBoolean(ResponseSuccess);
+                    packet.WriteString8(ResponseString);
+                }
+                else if (ResponseType == BoardResponseType.GetMailboxIndex ||
                     ResponseType == BoardResponseType.GetBoardIndex)
                 {
                     if (ResponseType == BoardResponseType.GetMailboxIndex)
                     {
                         packet.WriteByte(0x04); // 0x02 - public, 0x04 - mail
                         packet.WriteByte(0x01); // ??? - needs to be odd number unless board in world has been clicked
-                        packet.WriteUInt16(0); // board ID;
-                        packet.WriteString8("Mail");
                     }
                     else
                     {
                         packet.WriteByte(0x02);
                         packet.WriteByte((byte)(isClick == true ? 0x02 : 0x01));
                     }
+                    packet.WriteUInt16(BoardId);
+                    packet.WriteString8(BoardName);
                     packet.WriteByte((byte)Messages.Count);
                     foreach (var message in Messages)
                     {
-                        packet.WriteBoolean(!message.Highlight);
+                        packet.WriteBoolean(message.Highlight);
                         packet.WriteInt16((short)message.Id);
                         packet.WriteString8(message.Sender);
                         packet.WriteByte(message.Month);
@@ -1210,25 +1222,48 @@ namespace Hybrasyl
                         packet.WriteString8(message.Subject);
                     }
                 }
+                
                 else if (ResponseType == BoardResponseType.DisplayList)
                 {
                     packet.WriteByte((byte)0x01);
                     packet.WriteUInt16((ushort)(Boards.Count + 1));
                     packet.WriteUInt16(0);
                     packet.WriteString8("Mail");
-                    foreach (var board in Boards)
+                    foreach (var (Id, Name) in Boards)
                     {
-                        packet.WriteUInt16((ushort)board.Id);
-                        packet.WriteString8(board.Name);
+                        packet.WriteUInt16((ushort)Id);
+                        packet.WriteString8(Name);
                     }
                     // This is required to correctly display the messaging pane
                     packet.TransmitDelay = 600;
                 }
+
+                else if (ResponseType == BoardResponseType.GetBoardMessage ||
+                    ResponseType == BoardResponseType.GetMailMessage)
+                {
+                    // Functionality unknown but necessary
+                    var message = Messages[0];
+                    if (ResponseType == BoardResponseType.GetMailMessage)
+                    {
+                        packet.WriteByte(0x05);
+                        packet.WriteByte(0x03);
+                        packet.WriteBoolean(true); // Mailbox messages are always "read"
+                    }
+                    else
+                    {
+                        packet.WriteByte(0x03);
+                        packet.WriteByte(0x00);
+                        packet.WriteBoolean(message.Highlight);
+                    }
+                    packet.WriteUInt16((ushort)message.Id);
+                    packet.WriteString8(message.Sender);
+                    packet.WriteByte((byte)message.Month);
+                    packet.WriteByte((byte)message.Day);
+                    packet.WriteString8(message.Subject);
+                    packet.WriteString16(message.Body);
+                }
                 return packet;
             }
-
-
         }
     }
-
 }

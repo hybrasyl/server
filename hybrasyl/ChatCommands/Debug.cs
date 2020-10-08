@@ -21,7 +21,7 @@
 
 using Hybrasyl.Objects;
 
-namespace Hybrasyl.Messaging
+namespace Hybrasyl.ChatCommands
 {
     class ClearDialogCommand : ChatCommand
     {
@@ -37,7 +37,7 @@ namespace Hybrasyl.Messaging
 
             var target = Game.World.WorldData.Get<User>(args[0]);
 
-            if (target.IsExempt)
+            if (target.AuthInfo.IsExempt)
                 return Fail($"User {target.Name} is exempt from your meddling.");
             else
                 target.ClearDialogState();

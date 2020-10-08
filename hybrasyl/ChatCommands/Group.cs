@@ -21,7 +21,7 @@
  
 using Hybrasyl.Objects;
 
-namespace Hybrasyl.Messaging
+namespace Hybrasyl.ChatCommands
 {
     class GroupCommand : ChatCommand
     {

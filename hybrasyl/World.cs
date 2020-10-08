@@ -46,6 +46,7 @@ using System.Threading.Tasks;
 using System.Timers;
 using System.Xml.Schema;
 using System.Diagnostics;
+using Hybrasyl.ChatCommands;
 
 namespace Hybrasyl
 {
@@ -167,44 +168,6 @@ namespace Hybrasyl
 
         public HashSet<Creature> ActiveStatuses = new HashSet<Creature>();
 
-        public static bool TryGetUser(string name, out User userobj)
-        {
-            userobj = null;
-            try
-            {
-                userobj = DatastoreConnection.GetDatabase().Get<User>(User.GetStorageKey(name));
-                return true;
-            } 
-            catch (Exception e)
-            {
-                GameLog.Fatal("{name}: DESERIALIZATION ERROR, bug or corrupt user data: {e}", name, e);
-                return false;
-            }
-        }
-
-        public bool TryGetAuthInfo(string name, out AuthInfo info)
-        {
-            info = null;
-            try
-            {
-                if (WorldData.TryGetValue(name, out UuidReference reference))
-                {
-                    if (!string.IsNullOrEmpty(reference.UserUuid) &&
-                            WorldData.TryGetValue(reference.UserUuid, out AuthInfo foundinfo))
-                    {
-                        info = foundinfo;
-                        return true;
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                GameLog.Fatal("{name}: AuthInfo retrieval error: {e}", name, e);
-            }
-            return false;
-
-        }
-
         /// <summary>
         /// Register world throttles. This should eventually use XML configuration; for now it simply
         /// registers our hardcoded throttle values.
@@ -237,7 +200,6 @@ namespace Hybrasyl
             ControlMessageQueue = new BlockingCollection<HybrasylMessage>(new ConcurrentQueue<HybrasylMessage>());
        
             ActiveAsyncDialogs = new ConcurrentDictionary<Tuple<UInt32, UInt32>, AsyncDialogRequest>();
-
             WorldData = new WorldDataStore();
 
             var datastoreConfig = new ConfigurationOptions()
@@ -755,116 +717,12 @@ namespace Hybrasyl
                 }
             }
 
-
-            // Load data from Redis
-            // Load mailboxes
-            var server = World.DatastoreConnection.GetServer(World.DatastoreConnection.GetEndPoints()[0]);
-            foreach (var key in server.Keys(pattern: "Hybrasyl.Mailbox*"))
-            {
-                GameLog.InfoFormat("Loading mailbox at {0}", key);
-                var mailbox = DatastoreConnection.GetDatabase().Get<Mailbox>(key);
-                var name = key.ToString().Split(':')[1].ToLower();
-                if (name == string.Empty)
-                {
-                    GameLog.Warning("Potentially corrupt mailbox data in Redis; ignoring");
-                    continue;
-                }
-                //Mailboxes.Add(name, mailbox);
-                WorldData.Set(name, mailbox);
-            }
-
-            //Load Vaults
-            foreach(var key in server.Keys(pattern: "Hybrasyl.Vault*"))
-            {
-                GameLog.InfoFormat($"Loading vault with key {key}");
-                var vault = DatastoreConnection.GetDatabase().Get<Vault>(key);
-                WorldData.Set(vault.OwnerUuid, vault);
-            }
-
-            foreach (var key in server.Keys(pattern: "Hybrasyl.GuildVault*"))
-            {
-                GameLog.InfoFormat($"Loading vault with key {key}");
-                var vault = DatastoreConnection.GetDatabase().Get<GuildVault>(key);
-                WorldData.Set(vault.OwnerUuid, vault);
-            }
-
-            //Load ParcelStores
-            foreach (var key in server.Keys(pattern: "Hybrasyl.ParcelStore*"))
-            {
-                GameLog.InfoFormat($"Loading parcelstore with key {key}");
-                var parcels = DatastoreConnection.GetDatabase().Get<ParcelStore>(key);
-                WorldData.Set(parcels.OwnerUuid, parcels);
-            }
-
-            //Load AuthInfo structures
-            foreach (var key in server.Keys(pattern: "Hybrasyl.AuthInfo*"))
-            {
-                GameLog.InfoFormat($"Loading authinfo with key {key}");
-                var authinfo = DatastoreConnection.GetDatabase().Get<AuthInfo>(key);
-                WorldData.Set(authinfo.UserUuid, authinfo);
-            }
-
-            // Load all boards
-            foreach (var key in server.Keys(pattern: "Hybrasyl.Board*"))
-            {
-                GameLog.InfoFormat("Loading board at {0}", key);
-                var messageboard = DatastoreConnection.GetDatabase().Get<Board>(key);
-                var name = key.ToString().Split(':')[1];
-                if (name == string.Empty)
-                {
-                    GameLog.Warning("Potentially corrupt board data in Redis; ignoring");
-                    continue;
-                }
-                // Messageboard IDs are fairly irrelevant and only matter to the client
-                messageboard.Id = WorldData.Count<Board>() + 1;
-                WorldData.SetWithIndex(messageboard.Name, messageboard, messageboard.Id);
-            }
-
-            // Load user uuid reference and initialize
-            foreach (var key in server.Keys(pattern: "User*"))
-            {
-                var name = key.ToString().Split(':')[1];
-               
-                if (name == string.Empty)
-                {
-                    GameLog.Warning("Potentially corrupt user data in Redis; ignoring");
-                    continue;
-                }
-
-                TryGetUser(name, out User user);
-                if (user == null)
-                {
-                    GameLog.Warning("User {user}: could not be loaded", key);
-                    continue;
-                }
-
-                GameLog.InfoFormat("Generating uuidreference for {0}", name);
-                var uuidRef = new UuidReference(name)
-                {
-                    AccountUuid = user.AccountUuid,
-                    UserUuid = user.Uuid,
-                    UserName = name
-                };
-
-                //sanity check to make sure user has this object
-                if (!WorldData.ContainsKey<ParcelStore>(uuidRef.UserUuid))
-                {
-                    GameLog.InfoFormat("No parcelstore found for {0}, creating", name);
-                    var parcelStore = new ParcelStore(uuidRef.UserUuid);
-                    WorldData.Set(parcelStore.OwnerUuid, parcelStore);
-                    parcelStore.Save();
-                }
-                
-                WorldData.SetWithIndex(user.Name, uuidRef, user.Uuid);
-            }
-
-
             // Ensure global boards exist and are up to date with anything specified in the config
             if (Game.Config.Boards != null)
             {
                 foreach (var globalboard in Game.Config.Boards)
                 {
-                    var board = GetBoard(globalboard.Name);
+                    var board = WorldData.GetBoard(globalboard.Name);
                     board.DisplayName = globalboard.DisplayName;
                     board.Global = true;
                     foreach (var reader in globalboard.AccessList.Read)
@@ -888,7 +746,7 @@ namespace Hybrasyl
             {
                 // If no boards are configured we set up a global default, moderated by the users specified
                 // in <Privileged>
-                var board = GetBoard("Hybrasyl");
+                var board = WorldData.GetBoard("Hybrasyl");
                 board.DisplayName = "Hybrasyl Global Board";
                 if (Game.Config.Access != null)
                 {
@@ -1049,80 +907,6 @@ namespace Hybrasyl
         }
 
         /*End ItemVariants*/
-        public ParcelStore GetParcelStore(string uuid)
-        {
-            if (WorldData.ContainsKey<ParcelStore>(uuid))
-            {
-                WorldData.Get<ParcelStore>(uuid).Save();
-                return WorldData.Get<ParcelStore>(uuid);
-            }
-            WorldData.Set<ParcelStore>(uuid, new ParcelStore(uuid));
-            WorldData.Get<ParcelStore>(uuid).Save();
-            GameLog.InfoFormat("ParcelStore: Creating parrots for {0}", uuid);
-            return WorldData.Get<ParcelStore>(uuid);
-        }
-
-
-        public Vault GetVault(string uuid)
-        {
-
-            if (WorldData.ContainsKey<Vault>(uuid))
-            {
-                WorldData.Get<Vault>(uuid).Save();
-                return WorldData.Get<Vault>(uuid);
-            }
-            WorldData.Set<Vault>(uuid, new Vault(uuid));
-            WorldData.Get<Vault>(uuid).Save();
-            GameLog.InfoFormat("Vault: Creating vault for {0}", uuid);
-            return WorldData.Get<Vault>(uuid);
-        }
-
-        public AuthInfo GetAuthInfo(string uuid)
-        {
-            if (WorldData.TryGetValue(uuid, out AuthInfo info))
-            {
-                return info;
-            }
-            var authinfo = new AuthInfo(uuid);
-            authinfo.Save();
-            WorldData.Set<AuthInfo>(uuid, authinfo);
-            GameLog.InfoFormat("AuthInfo: creating info for {0}", uuid);
-            return WorldData.Get<AuthInfo>(uuid);
-        }
-
-        public GuildVault GetGuildVault(string uuid)
-        {
-
-            if (WorldData.ContainsKey<GuildVault>(uuid))
-            {
-                WorldData.Get<GuildVault>(uuid).Save();
-                return WorldData.Get<GuildVault>(uuid);
-            }
-            WorldData.Set<GuildVault>(uuid, new GuildVault(uuid));
-            WorldData.Get<GuildVault>(uuid).Save();
-            GameLog.InfoFormat("Vault: Creating vault for {0}", uuid);
-            return WorldData.Get<GuildVault>(uuid);
-        }
-
-        public Mailbox GetMailbox(string name)
-        {
-            var mailboxName = name.ToLower();
-            if (WorldData.ContainsKey<Mailbox>(mailboxName)) return WorldData.Get<Mailbox>(mailboxName);
-            WorldData.Set<Mailbox>(mailboxName, new Mailbox(mailboxName));
-            WorldData.Get<Mailbox>(mailboxName).Save();
-            GameLog.InfoFormat("Mailbox: Creating mailbox for {0}", name);
-            return WorldData.Get<Mailbox>(mailboxName);
-        }
-
-        public Board GetBoard(string name)
-        {
-            if (WorldData.ContainsKey<Board>(name)) return WorldData.Get<Board>(name);
-            var newBoard = new Board(name) { Id = WorldData.Values<Board>().Count() + 1 };
-            WorldData.SetWithIndex<Board>(name, newBoard, newBoard.Id);
-            newBoard.Save();
-            GameLog.InfoFormat("Board: Creating {0}", name);
-            return WorldData.Get<Board>(name);
-        }
 
         private static void ValidationCallBack(object sender, ValidationEventArgs args)
         {
@@ -1699,7 +1483,11 @@ namespace Hybrasyl
             WorldData.Remove<User>(username);
         }
 
-        public void AddUser(User userobj, long connectionId) => WorldData.SetWithIndex(userobj.Name, userobj, connectionId);
+        public void AddUser(User userobj, long connectionId)
+        {
+            WorldData.SetWithIndex(userobj.Name, userobj, connectionId);
+            WorldData.GetUuidReference(userobj);
+        }
 
         public bool TryGetActiveUser(string name, out User user) => WorldData.TryGetValue(name, out user);
 
@@ -2340,7 +2128,7 @@ namespace Hybrasyl
             
             ((IDictionary)ExpectedConnections).Remove(id);
 
-            if (!TryGetUser(name, out User loginUser))
+            if (!WorldData.TryGetUser(name, out User loginUser))
             {
                 // Disconnect connection immediately, nothing good can come of this
                 GameLog.Fatal("cid {id}: DESERIALIZATION FAILURE due to bug or corrupt user data, disconnecting", connectionId);
@@ -2511,7 +2299,7 @@ namespace Hybrasyl
             {
                 user.SendGroupWhisper(message);
             }
-            else if (target == "@" && user.IsPrivileged)
+            else if (target == "@" && user.AuthInfo.IsPrivileged)
             {
                 if (Game.Config.Access == null)
                 {
@@ -2534,7 +2322,7 @@ namespace Hybrasyl
             }
             else if (target == "$")
             {
-                if (!user.IsPrivileged)
+                if (!user.AuthInfo.IsPrivileged)
                 {
                     user.SendSystemMessage("Forbidden.");
                     return;
@@ -3137,7 +2925,6 @@ namespace Hybrasyl
         private void PacketHandler_0x3B_AccessMessages(Object obj, ClientPacket packet)
         {
             var user = (User)obj;
-            var response = new ServerPacket(0x31);
 
             var action = packet.ReadByte();
             
@@ -3148,446 +2935,70 @@ namespace Hybrasyl
             {
                 case 0x01:
                     {
-                        user.Enqueue(BoardController.BoardList(user.Name).Packet());
+                        // Get list of boards / mailboxes (w key)
+                        user.Enqueue(MessagingController.BoardList(user.UuidReference).Packet());
                     }
                     break;
-
                 case 0x02:
                     {
                         // Get message list
                         var boardId = packet.ReadUInt16();
                         var startPostId = packet.ReadInt16();
-
-                        if (boardId == 0)
-                        {
-                            user.Enqueue(user.Mailbox.RenderToPacket());
-                            return;
-                        }
-                        else
-                        {
-                            if (WorldData.TryGetValueByIndex(boardId, out Board board))
-                            {
-                                user.Enqueue(board.RenderToPacket());
-                                return;
-                            }
-                            else
-                            {
-                                return;
-                            }
-                        }
+                        user.Enqueue(MessagingController.GetMessageList(user.UuidReference, boardId, startPostId).Packet());
                     }
+                    break;
                 case 0x03:
                     {
                         // Get message
                         var boardId = packet.ReadUInt16();
                         var postId = packet.ReadInt16();
-                        var messageId = postId - 1;
                         var offset = packet.ReadSByte();
-                        Message message = null;
-                        var error = string.Empty;
+                        user.Enqueue(MessagingController.GetMessage(user.UuidReference, postId, offset, boardId).Packet());
                         if (boardId == 0)
-                        {
-                            // Mailbox access
-                            switch (offset)
-                            {
-                                case 0:
-                                    {
-                                        // postId is the exact message
-                                        if (postId >= 0 && postId <= user.Mailbox.Messages.Count)
-                                            message = user.Mailbox.Messages[messageId];
-                                        else
-                                            error = "That post could not be found.";
-                                        break;
-                                    }
-                                case 1:
-                                    {
-                                        // Client clicked "prev", which hilariously means "newer"
-                                        // postId in this case is the next message
-                                        if (postId > user.Mailbox.Messages.Count)
-                                            error = "There are no newer messages.";
-                                        else
-                                        {
-                                            var messageList = user.Mailbox.Messages.GetRange(messageId,
-                                                user.Mailbox.Messages.Count - messageId);
-                                            message = messageList.Find(m => m.Deleted == false);
-
-                                            if (message == null)
-                                                error = "There are no newer messages.";
-                                        }
-                                    }
-                                    break;
-
-                                case -1:
-                                    {
-                                        // Client clicked "next", which means "older"
-                                        // postId is previous message
-                                        if (postId < 0)
-                                            error = "There are no older messages.";
-                                        else
-                                        {
-                                            var messageList = user.Mailbox.Messages.GetRange(0, postId);
-                                            messageList.Reverse();
-                                            message = messageList.Find(m => m.Deleted == false);
-                                            if (message == null)
-                                                error = "There are no older messages.";
-                                        }
-                                    }
-                                    break;
-
-                                default:
-                                    {
-                                        error = "Invalid offset (nice try, chief)";
-                                    }
-                                    break;
-                            }
-                            if (message != null)
-                            {
-                                user.Enqueue(message.RenderToPacket());
-                                message.Read = true;
-                                user.UpdateAttributes(StatUpdateFlags.Secondary);
-                                return;
-                            }
-                            response.WriteByte(0x06);
-                            response.WriteBoolean(false);
-                            response.WriteString8(error);
-                        }
-                        else
-                        {
-                            // Get board message
-                            if (WorldData.TryGetValueByIndex(boardId, out Board board))
-                            {
-                                // TODO: handle this better
-                                if (!board.CheckAccessLevel(user.Name, BoardAccessLevel.Read))
-                                    return;
-
-                                switch (offset)
-                                {
-                                    case 0:
-                                        {
-                                            // postId is the exact message
-                                            if (postId >= 0 && postId <= board.Messages.Count)
-                                            {
-                                                if (board.Messages[messageId].Deleted)
-                                                    error = "There is no such message.";
-                                                else
-                                                    message = board.Messages[messageId];
-                                            }
-                                            else
-                                                error = "That post could not be found.";
-                                            break;
-                                        }
-                                    case 1:
-                                        {
-                                            // Client clicked "prev", which hilariously means "newer"
-                                            // postId in this case is the next message
-                                            if (postId > board.Messages.Count)
-                                                error = "There are no newer messages.";
-                                            else
-                                            {
-                                                var messageList = board.Messages.GetRange(messageId,
-                                                    board.Messages.Count - messageId);
-                                                message = messageList.Find(m => m.Deleted == false);
-
-                                                if (message == null)
-                                                    error = "There are no newer messages.";
-                                            }
-                                        }
-                                        break;
-
-                                    case -1:
-                                        {
-                                            // Client clicked "next", which means "older"
-                                            // postId is previous message
-                                            if (postId < 0)
-                                                error = "There are no older messages.";
-                                            else
-                                            {
-                                                var messageList = board.Messages.GetRange(0, postId);
-                                                messageList.Reverse();
-                                                message = messageList.Find(m => m.Deleted == false);
-                                                if (message == null)
-                                                    error = "There are no older messages.";
-                                            }
-                                        }
-                                        break;
-
-                                    default:
-                                        {
-                                            error = "Invalid offset (nice try, chief)";
-                                        }
-                                        break;
-                                }
-                                if (message != null)
-                                {
-                                    user.Enqueue(message.RenderToPacket());
-                                    message.Read = true;
-                                    return;
-                                }
-                                response.WriteByte(0x06);
-                                response.WriteBoolean(false);
-                                response.WriteString8(error);
-                            }
-                        }
+                            user.UpdateAttributes(StatUpdateFlags.Secondary);
                     }
                     break;
-                // Send message
                 case 0x04:
                     {
+                        // Send message
                         var boardId = packet.ReadUInt16();
                         var subject = packet.ReadString8();
                         var body = packet.ReadString16();
-                        Board board;
-                        response.WriteByte(0x06); // Generic board response
-                        // Don't allow blank title or subject
-                        if (string.IsNullOrWhiteSpace(subject))
-                        {
-                            response.WriteBoolean(false);
-                            response.WriteString8("The message had no subject.");
-                        }
-                        else if (string.IsNullOrWhiteSpace(body))
-                        {
-                            response.WriteBoolean(false);
-                            response.WriteString8("You can't send empty messages.");
-                        }
-                        else if (!body.IsAscii() || !subject.IsAscii())
-                        {
-                            response.WriteBoolean(false);
-                            response.WriteString8("You can't send a message with special characters (ASCII only).");
-                        }
-                        else if (WorldData.TryGetValueByIndex(boardId, out board))
-                        {
-                            if ((DateTime.Now - user.LastBoardMessageSent).TotalSeconds < Constants.BOARD_SEND_MESSAGE_COOLDOWN 
-                                && user.LastBoardMessageTarget == board.Name)
-                            {
-                                response.WriteBoolean(false);
-                                response.WriteString8("Try waiting a moment before sending another message.");
-                            }
-                            else if (board.CheckAccessLevel(user.Name, BoardAccessLevel.Write))
-                            {
-                                if (board.ReceiveMessage(new Message(board.Name, user.Name, subject, body)))
-                                {
-                                    response.WriteBoolean(true);
-                                    response.WriteString8("Your message has been sent.");
-                                    user.LastBoardMessageSent = DateTime.Now;
-                                    user.LastBoardMessageTarget = board.Name;
-                                }
-                                else
-                                {
-                                    if (board.IsLocked)
-                                    {
-                                        response.WriteBoolean(false);
-                                        response.WriteString8(
-                                            "This board is being cleaned by the Mundanes. Please try again later.");
-                                    }
-                                    else if (board.Full)
-                                    {
-                                        response.WriteBoolean(false);
-                                        response.WriteString8(
-                                            "This board has too many papers nailed to it. Please try again later.");
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                response.WriteBoolean(false);
-                                response.WriteString8(
-                                    "A strange, ethereal force prohibits you from doing that.");
-                            }
-                        }
-                        else
-                        {
-                            GameLog.WarningFormat("boards: {0} tried to post to non-existent board {1}",
-                                user.Name, boardId);
-                            response.WriteBoolean(false);
-                            response.WriteString8(
-                                "...What would you say you're doing here?");
-                        }
+                        user.Enqueue(MessagingController.SendMessage(user.UuidReference, boardId, string.Empty, subject, body).Packet());
                     }
                     break;
-                // Delete post
                 case 0x05:
                     {
-                        response.WriteByte(0x07); // Delete post response
+                        // Delete post
                         var boardId = packet.ReadUInt16();
                         var postId = packet.ReadUInt16();
-                        Board board;
-                        if (boardId == 0) // Mailbox access
-                        {
-                            user.Mailbox.DeleteMessage(postId - 1);
-                            response.WriteBoolean(true);
-                            response.WriteString8("The message was destroyed.");
-                        }
-                        else if (WorldData.TryGetValueByIndex(boardId, out board))
-                        {
-                            if (user.IsPrivileged || board.CheckAccessLevel(user.Name, BoardAccessLevel.Moderate))
-                            {
-                                board.DeleteMessage(postId - 1);
-                                response.WriteBoolean(true);
-                                response.WriteString8("The message was destroyed.");
-                            }
-                            else
-                            {
-                                response.WriteBoolean(false);
-                                response.WriteString8("You can't do that.");
-                            }
-                        }
-                        else
-                        {
-                            GameLog.WarningFormat("boards: {0} tried to post to non-existent board {1}",
-                                user.Name, boardId);
-                            response.WriteBoolean(false);
-                            response.WriteString8(
-                                "...What would you say you're doing here?");
-                        }
+                        user.Enqueue(MessagingController.DeleteMessage(user.UuidReference, boardId, postId).Packet());
                     }
                     break;
-
                 case 0x06:
                     {
-                        // TODO: refactor big switch statement
-                        //
-                        // Send mail (which one might argue, ye olde DOOMVAS protocol designers, is a type of message)
-
+                        // Replies (why is this separate)
                         var boardId = packet.ReadUInt16();
                         var recipient = packet.ReadString8();
                         var subject = packet.ReadString8();
                         var body = packet.ReadString16();
-                        bool continueProcessing = true;
-                        response.WriteByte(0x06); // Send post response
-
-                        // Don't allow blank title or subject
-                        if (string.IsNullOrWhiteSpace(subject))
-                        {
-                            response.WriteBoolean(false);
-                            response.WriteString8("The message had no subject.");
-                            continueProcessing = false;
-                        }
-                        else if (string.IsNullOrWhiteSpace(body))
-                        {
-                            response.WriteBoolean(false);
-                            response.WriteString8("You can't send empty messages.");
-                            continueProcessing = false;
-                        }
-                        else if (!body.IsAscii() || !subject.IsAscii())
-                        {
-                            response.WriteBoolean(false);
-                            response.WriteString8("You can't send a message with special characters (ASCII only).");
-                            continueProcessing = false;
-                        }
-
-                        // Handle plugin response
-
-                        try
-                        {
-                            var plugin = ResolveMessagingPlugin(Xml.MessageType.Mail, new Plugins.Message(Xml.MessageType.Mail, user.Name, recipient, subject, body));
-
-                            if (plugin is IProcessingMessageHandler pmh && continueProcessing)
-                            {
-                                var msg = new Plugins.Message(Xml.MessageType.Mail, user.Name, recipient, subject, body);
-                                var resp = pmh.Process(msg);
-                                if (!pmh.Passthrough)
-                                {
-                                    // Plugin is "last destination" for message
-                                    continueProcessing = false;
-                                    response.WriteBoolean(resp.Success);
-                                    response.WriteString8(resp.PluginResponse);
-                                }
-                                else if (resp.Transformed)
-                                {
-                                    // Update message if transformed, and keep going
-                                    recipient = resp.Message.Recipient;
-                                    subject = resp.Message.Subject;
-                                    body = resp.Message.Text;
-                                }
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            Game.ReportException(e);
-                            response.WriteBoolean(false);
-                            response.WriteString8($"An unknown error occurred. Sorry!");
-                            continueProcessing = false;
-                        }
-
-                        if (WorldData.TryGetValue(recipient, out Mailbox mailbox) && continueProcessing)
-                        {
-                            try
-                            {
-                                if ((DateTime.Now - user.LastMailboxMessageSent).TotalSeconds < Constants.MAIL_MESSAGE_COOLDOWN &&
-                                    user.LastMailboxRecipient == recipient)
-                                {
-                                    response.WriteBoolean(false); ;
-                                    response.WriteString8($"You've sent too much mail to {recipient} recently. Give it a rest.");
-                                }
-                                else if (mailbox.ReceiveMessage(new Message(recipient, user.Name, subject, body)))
-                                {
-                                    response.WriteBoolean(true); // Post was successful
-                                    response.WriteString8($"Your letter to {recipient} was sent.");
-                                    GameLog.InfoFormat("mail: {0} sent message to {1}", user.Name, recipient);
-                                    ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MailNotifyUser,
-                                        recipient));
-                                }
-                                else
-                                {
-                                    response.WriteBoolean(false);
-                                    response.WriteString8($"{recipient}'s mailbox is full or locked. Your message was discarded. Sorry!");
-                                }
-                            }
-                            catch (MessageStoreLocked e)
-                            {
-                                Game.ReportException(e);
-                                response.WriteBoolean(false);
-                                response.WriteString8($"{recipient} cannot receive mail at this time. Sorry!");
-                            }
-                        }
-                        else
-                        {
-                            response.WriteBoolean(false);
-                            response.WriteString8("Sadly, no record of that person exists in the realm.");
-                        }
+                        user.Enqueue(MessagingController.SendMessage(user.UuidReference, boardId, recipient, subject, body).Packet());
                     }
                     break;
-
                 case 0x07:
                     // Highlight message
                     {
-                        // Highlight post (GM only)
                         var boardId = packet.ReadUInt16();
                         var postId = packet.ReadInt16();
-                        response.WriteByte(0x08); // Highlight response
-                        Board board;
-
-                        if (!user.IsPrivileged)
-                        {
-                            response.WriteBoolean(false);
-                            response.WriteString("You cannot highlight this message.");
-                            GameLog.WarningFormat("mail: {0} tried to highlight message {1} but isn't GM! Hijinx suspected.",
-                                user.Name, postId);
-                        }
-                        if (WorldData.TryGetValueByIndex(boardId, out board))
-                        {
-                            board.Messages[postId - 1].Highlighted = true;
-                            response.WriteBoolean(true);
-                            response.WriteString8("The message was highlighted. Good work, chief.");
-                        }
-                        else
-                        {
-                            response.WriteBoolean(false);
-                            response.WriteString8("...What would you say you're trying to do here?");
-                        }
+                        user.Enqueue(MessagingController.HighlightMessage(user.UuidReference, boardId, postId).Packet());
                     }
                     break;
-
                 default:
                     {
-                        response.WriteByte(0x06);
-                        response.WriteBoolean(false);
-                        response.WriteString8("Something has broken terribly.");
+                        user.Enqueue(MessagingController.UnknownError.Packet());
                     }
                     break;
             }
-
-            user.Enqueue(response);
         }
 
         [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, Xml.CreatureCondition.Paralyze, PlayerFlags.InDialog)]

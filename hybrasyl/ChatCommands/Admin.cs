@@ -27,7 +27,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 
-namespace Hybrasyl.Messaging
+namespace Hybrasyl.ChatCommands
 {
     // Various admin commands are implemented here.
 
@@ -247,7 +247,7 @@ namespace Hybrasyl.Messaging
             {
                 var target = Game.World.WorldData.Get<User>(args[0]);
 
-                if (target.IsExempt)
+                if (target.AuthInfo.IsExempt)
                     return Fail($"User {target.Name} is exempt from your meddling.");
                 else
                     target.DeleteSessionCookie(args[1]);
@@ -274,7 +274,7 @@ namespace Hybrasyl.Messaging
             {
                 var target = Game.World.WorldData.Get<User>(args[0]);
 
-                if (target.IsExempt)
+                if (target.AuthInfo.IsExempt)
                     return Fail($"User {target.Name} is exempt from your meddling.");
                 else
                     target.DeleteCookie(args[1]);
@@ -294,7 +294,7 @@ namespace Hybrasyl.Messaging
         {
             if (Game.World.TryGetActiveUser(args[0], out User target))
             {
-                if (target.IsExempt)
+                if (target.AuthInfo.IsExempt)
                     return Fail($"User {target.Name} is exempt from your meddling.");
 
                 target.Teleport(user.Location.MapId, user.Location.X, user.Location.Y);
@@ -317,7 +317,7 @@ namespace Hybrasyl.Messaging
         {
             if (Game.World.TryGetActiveUser(args[0], out User target))
             {
-                if (target.IsExempt)
+                if (target.AuthInfo.IsExempt)
                     return Fail($"User {target.Name} is exempt from your meddling");
                 else
                     target.Logoff(true);
@@ -394,7 +394,7 @@ namespace Hybrasyl.Messaging
         {
             if (Game.World.TryGetActiveUser(args[0], out User target))
             {
-                if (target.IsExempt)
+                if (target.AuthInfo.IsExempt)
                     return Fail($"User {target.Name} is exempt from your meddling.");
                 else
                     target.IsMuted = true;
@@ -418,7 +418,7 @@ namespace Hybrasyl.Messaging
         {
             if (Game.World.TryGetActiveUser(args[0], out User target))
             {
-                if (target.IsExempt)
+                if (target.AuthInfo.IsExempt)
                     return Fail($"User {target.Name} is exempt from your meddling");
                 else
                     target.IsMuted = false;

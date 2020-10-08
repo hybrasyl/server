@@ -19,6 +19,8 @@
  * 
  */
 
+using Hybrasyl.Messaging;
+
 namespace Hybrasyl.Objects
 {
     public class Signpost : VisibleObject
@@ -39,7 +41,7 @@ namespace Hybrasyl.Objects
             BoardKey = boardkey;
             Board = null;
             if (IsMessageboard && !string.IsNullOrEmpty(boardkey))
-                Board = Game.World.GetBoard(BoardKey);
+                Board = Game.World.WorldData.GetBoard(BoardKey);
         }
 
         public override void OnClick(User invoker)
@@ -48,7 +50,8 @@ namespace Hybrasyl.Objects
             if (!IsMessageboard)
                 invoker.SendMessage(Message, Message.Length < 1024 ? (byte)MessageTypes.SLATE : (byte)MessageTypes.SLATE_WITH_SCROLLBAR);
             else
-                invoker.Enqueue(Board.RenderToPacket(true));
+                invoker.Enqueue(MessagingController.GetMessageList(invoker.UuidReference, (ushort)Board.Id, 0, true).Packet());
+
         }
     }
 

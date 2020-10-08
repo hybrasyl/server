@@ -34,8 +34,6 @@ else:
     migrations = {}
     migrations['Migrations'] = [MIGRATION_NAME]
 
-r.set('Hybrasyl.RedisMigrations', json.dumps(migrations))
-    
 for userkey in r.keys("User:*"):
     username = userkey.decode().split(':')[1]
     authinfo = {}
@@ -55,12 +53,11 @@ for userkey in r.keys("User:*"):
     authinfo_key = f"Hybrasyl.AuthInfo:{userobj['Uuid']}"
     r.set(authinfo_key, authinfo_json)
     print(f"{MIGRATION_NAME}: AuthInfo converted, saved {authinfo_key}")
-    r.set(username, json.dumps(userobj))
+    r.set(f"User:{username}", json.dumps(userobj))
     print(f"{MIGRATION_NAME}: User object for {username} pruned and saved")
 
 # Set the migration as having run
 
-migrations = json.loads(r.get('Hybrasyl.RedisMigrations'))
 migrations['Migrations'].append(MIGRATION_NAME)
 r.set('Hybrasyl.RedisMigrations', json.dumps(migrations))
 

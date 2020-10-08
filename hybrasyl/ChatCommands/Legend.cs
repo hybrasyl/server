@@ -23,7 +23,7 @@ using Hybrasyl.Enums;
 using Hybrasyl.Objects;
 using System;
 
-namespace Hybrasyl.Messaging
+namespace Hybrasyl.ChatCommands
 {
 
     class LegendCommand : ChatCommand

@@ -26,7 +26,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 
-namespace Hybrasyl.Messaging
+namespace Hybrasyl.ChatCommands
 {
     public class ChatCommandHandler
     {
@@ -101,7 +101,7 @@ namespace Hybrasyl.Messaging
                 var handler = _associates[command];
                 var priv = (bool) handler.Type.GetField("Privileged", BindingFlags.Public | BindingFlags.Static).GetValue(null);
 
-                if (priv && !user.IsPrivileged)
+                if (priv && !user.AuthInfo.IsPrivileged)
                 {
                     user.SendSystemMessage("Failed: Access denied (command is privileged)");
                     GameLog.UserActivityError($"{user.Name}: denied attempt to use privileged command {command}");
@@ -123,7 +123,7 @@ namespace Hybrasyl.Messaging
                     return;
                 }
 
-                if (user.IsPrivileged)
+                if (user.AuthInfo.IsPrivileged)
                 {
                     var type = (priv == true ? "privileged" : "unprivileged");
                     GameLog.Warning($"{user.Name}: executing {type} command {command} {args}");

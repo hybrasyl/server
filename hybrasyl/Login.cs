@@ -96,7 +96,7 @@ namespace Hybrasyl
             var password = packet.ReadString8();
             GameLog.DebugFormat("cid {0}: Login request for {1}", client.ConnectionId, name);
 
-            if (Game.World.TryGetAuthInfo(name, out AuthInfo login))
+            if (Game.World.WorldData.TryGetAuthInfo(name, out AuthInfo login))
             {
                 if (login.VerifyPassword(password))
                 {
@@ -117,7 +117,7 @@ namespace Hybrasyl
                         return;
                     }
                     // Make sure user can be deserialized without errors
-                    if (!World.TryGetUser(name, out _))
+                    if (!Game.World.WorldData.TryGetUser(name, out _))
                     {
                         // Something bad has happened
                         client.LoginMessage("An unknown error occurred. Please contact Hybrasyl support.", 3);
@@ -232,7 +232,7 @@ namespace Hybrasyl
             var id = packet.ReadUInt32();
 
             var redirect = ExpectedConnections[id];
-            if (Game.World.TryGetAuthInfo(name, out AuthInfo login))
+            if (Game.World.WorldData.TryGetAuthInfo(name, out AuthInfo login))
             {
                 login.CurrentState = UserState.Login;
                 login.Save();
@@ -267,7 +267,7 @@ namespace Hybrasyl
             // that they matched if 0x26 request is sent from the client.
             var newPass = packet.ReadString8();
 
-            if (!Game.World.TryGetAuthInfo(name, out AuthInfo login))
+            if (!Game.World.WorldData.TryGetAuthInfo(name, out AuthInfo login))
             {
                 client.LoginMessage(GetPasswordError(0x0E), 0x0E);
                 GameLog.InfoFormat("cid {0}: Password change attempt on nonexistent player {1}", client.ConnectionId, name);

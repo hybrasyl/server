@@ -89,7 +89,7 @@
   </ItemGroup>
 
   <ItemGroup>	
-    <EmbeddedResource Include="RedisMigrations\active.json"/>
+    <EmbeddedResource Include="RedisMigrations\active.json" />
   </ItemGroup>
 
   <ItemGroup>
@@ -116,6 +116,15 @@
     <None Update="MetricsRegistry.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>MetricsRegistry.cs</LastGenOutput>
+    </None>
+    <None Update="WorldDataStoreExtensions.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>WorldDataStoreExtensions.txt</LastGenOutput>
+    </None>
+    <None Update="WorldDataStoreExtensions.txt">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>WorldDataStoreExtensions.tt</DependentUpon>
     </None>
   </ItemGroup>
 
