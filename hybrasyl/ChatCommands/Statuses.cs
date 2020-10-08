@@ -21,7 +21,7 @@
  
 using Hybrasyl.Objects;
 
-namespace Hybrasyl.Messaging
+namespace Hybrasyl.ChatCommands
 {
 
     class StatusCommand : ChatCommand
@@ -68,7 +68,7 @@ namespace Hybrasyl.Messaging
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
-            if (Game.World.TryGetActiveUser(args[1], out User target))
+            if (Game.World.TryGetActiveUser(args[0], out User target))
             {
                 target.Condition.ClearFlags();
                 return Success($"{target.Name}: Alive, all flags cleared");

@@ -97,9 +97,9 @@ namespace HybrasylGrpc
         {
             try
             {
-                if (World.TryGetUser(request.Username, out User user))
+                if (Game.World.WorldData.TryGetAuthInfo(request.Username, out AuthInfo login))
                 {
-                    if (user.VerifyPassword(request.Password))
+                    if (login.VerifyPassword(request.Password))
                         return Task.FromResult(new BooleanMessageReply() { Message = "", Success = true });
                 }
                 else
@@ -116,22 +116,21 @@ namespace HybrasylGrpc
         {
             try
             {
-                // Simple length check
-                if (request.NewPassword.Length > 8 || request.NewPassword.Length < 4)
-                    return Task.FromResult(new BooleanMessageReply() { Message = "Passwords must be between 4 and 8 characters", 
-                        Success = false });
-
-                if (Game.World.UserConnected(request.Username))
-                    return Task.FromResult(new BooleanMessageReply() { Message = "User is currently logged in", 
-                        Success = false });
-
-                if (World.TryGetUser(request.Username, out User user))
+                if (Game.World.WorldData.TryGetAuthInfo(request.Username, out AuthInfo login))
                 {
-                    user.Password.Hash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword,
+                    // Simple length check
+                    if (request.NewPassword.Length > 8 || request.NewPassword.Length < 4)
+                        return Task.FromResult(new BooleanMessageReply()
+                        {
+                            Message = "Passwords must be between 4 and 8 characters",
+                            Success = false
+                        });
+
+                    login.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword,
                         BCrypt.Net.BCrypt.GenerateSalt(12));
-                    user.Password.LastChanged = DateTime.Now;
-                    user.Password.LastChangedFrom = context.Peer;
-                    user.Save();
+                    login.LastPasswordChange = DateTime.Now;
+                    login.LastPasswordChangeFrom = context.Peer;
+                    login.Save();
                 }
                 else
                     return Task.FromResult(new BooleanMessageReply() { Message = "Unknown user", Success = false });

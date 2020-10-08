@@ -88,6 +88,10 @@
     <EmbeddedResource Include="Resources\sotp.dat" />
   </ItemGroup>
 
+  <ItemGroup>	
+    <EmbeddedResource Include="RedisMigrations\active.json" />
+  </ItemGroup>
+
   <ItemGroup>
     <None Include="MetricsIncludes.cs">
       <DesignTime>True</DesignTime>
@@ -113,6 +117,10 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>MetricsRegistry.cs</LastGenOutput>
     </None>
+    <None Update="WorldDataStoreExtensions.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>WorldDataStoreExtensions.txt</LastGenOutput>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
@@ -137,4 +145,10 @@
     </Compile>
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="RedisMigrations\Scripts\*.*">
+      <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 </Project>

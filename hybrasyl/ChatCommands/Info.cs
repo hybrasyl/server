@@ -25,7 +25,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 
-namespace Hybrasyl.Messaging
+namespace Hybrasyl.ChatCommands
 {
 
     class MaplistCommand : ChatCommand
@@ -108,7 +108,7 @@ namespace Hybrasyl.Messaging
                     string argtext = (string)x.GetField("ArgumentText", BindingFlags.Public | BindingFlags.Static).GetValue(null);
                     bool priv = (bool)x.GetField("Privileged", BindingFlags.Public | BindingFlags.Static).GetValue(null);
                     string helptext = (string)x.GetField("HelpText", BindingFlags.Public | BindingFlags.Static).GetValue(null);
-                    if (priv && !user.IsPrivileged) continue;
+                    if (priv && !user.AuthInfo.IsPrivileged) continue;
                     helpString = $"{helpString}/{command} - {argtext}\n  {helptext}\n\n";
                 }
             }
@@ -120,7 +120,7 @@ namespace Hybrasyl.Messaging
                     string argtext = (string)handler.GetField("ArgumentText", BindingFlags.Public | BindingFlags.Static).GetValue(null);
                     bool priv = (bool)handler.GetField("Privileged", BindingFlags.Public | BindingFlags.Static).GetValue(null);
                     string helptext = (string)handler.GetField("HelpText", BindingFlags.Public | BindingFlags.Static).GetValue(null);
-                    if (priv && !user.IsPrivileged) return Fail("Access denied");
+                    if (priv && !user.AuthInfo.IsPrivileged) return Fail("Access denied");
                     helpString = $"{helpString}/{command} - {argtext}\n  {helptext}\n\n";
                 }
                 else

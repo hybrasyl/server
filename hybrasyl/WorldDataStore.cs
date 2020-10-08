@@ -18,23 +18,31 @@
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
  */
- 
+
+using Hybrasyl.Messaging;
+using Hybrasyl.Objects;
+using StackExchange.Redis;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 
 namespace Hybrasyl
 {
-    public class WorldDataStore
+    public partial class WorldDataStore
     {
         static string Sanitize(dynamic key) => key.ToString().Normalize().ToLower();
 
         private ConcurrentDictionary<Type, ConcurrentDictionary<string, dynamic>> _dataStore;
         private ConcurrentDictionary<Type, ConcurrentDictionary<dynamic, dynamic>> _index;
         public static SHA256CryptoServiceProvider sha = new SHA256CryptoServiceProvider();
+
+        public IDatabase Redis => World.DatastoreConnection.GetDatabase();
+
+        private HashSet<Type> RedisTypes { get; set; } 
 
         /// <summary>
         /// Normalize keys by converting to lowercase and removing whitespace (this means that 
@@ -51,6 +59,13 @@ namespace Hybrasyl
         {
             _dataStore = new ConcurrentDictionary<Type, ConcurrentDictionary<string, dynamic>>();
             _index = new ConcurrentDictionary<Type, ConcurrentDictionary<dynamic, dynamic>>();
+            RedisTypes = new HashSet<Type>();
+            var assembly = Assembly.GetExecutingAssembly();
+            foreach (Type type in assembly.GetTypes())
+            {
+                if (type.GetCustomAttributes(typeof(RedisType), false).Length > 0)
+                    RedisTypes.Add(type);
+            }
         }
 
         /// <summary>
@@ -93,7 +108,7 @@ namespace Hybrasyl
         {
             if (_dataStore.ContainsKey(typeof(T)))
             {
-                return (T) _dataStore[typeof(T)][Sanitize(key)];
+                return (T)_dataStore[typeof(T)][Sanitize(key)];
             }
             return default(T);
         }
@@ -118,7 +133,7 @@ namespace Hybrasyl
         {
             if (_index.ContainsKey(typeof(T)))
             {
-                return (T) _index[typeof(T)][Sanitize(key)];
+                return (T)_index[typeof(T)][Sanitize(key)];
             }
             return default(T);
         }
@@ -135,7 +150,7 @@ namespace Hybrasyl
             tresult = default(T);
             var sub = GetSubStore<T>();
             if (!sub.ContainsKey(Sanitize(key))) return false;
-            tresult = (T) sub[Sanitize(key)];
+            tresult = (T)sub[Sanitize(key)];
             return true;
         }
 
@@ -176,9 +191,9 @@ namespace Hybrasyl
         /// <param name="value">The actual object to be stored</param>
         /// <param name="index">The index key for the object</param>
         /// <returns>Boolean indicating success</returns>
-        public bool SetWithIndex<T>(dynamic key, T value, dynamic index) => GetSubStore<T>().TryAdd(Sanitize(key), value) && 
+        public bool SetWithIndex<T>(dynamic key, T value, dynamic index) => GetSubStore<T>().TryAdd(Sanitize(key), value) &&
             GetSubIndex<T>().TryAdd(Sanitize(index), value);
-   
+
         /// <summary>
         /// Returns all the objects contained in the datastore of the specified type's substore.
         /// </summary>
@@ -213,7 +228,7 @@ namespace Hybrasyl
         /// </summary>
         /// <typeparam name="T">The type to return</typeparam>
         /// <returns>IDictionary of objects of the specified type.</returns>
-        public IDictionary<string, T> GetDictionary<T>() => (IDictionary<string,T>) _dataStore[typeof(T)];
+        public IDictionary<string, T> GetDictionary<T>() => (IDictionary<string, T>)_dataStore[typeof(T)];
 
         /// <summary>
         /// Remove an object from the datastore.
@@ -230,6 +245,7 @@ namespace Hybrasyl
         {
             return GetSubIndex<T>().TryRemove(Sanitize(index), out dynamic _);
         }
+
 
         // Convenience finder functions below for various non-generic types.
         // This can probably be further genericized, moving forward.
@@ -259,5 +275,156 @@ namespace Hybrasyl
             return ret;
         }
 
+        /// <summary>
+        /// Return a username for a given uuid
+        /// </summary>
+        /// <param name="uuid">The uuid to look up</param>
+        /// <returns>The username or string.empty if not found</returns>
+        public string GetNameByUuid(string uuid)
+        {
+            if (TryGetValueByIndex(uuid, out UuidReference reference))
+                return reference.UserName;            
+            return string.Empty;
+        }
+
+        public string GetUuidByName(string name)
+        {
+            if (TryGetValue(name, out UuidReference reference))
+                return reference.UserUuid;
+            // Does user exist?
+            if (TryGetUser(name, out User user))
+                return user.Uuid;
+            return string.Empty;
+        }
+
+        public bool TryGetAuthInfo(string name, out AuthInfo info)
+        {
+            info = null;
+            var uuid = GetUuidByName(name);
+            
+            if (!string.IsNullOrEmpty(uuid))
+            {
+                if (TryGetValue(uuid, out info))
+                    return true;
+                if (TryGetValueByIndex(name, out info))
+                    return true;
+                // Fall back to loading from Redis
+                info = GetOrCreateByUuid<AuthInfo>(uuid, name);
+                // If we loaded from Redis, the user (should not) be logged in, so reset state
+                if (info.IsLoggedIn)
+                {
+                    info.CurrentState = UserState.Disconnected;
+                    info.Save();
+                }
+                if (info != null)
+                    return true;
+            }          
+            return false;
+        }
+
+        public T GetOrCreate<T>(UuidReference reference) => GetOrCreateByUuid<T>(reference.UserUuid, reference.UserName);
+
+        public T GetOrCreateByUuid<T>(string uuid, string index = "")
+        {
+            var type = typeof(T);
+            if (!RedisTypes.Contains(type))
+                throw new ArgumentException($"Type {type} is not a uuid referenced Redis type");
+
+            // Check for existence of object locally first
+            if (TryGetValue(uuid, out T obj))
+                return obj;
+
+            // Check for existence of object in Redis
+            var storageKey = $"{type.FullName}:{uuid}";
+            if (Redis.KeyExists(storageKey))
+                obj = Redis.Get<T>(storageKey);
+
+            // Fall back to creating it if needed
+            if (obj == null)
+            {
+                obj = (T)Activator.CreateInstance(typeof(T), new object[1] { uuid });
+                Redis.Set(storageKey, obj);
+            }
+
+            // Now that we have the object, update the store
+            if (string.IsNullOrEmpty(index))
+                Set(uuid, obj);
+            else
+                SetWithIndex(uuid, obj, index);
+
+            return obj;
+        }
+
+        public Board GetBoard(string name)
+        {
+            Board newBoard;
+            if (ContainsKey<Board>(name)) return Get<Board>(name);
+            var newBoardId = Values<Board>().Count() + 1; 
+            // Check redis first, then fall back to creation
+            if (Redis.KeyExists(Board.GetStorageKey(name)))
+            {
+                newBoard = Redis.Get<Board>(Board.GetStorageKey(name));
+                GameLog.Info("Board: loaded {boardname}", name);
+                newBoard.Id = newBoardId;
+            }
+            else
+            {
+                newBoard = new Board(name) { Id = newBoardId };
+                newBoard.Save();
+                GameLog.Info("Board: Creating {boardname}", name);
+            }
+            SetWithIndex(name, newBoard, newBoard.Id);
+            return Get<Board>(name);
+        }
+
+        public UuidReference GetUuidReference(string name)
+        {
+            if (TryGetValueByIndex(name, out UuidReference reference))
+                return reference;
+            if (TryGetUser(name, out User userobj))
+                return GetUuidReference(userobj);
+            return null;
+        }
+
+        public UuidReference GetUuidReference(User userObj)
+        {
+
+            if (TryGetValue(userObj.Uuid, out UuidReference reference))
+                return reference;
+
+            var uuidRef = new UuidReference(userObj.Name)
+            {
+                AccountUuid = userObj.AccountUuid,
+                UserUuid = userObj.Uuid               
+            };
+
+            SetWithIndex(userObj.Uuid, uuidRef, userObj.Name);
+            return Get<UuidReference>(userObj.Uuid);
+        }
+
+        public bool TryGetUser(string name, out User userobj)
+        {
+            userobj = null;
+            try
+            {
+                userobj = Redis.Get<User>(User.GetStorageKey(name));
+                if (userobj != null)
+                {
+                    // Ensure our UUID reference is created when we deserialize a user (if it doesn't already exist)
+                    GetUuidReference(userobj);
+                    return true;
+                }
+            }
+            catch (Exception e)
+            {
+                GameLog.Fatal("{name}: DESERIALIZATION ERROR, bug or corrupt user data: {e}", name, e);
+                return false;
+            }
+            return false;
+        }
+
+
     }
+
 }
+

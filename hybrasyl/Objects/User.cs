@@ -34,35 +34,16 @@ using Hybrasyl.Utility;
 using Hybrasyl.Xml;
 using Hybrasyl.Scripting;
 using Discord.Rest;
+using Hybrasyl.Messaging;
 
 namespace Hybrasyl.Objects
 {
     
     [JsonObject]
-    public class PasswordInfo
-    {
-        public string Hash { get; set; }
-        public DateTime LastChanged { get; set; }
-        public string LastChangedFrom { get; set; }
-    }
-
-    [JsonObject]
     public class KillRecord
     {
         public string Name { get; set; }
         public DateTime Timestamp { get; set; }
-    }
-
-    [JsonObject]
-    public class LoginInfo
-    {
-        public DateTime LastLogin { get; set; }
-        public DateTime LastLogoff { get; set; }
-        public DateTime LastLoginFailure { get; set; }
-        public string LastLoginFrom { get; set; }
-        public Int64 LoginFailureCount { get; set; }
-        public DateTime CreatedTime { get; set; }
-        public bool FirstLogin { get; set; }
     }
 
     [JsonObject(MemberSerialization.OptIn)]
@@ -79,6 +60,7 @@ namespace Hybrasyl.Objects
 
         [JsonProperty]
         public string Uuid { get; set; }
+        public UuidReference UuidReference => Game.World.WorldData.GetUuidReference(this);
 
         [JsonProperty]
         public string AccountUuid { get; set; }
@@ -118,9 +100,10 @@ namespace Hybrasyl.Objects
             }
         }
 
-        public Mailbox Mailbox => Game.World.GetMailbox(Name);
-        public Vault Vault => Game.World.GetVault(AccountUuid ?? Uuid);
-        public ParcelStore ParcelStore => Game.World.GetParcelStore(Uuid);
+        public Mailbox Mailbox => Game.World.WorldData.GetOrCreateByUuid<Mailbox>(Uuid, Name);
+        public SentMail SentMailbox => Game.World.WorldData.GetOrCreateByUuid<SentMail>(Uuid, Name);
+        public Vault Vault => Game.World.WorldData.GetOrCreateByUuid<Vault>(AccountUuid ?? Uuid, Name);
+        public ParcelStore ParcelStore => Game.World.WorldData.GetOrCreateByUuid<ParcelStore>(Uuid, Name);
         public bool UnreadMail => Mailbox.HasUnreadMessages;
         public bool HasParcels => ParcelStore.Items.Count > 0;
        
@@ -149,12 +132,11 @@ namespace Hybrasyl.Objects
 
         #region User 
         // Some structs helping us to define various metadata 
-        [JsonProperty]
-        public LoginInfo Login { get; set; }
-        [JsonProperty]
-        public PasswordInfo Password { get; set; }
+        public AuthInfo AuthInfo => Game.World.WorldData.GetOrCreateByUuid<AuthInfo>(Uuid, Name);
+ 
         [JsonProperty]
         public SkillBook SkillBook { get; private set; }
+        
         [JsonProperty]
         public SpellBook SpellBook { get; private set; }
 
@@ -287,28 +269,11 @@ namespace Hybrasyl.Objects
             }
         }
 
-        public bool IsPrivileged
-        {
-            get
-            {
-                return IsExempt || Flags.ContainsKey("gamemaster") || (Game.Config.Access?.IsPrivileged(this.Name) ?? false);
-            }
-        }
-
-        public bool IsExempt
-        {
-            get
-            {
-                // This is hax, obvs, and so can you
-                return Name == "Kedian"; // ||(Account != null && Account.email == "baughj@discordians.net");
-            }
-        }
-
         public double SinceLastLogin
         {
             get
             {
-                var span = (Login.LastLogin - Login.LastLogoff);
+                var span = (AuthInfo.LastLogin - AuthInfo.LastLogoff);
                 return span.TotalSeconds < 0 ? 0 : span.TotalSeconds;
             }
         }
@@ -696,11 +661,6 @@ namespace Hybrasyl.Objects
             get { return (ushort)(Stats.BaseStr + Stats.Level / 4 + 48); }
         }
 
-        public bool VerifyPassword(string password)
-        {
-            return BCrypt.Net.BCrypt.Verify(password, Password.Hash);
-        }
-
         public User() : base()
         {
             _initializeUser();
@@ -714,8 +674,6 @@ namespace Hybrasyl.Objects
             SkillBook = new SkillBook();
             SpellBook = new SpellBook();
             IsAtWorldMap = false;
-            Login = new LoginInfo();
-            Password = new PasswordInfo();
             Location = new LocationInfo();
             Legend = new Legend();
             LastSaid = string.Empty;
@@ -1039,7 +997,7 @@ namespace Hybrasyl.Objects
 
         private (string GuildName, string GuildRank) GetGuildInfo()
         {
-            var guild = World.WorldData.Get<Guild>($"{GuildUuid}");
+            var guild = World.WorldData.Get<Guild>(GuildUuid);
             if (guild == null) return ("", "");
 
             return guild.GetUserDetails(GuildUuid);
@@ -1073,7 +1031,10 @@ namespace Hybrasyl.Objects
                         Statuses = CurrentStatusInfo.ToList();
                     else
                         Statuses.Clear();
-                }                
+                }
+                AuthInfo.Save();
+                Mailbox.Save();
+                SentMailbox.Save();              
                 cache.Set(GetStorageKey(Name), this);
             }
         }
@@ -1254,7 +1215,7 @@ namespace Hybrasyl.Objects
         {
             if(!Map.AllowCasting)
             {
-                if (!IsPrivileged)
+                if (!AuthInfo.IsPrivileged)
                 {
                     SendSystemMessage("You can't use that here.");
                     return;
@@ -1288,7 +1249,7 @@ namespace Hybrasyl.Objects
         {
             if (!Map.AllowCasting)
             {
-                if (!IsPrivileged)
+                if (!AuthInfo.IsPrivileged)
                 {
                     SendSystemMessage("You can't cast that here.");
                     return;
@@ -2859,12 +2820,12 @@ namespace Hybrasyl.Objects
         /// <summary>
         /// Update a player's last login time in the database and the live object.
         /// </summary>
-        public void UpdateLoginTime() => Login.LastLogin = DateTime.Now;
+        public void UpdateLoginTime() => AuthInfo.LastLogin = DateTime.Now;
 
         /// <summary>
         /// Update a player's last logoff time in the database and the live object.
         /// </summary>
-        public void UpdateLogoffTime() => Login.LastLogoff = DateTime.Now;
+        public void UpdateLogoffTime() => AuthInfo.LastLogoff = DateTime.Now;
 
         public void SendWorldMap(WorldMap map)
         {
@@ -4098,7 +4059,7 @@ namespace Hybrasyl.Objects
             options.Options = new List<MerchantDialogOption>();
             //verify user has required items.
             var parcelFee = (uint)Math.Round((itemObj.Value * .10) * quantity, 0);
-            if (!World.TryGetUser(recipient, out var _))
+            if (!Game.World.WorldData.TryGetUser(recipient, out var _))
             {
                 prompt = "I'm sorry, I don't know of anyone by that name.";
             }
@@ -4128,8 +4089,8 @@ namespace Hybrasyl.Objects
 
                 //TODO: Send parcel to recipient
                 var uuidRef = World.WorldData.Get<UuidReference>(recipient);
-                var parcelStore = World.WorldData.Get<ParcelStore>(uuidRef.UserUuid);
-                var recipientMailbox = World.WorldData.Get<Mailbox>(recipient);
+                var parcelStore = World.WorldData.GetOrCreate<ParcelStore>(uuidRef);
+                var recipientMailbox = World.WorldData.GetOrCreate<Mailbox>(uuidRef);
                 parcelStore.AddItem(Name, itemObj.Name == "Sausages" ? "Rotten Sausages" : itemObj.Name, quantity);
                 recipientMailbox.ReceiveMessage(new Message(recipient, merchant.Name, "You've received a package.", "Please visit a messenger to collect your package."));
 

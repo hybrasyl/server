@@ -25,7 +25,7 @@ using Hybrasyl.Objects;
 using System;
 using System.Linq;
 
-namespace Hybrasyl.Messaging
+namespace Hybrasyl.ChatCommands
 {
     class HpCommand : ChatCommand
     {

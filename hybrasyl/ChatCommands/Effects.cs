@@ -23,7 +23,7 @@ using Hybrasyl.Objects;
 using System.Text.RegularExpressions;
 using System.Linq;
 
-namespace Hybrasyl.Messaging
+namespace Hybrasyl.ChatCommands
 {
 
     class MotionCommand : ChatCommand

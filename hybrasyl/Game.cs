@@ -116,6 +116,7 @@ namespace Hybrasyl
 
         public static void CurrentDomain_ProcessExit(object sender, EventArgs e) => Shutdown();
 
+
         public static void Shutdown()
         {
             Log.Warning("Hybrasyl: all servers shutting down");
@@ -299,7 +300,7 @@ namespace Hybrasyl
                     
             if (!World.InitWorld())
             {
-                GameLog.Fatal("Hybrasyl cannot continue loading. Fatal error while loading world data. Press any key to exit.");
+                GameLog.Fatal("Hybrasyl cannot continue loading. A fatal error while initializing the world. Press any key to exit.");
                 Console.ReadKey();
                 Environment.Exit(1);
             }

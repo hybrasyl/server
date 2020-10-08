@@ -29,6 +29,9 @@ using System.Text.RegularExpressions;
 namespace Hybrasyl
 {
 
+    [AttributeUsage(AttributeTargets.Class)]
+    public class RedisType : Attribute { }
+
     public static class Extensions
     {
         public static IEnumerable<string> Split(this string str, int n)

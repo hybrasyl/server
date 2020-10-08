@@ -358,6 +358,7 @@ namespace Hybrasyl
     }
 
     [JsonObject(MemberSerialization.OptIn)]
+    [RedisType]
     public class Vault
     {
         [JsonProperty]
@@ -488,6 +489,7 @@ namespace Hybrasyl
 
 
     [JsonObject(MemberSerialization.OptIn)]
+    [RedisType]
     public class GuildVault : Vault
     {
         //strings are guid identifiers
@@ -542,6 +544,7 @@ namespace Hybrasyl
     }
 
     [JsonObject(MemberSerialization.OptIn)]
+    [RedisType]
     public class ParcelStore
     {
         private readonly object _lock = new object();
