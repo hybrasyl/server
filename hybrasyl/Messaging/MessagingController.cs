@@ -230,7 +230,13 @@ namespace Hybrasyl.Messaging
             {
                 if (Game.World.WorldData.TryGetAuthInfo(userRef.UserUuid, out AuthInfo ainfo))
                 {
-                    if (ainfo.IsPrivileged || board.CheckAccessLevel(ainfo.Username, BoardAccessLevel.Moderate))
+                    var delmsg = board.GetMessage(messageId);
+
+                    if (delmsg == null)
+                        response = "That message could not be found.";
+
+                    else if (ainfo.IsPrivileged || board.CheckAccessLevel(ainfo.Username, BoardAccessLevel.Moderate) ||
+                        delmsg.Sender.ToLower() == userRef.UserName.ToLower())
                     {
                         if (board.DeleteMessage(postId - 1))
                         {
@@ -238,7 +244,7 @@ namespace Hybrasyl.Messaging
                             success = true;
                         }
                         else
-                            response = "That message could not be found.";
+                            response = "Sorry, an error occurred.";
                     }
                     else
                         response = "You can't do that.";

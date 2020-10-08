@@ -109,6 +109,13 @@ namespace Hybrasyl.Messaging
             return GetEnumerator();
         }
 
+        public Message GetMessage(int id)
+        {
+            if (id > Messages.Count)
+                return null;
+            else return Messages[id];
+        }
+
         public void Cleanup()
         {
             IsLocked = true;

@@ -121,11 +121,6 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>WorldDataStoreExtensions.txt</LastGenOutput>
     </None>
-    <None Update="WorldDataStoreExtensions.txt">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>WorldDataStoreExtensions.tt</DependentUpon>
-    </None>
   </ItemGroup>
 
   <ItemGroup>
