@@ -96,6 +96,29 @@
     <xs:attribute name="ReflectChance" type="xs:float"/>
     <xs:attribute name="ReflectIntensity" type="xs:float"/>
   </xs:complexType>
+  
+  <xs:complexType name="StatModifierFormulas">
+    <xs:attribute name="Str" default="0" type="xs:string" />
+    <xs:attribute name="Int" default="0" type="xs:string" />
+    <xs:attribute name="Wis" default="0" type="xs:string" />
+    <xs:attribute name="Con" default="0" type="xs:string" />
+    <xs:attribute name="Dex" default="0" type="xs:string" />
+    <xs:attribute name="Hp" default="0" type="xs:string" />
+    <xs:attribute name="Mp" default="0" type="xs:string" />
+    <xs:attribute name="Hit" default="0" type="xs:string" />
+    <xs:attribute name="Dmg" default="0" type="xs:string" />
+    <xs:attribute name="Ac" default="0" type="xs:string" />
+    <xs:attribute name="Regen" default="0" type="xs:string" />
+    <xs:attribute name="Mr" default="0" type="xs:string" />
+    <xs:attribute name="OffensiveElement" type="hyb:Element" default="None"/>
+    <xs:attribute name="DefensiveElement" type="hyb:Element" default="None"/>
+    <xs:attribute name="DamageModifier" type="xs:string"/>
+    <xs:attribute name="HealModifier" type="xs:string"/>
+    <xs:attribute name="DamageType" type="xs:string"/>
+    <xs:attribute name="ReflectChance" type="xs:string"/>
+    <xs:attribute name="ReflectIntensity" type="xs:string"/>
+  </xs:complexType>
+
 
   <!-- Damage flags type -->
   <xs:simpleType name="DamageFlags">

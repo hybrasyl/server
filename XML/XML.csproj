@@ -13,10 +13,6 @@
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Entities|AnyCPU'" />
 
-  <!-- Continue to control versioning manually with AssemblyInfo.cs -->
-  <PropertyGroup>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-  </PropertyGroup>
   <ItemGroup>
     <Compile Remove="api\**" />
     <Compile Remove="articles\**" />

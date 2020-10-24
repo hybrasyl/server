@@ -25,6 +25,7 @@ using System;
 
 namespace Hybrasyl.Objects
 {
+
     [JsonObject(MemberSerialization.OptIn)]
     public class StatInfo
     {

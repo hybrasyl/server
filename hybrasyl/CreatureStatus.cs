@@ -185,6 +185,7 @@ namespace Hybrasyl
         public SimpleStatusEffect OnStartEffect { get; }
         public SimpleStatusEffect OnRemoveEffect { get; }
         public SimpleStatusEffect OnExpireEffect { get; }
+        public StatInfo BonusModifiers { get; set; }
 
         public bool Expired => (DateTime.Now - Start).TotalSeconds >= Duration;
         public double Elapsed => (DateTime.Now - Start).TotalSeconds;
@@ -247,7 +248,10 @@ namespace Hybrasyl
         private void ProcessSfx(Xml.ModifierEffect effect)
         {
             if (effect.Sound?.Id != 0)
-                User?.PlaySound(effect.Sound.Id);
+            {
+                (Target as User)?.PlaySound(effect.Sound.Id);
+                (Source as User)?.PlaySound(effect.Sound.Id);
+            }
             if (effect.Animations != null)
             {
                 if (effect.Animations?.Target?.Id != 0)

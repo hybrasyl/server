@@ -24,125 +24,307 @@ using System.Collections.Generic;
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-public partial class ModifierEffect
+public partial class StatModifierFormulas
 {
     #region Private fields
-    private StatusAnimations _animations;
-    private ModifierEffectSound _sound;
-    private Messages _messages;
-    private StatusHeal _heal;
-    private StatusDamage _damage;
-    private StatModifierFormulas _statModifiers;
-    private Conditions _conditions;
-    private Handler _handler;
+    private string _str;
+    private string _int;
+    private string _wis;
+    private string _con;
+    private string _dex;
+    private string _hp;
+    private string _mp;
+    private string _hit;
+    private string _dmg;
+    private string _ac;
+    private string _regen;
+    private string _mr;
+    private Element _offensiveElement;
+    private Element _defensiveElement;
+    private string _damageModifier;
+    private string _healModifier;
+    private string _damageType;
+    private string _reflectChance;
+    private string _reflectIntensity;
     private static XmlSerializer _serializer;
     #endregion
     
-    public ModifierEffect()
+    public StatModifierFormulas()
     {
-        _handler = new Handler();
-        _conditions = new Conditions();
-        _statModifiers = new StatModifierFormulas();
-        _damage = new StatusDamage();
-        _heal = new StatusHeal();
-        _messages = new Messages();
-        _sound = new ModifierEffectSound();
-        _animations = new StatusAnimations();
+        _str = "0";
+        _int = "0";
+        _wis = "0";
+        _con = "0";
+        _dex = "0";
+        _hp = "0";
+        _mp = "0";
+        _hit = "0";
+        _dmg = "0";
+        _ac = "0";
+        _regen = "0";
+        _mr = "0";
+        _offensiveElement = new Element[] {
+                Element.None};
+        _defensiveElement = new Element[] {
+                Element.None};
     }
     
-    public StatusAnimations Animations
+    [XmlAttribute]
+    [DefaultValue("0")]
+    public string Str
     {
         get
         {
-            return _animations;
+            return _str;
         }
         set
         {
-            _animations = value;
+            _str = value;
         }
     }
     
-    public ModifierEffectSound Sound
+    [XmlAttribute]
+    [DefaultValue("0")]
+    public string Int
     {
         get
         {
-            return _sound;
+            return _int;
         }
         set
         {
-            _sound = value;
+            _int = value;
         }
     }
     
-    public Messages Messages
+    [XmlAttribute]
+    [DefaultValue("0")]
+    public string Wis
     {
         get
         {
-            return _messages;
+            return _wis;
         }
         set
         {
-            _messages = value;
+            _wis = value;
         }
     }
     
-    public StatusHeal Heal
+    [XmlAttribute]
+    [DefaultValue("0")]
+    public string Con
     {
         get
         {
-            return _heal;
+            return _con;
         }
         set
         {
-            _heal = value;
+            _con = value;
         }
     }
     
-    public StatusDamage Damage
+    [XmlAttribute]
+    [DefaultValue("0")]
+    public string Dex
     {
         get
         {
-            return _damage;
+            return _dex;
         }
         set
         {
-            _damage = value;
+            _dex = value;
         }
     }
     
-    public StatModifierFormulas StatModifiers
+    [XmlAttribute]
+    [DefaultValue("0")]
+    public string Hp
     {
         get
         {
-            return _statModifiers;
+            return _hp;
         }
         set
         {
-            _statModifiers = value;
+            _hp = value;
         }
     }
     
-    public Conditions Conditions
+    [XmlAttribute]
+    [DefaultValue("0")]
+    public string Mp
     {
         get
         {
-            return _conditions;
+            return _mp;
         }
         set
         {
-            _conditions = value;
+            _mp = value;
         }
     }
     
-    public Handler Handler
+    [XmlAttribute]
+    [DefaultValue("0")]
+    public string Hit
     {
         get
         {
-            return _handler;
+            return _hit;
         }
         set
         {
-            _handler = value;
+            _hit = value;
+        }
+    }
+    
+    [XmlAttribute]
+    [DefaultValue("0")]
+    public string Dmg
+    {
+        get
+        {
+            return _dmg;
+        }
+        set
+        {
+            _dmg = value;
+        }
+    }
+    
+    [XmlAttribute]
+    [DefaultValue("0")]
+    public string Ac
+    {
+        get
+        {
+            return _ac;
+        }
+        set
+        {
+            _ac = value;
+        }
+    }
+    
+    [XmlAttribute]
+    [DefaultValue("0")]
+    public string Regen
+    {
+        get
+        {
+            return _regen;
+        }
+        set
+        {
+            _regen = value;
+        }
+    }
+    
+    [XmlAttribute]
+    [DefaultValue("0")]
+    public string Mr
+    {
+        get
+        {
+            return _mr;
+        }
+        set
+        {
+            _mr = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public Element OffensiveElement
+    {
+        get
+        {
+            return _offensiveElement;
+        }
+        set
+        {
+            _offensiveElement = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public Element DefensiveElement
+    {
+        get
+        {
+            return _defensiveElement;
+        }
+        set
+        {
+            _defensiveElement = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string DamageModifier
+    {
+        get
+        {
+            return _damageModifier;
+        }
+        set
+        {
+            _damageModifier = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string HealModifier
+    {
+        get
+        {
+            return _healModifier;
+        }
+        set
+        {
+            _healModifier = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string DamageType
+    {
+        get
+        {
+            return _damageType;
+        }
+        set
+        {
+            _damageType = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string ReflectChance
+    {
+        get
+        {
+            return _reflectChance;
+        }
+        set
+        {
+            _reflectChance = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string ReflectIntensity
+    {
+        get
+        {
+            return _reflectIntensity;
+        }
+        set
+        {
+            _reflectIntensity = value;
         }
     }
     
@@ -152,7 +334,7 @@ public partial class ModifierEffect
         {
             if ((_serializer == null))
             {
-                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(ModifierEffect));
+                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(StatModifierFormulas));
             }
             return _serializer;
         }
@@ -160,7 +342,7 @@ public partial class ModifierEffect
     
     #region Serialize/Deserialize
     /// <summary>
-    /// Serialize ModifierEffect object
+    /// Serialize StatModifierFormulas object
     /// </summary>
     /// <returns>XML value</returns>
     public virtual string Serialize()
@@ -193,16 +375,16 @@ public partial class ModifierEffect
     }
     
     /// <summary>
-    /// Deserializes ModifierEffect object
+    /// Deserializes StatModifierFormulas object
     /// </summary>
     /// <param name="input">string workflow markup to deserialize</param>
-    /// <param name="obj">Output ModifierEffect object</param>
+    /// <param name="obj">Output StatModifierFormulas object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool Deserialize(string input, out ModifierEffect obj, out Exception exception)
+    public static bool Deserialize(string input, out StatModifierFormulas obj, out Exception exception)
     {
         exception = null;
-        obj = default(ModifierEffect);
+        obj = default(StatModifierFormulas);
         try
         {
             obj = Deserialize(input);
@@ -215,19 +397,19 @@ public partial class ModifierEffect
         }
     }
     
-    public static bool Deserialize(string input, out ModifierEffect obj)
+    public static bool Deserialize(string input, out StatModifierFormulas obj)
     {
         Exception exception = null;
         return Deserialize(input, out obj, out exception);
     }
     
-    public static ModifierEffect Deserialize(string input)
+    public static StatModifierFormulas Deserialize(string input)
     {
         StringReader stringReader = null;
         try
         {
             stringReader = new StringReader(input);
-            return ((ModifierEffect)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
+            return ((StatModifierFormulas)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
         }
         finally
         {
@@ -238,14 +420,14 @@ public partial class ModifierEffect
         }
     }
     
-    public static ModifierEffect Deserialize(Stream s)
+    public static StatModifierFormulas Deserialize(Stream s)
     {
-        return ((ModifierEffect)(SerializerXML.Deserialize(s)));
+        return ((StatModifierFormulas)(SerializerXML.Deserialize(s)));
     }
     #endregion
     
     /// <summary>
-    /// Serializes current ModifierEffect object into file
+    /// Serializes current StatModifierFormulas object into file
     /// </summary>
     /// <param name="fileName">full path of outupt xml file</param>
     /// <param name="exception">output Exception value if failed</param>
@@ -286,16 +468,16 @@ public partial class ModifierEffect
     }
     
     /// <summary>
-    /// Deserializes xml markup from file into an ModifierEffect object
+    /// Deserializes xml markup from file into an StatModifierFormulas object
     /// </summary>
     /// <param name="fileName">string xml file to load and deserialize</param>
-    /// <param name="obj">Output ModifierEffect object</param>
+    /// <param name="obj">Output StatModifierFormulas object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool LoadFromFile(string fileName, out ModifierEffect obj, out Exception exception)
+    public static bool LoadFromFile(string fileName, out StatModifierFormulas obj, out Exception exception)
     {
         exception = null;
-        obj = default(ModifierEffect);
+        obj = default(StatModifierFormulas);
         try
         {
             obj = LoadFromFile(fileName);
@@ -308,13 +490,13 @@ public partial class ModifierEffect
         }
     }
     
-    public static bool LoadFromFile(string fileName, out ModifierEffect obj)
+    public static bool LoadFromFile(string fileName, out StatModifierFormulas obj)
     {
         Exception exception = null;
         return LoadFromFile(fileName, out obj, out exception);
     }
     
-    public static ModifierEffect LoadFromFile(string fileName)
+    public static StatModifierFormulas LoadFromFile(string fileName)
     {
         FileStream file = null;
         StreamReader sr = null;

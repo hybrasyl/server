@@ -6,7 +6,7 @@
 set -e -x
 
 XSDPATH="XSD/Objects"
-OLD='"4\.8\.3752\.0"'
+OLD='"4\.8\.4084\.0"'
 NEW='"4\.8"'
 
 for x in $(ls ${XSDPATH}/*.cs); do

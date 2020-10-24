@@ -38,7 +38,7 @@ namespace Hybrasyl
         {
             get
             {
-                return Castable.Cooldown > 0 && (DateTime.Now - LastCast).TotalSeconds < Castable.Cooldown;
+                return (Castable.Cooldown > 0) && ((DateTime.Now - LastCast).TotalSeconds < Castable.Cooldown);
             }
 
          }
@@ -281,7 +281,7 @@ namespace Hybrasyl
             var index = slot - 1;
             if (index < 0 || index >= Size || _items[index] != null)
                 return false;
-            var bookSlot = new BookSlot() { Castable = item, UseCount = 0, LastCast = DateTime.Now };
+            var bookSlot = new BookSlot() { Castable = item, UseCount = 0, LastCast = default };
             _items[index] = bookSlot;
             Count += 1;
             _AddToIndex(bookSlot);

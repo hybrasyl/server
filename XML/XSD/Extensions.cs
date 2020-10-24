@@ -644,7 +644,6 @@ namespace Hybrasyl.Xml
                 return ReservedNames.Contains(user.ToLower());
             return false;
         }
-
     }
 }
 

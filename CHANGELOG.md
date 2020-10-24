@@ -4,6 +4,11 @@
  generally add fairly significant features, whereas ones without are primarily
  for bugfixing and other updates.*
 
+# Hybrasyl NG 0.8.0 ("Saoirse")
+
+*To Be Released: TBD*
+
+
 # Hybrasyl Server 0.7.0 ("Daithi")
 
 *To Be Released: March 15, 2020*

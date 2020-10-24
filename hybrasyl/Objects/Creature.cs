@@ -929,7 +929,7 @@ namespace Hybrasyl.Objects
             if (damageType == Xml.DamageType.Magical && (AbsoluteImmortal || MagicalImmortal))
                 return;
 
-            Stats.Hp = ((int)Stats.Hp - (int)normalized) < 0 ? 0 : Stats.Hp - normalized;
+            Stats.Hp = (Stats.Hp - normalized) < 0 ? 0 : Stats.Hp - normalized;
             //Stats.Hp -= normalized;
 
             SendDamageUpdate(this);

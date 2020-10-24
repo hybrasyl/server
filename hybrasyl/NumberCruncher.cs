@@ -21,6 +21,7 @@
  
 using Hybrasyl.Objects;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Hybrasyl
@@ -35,6 +36,16 @@ namespace Hybrasyl
         public Xml.Element Element { get; set; }
         public override string ToString() => $"{Element}, {Amount}: {Type} {Flags}";
     }
+
+    public class CastCost
+    {
+        public uint Hp { get; set; } = 0;
+        public uint Mp { get; set; } = 0;
+        public uint Gold { get; set; } = 0;
+        public List<(byte Quantity, string Item)> Items { get; set; } = new List<(byte Quantity, string Item)>();
+        public bool IsNoCost => Hp == 0 && Mp == 0 && Gold == 0 && Items.Count == 0;
+    }
+
     /// <summary>
     /// This class is used to do a variety of numerical calculations, in order to consolidate those into
     /// one place. Specifically, healing and damage, are handled here.
@@ -58,6 +69,8 @@ namespace Hybrasyl
 
         private static double _evalFormula(string formula, Xml.Castable castable, Creature target, Creature source)
         {
+            if (string.IsNullOrEmpty(formula)) return 0.0;
+
             try
             {
                 return new FormulaParser(source, castable, target).Eval(formula);
@@ -175,6 +188,70 @@ namespace Hybrasyl
                 heal = _evalFormula(effect.Heal.Formula, castable, target, source);
 
             return heal * intensity * target.Stats.HealModifier;
+
+        }
+
+        /// <summary>
+        /// Calculate the cast cost for a castable, which can also be a formula.
+        /// </summary>
+        /// <param name="castable">The castable being cast</param>
+        /// <param name="target">The target, if applicable, for the castable</param>
+        /// <param name="source">The source (caster) for the castable</param>
+        /// <returns></returns>
+        public static CastCost CalculateCastCost(Xml.Castable castable, Creature target, Creature source)
+        {
+            var cost = new CastCost();
+
+            if (castable.CastCosts.Count == 0 || !(source is User user)) return cost;
+
+            var costs = castable.CastCosts.Where(e => e.Class.Contains(user.Class));
+
+            if (costs.Count() == 0)
+                costs = castable.CastCosts.Where(e => e.Class.Count == 0);
+
+            if (costs.Count() == 0)
+                return cost;
+
+            var toEvaluate = costs.First();
+
+            if (toEvaluate.Stat?.Hp != null)
+                cost.Hp = (uint) _evalFormula(toEvaluate.Stat.Hp, castable, target, source);
+
+            if (toEvaluate.Stat?.Mp != null)
+                cost.Mp = (uint) _evalFormula(toEvaluate.Stat.Mp, castable, target, source);
+
+            if (toEvaluate.Gold > 0)
+                cost.Gold = toEvaluate.Gold;
+
+            if (toEvaluate.Items.Count > 0)
+                cost.Items = toEvaluate.Items.Select(x => (x.Quantity, x.Value)).ToList();
+
+            return cost;
+        }
+
+        public static StatInfo CalculateStatusModifiers(Xml.Castable castable, Xml.StatModifierFormulas effect, Creature source, Creature target=null)        
+        {
+            StatInfo modifiers = new StatInfo();
+            modifiers.BonusStr = (long) _evalFormula(effect.Str, castable, target, source);
+            modifiers.BonusInt = (long) _evalFormula(effect.Int, castable, target, source);
+            modifiers.BonusWis = (long) _evalFormula(effect.Wis, castable, target, source);
+            modifiers.BonusCon = (long) _evalFormula(effect.Con, castable, target, source);
+            modifiers.BonusDex = (long) _evalFormula(effect.Dex, castable, target, source);
+            modifiers.BonusHit = (long) _evalFormula(effect.Hit, castable, target, source);
+            modifiers.BonusDmg = (long) _evalFormula(effect.Dmg, castable, target, source);
+            modifiers.BonusAc = (long) _evalFormula(effect.Ac, castable, target, source);
+            modifiers.BonusRegen = (long) _evalFormula(effect.Regen, castable, target, source);
+            modifiers.BonusMr = (long) _evalFormula(effect.Mr, castable, target, source);
+            modifiers.BonusDamageModifier = (long) _evalFormula(effect.DamageModifier, castable, target, source);
+            modifiers.BonusHealModifier = (long) _evalFormula(effect.HealModifier, castable, target, source);
+            modifiers.BonusReflectChance = (long)_evalFormula(effect.ReflectChance, castable, target, source);
+            modifiers.BonusReflectIntensity = (long)_evalFormula(effect.ReflectIntensity, castable, target, source);
+            if (effect.OffensiveElement != Xml.Element.None)
+                modifiers.OffensiveElementOverride = effect.OffensiveElement;
+            if (effect.DefensiveElement != Xml.Element.None)
+                modifiers.DefensiveElementOverride = effect.DefensiveElement;
+
+            return modifiers;
 
         }
 
