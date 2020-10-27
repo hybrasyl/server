@@ -19,7 +19,7 @@ using System.Text;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 
-[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8")]
+[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.4084.0")]
 [Serializable]
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -27,20 +27,20 @@ using System.Collections.Generic;
 public partial class StatModifierElement
 {
     #region Private fields
-    private Element _offense;
-    private Element _defense;
+    private ElementType _offense;
+    private ElementType _defense;
     private static XmlSerializer _serializer;
     #endregion
     
     public StatModifierElement()
     {
-        _offense = Element.None;
-        _defense = Element.None;
+        _offense = ElementType.None;
+        _defense = ElementType.None;
     }
     
     [XmlAttribute]
-    [DefaultValue(Element.None)]
-    public Element Offense
+    [DefaultValue(ElementType.None)]
+    public ElementType Offense
     {
         get
         {
@@ -53,8 +53,8 @@ public partial class StatModifierElement
     }
     
     [XmlAttribute]
-    [DefaultValue(Element.None)]
-    public Element Defense
+    [DefaultValue(ElementType.None)]
+    public ElementType Defense
     {
         get
         {

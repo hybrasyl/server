@@ -19,7 +19,7 @@ using System.Text;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 
-[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8")]
+[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.4084.0")]
 [Serializable]
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -28,14 +28,14 @@ public partial class EquipmentRestriction
 {
     #region Private fields
     private EquipmentSlot _slot;
-    private WeaponType _type;
+    private List<WeaponType> _type;
     private string _value;
     private static XmlSerializer _serializer;
     #endregion
     
     public EquipmentRestriction()
     {
-        _type = new WeaponType();
+        _type = new List<WeaponType>();
     }
     
     [XmlAttribute]
@@ -52,7 +52,7 @@ public partial class EquipmentRestriction
     }
     
     [XmlAttribute]
-    public WeaponType Type
+    public List<WeaponType> Type
     {
         get
         {

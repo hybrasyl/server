@@ -19,42 +19,61 @@ using System.Text;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 
-[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8")]
+[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.4084.0")]
 [Serializable]
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-public partial class CreatureScript
+public partial class SpawnDefense
 {
     #region Private fields
-    private ScriptType _type;
-    private string _value;
+    private string _ac;
+    private string _mr;
+    private ElementType _element;
     private static XmlSerializer _serializer;
     #endregion
     
+    public SpawnDefense()
+    {
+        _element = ElementType.None;
+    }
+    
     [XmlAttribute]
-    public ScriptType Type
+    public string Ac
     {
         get
         {
-            return _type;
+            return _ac;
         }
         set
         {
-            _type = value;
+            _ac = value;
         }
     }
     
-    [XmlTextAttribute]
-    public string Value
+    [XmlAttribute]
+    public string Mr
     {
         get
         {
-            return _value;
+            return _mr;
         }
         set
         {
-            _value = value;
+            _mr = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public ElementType Element
+    {
+        get
+        {
+            return _element;
+        }
+        set
+        {
+            _element = value;
         }
     }
     
@@ -64,7 +83,7 @@ public partial class CreatureScript
         {
             if ((_serializer == null))
             {
-                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(CreatureScript));
+                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(SpawnDefense));
             }
             return _serializer;
         }
@@ -72,7 +91,7 @@ public partial class CreatureScript
     
     #region Serialize/Deserialize
     /// <summary>
-    /// Serialize CreatureScript object
+    /// Serialize SpawnDefense object
     /// </summary>
     /// <returns>XML value</returns>
     public virtual string Serialize()
@@ -105,16 +124,16 @@ public partial class CreatureScript
     }
     
     /// <summary>
-    /// Deserializes CreatureScript object
+    /// Deserializes SpawnDefense object
     /// </summary>
     /// <param name="input">string workflow markup to deserialize</param>
-    /// <param name="obj">Output CreatureScript object</param>
+    /// <param name="obj">Output SpawnDefense object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool Deserialize(string input, out CreatureScript obj, out Exception exception)
+    public static bool Deserialize(string input, out SpawnDefense obj, out Exception exception)
     {
         exception = null;
-        obj = default(CreatureScript);
+        obj = default(SpawnDefense);
         try
         {
             obj = Deserialize(input);
@@ -127,19 +146,19 @@ public partial class CreatureScript
         }
     }
     
-    public static bool Deserialize(string input, out CreatureScript obj)
+    public static bool Deserialize(string input, out SpawnDefense obj)
     {
         Exception exception = null;
         return Deserialize(input, out obj, out exception);
     }
     
-    public static CreatureScript Deserialize(string input)
+    public static SpawnDefense Deserialize(string input)
     {
         StringReader stringReader = null;
         try
         {
             stringReader = new StringReader(input);
-            return ((CreatureScript)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
+            return ((SpawnDefense)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
         }
         finally
         {
@@ -150,14 +169,14 @@ public partial class CreatureScript
         }
     }
     
-    public static CreatureScript Deserialize(Stream s)
+    public static SpawnDefense Deserialize(Stream s)
     {
-        return ((CreatureScript)(SerializerXML.Deserialize(s)));
+        return ((SpawnDefense)(SerializerXML.Deserialize(s)));
     }
     #endregion
     
     /// <summary>
-    /// Serializes current CreatureScript object into file
+    /// Serializes current SpawnDefense object into file
     /// </summary>
     /// <param name="fileName">full path of outupt xml file</param>
     /// <param name="exception">output Exception value if failed</param>
@@ -198,16 +217,16 @@ public partial class CreatureScript
     }
     
     /// <summary>
-    /// Deserializes xml markup from file into an CreatureScript object
+    /// Deserializes xml markup from file into an SpawnDefense object
     /// </summary>
     /// <param name="fileName">string xml file to load and deserialize</param>
-    /// <param name="obj">Output CreatureScript object</param>
+    /// <param name="obj">Output SpawnDefense object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool LoadFromFile(string fileName, out CreatureScript obj, out Exception exception)
+    public static bool LoadFromFile(string fileName, out SpawnDefense obj, out Exception exception)
     {
         exception = null;
-        obj = default(CreatureScript);
+        obj = default(SpawnDefense);
         try
         {
             obj = LoadFromFile(fileName);
@@ -220,13 +239,13 @@ public partial class CreatureScript
         }
     }
     
-    public static bool LoadFromFile(string fileName, out CreatureScript obj)
+    public static bool LoadFromFile(string fileName, out SpawnDefense obj)
     {
         Exception exception = null;
         return LoadFromFile(fileName, out obj, out exception);
     }
     
-    public static CreatureScript LoadFromFile(string fileName)
+    public static SpawnDefense LoadFromFile(string fileName)
     {
         FileStream file = null;
         StreamReader sr = null;

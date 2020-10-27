@@ -62,6 +62,7 @@
     <xs:attribute name="AllowDead" default="false" type="xs:boolean" />
   </xs:complexType>
 
+ 
   <!-- Signs and boards -->
   <xs:complexType name="MapSign">
     <xs:sequence>
@@ -111,6 +112,7 @@
       <xs:element name="Flags" type="hyb:MapFlags" minOccurs="0" maxOccurs="1" />
       <xs:element name="Warps" type="hyb:Warps" minOccurs="0" maxOccurs="1" />
       <xs:element name="Reactors" type="hyb:Reactors" minOccurs="0" maxOccurs="1" />
+      <xs:element name="Spawns" type="hyb:SpawnGroup" minOccurs="0" maxOccurs ="1"/>
       <xs:element name="Npcs" type="hyb:Npcs" minOccurs="0" maxOccurs="1" />
       <xs:element name="Signs" type="hyb:MapSigns" minOccurs="0" maxOccurs="1" />
     </xs:sequence>

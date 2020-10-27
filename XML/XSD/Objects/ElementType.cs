@@ -19,16 +19,23 @@ using System.Text;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 
-[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8")]
+[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.4084.0")]
 [Serializable]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-public enum TargetType
+public enum ElementType
 {
     None,
-    Self,
-    Attacker,
-    Group,
-    Nearby,
+    Fire,
+    Water,
+    Wind,
+    Earth,
+    Light,
+    Dark,
+    Wood,
+    Metal,
+    Undead,
+    RandomFour,
+    RandomEight,
     Random,
 }
 }

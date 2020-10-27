@@ -27,8 +27,6 @@
     </xs:documentation>
   </xs:annotation>
 
-  <xs:element name="Spawn" type="hyb:Spawn"/>
-  <xs:element name="SpawnGroup" type="hyb:SpawnGroup"/>
   <xs:element name="Creature" type="hyb:Creature"/>
   <xs:element name="Npc" type="hyb:Npc"/>
 </xs:schema>

@@ -19,59 +19,34 @@ using System.Text;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 
-[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8")]
+[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.4084.0")]
 [Serializable]
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-public partial class Stats
+public partial class SpawnBase
 {
     #region Private fields
-    private uint _hp;
-    private uint _mp;
-    private byte _level;
-    private byte _str;
-    private byte _int;
-    private byte _wis;
-    private byte _con;
-    private byte _dex;
+    private string _behaviorSet;
+    private string _level;
     private static XmlSerializer _serializer;
     #endregion
     
-    public Stats()
-    {
-        _mp = ((uint)(0));
-    }
-    
     [XmlAttribute]
-    public uint Hp
+    public string BehaviorSet
     {
         get
         {
-            return _hp;
+            return _behaviorSet;
         }
         set
         {
-            _hp = value;
+            _behaviorSet = value;
         }
     }
     
     [XmlAttribute]
-    [DefaultValue(typeof(uint), "0")]
-    public uint Mp
-    {
-        get
-        {
-            return _mp;
-        }
-        set
-        {
-            _mp = value;
-        }
-    }
-    
-    [XmlAttribute]
-    public byte Level
+    public string Level
     {
         get
         {
@@ -83,78 +58,13 @@ public partial class Stats
         }
     }
     
-    [XmlAttribute]
-    public byte Str
-    {
-        get
-        {
-            return _str;
-        }
-        set
-        {
-            _str = value;
-        }
-    }
-    
-    [XmlAttribute]
-    public byte Int
-    {
-        get
-        {
-            return _int;
-        }
-        set
-        {
-            _int = value;
-        }
-    }
-    
-    [XmlAttribute]
-    public byte Wis
-    {
-        get
-        {
-            return _wis;
-        }
-        set
-        {
-            _wis = value;
-        }
-    }
-    
-    [XmlAttribute]
-    public byte Con
-    {
-        get
-        {
-            return _con;
-        }
-        set
-        {
-            _con = value;
-        }
-    }
-    
-    [XmlAttribute]
-    public byte Dex
-    {
-        get
-        {
-            return _dex;
-        }
-        set
-        {
-            _dex = value;
-        }
-    }
-    
     private static XmlSerializer SerializerXML
     {
         get
         {
             if ((_serializer == null))
             {
-                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(Stats));
+                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(SpawnBase));
             }
             return _serializer;
         }
@@ -162,7 +72,7 @@ public partial class Stats
     
     #region Serialize/Deserialize
     /// <summary>
-    /// Serialize Stats object
+    /// Serialize SpawnBase object
     /// </summary>
     /// <returns>XML value</returns>
     public virtual string Serialize()
@@ -195,16 +105,16 @@ public partial class Stats
     }
     
     /// <summary>
-    /// Deserializes Stats object
+    /// Deserializes SpawnBase object
     /// </summary>
     /// <param name="input">string workflow markup to deserialize</param>
-    /// <param name="obj">Output Stats object</param>
+    /// <param name="obj">Output SpawnBase object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool Deserialize(string input, out Stats obj, out Exception exception)
+    public static bool Deserialize(string input, out SpawnBase obj, out Exception exception)
     {
         exception = null;
-        obj = default(Stats);
+        obj = default(SpawnBase);
         try
         {
             obj = Deserialize(input);
@@ -217,19 +127,19 @@ public partial class Stats
         }
     }
     
-    public static bool Deserialize(string input, out Stats obj)
+    public static bool Deserialize(string input, out SpawnBase obj)
     {
         Exception exception = null;
         return Deserialize(input, out obj, out exception);
     }
     
-    public static Stats Deserialize(string input)
+    public static SpawnBase Deserialize(string input)
     {
         StringReader stringReader = null;
         try
         {
             stringReader = new StringReader(input);
-            return ((Stats)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
+            return ((SpawnBase)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
         }
         finally
         {
@@ -240,14 +150,14 @@ public partial class Stats
         }
     }
     
-    public static Stats Deserialize(Stream s)
+    public static SpawnBase Deserialize(Stream s)
     {
-        return ((Stats)(SerializerXML.Deserialize(s)));
+        return ((SpawnBase)(SerializerXML.Deserialize(s)));
     }
     #endregion
     
     /// <summary>
-    /// Serializes current Stats object into file
+    /// Serializes current SpawnBase object into file
     /// </summary>
     /// <param name="fileName">full path of outupt xml file</param>
     /// <param name="exception">output Exception value if failed</param>
@@ -288,16 +198,16 @@ public partial class Stats
     }
     
     /// <summary>
-    /// Deserializes xml markup from file into an Stats object
+    /// Deserializes xml markup from file into an SpawnBase object
     /// </summary>
     /// <param name="fileName">string xml file to load and deserialize</param>
-    /// <param name="obj">Output Stats object</param>
+    /// <param name="obj">Output SpawnBase object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool LoadFromFile(string fileName, out Stats obj, out Exception exception)
+    public static bool LoadFromFile(string fileName, out SpawnBase obj, out Exception exception)
     {
         exception = null;
-        obj = default(Stats);
+        obj = default(SpawnBase);
         try
         {
             obj = LoadFromFile(fileName);
@@ -310,13 +220,13 @@ public partial class Stats
         }
     }
     
-    public static bool LoadFromFile(string fileName, out Stats obj)
+    public static bool LoadFromFile(string fileName, out SpawnBase obj)
     {
         Exception exception = null;
         return LoadFromFile(fileName, out obj, out exception);
     }
     
-    public static Stats LoadFromFile(string fileName)
+    public static SpawnBase LoadFromFile(string fileName)
     {
         FileStream file = null;
         StreamReader sr = null;

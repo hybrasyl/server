@@ -19,7 +19,7 @@ using System.Text;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 
-[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8")]
+[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.4084.0")]
 [Serializable]
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -39,35 +39,33 @@ public partial class StatModifierFormulas
     private string _ac;
     private string _regen;
     private string _mr;
-    private Element _offensiveElement;
-    private Element _defensiveElement;
+    private ElementType _offensiveElement;
+    private ElementType _defensiveElement;
     private string _damageModifier;
     private string _healModifier;
     private string _damageType;
     private string _reflectChance;
     private string _reflectIntensity;
     private static XmlSerializer _serializer;
-    #endregion
-    
-    public StatModifierFormulas()
-    {
-        _str = "0";
-        _int = "0";
-        _wis = "0";
-        _con = "0";
-        _dex = "0";
-        _hp = "0";
-        _mp = "0";
-        _hit = "0";
-        _dmg = "0";
-        _ac = "0";
-        _regen = "0";
-        _mr = "0";
-        _offensiveElement = new Element[] {
-                Element.None};
-        _defensiveElement = new Element[] {
-                Element.None};
-    }
+        #endregion
+
+        public StatModifierFormulas()
+        {
+            _str = "0";
+            _int = "0";
+            _wis = "0";
+            _con = "0";
+            _dex = "0";
+            _hp = "0";
+            _mp = "0";
+            _hit = "0";
+            _dmg = "0";
+            _ac = "0";
+            _regen = "0";
+            _mr = "0";
+            _offensiveElement = ElementType.None;
+            _defensiveElement = ElementType.None;
+        }
     
     [XmlAttribute]
     [DefaultValue("0")]
@@ -238,7 +236,7 @@ public partial class StatModifierFormulas
     }
     
     [XmlAttribute]
-    public Element OffensiveElement
+    public ElementType OffensiveElement
     {
         get
         {
@@ -251,7 +249,7 @@ public partial class StatModifierFormulas
     }
     
     [XmlAttribute]
-    public Element DefensiveElement
+    public ElementType DefensiveElement
     {
         get
         {

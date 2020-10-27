@@ -80,12 +80,12 @@ namespace Hybrasyl.Xml
         public byte Ability => Properties.Restrictions?.Ab?.Min ?? 0;
 
         [XmlIgnore]
-        public Element Element
+        public ElementType Element
         {
             get
             {
-                var off = Properties.StatModifiers?.Element?.Offense ?? Element.None;
-                var def = Properties.StatModifiers?.Element?.Defense ?? Element.None;
+                var off = Properties.StatModifiers?.Element?.Offense ?? ElementType.None;
+                var def = Properties.StatModifiers?.Element?.Defense ?? ElementType.None;
                 if (Properties.Equipment?.Slot == EquipmentSlot.Necklace)
                     return off;
                 return def;
@@ -463,30 +463,30 @@ namespace Hybrasyl.Xml
         /// Calculate a specific offensive element for a spawn from its list of elements.
         /// </summary>
         /// <returns>Element enum</returns>
-        public Element GetOffensiveElement()
+        public ElementType GetOffensiveElement()
         {
-            if (_damage.Element.Count > 1)
-                return _damage.Element[Rng.Next(_damage.Element.Count)];
-            else if (_damage.Element.Count == 1 && _damage.Element[0] != Xml.Element.Random)
-                return _damage.Element[0];
-
-            // Only deal with "base" elements for right now
-            return (Element)Rng.Next(1, 4);
+            if (_damage.Element == ElementType.Random)
+                return (ElementType)Rng.Next(1, 9);
+            else if (_damage.Element == ElementType.RandomFour)
+                return (ElementType)Rng.Next(1, 4);
+            else if (_damage.Element == ElementType.RandomEight)
+                return (ElementType)Rng.Next(5, 8);
+            return _damage.Element;
         }
 
         /// <summary>
         /// Calculate a specific defensive element for a spawn from its list of elements.
         /// </summary>
         /// <returns>Element enum</returns>
-        public Element GetDefensiveElement()
+        public ElementType GetDefensiveElement()
         {
-            if (_defense.Element.Count > 1)
-                return _defense.Element[Rng.Next(_defense.Element.Count)];
-            else if (_defense.Element.Count == 1 && _defense.Element[0] != Element.Random)
-                return _damage.Element[0];
-
-            // Only deal with "base" elements for right now
-            return (Element)Rng.Next(1, 4);
+            if (_defense.Element == ElementType.Random)
+                return (ElementType)Rng.Next(1, 9);
+            else if (_defense.Element == ElementType.RandomFour)
+                return (ElementType)Rng.Next(1, 4);
+            else if (_defense.Element == ElementType.RandomEight)
+                return (ElementType)Rng.Next(5, 8);
+            return _defense.Element;
         }
     }
     public partial class SpawnMap

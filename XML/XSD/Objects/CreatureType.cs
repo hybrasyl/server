@@ -19,114 +19,105 @@ using System.Text;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 
-[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8")]
+[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.4084.0")]
 [Serializable]
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-public partial class CastModifierModify
+public partial class CreatureType
 {
     #region Private fields
-    private int _add;
-    private int _subtract;
-    private int _baseCount;
-    private int _min;
-    private int _max;
-    private int _replace;
+    private LootList _loot;
+    private string _name;
+    private ushort _sprite;
+    private string _behaviorSet;
+    private int _minDmg;
+    private int _maxDmg;
     private static XmlSerializer _serializer;
     #endregion
     
-    public CastModifierModify()
+    public CreatureType()
     {
-        _add = -1;
-        _subtract = -1;
-        _baseCount = -1;
-        _min = -1;
-        _max = -1;
-        _replace = -1;
+        _minDmg = 0;
+        _maxDmg = 0;
     }
     
-    [XmlAttribute]
-    [DefaultValue(-1)]
-    public int Add
+    public LootList Loot
     {
         get
         {
-            return _add;
+            return _loot;
         }
         set
         {
-            _add = value;
+            _loot = value;
         }
     }
     
     [XmlAttribute]
-    [DefaultValue(-1)]
-    public int Subtract
+    public string Name
     {
         get
         {
-            return _subtract;
+            return _name;
         }
         set
         {
-            _subtract = value;
+            _name = value;
         }
     }
     
     [XmlAttribute]
-    [DefaultValue(-1)]
-    public int BaseCount
+    public ushort Sprite
     {
         get
         {
-            return _baseCount;
+            return _sprite;
         }
         set
         {
-            _baseCount = value;
+            _sprite = value;
         }
     }
     
     [XmlAttribute]
-    [DefaultValue(-1)]
-    public int Min
+    public string BehaviorSet
     {
         get
         {
-            return _min;
+            return _behaviorSet;
         }
         set
         {
-            _min = value;
+            _behaviorSet = value;
         }
     }
     
     [XmlAttribute]
-    [DefaultValue(-1)]
-    public int Max
+    [DefaultValue(0)]
+    public int MinDmg
     {
         get
         {
-            return _max;
+            return _minDmg;
         }
         set
         {
-            _max = value;
+            _minDmg = value;
         }
     }
     
     [XmlAttribute]
-    [DefaultValue(-1)]
-    public int Replace
+    [DefaultValue(0)]
+    public int MaxDmg
     {
         get
         {
-            return _replace;
+            return _maxDmg;
         }
         set
         {
-            _replace = value;
+            _maxDmg = value;
         }
     }
     
@@ -136,7 +127,7 @@ public partial class CastModifierModify
         {
             if ((_serializer == null))
             {
-                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(CastModifierModify));
+                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(CreatureType));
             }
             return _serializer;
         }
@@ -144,7 +135,7 @@ public partial class CastModifierModify
     
     #region Serialize/Deserialize
     /// <summary>
-    /// Serialize CastModifierModify object
+    /// Serialize CreatureType object
     /// </summary>
     /// <returns>XML value</returns>
     public virtual string Serialize()
@@ -177,16 +168,16 @@ public partial class CastModifierModify
     }
     
     /// <summary>
-    /// Deserializes CastModifierModify object
+    /// Deserializes CreatureType object
     /// </summary>
     /// <param name="input">string workflow markup to deserialize</param>
-    /// <param name="obj">Output CastModifierModify object</param>
+    /// <param name="obj">Output CreatureType object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool Deserialize(string input, out CastModifierModify obj, out Exception exception)
+    public static bool Deserialize(string input, out CreatureType obj, out Exception exception)
     {
         exception = null;
-        obj = default(CastModifierModify);
+        obj = default(CreatureType);
         try
         {
             obj = Deserialize(input);
@@ -199,19 +190,19 @@ public partial class CastModifierModify
         }
     }
     
-    public static bool Deserialize(string input, out CastModifierModify obj)
+    public static bool Deserialize(string input, out CreatureType obj)
     {
         Exception exception = null;
         return Deserialize(input, out obj, out exception);
     }
     
-    public static CastModifierModify Deserialize(string input)
+    public static CreatureType Deserialize(string input)
     {
         StringReader stringReader = null;
         try
         {
             stringReader = new StringReader(input);
-            return ((CastModifierModify)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
+            return ((CreatureType)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
         }
         finally
         {
@@ -222,14 +213,14 @@ public partial class CastModifierModify
         }
     }
     
-    public static CastModifierModify Deserialize(Stream s)
+    public static CreatureType Deserialize(Stream s)
     {
-        return ((CastModifierModify)(SerializerXML.Deserialize(s)));
+        return ((CreatureType)(SerializerXML.Deserialize(s)));
     }
     #endregion
     
     /// <summary>
-    /// Serializes current CastModifierModify object into file
+    /// Serializes current CreatureType object into file
     /// </summary>
     /// <param name="fileName">full path of outupt xml file</param>
     /// <param name="exception">output Exception value if failed</param>
@@ -270,16 +261,16 @@ public partial class CastModifierModify
     }
     
     /// <summary>
-    /// Deserializes xml markup from file into an CastModifierModify object
+    /// Deserializes xml markup from file into an CreatureType object
     /// </summary>
     /// <param name="fileName">string xml file to load and deserialize</param>
-    /// <param name="obj">Output CastModifierModify object</param>
+    /// <param name="obj">Output CreatureType object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool LoadFromFile(string fileName, out CastModifierModify obj, out Exception exception)
+    public static bool LoadFromFile(string fileName, out CreatureType obj, out Exception exception)
     {
         exception = null;
-        obj = default(CastModifierModify);
+        obj = default(CreatureType);
         try
         {
             obj = LoadFromFile(fileName);
@@ -292,13 +283,13 @@ public partial class CastModifierModify
         }
     }
     
-    public static bool LoadFromFile(string fileName, out CastModifierModify obj)
+    public static bool LoadFromFile(string fileName, out CreatureType obj)
     {
         Exception exception = null;
         return LoadFromFile(fileName, out obj, out exception);
     }
     
-    public static CastModifierModify LoadFromFile(string fileName)
+    public static CreatureType LoadFromFile(string fileName)
     {
         FileStream file = null;
         StreamReader sr = null;

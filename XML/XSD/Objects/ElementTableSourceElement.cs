@@ -19,7 +19,7 @@ using System.Text;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 
-[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8")]
+[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.4084.0")]
 [Serializable]
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -28,12 +28,13 @@ public partial class ElementTableSourceElement
 {
     #region Private fields
     private List<ElementTableTargetElement> _target;
-    private Element _element;
+    private List<ElementType> _element;
     private static XmlSerializer _serializer;
     #endregion
     
     public ElementTableSourceElement()
     {
+        _element = new List<ElementType>();
         _target = new List<ElementTableTargetElement>();
     }
     
@@ -51,7 +52,7 @@ public partial class ElementTableSourceElement
     }
     
     [XmlAttribute]
-    public Element Element
+    public List<ElementType> Element
     {
         get
         {

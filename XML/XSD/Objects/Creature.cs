@@ -19,7 +19,7 @@ using System.Text;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 
-[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8")]
+[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.4084.0")]
 [Serializable]
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -30,6 +30,8 @@ public partial class Creature
     #region Private fields
     private string _name;
     private string _description;
+    private List<CreatureType> _types;
+    private LootList _loot;
     private ushort _sprite;
     private static XmlSerializer _serializer;
     #endregion
@@ -57,6 +59,31 @@ public partial class Creature
         set
         {
             _description = value;
+        }
+    }
+    
+    [XmlArrayItemAttribute("Type", IsNullable=false)]
+    public List<CreatureType> Types
+    {
+        get
+        {
+            return _types;
+        }
+        set
+        {
+            _types = value;
+        }
+    }
+    
+    public LootList Loot
+    {
+        get
+        {
+            return _loot;
+        }
+        set
+        {
+            _loot = value;
         }
     }
     

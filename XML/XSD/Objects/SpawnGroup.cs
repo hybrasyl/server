@@ -19,65 +19,46 @@ using System.Text;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 
-[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8")]
+[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.4084.0")]
 [Serializable]
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-[XmlRootAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02", IsNullable=false)]
 public partial class SpawnGroup
 {
     #region Private fields
-    private List<SpawnMap> _maps;
-    private List<Spawn> _spawns;
-    private bool _disabled;
+    private Spawn _spawn;
+    private string _baseLevel;
     private static XmlSerializer _serializer;
     #endregion
     
     public SpawnGroup()
     {
-        _spawns = new List<Spawn>();
-        _maps = new List<SpawnMap>();
-        _disabled = false;
+        _spawn = new Spawn();
     }
     
-    [XmlArrayItemAttribute("Map", IsNullable=false)]
-    public List<SpawnMap> Maps
+    public Spawn Spawn
     {
         get
         {
-            return _maps;
+            return _spawn;
         }
         set
         {
-            _maps = value;
-        }
-    }
-    
-    [XmlArrayItemAttribute(IsNullable=false)]
-    public List<Spawn> Spawns
-    {
-        get
-        {
-            return _spawns;
-        }
-        set
-        {
-            _spawns = value;
+            _spawn = value;
         }
     }
     
     [XmlAttribute]
-    [DefaultValue(false)]
-    public bool Disabled
+    public string BaseLevel
     {
         get
         {
-            return _disabled;
+            return _baseLevel;
         }
         set
         {
-            _disabled = value;
+            _baseLevel = value;
         }
     }
     
