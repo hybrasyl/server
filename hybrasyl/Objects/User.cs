@@ -935,10 +935,10 @@ namespace Hybrasyl.Objects
             switch (toRemove.EquipmentSlot)
             {
                 case (byte)ItemSlots.Necklace:
-                    Stats.BaseOffensiveElement = Xml.Element.None;
+                    Stats.BaseOffensiveElement = Xml.ElementType.None;
                     break;
                 case (byte)ItemSlots.Waist:
-                    Stats.BaseDefensiveElement = Xml.Element.None;
+                    Stats.BaseDefensiveElement = Xml.ElementType.None;
                     break;
             }
         }
@@ -2552,7 +2552,7 @@ namespace Hybrasyl.Objects
             UpdateAttributes(StatUpdateFlags.Current);
         }
 
-        public override void Damage(double damage, Xml.Element element = Xml.Element.None,
+        public override void Damage(double damage, Xml.ElementType element = Xml.ElementType.None,
             Xml.DamageType damageType = Xml.DamageType.Direct, Xml.DamageFlags damageFlags = Xml.DamageFlags.None, Creature attacker = null, bool onDeath = true)
         {
             if (Condition.Comatose || !Condition.Alive) return;

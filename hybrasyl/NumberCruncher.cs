@@ -33,7 +33,7 @@ namespace Hybrasyl
         public double Amount { get; set; }
         public Xml.DamageType Type { get; set; }
         public Xml.DamageFlags Flags { get; set; }
-        public Xml.Element Element { get; set; }
+        public Xml.ElementType Element { get; set; }
         public override string ToString() => $"{Element}, {Amount}: {Type} {Flags}";
     }
 
@@ -232,23 +232,23 @@ namespace Hybrasyl
         public static StatInfo CalculateStatusModifiers(Xml.Castable castable, Xml.StatModifierFormulas effect, Creature source, Creature target=null)        
         {
             StatInfo modifiers = new StatInfo();
-            modifiers.BonusStr = (long) _evalFormula(effect.Str, castable, target, source);
-            modifiers.BonusInt = (long) _evalFormula(effect.Int, castable, target, source);
-            modifiers.BonusWis = (long) _evalFormula(effect.Wis, castable, target, source);
-            modifiers.BonusCon = (long) _evalFormula(effect.Con, castable, target, source);
-            modifiers.BonusDex = (long) _evalFormula(effect.Dex, castable, target, source);
-            modifiers.BonusHit = (long) _evalFormula(effect.Hit, castable, target, source);
-            modifiers.BonusDmg = (long) _evalFormula(effect.Dmg, castable, target, source);
-            modifiers.BonusAc = (long) _evalFormula(effect.Ac, castable, target, source);
-            modifiers.BonusRegen = (long) _evalFormula(effect.Regen, castable, target, source);
-            modifiers.BonusMr = (long) _evalFormula(effect.Mr, castable, target, source);
-            modifiers.BonusDamageModifier = (long) _evalFormula(effect.DamageModifier, castable, target, source);
-            modifiers.BonusHealModifier = (long) _evalFormula(effect.HealModifier, castable, target, source);
-            modifiers.BonusReflectChance = (long)_evalFormula(effect.ReflectChance, castable, target, source);
-            modifiers.BonusReflectIntensity = (long)_evalFormula(effect.ReflectIntensity, castable, target, source);
-            if (effect.OffensiveElement != Xml.Element.None)
+            modifiers.BonusStr = (long) Math.Ceiling(_evalFormula(effect.Str, castable, target, source));
+            modifiers.BonusInt = (long) Math.Ceiling(_evalFormula(effect.Int, castable, target, source));
+            modifiers.BonusWis = (long) Math.Ceiling(_evalFormula(effect.Wis, castable, target, source));
+            modifiers.BonusCon = (long) Math.Ceiling(_evalFormula(effect.Con, castable, target, source));
+            modifiers.BonusDex = (long) Math.Ceiling(_evalFormula(effect.Dex, castable, target, source));
+            modifiers.BonusHit = (long) Math.Ceiling(_evalFormula(effect.Hit, castable, target, source));
+            modifiers.BonusDmg = (long) Math.Ceiling(_evalFormula(effect.Dmg, castable, target, source));
+            modifiers.BonusAc = (long) Math.Ceiling(_evalFormula(effect.Ac, castable, target, source));
+            modifiers.BonusRegen = (long) Math.Ceiling(_evalFormula(effect.Regen, castable, target, source));
+            modifiers.BonusMr = (long) Math.Ceiling(_evalFormula(effect.Mr, castable, target, source));
+            modifiers.BonusDamageModifier = (long) Math.Ceiling(_evalFormula(effect.DamageModifier, castable, target, source));
+            modifiers.BonusHealModifier = (long) Math.Ceiling(_evalFormula(effect.HealModifier, castable, target, source));
+            modifiers.BonusReflectChance = (long) Math.Ceiling(_evalFormula(effect.ReflectChance, castable, target, source));
+            modifiers.BonusReflectIntensity = (long) Math.Ceiling(_evalFormula(effect.ReflectIntensity, castable, target, source));
+            if (effect.OffensiveElement != Xml.ElementType.None)
                 modifiers.OffensiveElementOverride = effect.OffensiveElement;
-            if (effect.DefensiveElement != Xml.Element.None)
+            if (effect.DefensiveElement != Xml.ElementType.None)
                 modifiers.DefensiveElementOverride = effect.DefensiveElement;
 
             return modifiers;

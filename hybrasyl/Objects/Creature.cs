@@ -567,18 +567,18 @@ namespace Hybrasyl.Objects
                 }
                 if (!castObject.Effects.Damage.IsEmpty)
                 {
-                    Xml.Element attackElement;
+                    Xml.ElementType attackElement;
                     var damageOutput = NumberCruncher.CalculateDamage(castObject, tar, this);
-                    if (castObject.Element == Xml.Element.Random)
+                    if (castObject.Element == Xml.ElementType.Random)
                     {
                         Random rnd = new Random();
-                        var Elements = Enum.GetValues(typeof(Xml.Element));
-                        attackElement = (Xml.Element)Elements.GetValue(rnd.Next(Elements.Length));
+                        var Elements = Enum.GetValues(typeof(Xml.ElementType));
+                        attackElement = (Xml.ElementType)Elements.GetValue(rnd.Next(Elements.Length));
                     }
-                    else if (castObject.Element != Xml.Element.None)
+                    else if (castObject.Element != Xml.ElementType.None)
                         attackElement = castObject.Element;
                     else
-                        attackElement = (Stats.OffensiveElementOverride != Xml.Element.None ? Stats.OffensiveElementOverride : Stats.BaseOffensiveElement);
+                        attackElement = (Stats.OffensiveElementOverride != Xml.ElementType.None ? Stats.OffensiveElementOverride : Stats.BaseOffensiveElement);
                     GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} damage: {damageOutput}, element {attackElement}");
 
                     tar.Damage(damageOutput.Amount, attackElement, damageOutput.Type, damageOutput.Flags, this, false);
@@ -889,7 +889,7 @@ namespace Hybrasyl.Objects
             Stats.Mp = mp > uint.MaxValue ? Stats.MaximumMp : Math.Min(Stats.MaximumMp, (uint)(Stats.Mp + mp));
         }
 
-        public virtual void Damage(double damage, Xml.Element element = Xml.Element.None, Xml.DamageType damageType = Xml.DamageType.Direct, Xml.DamageFlags damageFlags = Xml.DamageFlags.None, Creature attacker = null, bool onDeath=true)
+        public virtual void Damage(double damage, Xml.ElementType element = Xml.ElementType.None, Xml.DamageType damageType = Xml.DamageType.Direct, Xml.DamageFlags damageFlags = Xml.DamageFlags.None, Creature attacker = null, bool onDeath=true)
         {
             if (this is Monster ms && !Condition.Alive) return;
             if (attacker is User && this is Monster)

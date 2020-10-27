@@ -117,7 +117,7 @@ namespace Hybrasyl.Objects
 
         // Currently, NPCs can not be healed or damaged in any way whatsoever
         public override void Heal(double heal, Creature source = null) { return; }
-        public override void Damage(double damage, Xml.Element element = Xml.Element.None, Xml.DamageType damageType = Xml.DamageType.Direct, Xml.DamageFlags damageFlags = Xml.DamageFlags.None, Creature attacker = null, bool onDeath = true) { return; }
+        public override void Damage(double damage, Xml.ElementType element = Xml.ElementType.None, Xml.DamageType damageType = Xml.DamageType.Direct, Xml.DamageFlags damageFlags = Xml.DamageFlags.None, Creature attacker = null, bool onDeath = true) { return; }
 
         public void OnSpawn()
         {

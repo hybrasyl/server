@@ -186,7 +186,7 @@ namespace Hybrasyl.Objects
 
         public byte BodyStyle => Convert.ToByte(Template.Properties.Appearance.BodyStyle);
 
-        public Xml.Element Element => Template.Element;
+        public Xml.ElementType Element => Template.Element;
 
         public ushort MinLDamage => Template.MinLDamage;
         public ushort MaxLDamage => Template.MaxLDamage;

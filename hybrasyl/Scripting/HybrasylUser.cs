@@ -736,7 +736,7 @@ namespace Hybrasyl.Scripting
         /// <param name="damage">Integer amount of damage to deal.</param>
         /// <param name="element">Element of the damage (e.g. fire, air)</param>
         /// <param name="damageType">Type of damage (direct, magical, etc)</param>
-        public void Damage(int damage, Xml.Element element = Xml.Element.None,
+        public void Damage(int damage, Xml.ElementType element = Xml.ElementType.None,
            Xml.DamageType damageType = Xml.DamageType.Direct)
         {
             User.Damage(damage, element, damageType);
@@ -750,9 +750,9 @@ namespace Hybrasyl.Scripting
         public void Damage(int damage, bool fatal=true)
         {
             if (fatal)
-                User.Damage(damage, Xml.Element.None, Xml.DamageType.Direct, Xml.DamageFlags.Nonlethal);
+                User.Damage(damage, Xml.ElementType.None, Xml.DamageType.Direct, Xml.DamageFlags.Nonlethal);
             else
-                User.Damage(damage, Xml.Element.None, Xml.DamageType.Direct);
+                User.Damage(damage, Xml.ElementType.None, Xml.DamageType.Direct);
 
         }
 
