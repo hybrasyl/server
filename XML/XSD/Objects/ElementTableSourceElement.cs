@@ -28,13 +28,13 @@ public partial class ElementTableSourceElement
 {
     #region Private fields
     private List<ElementTableTargetElement> _target;
-    private List<ElementType> _element;
+    private ElementType _element;
     private static XmlSerializer _serializer;
     #endregion
     
     public ElementTableSourceElement()
     {
-        _element = new List<ElementType>();
+        _element = ElementType.None;
         _target = new List<ElementTableTargetElement>();
     }
     
@@ -52,7 +52,7 @@ public partial class ElementTableSourceElement
     }
     
     [XmlAttribute]
-    public List<ElementType> Element
+    public ElementType Element
     {
         get
         {
