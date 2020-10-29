@@ -480,7 +480,7 @@ namespace Hybrasyl.Objects
 
         #endregion
 
-        public virtual bool UseCastable(Xml.Castable castObject, Creature target = null, Xml.SpawnCastable spawnCastable = null, bool assailAttack = false)
+        public virtual bool UseCastable(Xml.Castable castObject, Creature target = null, bool assailAttack = false)
         {
             if (!Condition.CastingAllowed) return false;
             
@@ -491,20 +491,20 @@ namespace Hybrasyl.Objects
 
             if(this is Monster)
             {
-                if(spawnCastable != null)
-                {
-                    damage = new Xml.CastableDamage
-                    {
-                        Simple = new Xml.SimpleQuantity
-                        {
-                            Min = (uint)spawnCastable.MinDmg,
-                            Max = (uint)spawnCastable.MaxDmg
-                        }
-                    };
+                //if(spawnCastable != null)
+                //{
+                    //damage = new Xml.CastableDamage
+                    //{
+                    //    Simple = new Xml.SimpleQuantity
+                    //    {
+                    //        Min = (uint)spawnCastable.MinDmg,
+                    //        Max = (uint)spawnCastable.MaxDmg
+                    //    }
+                    //};
 
-                    castObject.Effects.Damage = damage; //set damage based on spawncastable settings.
-                    castObject.Element = spawnCastable.Element; //handle defined element without redoing a ton of code.
-                }                
+                    //castObject.Effects.Damage = damage; //set damage based on spawncastable settings.
+                    //castObject.Element = spawnCastable.Element; //handle defined element without redoing a ton of code.
+                //}                
             }
 
             targets = GetTargets(castObject, target);

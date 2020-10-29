@@ -27,17 +27,13 @@ using System.Collections.Generic;
 public partial class SpawnGroup
 {
     #region Private fields
-    private Spawn _spawn;
+    private List<Spawn> _spawn;
     private string _baseLevel;
     private static XmlSerializer _serializer;
     #endregion
     
-    public SpawnGroup()
-    {
-        _spawn = new Spawn();
-    }
-    
-    public Spawn Spawn
+    [XmlElement("Spawn")]
+    public List<Spawn> Spawn
     {
         get
         {

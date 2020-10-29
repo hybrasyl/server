@@ -25,5 +25,8 @@ git checkout ${XSDPATH}/SpawnDamage.cs
 git checkout ${XSDPATH}/SpawnDefense.cs
 git checkout ${XSDPATH}/StatModifiers.cs
 git checkout ${XSDPATH}/StatModifierFormulas.cs
+git checkout ${XSDPATH}/PlayerFormula.cs
+git checkout ${XSDPATH}/PlayerRegenFormula.cs
+git checkout ${XSDPATH}/StatModifierFormulas.cs
 
 

@@ -34,16 +34,6 @@ namespace Hybrasyl
 {
     public partial class WorldDataStore
     {
-        static string Sanitize(dynamic key) => key.ToString().Normalize().ToLower();
-
-        private ConcurrentDictionary<Type, ConcurrentDictionary<string, dynamic>> _dataStore;
-        private ConcurrentDictionary<Type, ConcurrentDictionary<dynamic, dynamic>> _index;
-        public static SHA256CryptoServiceProvider sha = new SHA256CryptoServiceProvider();
-
-        public IDatabase Redis => World.DatastoreConnection.GetDatabase();
-
-        private HashSet<Type> RedisTypes { get; set; } 
-
         /// <summary>
         /// Normalize keys by converting to lowercase and removing whitespace (this means that 
         /// MiLeTh InN RoOm 1 => milethinnroom1. Collisions are possible here if you are mixing case in
@@ -51,6 +41,19 @@ namespace Hybrasyl
         /// </summary>
         /// <param name="key">Dynamic key object, which must provide a ToString</param>
         /// <returns>A normalized string</returns>
+        static string Sanitize(dynamic key) => key.ToString().Normalize().ToLower();
+
+        private ConcurrentDictionary<Type, ConcurrentDictionary<string, dynamic>> _dataStore;
+        private ConcurrentDictionary<Type, ConcurrentDictionary<dynamic, dynamic>> _index;
+        public static SHA256CryptoServiceProvider sha = new SHA256CryptoServiceProvider();
+
+        // TODO: refactor WDS to support multiple indexes for stores. For now we need 
+        // a way to easily retrieve a castable or list of castables based on category
+        private ConcurrentDictionary<string, HashSet<Xml.Castable>> CastableIndex;
+
+        public IDatabase Redis => World.DatastoreConnection.GetDatabase();
+
+        private HashSet<Type> RedisTypes { get; set; } 
 
         /// <summary>
         /// Constructor, takes no arguments.
@@ -60,6 +63,7 @@ namespace Hybrasyl
             _dataStore = new ConcurrentDictionary<Type, ConcurrentDictionary<string, dynamic>>();
             _index = new ConcurrentDictionary<Type, ConcurrentDictionary<dynamic, dynamic>>();
             RedisTypes = new HashSet<Type>();
+            CastableIndex = new ConcurrentDictionary<string, HashSet<Xml.Castable>>();
             var assembly = Assembly.GetExecutingAssembly();
             foreach (Type type in assembly.GetTypes())
             {
@@ -423,7 +427,30 @@ namespace Hybrasyl
             return false;
         }
 
+        /// <summary>
+        /// Register a castable in the world data store, which will create a usable index by the categories 
+        /// identified in the castable.
+        /// </summary>
+        /// <param name="castable"></param>
+        public void RegisterCastable(Xml.Castable castable)
+        {
+            foreach (var category in castable.Categories)
+            {
+                var sanitized = Sanitize(category);
+                if (!CastableIndex.ContainsKey(sanitized))
+                    CastableIndex[sanitized] = new HashSet<Xml.Castable>(new Xml.CastableComparer());
+                CastableIndex[sanitized].Add(castable);
+            }
 
+        }
+
+        public HashSet<Xml.Castable> GetCastablesByCategory(string category)
+        {
+            var sanitized = Sanitize(category);
+            if (CastableIndex.ContainsKey(sanitized))
+                return CastableIndex[sanitized];
+            return new HashSet<Xml.Castable>(new Xml.CastableComparer());       
+        }
     }
 
 }

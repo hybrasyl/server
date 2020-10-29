@@ -370,7 +370,7 @@ namespace Hybrasyl
         {
             // Stat modifiers and condition changes are only processed during start/remove
             ProcessConditions(effect);
-            ProcessStatModifiers(XmlStatus.Effects?.OnApply?.StatModifiers, RemoveStatBonuses);
+            ProcessStatModifiers(RemoveStatBonuses);
             if (displaySfx)
                 ProcessSfx(effect);
         }

@@ -683,6 +683,7 @@ namespace Hybrasyl
                     string name = string.Empty;
                     Xml.Castable newCastable = Xml.Castable.LoadFromFile(xml);
                     WorldData.SetWithIndex(newCastable.Id, newCastable, newCastable.Name);
+                    WorldData.RegisterCastable(newCastable);
                     GameLog.InfoFormat("Castables: loaded {0}, id {1}", newCastable.Name, newCastable.Id);
                 }
                 catch (Exception e)

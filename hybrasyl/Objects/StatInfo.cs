@@ -44,6 +44,8 @@ namespace Hybrasyl.Objects
         private Lockable<long> _baseWis { get; set; }
         private Lockable<long> _baseCon { get; set; }
         private Lockable<long> _baseDex { get; set; }
+        private Lockable<long> _baseCrit { get; set; }
+
         private Lockable<long> _bonusHp { get; set; }
         private Lockable<long> _bonusMp { get; set; }
         private Lockable<long> _bonusStr { get; set; }
@@ -111,6 +113,8 @@ namespace Hybrasyl.Objects
         public long BaseWis { get { return _baseWis.Value; } set { _baseWis.Value = value; } }
         [JsonProperty]
         public long BaseDex { get { return _baseDex.Value; } set { _baseDex.Value = value; } }
+        [JsonProperty]
+        public long BaseCrit { get { return _baseCrit.Value; } set { _baseCrit.Value = value; } }
         [JsonProperty]
         public double BaseReflectChance { get { return _baseReflectChance.Value; } set { _baseReflectChance.Value = value; } }
         [JsonProperty]

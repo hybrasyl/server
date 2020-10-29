@@ -73,7 +73,7 @@ namespace Hybrasyl
 
             try
             {
-                return new FormulaParser(source, castable, target).Eval(formula);
+                return FormulaParser.Eval(formula, new FormulaEvaluation() { Castable = castable, Target = target, Caster = source });
             }
             catch (Exception e)
             {

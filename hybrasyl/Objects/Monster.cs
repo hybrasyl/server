@@ -201,11 +201,13 @@ namespace Hybrasyl.Objects
 
         private uint _mTarget;
 
-        internal Xml.Spawn _spawn;
+        public Xml.CreatureBehaviorSet BehaviorSet;
 
-        private uint _simpleDamage => Convert.ToUInt32(Rng.Next(_spawn.Damage.Min, _spawn.Damage.Max + 1) * _variance);
+        public Xml.SpawnFlags SpawnFlags;
 
-        private Xml.CastableGroup _castables;
+        // Replaced with assail
+        //private uint _simpleDamage => Convert.ToUInt32(Rng.Next(_spawn.Damage.Min, _spawn.Damage.Max + 1) * _variance);
+
         private double _variance;
 
         public int ActionDelay = 800;
@@ -213,33 +215,22 @@ namespace Hybrasyl.Objects
         public DateTime LastAction { get; set; }
         public bool IsHostile { get; set; }
         public bool ShouldWander { get; set; }
-        public bool DeathDisabled => _spawn.Flags.HasFlag(Xml.SpawnFlags.DeathDisabled);
-        public bool MovementDisabled => _spawn.Flags.HasFlag(Xml.SpawnFlags.MovementDisabled);
-        public bool AiDisabled => _spawn.Flags.HasFlag(Xml.SpawnFlags.AiDisabled);
+        public bool DeathDisabled => SpawnFlags.HasFlag(Xml.SpawnFlags.DeathDisabled);
+        public bool MovementDisabled => SpawnFlags.HasFlag(Xml.SpawnFlags.MovementDisabled);
+        public bool AiDisabled => SpawnFlags.HasFlag(Xml.SpawnFlags.AiDisabled);
         public bool DeathProcessed { get; set; }
 
         public bool ScriptExists { get; set; }
 
         //public Dictionary<string, double> AggroTable { get; set; }
         public ThreatInfo ThreatInfo {get; private set; }
-        public Xml.CastableGroup Castables => _castables;
 
         public bool HasCastNearDeath = false;
 
         public bool Active = false;
-                
-        
-        public bool CanCast {
-            get
-            {
-                //if any of these are present, return true.
-                if (_spawn.Castables.Offense.Castables.Count > 0 || _spawn.Castables.Defense.Castables.Count > 0 || _spawn.Castables.NearDeath.Castables.Count > 0 || _spawn.Castables.OnDeath.Count > 0)
-                {
-                    return true;
-                }
-                return false;
-            }
-        } 
+
+
+        public bool CanCast => BehaviorSet?.CanCast ?? false;
 
         public override void OnDeath()
         {
@@ -444,60 +435,51 @@ namespace Hybrasyl.Objects
             return (uint)newStat;
         }
 
-        // Convenience methods to avoid calling CalculateVariance directly
-        public byte VariantStr => CalculateVariance(_spawn.Stats.Str);
-        public byte VariantInt => CalculateVariance(_spawn.Stats.Int);
-        public byte VariantDex => CalculateVariance(_spawn.Stats.Dex);
-        public byte VariantCon => CalculateVariance(_spawn.Stats.Con);
-        public byte VariantWis => CalculateVariance(_spawn.Stats.Wis);
-        public uint VariantHp => CalculateVariance(_spawn.Stats.Hp);
-        public uint VariantMp => CalculateVariance(_spawn.Stats.Mp);
-
         private Loot _loot;
 
-        public uint LootableXP => _loot?.Xp ?? 0 ;
+        public uint LootableXP
+        {
+            get { return _loot?.Xp ?? 0; }
+            set { _loot.Xp = value; }
+        }
 
         public uint LootableGold => _loot?.Gold ?? 0 ;
 
         public List<string> LootableItems => _loot?.Items ?? new List<string>();
 
-        public Monster(Xml.Creature creature, Xml.Spawn spawn, int map, Loot loot = null)
+        public Monster(Xml.Creature creature, Xml.CreatureBehaviorSet behaviorset, Xml.SpawnFlags flags, byte level, int map, Loot loot = null)
         {
             _actionQueue = new ConcurrentQueue<MobAction>();
-            _spawn = spawn;
-            var buffed = Rng.Next() > 50;
-            if (buffed)
-                _variance = (Rng.NextDouble() * _spawn.Variance) + 1;
-            else
-                _variance = 1 - (Rng.NextDouble() * _spawn.Variance);
-
+            BehaviorSet = behaviorset;
+            SpawnFlags = flags;
 
             Name = creature.Name;
             Sprite = creature.Sprite;
             World = Game.World;
             Map = Game.World.WorldData.Get<Map>(map);
-            Stats.Level = spawn.Stats.Level;
-            Stats.BaseHp = VariantHp;
-            Stats.Hp = VariantHp;
-            Stats.BaseMp = VariantMp;
-            Stats.Mp = VariantMp;
+            Stats.Level = level;
+            
+            //Stats.Level = spawn.Base.Level;
+            //Stats.BaseHp = VariantHp;
+            //Stats.Hp = VariantHp;
+            //Stats.BaseMp = VariantMp;
+            //Stats.Mp = VariantMp;
             DisplayText = creature.Description;
-            Stats.BaseStr = VariantStr;
-            Stats.BaseInt = VariantInt;
-            Stats.BaseWis = VariantWis;
-            Stats.BaseCon = VariantCon;
-            Stats.BaseDex = VariantDex;
-            _castables = spawn.Castables;
+            //Stats.BaseStr = VariantStr;
+            //Stats.BaseInt = VariantInt;
+            //Stats.BaseWis = VariantWis;
+            //Stats.BaseCon = VariantCon;
+            //Stats.BaseDex = VariantDex;
 
-            Stats.BaseDefensiveElement = spawn.GetDefensiveElement();
-            Stats.BaseDefensiveElement = spawn.GetOffensiveElement();
+            //Stats.BaseDefensiveElement = spawn.GetDefensiveElement();
+            //Stats.BaseDefensiveElement = spawn.GetOffensiveElement();
 
             _loot = loot;
 
-            if (spawn.Flags.HasFlag(Xml.SpawnFlags.AiDisabled))
+            if (AiDisabled)
                 IsHostile = false;
             else
-                IsHostile = _random.Next(0, 8) < 2;
+                IsHostile = true;
 
             if (spawn.Flags.HasFlag(Xml.SpawnFlags.MovementDisabled))
                 ShouldWander = false;
@@ -745,7 +727,7 @@ namespace Hybrasyl.Objects
             }
         }
 
-        public void Cast(Creature target, Xml.SpawnCastable creatureCastable)
+        public void Cast(Creature target, Xml.Castable creatureCastable)
         {
             var castable = World.WorldData.GetByIndex<Xml.Castable>(creatureCastable.Name);
             if (target is Merchant) return;
@@ -753,7 +735,7 @@ namespace Hybrasyl.Objects
             Condition.Casting = false;
         }
 
-        public void Cast(UserGroup target, Xml.SpawnCastable creatureCastable, Xml.TargetType targetType)
+        public void Cast(UserGroup target, Xml.Castable creatureCastable, Xml.CreatureAttackPriority priority)
         {
 
             var inRange = Map.EntityTree.GetObjects(GetViewport()).OfType<User>();
@@ -762,7 +744,7 @@ namespace Hybrasyl.Objects
 
             var castable = World.WorldData.GetByIndex<Xml.Castable>(creatureCastable.Name);
 
-            if (targetType == Xml.TargetType.Group)
+            if (priority == Xml.CreatureAttackPriority.Group)
             {
                 foreach(var user in result)
                 {
@@ -770,7 +752,7 @@ namespace Hybrasyl.Objects
                 }
             }
 
-            if(targetType == Xml.TargetType.Random)
+            if(priority == Xml.CreatureAttackPriority.Random)
             {
                 var rngSelection = _random.Next(0, result.Count);
 
@@ -782,24 +764,29 @@ namespace Hybrasyl.Objects
             Condition.Casting = false;
         }
 
-        public Xml.SpawnCastable SelectSpawnCastable(SpawnCastType castType)
+        public Xml.Castable SelectSpawnCastable(SpawnCastType castType)
         {
-            Xml.SpawnCastable creatureCastable = null;
+            Xml.Castable creatureCastable = null;
+            string castableName = string.Empty;
+
             switch (castType)
             {
                 case SpawnCastType.Offensive:
-                    creatureCastable = _castables.Offense.Castables.PickRandom(true);
+                    castableName = BehaviorSet.OffensiveCastables.PickRandom(true);
                     break;
                 case SpawnCastType.Defensive:
-                    creatureCastable = _castables.Defense.Castables.PickRandom(true);
+                    castableName = BehaviorSet.DefensiveCastables.PickRandom(true);
                     break;
                 case SpawnCastType.NearDeath:
-                    creatureCastable = _castables.NearDeath.Castables.PickRandom(true);
+                    castableName = BehaviorSet.NearDeathCastables.PickRandom(true);
                     break;
                 case SpawnCastType.OnDeath:
-                    creatureCastable = _castables.OnDeath.PickRandom(true);
-                    break;
+                    castableName = BehaviorSet.OnDeathCastables.PickRandom(true);
+                    break;                       
             }
+
+            if (!string.IsNullOrEmpty(castableName))
+                Game.World.WorldData.TryGetValue(castableName, out creatureCastable);
 
             return creatureCastable;
         }
@@ -841,7 +828,11 @@ namespace Hybrasyl.Objects
         /// </summary>
         /// <param name="direction"></param>
         /// <param name="target"></param>
-        public void SimpleAttack(Creature target) => target?.Damage(_simpleDamage, Stats.BaseOffensiveElement, Xml.DamageType.Physical, Xml.DamageFlags.None, this);
+        public void SimpleAttack(Creature target)
+        {
+            // Redo as castable assail
+            //target?.Damage(_simpleDamage, Stats.BaseOffensiveElement, Xml.DamageType.Physical, Xml.DamageFlags.None, this);
+        }
 
         public override void ShowTo(VisibleObject obj)
         {
