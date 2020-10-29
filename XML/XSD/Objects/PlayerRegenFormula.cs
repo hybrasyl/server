@@ -29,16 +29,14 @@ public partial class PlayerRegenFormula
     #region Private fields
     private FormulaTarget _interval;
     private FormulaTarget _affect;
-    private List<Class> _class;
+    private Class _class;
     private string _value;
     private static XmlSerializer _serializer;
     #endregion
     
     public PlayerRegenFormula()
     {
-        _class = new List<Class>();
-        _class = new Class[] {
-                Class.None};
+        _class = Class.None;
     }
     
     [XmlAttribute]
@@ -68,7 +66,7 @@ public partial class PlayerRegenFormula
     }
     
     [XmlAttribute]
-    public List<Class> Class
+    public Class Class
     {
         get
         {

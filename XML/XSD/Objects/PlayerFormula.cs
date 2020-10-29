@@ -28,16 +28,14 @@ public partial class PlayerFormula
 {
     #region Private fields
     private FormulaTarget _affect;
-    private List<Class> _class;
+    private Class _class;
     private string _value;
     private static XmlSerializer _serializer;
     #endregion
     
     public PlayerFormula()
     {
-        _class = new List<Class>();
-        _class = new Class[] {
-                Class.None};
+            Class = Xml.Class.None;
     }
     
     [XmlAttribute]
@@ -54,7 +52,7 @@ public partial class PlayerFormula
     }
     
     [XmlAttribute]
-    public List<Class> Class
+    public Class Class
     {
         get
         {
