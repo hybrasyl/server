@@ -311,9 +311,28 @@ namespace Hybrasyl.Xml
         //            return true;
         //    }
         //    return false;
-        //}
+        //}        
+    }
 
-        
+    public class CastableComparer : IEqualityComparer<Castable>
+    {
+        public bool Equals(Castable c1, Castable c2)
+        {
+            if (c1 == null && c2 == null) return true;
+            if (c1 == null || c2 == null) return false;
+
+            if (c1.Name.Trim().ToLower() == c2.Name.Trim().ToLower() &&
+                c1.Book == c2.Book)
+                return true;
+
+            return false;
+        }
+
+        public int GetHashCode(Castable c)
+        {
+            string hCode = $"{c.Name.Trim().ToLower()}-{c.Book}";
+            return hCode.GetHashCode();
+        }
     }
 
     public partial class CastableIntent
@@ -452,6 +471,19 @@ namespace Hybrasyl.Xml
         }
     }
 }
+
+namespace Hybrasyl.Xml
+{
+    public partial class CreatureBehaviorSet
+    {
+        public List<CreatureCastable> OffensiveCastables => Behavior?.Casting?.Offense?.Castable == null ? new List<CreatureCastable>() : Behavior.Casting.Offense.Castable;
+        public List<CreatureCastable> DefensiveCastables => Behavior?.Casting?.Defense?.Castable == null ? new List<CreatureCastable>() : Behavior.Casting.Defense.Castable;
+        public List<CreatureCastable> OnDeathCastables => Behavior?.Casting?.OnDeath?.Castable == null ? new List<CreatureCastable>() : Behavior.Casting.OnDeath.Castable;
+        public List<CreatureCastable> NearDeathCastables => Behavior?.Casting?.NearDeath?.Castable == null ? new List<CreatureCastable>() : Behavior.Casting.NearDeath.Castable;
+        public bool CanCast => OffensiveCastables.Count > 0 || DefensiveCastables.Count > 0 || OnDeathCastables.Count > 0 || NearDeathCastables.Count > 0;
+    }
+}
+
 namespace Hybrasyl.Xml
 {
       

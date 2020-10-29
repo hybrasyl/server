@@ -22,15 +22,14 @@ using System.Collections.Generic;
 [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.4084.0")]
 [Serializable]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-public enum Class
+public enum FormulaTarget
 {
-    Peasant,
-    Warrior,
-    Rogue,
-    Wizard,
-    Priest,
-    Monk,
-    None,
+    Damage,
+    CritChance,
+    Hp,
+    Xp,
+    Mp,
+    Regen,
 }
 }
 #pragma warning restore

@@ -28,6 +28,8 @@ public partial class CreatureType
 {
     #region Private fields
     private LootList _loot;
+    private CreatureHostilitySettings _hostility;
+    private CreatureHostility _setCookies;
     private string _name;
     private ushort _sprite;
     private string _behaviorSet;
@@ -51,6 +53,30 @@ public partial class CreatureType
         set
         {
             _loot = value;
+        }
+    }
+    
+    public CreatureHostilitySettings Hostility
+    {
+        get
+        {
+            return _hostility;
+        }
+        set
+        {
+            _hostility = value;
+        }
+    }
+    
+    public CreatureHostility SetCookies
+    {
+        get
+        {
+            return _setCookies;
+        }
+        set
+        {
+            _setCookies = value;
         }
     }
     

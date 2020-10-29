@@ -32,6 +32,8 @@ public partial class Creature
     private string _description;
     private List<CreatureType> _types;
     private LootList _loot;
+    private CreatureHostilitySettings _hostility;
+    private CreatureHostility _setCookies;
     private ushort _sprite;
     private static XmlSerializer _serializer;
     #endregion
@@ -84,6 +86,30 @@ public partial class Creature
         set
         {
             _loot = value;
+        }
+    }
+    
+    public CreatureHostilitySettings Hostility
+    {
+        get
+        {
+            return _hostility;
+        }
+        set
+        {
+            _hostility = value;
+        }
+    }
+    
+    public CreatureHostility SetCookies
+    {
+        get
+        {
+            return _setCookies;
+        }
+        set
+        {
+            _setCookies = value;
         }
     }
     

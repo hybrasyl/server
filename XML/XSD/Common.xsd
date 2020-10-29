@@ -405,6 +405,7 @@
       <xs:enumeration value="Wizard" />
       <xs:enumeration value="Priest" />
       <xs:enumeration value="Monk" />
+      <xs:enumeration value="None" />
     </xs:restriction>
   </xs:simpleType>
 
@@ -453,17 +454,6 @@
       <!-- Passive to players and cannot be attacked -->
       <xs:enumeration value="Neutral"/>
       <!-- Passive to players and can be attacked -->
-    </xs:restriction>
-  </xs:simpleType>
-
-  <xs:simpleType name="TargetType">
-    <xs:restriction base="xs:token">
-      <xs:enumeration value="None"/>
-      <xs:enumeration value="Self" />
-      <xs:enumeration value="Attacker" />
-      <xs:enumeration value="Group" />
-      <xs:enumeration value="Nearby" />
-      <xs:enumeration value="Random" />
     </xs:restriction>
   </xs:simpleType>
 
@@ -664,6 +654,8 @@
       <xs:element name="Description" type="hyb:String8" minOccurs="0" maxOccurs="1" />
       <xs:element name="Types" type="CreatureTypes" minOccurs="0" maxOccurs="1"/>
       <xs:element name="Loot" type="LootList" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Hostility" minOccurs="0" maxOccurs="1" type="CreatureHostilitySettings"/>
+      <xs:element name="SetCookies" minOccurs="0" maxOccurs="1" type="CreatureHostility"/>
     </xs:sequence>
     <xs:attribute name="Sprite" use="required" type="xs:unsignedShort" />
   </xs:complexType>
@@ -671,6 +663,8 @@
   <xs:complexType name="CreatureType">
     <xs:sequence>
       <xs:element name="Loot" type="LootList" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Hostility" minOccurs="0" maxOccurs="1" type="CreatureHostilitySettings"/>
+      <xs:element name="SetCookies" minOccurs="0" maxOccurs="1" type="CreatureHostility"/>
     </xs:sequence>
     <xs:attribute name="Name" type="hyb:String5" use="required"/>
     <xs:attribute name="Sprite" use="required" type="xs:unsignedShort" />
@@ -702,6 +696,8 @@
       <xs:element name="Defense" minOccurs="0" maxOccurs="1" type="hyb:SpawnDefense"/>
       <xs:element name="Spec" minOccurs="0" maxOccurs="1" type="hyb:SpawnSpec"/>
       <xs:element name="Base" minOccurs="0" maxOccurs="1" type="hyb:SpawnBase"/>
+      <xs:element name="Hostility" minOccurs="0" maxOccurs="1" type="CreatureHostilitySettings"/>
+      <xs:element name="SetCookies" minOccurs="0" maxOccurs="1" type="CreatureHostility"/>
     </xs:sequence>
     <xs:attribute name="Import" type="xs:string" use="optional"/>
     <xs:attribute name="Name" type="xs:string" use="optional"/>
@@ -805,6 +801,7 @@
       <xs:enumeration value="SimilarNearby" />
       <xs:enumeration value="Nearby" />
       <xs:enumeration value="Random" />
+      <xs:enumeration value="Group"/>
     </xs:restriction>
   </xs:simpleType>
 
@@ -834,6 +831,31 @@
     <xs:sequence>
       <xs:element name="Casting" minOccurs="0" maxOccurs="1" type="CreatureCastingBehavior"/>
       <xs:element name="Assail" minOccurs="0" maxOccurs="1" type="CreatureCastingSet"/>
+      <xs:element name="Hostility" minOccurs="0" maxOccurs="1" type="CreatureHostilitySettings"/>
+      <xs:element name="SetCookies" minOccurs="0" maxOccurs="1" type="CreatureHostility"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="CreatureHostility">
+    <xs:attribute name="ExceptCookie" type="xs:token" use="optional"/>
+  </xs:complexType>
+  
+  <xs:complexType name="CreatureHostilitySettings">
+    <xs:sequence>
+      <xs:element name="Players" type="CreatureHostility" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Monsters" type="CreatureHostility" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Neutral" type="CreatureHostility" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="CreatureCookie">
+    <xs:attribute name="Name" type="xs:string" use="required"/>
+    <xs:attribute name="Value" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="CreatureCookies">
+    <xs:sequence>
+      <xs:element name="Cookie" type="CreatureCookie" minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
   </xs:complexType>
   
@@ -847,14 +869,24 @@
     <xs:attribute name="Name" type="xs:string" use="required"/>
   </xs:complexType>
 
+  <xs:complexType name="CreatureCastable">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="Priority" type="hyb:CreatureAttackPriority" use="optional" default="HighThreat"/>
+        <xs:attribute name="HealthPercentage" type="xs:int" use="optional" default="0"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
   <xs:complexType name="CreatureCastingSet">
     <xs:sequence>
-      <xs:element name="Castable" minOccurs="0" maxOccurs="unbounded" type="xs:string"/>
+      <xs:element name="Castable" minOccurs="0" maxOccurs="unbounded" type="CreatureCastable"/>
     </xs:sequence>
     <xs:attribute name="Categories" type="xs:token" use="optional"/>
     <xs:attribute name="Interval" type="xs:token" use="optional" default="15"/>
     <xs:attribute name="Priority" type="hyb:CreatureAttackPriority" use="optional" default="HighThreat"/>
     <xs:attribute name="HealthPercentage" type="xs:int" use="optional" default="0"/>
+    <xs:attribute name="Random" type="xs:boolean" use="optional" default="true"/>
   </xs:complexType>
                  
   <xs:complexType name="NpcRoleTrainCastable">

@@ -29,6 +29,8 @@ public partial class CreatureBehavior
     #region Private fields
     private CreatureCastingBehavior _casting;
     private CreatureCastingSet _assail;
+    private CreatureHostilitySettings _hostility;
+    private CreatureHostility _setCookies;
     private static XmlSerializer _serializer;
     #endregion
     
@@ -53,6 +55,30 @@ public partial class CreatureBehavior
         set
         {
             _assail = value;
+        }
+    }
+    
+    public CreatureHostilitySettings Hostility
+    {
+        get
+        {
+            return _hostility;
+        }
+        set
+        {
+            _hostility = value;
+        }
+    }
+    
+    public CreatureHostility SetCookies
+    {
+        get
+        {
+            return _setCookies;
+        }
+        set
+        {
+            _setCookies = value;
         }
     }
     

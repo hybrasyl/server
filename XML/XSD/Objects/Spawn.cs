@@ -33,6 +33,8 @@ public partial class Spawn
     private SpawnDefense _defense;
     private SpawnSpec _spec;
     private SpawnBase _base;
+    private CreatureHostilitySettings _hostility;
+    private CreatureHostility _setCookies;
     private string _import;
     private string _name;
     private SpawnFlags _flags;
@@ -109,6 +111,30 @@ public partial class Spawn
         set
         {
             _base = value;
+        }
+    }
+    
+    public CreatureHostilitySettings Hostility
+    {
+        get
+        {
+            return _hostility;
+        }
+        set
+        {
+            _hostility = value;
+        }
+    }
+    
+    public CreatureHostility SetCookies
+    {
+        get
+        {
+            return _setCookies;
+        }
+        set
+        {
+            _setCookies = value;
         }
     }
     

@@ -32,6 +32,7 @@ public enum CreatureAttackPriority
     SimilarNearby,
     Nearby,
     Random,
+    Group,
 }
 }
 #pragma warning restore

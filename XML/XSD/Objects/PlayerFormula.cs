@@ -24,105 +24,58 @@ using System.Collections.Generic;
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-public partial class CreatureCastingSet
+public partial class PlayerFormula
 {
     #region Private fields
-    private List<CreatureCastable> _castable;
-    private string _categories;
-    private string _interval;
-    private CreatureAttackPriority _priority;
-    private int _healthPercentage;
-    private bool _random;
+    private FormulaTarget _affect;
+    private List<Class> _class;
+    private string _value;
     private static XmlSerializer _serializer;
     #endregion
     
-    public CreatureCastingSet()
+    public PlayerFormula()
     {
-        _interval = "15";
-        _priority = CreatureAttackPriority.HighThreat;
-        _healthPercentage = 0;
-        _random = true;
+        _class = new List<Class>();
+        _class = new Class[] {
+                Class.None};
     }
     
-    [XmlElement("Castable")]
-    public List<CreatureCastable> Castable
+    [XmlAttribute]
+    public FormulaTarget Affect
     {
         get
         {
-            return _castable;
+            return _affect;
         }
         set
         {
-            _castable = value;
-        }
-    }
-    
-    [XmlAttribute(DataType="token")]
-    public string Categories
-    {
-        get
-        {
-            return _categories;
-        }
-        set
-        {
-            _categories = value;
-        }
-    }
-    
-    [XmlAttribute(DataType="token")]
-    [DefaultValue("15")]
-    public string Interval
-    {
-        get
-        {
-            return _interval;
-        }
-        set
-        {
-            _interval = value;
+            _affect = value;
         }
     }
     
     [XmlAttribute]
-    [DefaultValue(CreatureAttackPriority.HighThreat)]
-    public CreatureAttackPriority Priority
+    public List<Class> Class
     {
         get
         {
-            return _priority;
+            return _class;
         }
         set
         {
-            _priority = value;
+            _class = value;
         }
     }
     
-    [XmlAttribute]
-    [DefaultValue(0)]
-    public int HealthPercentage
+    [XmlTextAttribute]
+    public string Value
     {
         get
         {
-            return _healthPercentage;
+            return _value;
         }
         set
         {
-            _healthPercentage = value;
-        }
-    }
-    
-    [XmlAttribute]
-    [DefaultValue(true)]
-    public bool Random
-    {
-        get
-        {
-            return _random;
-        }
-        set
-        {
-            _random = value;
+            _value = value;
         }
     }
     
@@ -132,7 +85,7 @@ public partial class CreatureCastingSet
         {
             if ((_serializer == null))
             {
-                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(CreatureCastingSet));
+                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(PlayerFormula));
             }
             return _serializer;
         }
@@ -140,7 +93,7 @@ public partial class CreatureCastingSet
     
     #region Serialize/Deserialize
     /// <summary>
-    /// Serialize CreatureCastingSet object
+    /// Serialize PlayerFormula object
     /// </summary>
     /// <returns>XML value</returns>
     public virtual string Serialize()
@@ -173,16 +126,16 @@ public partial class CreatureCastingSet
     }
     
     /// <summary>
-    /// Deserializes CreatureCastingSet object
+    /// Deserializes PlayerFormula object
     /// </summary>
     /// <param name="input">string workflow markup to deserialize</param>
-    /// <param name="obj">Output CreatureCastingSet object</param>
+    /// <param name="obj">Output PlayerFormula object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool Deserialize(string input, out CreatureCastingSet obj, out Exception exception)
+    public static bool Deserialize(string input, out PlayerFormula obj, out Exception exception)
     {
         exception = null;
-        obj = default(CreatureCastingSet);
+        obj = default(PlayerFormula);
         try
         {
             obj = Deserialize(input);
@@ -195,19 +148,19 @@ public partial class CreatureCastingSet
         }
     }
     
-    public static bool Deserialize(string input, out CreatureCastingSet obj)
+    public static bool Deserialize(string input, out PlayerFormula obj)
     {
         Exception exception = null;
         return Deserialize(input, out obj, out exception);
     }
     
-    public static CreatureCastingSet Deserialize(string input)
+    public static PlayerFormula Deserialize(string input)
     {
         StringReader stringReader = null;
         try
         {
             stringReader = new StringReader(input);
-            return ((CreatureCastingSet)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
+            return ((PlayerFormula)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
         }
         finally
         {
@@ -218,14 +171,14 @@ public partial class CreatureCastingSet
         }
     }
     
-    public static CreatureCastingSet Deserialize(Stream s)
+    public static PlayerFormula Deserialize(Stream s)
     {
-        return ((CreatureCastingSet)(SerializerXML.Deserialize(s)));
+        return ((PlayerFormula)(SerializerXML.Deserialize(s)));
     }
     #endregion
     
     /// <summary>
-    /// Serializes current CreatureCastingSet object into file
+    /// Serializes current PlayerFormula object into file
     /// </summary>
     /// <param name="fileName">full path of outupt xml file</param>
     /// <param name="exception">output Exception value if failed</param>
@@ -266,16 +219,16 @@ public partial class CreatureCastingSet
     }
     
     /// <summary>
-    /// Deserializes xml markup from file into an CreatureCastingSet object
+    /// Deserializes xml markup from file into an PlayerFormula object
     /// </summary>
     /// <param name="fileName">string xml file to load and deserialize</param>
-    /// <param name="obj">Output CreatureCastingSet object</param>
+    /// <param name="obj">Output PlayerFormula object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool LoadFromFile(string fileName, out CreatureCastingSet obj, out Exception exception)
+    public static bool LoadFromFile(string fileName, out PlayerFormula obj, out Exception exception)
     {
         exception = null;
-        obj = default(CreatureCastingSet);
+        obj = default(PlayerFormula);
         try
         {
             obj = LoadFromFile(fileName);
@@ -288,13 +241,13 @@ public partial class CreatureCastingSet
         }
     }
     
-    public static bool LoadFromFile(string fileName, out CreatureCastingSet obj)
+    public static bool LoadFromFile(string fileName, out PlayerFormula obj)
     {
         Exception exception = null;
         return LoadFromFile(fileName, out obj, out exception);
     }
     
-    public static CreatureCastingSet LoadFromFile(string fileName)
+    public static PlayerFormula LoadFromFile(string fileName)
     {
         FileStream file = null;
         StreamReader sr = null;
