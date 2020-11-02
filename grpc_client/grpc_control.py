@@ -40,6 +40,6 @@ channel = secure_channel("staging.hybrasyl.com:2613", cc)
 
 stub = Patron_pb2_grpc.PatronStub(channel)
 
-f = stub.BeginShutdown(patron_pb2.BeginShutdownRequest(Delay=sys.argv[2]))
+f = stub.BeginShutdown(Patron_pb2.BeginShutdownRequest(Delay=int(sys.argv[2])))
 
 print("Shutdown request submitted")
