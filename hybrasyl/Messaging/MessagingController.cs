@@ -318,9 +318,14 @@ namespace Hybrasyl.Messaging
                     var resp = pmh.Process(msg);
                     if (!pmh.Passthrough)
                     {
+                        // TODO: implement cast / resolve duplication
+                        var hmsg = new Message(recipient, senderRef.UserName, subject, body);
+                        senderSentMail.ReceiveMessage((Message)hmsg);
+
                         // Plugin is "last destination" for message
                         return new ServerPacketStructures.MessagingResponse()
                         {
+                            ResponseType = BoardResponseType.EndResult,
                             ResponseSuccess = resp.Success,
                             ResponseString = resp.PluginResponse
                         };

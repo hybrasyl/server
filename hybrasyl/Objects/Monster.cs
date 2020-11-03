@@ -907,11 +907,8 @@ namespace Hybrasyl.Objects
         public void PathNextPoint(Xml.Direction direction, (int x, int y) currentPoint)
         {
             var rect = GetViewport();
-            var invalidPoints = new HashSet<(int x, int y)>(
-                from obj in Map.EntityTree.GetObjects(rect)
-                where Map.GetTileContents(obj.Location.X, obj.Location.Y).Any(x => x is Creature)
-                select ((int)obj.Location.X, (int)obj.Location.Y)
-                );
+            var invalidPoints = new HashSet<(int x, int y)>(Map.EntityTree.GetObjects(rect).
+                Where(x => x is Creature).Select(y => ((int)y.X, (int)y.Y)));
 
             (int x, int y) point = NextPoint(direction, currentPoint);
 

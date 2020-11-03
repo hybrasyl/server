@@ -577,43 +577,43 @@ namespace Hybrasyl
 
         public void Remove(VisibleObject obj)
         {
+            var user = obj as User;
+            List<VisibleObject> affectedObjects = new List<VisibleObject>();
+
             lock (_lock)
             {
                 if (Objects.Remove(obj))
                 {
                     EntityTree.Remove(obj);
+                    affectedObjects = EntityTree.GetObjects(obj.GetViewport());
 
-                    if (obj is User)
-                    {
-                        var user = obj as User;
+                    if (user != null)
                         Users.Remove(user.Name);
-                        if (user.ActiveExchange != null)
-                            user.ActiveExchange.CancelExchange(user);
-                    }
-
-                    var affectedObjects = EntityTree.GetObjects(obj.GetViewport());
-
-                    foreach (var target in affectedObjects)
-                    {
-                        // If the target of a Remove is a player, we insert a 250ms delay to allow the animation
-                        // frame to complete, or a slight delay to allow a kill animation to finish animating.
-                        // Yes, this is a thing we do.
-                        if (target is User && obj is User)
-                            ((User)target).AoiDeparture(obj, 250);
-                        else if (target is User && obj is Creature)
-                            ((User)target).AoiDeparture(obj, 100);
-                        else
-                            target.AoiDeparture(obj);
-
-                        obj.AoiDeparture(target);
-                    }
-
-                    obj.Map = null;
                 }
                 else
                     GameLog.Fatal("Failed to remove gameobject id: {0} name: {1}", obj.Id, obj.Name);
             }
+
+            user?.ActiveExchange?.CancelExchange(user);
+
+            foreach (var target in affectedObjects)
+            {
+                // If the target of a Remove is a player, we insert a 250ms delay to allow the animation
+                // frame to complete, or a slight delay to allow a kill animation to finish animating.
+                // Yes, this is a thing we do.
+                if (target is User && obj is User)
+                    ((User)target).AoiDeparture(obj, 250);
+                else if (target is User && obj is Creature)
+                    ((User)target).AoiDeparture(obj, 100);
+                else
+                    target.AoiDeparture(obj);
+
+                obj.AoiDeparture(target);
+            }
+
+            obj.Map = null;
         }
+        
 
         public void AddGold(int x, int y, Gold gold)
         {
