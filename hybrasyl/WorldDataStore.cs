@@ -282,14 +282,14 @@ namespace Hybrasyl
         /// <returns>The username or string.empty if not found</returns>
         public string GetNameByUuid(string uuid)
         {
-            if (TryGetValueByIndex(uuid, out UuidReference reference))
+            if (TryGetValue(uuid, out UuidReference reference))
                 return reference.UserName;            
             return string.Empty;
         }
 
         public string GetUuidByName(string name)
         {
-            if (TryGetValue(name, out UuidReference reference))
+            if (TryGetValueByIndex(name, out UuidReference reference))
                 return reference.UserUuid;
             // Does user exist?
             if (TryGetUser(name, out User user))
