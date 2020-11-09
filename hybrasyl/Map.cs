@@ -171,7 +171,7 @@ namespace Hybrasyl
         public Dictionary<Tuple<byte, byte>, Objects.Signpost> Signposts { get; set; }
         public Dictionary<Tuple<byte, byte>, Objects.Reactor> Reactors { get; set; }
 
-        public Xml.SpawnGroup MapSpawns { get; set; }
+        public Xml.SpawnGroup SpawnDirectives { get; set; }
 
         public bool SpawnDebug { get; set; }
 
@@ -189,7 +189,7 @@ namespace Hybrasyl
             Init();
             World = theWorld;
             SpawnDebug = false;
-            MapSpawns = newMap.Spawns;
+            SpawnDirectives = newMap.Spawns;
 
             // TODO: refactor Map class to not do this, but be a partial which overlays
             // TODO: XSD.Map

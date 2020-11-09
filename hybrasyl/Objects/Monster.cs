@@ -447,10 +447,11 @@ namespace Hybrasyl.Objects
 
         public List<string> LootableItems => _loot?.Items ?? new List<string>();
 
-        public Monster(Xml.Creature creature, Xml.CreatureBehaviorSet behaviorset, Xml.SpawnFlags flags, byte level, int map, Loot loot = null)
+        public Monster(Xml.Creature creature, Xml.SpawnFlags flags, byte level, int map, Loot loot = null,
+            Xml.CreatureBehaviorSet behaviorsetOverride = null)
         {
             _actionQueue = new ConcurrentQueue<MobAction>();
-            BehaviorSet = behaviorset;
+            BehaviorSet = behaviorsetOverride == null ? creature.B
             SpawnFlags = flags;
 
             Name = creature.Name;

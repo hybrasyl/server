@@ -440,7 +440,7 @@ namespace Hybrasyl
                             tokens[i] = eval.Target.Stats.BonusAc.ToString();
                             break;
                         case "$MAPBASELEVEL":
-                            tokens[i] = (eval.Map.MapSpawns?.BaseLevel ?? "1").ToString();
+                            tokens[i] = (eval.Map.SpawnDirectives?.BaseLevel ?? "1").ToString();
                             break;
                         case "$MAPTILES":
                             tokens[i] = (eval.Map.X * eval.Map.Y).ToString();

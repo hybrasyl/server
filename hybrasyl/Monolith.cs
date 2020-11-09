@@ -29,54 +29,69 @@ using System.Threading;
 namespace Hybrasyl
 {
 
-
     //This class is defined to control the mob spawning thread.
     internal class Monolith
     {
         private static readonly ManualResetEvent AcceptDone = new ManualResetEvent(false);
         private static Random _random;
+        private ConcurrentDictionary<string, Xml.SpawnGroup> Spawns;
 
-
-        private IEnumerable<Xml.SpawnGroup> SpawnGroups => Game.World.WorldData.Values<Xml.SpawnGroup>();
-        private IEnumerable<Map> Maps => Game.World.WorldData.Values<Map>();
-        private IEnumerable<Xml.Creature> Creatures => Game.World.WorldData.Values<Xml.Creature>();
-
-        private ConcurrentDictionary<int, List<Xml.Spawn>> Spawns;
+        private Map GetMap(ushort id)
+        {
+            if (Game.World.WorldData.TryGetValue(id, out Map map))
+                return map;
+            return null;
+        }
 
         internal Monolith()
         {
             _random = new Random();
-            Spawns = new ConcurrentDictionary<int, List<Xml.Spawn>>();
+            Spawns = new ConcurrentDictionary<string, Xml.SpawnGroup>();
+        }
+
+        // This is to support multiple instance of maps in the future, potentially with instancing
+        public static string Instance => "main";
+        public static string SpawnMapKey(ushort id) => $"hyb-{Instance}-{id}";
+
+        public void LoadSpawns(Map map)
+        {
+            var spawnlist = new List<Xml.Spawn>();
+
+            foreach (var spawn in map.SpawnDirectives.Spawn)
+            {
+                // This references another group
+                if (!string.IsNullOrEmpty(spawn.Import))
+                {
+                    if (Game.World.WorldData.TryGetValue(spawn.Import, out Xml.SpawnGroup group))
+                    {
+                        // TODO: make recursive; this only supports one level of importing for now
+                        spawnlist.AddRange(group.Spawn.Where(x => string.IsNullOrEmpty(x.Import)).ToList());
+                        GameLog.SpawnInfo($"Map {map.Name}: imported {spawn.Import} successfully");
+                    }
+                    else
+                        GameLog.SpawnWarning($"Map {map.Name}: spawn import {spawn.Import} not found");                
+                }
+                spawnlist.Add(spawn);               
+            }
+            Spawns.TryAdd(SpawnMapKey(map.Id), new Xml.SpawnGroup() { Spawn = spawnlist });
         }
 
         public void Start()
         {
             // Resolve active spawns
-            foreach (var spawnmap in Maps)
-            foreach (var spawngroup in SpawnGroups)
-            {               
-                foreach (var spawnmap in spawngroup.Maps)
-                {
-                    if (Game.World.WorldData.TryGetValueByIndex(spawnmap.Name, out Map map))
-                    {
-                        spawnmap.Id = map.Id;
-                        spawnmap.LastSpawn = DateTime.MinValue;
-                    }
-                    else
-                    {
-                        spawnmap.Disabled = true;
-                        GameLog.SpawnError("Specified map {map} not found", spawnmap.Name);
-                    }
-                }
+            foreach (var spawnmap in Game.World.WorldData.Values<Map>())
+            {
+                if (spawnmap.SpawningDisabled) continue;
+                LoadSpawns(spawnmap);             
             }
 
             while (true)
             {
                 if (World.ControlMessageQueue.IsCompleted)
                     break;
-                foreach (var spawnGroup in SpawnGroups)
-                    if (!spawnGroup.Disabled)
-                        Spawn(spawnGroup);
+                foreach (var key in Spawns.Keys)
+                    if (Spawns.TryGetValue(key, out Xml.SpawnGroup group))
+                        Spawn(group);
                 Thread.Sleep(5000);
             }
         }
@@ -84,105 +99,162 @@ namespace Hybrasyl
 
         public void Spawn(Xml.SpawnGroup spawnGroup)
         {
-            foreach (var map in spawnGroup.Maps)
+            if (!Game.World.WorldData.TryGetValue(spawnGroup.MapId, out Map spawnmap))
             {
-                if (map.Disabled) continue;
+                GameLog.SpawnWarning($"Map id {spawnGroup.MapId}: not found");
+                return;
+            }
+
+            foreach (var spawn in spawnGroup.Spawn)
+            {
+                var monsters = spawnmap.Objects.OfType<Monster>().ToList();
+
+                if (!Game.World.WorldData.TryGetValue(spawn.Name, out Xml.Creature spawnTemplate))
+                {
+                    GameLog.SpawnWarning($"Map id {spawnGroup.MapId}: spawn {spawn.Name} not found");
+                    continue;
+                }
+
+                // If the map is disabled, or we don't have a spec for our spawning, or the individual spawn
+                // previously had errors and was disabled - continue on
+                if (spawnmap.SpawningDisabled || spawn.Spec == null || spawn.Disabled)
+                    continue;
+
+                var formeval = new FormulaEvaluation() { Map = spawnmap };
+
+                int limit = 0;
+                int interval = 0;
+                int maxPerInterval = 0;
+
                 try
                 {
-                    var spawnMap = Game.World.WorldData.Get<Map>(map.Id);
-                    GameLog.SpawnDebug("Spawn: calculating {0}", spawnMap.Name);
-                    var monsterList = spawnMap.Objects.OfType<Monster>().ToList();
-                    var monsterCount = monsterList.Count;
+                    limit = (int)FormulaParser.Eval(spawn.Spec.Limit, formeval);
+                    interval = (int)FormulaParser.Eval(spawn.Spec.Interval, formeval);
+                    maxPerInterval = (int)FormulaParser.Eval(spawn.Spec.MaxPerInterval, formeval);
+                }
+                catch (Exception e)
+                {
+                    spawn.Disabled = true;
+                    spawn.ErrorMessage = $"Spawn disabled due to formula evaluation exception: {e}";
+                    GameLog.SpawnError("Spawn {spawn} on map {map} disabled due to exception: {ex}", spawn.Name, spawnmap.Name, e);
+                    continue;
+                }
 
-                    // If there is no limit specified, we want a reasonable limit, which we consider to be 1/10th of total 
-                    // number of map tiles
+                // If there is no limit specified, we want a reasonable default,
+                // which we consider to be 1/100th of total number of map tiles for any given mob
 
-                    var spawnLimit = map.Limit == 0 ? (spawnMap.X * spawnMap.Y) / 10 : map.Limit;
+                if (limit == 0)
+                    limit = spawnmap.X * spawnmap.Y / 100;
 
-                    if (monsterCount > spawnLimit)
+                var currentCount = monsters.Where(x => x.Name == spawn.Name).Count();
+
+                if (currentCount >= limit)
+                {
+                    if (spawnmap.SpawnDebug)
+                        GameLog.SpawnInfo($"Spawn: {spawnmap.Name}: not spawning, mob count is {currentCount}, limit is {limit}");
+                    continue;
+                }
+
+                var since = (DateTime.Now - spawn.LastSpawn).TotalSeconds;
+
+                if (since < interval)
+                {
+                    if (spawnmap.SpawnDebug) GameLog.SpawnInfo($"Spawn: {spawnmap.Name}: not spawning, last spawn was {since} ago, interval {interval}");
+                    continue;
+                }
+
+                // Now spawn stuff
+
+                for (var x = 0; x <= (limit - currentCount); x++)
+                {
+                    if (Game.World.WorldData.TryGetValue(spawn.Name, out Creature creature))
                     {
-                        if (spawnMap.SpawnDebug) GameLog.SpawnInfo($"Spawn: {map.Name}: not spawning, mob count is {monsterCount}, limit is {spawnLimit}");
-                        continue;
-                    }
-
-                    var since = DateTime.Now - map.LastSpawn;
-                    if (since.TotalSeconds < map.Interval)
-                    {
-                        if (spawnMap.SpawnDebug) GameLog.SpawnInfo($"Spawn: {map.Name}: not spawning, last spawn was {since.TotalSeconds} ago, interval {map.Interval}");
-                        continue;
-                    }
-
-                    map.LastSpawn = DateTime.Now;
-
-                    var thisSpawn = _random.Next(map.MinSpawn, map.MaxSpawn + 1);
-
-                    GameLog.SpawnInfo($"Spawn: {map.Name}: spawning {thisSpawn} mobs ");
-
-                    for (var i = 0; i < thisSpawn; i++)
-                    {
-                        var spawn = spawnGroup.Spawns.PickRandom(true);
-
-                        if (spawn == null)
-                        {
-                            GameLog.SpawnError("Spawngroup empty, skipping");
-                            break;
-                        }
-
-                        var creature = Creatures.FirstOrDefault(x => x.Name == spawn.Base);
-
-                        if (creature is default(Xml.Creature))
-                        {
-                            GameLog.SpawnError($"Base monster {spawn.Base} not found");
-                            break;
-                        }
-                        
                         var newSpawnLoot = LootBox.CalculateLoot(spawn);
 
-                        if (spawnMap.SpawnDebug)
-                            GameLog.SpawnInfo("Spawn {name}, map {map}: {Xp} xp, {Gold} gold, items {Items}", spawn.Base, map.Name, newSpawnLoot.Xp, newSpawnLoot.Gold,
+                        if (spawnmap.SpawnDebug)
+                            GameLog.SpawnInfo("Spawn {name}, map {map}: {Xp} xp, {Gold} gold, items {Items}", spawn.Base, 
+                                spawnmap.Name, newSpawnLoot.Xp, newSpawnLoot.Gold,
                                 string.Join(',', newSpawnLoot.Items));
 
-                        var baseMob = new Monster(creature, spawn, map.Id, newSpawnLoot);
+                        var baseMob = new Monster(creature,  map.Id, newSpawnLoot);
                         var mob = (Monster)baseMob.Clone();
                         var xcoord = 0;
                         var ycoord = 0;
 
-                        if (map.Coordinates.Count > 0)
-                        {
-                            // TODO: optimize / improve
-                            foreach (var coord in map.Coordinates)
-                            {
-                                if (spawnMap.EntityTree.GetObjects(new System.Drawing.Rectangle(coord.X, coord.Y, 1, 1)).Where(e => e is Creature).Count() == 0)
-                                {
-                                    xcoord = coord.X;
-                                    ycoord = coord.Y;
-                                    break;
-                                }
-                            }                         
-                        }
-                        else
-                        {
-                            do
-                            {
-                                xcoord = _random.Next(0, spawnMap.X);
-                                ycoord = _random.Next(0, spawnMap.Y);
-                            } while (spawnMap.IsWall[xcoord, ycoord]);
-                        }
-                        mob.X = (byte)xcoord;
-                        mob.Y = (byte)ycoord;
-                        if (spawnMap.SpawnDebug) GameLog.SpawnInfo($"Spawn: spawning {mob.Name} on {spawnMap.Name}");
-                        SpawnMonster(mob, spawnMap);
                     }
-                   
+                    else
+                        GameLog.SpawnWarning("Map {map}: Spawn {spawn} not found", spawnmap.Name, spawn.Name);
                 }
-                catch (Exception e)
-                {
-                    Game.ReportException(e);
-                    GameLog.SpawnError(e, "Spawngroup {Filename}: disabled map {Name} due to error", spawnGroup.Filename, map.Name);
-                    map.Disabled = true;
-                    continue;
-                }
+
+
             }
+            
+
+            //        for (var i = 0; i < thisSpawn; i++)
+            //        {
+            //            var spawn = spawnGroup.Spawns.PickRandom(true);
+
+            //            if (spawn == null)
+            //            {
+            //                GameLog.SpawnError("Spawngroup empty, skipping");
+            //                break;
+            //            }
+
+            //            var creature = Creatures.FirstOrDefault(x => x.Name == spawn.Base);
+
+            //            if (creature is default(Xml.Creature))
+            //            {
+            //                GameLog.SpawnError($"Base monster {spawn.Base} not found");
+            //                break;
+            //            }
+                        
+            //            var newSpawnLoot = LootBox.CalculateLoot(spawn);
+
+            //            if (spawnMap.SpawnDebug)
+            //                GameLog.SpawnInfo("Spawn {name}, map {map}: {Xp} xp, {Gold} gold, items {Items}", spawn.Base, map.Name, newSpawnLoot.Xp, newSpawnLoot.Gold,
+            //                    string.Join(',', newSpawnLoot.Items));
+
+            //            var baseMob = new Monster(creature, spawn, map.Id, newSpawnLoot);
+            //            var mob = (Monster)baseMob.Clone();
+            //            var xcoord = 0;
+            //            var ycoord = 0;
+
+            //            if (map.Coordinates.Count > 0)
+            //            {
+            //                // TODO: optimize / improve
+            //                foreach (var coord in map.Coordinates)
+            //                {
+            //                    if (spawnMap.EntityTree.GetObjects(new System.Drawing.Rectangle(coord.X, coord.Y, 1, 1)).Where(e => e is Creature).Count() == 0)
+            //                    {
+            //                        xcoord = coord.X;
+            //                        ycoord = coord.Y;
+            //                        break;
+            //                    }
+            //                }                         
+            //            }
+            //            else
+            //            {
+            //                do
+            //                {
+            //                    xcoord = _random.Next(0, spawnMap.X);
+            //                    ycoord = _random.Next(0, spawnMap.Y);
+            //                } while (spawnMap.IsWall[xcoord, ycoord]);
+            //            }
+            //            mob.X = (byte)xcoord;
+            //            mob.Y = (byte)ycoord;
+            //            if (spawnMap.SpawnDebug) GameLog.SpawnInfo($"Spawn: spawning {mob.Name} on {spawnMap.Name}");
+            //            SpawnMonster(mob, spawnMap);
+            //        }
+                   
+            //    }
+            //    catch (Exception e)
+            //    {
+            //        Game.ReportException(e);
+            //        GameLog.SpawnError(e, "Spawngroup {Filename}: disabled map {Name} due to error", spawnGroup.Filename, map.Name);
+            //        map.Disabled = true;
+            //        continue;
+            //    }
+            //}
         }
         private static void SpawnMonster(Monster monster, Map map)
         {

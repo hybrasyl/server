@@ -228,16 +228,13 @@ namespace Hybrasyl.Xml
 
     public partial class SpawnGroup
     {
-        public int Id
-        {
-            get
-            {
-                unchecked
-                {
-                    return 31 * (Filename.GetHashCode() + 1);
-                }
-            }
-        }
+        public ushort MapId { get; set; } = 0;
+
+    }
+
+    public partial class Spawn
+    {
+        public DateTime LastSpawn { get; set; } = default;
     }
 
     public partial class LootSet
@@ -489,7 +486,9 @@ namespace Hybrasyl.Xml
       
     public partial class Spawn
     {
-        protected Random Rng = new Random();
+        private static readonly Random Rng = new Random();
+        public bool Disabled { get; set; } = false;
+        public string ErrorMessage { get; set; } = string.Empty;
 
         /// <summary>
         /// Calculate a specific offensive element for a spawn from its list of elements.
