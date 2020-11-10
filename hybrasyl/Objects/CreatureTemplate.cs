@@ -7,10 +7,10 @@ namespace Hybrasyl.Objects
     
     class CreatureTemplate
     {
-        Xml.CreatureBehaviorSet BehaviorSet;
-        Xml.LootTable Loot;
-        byte Level;
-
+        Xml.CreatureBehaviorSet BehaviorSet { get; set; }
+        Xml.LootTable Loot { get; set; }
+        byte Level { get; set; }
+        string Name { get; set; }
 
     }
 }

@@ -938,16 +938,7 @@ namespace Hybrasyl.ChatCommands
                     }
                 case "spawngroup":
                     {
-                        var reloaded = Game.World.GetXmlFile(args[0], args[1]);
-                        var reloadedSpawnGroup = Xml.SpawnGroup.LoadFromFile(reloaded);
-
-                        if (Game.World.WorldData.TryGetValue(reloadedSpawnGroup.Id, out Xml.SpawnGroup spawngroup))
-                        {
-                            Game.World.WorldData.Remove<Xml.SpawnGroup>(spawngroup.Id);
-                            Game.World.WorldData.SetWithIndex(reloadedSpawnGroup.Id, reloadedSpawnGroup, reloadedSpawnGroup.Filename);
-                            return Success($"SpawnGroup {reloadedSpawnGroup.Filename} set to world data");
-                        }
-                        return Fail($"{args[0]} {args[1]} was not found");
+                        return Fail($"Not supported yet");
                     }
                 case "status":
                     {
@@ -1085,15 +1076,7 @@ namespace Hybrasyl.ChatCommands
                     }
                 case "spawngroup":
                     {
-                        var reloaded = Game.World.GetXmlFile(args[0], args[1]);
-                        var reloadedSpawnGroup = Xml.SpawnGroup.LoadFromFile(reloaded);
-
-                        if (Game.World.WorldData.TryGetValue(reloadedSpawnGroup.Id, out Xml.SpawnGroup spawngroup))
-                        {
-                            return Fail($"{args[0]} {args[1]} already exists.");
-                        }
-                        Game.World.WorldData.SetWithIndex(reloadedSpawnGroup.Id, reloadedSpawnGroup, reloadedSpawnGroup.Filename);
-                        return Success($"SpawnGroup {reloadedSpawnGroup.Filename} set to world data");
+                        return Fail("Not supported, yet");
                     }
                 case "status":
                     {

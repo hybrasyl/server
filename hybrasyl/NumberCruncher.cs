@@ -242,8 +242,8 @@ namespace Hybrasyl
             modifiers.BonusAc = (long) Math.Ceiling(_evalFormula(effect.Ac, castable, target, source));
             modifiers.BonusRegen = (long) Math.Ceiling(_evalFormula(effect.Regen, castable, target, source));
             modifiers.BonusMr = (long) Math.Ceiling(_evalFormula(effect.Mr, castable, target, source));
-            modifiers.BonusDamageModifier = (long) Math.Ceiling(_evalFormula(effect.DamageModifier, castable, target, source));
-            modifiers.BonusHealModifier = (long) Math.Ceiling(_evalFormula(effect.HealModifier, castable, target, source));
+            modifiers.BonusDamageModifier = (long) Math.Ceiling(_evalFormula(effect.OutboundDamageModifier, castable, target, source));
+            modifiers.BonusHealModifier = (long) Math.Ceiling(_evalFormula(effect.OutboundDamageModifier, castable, target, source));
             modifiers.BonusReflectChance = (long) Math.Ceiling(_evalFormula(effect.ReflectChance, castable, target, source));
             modifiers.BonusReflectIntensity = (long) Math.Ceiling(_evalFormula(effect.ReflectIntensity, castable, target, source));
             if (effect.OffensiveElement != Xml.ElementType.None)
