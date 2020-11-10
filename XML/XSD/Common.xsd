@@ -837,12 +837,13 @@
       <xs:element name="Casting" minOccurs="0" maxOccurs="1" type="CreatureCastingBehavior"/>
       <xs:element name="Assail" minOccurs="0" maxOccurs="1" type="CreatureCastingSet"/>
       <xs:element name="Hostility" minOccurs="0" maxOccurs="1" type="CreatureHostilitySettings"/>
-      <xs:element name="SetCookies" minOccurs="0" maxOccurs="1" type="CreatureHostility"/>
+      <xs:element name="SetCookies" minOccurs="0" maxOccurs="1" type="CreatureCookies "/>
     </xs:sequence>
   </xs:complexType>
 
   <xs:complexType name="CreatureHostility">
     <xs:attribute name="ExceptCookie" type="xs:token" use="optional"/>
+    <xs:attribute name="OnlyCookie" type="xs:token" use="optional"/>
   </xs:complexType>
   
   <xs:complexType name="CreatureHostilitySettings">
@@ -872,6 +873,7 @@
       <xs:element name="Behavior" minOccurs="0" maxOccurs="1" type="CreatureBehavior"/>
     </xs:sequence>
     <xs:attribute name="Name" type="xs:string" use="required"/>
+    <xs:attribute name="Import" type="xs:string" use="optional"/>
   </xs:complexType>
 
   <xs:complexType name="CreatureCastable">
