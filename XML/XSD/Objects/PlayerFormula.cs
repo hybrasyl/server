@@ -35,7 +35,7 @@ public partial class PlayerFormula
     
     public PlayerFormula()
     {
-            Class = Xml.Class.None;
+        _class = Class.None;
     }
     
     [XmlAttribute]

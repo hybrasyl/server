@@ -41,8 +41,10 @@ public partial class StatModifiers
     private sbyte _mr;
     private ElementType _offensiveElement;
     private ElementType _defensiveElement;
-    private float _damageModifier;
-    private float _healModifier;
+    private float _inboundDamageModifier;
+    private float _outboundDamageModifier;
+    private float _inboundModifier;
+    private float _outboundModifier;
     private DamageType _damageType;
     private float _reflectChance;
     private float _reflectIntensity;
@@ -262,28 +264,54 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
-    public float DamageModifier
+    public float InboundDamageModifier
     {
         get
         {
-            return _damageModifier;
+            return _inboundDamageModifier;
         }
         set
         {
-            _damageModifier = value;
+            _inboundDamageModifier = value;
         }
     }
     
     [XmlAttribute]
-    public float HealModifier
+    public float OutboundDamageModifier
     {
         get
         {
-            return _healModifier;
+            return _outboundDamageModifier;
         }
         set
         {
-            _healModifier = value;
+            _outboundDamageModifier = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public float InboundModifier
+    {
+        get
+        {
+            return _inboundModifier;
+        }
+        set
+        {
+            _inboundModifier = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public float OutboundModifier
+    {
+        get
+        {
+            return _outboundModifier;
+        }
+        set
+        {
+            _outboundModifier = value;
         }
     }
     

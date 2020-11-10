@@ -90,8 +90,10 @@
     <xs:attribute name="Mr" default="0" type="xs:byte" />
     <xs:attribute name="OffensiveElement" type="hyb:ElementType" default="None"/>
     <xs:attribute name="DefensiveElement" type="hyb:ElementType" default="None"/>
-    <xs:attribute name="DamageModifier" type="xs:float"/>
-    <xs:attribute name="HealModifier" type="xs:float"/>
+    <xs:attribute name="InboundDamageModifier" type="xs:float"/>
+    <xs:attribute name="OutboundDamageModifier" type="xs:float"/>
+    <xs:attribute name="InboundModifier" type="xs:float"/>
+    <xs:attribute name="OutboundModifier" type="xs:float"/>
     <xs:attribute name="DamageType" type="hyb:DamageType"/>
     <xs:attribute name="ReflectChance" type="xs:float"/>
     <xs:attribute name="ReflectIntensity" type="xs:float"/>
@@ -112,8 +114,10 @@
     <xs:attribute name="Mr" default="0" type="xs:string" />
     <xs:attribute name="OffensiveElement" type="hyb:ElementType" default="None"/>
     <xs:attribute name="DefensiveElement" type="hyb:ElementType" default="None"/>
-    <xs:attribute name="DamageModifier" type="xs:string"/>
-    <xs:attribute name="HealModifier" type="xs:string"/>
+    <xs:attribute name="InboundDamageModifier" type="xs:string"/>
+    <xs:attribute name="OutboundDamageModifier" type="xs:string"/>
+    <xs:attribute name="InboundModifier" type="xs:string"/>
+    <xs:attribute name="OutboundModifier" type="xs:string"/>
     <xs:attribute name="DamageType" type="xs:string"/>
     <xs:attribute name="ReflectChance" type="xs:string"/>
     <xs:attribute name="ReflectIntensity" type="xs:string"/>

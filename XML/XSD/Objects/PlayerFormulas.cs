@@ -33,6 +33,7 @@ public partial class PlayerFormulas
     private PlayerFormula _mr;
     private PlayerRegenFormula _regen;
     private PlayerLevelFormulas _nextLevels;
+    private PlayerFormula _ac;
     private static XmlSerializer _serializer;
     #endregion
     
@@ -105,6 +106,18 @@ public partial class PlayerFormulas
         set
         {
             _nextLevels = value;
+        }
+    }
+    
+    public PlayerFormula Ac
+    {
+        get
+        {
+            return _ac;
+        }
+        set
+        {
+            _ac = value;
         }
     }
     

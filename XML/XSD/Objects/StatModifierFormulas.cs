@@ -41,31 +41,33 @@ public partial class StatModifierFormulas
     private string _mr;
     private ElementType _offensiveElement;
     private ElementType _defensiveElement;
-    private string _damageModifier;
-    private string _healModifier;
+    private string _inboundDamageModifier;
+    private string _outboundDamageModifier;
+    private string _inboundModifier;
+    private string _outboundModifier;
     private string _damageType;
     private string _reflectChance;
     private string _reflectIntensity;
     private static XmlSerializer _serializer;
-        #endregion
-
-        public StatModifierFormulas()
-        {
-            _str = "0";
-            _int = "0";
-            _wis = "0";
-            _con = "0";
-            _dex = "0";
-            _hp = "0";
-            _mp = "0";
-            _hit = "0";
-            _dmg = "0";
-            _ac = "0";
-            _regen = "0";
-            _mr = "0";
-            _offensiveElement = ElementType.None;
-            _defensiveElement = ElementType.None;
-        }
+    #endregion
+    
+    public StatModifierFormulas()
+    {
+        _str = "0";
+        _int = "0";
+        _wis = "0";
+        _con = "0";
+        _dex = "0";
+        _hp = "0";
+        _mp = "0";
+        _hit = "0";
+        _dmg = "0";
+        _ac = "0";
+        _regen = "0";
+        _mr = "0";
+        _offensiveElement = ElementType.None;
+        _defensiveElement = ElementType.None;
+    }
     
     [XmlAttribute]
     [DefaultValue("0")]
@@ -262,28 +264,54 @@ public partial class StatModifierFormulas
     }
     
     [XmlAttribute]
-    public string DamageModifier
+    public string InboundDamageModifier
     {
         get
         {
-            return _damageModifier;
+            return _inboundDamageModifier;
         }
         set
         {
-            _damageModifier = value;
+            _inboundDamageModifier = value;
         }
     }
     
     [XmlAttribute]
-    public string HealModifier
+    public string OutboundDamageModifier
     {
         get
         {
-            return _healModifier;
+            return _outboundDamageModifier;
         }
         set
         {
-            _healModifier = value;
+            _outboundDamageModifier = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string InboundModifier
+    {
+        get
+        {
+            return _inboundModifier;
+        }
+        set
+        {
+            _inboundModifier = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string OutboundModifier
+    {
+        get
+        {
+            return _outboundModifier;
+        }
+        set
+        {
+            _outboundModifier = value;
         }
     }
     

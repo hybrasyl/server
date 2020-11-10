@@ -29,8 +29,14 @@ public partial class SpawnGroup
     #region Private fields
     private List<Spawn> _spawn;
     private string _baseLevel;
+    private bool _disabled;
     private static XmlSerializer _serializer;
     #endregion
+    
+    public SpawnGroup()
+    {
+        _disabled = false;
+    }
     
     [XmlElement("Spawn")]
     public List<Spawn> Spawn
@@ -55,6 +61,20 @@ public partial class SpawnGroup
         set
         {
             _baseLevel = value;
+        }
+    }
+    
+    [XmlAttribute]
+    [DefaultValue(false)]
+    public bool Disabled
+    {
+        get
+        {
+            return _disabled;
+        }
+        set
+        {
+            _disabled = value;
         }
     }
     

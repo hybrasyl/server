@@ -29,13 +29,15 @@ public partial class SpawnDefense
     #region Private fields
     private string _ac;
     private string _mr;
-    private ElementType _element;
+    private List<ElementType> _element;
     private static XmlSerializer _serializer;
     #endregion
     
     public SpawnDefense()
     {
-        _element = ElementType.None;
+        _element = new List<ElementType>();
+        _element = new ElementType[] {
+                ElementType.None};
     }
     
     [XmlAttribute]
@@ -65,7 +67,7 @@ public partial class SpawnDefense
     }
     
     [XmlAttribute]
-    public ElementType Element
+    public List<ElementType> Element
     {
         get
         {
