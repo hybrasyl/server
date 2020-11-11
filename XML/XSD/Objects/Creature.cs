@@ -32,6 +32,8 @@ public partial class Creature
     private LootList _loot;
     private CreatureHostilitySettings _hostility;
     private List<CreatureCookie> _setCookies;
+    private List<Creature> _types;
+    private string _name;
     private ushort _sprite;
     private string _behaviorSet;
     private int _minDmg;
@@ -92,6 +94,32 @@ public partial class Creature
         set
         {
             _setCookies = value;
+        }
+    }
+    
+    [XmlArrayItemAttribute("Type", IsNullable=false)]
+    public List<Creature> Types
+    {
+        get
+        {
+            return _types;
+        }
+        set
+        {
+            _types = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string Name
+    {
+        get
+        {
+            return _name;
+        }
+        set
+        {
+            _name = value;
         }
     }
     
