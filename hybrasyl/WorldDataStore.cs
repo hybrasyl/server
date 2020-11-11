@@ -21,6 +21,7 @@
 
 using Hybrasyl.Messaging;
 using Hybrasyl.Objects;
+using Hybrasyl.Xml;
 using StackExchange.Redis;
 using System;
 using System.Collections.Concurrent;
@@ -442,6 +443,11 @@ namespace Hybrasyl
                 CastableIndex[sanitized].Add(castable);
             }
 
+        }
+
+        public bool ImportAll<T>(XmlLoadResponse<T> response) where T : IHybrasylLoadable<T>
+        {
+            return false;
         }
 
         public HashSet<Xml.Castable> GetCastablesByCategory(string category)

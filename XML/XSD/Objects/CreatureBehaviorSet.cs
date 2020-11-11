@@ -32,6 +32,7 @@ public partial class CreatureBehaviorSet
     private CreatureCastables _castables;
     private CreatureBehavior _behavior;
     private string _name;
+    private string _import;
     private static XmlSerializer _serializer;
     #endregion
     
@@ -81,6 +82,19 @@ public partial class CreatureBehaviorSet
         set
         {
             _name = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string Import
+    {
+        get
+        {
+            return _import;
+        }
+        set
+        {
+            _import = value;
         }
     }
     

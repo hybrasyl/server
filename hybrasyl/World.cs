@@ -47,6 +47,7 @@ using System.Timers;
 using System.Xml.Schema;
 using System.Diagnostics;
 using Hybrasyl.ChatCommands;
+using Hybrasyl.Xml;
 
 namespace Hybrasyl
 {
@@ -136,6 +137,7 @@ namespace Hybrasyl
 
         #region Path helpers
         public static string DataDirectory => Constants.DataDirectory;
+        public static string XmlDirectory => Path.Combine(DataDirectory, "world", "xml");
 
         public static string MapFileDirectory => Path.Combine(DataDirectory, "world", "mapfiles");
 
@@ -151,6 +153,8 @@ namespace Hybrasyl
         public static string MapDirectory => Path.Combine(DataDirectory, "world", "xml", "maps");
 
         public static string WorldMapDirectory => Path.Combine(DataDirectory, "world", "xml", "worldmaps");
+
+        public static string BehaviorSetDirectory => Path.Combine(DataDirectory, "world", "xml", "behaviorsets");
 
         public static string CreatureDirectory => Path.Combine(DataDirectory, "world", "xml", "creatures");
 
@@ -581,14 +585,29 @@ namespace Hybrasyl
 
             GameLog.InfoFormat("National data: {0} nations loaded", WorldData.Count<Xml.Nation>());
 
+            // Load Behaviorsets
+            // TODO: genericize and refactor all of these, potentially using this new behaviorset pattern
+
+            var behaviorSets = Xml.CreatureBehaviorSet.LoadAll(XmlDirectory);
+
+            // TODO: change to foreach on XML assembly classes implementing IHybrasylLoadable
+            // eg: WorldData.ImportAll(Xml.CreatureBehaviorSet.LoadAll(XmlDirectory));
+
+            foreach (var set in behaviorSets.Results)
+                WorldData.Set(set.Name, set);
+            foreach (var error in behaviorSets.Errors)
+                GameLog.Error($"BehaviorSet: error occurred loading {error.Key}: {error.Value}");
+
             //Load Creatures
             foreach (var xml in GetXmlFiles(CreatureDirectory))
             {
                 try
                 {
                     var creature = Xml.Creature.LoadFromFile(xml);
+                    
                     GameLog.DebugFormat("Creatures: loaded {0}", creature.Name);
                     WorldData.Set(creature.Name, creature);
+                    
                 }
                 catch (Exception e)
                 {

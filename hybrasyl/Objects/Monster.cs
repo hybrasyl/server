@@ -451,7 +451,6 @@ namespace Hybrasyl.Objects
             Xml.CreatureBehaviorSet behaviorsetOverride = null)
         {
             _actionQueue = new ConcurrentQueue<MobAction>();
-            BehaviorSet = behaviorsetOverride == null ? creature.B
             SpawnFlags = flags;
 
             Name = creature.Name;

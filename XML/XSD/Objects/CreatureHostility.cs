@@ -28,6 +28,7 @@ public partial class CreatureHostility
 {
     #region Private fields
     private string _exceptCookie;
+    private string _onlyCookie;
     private static XmlSerializer _serializer;
     #endregion
     
@@ -41,6 +42,19 @@ public partial class CreatureHostility
         set
         {
             _exceptCookie = value;
+        }
+    }
+    
+    [XmlAttribute(DataType="token")]
+    public string OnlyCookie
+    {
+        get
+        {
+            return _onlyCookie;
+        }
+        set
+        {
+            _onlyCookie = value;
         }
     }
     

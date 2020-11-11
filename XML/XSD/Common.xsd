@@ -654,23 +654,24 @@
   <!-- Base definition for a monster or group of monsters (goblins, kobolds) -->
   <xs:complexType name="Creature">
     <xs:sequence>
-      <xs:element name="Name" type="hyb:String8" minOccurs="1" maxOccurs="1" />
       <xs:element name="Description" type="hyb:String8" minOccurs="0" maxOccurs="1" />
-      <xs:element name="Types" type="CreatureTypes" minOccurs="0" maxOccurs="1"/>
       <xs:element name="Loot" type="LootList" minOccurs="0" maxOccurs="1"/>
       <xs:element name="Hostility" minOccurs="0" maxOccurs="1" type="CreatureHostilitySettings"/>
-      <xs:element name="SetCookies" minOccurs="0" maxOccurs="1" type="CreatureHostility"/>
+      <xs:element name="SetCookies" minOccurs="0" maxOccurs="1" type="CreatureCookies"/>     
     </xs:sequence>
     <xs:attribute name="Sprite" use="required" type="xs:unsignedShort" />
+    <xs:attribute name="BehaviorSet" use="required" type="xs:string"/>
+    <xs:attribute name="MinDmg" type="xs:int" use="optional" default="0"/>
+    <xs:attribute name="MaxDmg" type="xs:int" use="optional" default="0"/>
   </xs:complexType>
 
   <xs:complexType name="CreatureType">
     <xs:sequence>
+      <xs:element name="Description" type="hyb:String8" minOccurs="0" maxOccurs="1" />
       <xs:element name="Loot" type="LootList" minOccurs="0" maxOccurs="1"/>
       <xs:element name="Hostility" minOccurs="0" maxOccurs="1" type="CreatureHostilitySettings"/>
-      <xs:element name="SetCookies" minOccurs="0" maxOccurs="1" type="CreatureHostility"/>
+      <xs:element name="SetCookies" minOccurs="0" maxOccurs="1" type="CreatureCookies"/>
     </xs:sequence>
-    <xs:attribute name="Name" type="hyb:String5" use="required"/>
     <xs:attribute name="Sprite" use="required" type="xs:unsignedShort" />
     <xs:attribute name="BehaviorSet" use="required" type="xs:string"/>
     <xs:attribute name="MinDmg" type="xs:int" use="optional" default="0"/>
@@ -702,7 +703,7 @@
       <xs:element name="Spec" minOccurs="0" maxOccurs="1" type="hyb:SpawnSpec"/>
       <xs:element name="Base" minOccurs="0" maxOccurs="1" type="hyb:SpawnBase"/>
       <xs:element name="Hostility" minOccurs="0" maxOccurs="1" type="CreatureHostilitySettings"/>
-      <xs:element name="SetCookies" minOccurs="0" maxOccurs="1" type="CreatureHostility"/>
+      <xs:element name="SetCookies" minOccurs="0" maxOccurs="1" type="CreatureCookies"/>
     </xs:sequence>
     <xs:attribute name="Import" type="xs:string" use="optional"/>
     <xs:attribute name="Name" type="xs:string" use="optional"/>

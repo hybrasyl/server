@@ -24,62 +24,37 @@ using System.Collections.Generic;
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-public partial class CreatureBehavior
+public partial class CreatureCookie
 {
     #region Private fields
-    private CreatureCastingBehavior _casting;
-    private CreatureCastingSet _assail;
-    private CreatureHostilitySettings _hostility;
-    private List<CreatureCookie> _setCookies;
+    private string _name;
+    private string _value;
     private static XmlSerializer _serializer;
     #endregion
     
-    public CreatureCastingBehavior Casting
+    [XmlAttribute]
+    public string Name
     {
         get
         {
-            return _casting;
+            return _name;
         }
         set
         {
-            _casting = value;
+            _name = value;
         }
     }
     
-    public CreatureCastingSet Assail
+    [XmlAttribute]
+    public string Value
     {
         get
         {
-            return _assail;
+            return _value;
         }
         set
         {
-            _assail = value;
-        }
-    }
-    
-    public CreatureHostilitySettings Hostility
-    {
-        get
-        {
-            return _hostility;
-        }
-        set
-        {
-            _hostility = value;
-        }
-    }
-    
-    [XmlArrayItemAttribute("Cookie", IsNullable=false)]
-    public List<CreatureCookie> SetCookies
-    {
-        get
-        {
-            return _setCookies;
-        }
-        set
-        {
-            _setCookies = value;
+            _value = value;
         }
     }
     
@@ -89,7 +64,7 @@ public partial class CreatureBehavior
         {
             if ((_serializer == null))
             {
-                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(CreatureBehavior));
+                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(CreatureCookie));
             }
             return _serializer;
         }
@@ -97,7 +72,7 @@ public partial class CreatureBehavior
     
     #region Serialize/Deserialize
     /// <summary>
-    /// Serialize CreatureBehavior object
+    /// Serialize CreatureCookie object
     /// </summary>
     /// <returns>XML value</returns>
     public virtual string Serialize()
@@ -130,16 +105,16 @@ public partial class CreatureBehavior
     }
     
     /// <summary>
-    /// Deserializes CreatureBehavior object
+    /// Deserializes CreatureCookie object
     /// </summary>
     /// <param name="input">string workflow markup to deserialize</param>
-    /// <param name="obj">Output CreatureBehavior object</param>
+    /// <param name="obj">Output CreatureCookie object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool Deserialize(string input, out CreatureBehavior obj, out Exception exception)
+    public static bool Deserialize(string input, out CreatureCookie obj, out Exception exception)
     {
         exception = null;
-        obj = default(CreatureBehavior);
+        obj = default(CreatureCookie);
         try
         {
             obj = Deserialize(input);
@@ -152,19 +127,19 @@ public partial class CreatureBehavior
         }
     }
     
-    public static bool Deserialize(string input, out CreatureBehavior obj)
+    public static bool Deserialize(string input, out CreatureCookie obj)
     {
         Exception exception = null;
         return Deserialize(input, out obj, out exception);
     }
     
-    public static CreatureBehavior Deserialize(string input)
+    public static CreatureCookie Deserialize(string input)
     {
         StringReader stringReader = null;
         try
         {
             stringReader = new StringReader(input);
-            return ((CreatureBehavior)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
+            return ((CreatureCookie)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
         }
         finally
         {
@@ -175,14 +150,14 @@ public partial class CreatureBehavior
         }
     }
     
-    public static CreatureBehavior Deserialize(Stream s)
+    public static CreatureCookie Deserialize(Stream s)
     {
-        return ((CreatureBehavior)(SerializerXML.Deserialize(s)));
+        return ((CreatureCookie)(SerializerXML.Deserialize(s)));
     }
     #endregion
     
     /// <summary>
-    /// Serializes current CreatureBehavior object into file
+    /// Serializes current CreatureCookie object into file
     /// </summary>
     /// <param name="fileName">full path of outupt xml file</param>
     /// <param name="exception">output Exception value if failed</param>
@@ -223,16 +198,16 @@ public partial class CreatureBehavior
     }
     
     /// <summary>
-    /// Deserializes xml markup from file into an CreatureBehavior object
+    /// Deserializes xml markup from file into an CreatureCookie object
     /// </summary>
     /// <param name="fileName">string xml file to load and deserialize</param>
-    /// <param name="obj">Output CreatureBehavior object</param>
+    /// <param name="obj">Output CreatureCookie object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool LoadFromFile(string fileName, out CreatureBehavior obj, out Exception exception)
+    public static bool LoadFromFile(string fileName, out CreatureCookie obj, out Exception exception)
     {
         exception = null;
-        obj = default(CreatureBehavior);
+        obj = default(CreatureCookie);
         try
         {
             obj = LoadFromFile(fileName);
@@ -245,13 +220,13 @@ public partial class CreatureBehavior
         }
     }
     
-    public static bool LoadFromFile(string fileName, out CreatureBehavior obj)
+    public static bool LoadFromFile(string fileName, out CreatureCookie obj)
     {
         Exception exception = null;
         return LoadFromFile(fileName, out obj, out exception);
     }
     
-    public static CreatureBehavior LoadFromFile(string fileName)
+    public static CreatureCookie LoadFromFile(string fileName)
     {
         FileStream file = null;
         StreamReader sr = null;
