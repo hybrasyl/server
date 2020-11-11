@@ -28,27 +28,21 @@ using System.Collections.Generic;
 public partial class Creature
 {
     #region Private fields
-    private string _name;
     private string _description;
-    private List<CreatureType> _types;
     private LootList _loot;
     private CreatureHostilitySettings _hostility;
-    private CreatureHostility _setCookies;
+    private List<CreatureCookie> _setCookies;
     private ushort _sprite;
+    private string _behaviorSet;
+    private int _minDmg;
+    private int _maxDmg;
     private static XmlSerializer _serializer;
     #endregion
     
-    [StringLengthAttribute(255, MinimumLength=1)]
-    public string Name
+    public Creature()
     {
-        get
-        {
-            return _name;
-        }
-        set
-        {
-            _name = value;
-        }
+        _minDmg = 0;
+        _maxDmg = 0;
     }
     
     [StringLengthAttribute(255, MinimumLength=1)]
@@ -61,19 +55,6 @@ public partial class Creature
         set
         {
             _description = value;
-        }
-    }
-    
-    [XmlArrayItemAttribute("Type", IsNullable=false)]
-    public List<CreatureType> Types
-    {
-        get
-        {
-            return _types;
-        }
-        set
-        {
-            _types = value;
         }
     }
     
@@ -101,7 +82,8 @@ public partial class Creature
         }
     }
     
-    public CreatureHostility SetCookies
+    [XmlArrayItemAttribute("Cookie", IsNullable=false)]
+    public List<CreatureCookie> SetCookies
     {
         get
         {
@@ -123,6 +105,47 @@ public partial class Creature
         set
         {
             _sprite = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BehaviorSet
+    {
+        get
+        {
+            return _behaviorSet;
+        }
+        set
+        {
+            _behaviorSet = value;
+        }
+    }
+    
+    [XmlAttribute]
+    [DefaultValue(0)]
+    public int MinDmg
+    {
+        get
+        {
+            return _minDmg;
+        }
+        set
+        {
+            _minDmg = value;
+        }
+    }
+    
+    [XmlAttribute]
+    [DefaultValue(0)]
+    public int MaxDmg
+    {
+        get
+        {
+            return _maxDmg;
+        }
+        set
+        {
+            _maxDmg = value;
         }
     }
     

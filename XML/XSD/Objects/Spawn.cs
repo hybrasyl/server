@@ -34,7 +34,7 @@ public partial class Spawn
     private SpawnSpec _spec;
     private SpawnBase _base;
     private CreatureHostilitySettings _hostility;
-    private CreatureHostility _setCookies;
+    private List<CreatureCookie> _setCookies;
     private string _import;
     private string _name;
     private SpawnFlags _flags;
@@ -126,7 +126,8 @@ public partial class Spawn
         }
     }
     
-    public CreatureHostility SetCookies
+    [XmlArrayItemAttribute("Cookie", IsNullable=false)]
+    public List<CreatureCookie> SetCookies
     {
         get
         {
