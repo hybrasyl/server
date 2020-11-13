@@ -120,17 +120,27 @@ namespace Hybrasyl
                 if (spawnmap.SpawningDisabled || spawn.Spec == null || spawn.Disabled)
                     continue;
 
-                var formeval = new FormulaEvaluation() { Map = spawnmap };
+                var formeval = new FormulaEvaluation() { 
+                    Map = spawnmap, XmlSpawn = spawn, 
+                    SpawnGroup = spawnGroup 
+                };
 
                 int limit = 0;
                 int interval = 0;
                 int maxPerInterval = 0;
+                int baseLevel;
 
                 try
                 {
                     limit = (int)FormulaParser.Eval(spawn.Spec.Limit, formeval);
                     interval = (int)FormulaParser.Eval(spawn.Spec.Interval, formeval);
                     maxPerInterval = (int)FormulaParser.Eval(spawn.Spec.MaxPerInterval, formeval);
+                    // If the spawn itself has a level defined, evaluate and use it; otherwise,
+                    // the spawn group (imported, or in the map itself) should define a base level
+                    if (string.IsNullOrEmpty(spawn.Base?.Level ?? null))
+                        baseLevel = (int)FormulaParser.Eval(spawnGroup.BaseLevel, formeval);
+                    else
+                        baseLevel = (int)FormulaParser.Eval(spawn.Base.Level, formeval);
                 }
                 catch (Exception e)
                 {
@@ -167,7 +177,7 @@ namespace Hybrasyl
 
                 for (var x = 0; x <= (limit - currentCount); x++)
                 {
-                    if (Game.World.WorldData.TryGetValue(spawn.Name, out Creature creature))
+                    if (Game.World.WorldData.TryGetValue(spawn.Name, out Xml.Creature creature))
                     {
                         var newSpawnLoot = LootBox.CalculateLoot(spawn);
 
@@ -176,11 +186,11 @@ namespace Hybrasyl
                                 spawnmap.Name, newSpawnLoot.Xp, newSpawnLoot.Gold,
                                 string.Join(',', newSpawnLoot.Items));
 
-                        var baseMob = new Monster(creature,  map.Id, newSpawnLoot);
+                        var baseMob = new Monster(creature, spawn.Flags, (byte) baseLevel, 
+                            spawnmap.Id, newSpawnLoot);
                         var mob = (Monster)baseMob.Clone();
                         var xcoord = 0;
                         var ycoord = 0;
-
                     }
                     else
                         GameLog.SpawnWarning("Map {map}: Spawn {spawn} not found", spawnmap.Name, spawn.Name);

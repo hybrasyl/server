@@ -447,17 +447,84 @@ namespace Hybrasyl.Objects
 
         public List<string> LootableItems => _loot?.Items ?? new List<string>();
 
+        private void RandomlyAllocateStatPoints(int points)
+        {
+            // Random allocation
+            for (var x = 1; x <= points; x++)
+            {
+                switch (Rng.Next(1, 5))
+                {
+                    case 1:
+                        Stats.BaseStr += 1;
+                        break;
+                    case 2:
+                        Stats.BaseInt += 1;
+                        break;
+                    case 3:
+                        Stats.BaseDex += 1;
+                        break;
+                    case 4:
+                        Stats.BaseCon += 1;
+                        break;
+                    case 5:
+                        Stats.BaseWis += 1;
+                        break;
+                }
+            }
+
+        }
+        public void AllocateStats()
+        {
+            var totalPoints = Stats.Level * 2;
+            if (BehaviorSet is null || string.IsNullOrEmpty(BehaviorSet.StatAlloc))
+                RandomlyAllocateStatPoints(totalPoints);
+            else
+            {
+                var allocPattern = BehaviorSet.StatAlloc.Trim().ToLower().Split(" ");
+                while (totalPoints != 0)
+                {
+                    foreach (var alloc in allocPattern)
+                    {
+                        switch (alloc)
+                        {
+                            case "str":
+                                Stats.BaseStr += 1;
+                                break;
+                            case "int":
+                                Stats.BaseInt += 1;
+                                break;
+                            case "wis":
+                                Stats.BaseWis += 1;
+                                break;
+                            case "con":
+                                Stats.BaseCon += 1;
+                                break;
+                            case "dex":
+                                Stats.BaseDex += 1;
+                                break;
+                            default:
+                                RandomlyAllocateStatPoints(1);
+                                break;
+                        }
+                        totalPoints--;
+                    }
+                }
+            }
+        }
         public Monster(Xml.Creature creature, Xml.SpawnFlags flags, byte level, int map, Loot loot = null,
             Xml.CreatureBehaviorSet behaviorsetOverride = null)
         {
             _actionQueue = new ConcurrentQueue<MobAction>();
             SpawnFlags = flags;
-
+            if (!Game.World.WorldData.TryGetValue(creature.BehaviorSet,
+                out Xml.CreatureBehaviorSet BehaviorSet))
+                BehaviorSet = behaviorsetOverride;
             Name = creature.Name;
             Sprite = creature.Sprite;
             World = Game.World;
             Map = Game.World.WorldData.Get<Map>(map);
             Stats.Level = level;
+            AllocateStats();
             
             //Stats.Level = spawn.Base.Level;
             //Stats.BaseHp = VariantHp;
@@ -481,7 +548,7 @@ namespace Hybrasyl.Objects
             else
                 IsHostile = true;
 
-            if (spawn.Flags.HasFlag(Xml.SpawnFlags.MovementDisabled))
+            if (flags.HasFlag(Xml.SpawnFlags.MovementDisabled))
                 ShouldWander = false;
             else
                 ShouldWander = IsHostile == false;

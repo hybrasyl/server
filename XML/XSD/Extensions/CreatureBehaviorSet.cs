@@ -16,7 +16,7 @@ namespace Hybrasyl.Xml
             // Usage: a & b
             // a is intended to be set with a defined import value (eg Import=)
             // b is the set referenced by the import value
-            var cbsMerge = cbs2.Clone();
+            var cbsMerge = cbs2.Clone<CreatureBehaviorSet>();
             // We don't do deep merges for now
             if (cbs1.Behavior != null)
             {
@@ -39,17 +39,6 @@ namespace Hybrasyl.Xml
                 cbsMerge.StatAlloc = string.IsNullOrEmpty(cbs1.StatAlloc) ? cbs2.StatAlloc : cbs1.StatAlloc;            
             }
             return cbsMerge;
-        }
-
-        public CreatureBehaviorSet Clone()
-        {
-            MemoryStream ms = new MemoryStream();
-            BinaryFormatter bf = new BinaryFormatter();
-            bf.Serialize(ms, this);
-            ms.Position = 0;
-            object obj = bf.Deserialize(ms);
-            ms.Close();
-            return (CreatureBehaviorSet)obj;
         }
 
         public static XmlLoadResponse<CreatureBehaviorSet> LoadAll(string baseDir)
@@ -81,7 +70,7 @@ namespace Hybrasyl.Xml
                     ret.Errors.Add(importset.Key, $"Referenced import set {importset.Value.Import} not found");
                     continue;
                 }
-                var newSet = importedSet.Clone();
+                var newSet = importedSet.Clone<CreatureBehaviorSet>();
                 var resolved = importedSet & newSet;
                 ret.Results.Add(resolved);
             }

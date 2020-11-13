@@ -28,9 +28,6 @@ using System.Text;
 using System.Xml;
 
 
-
-
-
 namespace Hybrasyl.Xml
 {
     public partial class CastableHeal

@@ -598,24 +598,11 @@ namespace Hybrasyl
             foreach (var error in behaviorSets.Errors)
                 GameLog.Error($"BehaviorSet: error occurred loading {error.Key}: {error.Value}");
 
-            //Load Creatures
-            foreach (var xml in GetXmlFiles(CreatureDirectory))
-            {
-                try
-                {
-                    var creature = Xml.Creature.LoadFromFile(xml);
-                    
-                    GameLog.DebugFormat("Creatures: loaded {0}", creature.Name);
-                    WorldData.Set(creature.Name, creature);
-                    
-                }
-                catch (Exception e)
-                {
-                    GameLog.ErrorFormat("Error parsing {0}: {1}", xml, e);
-                }
-            }
-
             GameLog.InfoFormat("Creatures: {0} creatures loaded", WorldData.Count<Xml.Creature>());
+
+            var creatures = Xml.Creature.LoadAll(XmlDirectory);
+
+            // Generate creature templates
 
             //Load SpawnGroups
             foreach (var xml in GetXmlFiles(SpawnGroupDirectory))

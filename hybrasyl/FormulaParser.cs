@@ -36,7 +36,9 @@ namespace Hybrasyl
         public Map Map { get; set; } = null;
         public Monster Spawn { get; set; } = null;
         public User User { get; set; } = null;
-        public double? Damage { get; set; } = null;            
+        public double? Damage { get; set; } = null;
+        public Xml.Spawn XmlSpawn { get; set; } = null;
+        public Xml.SpawnGroup SpawnGroup { get; set; } = null;
     }
 
     // TODO: overhaul all of this

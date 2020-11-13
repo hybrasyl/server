@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 
 namespace Hybrasyl.Xml
@@ -16,11 +17,21 @@ namespace Hybrasyl.Xml
     {
         public static string DataDirectory { get; }
         public static XmlLoadResponse<T> LoadAll(string baseDir) => throw new NotImplementedException();
-        public T Clone();
     }
 
     public abstract class HybrasylLoadable
     {
+        public T Clone<T>()
+        {
+            MemoryStream ms = new MemoryStream();
+            BinaryFormatter bf = new BinaryFormatter();
+            bf.Serialize(ms, this);
+            ms.Position = 0;
+            object obj = bf.Deserialize(ms);
+            ms.Close();
+            return (T)obj;
+        }
+
         public static List<string> GetXmlFiles(string Path)
         {
             var ret = new List<string>();
