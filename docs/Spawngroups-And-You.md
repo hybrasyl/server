@@ -48,7 +48,6 @@ It can have a `Name` that can be referenced for importing or the purposes of dis
 
 `BaseLevel` can be defined at a group level. This specifies the base level of spawns within the group. If no other levels are specified, the base level will be used. The base level can also be referenced in `Level` definitions within spawns themselves in a formula (see `Spawns` below). _Group question: seems like Creature itself should be able to define a base level, as a fallback in case neither spawn nor map defines it?_
 
-
 `Disabled` is pretty simple, right? A spawn either is or is not disabled.
 
 Finally, a spawngroup can obviously have a whole lot of spawns! Huzzah!
@@ -74,6 +73,10 @@ Spawns actually specify the who, what, why and when of monsters appearing on map
   <xs:attribute name="Flags" type="hyb:SpawnFlags" use="optional"/>
 </xs:complexType>
 ```
+
+`Import` allows a named spawngroup to be imported wholesale. All of its spawns will be added to the parent container (generally, a map's spawngroup). `Name` is the name of the creature that will be spawned. 
+
+`Flags` is an enumeration supporting, currently, `MovementDisabled` to disable monster movement; `AiDisabled` to disable AI from running on a monster, and `DeathDisabled` making it impossible for a spawn / monster to die.
 
 ### Spawns: Loot
 
@@ -243,6 +246,7 @@ For instance:
   <Players ExceptCookie="Goblin-Friendly"/>
 </Hostility>
 ``` 
+
 would make a monster hostile to all players *except* those with the specified scripting cookie `Goblin-Friendly`. By comparison, `OnlyCookie` would instead make a monster hostile only to players with the specified cookie (for instance `OnlyCookie="BurnedDownGoblinVillage"`). *The butler is out for revenge*.
 
 ### Spawn: SetCookies
@@ -459,10 +463,173 @@ See _Spawns: Hostility_. BehaviorSet hostility functions as "default" settings w
 
 See _Spawns: SetCookies_. Similar to `Hostility`, `SetCookies` functions as "default" settings which can be overriden inside `Spawn`.
 
+## Creatures
+
+Creatures have been expanded significantly to allow them to have butts.
+
+Creatures can have _subtypes_ that inherit characteristics from their base. For instance, a `Goblin Butler` might be a subtype of `Goblin`.
+
+
+```xml
+<xs:complexType name="Creature">
+  <xs:sequence>
+    <xs:element name="Description" type="hyb:String8" minOccurs="0" maxOccurs="1" />
+    <xs:element name="Loot" type="LootList" minOccurs="0" maxOccurs="1"/>
+    <xs:element name="Hostility" minOccurs="0" maxOccurs="1" type="CreatureHostilitySettings"/>
+    <xs:element name="SetCookies" minOccurs="0" maxOccurs="1" type="CreatureCookies"/>
+    <xs:element name="Types" minOccurs="0" maxOccurs="1" type="CreatureTypes"/>
+  </xs:sequence>
+  <xs:attribute name="Name" use="required" type="xs:string"/>
+  <xs:attribute name="Sprite" use="required" type="xs:unsignedShort" />
+  <xs:attribute name="BehaviorSet" use="required" type="xs:string"/>
+  <xs:attribute name="MinDmg" type="xs:int" use="optional" default="0"/>
+  <xs:attribute name="MaxDmg" type="xs:int" use="optional" default="0"/>
+</xs:complexType>
+```
+
+`Name` is pretty straightforward - it's the name of the monster. This will (generally) be the name displayed when a user clicks on a monster, and is the name referenced by spawns. `Sprite` is the sprite of the monster (For Hyb1, this is a reference to datfiles). `BehaviorSet` specifies a defined behavior default for the monster. `MinDmg` / `MaxDmg` is similarly a base setting for damage.
+
+### Creature: Description
+
+Description is just text, that can be used by varying types of lore. Existing descriptions for most creatures are Heiler-created trash.
+
+### Creature: Loot
+
+Same as existing Loot structure.
+
+### Creature: Hostility
+
+See _Hostility_ in spawns / behavior sets.
+
+### Creature: SetCookies
+
+See _SetCookies_ in spawns / behavior sets.
+
+### Creature: Types
+
+Subtypes of creatures can be defined here, and they are simply identical to `Creature`. All the normal attributes and elements of a `Creature` are supported. Astute observers will note that because `Creature` subtypes are in fact, still `Creature` type, infinite recursion (subtype of subtypes) is possible. This isn't supported. Just because something is permissible does not mean it should be done, you degenerate.
+
+```xml
+<xs:complexType name="CreatureTypes">
+  <xs:sequence>
+    <xs:element name="Type" type="Creature" minOccurs="0" maxOccurs="unbounded"/>
+  </xs:sequence>
+</xs:complexType>
+```
+
+For example, we could define a `Goblin Butler` subtype:
+
+```
+<Type Name="Goblin Butler" Sprite="66" BehaviorSet="GButler">
+...
+</Type>
+```
+
+## A Note on Inheritance / Order of Operations
+
+* Loot is always _additive_. That is to say: if a creature type, subtype, and spawn all define loot, the `LootList` of the resulting spawn will include all three tables.
+
+* SetCookies is similarly _additive_. In the case of a cookie being defined more than once, the most specific setting wins (for instance, if `HateGliocaWorshippers` was set in a creature type to a specific value, but set by a spawn to a different value - the spawn wins. If, however, the creature spec set one cookie (`HateGliocaWorshippers`) and the subtype or spawn set another (`HateLuathasWorshippers`) the resulting spawn would have _both_ cookies set.
+
+* Hostility settings are _most specific wins_. If a spawn's hostility settings are set, it will **override** all other settings, including anything set by the behavior set.
+
+* The _most specific_ behavior set specified for a spawn wins (creature -> creature subtype -> spawn). Behavior sets are **never additive**.
+
+* Damage settings are also _most specific_. `MinDmg` / `MaxDmg` defined in a spawn will override any base settings.
+
 ## Formula Sets
 
-TBW
+Formulas are expressible in XML, and are an attempt to remove most hardcoding in terms of damage, TNI calculations, etc. This allows these values to be changed and tuned easily without requiring code updates. They are defined in `formulas.xml` in the root of the world directory.
 
+`GameFormulas` define two types of formulas: `PlayerFormulas` and `MonsterFormulas`. `MonsterFormulas` are currently used to define monster variance formulas (e.g. a "weak" or "strong" Goblin butler):
+
+
+```xml
+<!--  Formula "affect" targets. How should the formula be interpreted?
+      This is intended for future use, right now nothing else is coded in. -->
+<xs:simpleType name="FormulaTarget">
+  <xs:restriction base="xs:token">
+    <xs:enumeration value="Damage" />
+    <xs:enumeration value="CritChance" />
+    <xs:enumeration value="Hp"/>
+    <xs:enumeration value="Xp"/>
+    <xs:enumeration value="Mp"/>
+    <xs:enumeration value="Regen"/>
+  </xs:restriction>
+</xs:simpleType>
+
+<xs:complexType name="GameFormulas">
+  <xs:sequence>
+    <xs:element name="Player" type="PlayerFormulas" minOccurs="0" maxOccurs="1"/>
+    <xs:element name="Monster" type="MonsterFormulas" minOccurs="0" maxOccurs="1"/>     
+  </xs:sequence>
+</xs:complexType>
+
+  <xs:complexType name="MonsterVariance">
+    <xs:sequence>
+      <xs:element name="Variance" type="MonsterFormula" minOccurs="0" maxOccurs="unbounded"></xs:element>
+    </xs:sequence>
+  </xs:complexType> 
+  
+  <xs:complexType name="MonsterFormulas">
+    <xs:sequence>
+      <xs:element name="FormulaSet" type="MonsterVariance" minOccurs="0" maxOccurs="unbounded"/>     
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="PlayerFormula">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="Affect" type="FormulaTarget" use="required"/>
+        <xs:attribute name="Class" type="hyb:Class" use="optional" default="None"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:complexType name="MonsterFormula">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="Affect" type="FormulaTarget" use="required"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:complexType name="PlayerRegenFormula">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="Interval" type="FormulaTarget" use="required"/>
+        <xs:attribute name="Affect" type="FormulaTarget" use="required"/>
+        <xs:attribute name="Class" type="hyb:Class" use="optional" default="None"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:complexType name="PlayerLevelFormulas">
+    <xs:sequence>
+      <xs:element name="NextLevel" type="PlayerFormula" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="PlayerFormulas">
+    <xs:sequence>
+      <xs:element name="Crit" type="PlayerFormula" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="BaseCrit" type="PlayerFormula" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Hit" type="PlayerFormula" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Mr" type="PlayerFormula" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Regen" type="PlayerRegenFormula" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="NextLevels" type="PlayerLevelFormulas" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Ac" type="PlayerFormula" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+  </xs:complexType>
+  
+  <xs:complexType name="VendorFormulas">
+    <xs:sequence>
+      <xs:element name="ItemSellDiscount" type="PlayerFormula" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="DepositCost" type="PlayerFormula" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="RepairCost" type="PlayerFormula" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+  </xs:complexType>
+  ```
  
 
 
