@@ -39,9 +39,9 @@
 
   <xs:complexType name="GameFormulas">
     <xs:sequence>
-      <xs:element name="Player" type="PlayerFormulas" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Player" type="Formulas" minOccurs="0" maxOccurs="1"/>
       <xs:element name="Monster" type="MonsterFormulas" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="Vendor" type="VendorFormulas" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Vendor" type="Formulas" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
   </xs:complexType>
 
@@ -51,10 +51,9 @@
     </xs:sequence>
   </xs:complexType>
 
-
   <xs:complexType name="MonsterFormulaSet">
     <xs:sequence>
-      <xs:element name="Formula" type="MonsterFormula" minOccurs="0" maxOccurs="unbounded"></xs:element>
+      <xs:element name="Formula" type="Formula" minOccurs="0" maxOccurs="unbounded"></xs:element>
     </xs:sequence>
     <xs:attribute name="Name" type="xs:token" use="required"/>
   </xs:complexType>
@@ -74,14 +73,14 @@
       </xs:extension>
     </xs:simpleContent>
   </xs:complexType>
-
-  <xs:complexType name="VendorFormulas">
+  
+  <xs:complexType name="Formulas">
     <xs:sequence>
-      <xs:element name="Formula" type="VendorFormula" minOccurs="0" maxOccurs="unbounded"></xs:element>
+      <xs:element name="Formula" type="Formula" minOccurs="0" maxOccurs="unbounded"></xs:element>
     </xs:sequence>
   </xs:complexType>
 
-  <xs:complexType name="VendorFormula">
+  <xs:complexType name="Formula">
     <xs:simpleContent>
       <xs:extension base="xs:string">
         <xs:attribute name="Target" type="FormulaTarget" use="required"/>

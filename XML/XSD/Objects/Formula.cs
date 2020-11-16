@@ -24,52 +24,37 @@ using System.Collections.Generic;
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-[XmlRootAttribute("Formulas", Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02", IsNullable=false)]
-public partial class GameFormulas
+public partial class Formula
 {
     #region Private fields
-    private List<Formula> _player;
-    private List<MonsterFormulaSet> _monster;
-    private List<Formula> _vendor;
+    private FormulaTarget _target;
+    private string _value;
     private static XmlSerializer _serializer;
     #endregion
     
-    [XmlArrayItemAttribute(IsNullable=false)]
-    public List<Formula> Player
+    [XmlAttribute]
+    public FormulaTarget Target
     {
         get
         {
-            return _player;
+            return _target;
         }
         set
         {
-            _player = value;
+            _target = value;
         }
     }
     
-    [XmlArrayItemAttribute("FormulaSet", IsNullable=false)]
-    public List<MonsterFormulaSet> Monster
+    [XmlTextAttribute]
+    public string Value
     {
         get
         {
-            return _monster;
+            return _value;
         }
         set
         {
-            _monster = value;
-        }
-    }
-    
-    [XmlArrayItemAttribute(IsNullable=false)]
-    public List<Formula> Vendor
-    {
-        get
-        {
-            return _vendor;
-        }
-        set
-        {
-            _vendor = value;
+            _value = value;
         }
     }
     
@@ -79,7 +64,7 @@ public partial class GameFormulas
         {
             if ((_serializer == null))
             {
-                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(GameFormulas));
+                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(Formula));
             }
             return _serializer;
         }
@@ -87,7 +72,7 @@ public partial class GameFormulas
     
     #region Serialize/Deserialize
     /// <summary>
-    /// Serialize GameFormulas object
+    /// Serialize Formula object
     /// </summary>
     /// <returns>XML value</returns>
     public virtual string Serialize()
@@ -120,16 +105,16 @@ public partial class GameFormulas
     }
     
     /// <summary>
-    /// Deserializes GameFormulas object
+    /// Deserializes Formula object
     /// </summary>
     /// <param name="input">string workflow markup to deserialize</param>
-    /// <param name="obj">Output GameFormulas object</param>
+    /// <param name="obj">Output Formula object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool Deserialize(string input, out GameFormulas obj, out Exception exception)
+    public static bool Deserialize(string input, out Formula obj, out Exception exception)
     {
         exception = null;
-        obj = default(GameFormulas);
+        obj = default(Formula);
         try
         {
             obj = Deserialize(input);
@@ -142,19 +127,19 @@ public partial class GameFormulas
         }
     }
     
-    public static bool Deserialize(string input, out GameFormulas obj)
+    public static bool Deserialize(string input, out Formula obj)
     {
         Exception exception = null;
         return Deserialize(input, out obj, out exception);
     }
     
-    public static GameFormulas Deserialize(string input)
+    public static Formula Deserialize(string input)
     {
         StringReader stringReader = null;
         try
         {
             stringReader = new StringReader(input);
-            return ((GameFormulas)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
+            return ((Formula)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
         }
         finally
         {
@@ -165,14 +150,14 @@ public partial class GameFormulas
         }
     }
     
-    public static GameFormulas Deserialize(Stream s)
+    public static Formula Deserialize(Stream s)
     {
-        return ((GameFormulas)(SerializerXML.Deserialize(s)));
+        return ((Formula)(SerializerXML.Deserialize(s)));
     }
     #endregion
     
     /// <summary>
-    /// Serializes current GameFormulas object into file
+    /// Serializes current Formula object into file
     /// </summary>
     /// <param name="fileName">full path of outupt xml file</param>
     /// <param name="exception">output Exception value if failed</param>
@@ -213,16 +198,16 @@ public partial class GameFormulas
     }
     
     /// <summary>
-    /// Deserializes xml markup from file into an GameFormulas object
+    /// Deserializes xml markup from file into an Formula object
     /// </summary>
     /// <param name="fileName">string xml file to load and deserialize</param>
-    /// <param name="obj">Output GameFormulas object</param>
+    /// <param name="obj">Output Formula object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool LoadFromFile(string fileName, out GameFormulas obj, out Exception exception)
+    public static bool LoadFromFile(string fileName, out Formula obj, out Exception exception)
     {
         exception = null;
-        obj = default(GameFormulas);
+        obj = default(Formula);
         try
         {
             obj = LoadFromFile(fileName);
@@ -235,13 +220,13 @@ public partial class GameFormulas
         }
     }
     
-    public static bool LoadFromFile(string fileName, out GameFormulas obj)
+    public static bool LoadFromFile(string fileName, out Formula obj)
     {
         Exception exception = null;
         return LoadFromFile(fileName, out obj, out exception);
     }
     
-    public static GameFormulas LoadFromFile(string fileName)
+    public static Formula LoadFromFile(string fileName)
     {
         FileStream file = null;
         StreamReader sr = null;

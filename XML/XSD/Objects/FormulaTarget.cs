@@ -25,11 +25,22 @@ using System.Collections.Generic;
 public enum FormulaTarget
 {
     Damage,
-    CritChance,
+    BonusCritChance,
+    BaseCritChance,
+    Hit,
+    MagicResistance,
+    XpToNextLevel,
+    HpGainPerLevel,
+    MpGainPerLevel,
+    ToNextLevel,
+    ArmorClassEffect,
     Hp,
     Xp,
     Mp,
     Regen,
+    ItemSellDiscount,
+    DepositCost,
+    RepairCost,
 }
 }
 #pragma warning restore

@@ -30,6 +30,7 @@ public partial class SpawnGroup
     private List<Spawn> _spawn;
     private string _baseLevel;
     private bool _disabled;
+    private string _name;
     private static XmlSerializer _serializer;
     #endregion
     
@@ -75,6 +76,19 @@ public partial class SpawnGroup
         set
         {
             _disabled = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string Name
+    {
+        get
+        {
+            return _name;
+        }
+        set
+        {
+            _name = value;
         }
     }
     
