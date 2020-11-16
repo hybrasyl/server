@@ -539,97 +539,134 @@ For example, we could define a `Goblin Butler` subtype:
 
 ## Formula Sets
 
-Formulas are expressible in XML, and are an attempt to remove most hardcoding in terms of damage, TNI calculations, etc. This allows these values to be changed and tuned easily without requiring code updates. They are defined in `formulas.xml` in the root of the world directory.
-
-`GameFormulas` define two types of formulas: `PlayerFormulas` and `MonsterFormulas`. `MonsterFormulas` are currently used to define monster variance formulas (e.g. a "weak" or "strong" Goblin butler):
-
+Formulas are expressible in XML, and are an attempt to remove most, if not all hardcoding in terms of damage, TNI calculations, etc. This allows these values to be changed and tuned easily without requiring code updates. They are defined in `formulas.xml` in the root of the world directory and follow a simple structure. The `Formulas` tag / `GameFormulas` type can define three types of formulas: `PlayerFormulas`, `MonsterFormulas` and `VendorFormulas`:
 
 ```xml
-<!--  Formula "affect" targets. How should the formula be interpreted?
-      This is intended for future use, right now nothing else is coded in. -->
-<xs:simpleType name="FormulaTarget">
-  <xs:restriction base="xs:token">
-    <xs:enumeration value="Damage" />
-    <xs:enumeration value="CritChance" />
-    <xs:enumeration value="Hp"/>
-    <xs:enumeration value="Xp"/>
-    <xs:enumeration value="Mp"/>
-    <xs:enumeration value="Regen"/>
-  </xs:restriction>
-</xs:simpleType>
-
 <xs:complexType name="GameFormulas">
   <xs:sequence>
     <xs:element name="Player" type="PlayerFormulas" minOccurs="0" maxOccurs="1"/>
-    <xs:element name="Monster" type="MonsterFormulas" minOccurs="0" maxOccurs="1"/>     
+    <xs:element name="Monster" type="MonsterFormulas" minOccurs="0" maxOccurs="1"/>
+    <xs:element name="Vendor" type="VendorFormulas" minOccurs="0" maxOccurs="1"/>    
+  </xs:sequence>
+</xs:complexType>
+```
+
+These groupings basically boil down to a list of `Formula` types. `Formula` must have a `FormulaTarget` which tells Hybrasyl how to interpret and use the formula. This is represented by the following enum:
+
+```xml
+<xs:simpleType name="FormulaTarget">
+  <xs:restriction base="xs:token">
+    <xs:enumeration value="Damage" />
+    <xs:enumeration value="BonusCritChance"/>
+    <xs:enumeration value="BaseCritChance"/>
+    <xs:enumeration value="Hit"/>
+    <xs:enumeration value="MagicResistance"/>
+    <xs:enumeration value="XpToNextLevel"/>
+    <xs:enumeration value="HpGainPerLevel"/>
+    <xs:enumeration value="MpGainPerLevel"/>
+    <xs:enumeration value="ArmorClassEffect"/>
+    <xs:enumeration value="Hp"/>
+    <xs:enumeration value="Xp"/>
+    <xs:enumeration value="Mp"/>
+    <xs:enumeration value="Regen"/>                                                                                                     
+    <xs:enumeration value="ItemSellDiscount"/>                                                                                          
+    <xs:enumeration value="DepositCost"/>                                                                                               
+    <xs:enumeration value="RepairCost"/>
+  </xs:restriction>
+</xs:simpleType>
+```
+
+We're still working on how formulas will work for these in practice but the intent is to allow most things to be affected / controlled by formulas. For monster variants in particular, damage, crit chance, hp/xp/mp and regen are intended to be supported.
+Note that some of these combinations make sense and some don't - for instance, `ToNextLevel` is meaningless when applied to a vendor or a monster. 
+
+Rather than contort the structure of XML and create multiple types with very small differences, we have (as a general philosophy) decided that _XML schema cannot and must not be the only gatekeeper_ for sane data. 
+You can, of course, create combinations of formulas that are nonsensical; it's not up to the parser to stop you - but it also isn't up to the data structure to contort itself to prevent you from doing strange or frankly stupid things. GOT IT?
+
+### Formula Sets: Monster Formulas
+
+`MonsterFormulas` are currently used to define monster variance formula sets. _Formula sets_ can be used to apply a set of known changes to a spawn - for instance, a "weak" or "strong" Goblin butler:
+
+```xml
+<xs:complexType name="MonsterFormulas">
+  <xs:sequence>
+    <xs:element name="FormulaSet" type="MonsterFormulaSet" minOccurs="0" maxOccurs="unbounded"/>
   </xs:sequence>
 </xs:complexType>
 
-  <xs:complexType name="MonsterVariance">
-    <xs:sequence>
-      <xs:element name="Variance" type="MonsterFormula" minOccurs="0" maxOccurs="unbounded"></xs:element>
-    </xs:sequence>
-  </xs:complexType> 
-  
-  <xs:complexType name="MonsterFormulas">
-    <xs:sequence>
-      <xs:element name="FormulaSet" type="MonsterVariance" minOccurs="0" maxOccurs="unbounded"/>     
-    </xs:sequence>
-  </xs:complexType>
+ <xs:complexType name="MonsterFormulaSet">
+  <xs:sequence>
+    <xs:element name="Formula" type="MonsterFormula" minOccurs="0" maxOccurs="unbounded"></xs:element>
+  </xs:sequence>
+  <xs:attribute name="Name" type="xs:token" use="required"/>
+</xs:complexType>
 
-  <xs:complexType name="PlayerFormula">
-    <xs:simpleContent>
-      <xs:extension base="xs:string">
-        <xs:attribute name="Affect" type="FormulaTarget" use="required"/>
-        <xs:attribute name="Class" type="hyb:Class" use="optional" default="None"/>
-      </xs:extension>
-    </xs:simpleContent>
-  </xs:complexType>
+<xs:complexType name="MonsterFormula">
+  <xs:simpleContent>
+    <xs:extension base="xs:string">
+      <xs:attribute name="Target" type="FormulaTarget" use="required"/>
+    </xs:extension>
+  </xs:simpleContent>
+</xs:complexType>
+```
 
-  <xs:complexType name="MonsterFormula">
-    <xs:simpleContent>
-      <xs:extension base="xs:string">
-        <xs:attribute name="Affect" type="FormulaTarget" use="required"/>
-      </xs:extension>
-    </xs:simpleContent>
-  </xs:complexType>
+Here's an example:
 
-  <xs:complexType name="PlayerRegenFormula">
-    <xs:simpleContent>
-      <xs:extension base="xs:string">
-        <xs:attribute name="Interval" type="FormulaTarget" use="required"/>
-        <xs:attribute name="Affect" type="FormulaTarget" use="required"/>
-        <xs:attribute name="Class" type="hyb:Class" use="optional" default="None"/>
-      </xs:extension>
-    </xs:simpleContent>
-  </xs:complexType>
+```xml
+<Monster>
+  <FormulaSet Name="Weak">
+    <Formula Target="Damage">$OUTGOINGDAMAGE * 0.8</Formula>
+    <Formula Target="Hp">$BASEHP * 0.5</Formula>
+  </FormulaSet>
+</Monster>
+```
 
-  <xs:complexType name="PlayerLevelFormulas">
-    <xs:sequence>
-      <xs:element name="NextLevel" type="PlayerFormula" minOccurs="0" maxOccurs="1"/>
-    </xs:sequence>
-  </xs:complexType>
+When applied to a spawn, the `Weak` variance would reduce outgoing damage by 20% and HP by 50%.
 
-  <xs:complexType name="PlayerFormulas">
-    <xs:sequence>
-      <xs:element name="Crit" type="PlayerFormula" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="BaseCrit" type="PlayerFormula" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="Hit" type="PlayerFormula" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="Mr" type="PlayerFormula" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="Regen" type="PlayerRegenFormula" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="NextLevels" type="PlayerLevelFormulas" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="Ac" type="PlayerFormula" minOccurs="0" maxOccurs="1"/>
-    </xs:sequence>
-  </xs:complexType>
-  
-  <xs:complexType name="VendorFormulas">
-    <xs:sequence>
-      <xs:element name="ItemSellDiscount" type="PlayerFormula" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="DepositCost" type="PlayerFormula" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="RepairCost" type="PlayerFormula" minOccurs="0" maxOccurs="1"/>
-    </xs:sequence>
-  </xs:complexType>
-  ```
- 
+### Formula Sets: Player Formulas
 
+Player formulas define and modify players mostly used to calculate values related to players. The current intention here is to support, at a minimum, TNI (XP required to level), HP/MP gained per level, crit bonus, base crit chance, and the impact of 
+hit / MR / AC. XML-wise, they look very similar to Monster, except they can also define an `Interval` for certain formula types (e.g. hp/mp regeneration), as well as a `Class` to support the ability to have different formulas for classes (e.g. a wizard might 
+gain more MP per level)
 
+```xml
+<xs:complexType name="PlayerFormulas">
+  <xs:sequence>
+    <xs:element name="Formula" type="PlayerFormula" minOccurs="0" maxOccurs="unbounded"></xs:element>
+  </xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="PlayerFormula">
+  <xs:simpleContent>
+    <xs:extension base="xs:string">
+      <xs:attribute name="Target" type="FormulaTarget" use="required"/>
+      <xs:attribute name="Class" type="hyb:Class" use="optional" default="None"/>
+      <xs:attribute name="Interval" type="xs:int" use="optional" default="0"/>
+    </xs:extension>
+  </xs:simpleContent>
+</xs:complexType>
+```
+
+Example:
+
+```xml
+<Player>
+  <Formula Target="ToNextLevel">$CURRLEVEL^3 * 250</Formula>
+  <Formula Target="HpGainPerLevel" Class="Warrior">$CURRLEVEL * 5</Formula>
+<Player>
+```
+
+Here, we set a default for `ToNextLevel` for all classes (most specific wins, but in the absence of a class-specific formula, we will default to classless). We also set the amount of HP gained for warriors per level: in this case, their current level times five.
+
+### Formula Sets: Vendor Formulas
+
+Lastly, we can define _vendor formulas_, which are mostly used to change vendor repair / sell / deposit costs. Same format as `MonsterFormula` at the time of this writing. This may change as we start to implement it.
+
+Example:
+
+```xml
+<Vendor>
+  <Formula Target="DepositCost">$ITEMVALUE * 0.10</Formula>
+</Vendor>
+```
+
+This would set a fixed deposit cost of 10% of the item value.
