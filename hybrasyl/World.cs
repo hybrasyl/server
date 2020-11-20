@@ -47,7 +47,6 @@ using System.Timers;
 using System.Xml.Schema;
 using System.Diagnostics;
 using Hybrasyl.ChatCommands;
-using Hybrasyl.Xml;
 
 namespace Hybrasyl
 {
@@ -594,31 +593,32 @@ namespace Hybrasyl
             // eg: WorldData.ImportAll(Xml.CreatureBehaviorSet.LoadAll(XmlDirectory));
 
             foreach (var set in behaviorSets.Results)
+            {
                 WorldData.Set(set.Name, set);
+                GameLog.Info($"BehaviorSet: {set.Name} loaded");
+            }
             foreach (var error in behaviorSets.Errors)
                 GameLog.Error($"BehaviorSet: error occurred loading {error.Key}: {error.Value}");
 
-            GameLog.InfoFormat("Creatures: {0} creatures loaded", WorldData.Count<Xml.Creature>());
-
             var creatures = Xml.Creature.LoadAll(XmlDirectory);
 
-            // Generate creature templates
-
-            //Load SpawnGroups
-            foreach (var xml in GetXmlFiles(SpawnGroupDirectory))
+            foreach (var creature in creatures.Results)
             {
-                try
+                if (creature.Name != null)
+                    WorldData.Set(creature.Name, creature);
+                foreach (var subcreature in creature.Types)
                 {
-                    var spawnGroup = Xml.SpawnGroup.LoadFromFile(xml);
-                    spawnGroup.Filename = Path.GetFileNameWithoutExtension(xml);
-                    GameLog.InfoFormat("SpawnGroup: loaded {0}", spawnGroup.Filename);
-                    WorldData.SetWithIndex(spawnGroup.Id, spawnGroup, spawnGroup.Filename);
+                    WorldData.Set(subcreature.Name, subcreature);
                 }
-                catch (Exception e)
-                {
-                    GameLog.ErrorFormat("SpawnGroup: Error parsing {0}: {1}", xml, e);
-                }
+                GameLog.Info($"Creatures: {creature.Name} loaded, with {creature.Types.Count} subtypes");
             }
+
+            foreach (var error in creatures.Errors)
+                GameLog.Error($"Creature: error occurred loading {error.Key}: {error.Value}");
+
+            GameLog.InfoFormat("Creatures: {0} creatures loaded", WorldData.Count<Xml.Creature>());
+
+            var spawngroups = Xml.SpawnGroup.LoadAll(XmlDirectory);
 
             GameLog.InfoFormat("Spawngroups: {0} spawngroups loaded", WorldData.Count<Xml.SpawnGroup>());
 

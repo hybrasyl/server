@@ -9,7 +9,7 @@ namespace Hybrasyl.Xml
 {
     public partial class CreatureBehaviorSet : HybrasylLoadable, IHybrasylLoadable<CreatureBehaviorSet>
     {
-        public static string Directory => "behaviorsets";
+        public static string DataDirectory => "behaviorsets";
 
         public static CreatureBehaviorSet operator &(CreatureBehaviorSet cbs1, CreatureBehaviorSet cbs2)
         {
@@ -45,7 +45,7 @@ namespace Hybrasyl.Xml
         {
             var ret = new XmlLoadResponse<CreatureBehaviorSet>();
             var imports = new Dictionary<string, CreatureBehaviorSet>();
-            foreach (var xml in GetXmlFiles(Path.Join(baseDir, Directory)))
+            foreach (var xml in GetXmlFiles(Path.Join(baseDir, DataDirectory)))
             {
                 try
                 {

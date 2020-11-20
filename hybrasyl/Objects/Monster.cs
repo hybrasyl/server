@@ -632,230 +632,231 @@ namespace Hybrasyl.Objects
 
         public void Cast(Creature aggroTarget, UserGroup targetGroup)
         {
-            if (CanCast)
-            {
-                //need to determine what it should do, and what is available to it.
-                var interval = 0;
-                decimal currentHpPercent = ((decimal)Stats.Hp / Stats.MaximumHp) * 100m;
+            //if (CanCast)
+            //{
+            //    //need to determine what it should do, and what is available to it.
+            //    var interval = 0;
+            //    decimal currentHpPercent = ((decimal)Stats.Hp / Stats.MaximumHp) * 100m;
 
-                if (currentHpPercent < 1)
-                {
-                    //ondeath does not need an interval check
-                    var selectedCastable = SelectSpawnCastable(SpawnCastType.OnDeath);
-                    if (selectedCastable == null) return;
-                    if (selectedCastable.Target == Xml.TargetType.Attacker)
-                    {
-                        Cast(aggroTarget, selectedCastable);
-                    }
+            //    if (currentHpPercent < 1)
+            //    {
+            //        //ondeath does not need an interval check
+            //        var selectedCastable = SelectSpawnCastable(SpawnCastType.OnDeath);
+            //        if (selectedCastable == null) return;
+            //        if (selectedCastable.Target == Xml.TargetType.Attacker)
+            //        {
+            //            Cast(aggroTarget, selectedCastable);
+            //        }
 
-                    if (selectedCastable.Target == Xml.TargetType.Group || selectedCastable.Target == Xml.TargetType.Random)
-                    {
-                        if (targetGroup != null)
-                        {
-                            Cast(targetGroup, selectedCastable, selectedCastable.Target);
-                        }
-                        else
-                        {
-                            Cast(aggroTarget, selectedCastable);                            
-                        }
-                    }
-                }
+            //        if (selectedCastable.Target == Xml.TargetType.Group || selectedCastable.Target == Xml.TargetType.Random)
+            //        {
+            //            if (targetGroup != null)
+            //            {
+            //                Cast(targetGroup, selectedCastable, selectedCastable.Target);
+            //            }
+            //            else
+            //            {
+            //                Cast(aggroTarget, selectedCastable);                            
+            //            }
+            //        }
+            //    }
 
-                if (currentHpPercent <= Castables.NearDeath.HealthPercent)
-                {
-                    interval = _castables.NearDeath.Interval;
+            //    if (currentHpPercent <= Castables.NearDeath.HealthPercent)
+            //    {
+            //        interval = _castables.NearDeath.Interval;
 
-                    var selectedCastable = SelectSpawnCastable(SpawnCastType.NearDeath);
+            //        var selectedCastable = SelectSpawnCastable(SpawnCastType.NearDeath);
 
-                    if (selectedCastable == null) return;
+            //        if (selectedCastable == null) return;
 
-                    if (selectedCastable.Target == Xml.TargetType.Attacker)
-                    {
-                        if (_castables.NearDeath.LastCast.AddSeconds(interval) < DateTime.Now)
-                        {
-                            Cast(aggroTarget, selectedCastable);
-                            _castables.NearDeath.LastCast = DateTime.Now;
-                        }
-                        else
-                        {
-                            if (Distance(ThreatInfo.ThreatTarget) == 1)
-                            {
-                                AssailAttack(Direction, aggroTarget);
-                            }
-                        }
+            //        if (selectedCastable.Target == Xml.TargetType.Attacker)
+            //        {
+            //            if (_castables.NearDeath.LastCast.AddSeconds(interval) < DateTime.Now)
+            //            {
+            //                Cast(aggroTarget, selectedCastable);
+            //                _castables.NearDeath.LastCast = DateTime.Now;
+            //            }
+            //            else
+            //            {
+            //                if (Distance(ThreatInfo.ThreatTarget) == 1)
+            //                {
+            //                    AssailAttack(Direction, aggroTarget);
+            //                }
+            //            }
 
-                    }
+            //        }
 
-                    if (selectedCastable.Target == Xml.TargetType.Group || selectedCastable.Target == Xml.TargetType.Random)
-                    {
-                        if (targetGroup != null)
-                        {
-                            if (_castables.NearDeath.LastCast.AddSeconds(interval) < DateTime.Now)
-                            {
-                                Cast(targetGroup, selectedCastable, selectedCastable.Target);
-                                _castables.NearDeath.LastCast = DateTime.Now;
-                            }
-                            else
-                            {
-                                if (Distance(ThreatInfo.ThreatTarget) == 1)
-                                {
-                                    AssailAttack(Direction, aggroTarget);
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (_castables.NearDeath.LastCast.AddSeconds(interval) < DateTime.Now)
-                            {
-                                Cast(aggroTarget, selectedCastable);
-                                _castables.NearDeath.LastCast = DateTime.Now;
-                            }
-                            else
-                            {
-                                if (Distance(ThreatInfo.ThreatTarget) == 1)
-                                {
-                                    AssailAttack(Direction, aggroTarget);
-                                }
-                            }
-                        }
-                    }
-                }
+            //        if (selectedCastable.Target == Xml.TargetType.Group || selectedCastable.Target == Xml.TargetType.Random)
+            //        {
+            //            if (targetGroup != null)
+            //            {
+            //                if (_castables.NearDeath.LastCast.AddSeconds(interval) < DateTime.Now)
+            //                {
+            //                    Cast(targetGroup, selectedCastable, selectedCastable.Target);
+            //                    _castables.NearDeath.LastCast = DateTime.Now;
+            //                }
+            //                else
+            //                {
+            //                    if (Distance(ThreatInfo.ThreatTarget) == 1)
+            //                    {
+            //                        AssailAttack(Direction, aggroTarget);
+            //                    }
+            //                }
+            //            }
+            //            else
+            //            {
+            //                if (_castables.NearDeath.LastCast.AddSeconds(interval) < DateTime.Now)
+            //                {
+            //                    Cast(aggroTarget, selectedCastable);
+            //                    _castables.NearDeath.LastCast = DateTime.Now;
+            //                }
+            //                else
+            //                {
+            //                    if (Distance(ThreatInfo.ThreatTarget) == 1)
+            //                    {
+            //                        AssailAttack(Direction, aggroTarget);
+            //                    }
+            //                }
+            //            }
+            //        }
+            //    }
 
-                var nextChoice = _random.Next(0, 2);
+            //    var nextChoice = _random.Next(0, 2);
 
-                if (nextChoice == 0) //offense
-                {
-                    interval = _castables.Offense.Interval;
-                    var selectedCastable = SelectSpawnCastable(SpawnCastType.Offensive);
-                    if (selectedCastable == null) return;
+            //    if (nextChoice == 0) //offense
+            //    {
+            //        interval = _castables.Offense.Interval;
+            //        var selectedCastable = SelectSpawnCastable(SpawnCastType.Offensive);
+            //        if (selectedCastable == null) return;
 
-                    if (selectedCastable.Target == Xml.TargetType.Attacker)
-                    {
-                        if (_castables.Offense.LastCast.AddSeconds(interval) < DateTime.Now)
-                        {
-                            Cast(aggroTarget, selectedCastable);
-                            _castables.Offense.LastCast = DateTime.Now;
-                        } 
-                        else
-                        {
-                            if(Distance(ThreatInfo.ThreatTarget) == 1)
-                            {
-                                AssailAttack(Direction, aggroTarget);
-                            }
-                        }
-                    }
+            //        if (selectedCastable.Target == Xml.TargetType.Attacker)
+            //        {
+            //            if (_castables.Offense.LastCast.AddSeconds(interval) < DateTime.Now)
+            //            {
+            //                Cast(aggroTarget, selectedCastable);
+            //                _castables.Offense.LastCast = DateTime.Now;
+            //            } 
+            //            else
+            //            {
+            //                if(Distance(ThreatInfo.ThreatTarget) == 1)
+            //                {
+            //                    AssailAttack(Direction, aggroTarget);
+            //                }
+            //            }
+            //        }
 
-                    if (selectedCastable.Target == Xml.TargetType.Group || selectedCastable.Target == Xml.TargetType.Random)
-                    {
-                        if (targetGroup != null)
-                        {
-                            if (_castables.Offense.LastCast.AddSeconds(interval) < DateTime.Now)
-                            {
-                                Cast(targetGroup, selectedCastable, selectedCastable.Target);
-                                _castables.Offense.LastCast = DateTime.Now;
-                            }
-                            else
-                            {
-                                if (Distance(ThreatInfo.ThreatTarget) == 1)
-                                {
-                                    AssailAttack(Direction, aggroTarget);
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (_castables.Offense.LastCast.AddSeconds(interval) < DateTime.Now)
-                            {
-                                Cast(aggroTarget, selectedCastable);
-                                _castables.Offense.LastCast = DateTime.Now;
-                            }
-                            else
-                            {
-                                if (Distance(ThreatInfo.ThreatTarget) == 1)
-                                {
-                                    AssailAttack(Direction, aggroTarget);
-                                }
-                            }
-                        }
-                    }
-                }
+            //        if (selectedCastable.Target == Xml.TargetType.Group || selectedCastable.Target == Xml.TargetType.Random)
+            //        {
+            //            if (targetGroup != null)
+            //            {
+            //                if (_castables.Offense.LastCast.AddSeconds(interval) < DateTime.Now)
+            //                {
+            //                    Cast(targetGroup, selectedCastable, selectedCastable.Target);
+            //                    _castables.Offense.LastCast = DateTime.Now;
+            //                }
+            //                else
+            //                {
+            //                    if (Distance(ThreatInfo.ThreatTarget) == 1)
+            //                    {
+            //                        AssailAttack(Direction, aggroTarget);
+            //                    }
+            //                }
+            //            }
+            //            else
+            //            {
+            //                if (_castables.Offense.LastCast.AddSeconds(interval) < DateTime.Now)
+            //                {
+            //                    Cast(aggroTarget, selectedCastable);
+            //                    _castables.Offense.LastCast = DateTime.Now;
+            //                }
+            //                else
+            //                {
+            //                    if (Distance(ThreatInfo.ThreatTarget) == 1)
+            //                    {
+            //                        AssailAttack(Direction, aggroTarget);
+            //                    }
+            //                }
+            //            }
+            //        }
+            //    }
 
-                if (nextChoice == 1) //defense
-                {
-                    //not sure how to handle this one
-                }
-            }
-            else
-            {
-                if (Distance(ThreatInfo.ThreatTarget) == 1)
-                {
-                    AssailAttack(Direction, aggroTarget);
-                }
-            }
+            //    if (nextChoice == 1) //defense
+            //    {
+            //        //not sure how to handle this one
+            //    }
+            //}
+            //else
+            //{
+            //    if (Distance(ThreatInfo.ThreatTarget) == 1)
+            //    {
+            //        AssailAttack(Direction, aggroTarget);
+            //    }
+            //}
         }
 
         public void Cast(Creature target, Xml.Castable creatureCastable)
         {
-            var castable = World.WorldData.GetByIndex<Xml.Castable>(creatureCastable.Name);
-            if (target is Merchant) return;
-            UseCastable(castable, target, creatureCastable);
-            Condition.Casting = false;
+            //var castable = World.WorldData.GetByIndex<Xml.Castable>(creatureCastable.Name);
+            //if (target is Merchant) return;
+            //UseCastable(castable, target, creatureCastable);
+            //Condition.Casting = false;
         }
 
         public void Cast(UserGroup target, Xml.Castable creatureCastable, Xml.CreatureAttackPriority priority)
         {
 
-            var inRange = Map.EntityTree.GetObjects(GetViewport()).OfType<User>();
+            //var inRange = Map.EntityTree.GetObjects(GetViewport()).OfType<User>();
 
-            var result = inRange.Intersect(target.Members).ToList();
+            //var result = inRange.Intersect(target.Members).ToList();
 
-            var castable = World.WorldData.GetByIndex<Xml.Castable>(creatureCastable.Name);
+            //var castable = World.WorldData.GetByIndex<Xml.Castable>(creatureCastable.Name);
 
-            if (priority == Xml.CreatureAttackPriority.Group)
-            {
-                foreach(var user in result)
-                {
-                    UseCastable(castable, user, creatureCastable);
-                }
-            }
+            //if (priority == Xml.CreatureAttackPriority.Group)
+            //{
+            //    foreach(var user in result)
+            //    {
+            //        UseCastable(castable, user, creatureCastable);
+            //    }
+            //}
 
-            if(priority == Xml.CreatureAttackPriority.Random)
-            {
-                var rngSelection = _random.Next(0, result.Count);
+            //if(priority == Xml.CreatureAttackPriority.Random)
+            //{
+            //    var rngSelection = _random.Next(0, result.Count);
 
-                var user = result[rngSelection];
+            //    var user = result[rngSelection];
 
-                UseCastable(castable, user, creatureCastable);
-            }
+            //    UseCastable(castable, user, creatureCastable);
+            //}
 
-            Condition.Casting = false;
+            //Condition.Casting = false;
         }
 
         public Xml.Castable SelectSpawnCastable(SpawnCastType castType)
         {
-            Xml.Castable creatureCastable = null;
-            string castableName = string.Empty;
+            return null;
+            //Xml.Castable creatureCastable = null;
+            //string castableName = string.Empty;
 
-            switch (castType)
-            {
-                case SpawnCastType.Offensive:
-                    castableName = BehaviorSet.OffensiveCastables.PickRandom(true);
-                    break;
-                case SpawnCastType.Defensive:
-                    castableName = BehaviorSet.DefensiveCastables.PickRandom(true);
-                    break;
-                case SpawnCastType.NearDeath:
-                    castableName = BehaviorSet.NearDeathCastables.PickRandom(true);
-                    break;
-                case SpawnCastType.OnDeath:
-                    castableName = BehaviorSet.OnDeathCastables.PickRandom(true);
-                    break;                       
-            }
+            //switch (castType)
+            //{
+            //    case SpawnCastType.Offensive:
+            //        castableName = BehaviorSet.OffensiveCastables.PickRandom(true);
+            //        break;
+            //    case SpawnCastType.Defensive:
+            //        castableName = BehaviorSet.DefensiveCastables.PickRandom(true);
+            //        break;
+            //    case SpawnCastType.NearDeath:
+            //        castableName = BehaviorSet.NearDeathCastables.PickRandom(true);
+            //        break;
+            //    case SpawnCastType.OnDeath:
+            //        castableName = BehaviorSet.OnDeathCastables.PickRandom(true);
+            //        break;
+            //}
 
-            if (!string.IsNullOrEmpty(castableName))
-                Game.World.WorldData.TryGetValue(castableName, out creatureCastable);
+            //if (!string.IsNullOrEmpty(castableName))
+            //    Game.World.WorldData.TryGetValue(castableName, out creatureCastable);
 
-            return creatureCastable;
+            //return creatureCastable;
         }
 
 

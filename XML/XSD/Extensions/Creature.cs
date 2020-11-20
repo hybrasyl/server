@@ -23,9 +23,16 @@ namespace Hybrasyl.Xml
                     foreach (var subtype in c.Types)
                     {
                         var creatureVariant = c & subtype;
-                        ret.Results.Add(c);
+                        // xml is really annoying sometimes
+                        if (string.IsNullOrEmpty(creatureVariant.Name))
+                            ret.Errors.Add(xml, "subtype found with no name");
+                        else
+                            ret.Results.Add(c);
                     }
-                    ret.Results.Add(c);
+                    if (!string.IsNullOrEmpty(c.Name))
+                        ret.Results.Add(c);
+                    else
+                        ret.Errors.Add(xml, "Creature has no name");
                 }
                 catch (Exception e)
                 {

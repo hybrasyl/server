@@ -1228,7 +1228,7 @@ namespace Hybrasyl.Objects
                 return;
             }
 
-            if (UseCastable(bookSlot.Castable, null, null, assailAttack))
+            if (UseCastable(bookSlot.Castable, null, assailAttack))
             {
                 if(bookSlot.UseCount != uint.MaxValue)
                     bookSlot.UseCount += 1;
@@ -2654,7 +2654,7 @@ namespace Hybrasyl.Objects
         }
 
 
-        public override bool UseCastable(Xml.Castable castObject, Creature target = null, SpawnCastable spawnCastable = null, bool assailAttack = false)
+        public override bool UseCastable(Xml.Castable castObject, Creature target = null, bool assailAttack = false)
         {
             if(castObject.Intents[0].UseType == SpellUseType.Prompt)
             {
@@ -2663,7 +2663,7 @@ namespace Hybrasyl.Objects
             }
 
             // Check casting costs
-            if (!ProcessCastingCost(castObject, out string message))
+            if (!ProcessCastingCost(castObject, target, out string message))
             {
                 SendSystemMessage(message);
                 return false;
