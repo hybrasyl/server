@@ -32,16 +32,8 @@ namespace Hybrasyl
     //This class is defined to control the mob spawning thread.
     internal class Monolith
     {
-        private static readonly ManualResetEvent AcceptDone = new ManualResetEvent(false);
         private static Random _random;
         private ConcurrentDictionary<string, Xml.SpawnGroup> Spawns;
-
-        private Map GetMap(ushort id)
-        {
-            if (Game.World.WorldData.TryGetValue(id, out Map map))
-                return map;
-            return null;
-        }
 
         internal Monolith()
         {
@@ -56,9 +48,6 @@ namespace Hybrasyl
         public void LoadSpawns(Map map)
         {
             var spawnlist = new List<Xml.Spawn>();
-
-            if (map.SpawnDirectives is null)
-                map.SpawnDirectives = new Xml.SpawnGroup();
 
             foreach (var spawn in map.SpawnDirectives.Spawn)
             {
@@ -76,7 +65,10 @@ namespace Hybrasyl
                 }
                 spawnlist.Add(spawn);               
             }
-            Spawns.TryAdd(SpawnMapKey(map.Id), new Xml.SpawnGroup() { Spawn = spawnlist });
+            if (string.IsNullOrEmpty(map.SpawnDirectives.Name))
+                map.SpawnDirectives.Name = SpawnMapKey(map.Id);
+            map.SpawnDirectives.Spawn = spawnlist;
+            Spawns.TryAdd(map.SpawnDirectives.Name, map.SpawnDirectives);
         }
 
         public void Start()
@@ -194,81 +186,36 @@ namespace Hybrasyl
                         var mob = (Monster)baseMob.Clone();
                         var xcoord = 0;
                         var ycoord = 0;
+
+                        if (spawn.Coordinates.Count() > 0)
+                        {
+                            foreach (var coord in spawn.Coordinates)
+                            {
+                                if (spawnmap.EntityTree.GetObjects(new System.Drawing.Rectangle(coord.X, coord.Y, 1, 1)).Where(e => e is Creature).Count() == 0)
+                                {
+                                    xcoord = coord.X;
+                                    ycoord = coord.Y;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            do
+                            {
+                                xcoord = _random.Next(0, spawnmap.X);
+                                ycoord = _random.Next(0, spawnmap.Y);
+                            } while (spawnmap.IsWall[xcoord, ycoord]);                           
+                        }
+                        baseMob.X = (byte) xcoord;
+                        baseMob.Y = (byte) ycoord;
+                        SpawnMonster(baseMob, spawnmap);
                     }
                     else
                         GameLog.SpawnWarning("Map {map}: Spawn {spawn} not found", spawnmap.Name, spawn.Name);
                 }
-
-
-            }
-            
-
-            //        for (var i = 0; i < thisSpawn; i++)
-            //        {
-            //            var spawn = spawnGroup.Spawns.PickRandom(true);
-
-            //            if (spawn == null)
-            //            {
-            //                GameLog.SpawnError("Spawngroup empty, skipping");
-            //                break;
-            //            }
-
-            //            var creature = Creatures.FirstOrDefault(x => x.Name == spawn.Base);
-
-            //            if (creature is default(Xml.Creature))
-            //            {
-            //                GameLog.SpawnError($"Base monster {spawn.Base} not found");
-            //                break;
-            //            }
-                        
-            //            var newSpawnLoot = LootBox.CalculateLoot(spawn);
-
-            //            if (spawnMap.SpawnDebug)
-            //                GameLog.SpawnInfo("Spawn {name}, map {map}: {Xp} xp, {Gold} gold, items {Items}", spawn.Base, map.Name, newSpawnLoot.Xp, newSpawnLoot.Gold,
-            //                    string.Join(',', newSpawnLoot.Items));
-
-            //            var baseMob = new Monster(creature, spawn, map.Id, newSpawnLoot);
-            //            var mob = (Monster)baseMob.Clone();
-            //            var xcoord = 0;
-            //            var ycoord = 0;
-
-            //            if (map.Coordinates.Count > 0)
-            //            {
-            //                // TODO: optimize / improve
-            //                foreach (var coord in map.Coordinates)
-            //                {
-            //                    if (spawnMap.EntityTree.GetObjects(new System.Drawing.Rectangle(coord.X, coord.Y, 1, 1)).Where(e => e is Creature).Count() == 0)
-            //                    {
-            //                        xcoord = coord.X;
-            //                        ycoord = coord.Y;
-            //                        break;
-            //                    }
-            //                }                         
-            //            }
-            //            else
-            //            {
-            //                do
-            //                {
-            //                    xcoord = _random.Next(0, spawnMap.X);
-            //                    ycoord = _random.Next(0, spawnMap.Y);
-            //                } while (spawnMap.IsWall[xcoord, ycoord]);
-            //            }
-            //            mob.X = (byte)xcoord;
-            //            mob.Y = (byte)ycoord;
-            //            if (spawnMap.SpawnDebug) GameLog.SpawnInfo($"Spawn: spawning {mob.Name} on {spawnMap.Name}");
-            //            SpawnMonster(mob, spawnMap);
-            //        }
-                   
-            //    }
-            //    catch (Exception e)
-            //    {
-            //        Game.ReportException(e);
-            //        GameLog.SpawnError(e, "Spawngroup {Filename}: disabled map {Name} due to error", spawnGroup.Filename, map.Name);
-            //        map.Disabled = true;
-            //        continue;
-            //    }
-            //}
+            }            
         }
+
         private static void SpawnMonster(Monster monster, Map map)
         {
             if (!World.ControlMessageQueue.IsCompleted)

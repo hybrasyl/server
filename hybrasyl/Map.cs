@@ -189,7 +189,7 @@ namespace Hybrasyl
             Init();
             World = theWorld;
             SpawnDebug = false;
-            SpawnDirectives = newMap.Spawns;
+            SpawnDirectives = newMap.Spawns == null ? new Xml.SpawnGroup() : newMap.Spawns;
 
             // TODO: refactor Map class to not do this, but be a partial which overlays
             // TODO: XSD.Map

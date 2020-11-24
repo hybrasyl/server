@@ -205,6 +205,10 @@ namespace Hybrasyl.Objects
 
         public Xml.SpawnFlags SpawnFlags;
 
+        public (int X, int Y) Destination;
+
+        public Tile CurrentPath;
+
         // Replaced with assail
         //private uint _simpleDamage => Convert.ToUInt32(Rng.Next(_spawn.Damage.Min, _spawn.Damage.Max + 1) * _variance);
 
@@ -931,120 +935,119 @@ namespace Hybrasyl.Objects
             return this.MemberwiseClone();
         }
 
-        public void PathFind((int x, int y) startPoint, (int x, int y) endPoint)
+        public List<Tile> GetWalkableTiles(int x, int y)
         {
-            if(startPoint == endPoint)
+            var proposedLocations = new List<Tile>()
             {
-                return;
-            }
-            if(endPoint.x >= Map.X || endPoint.y >= Map.Y)
-            {
-                return;
-            }
+                new Tile { X = x, Y = y - 1 },
+                new Tile { X = x, Y = y + 1 },
+                new Tile { X = x - 1, Y = y },
+                new Tile { X = x + 1, Y = y }
+            };
 
-            if(Map.IsWall[endPoint.x, endPoint.y])
-            {
-                return;
-            }
+            // Don't return tiles that are walls, or tiles that contain creatures, but always
+            // return our end tile
 
-            PathNextPoint(Relation(endPoint), startPoint);
-
+            return proposedLocations.Where(tile => (!Map.IsWall[tile.X, tile.Y] &&
+            (Map.GetTileContents(tile.X, tile.Y).Where(c => c is Creature).Count() == 0)) ||
+            (tile.X == Destination.X && tile.Y == Destination.Y)).ToList();
         }
-        public Xml.Direction Relation((int X, int Y) point)
+
+        private static int AStarCalculateH(int x1, int y1, int x2, int y2)
         {
-            if (Y > point.Y)
-                return Xml.Direction.North;
-            if (X < point.X)
+            return Math.Abs(x2 - x1) + Math.Abs(y2 - y1);
+        }
+
+        public Xml.Direction AStarGetDirection()
+        {
+            if (Location.X - CurrentPath.X < 1)
                 return Xml.Direction.East;
-            if (Y < point.Y)
+            if (Location.X - CurrentPath.X > 1)
+                return Xml.Direction.West;
+            if (Location.Y - CurrentPath.Y < 1)
+                return Xml.Direction.North;
+            return Xml.Direction.South;
+        }
+
+        public bool AStarPathClear()
+        {
+            // TODO: optimize
+            Tile pathStart = CurrentPath;
+            while (pathStart != null)
+            {
+                if (Map.GetTileContents(pathStart.X, pathStart.Y).Where(obj => obj is Creature).Count() > 0)
+                    return false;
+                pathStart = pathStart.Parent;
+            }
+            return true;
+        }
+
+        public void AStarPathFind(int x1, int y1, int x2, int y2)
+        {
+            Tile current = null;
+            var start = new Tile { X = x1, Y = y1 };
+            var end = new Tile { X = x2, Y = y2 };
+
+            var openList = new List<Tile>();
+            var closedList = new List<Tile>();
+            int g = 0;
+
+            openList.Add(start);
+
+            while (openList.Count > 0)
+            {
+                var lowest = openList.Min(l => l.F);
+                current = openList.First(l => l.F == lowest);
+
+                closedList.Add(current);
+                openList.Remove(current);
+                if (closedList.FirstOrDefault(l => l.X == end.X && l.Y == end.Y) != null)
+                    // We have arrived
+                    break;
+
+                var adjacent = GetWalkableTiles(current.X, current.Y);
+                g++;
+
+                foreach (var tile in adjacent)
+                {
+                    // Ignore tiles in closed list
+                    if (closedList.FirstOrDefault(l => l.X == tile.X && l.Y == tile.Y) != null)
+                        continue;
+
+                    if (openList.FirstOrDefault(l => l.X == tile.X && l.Y == tile.Y) == null)
+                    {
+                        tile.G = g;
+                        tile.H = AStarCalculateH(tile.X, tile.Y, end.X, end.Y);
+                        tile.F = tile.G + tile.H;
+                        tile.Parent = current;
+                        openList.Insert(0, tile);
+                    }
+                    else
+                    {
+                        if (g + tile.H < tile.F)
+                        {
+                            tile.G = g;
+                            tile.F = tile.G + tile.H;
+                            tile.Parent = current;
+                        }
+                    }
+                }                               
+            }
+            // If null here, no path was found
+            CurrentPath = current;
+        }
+
+        public Xml.Direction Relation(int x1, int y1)
+        {
+            if (Y > y1)
+                return Xml.Direction.North;
+            if (X < x1)
+                return Xml.Direction.East;
+            if (Y < y1)
                 return Xml.Direction.South;
-            if (X > point.X)
+            if (X > x1)
                 return Xml.Direction.West;
             return Xml.Direction.North;
-        }
-
-        public void PathNextPoint(Xml.Direction direction, (int x, int y) currentPoint)
-        {
-            var rect = GetViewport();
-            var invalidPoints = new HashSet<(int x, int y)>(
-                from obj in Map.EntityTree.GetObjects(rect)
-                where Map.GetTileContents(obj.Location.X, obj.Location.Y).Any(x => x is Creature)
-                select ((int)obj.Location.X, (int)obj.Location.Y)
-                );
-
-            (int x, int y) point = NextPoint(direction, currentPoint);
-
-            if(point.x < Map.X && point.y < Map.Y && !Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
-            {
-                Walk(direction);
-            }
-            else
-            {
-                var next = _random.Next(0, 9);
-
-                switch(direction)
-                {
-                    case Xml.Direction.North:
-                    case Xml.Direction.South:
-                        if(next < 5) //try east
-                        {
-                            point = NextPoint(Xml.Direction.East, currentPoint);
-                            if (point.x < Map.X && point.y < Map.Y && !Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
-                            {
-                                Walk(Xml.Direction.East);
-                            }
-                        }
-                        else //try west
-                        {
-                            point = NextPoint(Xml.Direction.West, currentPoint);
-                            if (point.x < Map.X && point.y < Map.Y && !Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
-                            {
-                                Walk(Xml.Direction.West);
-                            }
-                        }
-                        break;
-                    case Xml.Direction.East:
-                    case Xml.Direction.West:
-                        if (next < 5) //try north
-                        {
-                            point = NextPoint(Xml.Direction.North, currentPoint);
-                            if (point.x < Map.X && point.y < Map.Y && !Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
-                            {
-                                Walk(Xml.Direction.North);
-                            }
-                        }
-                        else //try south
-                        {
-                            point = NextPoint(Xml.Direction.South, currentPoint);
-                            if (point.x < Map.X && point.y < Map.Y && !Map.IsWall[point.x, point.y] && !invalidPoints.Contains(point))
-                            {
-                                Walk(Xml.Direction.South);
-                            }
-                        }
-                        break;
-                }
-            }
-        }
-
-        public (int x, int y) NextPoint(Xml.Direction direction, (int x, int y) currentPoint)
-        {
-            (int x, int y) point = currentPoint;
-            switch (direction)
-            {
-                case Xml.Direction.North:
-                    point = (currentPoint.x, currentPoint.y - 1);
-                    break;
-                case Xml.Direction.East:
-                    point = (currentPoint.x + 1, currentPoint.y);
-                    break;
-                case Xml.Direction.South:
-                    point = (currentPoint.x, currentPoint.y + 1);
-                    break;
-                case Xml.Direction.West:
-                    point = (currentPoint.x - 1, currentPoint.y);
-                    break;
-            }
-            return point;
         }
 
         public void NextAction()
@@ -1086,72 +1089,83 @@ namespace Hybrasyl.Objects
 
         private void ProcessActions()
         {
-            lock (_lock)
+            while (_actionQueue.Count > 0)
             {
-                while (_actionQueue.Count > 0)
+                _actionQueue.TryDequeue(out var action);
+                if (action == MobAction.Attack)
                 {
-                    _actionQueue.TryDequeue(out var action);
-                    if (action == MobAction.Attack)
+                    if (ThreatInfo.ThreatTarget == null) return;
+                    if (CheckFacing(Direction, ThreatInfo.ThreatTarget))
                     {
-                        if (ThreatInfo.ThreatTarget == null) return;
-                        if (CheckFacing(Direction, ThreatInfo.ThreatTarget))
-                        {
-                            AssailAttack(Direction, ThreatInfo.ThreatTarget);
-                        }
-                        else
-                        {
-                            Turn(Relation((ThreatInfo.ThreatTarget.X, ThreatInfo.ThreatTarget.Y)));
-                        }
+                        AssailAttack(Direction, ThreatInfo.ThreatTarget);
                     }
-                    if (action == MobAction.Cast)
+                    else
                     {
-                        
-                        if (!Condition.Blinded)
-                        {
-                            Cast(ThreatInfo.ThreatTarget, ((User)ThreatInfo.ThreatTarget).Group);
-                        }
+                        Turn(Relation(ThreatInfo.ThreatTarget.X, ThreatInfo.ThreatTarget.Y));
                     }
-                    if (action == MobAction.Move)
+                }
+                if (action == MobAction.Cast)
+                {
+
+                    if (!Condition.Blinded)
                     {
-                        if (!IsHostile && ShouldWander)
+                        Cast(ThreatInfo.ThreatTarget, ((User)ThreatInfo.ThreatTarget).Group);
+                    }
+                }
+                if (action == MobAction.Move)
+                {
+                    if (!IsHostile && ShouldWander)
+                    {
+                        var which = _random.Next(0, 2); //turn or move
+                        if (which == 0)
                         {
-                            var which = _random.Next(0, 2); //turn or move
-                            if (which == 0)
+                            var next = _random.Next(0, 4);
+                            if (Direction == (Xml.Direction)next)
                             {
-                                var next = _random.Next(0, 4);
-                                if (Direction == (Xml.Direction)next)
-                                {
-                                    Walk((Xml.Direction)next);
-                                }
-                                else
-                                {
-                                    Turn((Xml.Direction)next);
-                                }
+                                Walk((Xml.Direction)next);
                             }
                             else
                             {
-                                var next = _random.Next(0, 4);
                                 Turn((Xml.Direction)next);
                             }
                         }
                         else
                         {
-                            if (ThreatInfo.ThreatTarget == null) return;
-                            if (!Condition.Paralyzed && !Condition.Blinded)
-                                PathFind((Location.X, Location.Y), (ThreatInfo.ThreatTarget.Location.X, ThreatInfo.ThreatTarget.Location.Y));
+                            var next = _random.Next(0, 4);
+                            Turn((Xml.Direction)next);
                         }
                     }
-                    if (action == MobAction.Idle)
+                    else
                     {
-                        //do nothing
-                    }
-                    if (action == MobAction.Death)
-                    {
-                        _actionQueue.Clear();
-
+                        if (ThreatInfo.ThreatTarget == null) return;
+                        if (!Condition.Paralyzed && !Condition.Blinded)
+                        {
+                            if (CurrentPath == null || !AStarPathClear())
+                                // If we don't have a current path to our threat target, OR if there is something in the way of
+                                // our existing path, calculate a new one
+                                AStarPathFind(Location.X, Location.Y, ThreatInfo.ThreatTarget.Location.X, ThreatInfo.ThreatTarget.Location.Y);
+                            if (CurrentPath != null)
+                            {
+                                // Path was found, use it
+                                if (Walk(AStarGetDirection()))
+                                    // We've moved; update our path
+                                    CurrentPath = CurrentPath.Parent;
+                            }
+                            else
+                                // If we can't find a path, return to wandering
+                                ShouldWander = true;
+                        }
                     }
                 }
-                
+                if (action == MobAction.Idle)
+                {
+                    //do nothing
+                }
+                if (action == MobAction.Death)
+                {
+                    _actionQueue.Clear();
+
+                }
             }
         }
 
