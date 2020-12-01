@@ -32,6 +32,7 @@ using Hybrasyl.Utility;
 
 namespace Hybrasyl.Objects
 {
+
     public class ThreatInfo
     {
         public Creature ThreatTarget => ThreatTable.Count > 0 ? ThreatTable.Aggregate((l, r) => l.Value > r.Value ? l : r).Key : null;
@@ -187,19 +188,20 @@ namespace Hybrasyl.Objects
         Death
     }
 
-    
-
     public class Monster : Creature, ICloneable
     {
         private readonly object _lock = new object();
 
         private ConcurrentQueue<MobAction> _actionQueue;
 
-        protected static Random Rng = new Random();
+        private static Random Rng = new Random();
 
         private bool _idle = true;
 
         private uint _mTarget;
+
+        public List<Xml.Castable> Spells { get; set; } = new List<Xml.Castable>();
+        public List<Xml.Castable> Skills { get; set; } = new List<Xml.Castable>();
 
         public Xml.CreatureBehaviorSet BehaviorSet;
 
@@ -208,9 +210,6 @@ namespace Hybrasyl.Objects
         public (int X, int Y) Destination;
 
         public Tile CurrentPath;
-
-        // Replaced with assail
-        //private uint _simpleDamage => Convert.ToUInt32(Rng.Next(_spawn.Damage.Min, _spawn.Damage.Max + 1) * _variance);
 
         private double _variance;
 
@@ -515,6 +514,55 @@ namespace Hybrasyl.Objects
                 }
             }
         }
+
+        /// <summary>
+        /// Given an already specified behaviorset for the monster, learn all the castables possible at 
+        /// their level; or the castables specifically enumerated in the set.
+        /// </summary>
+        private void LearnCastables()
+        {
+            if (BehaviorSet?.Castables == null)
+                // Behavior set either doesn't exist or doesn't specify castables; no action needed
+                return;
+
+            // Default to automatic assignation if unset
+            if (BehaviorSet.Castables.Auto == true)
+            {   
+                // If categories are present, use those. Otherwise, learn everything we can
+                foreach (var category in BehaviorSet.LearnSpellCategories)
+                {
+                    Spells.AddRange(Game.World.WorldData.GetSpells(Stats.BaseStr, Stats.BaseInt, Stats.BaseWis, 
+                        Stats.BaseCon, Stats.BaseDex, category));
+                }
+
+                foreach (var category in BehaviorSet.LearnSkillCategories)
+                {
+                    Skills.AddRange(Game.World.WorldData.GetSkills(Stats.BaseStr, Stats.BaseInt, Stats.BaseWis,
+                        Stats.BaseCon, Stats.BaseDex, category));
+                }
+                if (BehaviorSet.LearnSkillCategories.Count == 0 && BehaviorSet.LearnSpellCategories.Count == 0)
+                {
+                    // Auto add according to stats
+                    Spells.AddRange(Game.World.WorldData.GetSpells(Stats.BaseStr, Stats.BaseInt, Stats.BaseWis,
+                        Stats.BaseCon, Stats.BaseDex));
+                    Skills.AddRange(Game.World.WorldData.GetSpells(Stats.BaseStr, Stats.BaseInt, Stats.BaseWis,
+                        Stats.BaseCon, Stats.BaseDex));
+                }
+            }
+            // Handle any specific additions. Note that specific additions *ignore stat requirements*, 
+            // to allow a variety of complex behaviors.
+            foreach (var castable in BehaviorSet.Castables.Castable)
+            {
+                if (Game.World.WorldData.TryGetValue(castable, out Xml.Castable xmlCastable))
+                {
+                    if (xmlCastable.IsSkill)
+                        Skills.Add(xmlCastable);
+                    else
+                        Spells.Add(xmlCastable);
+                }               
+            }          
+        }
+
         public Monster(Xml.Creature creature, Xml.SpawnFlags flags, byte level, int map, Loot loot = null,
             Xml.CreatureBehaviorSet behaviorsetOverride = null)
         {
@@ -523,24 +571,16 @@ namespace Hybrasyl.Objects
             if (!Game.World.WorldData.TryGetValue(creature.BehaviorSet,
                 out Xml.CreatureBehaviorSet BehaviorSet))
                 BehaviorSet = behaviorsetOverride;
+
             Name = creature.Name;
             Sprite = creature.Sprite;
             World = Game.World;
             Map = Game.World.WorldData.Get<Map>(map);
             Stats.Level = level;
             AllocateStats();
+            LearnCastables();
             
-            //Stats.Level = spawn.Base.Level;
-            //Stats.BaseHp = VariantHp;
-            //Stats.Hp = VariantHp;
-            //Stats.BaseMp = VariantMp;
-            //Stats.Mp = VariantMp;
             DisplayText = creature.Description;
-            //Stats.BaseStr = VariantStr;
-            //Stats.BaseInt = VariantInt;
-            //Stats.BaseWis = VariantWis;
-            //Stats.BaseCon = VariantCon;
-            //Stats.BaseDex = VariantDex;
 
             //Stats.BaseDefensiveElement = spawn.GetDefensiveElement();
             //Stats.BaseDefensiveElement = spawn.GetOffensiveElement();
@@ -576,19 +616,6 @@ namespace Hybrasyl.Objects
         public override int GetHashCode()
         {
             return (Name.GetHashCode() * Id.GetHashCode()) - 1;
-        }
-
-        public virtual bool Pathfind(byte x, byte y)
-        {
-            var xDelta = Math.Abs(x - X);
-            var yDelta = Math.Abs(y - Y);
-
-            if (xDelta > yDelta)
-            {
-                Walk(x > X ? Xml.Direction.East : Xml.Direction.West);
-            }
-
-            return false;
         }
 
         public bool CheckFacing(Xml.Direction direction, Creature target)
@@ -636,6 +663,10 @@ namespace Hybrasyl.Objects
 
         public void Cast(Creature aggroTarget, UserGroup targetGroup)
         {
+            if (CanCast)
+            {
+                decimal currentHpPercent = ((decimal)Stats.Hp / Stats.MaximumHp) * 100m;
+            }
             //if (CanCast)
             //{
             //    //need to determine what it should do, and what is available to it.

@@ -33,6 +33,14 @@ using System.Text;
 
 namespace Hybrasyl
 {
+ 
+    public enum CastableFilter
+    {
+        SkillsOnly,
+        SpellsOnly,
+        SkillsAndSpells
+    };
+
     public partial class WorldDataStore
     {
         /// <summary>
@@ -450,14 +458,93 @@ namespace Hybrasyl
             return false;
         }
 
-        public HashSet<Xml.Castable> GetCastablesByCategory(string category)
-        {
-            var sanitized = Sanitize(category);
-            if (CastableIndex.ContainsKey(sanitized))
-                return CastableIndex[sanitized];
-            return new HashSet<Xml.Castable>(new Xml.CastableComparer());       
-        }
-    }
 
+        /// <summary>
+        /// Convenience method to retrieve a HashSet of castables, filtered to only skills.
+        /// </summary>
+        /// <param name="Str">Attribute requirement for the castables (str)</param>
+        /// <param name="Int">Attribute requirement for the castables (int)</param>
+        /// <param name="Wis">Attribute requirement for the castables (wis)</param>
+        /// <param name="Con">Attribute requirement for the castables (con)</param>
+        /// <param name="Dex">Attribute requirement for the castables (dex)</param>
+        /// <param name="category">A category to narrow the search</param>
+        /// <returns>HashSet of castables satisfying the given requirements</returns>
+        /// <returns></returns>
+        public HashSet<Xml.Castable> GetSkills(long Str = 0, long Int = 0, long Wis = 0,
+            long Con = 0, long Dex = 0, string category = null) =>
+            GetCastables(Str, Int, Wis, Con, Dex, category, CastableFilter.SkillsOnly);
+
+        /// <summary>
+        /// Convenience method to retrieve a HashSet of castables, filtered to only spells.
+        /// </summary>
+        /// <param name="Str">Attribute requirement for the castables (str)</param>
+        /// <param name="Int">Attribute requirement for the castables (int)</param>
+        /// <param name="Wis">Attribute requirement for the castables (wis)</param>
+        /// <param name="Con">Attribute requirement for the castables (con)</param>
+        /// <param name="Dex">Attribute requirement for the castables (dex)</param>
+        /// <param name="category">A category to narrow the search</param>
+        /// <returns>HashSet of castables satisfying the given requirements</returns>
+        /// <returns></returns>
+        public HashSet<Xml.Castable> GetSpells(long Str = 0, long Int = 0, long Wis = 0,
+            long Con = 0, long Dex = 0, string category = null) =>
+            GetCastables(Str, Int, Wis, Con, Dex, category, CastableFilter.SpellsOnly);
+
+        /// <summary>
+        /// Return a HashSet of castables, possibly narrowed by filters.
+        /// </summary>
+        /// <param name="category">A category to narrow the search</param>
+        /// <param name="Str">Attribute requirement for the castable (str)</param>
+        /// <param name="Int">Attribute requirement for the castable (int)</param>
+        /// <param name="Wis">Attribute requirement for the castable (wis)</param>
+        /// <param name="Con">Attribute requirement for the castable (con)</param>
+        /// <param name="Dex">Attribute requirement for the castable (dex)</param>
+        /// <returns>HashSet of castables satisfying the given requirements</returns>
+        public HashSet<Xml.Castable> GetCastables(long Str = 0, long Int = 0, long Wis = 0, 
+            long Con = 0, long Dex = 0, string category = null, 
+            CastableFilter filter = CastableFilter.SkillsAndSpells)
+        {
+            HashSet<Xml.Castable> ret;
+            if (!string.IsNullOrEmpty(category))
+            {
+                var sanitized = Sanitize(category);
+                if (CastableIndex.ContainsKey(sanitized))
+                    ret = CastableIndex[sanitized];
+                else
+                    ret = new HashSet<Castable>();
+            }
+            else
+                ret = Values<Xml.Castable>().ToHashSet(new CastableComparer());
+
+            if (Str > 0 || Int > 0 || Wis > 0 || Con > 0 || Dex > 0)
+            {
+                // TODO: perhaps cache this information
+                foreach (var castable in ret)
+                {
+                    if (castable.Requirements.Count == 0)
+                    {
+                        continue;
+                    }
+                    var physreq = castable.Requirements.Where(x => x.Physical != null);
+                    if (physreq.Count() == 0)
+                    {
+                        continue;
+                    }
+                    foreach (var req in physreq)
+                    {
+                        if (Str >= req.Physical.Str && Int >= req.Physical.Int && Wis >= req.Physical.Wis && Con >= req.Physical.Con &&
+                            Dex >= req.Physical.Dex)
+                            continue;
+                        else
+                            ret.Remove(castable);
+                    }
+                }
+            }
+            if (filter == CastableFilter.SkillsOnly)
+                ret = ret.Where(c => c.IsSkill).ToHashSet();
+            if (filter == CastableFilter.SpellsOnly)
+                ret = ret.Where(c => c.IsSpell).ToHashSet();
+            return ret;
+        }        
+    }
 }
 

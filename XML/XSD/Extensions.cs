@@ -106,6 +106,9 @@ namespace Hybrasyl.Xml
 
         public DateTime LastCast { get; set; }
 
+        public bool IsSkill => Book == Book.PrimarySkill || Book == Book.SecondarySkill || Book == Book.UtilitySkill;
+        public bool IsSpell => Book == Book.PrimarySpell || Book == Book.SecondarySpell || Book == Book.UtilitySpell;
+
         public bool OnCooldown
         {
             get
@@ -138,15 +141,6 @@ namespace Hybrasyl.Xml
             return true;
         }
 
-        //public bool IntentTargets(IntentTarget type)
-        //{
-        //    foreach (var intent in Intents)
-        //    {
-        //        if (intent.Target.Contains(type))
-        //            return true;
-        //    }
-        //    return false;
-        //}        
     }
 
     public class CastableComparer : IEqualityComparer<Castable>
@@ -311,6 +305,37 @@ namespace Hybrasyl.Xml
 {
     public partial class CreatureBehaviorSet
     {
+        private List<string> skillCategories = null;
+        private List<string> spellCategories = null;
+
+        public List<string> LearnSkillCategories
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(Castables?.SkillCategories))
+                    spellCategories = new List<string>();
+                if (skillCategories == null)
+                {
+                    skillCategories = Castables.SkillCategories.Trim().ToLower().Split(" ").ToList();
+                }
+                return skillCategories;
+            }
+        }
+
+        public List<string> LearnSpellCategories
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(Castables?.SpellCategories))
+                    spellCategories = new List<string>();
+                if (spellCategories == null)
+                {
+                    spellCategories = Castables.SpellCategories.Trim().ToLower().Split(" ").ToList();
+                }
+                return spellCategories;
+            }
+        }
+
         public List<CreatureCastable> OffensiveCastables => Behavior?.Casting?.Offense?.Castable == null ? new List<CreatureCastable>() : Behavior.Casting.Offense.Castable;
         public List<CreatureCastable> DefensiveCastables => Behavior?.Casting?.Defense?.Castable == null ? new List<CreatureCastable>() : Behavior.Casting.Defense.Castable;
         public List<CreatureCastable> OnDeathCastables => Behavior?.Casting?.OnDeath?.Castable == null ? new List<CreatureCastable>() : Behavior.Casting.OnDeath.Castable;

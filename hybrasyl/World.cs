@@ -986,8 +986,8 @@ namespace Hybrasyl
                 List<Xml.Castable> spells = null;
                 Xml.Class @class = (Xml.Class)i;
 
-                skills = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySkill || x.Book == Xml.Book.SecondarySkill || x.Book == Xml.Book.UtilitySkill) && (x.Class.Contains(@class))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)).Level?.Min ?? 1).ThenBy(x => x.Name).ToList();
-                spells = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySpell || x.Book == Xml.Book.SecondarySpell || x.Book == Xml.Book.UtilitySpell) && (x.Class.Contains(@class))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)).Level?.Min ?? 1).ThenBy(x => x.Name).ToList();
+                skills = WorldData.Values<Xml.Castable>().Where(x => x.IsSkill && (x.Class.Contains(@class))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)).Level?.Min ?? 1).ThenBy(x => x.Name).ToList();
+                spells = WorldData.Values<Xml.Castable>().Where(x => x.IsSpell && (x.Class.Contains(@class))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)).Level?.Min ?? 1).ThenBy(x => x.Name).ToList();
 
                 var ignoreSpells = spells.Where(x => x.Categories.Any(x => x.Value.ToLower() == "ignore")).ToList();
                 var ignoreSkills = skills.Where(x => x.Categories.Any(x => x.Value.ToLower() == "ignore")).ToList();

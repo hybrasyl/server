@@ -34,15 +34,14 @@ namespace Hybrasyl
         public uint UseCount { get; set; }
         public uint MasteryLevel { get; set; }
         public DateTime LastCast { get; set; }
-        public bool OnCooldown 
+        public bool OnCooldown
         {
             get
             {
                 return (Castable.Cooldown > 0) && ((DateTime.Now - LastCast).TotalSeconds < Castable.Cooldown);
             }
 
-         }
-
+        }
     }
 
     public class BookConverter : JsonConverter
