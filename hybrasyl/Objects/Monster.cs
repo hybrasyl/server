@@ -33,152 +33,6 @@ using Hybrasyl.Utility;
 namespace Hybrasyl.Objects
 {
 
-    public class ThreatInfo
-    {
-        public Creature ThreatTarget => ThreatTable.Count > 0 ? ThreatTable.Aggregate((l, r) => l.Value > r.Value ? l : r).Key : null;
-
-        public Dictionary<Creature, uint> ThreatTable { get; private set; }
-
-        public ThreatInfo()
-        {
-            ThreatTable = new Dictionary<Creature, uint>();
-        }
-
-        public void IncreaseThreat(Creature threat, uint amount)
-        {
-            ThreatTable[threat] += amount;
-        }
-
-        public void DecreaseThreat(Creature threat, uint amount)
-        {
-            ThreatTable[threat] -= amount;
-        }
-
-        public void WipeThreat(Creature threat)
-        {
-            ThreatTable[threat] = 0;
-        }
-
-        public void AddNewThreat(Creature newThreat, uint amount = 0)
-        {
-            ThreatTable.Add(newThreat, amount);
-        }
-
-        public void RemoveThreat(Creature threat)
-        {
-            ThreatTable.Remove(threat);
-        }
-
-        public void RemoveAllThreats()
-        {
-            ThreatTable = new Dictionary<Creature, uint>();
-        }
-
-        public bool ContainsThreat(Creature threat)
-        {
-            return ThreatTable.ContainsKey(threat);
-        }
-
-        public bool ContainsAny(List<User> users)
-        {
-            foreach(var user in users)
-            {
-                if(ThreatTable.ContainsKey(user))
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        public void OnRangeExit(Creature threat)
-        {
-            if(ContainsThreat(threat))
-            {
-                ThreatTable.Remove(threat);
-            }
-        }
-
-        public void OnRangeEnter(Creature threat)
-        {
-            if (threat is User userThreat)
-            {
-                if (ThreatTarget != null)
-                {
-                    if (ThreatTarget is User user)
-                    {
-                        if (user.Group.Members.Contains(userThreat))
-                        {
-                            AddNewThreat(userThreat);
-                        }
-                    }
-                }
-                else
-                {
-                    AddNewThreat(userThreat, 1);
-                }
-            }
-        }
-
-        public void ForceThreatChange(Creature threat)
-        {
-            if (threat is User userThreat)
-            {
-                if (ThreatTarget is User user)
-                {
-                    if (user.Grouped && user.Group.Members.Contains(userThreat))
-                    {
-                        var newTopThreat = (uint)Math.Ceiling(ThreatTable[ThreatTarget] * 1.1);
-                        if (ContainsThreat(userThreat))
-                        {
-                            ThreatTable[threat] = newTopThreat;
-                        }
-                        else
-                        {
-                            AddNewThreat(userThreat, newTopThreat);
-                        }
-                    }
-                    else
-                    {
-                        RemoveAllThreats();
-                        AddNewThreat(threat, 1);
-                    }
-                }
-                else
-                {
-                    AddNewThreat(threat, 1);
-                }
-            }
-            
-        }
-
-        public void OnNearbyHeal(Creature threat, uint amount)
-        {
-            if(threat is User user)
-            {
-                if(ContainsThreat(user))
-                {
-                    IncreaseThreat(threat, amount);
-                    return;
-                }
-
-                if(user.Grouped && ContainsAny(user.Group.Members))
-                {
-                    AddNewThreat(threat, amount);
-                    return;
-                }
-            }
-        }
-
-
-        public uint this[Creature threat] 
-        {
-            get { return ThreatTable[threat]; }
-            set { ThreatTable[threat] = value; }
-        }
-    }
-
-
     public enum MobAction
     {
         Attack,
@@ -192,16 +46,16 @@ namespace Hybrasyl.Objects
     {
         private readonly object _lock = new object();
 
-        private ConcurrentQueue<MobAction> _actionQueue;
+        private readonly ConcurrentQueue<MobAction> _actionQueue;
 
-        private static Random Rng = new Random();
+        private static readonly Random Rng = new Random();
 
         private bool _idle = true;
 
         private uint _mTarget;
 
-        public List<Xml.Castable> Spells { get; set; } = new List<Xml.Castable>();
-        public List<Xml.Castable> Skills { get; set; } = new List<Xml.Castable>();
+        public Dictionary<string, BookSlot> Spells { get; set; } = new Dictionary<string, BookSlot>();
+        public Dictionary<string, BookSlot> Skills { get; set; } = new Dictionary<string, BookSlot>();
 
         public Xml.CreatureBehaviorSet BehaviorSet;
 
@@ -225,7 +79,6 @@ namespace Hybrasyl.Objects
 
         public bool ScriptExists { get; set; }
 
-        //public Dictionary<string, double> AggroTable { get; set; }
         public ThreatInfo ThreatInfo {get; private set; }
 
         public bool HasCastNearDeath = false;
@@ -253,8 +106,7 @@ namespace Hybrasyl.Objects
                 DeathProcessed = true;
                 _actionQueue.Clear();
 
-                var hitter = LastHitter as User;
-                if (hitter == null)
+                if (!(LastHitter is User hitter))
                 {
                     Map.Remove(this);
                     World.Remove(this);
@@ -531,22 +383,33 @@ namespace Hybrasyl.Objects
                 // If categories are present, use those. Otherwise, learn everything we can
                 foreach (var category in BehaviorSet.LearnSpellCategories)
                 {
-                    Spells.AddRange(Game.World.WorldData.GetSpells(Stats.BaseStr, Stats.BaseInt, Stats.BaseWis, 
-                        Stats.BaseCon, Stats.BaseDex, category));
+                    foreach (var castable in Game.World.WorldData.GetSpells(Stats.BaseStr, Stats.BaseInt, Stats.BaseWis, 
+                        Stats.BaseCon, Stats.BaseDex, category))
+                    {
+                        Spells.Add(castable.Name, new BookSlot() { Castable = castable });
+                    }
                 }
 
                 foreach (var category in BehaviorSet.LearnSkillCategories)
                 {
-                    Skills.AddRange(Game.World.WorldData.GetSkills(Stats.BaseStr, Stats.BaseInt, Stats.BaseWis,
-                        Stats.BaseCon, Stats.BaseDex, category));
+                    foreach (var castable in Game.World.WorldData.GetSkills(Stats.BaseStr, Stats.BaseInt, Stats.BaseWis,
+                        Stats.BaseCon, Stats.BaseDex, category))
+                    {
+                        Skills.Add(castable.Name, new BookSlot() { Castable = castable });
+                    }
                 }
+
                 if (BehaviorSet.LearnSkillCategories.Count == 0 && BehaviorSet.LearnSpellCategories.Count == 0)
                 {
                     // Auto add according to stats
-                    Spells.AddRange(Game.World.WorldData.GetSpells(Stats.BaseStr, Stats.BaseInt, Stats.BaseWis,
-                        Stats.BaseCon, Stats.BaseDex));
-                    Skills.AddRange(Game.World.WorldData.GetSpells(Stats.BaseStr, Stats.BaseInt, Stats.BaseWis,
-                        Stats.BaseCon, Stats.BaseDex));
+                    foreach (var castable in Game.World.WorldData.GetCastables(Stats.BaseStr, Stats.BaseInt, Stats.BaseWis,
+                        Stats.BaseCon, Stats.BaseDex))
+                    {
+                        if (castable.IsSkill)
+                            Skills.Add(castable.Name, new BookSlot() { Castable = castable });
+                        else
+                            Spells.Add(castable.Name, new BookSlot() { Castable = castable });
+                    }
                 }
             }
             // Handle any specific additions. Note that specific additions *ignore stat requirements*, 
@@ -556,9 +419,9 @@ namespace Hybrasyl.Objects
                 if (Game.World.WorldData.TryGetValue(castable, out Xml.Castable xmlCastable))
                 {
                     if (xmlCastable.IsSkill)
-                        Skills.Add(xmlCastable);
+                        Skills.Add(xmlCastable.Name, new BookSlot() { Castable = xmlCastable });
                     else
-                        Spells.Add(xmlCastable);
+                        Spells.Add(xmlCastable.Name, new BookSlot() { Castable = xmlCastable });
                 }               
             }          
         }
@@ -661,11 +524,86 @@ namespace Hybrasyl.Objects
             return false;
         }
 
+        /// <summary>
+        /// Get the next offensive castable to be used, if it exists.
+        /// </summary>
+        /// <returns>NextCastingAction indicating what castable category or castable to be used. </returns>
+        public NextCastingAction GetNextOffenseCastable() => GetNextCastable(BehaviorSet?.Behavior?.Casting?.Offense);
+
+        /// <summary>
+        /// Get the next defensive castable to be used, if it exists.
+        /// </summary>
+        /// <returns>NextCastingAction indicating what castable category or castable to be used. </returns>
+        public NextCastingAction GetNextDefenseCastable() => GetNextCastable(BehaviorSet?.Behavior?.Casting?.Defense);
+
+        /// <summary>
+        /// Get the next near death castable to be used, if it exists.
+        /// </summary>
+        /// <returns>NextCastingAction indicating what castable category or castable to be used. </returns>
+        public NextCastingAction GetNextNearDeathCastable() => GetNextCastable(BehaviorSet?.Behavior?.Casting?.NearDeath);
+
+        /// <summary>
+        /// Get the next offensive castable to be used, if it exists.
+        /// </summary>
+        /// <returns>NextCastingAction indicating what castable category or castable to be used. </returns>
+        public NextCastingAction GetNextOnDeathCastable() => GetNextCastable(BehaviorSet?.Behavior?.Casting?.OnDeath);
+
+        /// <summary>
+        /// Get the next assail skill to be used, if it exists.
+        /// </summary>
+        /// <returns>NextCastingAction indicating what castable category or castable to be used. </returns>
+        public NextCastingAction GetNextSkill() => GetNextCastable(BehaviorSet?.Behavior?.Assail);
+
+        /// <summary>
+        /// Calculate the next castable to be used for a given casting set.
+        /// </summary>
+        /// <returns>A NextCastingAction structure indicating the castable or category to be used along with a CreatureAttackPriority indicating the target</returns>
+        private NextCastingAction GetNextCastable(Xml.CreatureCastingSet set)
+        {
+            // Resolution rules:
+            //
+            // 1: If a castable is defined in our casting set with a specific HP percentage that matches (<=), *always* return that first, unless
+            //    lastcast is that same castable
+            //    Ex: Cast ard sausage at 20% health or lower
+            // 2: if Random is set, return a random category or castable if possible)
+            //    Ex: Random is set, return a random category or castable based on defined settings
+            // 3: If no HP percentages trigger, if lastCast is in the list of castables defined, return the next one in sequence
+            //    Ex: I just cast ard sausage, and I see from our cycle mor ham is next, cast mor ham
+            // 4: if a category is defined, cycle through based on lastCast
+            //    Ex: Ham, Sausage, Bacon -> lastcast category is Sausage -> return Bacon)
+            // 5: nothing matches - punt and let the monster AI figure it out (category and castable name will be null)
+
+            // If we have no castables defined, or no behavior set, we can't cast
+            if (set == null || set.Castable.Count == 0)
+                return NextCastingAction.DoNothing;
+
+            // Find threshold castables, if defined (Rule #1)
+            var thresholdCasts = set.Castable.Where(c => c.HealthPercentage > 0 && c.HealthPercentage <= Stats.HpPercentage).ToList();
+
+            BookSlot slot;
+            foreach (var threshold in thresholdCasts)
+            {
+                // Threshold references a skill or spell that the mob doesn't know; ignore
+                if (!Spells.TryGetValue(threshold.Value, out slot) && !Skills.TryGetValue(threshold.Value, out slot))
+                    continue;
+
+                // Now we have the slot we're looking for - has the threshold castable been used already?
+
+                if (!slot.HasBeenUsed)
+                    return new NextCastingAction() { Slot = slot, Target = threshold.Priority };
+            }
+
+            // No thresholds triggered, proceed to Rule #2
+        }
+
         public void Cast(Creature aggroTarget, UserGroup targetGroup)
         {
             if (CanCast)
             {
                 decimal currentHpPercent = ((decimal)Stats.Hp / Stats.MaximumHp) * 100m;
+                // THE BEATINGS WILL CONTINUE
+                // UNTIL MORALE IMPROVES
+
             }
             //if (CanCast)
             //{

@@ -28,12 +28,15 @@ using System.Linq;
 
 namespace Hybrasyl
 {
+
     public class BookSlot
     {
         public Xml.Castable Castable { get; set; }
-        public uint UseCount { get; set; }
-        public uint MasteryLevel { get; set; }
-        public DateTime LastCast { get; set; }
+        public uint UseCount { get; set; } = 0;
+        public uint MasteryLevel { get; set; } = 0;
+        public DateTime LastCast { get; set; } = default;
+        public bool ThresholdTriggered { get; set; } = false;
+
         public bool OnCooldown
         {
             get
@@ -42,6 +45,8 @@ namespace Hybrasyl
             }
 
         }
+        public bool HasBeenUsed => LastCast != default;
+        public double SecondsSinceLastUse => (DateTime.Now - LastCast).TotalSeconds;
     }
 
     public class BookConverter : JsonConverter

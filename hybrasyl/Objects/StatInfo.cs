@@ -79,6 +79,7 @@ namespace Hybrasyl.Objects
         // Publicly accessible getters/setters, relying on the lockables
         #region accessors
 
+        public decimal HpPercentage => (decimal) Hp / MaximumHp * 100m;
         [JsonProperty]
         public Xml.ElementType BaseOffensiveElement { get { return _baseOffensiveElement.Value; } set { _baseOffensiveElement.Value = value; } }
         [JsonProperty]

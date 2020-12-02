@@ -886,7 +886,8 @@
     <xs:simpleContent>
       <xs:extension base="xs:string">
         <xs:attribute name="Priority" type="hyb:CreatureAttackPriority" use="optional" default="HighThreat"/>
-        <xs:attribute name="HealthPercentage" type="xs:int" use="optional" default="0"/>
+        <xs:attribute name="HealthPercentage" type="xs:int" use="optional" default="-1"/>
+        <xs:attribute name="UseOnce" type="xs:boolean" use="optional" default="true"/>
       </xs:extension>
     </xs:simpleContent>
   </xs:complexType>
