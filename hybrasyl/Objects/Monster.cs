@@ -57,6 +57,9 @@ namespace Hybrasyl.Objects
         public Dictionary<string, BookSlot> Spells { get; set; } = new Dictionary<string, BookSlot>();
         public Dictionary<string, BookSlot> Skills { get; set; } = new Dictionary<string, BookSlot>();
 
+        public BookSlot LastSpellUsed { get; set; } = null;
+        public BookSlot LastSkillUsed { get; set; } = null;
+
         public Xml.CreatureBehaviorSet BehaviorSet;
 
         public Xml.SpawnFlags SpawnFlags;
@@ -79,7 +82,7 @@ namespace Hybrasyl.Objects
 
         public bool ScriptExists { get; set; }
 
-        public ThreatInfo ThreatInfo {get; private set; }
+        public ThreatInfo ThreatInfo { get; private set; }
 
         public bool HasCastNearDeath = false;
 
@@ -176,7 +179,7 @@ namespace Hybrasyl.Objects
         // OnSpawn) when not needed 99% of the time.
         private void InitScript()
         {
-            if (Script != null || ScriptExists || string.IsNullOrEmpty(Name))               
+            if (Script != null || ScriptExists || string.IsNullOrEmpty(Name))
                 return;
 
             if (Game.World.ScriptProcessor.TryGetScript(Name, out Script damageScript))
@@ -186,7 +189,7 @@ namespace Hybrasyl.Objects
                 ScriptExists = true;
             }
             else
-                ScriptExists = false;                
+                ScriptExists = false;
         }
 
         public override void OnHear(VisibleObject speaker, string text, bool shout = false)
@@ -298,7 +301,7 @@ namespace Hybrasyl.Objects
             set { _loot.Xp = value; }
         }
 
-        public uint LootableGold => _loot?.Gold ?? 0 ;
+        public uint LootableGold => _loot?.Gold ?? 0;
 
         public List<string> LootableItems => _loot?.Items ?? new List<string>();
 
@@ -379,11 +382,11 @@ namespace Hybrasyl.Objects
 
             // Default to automatic assignation if unset
             if (BehaviorSet.Castables.Auto == true)
-            {   
+            {
                 // If categories are present, use those. Otherwise, learn everything we can
                 foreach (var category in BehaviorSet.LearnSpellCategories)
                 {
-                    foreach (var castable in Game.World.WorldData.GetSpells(Stats.BaseStr, Stats.BaseInt, Stats.BaseWis, 
+                    foreach (var castable in Game.World.WorldData.GetSpells(Stats.BaseStr, Stats.BaseInt, Stats.BaseWis,
                         Stats.BaseCon, Stats.BaseDex, category))
                     {
                         Spells.Add(castable.Name, new BookSlot() { Castable = castable });
@@ -422,8 +425,8 @@ namespace Hybrasyl.Objects
                         Skills.Add(xmlCastable.Name, new BookSlot() { Castable = xmlCastable });
                     else
                         Spells.Add(xmlCastable.Name, new BookSlot() { Castable = xmlCastable });
-                }               
-            }          
+                }
+            }
         }
 
         public Monster(Xml.Creature creature, Xml.SpawnFlags flags, byte level, int map, Loot loot = null,
@@ -442,7 +445,7 @@ namespace Hybrasyl.Objects
             Stats.Level = level;
             AllocateStats();
             LearnCastables();
-            
+
             DisplayText = creature.Description;
 
             //Stats.BaseDefensiveElement = spawn.GetDefensiveElement();
@@ -551,7 +554,7 @@ namespace Hybrasyl.Objects
         /// <summary>
         /// Get the next assail skill to be used, if it exists.
         /// </summary>
-        /// <returns>NextCastingAction indicating what castable category or castable to be used. </returns>
+        /// <returns>NextCastingAction indicating what castable GLIROcategory or castable to be used. </returns>
         public NextCastingAction GetNextSkill() => GetNextCastable(BehaviorSet?.Behavior?.Assail);
 
         /// <summary>
@@ -567,272 +570,90 @@ namespace Hybrasyl.Objects
             //    Ex: Cast ard sausage at 20% health or lower
             // 2: if Random is set, return a random category or castable if possible)
             //    Ex: Random is set, return a random category or castable based on defined settings
-            // 3: If no HP percentages trigger, if lastCast is in the list of castables defined, return the next one in sequence
-            //    Ex: I just cast ard sausage, and I see from our cycle mor ham is next, cast mor ham
-            // 4: if a category is defined, cycle through based on lastCast
+            // 3: if a category is defined, cycle through based on lastCast
             //    Ex: Ham, Sausage, Bacon -> lastcast category is Sausage -> return Bacon)
+            // 4: If no HP percentages with UseOnce trigger, if lastCast is in the list of castables defined, return the next one in sequence
+            //    Ex: I just cast ard sausage, and I see from our cycle mor ham is next, cast mor ham
             // 5: nothing matches - punt and let the monster AI figure it out (category and castable name will be null)
 
             // If we have no castables defined, or no behavior set, we can't cast
             if (set == null || set.Castable.Count == 0)
                 return NextCastingAction.DoNothing;
 
+            List<Xml.CreatureCastable> selection = new List<Xml.CreatureCastable>();
+            BookSlot slot;
+
             // Find threshold castables, if defined (Rule #1)
             var thresholdCasts = set.Castable.Where(c => c.HealthPercentage > 0 && c.HealthPercentage <= Stats.HpPercentage).ToList();
 
-            BookSlot slot;
             foreach (var threshold in thresholdCasts)
             {
-                // Threshold references a skill or spell that the mob doesn't know; ignore
                 if (!Spells.TryGetValue(threshold.Value, out slot) && !Skills.TryGetValue(threshold.Value, out slot))
+                    // Threshold references a skill or spell that the mob doesn't know; ignore
                     continue;
 
-                // Now we have the slot we're looking for - has the threshold castable been used already?
-
-                if (!slot.HasBeenUsed)
+                // Is this a use once trigger with a percentage defined? If so, it hits and returns immediately IF the
+                // corresponding slot hasn't seen a trigger.              
+                if (threshold.UseOnce && !slot.ThresholdTriggered)
                     return new NextCastingAction() { Slot = slot, Target = threshold.Priority };
+
+                else if (!threshold.UseOnce)
+                    // Add to our list
+                    selection.Add(threshold);
             }
 
-            // No thresholds triggered, proceed to Rule #2
-        }
+            // Now we've handled triggers - look at the rest of the set with no thresholds, and proceed to Rule #2
+            selection.AddRange(set.Castable.Where(c => c.HealthPercentage == -1));
 
-        public void Cast(Creature aggroTarget, UserGroup targetGroup)
-        {
-            if (CanCast)
+            if (set.Random)
             {
-                decimal currentHpPercent = ((decimal)Stats.Hp / Stats.MaximumHp) * 100m;
-                // THE BEATINGS WILL CONTINUE
-                // UNTIL MORALE IMPROVES
-
+                var selectedCast = selection.PickRandom();
+                if (!Spells.TryGetValue(selectedCast.Value, out slot) && !Skills.TryGetValue(selectedCast.Value, out slot))
+                    // Not found, do nothing
+                    return NextCastingAction.DoNothing;
+                return new NextCastingAction() { Slot = slot, Target = selectedCast.Priority };
             }
-            //if (CanCast)
-            //{
-            //    //need to determine what it should do, and what is available to it.
-            //    var interval = 0;
-            //    decimal currentHpPercent = ((decimal)Stats.Hp / Stats.MaximumHp) * 100m;
 
-            //    if (currentHpPercent < 1)
-            //    {
-            //        //ondeath does not need an interval check
-            //        var selectedCastable = SelectSpawnCastable(SpawnCastType.OnDeath);
-            //        if (selectedCastable == null) return;
-            //        if (selectedCastable.Target == Xml.TargetType.Attacker)
-            //        {
-            //            Cast(aggroTarget, selectedCastable);
-            //        }
+            // Random handled, proceed to Rule #3 (cast from categories)
 
-            //        if (selectedCastable.Target == Xml.TargetType.Group || selectedCastable.Target == Xml.TargetType.Random)
-            //        {
-            //            if (targetGroup != null)
-            //            {
-            //                Cast(targetGroup, selectedCastable, selectedCastable.Target);
-            //            }
-            //            else
-            //            {
-            //                Cast(aggroTarget, selectedCastable);                            
-            //            }
-            //        }
-            //    }
+            if (set.CategoryList.Count > 0)
+            {
+                // Pick a random category then pick a random castable from that category
+                var selectedCategory = set.CategoryList.PickRandom();
+                var selectedCast = Spells.Values.Where(s => s.Castable.CategoryList.Contains(selectedCategory)).PickRandom(true);
+                if (selectedCast != null)
+                    return new NextCastingAction() { Slot = selectedCast, Target = set.Priority };
+                return NextCastingAction.DoNothing;
+            }
 
-            //    if (currentHpPercent <= Castables.NearDeath.HealthPercent)
-            //    {
-            //        interval = _castables.NearDeath.Interval;
+            // Categories not defined - use castable rotation (Rule #4)
+            // This is gross
+            var idx = selection.IndexOf(selection.Where(c => c.Value == LastSpellUsed.Castable.Name || c.Value == LastSkillUsed.Castable.Name).FirstOrDefault());
+            Xml.CreatureCastable selected = null;
+            if (idx == -1)
+                // Last cast was not found, do nothing
+                return NextCastingAction.DoNothing;
+            // A,B,C
+            // idx == 2 (C), return A
+            else if (selection.Count - 1 == idx)
+                selected = selection.First();
+            // A,B,C
+            // idx == 1 (B), return C
+            else
+                selected = selection[idx + 1];
 
-            //        var selectedCastable = SelectSpawnCastable(SpawnCastType.NearDeath);
+            if (selected != null)
+            {
+                if (!Spells.TryGetValue(selected.Value, out slot) && !Skills.TryGetValue(selected.Value, out slot))
+                    // Not found, do nothing
+                    return NextCastingAction.DoNothing;
+                return new NextCastingAction() { Slot = slot, Target = selected.Priority };
+            }
 
-            //        if (selectedCastable == null) return;
-
-            //        if (selectedCastable.Target == Xml.TargetType.Attacker)
-            //        {
-            //            if (_castables.NearDeath.LastCast.AddSeconds(interval) < DateTime.Now)
-            //            {
-            //                Cast(aggroTarget, selectedCastable);
-            //                _castables.NearDeath.LastCast = DateTime.Now;
-            //            }
-            //            else
-            //            {
-            //                if (Distance(ThreatInfo.ThreatTarget) == 1)
-            //                {
-            //                    AssailAttack(Direction, aggroTarget);
-            //                }
-            //            }
-
-            //        }
-
-            //        if (selectedCastable.Target == Xml.TargetType.Group || selectedCastable.Target == Xml.TargetType.Random)
-            //        {
-            //            if (targetGroup != null)
-            //            {
-            //                if (_castables.NearDeath.LastCast.AddSeconds(interval) < DateTime.Now)
-            //                {
-            //                    Cast(targetGroup, selectedCastable, selectedCastable.Target);
-            //                    _castables.NearDeath.LastCast = DateTime.Now;
-            //                }
-            //                else
-            //                {
-            //                    if (Distance(ThreatInfo.ThreatTarget) == 1)
-            //                    {
-            //                        AssailAttack(Direction, aggroTarget);
-            //                    }
-            //                }
-            //            }
-            //            else
-            //            {
-            //                if (_castables.NearDeath.LastCast.AddSeconds(interval) < DateTime.Now)
-            //                {
-            //                    Cast(aggroTarget, selectedCastable);
-            //                    _castables.NearDeath.LastCast = DateTime.Now;
-            //                }
-            //                else
-            //                {
-            //                    if (Distance(ThreatInfo.ThreatTarget) == 1)
-            //                    {
-            //                        AssailAttack(Direction, aggroTarget);
-            //                    }
-            //                }
-            //            }
-            //        }
-            //    }
-
-            //    var nextChoice = _random.Next(0, 2);
-
-            //    if (nextChoice == 0) //offense
-            //    {
-            //        interval = _castables.Offense.Interval;
-            //        var selectedCastable = SelectSpawnCastable(SpawnCastType.Offensive);
-            //        if (selectedCastable == null) return;
-
-            //        if (selectedCastable.Target == Xml.TargetType.Attacker)
-            //        {
-            //            if (_castables.Offense.LastCast.AddSeconds(interval) < DateTime.Now)
-            //            {
-            //                Cast(aggroTarget, selectedCastable);
-            //                _castables.Offense.LastCast = DateTime.Now;
-            //            } 
-            //            else
-            //            {
-            //                if(Distance(ThreatInfo.ThreatTarget) == 1)
-            //                {
-            //                    AssailAttack(Direction, aggroTarget);
-            //                }
-            //            }
-            //        }
-
-            //        if (selectedCastable.Target == Xml.TargetType.Group || selectedCastable.Target == Xml.TargetType.Random)
-            //        {
-            //            if (targetGroup != null)
-            //            {
-            //                if (_castables.Offense.LastCast.AddSeconds(interval) < DateTime.Now)
-            //                {
-            //                    Cast(targetGroup, selectedCastable, selectedCastable.Target);
-            //                    _castables.Offense.LastCast = DateTime.Now;
-            //                }
-            //                else
-            //                {
-            //                    if (Distance(ThreatInfo.ThreatTarget) == 1)
-            //                    {
-            //                        AssailAttack(Direction, aggroTarget);
-            //                    }
-            //                }
-            //            }
-            //            else
-            //            {
-            //                if (_castables.Offense.LastCast.AddSeconds(interval) < DateTime.Now)
-            //                {
-            //                    Cast(aggroTarget, selectedCastable);
-            //                    _castables.Offense.LastCast = DateTime.Now;
-            //                }
-            //                else
-            //                {
-            //                    if (Distance(ThreatInfo.ThreatTarget) == 1)
-            //                    {
-            //                        AssailAttack(Direction, aggroTarget);
-            //                    }
-            //                }
-            //            }
-            //        }
-            //    }
-
-            //    if (nextChoice == 1) //defense
-            //    {
-            //        //not sure how to handle this one
-            //    }
-            //}
-            //else
-            //{
-            //    if (Distance(ThreatInfo.ThreatTarget) == 1)
-            //    {
-            //        AssailAttack(Direction, aggroTarget);
-            //    }
-            //}
+            // Rule #5 (return to monster ai)
+            return NextCastingAction.DoNothing;
         }
-
-        public void Cast(Creature target, Xml.Castable creatureCastable)
-        {
-            //var castable = World.WorldData.GetByIndex<Xml.Castable>(creatureCastable.Name);
-            //if (target is Merchant) return;
-            //UseCastable(castable, target, creatureCastable);
-            //Condition.Casting = false;
-        }
-
-        public void Cast(UserGroup target, Xml.Castable creatureCastable, Xml.CreatureAttackPriority priority)
-        {
-
-            //var inRange = Map.EntityTree.GetObjects(GetViewport()).OfType<User>();
-
-            //var result = inRange.Intersect(target.Members).ToList();
-
-            //var castable = World.WorldData.GetByIndex<Xml.Castable>(creatureCastable.Name);
-
-            //if (priority == Xml.CreatureAttackPriority.Group)
-            //{
-            //    foreach(var user in result)
-            //    {
-            //        UseCastable(castable, user, creatureCastable);
-            //    }
-            //}
-
-            //if(priority == Xml.CreatureAttackPriority.Random)
-            //{
-            //    var rngSelection = _random.Next(0, result.Count);
-
-            //    var user = result[rngSelection];
-
-            //    UseCastable(castable, user, creatureCastable);
-            //}
-
-            //Condition.Casting = false;
-        }
-
-        public Xml.Castable SelectSpawnCastable(SpawnCastType castType)
-        {
-            return null;
-            //Xml.Castable creatureCastable = null;
-            //string castableName = string.Empty;
-
-            //switch (castType)
-            //{
-            //    case SpawnCastType.Offensive:
-            //        castableName = BehaviorSet.OffensiveCastables.PickRandom(true);
-            //        break;
-            //    case SpawnCastType.Defensive:
-            //        castableName = BehaviorSet.DefensiveCastables.PickRandom(true);
-            //        break;
-            //    case SpawnCastType.NearDeath:
-            //        castableName = BehaviorSet.NearDeathCastables.PickRandom(true);
-            //        break;
-            //    case SpawnCastType.OnDeath:
-            //        castableName = BehaviorSet.OnDeathCastables.PickRandom(true);
-            //        break;
-            //}
-
-            //if (!string.IsNullOrEmpty(castableName))
-            //    Game.World.WorldData.TryGetValue(castableName, out creatureCastable);
-
-            //return creatureCastable;
-        }
-
-
+     
         public void AssailAttack(Xml.Direction direction, Creature target = null)
         {
             if (target == null)
@@ -852,10 +673,10 @@ namespace Hybrasyl.Objects
                 }
                 //try to get the creature we're facing and set it as the target.
             }
-            
+
             // A monster's assail is just a straight attack, no skills involved.
             SimpleAttack(target);
-                            
+
             //animation handled here as to not repeatedly send assails.
             var assail = new ServerPacketStructures.PlayerAnimation() { Animation = 1, Speed = 20, UserId = this.Id };
             //Enqueue(assail.Packet());
@@ -1000,7 +821,7 @@ namespace Hybrasyl.Objects
                             tile.Parent = current;
                         }
                     }
-                }                               
+                }
             }
             // If null here, no path was found
             CurrentPath = current;
@@ -1019,23 +840,31 @@ namespace Hybrasyl.Objects
             return Xml.Direction.North;
         }
 
+        public void Cast(BookSlot slot, Creature target)
+        {
+            UseCastable(slot.Castable, target);
+            slot.LastCast = DateTime.Now;
+            slot.UseCount++;
+            Condition.Casting = false;
+        }
+
         public void NextAction()
         {
             var next = 0;
-            if(Stats.Hp == 0)
+            if (Stats.Hp == 0)
             {
                 _actionQueue.Enqueue(MobAction.Death);
             }
-            if(!IsHostile)
+            if (!IsHostile)
             {
                 next = _random.Next(2, 4); //move or idle
                 _actionQueue.Enqueue((MobAction)next);
             }
             else
             {
-                if(ThreatInfo.ThreatTarget != null)
+                if (ThreatInfo.HighestThreat != null)
                 {
-                    if (Distance(ThreatInfo.ThreatTarget) == 1)
+                    if (Distance(ThreatInfo.HighestThreat) == 1)
                     {
                         next = _random.Next(0, 2); //attack or cast
                         _actionQueue.Enqueue((MobAction)next);
@@ -1063,22 +892,39 @@ namespace Hybrasyl.Objects
                 _actionQueue.TryDequeue(out var action);
                 if (action == MobAction.Attack)
                 {
-                    if (ThreatInfo.ThreatTarget == null) return;
-                    if (CheckFacing(Direction, ThreatInfo.ThreatTarget))
+                    if (ThreatInfo.HighestThreat == null) return;
+                    if (CheckFacing(Direction, ThreatInfo.HighestThreat))
                     {
-                        AssailAttack(Direction, ThreatInfo.ThreatTarget);
+                        AssailAttack(Direction, ThreatInfo.HighestThreat);
                     }
                     else
                     {
-                        Turn(Relation(ThreatInfo.ThreatTarget.X, ThreatInfo.ThreatTarget.Y));
+                        Turn(Relation(ThreatInfo.HighestThreat.X, ThreatInfo.HighestThreat.Y));
                     }
                 }
-                if (action == MobAction.Cast)
+                if (action == MobAction.Cast && Condition.CastingAllowed)
                 {
-
-                    if (!Condition.Blinded)
+                    var offensiveCast = GetNextOffenseCastable();
+                    if (!offensiveCast.DoNotCast)
                     {
-                        Cast(ThreatInfo.ThreatTarget, ((User)ThreatInfo.ThreatTarget).Group);
+                        // Handle group targeting here
+                        if (offensiveCast.Target == Xml.CreatureAttackPriority.Group)
+                        {
+                            if (ThreatInfo.HighestThreat is User user)
+                            {
+                                if (user.Group != null)
+                                {
+                                    foreach (var member in user.Group.Members)
+                                        Cast(offensiveCast.Slot, member);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            var target = GetTarget(offensiveCast.Target);
+                            Cast(offensiveCast.Slot, target);
+                        }
+
                     }
                 }
                 if (action == MobAction.Move)
@@ -1106,13 +952,13 @@ namespace Hybrasyl.Objects
                     }
                     else
                     {
-                        if (ThreatInfo.ThreatTarget == null) return;
+                        if (ThreatInfo.HighestThreat == null) return;
                         if (!Condition.Paralyzed && !Condition.Blinded)
                         {
                             if (CurrentPath == null || !AStarPathClear())
                                 // If we don't have a current path to our threat target, OR if there is something in the way of
                                 // our existing path, calculate a new one
-                                AStarPathFind(Location.X, Location.Y, ThreatInfo.ThreatTarget.Location.X, ThreatInfo.ThreatTarget.Location.Y);
+                                AStarPathFind(Location.X, Location.Y, ThreatInfo.HighestThreat.Location.X, ThreatInfo.HighestThreat.Location.Y);
                             if (CurrentPath != null)
                             {
                                 // Path was found, use it
@@ -1146,7 +992,7 @@ namespace Hybrasyl.Objects
                 {
                     ThreatInfo.OnRangeExit(user);
 
-                    if (ThreatInfo.ThreatTarget == null && ThreatInfo.ThreatTable.Count == 0)
+                    if (ThreatInfo.HighestThreat == null && ThreatInfo.Count == 0)
                     {
                         ShouldWander = true;
                         FirstHitter = null;
@@ -1172,7 +1018,7 @@ namespace Hybrasyl.Objects
                     {
                         Active = true;
                     }
-                    if (IsHostile && ThreatInfo.ThreatTarget == null)
+                    if (IsHostile && ThreatInfo.HighestThreat == null)
                     {
                         ThreatInfo.OnRangeEnter(user);
                         ShouldWander = false;
@@ -1181,6 +1027,19 @@ namespace Hybrasyl.Objects
                 base.AoiEntry(obj);
             }
         }
-    }
 
+        public Creature GetTarget(Xml.CreatureAttackPriority priority)
+        {
+            return priority switch
+            {
+                Xml.CreatureAttackPriority.Attacker => LastHitter,
+                Xml.CreatureAttackPriority.AttackingCaster => ThreatInfo.HighestThreatCaster,
+                Xml.CreatureAttackPriority.AttackingHealer => ThreatInfo.HighestThreatHealer,
+                var x when x == Xml.CreatureAttackPriority.Random || x == Xml.CreatureAttackPriority.Group => ThreatInfo.ThreatTableByCreature.PickRandom().Key,
+                Xml.CreatureAttackPriority.HighThreat => ThreatInfo.HighestThreat,
+                Xml.CreatureAttackPriority.LowThreat => ThreatInfo.LowestThreat,
+                _ => null,
+            };
+        }
+    }
 }

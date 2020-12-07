@@ -141,6 +141,17 @@ namespace Hybrasyl.Xml
             return true;
         }
 
+        public List<string> CategoryList
+        {
+            get
+            {
+                if (Categories.Count > 0)
+                    return new List<string>();
+                else
+                    return Categories.Select(x => x.Value).ToList();
+            }    
+        }
+
     }
 
     public class CastableComparer : IEqualityComparer<Castable>
