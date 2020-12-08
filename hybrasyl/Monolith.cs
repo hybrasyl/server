@@ -19,6 +19,7 @@
  * 
  */
 
+using Hybrasyl.Enums;
 using Hybrasyl.Objects;
 using System;
 using System.Collections.Concurrent;
@@ -208,6 +209,64 @@ namespace Hybrasyl
                         }
                         baseMob.X = (byte) xcoord;
                         baseMob.Y = (byte) ycoord;
+
+                        if (spawn.Damage != null)
+                        {
+                            ushort minDmg = 0;
+                            ushort maxDmg = 0;
+
+                            try
+                            {
+                                minDmg = (ushort)FormulaParser.Eval(spawn.Damage.MinDmg, formeval);
+                                maxDmg = (ushort)FormulaParser.Eval(spawn.Damage.MaxDmg, formeval);
+                                if (minDmg > 0)
+                                {
+                                    // They need some kind of weapon
+                                    if (Game.World.WorldData.TryGetValueByIndex("monsterblade", out Xml.Item template))
+                                    {
+                                        var newTemplate = template.Clone();
+                                        template.Properties.Damage.Small.Min = minDmg;
+                                        template.Properties.Damage.Small.Max = maxDmg;
+                                        template.Properties.Damage.Large.Min = minDmg;
+                                        template.Properties.Damage.Large.Max = maxDmg;
+                                        template.Properties.Physical.Durability = uint.MaxValue;
+                                        baseMob.Stats.OffensiveElementOverride = spawn.Damage.Element;
+                                        var item = new ItemObject(newTemplate);
+                                        baseMob.Equipment.Insert(ServerItemSlots.Weapon, item);
+                                    }
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                                spawn.Disabled = true;
+                                spawn.ErrorMessage = $"Spawn disabled due to formula evaluation exception: {e}";
+                                GameLog.SpawnError("Spawn {spawn} on map {map} disabled due to exception: {ex}", spawn.Name, spawnmap.Name, e);
+                                continue;
+                            }
+
+
+                        }
+                        if (spawn.Defense != null)
+                        {
+                            sbyte Ac = 0;
+                            sbyte Mr = 0;
+
+                            try
+                            {
+                                Ac = (sbyte) FormulaParser.Eval(spawn.Defense.Ac, formeval);
+                                Mr = (sbyte) FormulaParser.Eval(spawn.Defense.Mr, formeval);                             
+                            }
+                            catch (Exception e)
+                            {
+                                spawn.Disabled = true;
+                                spawn.ErrorMessage = $"Spawn disabled due to formula evaluation exception: {e}";
+                                GameLog.SpawnError("Spawn {spawn} on map {map} disabled due to exception: {ex}", spawn.Name, spawnmap.Name, e);
+                                continue;
+                            }
+                            baseMob.Stats.BonusAc = Ac;
+                            baseMob.Stats.BonusMr = Mr;
+                            baseMob.Stats.DefensiveElementOverride = spawn.Defense.Element;
+                        }
                         SpawnMonster(baseMob, spawnmap);
                     }
                     else

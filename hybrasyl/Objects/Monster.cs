@@ -376,6 +376,10 @@ namespace Hybrasyl.Objects
         /// </summary>
         private void LearnCastables()
         {
+            // All monsters get assail. TODO: hardcoded
+            if (Game.World.WorldData.TryGetValue("Assail", out Xml.Castable assail))
+                Skills.Add("Assail", new BookSlot() { Castable = assail });
+
             if (BehaviorSet?.Castables == null)
                 // Behavior set either doesn't exist or doesn't specify castables; no action needed
                 return;
@@ -443,13 +447,11 @@ namespace Hybrasyl.Objects
             World = Game.World;
             Map = Game.World.WorldData.Get<Map>(map);
             Stats.Level = level;
+
             AllocateStats();
             LearnCastables();
 
             DisplayText = creature.Description;
-
-            //Stats.BaseDefensiveElement = spawn.GetDefensiveElement();
-            //Stats.BaseDefensiveElement = spawn.GetOffensiveElement();
 
             _loot = loot;
 
@@ -659,20 +661,14 @@ namespace Hybrasyl.Objects
             if (target == null)
             {
                 var obj = GetDirectionalTarget(direction);
-                var monster = obj as Monster;
-                if (monster != null) target = monster;
-                var user = obj as User;
-                if (user != null)
-                {
-                    target = user;
-                }
-                var npc = obj as Merchant;
-                if (npc != null)
-                {
-                    target = npc;
-                }
-                //try to get the creature we're facing and set it as the target.
+                if (obj is Merchant)
+                    return;
+                else if (obj is Creature || obj is User)
+                    target = obj;
             }
+
+            if (target == null)
+                return;
 
             // A monster's assail is just a straight attack, no skills involved.
             SimpleAttack(target);
@@ -685,15 +681,15 @@ namespace Hybrasyl.Objects
             PlaySound(1);
         }
 
+
         /// <summary>
-        /// A simple directional attack by a monster (equivalent of straight assail).
-        /// </summary>
-        /// <param name="direction"></param>
+        /// A simple attack by a monster (equivalent of straight assail).
+        /// </summary>        
         /// <param name="target"></param>
         public void SimpleAttack(Creature target)
         {
-            // Redo as castable assail
-            //target?.Damage(_simpleDamage, Stats.BaseOffensiveElement, Xml.DamageType.Physical, Xml.DamageFlags.None, this);
+            if (Skills.TryGetValue("Assail", out BookSlot slot))
+                UseCastable(slot.Castable, target, true);
         }
 
         public override void ShowTo(VisibleObject obj)
@@ -848,6 +844,29 @@ namespace Hybrasyl.Objects
             Condition.Casting = false;
         }
 
+        public void Attack()
+        {
+            if (CheckFacing(Direction, ThreatInfo.HighestThreat))
+            {
+                var assailSkill = GetNextSkill();
+                if (assailSkill.DoNotCast)
+                {
+                    if (ThreatInfo.HighestThreat == null) return;
+                    AssailAttack(Direction, ThreatInfo.HighestThreat);
+                }
+                else
+                {
+                    var target = GetTarget(assailSkill.Target);
+                    if (target == null)
+                        Cast(assailSkill.Slot, ThreatInfo.HighestThreat);
+                }
+            }
+            else
+            {
+                Turn(Relation(ThreatInfo.HighestThreat.X, ThreatInfo.HighestThreat.Y));
+            }
+        }
+
         public void NextAction()
         {
             var next = 0;
@@ -881,7 +900,7 @@ namespace Hybrasyl.Objects
                     _actionQueue.Enqueue((MobAction)next);
                 }
             }
-
+            // TODO: what is the point of this being separate if it's always called from here?
             ProcessActions();
         }
 
@@ -891,17 +910,7 @@ namespace Hybrasyl.Objects
             {
                 _actionQueue.TryDequeue(out var action);
                 if (action == MobAction.Attack)
-                {
-                    if (ThreatInfo.HighestThreat == null) return;
-                    if (CheckFacing(Direction, ThreatInfo.HighestThreat))
-                    {
-                        AssailAttack(Direction, ThreatInfo.HighestThreat);
-                    }
-                    else
-                    {
-                        Turn(Relation(ThreatInfo.HighestThreat.X, ThreatInfo.HighestThreat.Y));
-                    }
-                }
+                    Attack();
                 if (action == MobAction.Cast && Condition.CastingAllowed)
                 {
                     var offensiveCast = GetNextOffenseCastable();
@@ -924,8 +933,8 @@ namespace Hybrasyl.Objects
                             var target = GetTarget(offensiveCast.Target);
                             Cast(offensiveCast.Slot, target);
                         }
-
                     }
+                    else Attack(); // Fall back to assail if we don't have a spell
                 }
                 if (action == MobAction.Move)
                 {
@@ -983,7 +992,7 @@ namespace Hybrasyl.Objects
                 }
             }
         }
-
+@sa
         public override void AoiDeparture(VisibleObject obj)
         {
             lock (_lock)

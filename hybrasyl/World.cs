@@ -520,6 +520,16 @@ namespace Hybrasyl
                 }
             }
 
+            // Create a static "monster weapon" that is used in various places
+            // TODO: maybe just use xml for this
+            var monsterWeapon = new Xml.Item() { Name = "monsterblade" };
+            monsterWeapon.Properties = new Xml.ItemProperties();
+            monsterWeapon.Properties.Damage = new Xml.ItemDamage();
+            monsterWeapon.Properties.Damage.Small = new Xml.ItemDamageSmall();
+            monsterWeapon.Properties.Damage.Large = new Xml.ItemDamageLarge();
+            monsterWeapon.Properties.Physical = new Xml.Physical();
+            WorldData.SetWithIndex(monsterWeapon.Id, monsterWeapon, monsterWeapon.Name);
+
             //Load NPCs
             foreach (var xml in GetXmlFiles(NpcsDirectory))
             {
@@ -914,14 +924,6 @@ namespace Hybrasyl
         }
 
         /*End ItemVariants*/
-
-        private static void ValidationCallBack(object sender, ValidationEventArgs args)
-        {
-            if (args.Severity == XmlSeverityType.Warning)
-                GameLog.WarningFormat("XML warning: {0}", args.Message);
-            else
-                GameLog.ErrorFormat("XML ERROR: {0}", args.Message);
-        }
 
         private void LoadMetafiles()
         {

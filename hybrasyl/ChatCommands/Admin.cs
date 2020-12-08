@@ -649,6 +649,7 @@ namespace Hybrasyl.ChatCommands
         }
 
     }
+
     class ResurrectCommand : ChatCommand
     {
         public new static string Command = "resurrect";

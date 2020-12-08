@@ -667,21 +667,6 @@
     <xs:attribute name="MaxDmg" type="xs:int" use="optional" default="0"/>
   </xs:complexType>
 
-  <!--
-  <xs:complexType name="CreatureType">
-    <xs:sequence>
-      <xs:element name="Description" type="hyb:String8" minOccurs="0" maxOccurs="1" />
-      <xs:element name="Loot" type="LootList" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="Hostility" minOccurs="0" maxOccurs="1" type="CreatureHostilitySettings"/>
-      <xs:element name="SetCookies" minOccurs="0" maxOccurs="1" type="CreatureCookies"/>
-    </xs:sequence>
-    <xs:attribute name="Name" use="required" type="xs:string"/>
-    <xs:attribute name="Sprite" use="required" type="xs:unsignedShort" />
-    <xs:attribute name="BehaviorSet" use="required" type="xs:string"/>
-    <xs:attribute name="MinDmg" type="xs:int" use="optional" default="0"/>
-    <xs:attribute name="MaxDmg" type="xs:int" use="optional" default="0"/>
-  </xs:complexType>
--->              
   <xs:complexType name="CreatureTypes">
     <xs:sequence>
       <xs:element name="Type" type="Creature" minOccurs="0" maxOccurs="unbounded"/>
