@@ -205,11 +205,6 @@ namespace Hybrasyl.Objects
         // from Lua later know who to "consult" for dialogs / etc.
         public VisibleObject LastAssociate { get; set; }
 
-        [JsonProperty]
-        private Dictionary<string, string> UserCookies { get; set; }
-        // These are SESSION ONLY, they persist until logout / disconnect
-        private Dictionary<string, string> UserSessionCookies { get; set; }
-
         public Exchange ActiveExchange { get; set; }
 
         public bool IsAvailableForExchange => Condition.NoFlags;
@@ -682,8 +677,6 @@ namespace Hybrasyl.Objects
             PortraitData = new byte[0];
             ProfileText = string.Empty;
             DialogState = new DialogState(this);
-            UserCookies = new Dictionary<string, string>();
-            UserSessionCookies = new Dictionary<string, string>();
             ClientSettings = new Dictionary<byte, bool>();
             Group = null;
             Flags = new Dictionary<string, bool>();
@@ -1690,52 +1683,6 @@ namespace Hybrasyl.Objects
                 return 3; 
             }
         }
-
-        public void SetCookie(string cookieName, string value)
-        {
-            UserCookies[cookieName] = value;
-        }
-
-        public void SetSessionCookie(string cookieName, string value)
-        {
-            UserSessionCookies[cookieName] = value;
-        }
-
-        public IReadOnlyDictionary<string, string> GetCookies()
-        {
-            return UserCookies;
-        }
-        public IReadOnlyDictionary<string, string> GetSessionCookies()
-        {
-            return UserSessionCookies;
-        }
-
-        public string GetCookie(string cookieName)
-        {
-            string value;
-            if (UserCookies.TryGetValue(cookieName, out value))
-            {
-                return value;
-            }
-            return null;
-        }
-
-        public string GetSessionCookie(string cookieName)
-        {
-            string value;
-            if (UserSessionCookies.TryGetValue(cookieName, out value))
-            {
-                return value;
-            }
-            return null;
-        }
-
-        public bool HasCookie(string cookieName) => UserCookies.Keys.Contains(cookieName);
-        public bool HasSessionCookie(string cookieName) => UserSessionCookies.Keys.Contains(cookieName);
-
-        public bool DeleteCookie(string cookieName) => UserCookies.Remove(cookieName);
-        public bool DeleteSessionCookie(string cookieName) => UserSessionCookies.Remove(cookieName);
-
 
         public override void UpdateAttributes(StatUpdateFlags flags)
         {

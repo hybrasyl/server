@@ -451,6 +451,16 @@ namespace Hybrasyl.Objects
             AllocateStats();
             LearnCastables();
 
+            if (BehaviorSet?.Behavior != null)
+            {
+                foreach (var cookie in BehaviorSet.Behavior.SetCookies)
+                {
+                    // Don't override cookies set from spawn; spawn takes precedence
+                    if (!HasCookie(cookie.Name))
+                        SetCookie(cookie.Name, cookie.Value);
+                }
+            }
+
             DisplayText = creature.Description;
 
             _loot = loot;
@@ -670,15 +680,20 @@ namespace Hybrasyl.Objects
             if (target == null)
                 return;
 
-            // A monster's assail is just a straight attack, no skills involved.
-            SimpleAttack(target);
+            // Get our skills if needed
+            var nextSkill = GetNextSkill();
 
-            //animation handled here as to not repeatedly send assails.
-            var assail = new ServerPacketStructures.PlayerAnimation() { Animation = 1, Speed = 20, UserId = this.Id };
-            //Enqueue(assail.Packet());
-            //Enqueue(sound.Packet());
-            SendAnimation(assail.Packet());
-            PlaySound(1);
+            if (nextSkill.DoNotCast)
+            {
+                // In the absence of a skill, just do a straight assail
+                SimpleAttack(target);
+                //animation handled here as to not repeatedly send assails.
+                var assail = new ServerPacketStructures.PlayerAnimation() { Animation = 1, Speed = 20, UserId = this.Id };
+                SendAnimation(assail.Packet());
+                PlaySound(1);
+            }
+            else
+                UseCastable(nextSkill.Slot.Castable, target, true);
         }
 
 
@@ -992,7 +1007,7 @@ namespace Hybrasyl.Objects
                 }
             }
         }
-@sa
+
         public override void AoiDeparture(VisibleObject obj)
         {
             lock (_lock)

@@ -267,6 +267,7 @@ namespace Hybrasyl
                             baseMob.Stats.BonusMr = Mr;
                             baseMob.Stats.DefensiveElementOverride = spawn.Defense.Element;
                         }
+                        
                         SpawnMonster(baseMob, spawnmap);
                     }
                     else

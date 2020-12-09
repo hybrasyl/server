@@ -51,6 +51,10 @@ namespace Hybrasyl.Objects
         public uint Gold { get; set; }
 
         [JsonProperty]
+        private Dictionary<string, string> Cookies { get; set; }
+        private Dictionary<string, string> SessionCookies { get; set; }
+
+        [JsonProperty]
         public Inventory Inventory { get; protected set; }
 
         [JsonProperty("Equipment")]
@@ -66,6 +70,8 @@ namespace Hybrasyl.Objects
             _currentStatuses = new ConcurrentDictionary<ushort, ICreatureStatus>();
             LastHitTime = DateTime.MinValue;
             Statuses = new List<StatusInfo>();
+            Cookies = new Dictionary<string, string>();
+            SessionCookies = new Dictionary<string, string>();
         }
 
         public override void OnClick(User invoker)
@@ -488,24 +494,6 @@ namespace Hybrasyl.Objects
 
             var damage = castObject.Effects.Damage;
             List<Creature> targets = new List<Creature>();
-
-            if(this is Monster)
-            {
-                //if(spawnCastable != null)
-                //{
-                    //damage = new Xml.CastableDamage
-                    //{
-                    //    Simple = new Xml.SimpleQuantity
-                    //    {
-                    //        Min = (uint)spawnCastable.MinDmg,
-                    //        Max = (uint)spawnCastable.MaxDmg
-                    //    }
-                    //};
-
-                    //castObject.Effects.Damage = damage; //set damage based on spawncastable settings.
-                    //castObject.Element = spawnCastable.Element; //handle defined element without redoing a ton of code.
-                //}                
-            }
 
             targets = GetTargets(castObject, target);
 
@@ -965,6 +953,52 @@ namespace Hybrasyl.Objects
         public virtual void Refresh()
         {
         }
+
+        public void SetCookie(string cookieName, string value)
+        {
+            Cookies[cookieName] = value;
+        }
+
+        public void SetSessionCookie(string cookieName, string value)
+        {
+            SessionCookies[cookieName] = value;
+        }
+
+        public IReadOnlyDictionary<string, string> GetCookies()
+        {
+            return Cookies;
+        }
+        public IReadOnlyDictionary<string, string> GetSessionCookies()
+        {
+            return SessionCookies;
+        }
+
+        public string GetCookie(string cookieName)
+        {
+            string value;
+            if (Cookies.TryGetValue(cookieName, out value))
+            {
+                return value;
+            }
+            return null;
+        }
+
+        public string GetSessionCookie(string cookieName)
+        {
+            string value;
+            if (SessionCookies.TryGetValue(cookieName, out value))
+            {
+                return value;
+            }
+            return null;
+        }
+
+        public bool HasCookie(string cookieName) => Cookies.Keys.Contains(cookieName);
+        public bool HasSessionCookie(string cookieName) => SessionCookies.Keys.Contains(cookieName);
+
+        public bool DeleteCookie(string cookieName) => Cookies.Remove(cookieName);
+        public bool DeleteSessionCookie(string cookieName) => SessionCookies.Remove(cookieName);
+
     }
 
 }
