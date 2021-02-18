@@ -267,7 +267,10 @@ namespace Hybrasyl
                             baseMob.Stats.BonusMr = Mr;
                             baseMob.Stats.DefensiveElementOverride = spawn.Defense.Element;
                         }
-                        
+                        foreach (var cookie in spawn.SetCookies)
+                        {
+                            baseMob.SetCookie(cookie.Name, cookie.Value);
+                        }
                         SpawnMonster(baseMob, spawnmap);
                     }
                     else

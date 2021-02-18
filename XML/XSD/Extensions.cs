@@ -324,7 +324,7 @@ namespace Hybrasyl.Xml
             get
             {
                 if (string.IsNullOrEmpty(Castables?.SkillCategories))
-                    spellCategories = new List<string>();
+                    skillCategories = new List<string>();
                 if (skillCategories == null)
                 {
                     skillCategories = Castables.SkillCategories.Trim().ToLower().Split(" ").ToList();
