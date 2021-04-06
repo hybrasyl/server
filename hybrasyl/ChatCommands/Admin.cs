@@ -703,115 +703,81 @@ namespace Hybrasyl.ChatCommands
         }
     }
 
-    //class SpawnCommand : ChatCommand
-    //{
-    //    public new static string Command = "spawn";
-    //    public new static string ArgumentText = "<string monsterName> [<uint hp> <uint mp> <uint str> <uint int> <uint wis> <uint con> <uint dex> <uint xp> <uint gold>]";
-    //    public new static string HelpText = "Spawn the specified monster at your current coordinates, with optionally specified stats.";
-    //    public new static bool Privileged = true;
+    class SpawnCommand : ChatCommand
+    {
+        public new static string Command = "spawn";
+        public new static string ArgumentText = "<string creature> <string behaviorSet> <level>";
+        public new static string HelpText = "Spawn a monster with the specified name, behavior set, and level.";
+        public new static bool Privileged = true;
 
-    //    public new static ChatCommandResult Run(User user, params string[] args)
-    //    {
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+            if (Game.World.WorldData.TryGetValue(args[0], out Xml.Creature creature) && 
+                Game.World.WorldData.TryGetValue(args[1], out Xml.CreatureBehaviorSet cbs))
+            {
+                if (byte.TryParse(args[2], out byte x))
+                {
+                    Monster newMob = new Monster(creature, Xml.SpawnFlags.Active, x, user.Location.MapId, null, cbs);
+                    user.World.Insert(newMob);
+                    user.Map.Insert(newMob, user.X, user.Y);
+                    return Success($"{creature.Name} spawned.");
+                }
+                else return Fail("Level must be a byte between 1 and 255");
+            }
+            else return Fail("Creature {args[0]} not found");
 
-    //        if (Game.World.WorldData.TryGetValue(args[0], out Xml.Creature creature))
-    //        {
-    //            Xml.Spawn spawn = new Xml.Spawn();
-    //            spawn.Castables = new Xml.CastableGroup();
-    //            spawn.Stats.Hp = 100;
-    //            spawn.Stats.Mp = 100;
-    //            spawn.Stats.Str = 3;
-    //            spawn.Stats.Int = 3;
-    //            spawn.Stats.Wis = 3;
-    //            spawn.Stats.Con = 3;
-    //            spawn.Stats.Dex = 3;
-    //            spawn.Loot.Xp = 1;
-    //            spawn.Loot.Gold = new Xml.LootGold
-    //            {
-    //                Min = 1,
-    //                Max = 1
-    //            };
-    //            if (args.Length >= 2)
-    //                spawn.Stats.Hp = uint.Parse(args[1]);
-    //            if (args.Length >= 3)
-    //                spawn.Stats.Mp = uint.Parse(args[2]);
-    //            if (args.Length >= 4)
-    //                spawn.Stats.Str = byte.Parse(args[3]);
-    //            if (args.Length >= 5)
-    //                spawn.Stats.Int = byte.Parse(args[4]);
-    //            if (args.Length >= 6)
-    //                spawn.Stats.Wis = byte.Parse(args[5]);
-    //            if (args.Length >= 7)
-    //                spawn.Stats.Con = byte.Parse(args[6]);
-    //            if (args.Length >= 8)
-    //                spawn.Stats.Dex = byte.Parse(args[7]);
-    //            if (args.Length >= 9)
-    //            {
-    //                spawn.Loot.Xp = UInt32.Parse(args[8]);
-    //            }
-    //            if (args.Length >= 10)
-    //            {
-    //                spawn.Loot.Gold.Min = UInt32.Parse(args[9]);
-    //                spawn.Loot.Gold.Max = UInt32.Parse(args[9]);
-    //            }
-    //            Monster newMob = new Monster(creature, spawn, user.Location.MapId);
-    //            user.World.Insert(newMob);
-    //            user.Map.Insert(newMob, user.X, user.Y);
-    //            return Success($"{creature.Name} spawned.");
-    //        }
-    //        else return Fail("Creature {args[0]} not found");
+        }
+    }
 
-    //    }
 
-    //}
+        //class SpawnXCommand : ChatCommand
+        //{
+        //    public new static string Command = "spawnx";
+        //    public new static string ArgumentText = "<string> name <int> quantity";
+        //    public new static string HelpText = "Spawn the specified number of monster at your random coordinates, with base stats. [FOR TESTING]";
+        //    public new static bool Privileged = true;
 
-    //class SpawnXCommand : ChatCommand
-    //{
-    //    public new static string Command = "spawnx";
-    //    public new static string ArgumentText = "<string> name <int> quantity";
-    //    public new static string HelpText = "Spawn the specified number of monster at your random coordinates, with base stats. [FOR TESTING]";
-    //    public new static bool Privileged = true;
+        //    public new static ChatCommandResult Run(User user, params string[] args)
+        //    {
 
-    //    public new static ChatCommandResult Run(User user, params string[] args)
-    //    {
+        //        if (Game.World.WorldData.TryGetValue(args[0], out Xml.Creature creature))
+        //        {
+        //            var b = int.TryParse(args[1], out int n);
+        //            if (b)
+        //            {
+        //                var rand = new Random();
+        //                var map = Game.World.WorldData.Get<Map>(user.Map.Id);
+        //                for (var i = 0; i < n; i++)
+        //                {
+        //                    Xml.Spawn spawn = new Xml.Spawn();
+        //                    spawn.Castables = new Xml.CastableGroup();
+        //                    spawn.Stats.Hp = 100;
+        //                    spawn.Stats.Mp = 100;
+        //                    spawn.Stats.Str = 3;
+        //                    spawn.Stats.Int = 3;
+        //                    spawn.Stats.Wis = 3;
+        //                    spawn.Stats.Con = 3;
+        //                    spawn.Stats.Dex = 3;
+        //                    spawn.Loot.Xp = 1;
+        //                    spawn.Loot.Gold = new Xml.LootGold
+        //                    {
+        //                        Min = 1,
+        //                        Max = 1
+        //                    };
+        //                    Monster newMob = new Monster(creature, spawn, user.Location.MapId);
+        //                    user.World.Insert(newMob);
+        //                    user.Map.Insert(newMob, (byte)rand.Next(0, map.X + 1), (byte)rand.Next(0, map.Y + 1));
+        //                }
+        //            }
 
-    //        if (Game.World.WorldData.TryGetValue(args[0], out Xml.Creature creature))
-    //        {
-    //            var b = int.TryParse(args[1], out int n);
-    //            if (b)
-    //            {
-    //                var rand = new Random();
-    //                var map = Game.World.WorldData.Get<Map>(user.Map.Id);
-    //                for (var i = 0; i < n; i++)
-    //                {
-    //                    Xml.Spawn spawn = new Xml.Spawn();
-    //                    spawn.Castables = new Xml.CastableGroup();
-    //                    spawn.Stats.Hp = 100;
-    //                    spawn.Stats.Mp = 100;
-    //                    spawn.Stats.Str = 3;
-    //                    spawn.Stats.Int = 3;
-    //                    spawn.Stats.Wis = 3;
-    //                    spawn.Stats.Con = 3;
-    //                    spawn.Stats.Dex = 3;
-    //                    spawn.Loot.Xp = 1;
-    //                    spawn.Loot.Gold = new Xml.LootGold
-    //                    {
-    //                        Min = 1,
-    //                        Max = 1
-    //                    };
-    //                    Monster newMob = new Monster(creature, spawn, user.Location.MapId);
-    //                    user.World.Insert(newMob);
-    //                    user.Map.Insert(newMob, (byte)rand.Next(0, map.X + 1), (byte)rand.Next(0, map.Y + 1));
-    //                }
-    //            }
+        //            return Success($"{creature.Name} spawned.");
+        //        }
+        //        else return Fail("Creature {args[0]} not found");
 
-    //            return Success($"{creature.Name} spawned.");
-    //        }
-    //        else return Fail("Creature {args[0]} not found");
+        //    }
+        //}
 
-    //    }
-    //}
-
-    class ReloadXml : ChatCommand
+        class ReloadXml : ChatCommand
     {
         public new static string Command = "reloadxml";
         public new static string ArgumentText = "<string> type <string> filename";

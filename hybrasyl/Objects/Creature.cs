@@ -283,9 +283,7 @@ namespace Hybrasyl.Objects
                 // Remove all merchants
                 // TODO: perhaps improve with a flag or extend in the future
                 actualTargets = actualTargets.Where(e => e is User || e is Monster);
-
-
-                
+               
                 // Process intent flags
 
                 var this_id = this.Id;
@@ -293,12 +291,12 @@ namespace Hybrasyl.Objects
                 if (this is Monster)
                 {
                     // No hostile flag: remove players
-                    if (!intent.Flags.Contains(Xml.IntentFlags.Hostile))
+                    if (intent.Flags.Contains(Xml.IntentFlags.Hostile))
                     { 
                         finalTargets.AddRange(actualTargets.OfType<User>());
                     }
                     // No friendly flag: remove monsters
-                    if (!intent.Flags.Contains(Xml.IntentFlags.Friendly))
+                    if (intent.Flags.Contains(Xml.IntentFlags.Friendly))
                     {
                         finalTargets.AddRange(actualTargets.OfType<Monster>());
                     }

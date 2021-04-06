@@ -105,12 +105,6 @@ namespace Hybrasyl
             {
                 var monsters = spawnmap.Objects.OfType<Monster>().ToList();
 
-                if (!Game.World.WorldData.TryGetValue(spawn.Name, out Xml.Creature spawnTemplate))
-                {
-                    GameLog.SpawnWarning($"Map id {spawnGroup.MapId}: spawn {spawn.Name} not found");
-                    continue;
-                }
-
                 // If the map is disabled, or we don't have a spec for our spawning, or the individual spawn
                 // previously had errors and was disabled - continue on
                 if (spawnmap.SpawningDisabled || spawn.Spec == null || spawn.Disabled)

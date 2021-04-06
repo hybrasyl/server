@@ -273,6 +273,15 @@ namespace Hybrasyl
 
         public bool InitWorld()
         {
+            try
+            {
+                DatastoreConnection.GetStatus();
+            }
+            catch (RedisConnectionException)
+            {
+                GameLog.Fatal("Redis server could not be reached. Make sure it is running and accessible.");
+                return false;
+            }
             if (!CheckDataMigrations())
             {
                 GameLog.Fatal("Migrations in inconsistent or unapplied state. Hybrasyl has halted.");
@@ -629,6 +638,10 @@ namespace Hybrasyl
             GameLog.InfoFormat("Creatures: {0} creatures loaded", WorldData.Count<Xml.Creature>());
 
             var spawngroups = Xml.SpawnGroup.LoadAll(XmlDirectory);
+            foreach (var sg in spawngroups.Results)
+            {
+                WorldData.Set(sg.Name, sg);
+            }
 
             GameLog.InfoFormat("Spawngroups: {0} spawngroups loaded", WorldData.Count<Xml.SpawnGroup>());
 
@@ -1534,11 +1547,6 @@ namespace Hybrasyl
             return false;
         }
 
-        public void CompleteAsyncDialog(AsyncDialogRequest request)
-        {
-
-        }
-
         public override void Shutdown()
         {
             GameLog.WarningFormat("Shutdown initiated, disconnecting {0} active users", ActiveUsers.Count());
@@ -1791,6 +1799,7 @@ namespace Hybrasyl
             if (direction > 3) return;
             user.Condition.Casting = false;
             user.Walk((Xml.Direction)direction);
+            GameLog.Info($"Walking: {direction} {(Xml.Direction)direction}");
         }
 
         [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
@@ -2307,6 +2316,10 @@ namespace Hybrasyl
             if (target == "!!")
             {
                 user.SendGroupWhisper(message);
+            }
+            else if (target == "*" && user.AuthInfo.IsPrivileged)
+            {
+
             }
             else if (target == "@" && user.AuthInfo.IsPrivileged)
             {

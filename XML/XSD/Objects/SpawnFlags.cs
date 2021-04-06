@@ -25,9 +25,10 @@ using System.Collections.Generic;
 [XmlTypeAttribute(AnonymousType=true, Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
 public enum SpawnFlags
 {
-    MovementDisabled = 1,
-    AiDisabled = 2,
-    DeathDisabled = 4,
+    Active = 1,
+    MovementDisabled = 2,
+    AiDisabled = 4,
+    DeathDisabled = 8,
 }
 }
 #pragma warning restore

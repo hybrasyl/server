@@ -310,7 +310,7 @@ namespace Hybrasyl.Objects
             // Random allocation
             for (var x = 1; x <= points; x++)
             {
-                switch (Rng.Next(1, 5))
+                switch (Rng.Next(1, 6))
                 {
                     case 1:
                         Stats.BaseStr += 1;
@@ -339,7 +339,7 @@ namespace Hybrasyl.Objects
             else
             {
                 var allocPattern = BehaviorSet.StatAlloc.Trim().ToLower().Split(" ");
-                while (totalPoints != 0)
+                while (totalPoints > 0)
                 {
                     foreach (var alloc in allocPattern)
                     {
@@ -368,6 +368,7 @@ namespace Hybrasyl.Objects
                     }
                 }
             }
+            GameLog.Info($"Spawned: str {Stats.BaseStr} int {Stats.BaseInt} wis {Stats.BaseWis} con {Stats.BaseCon} dex {Stats.BaseDex}");
         }
 
         /// <summary>
@@ -438,9 +439,10 @@ namespace Hybrasyl.Objects
         {
             _actionQueue = new ConcurrentQueue<MobAction>();
             SpawnFlags = flags;
-            if (!Game.World.WorldData.TryGetValue(creature.BehaviorSet,
-                out Xml.CreatureBehaviorSet BehaviorSet))
+            if (behaviorsetOverride != null)
                 BehaviorSet = behaviorsetOverride;
+            else if (!string.IsNullOrEmpty(creature.BehaviorSet))
+                Game.World.WorldData.TryGetValue(creature.BehaviorSet, out Xml.CreatureBehaviorSet BehaviorSet);
 
             Name = creature.Name;
             Sprite = creature.Sprite;
@@ -749,9 +751,18 @@ namespace Hybrasyl.Objects
             // Don't return tiles that are walls, or tiles that contain creatures, but always
             // return our end tile
 
-            return proposedLocations.Where(tile => (!Map.IsWall[tile.X, tile.Y] &&
-            (Map.GetTileContents(tile.X, tile.Y).Where(c => c is Creature).Count() == 0)) ||
-            (tile.X == Destination.X && tile.Y == Destination.Y)).ToList();
+            var ret = new List<Tile>();
+
+            foreach (var adj in proposedLocations)
+            {
+                if (adj.X >= Map.X || adj.Y >= Map.Y || adj.X < 0 || adj.Y < 0) continue;
+                if (Map.IsWall[adj.X, adj.Y]) continue;
+                var creatureContents = Map.GetCreatures(adj.X, adj.Y);
+                if (creatureContents.Count == 0 || creatureContents.Contains(Target) || creatureContents.Contains(this))
+                    ret.Add(adj);
+            }
+
+            return ret;
         }
 
         private static int AStarCalculateH(int x1, int y1, int x2, int y2)
@@ -761,30 +772,48 @@ namespace Hybrasyl.Objects
 
         public Xml.Direction AStarGetDirection()
         {
-            if (Location.X - CurrentPath.X < 1)
-                return Xml.Direction.East;
-            if (Location.X - CurrentPath.X > 1)
-                return Xml.Direction.West;
-            if (Location.Y - CurrentPath.Y < 1)
-                return Xml.Direction.North;
-            return Xml.Direction.South;
+            if (CurrentPath.Parent == null) return Xml.Direction.North;
+            Xml.Direction dir = Xml.Direction.North;
+            GameLog.Info($"GetDirection: I am at {X},{Y}, CurrentPath is {CurrentPath.X}, {CurrentPath.Y}, and moving to {CurrentPath.Parent.X}, {CurrentPath.Parent.Y}");
+
+            if (X == CurrentPath.Parent.X)
+            {
+                if (CurrentPath.Parent.Y == Y + 1) dir = Xml.Direction.South;
+                if (CurrentPath.Parent.Y == Y - 1) dir = Xml.Direction.North;
+            }
+            else if (Y == CurrentPath.Parent.Y)
+            {
+                if (CurrentPath.Parent.X == X + 1) dir = Xml.Direction.East;
+                if (CurrentPath.Parent.X == X - 1) dir = Xml.Direction.West;
+            }
+            else GameLog.Warning("AStar: path divergence, moving randomly");
+            GameLog.Info($"Moving in direction {dir}");
+            return dir;
         }
 
+        /// <summary>
+        /// Verify that the next two steps of our path can be used.
+        /// </summary>
+        /// <returns>Boolean indicating whether the immediate path is clear or not.</returns>
         public bool AStarPathClear()
         {
+            if (CurrentPath == null) return true;
             // TODO: optimize
-            Tile pathStart = CurrentPath;
-            while (pathStart != null)
+            if (Map.IsCreatureAt(CurrentPath.X, CurrentPath.Y) && CurrentPath.Parent != null && Map.IsCreatureAt(CurrentPath.Parent.X, CurrentPath.Parent.Y))
             {
-                if (Map.GetTileContents(pathStart.X, pathStart.Y).Where(obj => obj is Creature).Count() > 0)
+                if (!(X == CurrentPath.X && Y == CurrentPath.Y) || (X == CurrentPath.Parent.X || Y == CurrentPath.Parent.Y))
+                {
+                    GameLog.Info($"AStar: path not clear at either {CurrentPath.X}, {CurrentPath.Y} or {CurrentPath.Parent.X}, {CurrentPath.Parent.Y}");
                     return false;
-                pathStart = pathStart.Parent;
+                }
             }
+
             return true;
         }
 
-        public void AStarPathFind(int x1, int y1, int x2, int y2)
-        {
+        public Tile AStarPathFind(int x1, int y1, int x2, int y2)
+        {          
+            GameLog.Info($"AStarPath: from {x1},{y1} to {x2},{y2}");
             Tile current = null;
             var start = new Tile { X = x1, Y = y1 };
             var end = new Tile { X = x2, Y = y2 };
@@ -802,18 +831,27 @@ namespace Hybrasyl.Objects
 
                 closedList.Add(current);
                 openList.Remove(current);
-                if (closedList.FirstOrDefault(l => l.X == end.X && l.Y == end.Y) != null)
-                    // We have arrived
-                    break;
 
-                var adjacent = GetWalkableTiles(current.X, current.Y);
+                if (closedList.FirstOrDefault(l => l.X == end.X && l.Y == end.Y) != null)
+                {
+                    // We have arrived
+                    GameLog.Info($"Closed list contains end tile {end.X}, {end.Y}");
+                    break;
+                }
+                var adj = GetWalkableTiles(current.X, current.Y);
+                if (adj.Count == 0)
+                    GameLog.Warning("Adjacent tiles: 0");
+                GameLog.Info($"Current: {current.X}, {current.Y}");
                 g++;
 
-                foreach (var tile in adjacent)
+                foreach (var tile in adj)
                 {
+
                     // Ignore tiles in closed list
                     if (closedList.FirstOrDefault(l => l.X == tile.X && l.Y == tile.Y) != null)
                         continue;
+
+                    //GameLog.Debug($"Adjacencies: {tile.X}, {tile.Y}");
 
                     if (openList.FirstOrDefault(l => l.X == tile.X && l.Y == tile.Y) == null)
                     {
@@ -822,6 +860,7 @@ namespace Hybrasyl.Objects
                         tile.F = tile.G + tile.H;
                         tile.Parent = current;
                         openList.Insert(0, tile);
+                        //GameLog.Debug($"Adding {tile.X}, {tile.Y} to the open list");
                     }
                     else
                     {
@@ -835,7 +874,12 @@ namespace Hybrasyl.Objects
                 }
             }
             // If null here, no path was found
-            CurrentPath = current;
+            if (current != null)
+                // Save our coordinate target for future reference
+                current.Target = (x1, y1);
+            else
+                GameLog.Debug("AStar path find: no path found");
+            return current;
         }
 
         public Xml.Direction Relation(int x1, int y1)
@@ -980,15 +1024,35 @@ namespace Hybrasyl.Objects
                         if (!Condition.Paralyzed && !Condition.Blinded)
                         {
                             if (CurrentPath == null || !AStarPathClear())
-                                // If we don't have a current path to our threat target, OR if there is something in the way of
-                                // our existing path, calculate a new one
-                                AStarPathFind(Location.X, Location.Y, ThreatInfo.HighestThreat.Location.X, ThreatInfo.HighestThreat.Location.Y);
+                            // If we don't have a current path to our threat target, OR if there is something in the way of
+                            // our existing path, calculate a new one
+                            {
+                                if (CurrentPath == null) GameLog.Info($"Path is null. Recalculating");
+                                if (!AStarPathClear()) GameLog.Info($"Path wasn't clear. Recalculating");
+                                Target = ThreatInfo.HighestThreat;
+                                CurrentPath = AStarPathFind(ThreatInfo.HighestThreat.Location.X, ThreatInfo.HighestThreat.Location.Y, X,Y);
+                            }
+
                             if (CurrentPath != null)
                             {
-                                // Path was found, use it
+                                // We have a path, check its validity
+                                // We recalculate our path if we're within five spaces of the target and they have moved
+                                if (Distance(ThreatInfo.HighestThreat) < 5 && CurrentPath.Target.X != ThreatInfo.HighestThreat.Location.X &&
+                                    CurrentPath.Target.Y != ThreatInfo.HighestThreat.Location.Y)
+                                {
+                                    GameLog.Info("Distance less than five and target moved, recalculating path");
+                                    CurrentPath = AStarPathFind(ThreatInfo.HighestThreat.Location.X, ThreatInfo.HighestThreat.Location.Y, X, Y);
+                                }
                                 if (Walk(AStarGetDirection()))
+                                {
+                                    if (X != CurrentPath.X || Y != CurrentPath.Y)
+                                        GameLog.SpawnError("Walk: followed astar path but not on path (at {X},{Y} path is {CurrentPath.X}, {CurrentPath.Y}");
                                     // We've moved; update our path
                                     CurrentPath = CurrentPath.Parent;
+                                }
+                                else
+                                    // Couldn't move, attempt to recalculate path
+                                    CurrentPath = AStarPathFind(ThreatInfo.HighestThreat.Location.X, ThreatInfo.HighestThreat.Location.Y, X, Y);
                             }
                             else
                                 // If we can't find a path, return to wandering

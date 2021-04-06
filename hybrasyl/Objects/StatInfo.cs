@@ -172,6 +172,7 @@ namespace Hybrasyl.Objects
             _bonusAc = new Lockable<long>(0);
             _bonusMr = new Lockable<long>(0);
             _bonusRegen = new Lockable<long>(0);
+            _baseCrit = new Lockable<long>(0);
             _baseOffensiveElement = new Lockable<Xml.ElementType>(Xml.ElementType.None);
             _baseDefensiveElement = new Lockable<Xml.ElementType>(Xml.ElementType.None);
             _offensiveElementOverride = new Lockable<Xml.ElementType>(Xml.ElementType.None);

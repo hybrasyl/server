@@ -480,6 +480,9 @@ namespace Hybrasyl
                         case "$SPAWNXP":
                             tokens[i] = eval.Spawn.LootableXP.ToString() ?? "0";
                             break;
+                        case "$RAND_5":
+                            tokens[i] = _rnd.Next(0, 5).ToString();
+                            break;
                         case "$RAND_10":
                             tokens[i] = _rnd.Next(0, 11).ToString();
                             break;

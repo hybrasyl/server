@@ -312,13 +312,17 @@ namespace Hybrasyl
             Reactors = new Dictionary<Tuple<byte, byte>, Objects.Reactor>();
         }
 
-        public List<VisibleObject> GetTileContents(int x, int y)
+        public List<VisibleObject> GetTileContents(int x1, int y1)
         {
             lock (_lock)
             {
-                return EntityTree.GetObjects(new Rectangle(x, y, 1, 1));
+                return EntityTree.GetObjects(new Rectangle(x1, y1, 1, 1));
             }
         }
+
+        public List<Creature> GetCreatures(int x1, int y1) => GetTileContents(x1, y1).Where(x => x is Creature).Select(y => y as Creature).ToList();
+
+        public bool IsCreatureAt(int x1, int y1) => GetTileContents(x1,y1).Any(x => x is Creature);
 
         public void InsertNpc(Merchant toInsert)
         {

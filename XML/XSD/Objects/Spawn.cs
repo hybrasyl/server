@@ -41,6 +41,11 @@ public partial class Spawn
     private static XmlSerializer _serializer;
     #endregion
     
+    public Spawn()
+    {
+        _flags = SpawnFlags.Active;
+    }
+    
     public LootList Loot
     {
         get
@@ -166,6 +171,7 @@ public partial class Spawn
     }
     
     [XmlAttribute]
+    [DefaultValue(SpawnFlags.Active)]
     public SpawnFlags Flags
     {
         get

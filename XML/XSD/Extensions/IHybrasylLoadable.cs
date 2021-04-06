@@ -19,6 +19,7 @@ namespace Hybrasyl.Xml
         public static XmlLoadResponse<T> LoadAll(string baseDir) => throw new NotImplementedException();
     }
 
+    [Serializable]
     public abstract class HybrasylLoadable
     {
         public T Clone<T>()

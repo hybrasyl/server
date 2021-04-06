@@ -677,12 +677,18 @@
  
   <xs:complexType name="SpawnGroup">
     <xs:sequence>
-      <xs:element name="Spawn" type="Spawn" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Spawns" type="Spawns" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
     <xs:attribute name="BaseLevel" type="xs:string" use="optional"/>
     <xs:attribute name="Disabled" type="xs:boolean" default="false"/>
     <xs:attribute name="Name" type="xs:string" use="optional"/>
   </xs:complexType>
+
+  <xs:complexType name="Spawns">
+    <xs:sequence>
+      <xs:element name="Spawn" type="Spawn" minOccurs="1" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>                  
 
   <xs:complexType name="Spawn">
     <xs:sequence>
@@ -697,7 +703,7 @@
     </xs:sequence>
     <xs:attribute name="Import" type="xs:string" use="optional"/>
     <xs:attribute name="Name" type="xs:string" use="optional"/>
-    <xs:attribute name="Flags" type="hyb:SpawnFlags" use="optional" />
+    <xs:attribute name="Flags" type="hyb:SpawnFlags" default="Active" />
   </xs:complexType>
 
   <xs:complexType name="SpawnBase">
@@ -746,6 +752,7 @@
         <xs:list>
           <xs:simpleType>
             <xs:restriction base="xs:token">
+              <xs:enumeration value="Active"/>
               <xs:enumeration value="MovementDisabled"/>
               <xs:enumeration value="AiDisabled"/>
               <xs:enumeration value="DeathDisabled"/>
