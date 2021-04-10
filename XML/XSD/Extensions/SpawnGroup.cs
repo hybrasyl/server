@@ -13,7 +13,7 @@ namespace Hybrasyl.Xml
         public static SpawnGroup operator +(SpawnGroup sg1, SpawnGroup sg2)
         {
             var merged = sg1.Clone<SpawnGroup>();
-            merged.Spawn.AddRange(sg2.Spawn);
+            merged.Spawns.AddRange(sg2.Spawns);
             return merged;
         }
 

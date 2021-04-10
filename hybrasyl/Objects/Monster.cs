@@ -365,10 +365,18 @@ namespace Hybrasyl.Objects
                                 break;
                         }
                         totalPoints--;
+                        if (totalPoints % 2 == 0)
+                        {
+                            var randomBonus = (Rng.NextDouble() * 0.30) + 0.85;
+                            int bonusHpGain = (int)Math.Ceiling((double)(Stats.BaseCon / (float)Stats.Level) * 50 * randomBonus);
+                            int bonusMpGain = (int)Math.Ceiling((double)(Stats.BaseWis / (float)Stats.Level) * 50 * randomBonus);
+
+                            Stats.BaseHp += bonusHpGain + 25;
+                            Stats.BaseMp += bonusMpGain + 25;
+                        }
                     }
                 }
             }
-            GameLog.Info($"Spawned: str {Stats.BaseStr} int {Stats.BaseInt} wis {Stats.BaseWis} con {Stats.BaseCon} dex {Stats.BaseDex}");
         }
 
         /// <summary>
@@ -841,7 +849,6 @@ namespace Hybrasyl.Objects
                 var adj = GetWalkableTiles(current.X, current.Y);
                 if (adj.Count == 0)
                     GameLog.Warning("Adjacent tiles: 0");
-                GameLog.Info($"Current: {current.X}, {current.Y}");
                 g++;
 
                 foreach (var tile in adj)
@@ -1046,7 +1053,7 @@ namespace Hybrasyl.Objects
                                 if (Walk(AStarGetDirection()))
                                 {
                                     if (X != CurrentPath.X || Y != CurrentPath.Y)
-                                        GameLog.SpawnError("Walk: followed astar path but not on path (at {X},{Y} path is {CurrentPath.X}, {CurrentPath.Y}");
+                                        GameLog.SpawnError($"Walk: followed astar path but not on path (at {X},{Y} path is {CurrentPath.X}, {CurrentPath.Y}");
                                     // We've moved; update our path
                                     CurrentPath = CurrentPath.Parent;
                                 }

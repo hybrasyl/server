@@ -50,7 +50,7 @@ namespace Hybrasyl
         {
             var spawnlist = new List<Xml.Spawn>();
 
-            foreach (var spawn in map.SpawnDirectives.Spawn)
+            foreach (var spawn in map.SpawnDirectives.Spawns)
             {
                 // This references another group
                 if (!string.IsNullOrEmpty(spawn.Import))
@@ -58,17 +58,19 @@ namespace Hybrasyl
                     if (Game.World.WorldData.TryGetValue(spawn.Import, out Xml.SpawnGroup group))
                     {
                         // TODO: make recursive; this only supports one level of importing for now
-                        spawnlist.AddRange(group.Spawn.Where(x => string.IsNullOrEmpty(x.Import)).ToList());
+                        spawnlist.AddRange(group.Spawns.Where(x => string.IsNullOrEmpty(x.Import)).ToList());
                         GameLog.SpawnInfo($"Map {map.Name}: imported {spawn.Import} successfully");
                     }
                     else
                         GameLog.SpawnWarning($"Map {map.Name}: spawn import {spawn.Import} not found");                
                 }
-                spawnlist.Add(spawn);               
+                else // Direct reference to a creature spawn
+                    spawnlist.Add(spawn);               
             }
             if (string.IsNullOrEmpty(map.SpawnDirectives.Name))
                 map.SpawnDirectives.Name = SpawnMapKey(map.Id);
-            map.SpawnDirectives.Spawn = spawnlist;
+            map.SpawnDirectives.Spawns = spawnlist;
+            map.SpawnDirectives.MapId = map.Id;
             Spawns.TryAdd(map.SpawnDirectives.Name, map.SpawnDirectives);
         }
 
@@ -92,7 +94,6 @@ namespace Hybrasyl
             }
         }
     
-
         public void Spawn(Xml.SpawnGroup spawnGroup)
         {
             if (!Game.World.WorldData.TryGetValue(spawnGroup.MapId, out Map spawnmap))
@@ -101,33 +102,56 @@ namespace Hybrasyl
                 return;
             }
 
-            foreach (var spawn in spawnGroup.Spawn)
+        //    if (spawnGroup.Spawns.Count == 0)
+                //GameLog.SpawnWarning($"Spawngroup {spawnGroup.Name}: no spawns?");
+                    
+            foreach (var spawn in spawnGroup.Spawns)
             {
+                GameLog.SpawnInfo($"Spawngroup {spawnGroup.Name}: processing");
                 var monsters = spawnmap.Objects.OfType<Monster>().ToList();
 
                 // If the map is disabled, or we don't have a spec for our spawning, or the individual spawn
                 // previously had errors and was disabled - continue on
-                if (spawnmap.SpawningDisabled || spawn.Spec == null || spawn.Disabled)
+                if (spawnmap.SpawningDisabled || spawn.Disabled)
+                {
+                    GameLog.SpawnWarning($"Spawngroup {spawnGroup.Name}, map {spawnmap.Name}: spawn disabled or map spawning disabled");
                     continue;
+                }
+                if (spawn.Spec is null)
+                {
+                    GameLog.SpawnWarning($"Spawngroup {spawnGroup.Name}, map {spawnmap.Name}: no spec defined for spawning");
+                    continue;
+                }
 
                 var formeval = new FormulaEvaluation() { 
                     Map = spawnmap, XmlSpawn = spawn, 
                     SpawnGroup = spawnGroup 
                 };
 
-                int limit = 0;
-                int interval = 0;
-                int maxPerInterval = 0;
-                int baseLevel;
+                // Set some reasonable defaults.
+                //
+                // If there is no maximum specified, we consider an appropriate maximum
+                // to be 1/10th of total number of map tiles for any given mob (maximum of 30) spawned
+                // at a default interval of every 30 seconds, with (maxcount/5) spawned
+                // per tick.
+
+                int maxcount = Math.Min(20, spawnmap.X * spawnmap.Y / 30); 
+                int interval = 30;
+                int maxPerInterval = maxcount / 5;
+                int baseLevel = 0;
 
                 try
                 {
-                    limit = (int)FormulaParser.Eval(spawn.Spec.Limit, formeval);
-                    interval = (int)FormulaParser.Eval(spawn.Spec.Interval, formeval);
-                    maxPerInterval = (int)FormulaParser.Eval(spawn.Spec.MaxPerInterval, formeval);
+                    if (!string.IsNullOrEmpty(spawn.Spec.MaxCount))
+                        maxcount = (int)FormulaParser.Eval(spawn.Spec.MaxCount, formeval);
+                    if (!string.IsNullOrEmpty(spawn.Spec.Interval))
+                        interval = (int)FormulaParser.Eval(spawn.Spec.Interval, formeval);
+                    if (!string.IsNullOrEmpty(spawn.Spec.MaxPerInterval))
+                        maxPerInterval = (int)FormulaParser.Eval(spawn.Spec.MaxPerInterval, formeval);
+
                     // If the spawn itself has a level defined, evaluate and use it; otherwise,
                     // the spawn group (imported, or in the map itself) should define a base level
-                    if (string.IsNullOrEmpty(spawn.Base?.Level ?? null))
+                    if (string.IsNullOrEmpty(spawn.Base?.Level))
                         baseLevel = (int)FormulaParser.Eval(spawnGroup.BaseLevel, formeval);
                     else
                         baseLevel = (int)FormulaParser.Eval(spawn.Base.Level, formeval);
@@ -140,18 +164,12 @@ namespace Hybrasyl
                     continue;
                 }
 
-                // If there is no limit specified, we want a reasonable default,
-                // which we consider to be 1/100th of total number of map tiles for any given mob
+                var currentCount = monsters.Where(x => x.Name == spawn.Name).ToList().Count();
 
-                if (limit == 0)
-                    limit = spawnmap.X * spawnmap.Y / 100;
-
-                var currentCount = monsters.Where(x => x.Name == spawn.Name).Count();
-
-                if (currentCount >= limit)
+                if (currentCount >= maxcount)
                 {
                     if (spawnmap.SpawnDebug)
-                        GameLog.SpawnInfo($"Spawn: {spawnmap.Name}: not spawning, mob count is {currentCount}, limit is {limit}");
+                        GameLog.SpawnInfo($"Spawn: {spawnmap.Name}: not spawning {spawn.Name} - mob count is {currentCount}, maximum is {maxcount}");
                     continue;
                 }
 
@@ -159,25 +177,73 @@ namespace Hybrasyl
 
                 if (since < interval)
                 {
-                    if (spawnmap.SpawnDebug) GameLog.SpawnInfo($"Spawn: {spawnmap.Name}: not spawning, last spawn was {since} ago, interval {interval}");
-                    continue;
+                  if (spawnmap.SpawnDebug)
+                    GameLog.SpawnInfo($"Spawn: {spawnmap.Name}: not spawning {spawn.Name} - last spawn was {since} ago, interval {interval}");
+                  continue;
                 }
 
                 // Now spawn stuff
 
-                for (var x = 0; x <= (limit - currentCount); x++)
+                for (var x = 0; x <= Math.Min(maxcount - currentCount, maxPerInterval); x++)
                 {
                     if (Game.World.WorldData.TryGetValue(spawn.Name, out Xml.Creature creature))
                     {
                         var newSpawnLoot = LootBox.CalculateLoot(spawn);
 
-                        if (spawnmap.SpawnDebug)
-                            GameLog.SpawnInfo("Spawn {name}, map {map}: {Xp} xp, {Gold} gold, items {Items}", spawn.Base, 
-                                spawnmap.Name, newSpawnLoot.Xp, newSpawnLoot.Gold,
-                                string.Join(',', newSpawnLoot.Items));
 
                         var baseMob = new Monster(creature, spawn.Flags, (byte) baseLevel, 
                             spawnmap.Id, newSpawnLoot);
+
+                        if (baseMob.LootableXP == 0)
+                        {
+                            // If no XP defined, prepopulate based on defaults.
+                            // TODO: another place a hardcoded formula should be elsewhere
+                            // This is most simply expressed as "amount between mob level and last level times .7%"
+                            baseMob.LootableXP = Convert.ToUInt32((Math.Pow(baseMob.Stats.Level, 3) * 250) - 
+                                (Math.Pow(baseMob.Stats.Level - 1, 3) * 250) * 0.007);
+                        }
+                        // Is this a strong or weak mob?
+                        if (spawn.Base.StrongChance > 0 || spawn.Base.WeakChance > 0)
+                        {
+                            var modifier = (long)Math.Min(3, _random.NextDouble() * 15);
+                            var mobtype = _random.NextDouble() * 100;
+
+                            if (mobtype <= spawn.Base.StrongChance + spawn.Base.WeakChance)
+                            {
+                                if (spawn.Base.StrongChance >= spawn.Base.WeakChance)
+                                {
+                                    if (mobtype <= spawn.Base.WeakChance)
+                                    {
+                                        baseMob.Stats.ApplyModifier((long)1.0 - modifier);
+                                        baseMob.LootableXP *= (uint)(1.0 - modifier);
+                                        GameLog.SpawnInfo($"Mob is weak: modifier {modifier}");
+
+                                    }
+                                    else
+                                    {
+                                        baseMob.Stats.ApplyModifier((long)1.0 + modifier);
+                                        baseMob.LootableXP *= (uint)(1.0 + modifier);
+                                        GameLog.SpawnInfo($"Mob is strong: modifier {modifier}");
+                                    }
+                                }
+                                else
+                                {
+                                    if (mobtype <= spawn.Base.StrongChance)
+                                    {
+                                        baseMob.Stats.ApplyModifier((long)1.0 + modifier);
+                                        baseMob.LootableXP *= (uint)(1.0 + modifier);
+                                        GameLog.SpawnInfo($"Mob is strong: modifier {modifier}");
+                                    }
+                                    else
+                                    {
+                                        baseMob.Stats.ApplyModifier((long)1.0 - modifier);
+                                        baseMob.LootableXP *= (uint)(1.0 - modifier);
+                                        GameLog.SpawnInfo($"Mob is weak: modifier {modifier}");
+                                    }
+                                }
+                            }
+                        }
+
                         var mob = (Monster)baseMob.Clone();
                         var xcoord = 0;
                         var ycoord = 0;
@@ -213,6 +279,7 @@ namespace Hybrasyl
                             {
                                 minDmg = (ushort)FormulaParser.Eval(spawn.Damage.MinDmg, formeval);
                                 maxDmg = (ushort)FormulaParser.Eval(spawn.Damage.MaxDmg, formeval);
+
                                 if (minDmg > 0)
                                 {
                                     // They need some kind of weapon
@@ -270,7 +337,8 @@ namespace Hybrasyl
                     else
                         GameLog.SpawnWarning("Map {map}: Spawn {spawn} not found", spawnmap.Name, spawn.Name);
                 }
-            }            
+                spawn.LastSpawn = DateTime.Now;
+            }
         }
 
         private static void SpawnMonster(Monster monster, Map map)
@@ -279,9 +347,10 @@ namespace Hybrasyl
             {
                 World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MonolithSpawn, monster, map));
                 //Game.World.Maps[mapId].InsertCreature(monster);
-                if (map.SpawnDebug)
-                    GameLog.SpawnInfo("Spawning monster: {0} {1} at {2}, {3}", map.Name, monster.Name, (int)monster.X, (int)monster.Y);
+                //if (map.SpawnDebug)
+                    GameLog.SpawnInfo($"Spawning: {monster.Name} @ {map.Name} ({monster.X},{monster.Y}) [{monster.Stats}]");
             }
+                                               
         }
     }
 

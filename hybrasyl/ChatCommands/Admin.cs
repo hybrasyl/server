@@ -687,6 +687,7 @@ namespace Hybrasyl.ChatCommands
         }
 
     }
+
     class DebugCommand : ChatCommand
     {
         public new static string Command = "debug";
@@ -702,6 +703,28 @@ namespace Hybrasyl.ChatCommands
             return Success("Debugging disabled");
         }
     }
+
+    class ListMobCommand : ChatCommand
+    {
+        public new static string Command = "listmob";
+        public new static string ArgumentText = "None";
+        public new static string HelpText = "List all mobs on the current map.";
+        public new static bool Privileged = true;
+
+        public new static ChatCommandResult Run(User user, params string[] args)
+        {
+
+            string moblist = String.Format("{0,25}", "Name") + " " + String.Format("{0,40}", "Details") + "\n";
+            foreach (var mob in user.Map.Objects.Where(x => x is Monster).Select(y => y as Monster))
+            {
+                var mobdetails = $"({mob.X},{mob.Y}) {mob.Stats}";
+                moblist += String.Format("{0,25}", "Name") + " " + String.Format("{0,40}", mobdetails) + "\n";
+            }
+            return Success(moblist, MessageTypes.SLATE_WITH_SCROLLBAR);
+        }
+    }
+
+
 
     class SpawnCommand : ChatCommand
     {

@@ -655,10 +655,10 @@
   <xs:complexType name="Creature">
     <xs:sequence>
       <xs:element name="Description" type="hyb:String8" minOccurs="0" maxOccurs="1" />
-      <xs:element name="Loot" type="LootList" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="Hostility" minOccurs="0" maxOccurs="1" type="CreatureHostilitySettings"/>
-      <xs:element name="SetCookies" minOccurs="0" maxOccurs="1" type="CreatureCookies"/>
-      <xs:element name="Types" minOccurs="0" maxOccurs="1" type="CreatureTypes"/>
+      <xs:element name="Loot" type="hyb:LootList" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Hostility" minOccurs="0" maxOccurs="1" type="hyb:CreatureHostilitySettings"/>
+      <xs:element name="SetCookies" minOccurs="0" maxOccurs="1" type="hyb:CreatureCookies"/>
+      <xs:element name="Types" minOccurs="0" maxOccurs="1" type="hyb:CreatureTypes"/>
     </xs:sequence>
     <xs:attribute name="Name" use="required" type="xs:string"/>
     <xs:attribute name="Sprite" use="required" type="xs:unsignedShort" />
@@ -669,100 +669,9 @@
 
   <xs:complexType name="CreatureTypes">
     <xs:sequence>
-      <xs:element name="Type" type="Creature" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Type" type="hyb:Creature" minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
   </xs:complexType>
-
-  <!-- New, ERISCO SPAWNS (TM), with the capability of being put on ANY map! -->
- 
-  <xs:complexType name="SpawnGroup">
-    <xs:sequence>
-      <xs:element name="Spawns" type="Spawns" minOccurs="0" maxOccurs="1"/>
-    </xs:sequence>
-    <xs:attribute name="BaseLevel" type="xs:string" use="optional"/>
-    <xs:attribute name="Disabled" type="xs:boolean" default="false"/>
-    <xs:attribute name="Name" type="xs:string" use="optional"/>
-  </xs:complexType>
-
-  <xs:complexType name="Spawns">
-    <xs:sequence>
-      <xs:element name="Spawn" type="Spawn" minOccurs="1" maxOccurs="unbounded"/>
-    </xs:sequence>
-  </xs:complexType>                  
-
-  <xs:complexType name="Spawn">
-    <xs:sequence>
-      <xs:element name="Loot" type="hyb:LootList" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="Coordinates" minOccurs="0" maxOccurs="1" type="hyb:SpawnCoordinatesList"/>
-      <xs:element name="Damage" minOccurs="0" maxOccurs="1" type="hyb:SpawnDamage"/>
-      <xs:element name="Defense" minOccurs="0" maxOccurs="1" type="hyb:SpawnDefense"/>
-      <xs:element name="Spec" minOccurs="0" maxOccurs="1" type="hyb:SpawnSpec"/>
-      <xs:element name="Base" minOccurs="0" maxOccurs="1" type="hyb:SpawnBase"/>
-      <xs:element name="Hostility" minOccurs="0" maxOccurs="1" type="CreatureHostilitySettings"/>
-      <xs:element name="SetCookies" minOccurs="0" maxOccurs="1" type="CreatureCookies"/>
-    </xs:sequence>
-    <xs:attribute name="Import" type="xs:string" use="optional"/>
-    <xs:attribute name="Name" type="xs:string" use="optional"/>
-    <xs:attribute name="Flags" type="hyb:SpawnFlags" default="Active" />
-  </xs:complexType>
-
-  <xs:complexType name="SpawnBase">
-    <xs:attribute name="BehaviorSet" type="xs:string" use="optional"/>
-    <xs:attribute name="Level" type="xs:string" use="optional"/>
-  </xs:complexType>
-  
-  <xs:complexType name="SpawnDamage">
-    <xs:attribute name="MinDmg" type="xs:string" use="optional"/>
-    <xs:attribute name="MaxDmg" type="xs:string" use="optional"/>
-    <xs:attribute name="Element" type="hyb:ElementType" use="optional" default="None"/>
-  </xs:complexType>
-
-  <xs:complexType name="SpawnDefense">
-    <xs:attribute name="Ac" type="xs:string" use="optional"/>
-    <xs:attribute name="Mr" type="xs:string" use="optional"/>
-    <xs:attribute name="Element" type="hyb:ElementType" use="optional" default="None"/>
-  </xs:complexType>
-  
-  <xs:complexType name="SpawnSpec">   
-    <xs:attribute name="MinCount" type="xs:string" use="optional"/>
-    <xs:attribute name="MaxCount" type="xs:string" use="optional"/>
-    <xs:attribute name="MaxPerInterval" type="xs:string" use="optional"/>
-    <xs:attribute name="Interval" type="xs:string" use="optional"/>
-    <xs:attribute name="Limit" type="xs:string" use="optional"/>
-    <xs:attribute name="When" type="xs:string" use="optional"/>
-    <xs:attribute name="Percentage" type="xs:string" use="optional"/>
-    <xs:attribute name="Disabled" type="xs:boolean" use="optional" default="false"/>
-  </xs:complexType>
-
-  <xs:complexType name="SpawnCoordinatesList">
-    <xs:sequence>
-      <xs:element name="Coordinate" type="hyb:SpawnCoordinate" minOccurs="1" maxOccurs="unbounded"/>
-    </xs:sequence>
-  </xs:complexType>
-
-  <xs:complexType name="SpawnCoordinate">
-    <xs:attribute name="X" type="xs:unsignedByte" use="required"/>
-    <xs:attribute name="Y" type="xs:unsignedByte" use="required"/>
-  </xs:complexType>
-  
-  <!-- Spawn flags -->
-  <xs:simpleType name="SpawnFlags">
-    <xs:restriction>
-      <xs:simpleType>
-        <xs:list>
-          <xs:simpleType>
-            <xs:restriction base="xs:token">
-              <xs:enumeration value="Active"/>
-              <xs:enumeration value="MovementDisabled"/>
-              <xs:enumeration value="AiDisabled"/>
-              <xs:enumeration value="DeathDisabled"/>
-            </xs:restriction>
-          </xs:simpleType>
-        </xs:list>
-      </xs:simpleType>
-      <xs:maxLength value="3" />
-    </xs:restriction>
-  </xs:simpleType>
 
   <!-- List of loot tables which can be defined <table> or imported from external sources <import> -->
   <xs:complexType name="LootList">

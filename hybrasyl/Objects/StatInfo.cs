@@ -144,6 +144,15 @@ namespace Hybrasyl.Objects
 
         #endregion
 
+        public override string ToString() => $"Lv {Level} Hp {Hp} Mp {Mp} Stats {Str}/{Con}/{Int}/{Wis}/{Dex}";
+
+        public void ApplyModifier(long modifier)
+        {
+            BaseHp *= modifier;
+            BaseDamageModifier = modifier;
+            BaseMp *= modifier;            
+        }
+
         public StatInfo(bool defaultAttr = true)
         {
             // TODO: DRY

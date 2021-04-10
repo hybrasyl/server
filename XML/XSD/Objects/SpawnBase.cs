@@ -29,8 +29,16 @@ public partial class SpawnBase
     #region Private fields
     private string _behaviorSet;
     private string _level;
+    private float _weakChance;
+    private float _strongChance;
     private static XmlSerializer _serializer;
     #endregion
+    
+    public SpawnBase()
+    {
+        _weakChance = ((float)(0F));
+        _strongChance = ((float)(0F));
+    }
     
     [XmlAttribute]
     public string BehaviorSet
@@ -55,6 +63,34 @@ public partial class SpawnBase
         set
         {
             _level = value;
+        }
+    }
+    
+    [XmlAttribute]
+    [DefaultValue(typeof(float), "0")]
+    public float WeakChance
+    {
+        get
+        {
+            return _weakChance;
+        }
+        set
+        {
+            _weakChance = value;
+        }
+    }
+    
+    [XmlAttribute]
+    [DefaultValue(typeof(float), "0")]
+    public float StrongChance
+    {
+        get
+        {
+            return _strongChance;
+        }
+        set
+        {
+            _strongChance = value;
         }
     }
     

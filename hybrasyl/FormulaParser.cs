@@ -57,6 +57,8 @@ namespace Hybrasyl
 
         public static double Eval(string expression, FormulaEvaluation eval)
         {
+            if (expression is null)
+                return 1.0;
             var tokens = GetTokens(expression);
             var operandStack = new Stack<double>();
             var operatorStack = new Stack<string>();

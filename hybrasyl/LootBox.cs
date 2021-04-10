@@ -139,6 +139,9 @@ namespace Hybrasyl
 
             var loot = new Loot(0, 0);
             var tables = new List<Xml.LootTable>();
+            if (spawn.Loot is null) 
+                // Can't do anything if nothing is defined
+                return loot;
             // Assign base XP
             loot.Xp = spawn.Loot.Xp;
             // Sets

@@ -641,7 +641,12 @@ namespace Hybrasyl
             foreach (var sg in spawngroups.Results)
             {
                 WorldData.Set(sg.Name, sg);
+                if (sg.Spawns.Count == 0)
+                    GameLog.ErrorFormat($"Spawngroup {sg.Name}: empty");
             }
+
+            foreach (var error in spawngroups.Errors)
+                GameLog.Error($"Spawngroup: error occurred loading {error.Key}: {error.Value}");
 
             GameLog.InfoFormat("Spawngroups: {0} spawngroups loaded", WorldData.Count<Xml.SpawnGroup>());
 
@@ -1799,7 +1804,6 @@ namespace Hybrasyl
             if (direction > 3) return;
             user.Condition.Casting = false;
             user.Walk((Xml.Direction)direction);
-            GameLog.Info($"Walking: {direction} {(Xml.Direction)direction}");
         }
 
         [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]

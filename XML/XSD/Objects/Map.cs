@@ -33,7 +33,7 @@ public partial class Map
     private MapFlags _flags;
     private List<Warp> _warps;
     private List<Reactor> _reactors;
-    private SpawnGroup _spawns;
+    private SpawnGroup _spawnGroup;
     private List<MapNpc> _npcs;
     private List<MapSign> _signs;
     private ushort _id;
@@ -117,15 +117,15 @@ public partial class Map
         }
     }
     
-    public SpawnGroup Spawns
+    public SpawnGroup SpawnGroup
     {
         get
         {
-            return _spawns;
+            return _spawnGroup;
         }
         set
         {
-            _spawns = value;
+            _spawnGroup = value;
         }
     }
     

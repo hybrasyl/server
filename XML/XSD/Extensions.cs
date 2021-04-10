@@ -64,6 +64,8 @@ namespace Hybrasyl.Xml
         }
     }
 
+    // For some reason xsd2code doesn't add this and it breaks spawngroup parsing
+    [XmlRootAttribute(Namespace = "http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
     public partial class SpawnGroup
     {
         public ushort MapId { get; set; } = 0;

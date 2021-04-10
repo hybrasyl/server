@@ -27,7 +27,7 @@ using System.Collections.Generic;
 public partial class SpawnGroup
 {
     #region Private fields
-    private List<Spawn> _spawn;
+    private List<Spawn> _spawns;
     private string _baseLevel;
     private bool _disabled;
     private string _name;
@@ -39,16 +39,16 @@ public partial class SpawnGroup
         _disabled = false;
     }
     
-    [XmlElement("Spawn")]
-    public List<Spawn> Spawn
+    [XmlArrayItemAttribute(IsNullable=false)]
+    public List<Spawn> Spawns
     {
         get
         {
-            return _spawn;
+            return _spawns;
         }
         set
         {
-            _spawn = value;
+            _spawns = value;
         }
     }
     

@@ -76,8 +76,33 @@ namespace Hybrasyl.Objects
 
         public override void OnClick(User invoker)
         {
+            // TODO: abstract to xml
+
             var prepend = "";
-            
+            var diff = invoker.Stats.Level - Stats.Level;
+            switch (diff)
+            {
+                case var _ when diff >= -3 && diff <= 3:
+                    prepend = "";
+                    break;
+                case var _ when diff >= -7 && diff <= -4:
+                    prepend = "Trifling";
+                    break;
+                case var _ when diff <= -7:
+                    prepend = "Paltry";
+                    break;
+                case var _ when diff >= 4 && diff <= 7:
+                    prepend = "Difficult";
+                    break;
+                case var _ when diff > 7:
+                    prepend = "Deadly";
+                    break;
+                default:
+                    prepend = "";
+                    break;
+                        
+            }
+
             invoker.SendSystemMessage(prepend + Name);
         }
 
