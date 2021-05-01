@@ -256,8 +256,8 @@ namespace Hybrasyl.Objects
             else
             {
                 if (World.WorldData.TryGetSocialEvent(this, out SocialEvent e))
-                {
-                    if (e.Speakers.Contains(Name))
+                {                 
+                    if (e.Speakers.Contains(Name) || e.Type != SocialEventType.Class)
                     {
                         base.Say(message, from);
                         return;
@@ -275,7 +275,7 @@ namespace Hybrasyl.Objects
             {
                 if (World.WorldData.TryGetSocialEvent(this, out SocialEvent e))
                 {
-                    if (e.Speakers.Contains(Name))
+                    if (e.Speakers.Contains(Name) || e.Type != SocialEventType.Class)
                     {
                         base.Say(message, from);
                         return;
