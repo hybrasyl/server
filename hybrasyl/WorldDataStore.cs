@@ -297,6 +297,16 @@ namespace Hybrasyl
             return string.Empty;
         }
 
+        public bool TryGetSocialEvent(User name, out SocialEvent socialEvent)
+        {
+            socialEvent = null;
+            if (TryGetValue(name, out socialEvent))
+                return true;
+            if (TryGetValueByIndex(name.Map.Id, out socialEvent))
+                return true;
+            return false;
+        }
+
         public bool TryGetAuthInfo(string name, out AuthInfo info)
         {
             info = null;

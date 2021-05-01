@@ -158,6 +158,7 @@ namespace Hybrasyl
         public ushort Checksum { get; set; }
         public bool[,] IsWall { get; set; }
         public bool AllowCasting { get; set; }
+        public bool AllowSpeaking { get; set; }
 
         public Dictionary<Tuple<byte, byte>, Warp> Warps { get; set; }
         public string Message { get; set; }
@@ -298,6 +299,9 @@ namespace Hybrasyl
             Init();
         }
 
+        public void MapMute() => AllowSpeaking = false;
+        public void MapUnmute() => AllowSpeaking = true;
+
         public void Init()
         {
             RawData = new byte[0];
@@ -308,6 +312,7 @@ namespace Hybrasyl
             Doors = new Dictionary<Tuple<byte, byte>, Objects.Door>();
             Signposts = new Dictionary<Tuple<byte, byte>, Objects.Signpost>();
             Reactors = new Dictionary<Tuple<byte, byte>, Objects.Reactor>();
+            AllowSpeaking = true;
         }
 
         public List<VisibleObject> GetTileContents(int x, int y)
