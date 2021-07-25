@@ -261,7 +261,7 @@ namespace Hybrasyl
                 {
                     Sentry = SentrySdk.Init(i =>
                     {
-                        i.Dsn = new Dsn(Config.ApiEndpoints.Sentry.Url);
+                        i.Dsn = Config.ApiEndpoints.Sentry.Url;
                         i.Environment = (env ?? "dev");
                     }
                     );
