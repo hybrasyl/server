@@ -249,6 +249,43 @@ namespace Hybrasyl.Objects
             }
         }
 
+        public override void Say(string message, string from = "")
+        {
+            if (Map.AllowSpeaking)
+                base.Say(message, from);
+            else
+            {
+                if (World.WorldData.TryGetSocialEvent(this, out SocialEvent e))
+                {                 
+                    if (e.Speakers.Contains(Name) || e.Type != SocialEventType.Class)
+                    {
+                        base.Say(message, from);
+                        return;
+                    }
+                }
+                SendSystemMessage("You try to speak, but nothing happens.");
+            }
+        }
+
+        public override void Shout(string message, string from = "")
+        {
+            if (Map.AllowSpeaking)
+                base.Shout(message, from);
+            else
+            {
+                if (World.WorldData.TryGetSocialEvent(this, out SocialEvent e))
+                {
+                    if (e.Speakers.Contains(Name) || e.Type != SocialEventType.Class)
+                    {
+                        base.Say(message, from);
+                        return;
+                    }
+                }
+                else
+                   SendSystemMessage("You try to shout, but nothing happens.");
+            }
+        }
+
         public bool ChangeCitizenship(string nationName)
         {
             if (World.WorldData.TryGetValue(nationName, out Nation theNation))

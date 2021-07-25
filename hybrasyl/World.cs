@@ -20,6 +20,7 @@
  * 
  */
 
+using Hybrasyl.ChatCommands;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
 using Hybrasyl.Messaging;
@@ -35,18 +36,16 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
 using System.Xml.Schema;
-using System.Diagnostics;
-using Hybrasyl.ChatCommands;
 
 namespace Hybrasyl
 {
@@ -1280,6 +1279,7 @@ namespace Hybrasyl
             ControlMessageHandlers[ControlOpcodes.TriggerRefresh] = ControlMessage_TriggerRefresh; // ST
             ControlMessageHandlers[ControlOpcodes.HandleDeath] = ControlMessage_HandleDeath; // ST + user/map locks
             ControlMessageHandlers[ControlOpcodes.DialogRequest] = ControlMessage_DialogRequest;
+            ControlMessageHandlers[ControlOpcodes.GlobalMessage] = ControlMessage_GlobalMessage;
         }
 
         public void SetPacketHandlers()
@@ -1747,6 +1747,23 @@ namespace Hybrasyl
             var creature = (Objects.Creature)message.Arguments[0];
             if (creature is User u) { u.OnDeath(); }
             if (creature is Monster ms && !ms.DeathProcessed) { ms.OnDeath(); }
+        }
+
+        private void ControlMessage_GlobalMessage(HybrasylControlMessage message)
+        {
+            var msg = (string)message.Arguments[0];
+            foreach (var user in ActiveUsers)
+            {
+                // TODO: make less teeth-grindingly dumb
+                try
+                {
+                    user.SendSystemMessage(msg);
+                }
+                catch (Exception)
+                {                    
+                    continue;
+                }                   
+            }
         }
 
         
@@ -4202,7 +4219,8 @@ namespace Hybrasyl
                         var timerOptions = HybrasylMetricsRegistry.ControlMessageTimerIndex[hcm.Opcode];
                         ControlMessageHandlers[hcm.Opcode].Invoke(hcm);
                         watch.Stop();
-                        Game.MetricsStore.Measure.Timer.Time(timerOptions, watch.ElapsedMilliseconds);
+                        if (timerOptions != null)
+                            Game.MetricsStore.Measure.Timer.Time(timerOptions, watch.ElapsedMilliseconds);
                     }
                     catch (Exception e)
                     {
