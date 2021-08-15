@@ -173,18 +173,11 @@ namespace Hybrasyl
                 }
            }
             // Retrieve git hash information, if present
-            try
-            {
-                string commit = Assemblyinfo.GitHash.Split(';')[0];
-                if (!string.IsNullOrEmpty(commit))
-                    GitCommit = commit;
-                else
-                    GitCommit = "unknown";
-            }
-            catch (Exception)
-            {
+            string commit = (Assemblyinfo.GitHash ?? string.Empty).Split(';')[0];
+            if (!string.IsNullOrEmpty(commit))
+                GitCommit = commit;
+            else
                 GitCommit = "unknown";
-            }
 
             // Configure logging 
 
