@@ -244,6 +244,43 @@ namespace Hybrasyl.Objects
             }
         }
 
+        public override void Say(string message, string from = "")
+        {
+            if (Map.AllowSpeaking)
+                base.Say(message, from);
+            else
+            {
+                if (World.WorldData.TryGetSocialEvent(this, out SocialEvent e))
+                {                 
+                    if (e.Speakers.Contains(Name) || e.Type != SocialEventType.Class)
+                    {
+                        base.Say(message, from);
+                        return;
+                    }
+                }
+                SendSystemMessage("You try to speak, but nothing happens.");
+            }
+        }
+
+        public override void Shout(string message, string from = "")
+        {
+            if (Map.AllowSpeaking)
+                base.Shout(message, from);
+            else
+            {
+                if (World.WorldData.TryGetSocialEvent(this, out SocialEvent e))
+                {
+                    if (e.Speakers.Contains(Name) || e.Type != SocialEventType.Class)
+                    {
+                        base.Say(message, from);
+                        return;
+                    }
+                }
+                else
+                   SendSystemMessage("You try to shout, but nothing happens.");
+            }
+        }
+
         public bool ChangeCitizenship(string nationName)
         {
             if (World.WorldData.TryGetValue(nationName, out Nation theNation))
@@ -733,33 +770,34 @@ namespace Hybrasyl.Objects
             }
             else
             {
-                var absoluteLevel = (byte)Math.Abs(Stats.Level - mobLevel);
-                if (absoluteLevel > 3)
+                var difference = Stats.Level - mobLevel;
+                switch (difference)
                 {
-                    switch (absoluteLevel)
-                    {
-                        case 4:
-                            exp = (uint)Math.Ceiling(exp * .8);
-                            break;
-                        case 5:
-                            exp = (uint)Math.Ceiling(exp * .6);
-                            break;
-                        case 6:
-                            exp = (uint)Math.Ceiling(exp * .4);
-                            break;
-                        case 7:
-                            exp = (uint)Math.Ceiling(exp * .2);
-                            break;
-                        default:
-                            exp = 1;
-                            break;
-                    }
-                    GiveExperience(exp);
+                    case > 5:
+                        exp = 1;
+                        break;
+                    case 5:
+                        exp = (uint)Math.Ceiling(exp * 0.40);
+                        break;
+                    case 4:
+                        exp = (uint)Math.Ceiling(exp * 0.80);
+                        break;
+                    case -6:
+                        exp = (uint)Math.Ceiling(exp * 1.15);
+                        break;
+                    case -5:
+                        exp = (uint)Math.Ceiling(exp * 1.10);
+                        break;
+                    case -4:
+                        exp = (uint)Math.Ceiling(exp * 1.05);
+                        break;
+                    case < -7:
+                        exp = (uint)Math.Ceiling(exp * 1.20);
+                        break;
+                    default:
+                        break;
                 }
-                else
-                {
-                    GiveExperience(exp);
-                }
+                GiveExperience(exp);
             }
         }
 
@@ -767,7 +805,7 @@ namespace Hybrasyl.Objects
          * Provides experience directly to the user that will not be distributed to
          * other members of the group (for example, for finishing a part of a quest).
          */
-        public void GiveExperience(uint exp)
+            public void GiveExperience(uint exp)
         {
             Client.SendMessage($"{exp} experience!", MessageTypes.SYSTEM);
             if (Stats.Level == Constants.MAX_LEVEL || exp < ExpToLevel)

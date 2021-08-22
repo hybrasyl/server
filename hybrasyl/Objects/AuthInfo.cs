@@ -69,7 +69,7 @@ namespace Hybrasyl
             IsSaving = true;
             var cache = World.DatastoreConnection.GetDatabase();
             cache.Set(StorageKey, this);
-            Game.World.WorldData.Set<AuthInfo>(UserUuid, this);
+            Game.World.WorldData.SetWithIndex<AuthInfo>(UserUuid, this, Username);
             IsSaving = false;
         }
 

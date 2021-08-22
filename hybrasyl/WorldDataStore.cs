@@ -295,19 +295,29 @@ namespace Hybrasyl
         /// <returns>The username or string.empty if not found</returns>
         public string GetNameByUuid(string uuid)
         {
-            if (TryGetValueByIndex(uuid, out UuidReference reference))
+            if (TryGetValue(uuid, out UuidReference reference))
                 return reference.UserName;            
             return string.Empty;
         }
 
         public string GetUuidByName(string name)
         {
-            if (TryGetValue(name, out UuidReference reference))
+            if (TryGetValueByIndex(name, out UuidReference reference))
                 return reference.UserUuid;
             // Does user exist?
             if (TryGetUser(name, out User user))
                 return user.Uuid;
             return string.Empty;
+        }
+
+        public bool TryGetSocialEvent(User name, out SocialEvent socialEvent)
+        {
+            socialEvent = null;
+            if (TryGetValue(name, out socialEvent))
+                return true;
+            if (TryGetValueByIndex(name.Map.Id, out socialEvent))
+                return true;
+            return false;
         }
 
         public bool TryGetAuthInfo(string name, out AuthInfo info)

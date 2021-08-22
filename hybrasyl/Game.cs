@@ -171,9 +171,9 @@ namespace Hybrasyl
                     Thread.Sleep(5000);
                     return;
                 }
-            }
+           }
             // Retrieve git hash information, if present
-            var commit = Assemblyinfo.GitHash.Split(';')[0];
+            string commit = (Assemblyinfo.GitHash ?? string.Empty).Split(';')[0];
             if (!string.IsNullOrEmpty(commit))
                 GitCommit = commit;
             else

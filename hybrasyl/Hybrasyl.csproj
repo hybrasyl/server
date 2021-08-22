@@ -14,10 +14,8 @@
     <Version>0.7.3</Version>
     <BuildDocFx Condition="'$(Configuration)'=='Debug' ">false</BuildDocFx>
   </PropertyGroup>
-  
-  <PropertyGroup>
-    <MSBuildGitHashCommand>git rev-parse --short HEAD </MSBuildGitHashCommand>
-  </PropertyGroup>
+
+
   
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <Optimize>false</Optimize>
@@ -47,35 +45,31 @@
   </ItemGroup>
   
   <ItemGroup>
-    <PackageReference Include="App.Metrics" Version="4.1.0" />
-    <PackageReference Include="App.Metrics.Reporting.GrafanaCloudHostedMetrics" Version="4.1.0" />
+    <PackageReference Include="App.Metrics" Version="4.2.0" />
+    <PackageReference Include="App.Metrics.Reporting.GrafanaCloudHostedMetrics" Version="4.2.0" />
     <PackageReference Include="BCrypt.Net-Core" Version="1.6.0" />
-    <PackageReference Include="Discord.Net.Webhook" Version="2.3.0" />
-    <PackageReference Include="docfx" Version="2.56.6" />
-    <PackageReference Include="docfx.console" Version="2.56.6">
+    <PackageReference Include="Discord.Net.Webhook" Version="2.4.0" />
+    <PackageReference Include="docfx" Version="2.58.0" />
+    <PackageReference Include="docfx.console" Version="2.58.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Google.Protobuf" Version="3.14.0" />
-    <PackageReference Include="Grpc" Version="2.35.0" />
-    <PackageReference Include="Grpc.Tools" Version="2.35.0">
+    <PackageReference Include="Google.Protobuf" Version="3.17.3" />
+    <PackageReference Include="Grpc" Version="2.38.1" />
+    <PackageReference Include="Grpc.Tools" Version="2.38.1">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="MoonSharp" Version="2.0.0" />
-    <PackageReference Include="MSBuildGitHash" Version="2.0.2">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
-    <PackageReference Include="Sentry" Version="3.0.6" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="Sentry" Version="3.8.3" />
     <PackageReference Include="Serilog" Version="2.10.0" />
     <PackageReference Include="Serilog.Enrichers.ExceptionData" Version="1.0.0" />
     <PackageReference Include="Serilog.Enrichers.Thread" Version="3.1.0" />
-    <PackageReference Include="Serilog.Sinks.Console" Version="3.1.1" />
-    <PackageReference Include="Serilog.Sinks.File" Version="4.1.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="4.0.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
     <PackageReference Include="Serilog.Sinks.Map" Version="1.0.2" />
-    <PackageReference Include="StackExchange.Redis" Version="2.2.4" />
+    <PackageReference Include="StackExchange.Redis" Version="2.2.62" />
     <PackageReference Include="System.ServiceModel.Primitives" Version="4.8.1" />
     <PackageReference Include="System.Text.Encoding.CodePages" Version="5.0.0" />
   </ItemGroup>
