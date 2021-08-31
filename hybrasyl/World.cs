@@ -636,18 +636,18 @@ namespace Hybrasyl
 
             GameLog.InfoFormat("Creatures: {0} creatures loaded", WorldData.Count<Xml.Creature>());
 
-            var spawngroups = Xml.SpawnGroup.LoadAll(XmlDirectory);
-            foreach (var sg in spawngroups.Results)
-            {
-                WorldData.Set(sg.Name, sg);
-                if (sg.Spawns.Count == 0)
-                    GameLog.ErrorFormat($"Spawngroup {sg.Name}: empty");
-            }
+            //var spawngroups = Xml.SpawnGroup.LoadAll(XmlDirectory);
+            //foreach (var sg in spawngroups.Results)
+            //{
+            //    WorldData.Set(sg.Name, sg);
+            //    if (sg.Spawns.Count == 0)
+            //        GameLog.ErrorFormat($"Spawngroup {sg.Name}: empty");
+            //}
 
-            foreach (var error in spawngroups.Errors)
-                GameLog.Error($"Spawngroup: error occurred loading {error.Key}: {error.Value}");
+            //foreach (var error in spawngroups.Errors)
+            //    GameLog.Error($"Spawngroup: error occurred loading {error.Key}: {error.Value}");
 
-            GameLog.InfoFormat("Spawngroups: {0} spawngroups loaded", WorldData.Count<Xml.SpawnGroup>());
+            //GameLog.InfoFormat("Spawngroups: {0} spawngroups loaded", WorldData.Count<Xml.SpawnGroup>());
 
             //Load LootSets
             foreach (var xml in GetXmlFiles(LootSetDirectory))
