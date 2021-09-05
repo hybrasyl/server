@@ -441,8 +441,12 @@ namespace Hybrasyl
                     var wef = new List<string>();
 
                     foreach (var asdf in Directory.GetFiles(Path, "*.xml", SearchOption.AllDirectories))
+                    {
+                        if (Path.Contains(".ignore"))
+                            continue;
                         wef.Add(asdf.Replace(Path, ""));
-                    
+                    }
+
                     return Directory.GetFiles(Path, "*.xml", SearchOption.AllDirectories).Where(e => !e.Replace(Path, "").StartsWith("\\_")).ToArray();
                 }
             }

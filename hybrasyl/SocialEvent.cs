@@ -19,12 +19,15 @@ namespace Hybrasyl
     {
         public ushort MapId;
         public DateTime StartTime;
+        public DateTime EndTime;
         public User Origin;
         public byte StartX;
         public byte StartY;
         public string Subtype;
         public SocialEventType Type;
         public List<string> Speakers;
+
+        public bool Active => EndTime != default && EndTime > StartTime;
 
         public SocialEvent(User origin, SocialEventType type, string subtype=null)
         {
@@ -35,6 +38,7 @@ namespace Hybrasyl
             Origin = origin;
             MapId = origin.Map.Id;
             StartTime = DateTime.Now;
+            EndTime = default;
             StartX = origin.X;
             StartY = origin.Y;
             Type = type;
@@ -45,6 +49,7 @@ namespace Hybrasyl
 
         public void End()
         {
+            EndTime = DateTime.Now;
             GameLog.UserActivityInfo($"Event ending: {Origin}, type {Type} ({Subtype}), elapsed time {(DateTime.Now - StartTime).TotalSeconds}s");
         }
     }

@@ -747,7 +747,7 @@ namespace Hybrasyl.ChatCommands
                 }
                 else return Fail("Level must be a byte between 1 and 255");
             }
-            else return Fail("Creature {args[0]} not found");
+            else return Fail($"Creature {args[0]} not found");
 
         }
     }
