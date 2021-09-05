@@ -47,6 +47,9 @@ namespace Hybrasyl.Xml
             var imports = new Dictionary<string, CreatureBehaviorSet>();
             foreach (var xml in GetXmlFiles(Path.Join(baseDir, DataDirectory)))
             {
+                if (xml.Contains(".ignore"))
+                    continue;
+
                 try
                 {
                     CreatureBehaviorSet set = LoadFromFile(xml);
@@ -71,7 +74,8 @@ namespace Hybrasyl.Xml
                     continue;
                 }
                 var newSet = importedSet.Clone<CreatureBehaviorSet>();
-                var resolved = importedSet & newSet;
+                var resolved = importset.Value & newSet;
+                resolved.Name = importset.Value.Name;
                 ret.Results.Add(resolved);
             }
             return ret;
