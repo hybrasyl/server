@@ -57,7 +57,7 @@ namespace Hybrasyl.Scripting
                 {
                     s += $"  {castable.Value}: {castable.HealthPercentage}% {castable.Priority} {castable.UseOnce}\n";
                 }
-                s += $"  Target: {Monster.BehaviorSet.Behavior.Casting.Offense.Priority}\n";
+                s += $"  Target Priority: {Monster.BehaviorSet.Behavior.Casting.Offense.Priority}\n";
             }
             else
                 s += $"  Offense: undefined / null";
