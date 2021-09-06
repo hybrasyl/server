@@ -487,13 +487,17 @@ namespace Hybrasyl.Objects
 
             ThreatInfo = new ThreatInfo();
             DeathProcessed = false;
+            Stats.Hp = Stats.MaximumHp;
+            Stats.Mp = Stats.MaximumMp;
         }
 
         public Creature Target
         {
             get
             {
-                return World.Objects.ContainsKey(_mTarget) ? (Creature)World.Objects[_mTarget] : null;
+                if (World.Objects.TryGetValue(_mTarget, out WorldObject o))
+                    return o as Creature;
+                return null;
             }
             set
             {

@@ -79,23 +79,23 @@ namespace Hybrasyl.Objects
             // TODO: abstract to xml
 
             var prepend = "";
-            var diff = invoker.Stats.Level - Stats.Level;
+            var diff = Stats.Level - invoker.Stats.Level;
             switch (diff)
             {
                 case var _ when diff >= -3 && diff <= 3:
                     prepend = "";
                     break;
                 case var _ when diff >= -7 && diff <= -4:
-                    prepend = "Trifling";
+                    prepend = "Trifling ";
                     break;
                 case var _ when diff <= -7:
-                    prepend = "Paltry";
+                    prepend = "Paltry ";
                     break;
                 case var _ when diff >= 4 && diff <= 7:
-                    prepend = "Difficult";
+                    prepend = "Difficult ";
                     break;
                 case var _ when diff > 7:
-                    prepend = "Deadly";
+                    prepend = "Deadly ";
                     break;
                 default:
                     prepend = "";
@@ -387,7 +387,9 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                return Game.World.Objects.ContainsKey(_mLastHitter) ? (Creature)Game.World.Objects[_mLastHitter] : null;
+                if (Game.World.Objects.TryGetValue(_mLastHitter, out WorldObject o))
+                    return o as Creature;
+                return null;
             }
             set
             {
