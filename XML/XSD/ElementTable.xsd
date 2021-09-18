@@ -28,7 +28,7 @@
   </xs:annotation>
 
   <xs:complexType name="ElementTableTargetElement">
-    <xs:attribute name="Element" type="hyb:Element" default="None"/>
+    <xs:attribute name="Element" type="hyb:ElementType" default="None"/>
     <xs:attribute name="Multiplier" type="xs:double"/>
   </xs:complexType>
 
@@ -36,7 +36,7 @@
     <xs:sequence>
       <xs:element name="Target" type="hyb:ElementTableTargetElement" minOccurs="9" maxOccurs="9"/>
     </xs:sequence>
-    <xs:attribute name="Element" type="hyb:Element"/>
+    <xs:attribute name="Element" type="hyb:ElementType"/>
   </xs:complexType>
 
   <xs:complexType name="ElementTable">

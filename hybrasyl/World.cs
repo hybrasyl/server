@@ -20,6 +20,7 @@
  * 
  */
 
+using Hybrasyl.ChatCommands;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
 using Hybrasyl.Messaging;
@@ -35,18 +36,16 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
 using System.Xml.Schema;
-using System.Diagnostics;
-using Hybrasyl.ChatCommands;
 
 namespace Hybrasyl
 {
@@ -136,6 +135,7 @@ namespace Hybrasyl
 
         #region Path helpers
         public static string DataDirectory => Constants.DataDirectory;
+        public static string XmlDirectory => Path.Combine(DataDirectory, "world", "xml");
 
         public static string MapFileDirectory => Path.Combine(DataDirectory, "world", "mapfiles");
 
@@ -151,6 +151,8 @@ namespace Hybrasyl
         public static string MapDirectory => Path.Combine(DataDirectory, "world", "xml", "maps");
 
         public static string WorldMapDirectory => Path.Combine(DataDirectory, "world", "xml", "worldmaps");
+
+        public static string BehaviorSetDirectory => Path.Combine(DataDirectory, "world", "xml", "behaviorsets");
 
         public static string CreatureDirectory => Path.Combine(DataDirectory, "world", "xml", "creatures");
 
@@ -270,6 +272,15 @@ namespace Hybrasyl
 
         public bool InitWorld()
         {
+            try
+            {
+                DatastoreConnection.GetStatus();
+            }
+            catch (RedisConnectionException)
+            {
+                GameLog.Fatal("Redis server could not be reached. Make sure it is running and accessible.");
+                return false;
+            }
             if (!CheckDataMigrations())
             {
                 GameLog.Fatal("Migrations in inconsistent or unapplied state. Hybrasyl has halted.");
@@ -430,8 +441,12 @@ namespace Hybrasyl
                     var wef = new List<string>();
 
                     foreach (var asdf in Directory.GetFiles(Path, "*.xml", SearchOption.AllDirectories))
+                    {
+                        if (Path.Contains(".ignore"))
+                            continue;
                         wef.Add(asdf.Replace(Path, ""));
-                    
+                    }
+
                     return Directory.GetFiles(Path, "*.xml", SearchOption.AllDirectories).Where(e => !e.Replace(Path, "").StartsWith("\\_")).ToArray();
                 }
             }
@@ -517,6 +532,16 @@ namespace Hybrasyl
                 }
             }
 
+            // Create a static "monster weapon" that is used in various places
+            // TODO: maybe just use xml for this
+            var monsterWeapon = new Xml.Item() { Name = "monsterblade" };
+            monsterWeapon.Properties = new Xml.ItemProperties();
+            monsterWeapon.Properties.Damage = new Xml.ItemDamage();
+            monsterWeapon.Properties.Damage.Small = new Xml.ItemDamageSmall();
+            monsterWeapon.Properties.Damage.Large = new Xml.ItemDamageLarge();
+            monsterWeapon.Properties.Physical = new Xml.Physical();
+            WorldData.SetWithIndex(monsterWeapon.Id, monsterWeapon, monsterWeapon.Name);
+
             //Load NPCs
             foreach (var xml in GetXmlFiles(NpcsDirectory))
             {
@@ -581,40 +606,52 @@ namespace Hybrasyl
 
             GameLog.InfoFormat("National data: {0} nations loaded", WorldData.Count<Xml.Nation>());
 
-            //Load Creatures
-            foreach (var xml in GetXmlFiles(CreatureDirectory))
+            // Load Behaviorsets
+            // TODO: genericize and refactor all of these, potentially using this new behaviorset pattern
+
+            var behaviorSets = Xml.CreatureBehaviorSet.LoadAll(XmlDirectory);
+
+            // TODO: change to foreach on XML assembly classes implementing IHybrasylLoadable
+            // eg: WorldData.ImportAll(Xml.CreatureBehaviorSet.LoadAll(XmlDirectory));
+
+            foreach (var set in behaviorSets.Results)
             {
-                try
-                {
-                    var creature = Xml.Creature.LoadFromFile(xml);
-                    GameLog.DebugFormat("Creatures: loaded {0}", creature.Name);
-                    WorldData.Set(creature.Name, creature);
-                }
-                catch (Exception e)
-                {
-                    GameLog.ErrorFormat("Error parsing {0}: {1}", xml, e);
-                }
+                WorldData.Set(set.Name, set);
+                GameLog.Info($"BehaviorSet: {set.Name} loaded");
             }
+            foreach (var error in behaviorSets.Errors)
+                GameLog.Error($"BehaviorSet: error occurred loading {error.Key}: {error.Value}");
+
+            var creatures = Xml.Creature.LoadAll(XmlDirectory);
+
+            foreach (var creature in creatures.Results)
+            {
+                if (creature.Name != null)
+                    WorldData.Set(creature.Name, creature);
+                foreach (var subcreature in creature.Types)
+                {
+                    WorldData.Set(subcreature.Name, subcreature);
+                }
+                GameLog.Info($"Creatures: {creature.Name} loaded, with {creature.Types.Count} subtypes");
+            }
+
+            foreach (var error in creatures.Errors)
+                GameLog.Error($"Creature: error occurred loading {error.Key}: {error.Value}");
 
             GameLog.InfoFormat("Creatures: {0} creatures loaded", WorldData.Count<Xml.Creature>());
 
-            //Load SpawnGroups
-            foreach (var xml in GetXmlFiles(SpawnGroupDirectory))
-            {
-                try
-                {
-                    var spawnGroup = Xml.SpawnGroup.LoadFromFile(xml);
-                    spawnGroup.Filename = Path.GetFileNameWithoutExtension(xml);
-                    GameLog.InfoFormat("SpawnGroup: loaded {0}", spawnGroup.Filename);
-                    WorldData.SetWithIndex(spawnGroup.Id, spawnGroup, spawnGroup.Filename);
-                }
-                catch (Exception e)
-                {
-                    GameLog.ErrorFormat("SpawnGroup: Error parsing {0}: {1}", xml, e);
-                }
-            }
+            //var spawngroups = Xml.SpawnGroup.LoadAll(XmlDirectory);
+            //foreach (var sg in spawngroups.Results)
+            //{
+            //    WorldData.Set(sg.Name, sg);
+            //    if (sg.Spawns.Count == 0)
+            //        GameLog.ErrorFormat($"Spawngroup {sg.Name}: empty");
+            //}
 
-            GameLog.InfoFormat("Spawngroups: {0} spawngroups loaded", WorldData.Count<Xml.SpawnGroup>());
+            //foreach (var error in spawngroups.Errors)
+            //    GameLog.Error($"Spawngroup: error occurred loading {error.Key}: {error.Value}");
+
+            //GameLog.InfoFormat("Spawngroups: {0} spawngroups loaded", WorldData.Count<Xml.SpawnGroup>());
 
             //Load LootSets
             foreach (var xml in GetXmlFiles(LootSetDirectory))
@@ -683,6 +720,7 @@ namespace Hybrasyl
                     string name = string.Empty;
                     Xml.Castable newCastable = Xml.Castable.LoadFromFile(xml);
                     WorldData.SetWithIndex(newCastable.Id, newCastable, newCastable.Name);
+                    WorldData.RegisterCastable(newCastable);
                     GameLog.InfoFormat("Castables: loaded {0}, id {1}", newCastable.Name, newCastable.Id);
                 }
                 catch (Exception e)
@@ -908,14 +946,6 @@ namespace Hybrasyl
 
         /*End ItemVariants*/
 
-        private static void ValidationCallBack(object sender, ValidationEventArgs args)
-        {
-            if (args.Severity == XmlSeverityType.Warning)
-                GameLog.WarningFormat("XML warning: {0}", args.Message);
-            else
-                GameLog.ErrorFormat("XML ERROR: {0}", args.Message);
-        }
-
         private void LoadMetafiles()
         {
             // these might be better suited in LoadData as the database is being read, but only items are in database atm
@@ -979,8 +1009,8 @@ namespace Hybrasyl
                 List<Xml.Castable> spells = null;
                 Xml.Class @class = (Xml.Class)i;
 
-                skills = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySkill || x.Book == Xml.Book.SecondarySkill || x.Book == Xml.Book.UtilitySkill) && (x.Class.Contains(@class))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)).Level?.Min ?? 1).ThenBy(x => x.Name).ToList();
-                spells = WorldData.Values<Xml.Castable>().Where(x => (x.Book == Xml.Book.PrimarySpell || x.Book == Xml.Book.SecondarySpell || x.Book == Xml.Book.UtilitySpell) && (x.Class.Contains(@class))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)).Level?.Min ?? 1).ThenBy(x => x.Name).ToList();
+                skills = WorldData.Values<Xml.Castable>().Where(x => x.IsSkill && (x.Class.Contains(@class))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)).Level?.Min ?? 1).ThenBy(x => x.Name).ToList();
+                spells = WorldData.Values<Xml.Castable>().Where(x => x.IsSpell && (x.Class.Contains(@class))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)).Level?.Min ?? 1).ThenBy(x => x.Name).ToList();
 
                 var ignoreSpells = spells.Where(x => x.Categories.Any(x => x.Value.ToLower() == "ignore")).ToList();
                 var ignoreSkills = skills.Where(x => x.Categories.Any(x => x.Value.ToLower() == "ignore")).ToList();
@@ -1280,6 +1310,7 @@ namespace Hybrasyl
             ControlMessageHandlers[ControlOpcodes.TriggerRefresh] = ControlMessage_TriggerRefresh; // ST
             ControlMessageHandlers[ControlOpcodes.HandleDeath] = ControlMessage_HandleDeath; // ST + user/map locks
             ControlMessageHandlers[ControlOpcodes.DialogRequest] = ControlMessage_DialogRequest;
+            ControlMessageHandlers[ControlOpcodes.GlobalMessage] = ControlMessage_GlobalMessage;
         }
 
         public void SetPacketHandlers()
@@ -1525,11 +1556,6 @@ namespace Hybrasyl
             return false;
         }
 
-        public void CompleteAsyncDialog(AsyncDialogRequest request)
-        {
-
-        }
-
         public override void Shutdown()
         {
             GameLog.WarningFormat("Shutdown initiated, disconnecting {0} active users", ActiveUsers.Count());
@@ -1747,6 +1773,23 @@ namespace Hybrasyl
             var creature = (Objects.Creature)message.Arguments[0];
             if (creature is User u) { u.OnDeath(); }
             if (creature is Monster ms && !ms.DeathProcessed) { ms.OnDeath(); }
+        }
+
+        private void ControlMessage_GlobalMessage(HybrasylControlMessage message)
+        {
+            var msg = (string)message.Arguments[0];
+            foreach (var user in ActiveUsers)
+            {
+                // TODO: make less teeth-grindingly dumb
+                try
+                {
+                    user.SendSystemMessage(msg);
+                }
+                catch (Exception)
+                {                    
+                    continue;
+                }                   
+            }
         }
 
         
@@ -2298,6 +2341,10 @@ namespace Hybrasyl
             if (target == "!!")
             {
                 user.SendGroupWhisper(message);
+            }
+            else if (target == "*" && user.AuthInfo.IsPrivileged)
+            {
+
             }
             else if (target == "@" && user.AuthInfo.IsPrivileged)
             {
@@ -4202,7 +4249,8 @@ namespace Hybrasyl
                         var timerOptions = HybrasylMetricsRegistry.ControlMessageTimerIndex[hcm.Opcode];
                         ControlMessageHandlers[hcm.Opcode].Invoke(hcm);
                         watch.Stop();
-                        Game.MetricsStore.Measure.Timer.Time(timerOptions, watch.ElapsedMilliseconds);
+                        if (timerOptions != null)
+                            Game.MetricsStore.Measure.Timer.Time(timerOptions, watch.ElapsedMilliseconds);
                     }
                     catch (Exception e)
                     {

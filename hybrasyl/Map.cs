@@ -158,6 +158,7 @@ namespace Hybrasyl
         public ushort Checksum { get; set; }
         public bool[,] IsWall { get; set; }
         public bool AllowCasting { get; set; }
+        public bool AllowSpeaking { get; set; }
 
         public Dictionary<Tuple<byte, byte>, Warp> Warps { get; set; }
         public string Message { get; set; }
@@ -170,6 +171,8 @@ namespace Hybrasyl
         public Dictionary<Tuple<byte, byte>, Objects.Door> Doors { get; set; }
         public Dictionary<Tuple<byte, byte>, Objects.Signpost> Signposts { get; set; }
         public Dictionary<Tuple<byte, byte>, Objects.Reactor> Reactors { get; set; }
+
+        public Xml.SpawnGroup SpawnDirectives { get; set; }
 
         public bool SpawnDebug { get; set; }
 
@@ -187,7 +190,7 @@ namespace Hybrasyl
             Init();
             World = theWorld;
             SpawnDebug = false;
-            //  Spawns = new List<Xml.Spawn>();
+            SpawnDirectives = newMap.SpawnGroup ?? new Xml.SpawnGroup() { Spawns = new List<Xml.Spawn>() };
 
             // TODO: refactor Map class to not do this, but be a partial which overlays
             // TODO: XSD.Map
@@ -298,6 +301,9 @@ namespace Hybrasyl
             Init();
         }
 
+        public void MapMute() => AllowSpeaking = false;
+        public void MapUnmute() => AllowSpeaking = true;
+
         public void Init()
         {
             RawData = new byte[0];
@@ -308,15 +314,20 @@ namespace Hybrasyl
             Doors = new Dictionary<Tuple<byte, byte>, Objects.Door>();
             Signposts = new Dictionary<Tuple<byte, byte>, Objects.Signpost>();
             Reactors = new Dictionary<Tuple<byte, byte>, Objects.Reactor>();
+            AllowSpeaking = true;
         }
 
-        public List<VisibleObject> GetTileContents(int x, int y)
+        public List<VisibleObject> GetTileContents(int x1, int y1)
         {
             lock (_lock)
             {
-                return EntityTree.GetObjects(new Rectangle(x, y, 1, 1));
+                return EntityTree.GetObjects(new Rectangle(x1, y1, 1, 1));
             }
         }
+
+        public List<Creature> GetCreatures(int x1, int y1) => GetTileContents(x1, y1).Where(x => x is Creature).Select(y => y as Creature).ToList();
+
+        public bool IsCreatureAt(int x1, int y1) => GetTileContents(x1,y1).Any(x => x is Creature);
 
         public void InsertNpc(Merchant toInsert)
         {

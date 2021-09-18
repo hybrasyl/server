@@ -32,56 +32,6 @@ namespace Hybrasyl.Scripting
 
         // Expose fields that can be used by scripting
 
-        public byte Str
-        {
-            get => Spawn.Stats.Str;
-            set => Spawn.Stats.Str = value;
-        }
-        public byte Int
-        {
-            get => Spawn.Stats.Int;
-            set => Spawn.Stats.Int = value;
-        }
-        public byte Wis
-        {
-            get => Spawn.Stats.Wis;
-            set => Spawn.Stats.Wis = value;
-        }
-        public byte Con
-        {
-            get => Spawn.Stats.Con;
-            set => Spawn.Stats.Con = value;
-        }
-        public byte Dex
-        {
-            get => Spawn.Stats.Dex;
-            set => Spawn.Stats.Dex = value;
-        }
-        public uint Hp
-        {
-            get => Spawn.Stats.Hp;
-            set => Spawn.Stats.Hp = value;
-        }
-        public uint Mp
-        {
-            get => Spawn.Stats.Mp;
-            set => Spawn.Stats.Mp = value;
-        }
-        public byte Level
-        {
-            get => Spawn.Stats.Level;
-            set => Spawn.Stats.Level = value;
-        }
-        public byte Dmg
-        {
-            get => Spawn.Damage.Dmg;
-            set => Spawn.Damage.Dmg = value;
-        }
-        public byte Hit
-        {
-            get => Spawn.Damage.Hit;
-            set => Spawn.Damage.Hit = value;
-        }
         public uint Exp
         {
             get => Spawn.Loot.Xp;
@@ -127,55 +77,6 @@ namespace Hybrasyl.Scripting
                     Spawn.Loot.Table[0].Items.Add(itemList);
                 }
             }
-        }
-
-        public void AddCastable(string name, string type, int minDmg, int maxDmg, Element element, int interval, TargetType targetType )
-        {
-            if (Game.World.WorldData.TryGetValue(name, out Xml.Castable theCastable))
-            {
-
-                // Add a castable to our casting list
-                var castInstruction = new Xml.SpawnCastable();
-                castInstruction.Element = element;
-                castInstruction.Name = name;
-                castInstruction.Target = targetType;
-                castInstruction.MinDmg = minDmg;
-                castInstruction.MaxDmg = maxDmg;
-                
-                switch(type.ToLower())
-                {
-                    case "offense":
-                        Spawn.Castables.Offense.Castables.Add(castInstruction);
-                        break;
-                    case "defense":
-                        Spawn.Castables.Defense.Castables.Add(castInstruction);
-                        break;
-                    case "neardeath":
-                        Spawn.Castables.NearDeath.Castables.Add(castInstruction);
-                        break;
-                    case "ondeath":
-                        Spawn.Castables.OnDeath.Add(castInstruction);
-                        break;
-                }
-            }
-        }
-
-        public HybrasylSpawn(string creature, string spawnName, byte level = 3, byte str = 3,
-            byte intel = 3, byte wis = 3, byte con = 3, byte dex = 3)
-        {
-            Spawn = new Xml.Spawn();
-            Level = level;
-            Str = str;
-            Int = intel;
-            Wis = wis;
-            Con = con;
-            Dex = dex;
-            // Populate a default, empty loot table, with default xp/gold settings
-            Spawn.Loot.Table = new System.Collections.Generic.List<Xml.LootTable>();
-            Spawn.Castables = new Xml.CastableGroup();
-            Spawn.Loot.Table.Add(new Xml.LootTable());
-            Spawn.Loot = new Xml.LootList();
-            Spawn.Loot.Gold = new Xml.LootGold();
         }
     }
 }

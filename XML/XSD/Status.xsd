@@ -114,7 +114,7 @@
       <xs:element name="Messages" minOccurs="0" type="hyb:Messages"/>
       <xs:element name="Heal" minOccurs="0" type="hyb:StatusHeal" />
       <xs:element name="Damage" minOccurs="0" type="hyb:StatusDamage" />
-      <xs:element name="StatModifiers" minOccurs="0" type="hyb:StatModifiers" />
+      <xs:element name="StatModifiers" minOccurs="0" type="hyb:StatModifierFormulas" />
       <xs:element name="Conditions" minOccurs="0" type="hyb:Conditions"/>
       <xs:element name="Handler" minOccurs="0" type="hyb:Handler"/>
     </xs:all>

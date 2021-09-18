@@ -228,7 +228,7 @@ namespace Hybrasyl.Messaging
             }
             else if (Game.World.WorldData.TryGetValueByIndex(boardId, out Board board))
             {
-                if (Game.World.WorldData.TryGetAuthInfo(userRef.UserUuid, out AuthInfo ainfo))
+                if (Game.World.WorldData.TryGetAuthInfo(userRef.UserName, out AuthInfo ainfo))
                 {
                     var delmsg = board.GetMessage(messageId);
 
@@ -396,7 +396,7 @@ namespace Hybrasyl.Messaging
             {
                 if (Game.World.WorldData.TryGetValueByIndex(boardId, out Board board))
                 {
-                    if (Game.World.WorldData.TryGetAuthInfo(senderRef.UserUuid, out AuthInfo ainfo))
+                    if (Game.World.WorldData.TryGetAuthInfo(senderRef.UserName, out AuthInfo ainfo))
                     {
                         if (ainfo.IsPrivileged || board.CheckAccessLevel(ainfo.Username, BoardAccessLevel.Write))
                         {

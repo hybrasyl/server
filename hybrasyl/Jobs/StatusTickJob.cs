@@ -42,8 +42,11 @@ namespace Hybrasyl.Jobs
             }
             foreach (var wobj in Game.World.ActiveStatuses)
             {
-                if (wobj is Creature creature && creature.Condition.Alive)
-                    World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.StatusTick, wobj.Id));
+                if (wobj is Creature creature)
+                    if (creature.Condition.Alive)
+                        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.StatusTick, wobj.Id));
+                    else
+                        Game.World.ActiveStatuses.Remove(wobj);
             }
             GameLog.Debug("Status tick job ending");
 

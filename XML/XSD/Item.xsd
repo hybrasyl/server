@@ -145,8 +145,8 @@
   </xs:complexType>
 
   <xs:complexType name="StatModifierElement">
-    <xs:attribute name="Offense" default="None" type="hyb:Element" use="optional"/>
-    <xs:attribute name="Defense" default="None" type="hyb:Element" use="optional"/>
+    <xs:attribute name="Offense" default="None" type="hyb:ElementType" use="optional"/>
+    <xs:attribute name="Defense" default="None" type="hyb:ElementType" use="optional"/>
   </xs:complexType>
 
   <xs:complexType name="ItemStatModifiers">
