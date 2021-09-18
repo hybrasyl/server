@@ -258,7 +258,7 @@ namespace Hybrasyl
             try
             {
                 if (!string.IsNullOrEmpty(Config.ApiEndpoints.Sentry?.Url ?? null))
-                {
+                {   
                     Sentry = SentrySdk.Init(i =>
                     {
                         i.Dsn = Config.ApiEndpoints.Sentry.Url;
@@ -300,7 +300,7 @@ namespace Hybrasyl
                     
             if (!World.InitWorld())
             {
-                GameLog.Fatal("Hybrasyl cannot continue loading. A fatal error while initializing the world. Press any key to exit.");
+                GameLog.Fatal("Hybrasyl cannot continue loading. A fatal error occurred while initializing the world. Press any key to exit.");
                 Console.ReadKey();
                 Environment.Exit(1);
             }
@@ -466,7 +466,7 @@ namespace Hybrasyl
                 Thread.Sleep(5);
             }
             
-            Shutdown();
+            Shutdown(); 
             GrpcServer.ShutdownAsync().Wait();
 
         }

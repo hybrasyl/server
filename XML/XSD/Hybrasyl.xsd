@@ -3,6 +3,7 @@
     xmlns:xs="http://www.w3.org/2001/XMLSchema"
     targetNamespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02"
     xmlns="http://www.hybrasyl.com/XML/Hybrasyl/2020-02"
+    xmlns:hyb="http://www.hybrasyl.com/XML/Hybrasyl/2020-02"
     elementFormDefault="qualified"
     >
   <xs:annotation>
@@ -28,7 +29,6 @@
     </xs:documentation>
   </xs:annotation>
 
-
   <!-- To make things easier, we bind everything into a master namespace that can be versioned,
   this allows us to share types and also use one namespace rather than N namespaces -->
 
@@ -46,5 +46,7 @@
   <xs:include schemaLocation="Status.xsd"/>
   <xs:include schemaLocation="Localization.xsd"/>
   <xs:include schemaLocation="Recipe.xsd"/>
+  <xs:include schemaLocation="Spawns.xsd"/>
+  <xs:include schemaLocation="Formulas.xsd"/>
   
 </xs:schema>

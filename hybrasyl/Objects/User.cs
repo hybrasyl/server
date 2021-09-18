@@ -205,11 +205,6 @@ namespace Hybrasyl.Objects
         // from Lua later know who to "consult" for dialogs / etc.
         public VisibleObject LastAssociate { get; set; }
 
-        [JsonProperty]
-        private Dictionary<string, string> UserCookies { get; set; }
-        // These are SESSION ONLY, they persist until logout / disconnect
-        private Dictionary<string, string> UserSessionCookies { get; set; }
-
         public Exchange ActiveExchange { get; set; }
 
         public bool IsAvailableForExchange => Condition.NoFlags;
@@ -719,8 +714,6 @@ namespace Hybrasyl.Objects
             PortraitData = new byte[0];
             ProfileText = string.Empty;
             DialogState = new DialogState(this);
-            UserCookies = new Dictionary<string, string>();
-            UserSessionCookies = new Dictionary<string, string>();
             ClientSettings = new Dictionary<byte, bool>();
             Group = null;
             Flags = new Dictionary<string, bool>();
@@ -973,10 +966,10 @@ namespace Hybrasyl.Objects
             switch (toRemove.EquipmentSlot)
             {
                 case (byte)ItemSlots.Necklace:
-                    Stats.BaseOffensiveElement = Xml.Element.None;
+                    Stats.BaseOffensiveElement = Xml.ElementType.None;
                     break;
                 case (byte)ItemSlots.Waist:
-                    Stats.BaseDefensiveElement = Xml.Element.None;
+                    Stats.BaseDefensiveElement = Xml.ElementType.None;
                     break;
             }
         }
@@ -1091,7 +1084,7 @@ namespace Hybrasyl.Objects
             x15.WriteString8(Map.Name);
             Enqueue(x15);
 
-            if (Map.Music != 0xFF && Map.Music != CurrentMusicTrack) SendMusic(Map.Music);
+            if (Map.Music != 0xFF) SendMusic(Map.Music);
             if (!string.IsNullOrEmpty(Map.Message)) SendMessage(Map.Message, 18);
         }
 
@@ -1266,7 +1259,7 @@ namespace Hybrasyl.Objects
                 return;
             }
 
-            if (UseCastable(bookSlot.Castable, null, null, assailAttack))
+            if (UseCastable(bookSlot.Castable, null, assailAttack))
             {
                 if(bookSlot.UseCount != uint.MaxValue)
                     bookSlot.UseCount += 1;
@@ -1331,67 +1324,45 @@ namespace Hybrasyl.Objects
         /// </summary>
         /// <param name="castable">The castable that is being cast.</param>
         /// <returns>True or false depending on success.</returns>
-        public bool ProcessCastingCost(Xml.Castable castable, out string message)
+        public bool ProcessCastingCost(Xml.Castable castable, Creature target, out string message)
         {
+            var cost = NumberCruncher.CalculateCastCost(castable, target, this);
+            bool hasItemCost = true;
             message = string.Empty;
 
-            if (castable.CastCosts.Count == 0) return true;
+            if (cost.IsNoCost) return true;
 
-            var costs = castable.CastCosts.Where(e => e.Class.Contains(Class));
-
-            if (costs.Count() == 0)
-                costs = castable.CastCosts.Where(e => e.Class.Count == 0);
-
-            if (costs.Count() == 0)
-                return true;
-
-            uint reduceHp = 0;
-            uint reduceMp = 0;
-            bool hasItemCost = true;
-            var castcosts = costs.First();
-
-            // HP cost can be either a percentage (0.25) or a fixed amount (50)
-            if (castcosts.Stat?.Hp != null)
-                if (castcosts.Stat.Hp.Contains('.'))
-                    reduceHp = (uint) Math.Ceiling(Convert.ToDouble(castcosts.Stat.Hp) * Stats.MaximumHp);
-                else 
-                    reduceHp = Convert.ToUInt32(castcosts.Stat.Hp);
-            if (castcosts.Stat?.Mp != null)
-                if (castcosts.Stat.Mp.Contains('.'))
-                    reduceMp = (uint)Math.Ceiling(Convert.ToDouble(castcosts.Stat.Mp) * Stats.MaximumMp);
-                else
-                    reduceMp = Convert.ToUInt32(castcosts.Stat.Mp);
-
-            if (castcosts.Items != null)
+            if (cost.Items != null)
             {
-                foreach (var item in castcosts.Items)
+                foreach (var itemReq in cost.Items)
                 {
-                    if (!Inventory.Contains(item.Value, item.Quantity))
+                    if (!Inventory.Contains(itemReq.Item, itemReq.Quantity))
                         hasItemCost = false;
                 }
             }
 
             // Check that all requirements are met first. Note that a spell cannot be cast if its HP cost would result
             // in the caster's HP being reduced to zero.
-            if (reduceHp >= Stats.Hp)
+
+            if (cost.Hp >= Stats.Hp)
                 message = "You lack the required vitality.";
 
-            if (reduceMp > Stats.Mp)
+            if (cost.Mp > Stats.Mp)
                 message = "Your mana is too low.";
 
             if (!hasItemCost)
                 message = "You lack the required items.";
 
-            if (castcosts.Gold > Gold)
+            if (cost.Gold > Gold)
                 message = "You lack the required gold.";
 
             if (message != string.Empty)
                 return false;
 
-            if (reduceHp != 0) Stats.Hp -= reduceHp;
-            if (reduceMp != 0) Stats.Mp -= reduceMp;
-            if ((int)castcosts.Gold > 0 ) this.RemoveGold(new Gold(castcosts.Gold));
-            castcosts.Items?.ForEach(item => RemoveItem(item.Value, item.Quantity));
+            if (cost.Hp != 0) Stats.Hp -= cost.Hp;
+            if (cost.Mp != 0) Stats.Mp -= cost.Mp;
+            if ((int)cost.Gold > 0 ) RemoveGold(new Gold(cost.Gold));
+            cost.Items?.ForEach(itemReq => RemoveItem(itemReq.Item, itemReq.Quantity));
 
             UpdateAttributes(StatUpdateFlags.Current);
             return true;
@@ -1750,52 +1721,6 @@ namespace Hybrasyl.Objects
                 return 3; 
             }
         }
-
-        public void SetCookie(string cookieName, string value)
-        {
-            UserCookies[cookieName] = value;
-        }
-
-        public void SetSessionCookie(string cookieName, string value)
-        {
-            UserSessionCookies[cookieName] = value;
-        }
-
-        public IReadOnlyDictionary<string, string> GetCookies()
-        {
-            return UserCookies;
-        }
-        public IReadOnlyDictionary<string, string> GetSessionCookies()
-        {
-            return UserSessionCookies;
-        }
-
-        public string GetCookie(string cookieName)
-        {
-            string value;
-            if (UserCookies.TryGetValue(cookieName, out value))
-            {
-                return value;
-            }
-            return null;
-        }
-
-        public string GetSessionCookie(string cookieName)
-        {
-            string value;
-            if (UserSessionCookies.TryGetValue(cookieName, out value))
-            {
-                return value;
-            }
-            return null;
-        }
-
-        public bool HasCookie(string cookieName) => UserCookies.Keys.Contains(cookieName);
-        public bool HasSessionCookie(string cookieName) => UserSessionCookies.Keys.Contains(cookieName);
-
-        public bool DeleteCookie(string cookieName) => UserCookies.Remove(cookieName);
-        public bool DeleteSessionCookie(string cookieName) => UserSessionCookies.Remove(cookieName);
-
 
         public override void UpdateAttributes(StatUpdateFlags flags)
         {
@@ -2612,7 +2537,7 @@ namespace Hybrasyl.Objects
             UpdateAttributes(StatUpdateFlags.Current);
         }
 
-        public override void Damage(double damage, Xml.Element element = Xml.Element.None,
+        public override void Damage(double damage, Xml.ElementType element = Xml.ElementType.None,
             Xml.DamageType damageType = Xml.DamageType.Direct, Xml.DamageFlags damageFlags = Xml.DamageFlags.None, Creature attacker = null, bool onDeath = true)
         {
             if (Condition.Comatose || !Condition.Alive) return;
@@ -2714,7 +2639,7 @@ namespace Hybrasyl.Objects
         }
 
 
-        public override bool UseCastable(Xml.Castable castObject, Creature target = null, SpawnCastable spawnCastable = null, bool assailAttack = false)
+        public override bool UseCastable(Xml.Castable castObject, Creature target = null, bool assailAttack = false)
         {
             if(castObject.Intents[0].UseType == SpellUseType.Prompt)
             {
@@ -2723,7 +2648,7 @@ namespace Hybrasyl.Objects
             }
 
             // Check casting costs
-            if (!ProcessCastingCost(castObject, out string message))
+            if (!ProcessCastingCost(castObject, target, out string message))
             {
                 SendSystemMessage(message);
                 return false;
@@ -2925,13 +2850,15 @@ namespace Hybrasyl.Objects
 
         public void SendMusic(byte track)
         {
-            //CurrentMusicTrack = track;
+            if (CurrentMusicTrack == track) return;
 
-            //var x19 = new ServerPacket(0x19);
-            //x19.WriteByte(0xFF);
-            //x19.WriteByte(track);
-            //Enqueue(x19);
-        }
+            CurrentMusicTrack = track;
+
+            var x19 = new ServerPacket(0x19);
+            x19.WriteByte(0xFF);
+            x19.WriteByte(track);
+            Enqueue(x19);
+         }
 
         public void SendSound(byte sound)
         {

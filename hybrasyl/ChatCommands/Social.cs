@@ -166,6 +166,10 @@ namespace Hybrasyl.ChatCommands
                         }
                     }
                 }
+                e.End();
+                Game.World.WorldData.Remove<SocialEvent>(user);
+                Game.World.WorldData.RemoveIndex<SocialEvent>(user.Map.Id);
+                user.Map.MapUnmute();
                 return Success("Your mass has concluded.");
             }
             return Fail("You are not giving a mass here.");
@@ -211,6 +215,10 @@ namespace Hybrasyl.ChatCommands
                         }
                     }
                 }
+                e.End();
+                Game.World.WorldData.Remove<SocialEvent>(user);
+                Game.World.WorldData.RemoveIndex<SocialEvent>(user.Map.Id);
+                user.Map.MapUnmute();
                 return Success("Your class has concluded.");
 
             }

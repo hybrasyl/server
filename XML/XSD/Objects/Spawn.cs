@@ -19,74 +19,55 @@ using System.Text;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 
-[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8")]
+[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.4084.0")]
 [Serializable]
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-[XmlRootAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02", IsNullable=false)]
 public partial class Spawn
 {
     #region Private fields
-    private CreatureScript _script;
-    private IntentList _intents;
-    private Respawn _respawn;
-    private SpawnDamage _damage;
-    private Defense _defense;
-    private Stats _stats;
     private LootList _loot;
-    private CastableGroup _castables;
-    private string _base;
+    private List<SpawnCoordinate> _coordinates;
+    private SpawnDamage _damage;
+    private SpawnDefense _defense;
+    private SpawnSpec _spec;
+    private SpawnBase _base;
+    private CreatureHostilitySettings _hostility;
+    private List<CreatureCookie> _setCookies;
+    private string _import;
     private string _name;
-    private float _variance;
     private SpawnFlags _flags;
     private static XmlSerializer _serializer;
     #endregion
     
     public Spawn()
     {
-        _castables = new CastableGroup();
-        _loot = new LootList();
-        _stats = new Stats();
-        _defense = new Defense();
-        _damage = new SpawnDamage();
-        _respawn = new Respawn();
-        _variance = ((float)(1F));
+        _flags = SpawnFlags.Active;
     }
     
-    public CreatureScript Script
+    public LootList Loot
     {
         get
         {
-            return _script;
+            return _loot;
         }
         set
         {
-            _script = value;
+            _loot = value;
         }
     }
     
-    public IntentList Intents
+    [XmlArrayItemAttribute("Coordinate", IsNullable=false)]
+    public List<SpawnCoordinate> Coordinates
     {
         get
         {
-            return _intents;
+            return _coordinates;
         }
         set
         {
-            _intents = value;
-        }
-    }
-    
-    public Respawn Respawn
-    {
-        get
-        {
-            return _respawn;
-        }
-        set
-        {
-            _respawn = value;
+            _coordinates = value;
         }
     }
     
@@ -102,7 +83,7 @@ public partial class Spawn
         }
     }
     
-    public Defense Defense
+    public SpawnDefense Defense
     {
         get
         {
@@ -114,44 +95,19 @@ public partial class Spawn
         }
     }
     
-    public Stats Stats
+    public SpawnSpec Spec
     {
         get
         {
-            return _stats;
+            return _spec;
         }
         set
         {
-            _stats = value;
+            _spec = value;
         }
     }
     
-    public LootList Loot
-    {
-        get
-        {
-            return _loot;
-        }
-        set
-        {
-            _loot = value;
-        }
-    }
-    
-    public CastableGroup Castables
-    {
-        get
-        {
-            return _castables;
-        }
-        set
-        {
-            _castables = value;
-        }
-    }
-    
-    [XmlAttribute]
-    public string Base
+    public SpawnBase Base
     {
         get
         {
@@ -160,6 +116,44 @@ public partial class Spawn
         set
         {
             _base = value;
+        }
+    }
+    
+    public CreatureHostilitySettings Hostility
+    {
+        get
+        {
+            return _hostility;
+        }
+        set
+        {
+            _hostility = value;
+        }
+    }
+    
+    [XmlArrayItemAttribute("Cookie", IsNullable=false)]
+    public List<CreatureCookie> SetCookies
+    {
+        get
+        {
+            return _setCookies;
+        }
+        set
+        {
+            _setCookies = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string Import
+    {
+        get
+        {
+            return _import;
+        }
+        set
+        {
+            _import = value;
         }
     }
     
@@ -177,20 +171,7 @@ public partial class Spawn
     }
     
     [XmlAttribute]
-    [DefaultValue(typeof(float), "1")]
-    public float Variance
-    {
-        get
-        {
-            return _variance;
-        }
-        set
-        {
-            _variance = value;
-        }
-    }
-    
-    [XmlAttribute]
+    [DefaultValue(SpawnFlags.Active)]
     public SpawnFlags Flags
     {
         get

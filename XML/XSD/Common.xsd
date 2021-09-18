@@ -88,14 +88,41 @@
     <xs:attribute name="Ac" default="0" type="xs:byte" />
     <xs:attribute name="Regen" default="0" type="xs:byte" />
     <xs:attribute name="Mr" default="0" type="xs:byte" />
-    <xs:attribute name="OffensiveElement" type="hyb:Element" default="None"/>
-    <xs:attribute name="DefensiveElement" type="hyb:Element" default="None"/>
-    <xs:attribute name="DamageModifier" type="xs:float"/>
-    <xs:attribute name="HealModifier" type="xs:float"/>
+    <xs:attribute name="OffensiveElement" type="hyb:ElementType" default="None"/>
+    <xs:attribute name="DefensiveElement" type="hyb:ElementType" default="None"/>
+    <xs:attribute name="InboundDamageModifier" type="xs:float"/>
+    <xs:attribute name="OutboundDamageModifier" type="xs:float"/>
+    <xs:attribute name="InboundModifier" type="xs:float"/>
+    <xs:attribute name="OutboundModifier" type="xs:float"/>
     <xs:attribute name="DamageType" type="hyb:DamageType"/>
     <xs:attribute name="ReflectChance" type="xs:float"/>
     <xs:attribute name="ReflectIntensity" type="xs:float"/>
   </xs:complexType>
+  
+  <xs:complexType name="StatModifierFormulas">
+    <xs:attribute name="Str" default="0" type="xs:string" />
+    <xs:attribute name="Int" default="0" type="xs:string" />
+    <xs:attribute name="Wis" default="0" type="xs:string" />
+    <xs:attribute name="Con" default="0" type="xs:string" />
+    <xs:attribute name="Dex" default="0" type="xs:string" />
+    <xs:attribute name="Hp" default="0" type="xs:string" />
+    <xs:attribute name="Mp" default="0" type="xs:string" />
+    <xs:attribute name="Hit" default="0" type="xs:string" />
+    <xs:attribute name="Dmg" default="0" type="xs:string" />
+    <xs:attribute name="Ac" default="0" type="xs:string" />
+    <xs:attribute name="Regen" default="0" type="xs:string" />
+    <xs:attribute name="Mr" default="0" type="xs:string" />
+    <xs:attribute name="OffensiveElement" type="hyb:ElementType" default="None"/>
+    <xs:attribute name="DefensiveElement" type="hyb:ElementType" default="None"/>
+    <xs:attribute name="InboundDamageModifier" type="xs:string"/>
+    <xs:attribute name="OutboundDamageModifier" type="xs:string"/>
+    <xs:attribute name="InboundModifier" type="xs:string"/>
+    <xs:attribute name="OutboundModifier" type="xs:string"/>
+    <xs:attribute name="DamageType" type="xs:string"/>
+    <xs:attribute name="ReflectChance" type="xs:string"/>
+    <xs:attribute name="ReflectIntensity" type="xs:string"/>
+  </xs:complexType>
+
 
   <!-- Damage flags type -->
   <xs:simpleType name="DamageFlags">
@@ -382,6 +409,7 @@
       <xs:enumeration value="Wizard" />
       <xs:enumeration value="Priest" />
       <xs:enumeration value="Monk" />
+      <xs:enumeration value="None" />
     </xs:restriction>
   </xs:simpleType>
 
@@ -400,7 +428,7 @@
   </xs:simpleType>
 
   <!-- Elements -->
-  <xs:simpleType name="Element">
+  <xs:simpleType name="ElementType">
     <xs:restriction base="xs:token">
       <xs:enumeration value="None"/>
       <xs:enumeration value="Fire" />
@@ -412,12 +440,14 @@
       <xs:enumeration value="Wood" />
       <xs:enumeration value="Metal" />
       <xs:enumeration value="Undead" />
-      <xs:enumeration value="Random" />
+      <xs:enumeration value="RandomFour" />
+      <xs:enumeration value="RandomEight"/>
+      <xs:enumeration value="Random"/>
     </xs:restriction>
   </xs:simpleType>
 
    <xs:simpleType name="ElementList">
-    <xs:list itemType="hyb:Element"/>
+    <xs:list itemType="hyb:ElementType"/>
   </xs:simpleType>
   
   <xs:simpleType name="IntentType">
@@ -428,17 +458,6 @@
       <!-- Passive to players and cannot be attacked -->
       <xs:enumeration value="Neutral"/>
       <!-- Passive to players and can be attacked -->
-    </xs:restriction>
-  </xs:simpleType>
-
-  <xs:simpleType name="TargetType">
-    <xs:restriction base="xs:token">
-      <xs:enumeration value="None"/>
-      <xs:enumeration value="Self" />
-      <xs:enumeration value="Attacker" />
-      <xs:enumeration value="Group" />
-      <xs:enumeration value="Nearby" />
-      <xs:enumeration value="Random" />
     </xs:restriction>
   </xs:simpleType>
 
@@ -538,6 +557,16 @@
     </xs:restriction>
   </xs:simpleType>
 
+  <xs:simpleType name="StatType">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="Str"/>
+      <xs:enumeration value="Int"/>
+      <xs:enumeration value="Con"/>
+      <xs:enumeration value="Wis"/>
+      <xs:enumeration value="Dex"/>
+    </xs:restriction>
+  </xs:simpleType>
+
   <xs:simpleType name="NpcRepairType">
     <xs:restriction base="xs:token">
       <xs:enumeration value="Armor"/>
@@ -621,170 +650,27 @@
       <xs:enumeration value="Sign"/>
     </xs:restriction>
   </xs:simpleType>
-                 
- 
-  <!-- Base definition for a monster -->
+                  
+  <!-- Base definition for a monster or group of monsters (goblins, kobolds) -->
   <xs:complexType name="Creature">
     <xs:sequence>
-      <xs:element name="Name" type="hyb:String8" minOccurs="1" maxOccurs="1" />
       <xs:element name="Description" type="hyb:String8" minOccurs="0" maxOccurs="1" />
+      <xs:element name="Loot" type="hyb:LootList" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Hostility" minOccurs="0" maxOccurs="1" type="hyb:CreatureHostilitySettings"/>
+      <xs:element name="SetCookies" minOccurs="0" maxOccurs="1" type="hyb:CreatureCookies"/>
+      <xs:element name="Types" minOccurs="0" maxOccurs="1" type="hyb:CreatureTypes"/>
     </xs:sequence>
+    <xs:attribute name="Name" use="required" type="xs:string"/>
     <xs:attribute name="Sprite" use="required" type="xs:unsignedShort" />
+    <xs:attribute name="BehaviorSet" use="required" type="xs:string"/>
+    <xs:attribute name="MinDmg" type="xs:int" use="optional" default="0"/>
+    <xs:attribute name="MaxDmg" type="xs:int" use="optional" default="0"/>
   </xs:complexType>
 
-  <!-- Spawngroup -->
-  <xs:complexType name="SpawnGroup" xmlns="http://www.hybrasyl.com/XML/Hybrasyl/2020-02">
+  <xs:complexType name="CreatureTypes">
     <xs:sequence>
-      <xs:element xmlns="http://www.hybrasyl.com/XML/Hybrasyl/2020-02" name="Maps" type="hyb:MapList" minOccurs="1" maxOccurs="1"/>
-      <xs:element xmlns="http://www.hybrasyl.com/XML/Hybrasyl/2020-02" name="Spawns" type="hyb:SpawnList" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="Type" type="hyb:Creature" minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
-    <xs:attribute name="Disabled" use="optional" default="false" type="xs:boolean"/>
-  </xs:complexType>
-
-  <!-- A list of maps a spawngroup controls-->
-  <xs:complexType name="MapList">
-    <xs:sequence>
-      <xs:element name="Map" type="hyb:SpawnMap" minOccurs="1" maxOccurs="unbounded"/>
-    </xs:sequence>
-  </xs:complexType>
-
-  <xs:complexType name="SpawnCoordinatesList">
-    <xs:sequence>
-      <xs:element name="Coordinate" type="hyb:SpawnCoordinate" minOccurs="1" maxOccurs="unbounded"/>
-    </xs:sequence>
-  </xs:complexType>
-
-  <xs:complexType name="SpawnCoordinate">
-    <xs:attribute name="X" type="xs:unsignedByte" use="required"/>
-    <xs:attribute name="Y" type="xs:unsignedByte" use="required"/>
-  </xs:complexType>
-  
-  <xs:complexType name="SpawnMap">
-    <xs:sequence>
-      <xs:element name="Coordinates" minOccurs="0" maxOccurs="unbounded" type="hyb:SpawnCoordinatesList"/>
-    </xs:sequence>
-    <xs:attribute name="Name" type="hyb:String8" use ="required"/>
-    <xs:attribute name="MinSpawn" type="xs:int" use ="required"/>
-    <xs:attribute name="MaxSpawn" type="xs:int" use ="required"/>
-    <xs:attribute name="Limit" type="xs:int" use ="required"/>
-    <xs:attribute name="Interval" type="xs:int" use ="required"/>
-    <xs:attribute name="Disabled" type="xs:boolean" default="false"/>
-  </xs:complexType>
-
-  <!-- Spawns -->
-  <xs:complexType name="SpawnList">
-    <xs:sequence>
-      <xs:element name="Spawn" type="hyb:Spawn" minOccurs="1" maxOccurs="unbounded" />
-    </xs:sequence>
-  </xs:complexType>
-
-  <!-- Spawn flags -->
-  <xs:simpleType name="SpawnFlags">
-    <xs:restriction>
-      <xs:simpleType>
-        <xs:list>
-          <xs:simpleType>
-            <xs:restriction base="xs:token">
-              <xs:enumeration value="MovementDisabled"/>
-              <xs:enumeration value="AiDisabled"/>
-              <xs:enumeration value="DeathDisabled"/>
-            </xs:restriction>
-          </xs:simpleType>
-        </xs:list>
-      </xs:simpleType>
-      <xs:maxLength value="3" />
-    </xs:restriction>
-  </xs:simpleType>
-
-  <!-- Definition for an actual spawn/monster (mob variant)-->
-  <xs:complexType name="Spawn">
-    <xs:sequence>
-      <xs:element name="Script" type="hyb:CreatureScript" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="Intents" type="hyb:IntentList" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="Respawn" type="hyb:Respawn" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="Damage" type="hyb:SpawnDamage" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="Defense" type="hyb:Defense" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="Stats" type="hyb:Stats" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="Loot" type="hyb:LootList" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="Castables" type="hyb:CastableGroup" minOccurs="1" maxOccurs="1"/>
-    </xs:sequence>
-    <xs:attribute name="Base" type="hyb:String8" use="required"/>
-    <xs:attribute name="Name" type="hyb:String8" use="optional"/>
-    <xs:attribute name="Variance" type="xs:float" use="optional" default="1.0"/>
-    <xs:attribute name="Flags" type="hyb:SpawnFlags" use="optional"/>   
-  </xs:complexType>
-
-  <!-- Whether or not a specified script overrides the spawning behavior or supplements it-->
-  <xs:simpleType name="ScriptType">
-    <xs:restriction base="xs:token">
-      <xs:enumeration value="Override"/>
-      <xs:enumeration value="Supplement"/>
-    </xs:restriction>
-  </xs:simpleType>
-
-  <!-- Creature script name -->
-  <xs:complexType name="CreatureScript">
-    <xs:simpleContent>
-      <xs:extension base="hyb:String8">
-        <xs:attribute type="hyb:ScriptType" name="Type"/>
-      </xs:extension>
-    </xs:simpleContent>
-  </xs:complexType>
-
-  <!-- List of intents -->
-  <xs:complexType name="IntentList">
-    <xs:sequence>
-      <xs:element name="Npc" type="hyb:CreatureIntent" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="Player" type="hyb:CreatureIntent" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="Monster" type="hyb:CreatureIntent" minOccurs="0" maxOccurs="1"/>
-    </xs:sequence>
-  </xs:complexType>
-
-  <!-- Spawn intent (hostile/friendly/etc) -->
-  <xs:complexType name="CreatureIntent">
-    <xs:simpleContent>
-      <xs:extension base="hyb:String8">
-        <xs:attribute type="hyb:IntentType" name="Intent"/>
-      </xs:extension>
-    </xs:simpleContent>
-  </xs:complexType>
-
-  <!-- Respawn information (how often, min/max, percentage as a function of all mobs on a map -->
-  <xs:complexType name="Respawn">
-    <xs:attribute name="Interval" type="xs:int" default="30" use="optional"/>
-    <xs:attribute name="Min" type="xs:int" default="1" use="optional"/>
-    <xs:attribute name="Max" type="xs:int" use="optional"/>
-    <xs:attribute name="Percentage" type="xs:float" use="optional"/>
-  </xs:complexType>
-
-  <!-- Damage a spawn can do (min/max, elment, type (physical/magical etc)) -->
-  <xs:complexType name="SpawnDamage">
-    <xs:attribute name="Min" type="xs:int" default="0" use="optional"/>
-    <xs:attribute name="Max" type="xs:int" default="0" use="optional"/>
-    <xs:attribute name="Element" use="optional" type="hyb:ElementList"/>
-    <xs:attribute name="Type" type="hyb:DamageType" default="Physical" use="optional"/>
-    <xs:attribute name="Dmg" type="xs:unsignedByte" use="optional" default="0"/>
-    <xs:attribute name="Hit" type="xs:unsignedByte" use="optional" default="0"/>
-  </xs:complexType>
-
-  <!-- A creature's defense, including element, magic resistance and armor class -->
-  <xs:complexType name="Defense">
-    <xs:attribute name="Mr" type="xs:int" default="0" use="optional"/>
-    <xs:attribute name="Ac" type="xs:int" use="required"/>
-    <xs:attribute name="Element" use="optional" type="hyb:ElementList"/>
-    <xs:attribute name="Regen" type="xs:unsignedByte" use="optional" default="0"/>
-  </xs:complexType>
-
-  <!-- Stats of a creature (a subset of player attributes are supported here) -->
-  <xs:complexType name="Stats">
-    <xs:attribute name="Hp" type="xs:unsignedInt" use="required"/>
-    <xs:attribute name="Mp" type="xs:unsignedInt" use="optional" default="0"/>
-    <xs:attribute name="Level" type="xs:unsignedByte" use="required" />
-    <xs:attribute name="Str" type="xs:unsignedByte" use="required" />
-    <xs:attribute name="Int" type="xs:unsignedByte" use="required" />
-    <xs:attribute name="Wis" type="xs:unsignedByte" use="required" />
-    <xs:attribute name="Con" type="xs:unsignedByte" use="required" />
-    <xs:attribute name="Dex" type="xs:unsignedByte" use="required" />
   </xs:complexType>
 
   <!-- List of loot tables which can be defined <table> or imported from external sources <import> -->
@@ -816,62 +702,108 @@
     <xs:attribute name="Max" type="xs:unsignedInt" default="1" use="optional"/>
   </xs:complexType>
 
-  <xs:complexType name="SpawnCastable">
+  <!-- Attack priority types for behaviorsets -->
+  <xs:simpleType name="CreatureAttackPriority">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="Attacker" />
+      <xs:enumeration value="HighThreat" />
+      <xs:enumeration value="LowThreat" />
+      <xs:enumeration value="AttackingCaster" />
+      <xs:enumeration value="AttackingHealer" />
+      <xs:enumeration value="SimilarNearby" />
+      <xs:enumeration value="Nearby" />
+      <xs:enumeration value="Random" />
+      <xs:enumeration value="Group"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="CreatureStatAlloc">
+    <xs:list itemType="hyb:StatType"/>
+  </xs:simpleType>
+
+  <xs:complexType name="CreatureCastables">
+    <xs:sequence>
+      <xs:element name="Castable" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="Auto" type="xs:boolean" default="true"/>
+    <xs:attribute name="SkillCategories" type="xs:token" use="optional"/>
+    <xs:attribute name="SpellCategories" type="xs:token" use="optional"/>                  
+  </xs:complexType>
+
+  <xs:complexType name="CreatureCastingBehavior">
+    <xs:sequence>
+      <xs:element name="Offense" type="CreatureCastingSet" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Defense" type="CreatureCastingSet" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="OnDeath" type="CreatureCastingSet" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="NearDeath" type="CreatureCastingSet" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="CreatureBehavior">
+    <xs:sequence>
+      <xs:element name="Casting" minOccurs="0" maxOccurs="1" type="CreatureCastingBehavior"/>
+      <xs:element name="Assail" minOccurs="0" maxOccurs="1" type="CreatureCastingSet"/>
+      <xs:element name="Hostility" minOccurs="0" maxOccurs="1" type="CreatureHostilitySettings"/>
+      <xs:element name="SetCookies" minOccurs="0" maxOccurs="1" type="CreatureCookies "/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="CreatureHostility">
+    <xs:attribute name="ExceptCookie" type="xs:token" use="optional"/>
+    <xs:attribute name="OnlyCookie" type="xs:token" use="optional"/>
+  </xs:complexType>
+  
+  <xs:complexType name="CreatureHostilitySettings">
+    <xs:sequence>
+      <xs:element name="Players" type="CreatureHostility" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Monsters" type="CreatureHostility" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Neutral" type="CreatureHostility" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="CreatureCookie">
+    <xs:attribute name="Name" type="xs:string" use="required"/>
+    <xs:attribute name="Value" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="CreatureCookies">
+    <xs:sequence>
+      <xs:element name="Cookie" type="CreatureCookie" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+  
+  <!-- BehaviorSet structure for AI tweakable settings -->
+  <xs:complexType name="CreatureBehaviorSet">
+    <xs:sequence>
+      <xs:element name="StatAlloc" minOccurs="0" maxOccurs="1" type="CreatureStatAlloc"/>
+      <xs:element name="Castables" minOccurs="0" maxOccurs="1" type="CreatureCastables"/>
+      <xs:element name="Behavior" minOccurs="0" maxOccurs="1" type="CreatureBehavior"/>
+    </xs:sequence>
+    <xs:attribute name="Name" type="xs:string" use="required"/>
+    <xs:attribute name="Import" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="CreatureCastable">
     <xs:simpleContent>
-      <xs:extension base="hyb:String8">
-        <xs:attribute name="Name" type="hyb:String8" use="required"/>
-        <xs:attribute name="MinDmg" type="xs:int" use="optional" default="0"/>
-        <xs:attribute name="MaxDmg" type="xs:int" use="optional" default="0"/>
-        <xs:attribute name="Element" type="hyb:Element" use="optional"/>
-        <xs:attribute name="Target" type="hyb:TargetType" use="required"/>
+      <xs:extension base="xs:string">
+        <xs:attribute name="Priority" type="hyb:CreatureAttackPriority" use="optional" default="HighThreat"/>
+        <xs:attribute name="HealthPercentage" type="xs:int" use="optional" default="-1"/>
+        <xs:attribute name="UseOnce" type="xs:boolean" use="optional" default="true"/>
       </xs:extension>
     </xs:simpleContent>
   </xs:complexType>
 
-  <xs:complexType name="SpawnCastableOffense">
+  <xs:complexType name="CreatureCastingSet">
     <xs:sequence>
-      <xs:element name="Castables" type="hyb:SpawnCastableList" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="Castable" minOccurs="0" maxOccurs="unbounded" type="CreatureCastable"/>
     </xs:sequence>
-    <xs:attribute name="Interval" type="xs:int" use="optional" default="15"/>
+    <xs:attribute name="Categories" type="xs:token" use="optional"/>
+    <xs:attribute name="Interval" type="xs:token" use="optional" default="15"/>
+    <xs:attribute name="Priority" type="hyb:CreatureAttackPriority" use="optional" default="HighThreat"/>
+    <xs:attribute name="HealthPercentage" type="xs:int" use="optional" default="0"/>
+    <xs:attribute name="Random" type="xs:boolean" use="optional" default="true"/>
   </xs:complexType>
-
-  <xs:complexType name="SpawnCastableDefense">
-    <xs:sequence>
-      <xs:element name="Castables" type="hyb:SpawnCastableList" minOccurs="1" maxOccurs="1"/>
-    </xs:sequence>
-    <xs:attribute name="Interval" type="xs:int" use="optional" default="15"/>
-  </xs:complexType>
-
-  <xs:complexType name="SpawnCastableNearDeath">
-    <xs:sequence>
-      <xs:element name="Castables" type="hyb:SpawnCastableList" minOccurs="1" maxOccurs="1"/>      
-    </xs:sequence>
-    <xs:attribute name="HealthPercent" type="xs:int" use="optional" default="20"/>
-    <xs:attribute name="Interval" type="xs:int" use="optional" default="15"/>
-  </xs:complexType>
-
-  <xs:complexType name="SpawnCastableOnDeath">
-    <xs:sequence>
-      <xs:element name="Castable" type="hyb:SpawnCastable" minOccurs="0" maxOccurs="unbounded"/>
-    </xs:sequence>
-  </xs:complexType>
-
-  <xs:complexType name="SpawnCastableList">
-    <xs:sequence>
-      <xs:element name="Castable" type="hyb:SpawnCastable" minOccurs="0" maxOccurs="unbounded"/>
-    </xs:sequence>
-  </xs:complexType>
-
-  <!-- List of castables a creature is allowed to use -->
-  <xs:complexType name="CastableGroup">
-    <xs:sequence>
-      <xs:element name="Offense" type="hyb:SpawnCastableOffense" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="Defense" type="hyb:SpawnCastableDefense" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="NearDeath" type="hyb:SpawnCastableNearDeath" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="OnDeath" type="hyb:SpawnCastableOnDeath" minOccurs="1" maxOccurs="1"/>
-    </xs:sequence>
-  </xs:complexType>
-
+                 
   <xs:complexType name="NpcRoleTrainCastable">
     <xs:attribute name="Type" type="hyb:String8"/>
     <xs:attribute name="Class" type="hyb:ClassList"/>

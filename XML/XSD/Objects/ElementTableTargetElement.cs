@@ -19,7 +19,7 @@ using System.Text;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 
-[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8")]
+[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.4084.0")]
 [Serializable]
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -27,18 +27,18 @@ using System.Collections.Generic;
 public partial class ElementTableTargetElement
 {
     #region Private fields
-    private Element _element;
+    private ElementType _element;
     private double _multiplier;
     private static XmlSerializer _serializer;
     #endregion
     
     public ElementTableTargetElement()
     {
-        _element = Element.None;
+        _element = ElementType.None;
     }
     
     [XmlAttribute]
-    public Element Element
+    public ElementType Element
     {
         get
         {

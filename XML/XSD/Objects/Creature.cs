@@ -19,7 +19,7 @@ using System.Text;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 
-[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8")]
+[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.4084.0")]
 [Serializable]
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -28,23 +28,23 @@ using System.Collections.Generic;
 public partial class Creature
 {
     #region Private fields
-    private string _name;
     private string _description;
+    private LootList _loot;
+    private CreatureHostilitySettings _hostility;
+    private List<CreatureCookie> _setCookies;
+    private List<Creature> _types;
+    private string _name;
     private ushort _sprite;
+    private string _behaviorSet;
+    private int _minDmg;
+    private int _maxDmg;
     private static XmlSerializer _serializer;
     #endregion
     
-    [StringLengthAttribute(255, MinimumLength=1)]
-    public string Name
+    public Creature()
     {
-        get
-        {
-            return _name;
-        }
-        set
-        {
-            _name = value;
-        }
+        _minDmg = 0;
+        _maxDmg = 0;
     }
     
     [StringLengthAttribute(255, MinimumLength=1)]
@@ -60,6 +60,69 @@ public partial class Creature
         }
     }
     
+    public LootList Loot
+    {
+        get
+        {
+            return _loot;
+        }
+        set
+        {
+            _loot = value;
+        }
+    }
+    
+    public CreatureHostilitySettings Hostility
+    {
+        get
+        {
+            return _hostility;
+        }
+        set
+        {
+            _hostility = value;
+        }
+    }
+    
+    [XmlArrayItemAttribute("Cookie", IsNullable=false)]
+    public List<CreatureCookie> SetCookies
+    {
+        get
+        {
+            return _setCookies;
+        }
+        set
+        {
+            _setCookies = value;
+        }
+    }
+    
+    [XmlArrayItemAttribute("Type", IsNullable=false)]
+    public List<Creature> Types
+    {
+        get
+        {
+            return _types;
+        }
+        set
+        {
+            _types = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string Name
+    {
+        get
+        {
+            return _name;
+        }
+        set
+        {
+            _name = value;
+        }
+    }
+    
     [XmlAttribute]
     public ushort Sprite
     {
@@ -70,6 +133,47 @@ public partial class Creature
         set
         {
             _sprite = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BehaviorSet
+    {
+        get
+        {
+            return _behaviorSet;
+        }
+        set
+        {
+            _behaviorSet = value;
+        }
+    }
+    
+    [XmlAttribute]
+    [DefaultValue(0)]
+    public int MinDmg
+    {
+        get
+        {
+            return _minDmg;
+        }
+        set
+        {
+            _minDmg = value;
+        }
+    }
+    
+    [XmlAttribute]
+    [DefaultValue(0)]
+    public int MaxDmg
+    {
+        get
+        {
+            return _maxDmg;
+        }
+        set
+        {
+            _maxDmg = value;
         }
     }
     

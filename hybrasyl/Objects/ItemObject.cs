@@ -126,7 +126,17 @@ namespace Hybrasyl.Objects
             return true;
         }
 
-        private Xml.Item Template => World.WorldData.Get<Xml.Item>(TemplateId);
+        private Xml.Item _template;
+
+        private Xml.Item Template
+        {
+            get
+            {
+                if (_template != null) return _template;
+                return World.WorldData.Get<Xml.Item>(TemplateId);
+            }
+            set { _template = value; }
+        }
 
         public new string Name => Template.Name;
 
@@ -186,7 +196,7 @@ namespace Hybrasyl.Objects
 
         public byte BodyStyle => Convert.ToByte(Template.Properties.Appearance.BodyStyle);
 
-        public Xml.Element Element => Template.Element;
+        public Xml.ElementType Element => Template.Element;
 
         public ushort MinLDamage => Template.MinLDamage;
         public ushort MaxLDamage => Template.MaxLDamage;
@@ -308,6 +318,13 @@ namespace Hybrasyl.Objects
             TemplateId = id;
             _durability = new Lockable<double>(MaximumDurability);
             _count = new Lockable<int>(1);
+        }
+
+        public ItemObject(Xml.Item template)
+        {
+            Template = template;
+            _count = new Lockable<int>(1);
+            _durability = new Lockable<double>(uint.MaxValue);
         }
 
         // Simple copy constructor for an ItemObject, mostly used when we split a stack and it results

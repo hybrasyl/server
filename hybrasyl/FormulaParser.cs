@@ -27,22 +27,27 @@ using Hybrasyl.Objects;
 namespace Hybrasyl
 {
 
-    internal class FormulaParser
+    // ungodly hack until we can go back and refactor this for real
+    public class FormulaEvaluation
     {
-        private Creature _caster;
-        private Xml.Castable _castable;
-        private Creature _target;
+        public Creature Caster { get; set; } = null;
+        public Xml.Castable Castable { get; set; } = null;
+        public Creature Target { get; set; } = null;
+        public Map Map { get; set; } = null;
+        public Monster Spawn { get; set; } = null;
+        public User User { get; set; } = null;
+        public double? Damage { get; set; } = null;
+        public Xml.Spawn XmlSpawn { get; set; } = null;
+        public Xml.SpawnGroup SpawnGroup { get; set; } = null;
+    }
+
+    // TODO: overhaul all of this
+    internal static class FormulaParser
+    {
         private static Random _rnd = new Random();
 
-        public FormulaParser(Creature caster, Xml.Castable castable, Creature target = null)
-        {
-            _caster = caster;
-            _castable = castable;
-            _target = target;
-        }
-
-        private string[] _operators = { "-", "+", "/", "*", "^" };
-        private Func<double, double, double>[] _operations = {
+        private static string[] _operators = { "-", "+", "/", "*", "^" };
+        private static Func<double, double, double>[] _operations = {
         (a1, a2) => a1 - a2,
         (a1, a2) => a1 + a2,
         (a1, a2) => a1 / a2,
@@ -50,14 +55,16 @@ namespace Hybrasyl
         (a1, a2) => Math.Pow(a1, a2)
         };
 
-        public double Eval(string expression)
+        public static double Eval(string expression, FormulaEvaluation eval)
         {
+            if (expression is null)
+                return 1.0;
             var tokens = GetTokens(expression);
             var operandStack = new Stack<double>();
             var operatorStack = new Stack<string>();
             var tokenIndex = 0;
 
-            MapTokens(ref tokens);
+            MapTokens(ref tokens, eval);
 
             while (tokenIndex < tokens.Count)
             {
@@ -65,7 +72,7 @@ namespace Hybrasyl
                 if (token == "(")
                 {
                     var subExpr = GetSubExpression(tokens, ref tokenIndex);
-                    operandStack.Push(Eval(subExpr));
+                    operandStack.Push(Eval(subExpr, eval));
                     continue;
                 }
                 if (token == ")")
@@ -100,9 +107,7 @@ namespace Hybrasyl
             return Math.Round(operandStack.Pop(), 0); //probably a better way to do this, however this is what we come up with for now.
         }
 
-
-
-        public List<string> GetTokens(string expression)
+        public static List<string> GetTokens(string expression)
         {
             var operators = "()^*/+-";
             var tokens = new List<string>();
@@ -131,7 +136,7 @@ namespace Hybrasyl
             return tokens;
         }
 
-        public string GetSubExpression(List<string> tokens, ref int index)
+        public static string GetSubExpression(List<string> tokens, ref int index)
         {
             var subExpr = new StringBuilder();
             var parenlevels = 1;
@@ -164,7 +169,7 @@ namespace Hybrasyl
             return subExpr.ToString();
         }
 
-        public bool MapTokens(ref List<string> tokens)
+        public static bool MapTokens(ref List<string> tokens, FormulaEvaluation eval)
         {
             for (var i = 0; i < tokens.Count; i++)
             {
@@ -174,110 +179,110 @@ namespace Hybrasyl
                     switch (s)
                     {
                         case "$CASTERSTR":
-                            tokens[i] = _caster.Stats.Str.ToString();
+                            tokens[i] = eval.Caster.Stats.Str.ToString();
                             break;
                         case "$CASTERINT":
-                            tokens[i] = _caster.Stats.Int.ToString();
+                            tokens[i] = eval.Caster.Stats.Int.ToString();
                             break;
                         case "$CASTERWIS":
-                            tokens[i] = _caster.Stats.Wis.ToString();
+                            tokens[i] = eval.Caster.Stats.Wis.ToString();
                             break;
                         case "$CASTERCON":
-                            tokens[i] = _caster.Stats.Con.ToString();
+                            tokens[i] = eval.Caster.Stats.Con.ToString();
                             break;
                         case "$CASTERDEX":
-                            tokens[i] = _caster.Stats.Dex.ToString();
+                            tokens[i] = eval.Caster.Stats.Dex.ToString();
                             break;
                         case "$CASTERDMG":
-                            tokens[i] = _caster.Stats.Dmg.ToString();
+                            tokens[i] = eval.Caster.Stats.Dmg.ToString();
                             break;
                         case "$CASTERHIT":
-                            tokens[i] = _caster.Stats.Hit.ToString();
+                            tokens[i] = eval.Caster.Stats.Hit.ToString();
                             break;
                         case "$CASTERMR":
-                            tokens[i] = _caster.Stats.Mr.ToString();
+                            tokens[i] = eval.Caster.Stats.Mr.ToString();
                             break;
                         case "$CASTERAC":
-                            tokens[i] = _caster.Stats.Ac.ToString();
+                            tokens[i] = eval.Caster.Stats.Ac.ToString();
                             break;
                         case "$CASTERHP":
-                            tokens[i] = _caster.Stats.Hp.ToString();
+                            tokens[i] = eval.Caster.Stats.Hp.ToString();
                             break;
                         case "$CASTERMP":
-                            tokens[i] = _caster.Stats.Mp.ToString();
+                            tokens[i] = eval.Caster.Stats.Mp.ToString();
                             break;
                         case "$CASTERLEVEL":
-                            tokens[i] = _caster.Stats.Level.ToString();
+                            tokens[i] = eval.Caster.Stats.Level.ToString();
                             break;
                         case "$CASTERAB":
-                            tokens[i] = _caster.Stats.Ability.ToString();
+                            tokens[i] = eval.Caster.Stats.Ability.ToString();
                             break;
                         case "$CASTERGOLD":
-                            tokens[i] = _caster.Gold.ToString();
+                            tokens[i] = eval.Caster.Gold.ToString();
                             break;
                         case "$CASTERBASESTR":
-                            tokens[i] = _caster.Stats.BaseStr.ToString();
+                            tokens[i] = eval.Caster.Stats.BaseStr.ToString();
                             break;
                         case "$CASTERBASEINT":
-                            tokens[i] = _caster.Stats.BaseInt.ToString();
+                            tokens[i] = eval.Caster.Stats.BaseInt.ToString();
                             break;
                         case "$CASTERBASEWIS":
-                            tokens[i] = _caster.Stats.BaseWis.ToString();
+                            tokens[i] = eval.Caster.Stats.BaseWis.ToString();
                             break;
                         case "$CASTERBASECON":
-                            tokens[i] = _caster.Stats.BaseCon.ToString();
+                            tokens[i] = eval.Caster.Stats.BaseCon.ToString();
                             break;
                         case "$CASTERBASEDEX":
-                            tokens[i] = _caster.Stats.BaseDex.ToString();
+                            tokens[i] = eval.Caster.Stats.BaseDex.ToString();
                             break;
                         case "$CASTERBASEHP":
-                            tokens[i] = _caster.Stats.BaseHp.ToString();
+                            tokens[i] = eval.Caster.Stats.BaseHp.ToString();
                             break;
                         case "$CASTERBASEMP":
-                            tokens[i] = _caster.Stats.BaseMp.ToString();
+                            tokens[i] = eval.Caster.Stats.BaseMp.ToString();
                             break;
                         case "$CASTERBONUSSTR":
-                            tokens[i] = _caster.Stats.BonusStr.ToString();
+                            tokens[i] = eval.Caster.Stats.BonusStr.ToString();
                             break;
                         case "$CASTERBONUSINT":
-                            tokens[i] = _caster.Stats.BonusInt.ToString();
+                            tokens[i] = eval.Caster.Stats.BonusInt.ToString();
                             break;
                         case "$CASTERBONUSWIS":
-                            tokens[i] = _caster.Stats.BonusWis.ToString();
+                            tokens[i] = eval.Caster.Stats.BonusWis.ToString();
                             break;
                         case "$CASTERBONUSCON":
-                            tokens[i] = _caster.Stats.BonusCon.ToString();
+                            tokens[i] = eval.Caster.Stats.BonusCon.ToString();
                             break;
                         case "$CASTERBONUSDEX":
-                            tokens[i] = _caster.Stats.BonusDex.ToString();
+                            tokens[i] = eval.Caster.Stats.BonusDex.ToString();
                             break;
                         case "$CASTERBONUSHP":
-                            tokens[i] = _caster.Stats.BonusHp.ToString();
+                            tokens[i] = eval.Caster.Stats.BonusHp.ToString();
                             break;
                         case "$CASTERBONUSMP":
-                            tokens[i] = _caster.Stats.BonusMp.ToString();
+                            tokens[i] = eval.Caster.Stats.BonusMp.ToString();
                             break;
                         case "$CASTERBONUSDMG":
-                            tokens[i] = _caster.Stats.BonusDmg.ToString();
+                            tokens[i] = eval.Caster.Stats.BonusDmg.ToString();
                             break;
                         case "$CASTERBONUSHIT":
-                            tokens[i] = _caster.Stats.BonusHit.ToString();
+                            tokens[i] = eval.Caster.Stats.BonusHit.ToString();
                             break;
                         case "$CASTERBONUSMR":
-                            tokens[i] = _caster.Stats.BonusMr.ToString();
+                            tokens[i] = eval.Caster.Stats.BonusMr.ToString();
                             break;
                         case "$CASTERBONUSAC":
-                            tokens[i] = _caster.Stats.BonusAc.ToString();
+                            tokens[i] = eval.Caster.Stats.BonusAc.ToString();
                             break;
                         case "$CASTERWEAPONDMG":
                             {
                                 var rand = new Random();
-                                if (_caster.Equipment.Weapon == null)
+                                if (eval.Caster.Equipment.Weapon == null)
                                     tokens[i] = "0";
                                 else
                                 {
-                                    var mindmg = (int)_caster.Equipment.Weapon.MinSDamage;
-                                    var maxdmg = (int)_caster.Equipment.Weapon.MaxSDamage;
+                                    var mindmg = (int)eval.Caster.Equipment.Weapon.MinSDamage;
+                                    var maxdmg = (int)eval.Caster.Equipment.Weapon.MaxSDamage;
                                     if (mindmg == 0) mindmg = 1;
                                     if (maxdmg == 0) maxdmg = 1;
                                     tokens[i] = rand.Next(mindmg, maxdmg + 1).ToString();
@@ -287,12 +292,12 @@ namespace Hybrasyl
                         case "$CASTERWEAPONSDMG":
                             {
                                 var rand = new Random();
-                                if (_caster.Equipment.Weapon == null)
+                                if (eval.Caster.Equipment.Weapon == null)
                                     tokens[i] = "0";
                                 else
                                 {
-                                    var mindmg = (int)_caster.Equipment.Weapon.MinSDamage;
-                                    var maxdmg = (int)_caster.Equipment.Weapon.MaxSDamage;
+                                    var mindmg = (int)eval.Caster.Equipment.Weapon.MinSDamage;
+                                    var maxdmg = (int)eval.Caster.Equipment.Weapon.MaxSDamage;
                                     if (mindmg == 0) mindmg = 1;
                                     if (maxdmg == 0) maxdmg = 1;
                                     tokens[i] = rand.Next(mindmg, maxdmg + 1).ToString();
@@ -301,23 +306,23 @@ namespace Hybrasyl
                             break;
                         case "$CASTERWEAPONSDMGMIN":
                             {
-                                tokens[i] = (_caster.Equipment.Weapon?.MinSDamage ?? '1').ToString();
+                                tokens[i] = (eval.Caster.Equipment.Weapon?.MinSDamage ?? '1').ToString();
                             }
                             break;
                         case "$CASTERWEAPONSDMGMAX":
                             {
-                                tokens[i] = (_caster.Equipment.Weapon?.MaxSDamage ?? '1').ToString();
+                                tokens[i] = (eval.Caster.Equipment.Weapon?.MaxSDamage ?? '1').ToString();
                             }
                             break;
                         case "$CASTERWEAPONLDMG":
                             {
                                 var rand = new Random();
-                                if (_caster.Equipment.Weapon == null)
+                                if (eval.Caster.Equipment.Weapon == null)
                                     tokens[i] = "0";
                                 else
                                 {
-                                    var mindmg = (int)_caster.Equipment.Weapon.MinLDamage;
-                                    var maxdmg = (int)_caster.Equipment.Weapon.MaxLDamage;
+                                    var mindmg = (int)eval.Caster.Equipment.Weapon.MinLDamage;
+                                    var maxdmg = (int)eval.Caster.Equipment.Weapon.MaxLDamage;
                                     if (mindmg == 0) mindmg = 1;
                                     if (maxdmg == 0) maxdmg = 1;
                                     tokens[i] = rand.Next(mindmg, maxdmg + 1).ToString();
@@ -326,12 +331,12 @@ namespace Hybrasyl
                             break;
                         case "$CASTERWEAPONLDMGMIN":
                             {
-                                tokens[i] = (_caster.Equipment.Weapon?.MinLDamage ?? '1').ToString();
+                                tokens[i] = (eval.Caster.Equipment.Weapon?.MinLDamage ?? '1').ToString();
                             }
                             break;
                         case "$CASTERWEAPONLDMGMAX":
                             {
-                                tokens[i] = (_caster.Equipment.Weapon?.MaxLDamage ?? '1').ToString();
+                                tokens[i] = (eval.Caster.Equipment.Weapon?.MaxLDamage ?? '1').ToString();
                             }
                             break;
                         case "$CASTABLELEVEL":
@@ -339,104 +344,146 @@ namespace Hybrasyl
                                 //this is temporary until castable.currentlevel is implemented.
                                 tokens[i] = "1"; 
                                 //if (_castable.Effects.CastableLevel == 0) tokens[i] = "1";
-                                //tokens[i] = _caster.CastableLevel.ToString();
+                                //tokens[i] = eval.Caster.CastableLevel.ToString();
                             }
                             break;
                         case "$TARGETSTR":
-                            tokens[i] = _target.Stats.Str.ToString();
+                            tokens[i] = eval.Target.Stats.Str.ToString();
                             break;
                         case "$TARGETINT":
-                            tokens[i] = _target.Stats.Int.ToString();
+                            tokens[i] = eval.Target.Stats.Int.ToString();
                             break;
                         case "$TARGETWIS":
-                            tokens[i] = _target.Stats.Wis.ToString();
+                            tokens[i] = eval.Target.Stats.Wis.ToString();
                             break;
                         case "$TARGETCON":
-                            tokens[i] = _target.Stats.Con.ToString();
+                            tokens[i] = eval.Target.Stats.Con.ToString();
                             break;
                         case "$TARGETDEX":
-                            tokens[i] = _target.Stats.Dex.ToString();
+                            tokens[i] = eval.Target.Stats.Dex.ToString();
                             break;
                         case "$TARGETDMG":
-                            tokens[i] = _target.Stats.Dmg.ToString();
+                            tokens[i] = eval.Target.Stats.Dmg.ToString();
                             break;
                         case "$TARGETHIT":
-                            tokens[i] = _target.Stats.Hit.ToString();
+                            tokens[i] = eval.Target.Stats.Hit.ToString();
                             break;
                         case "$TARGETMR":
-                            tokens[i] = _target.Stats.Mr.ToString();
+                            tokens[i] = eval.Target.Stats.Mr.ToString();
                             break;
                         case "$TARGETAC":
-                            tokens[i] = _target.Stats.Ac.ToString();
+                            tokens[i] = eval.Target.Stats.Ac.ToString();
                             break;
                         case "$TARGETHP":
-                            tokens[i] = _target.Stats.Hp.ToString();
+                            tokens[i] = eval.Target.Stats.Hp.ToString();
                             break;
                         case "$TARGETMP":
-                            tokens[i] = _target.Stats.Mp.ToString();
+                            tokens[i] = eval.Target.Stats.Mp.ToString();
                             break;
                         case "$TARGETLEVEL":
-                            tokens[i] = _target.Stats.Level.ToString();
+                            tokens[i] = eval.Target.Stats.Level.ToString();
                             break;
                         case "$TARGETAB":
-                            tokens[i] = _target.Stats.Ability.ToString();
+                            tokens[i] = eval.Target.Stats.Ability.ToString();
                             break;
                         case "$TARGETGOLD":
-                            tokens[i] = _target.Gold.ToString();
+                            tokens[i] = eval.Target.Gold.ToString();
                             break;
                         case "$TARGETBASESTR":
-                            tokens[i] = _target.Stats.BaseStr.ToString();
+                            tokens[i] = eval.Target.Stats.BaseStr.ToString();
                             break;
                         case "$TARGETBASEINT":
-                            tokens[i] = _target.Stats.BaseInt.ToString();
+                            tokens[i] = eval.Target.Stats.BaseInt.ToString();
                             break;
                         case "$TARGETBASEWIS":
-                            tokens[i] = _target.Stats.BaseWis.ToString();
+                            tokens[i] = eval.Target.Stats.BaseWis.ToString();
                             break;
                         case "$TARGETBASECON":
-                            tokens[i] = _target.Stats.BaseCon.ToString();
+                            tokens[i] = eval.Target.Stats.BaseCon.ToString();
                             break;
                         case "$TARGETBASEDEX":
-                            tokens[i] = _target.Stats.BaseDex.ToString();
+                            tokens[i] = eval.Target.Stats.BaseDex.ToString();
                             break;
                         case "$TARGETBASEHP":
-                            tokens[i] = _target.Stats.BaseHp.ToString();
+                            tokens[i] = eval.Target.Stats.BaseHp.ToString();
                             break;
                         case "$TARGETBASEMP":
-                            tokens[i] = _target.Stats.BaseMp.ToString();
+                            tokens[i] = eval.Target.Stats.BaseMp.ToString();
                             break;
                         case "$TARGETBONUSSTR":
-                            tokens[i] = _target.Stats.BonusStr.ToString();
+                            tokens[i] = eval.Target.Stats.BonusStr.ToString();
                             break;
                         case "$TARGETBONUSINT":
-                            tokens[i] = _target.Stats.BonusInt.ToString();
+                            tokens[i] = eval.Target.Stats.BonusInt.ToString();
                             break;
                         case "$TARGETBONUSWIS":
-                            tokens[i] = _target.Stats.BonusWis.ToString();
+                            tokens[i] = eval.Target.Stats.BonusWis.ToString();
                             break;
                         case "$TARGETBONUSCON":
-                            tokens[i] = _target.Stats.BonusCon.ToString();
+                            tokens[i] = eval.Target.Stats.BonusCon.ToString();
                             break;
                         case "$TARGETBONUSDEX":
-                            tokens[i] = _target.Stats.BonusDex.ToString();
+                            tokens[i] = eval.Target.Stats.BonusDex.ToString();
                             break;
                         case "$TARGETBONUSHP":
-                            tokens[i] = _target.Stats.BonusHp.ToString();
+                            tokens[i] = eval.Target.Stats.BonusHp.ToString();
                             break;
                         case "$TARGETBONUSMP":
-                            tokens[i] = _target.Stats.BonusMp.ToString();
+                            tokens[i] = eval.Target.Stats.BonusMp.ToString();
                             break;
                         case "$TARGETBONUSDMG":
-                            tokens[i] = _target.Stats.BonusDmg.ToString();
+                            tokens[i] = eval.Target.Stats.BonusDmg.ToString();
                             break;
                         case "$TARGETBONUSHIT":
-                            tokens[i] = _target.Stats.BonusHit.ToString();
+                            tokens[i] = eval.Target.Stats.BonusHit.ToString();
                             break;
                         case "$TARGETBONUSMR":
-                            tokens[i] = _target.Stats.BonusMr.ToString();
+                            tokens[i] = eval.Target.Stats.BonusMr.ToString();
                             break;
                         case "$TARGETBONUSAC":
-                            tokens[i] = _target.Stats.BonusAc.ToString();
+                            tokens[i] = eval.Target.Stats.BonusAc.ToString();
+                            break;
+                        case "$MAPBASELEVEL":
+                            tokens[i] = (eval.Map.SpawnDirectives?.BaseLevel ?? "1").ToString();
+                            break;
+                        case "$MAPTILES":
+                            tokens[i] = (eval.Map.X * eval.Map.Y).ToString();
+                            break;
+                        case "$MAPX":
+                            tokens[i] = eval.Map.X.ToString();
+                            break;
+                        case "$MAPY":
+                            tokens[i] = eval.Map.Y.ToString();
+                            break;
+                        case "$DAMAGE":
+                            tokens[i] = eval.Damage?.ToString() ?? "0";
+                            break;
+                        case "$USERCRIT":
+                            tokens[i] = eval.User.Stats.BaseCrit.ToString() ?? "0";
+                            break;
+                        case "$USERHIT":
+                            tokens[i] = eval.User.Stats.Hit.ToString() ?? "0";
+                            break;
+                        case "$USERMR":
+                            tokens[i] = eval.User.Stats.Mr.ToString() ?? "0";
+                            break;
+                        case "$USERHP":
+                            tokens[i] = eval.User.Stats.Hp.ToString() ?? "0";
+                            break;
+                        case "$USERMP":
+                            tokens[i] = eval.User.Stats.Hp.ToString() ?? "0";
+                            break;
+                        case "$SPAWNHP":
+                            tokens[i] = eval.Spawn.Stats.Hp.ToString() ?? "0";
+                            break;
+                        case "$SPAWNMP":
+                            tokens[i] = eval.Spawn.Stats.Mp.ToString() ?? "0";
+                            break;
+                        case "$SPAWNXP":
+                            tokens[i] = eval.Spawn.LootableXP.ToString() ?? "0";
+                            break;
+                        case "$RAND_5":
+                            tokens[i] = _rnd.Next(0, 5).ToString();
                             break;
                         case "$RAND_10":
                             tokens[i] = _rnd.Next(0, 11).ToString();
