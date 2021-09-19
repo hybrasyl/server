@@ -465,7 +465,7 @@ See _Spawns: SetCookies_. Similar to `Hostility`, `SetCookies` functions as "def
 
 ## Creatures
 
-Creatures have been expanded significantly to allow them to have butts.
+Creatures have been expanded significantly to allow them to define more base structures (which significantly reduces repetitiveness) and more complex settings.
 
 Creatures can have _subtypes_ that inherit characteristics from their base. For instance, a `Goblin Butler` might be a subtype of `Goblin`.
 
@@ -538,6 +538,8 @@ For example, we could define a `Goblin Butler` subtype:
 * Damage settings are also _most specific_. `MinDmg` / `MaxDmg` defined in a spawn will override any base settings.
 
 ## Formula Sets
+
+*NOTE: THIS IS A WORK IN PROGRESS AND IS NOT YET IMPLEMENTED*
 
 Formulas are expressible in XML, and are an attempt to remove most, if not all hardcoding in terms of damage, TNI calculations, etc. This allows these values to be changed and tuned easily without requiring code updates. They are defined in `formulas.xml` in the root of the world directory and follow a simple structure. The `Formulas` tag / `GameFormulas` type can define three types of formulas: `PlayerFormulas`, `MonsterFormulas` and `VendorFormulas`:
 
