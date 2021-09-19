@@ -646,12 +646,12 @@ namespace Hybrasyl
             for (byte i = 0; i < inventory.Size; i++)
             {
                 dynamic itemInfo = new JObject();
-                if (inventory[i] != null)
+                if (inventory[i,false] != null)
                 {
-                    itemInfo.Name = inventory[i].Name;
-                    itemInfo.Count = inventory[i].Count;
-                    itemInfo.Id = inventory[i].TemplateId;
-                    itemInfo.Durability = inventory[i].Durability;
+                    itemInfo.Name = inventory[i,false].Name;
+                    itemInfo.Count = inventory[i,false].Count;
+                    itemInfo.Id = inventory[i,false].TemplateId;
+                    itemInfo.Durability = inventory[i,false].Durability;
                     output[i] = itemInfo;
                 }               
             }
@@ -672,7 +672,7 @@ namespace Hybrasyl
                     //itmType = Game.World.WorldData.Values<Item>().Where(x => x.Name == (string)item.FirstOrDefault().Value).FirstOrDefault().Name;
                     if (Game.World.WorldData.TryGetValue<Xml.Item>(item.Id, out Xml.Item itemTemplate)) 
                     {
-                        inv[i] = new ItemObject(itemTemplate.Id, Game.World)
+                        inv[i,false] = new ItemObject(itemTemplate.Id, Game.World)
                         {
                             Count = item.Count ?? 1,
                             Durability = item.Durability ?? itemTemplate.Properties.Physical.Durability
@@ -848,11 +848,13 @@ namespace Hybrasyl
             Weight = newWeight;
         }
 
-        public ItemObject this[byte slot]
+        public ItemObject this[byte slot, bool client=true]
         {
             get
             {
-                var index = slot - 1;
+                var index = slot;
+                if (client)
+                    index--;
                 if (index < 0 || index >= Size)
                     return null;
                 return _itemsObject.Value[index];
@@ -861,7 +863,9 @@ namespace Hybrasyl
             {
                 lock (ContainerLock)
                 {
-                    int index = slot - 1;
+                    var index = slot;
+                    if (client)
+                        index--;
                     if (index < 0 || index >= Size)
                         return;
                     if (value == null)
