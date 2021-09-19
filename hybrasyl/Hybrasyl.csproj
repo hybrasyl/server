@@ -11,7 +11,7 @@
     <Company>Project Hybrasyl</Company>
     <Product>Hybrasyl Server</Product>
     <Description>Hybrasyl, a DOOMVAS v1 emulator</Description>
-    <Version>0.7.3</Version>
+    <Version>0.8.0</Version>
     <BuildDocFx Condition="'$(Configuration)'=='Debug' ">false</BuildDocFx>
   </PropertyGroup>
   

@@ -110,12 +110,19 @@ namespace Hybrasyl
 
                     if (login.IsLoggedIn)
                     {
-                        GameLog.InfoFormat("cid {0}: {1} logging on again, disconnecting previous connection",
-                            client.ConnectionId, name);
-                        client.LoginMessage("That character is already online. Please try again.", 3);
-                        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.LogoffUser, name));
-                        return;
+                        login.CurrentState = UserState.Disconnected;
+                        // Is the user actually in world?
+                        if (Game.World.TryGetActiveUser(login.Username, out _))
+                        {
+                            GameLog.InfoFormat("cid {0}: {1} logging on again, disconnecting previous connection",
+                                client.ConnectionId, name);
+                            client.LoginMessage("That character is already online. Please try again.", 3);
+                            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.LogoffUser, name));
+                            login.Save();
+                            return;
+                        }
                     }
+
                     // Make sure user can be deserialized without errors
                     if (!Game.World.WorldData.TryGetUser(name, out _))
                     {
