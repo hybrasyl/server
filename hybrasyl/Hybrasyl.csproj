@@ -14,8 +14,6 @@
     <Version>0.8.0</Version>
     <BuildDocFx Condition="'$(Configuration)'=='Debug' ">false</BuildDocFx>
   </PropertyGroup>
-
-
   
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <Optimize>false</Optimize>
@@ -49,20 +47,20 @@
     <PackageReference Include="App.Metrics.Reporting.GrafanaCloudHostedMetrics" Version="4.2.0" />
     <PackageReference Include="BCrypt.Net-Core" Version="1.6.0" />
     <PackageReference Include="Discord.Net.Webhook" Version="2.4.0" />
-    <PackageReference Include="docfx" Version="2.58.0" />
-    <PackageReference Include="docfx.console" Version="2.58.0">
+    <PackageReference Include="docfx" Version="2.58.4" />
+    <PackageReference Include="docfx.console" Version="2.58.4">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Google.Protobuf" Version="3.17.3" />
-    <PackageReference Include="Grpc" Version="2.38.1" />
-    <PackageReference Include="Grpc.Tools" Version="2.38.1">
+    <PackageReference Include="Google.Protobuf" Version="3.18.0" />
+    <PackageReference Include="Grpc" Version="2.40.0" />
+    <PackageReference Include="Grpc.Tools" Version="2.40.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="MoonSharp" Version="2.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-    <PackageReference Include="Sentry" Version="3.8.3" />
+    <PackageReference Include="Sentry" Version="3.9.2" />
     <PackageReference Include="Serilog" Version="2.10.0" />
     <PackageReference Include="Serilog.Enrichers.ExceptionData" Version="1.0.0" />
     <PackageReference Include="Serilog.Enrichers.Thread" Version="3.1.0" />
