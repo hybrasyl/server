@@ -5045,19 +5045,19 @@ namespace Hybrasyl.Objects
 
         public void SendInventory()
         {
-            for (byte i = 0; i < this.Inventory.Size; i++)
+            for (byte i = 0; i < Inventory.Size; i++)
             {
-                if (this.Inventory[i] != null)
+                if (Inventory[i, false] != null)
                 {
                     var x0F = new ServerPacket(0x0F);
-                    x0F.WriteByte(i);
-                    x0F.WriteUInt16((ushort)(Inventory[i].Sprite + 0x8000));
-                    x0F.WriteByte(Inventory[i].Color);
-                    x0F.WriteString8(Inventory[i].Name);
-                    x0F.WriteInt32(Inventory[i].Count);
-                    x0F.WriteBoolean(Inventory[i].Stackable);
-                    x0F.WriteUInt32(Inventory[i].MaximumDurability);
-                    x0F.WriteUInt32(Inventory[i].DisplayDurability);
+                    x0F.WriteByte((byte)(i+1));
+                    x0F.WriteUInt16((ushort)(Inventory[i,false].Sprite + 0x8000));
+                    x0F.WriteByte(Inventory[i,false].Color);
+                    x0F.WriteString8(Inventory[i,false].Name);
+                    x0F.WriteInt32(Inventory[i,false].Count);
+                    x0F.WriteBoolean(Inventory[i,false].Stackable);
+                    x0F.WriteUInt32(Inventory[i,false].MaximumDurability);
+                    x0F.WriteUInt32(Inventory[i,false].DisplayDurability);
                     Enqueue(x0F);
                 }
             }
