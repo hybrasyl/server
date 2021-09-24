@@ -185,7 +185,7 @@ namespace Hybrasyl
         public SimpleStatusEffect OnStartEffect { get; }
         public SimpleStatusEffect OnRemoveEffect { get; }
         public SimpleStatusEffect OnExpireEffect { get; }
-        public StatInfo BonusModifiers { get; set; }
+        public StatInfo BonusModifiers { get; set; } = new StatInfo();
 
         public bool Expired => (DateTime.Now - Start).TotalSeconds >= Duration;
         public double Elapsed => (DateTime.Now - Start).TotalSeconds;
@@ -300,20 +300,20 @@ namespace Hybrasyl
             {
                 Target.Stats.BonusStr -= (long)(BonusModifiers.BonusStr * Intensity);
                 Target.Stats.BonusInt -= (long)(BonusModifiers.BonusInt * Intensity);
-                Target.Stats.BonusWis -= (long)(BonusModifiers.BonusInt * Intensity);
-                Target.Stats.BonusCon -= (long)(BonusModifiers.BonusInt * Intensity);
-                Target.Stats.BonusDex -= (long)(BonusModifiers.BonusInt * Intensity);
-                Target.Stats.BonusHp -= (long)(BonusModifiers.BonusInt * Intensity);
-                Target.Stats.BonusMp -= (long)(BonusModifiers.BonusInt * Intensity);
-                Target.Stats.BonusHit -= (long)(BonusModifiers.BonusInt * Intensity);
-                Target.Stats.BonusDmg -= (long)(BonusModifiers.BonusInt * Intensity);
-                Target.Stats.BonusAc -= (long)(BonusModifiers.BonusInt * Intensity);
-                Target.Stats.BonusRegen -= (long)(BonusModifiers.BonusInt * Intensity);
-                Target.Stats.BonusMr -= (long)(BonusModifiers.BonusInt * Intensity);
-                Target.Stats.BonusDamageModifier -= (long)(BonusModifiers.BonusInt * Intensity);
-                Target.Stats.BonusHealModifier -= (long)(BonusModifiers.BonusInt * Intensity);
-                Target.Stats.BonusReflectChance -= (long)(BonusModifiers.BonusInt * Intensity);
-                Target.Stats.BonusReflectIntensity -= (long)(BonusModifiers.BonusInt * Intensity);
+                Target.Stats.BonusWis -= (long)(BonusModifiers.BonusWis * Intensity);
+                Target.Stats.BonusCon -= (long)(BonusModifiers.BonusCon * Intensity);
+                Target.Stats.BonusDex -= (long)(BonusModifiers.BonusDex * Intensity);
+                Target.Stats.BonusHp -= (long)(BonusModifiers.BonusHp * Intensity);
+                Target.Stats.BonusMp -= (long)(BonusModifiers.BonusMp * Intensity);
+                Target.Stats.BonusHit -= (long)(BonusModifiers.BonusHit * Intensity);
+                Target.Stats.BonusDmg -= (long)(BonusModifiers.BonusDmg * Intensity);
+                Target.Stats.BonusAc -= (long)(BonusModifiers.BonusAc * Intensity);
+                Target.Stats.BonusRegen -= (long)(BonusModifiers.BonusRegen * Intensity);
+                Target.Stats.BonusMr -= (long)(BonusModifiers.BonusMr * Intensity);
+                Target.Stats.BonusDamageModifier -= (long)(BonusModifiers.BonusDamageModifier * Intensity);
+                Target.Stats.BonusHealModifier -= (long)(BonusModifiers.BonusHealModifier * Intensity);
+                Target.Stats.BonusReflectChance -= (long)(BonusModifiers.BonusReflectChance * Intensity);
+                Target.Stats.BonusReflectIntensity -= (long)(BonusModifiers.BonusReflectIntensity * Intensity);
                 if (BonusModifiers.OffensiveElementOverride == Target.Stats.OffensiveElementOverride)
                     Target.Stats.OffensiveElementOverride = Xml.ElementType.None;
                 if (BonusModifiers.DefensiveElementOverride == Target.Stats.DefensiveElementOverride)
@@ -323,20 +323,20 @@ namespace Hybrasyl
             {
                 Target.Stats.BonusStr += (long)(BonusModifiers.BonusStr * Intensity);
                 Target.Stats.BonusInt += (long)(BonusModifiers.BonusInt * Intensity);
-                Target.Stats.BonusWis += (long)(BonusModifiers.BonusInt * Intensity);
-                Target.Stats.BonusCon += (long)(BonusModifiers.BonusInt * Intensity);
-                Target.Stats.BonusDex += (long)(BonusModifiers.BonusInt * Intensity);
-                Target.Stats.BonusHp += (long)(BonusModifiers.BonusInt * Intensity);
-                Target.Stats.BonusMp += (long)(BonusModifiers.BonusInt * Intensity);
-                Target.Stats.BonusHit += (long)(BonusModifiers.BonusInt * Intensity);
-                Target.Stats.BonusDmg += (long)(BonusModifiers.BonusInt * Intensity);
-                Target.Stats.BonusAc += (long)(BonusModifiers.BonusInt * Intensity);
-                Target.Stats.BonusRegen += (long)(BonusModifiers.BonusInt * Intensity);
-                Target.Stats.BonusMr += (long)(BonusModifiers.BonusInt * Intensity);
-                Target.Stats.BonusDamageModifier += (long)(BonusModifiers.BonusInt * Intensity);
-                Target.Stats.BonusHealModifier += (long)(BonusModifiers.BonusInt * Intensity);
-                Target.Stats.BonusReflectChance += (long)(BonusModifiers.BonusInt * Intensity);
-                Target.Stats.BonusReflectIntensity += (long)(BonusModifiers.BonusInt * Intensity);
+                Target.Stats.BonusWis += (long)(BonusModifiers.BonusWis * Intensity);
+                Target.Stats.BonusCon += (long)(BonusModifiers.BonusCon * Intensity);
+                Target.Stats.BonusDex += (long)(BonusModifiers.BonusDex * Intensity);
+                Target.Stats.BonusHp += (long)(BonusModifiers.BonusHp * Intensity);
+                Target.Stats.BonusMp += (long)(BonusModifiers.BonusMp * Intensity);
+                Target.Stats.BonusHit += (long)(BonusModifiers.BonusHit * Intensity);
+                Target.Stats.BonusDmg += (long)(BonusModifiers.BonusDmg * Intensity);
+                Target.Stats.BonusAc += (long)(BonusModifiers.BonusAc * Intensity);
+                Target.Stats.BonusRegen += (long)(BonusModifiers.BonusRegen * Intensity);
+                Target.Stats.BonusMr += (long)(BonusModifiers.BonusMr * Intensity);
+                Target.Stats.BonusDamageModifier += (long)(BonusModifiers.BonusDamageModifier * Intensity);
+                Target.Stats.BonusHealModifier += (long)(BonusModifiers.BonusHealModifier * Intensity);
+                Target.Stats.BonusReflectChance += (long)(BonusModifiers.BonusReflectChance * Intensity);
+                Target.Stats.BonusReflectIntensity += (long)(BonusModifiers.BonusReflectIntensity * Intensity);
                 Target.Stats.OffensiveElementOverride = BonusModifiers.OffensiveElementOverride;
                 Target.Stats.DefensiveElementOverride = BonusModifiers.DefensiveElementOverride;
             }
