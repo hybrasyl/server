@@ -906,6 +906,7 @@ namespace Hybrasyl.Objects
 
         public void Cast(BookSlot slot, Creature target)
         {
+            if (!Condition.CastingAllowed) return;
             UseCastable(slot.Castable, target);
             slot.LastCast = DateTime.Now;
             slot.UseCount++;
@@ -978,9 +979,11 @@ namespace Hybrasyl.Objects
             {
                 _actionQueue.TryDequeue(out var action);
                 if (action == MobAction.Attack)
+                    if (Condition.Frozen || Condition.Asleep) return;
                     Attack();
-                if (action == MobAction.Cast && Condition.CastingAllowed)
+                if (action == MobAction.Cast)
                 {
+                    if (!Condition.CastingAllowed) return;
                     var offensiveCast = GetNextOffenseCastable();
                     if (!offensiveCast.DoNotCast)
                     {
@@ -1006,7 +1009,8 @@ namespace Hybrasyl.Objects
                 }
                 if (action == MobAction.Move)
                 {
-                    if (!IsHostile && ShouldWander)
+                    if (!Condition.MovementAllowed) return;
+                    if ((!IsHostile && ShouldWander) || Condition.Blinded)
                     {
                         var which = _random.Next(0, 2); //turn or move
                         if (which == 0)
@@ -1030,7 +1034,7 @@ namespace Hybrasyl.Objects
                     else
                     {
                         if (ThreatInfo.HighestThreat == null) return;
-                        if (!Condition.Paralyzed && !Condition.Blinded)
+                        if (Condition.MovementAllowed)
                         {
                             if (CurrentPath == null || !AStarPathClear())
                             // If we don't have a current path to our threat target, OR if there is something in the way of
