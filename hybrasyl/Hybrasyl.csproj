@@ -4,14 +4,14 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
     <Authors>Project Hybrasyl contributors</Authors>
-    <Copyright>(C) 2019 ERISCO LLC</Copyright>
+    <Copyright>(C) ERISCO LLC</Copyright>
     <PackageLicenseExpression>AGPL-3.0-only</PackageLicenseExpression>
     <PackageProjectUrl>https://www.hybrasyl.com</PackageProjectUrl>
     <RepositoryUrl>https://github.com/hybrasyl/server</RepositoryUrl>
     <Company>Project Hybrasyl</Company>
     <Product>Hybrasyl Server</Product>
+    <VersionPrefix>0.8.0</VersionPrefix>
     <Description>Hybrasyl, a DOOMVAS v1 emulator</Description>
-    <Version>0.8.0</Version>
     <BuildDocFx Condition="'$(Configuration)'=='Debug' ">false</BuildDocFx>
   </PropertyGroup>
   
@@ -59,6 +59,10 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="MoonSharp" Version="2.0.0" />
+    <PackageReference Include="MSBuildGitHash" Version="2.0.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="NCalcSync" Version="2.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="Sentry" Version="3.9.2" />
@@ -137,6 +141,10 @@
       <DependentUpon>TextTemplate1.tt</DependentUpon>
     </Compile>
   </ItemGroup>
+
+  <PropertyGroup>
+    <MSBuildGitHashCommand>git rev-parse --short HEAD</MSBuildGitHashCommand>
+  </PropertyGroup>    
 
   <ItemGroup>
     <Content Include="RedisMigrations\Scripts\*.*">

@@ -374,6 +374,7 @@ namespace Hybrasyl
             }
 
         }
+
         /// <summary>
         /// A class to allow easy grabbing of assembly info; we use this in various places to
         /// display uniform version / copyright info.
@@ -413,8 +414,10 @@ namespace Hybrasyl
             {
                 get
                 {
-                    var attrs = Assembly.GetCustomAttributes<AssemblyMetadataAttribute>();
-                    return attrs.FirstOrDefault(a => a.Key == "GitHash")?.Value;
+                    var attr = Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+                    if (attr is not null)
+                        return attr.InformationalVersion.Split('+').Last();
+                    return "unknown";
                 }
             }
 

@@ -78,7 +78,6 @@ namespace Hybrasyl
         public static LoggingLevelSwitch LevelSwitch;
 
         public static DateTime StartDate { get; set; }
-        public static string GitCommit { get; private set; }
         public static string CommitLog { get; private set; }
 
         private static readonly CancellationTokenSource CancellationTokenSource = new CancellationTokenSource();
@@ -172,12 +171,6 @@ namespace Hybrasyl
                     return;
                 }
            }
-            // Retrieve git hash information, if present
-            string commit = (Assemblyinfo.GitHash ?? string.Empty).Split(';')[0];
-            if (!string.IsNullOrEmpty(commit))
-                GitCommit = commit;
-            else
-                GitCommit = "unknown";
 
             // Configure logging 
 
@@ -222,7 +215,7 @@ namespace Hybrasyl
                 return;
             }
 
-            Log.Information($"Hybrasyl {Assemblyinfo.Version} (commit {(string.IsNullOrEmpty(GitCommit) ? "unknown" : GitCommit)}) starting.");
+            Log.Information($"Hybrasyl {Assemblyinfo.Version} (commit {Assemblyinfo.GitHash} starting.");
             Log.Information("{Copyright} - this program is licensed under the GNU AGPL, version 3.", Assemblyinfo.Copyright);
 
 
@@ -343,7 +336,7 @@ namespace Hybrasyl
                     else
                     {
                         if (string.IsNullOrEmpty(Config.Motd))
-                            stipulationWriter.Write($"Welcome to Hybrasyl!\n\nThis is Hybrasyl (version {Assemblyinfo.Version}, commit {(string.IsNullOrEmpty(GitCommit) ? "unknown" : GitCommit)}).\n\nFor more information please visit http://www.hybrasyl.com");
+                            stipulationWriter.Write($"Welcome to Hybrasyl!\n\nThis is Hybrasyl (version {Assemblyinfo.Version}, commit {Assemblyinfo.GitHash}).\n\nFor more information please visit http://www.hybrasyl.com");
                         else
                             stipulationWriter.Write(Config.Motd);
                     }
@@ -473,7 +466,7 @@ namespace Hybrasyl
 
         private async static void CheckVersion()
         {
-            if (string.IsNullOrEmpty(GitCommit))
+            if (Assemblyinfo.GitHash == "unknown")
             {
                 GameLog.Error("Server update check skipped, git hash not found in assemblyinfo.");
                 return;
@@ -488,10 +481,10 @@ namespace Hybrasyl
                 var data = await content.ReadAsStringAsync();
                 var jsonobj = JObject.Parse(data);
                 var theirhash = jsonobj["commit"].ToString().ToLower();
-                if (theirhash != GitCommit)
+                if (theirhash != Assemblyinfo.GitHash)
                 {
                     GameLog.Warning("THIS VERSION OF HYBRASYL IS OUT OF DATE");
-                    GameLog.Warning($"You have {GitCommit} but {theirhash} is available as of {jsonobj["build_date"]}");
+                    GameLog.Warning($"You have {Assemblyinfo.GitHash} but {theirhash} is available as of {jsonobj["build_date"]}");
                     GameLog.Warning($"You can download the new version at https://www.hybrasyl.com/builds/ .");
                 }
                 else
@@ -506,7 +499,7 @@ namespace Hybrasyl
 
         private async static void GetCommitLog()
         {
-            if (string.IsNullOrEmpty(GitCommit))
+            if (Assemblyinfo.GitHash == "unknown")
             {
                 GameLog.Error("Git log fetch skipped, git hash not found in assemblyinfo.");
                 return;
@@ -516,7 +509,7 @@ namespace Hybrasyl
             {
                 using HttpClient client = new HttpClient();
                 client.DefaultRequestHeaders.Add("User-Agent", "Hybrasyl Server");
-                using HttpResponseMessage res = await client.GetAsync($"https://api.github.com/repos/hybrasyl/server/commits/{GitCommit}");
+                using HttpResponseMessage res = await client.GetAsync($"https://api.github.com/repos/hybrasyl/server/commits/{Assemblyinfo.GitHash}");
                 using HttpContent content = res.Content;
 
                 var data = await content.ReadAsStringAsync();
