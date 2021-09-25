@@ -19,7 +19,7 @@ using System.Text;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 
-[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8")]
+[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.4084.0")]
 [Serializable]
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -41,7 +41,7 @@ public partial class Castable
     private CastableMastery _mastery;
     private byte _icon;
     private Book _book;
-    private Element _element;
+    private ElementType _element;
     private byte _lines;
     private List<Class> _class;
     private int _cooldown;
@@ -62,7 +62,7 @@ public partial class Castable
         _castCosts = new List<CastCost>();
         _categories = new List<Category>();
         _descriptions = new List<Description>();
-        _element = Element.None;
+        _element = ElementType.None;
         _lines = ((byte)(0));
         _cooldown = 0;
         _isAssail = false;
@@ -234,7 +234,7 @@ public partial class Castable
     }
     
     [XmlAttribute]
-    public Element Element
+    public ElementType Element
     {
         get
         {

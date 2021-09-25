@@ -205,11 +205,6 @@ namespace Hybrasyl.Objects
         // from Lua later know who to "consult" for dialogs / etc.
         public VisibleObject LastAssociate { get; set; }
 
-        [JsonProperty]
-        private Dictionary<string, string> UserCookies { get; set; }
-        // These are SESSION ONLY, they persist until logout / disconnect
-        private Dictionary<string, string> UserSessionCookies { get; set; }
-
         public Exchange ActiveExchange { get; set; }
 
         public bool IsAvailableForExchange => Condition.NoFlags;
@@ -246,6 +241,43 @@ namespace Hybrasyl.Objects
             {
                 Xml.Nation theNation;
                 Nation = World.WorldData.TryGetValue(Citizenship, out theNation) ? theNation : World.DefaultNation;
+            }
+        }
+
+        public override void Say(string message, string from = "")
+        {
+            if (Map.AllowSpeaking)
+                base.Say(message, from);
+            else
+            {
+                if (World.WorldData.TryGetSocialEvent(this, out SocialEvent e))
+                {                 
+                    if (e.Speakers.Contains(Name) || e.Type != SocialEventType.Class)
+                    {
+                        base.Say(message, from);
+                        return;
+                    }
+                }
+                SendSystemMessage("You try to speak, but nothing happens.");
+            }
+        }
+
+        public override void Shout(string message, string from = "")
+        {
+            if (Map.AllowSpeaking)
+                base.Shout(message, from);
+            else
+            {
+                if (World.WorldData.TryGetSocialEvent(this, out SocialEvent e))
+                {
+                    if (e.Speakers.Contains(Name) || e.Type != SocialEventType.Class)
+                    {
+                        base.Say(message, from);
+                        return;
+                    }
+                }
+                else
+                   SendSystemMessage("You try to shout, but nothing happens.");
             }
         }
 
@@ -682,8 +714,6 @@ namespace Hybrasyl.Objects
             PortraitData = new byte[0];
             ProfileText = string.Empty;
             DialogState = new DialogState(this);
-            UserCookies = new Dictionary<string, string>();
-            UserSessionCookies = new Dictionary<string, string>();
             ClientSettings = new Dictionary<byte, bool>();
             Group = null;
             Flags = new Dictionary<string, bool>();
@@ -740,33 +770,34 @@ namespace Hybrasyl.Objects
             }
             else
             {
-                var absoluteLevel = (byte)Math.Abs(Stats.Level - mobLevel);
-                if (absoluteLevel > 3)
+                var difference = Stats.Level - mobLevel;
+                switch (difference)
                 {
-                    switch (absoluteLevel)
-                    {
-                        case 4:
-                            exp = (uint)Math.Ceiling(exp * .8);
-                            break;
-                        case 5:
-                            exp = (uint)Math.Ceiling(exp * .6);
-                            break;
-                        case 6:
-                            exp = (uint)Math.Ceiling(exp * .4);
-                            break;
-                        case 7:
-                            exp = (uint)Math.Ceiling(exp * .2);
-                            break;
-                        default:
-                            exp = 1;
-                            break;
-                    }
-                    GiveExperience(exp);
+                    case > 5:
+                        exp = 1;
+                        break;
+                    case 5:
+                        exp = (uint)Math.Ceiling(exp * 0.40);
+                        break;
+                    case 4:
+                        exp = (uint)Math.Ceiling(exp * 0.80);
+                        break;
+                    case -6:
+                        exp = (uint)Math.Ceiling(exp * 1.15);
+                        break;
+                    case -5:
+                        exp = (uint)Math.Ceiling(exp * 1.10);
+                        break;
+                    case -4:
+                        exp = (uint)Math.Ceiling(exp * 1.05);
+                        break;
+                    case < -7:
+                        exp = (uint)Math.Ceiling(exp * 1.20);
+                        break;
+                    default:
+                        break;
                 }
-                else
-                {
-                    GiveExperience(exp);
-                }
+                GiveExperience(exp);
             }
         }
 
@@ -774,7 +805,7 @@ namespace Hybrasyl.Objects
          * Provides experience directly to the user that will not be distributed to
          * other members of the group (for example, for finishing a part of a quest).
          */
-        public void GiveExperience(uint exp)
+            public void GiveExperience(uint exp)
         {
             Client.SendMessage($"{exp} experience!", MessageTypes.SYSTEM);
             if (Stats.Level == Constants.MAX_LEVEL || exp < ExpToLevel)
@@ -935,10 +966,10 @@ namespace Hybrasyl.Objects
             switch (toRemove.EquipmentSlot)
             {
                 case (byte)ItemSlots.Necklace:
-                    Stats.BaseOffensiveElement = Xml.Element.None;
+                    Stats.BaseOffensiveElement = Xml.ElementType.None;
                     break;
                 case (byte)ItemSlots.Waist:
-                    Stats.BaseDefensiveElement = Xml.Element.None;
+                    Stats.BaseDefensiveElement = Xml.ElementType.None;
                     break;
             }
         }
@@ -1053,7 +1084,7 @@ namespace Hybrasyl.Objects
             x15.WriteString8(Map.Name);
             Enqueue(x15);
 
-            if (Map.Music != 0xFF && Map.Music != CurrentMusicTrack) SendMusic(Map.Music);
+            if (Map.Music != 0xFF) SendMusic(Map.Music);
             if (!string.IsNullOrEmpty(Map.Message)) SendMessage(Map.Message, 18);
         }
 
@@ -1228,7 +1259,7 @@ namespace Hybrasyl.Objects
                 return;
             }
 
-            if (UseCastable(bookSlot.Castable, null, null, assailAttack))
+            if (UseCastable(bookSlot.Castable, null, assailAttack))
             {
                 if(bookSlot.UseCount != uint.MaxValue)
                     bookSlot.UseCount += 1;
@@ -1293,67 +1324,45 @@ namespace Hybrasyl.Objects
         /// </summary>
         /// <param name="castable">The castable that is being cast.</param>
         /// <returns>True or false depending on success.</returns>
-        public bool ProcessCastingCost(Xml.Castable castable, out string message)
+        public bool ProcessCastingCost(Xml.Castable castable, Creature target, out string message)
         {
+            var cost = NumberCruncher.CalculateCastCost(castable, target, this);
+            bool hasItemCost = true;
             message = string.Empty;
 
-            if (castable.CastCosts.Count == 0) return true;
+            if (cost.IsNoCost) return true;
 
-            var costs = castable.CastCosts.Where(e => e.Class.Contains(Class));
-
-            if (costs.Count() == 0)
-                costs = castable.CastCosts.Where(e => e.Class.Count == 0);
-
-            if (costs.Count() == 0)
-                return true;
-
-            uint reduceHp = 0;
-            uint reduceMp = 0;
-            bool hasItemCost = true;
-            var castcosts = costs.First();
-
-            // HP cost can be either a percentage (0.25) or a fixed amount (50)
-            if (castcosts.Stat?.Hp != null)
-                if (castcosts.Stat.Hp.Contains('.'))
-                    reduceHp = (uint) Math.Ceiling(Convert.ToDouble(castcosts.Stat.Hp) * Stats.MaximumHp);
-                else 
-                    reduceHp = Convert.ToUInt32(castcosts.Stat.Hp);
-            if (castcosts.Stat?.Mp != null)
-                if (castcosts.Stat.Mp.Contains('.'))
-                    reduceMp = (uint)Math.Ceiling(Convert.ToDouble(castcosts.Stat.Mp) * Stats.MaximumMp);
-                else
-                    reduceMp = Convert.ToUInt32(castcosts.Stat.Mp);
-
-            if (castcosts.Items != null)
+            if (cost.Items != null)
             {
-                foreach (var item in castcosts.Items)
+                foreach (var itemReq in cost.Items)
                 {
-                    if (!Inventory.Contains(item.Value, item.Quantity))
+                    if (!Inventory.Contains(itemReq.Item, itemReq.Quantity))
                         hasItemCost = false;
                 }
             }
 
             // Check that all requirements are met first. Note that a spell cannot be cast if its HP cost would result
             // in the caster's HP being reduced to zero.
-            if (reduceHp >= Stats.Hp)
+
+            if (cost.Hp >= Stats.Hp)
                 message = "You lack the required vitality.";
 
-            if (reduceMp > Stats.Mp)
+            if (cost.Mp > Stats.Mp)
                 message = "Your mana is too low.";
 
             if (!hasItemCost)
                 message = "You lack the required items.";
 
-            if (castcosts.Gold > Gold)
+            if (cost.Gold > Gold)
                 message = "You lack the required gold.";
 
             if (message != string.Empty)
                 return false;
 
-            if (reduceHp != 0) Stats.Hp -= reduceHp;
-            if (reduceMp != 0) Stats.Mp -= reduceMp;
-            if ((int)castcosts.Gold > 0 ) this.RemoveGold(new Gold(castcosts.Gold));
-            castcosts.Items?.ForEach(item => RemoveItem(item.Value, item.Quantity));
+            if (cost.Hp != 0) Stats.Hp -= cost.Hp;
+            if (cost.Mp != 0) Stats.Mp -= cost.Mp;
+            if ((int)cost.Gold > 0 ) RemoveGold(new Gold(cost.Gold));
+            cost.Items?.ForEach(itemReq => RemoveItem(itemReq.Item, itemReq.Quantity));
 
             UpdateAttributes(StatUpdateFlags.Current);
             return true;
@@ -1712,52 +1721,6 @@ namespace Hybrasyl.Objects
                 return 3; 
             }
         }
-
-        public void SetCookie(string cookieName, string value)
-        {
-            UserCookies[cookieName] = value;
-        }
-
-        public void SetSessionCookie(string cookieName, string value)
-        {
-            UserSessionCookies[cookieName] = value;
-        }
-
-        public IReadOnlyDictionary<string, string> GetCookies()
-        {
-            return UserCookies;
-        }
-        public IReadOnlyDictionary<string, string> GetSessionCookies()
-        {
-            return UserSessionCookies;
-        }
-
-        public string GetCookie(string cookieName)
-        {
-            string value;
-            if (UserCookies.TryGetValue(cookieName, out value))
-            {
-                return value;
-            }
-            return null;
-        }
-
-        public string GetSessionCookie(string cookieName)
-        {
-            string value;
-            if (UserSessionCookies.TryGetValue(cookieName, out value))
-            {
-                return value;
-            }
-            return null;
-        }
-
-        public bool HasCookie(string cookieName) => UserCookies.Keys.Contains(cookieName);
-        public bool HasSessionCookie(string cookieName) => UserSessionCookies.Keys.Contains(cookieName);
-
-        public bool DeleteCookie(string cookieName) => UserCookies.Remove(cookieName);
-        public bool DeleteSessionCookie(string cookieName) => UserSessionCookies.Remove(cookieName);
-
 
         public override void UpdateAttributes(StatUpdateFlags flags)
         {
@@ -2574,7 +2537,7 @@ namespace Hybrasyl.Objects
             UpdateAttributes(StatUpdateFlags.Current);
         }
 
-        public override void Damage(double damage, Xml.Element element = Xml.Element.None,
+        public override void Damage(double damage, Xml.ElementType element = Xml.ElementType.None,
             Xml.DamageType damageType = Xml.DamageType.Direct, Xml.DamageFlags damageFlags = Xml.DamageFlags.None, Creature attacker = null, bool onDeath = true)
         {
             if (Condition.Comatose || !Condition.Alive) return;
@@ -2676,7 +2639,7 @@ namespace Hybrasyl.Objects
         }
 
 
-        public override bool UseCastable(Xml.Castable castObject, Creature target = null, SpawnCastable spawnCastable = null, bool assailAttack = false)
+        public override bool UseCastable(Xml.Castable castObject, Creature target = null, bool assailAttack = false)
         {
             if(castObject.Intents[0].UseType == SpellUseType.Prompt)
             {
@@ -2685,7 +2648,7 @@ namespace Hybrasyl.Objects
             }
 
             // Check casting costs
-            if (!ProcessCastingCost(castObject, out string message))
+            if (!ProcessCastingCost(castObject, target, out string message))
             {
                 SendSystemMessage(message);
                 return false;
@@ -2887,13 +2850,15 @@ namespace Hybrasyl.Objects
 
         public void SendMusic(byte track)
         {
-            //CurrentMusicTrack = track;
+            if (CurrentMusicTrack == track) return;
 
-            //var x19 = new ServerPacket(0x19);
-            //x19.WriteByte(0xFF);
-            //x19.WriteByte(track);
-            //Enqueue(x19);
-        }
+            CurrentMusicTrack = track;
+
+            var x19 = new ServerPacket(0x19);
+            x19.WriteByte(0xFF);
+            x19.WriteByte(track);
+            Enqueue(x19);
+         }
 
         public void SendSound(byte sound)
         {
@@ -5080,19 +5045,19 @@ namespace Hybrasyl.Objects
 
         public void SendInventory()
         {
-            for (byte i = 0; i < this.Inventory.Size; i++)
+            for (byte i = 0; i < Inventory.Size; i++)
             {
-                if (this.Inventory[i] != null)
+                if (Inventory[i, false] != null)
                 {
                     var x0F = new ServerPacket(0x0F);
-                    x0F.WriteByte(i);
-                    x0F.WriteUInt16((ushort)(Inventory[i].Sprite + 0x8000));
-                    x0F.WriteByte(Inventory[i].Color);
-                    x0F.WriteString8(Inventory[i].Name);
-                    x0F.WriteInt32(Inventory[i].Count);
-                    x0F.WriteBoolean(Inventory[i].Stackable);
-                    x0F.WriteUInt32(Inventory[i].MaximumDurability);
-                    x0F.WriteUInt32(Inventory[i].DisplayDurability);
+                    x0F.WriteByte((byte)(i+1));
+                    x0F.WriteUInt16((ushort)(Inventory[i,false].Sprite + 0x8000));
+                    x0F.WriteByte(Inventory[i,false].Color);
+                    x0F.WriteString8(Inventory[i,false].Name);
+                    x0F.WriteInt32(Inventory[i,false].Count);
+                    x0F.WriteBoolean(Inventory[i,false].Stackable);
+                    x0F.WriteUInt32(Inventory[i,false].MaximumDurability);
+                    x0F.WriteUInt32(Inventory[i,false].DisplayDurability);
                     Enqueue(x0F);
                 }
             }

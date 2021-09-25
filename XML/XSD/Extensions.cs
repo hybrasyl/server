@@ -27,168 +27,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Xml;
 
-public static class EnumerableExtension
-{
-    public static T PickRandom<T>(this IEnumerable<T> source)
-    {
-        return source.PickRandom(1).Single();
-    }
-
-    public static IEnumerable<T> PickRandom<T>(this IEnumerable<T> source, int count)
-    {
-        return source.Shuffle().Take(count);
-    }
-
-    public static IEnumerable<T> Shuffle<T>(this IEnumerable<T> source)
-    {
-        return source.OrderBy(x => Guid.NewGuid());
-    }
-}
-
-namespace Hybrasyl.Xml
-{
-    public partial class Item
-    {
-        public static SHA256CryptoServiceProvider sha = new SHA256CryptoServiceProvider();
-        [XmlIgnore]
-        public bool IsVariant { get; set; }
-
-        [XmlIgnore]
-        public Item ParentItem { get; set; }
-
-        #region Accessors to provide defaults 
-        [XmlIgnore]
-        public bool Stackable
-        {
-            get
-            {
-                if (Properties.Stackable != null)
-                {
-                    return Properties.Stackable.Max != 1;
-                }
-                return false;
-            }
-        }
-
-        [XmlIgnore]
-        public int MaximumStack => Properties.Stackable?.Max ?? 0;
-
-        [XmlIgnore]
-        public byte Level => Properties.Restrictions?.Level?.Min ?? 1;
-
-        [XmlIgnore]
-        public byte Ability => Properties.Restrictions?.Ab?.Min ?? 0;
-
-        [XmlIgnore]
-        public Element Element
-        {
-            get
-            {
-                var off = Properties.StatModifiers?.Element?.Offense ?? Element.None;
-                var def = Properties.StatModifiers?.Element?.Defense ?? Element.None;
-                if (Properties.Equipment?.Slot == EquipmentSlot.Necklace)
-                    return off;
-                return def;
-            }
-        }
-
-        [XmlIgnore]
-        public bool Usable => Properties.Use != null;
-
-        [XmlIgnore]
-        public Use Use => Properties.Use;
-
-        [XmlIgnore]
-        public int BonusHP => Properties.StatModifiers?.Base?.Hp ?? 0;
-        [XmlIgnore]
-        public int BonusMP => Properties.StatModifiers?.Base?.Mp ?? 0;
-
-        [XmlIgnore]
-        public Class Class => Properties.Restrictions?.Class ?? Class.Peasant;
-        [XmlIgnore]
-        public Gender Gender => Properties.Restrictions?.Gender ?? Gender.Neutral;
-
-        [XmlIgnore]
-        public int BonusHp => Properties.StatModifiers?.@Base?.Hp ?? 0;
-        [XmlIgnore]
-        public int BonusMp => Properties.StatModifiers?.@Base?.Mp ?? 0;
-        [XmlIgnore]
-        public sbyte BonusStr => Properties.StatModifiers?.@Base?.Str ?? 0;
-        [XmlIgnore]
-        public sbyte BonusInt => Properties.StatModifiers?.@Base?.@Int ?? 0;
-        [XmlIgnore]
-        public sbyte BonusWis => Properties.StatModifiers?.@Base?.Wis ?? 0;
-        [XmlIgnore]
-        public sbyte BonusCon => Properties.StatModifiers?.@Base?.Con ?? 0;
-        [XmlIgnore]
-        public sbyte BonusDex => Properties.StatModifiers?.@Base?.Dex ?? 0;
-        [XmlIgnore]
-        public sbyte BonusDmg => Properties.StatModifiers?.Combat?.Dmg ?? 0;
-        [XmlIgnore]
-        public sbyte BonusHit => Properties.StatModifiers?.Combat?.Hit ?? 0;
-        [XmlIgnore]
-        public sbyte BonusAc => Properties.StatModifiers?.Combat?.Ac ?? 0;
-        [XmlIgnore]
-        public sbyte BonusMr => Properties.StatModifiers?.Combat?.Mr ?? 0;
-        [XmlIgnore]
-        public sbyte BonusRegen => Properties.StatModifiers?.Combat?.Regen ?? 0;
-
-        [XmlIgnore]
-        public ushort MinLDamage => Properties.Damage?.Large.Min ?? 0;
-        [XmlIgnore]
-        public ushort MaxLDamage => Properties.Damage?.Large.Max ?? 0;
-        [XmlIgnore]
-        public ushort MinSDamage => Properties.Damage?.Small.Min ?? 0;
-        [XmlIgnore]
-        public ushort MaxSDamage => Properties.Damage?.Small.Max ?? 0;
-
-        [XmlIgnore]
-        public Variant CurrentVariant { get; set; }
-
-        [XmlIgnore]
-        public sbyte Regen => Properties.StatModifiers?.Combat?.Regen ?? 0;
-        #endregion
-
-        [XmlIgnore]
-        public Dictionary<string, List<Item>> Variants { get; set; }
-
-        public string Id
-        {
-            get
-            {
-                var rawhash = $"{Name.Normalize()}:{Properties.Restrictions?.Gender.ToString().Normalize() ?? Gender.Neutral.ToString().Normalize()}";
-                var hash = sha.ComputeHash(Encoding.ASCII.GetBytes(rawhash));
-                return string.Concat(hash.Select(b => b.ToString("x2"))).Substring(0, 8);
-            }
-        }
-
-        public Item Clone()
-        {
-            MemoryStream ms = new MemoryStream();
-            BinaryFormatter bf = new BinaryFormatter();
-            bf.Serialize(ms, this);
-            ms.Position = 0;
-            object obj = bf.Deserialize(ms);
-            ms.Close();
-            return (Item)obj;
-        }
-
-        public Item RandomVariant(string variant)
-        {
-            if (Variants.ContainsKey(variant))
-            {
-                return Variants[variant].PickRandom();
-            }
-            return null;
-        }
-
-    }
-
-    public partial class VariantGroup
-    {
-        public Variant RandomVariant() => Variant.PickRandom();
-    }
-}
 
 namespace Hybrasyl.Xml
 {
@@ -226,18 +64,17 @@ namespace Hybrasyl.Xml
         }
     }
 
+    // For some reason xsd2code doesn't add this and it breaks spawngroup parsing
+    [XmlRootAttribute(Namespace = "http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
     public partial class SpawnGroup
     {
-        public int Id
-        {
-            get
-            {
-                unchecked
-                {
-                    return 31 * (Filename.GetHashCode() + 1);
-                }
-            }
-        }
+        public ushort MapId { get; set; } = 0;
+
+    }
+
+    public partial class Spawn
+    {
+        public DateTime LastSpawn { get; set; } = default;
     }
 
     public partial class LootSet
@@ -271,6 +108,9 @@ namespace Hybrasyl.Xml
 
         public DateTime LastCast { get; set; }
 
+        public bool IsSkill => Book == Book.PrimarySkill || Book == Book.SecondarySkill || Book == Book.UtilitySkill;
+        public bool IsSpell => Book == Book.PrimarySpell || Book == Book.SecondarySpell || Book == Book.UtilitySpell;
+
         public bool OnCooldown
         {
             get
@@ -303,17 +143,38 @@ namespace Hybrasyl.Xml
             return true;
         }
 
-        //public bool IntentTargets(IntentTarget type)
-        //{
-        //    foreach (var intent in Intents)
-        //    {
-        //        if (intent.Target.Contains(type))
-        //            return true;
-        //    }
-        //    return false;
-        //}
+        public List<string> CategoryList
+        {
+            get
+            {
+                if (Categories.Count > 0)
+                    return new List<string>();
+                else
+                    return Categories.Select(x => x.Value).ToList();
+            }    
+        }
 
-        
+    }
+
+    public class CastableComparer : IEqualityComparer<Castable>
+    {
+        public bool Equals(Castable c1, Castable c2)
+        {
+            if (c1 == null && c2 == null) return true;
+            if (c1 == null || c2 == null) return false;
+
+            if (c1.Name.Trim().ToLower() == c2.Name.Trim().ToLower() &&
+                c1.Book == c2.Book)
+                return true;
+
+            return false;
+        }
+
+        public int GetHashCode(Castable c)
+        {
+            string hCode = $"{c.Name.Trim().ToLower()}-{c.Book}";
+            return hCode.GetHashCode();
+        }
     }
 
     public partial class CastableIntent
@@ -452,41 +313,87 @@ namespace Hybrasyl.Xml
         }
     }
 }
+
+namespace Hybrasyl.Xml
+{
+    public partial class CreatureBehaviorSet
+    {
+        private List<string> skillCategories = null;
+        private List<string> spellCategories = null;
+
+        public List<string> LearnSkillCategories
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(Castables?.SkillCategories))
+                    skillCategories = new List<string>();
+                if (skillCategories == null)
+                {
+                    skillCategories = Castables.SkillCategories.Trim().ToLower().Split(" ").ToList();
+                }
+                return skillCategories;
+            }
+        }
+
+        public List<string> LearnSpellCategories
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(Castables?.SpellCategories))
+                    spellCategories = new List<string>();
+                if (spellCategories == null)
+                {
+                    spellCategories = Castables.SpellCategories.Trim().ToLower().Split(" ").ToList();
+                }
+                return spellCategories;
+            }
+        }
+
+        public List<CreatureCastable> OffensiveCastables => Behavior?.Casting?.Offense?.Castable == null ? new List<CreatureCastable>() : Behavior.Casting.Offense.Castable;
+        public List<CreatureCastable> DefensiveCastables => Behavior?.Casting?.Defense?.Castable == null ? new List<CreatureCastable>() : Behavior.Casting.Defense.Castable;
+        public List<CreatureCastable> OnDeathCastables => Behavior?.Casting?.OnDeath?.Castable == null ? new List<CreatureCastable>() : Behavior.Casting.OnDeath.Castable;
+        public List<CreatureCastable> NearDeathCastables => Behavior?.Casting?.NearDeath?.Castable == null ? new List<CreatureCastable>() : Behavior.Casting.NearDeath.Castable;
+        public bool CanCast => OffensiveCastables.Count > 0 || DefensiveCastables.Count > 0 || OnDeathCastables.Count > 0 || NearDeathCastables.Count > 0;
+    }
+}
+
 namespace Hybrasyl.Xml
 {
       
     public partial class Spawn
     {
-        protected Random Rng = new Random();
+        private static readonly Random Rng = new Random();
+        public bool Disabled { get; set; } = false;
+        public string ErrorMessage { get; set; } = string.Empty;
 
         /// <summary>
         /// Calculate a specific offensive element for a spawn from its list of elements.
         /// </summary>
         /// <returns>Element enum</returns>
-        public Element GetOffensiveElement()
+        public ElementType GetOffensiveElement()
         {
-            if (_damage.Element.Count > 1)
-                return _damage.Element[Rng.Next(_damage.Element.Count)];
-            else if (_damage.Element.Count == 1 && _damage.Element[0] != Xml.Element.Random)
-                return _damage.Element[0];
-
-            // Only deal with "base" elements for right now
-            return (Element)Rng.Next(1, 4);
+            if (_damage.Element == ElementType.Random)
+                return (ElementType)Rng.Next(1, 9);
+            else if (_damage.Element == ElementType.RandomFour)
+                return (ElementType)Rng.Next(1, 4);
+            else if (_damage.Element == ElementType.RandomEight)
+                return (ElementType)Rng.Next(5, 8);
+            return _damage.Element;
         }
 
         /// <summary>
         /// Calculate a specific defensive element for a spawn from its list of elements.
         /// </summary>
         /// <returns>Element enum</returns>
-        public Element GetDefensiveElement()
+        public ElementType GetDefensiveElement()
         {
-            if (_defense.Element.Count > 1)
-                return _defense.Element[Rng.Next(_defense.Element.Count)];
-            else if (_defense.Element.Count == 1 && _defense.Element[0] != Element.Random)
-                return _damage.Element[0];
-
-            // Only deal with "base" elements for right now
-            return (Element)Rng.Next(1, 4);
+            if (_defense.Element == ElementType.Random)
+                return (ElementType)Rng.Next(1, 9);
+            else if (_defense.Element == ElementType.RandomFour)
+                return (ElementType)Rng.Next(1, 4);
+            else if (_defense.Element == ElementType.RandomEight)
+                return (ElementType)Rng.Next(5, 8);
+            return _defense.Element;
         }
     }
     public partial class SpawnMap
@@ -644,7 +551,6 @@ namespace Hybrasyl.Xml
                 return ReservedNames.Contains(user.ToLower());
             return false;
         }
-
     }
 }
 

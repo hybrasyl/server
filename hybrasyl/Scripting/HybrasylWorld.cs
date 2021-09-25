@@ -408,8 +408,9 @@ namespace Hybrasyl.Scripting
         /// <returns></returns>
         public HybrasylSpawn NewSpawn(string creaturename, string spawnname)
         {
-            var spawn = new HybrasylSpawn(creaturename, spawnname);
-            return spawn;
+            //var spawn = new HybrasylSpawn(creaturename, spawnname);
+            //return spawn;
+            return null;
         }
 
         /// <summary>

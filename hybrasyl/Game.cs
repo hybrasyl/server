@@ -171,9 +171,9 @@ namespace Hybrasyl
                     Thread.Sleep(5000);
                     return;
                 }
-            }
+           }
             // Retrieve git hash information, if present
-            var commit = Assemblyinfo.GitHash.Split(';')[0];
+            string commit = (Assemblyinfo.GitHash ?? string.Empty).Split(';')[0];
             if (!string.IsNullOrEmpty(commit))
                 GitCommit = commit;
             else
@@ -258,10 +258,10 @@ namespace Hybrasyl
             try
             {
                 if (!string.IsNullOrEmpty(Config.ApiEndpoints.Sentry?.Url ?? null))
-                {
+                {   
                     Sentry = SentrySdk.Init(i =>
                     {
-                        i.Dsn = new Dsn(Config.ApiEndpoints.Sentry.Url);
+                        i.Dsn = Config.ApiEndpoints.Sentry.Url;
                         i.Environment = (env ?? "dev");
                     }
                     );
@@ -300,7 +300,7 @@ namespace Hybrasyl
                     
             if (!World.InitWorld())
             {
-                GameLog.Fatal("Hybrasyl cannot continue loading. A fatal error while initializing the world. Press any key to exit.");
+                GameLog.Fatal("Hybrasyl cannot continue loading. A fatal error occurred while initializing the world. Press any key to exit.");
                 Console.ReadKey();
                 Environment.Exit(1);
             }
@@ -466,7 +466,7 @@ namespace Hybrasyl
                 Thread.Sleep(5);
             }
             
-            Shutdown();
+            Shutdown(); 
             GrpcServer.ShutdownAsync().Wait();
 
         }

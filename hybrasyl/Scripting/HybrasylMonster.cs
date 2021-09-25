@@ -43,57 +43,75 @@ namespace Hybrasyl.Scripting
         {
             var s = "Monster Debug Info\n----------------------------\n\n";
 
-            //this is for debug only
+            ////this is for debug only
             s += $"Name: {Monster.Name} | Id: {Monster.Id}\n";
-            s += $"Level: {Monster.Stats.Level} Health: {Monster.Stats.Hp}/{Monster.Stats.MaximumHp}\n";
-            s += $"Damage: {Monster._spawn.Damage.Min}-{Monster._spawn.Damage.Max}\n";
-            s += $"Experience: {Monster._spawn.Loot.Xp}\n";
+            s += $"Level: {Monster.Stats.Level}  Health: {Monster.Stats.Hp}/{Monster.Stats.MaximumHp}  Mana: {Monster.Stats.Mp} / {Monster.Stats.MaximumMp}\n";
+            s += $"Stats: STR {Monster.Stats.Str} CON {Monster.Stats.Con} WIS {Monster.Stats.Wis} INT {Monster.Stats.Int} DEX {Monster.Stats.Dex}\n";
+            s += $"Experience: {Monster.LootableXP}\n\n";
             s += $"Castables:\n";
-            s += $"  Offense: ({Monster._spawn.Castables.Offense.Interval} second timer) \n";
-            foreach (var castable in Monster._spawn.Castables.Offense.Castables)
+
+            if (Monster.BehaviorSet?.Behavior?.Casting?.Offense != null)
             {
-                s += $"    {castable.Name}:\n";
-                s += $"      Damage: {castable.MinDmg}-{castable.MaxDmg}\n";
-                s += $"      Element: {castable.Element}\n";
-                s += $"      TargetType: {castable.Target.ToString()}\n";
+                s += $"  Offense: ({Monster.BehaviorSet.Behavior.Casting.Offense.Interval} second timer) \n";
+                foreach (var castable in Monster.BehaviorSet.OffensiveCastables)
+                {
+                    s += $"  {castable.Value}: {castable.HealthPercentage}% {castable.Priority} {castable.UseOnce}\n";
+                }
+                s += $"  Target Priority: {Monster.BehaviorSet.Behavior.Casting.Offense.Priority}\n";
             }
-            s += $"  Defense: ({Monster._spawn.Castables.Defense.Interval} second timer) \n";
-            foreach (var castable in Monster._spawn.Castables.Defense.Castables)
+            else
+                s += $"  Offense: undefined / null";
+
+            if (Monster.BehaviorSet?.Behavior?.Casting?.Defense != null)
             {
-                s += $"    {castable.Name}:\n";
-                s += $"      Damage: {castable.MinDmg}-{castable.MaxDmg}\n";
-                s += $"      Element: {castable.Element}\n";
-                s += $"      TargetType: {castable.Target.ToString()}\n";
+                s += $"  Defense: ({Monster.BehaviorSet.Behavior.Casting.Defense.Interval} second timer) \n";
+                foreach (var castable in Monster.BehaviorSet.DefensiveCastables)
+                {
+                    s += $"  {castable.Value}: {castable.HealthPercentage}% {castable.Priority} {castable.UseOnce} \n";
+                }
+                s += $"  Target: {Monster.BehaviorSet.Behavior.Casting.Defense.Priority} \n";
             }
-            s += $"  NearDeath: ({Monster._spawn.Castables.NearDeath.Interval} second timer) \n";
-            foreach (var castable in Monster._spawn.Castables.NearDeath.Castables)
+            else
+                s += $"  Defense: undefined / null";
+
+            if (Monster.BehaviorSet?.Behavior?.Casting?.NearDeath != null)
             {
-                s += $"    {castable.Name}:\n";
-                s += $"      Damage: {castable.MinDmg}-{castable.MaxDmg}\n";
-                s += $"      Element: {castable.Element}\n";
-                s += $"      TargetType: {castable.Target.ToString()}\n";
+                s += $"  NearDeath: ({Monster.BehaviorSet.Behavior.Casting.NearDeath.Interval} second timer) \n";
+                foreach (var castable in Monster.BehaviorSet.NearDeathCastables)
+                {
+                    s += $"  {castable.Value}: {castable.HealthPercentage}% {castable.Priority} {castable.UseOnce}\n";
+                }
+                s += $"  Target: {Monster.BehaviorSet.Behavior.Casting.NearDeath.Priority}  \n";
             }
-            s += $"  OnDeath:\n";
-            foreach (var castable in Monster._spawn.Castables.OnDeath)
+            else
+                s += $"  NearDeath: undefined / null";
+
+            if (Monster.BehaviorSet?.Behavior?.Casting?.OnDeath != null)
             {
-                s += $"    {castable.Name}:\n";
-                s += $"      Damage: {castable.MinDmg}-{castable.MaxDmg}\n";
-                s += $"      Element: {castable.Element}\n";
-                s += $"      TargetType: {castable.Target.ToString()}\n";
+                s += $"  OnDeath: ({Monster.BehaviorSet.Behavior.Casting.OnDeath.Interval} second timer) \n";
+                foreach (var castable in Monster.BehaviorSet.OnDeathCastables)
+                {
+                    s += $"  {castable.Value}: {castable.HealthPercentage}% {castable.Priority} {castable.UseOnce}\n";
+                }
+                s += $"  Target: {Monster.BehaviorSet.Behavior.Casting.OnDeath.Priority}  \n";
             }
+            else
+                s += $"  OnDeath: undefined / null";
+
             s += $"AbsoluteImmortal: {Monster.AbsoluteImmortal}\n";
             s += $"PhysicalImmortal: {Monster.PhysicalImmortal}\n";
             s += $"MagicalImmortal: {Monster.MagicalImmortal}\n";
             s += $"IsHostile: {Monster.IsHostile}\n";
             s += $"ShouldWander: {Monster.ShouldWander}\n";
-            //if (Monster.Target != 0) s += $"Target: {Monster.Target.Name}\n";
+
+            if (Monster.Target != null) s += $"Target: {Monster.Target.Name}\n";
             if (Monster.FirstHitter != null) s += $"FirstHitter: {Monster.FirstHitter.Name}\n";
-            //if (Monster.LastHitter != null) s += $"LastHitter: {Monster.LastHitter.Name}\n";
-            if (Monster.LastHitTime != null) s += $"LastHitTime: {Monster.LastHitTime}\n";
+            if (Monster.LastHitter != null) s += $"LastHitter: {Monster.LastHitter.Name}\n";
+            if (Monster.LastHitTime != default) s += $"LastHitTime: {Monster.LastHitTime}\n";
             if (Monster.ThreatInfo != null)
             {
                 s += $"ThreatInfo:\n";
-                foreach(var user in Monster.ThreatInfo.ThreatTable)
+                foreach (var user in Monster.ThreatInfo.ThreatTableByCreature)
                 {
                     s += $"Name: {user.Key.Name} | Threat: {user.Value}\n";
                 }

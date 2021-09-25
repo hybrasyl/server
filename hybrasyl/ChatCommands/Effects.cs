@@ -73,14 +73,14 @@ namespace Hybrasyl.ChatCommands
     class EffectCommand : ChatCommand
     {
         public new static string Command = "effect";
-        public new static string ArgumentText = "<byte effect>";
+        public new static string ArgumentText = "<ushort effect>";
         public new static string HelpText = "Displays the specified effect (animation).";
         public new static bool Privileged = true;
 
         public new static ChatCommandResult Run(User user, params string[] args)
         {
             short speed = 20;
-            if (byte.TryParse(args[0], out byte effect))
+            if (ushort.TryParse(args[0], out ushort effect))
             {
                 if (args.Length > 1)
                     short.TryParse(args[1], out speed);

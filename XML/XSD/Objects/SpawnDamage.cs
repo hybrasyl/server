@@ -19,7 +19,7 @@ using System.Text;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 
-[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8")]
+[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.4084.0")]
 [Serializable]
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -27,55 +27,45 @@ using System.Collections.Generic;
 public partial class SpawnDamage
 {
     #region Private fields
-    private int _min;
-    private int _max;
-    private List<Element> _element;
-    private DamageType _type;
-    private byte _dmg;
-    private byte _hit;
+    private string _minDmg;
+    private string _maxDmg;
+    private ElementType _element;
     private static XmlSerializer _serializer;
     #endregion
     
     public SpawnDamage()
     {
-        _element = new List<Element>();
-        _min = 0;
-        _max = 0;
-        _type = DamageType.Physical;
-        _dmg = ((byte)(0));
-        _hit = ((byte)(0));
+        _element = ElementType.None;
     }
     
     [XmlAttribute]
-    [DefaultValue(0)]
-    public int Min
+    public string MinDmg
     {
         get
         {
-            return _min;
+            return _minDmg;
         }
         set
         {
-            _min = value;
+            _minDmg = value;
         }
     }
     
     [XmlAttribute]
-    [DefaultValue(0)]
-    public int Max
+    public string MaxDmg
     {
         get
         {
-            return _max;
+            return _maxDmg;
         }
         set
         {
-            _max = value;
+            _maxDmg = value;
         }
     }
     
     [XmlAttribute]
-    public List<Element> Element
+    public ElementType Element
     {
         get
         {
@@ -84,48 +74,6 @@ public partial class SpawnDamage
         set
         {
             _element = value;
-        }
-    }
-    
-    [XmlAttribute]
-    [DefaultValue(DamageType.Physical)]
-    public DamageType Type
-    {
-        get
-        {
-            return _type;
-        }
-        set
-        {
-            _type = value;
-        }
-    }
-    
-    [XmlAttribute]
-    [DefaultValue(typeof(byte), "0")]
-    public byte Dmg
-    {
-        get
-        {
-            return _dmg;
-        }
-        set
-        {
-            _dmg = value;
-        }
-    }
-    
-    [XmlAttribute]
-    [DefaultValue(typeof(byte), "0")]
-    public byte Hit
-    {
-        get
-        {
-            return _hit;
-        }
-        set
-        {
-            _hit = value;
         }
     }
     

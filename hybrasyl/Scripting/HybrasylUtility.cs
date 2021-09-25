@@ -79,5 +79,38 @@ namespace Hybrasyl.Scripting
                 return 0;
             }
         }
+
+        /// <summary>
+        /// Calculate the number of minutes (float) between two Unix timestamps t1 and t2.
+        /// </summary>
+        /// <param name="t1">First timestamp</param>
+        /// <param name="t2">Second timestamp</param>
+        /// <returns></returns>
+        public static long MinutesBetweenUnixTimes(long t1, long t2) => ((t2 - t1) / 60);
+
+        /// <summary>
+        /// Calculate the number of hours (float) between two Unix timestamps represented as strings.
+        /// </summary>
+        /// <param name="t1">First timestamp</param>
+        /// <param name="t2">Second timestamp</param>
+        /// <returns></returns>
+        public static long MinutesBetweenUnixTimes(string t1, string t2)
+        {
+            if (string.IsNullOrEmpty(t1) || string.IsNullOrEmpty(t2))
+            {
+                GameLog.ScriptingError("MinutesBetweenUnixTimes: t1 (first argument) or t2 (second argument) was null or empty, returning 0");
+                return 0;
+            }
+            try
+            {
+                return (Convert.ToInt64(t2) - Convert.ToInt64(t1)) / 60;
+            }
+            catch (Exception e)
+            {
+                Game.ReportException(e);
+                GameLog.ScriptingError("MinutesBetweenUnixTimes: Exception occurred doing time conversion, returning 0 - {exception}", e);
+                return 0;
+            }
+        }
     }
 }

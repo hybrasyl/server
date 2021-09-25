@@ -185,6 +185,7 @@ namespace Hybrasyl
         public SimpleStatusEffect OnStartEffect { get; }
         public SimpleStatusEffect OnRemoveEffect { get; }
         public SimpleStatusEffect OnExpireEffect { get; }
+        public StatInfo BonusModifiers { get; set; } = new StatInfo();
 
         public bool Expired => (DateTime.Now - Start).TotalSeconds >= Duration;
         public double Elapsed => (DateTime.Now - Start).TotalSeconds;
@@ -217,6 +218,7 @@ namespace Hybrasyl
                 OnTickEffect = new SimpleStatusEffect(tick.Heal, tick.Damage);
                 OnRemoveEffect = new SimpleStatusEffect(end.Heal, end.Damage);
                 OnExpireEffect = new SimpleStatusEffect(expire.Heal, expire.Damage);
+                BonusModifiers = NumberCruncher.CalculateStatusModifiers(castable, xmlstatus.Effects.OnApply.StatModifiers, source, target);
             }
         }
 
@@ -247,7 +249,10 @@ namespace Hybrasyl
         private void ProcessSfx(Xml.ModifierEffect effect)
         {
             if (effect.Sound?.Id != 0)
-                User?.PlaySound(effect.Sound.Id);
+            {
+                (Target as User)?.PlaySound(effect.Sound.Id);
+                (Source as User)?.PlaySound(effect.Sound.Id);
+            }
             if (effect.Animations != null)
             {
                 if (effect.Animations?.Target?.Id != 0)
@@ -289,53 +294,51 @@ namespace Hybrasyl
                 Target.Condition.Conditions &= ~effect.Conditions.Unset;
         }
 
-        private void ProcessStatModifiers(Xml.StatModifiers effect, bool remove = false)
+        private void ProcessStatModifiers(bool remove = false)
         {
-            if (effect == null) return;
-
             if (remove)
             {
-                Target.Stats.BonusStr -= (long) Math.Ceiling(effect.Str * Intensity);
-                Target.Stats.BonusInt -= (long) Math.Ceiling(effect.Int * Intensity);
-                Target.Stats.BonusWis -= (long) Math.Ceiling(effect.Wis * Intensity);
-                Target.Stats.BonusCon -= (long) Math.Ceiling(effect.Con * Intensity);
-                Target.Stats.BonusDex -= (long) Math.Ceiling(effect.Dex * Intensity);
-                Target.Stats.BonusHp -= (long) Math.Ceiling(effect.Hp * Intensity);
-                Target.Stats.BonusMp -= (long) Math.Ceiling(effect.Mp * Intensity);
-                Target.Stats.BonusHit -= (long) Math.Ceiling(effect.Hit * Intensity);
-                Target.Stats.BonusDmg -= (long) Math.Ceiling(effect.Dmg * Intensity);
-                Target.Stats.BonusAc -= (long) Math.Ceiling(effect.Ac * Intensity);
-                Target.Stats.BonusRegen -= (long )Math.Ceiling(effect.Regen * Intensity);
-                Target.Stats.BonusMr -= (long)Math.Ceiling(effect.Mr * Intensity);
-                Target.Stats.BonusDamageModifier -= effect.DamageModifier * Intensity;
-                Target.Stats.BonusHealModifier -= effect.HealModifier * Intensity;
-                Target.Stats.BonusReflectChance -= effect.ReflectChance * Intensity;
-                Target.Stats.BonusReflectIntensity -= effect.ReflectIntensity * Intensity;
-                if (effect.OffensiveElement == Target.Stats.OffensiveElementOverride)
-                    Target.Stats.OffensiveElementOverride = Xml.Element.None;
-                if (effect.DefensiveElement == Target.Stats.DefensiveElementOverride)
-                    Target.Stats.DefensiveElementOverride = Xml.Element.None;
+                Target.Stats.BonusStr -= (long)(BonusModifiers.BonusStr * Intensity);
+                Target.Stats.BonusInt -= (long)(BonusModifiers.BonusInt * Intensity);
+                Target.Stats.BonusWis -= (long)(BonusModifiers.BonusWis * Intensity);
+                Target.Stats.BonusCon -= (long)(BonusModifiers.BonusCon * Intensity);
+                Target.Stats.BonusDex -= (long)(BonusModifiers.BonusDex * Intensity);
+                Target.Stats.BonusHp -= (long)(BonusModifiers.BonusHp * Intensity);
+                Target.Stats.BonusMp -= (long)(BonusModifiers.BonusMp * Intensity);
+                Target.Stats.BonusHit -= (long)(BonusModifiers.BonusHit * Intensity);
+                Target.Stats.BonusDmg -= (long)(BonusModifiers.BonusDmg * Intensity);
+                Target.Stats.BonusAc -= (long)(BonusModifiers.BonusAc * Intensity);
+                Target.Stats.BonusRegen -= (long)(BonusModifiers.BonusRegen * Intensity);
+                Target.Stats.BonusMr -= (long)(BonusModifiers.BonusMr * Intensity);
+                Target.Stats.BonusDamageModifier -= (long)(BonusModifiers.BonusDamageModifier * Intensity);
+                Target.Stats.BonusHealModifier -= (long)(BonusModifiers.BonusHealModifier * Intensity);
+                Target.Stats.BonusReflectChance -= (long)(BonusModifiers.BonusReflectChance * Intensity);
+                Target.Stats.BonusReflectIntensity -= (long)(BonusModifiers.BonusReflectIntensity * Intensity);
+                if (BonusModifiers.OffensiveElementOverride == Target.Stats.OffensiveElementOverride)
+                    Target.Stats.OffensiveElementOverride = Xml.ElementType.None;
+                if (BonusModifiers.DefensiveElementOverride == Target.Stats.DefensiveElementOverride)
+                    Target.Stats.DefensiveElementOverride = Xml.ElementType.None;
             }
             else
             {
-                Target.Stats.BonusStr += (long) Math.Ceiling(effect.Str * Intensity);
-                Target.Stats.BonusInt += (long) Math.Ceiling(effect.Int * Intensity);
-                Target.Stats.BonusWis += (long) Math.Ceiling(effect.Wis * Intensity);
-                Target.Stats.BonusCon += (long) Math.Ceiling(effect.Con * Intensity);
-                Target.Stats.BonusDex += (long) Math.Ceiling(effect.Dex * Intensity);
-                Target.Stats.BonusHp += (long) Math.Ceiling(effect.Hp * Intensity);
-                Target.Stats.BonusMp += (long) Math.Ceiling(effect.Mp * Intensity);
-                Target.Stats.BonusHit += (long) Math.Ceiling(effect.Hit * Intensity);
-                Target.Stats.BonusDmg += (long) Math.Ceiling(effect.Dmg * Intensity);
-                Target.Stats.BonusAc += (long) Math.Ceiling(effect.Ac * Intensity);
-                Target.Stats.BonusRegen += (long) Math.Ceiling(effect.Regen * Intensity);
-                Target.Stats.BonusMr += (long)Math.Ceiling(effect.Mr * Intensity);
-                Target.Stats.BonusDamageModifier += effect.DamageModifier * Intensity;
-                Target.Stats.BonusHealModifier += effect.HealModifier * Intensity;
-                Target.Stats.BonusReflectChance += effect.ReflectChance * Intensity;
-                Target.Stats.BonusReflectIntensity += effect.ReflectIntensity * Intensity;
-                Target.Stats.OffensiveElementOverride = effect.OffensiveElement;
-                Target.Stats.DefensiveElementOverride = effect.OffensiveElement;
+                Target.Stats.BonusStr += (long)(BonusModifiers.BonusStr * Intensity);
+                Target.Stats.BonusInt += (long)(BonusModifiers.BonusInt * Intensity);
+                Target.Stats.BonusWis += (long)(BonusModifiers.BonusWis * Intensity);
+                Target.Stats.BonusCon += (long)(BonusModifiers.BonusCon * Intensity);
+                Target.Stats.BonusDex += (long)(BonusModifiers.BonusDex * Intensity);
+                Target.Stats.BonusHp += (long)(BonusModifiers.BonusHp * Intensity);
+                Target.Stats.BonusMp += (long)(BonusModifiers.BonusMp * Intensity);
+                Target.Stats.BonusHit += (long)(BonusModifiers.BonusHit * Intensity);
+                Target.Stats.BonusDmg += (long)(BonusModifiers.BonusDmg * Intensity);
+                Target.Stats.BonusAc += (long)(BonusModifiers.BonusAc * Intensity);
+                Target.Stats.BonusRegen += (long)(BonusModifiers.BonusRegen * Intensity);
+                Target.Stats.BonusMr += (long)(BonusModifiers.BonusMr * Intensity);
+                Target.Stats.BonusDamageModifier += (long)(BonusModifiers.BonusDamageModifier * Intensity);
+                Target.Stats.BonusHealModifier += (long)(BonusModifiers.BonusHealModifier * Intensity);
+                Target.Stats.BonusReflectChance += (long)(BonusModifiers.BonusReflectChance * Intensity);
+                Target.Stats.BonusReflectIntensity += (long)(BonusModifiers.BonusReflectIntensity * Intensity);
+                Target.Stats.OffensiveElementOverride = BonusModifiers.OffensiveElementOverride;
+                Target.Stats.DefensiveElementOverride = BonusModifiers.DefensiveElementOverride;
             }
         }
 
@@ -367,7 +370,7 @@ namespace Hybrasyl
         {
             // Stat modifiers and condition changes are only processed during start/remove
             ProcessConditions(effect);
-            ProcessStatModifiers(XmlStatus.Effects?.OnApply?.StatModifiers, RemoveStatBonuses);
+            ProcessStatModifiers(RemoveStatBonuses);
             if (displaySfx)
                 ProcessSfx(effect);
         }

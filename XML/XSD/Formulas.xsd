@@ -1,0 +1,93 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xs:schema
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    targetNamespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02"
+    xmlns:hyb="http://www.hybrasyl.com/XML/Hybrasyl/2020-02"
+    xmlns="http://www.hybrasyl.com/XML/Hybrasyl/2020-02"
+    elementFormDefault="qualified">
+  <xs:annotation>
+    <xs:documentation xml:lang="en">
+      This file is part of Project Hybrasyl.
+
+      (C) 2020 ERISCO, LLC. All rights reserved.
+    </xs:documentation>
+  </xs:annotation>
+
+  <!--  Formula "affect" targets. How should the formula be interpreted?
+        This is intended for future use, right now nothing else is coded in. -->
+  <xs:simpleType name="FormulaTarget">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="Damage" />
+      <xs:enumeration value="BonusCritChance"/>
+      <xs:enumeration value="BaseCritChance"/>
+      <xs:enumeration value="Hit"/>
+      <xs:enumeration value="MagicResistance"/>
+      <xs:enumeration value="XpToNextLevel"/>
+      <xs:enumeration value="HpGainPerLevel"/>
+      <xs:enumeration value="MpGainPerLevel"/>
+      <xs:enumeration value="ToNextLevel"/>
+      <xs:enumeration value="ArmorClassEffect"/>
+      <xs:enumeration value="Hp"/>
+      <xs:enumeration value="Xp"/>
+      <xs:enumeration value="Mp"/>
+      <xs:enumeration value="Regen"/>
+      <xs:enumeration value="ItemSellDiscount"/>
+      <xs:enumeration value="DepositCost"/>
+      <xs:enumeration value="RepairCost"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:complexType name="GameFormulas">
+    <xs:sequence>
+      <xs:element name="Player" type="Formulas" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Monster" type="MonsterFormulas" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Vendor" type="Formulas" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="MonsterFormulas">
+    <xs:sequence>
+      <xs:element name="FormulaSet" type="MonsterFormulaSet" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="MonsterFormulaSet">
+    <xs:sequence>
+      <xs:element name="Formula" type="Formula" minOccurs="0" maxOccurs="unbounded"></xs:element>
+    </xs:sequence>
+    <xs:attribute name="Name" type="xs:token" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="PlayerFormulas">
+    <xs:sequence>
+      <xs:element name="Formula" type="PlayerFormula" minOccurs="0" maxOccurs="unbounded"></xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="PlayerFormula">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="Target" type="FormulaTarget" use="required"/>
+        <xs:attribute name="Class" type="hyb:Class" use="optional" default="None"/>
+        <xs:attribute name="Interval" type="xs:int" use="optional" default="0"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+  
+  <xs:complexType name="Formulas">
+    <xs:sequence>
+      <xs:element name="Formula" type="Formula" minOccurs="0" maxOccurs="unbounded"></xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="Formula">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="Target" type="FormulaTarget" use="required"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:element name="Formulas" type="GameFormulas"/>
+
+</xs:schema>

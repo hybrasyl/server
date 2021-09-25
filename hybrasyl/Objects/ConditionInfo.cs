@@ -47,10 +47,19 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                var conditionCheck = Asleep || Frozen || Paralyzed || Comatose;
+                var conditionCheck = Asleep || Frozen || Comatose;
 
                 if (User != null)
                     conditionCheck = conditionCheck || Flags.HasFlag(PlayerFlags.ProhibitCast);
+                return !conditionCheck;
+            }
+        }
+
+        public bool MovementAllowed
+        {
+            get
+            {
+                var conditionCheck = Asleep || Frozen || Paralyzed || Comatose;
                 return !conditionCheck;
             }
         }

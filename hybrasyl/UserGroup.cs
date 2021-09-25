@@ -49,6 +49,8 @@ namespace Hybrasyl
 
         private object _lock = new object();
 
+        public byte AverageLevel => (byte) Math.Ceiling(Members.Average(x => x.Stats.Level));
+
         public UserGroup(User founder)
         {
             Founder = founder;
@@ -168,41 +170,51 @@ namespace Hybrasyl
             return inRange.Intersect(Members).ToList();
         }
 
+        private uint ScaleExperience(uint exp, byte mobLevel)
+        {
+            var difference = AverageLevel - mobLevel;
+            switch (difference)
+            {
+                case > 5:
+                    exp = 1;
+                    break;
+                case 5:
+                    exp = (uint)Math.Ceiling(exp * 0.40);
+                    break;
+                case 4:
+                    exp = (uint)Math.Ceiling(exp * 0.80);
+                    break;
+                case -6:
+                    exp = (uint)Math.Ceiling(exp * 1.15);
+                    break;
+                case -5:
+                    exp = (uint)Math.Ceiling(exp * 1.10);
+                    break;
+                case -4:
+                    exp = (uint)Math.Ceiling(exp * 1.05);
+                    break;
+                case < -7:
+                    exp = (uint)Math.Ceiling(exp * 1.20);
+                    break;
+                default:
+                    break;
+            }
+            return exp;
+        }
+
         /**
          * Distribute a pool of experience across members of the group.
          */
 
-        public void ShareExperience(User source, uint experience, byte mobLevel)
+        public void ShareExperience(User source, uint exp, byte mobLevel)
         {
-            Dictionary<uint, uint> share = ExperienceDistributionFunc(source, experience);
+            Dictionary<uint, uint> share = ExperienceDistributionFunc(source, exp);
             var inRange = MembersWithinRange(source);
-
+            var difference = AverageLevel - mobLevel;
             for (int i = 0; i < inRange.Count; i++)
             {
-                var absoluteLevel = (byte)Math.Abs(inRange[i].Stats.Level - mobLevel);
-                if (absoluteLevel > 3)
-                {
-                    switch (absoluteLevel)
-                    {
-                        case 4:
-                            share[inRange[i].Id] = (uint)Math.Ceiling(share[inRange[i].Id] * .8);
-                            break;
-                        case 5:
-                            share[inRange[i].Id] = (uint)Math.Ceiling(share[inRange[i].Id] * .6);
-                            break;
-                        case 6:
-                            share[inRange[i].Id] = (uint)Math.Ceiling(share[inRange[i].Id] * .4);
-                            break;
-                        case 7:
-                            share[inRange[i].Id] = (uint)Math.Ceiling(share[inRange[i].Id] * .2);
-                            break;
-                        default:
-                            share[inRange[i].Id] = 1;
-                            break;
-                    }
-                }
                 // Note: this will only work for positive numbers at this point.
-                inRange[i].GiveExperience(share[inRange[i].Id]);
+                inRange[i].GiveExperience(ScaleExperience(share[inRange[i].Id],  mobLevel));
             }
         }
 
