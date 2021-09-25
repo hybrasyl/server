@@ -19,7 +19,7 @@ using System.Text;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 
-[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8")]
+[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.4084.0")]
 [Serializable]
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -39,10 +39,12 @@ public partial class StatModifiers
     private sbyte _ac;
     private sbyte _regen;
     private sbyte _mr;
-    private Element _offensiveElement;
-    private Element _defensiveElement;
-    private float _damageModifier;
-    private float _healModifier;
+    private ElementType _offensiveElement;
+    private ElementType _defensiveElement;
+    private float _inboundDamageModifier;
+    private float _outboundDamageModifier;
+    private float _inboundModifier;
+    private float _outboundModifier;
     private DamageType _damageType;
     private float _reflectChance;
     private float _reflectIntensity;
@@ -63,8 +65,8 @@ public partial class StatModifiers
         _ac = ((sbyte)(0));
         _regen = ((sbyte)(0));
         _mr = ((sbyte)(0));
-        _offensiveElement = Element.None;
-        _defensiveElement = Element.None;
+        _offensiveElement = ElementType.None;
+        _defensiveElement = ElementType.None;
     }
     
     [XmlAttribute]
@@ -236,7 +238,7 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
-    public Element OffensiveElement
+    public ElementType OffensiveElement
     {
         get
         {
@@ -249,7 +251,7 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
-    public Element DefensiveElement
+    public ElementType DefensiveElement
     {
         get
         {
@@ -262,28 +264,54 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
-    public float DamageModifier
+    public float InboundDamageModifier
     {
         get
         {
-            return _damageModifier;
+            return _inboundDamageModifier;
         }
         set
         {
-            _damageModifier = value;
+            _inboundDamageModifier = value;
         }
     }
     
     [XmlAttribute]
-    public float HealModifier
+    public float OutboundDamageModifier
     {
         get
         {
-            return _healModifier;
+            return _outboundDamageModifier;
         }
         set
         {
-            _healModifier = value;
+            _outboundDamageModifier = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public float InboundModifier
+    {
+        get
+        {
+            return _inboundModifier;
+        }
+        set
+        {
+            _inboundModifier = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public float OutboundModifier
+    {
+        get
+        {
+            return _outboundModifier;
+        }
+        set
+        {
+            _outboundModifier = value;
         }
     }
     

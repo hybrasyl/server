@@ -19,7 +19,7 @@ using System.Text;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 
-[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8")]
+[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.4084.0")]
 [Serializable]
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -33,6 +33,7 @@ public partial class Map
     private MapFlags _flags;
     private List<Warp> _warps;
     private List<Reactor> _reactors;
+    private SpawnGroup _spawnGroup;
     private List<MapNpc> _npcs;
     private List<MapSign> _signs;
     private ushort _id;
@@ -46,15 +47,12 @@ public partial class Map
     
     public Map()
     {
-        _signs = new List<MapSign>();
-        _npcs = new List<MapNpc>();
-        _reactors = new List<Reactor>();
-        _warps = new List<Warp>();
         _music = ((byte)(0));
         _isEnabled = true;
         _allowCasting = true;
     }
     
+    [StringLengthAttribute(255, MinimumLength=1)]
     public string Name
     {
         get
@@ -67,6 +65,7 @@ public partial class Map
         }
     }
     
+    [StringLengthAttribute(65534, MinimumLength=1)]
     public string Description
     {
         get
@@ -79,6 +78,7 @@ public partial class Map
         }
     }
     
+    [StringLengthAttribute(5)]
     public MapFlags Flags
     {
         get
@@ -114,6 +114,18 @@ public partial class Map
         set
         {
             _reactors = value;
+        }
+    }
+    
+    public SpawnGroup SpawnGroup
+    {
+        get
+        {
+            return _spawnGroup;
+        }
+        set
+        {
+            _spawnGroup = value;
         }
     }
     

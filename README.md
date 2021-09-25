@@ -242,5 +242,3 @@ Hybrasyl follows the standard Github fork model, so
 Please note that in order to contribute to the project, you must agree to the
 terms of
 [our contributor agreement](https://github.com/hybrasyl/server/blob/master/CONTRIBUTING.md).
-
-

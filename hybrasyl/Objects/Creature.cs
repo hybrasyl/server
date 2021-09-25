@@ -51,6 +51,10 @@ namespace Hybrasyl.Objects
         public uint Gold { get; set; }
 
         [JsonProperty]
+        private Dictionary<string, string> Cookies { get; set; }
+        private Dictionary<string, string> SessionCookies { get; set; }
+
+        [JsonProperty]
         public Inventory Inventory { get; protected set; }
 
         [JsonProperty("Equipment")]
@@ -66,12 +70,39 @@ namespace Hybrasyl.Objects
             _currentStatuses = new ConcurrentDictionary<ushort, ICreatureStatus>();
             LastHitTime = DateTime.MinValue;
             Statuses = new List<StatusInfo>();
+            Cookies = new Dictionary<string, string>();
+            SessionCookies = new Dictionary<string, string>();
         }
 
         public override void OnClick(User invoker)
         {
+            // TODO: abstract to xml
+
             var prepend = "";
-            
+            var diff = Stats.Level - invoker.Stats.Level;
+            switch (diff)
+            {
+                case var _ when diff >= -3 && diff <= 3:
+                    prepend = "";
+                    break;
+                case var _ when diff >= -7 && diff <= -4:
+                    prepend = "Trifling ";
+                    break;
+                case var _ when diff <= -7:
+                    prepend = "Paltry ";
+                    break;
+                case var _ when diff >= 4 && diff <= 7:
+                    prepend = "Difficult ";
+                    break;
+                case var _ when diff > 7:
+                    prepend = "Deadly ";
+                    break;
+                default:
+                    prepend = "";
+                    break;
+                        
+            }
+
             invoker.SendSystemMessage(prepend + Name);
         }
 
@@ -277,9 +308,7 @@ namespace Hybrasyl.Objects
                 // Remove all merchants
                 // TODO: perhaps improve with a flag or extend in the future
                 actualTargets = actualTargets.Where(e => e is User || e is Monster);
-
-
-                
+               
                 // Process intent flags
 
                 var this_id = this.Id;
@@ -287,12 +316,12 @@ namespace Hybrasyl.Objects
                 if (this is Monster)
                 {
                     // No hostile flag: remove players
-                    if (!intent.Flags.Contains(Xml.IntentFlags.Hostile))
+                    if (intent.Flags.Contains(Xml.IntentFlags.Hostile))
                     { 
                         finalTargets.AddRange(actualTargets.OfType<User>());
                     }
                     // No friendly flag: remove monsters
-                    if (!intent.Flags.Contains(Xml.IntentFlags.Friendly))
+                    if (intent.Flags.Contains(Xml.IntentFlags.Friendly))
                     {
                         finalTargets.AddRange(actualTargets.OfType<Monster>());
                     }
@@ -358,7 +387,9 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                return Game.World.Objects.ContainsKey(_mLastHitter) ? (Creature)Game.World.Objects[_mLastHitter] : null;
+                if (Game.World.Objects.TryGetValue(_mLastHitter, out WorldObject o))
+                    return o as Creature;
+                return null;
             }
             set
             {
@@ -480,7 +511,7 @@ namespace Hybrasyl.Objects
 
         #endregion
 
-        public virtual bool UseCastable(Xml.Castable castObject, Creature target = null, Xml.SpawnCastable spawnCastable = null, bool assailAttack = false)
+        public virtual bool UseCastable(Xml.Castable castObject, Creature target = null, bool assailAttack = false)
         {
             if (!Condition.CastingAllowed) return false;
             
@@ -488,24 +519,6 @@ namespace Hybrasyl.Objects
 
             var damage = castObject.Effects.Damage;
             List<Creature> targets = new List<Creature>();
-
-            if(this is Monster)
-            {
-                if(spawnCastable != null)
-                {
-                    damage = new Xml.CastableDamage
-                    {
-                        Simple = new Xml.SimpleQuantity
-                        {
-                            Min = (uint)spawnCastable.MinDmg,
-                            Max = (uint)spawnCastable.MaxDmg
-                        }
-                    };
-
-                    castObject.Effects.Damage = damage; //set damage based on spawncastable settings.
-                    castObject.Element = spawnCastable.Element; //handle defined element without redoing a ton of code.
-                }                
-            }
 
             targets = GetTargets(castObject, target);
 
@@ -567,18 +580,18 @@ namespace Hybrasyl.Objects
                 }
                 if (!castObject.Effects.Damage.IsEmpty)
                 {
-                    Xml.Element attackElement;
+                    Xml.ElementType attackElement;
                     var damageOutput = NumberCruncher.CalculateDamage(castObject, tar, this);
-                    if (castObject.Element == Xml.Element.Random)
+                    if (castObject.Element == Xml.ElementType.Random)
                     {
                         Random rnd = new Random();
-                        var Elements = Enum.GetValues(typeof(Xml.Element));
-                        attackElement = (Xml.Element)Elements.GetValue(rnd.Next(Elements.Length));
+                        var Elements = Enum.GetValues(typeof(Xml.ElementType));
+                        attackElement = (Xml.ElementType)Elements.GetValue(rnd.Next(Elements.Length));
                     }
-                    else if (castObject.Element != Xml.Element.None)
+                    else if (castObject.Element != Xml.ElementType.None)
                         attackElement = castObject.Element;
                     else
-                        attackElement = (Stats.OffensiveElementOverride != Xml.Element.None ? Stats.OffensiveElementOverride : Stats.BaseOffensiveElement);
+                        attackElement = (Stats.OffensiveElementOverride != Xml.ElementType.None ? Stats.OffensiveElementOverride : Stats.BaseOffensiveElement);
                     GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} damage: {damageOutput}, element {attackElement}");
 
                     tar.Damage(damageOutput.Amount, attackElement, damageOutput.Type, damageOutput.Flags, this, false);
@@ -889,7 +902,7 @@ namespace Hybrasyl.Objects
             Stats.Mp = mp > uint.MaxValue ? Stats.MaximumMp : Math.Min(Stats.MaximumMp, (uint)(Stats.Mp + mp));
         }
 
-        public virtual void Damage(double damage, Xml.Element element = Xml.Element.None, Xml.DamageType damageType = Xml.DamageType.Direct, Xml.DamageFlags damageFlags = Xml.DamageFlags.None, Creature attacker = null, bool onDeath=true)
+        public virtual void Damage(double damage, Xml.ElementType element = Xml.ElementType.None, Xml.DamageType damageType = Xml.DamageType.Direct, Xml.DamageFlags damageFlags = Xml.DamageFlags.None, Creature attacker = null, bool onDeath=true)
         {
             if (this is Monster ms && !Condition.Alive) return;
             if (attacker is User && this is Monster)
@@ -929,7 +942,7 @@ namespace Hybrasyl.Objects
             if (damageType == Xml.DamageType.Magical && (AbsoluteImmortal || MagicalImmortal))
                 return;
 
-            Stats.Hp = ((int)Stats.Hp - (int)normalized) < 0 ? 0 : Stats.Hp - normalized;
+            Stats.Hp = (Stats.Hp - normalized) < 0 ? 0 : Stats.Hp - normalized;
             //Stats.Hp -= normalized;
 
             SendDamageUpdate(this);
@@ -965,6 +978,52 @@ namespace Hybrasyl.Objects
         public virtual void Refresh()
         {
         }
+
+        public void SetCookie(string cookieName, string value)
+        {
+            Cookies[cookieName] = value;
+        }
+
+        public void SetSessionCookie(string cookieName, string value)
+        {
+            SessionCookies[cookieName] = value;
+        }
+
+        public IReadOnlyDictionary<string, string> GetCookies()
+        {
+            return Cookies;
+        }
+        public IReadOnlyDictionary<string, string> GetSessionCookies()
+        {
+            return SessionCookies;
+        }
+
+        public string GetCookie(string cookieName)
+        {
+            string value;
+            if (Cookies.TryGetValue(cookieName, out value))
+            {
+                return value;
+            }
+            return null;
+        }
+
+        public string GetSessionCookie(string cookieName)
+        {
+            string value;
+            if (SessionCookies.TryGetValue(cookieName, out value))
+            {
+                return value;
+            }
+            return null;
+        }
+
+        public bool HasCookie(string cookieName) => Cookies.Keys.Contains(cookieName);
+        public bool HasSessionCookie(string cookieName) => SessionCookies.Keys.Contains(cookieName);
+
+        public bool DeleteCookie(string cookieName) => Cookies.Remove(cookieName);
+        public bool DeleteSessionCookie(string cookieName) => SessionCookies.Remove(cookieName);
+
     }
 
 }

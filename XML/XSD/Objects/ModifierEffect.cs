@@ -19,7 +19,7 @@ using System.Text;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 
-[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8")]
+[System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.4084.0")]
 [Serializable]
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
@@ -32,7 +32,7 @@ public partial class ModifierEffect
     private Messages _messages;
     private StatusHeal _heal;
     private StatusDamage _damage;
-    private StatModifiers _statModifiers;
+    private StatModifierFormulas _statModifiers;
     private Conditions _conditions;
     private Handler _handler;
     private static XmlSerializer _serializer;
@@ -42,7 +42,7 @@ public partial class ModifierEffect
     {
         _handler = new Handler();
         _conditions = new Conditions();
-        _statModifiers = new StatModifiers();
+        _statModifiers = new StatModifierFormulas();
         _damage = new StatusDamage();
         _heal = new StatusHeal();
         _messages = new Messages();
@@ -110,7 +110,7 @@ public partial class ModifierEffect
         }
     }
     
-    public StatModifiers StatModifiers
+    public StatModifierFormulas StatModifiers
     {
         get
         {
