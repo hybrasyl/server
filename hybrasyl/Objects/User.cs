@@ -3885,7 +3885,7 @@ namespace Hybrasyl.Objects
                 Color2 = 0,
                 PortraitType = 0,
                 Name = merchant.Name,
-                Text = "Come back if you have more wares to sell.",
+                Text = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_success").Value,
                 Options = options
             };
 
