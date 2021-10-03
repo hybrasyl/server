@@ -652,6 +652,7 @@ namespace Hybrasyl
                     itemInfo.Count = inventory[i,false].Count;
                     itemInfo.Id = inventory[i,false].TemplateId;
                     itemInfo.Durability = inventory[i,false].Durability;
+                    itemInfo.Guid = inventory[i, false].Guid;
                     output[i] = itemInfo;
                 }               
             }
@@ -672,10 +673,10 @@ namespace Hybrasyl
                     //itmType = Game.World.WorldData.Values<Item>().Where(x => x.Name == (string)item.FirstOrDefault().Value).FirstOrDefault().Name;
                     if (Game.World.WorldData.TryGetValue<Xml.Item>(item.Id, out Xml.Item itemTemplate)) 
                     {
-                        inv[i,false] = new ItemObject(itemTemplate.Id, Game.World)
+                        inv[i, false] = new ItemObject(itemTemplate.Id, Game.World, new Guid((string) item.Guid))
                         {
                             Count = item.Count ?? 1,
-                            Durability = item.Durability ?? itemTemplate.Properties.Physical.Durability
+                            Durability = item.Durability ?? itemTemplate.Properties.Physical.Durability,
                         };
                             //this will need to be expanded later based on ItemObject properties being saved back to the database.
                     }
@@ -719,6 +720,7 @@ namespace Hybrasyl
         private Lockable<int> _size { get; set; }
         private Lockable<int> _count { get; set; }
         private Lockable<int> _weight { get; set; }
+
         public int Size
         {
             get { return _size.Value; }
@@ -833,6 +835,7 @@ namespace Hybrasyl
         {
             get { return Count == Size; }
         }
+
         public int EmptySlots
         {
             get { return Size - Count; }
@@ -895,9 +898,9 @@ namespace Hybrasyl
             {
                 if (_inventoryIndex.TryGetValue(itemObject.TemplateId, out itemList))
                 {
-                    _inventoryIndex[itemObject.TemplateId] = itemList.Where(x => x.Id != itemObject.Id).ToList();
-                    if (_inventoryIndex[itemObject.TemplateId].Count == 0)
-                        _inventoryIndex.TryRemove(itemObject.TemplateId, out List<ItemObject> value);
+                    itemList.RemoveAll(x => x.Guid == itemObject.Guid);
+                    if (itemList.Count == 0)
+                        _inventoryIndex.TryRemove(itemObject.TemplateId, out _);
                 }
             }
         }
@@ -943,9 +946,12 @@ namespace Hybrasyl
             var itemList = Game.World.WorldData.FindItem(name);
             if (itemList.Count == 0)
                 return false;
+                
             foreach (var item in itemList)
+            {
                 if (_inventoryIndex.ContainsKey(item.Id))
                     return true;
+            }
             return false;
         }
 
@@ -966,7 +972,6 @@ namespace Hybrasyl
             }
             return false;
         }
-
 
         public int FindEmptyIndex()
         {
@@ -1157,6 +1162,20 @@ namespace Hybrasyl
             }
 
             return returnList;
+        }
+
+        public override string ToString()
+        {
+            var ret = string.Empty;
+            for (var i = 0; i < Size; i++)
+            {
+                if (_itemsObject.Value[i] != null)
+                {
+                    var item = $"slot {i}: {_itemsObject.Value[i].Name}, qty {_itemsObject.Value[i].Count}";
+                    ret = $"{ret}\n{item}";
+                }
+            }
+            return ret;
         }
 
     }

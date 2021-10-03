@@ -30,6 +30,7 @@ namespace Hybrasyl.Objects
     public class ItemObject : VisibleObject
     {
         public string TemplateId { get; private set; }
+        public Guid Guid { get; private set; }
 
         /// <summary>
         /// Check to see if a specified user can equip an ItemObject. Returns a boolean indicating whether
@@ -312,12 +313,13 @@ namespace Hybrasyl.Objects
             }
         }
 
-        public ItemObject(string id, World world)
+        public ItemObject(string id, World world, Guid guid = default)
         {
             World = world;
             TemplateId = id;
             _durability = new Lockable<double>(MaximumDurability);
             _count = new Lockable<int>(1);
+            Guid = guid != default ? guid : Guid.NewGuid();
         }
 
         public ItemObject(Xml.Item template)
@@ -325,6 +327,7 @@ namespace Hybrasyl.Objects
             Template = template;
             _count = new Lockable<int>(1);
             _durability = new Lockable<double>(uint.MaxValue);
+            Guid = Guid.NewGuid();
         }
 
         // Simple copy constructor for an ItemObject, mostly used when we split a stack and it results
@@ -337,6 +340,7 @@ namespace Hybrasyl.Objects
             TemplateId = previousItemObject.TemplateId;
             Durability = previousItemObject.Durability;
             Count = previousItemObject.Count;
+            Guid = Guid.NewGuid();
         }
 
         public override void ShowTo(VisibleObject obj)
