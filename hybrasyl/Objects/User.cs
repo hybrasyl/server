@@ -4024,8 +4024,8 @@ namespace Hybrasyl.Objects
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
             //verify user has required items.
-            var parcelFee = (uint)Math.Round((itemObj.Value * .10) * quantity, 0);
-            if (!Game.World.WorldData.TryGetUser(recipient, out var _))
+            var parcelFee = (uint)Math.Ceiling((itemObj.Value * .10) * quantity);
+            if (!Game.World.WorldData.TryGetAuthInfo(recipient, out AuthInfo info))
             {
                 prompt = "I'm sorry, I don't know of anyone by that name.";
             }
@@ -4042,24 +4042,28 @@ namespace Hybrasyl.Objects
                 RemoveGold(parcelFee);
                 RemoveItem(itemObj.Name, (ushort)quantity);
                 SendInventory();
-                if (itemObj.Name == "Sausages")
-                {
-                    parcelString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_sausage");
-                }
-                else
-                {
-                    parcelString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel_success");
-                }
-                
+                parcelString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel_success");              
                 prompt = parcelString.Value.Replace("$FEE", parcelFee.ToString());
 
-                //TODO: Send parcel to recipient
-                var uuidRef = World.WorldData.Get<UuidReference>(recipient);
+                var uuidRef = World.WorldData.GetUuidReference(recipient);
                 var parcelStore = World.WorldData.GetOrCreate<ParcelStore>(uuidRef);
                 var recipientMailbox = World.WorldData.GetOrCreate<Mailbox>(uuidRef);
-                parcelStore.AddItem(Name, itemObj.Name == "Sausages" ? "Rotten Sausages" : itemObj.Name, quantity);
-                recipientMailbox.ReceiveMessage(new Message(recipient, merchant.Name, "You've received a package.", "Please visit a messenger to collect your package."));
-
+                var mboxString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel_mailbox_message");
+                if (string.IsNullOrEmpty(mboxString.Value))
+                    recipientMailbox.ReceiveMessage(new Message(recipient, merchant.Name, "You've received a package.", "Please visit a messenger to collect your package."));      
+                else
+                {
+                    var mboxMessage = mboxString.Value.Replace("$SENDER", Name);
+                    mboxMessage = mboxMessage.Replace("$ITEM", $"{itemObj.Name} (qty {quantity})");
+                    recipientMailbox.ReceiveMessage(new Message(recipient, merchant.Name, $"{Name} has sent you a package", mboxMessage));
+                }
+                parcelStore.AddItem(Name, itemObj.Name, quantity);
+                parcelStore.Save();
+                if (info.IsLoggedIn && Game.World.TryGetActiveUser(recipient, out User recipientUser))
+                {
+                    recipientUser.SendSystemMessage($"You've received a package from {Name}!");
+                    recipientUser.UpdateAttributes(StatUpdateFlags.UnreadMail);
+                }
                 PendingSellableQuantity = 0;
                 PendingSendableParcel = null;
                 
