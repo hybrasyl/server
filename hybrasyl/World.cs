@@ -1647,12 +1647,12 @@ namespace Hybrasyl
                     hpRegen = (uint)Math.Min(user.Stats.MaximumHp * (0.1 * Math.Max(user.Stats.Con, (user.Stats.Con - user.Stats.Level)) * 0.01),
                         user.Stats.MaximumHp * 0.20);
                     hpRegen = hpRegen + (uint)(fixedRegenBuff * user.Stats.MaximumHp);
-                }
+                }               
                 if (user.Stats.Mp != user.Stats.MaximumMp)
                 {
-                    mpRegen = (uint)Math.Min(user.Stats.MaximumMp * (0.1 * Math.Max(user.Stats.Int, (user.Stats.Int - user.Stats.Level)) * 0.01),
-                        user.Stats.MaximumMp * 0.20);
-                    mpRegen = mpRegen + (uint)(fixedRegenBuff * user.Stats.MaximumMp);
+                    mpRegen = (uint)Math.Ceiling(Math.Min(user.Stats.MaximumMp * (0.1 * Math.Max(user.Stats.Int, (user.Stats.Int - user.Stats.Level)) * 0.01),
+                        user.Stats.MaximumMp * 0.20));
+                    mpRegen += (uint)(fixedRegenBuff * user.Stats.MaximumMp);
                 }
                 GameLog.DebugFormat("User {0}: regen HP {1}, MP {2}", user.Name,
                     hpRegen, mpRegen);
@@ -3913,7 +3913,8 @@ namespace Hybrasyl
             user.ShowMerchantSendParcelRecipient(merchant, quantity);
         }
 
-        private void MerchantMenuHandler_SendParcel(User user, Merchant merchant, ClientPacket packet) { }
+        private void MerchantMenuHandler_SendParcel(User user, Merchant merchant, ClientPacket packet) {
+        }
 
         private void MerchantMenuHandler_SendParcelFailure(User user, Merchant merchant, ClientPacket packet) { }
 

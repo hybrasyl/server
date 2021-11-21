@@ -4049,7 +4049,7 @@ namespace Hybrasyl.Objects
                 var parcelStore = World.WorldData.GetOrCreate<ParcelStore>(uuidRef);
                 var recipientMailbox = World.WorldData.GetOrCreate<Mailbox>(uuidRef);
                 var mboxString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel_mailbox_message");
-                if (string.IsNullOrEmpty(mboxString.Value))
+                if (mboxString is null)
                     recipientMailbox.ReceiveMessage(new Message(recipient, merchant.Name, "You've received a package.", "Please visit a messenger to collect your package."));      
                 else
                 {
