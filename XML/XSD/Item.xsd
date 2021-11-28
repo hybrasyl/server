@@ -119,8 +119,27 @@
       <xs:element name="Class" minOccurs="0" maxOccurs="1" type="hyb:Class" default="Peasant" />
       <xs:element name="Gender" type="hyb:Gender" minOccurs="0" maxOccurs="1" default="Neutral" />
       <xs:element name="Castables" type="hyb:RestrictionsCastableList" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="SlotRestrictions" type="hyb:SlotRestrictions" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
   </xs:complexType>
+
+  <xs:complexType name="SlotRestrictions">
+    <xs:sequence>
+      <xs:element name="SlotRestriction" minOccurs="1" maxOccurs="unbounded" type="hyb:SlotRestriction">
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="SlotRestriction">
+    <xs:simpleContent>
+      <xs:extension base="hyb:String8">
+        <xs:attribute name="Type" type="hyb:SlotRestrictionType" use="required" />
+        <xs:attribute name="Slot" type="hyb:EquipmentSlot" use="required"/>
+        <xs:attribute name="Message" type="hyb:String8" use="required" />
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
 
   <xs:complexType name="Stackable">
     <xs:attribute name="Max" use="required" type="xs:unsignedByte" />
@@ -241,8 +260,8 @@
       <xs:element name="Appearance" type="hyb:Appearance" minOccurs="1" maxOccurs="1"/>
       <xs:element name="CastModifiers" minOccurs="0" maxOccurs="1" type="hyb:CastModifiers" />
       <xs:element name="Stackable" type="hyb:Stackable" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="Physical" minOccurs="1" maxOccurs="1" type="hyb:Physical">
-      </xs:element>
+      <xs:element name="Physical" minOccurs="1" maxOccurs="1" type="hyb:Physical"/>
+      <xs:element name="Categories" type="hyb:Categories" minOccurs="0" maxOccurs="1" />
       <xs:element name="Equipment" minOccurs="0" maxOccurs="1" type="hyb:Equipment"/>
       <xs:element name="StatModifiers" minOccurs="0" maxOccurs="1" type="hyb:ItemStatModifiers"/>
       <xs:element name="Flags" minOccurs="0" maxOccurs="1" type="hyb:ItemFlags" />

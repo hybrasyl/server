@@ -24,41 +24,65 @@ using System.Collections.Generic;
 [DebuggerStepThrough]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-public partial class StatusAnimations
+public partial class SlotRestriction
 {
     #region Private fields
-    private Animation _target;
-    private Animation _spellEffect;
+    private SlotRestrictionType _type;
+    private EquipmentSlot _slot;
+    private string _message;
+    private string _value;
     private static XmlSerializer _serializer;
     #endregion
     
-    public StatusAnimations()
-    {
-        _spellEffect = new Animation();
-        _target = new Animation();
-    }
-    
-    public Animation Target
+    [XmlAttribute]
+    public SlotRestrictionType Type
     {
         get
         {
-            return _target;
+            return _type;
         }
         set
         {
-            _target = value;
+            _type = value;
         }
     }
     
-    public Animation SpellEffect
+    [XmlAttribute]
+    public EquipmentSlot Slot
     {
         get
         {
-            return _spellEffect;
+            return _slot;
         }
         set
         {
-            _spellEffect = value;
+            _slot = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string Message
+    {
+        get
+        {
+            return _message;
+        }
+        set
+        {
+            _message = value;
+        }
+    }
+    
+    [XmlTextAttribute]
+    public string Value
+    {
+        get
+        {
+            return _value;
+        }
+        set
+        {
+            _value = value;
         }
     }
     
@@ -68,7 +92,7 @@ public partial class StatusAnimations
         {
             if ((_serializer == null))
             {
-                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(StatusAnimations));
+                _serializer = new XmlSerializerFactory().CreateSerializer(typeof(SlotRestriction));
             }
             return _serializer;
         }
@@ -76,7 +100,7 @@ public partial class StatusAnimations
     
     #region Serialize/Deserialize
     /// <summary>
-    /// Serialize StatusAnimations object
+    /// Serialize SlotRestriction object
     /// </summary>
     /// <returns>XML value</returns>
     public virtual string Serialize()
@@ -109,16 +133,16 @@ public partial class StatusAnimations
     }
     
     /// <summary>
-    /// Deserializes StatusAnimations object
+    /// Deserializes SlotRestriction object
     /// </summary>
     /// <param name="input">string workflow markup to deserialize</param>
-    /// <param name="obj">Output StatusAnimations object</param>
+    /// <param name="obj">Output SlotRestriction object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool Deserialize(string input, out StatusAnimations obj, out Exception exception)
+    public static bool Deserialize(string input, out SlotRestriction obj, out Exception exception)
     {
         exception = null;
-        obj = default(StatusAnimations);
+        obj = default(SlotRestriction);
         try
         {
             obj = Deserialize(input);
@@ -131,19 +155,19 @@ public partial class StatusAnimations
         }
     }
     
-    public static bool Deserialize(string input, out StatusAnimations obj)
+    public static bool Deserialize(string input, out SlotRestriction obj)
     {
         Exception exception = null;
         return Deserialize(input, out obj, out exception);
     }
     
-    public static StatusAnimations Deserialize(string input)
+    public static SlotRestriction Deserialize(string input)
     {
         StringReader stringReader = null;
         try
         {
             stringReader = new StringReader(input);
-            return ((StatusAnimations)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
+            return ((SlotRestriction)(SerializerXML.Deserialize(XmlReader.Create(stringReader))));
         }
         finally
         {
@@ -154,14 +178,14 @@ public partial class StatusAnimations
         }
     }
     
-    public static StatusAnimations Deserialize(Stream s)
+    public static SlotRestriction Deserialize(Stream s)
     {
-        return ((StatusAnimations)(SerializerXML.Deserialize(s)));
+        return ((SlotRestriction)(SerializerXML.Deserialize(s)));
     }
     #endregion
     
     /// <summary>
-    /// Serializes current StatusAnimations object into file
+    /// Serializes current SlotRestriction object into file
     /// </summary>
     /// <param name="fileName">full path of outupt xml file</param>
     /// <param name="exception">output Exception value if failed</param>
@@ -202,16 +226,16 @@ public partial class StatusAnimations
     }
     
     /// <summary>
-    /// Deserializes xml markup from file into an StatusAnimations object
+    /// Deserializes xml markup from file into an SlotRestriction object
     /// </summary>
     /// <param name="fileName">string xml file to load and deserialize</param>
-    /// <param name="obj">Output StatusAnimations object</param>
+    /// <param name="obj">Output SlotRestriction object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool LoadFromFile(string fileName, out StatusAnimations obj, out Exception exception)
+    public static bool LoadFromFile(string fileName, out SlotRestriction obj, out Exception exception)
     {
         exception = null;
-        obj = default(StatusAnimations);
+        obj = default(SlotRestriction);
         try
         {
             obj = LoadFromFile(fileName);
@@ -224,13 +248,13 @@ public partial class StatusAnimations
         }
     }
     
-    public static bool LoadFromFile(string fileName, out StatusAnimations obj)
+    public static bool LoadFromFile(string fileName, out SlotRestriction obj)
     {
         Exception exception = null;
         return LoadFromFile(fileName, out obj, out exception);
     }
     
-    public static StatusAnimations LoadFromFile(string fileName)
+    public static SlotRestriction LoadFromFile(string fileName)
     {
         FileStream file = null;
         StreamReader sr = null;

@@ -702,6 +702,29 @@
     <xs:attribute name="Max" type="xs:unsignedInt" default="1" use="optional"/>
   </xs:complexType>
 
+  <!-- Arbitrary categorization support for metadata -->
+  <xs:complexType name="Categories">
+    <xs:sequence>
+      <xs:element name="Category" type="hyb:Category" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="Category" >
+    <xs:simpleContent>
+      <xs:extension base="hyb:String8">
+        <xs:attribute name="Unique" type="xs:boolean" default="false" use="optional" />
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <!-- Types of slot restrictions -->
+  <xs:simpleType name="SlotRestrictionType">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="ItemRequired"/>
+      <xs:enumeration value="ItemProhibited"/>
+    </xs:restriction>
+  </xs:simpleType>
+
   <!-- Attack priority types for behaviorsets -->
   <xs:simpleType name="CreatureAttackPriority">
     <xs:restriction base="xs:token">

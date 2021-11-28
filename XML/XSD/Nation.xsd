@@ -40,7 +40,6 @@
     <xs:attribute name="Y" type="xs:unsignedByte" use="required" />
   </xs:complexType>
 
-
   <xs:complexType name="NationMap">
     <xs:attribute name="Name" type="hyb:String8"/>
   </xs:complexType>
@@ -49,7 +48,6 @@
     <xs:sequence>
       <xs:element name="Map" type="hyb:NationMap" minOccurs="1" maxOccurs="unbounded"/>
     </xs:sequence>
-    <xs:attribute name="Nation" type="hyb:String8"/>
   </xs:complexType>
 
   <xs:element name="Nation">
@@ -58,12 +56,12 @@
         <xs:element name="Name" type="hyb:String8" minOccurs="1" maxOccurs="1" />
         <xs:element name="Description" type="hyb:String8" minOccurs="0" maxOccurs="1" />
         <xs:element name="SpawnPoints" type="hyb:SpawnPoints" minOccurs="0" maxOccurs="1" />
+        <xs:element name="Territory" type="hyb:Territory" minOccurs="0" maxOccurs="1"/>
       </xs:sequence>
       <xs:attribute name="Flag" type="xs:unsignedByte" use="required" />
       <xs:attribute name="Default" type="xs:boolean" default="false"/>
     </xs:complexType>
   </xs:element>
 
-  <xs:element name="Territory" type="hyb:Territory"/>
 
 </xs:schema>
