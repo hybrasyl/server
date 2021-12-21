@@ -33,7 +33,237 @@ using System.Text;
 
 namespace Hybrasyl
 {
- 
+
+    //    public interface IWorldDataStorable
+    //    {
+    //        public string DataStoreKey { get; }
+    //        public string Index { get; }
+    //        public List<string> Tags { get; }
+    //    }
+
+    //    public interface IWorldDataStore<T>
+    //    {
+    //        public T Get(string key);
+    //        public T First();
+    //        public T GetByIndex(string key);
+    //        public bool TryGetValue(string key, out T tresult);
+    //        public bool TryGetValueByIndex(string key, out T tresult);
+    //        public bool Set(string key, T value);
+    //        public bool SetWithIndex(string key, T value, string index);
+    //        public bool SetWithIndexAndTags(string key, T value, string index, IEnumerable<string> tags);
+    //        public IEnumerable<T> Values();
+    //        public IEnumerable<string> Keys();
+    //        public IEnumerable<string> Tags();
+    //        public bool ContainsKey(string key);
+    //        public bool ContainsTag(string tag);
+    //        public int Count();
+    //        public IDictionary<string, T> GetDictionary();
+    //        public bool Remove(string  key);
+    //        public bool RemoveIndex(string index);
+    //        public bool RemoveByTag(string tag);
+    //        public List<T> Find(string name);
+    ////        public bool ImportAll(XmlLoadResponse<T> response) where T : IHybrasylLoadable<T>;
+    //    }
+    //    // WorldDataStore[Xml.Item].Get()
+
+    //    public class WorldDataStore<T> : IWorldDataStore<T>
+    //    {
+
+    //        private ConcurrentDictionary<string, T> DataStore;
+    //        private ConcurrentDictionary<string, T> Index;
+    //        private ConcurrentDictionary<string, HashSet<T>> ByTags;
+
+    //        private HashSet<string> Tags;
+    //        public static SHA256CryptoServiceProvider sha = new SHA256CryptoServiceProvider();
+
+    //        static string Sanitize(dynamic key) => key.ToString().Normalize().ToLower();
+
+    //        /// <summary>
+    //        /// Given a type and a key, return the typed object matching the key, or a default value.
+    //        /// </summary>
+    //        /// <typeparam name="T">The type to be returned</typeparam>
+    //        /// <param name="key">The key for the object</param>
+    //        /// <returns></returns>
+    //        public T Get(string key)
+    //        {
+    //            var s = Sanitize(key);
+    //            if (DataStore.ContainsKey(s))
+    //            { 
+    //                return DataStore[s];
+    //            }
+    //            return default;
+    //        }
+
+    //        /// <summary>
+    //        /// Return the first of any known type (e.g. first map, first NPC, etc)
+    //        /// </summary>
+    //        /// <returns>First </returns>
+    //        public T First() => DataStore.First().Value;
+
+    //        /// <summary>
+    //        /// Given a type and a key, return the typed object matching the key in the subindex,
+    //        /// or a default value.
+    //        /// </summary>
+    //        /// <typeparam name="T">The type to be returned</typeparam>
+    //        /// <param name="key">The index key for the object</param>
+    //        /// <returns>Found object</returns>
+
+    //        public T GetByIndex(string key)
+    //        {
+    //            var s = Sanitize(key);
+
+    //            if (Index.ContainsKey(s))
+    //            {
+    //                return Index[s];
+    //            }
+    //            return default;
+    //        }
+
+    //        /// <summary>
+    //        /// Try to find a typed value in the store given a key.
+    //        /// </summary>
+    //        /// <typeparam name="T">The type to be returned</typeparam>
+    //        /// <param name="key">The key</param>
+    //        /// <param name="tresult">The out parameter which will contain the object, if found</param>
+    //        /// <returns>True or false depending on whether or not item was found</returns>
+    //        public bool TryGetValue(string key, out T tresult)
+    //        {
+    //            tresult = default;
+    //            var s = Sanitize(key);
+    //            if (!DataStore.ContainsKey(s)) return false;
+    //            tresult = DataStore[s];
+    //            return true;
+    //        }
+
+    //        /// <summary>
+    //        /// Try to find a typed value in the store given an index key.
+    //        /// </summary>
+    //        /// <typeparam name="T">The type to be returned</typeparam>
+    //        /// <param name="key">The index key</param>
+    //        /// <param name="tresult">The out parameter which will contain the object, if found</param>
+    //        /// <returns>True or false depending on whether or not item was found</returns>
+    //        public bool TryGetValueByIndex(string key, out T tresult)
+    //        {
+    //            tresult = default(T);
+    //            var s = Sanitize(key);
+    //            if (!Index.ContainsKey(s))
+    //            {
+    //                //GameLog.Error($"TryGetValueByIndex: type {typeof(T)}: key {key.ToString().Normalize()} not found");
+    //                return false;
+    //            }
+    //            tresult = Index[s];
+    //            return true;
+    //        }
+
+    //        public IEnumerable<T> GetByTag(string tag)
+    //        {
+    //            var s = Sanitize(tag);
+    //            if (!ByTags.ContainsKey(s))
+    //                return new HashSet<T>();
+    //            return ByTags[s];
+    //        }
+
+    //        /// <summary>
+    //        /// Store an object in the datastore with the given key.
+    //        /// </summary>
+    //        /// <typeparam name="T">The type to be stored</typeparam>
+    //        /// <param name="key">The key to be used for the object</param>
+    //        /// <param name="value">The actual object to be stored</param>
+    //        /// <returns>Boolean indicating success</returns>
+    //        public bool Set(string key, T value) => DataStore.TryAdd(Sanitize(key), value);
+
+    //        /// <summary>
+    //        /// Store an object in the datastore with the given key and index key.
+    //        /// </summary>
+    //        /// <typeparam name="T">The type to be stored</typeparam>
+    //        /// <param name="key">The key for the object</param>
+    //        /// <param name="value">The actual object to be stored</param>
+    //        /// <param name="index">The index key for the object</param>
+    //        /// <returns>Boolean indicating success</returns>
+    //        public bool SetWithIndex(dynamic key, T value, dynamic index) => DataStore.TryAdd(Sanitize(key), value) &&
+    //           Index.TryAdd(Sanitize(index), value);
+
+    //        /// <summary>
+    //        /// Returns all the objects contained in the datastore of the specified type's substore.
+    //        /// </summary>
+    //        /// <typeparam name="T">The type to be returned.</typeparam>
+    //        /// <returns></returns>      
+    //        public IEnumerable<T> Values() => DataStore.Values.Cast<T>();
+
+    //        /// <summary>
+    //        /// Returns all the keys contained in the datastore for the specified type's substore.
+    //        /// </summary>
+    //        /// <typeparam name="T"></typeparam>
+    //        /// <returns></returns>
+    //        public IEnumerable<string> Keys() => DataStore.Keys;
+
+    //        /// <summary>
+    //        /// Checks to see whether a key exists in the datastore for a given type.
+    //        /// </summary>
+    //        /// <typeparam name="T">The type to check</typeparam>
+    //        /// <param name="key">The key to check</param>
+    //        /// <returns>Boolean indicating whether or not the key exists</returns>
+    //        public bool ContainsKey(string key) => DataStore.ContainsKey(Sanitize(key));
+
+    //        /// <summary>
+    //        /// Return a count of typed objects in the datastore.
+    //        /// </summary>
+    //        /// <typeparam name="T">The type for which to produce a count</typeparam>
+    //        /// <returns>Integer number of objects</returns>
+    //        public int Count() => DataStore.Count;
+
+    //        /// <summary>
+    //        /// Get an IDictionary which will only contain values of the specified type.
+    //        /// </summary>
+    //        /// <typeparam name="T">The type to return</typeparam>
+    //        /// <returns>IDictionary of objects of the specified type.</returns>
+    //        public IDictionary<string, T> GetDictionary() => DataStore;
+
+    //        /// <summary>
+    //        /// Remove an object from the datastore.
+    //        /// </summary>
+    //        /// <typeparam name="T">The type of the object to remove</typeparam>
+    //        /// <param name="key">The key corresponding to the object to be removed</param>
+    //        /// <returns></returns>
+    //        public bool Remove(string key) 
+    //        {
+    //            if (DataStore.TryRemove(Sanitize(key), out T tresult))
+    //            {
+    //                if (tresult is IWorldDataStorable wds) {
+    //                    // Also try to remove item from tag sets and indexes
+    //                    Index.TryRemove(wds.Index, out T _);
+    //                    foreach (var tag in wds.Tags)
+    //                    {
+    //                        if (ByTags.ContainsKey(tag))
+    //                            ByTags[tag].Remove(tresult);
+    //                    }
+    //                }
+    //                return true;
+    //            }
+    //            return false;
+    //        }
+
+    //        public bool RemoveIndex(string index)
+    //        {
+    //            return false;
+    //        }
+    //    }
+
+    //    public class WorldCache<T> : WorldData<T>, IWorldDataStore<T>
+    //    {
+
+
+    //    }
+
+    //    public class DataStoreType  : System.Attribute
+    //    {
+    //        public Type StoreType;
+
+    //    }
+
+    //    public class UuidReferenceDataStore : WorldData<UuidReference>, IWorldDataStore<UuidReference>
+    //    { }
+
     public enum CastableFilter
     {
         SkillsOnly,
@@ -41,8 +271,58 @@ namespace Hybrasyl
         SkillsAndSpells
     };
 
+    //public class DataStorable : Attribute
+    //{
+    //    public Type SupportedType;
+    //}
+
+    //public static class WorldDataStoreNew
+    //{
+    //    private static HashSet<Type> SupportedTypes = new HashSet<Type>();
+
+    //    public static IEnumerable<Type> GetStorableTypes()
+    //    {
+    //        foreach (Type type in Assembly.GetExecutingAssembly().GetTypes())
+    //        {
+    //            if (type.GetCustomAttributes(typeof(DataStorable), true).Length > 0)
+    //            {
+    //                yield return type;
+    //            }
+    //        }
+    //    }
+
+    //    private static ConcurrentDictionary<Type, dynamic> DataStores = new ConcurrentDictionary<Type, dynamic>();
+
+    //    static WorldDataStoreNew()
+    //    {
+    //        // Find and register data stores
+    //        foreach (Type type in GetStorableTypes())
+    //        {
+    //            SupportedTypes.Add(type);                
+    //        }
+    //        foreach (Type type in SupportedTypes)
+    //        {
+    //            var storeType = typeof(WorldDataStore<>).MakeGenericType(type.GetType());
+    //            var storeInstance = Activator.CreateInstance(storeType);
+    //            DataStores.TryAdd(type, storeInstance);
+    //        }
+    //    }
+
+    //    public static WorldDataStore<T> GetDataStore<T>()
+    //    {
+    //        if (SupportedTypes.Contains(typeof(T)))
+    //        {
+    //            return DataStores[typeof(T)] as WorldDataStore<T>;
+    //        }
+    //        else
+    //            throw new ArgumentException("Unsupported data type");     
+    //    }
+
+    //}
+
     public partial class WorldDataStore
     {
+
         /// <summary>
         /// Normalize keys by converting to lowercase and removing whitespace (this means that 
         /// MiLeTh InN RoOm 1 => milethinnroom1. Collisions are possible here if you are mixing case in
@@ -58,7 +338,10 @@ namespace Hybrasyl
 
         // TODO: refactor WDS to support multiple indexes for stores. For now we need 
         // a way to easily retrieve a castable or list of castables based on category
-        private ConcurrentDictionary<string, HashSet<Xml.Castable>> CastableIndex;
+        private ConcurrentDictionary<string, HashSet<Castable>> CastableIndex;
+
+        // TODO: now we really need to do the above
+        public ConcurrentDictionary<string, HashSet<Item>> ItemByCategory;
 
         public IDatabase Redis => World.DatastoreConnection.GetDatabase();
 
@@ -72,7 +355,8 @@ namespace Hybrasyl
             _dataStore = new ConcurrentDictionary<Type, ConcurrentDictionary<string, dynamic>>();
             _index = new ConcurrentDictionary<Type, ConcurrentDictionary<dynamic, dynamic>>();
             RedisTypes = new HashSet<Type>();
-            CastableIndex = new ConcurrentDictionary<string, HashSet<Xml.Castable>>();
+            CastableIndex = new ConcurrentDictionary<string, HashSet<Castable>>();
+            ItemByCategory = new ConcurrentDictionary<string, HashSet<Item>>();
             var assembly = Assembly.GetExecutingAssembly();
             foreach (Type type in assembly.GetTypes())
             {
@@ -461,6 +745,16 @@ namespace Hybrasyl
                 CastableIndex[sanitized].Add(castable);
             }
 
+        }
+
+        public void RegisterItem(Item item)
+        {
+            foreach (var category in item.Categories)
+            {
+                var sanitized = Sanitize(category);
+                if (!ItemByCategory.ContainsKey(sanitized))
+                    ItemByCategory[sanitized] = new HashSet<Item>();
+            }
         }
 
         public bool ImportAll<T>(XmlLoadResponse<T> response) where T : IHybrasylLoadable<T>

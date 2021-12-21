@@ -44,7 +44,7 @@ namespace Hybrasyl.Objects
         public bool Blocking;
         public string Description;
         public string ScriptName;
-        private bool _ready = false;
+        private bool _ready;
 
         public Reactor(byte x, byte y, Map map, string scriptName, string description = null, bool blocking = true) : base()
         {

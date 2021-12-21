@@ -23,6 +23,7 @@ using Hybrasyl.Scripting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace Hybrasyl.Objects
@@ -58,6 +59,8 @@ namespace Hybrasyl.Objects
         public Xml.NpcRoleList Roles { get; set; }
         public MerchantJob Jobs { get; set; }
         public List<MerchantInventoryItem> MerchantInventory { get; set; }
+
+        public Regex BuyPattern { get; set; } = new Regex("buy(?<qty>\\s+(?<amt>\\d+|all)\\s+of){0,1}\\s+my\\s+(?<target>.*)");
 
         public Merchant()
             : base()
@@ -158,6 +161,28 @@ namespace Hybrasyl.Objects
 
             if (!Ready)
                 OnSpawn();
+
+            var patternMatch = BuyPattern.Match(text.ToLower());
+
+            if (patternMatch.Success)
+            {
+
+                // Is the thing a category or an actual item
+                if (Game.World.WorldData.FindItem(patternMatch.Groups["target"].Value).Count != 0)
+                {
+                    // Support both "buy 3 of my <item> and buy all of my <item>
+                    if (speaker is User u)
+                    {
+
+                    }
+                }
+                else if (Game.World.WorldData.ItemByCategory.ContainsKey(patternMatch.Groups["target"].Value))
+                {
+                    // Only support "buy all my <category>"
+
+                }
+
+            }
 
             if (Script != null)
             {

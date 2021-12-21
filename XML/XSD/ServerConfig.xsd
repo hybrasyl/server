@@ -35,6 +35,7 @@
     <xs:attribute name="Type" type="xs:token" default="redis" />
     <xs:attribute name="Host" type="xs:token" default="localhost" />
     <xs:attribute name="Port" type="xs:unsignedShort" default="6379" />
+    <xs:attribute name="Database" type="xs:int" default="0"/>
   </xs:complexType>
 
   <xs:complexType name="NetworkInfo">

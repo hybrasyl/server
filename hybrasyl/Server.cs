@@ -277,7 +277,7 @@ namespace Hybrasyl
 
     public class Redirect
     {
-        private static uint id = 0;
+        private static uint id;
 
         public uint Id { get; set; }
         public Client Client { get; set; }

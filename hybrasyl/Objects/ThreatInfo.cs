@@ -8,11 +8,11 @@ namespace Hybrasyl.Objects
 
     public class ThreatEntry : IComparable
     {
-        public uint Threat { get; set; } = 0;
+        public uint Threat { get; set; }
         public bool IsHealer => TotalHeals > 0;
         public bool IsCaster => TotalCasts > 0;
-        public int TotalHeals { get; set; } = 0;
-        public int TotalCasts { get; set; } = 0;
+        public int TotalHeals { get; set; }
+        public int TotalCasts { get; set; }
         
         public int CompareTo(object e)
         {

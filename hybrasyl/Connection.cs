@@ -34,7 +34,7 @@ namespace Hybrasyl
 
     public static class GlobalConnectionManifest
     {
-        private static long _connectionId = 0;
+        private static long _connectionId;
         public static long GetNewConnectionId()
         {
             Interlocked.Increment(ref _connectionId);

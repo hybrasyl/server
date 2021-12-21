@@ -39,9 +39,9 @@ namespace Hybrasyl
 
     public class CastCost
     {
-        public uint Hp { get; set; } = 0;
-        public uint Mp { get; set; } = 0;
-        public uint Gold { get; set; } = 0;
+        public uint Hp { get; set; }
+        public uint Mp { get; set; }
+        public uint Gold { get; set; }
         public List<(byte Quantity, string Item)> Items { get; set; } = new List<(byte Quantity, string Item)>();
         public bool IsNoCost => Hp == 0 && Mp == 0 && Gold == 0 && Items.Count == 0;
     }

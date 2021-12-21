@@ -41,7 +41,7 @@ namespace Hybrasyl
         public List<User> Members { get; private set; }
         public DateTime CreatedOn { get; private set; }
         public Dictionary<Xml.Class, uint> ClassCount { get; private set; }
-        public uint MaxMembers = 0;
+        public uint MaxMembers;
 
         private delegate Dictionary<uint, uint> DistributionFunc(User source, uint full);
 

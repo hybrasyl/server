@@ -44,13 +44,13 @@ namespace Hybrasyl
 
         public static readonly object SyncObj = new object();
         public static IPAddress IpAddress;
-        public static IPAddress RedirectTarget = null;
+        public static IPAddress RedirectTarget;
 
         public static ManualResetEvent allDone = new ManualResetEvent(false);
 
-        public static Lobby Lobby { get; private set; }
-        public static Login Login { get; private set; }
-        public static World World { get; private set; }
+        public static Lobby Lobby { get; set; }
+        public static Login Login { get; set; }
+        public static World World { get; set; }
         public static byte[] ServerTable { get; private set; }
         public static uint ServerTableCrc { get; private set; }
         public static byte[] Notification { get; set; }
@@ -60,7 +60,7 @@ namespace Hybrasyl
         public static int LogLevel { get; set; }
 
         public static AssemblyInfo Assemblyinfo { get; set; }
-        private static long Active = 0;
+        private static long Active;
 
         private static Monolith _monolith;
         private static MonolithControl _monolithControl;
@@ -86,7 +86,7 @@ namespace Hybrasyl
         public static bool SentryEnabled { get; private set; }
 
         public static int ShutdownTimeRemaining = -1;
-        public static bool ShutdownComplete = false;
+        public static bool ShutdownComplete;
 
         public static IMetricsRoot MetricsStore { get; private set; }
 

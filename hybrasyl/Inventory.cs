@@ -916,6 +916,24 @@ namespace Hybrasyl
             return true;
         }
 
+        public bool TryRemoveQuantity(string name, int quantity)
+        {
+            var toRemove = new List<ItemObject>();
+            return false;
+          
+        }
+
+        public List<int> GetSlotsByName(string name)
+        {
+            var ret = new List<int>();
+            for (var x = 0; x <= _itemsObject.Value.Length; x++)
+            {
+                if (_itemsObject.Value[x]?.Name == name)
+                    ret.Add(x);
+            }
+            return ret;
+        }
+
         public bool TryGetValue(string templateId, out ItemObject itemObject)
         {
             itemObject = null;

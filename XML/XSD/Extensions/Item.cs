@@ -18,6 +18,16 @@ namespace Hybrasyl.Xml
         [XmlIgnore]
         public Item ParentItem { get; set; }
 
+        [XmlIgnore]
+        public List<string> Categories
+        {
+            get {
+                if (Properties?.Categories is not null)
+                    return Properties.Categories.Select(x => x.Value.ToLower()).ToList();
+                else return new List<string>();
+            }
+        }
+
         #region Accessors to provide defaults 
         [XmlIgnore]
         public bool Stackable

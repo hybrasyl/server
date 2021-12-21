@@ -57,8 +57,8 @@ namespace Hybrasyl.Objects
         public Dictionary<string, BookSlot> Spells { get; set; } = new Dictionary<string, BookSlot>();
         public Dictionary<string, BookSlot> Skills { get; set; } = new Dictionary<string, BookSlot>();
 
-        public BookSlot LastSpellUsed { get; set; } = null;
-        public BookSlot LastSkillUsed { get; set; } = null;
+        public BookSlot LastSpellUsed { get; set; }
+        public BookSlot LastSkillUsed { get; set; }
 
         public Xml.CreatureBehaviorSet BehaviorSet;
 
@@ -84,9 +84,9 @@ namespace Hybrasyl.Objects
 
         public ThreatInfo ThreatInfo { get; private set; }
 
-        public bool HasCastNearDeath = false;
+        public bool HasCastNearDeath;
 
-        public bool Active = false;
+        public bool Active;
 
 
         public bool CanCast => BehaviorSet?.CanCast ?? false;

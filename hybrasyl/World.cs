@@ -84,7 +84,7 @@ namespace Hybrasyl
 
     public partial class World : Server
     {
-        private static uint worldObjectID = 0;
+        private static uint worldObjectID;
 
         private Dictionary<Xml.MessageType, List<IMessageHandler>> MessagePlugins = new Dictionary<Xml.MessageType, List<IMessageHandler>>();
 
@@ -134,38 +134,38 @@ namespace Hybrasyl
         public bool DebugEnabled { get; set; }
 
         #region Path helpers
-        public static string DataDirectory => Constants.DataDirectory;
-        public static string XmlDirectory => Path.Combine(DataDirectory, "world", "xml");
+        public string DataDirectory = Constants.DataDirectory;
+        public string XmlDirectory => Path.Combine(DataDirectory, "world", "xml");
 
-        public static string MapFileDirectory => Path.Combine(DataDirectory, "world", "mapfiles");
+        public string MapFileDirectory => Path.Combine(DataDirectory, "world", "mapfiles");
 
-        public static string ScriptDirectory => Path.Combine(DataDirectory, "world", "scripts");
+        public string ScriptDirectory => Path.Combine(DataDirectory, "world", "scripts");
 
-        public static string CastableDirectory => Path.Combine(DataDirectory, "world", "xml", "castables");
-        public static string StatusDirectory => Path.Combine(DataDirectory, "world", "xml", "statuses");
+        public string CastableDirectory => Path.Combine(DataDirectory, "world", "xml", "castables");
+        public string StatusDirectory => Path.Combine(DataDirectory, "world", "xml", "statuses");
 
-        public static string ItemDirectory => Path.Combine(DataDirectory, "world", "xml", "items");
+        public string ItemDirectory => Path.Combine(DataDirectory, "world", "xml", "items");
 
-        public static string NationDirectory => Path.Combine(DataDirectory, "world", "xml", "nations");
+        public string NationDirectory => Path.Combine(DataDirectory, "world", "xml", "nations");
 
-        public static string MapDirectory => Path.Combine(DataDirectory, "world", "xml", "maps");
+        public string MapDirectory => Path.Combine(DataDirectory, "world", "xml", "maps");
 
-        public static string WorldMapDirectory => Path.Combine(DataDirectory, "world", "xml", "worldmaps");
+        public string WorldMapDirectory => Path.Combine(DataDirectory, "world", "xml", "worldmaps");
 
-        public static string BehaviorSetDirectory => Path.Combine(DataDirectory, "world", "xml", "behaviorsets");
+        public string BehaviorSetDirectory => Path.Combine(DataDirectory, "world", "xml", "behaviorsets");
 
-        public static string CreatureDirectory => Path.Combine(DataDirectory, "world", "xml", "creatures");
+        public string CreatureDirectory => Path.Combine(DataDirectory, "world", "xml", "creatures");
 
-        public static string SpawnGroupDirectory => Path.Combine(DataDirectory, "world", "xml", "spawngroups");
+        public string SpawnGroupDirectory => Path.Combine(DataDirectory, "world", "xml", "spawngroups");
 
-        public static string LootSetDirectory => Path.Combine(DataDirectory, "world", "xml", "lootsets");
+        public string LootSetDirectory => Path.Combine(DataDirectory, "world", "xml", "lootsets");
 
-        public static string ItemVariantDirectory => Path.Combine(DataDirectory, "world", "xml", "itemvariants");
+        public string ItemVariantDirectory => Path.Combine(DataDirectory, "world", "xml", "itemvariants");
 
-        public static string NpcsDirectory => Path.Combine(DataDirectory, "world", "xml", "npcs");
+        public string NpcsDirectory => Path.Combine(DataDirectory, "world", "xml", "npcs");
 
-        public static string LocalizationDirectory => Path.Combine(DataDirectory, "world", "xml", "localization");
-        public static string ElementDirectory => Path.Combine(DataDirectory, "world", "xml", "elements");
+        public string LocalizationDirectory => Path.Combine(DataDirectory, "world", "xml", "localization");
+        public string ElementDirectory => Path.Combine(DataDirectory, "world", "xml", "elements");
         #endregion
 
         public HashSet<Creature> ActiveStatuses = new HashSet<Creature>();
@@ -188,8 +188,7 @@ namespace Hybrasyl
         }
 
 
-        public World(int port, Xml.DataStore store)
-            : base(port)
+        private void InitializeWorld()
         {
             Objects = new Dictionary<uint, WorldObject>();
             Portraits = new Dictionary<string, string>();
@@ -200,10 +199,24 @@ namespace Hybrasyl
             ScriptProcessor = new ScriptProcessor(this);
             MessageQueue = new BlockingCollection<HybrasylMessage>(new ConcurrentQueue<HybrasylMessage>());
             ControlMessageQueue = new BlockingCollection<HybrasylMessage>(new ConcurrentQueue<HybrasylMessage>());
-       
+
             ActiveAsyncDialogs = new ConcurrentDictionary<Tuple<UInt32, UInt32>, AsyncDialogRequest>();
             WorldData = new WorldDataStore();
+            _random = new Random();
+            CommandHandler = new ChatCommandHandler();
+            DebugEnabled = false;
 
+        }
+
+        public World(int port) : base(port)
+        {
+            InitializeWorld();
+        }
+
+        public World(int port, Xml.DataStore store)
+                : base(port)
+        {
+            InitializeWorld();
             var datastoreConfig = new ConfigurationOptions()
             {
                 EndPoints =
@@ -216,9 +229,7 @@ namespace Hybrasyl
                 datastoreConfig.Password = store.Password;
 
             _lazyConnector = new Lazy<ConnectionMultiplexer>(() => ConnectionMultiplexer.Connect(datastoreConfig));
-            _random = new Random();
-            CommandHandler = new ChatCommandHandler();
-            DebugEnabled = false;
+
         }
 
         public bool ToggleDebug()

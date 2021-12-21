@@ -1101,7 +1101,7 @@ namespace Hybrasyl.ChatCommands
 
     class GenerateArmor : ChatCommand
     {
-        public static int GeneratedId = 0;
+        public static int GeneratedId;
         public new static string Command = "generate";
         public new static string ArgumentText = "<string> type <string> gender <ushort> sprite <ushort> sprite";
         public new static string HelpText = "Used for testing sprite vs display sprite. armor Female 1 1";

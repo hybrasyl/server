@@ -365,15 +365,15 @@ namespace C3
         #region Private Members
 
         //private List<T> m_objects = null;       // The objects in this QuadTree
-        private List<QuadTreeObject<T>> objects = null;
+        private List<QuadTreeObject<T>> objects;
         private Rectangle rect; // The area this QuadTree represents
 
-        private QuadTreeNode<T> parent = null; // The parent of this quad
+        private QuadTreeNode<T> parent; // The parent of this quad
 
-        private QuadTreeNode<T> childTL = null; // Top Left Child
-        private QuadTreeNode<T> childTR = null; // Top Right Child
-        private QuadTreeNode<T> childBL = null; // Bottom Left Child
-        private QuadTreeNode<T> childBR = null; // Bottom Right Child
+        private QuadTreeNode<T> childTL; // Top Left Child
+        private QuadTreeNode<T> childTR; // Top Right Child
+        private QuadTreeNode<T> childBL; // Bottom Left Child
+        private QuadTreeNode<T> childBR; // Bottom Right Child
 
         #endregion
 

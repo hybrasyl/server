@@ -231,7 +231,7 @@ namespace Hybrasyl.Objects
         }
 
         [JsonProperty]
-        public uint LevelPoints = 0;
+        public uint LevelPoints;
 
         public byte CurrentMusicTrack { get; set; }
 
@@ -1724,7 +1724,7 @@ namespace Hybrasyl.Objects
 
         public override void UpdateAttributes(StatUpdateFlags flags)
         {
-            
+            if (Client is null) return;
             var x08 = new ServerPacket(0x08);
             if (UnreadMail || HasParcels)
             {
@@ -5121,6 +5121,7 @@ namespace Hybrasyl.Objects
 
         public void SendSystemMessage(string p)
         {
+            if (Client is null) return;
             Client.SendMessage(p, 3);
         }
 

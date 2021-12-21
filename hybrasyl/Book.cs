@@ -32,19 +32,12 @@ namespace Hybrasyl
     public class BookSlot
     {
         public Xml.Castable Castable { get; set; }
-        public uint UseCount { get; set; } = 0;
-        public uint MasteryLevel { get; set; } = 0;
-        public DateTime LastCast { get; set; } = default;
+        public uint UseCount { get; set; }
+        public uint MasteryLevel { get; set; }
+        public DateTime LastCast { get; set; }
         public bool ThresholdTriggered { get; set; } = false;
 
-        public bool OnCooldown
-        {
-            get
-            {
-                return (Castable.Cooldown > 0) && ((DateTime.Now - LastCast).TotalSeconds < Castable.Cooldown);
-            }
-
-        }
+        public bool OnCooldown => (Castable.Cooldown > 0) && ((DateTime.Now - LastCast).TotalSeconds < Castable.Cooldown);
         public bool HasBeenUsed => LastCast != default;
         public double SecondsSinceLastUse => (DateTime.Now - LastCast).TotalSeconds;
     }
@@ -80,8 +73,7 @@ namespace Hybrasyl
 
                 for (byte i = 0; i < jArray.Count; i++)
                 {
-                    dynamic item;
-                    if (!TryGetValue(jArray[i], out item)) continue;
+                    if (!TryGetValue(jArray[i], out var item)) continue;
                     book[i] = new BookSlot() { Castable = Game.World.WorldData.Values<Xml.Castable>().SingleOrDefault(x => x.Name.ToLower() == (string)item.Name) };
                     var bookSlot = book[i];
                     if (bookSlot != null)
@@ -156,11 +148,10 @@ namespace Hybrasyl
         // Secondary 36-70, 71 unusable
         // Utility 72-88, 89 unusable
 
-        public bool IsPrimaryFull => _items[0..34].Where(x => x != null).Count() == 35;
-        public bool IsSecondaryFull => _items[36..70].Where(x => x != null).Count() == 35;
-        public bool IsUtilityFull => _items[72..88].Where(x => x != null).Count() == 17;
+        public bool IsPrimaryFull => _items[..34].Count(x => x is not null) == 35;
+        public bool IsSecondaryFull => _items[36..70].Count(x => x is not null) == 35;
+        public bool IsUtilityFull => _items[72..88].Count(x => x is not null) == 17;
 
-        public int EmptySlots => Size - Count;
         public int Size { get; private set; }
         public int Count { get; private set; }
 
