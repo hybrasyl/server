@@ -205,7 +205,6 @@ namespace Hybrasyl
             _random = new Random();
             CommandHandler = new ChatCommandHandler();
             DebugEnabled = false;
-
         }
 
         public World(int port) : base(port)
@@ -219,6 +218,7 @@ namespace Hybrasyl
             InitializeWorld();
             var datastoreConfig = new ConfigurationOptions()
             {
+                DefaultDatabase = store.Database,
                 EndPoints =
                 {
                     {store.Host, store.Port}

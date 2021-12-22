@@ -124,6 +124,19 @@ namespace Hybrasyl.Xml
         [XmlIgnore]
         public Dictionary<string, List<Item>> Variants { get; set; }
 
+        public static List<string> GenerateIds(string name)
+        {
+            var ret = new List<string>();
+            foreach (var gender in Enum.GetValues(typeof(Gender)))
+            {
+                var rawhash = $"{name.Normalize()}:{gender.ToString().Normalize()}";
+                var hash = sha.ComputeHash(Encoding.ASCII.GetBytes(rawhash));
+                ret.Add(string.Concat(hash.Select(b => b.ToString("x2"))).Substring(0, 8));
+            }
+
+            return ret;
+        }
+
         public string Id
         {
             get

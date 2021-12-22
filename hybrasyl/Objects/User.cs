@@ -173,10 +173,7 @@ namespace Hybrasyl.Objects
 
         public Xml.Nation Nation
         {
-            get
-            {
-                return _nation ?? World.DefaultNation;
-            }
+            get => _nation ?? World.DefaultNation;
             set
             {
                 _nation = value;
@@ -187,13 +184,7 @@ namespace Hybrasyl.Objects
         [JsonProperty]
         private string Citizenship { get; set; }
 
-        public string NationName
-        {
-            get
-            {
-                return Nation != null ? Nation.Name : string.Empty;
-            }
-        }
+        public string NationName => Nation != null ? Nation.Name : string.Empty;
 
         [JsonProperty] public Legend Legend;
         [JsonProperty] public string Title;
@@ -333,10 +324,7 @@ namespace Hybrasyl.Objects
 
         public DateTime LastAttack { get; set; }
 
-        public bool Grouped
-        {
-            get { return Group != null; }
-        }
+        public bool Grouped => Group != null;
 
         [JsonProperty]
         public Dictionary<byte, bool> ClientSettings { get; set; }
@@ -360,7 +348,9 @@ namespace Hybrasyl.Objects
         [JsonProperty]
         public bool IsIgnoringWhispers { get; set; }
         [JsonProperty]
-        public bool IsAtWorldMap { get { return Location.WorldMap; } set { Location.WorldMap = value; } }
+        public bool IsAtWorldMap { get => Location.WorldMap;
+            set => Location.WorldMap = value;
+        }
 
         public void Enqueue(ServerPacket packet)
         {
@@ -658,14 +648,9 @@ namespace Hybrasyl.Objects
             }
         }
 
-        public string GroupText
-        {
-            get
-            {
-                // This also eventually needs to consider marriages
-                return Grouping ? "Grouped!" : "Adventuring Alone";
-            }
-        }
+        public string GroupText =>
+            // This also eventually needs to consider marriages
+            Grouping ? "Grouped!" : "Adventuring Alone";
 
         /**
          * Returns the current weight as perceived by the client. The actual inventory or equipment
@@ -673,25 +658,16 @@ namespace Hybrasyl.Objects
          * values will appear as zero as the client expects).
          */
 
-        public ushort VisibleWeight
-        {
-            get { return (ushort)Math.Max(0, CurrentWeight); }
-        }
+        public ushort VisibleWeight => (ushort)Math.Max(0, CurrentWeight);
 
         /**
          * Returns the true weight of the user's inventory + equipment, which could be negative.
          * Note that you should use VisibleWeight when communicating with the client since negative
          * weights should be invisible to users.
          */
-        public int CurrentWeight
-        {
-            get { return (Inventory.Weight + Equipment.Weight); }
-        }
+        public int CurrentWeight => (Inventory.Weight + Equipment.Weight);
 
-        public ushort MaximumWeight
-        {
-            get { return (ushort)(Stats.BaseStr + Stats.Level / 4 + 48); }
-        }
+        public ushort MaximumWeight => (ushort)(Stats.BaseStr + Stats.Level / 4 + 48);
 
         public User() : base()
         {
@@ -2167,13 +2143,10 @@ namespace Hybrasyl.Objects
         public bool AddItem(ItemObject itemObject, bool updateWeight = true)
         {
             Game.World.Insert(itemObject);
-            if (Inventory.IsFull)
-            {
-                SendSystemMessage("You cannot carry any more items.");
-                Map.Insert(itemObject, X, Y);
-                return false;
-            }
-            return AddItem(itemObject, Inventory.FindEmptySlot(), updateWeight);
+            if (!Inventory.IsFull) return AddItem(itemObject, Inventory.FindEmptySlot(), updateWeight);
+            SendSystemMessage("You cannot carry any more items.");
+            Map.Insert(itemObject, X, Y);
+            return false;
         }
 
         public bool AddItem(ItemObject itemObject, byte slot, bool updateWeight = true)

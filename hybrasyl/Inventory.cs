@@ -88,17 +88,12 @@ namespace Hybrasyl
             return errorMessage == string.Empty;
         }
 
-        public bool ConditionsValid
-        {
-            get
-            {
-                return _source.Map == _target.Map && _source.IsInViewport(_target) &&
-                       _target.IsInViewport(_source) &&
-                       _source.Condition.InExchange &&
-                       _target.Condition.InExchange &&
-                       _active;
-            }
-        }
+        public bool ConditionsValid =>
+            _source.Map == _target.Map && _source.IsInViewport(_target) &&
+            _target.IsInViewport(_source) &&
+            _source.Condition.InExchange &&
+            _target.Condition.InExchange &&
+            _active;
 
         public bool AddItem(User giver, byte slot, byte quantity = 1)
         {
@@ -712,134 +707,76 @@ namespace Hybrasyl
     {
         public DateTime LastSaved { get; set; }
 
-        public object ContainerLock = new object();
+        public object ContainerLock = new();
 
         private Lockable<ItemObject[]> _itemsObject;
         private ConcurrentDictionary<string, List<ItemObject>> _inventoryIndex;
 
-        private Lockable<int> _size { get; set; }
-        private Lockable<int> _count { get; set; }
-        private Lockable<int> _weight { get; set; }
+
+        private Lockable<int> _size { get;  }
+        private Lockable<int> _count { get;  }
+        private Lockable<int> _weight { get; }
 
         public int Size
         {
-            get { return _size.Value; }
-            private set { _size.Value = value; }
+            get => _size.Value;
+            private set => _size.Value = value;
         }
         public int Count
         {
-            get { return _count.Value; }
-            private set { _count.Value = value; }
+            get => _count.Value;
+            private set => _count.Value = value;
         }
         public int Weight
         {
-            get { return _weight.Value; }
-            private set { _weight.Value = value; }
+            get => _weight.Value;
+            private set => _weight.Value = value;
         }
 
 
         #region Equipment Properties
 
-        public ItemObject Weapon
-        {
-            get { return _itemsObject.Value[ServerItemSlots.Weapon]; }
-        }
+        public ItemObject Weapon => _itemsObject.Value[ServerItemSlots.Weapon];
 
-        public ItemObject Armor
-        {
-            get { return _itemsObject.Value[ServerItemSlots.Armor]; }
-        }
+        public ItemObject Armor => _itemsObject.Value[ServerItemSlots.Armor];
 
-        public ItemObject Shield
-        {
-            get { return _itemsObject.Value[ServerItemSlots.Shield]; }
-        }
+        public ItemObject Shield => _itemsObject.Value[ServerItemSlots.Shield];
 
-        public ItemObject Helmet
-        {
-            get { return _itemsObject.Value[ServerItemSlots.Helmet]; }
-        }
+        public ItemObject Helmet => _itemsObject.Value[ServerItemSlots.Helmet];
 
-        public ItemObject Earring
-        {
-            get { return _itemsObject.Value[ServerItemSlots.Earring]; }
-        }
+        public ItemObject Earring => _itemsObject.Value[ServerItemSlots.Earring];
 
-        public ItemObject Necklace
-        {
-            get { return _itemsObject.Value[ServerItemSlots.Necklace]; }
-        }
+        public ItemObject Necklace => _itemsObject.Value[ServerItemSlots.Necklace];
 
-        public ItemObject LRing
-        {
-            get { return _itemsObject.Value[ServerItemSlots.LHand]; }
-        }
+        public ItemObject LRing => _itemsObject.Value[ServerItemSlots.LHand];
 
-        public ItemObject RRing
-        {
-            get { return _itemsObject.Value[ServerItemSlots.RHand]; }
-        }
+        public ItemObject RRing => _itemsObject.Value[ServerItemSlots.RHand];
 
-        public ItemObject LGauntlet
-        {
-            get { return _itemsObject.Value[ServerItemSlots.LArm]; }
-        }
+        public ItemObject LGauntlet => _itemsObject.Value[ServerItemSlots.LArm];
 
-        public ItemObject RGauntlet
-        {
-            get { return _itemsObject.Value[ServerItemSlots.RArm]; }
-        }
+        public ItemObject RGauntlet => _itemsObject.Value[ServerItemSlots.RArm];
 
-        public ItemObject Belt
-        {
-            get { return _itemsObject.Value[ServerItemSlots.Waist]; }
-        }
+        public ItemObject Belt => _itemsObject.Value[ServerItemSlots.Waist];
 
-        public ItemObject Greaves
-        {
-            get { return _itemsObject.Value[ServerItemSlots.Leg]; }
-        }
+        public ItemObject Greaves => _itemsObject.Value[ServerItemSlots.Leg];
 
-        public ItemObject Boots
-        {
-            get { return _itemsObject.Value[ServerItemSlots.Foot]; }
-        }
+        public ItemObject Boots => _itemsObject.Value[ServerItemSlots.Foot];
 
-        public ItemObject FirstAcc
-        {
-            get { return _itemsObject.Value[ServerItemSlots.FirstAcc]; }
-        }
+        public ItemObject FirstAcc => _itemsObject.Value[ServerItemSlots.FirstAcc];
 
-        public ItemObject Overcoat
-        {
-            get { return _itemsObject.Value[ServerItemSlots.Trousers]; }
-        }
+        public ItemObject Overcoat => _itemsObject.Value[ServerItemSlots.Trousers];
 
-        public ItemObject DisplayHelm
-        {
-            get { return _itemsObject.Value[ServerItemSlots.Coat]; }
-        }
+        public ItemObject DisplayHelm => _itemsObject.Value[ServerItemSlots.Coat];
 
-        public ItemObject SecondAcc
-        {
-            get { return _itemsObject.Value[ServerItemSlots.SecondAcc]; }
-        }
+        public ItemObject SecondAcc => _itemsObject.Value[ServerItemSlots.SecondAcc];
 
-        public ItemObject ThirdAcc
-        {
-            get { return _itemsObject.Value[ServerItemSlots.ThirdAcc]; }
-        }
+        public ItemObject ThirdAcc => _itemsObject.Value[ServerItemSlots.ThirdAcc];
+
         #endregion Equipment Properties
 
-        public bool IsFull
-        {
-            get { return Count == Size; }
-        }
+        public bool IsFull => Count == Size;
 
-        public int EmptySlots
-        {
-            get { return Size - Count; }
-        }
+        public int EmptySlots => Size - Count;
 
         public void RecalculateWeight()
         {
@@ -905,15 +842,20 @@ namespace Hybrasyl
             }
         }
 
-        public bool TryGetValueByName(string name, out ItemObject itemObject)
+        public bool TryGetValueByName(string name, out List<ItemObject> itemList)
         {
-            itemObject = null;
-            List<ItemObject> itemList;
+            itemList = new List<ItemObject>();
             Xml.Item theItem;
-            if (!Game.World.TryGetItemTemplate(name, out theItem) ||
-                !_inventoryIndex.TryGetValue(theItem.Id, out itemList)) return false;
-            itemObject = itemList.First();
-            return true;
+
+            var potentialIds = Xml.Item.GenerateIds(name);
+
+            foreach (var id in potentialIds)
+            {
+                if (_inventoryIndex.TryGetValue(id, out List<ItemObject> foundItems))
+                    itemList.AddRange(foundItems);
+            }
+
+            return itemList.Count != 0; 
         }
 
         public bool TryRemoveQuantity(string name, int quantity)
@@ -984,7 +926,7 @@ namespace Hybrasyl
                 if (!_inventoryIndex.ContainsKey(item.Id))
                     continue;
 
-                var total = _inventoryIndex.Where(x => x.Key == item.Id).First().Value.Sum(y => y.Count);
+                var total = _inventoryIndex.First(x => x.Key == item.Id).Value.Sum(y => y.Count);
                 GameLog.Info($"Contains check: {name}, quantity {quantity}: {total} found");
                 if (total >= quantity) return true;
             }
@@ -1049,8 +991,7 @@ namespace Hybrasyl
 
         public ItemObject FindByName(string name)
         {
-            Xml.Item theItem;
-            return Game.World.TryGetItemTemplate(name, out theItem) && _inventoryIndex.ContainsKey(theItem.Id)
+            return Game.World.TryGetItemTemplate(name, out var theItem) && _inventoryIndex.ContainsKey(theItem.Id)
                 ? _inventoryIndex[theItem.Id].First()
                 : null;
         }
@@ -1099,9 +1040,7 @@ namespace Hybrasyl
                 int index1 = slot1 - 1, index2 = slot2 - 1;
                 if (index1 < 0 || index1 >= Size || index2 < 0 || index2 >= Size)
                     return false;
-                var item = _itemsObject.Value[index1];
-                _itemsObject.Value[index1] = _itemsObject.Value[index2];
-                _itemsObject.Value[index2] = item;
+                (_itemsObject.Value[index1], _itemsObject.Value[index2]) = (_itemsObject.Value[index2], _itemsObject.Value[index1]);
                 return true;
 
             }
@@ -1109,8 +1048,7 @@ namespace Hybrasyl
 
         public void Clear()
         {
-            for (var i = 0; i < Size; ++i)
-                _itemsObject.Value[i] = null;
+            _itemsObject = new Lockable<ItemObject[]>(new ItemObject[Size]);
             Count = 0;
             Weight = 0;
             _inventoryIndex.Clear();

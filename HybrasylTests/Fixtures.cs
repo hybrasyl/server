@@ -6,102 +6,56 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using Xunit;
+using Map = Hybrasyl.Map;
+using Reactor = Hybrasyl.Xml.Reactor;
+using Warp = Hybrasyl.Xml.Warp;
 
 namespace HybrasylTests
 {
 
-    public static class Game
+    public class HybrasylFixture : IDisposable
     {
-        public static readonly World World;
-        static Game()
+        public readonly Map Map;
+        public static readonly Item TestItem;
+        public static readonly Item StackableTestItem;
+        public static readonly Dictionary<EquipmentSlot, Item> TestEquipment = new();
+        public static int InventorySize => 59;
+
+        public static User TestUser;
+
+        static HybrasylFixture()
         {
-            World = new World(1337, new DataStore() { Host = "127.0.0.1", Port = 6379 })
+            Game.World = new World(1337, new DataStore { Host = "127.0.0.1", Port = 6379, Database = 15 })
             {
                 DataDirectory = Directory.GetCurrentDirectory()
             };
-        }
-    }
-
-    public static class Fixtures
-    {
-        public static readonly Hybrasyl.Map Map;
-        public static readonly User TestUser;
-
-        static Fixtures()
-        {
-            Hybrasyl.Game.World = new World(1337, new DataStore() { Host = "127.0.0.1", Port = 6379 });
 
             var xmlMap = new Hybrasyl.Xml.Map
             {
                 Id = 1000,
                 X = 50,
                 Y = 50,
-                Warps = new List<Hybrasyl.Xml.Warp>(),
+                Name = "Test Map",
+                Warps = new List<Warp>(),
                 Npcs = new List<MapNpc>(),
-                Reactors = new List<Hybrasyl.Xml.Reactor>(),
+                Reactors = new List<Reactor>(),
                 Signs = new List<MapSign>()
             };
-            Map = new Hybrasyl.Map(xmlMap, Game.World);
-            Game.World.WorldData.SetWithIndex(Map.Id, Map, Map.Name);
+            var map = new Map(xmlMap, Game.World);
+            Game.World.WorldData.SetWithIndex(map.Id, map, map.Name);
 
-            var xmlNation = new Nation() { Default = true, Description = "Test Nation", Flag = 0, Name = "Test", SpawnPoints = new List<SpawnPoint>() };
-            xmlNation.SpawnPoints.Add(new SpawnPoint() { MapName = "Test Map", X = 5, Y = 5 });
+            var xmlNation = new Nation { Default = true, Description = "Test Nation", Flag = 0, Name = "Test", SpawnPoints = new List<SpawnPoint>() };
+            xmlNation.SpawnPoints.Add(new SpawnPoint { MapName = "Test Map", X = 5, Y = 5 });
             Game.World.WorldData.Set(xmlNation.Name, xmlNation);
 
-            TestUser = new User();
-
-            //TODO: fix
-            
-
-            TestUser.Name = "TestUser";
-            TestUser.Uuid = Guid.NewGuid().ToString();
-            TestUser.Gender = Gender.Female;
-            TestUser.Location.Direction = Direction.South;
-            TestUser.Location.Map = Map;
-            TestUser.Location.X = 10;
-            TestUser.Location.Y = 10;
-            TestUser.HairColor = 1;
-            TestUser.HairStyle = 1;
-            TestUser.Class = Class.Peasant;
-            TestUser.Gold = 0;
-            TestUser.AuthInfo.CreatedTime = DateTime.Now;
-            TestUser.AuthInfo.FirstLogin = true;
-            TestUser.AuthInfo.PasswordHash = "testing";
-            TestUser.AuthInfo.LastPasswordChange = DateTime.Now;
-            TestUser.AuthInfo.LastPasswordChangeFrom = "TestFixture";
-            TestUser.AuthInfo.Save();
-            TestUser.Nation = Game.World.DefaultNation;
-
-            IDatabase cache = World.DatastoreConnection.GetDatabase();
-            cache.Set(User.GetStorageKey(TestUser.Name), TestUser);
-            var vault = new Vault(TestUser.Uuid);
-            vault.Save();
-            var parcelStore = new ParcelStore(TestUser.Uuid);
-            parcelStore.Save();
-        }
-
-    }
-
-    public class InventoryTestData : IEnumerable<object[]>
-    {
-        private static readonly Item TestItem;
-        private static readonly Item StackableTestItem;
-
-
-        public static ItemObject TestItemObject => new(TestItem.Id, Game.World);
-        public static ItemObject StackableTestItemObject => new(StackableTestItem.Id, Game.World);
-        public static readonly Dictionary<EquipmentSlot, ItemObject> TestEquipment = new Dictionary<EquipmentSlot, ItemObject>();
-        public static int InventorySize => 59;
-
-        static InventoryTestData()
-        {
             TestItem = new Item
             {
                 Name = "Test Item"
             };
             TestItem.Properties.Stackable.Max = 1;
             TestItem.Properties.Equipment = new Equipment() { WeaponType = WeaponType.None, Slot = EquipmentSlot.None };
-            TestItem.Properties.Physical = new Physical() { Durability = 1000, Weight = 10 };
+            TestItem.Properties.Physical = new Physical() { Durability = 1000, Weight = 1 };
             Game.World.WorldData.Set(TestItem.Id, TestItem);
 
             StackableTestItem = new Item
@@ -110,7 +64,7 @@ namespace HybrasylTests
             };
             StackableTestItem.Properties.Stackable.Max = 20;
             StackableTestItem.Properties.Equipment = new Equipment() { WeaponType = WeaponType.None, Slot = EquipmentSlot.None };
-            StackableTestItem.Properties.Physical = new Physical() { Durability = 1000, Weight = 10 };
+            StackableTestItem.Properties.Physical = new Physical() { Durability = 1000, Weight = 1 };
             Game.World.WorldData.Set(StackableTestItem.Id, StackableTestItem);
 
             foreach (EquipmentSlot slot in Enum.GetValues(typeof(EquipmentSlot)))
@@ -118,17 +72,64 @@ namespace HybrasylTests
                 var item = new Item() { Name = $"Equip Test {slot}" };
                 item.Properties.Stackable.Max = 1;
                 item.Properties.Equipment = new Equipment { WeaponType = slot == EquipmentSlot.Weapon ? WeaponType.Dagger : WeaponType.None, Slot = slot };
-                item.Properties.Physical = new Physical() { Durability = 1000, Weight = 10 };
+                item.Properties.Physical = new Physical() { Durability = 1000, Weight = 1 };
                 Game.World.WorldData.Set(item.Id, item);
-                TestEquipment[slot] = new ItemObject(item.Id, Game.World);
+                TestEquipment.Add(slot, item);
             }
+
+            TestUser = new User
+            {
+                Name = "TestUser",
+                Uuid = Guid.NewGuid().ToString(),
+                Gender = Gender.Female,
+                Location =
+                {
+                    Direction = Direction.South,
+                    Map = map,
+                    X = 10,
+                    Y = 10
+                },
+                HairColor = 1,
+                HairStyle = 1,
+                Class = Class.Peasant,
+                Gold = 0,
+                AuthInfo =
+                {
+                    CreatedTime = DateTime.Now,
+                    FirstLogin = true,
+                    PasswordHash = "testing",
+                    LastPasswordChange = DateTime.Now,
+                    LastPasswordChangeFrom = "TestFixture"
+                },
+                Stats =
+                {
+                    BaseInt = 100, 
+                    BaseStr = 255, 
+                    BaseDex = 100, 
+                    BaseCon = 100, 
+                    BaseWis = 100,
+                    Level = 99
+                }
+            };
+            TestUser.AuthInfo.Save();
+            TestUser.Nation = Game.World.DefaultNation;
+
+            var vault = new Vault(TestUser.Uuid);
+            vault.Save();
+            var parcelStore = new ParcelStore(TestUser.Uuid);
+            parcelStore.Save();
+            TestUser.Save();
+
+
         }
 
-        public IEnumerator<object[]> GetEnumerator()
+        public void Dispose()
         {
-            yield return new object[] { TestItemObject };
+            IDatabase test = World.DatastoreConnection.GetDatabase(15);
+            test.Execute("FLUSHALL");
         }
-
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
+
+    [CollectionDefinition("Hybrasyl")]
+    public class HybrasylCollection : ICollectionFixture<HybrasylFixture> {}
 }
