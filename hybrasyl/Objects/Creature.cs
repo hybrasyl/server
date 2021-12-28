@@ -57,14 +57,14 @@ namespace Hybrasyl.Objects
         [JsonProperty]
         public Inventory Inventory { get; protected set; }
 
-        [JsonProperty("Equipment")]
-        public Inventory Equipment { get; protected set; }
+        [JsonProperty]
+        public Equipment Equipment { get; protected set; }
 
         public Creature()
         {
             Gold = 0;
             Inventory = new Inventory(59);
-            Equipment = new Inventory(18);
+            Equipment = new Equipment(18);
             Stats = new StatInfo();
             Condition = new ConditionInfo(this);
             _currentStatuses = new ConcurrentDictionary<ushort, ICreatureStatus>();

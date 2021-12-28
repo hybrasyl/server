@@ -1930,7 +1930,7 @@ namespace Hybrasyl
             else if (pickupObject is ItemObject)
             {
                 var item = (ItemObject)pickupObject;
-                if (item.UniqueInventory && user.Inventory.Contains(item.TemplateId))
+                if (item.UniqueInventory && user.Inventory.ContainsId(item.TemplateId))
                 {
                     user.SendMessage(string.Format("You can't carry any more of those.", item.Name), 3);
                     return;
@@ -1941,10 +1941,10 @@ namespace Hybrasyl
                 item.ItemDropTime = null;
                 item.ItemDropType = ItemDropType.Normal;
 
-                if (item.Stackable && user.Inventory.Contains(item.TemplateId))
+                if (item.Stackable && user.Inventory.ContainsId(item.TemplateId))
                 {
                     
-                    byte existingSlot = user.Inventory.SlotOf(item.TemplateId);
+                    byte existingSlot = user.Inventory.SlotOfId(item.TemplateId);
                     var existingItem = user.Inventory[existingSlot];
                     var success = user.AddItem(item.Name, (ushort)item.Count);
 
@@ -2477,11 +2477,12 @@ namespace Hybrasyl
             }
         }
 
-        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze,
+            PlayerFlags.InDialog)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x1C_UseItem(Object obj, ClientPacket packet)
         {
-            var user = (User)obj;
+            var user = (User) obj;
             var slot = packet.ReadByte();
 
             GameLog.DebugFormat("Updating slot {0}", slot);
@@ -2495,7 +2496,7 @@ namespace Hybrasyl
             switch (item.ItemObjectType)
             {
                 case Enums.ItemObjectType.CanUse:
-                    if (item.Durability == 0 && !((item?.EquipmentSlot ?? ClientItemSlots.None) == ClientItemSlots.None))
+                    if (item.Durability == 0 && (item?.EquipmentSlot ?? (byte) ItemSlots.None) != (byte) ItemSlots.None)
                     {
                         user.SendSystemMessage("This item is too badly damaged to use.");
                         return;
@@ -2513,124 +2514,128 @@ namespace Hybrasyl
                     break;
 
                 case Enums.ItemObjectType.Equipment:
-                    {                 
-                       if (item.Durability == 0)
-                        {
-                            user.SendSystemMessage("This item is too badly damaged to use.");
-                            return;
-                        }
-                        // Check item requirements here before we do anything rash
-                        string message;
-                        if (!item.CheckRequirements(user, out message))
-                        {
-                            // If an item can't be equipped, CheckRequirements will return false
-                            // and also set the appropriate message for us via out
-                            user.SendMessage(message, 3);
-                            return;
-                        }
-                        GameLog.DebugFormat("Equipping {0}", item.Name);
-                        // Remove the item from inventory, but we don't decrement its count, as it still exists.
-                        user.RemoveItem(slot);
+                {
+                    if (item.Durability == 0)
+                    {
+                        user.SendSystemMessage("This item is too badly damaged to use.");
+                        return;
+                    }
 
-                        // Handle gauntlet / ring special cases
-                        if (item.EquipmentSlot == ClientItemSlots.Gauntlet)
-                        {
-                            GameLog.DebugFormat("item is gauntlets");
-                            // First, is the left arm slot occupied?
-                            if (user.Equipment[ClientItemSlots.LArm] != null)
-                            {
-                                if (user.Equipment[ClientItemSlots.RArm] == null)
-                                {
-                                    // Right arm slot is empty; use it
-                                    user.AddEquipment(item, ClientItemSlots.RArm);
-                                }
-                                else
-                                {
-                                    // Right arm slot is in use; replace LArm with item
-                                    var olditem = user.Equipment[ClientItemSlots.LArm];
-                                    user.RemoveEquipment(ClientItemSlots.LArm);
-                                    user.AddItem(olditem, slot);
-                                    user.AddEquipment(item, ClientItemSlots.LArm);
-                                }
-                            }
-                            else
-                            {
-                                user.AddEquipment(item, ClientItemSlots.LArm);
-                            }
-                        }
-                        else if (item.EquipmentSlot == ClientItemSlots.Ring)
-                        {
-                            GameLog.DebugFormat("item is ring");
+                    // Check item requirements here before we do anything rash
+                    string message;
+                    if (!item.CheckRequirements(user, out message))
+                    {
+                        // If an item can't be equipped, CheckRequirements will return false
+                        // and also set the appropriate message for us via out
+                        user.SendMessage(message, 3);
+                        return;
+                    }
 
-                            // First, is the left ring slot occupied?
-                            if (user.Equipment[ClientItemSlots.LHand] != null)
-                            {
-                                if (user.Equipment[ClientItemSlots.RHand] == null)
-                                {
-                                    // Right ring slot is empty; use it
-                                    user.AddEquipment(item, ClientItemSlots.RHand);
-                                }
-                                else
-                                {
-                                    // Right ring slot is in use; replace LHand with item
-                                    var olditem = user.Equipment[ClientItemSlots.LHand];
-                                    user.RemoveEquipment(ClientItemSlots.LHand);
-                                    user.AddItem(olditem, slot);
-                                    user.AddEquipment(item, ClientItemSlots.LHand);
-                                }
-                            }
-                            else
-                            {
-                                user.AddEquipment(item, ClientItemSlots.LHand);
-                            }
-                        }
-                        else if (item.EquipmentSlot == ClientItemSlots.FirstAcc ||
-                                 item.EquipmentSlot == ClientItemSlots.SecondAcc ||
-                                 item.EquipmentSlot == ClientItemSlots.ThirdAcc)
+                    GameLog.DebugFormat("Equipping {0}", item.Name);
+                    // Remove the item from inventory, but we don't decrement its count, as it still exists.
+                    user.RemoveItem(slot);
+
+                    // Handle gauntlet / ring special cases
+                    if (item.EquipmentSlot == (byte) ItemSlots.Gauntlet)
+                    {
+                        GameLog.DebugFormat("item is gauntlets");
+                        // First, is the left arm slot occupied?
+                        if (user.Equipment[(byte) ItemSlots.LArm] != null)
                         {
-                            if (user.Equipment.FirstAcc == null)
-                                user.AddEquipment(item, ClientItemSlots.FirstAcc);
-                            else if (user.Equipment.SecondAcc == null)
-                                user.AddEquipment(item, ClientItemSlots.SecondAcc);
-                            else if (user.Equipment.ThirdAcc == null)
-                                user.AddEquipment(item, ClientItemSlots.ThirdAcc);
+                            if (user.Equipment[(byte) ItemSlots.RArm] == null)
+                            {
+                                // Right arm slot is empty; use it
+                                user.AddEquipment(item, (byte) ItemSlots.RArm);
+                            }
                             else
                             {
-                                // Remove first accessory
-                                var oldItem = user.Equipment.FirstAcc;
-                                user.RemoveEquipment(ClientItemSlots.FirstAcc);
-                                user.AddEquipment(item, ClientItemSlots.FirstAcc);
-                                user.AddItem(oldItem, slot);
-                                user.Show();
+                                // Right arm slot is in use; replace LArm with item
+                                var olditem = user.Equipment[(byte) ItemSlots.LArm];
+                                user.RemoveEquipment((byte) ItemSlots.LArm);
+                                user.AddItem(olditem, slot);
+                                user.AddEquipment(item, (byte) ItemSlots.LArm);
                             }
                         }
                         else
                         {
-                            var equipSlot = item.EquipmentSlot;
-                            var oldItem = user.Equipment[equipSlot];
+                            user.AddEquipment(item, (byte) ItemSlots.LArm);
+                        }
+                    }
+                    else if (item.EquipmentSlot == (byte) ItemSlots.Ring)
+                    {
+                        GameLog.DebugFormat("item is ring");
 
-                            if (oldItem != null)
+                        // First, is the left ring slot occupied?
+                        if (user.Equipment[(byte) ItemSlots.LHand] != null)
+                        {
+                            if (user.Equipment[(byte) ItemSlots.RHand] == null)
                             {
-                                GameLog.DebugFormat(" Attemping to equip {0}", item.Name);
-                                GameLog.DebugFormat("..which would unequip {0}", oldItem.Name);
-                                GameLog.DebugFormat("Player weight is currently {0}", user.CurrentWeight);
-                                user.RemoveEquipment(equipSlot);
-                                user.AddItem(oldItem, slot);
-                                user.AddEquipment(item, equipSlot);
-                                user.Show();
-                                GameLog.DebugFormat("Player weight is currently {0}", user.CurrentWeight);
+                                // Right ring slot is empty; use it
+                                user.AddEquipment(item, (byte) ItemSlots.RHand);
                             }
                             else
                             {
-                                GameLog.DebugFormat("Attemping to equip {0}", item.Name);
-                                user.AddEquipment(item, equipSlot);
-                                user.Show();
+                                // Right ring slot is in use; replace LHand with item
+                                var olditem = user.Equipment[(byte) ItemSlots.LHand];
+                                user.RemoveEquipment((byte) ItemSlots.LHand);
+                                user.AddItem(olditem, slot);
+                                user.AddEquipment(item, (byte) ItemSlots.LHand);
                             }
                         }
+                        else
+                        {
+                            user.AddEquipment(item, (byte) ItemSlots.LHand);
+                        }
                     }
+                    else if (item.EquipmentSlot == (byte) ItemSlots.FirstAcc ||
+                             item.EquipmentSlot == (byte) ItemSlots.SecondAcc ||
+                             item.EquipmentSlot == (byte) ItemSlots.ThirdAcc)
+                    {
+                        if (user.Equipment.FirstAcc == null)
+                            user.AddEquipment(item, (byte) ItemSlots.FirstAcc);
+                        else if (user.Equipment.SecondAcc == null)
+                            user.AddEquipment(item, (byte) ItemSlots.SecondAcc);
+                        else if (user.Equipment.ThirdAcc == null)
+                            user.AddEquipment(item, (byte) ItemSlots.ThirdAcc);
+                        else
+                        {
+                            // Remove first accessory
+                            var oldItem = user.Equipment.FirstAcc;
+                            user.RemoveEquipment((byte) ItemSlots.FirstAcc);
+                            user.AddEquipment(item, (byte) ItemSlots.FirstAcc);
+                            user.AddItem(oldItem, slot);
+                            user.Show();
+                        }
+                    }
+                    else
+                    {
+                        var equipSlot = item.EquipmentSlot;
+                        var oldItem = user.Equipment[equipSlot];
+
+                        if (oldItem != null)
+                        {
+                            GameLog.DebugFormat(" Attemping to equip {0}", item.Name);
+                            GameLog.DebugFormat("..which would unequip {0}", oldItem.Name);
+                            GameLog.DebugFormat("Player weight is currently {0}", user.CurrentWeight);
+                            user.RemoveEquipment(equipSlot);
+                            user.AddItem(oldItem, slot);
+                            user.AddEquipment(item, equipSlot);
+                            user.Show();
+                            GameLog.DebugFormat("Player weight is currently {0}", user.CurrentWeight);
+                        }
+                        else
+                        {
+                            GameLog.DebugFormat("Attemping to equip {0}", item.Name);
+                            user.AddEquipment(item, equipSlot);
+                            user.Show();
+                        }
+                    }
+
                     break;
+                }
             }
         }
+
 
         [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
         [Required(PlayerFlags.Alive)]

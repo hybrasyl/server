@@ -28,6 +28,8 @@ using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
+using Hybrasyl.ChatCommands;
 using Hybrasyl.Threading;
 using Serilog;
 using Hybrasyl.Xml;
@@ -147,7 +149,7 @@ namespace Hybrasyl
 
             if (theItem.Stackable && theItem.Count > 1)
             {
-                var targetItem = giver == _target ? _source.Inventory.Find(theItem.Name) : _target.Inventory.Find(theItem.Name);
+                var targetItem = giver == _target ? _source.Inventory.FindById(theItem.Name) : _target.Inventory.FindById(theItem.Name);
 
                 // Check to see that giver has sufficient number of whatever, and also that the quantity is a positive number
                 if (quantity <= 0)
@@ -630,59 +632,125 @@ namespace Hybrasyl
         }
     }
 
+    public class InventorySlot
+    {
+        public string Name { get; set; }
+        public int Count { get; set; }
+        public string Id { get; set; }
+        public double Durability { get; set; }
+        public string Guid { get; set; }
+    }
+
+    public class EquipmentConverter : JsonConverter
+    {
+        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        {
+            var equip = (Equipment) value;
+            var output = new Dictionary<byte, object>();
+            for (byte i = 1; i <= equip.Size; i++)
+            {
+                if (equip[i] == null) continue;
+                var slot = new InventorySlot
+                {
+                    Count = equip[i].Count, Id = equip[i].TemplateId, Name = equip[i].Name,
+                    Durability = equip[i].Durability, Guid = equip[i].Guid.ToString()
+                };
+                output[i] = slot;
+            }
+
+            serializer.Serialize(writer, output);
+        }
+
+
+        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        {
+            var equipJObj = serializer.Deserialize<Dictionary<byte, InventorySlot>>(reader);
+            var equipment = new Equipment(Equipment.DefaultSize);
+
+            for (byte i = 1; i <= Equipment.DefaultSize; i++)
+            {
+                if (equipJObj.TryGetValue(i, out var slot))
+                {
+                    if (Game.World.WorldData.TryGetValue<Item>(slot.Id, out Item ItemTemplate))
+                    {
+                        equipment[i] = new ItemObject(slot.Id, Game.World, new Guid(slot.Guid))
+                        {
+                            Count = slot.Count,
+                            Durability = slot.Durability
+                        };
+                    }
+                    else
+                    {
+                        GameLog.Error($"Inventory deserializer error: item {slot.Id} not found in index, skipping");
+                        equipment[i] = null;
+                    }
+                }
+                else
+                    equipment[i] = null;
+            }
+
+            return equipment;
+        }
+
+        public override bool CanConvert(Type objectType)
+        {
+            return objectType == typeof(Equipment);
+        }
+
+    }
+
     public class InventoryConverter : JsonConverter
     {
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
-
-            var inventory = (Inventory) value;
-            var output = new object[inventory.Size];
-            for (byte i = 0; i < inventory.Size; i++)
+            var equip = (Inventory) value;
+            var output = new Dictionary<byte, object>();
+            for (byte i = 1; i <= equip.Size; i++)
             {
-                dynamic itemInfo = new JObject();
-                if (inventory[i,false] != null)
+                if (equip[i] == null) continue;
+                var slot = new InventorySlot
                 {
-                    itemInfo.Name = inventory[i,false].Name;
-                    itemInfo.Count = inventory[i,false].Count;
-                    itemInfo.Id = inventory[i,false].TemplateId;
-                    itemInfo.Durability = inventory[i,false].Durability;
-                    itemInfo.Guid = inventory[i, false].Guid;
-                    output[i] = itemInfo;
-                }               
+                    Count = equip[i].Count,
+                    Id = equip[i].TemplateId,
+                    Name = equip[i].Name,
+                    Durability = equip[i].Durability,
+                    Guid = equip[i].Guid.ToString()
+                };
+                output[i] = slot;
             }
-            var ja = JArray.FromObject(output);
-            serializer.Serialize(writer, ja);
+
+            serializer.Serialize(writer, output);
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
-            JArray jArray = JArray.Load(reader);
-            var inv = new Inventory(jArray.Count);
+            var equipJObj = serializer.Deserialize<Dictionary<byte, InventorySlot>>(reader);
+            var equipment = new Inventory(Inventory.DefaultSize);
 
-            for (byte i = 0; i < jArray.Count; i++)
+            for (byte i = 1; i <= equipment.Size; i++)
             {
-                dynamic item;
-                if (TryGetValue(jArray[i], out item))
+                if (equipJObj.TryGetValue(i, out var slot))
                 {
-                    //itmType = Game.World.WorldData.Values<Item>().Where(x => x.Name == (string)item.FirstOrDefault().Value).FirstOrDefault().Name;
-                    if (Game.World.WorldData.TryGetValue<Xml.Item>(item.Id, out Xml.Item itemTemplate)) 
+                    if (Game.World.WorldData.TryGetValue<Item>(slot.Id, out Item ItemTemplate))
                     {
-                        inv[i, false] = new ItemObject(itemTemplate.Id, Game.World, new Guid((string) item.Guid))
+                        equipment[i] = new ItemObject(slot.Id, Game.World, new Guid(slot.Guid))
                         {
-                            Count = item.Count ?? 1,
-                            Durability = item.Durability ?? itemTemplate.Properties.Physical.Durability,
+                            Count = slot.Count,
+                            Durability = slot.Durability
                         };
-                            //this will need to be expanded later based on ItemObject properties being saved back to the database.
                     }
                     else
                     {
-                        GameLog.Error($"Inventory deserializer error: item {item.Id} not found in index, skipping");
+                        GameLog.Error($"Inventory deserializer error: item {slot.Id} not found in index, skipping");
+                        equipment[i] = null;
                     }
                 }
+                else
+                    equipment[i] = null;
             }
 
-            return inv;
+            return equipment;
         }
 
 
@@ -701,300 +769,213 @@ namespace Hybrasyl
         }
     }
 
-
     [JsonConverter(typeof(InventoryConverter))]
     public class Inventory : IEnumerable<ItemObject>
     {
-        public DateTime LastSaved { get; set; }
+        public const byte DefaultSize = 59;
 
-        public object ContainerLock = new();
+        protected readonly object ContainerLock = new();
 
-        private Lockable<ItemObject[]> _itemsObject;
-        private ConcurrentDictionary<string, List<ItemObject>> _inventoryIndex;
+        protected Dictionary<byte, ItemObject> Items = new();
+        protected Dictionary<string, List<(byte Slot, ItemObject Item)>> ItemIndex = new();
+        protected Dictionary<string, List<(byte Slot, ItemObject Item)>> CategoryIndex = new();
 
+        protected Lockable<int> _size { get; }
+        protected Lockable<int> _count { get; } = new(0);
+        protected Lockable<int> _weight { get; } = new(0);
 
-        private Lockable<int> _size { get;  }
-        private Lockable<int> _count { get;  }
-        private Lockable<int> _weight { get; }
-
-        public int Size
+        public Inventory(byte size)
         {
-            get => _size.Value;
-            private set => _size.Value = value;
+            for (byte x = 1; x <= size; x++)
+            {
+                Items[x] = null;
+            }
+
+            _size = new Lockable<int>(size);
         }
+
+        public int Size => _size.Value;
+
         public int Count
         {
             get => _count.Value;
             private set => _count.Value = value;
         }
+
         public int Weight
         {
             get => _weight.Value;
             private set => _weight.Value = value;
         }
 
-
-        #region Equipment Properties
-
-        public ItemObject Weapon => _itemsObject.Value[ServerItemSlots.Weapon];
-
-        public ItemObject Armor => _itemsObject.Value[ServerItemSlots.Armor];
-
-        public ItemObject Shield => _itemsObject.Value[ServerItemSlots.Shield];
-
-        public ItemObject Helmet => _itemsObject.Value[ServerItemSlots.Helmet];
-
-        public ItemObject Earring => _itemsObject.Value[ServerItemSlots.Earring];
-
-        public ItemObject Necklace => _itemsObject.Value[ServerItemSlots.Necklace];
-
-        public ItemObject LRing => _itemsObject.Value[ServerItemSlots.LHand];
-
-        public ItemObject RRing => _itemsObject.Value[ServerItemSlots.RHand];
-
-        public ItemObject LGauntlet => _itemsObject.Value[ServerItemSlots.LArm];
-
-        public ItemObject RGauntlet => _itemsObject.Value[ServerItemSlots.RArm];
-
-        public ItemObject Belt => _itemsObject.Value[ServerItemSlots.Waist];
-
-        public ItemObject Greaves => _itemsObject.Value[ServerItemSlots.Leg];
-
-        public ItemObject Boots => _itemsObject.Value[ServerItemSlots.Foot];
-
-        public ItemObject FirstAcc => _itemsObject.Value[ServerItemSlots.FirstAcc];
-
-        public ItemObject Overcoat => _itemsObject.Value[ServerItemSlots.Trousers];
-
-        public ItemObject DisplayHelm => _itemsObject.Value[ServerItemSlots.Coat];
-
-        public ItemObject SecondAcc => _itemsObject.Value[ServerItemSlots.SecondAcc];
-
-        public ItemObject ThirdAcc => _itemsObject.Value[ServerItemSlots.ThirdAcc];
-
-        #endregion Equipment Properties
-
-        public bool IsFull => Count == Size;
+        public virtual bool IsFull => Count == Size;
 
         public int EmptySlots => Size - Count;
 
-        public void RecalculateWeight()
+        public virtual void RecalculateWeight()
         {
-            var newWeight = 0;
-            foreach (var obj in this)
-            {
-                newWeight += obj.Weight;
-            }
+            var newWeight = this.Sum(obj => obj.Weight);
             Weight = newWeight;
         }
 
-        public ItemObject this[byte slot, bool client=true]
+        public ItemObject this[byte slot]
         {
             get
             {
-                var index = slot;
-                if (client)
-                    index--;
-                if (index < 0 || index >= Size)
-                    return null;
-                return _itemsObject.Value[index];
+                if (slot < 1 || slot > Size)
+                {
+                    throw new ArgumentException("Inventory slot does not exist");
+                }
+                return Items[slot];
             }
             internal set
             {
                 lock (ContainerLock)
                 {
-                    var index = slot;
-                    if (client)
-                        index--;
-                    if (index < 0 || index >= Size)
-                        return;
-                    if (value == null)
-                        _RemoveFromIndex(_itemsObject.Value[index]);
-                    else
-                        _AddToIndex(value);
-                    _itemsObject.Value[index] = value;
+                    if (slot > Size)
+                        throw new ArgumentException("Requested slot is greater than inventory size");
+                    if (value == null && Items[slot] != null)
+                        _removeFromIndexes(slot, Items[slot]);
+                    else if (value != null)
+                        _addToIndexes(slot, value);
+                    Items[slot] = value;
                 }
             }   
         }
 
-        private void _AddToIndex(ItemObject itemObject)
+        private void _addToIndexes(byte slot, ItemObject obj)
         {
-            List<ItemObject> itemList;
-            if (_inventoryIndex.TryGetValue(itemObject.TemplateId, out itemList))
-            {
-                itemList.Add(itemObject);
-            }
-            else
-                _inventoryIndex.TryAdd(itemObject.TemplateId, new List<ItemObject> { itemObject });
-        }
-
-        private void _RemoveFromIndex(ItemObject itemObject)
-        {
-            List<ItemObject> itemList;
             lock (ContainerLock)
             {
-                if (_inventoryIndex.TryGetValue(itemObject.TemplateId, out itemList))
+                var index = (Slot: slot, Item: obj);
+
+                if (ItemIndex.TryGetValue(obj.TemplateId, out var itemList))
                 {
-                    itemList.RemoveAll(x => x.Guid == itemObject.Guid);
-                    if (itemList.Count == 0)
-                        _inventoryIndex.TryRemove(itemObject.TemplateId, out _);
+                    itemList.Add(index);
+                }
+                else
+                {
+                    ItemIndex.Add(obj.TemplateId,
+                        new List<(byte Slot, ItemObject Item)> { index });
+                }
+                // Index by item categories
+
+                foreach (var category in obj.Categories)
+                {
+                    if (CategoryIndex.TryGetValue(category, out var categoryList))
+                    {
+                        categoryList.Add(index);
+                    }
+                    else
+                    {
+                        CategoryIndex.Add(category, new List<(byte Slot, ItemObject Item)> { index });
+
+                    }
                 }
             }
         }
 
-        public bool TryGetValueByName(string name, out List<ItemObject> itemList)
+        private void _removeFromIndexes(byte slot, ItemObject obj)
         {
-            itemList = new List<ItemObject>();
-            Xml.Item theItem;
+            lock (ContainerLock)
+            {
+                if (!ItemIndex.TryGetValue(obj.TemplateId, out var itemList)) return;
+                itemList.Remove((slot, obj));
+                if (itemList.Count == 0)
+                    ItemIndex.Remove(obj.TemplateId);
+                foreach (var category in obj.Categories)
+                {
+                    CategoryIndex[category].RemoveAll(x => x.Slot == slot);
+                }
+            }
+        }
 
-            var potentialIds = Xml.Item.GenerateIds(name);
+        public bool TryGetValueByName(string name, out List<(byte slot, ItemObject obj)> itemList)
+        {
+            itemList = new List<(byte slot, ItemObject obj)>();
+
+            var potentialIds = Item.GenerateIds(name);
 
             foreach (var id in potentialIds)
             {
-                if (_inventoryIndex.TryGetValue(id, out List<ItemObject> foundItems))
+                if (ItemIndex.TryGetValue(id, out var foundItems))
+                {
                     itemList.AddRange(foundItems);
+                }
             }
 
             return itemList.Count != 0; 
         }
 
-        public bool TryRemoveQuantity(string name, int quantity)
+        public bool TryRemoveQuantity(string id, out int removed, int quantity=1)
         {
-            var toRemove = new List<ItemObject>();
-            return false;
-          
+            removed = 0;
+            if (quantity < 1 || !ContainsId(id, quantity)) return false;
+            var need = quantity;
+            lock (ContainerLock)
+            {
+                foreach (var (slot, item) in ItemIndex[id].ToList())
+                {
+                    if (need == 0) break;
+                    if (item.Count <= need)
+                    {
+                        var count = item.Count;
+                        need -= count;
+                        removed += count;
+                        Remove(slot);
+                    }
+                    else
+                    {
+                        Items[slot].Count -= need;
+                        removed += need;
+                        return true;
+                    }
+                }
+            }
+
+            return removed == quantity;
+        }
+        
+        public List<byte> GetSlotsByName(string name)
+        {
+            var ret = new List<byte>();
+            foreach (var id in Item.GenerateIds(name))
+            {
+                ret.AddRange(GetSlotsById(id));
+            }
+
+            return ret;
         }
 
-        public List<int> GetSlotsByName(string name)
+        public List<byte> GetSlotsById(string id)
         {
-            var ret = new List<int>();
-            for (var x = 0; x <= _itemsObject.Value.Length; x++)
-            {
-                if (_itemsObject.Value[x]?.Name == name)
-                    ret.Add(x);
-            }
+            var ret = new List<byte>();
+            if (ItemIndex.ContainsKey(id))
+                ret.AddRange(ItemIndex[id].Select(x => x.Slot));
             return ret;
         }
 
         public bool TryGetValue(string templateId, out ItemObject itemObject)
         {
             itemObject = null;
-            List<ItemObject> itemList;
-            if (!_inventoryIndex.TryGetValue(templateId, out itemList)) return false;
-            itemObject = itemList.First();
+            if (!ItemIndex.TryGetValue(templateId, out var itemList)) return false;
+            itemObject = itemList.First().Item;
             return true;
         }
 
-        public Inventory(int size)
-        {
-            _itemsObject = new Lockable<ItemObject[]>(new ItemObject[size]);
-            _size = new Lockable<int>(size);
-            _count = new Lockable<int>(0);
-            _weight = new Lockable<int>(0);
-            _inventoryIndex = new ConcurrentDictionary<string, List<ItemObject>>();
-        }
+        public bool ContainsName(string name, int quantity = 1) => Item.GenerateIds(name).Any(x => ContainsId(x, quantity));
 
-        
-        public bool Contains(string id)
-        {
-            return _inventoryIndex.ContainsKey(id);
-        }
+        public bool ContainsId(string id, int quantity = 1) => ItemIndex.ContainsKey(id) && ItemIndex[id].Sum(x => x.Item.Count) >= quantity;
 
-        public bool ContainsName(string name)
-        {
-            // TODO: revisit this later
-            var itemList = Game.World.WorldData.FindItem(name);
-            if (itemList.Count == 0)
-                return false;
-                
-            foreach (var item in itemList)
-            {
-                if (_inventoryIndex.ContainsKey(item.Id))
-                    return true;
-            }
-            return false;
-        }
+        public byte FindEmptySlot() => Items.First(x => x.Value == null).Key;
 
-        public bool Contains(string name, int quantity)
-        {
-            var itemList = Game.World.WorldData.FindItem(name);
-            if (itemList.Count == 0)
-                return false;
+        public byte SlotOfId(string id) => ItemIndex.ContainsKey(id) ? ItemIndex[id].First().Slot : byte.MinValue;
 
-            foreach (var item in itemList)
-            {
-                if (!_inventoryIndex.ContainsKey(item.Id))
-                    continue;
+        public byte SlotOfName(string name) => (from id in Item.GenerateIds(name) where ItemIndex.ContainsKey(id) select ItemIndex[id].First().Slot).FirstOrDefault();
 
-                var total = _inventoryIndex.First(x => x.Key == item.Id).Value.Sum(y => y.Count);
-                GameLog.Info($"Contains check: {name}, quantity {quantity}: {total} found");
-                if (total >= quantity) return true;
-            }
-            return false;
-        }
+        public ItemObject FindById(string id) => ItemIndex.ContainsKey(id) ? ItemIndex[id].First().Item : null;
 
-        public int FindEmptyIndex()
-        {
-            for (var i = 0; i < Size; ++i)
-            {
-                if (_itemsObject.Value[i] == null)
-                    return i;
-            }
-            return -1;
-        }
-        public byte FindEmptySlot()
-        {
-            return (byte)(FindEmptyIndex() + 1);
-        }
-
-        public int IndexOf(string id)
-        {
-            for (var i = 0; i < Size; ++i)
-            {
-                if (_itemsObject.Value[i] != null && _itemsObject.Value[i].TemplateId == id)
-                    return i;
-            }
-            return -1;
-        }
-
-        public int[] IndexByName(string name)
-        {
-            var indices = new List<int>();
-            for (var i = 0; i < Size; i++)
-            {
-                if (_itemsObject.Value[i] != null && _itemsObject.Value[i].Name == name) indices.Add(i);
-            }
-            if (indices.Count == 0) indices.Add(-1);
-            return indices.ToArray();
-        }
-
-        public byte SlotOf(string id)
-        {
-            return (byte)(IndexOf(id) + 1);
-        }
-
-        public byte[] SlotByName(string name)
-        {
-            var slotsInt = IndexByName(name);
-            var slotsByte = new byte[slotsInt.Length];
-            for(int i = 0; i < slotsInt.Length; i++)
-            {
-                slotsByte[i] = (byte)(slotsInt[i] + 1);
-            }
-            return slotsByte;
-        }
-
-        public ItemObject Find(string id)
-        {
-            return _inventoryIndex.ContainsKey(id) ? _inventoryIndex[id].First() : null;
-        }
-
-        public ItemObject FindByName(string name)
-        {
-            return Game.World.TryGetItemTemplate(name, out var theItem) && _inventoryIndex.ContainsKey(theItem.Id)
-                ? _inventoryIndex[theItem.Id].First()
-                : null;
-        }
+        public ItemObject FindByName(string name) => (from id in Item.GenerateIds(name) where ItemIndex.ContainsKey(id) select ItemIndex[id].First().Item).FirstOrDefault();
 
         public bool AddItem(ItemObject itemObject)
         {
@@ -1005,133 +986,176 @@ namespace Hybrasyl
 
         public bool Insert(byte slot, ItemObject itemObject)
         {
-            var index = slot - 1;
-            if (index < 0 || index >= Size || _itemsObject.Value[index] != null)
+            if (slot == 0 || slot > Size || Items[slot] != null)
                 return false;
-            _itemsObject.Value[index] = itemObject;
-            Count += 1;
-            Weight += itemObject.Weight;
-            _AddToIndex(itemObject);
+            lock (ContainerLock)
+            {
+                Items[slot] = itemObject;
+                Count += 1;
+                Weight += itemObject.Weight;
+                _addToIndexes(slot, itemObject);
+            }
 
             return true;
         }
 
         public bool Remove(byte slot)
         {
+            if (slot == 0 || slot > Size || Items[slot] == null)
+                return false;
             lock (ContainerLock)
             {
-                var index = slot - 1;
-                if (index < 0 || index >= Size || _itemsObject.Value[index] == null)
-                    return false;
-                var item = _itemsObject.Value[index];
-                _itemsObject.Value[index] = null;
-                Count -= 1;
+                var item = Items[slot];
+                Items[slot] = null;
+                Count--;
                 Weight -= item.Weight;
-                _RemoveFromIndex(item);
-
-                return true;
+                _removeFromIndexes(slot, item);
             }
+
+            return true;
         }
-        
+
         public bool Swap(byte slot1, byte slot2)
         {
             lock (ContainerLock)
             {
-                int index1 = slot1 - 1, index2 = slot2 - 1;
-                if (index1 < 0 || index1 >= Size || index2 < 0 || index2 >= Size)
+                if (slot1 == 0 || slot1 > Size || slot2 == 0 || slot2 > Size)
                     return false;
-                (_itemsObject.Value[index1], _itemsObject.Value[index2]) = (_itemsObject.Value[index2], _itemsObject.Value[index1]);
-                return true;
+                lock (ContainerLock)
+                {
+                    (Items[slot1], Items[slot2]) = (Items[slot2], Items[slot1]);
+                }
 
+                return true;
             }
         }
 
         public void Clear()
         {
-            _itemsObject = new Lockable<ItemObject[]>(new ItemObject[Size]);
-            Count = 0;
-            Weight = 0;
-            _inventoryIndex.Clear();
+            lock (ContainerLock)
+            {
+                Items.Clear();
+                ItemIndex.Clear();
+                CategoryIndex.Clear();
+                for (byte x = 1; x <= Size; x++)
+                {
+                    Items[x] = null;
+                }
+                Count = 0;
+                Weight = 0;
+            }
         }
 
         public bool Increase(byte slot, int amount)
         {
-            var index = slot - 1;
-            if (index < 0 || index >= Size || _itemsObject.Value[index] == null)
+            if (slot == 0 || slot > Size || Items[slot] == null)
                 return false;
-            var item = _itemsObject.Value[index];
-            if (item.Count + amount > item.MaximumStack)
+
+            if (Items[slot].Count + amount > Items[slot].MaximumStack)
                 return false;
-            item.Count += amount;
+
+            lock (ContainerLock)
+            {
+                Items[slot].Count += amount;
+            }
             return true;
         }
 
         public bool Decrease(byte slot, int amount)
         {
-            var index = slot - 1;
-            if (index < 0 || index >= Size || _itemsObject.Value[index] == null)
+            if (slot == 0 || slot > Size || Items[slot] == null || Items[slot].Count < amount)  
                 return false;
-            var item = _itemsObject.Value[index];
-            if (item.Count < amount)
-                return false;
-            item.Count -= amount;
-            if (item.Count != 0) return true;
-            _itemsObject.Value[index] = null;
-            Count -= 1;
-            Weight -= item.Weight;
-            return true;
+            return Items[slot].Count > 0 || Remove(slot);
         }
 
-        public IEnumerator<ItemObject> GetEnumerator()
-        {
-            for (var i = 0; i < Size; ++i)
-            {
-                if (_itemsObject.Value[i] != null)
-                    yield return _itemsObject.Value[i];
-            }
-        }
+        public IEnumerator<ItemObject> GetEnumerator() => Items.Values.Where(x => x is not null).GetEnumerator();
+
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
         }
 
-        public List<Tuple<ushort,byte>> GetEquipmentDisplayList()
+        public override string ToString() => Items.Where(x => x.Value != null).Aggregate(string.Empty, (current, item) 
+                => $"{current}\nslot {item.Key}: {item.Value.Name}, qty {item.Value.Count}");
+    }
+
+    [JsonConverter(typeof(EquipmentConverter))]
+    public class Equipment : Inventory
+    {
+        public new const byte DefaultSize = 18;
+
+        #region Equipment Properties
+
+        public ItemObject Weapon => Items[(byte) ItemSlots.Weapon];
+
+        public ItemObject Armor => Items[(byte) ItemSlots.Armor];
+
+        public ItemObject Shield => Items[(byte) ItemSlots.Shield];
+
+        public ItemObject Helmet => Items[(byte) ItemSlots.Helmet];
+
+        public ItemObject Earring => Items[(byte) ItemSlots.Earring];
+
+        public ItemObject Necklace => Items[(byte) ItemSlots.Necklace];
+
+        public ItemObject LRing => Items[(byte) ItemSlots.LHand];
+
+        public ItemObject RRing => Items[(byte) ItemSlots.RHand];
+
+        public ItemObject LGauntlet => Items[(byte) ItemSlots.LArm];
+
+        public ItemObject RGauntlet => Items[(byte) ItemSlots.RArm];
+
+        public ItemObject Belt => Items[(byte) ItemSlots.Waist];
+
+        public ItemObject Greaves => Items[(byte) ItemSlots.Leg];
+
+        public ItemObject Boots => Items[(byte) ItemSlots.Foot];
+
+        public ItemObject FirstAcc => Items[(byte) ItemSlots.FirstAcc];
+
+        public ItemObject Overcoat => Items[(byte) ItemSlots.Trousers];
+
+        public ItemObject DisplayHelm => Items[(byte) ItemSlots.Coat];
+
+        public ItemObject SecondAcc => Items[(byte) ItemSlots.SecondAcc];
+
+        public ItemObject ThirdAcc => Items[(byte) ItemSlots.ThirdAcc];
+
+        #endregion Equipment Properties
+
+        public Equipment(byte size) : base(size) {}
+
+        public List<Tuple<ushort, byte>> GetEquipmentDisplayList()
         {
             var returnList = new List<Tuple<ushort, byte>>();
 
-            for (var x = 0; x < 18; ++x)
+            foreach (var slot in Enum.GetValues(typeof(ItemSlots)))
             {
-                // This is fucking bullshit. Why would you even do this? HEY I KNOW KOREAN INTERN DESIGNING
-                // THIS PROTOCOL, LET'S RANDOMLY SWAP ITEM SLOTS FOR NO REASON!!11`1`
-                if (x == ServerItemSlots.Foot)
-                    returnList.Add(_itemsObject.Value[ServerItemSlots.FirstAcc] == null
-                        ? new Tuple<ushort, byte>(0, 0)
-                        : new Tuple<ushort, byte>((ushort)(0x8000 + _itemsObject.Value[ServerItemSlots.FirstAcc].EquipSprite), _itemsObject.Value[ServerItemSlots.FirstAcc].Color));
-                else if (x == ServerItemSlots.FirstAcc)
-                    returnList.Add(_itemsObject.Value[ServerItemSlots.Foot] == null
-                        ? new Tuple<ushort, byte>(0, 0)
-                        : new Tuple<ushort, byte>((ushort)(0x8000 + _itemsObject.Value[ServerItemSlots.Foot].EquipSprite), _itemsObject.Value[ServerItemSlots.Foot].Color));
-                else
-                    returnList.Add(_itemsObject.Value[x] == null
-                        ? new Tuple<ushort, byte>(0, 0)
-                        : new Tuple<ushort, byte>((ushort) (0x8000 + _itemsObject.Value[x].EquipSprite), _itemsObject.Value[x].Color));
+                switch (slot)
+                {
+                    // Work around a very weird edge case in the client
+                    case ItemSlots.Foot:
+                        returnList.Add(Items[(byte) ItemSlots.FirstAcc] == null
+                            ? new Tuple<ushort, byte>(0, 0)
+                            : new Tuple<ushort, byte>((ushort)(0x8000 + Items[(byte) ItemSlots.FirstAcc].EquipSprite), Items[
+                                (byte) ItemSlots.FirstAcc].Color));
+                        break;
+                    case ItemSlots.FirstAcc:
+                        returnList.Add(Items[(byte) ItemSlots.Foot] == null
+                            ? new Tuple<ushort, byte>(0, 0)
+                            : new Tuple<ushort, byte>((ushort)(0x8000 + Items[(byte) ItemSlots.Foot].EquipSprite), Items[
+                                (byte)ItemSlots.Foot].Color));
+                        break;
+                    default:
+                        returnList.Add(Items[(byte) slot] == null
+                            ? new Tuple<ushort, byte>(0, 0)
+                            : new Tuple<ushort, byte>((ushort)(0x8000 + Items[(byte) slot].EquipSprite), Items[(byte) slot].Color));
+                        break;
+                }
             }
 
             return returnList;
-        }
-
-        public override string ToString()
-        {
-            var ret = string.Empty;
-            for (var i = 0; i < Size; i++)
-            {
-                if (_itemsObject.Value[i] != null)
-                {
-                    var item = $"slot {i}: {_itemsObject.Value[i].Name}, qty {_itemsObject.Value[i].Count}";
-                    ret = $"{ret}\n{item}";
-                }
-            }
-            return ret;
         }
 
     }

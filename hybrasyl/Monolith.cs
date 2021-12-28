@@ -293,7 +293,7 @@ namespace Hybrasyl
                                         template.Properties.Physical.Durability = uint.MaxValue;
                                         baseMob.Stats.OffensiveElementOverride = spawn.Damage.Element;
                                         var item = new ItemObject(newTemplate);
-                                        baseMob.Equipment.Insert(ServerItemSlots.Weapon, item);
+                                        baseMob.Equipment.Insert((byte) ItemSlots.Weapon, item);
                                     }
                                 }
                             }

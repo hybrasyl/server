@@ -669,6 +669,8 @@ namespace Hybrasyl.Objects
 
         public ushort MaximumWeight => (ushort)(Stats.BaseStr + Stats.Level / 4 + 48);
 
+        public string LastSystemMessage { get; private set; } = string.Empty;
+
         public User() : base()
         {
             _initializeUser();
@@ -678,7 +680,7 @@ namespace Hybrasyl.Objects
         private void _initializeUser(string playername = "")
         {
             Inventory = new Inventory(59);
-            Equipment = new Inventory(18);
+            Equipment = new Equipment(18);
             SkillBook = new SkillBook();
             SpellBook = new SpellBook();
             IsAtWorldMap = false;
@@ -1312,7 +1314,7 @@ namespace Hybrasyl.Objects
             {
                 foreach (var itemReq in cost.Items)
                 {
-                    if (!Inventory.Contains(itemReq.Item, itemReq.Quantity))
+                    if (!Inventory.ContainsName(itemReq.Item, itemReq.Quantity))
                         hasItemCost = false;
                 }
             }
@@ -2163,7 +2165,7 @@ namespace Hybrasyl.Objects
             // Quantity check - if we already have an ItemObject with the same name, will
             // adding the MaximumStack)
 
-            var inventoryItem = Inventory.Find(itemObject.Name);
+            var inventoryItem = Inventory.FindById(itemObject.Name);
 
             if (inventoryItem != null && itemObject.Stackable)
             {
@@ -2179,7 +2181,7 @@ namespace Hybrasyl.Objects
                 // Merge stack and destroy "added" ItemObject
                 inventoryItem.Count += itemObject.Count;
                 itemObject.Count = 0;
-                SendItemUpdate(inventoryItem, Inventory.SlotByName(inventoryItem.Name).First());
+                SendItemUpdate(inventoryItem, Inventory.SlotOfId(inventoryItem.Name));
                 Game.World.Remove(itemObject);
                 return true;
             }
@@ -2205,9 +2207,9 @@ namespace Hybrasyl.Objects
 
             if(xmlItem.Stackable)
             {
-                if(Inventory.Contains(itemName, 1))
+                if(Inventory.ContainsId(itemName, 1))
                 {
-                    var slots = Inventory.SlotByName(itemName);
+                    var slots = Inventory.GetSlotsByName(itemName);
 
                     foreach(var i in slots)
                     {
@@ -2312,46 +2314,46 @@ namespace Hybrasyl.Objects
         {
             var slotsToUpdate = new List<byte>();
             var slotsToClear = new List<byte>();
-            if (Inventory.Contains(itemName, quantity))
+            if (Inventory.ContainsId(itemName, quantity))
             {
-                var remaining = (int)quantity;
-                var slots = Inventory.SlotByName(itemName);
-                lock (Inventory.ContainerLock)
+                var remaining = (int) quantity;
+                var slots = Inventory.GetSlotsByName(itemName);
+                foreach (var i in slots)
                 {
-                    foreach (var i in slots)
+                    if (remaining > 0)
                     {
-                        if (remaining > 0)
+                        if (Inventory[i].Stackable)
                         {
-                            if (Inventory[i].Stackable)
+                            if (Inventory[i].Count <= remaining)
                             {
-                                if (Inventory[i].Count <= remaining)
-                                {
-                                    GameLog.Info($"RemoveItem {itemName}, quantity {quantity}: removing stack from slot {i} with {Inventory[i].Count}");
-                                    remaining -= Inventory[i].Count;
-                                    Inventory.Remove(i);
-                                    slotsToClear.Add(i);
-                                }
-                                else if (Inventory[i].Count > remaining)
-                                {
-                                    GameLog.Info($"RemoveItem {itemName}, quantity {quantity}: removing quantity from stack, slot {i} with amount {Inventory[i].Count}");
-                                    Inventory[i].Count -= remaining;
-                                    remaining = 0;
-                                    slotsToUpdate.Add(i);
-                                }
-                            }
-                            else
-                            {
-                                GameLog.Info($"RemoveItem {itemName}, quantity {quantity}: removing nonstackable item from slot {i} with amount {Inventory[i].Count}");
+                                GameLog.Info(
+                                    $"RemoveItem {itemName}, quantity {quantity}: removing stack from slot {i} with {Inventory[i].Count}");
+                                remaining -= Inventory[i].Count;
                                 Inventory.Remove(i);
-                                remaining--;
                                 slotsToClear.Add(i);
+                            }
+                            else if (Inventory[i].Count > remaining)
+                            {
+                                GameLog.Info(
+                                    $"RemoveItem {itemName}, quantity {quantity}: removing quantity from stack, slot {i} with amount {Inventory[i].Count}");
+                                Inventory[i].Count -= remaining;
+                                remaining = 0;
+                                slotsToUpdate.Add(i);
                             }
                         }
                         else
                         {
-                            GameLog.Info($"RemoveItem {itemName}, quantity {quantity}: done, remaining {remaining}");
-                            break;
+                            GameLog.Info(
+                                $"RemoveItem {itemName}, quantity {quantity}: removing nonstackable item from slot {i} with amount {Inventory[i].Count}");
+                            Inventory.Remove(i);
+                            remaining--;
+                            slotsToClear.Add(i);
                         }
+                    }
+                    else
+                    {
+                        GameLog.Info($"RemoveItem {itemName}, quantity {quantity}: done, remaining {remaining}");
+                        break;
                     }
                 }
 
@@ -2360,11 +2362,13 @@ namespace Hybrasyl.Objects
                     GameLog.Info("clearing slot {slot}");
                     SendClearItem(slot);
                 }
+
                 foreach (var slot in slotsToUpdate)
                     SendItemUpdate(Inventory[slot], slot);
 
                 return true;
             }
+
             GameLog.Info($"RemoveItem {itemName}, quantity {quantity}: not found");
             return false;
         }
@@ -2536,7 +2540,7 @@ namespace Hybrasyl.Objects
             {
                 foreach (var item in Equipment)
                 {
-                    if (item.EquipmentSlot != ServerItemSlots.Weapon && !(item.Undamageable))
+                    if (item.EquipmentSlot != (byte) ItemSlots.Weapon && !(item.Undamageable))
                         item.Durability -= 1 / (item.MaximumDurability * ((100 - Stats.Ac) == 0 ? 1: (100 - Stats.Ac)));
                 }
             }
@@ -3166,7 +3170,7 @@ namespace Hybrasyl.Objects
             }
             if (prompt == string.Empty)
             {
-                if (classReq.Items.Any(itemReq => !Inventory.Contains(itemReq.Value, itemReq.Quantity)))
+                if (classReq.Items.Any(itemReq => !Inventory.ContainsId(itemReq.Value, itemReq.Quantity)))
                 {
                     learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_item");
                     prompt = learnString.Value;
@@ -3437,7 +3441,7 @@ namespace Hybrasyl.Objects
             }
             if (prompt == string.Empty)
             {
-                if (classReq.Items.Any(itemReq => !Inventory.Contains(itemReq.Value, itemReq.Quantity)))
+                if (classReq.Items.Any(itemReq => !Inventory.ContainsId(itemReq.Value, itemReq.Quantity)))
                 {
                     learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_item");
                     prompt = learnString.Value;
@@ -3773,7 +3777,7 @@ namespace Hybrasyl.Objects
 
             if (prompt == string.Empty)
             {
-                if (!Inventory.Contains(item.Name, (int)quantity))
+                if (!Inventory.ContainsId(item.Name, (int)quantity))
                 {
                     offerString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_failure_quantity");
                     prompt = offerString.Value;
@@ -4775,10 +4779,10 @@ namespace Hybrasyl.Objects
                 }
                 else
                 {
-                    if (Inventory.Contains(item, 1))
+                    if (Inventory.ContainsId(item, 1))
                     {
                         var maxQuantity = 0;
-                        var existingStacks = Inventory.SlotByName(item);
+                        var existingStacks = Inventory.GetSlotsByName(item);
                         foreach (var slot in existingStacks)
                         {
                             maxQuantity += Inventory[slot].MaximumStack - Inventory[slot].Count;
@@ -5025,19 +5029,17 @@ namespace Hybrasyl.Objects
         {
             for (byte i = 0; i < Inventory.Size; i++)
             {
-                if (Inventory[i, false] != null)
-                {
-                    var x0F = new ServerPacket(0x0F);
-                    x0F.WriteByte((byte)(i+1));
-                    x0F.WriteUInt16((ushort)(Inventory[i,false].Sprite + 0x8000));
-                    x0F.WriteByte(Inventory[i,false].Color);
-                    x0F.WriteString8(Inventory[i,false].Name);
-                    x0F.WriteInt32(Inventory[i,false].Count);
-                    x0F.WriteBoolean(Inventory[i,false].Stackable);
-                    x0F.WriteUInt32(Inventory[i,false].MaximumDurability);
-                    x0F.WriteUInt32(Inventory[i,false].DisplayDurability);
-                    Enqueue(x0F);
-                }
+                if (Inventory[i] == null) continue;
+                var x0F = new ServerPacket(0x0F);
+                x0F.WriteByte((byte)(i+1));
+                x0F.WriteUInt16((ushort)(Inventory[i].Sprite + 0x8000));
+                x0F.WriteByte(Inventory[i].Color);
+                x0F.WriteString8(Inventory[i].Name);
+                x0F.WriteInt32(Inventory[i].Count);
+                x0F.WriteBoolean(Inventory[i].Stackable);
+                x0F.WriteUInt32(Inventory[i].MaximumDurability);
+                x0F.WriteUInt32(Inventory[i].DisplayDurability);
+                Enqueue(x0F);
             }
         }
 
@@ -5094,6 +5096,7 @@ namespace Hybrasyl.Objects
 
         public void SendSystemMessage(string p)
         {
+            LastSystemMessage = p;
             if (Client is null) return;
             Client.SendMessage(p, 3);
         }

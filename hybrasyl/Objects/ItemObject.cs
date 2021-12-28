@@ -78,7 +78,7 @@ namespace Hybrasyl.Objects
 
             // Check if user is equipping a shield while holding a two-handed weapon
 
-            if (EquipmentSlot == ClientItemSlots.Shield && userobj.Equipment.Weapon != null && userobj.Equipment.Weapon.WeaponType == Xml.WeaponType.TwoHand)
+            if (EquipmentSlot == (byte)ItemSlots.Shield && userobj.Equipment.Weapon != null && userobj.Equipment.Weapon.WeaponType == Xml.WeaponType.TwoHand)
             {
                 message = "You can't equip a shield with a two-handed weapon.";
                 return false;
@@ -86,14 +86,14 @@ namespace Hybrasyl.Objects
 
             // Check if user is equipping a two-handed weapon while holding a shield
 
-            if (EquipmentSlot == ClientItemSlots.Weapon && (WeaponType == Xml.WeaponType.TwoHand || WeaponType == Xml.WeaponType.Staff) && userobj.Equipment.Shield != null)
+            if (EquipmentSlot == (byte) ItemSlots.Weapon && (WeaponType == Xml.WeaponType.TwoHand || WeaponType == Xml.WeaponType.Staff) && userobj.Equipment.Shield != null)
             {
                 message = "You can't equip a two-handed weapon with a shield.";
                 return false;
             }
 
             // Check mastership
-            if (UniqueEquipped && userobj.Equipment.Find(Name) != null)
+            if (UniqueEquipped && userobj.Equipment.FindById(Name) != null)
             {
                 message = "You can't equip more than one of these.";
                 return false;
@@ -194,6 +194,7 @@ namespace Hybrasyl.Objects
         public sbyte BonusMr => Template.BonusMr;
         public sbyte BonusRegen => Template.BonusRegen;
         public byte Color => Convert.ToByte(Template.Properties.Appearance.Color);
+        public List<string> Categories => Template.Categories;
 
         public byte BodyStyle => Convert.ToByte(Template.Properties.Appearance.BodyStyle);
 

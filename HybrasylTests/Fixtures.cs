@@ -20,7 +20,7 @@ namespace HybrasylTests
         public static readonly Item TestItem;
         public static readonly Item StackableTestItem;
         public static readonly Dictionary<EquipmentSlot, Item> TestEquipment = new();
-        public static int InventorySize => 59;
+        public static byte InventorySize => 59;
 
         public static User TestUser;
 
@@ -54,7 +54,7 @@ namespace HybrasylTests
                 Name = "Test Item"
             };
             TestItem.Properties.Stackable.Max = 1;
-            TestItem.Properties.Equipment = new Equipment() { WeaponType = WeaponType.None, Slot = EquipmentSlot.None };
+            TestItem.Properties.Equipment = new Hybrasyl.Xml.Equipment() { WeaponType = WeaponType.None, Slot = EquipmentSlot.None };
             TestItem.Properties.Physical = new Physical() { Durability = 1000, Weight = 1 };
             Game.World.WorldData.Set(TestItem.Id, TestItem);
 
@@ -63,7 +63,7 @@ namespace HybrasylTests
                 Name = "Stackable Test Item"
             };
             StackableTestItem.Properties.Stackable.Max = 20;
-            StackableTestItem.Properties.Equipment = new Equipment() { WeaponType = WeaponType.None, Slot = EquipmentSlot.None };
+            StackableTestItem.Properties.Equipment = new Hybrasyl.Xml.Equipment() { WeaponType = WeaponType.None, Slot = EquipmentSlot.None };
             StackableTestItem.Properties.Physical = new Physical() { Durability = 1000, Weight = 1 };
             Game.World.WorldData.Set(StackableTestItem.Id, StackableTestItem);
 
@@ -71,7 +71,7 @@ namespace HybrasylTests
             {
                 var item = new Item() { Name = $"Equip Test {slot}" };
                 item.Properties.Stackable.Max = 1;
-                item.Properties.Equipment = new Equipment { WeaponType = slot == EquipmentSlot.Weapon ? WeaponType.Dagger : WeaponType.None, Slot = slot };
+                item.Properties.Equipment = new Hybrasyl.Xml.Equipment { WeaponType = slot == EquipmentSlot.Weapon ? WeaponType.Dagger : WeaponType.None, Slot = slot };
                 item.Properties.Physical = new Physical() { Durability = 1000, Weight = 1 };
                 Game.World.WorldData.Set(item.Id, item);
                 TestEquipment.Add(slot, item);
