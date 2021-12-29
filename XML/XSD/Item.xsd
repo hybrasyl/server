@@ -71,6 +71,7 @@
     <xs:attribute name="DisplaySprite" type="xs:unsignedShort" />
     <xs:attribute name="BodyStyle" default="Transparent" type="hyb:ItemBodyStyle" />
     <xs:attribute name="Color" default="None" type="hyb:ItemColor" />
+    <xs:attribute name="HideBoots" default="false" type="xs:boolean"/>
   </xs:complexType>
 
   <xs:complexType name="ItemDamage">

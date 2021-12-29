@@ -207,6 +207,7 @@ namespace Hybrasyl.Objects
         public ushort DisplaySprite => Template.Properties.Appearance.DisplaySprite;
 
         public uint Value => Template.Properties.Physical.Value;
+        public bool HideBoots => Template.Properties.Appearance.HideBoots;
 
         public sbyte Regen => Template.Regen;
 

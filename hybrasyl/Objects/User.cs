@@ -1427,7 +1427,8 @@ namespace Hybrasyl.Objects
             helmet = Equipment.DisplayHelm?.DisplaySprite ?? helmet;
             var helmcolor = Equipment.DisplayHelm?.Color ?? 0;
             var color = helmcolor == 0 ? HairColor : helmcolor;
-
+            // Why is this so difficult?
+            var bootSprite = Equipment.Armor?.HideBoots ?? false ? 0 : Equipment.Boots?.DisplaySprite ?? 0;
             (client ?? Client).Enqueue(new ServerPacketStructures.DisplayUser()
             {
                 X = X,
@@ -1439,7 +1440,7 @@ namespace Hybrasyl.Objects
                 Weapon = Equipment.Weapon?.DisplaySprite ?? 0,
                 Armor = (Equipment.Armor?.DisplaySprite ?? 0),
                 BodySpriteOffset = offset,
-                Boots = (byte)(Equipment.Boots?.DisplaySprite ?? 0),
+                Boots = (byte) bootSprite,
                 BootsColor = (byte)(Equipment.Boots?.Color ?? 0),
                 DisplayAsMonster = DisplayAsMonster,
                 FaceShape = FaceShape,

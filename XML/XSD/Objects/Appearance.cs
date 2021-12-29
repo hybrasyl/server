@@ -32,6 +32,7 @@ public partial class Appearance
     private ushort _displaySprite;
     private ItemBodyStyle _bodyStyle;
     private ItemColor _color;
+    private bool _hideBoots;
     private static XmlSerializer _serializerXml;
     #endregion
     
@@ -39,6 +40,7 @@ public partial class Appearance
     {
         _bodyStyle = ItemBodyStyle.Transparent;
         _color = ItemColor.None;
+        _hideBoots = false;
     }
     
     [XmlAttribute]
@@ -105,6 +107,20 @@ public partial class Appearance
         set
         {
             _color = value;
+        }
+    }
+    
+    [XmlAttribute]
+    [DefaultValue(false)]
+    public bool HideBoots
+    {
+        get
+        {
+            return _hideBoots;
+        }
+        set
+        {
+            _hideBoots = value;
         }
     }
     

@@ -849,6 +849,9 @@ namespace Hybrasyl
             variantItem.Properties.Physical.Durability = Convert.ToUInt32(Math.Round(item.Properties.Physical.Durability * (variant.Properties.Physical.Durability * .01)));
             variantItem.Properties.Physical.Weight =  Convert.ToInt32(Math.Round(item.Properties.Physical.Weight * (variant.Properties.Physical.Weight * .01)));
 
+            // ensure boot hiding is carried to variants
+            variantItem.Properties.Appearance.HideBoots = item.Properties.Appearance.HideBoots;
+
             switch (variantGroup.ToLower())
             {
                 case "consecratable":
