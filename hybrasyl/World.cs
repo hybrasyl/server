@@ -212,13 +212,14 @@ namespace Hybrasyl
             InitializeWorld();
         }
 
-        public World(int port, Xml.DataStore store)
+        public World(int port, Xml.DataStore store, bool adminEnabled=false)
                 : base(port)
         {
             InitializeWorld();
             var datastoreConfig = new ConfigurationOptions()
             {
                 DefaultDatabase = store.Database,
+                AllowAdmin = adminEnabled,
                 EndPoints =
                 {
                     {store.Host, store.Port}
@@ -513,7 +514,7 @@ namespace Hybrasyl
                 {
                     Xml.Item newItem = Xml.Item.LoadFromFile(xml);
                     var variants = new Dictionary<string, List<Xml.Item>>();
-
+                    WorldData.RegisterItem(newItem);
                     GameLog.DebugFormat("Items: loaded {0}, id {1}", newItem.Name, newItem.Id);
                     if (newItem.Properties.Variants != null)
                     {
@@ -529,6 +530,7 @@ namespace Hybrasyl
                                     GameLog.ErrorFormat("Item already exists with Key {0} : {1}. Cannot add {2}", variantItem.Id, WorldData.Get<Xml.Item>(variantItem.Id).Name, variantItem.Name);
                                 }
                                 WorldData.SetWithIndex(variantItem.Id, variantItem, variantItem.Name);
+                                WorldData.RegisterItem(variantItem);
                                 variants[targetGroup].Add(variantItem);
                             }
                         }
@@ -2001,7 +2003,7 @@ namespace Hybrasyl
             }
 
             // Is this a valid slot?
-            if ((slot == 0) || (slot > Hybrasyl.Constants.MAXIMUM_INVENTORY))
+            if (slot is 0 or > Inventory.DefaultSize)
             {
                 GameLog.ErrorFormat("Slot not valid. Aborting");
                 return;
@@ -2487,7 +2489,7 @@ namespace Hybrasyl
 
             GameLog.DebugFormat("Updating slot {0}", slot);
 
-            if (slot == 0 || slot > Constants.MAXIMUM_INVENTORY) return;
+            if (slot is 0 or > Inventory.DefaultSize) return;
 
             var item = user.Inventory[slot];
 
@@ -2959,7 +2961,7 @@ namespace Hybrasyl
                 case 0:
                     {
                         var inventory = user.Inventory;
-                        if (oldSlot == 0 || oldSlot > Constants.MAXIMUM_INVENTORY || newSlot == 0 || newSlot > Constants.MAXIMUM_INVENTORY || (inventory[oldSlot] == null && inventory[newSlot] == null)) return;
+                        if (oldSlot == 0 || oldSlot > Inventory.DefaultSize || newSlot == 0 || newSlot > Inventory.DefaultSize || (inventory[oldSlot] == null && inventory[newSlot] == null)) return;
                         user.SwapItem(oldSlot, newSlot);
                         break;
                     }

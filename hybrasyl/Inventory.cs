@@ -860,7 +860,7 @@ namespace Hybrasyl
                 }
                 // Index by item categories
 
-                foreach (var category in obj.Categories)
+                foreach (var category in obj.Categories.Select(x => x.ToLower()))
                 {
                     if (CategoryIndex.TryGetValue(category, out var categoryList))
                     {
@@ -868,8 +868,7 @@ namespace Hybrasyl
                     }
                     else
                     {
-                        CategoryIndex.Add(category, new List<(byte Slot, ItemObject Item)> { index });
-
+                        CategoryIndex.Add(category, new List<(byte Slot, ItemObject Item)> {index});
                     }
                 }
             }
@@ -907,9 +906,10 @@ namespace Hybrasyl
             return itemList.Count != 0; 
         }
 
-        public bool TryRemoveQuantity(string id, out int removed, int quantity=1)
+        public bool TryRemoveQuantity(string id, out List<(byte Slot, int Quantity)> affectedSlots, int quantity=1)
         {
-            removed = 0;
+            var removed = 0;
+            affectedSlots = new List<(byte Slot, int Quantity)>();
             if (quantity < 1 || !ContainsId(id, quantity)) return false;
             var need = quantity;
             lock (ContainerLock)
@@ -922,12 +922,14 @@ namespace Hybrasyl
                         var count = item.Count;
                         need -= count;
                         removed += count;
+                        affectedSlots.Add((slot, item.Count));
                         Remove(slot);
                     }
                     else
                     {
                         Items[slot].Count -= need;
                         removed += need;
+                        affectedSlots.Add((slot, need));
                         return true;
                     }
                 }
@@ -972,6 +974,18 @@ namespace Hybrasyl
         public byte SlotOfId(string id) => ItemIndex.ContainsKey(id) ? ItemIndex[id].First().Slot : byte.MinValue;
 
         public byte SlotOfName(string name) => (from id in Item.GenerateIds(name) where ItemIndex.ContainsKey(id) select ItemIndex[id].First().Slot).FirstOrDefault();
+
+        public List<byte> GetSlotsByCategory(params string[] categories)
+        {
+            var lower = categories.Select(x => x.ToLower()).ToList();
+            var ret = new List<byte>();
+            foreach (var kvp in CategoryIndex.Where(kvp => lower.Contains(kvp.Key)))
+            {
+                ret.AddRange(kvp.Value.Select(x => x.Slot));
+            }
+
+            return ret;
+        }
 
         public ItemObject FindById(string id) => ItemIndex.ContainsKey(id) ? ItemIndex[id].First().Item : null;
 
@@ -1021,11 +1035,11 @@ namespace Hybrasyl
             {
                 if (slot1 == 0 || slot1 > Size || slot2 == 0 || slot2 > Size)
                     return false;
-                lock (ContainerLock)
-                {
-                    (Items[slot1], Items[slot2]) = (Items[slot2], Items[slot1]);
-                }
-
+                if (Items[slot1] != null) _removeFromIndexes(slot1, Items[slot1]);
+                if (Items[slot2] != null) _removeFromIndexes(slot2, Items[slot2]);
+                (Items[slot1], Items[slot2]) = (Items[slot2], Items[slot1]);
+                if (Items[slot1] != null) _addToIndexes(slot1, Items[slot1]);
+                if (Items[slot2] != null) _addToIndexes(slot2, Items[slot2]);
                 return true;
             }
         }

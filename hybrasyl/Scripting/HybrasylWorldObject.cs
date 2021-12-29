@@ -37,6 +37,16 @@ namespace Hybrasyl.Scripting
     public class HybrasylWorldObject
     {
         internal WorldObject Obj { get; set; }
+        // TODO: create HybrasylItemObject pls
+        internal List<string> Categories
+        {
+            get
+            {
+                if (Obj is ItemObject itm)
+                    return itm.Categories;
+                return new List<string>();
+            }
+        }
 
         // TODO: determine a better way to do this in lua via moonsharp
         /// <summary>

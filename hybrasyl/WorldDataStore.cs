@@ -749,11 +749,11 @@ namespace Hybrasyl
 
         public void RegisterItem(Item item)
         {
-            foreach (var category in item.Categories)
+            foreach (var category in item.Categories.Select(Sanitize))
             {
-                var sanitized = Sanitize(category);
-                if (!ItemByCategory.ContainsKey(sanitized))
-                    ItemByCategory[sanitized] = new HashSet<Item>();
+                if (!ItemByCategory.ContainsKey(category))
+                    ItemByCategory[category] = new HashSet<Item>();
+                ItemByCategory[category].Add(item);
             }
         }
 

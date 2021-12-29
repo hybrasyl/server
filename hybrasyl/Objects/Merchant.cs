@@ -23,8 +23,10 @@ using Hybrasyl.Scripting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading;
+using Hybrasyl.Enums;
 
 namespace Hybrasyl.Objects
 {
@@ -52,15 +54,14 @@ namespace Hybrasyl.Objects
 
     public class Merchant : Creature
     {
-        private readonly object inventoryLock = new object();
+        private readonly object inventoryLock = new();
 
         public bool Ready;
-        //public npc Data;
         public Xml.NpcRoleList Roles { get; set; }
         public MerchantJob Jobs { get; set; }
         public List<MerchantInventoryItem> MerchantInventory { get; set; }
 
-        public Regex BuyPattern { get; set; } = new Regex("buy(?<qty>\\s+(?<amt>\\d+|all)\\s+of){0,1}\\s+my\\s+(?<target>.*)");
+        public Regex BuyPattern { get; set; } = new Regex("buy\\s+(?<amt>\\d+|all)\\s+of\\s+my\\s+(?<target>.*)");
 
         public Merchant()
             : base()
@@ -88,16 +89,11 @@ namespace Hybrasyl.Objects
         {
             lock(inventoryLock)
             {
-                if (MerchantInventory != null)
+                if (MerchantInventory == null) return;
+                foreach (var inventoryItem in MerchantInventory.Where(inventoryItem => inventoryItem.LastRestock.AddMinutes(inventoryItem.RestockInterval) < DateTime.Now))
                 {
-                    foreach(var inventoryItem in MerchantInventory)
-                    {
-                        if (inventoryItem.LastRestock.AddMinutes(inventoryItem.RestockInterval) < DateTime.Now)
-                        {
-                            inventoryItem.OnHand = inventoryItem.RestockAmount;
-                            inventoryItem.LastRestock = DateTime.Now;
-                        }
-                    }
+                    inventoryItem.OnHand = inventoryItem.RestockAmount;
+                    inventoryItem.LastRestock = DateTime.Now;
                 }
             }
         }
@@ -130,17 +126,18 @@ namespace Hybrasyl.Objects
 
                 lock (inventoryLock)
                 {
-                    foreach(var item in Roles.Vend.Items)
+                    foreach (var item in Roles.Vend.Items)
                     {
                         if (Game.World.WorldData.TryGetValueByIndex(item.Name, out Xml.Item worldItem))
-                            MerchantInventory.Add(new MerchantInventoryItem(worldItem, (uint)item.Quantity, (uint)item.Quantity, item.Restock, DateTime.Now));
+                            MerchantInventory.Add(new MerchantInventoryItem(worldItem, (uint) item.Quantity,
+                                (uint) item.Quantity, item.Restock, DateTime.Now));
                         else
                             GameLog.Warning("NPC inventory: {name}: {item} not found", Name, item.Name);
                     }
                 }
             }
 
-                Script script;
+            Script script;
             // Do we have a script? If so, get it and run OnSpawn.
             if (World.ScriptProcessor.TryGetScript(Name, out script))
             {
@@ -164,36 +161,94 @@ namespace Hybrasyl.Objects
 
             var patternMatch = BuyPattern.Match(text.ToLower());
 
-            if (patternMatch.Success)
+            if (patternMatch.Success && speaker is User u)
             {
-
-                // Is the thing a category or an actual item
-                if (Game.World.WorldData.FindItem(patternMatch.Groups["target"].Value).Count != 0)
+                var items = Game.World.WorldData.FindItem(patternMatch.Groups["target"].Value);
+                // Is the thing a category or an actual item?
+                if (items.Count != 0)
                 {
                     // Support both "buy 3 of my <item> and buy all of my <item>
-                    if (speaker is User u)
+                    if (patternMatch.Groups["amt"].Value.ToLower() == "all")
                     {
+                        uint coins = 0;
+                        var removed = 0;
+                        foreach (var slot in u.Inventory.GetSlotsByName(patternMatch.Groups["target"].Value))
+                        {
+                            coins += (uint)(u.Inventory[slot].Value * u.Inventory[slot].Count);
+                            removed += u.Inventory[slot].Count;
+                            u.RemoveItem(slot);
+                        }
 
+                        if (removed > 0)
+                        {
+                            Say($"Certainly. I will buy {removed} of those for {coins} gold, {u.Name}.");
+                            u.Gold += coins;
+                            u.UpdateAttributes(StatUpdateFlags.Experience);
+                        }
+                        else
+                            u.SendSystemMessage($"\"Sorry, {u.Name},\" {Name} says. \"You don't have those!\"");
+                    }
+                    else if (int.TryParse(patternMatch.Groups["amt"].Value, out var qty))
+                    {
+                        if (u.Inventory.ContainsName(patternMatch.Groups["target"].Value, qty))
+                        {
+                            // Deal with annoying duplicate name / different gender edge cases
+                            var actuallyRemoved = new List<(byte Slot, int Quantity)>();
+                            uint coins = 0;
+                            foreach (var item in items)
+                            {
+                                u.Inventory.TryRemoveQuantity(item.Id, out var removed, qty);
+                                actuallyRemoved.AddRange(removed);
+                                coins += (uint) (removed.Sum(x => x.Quantity) * item.Properties.Physical.Value);
+                            }
+
+                            if (actuallyRemoved.Count > 0)
+                            {
+                                foreach (var (slot, _) in actuallyRemoved)
+                                {
+                                    if (u.Inventory[slot] == null) 
+                                        u.SendClearItem(slot);
+                                    else 
+                                        u.SendItemUpdate(u.Inventory[slot], slot);
+                                }
+                                Say($"Certainly. I will buy {actuallyRemoved.Sum(x => x.Quantity)} of those for {coins} gold, {u.Name}.");
+                                u.Gold += coins;
+                                u.UpdateAttributes(StatUpdateFlags.Experience);
+                            }
+                            else
+                                u.SendSystemMessage($"\"Sorry, {u.Name},\" {Name} says. \"You don't have those!\"");
+                        }
+                        else
+                            u.SendSystemMessage($"\"Sorry, {u.Name},\" {Name} says. \"You don't have those!\"");
                     }
                 }
                 else if (Game.World.WorldData.ItemByCategory.ContainsKey(patternMatch.Groups["target"].Value))
                 {
+                    uint coins = 0;
                     // Only support "buy all my <category>"
-
+                    foreach (var slot in u.Inventory.GetSlotsByCategory(patternMatch.Groups["target"].Value))
+                    {
+                        coins += (uint) (u.Inventory[slot].Value * u.Inventory[slot].Count);
+                        u.RemoveItem(slot);
+                    }
+                    Say($"Certainly...that will be {coins} gold, {u.Name}.");
+                    u.Gold += coins;
+                    u.UpdateAttributes(StatUpdateFlags.Experience);
                 }
-
+                else 
+                    u.SendSystemMessage($"{Name} shrugs. \"Sorry, I don't know what you mean.\"");
+                // Don't also pass buy strings to scripting
+                return;
             }
 
-            if (Script != null)
-            {
-                Script.SetGlobalValue("text", text);
-                Script.SetGlobalValue("shout", shout);
+            if (Script == null) return;
+            Script.SetGlobalValue("text", text);
+            Script.SetGlobalValue("shout", shout);
 
-                if (speaker is User user)
-                    Script.ExecuteFunction("OnHear", new HybrasylUser(user));
-                else
-                    Script.ExecuteFunction("OnHear", new HybrasylWorldObject(speaker));
-            }
+            if (speaker is User user)
+                Script.ExecuteFunction("OnHear", new HybrasylUser(user));
+            else
+                Script.ExecuteFunction("OnHear", new HybrasylWorldObject(speaker));
         }
 
         public override void OnClick(User invoker)

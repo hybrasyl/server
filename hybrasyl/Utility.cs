@@ -136,7 +136,6 @@ namespace Hybrasyl
         public static int MAX_LEVEL = 99;
         public static Regex PercentageRegex = new Regex(@"(\+|\-){0,1}(\d{0,4})%", RegexOptions.Compiled);
         public const int VIEWPORT_SIZE = 24;
-        public const byte MAXIMUM_INVENTORY = 59;
         public const byte MAXIMUM_BOOK = 90;
         public const int MAXIMUM_DROP_DISTANCE = 2;
         public const int PICKUP_DISTANCE = 2;

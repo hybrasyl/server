@@ -6,6 +6,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Xunit;
 using Map = Hybrasyl.Map;
 using Reactor = Hybrasyl.Xml.Reactor;
@@ -26,7 +27,7 @@ namespace HybrasylTests
 
         static HybrasylFixture()
         {
-            Game.World = new World(1337, new DataStore { Host = "127.0.0.1", Port = 6379, Database = 15 })
+            Game.World = new World(1337, new DataStore { Host = "127.0.0.1", Port = 6379, Database = 15 }, true)
             {
                 DataDirectory = Directory.GetCurrentDirectory()
             };
@@ -45,8 +46,7 @@ namespace HybrasylTests
             var map = new Map(xmlMap, Game.World);
             Game.World.WorldData.SetWithIndex(map.Id, map, map.Name);
 
-            var xmlNation = new Nation { Default = true, Description = "Test Nation", Flag = 0, Name = "Test", SpawnPoints = new List<SpawnPoint>() };
-            xmlNation.SpawnPoints.Add(new SpawnPoint { MapName = "Test Map", X = 5, Y = 5 });
+            var xmlNation = new Nation { Default = true, Description = "Test Nation", Flag = 0, Name = "Test", SpawnPoints = new List<SpawnPoint> {new() { MapName = "Test Map", X = 5, Y = 5 }}};
             Game.World.WorldData.Set(xmlNation.Name, xmlNation);
 
             TestItem = new Item
@@ -54,8 +54,13 @@ namespace HybrasylTests
                 Name = "Test Item"
             };
             TestItem.Properties.Stackable.Max = 1;
-            TestItem.Properties.Equipment = new Hybrasyl.Xml.Equipment() { WeaponType = WeaponType.None, Slot = EquipmentSlot.None };
-            TestItem.Properties.Physical = new Physical() { Durability = 1000, Weight = 1 };
+            TestItem.Properties.Equipment = new Hybrasyl.Xml.Equipment { WeaponType = WeaponType.None, Slot = EquipmentSlot.None };
+            TestItem.Properties.Physical = new Physical { Durability = 1000, Weight = 1 };
+            TestItem.Properties.Categories = new List<Category>
+            {
+                new() {Value = "junk"},
+                new() {Value = "xmlitem"}
+            };
             Game.World.WorldData.Set(TestItem.Id, TestItem);
 
             StackableTestItem = new Item
@@ -64,7 +69,14 @@ namespace HybrasylTests
             };
             StackableTestItem.Properties.Stackable.Max = 20;
             StackableTestItem.Properties.Equipment = new Hybrasyl.Xml.Equipment() { WeaponType = WeaponType.None, Slot = EquipmentSlot.None };
-            StackableTestItem.Properties.Physical = new Physical() { Durability = 1000, Weight = 1 };
+            StackableTestItem.Properties.Physical = new Physical { Durability = 1000, Weight = 1 };
+            StackableTestItem.Properties.Categories = new List<Category>
+            {
+                new() { Value = "nonjunk" },
+                new() { Value = "stackable" },
+                new() { Value = "xmlitem" }
+            };
+
             Game.World.WorldData.Set(StackableTestItem.Id, StackableTestItem);
 
             foreach (EquipmentSlot slot in Enum.GetValues(typeof(EquipmentSlot)))
@@ -72,7 +84,7 @@ namespace HybrasylTests
                 var item = new Item() { Name = $"Equip Test {slot}" };
                 item.Properties.Stackable.Max = 1;
                 item.Properties.Equipment = new Hybrasyl.Xml.Equipment { WeaponType = slot == EquipmentSlot.Weapon ? WeaponType.Dagger : WeaponType.None, Slot = slot };
-                item.Properties.Physical = new Physical() { Durability = 1000, Weight = 1 };
+                item.Properties.Physical = new Physical { Durability = 1000, Weight = 1 };
                 Game.World.WorldData.Set(item.Id, item);
                 TestEquipment.Add(slot, item);
             }
@@ -125,8 +137,9 @@ namespace HybrasylTests
 
         public void Dispose()
         {
-            IDatabase test = World.DatastoreConnection.GetDatabase(15);
-            test.Execute("FLUSHALL");
+            var ep = World.DatastoreConnection.GetEndPoints();
+            var server = World.DatastoreConnection.GetServer(ep.First().ToString());
+            server.FlushDatabase(15);
         }
     }
 

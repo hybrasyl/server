@@ -126,13 +126,51 @@ namespace HybrasylTests
 
         [Theory]
         [MemberData(nameof(XmlItems))]
-        public void AddItemsToInventory(params Item[] item)
+        public void FindItemsByCategory(params Item[] items)
+        {
+            HybrasylFixture.TestUser.Inventory.Clear();
+
+            foreach (var item in items)
+            {
+                // Add five of each item to the inventory
+                Assert.True(HybrasylFixture.TestUser.AddItem(Game.World.CreateItem(item.Id)));
+                Assert.True(HybrasylFixture.TestUser.AddItem(Game.World.CreateItem(item.Id)));
+                Assert.True(HybrasylFixture.TestUser.AddItem(Game.World.CreateItem(item.Id)));
+                Assert.True(HybrasylFixture.TestUser.AddItem(Game.World.CreateItem(item.Id)));
+                Assert.True(HybrasylFixture.TestUser.AddItem(Game.World.CreateItem(item.Id)));
+            }
+            // All 10 slots contain xmlitem tagged items
+            Assert.Equal(new List<byte> { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 },
+                HybrasylFixture.TestUser.Inventory.GetSlotsByCategory("xmlitem"));
+            // Assert first five slots contain junk
+            Assert.Equal(new List<byte> {1, 2, 3, 4, 5},
+                HybrasylFixture.TestUser.Inventory.GetSlotsByCategory("junk"));
+            // Next five slots should contain "stackable"
+            Assert.Equal(new List<byte> { 6, 7, 8, 9, 10 },
+                HybrasylFixture.TestUser.Inventory.GetSlotsByCategory("stackable"));
+            // Categories should be case insensitive
+            Assert.Equal(new List<byte> { 6, 7, 8, 9, 10 },
+                HybrasylFixture.TestUser.Inventory.GetSlotsByCategory("StAcKaBlE"));
+
+            // After a swap, GetSlotsByCategory should return correct results
+            for (byte x = 6; x <= 10; x++)
+            {
+                Assert.True(HybrasylFixture.TestUser.Inventory.Swap(x, (byte) (59 - x)));
+            }
+            Assert.Equal(new List<byte> { 53, 52, 51, 50, 49 },
+                HybrasylFixture.TestUser.Inventory.GetSlotsByCategory("stackable"));
+
+
+        }
+        [Theory]
+        [MemberData(nameof(XmlItems))]
+        public void AddItemsToInventory(params Item[] items)
         {
             HybrasylFixture.TestUser.Inventory.Clear();
 
             for (var x = 1; x < 6; x++)
             {
-                HybrasylFixture.TestUser.AddItem(Game.World.CreateItem(item[0].Id));
+                HybrasylFixture.TestUser.AddItem(Game.World.CreateItem(items[0].Id));
             }
 
             Assert.True(HybrasylFixture.TestUser.Inventory.Count == 5,
@@ -141,6 +179,49 @@ namespace HybrasylTests
                 "First slot: Inventory contains an item but it isn't a test item");
             Assert.True(HybrasylFixture.TestUser.Inventory[5].Name == "Test Item",
                 "Fifth slot: Inventory contains an item but it isn't a test item");
+        }
+
+        [Theory]
+        [MemberData(nameof(XmlItems))]
+        public void SwapItems(params Item[] items)
+        {
+            HybrasylFixture.TestUser.Inventory.Clear();
+
+            foreach (var item in items)
+            {
+                Assert.True(HybrasylFixture.TestUser.AddItem(Game.World.CreateItem(item.Id)));
+                Assert.True(HybrasylFixture.TestUser.AddItem(Game.World.CreateItem(item.Id)));
+                Assert.True(HybrasylFixture.TestUser.AddItem(Game.World.CreateItem(item.Id)));
+                Assert.True(HybrasylFixture.TestUser.AddItem(Game.World.CreateItem(item.Id)));
+                Assert.True(HybrasylFixture.TestUser.AddItem(Game.World.CreateItem(item.Id)));
+            }
+
+            for (byte x = 1; x <= 10; x++)
+            {
+                Assert.True(HybrasylFixture.TestUser.Inventory[x] != null,
+                    "SwapItems: slot {x} is null but should not be");
+            }
+            // Swap with inventory between two filled slots
+            HybrasylFixture.TestUser.Inventory.Swap(1, 6);
+            Assert.True(HybrasylFixture.TestUser.Inventory[1].Name == "Stackable Test Item");
+            Assert.True(HybrasylFixture.TestUser.Inventory[6].Name == "Test Item");
+
+            // Swap with inventory between a filled slot and an empty slot
+            HybrasylFixture.TestUser.Inventory.Swap(2, 59);
+            Assert.True(HybrasylFixture.TestUser.Inventory[2] is null);
+            Assert.True(HybrasylFixture.TestUser.Inventory[59].Name == "Test Item");
+
+            // Swap with user function between two filled slots
+            HybrasylFixture.TestUser.SwapItem(3,7);
+            Assert.True(HybrasylFixture.TestUser.Inventory[3].Name == "Stackable Test Item");
+            Assert.True(HybrasylFixture.TestUser.Inventory[7].Name == "Test Item");
+
+            // Swap with user function between a filled slot and an empty slot
+            HybrasylFixture.TestUser.SwapItem(4, 58);
+            Assert.True(HybrasylFixture.TestUser.Inventory[4] is null);
+            Assert.True(HybrasylFixture.TestUser.Inventory[58].Name == "Test Item");
+
+
         }
 
 
@@ -257,8 +338,33 @@ namespace HybrasylTests
                 $"Test equipment weight is 18 but equipped weight is {HybrasylFixture.TestUser.Equipment.Weight}");
         }
 
+        [Theory]
+        [MemberData(nameof(XmlItems))]
+        public void InventorySerialization(params Item[] items)
+        {
+            HybrasylFixture.TestUser.Inventory.Clear();
+
+            foreach (var item in items)
+            {
+                var itemObj = Game.World.CreateItem(item.Id);
+                itemObj.Count = item.Properties.Stackable.Max;
+                Assert.True(HybrasylFixture.TestUser.Inventory.AddItem(itemObj),
+                    $"Adding {item.Name} to inventory failed");
+            }
+
+            HybrasylFixture.TestUser.Save();
+
+            Assert.True(Game.World.WorldData.TryGetUser("TestUser", out var u1),
+                "Test user should exist after save but can't be found");
+
+            Assert.True(u1.Inventory[1] != null, "Inventory slot 1 should be non-null after deserialization");
+            Assert.True(u1.Inventory[2] != null, "Inventory slot 2 should be non-null after deserialization");
+            Assert.True(u1.Inventory.TryGetValueByName("Test Item", out _), "Deserialized inventory failed TryGetValueByName");
+
+        }
+
         [Fact]
-        public void InventorySerialization()
+        public void EquipmentSerialization()
         {
             HybrasylFixture.TestUser.Inventory.Clear();
             HybrasylFixture.TestUser.Equipment.Clear();
@@ -354,20 +460,6 @@ namespace HybrasylTests
         }
 
         [Theory]
-        [MemberData(nameof(XmlItems))]
-        public void SetAndCheckCategories(params Item[] items)
-        {
-            HybrasylFixture.TestUser.Inventory.Clear();
-            foreach (var item in items)
-            {
-                var itemObj = Game.World.CreateItem(item.Id);
-                itemObj.Count = 1;
-                Assert.True(HybrasylFixture.TestUser.Inventory.AddItem(itemObj),
-                    $"Adding {item.Name} to inventory failed");
-
-            }
-        }
-        [Theory]
         [MemberData(nameof(StackableXmlItems))]
         public void RemoveQuantity(params Item[] items)
         {
@@ -411,6 +503,14 @@ namespace HybrasylTests
                     $"Adding {item.Name} to inventory failed");
 
                 HybrasylFixture.TestUser.Inventory.TryRemoveQuantity(item.Id, out var removed1, 5);
+
+                Assert.True(removed1.Sum(x => x.Quantity) == 5,
+                    $"TryRemoveQuantity: removed 5 from 6 4 10 but removed {removed1.Sum(x => x.Quantity)} instead");
+                Assert.True(removed1[0].Slot == 1 && removed1[0].Quantity == 5,
+                    $"TryRemoveQuantity: should have removed 5 from slot 1, return indicates removed {removed1[0].Quantity} from slot {removed1[0].Slot}");
+                Assert.True(removed1.Count == 1,
+                    $"TryRemoveQuantity: should have removed 5 from slot 1, but return indicates multiple slots were modified");
+
                 var remaining = HybrasylFixture.TestUser.Inventory[1].Count +
                                 HybrasylFixture.TestUser.Inventory[2].Count +
                                 HybrasylFixture.TestUser.Inventory[3].Count;
@@ -420,13 +520,23 @@ namespace HybrasylTests
                 // Should now be 1 4 10
                 HybrasylFixture.TestUser.Inventory.TryRemoveQuantity(item.Id, out var removed2, 7);
                 var remaining2 = HybrasylFixture.TestUser.Inventory[1]?.Count ?? 0 +
-                                HybrasylFixture.TestUser.Inventory[2]?.Count ?? 0 +
-                                HybrasylFixture.TestUser.Inventory[3]?.Count ?? 0;
-                // Should now be <null> <null> 
-                Assert.True(removed2 == 7, $"TryRemoveQuantity: Removed 7 from 1 4 10 but removed is {removed2} instead");
-                Assert.True(HybrasylFixture.TestUser.Inventory[1] == null, "TryRemoveQuantity: slot 1 is not null after removal, but should be");
-                Assert.True(HybrasylFixture.TestUser.Inventory[2] == null, "TryRemoveQuantity: slot 2 is not null after removal, but should be");
-                Assert.True(HybrasylFixture.TestUser.Inventory[3].Count == 8, $"TryRemoveQuantity: slot 3 count should be 8, but is {HybrasylFixture.TestUser.Inventory[3].Count}");
+                    HybrasylFixture.TestUser.Inventory[2]?.Count ?? 0 +
+                    HybrasylFixture.TestUser.Inventory[3]?.Count ?? 0;
+                // Should now be <null> <null> 8
+                Assert.True(removed2.Sum(x => x.Quantity) == 7,
+                    $"TryRemoveQuantity: Removed 7 from 1 4 10 but removed is {removed2.Sum(x => x.Quantity)} instead");
+                Assert.True(removed2[0].Slot == 1 && removed2[0].Quantity == 1,
+                    $"TryRemoveQuantity: should have removed 1 from slot 1, return indicates removed {removed2[0].Quantity} from slot {removed2[0].Slot}");
+                Assert.True(removed2[1].Slot == 2 && removed2[1].Quantity == 4,
+                    $"TryRemoveQuantity: should have removed 4 from slot 2, return indicates removed {removed2[1].Quantity} from slot {removed2[1].Slot}");
+                Assert.True(removed2[2].Slot == 3 && removed2[2].Quantity == 2,
+                    $"TryRemoveQuantity: should have removed 2 from slot 3, return indicates removed {removed2[2].Quantity} from slot {removed2[2].Slot}");
+                Assert.True(HybrasylFixture.TestUser.Inventory[1] == null,
+                    "TryRemoveQuantity: slot 1 is not null after removal, but should be");
+                Assert.True(HybrasylFixture.TestUser.Inventory[2] == null,
+                    "TryRemoveQuantity: slot 2 is not null after removal, but should be");
+                Assert.True(HybrasylFixture.TestUser.Inventory[3].Count == 8,
+                    $"TryRemoveQuantity: slot 3 count should be 8, but is {HybrasylFixture.TestUser.Inventory[3].Count}");
 
             }
         }

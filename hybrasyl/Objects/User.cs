@@ -472,7 +472,7 @@ namespace Hybrasyl.Objects
             Condition.Comatose = false;
 
             // First: break everything that is breakable in the inventory
-            for (byte i = 0; i <= Inventory.Size; ++i)
+            for (byte i = 1; i <= Inventory.Size; ++i)
             {
                 if (Inventory[i] == null) continue;
                 var item = Inventory[i];
@@ -498,7 +498,7 @@ namespace Hybrasyl.Objects
             }
 
             // Now process equipment
-            for (byte i = 0; i <= Equipment.Size; i++)
+            for (byte i = 1; i <= Equipment.Size; i++)
             {
                 var item = Equipment[i];
                 if (item == null)
@@ -2461,26 +2461,23 @@ namespace Hybrasyl.Objects
             var oldSlotItem = Inventory[oldSlot];
             var newSlotItem = Inventory[newSlot];
 
-            
-            if (newSlotItem != null && oldSlotItem.Name == newSlotItem.Name && newSlotItem.Stackable)
+            if (newSlotItem != null && oldSlotItem != null && oldSlotItem.Name == newSlotItem.Name && newSlotItem.Stackable)
             {
-                if(newSlotItem.Count < newSlotItem.MaximumStack)
-                {
-                    var diff = newSlotItem.MaximumStack - newSlotItem.Count;
+                if (newSlotItem.Count >= newSlotItem.MaximumStack) return;
+                var diff = newSlotItem.MaximumStack - newSlotItem.Count;
 
-                    if(diff > oldSlotItem.Count)
-                    {
-                        newSlotItem.Count += oldSlotItem.Count;
-                        RemoveItem(oldSlot);
-                        SendItemUpdate(newSlotItem, newSlot);
-                    }
-                    else
-                    {
-                        newSlotItem.Count += diff;
-                        oldSlotItem.Count -= diff;
-                        SendItemUpdate(oldSlotItem, oldSlot);
-                        SendItemUpdate(newSlotItem, newSlot);
-                    }
+                if(diff > oldSlotItem.Count)
+                {
+                    newSlotItem.Count += oldSlotItem.Count;
+                    RemoveItem(oldSlot);
+                    SendItemUpdate(newSlotItem, newSlot);
+                }
+                else
+                {
+                    newSlotItem.Count += diff;
+                    oldSlotItem.Count -= diff;
+                    SendItemUpdate(oldSlotItem, oldSlot);
+                    SendItemUpdate(newSlotItem, newSlot);
                 }
             }
             else
@@ -2577,8 +2574,7 @@ namespace Hybrasyl.Objects
                     // Inventory check
                     if (Inventory.ContainsName(restriction.Value))
                         return true;
-                    else
-                        message = $"You lack the needed {restriction.Value}.";
+                    message = $"You lack the needed {restriction.Value}.";
                 }
                 else if (restriction.Value != null)
                 {
@@ -2597,11 +2593,9 @@ namespace Hybrasyl.Objects
                     {
                         if (Equipment.Weapon == null && restriction.Type == Xml.WeaponType.None)
                             return true;
-                        else if (Equipment.Weapon != null && restriction.Type == Equipment.Weapon.WeaponType)
+                        if (Equipment.Weapon != null && restriction.Type == Equipment.Weapon.WeaponType)
                             return true;
-                        else
-                            message = $"You can't use this with your current class of weapon.";
-                        
+                        message = $"You can't use this with your current class of weapon.";
                     }
                     else
                     {
@@ -3682,7 +3676,7 @@ namespace Hybrasyl.Objects
             inventoryItems.Id = (ushort)MerchantMenuItem.SellItemQuantity;
 
             var itemsCount = 0;
-            for (byte i = 0; i < Inventory.Size; i++)
+            for (byte i = 1; i <= Inventory.Size; i++)
             {
                 if (Inventory[i] == null) continue;
                 if (Inventory[i].Exchangeable && Inventory[i].Durability == Inventory[i].MaximumDurability)
@@ -3898,7 +3892,7 @@ namespace Hybrasyl.Objects
 
             var userItems = new UserInventoryItems { InventorySlots = new List<byte>() };
             var itemsCount = 0;
-            for (byte i = 0; i < Inventory.Size; i++)
+            for (byte i = 1; i <= Inventory.Size; i++)
             {
                 if (Inventory[i] == null) continue;
                 if (Inventory[i].Exchangeable && Inventory[i].Durability == Inventory[i].MaximumDurability)
@@ -4225,7 +4219,7 @@ namespace Hybrasyl.Objects
             inventoryItems.Id = (ushort)MerchantMenuItem.DepositItemQuantity;
 
             var itemsCount = 0;
-            for (byte i = 0; i < Inventory.Size; i++)
+            for (byte i = 1; i <= Inventory.Size; i++)
             {
                 if (Inventory[i] == null) continue;
                 if (Inventory[i].Exchangeable && Inventory[i].Durability == Inventory[i].MaximumDurability)
@@ -4384,12 +4378,13 @@ namespace Hybrasyl.Objects
             inventoryItems.InventorySlots = new List<byte>();
             inventoryItems.Id = (ushort)MerchantMenuItem.RepairItem;
             var itemsCount = 0;
-            for (byte i = 0; i < Inventory.Size; i++)
+            for (byte i = 1; i <= Inventory.Size; i++)
             {
                 if (Inventory[i] == null) continue;
                 if (Inventory[i].Durability != Inventory[i].MaximumDurability)
                 {
                     inventoryItems.InventorySlots.Add(i);
+
                     itemsCount++;
                 }
             }
@@ -4525,7 +4520,7 @@ namespace Hybrasyl.Objects
             var prompt = "";
             var repairableCount = 0;
 
-            for (byte i = 0; i < Inventory.Size; i++)
+            for (byte i = 1; i <= Inventory.Size; i++)
             {
                 if (Inventory[i] == null) continue;
                 if (Inventory[i].Durability != Inventory[i].MaximumDurability)
@@ -4536,7 +4531,7 @@ namespace Hybrasyl.Objects
                 }
             }
 
-            for(byte i = 0; i < Equipment.Size; i++)
+            for (byte i = 1; i <= Equipment.Size; i++)
             {
                 if (Equipment[i] == null) continue;
                 if (Equipment[i].Durability != Equipment[i].MaximumDurability)
@@ -4639,7 +4634,7 @@ namespace Hybrasyl.Objects
                 prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "repair_all_items_success").Value;
                 RemoveGold(PendingRepairCost);
                 PendingRepairCost = 0;
-                for (byte i = 0; i < Inventory.Size; i++)
+                for (byte i = 1; i <= Inventory.Size; i++)
                 {
                     if (Inventory[i] == null) continue;
                     if (Inventory[i].Durability != Inventory[i].MaximumDurability)
@@ -4649,7 +4644,7 @@ namespace Hybrasyl.Objects
                     }
                 }
 
-                for (byte i = 0; i < Equipment.Size; i++)
+                for (byte i = 1; i <= Equipment.Size; i++)
                 {
                     if (Equipment[i] == null) continue;
                     if (Equipment[i].Durability != Equipment[i].MaximumDurability)
@@ -5027,11 +5022,11 @@ namespace Hybrasyl.Objects
 
         public void SendInventory()
         {
-            for (byte i = 0; i < Inventory.Size; i++)
+            for (byte i = 1; i < Inventory.Size; i++)
             {
                 if (Inventory[i] == null) continue;
                 var x0F = new ServerPacket(0x0F);
-                x0F.WriteByte((byte)(i+1));
+                x0F.WriteByte(i);
                 x0F.WriteUInt16((ushort)(Inventory[i].Sprite + 0x8000));
                 x0F.WriteByte(Inventory[i].Color);
                 x0F.WriteString8(Inventory[i].Name);
@@ -5045,7 +5040,7 @@ namespace Hybrasyl.Objects
 
         public void SendEquipment()
         {
-            for (byte i=0; i < Equipment.Size; i++)
+            for (byte i=1; i < Equipment.Size; i++)
             {
                 if (Equipment[i] != null)
                     SendEquipItem(Equipment[i], i);

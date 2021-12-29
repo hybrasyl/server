@@ -124,28 +124,16 @@ namespace Hybrasyl.Xml
         [XmlIgnore]
         public Dictionary<string, List<Item>> Variants { get; set; }
 
-        public static List<string> GenerateIds(string name)
+        public static List<string> GenerateIds(string name) => (from Gender gender in Enum.GetValues(typeof(Gender)) select GenerateId(name, gender)).ToList();
+        
+        public static string GenerateId(string name, Gender gender)
         {
-            var ret = new List<string>();
-            foreach (var gender in Enum.GetValues(typeof(Gender)))
-            {
-                var rawhash = $"{name.Normalize()}:{gender.ToString().Normalize()}";
-                var hash = sha.ComputeHash(Encoding.ASCII.GetBytes(rawhash));
-                ret.Add(string.Concat(hash.Select(b => b.ToString("x2"))).Substring(0, 8));
-            }
-
-            return ret;
+            var rawhash = $"{name.Normalize().ToLower()}:{gender.ToString().Normalize()}";
+            var hash = sha.ComputeHash(Encoding.ASCII.GetBytes(rawhash));
+            return string.Concat(hash.Select(b => b.ToString("x2")))[..8];
         }
 
-        public string Id
-        {
-            get
-            {
-                var rawhash = $"{Name.Normalize()}:{Properties.Restrictions?.Gender.ToString().Normalize() ?? Gender.Neutral.ToString().Normalize()}";
-                var hash = sha.ComputeHash(Encoding.ASCII.GetBytes(rawhash));
-                return string.Concat(hash.Select(b => b.ToString("x2"))).Substring(0, 8);
-            }
-        }
+        public string Id => GenerateId(Name, Gender);
 
         public Item Clone()
         {
