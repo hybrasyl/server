@@ -45,7 +45,7 @@ public partial class LocalizedString
         }
     }
     
-    [XmlAttribute]
+    [XmlTextAttribute]
     public string Value
     {
         get

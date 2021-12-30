@@ -52,7 +52,7 @@ namespace Hybrasyl.Objects
 
             if (Gender != 0 && (Gender != userobj.Gender))
             {
-                message = "You conclude this garment would look much better on someone else.";
+                message = World.GetLocalString("item_equip_wrong_gender");
                 return false;
             }
 
@@ -60,7 +60,9 @@ namespace Hybrasyl.Objects
 
             if (userobj.Class != Class && Class != Xml.Class.Peasant)
             {
-                message = userobj.Class == Xml.Class.Peasant ? "Perhaps one day you'll know how to use such things." : "Your path has forbidden itself from using such vulgar implements.";
+                message = userobj.Class == Xml.Class.Peasant
+                    ? World.GetLocalString("item_equip_peasant")
+                    : World.GetLocalString("item_equip_wrong_class");
                 return false;
             }
 
@@ -68,19 +70,19 @@ namespace Hybrasyl.Objects
 
             if (userobj.Stats.Level < MinLevel || (MinAbility != 0 && userobj.Stats.Ability < MinAbility))
             {
-                message = "You require more insight.";
+                message = World.GetLocalString("item_equip_more_insight");
                 return false;
             }
 
             if (userobj.Stats.Level > MaxLevel || userobj.Stats.Ability > MaxAbility)
             {
-                message = "Using this is beneath you.";
+                message = World.GetLocalString("item_equip_less_insight");
                 return false;
             }
 
             if (userobj.Equipment.Weight + Weight > userobj.MaximumWeight/2)
             {
-                message = "With all your other equipment on, you can barely lift this.";
+                message = World.GetLocalString("item_equip_too_heavy");
                 return false;
             }
 
@@ -88,7 +90,7 @@ namespace Hybrasyl.Objects
 
             if (EquipmentSlot == (byte)ItemSlots.Shield && userobj.Equipment.Weapon != null && userobj.Equipment.Weapon.WeaponType == Xml.WeaponType.TwoHand)
             {
-                message = "You can't equip a shield with a two-handed weapon.";
+                message = World.GetLocalString("item_equip_shield_2h");
                 return false;
             }
 
@@ -96,14 +98,14 @@ namespace Hybrasyl.Objects
 
             if (EquipmentSlot == (byte) ItemSlots.Weapon && (WeaponType == Xml.WeaponType.TwoHand || WeaponType == Xml.WeaponType.Staff) && userobj.Equipment.Shield != null)
             {
-                message = "You can't equip a two-handed weapon with a shield.";
+                message = World.GetLocalString("item_equip_2h_shield");
                 return false;
             }
 
             // Check unique-equipped
-            if (UniqueEquipped && userobj.Equipment.FindById(Name) != null)
+            if (UniqueEquipped && userobj.Equipment.FindById(TemplateId) != null)
             {
-                message = "You can't equip more than one of these.";
+                message = World.GetLocalString("item_equip_unique_equipped");
                 return false;
             }
 
@@ -111,14 +113,7 @@ namespace Hybrasyl.Objects
 
             foreach (var restriction in Template.Properties.Restrictions?.SlotRestrictions ?? new List<SlotRestriction>())
             {
-                string restrictionMessage;
-                if (restriction.Message == string.Empty)
-                    restrictionMessage = "You cannot equip this now.";
-                else
-                {
-                    restrictionMessage = World.Strings.Merchant.FirstOrDefault((s => s.Key == restriction.Message))?.Value ??
-                                         "You cannot equip this now.";
-                }
+                var restrictionMessage = World.GetLocalString(restriction.Message == string.Empty ? "item_equip_slot_restriction" : restriction.Message);
 
                 if (restriction.Type == SlotRestrictionType.ItemProhibited)
                 {
@@ -147,16 +142,11 @@ namespace Hybrasyl.Objects
             }
 
             // Check other equipped item slot restrictions 
-            foreach (var restriction in userobj.Equipment.SelectMany(x => x.Template.Properties.Restrictions.SlotRestrictions).ToList())
+            var items = userobj.Equipment.Where(x => x.Template.Properties.Restrictions?.SlotRestrictions != null);
+            foreach (var restriction in items.SelectMany(x => x.Template.Properties.Restrictions.SlotRestrictions))
             {
-                string restrictionMessage;
-                if (restriction.Message == string.Empty)
-                    restrictionMessage = "You cannot equip this now.";
-                else
-                {
-                    restrictionMessage = World.Strings.Merchant.FirstOrDefault((s => s.Key == restriction.Message))?.Value ??
-                                         "You cannot equip this now.";
-                }
+                var restrictionMessage = World.GetLocalString(restriction.Message == string.Empty ? "item_equip_slot_restriction" : restriction.Message);
+
                 if (restriction.Type == SlotRestrictionType.ItemProhibited)
                 {
                     if ((restriction.Slot == Xml.EquipmentSlot.Ring &&
@@ -187,7 +177,7 @@ namespace Hybrasyl.Objects
             // Check castable requirements
             if (Template.Properties?.Restrictions?.Castables != null)
             {
-                bool hasCast = false;
+                var hasCast = false;
                 // Behavior is ANY castable, not ALL in list
                 foreach (var castable in Template.Properties.Restrictions.Castables)
                 {
@@ -199,7 +189,7 @@ namespace Hybrasyl.Objects
                 }
                 if (!hasCast && Template.Properties.Restrictions.Castables.Count > 0)
                 {
-                    message = "You are missing some skill or spell requirements.";
+                    message = World.GetLocalString("item_equip_missing_castable");
                     return false;
                 }
             }
@@ -207,7 +197,7 @@ namespace Hybrasyl.Objects
             // Check mastership requirement
             if (MasterOnly && (!userobj.IsMaster))
             {
-                message = "You are not a master of your craft.";
+                message = World.GetLocalString("item_equip_not_master");
                 return false;
             }
             return true;
@@ -263,8 +253,8 @@ namespace Hybrasyl.Objects
 
         public byte MinLevel => Template.MinLevel;
         public byte MinAbility => Template.MinAbility;
-        public byte MaxLevel => Template.MinLevel;
-        public byte MaxAbility => Template.MinAbility;
+        public byte MaxLevel => Template.MaxLevel;
+        public byte MaxAbility => Template.MaxAbility;
 
         public Xml.Class Class => Template.Class;
         public Xml.Gender Gender => Template.Gender;

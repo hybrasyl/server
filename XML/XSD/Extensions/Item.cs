@@ -52,10 +52,10 @@ namespace Hybrasyl.Xml
         public byte MinAbility => Properties.Restrictions?.Ab?.Min ?? 0;
 
         [XmlIgnore] 
-        public byte MaxLevel => Properties.Restrictions?.Level.Max ?? 255;
+        public byte MaxLevel => Properties.Restrictions?.Level?.Max ?? 255;
         
         [XmlIgnore] 
-        public byte MaxAbility => Properties.Restrictions?.Level.Min ?? 255;
+        public byte MaxAbility => Properties.Restrictions?.Level?.Max ?? 255;
 
 
         [XmlIgnore]
@@ -65,9 +65,7 @@ namespace Hybrasyl.Xml
             {
                 var off = Properties.StatModifiers?.Element?.Offense ?? ElementType.None;
                 var def = Properties.StatModifiers?.Element?.Defense ?? ElementType.None;
-                if (Properties.Equipment?.Slot == EquipmentSlot.Necklace)
-                    return off;
-                return def;
+                return Properties.Equipment?.Slot == EquipmentSlot.Necklace ? off : def;
             }
         }
 

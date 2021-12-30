@@ -147,6 +147,17 @@ namespace HybrasylTests
 
         }
 
+        public void ResetUserStats()
+        {
+            TestUser.Stats.BaseInt = 3;
+            TestUser.Stats.BaseStr = 3;
+            TestUser.Stats.BaseDex = 3;
+            TestUser.Stats.BaseCon = 3;
+            TestUser.Stats.BaseWis = 3;
+            TestUser.Stats.Level = 1;
+            TestUser.Class = Class.Peasant;
+        }
+
         public void Dispose()
         {
             var ep = World.DatastoreConnection.GetEndPoints();

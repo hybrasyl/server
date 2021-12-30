@@ -388,6 +388,8 @@ namespace Hybrasyl
             }
         }
 
+        public string GetLocalString(string key) => Strings.GetString(key);
+
         public string GetXmlFile(string type, string name)
         {
             var ret = "";
@@ -494,6 +496,7 @@ namespace Hybrasyl
                     GameLog.Error($"Error parsing {xml}: {e}");
                 }
             }
+            Strings.Reindex();
 
             // Load item variants
             foreach (var xml in GetXmlFiles(ItemVariantDirectory))
