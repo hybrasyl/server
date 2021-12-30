@@ -4083,6 +4083,15 @@ namespace Hybrasyl
             return item;
         }
 
+        public ItemObject CreateItem(Xml.Item item, int quantity = 1)
+        {
+            var itemObj = new ItemObject(item, this);
+            if (quantity > item.MaximumStack)
+                quantity = item.MaximumStack;
+            itemObj.Count = Math.Max(quantity, 1);
+            return itemObj;
+        }
+
         public bool TryGetItemTemplate(string name, Xml.Gender itemGender, out Xml.Item item)
         {
             var itemKey = new Tuple<Xml.Gender, string>(itemGender, name);

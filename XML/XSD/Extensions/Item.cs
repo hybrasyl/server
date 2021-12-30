@@ -46,10 +46,17 @@ namespace Hybrasyl.Xml
         public int MaximumStack => Properties.Stackable?.Max ?? 0;
 
         [XmlIgnore]
-        public byte Level => Properties.Restrictions?.Level?.Min ?? 1;
+        public byte MinLevel => Properties.Restrictions?.Level?.Min ?? 1;
 
         [XmlIgnore]
-        public byte Ability => Properties.Restrictions?.Ab?.Min ?? 0;
+        public byte MinAbility => Properties.Restrictions?.Ab?.Min ?? 0;
+
+        [XmlIgnore] 
+        public byte MaxLevel => Properties.Restrictions?.Level.Max ?? 255;
+        
+        [XmlIgnore] 
+        public byte MaxAbility => Properties.Restrictions?.Level.Min ?? 255;
+
 
         [XmlIgnore]
         public ElementType Element

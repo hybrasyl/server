@@ -66,9 +66,15 @@ namespace Hybrasyl.Objects
 
             // Check level / AB
 
-            if (userobj.Stats.Level < Level || (Ability != 0 && userobj.Stats.Ability < Ability))
+            if (userobj.Stats.Level < MinLevel || (MinAbility != 0 && userobj.Stats.Ability < MinAbility))
             {
                 message = "You require more insight.";
+                return false;
+            }
+
+            if (userobj.Stats.Level > MaxLevel || userobj.Stats.Ability > MaxAbility)
+            {
+                message = "Using this is beneath you.";
                 return false;
             }
 
@@ -103,7 +109,7 @@ namespace Hybrasyl.Objects
 
             // Check item slot prohibitions
 
-            foreach (var restriction in Template.Properties.Restrictions.SlotRestrictions)
+            foreach (var restriction in Template.Properties.Restrictions?.SlotRestrictions ?? new List<SlotRestriction>())
             {
                 string restrictionMessage;
                 if (restriction.Message == string.Empty)
@@ -213,10 +219,9 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                if (_template != null) return _template;
-                return World.WorldData.Get<Xml.Item>(TemplateId);
+                return _template ?? World.WorldData.Get<Item>(TemplateId);
             }
-            set { _template = value; }
+            set => _template = value;
         }
 
         public new string Name => Template.Name;
@@ -256,8 +261,11 @@ namespace Hybrasyl.Objects
         // Identifiable flag is set.
         public bool Identified => true;
 
-        public byte Level => Template.Level;
-        public byte Ability => Template.Ability;
+        public byte MinLevel => Template.MinLevel;
+        public byte MinAbility => Template.MinAbility;
+        public byte MaxLevel => Template.MinLevel;
+        public byte MaxAbility => Template.MinAbility;
+
         public Xml.Class Class => Template.Class;
         public Xml.Gender Gender => Template.Gender;
 
@@ -400,12 +408,14 @@ namespace Hybrasyl.Objects
             Guid = guid != default ? guid : Guid.NewGuid();
         }
 
-        public ItemObject(Xml.Item template)
+        public ItemObject(Xml.Item template, World world = null, Guid guid = default)
         {
             Template = template;
+            TemplateId = template.Id;
+            if (world != null) World = world;
             _count = new Lockable<int>(1);
             _durability = new Lockable<double>(uint.MaxValue);
-            Guid = Guid.NewGuid();
+            Guid = guid != default ? guid : Guid.NewGuid();
         }
 
         // Simple copy constructor for an ItemObject, mostly used when we split a stack and it results

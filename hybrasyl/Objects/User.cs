@@ -798,7 +798,7 @@ namespace Hybrasyl.Objects
             }
             else
             {
-                // Apply one Level at a time
+                // Apply one level at a time
 
                 var levelsGained = 0;
                 Random random = new Random();
@@ -819,7 +819,6 @@ namespace Hybrasyl.Objects
                         // For level up we use Biomagus' formulas with a random 85% - 115% tweak
                         // HP: (CON/(Lv+1)*50*randomfactor)+25
                         // MP: (WIS/(Lv+1)*50*randomfactor)+25
-
                         var randomBonus = (random.NextDouble() * 0.30) + 0.85;
                         int bonusHpGain = (int) Math.Ceiling((double) (Stats.BaseCon / (float)Stats.Level) * 50 * randomBonus);
                         int bonusMpGain = (int) Math.Ceiling((double) (Stats.BaseWis / (float)Stats.Level) * 50 * randomBonus);
@@ -2419,8 +2418,8 @@ namespace Hybrasyl.Objects
             var item = Equipment[slot];
             if (Equipment.Remove(slot))
             {
-                SendRefreshEquipmentSlot(slot);
-                Client.SendMessage(string.Format("Unequipped {0}", item.Name), 3);
+                SendRefreshEquipmentSlot(slot); 
+                SendSystemMessage($"Unequipped {item.Name}");
                 RemoveBonuses(item);
                 // TODO: target this recalculation, this is a mildly expensive operation
                 if (item.CastModifiers != null)

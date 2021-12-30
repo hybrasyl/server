@@ -3,10 +3,7 @@ using Hybrasyl;
 using Hybrasyl.Xml;
 using Hybrasyl.Objects;
 using System.Collections.Generic;
-using System.Collections;
 using System.Linq;
-using System.Threading;
-using Hybrasyl.Scripting;
 using Xunit;
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
 
@@ -15,7 +12,7 @@ namespace HybrasylTests
     [Collection("Hybrasyl")]
     public class Inventory
     {
-        public static HybrasylFixture Fixture;
+        private static HybrasylFixture Fixture;
 
         public Inventory(HybrasylFixture fixture)
         {
