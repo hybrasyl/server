@@ -39,6 +39,7 @@ public partial class ServerConfig
     private string _motd;
     private ServerPlugins _plugins;
     private List<ClientSetting> _clientSettings;
+    private string _worldDataDir;
     private static XmlSerializer _serializerXml;
     #endregion
     
@@ -181,6 +182,18 @@ public partial class ServerConfig
         set
         {
             _clientSettings = value;
+        }
+    }
+    
+    public string WorldDataDir
+    {
+        get
+        {
+            return _worldDataDir;
+        }
+        set
+        {
+            _worldDataDir = value;
         }
     }
     

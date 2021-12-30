@@ -1,9 +1,7 @@
 ﻿using Hybrasyl;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml;
-using StackExchange.Redis;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -11,33 +9,47 @@ using Xunit;
 using Map = Hybrasyl.Map;
 using Reactor = Hybrasyl.Xml.Reactor;
 using Warp = Hybrasyl.Xml.Warp;
+using Serilog;
+using Xunit.Abstractions;
+using Xunit.Sdk;
+using Direction = Hybrasyl.Xml.Direction;
+using Game = Hybrasyl.Game;
 
 namespace HybrasylTests
 {
 
     public class HybrasylFixture : IDisposable
     {
-        public readonly Map Map;
-        public static readonly Item TestItem;
-        public static readonly Item StackableTestItem;
-        public static readonly Dictionary<EquipmentSlot, Item> TestEquipment = new();
+        public Map Map { get; }
+        public Item TestItem { get; }
+        public Item StackableTestItem { get; }
+        public Dictionary<EquipmentSlot, Item> TestEquipment { get;  }= new();
         public static byte InventorySize => 59;
+        private IMessageSink sink;
 
-        public static User TestUser;
+        public User TestUser { get; }
 
-        static HybrasylFixture()
+        public HybrasylFixture(IMessageSink sink)
         {
-            Game.World = new World(1337, new DataStore { Host = "127.0.0.1", Port = 6379, Database = 15 }, true)
-            {
-                DataDirectory = Directory.GetCurrentDirectory()
-            };
+            this.sink = sink;
+            sink.OnMessage(new DiagnosticMessage("hello"));
+            Log.Logger = new LoggerConfiguration()
+                .WriteTo.TestOutput(sink)
+                .CreateLogger(); var submoduleDir = AppDomain.CurrentDomain.BaseDirectory.Split("HybrasylTests");
+            Game.LoadCollisions();
+
+            Game.World = new World(1337, new DataStore {Host = "127.0.0.1", Port = 6379, Database = 15},
+                Path.Combine(submoduleDir[0], "HybrasylTests"), true);
+
+            if (!Game.World.LoadData())
+                throw new InvalidDataException("LoadData encountered errors");
 
             var xmlMap = new Hybrasyl.Xml.Map
             {
-                Id = 1000,
-                X = 50,
-                Y = 50,
-                Name = "Test Map",
+                Id = 136,
+                X = 12,
+                Y = 12,
+                Name = "Test Inn",
                 Warps = new List<Warp>(),
                 Npcs = new List<MapNpc>(),
                 Reactors = new List<Reactor>(),
@@ -98,7 +110,7 @@ namespace HybrasylTests
                 {
                     Direction = Direction.South,
                     Map = map,
-                    X = 10,
+                    X = 4,
                     Y = 10
                 },
                 HairColor = 1,
@@ -144,5 +156,5 @@ namespace HybrasylTests
     }
 
     [CollectionDefinition("Hybrasyl")]
-    public class HybrasylCollection : ICollectionFixture<HybrasylFixture> {}
+    public class HybrasylCollection : IClassFixture<HybrasylFixture> {}
 }

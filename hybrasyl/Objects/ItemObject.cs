@@ -24,6 +24,8 @@ using Hybrasyl.Scripting;
 using Hybrasyl.Threading;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using Hybrasyl.Xml;
 
 namespace Hybrasyl.Objects
 {
@@ -92,11 +94,88 @@ namespace Hybrasyl.Objects
                 return false;
             }
 
-            // Check mastership
+            // Check unique-equipped
             if (UniqueEquipped && userobj.Equipment.FindById(Name) != null)
             {
                 message = "You can't equip more than one of these.";
                 return false;
+            }
+
+            // Check item slot prohibitions
+
+            foreach (var restriction in Template.Properties.Restrictions.SlotRestrictions)
+            {
+                string restrictionMessage;
+                if (restriction.Message == string.Empty)
+                    restrictionMessage = "You cannot equip this now.";
+                else
+                {
+                    restrictionMessage = World.Strings.Merchant.FirstOrDefault((s => s.Key == restriction.Message))?.Value ??
+                                         "You cannot equip this now.";
+                }
+
+                if (restriction.Type == SlotRestrictionType.ItemProhibited)
+                {
+                    if ((restriction.Slot == Xml.EquipmentSlot.Ring && userobj.Equipment.LRing != null ||
+                         userobj.Equipment.RRing != null) || (restriction.Slot == Xml.EquipmentSlot.Gauntlet &&
+                                                              userobj.Equipment.LGauntlet != null ||
+                                                              userobj.Equipment.RGauntlet != null)
+                                                          || userobj.Equipment[(byte) restriction.Slot] != null)
+                    {
+                        message = restrictionMessage;
+                        return false;
+                    }
+                }
+                else
+                {
+                    if ((restriction.Slot == Xml.EquipmentSlot.Ring && userobj.Equipment.LRing != null ||
+                         userobj.Equipment.RRing != null) || (restriction.Slot == Xml.EquipmentSlot.Gauntlet &&
+                                                              userobj.Equipment.LGauntlet != null ||
+                                                              userobj.Equipment.RGauntlet != null)
+                                                          || userobj.Equipment[(byte) restriction.Slot] != null)
+                    {
+                        message = restrictionMessage;
+                        return false;
+                    }
+                }
+            }
+
+            // Check other equipped item slot restrictions 
+            foreach (var restriction in userobj.Equipment.SelectMany(x => x.Template.Properties.Restrictions.SlotRestrictions).ToList())
+            {
+                string restrictionMessage;
+                if (restriction.Message == string.Empty)
+                    restrictionMessage = "You cannot equip this now.";
+                else
+                {
+                    restrictionMessage = World.Strings.Merchant.FirstOrDefault((s => s.Key == restriction.Message))?.Value ??
+                                         "You cannot equip this now.";
+                }
+                if (restriction.Type == SlotRestrictionType.ItemProhibited)
+                {
+                    if ((restriction.Slot == Xml.EquipmentSlot.Ring &&
+                         EquipmentSlot == (byte) Xml.EquipmentSlot.LeftHand ||
+                         EquipmentSlot == (byte) Xml.EquipmentSlot.RightHand) ||
+                        (restriction.Slot == Xml.EquipmentSlot.Gauntlet &&
+                         EquipmentSlot == (byte) Xml.EquipmentSlot.LeftArm ||
+                         EquipmentSlot == (byte) Xml.EquipmentSlot.RightArm) ||
+                        userobj.Equipment[(byte) restriction.Slot] != null)
+                    {
+                        message = restrictionMessage;
+                        return false;
+                    }
+                }
+                else
+                {
+                    if ((restriction.Slot == Xml.EquipmentSlot.Ring && userobj.Equipment.LRing != null ||
+                         userobj.Equipment.RRing != null) || (restriction.Slot == Xml.EquipmentSlot.Gauntlet && userobj.Equipment.LGauntlet != null || userobj.Equipment.RGauntlet != null)
+                                                          || userobj.Equipment[(byte)restriction.Slot] != null)
+                    {
+                        message = restrictionMessage;
+                        return false;
+                    }
+                }
+
             }
 
             // Check castable requirements
@@ -119,6 +198,7 @@ namespace Hybrasyl.Objects
                 }
             }
 
+            // Check mastership requirement
             if (MasterOnly && (!userobj.IsMaster))
             {
                 message = "You are not a master of your craft.";

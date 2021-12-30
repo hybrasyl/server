@@ -134,7 +134,8 @@ namespace Hybrasyl
         public bool DebugEnabled { get; set; }
 
         #region Path helpers
-        public string DataDirectory = Constants.DataDirectory;
+
+        public readonly string DataDirectory;
         public string XmlDirectory => Path.Combine(DataDirectory, "world", "xml");
 
         public string MapFileDirectory => Path.Combine(DataDirectory, "world", "mapfiles");
@@ -212,10 +213,15 @@ namespace Hybrasyl
             InitializeWorld();
         }
 
-        public World(int port, Xml.DataStore store, bool adminEnabled=false)
+        public World(int port, Xml.DataStore store, string dataDir, bool adminEnabled=false)
                 : base(port)
         {
             InitializeWorld();
+            if (dataDir != null && Directory.Exists(dataDir))
+                DataDirectory = dataDir;
+            else
+                throw new ArgumentException($"Specified data directory {dataDir} doesn't exist or couldn't be accessed!");
+            
             var datastoreConfig = new ConfigurationOptions()
             {
                 DefaultDatabase = store.Database,
@@ -469,7 +475,7 @@ namespace Hybrasyl
             return ret.ToArray();
         }
 
-        private bool LoadData()
+        public bool LoadData()
         {
             // You'll notice some inconsistencies here in that we use both wrapper classes and
             // native XML classes for Hybrasyl objects. This is unfortunate and should be
@@ -653,19 +659,6 @@ namespace Hybrasyl
 
             GameLog.InfoFormat("Creatures: {0} creatures loaded", WorldData.Count<Xml.Creature>());
 
-            //var spawngroups = Xml.SpawnGroup.LoadAll(XmlDirectory);
-            //foreach (var sg in spawngroups.Results)
-            //{
-            //    WorldData.Set(sg.Name, sg);
-            //    if (sg.Spawns.Count == 0)
-            //        GameLog.ErrorFormat($"Spawngroup {sg.Name}: empty");
-            //}
-
-            //foreach (var error in spawngroups.Errors)
-            //    GameLog.Error($"Spawngroup: error occurred loading {error.Key}: {error.Value}");
-
-            //GameLog.InfoFormat("Spawngroups: {0} spawngroups loaded", WorldData.Count<Xml.SpawnGroup>());
-
             //Load LootSets
             foreach (var xml in GetXmlFiles(LootSetDirectory))
             {
@@ -769,7 +762,7 @@ namespace Hybrasyl
             }
 
             // Ensure global boards exist and are up to date with anything specified in the config
-            if (Game.Config.Boards != null)
+            if (Game.Config?.Boards != null)
             {
                 foreach (var globalboard in Game.Config.Boards)
                 {
@@ -799,13 +792,15 @@ namespace Hybrasyl
                 // in <Privileged>
                 var board = WorldData.GetBoard("Hybrasyl");
                 board.DisplayName = "Hybrasyl Global Board";
-                if (Game.Config.Access != null)
+                if (Game.Config?.Access != null)
                 {
                     foreach (var moderator in Game.Config.Access.PrivilegedUsers)
                         board.SetAccessLevel(moderator, BoardAccessLevel.Moderate);
                     WorldData.SetWithIndex(board.Name, board, board.Id);
                     board.Save();
                 }
+                else
+                    board.SetAccessLevel("*", BoardAccessLevel.Write);
             }
             return true;
         }
@@ -814,32 +809,23 @@ namespace Hybrasyl
         {
             // Ensure all our modifiable / referenced properties at least exist
             // TODO: this is pretty hacky
-            if (item.Properties.Physical is null)
-                item.Properties.Physical = new Xml.Physical();
-            if (item.Properties.StatModifiers is null)
-                item.Properties.StatModifiers = new Xml.ItemStatModifiers();
-            if (item.Properties.StatModifiers.Base is null)
-                item.Properties.StatModifiers.Base = new Xml.StatModifierBase();
-            if (item.Properties.StatModifiers.Combat is null)
-                item.Properties.StatModifiers.Combat = new Xml.StatModifierCombat();
-            if (item.Properties.Restrictions is null)
-                item.Properties.Restrictions = new Xml.ItemRestrictions();
-            if (item.Properties.Restrictions.Level is null)
-                item.Properties.Restrictions.Level = new Xml.RestrictionsLevel();
-            if (item.Properties.StatModifiers.Element is null)
-                item.Properties.StatModifiers.Element = new Xml.StatModifierElement();
-            if (item.Properties.Damage is null)
-                item.Properties.Damage = new Xml.ItemDamage();
-            if (item.Properties.Damage.Small is null)
-                item.Properties.Damage.Small = new Xml.ItemDamageSmall();
-            if (item.Properties.Damage.Large is null)
-                item.Properties.Damage.Large = new Xml.ItemDamageLarge();
+            item.Properties.Physical ??= new Xml.Physical();
+            item.Properties.StatModifiers ??= new Xml.ItemStatModifiers();
+            item.Properties.StatModifiers.Base ??= new Xml.StatModifierBase();
+            item.Properties.StatModifiers.Combat ??= new Xml.StatModifierCombat();
+            item.Properties.Restrictions ??= new Xml.ItemRestrictions();
+            item.Properties.Restrictions.Level ??= new Xml.RestrictionsLevel();
+            item.Properties.StatModifiers.Element ??= new Xml.StatModifierElement();
+            item.Properties.Damage ??= new Xml.ItemDamage();
+            item.Properties.Damage.Small ??= new Xml.ItemDamageSmall();
+            item.Properties.Damage.Large ??= new Xml.ItemDamageLarge();
 
             var variantItem = item.Clone();
 
             variantItem.Name = $"{variant.Modifier} {item.Name}";
             variantItem.ParentItem = item;
             variantItem.IsVariant = true;
+
             GameLog.Debug($"Processing variant: {variantItem.Name}");
 
             if (variant.Properties.Flags != 0)

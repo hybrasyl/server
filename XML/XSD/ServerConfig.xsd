@@ -210,6 +210,7 @@
       <xs:element name="Motd" type="hyb:String16" minOccurs="0" maxOccurs="1"/>
       <xs:element name="Plugins" type="hyb:ServerPlugins" minOccurs="0" maxOccurs="1"/>
       <xs:element name="ClientSettings" type="hyb:ClientSettings" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="WorldDataDir" type="xs:string" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
   </xs:complexType>
 

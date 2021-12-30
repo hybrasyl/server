@@ -152,25 +152,68 @@ namespace Hybrasyl
             // Set our exit handler
             AppDomain.CurrentDomain.ProcessExit += new EventHandler(CurrentDomain_ProcessExit);
 
-            Constants.DataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Hybrasyl");
+            var startupDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Hybrasyl");
+            var hybConfig = Path.Combine(startupDir, "config.xml");
 
-            if (!Directory.Exists(Constants.DataDirectory))
+            var dataDirectory = string.Empty;
+
+            if (File.Exists(hybConfig))
             {
-                Log.Information("Creating data directory {Directory}", Constants.DataDirectory);
+                if (Xml.ServerConfig.LoadFromFile(hybConfig, out var gameConfig, out var exception))
+                {
+                    Log.Information("Configuration file {file} loaded", hybConfig);
+                    Config = gameConfig;
+                    Config.InitializeClientSettings();
+                    if (Directory.Exists(Config.WorldDataDir))
+                        dataDirectory = Config.WorldDataDir;
+                    else
+                    {
+                        Log.Fatal("The world data directory specified in config.xml could not be found:");
+                        Log.Fatal($"{Config.WorldDataDir}\n. Please update your config to point to a valid world directory.");
+                        Thread.Sleep(10000);
+                        return;
+                    }
+                }
+                else
+                {
+                    Log.Fatal("Configuration file had errors!");
+                    Log.Fatal("Exception follows: {exception}", exception);
+                    Log.Fatal("Server will terminate automatically in ten seconds.");
+                    Thread.Sleep(10000);
+                    return;
+                }
+            }
+            else
+            {
+                var validConfig = false;
+
+                Log.Warning("This seems to be the first time you've run the server (config file not found)");
+                Log.Warning("Please take a look at the server documentation at github.com/hybrasyl/server.");
+                Log.Warning("We also recommend you look at the example config.xml in the community database");
+                Log.Warning("which can be found at github.com/hybrasyl/ceridwen .");
+                Log.Warning($"We are currently looking in:\n{hybConfig} for a config file.");
+                Log.Fatal("Hybrasyl cannot start without a config file, so it will automatically close in 10 seconds.");
+                Thread.Sleep(10000);
+                return;
+            }
+
+            if (string.IsNullOrEmpty(dataDirectory))
+            {
+                Log.Information("Using default data directory {Directory}", startupDir);
                 try
                 {
                     // Ensure at least the world and logs directory exist 
-                    Directory.CreateDirectory(Constants.DataDirectory);
-                    Directory.CreateDirectory(Path.Combine(Constants.DataDirectory, "world"));
-                    Directory.CreateDirectory(Path.Combine(Constants.DataDirectory, "logs"));
+                    Directory.CreateDirectory(startupDir);
+                    Directory.CreateDirectory(Path.Combine(startupDir, "world"));
+                    Directory.CreateDirectory(Path.Combine(startupDir, "logs"));
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine($"Can't create data directory: {Constants.DataDirectory}", e.ToString());
+                    Console.WriteLine($"Can't create data directory: {startupDir}", e.ToString());
                     Thread.Sleep(5000);
                     return;
                 }
-           }
+            }
 
             // Configure logging 
 
@@ -183,37 +226,6 @@ namespace Hybrasyl
             Log.Logger = log;
             Log.Information("Hybrasyl log begin");
             Log.Information("Welcome to Project Hybrasyl: this is Hybrasyl server {0}\n\n", Assemblyinfo.Version);
-
-            var hybconfig = Path.Combine(Constants.DataDirectory, "config.xml");
-
-            if (File.Exists(hybconfig))
-            {
-                if (Xml.ServerConfig.LoadFromFile(hybconfig, out Xml.ServerConfig gameConfig, out Exception exception))
-                {
-                    Log.Information("Configuration file {file} loaded", hybconfig);
-                    Config = gameConfig;
-                    Config.InitializeClientSettings();
-                }
-                else
-                {
-                    Log.Fatal("Configuration file had errors!");
-                    Log.Fatal("Exception follows: {exception}", exception);
-                    Log.Fatal("Server will terminate automatically in five seconds.");
-                    Thread.Sleep(5000);
-                    return;
-                }
-            }
-            else
-            {
-                var validConfig = false;
-
-                Log.Warning("This seems to be the first time you've run the server (config file not found)");
-                Log.Warning("Please take a look at the server documentation at github.com/hybrasyl/server.");
-                Log.Warning("We also recommend you look at the example config.xml in the community database.");
-                Log.Fatal("Hybrasyl cannot start without a config file, so it will automatically close in 10 seconds.");
-                Thread.Sleep(10000);
-                return;
-            }
 
             Log.Information($"Hybrasyl {Assemblyinfo.Version} (commit {Assemblyinfo.GitHash} starting.");
             Log.Information("{Copyright} - this program is licensed under the GNU AGPL, version 3.", Assemblyinfo.Copyright);
@@ -282,7 +294,7 @@ namespace Hybrasyl
             IpAddress = IPAddress.Parse(Config.Network.Lobby.BindAddress);
             Lobby = new Lobby(Config.Network.Lobby.Port);
             Login = new Login(Config.Network.Login.Port);
-            World = new World(Config.Network.World.Port, Config.DataStore);
+            World = new World(Config.Network.World.Port, Config.DataStore, dataDirectory == string.Empty ? Path.Combine(startupDir, "world") : dataDirectory );
 
             Lobby.StopToken = CancellationTokenSource.Token;
             Login.StopToken = CancellationTokenSource.Token;
@@ -528,7 +540,7 @@ namespace Hybrasyl
             }
         }
 
-        private static void LoadCollisions()
+        public static void LoadCollisions()
         {
             var assembly = Assembly.GetExecutingAssembly();
             var sotp = assembly.GetManifestResourceStream("Hybrasyl.Resources.sotp.dat");
