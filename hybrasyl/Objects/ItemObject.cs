@@ -24,12 +24,15 @@ using Hybrasyl.Scripting;
 using Hybrasyl.Threading;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using Hybrasyl.Xml;
 
 namespace Hybrasyl.Objects
 {
     public class ItemObject : VisibleObject
     {
         public string TemplateId { get; private set; }
+        public Guid Guid { get; private set; }
 
         /// <summary>
         /// Check to see if a specified user can equip an ItemObject. Returns a boolean indicating whether
@@ -49,7 +52,7 @@ namespace Hybrasyl.Objects
 
             if (Gender != 0 && (Gender != userobj.Gender))
             {
-                message = "You conclude this garment would look much better on someone else.";
+                message = World.GetLocalString("item_equip_wrong_gender");
                 return false;
             }
 
@@ -57,51 +60,124 @@ namespace Hybrasyl.Objects
 
             if (userobj.Class != Class && Class != Xml.Class.Peasant)
             {
-                message = userobj.Class == Xml.Class.Peasant ? "Perhaps one day you'll know how to use such things." : "Your path has forbidden itself from using such vulgar implements.";
+                message = userobj.Class == Xml.Class.Peasant
+                    ? World.GetLocalString("item_equip_peasant")
+                    : World.GetLocalString("item_equip_wrong_class");
                 return false;
             }
 
             // Check level / AB
 
-            if (userobj.Stats.Level < Level || (Ability != 0 && userobj.Stats.Ability < Ability))
+            if (userobj.Stats.Level < MinLevel || (MinAbility != 0 && userobj.Stats.Ability < MinAbility))
             {
-                message = "You require more insight.";
+                message = World.GetLocalString("item_equip_more_insight");
+                return false;
+            }
+
+            if (userobj.Stats.Level > MaxLevel || userobj.Stats.Ability > MaxAbility)
+            {
+                message = World.GetLocalString("item_equip_less_insight");
                 return false;
             }
 
             if (userobj.Equipment.Weight + Weight > userobj.MaximumWeight/2)
             {
-                message = "With all your other equipment on, you can barely lift this.";
+                message = World.GetLocalString("item_equip_too_heavy");
                 return false;
             }
 
             // Check if user is equipping a shield while holding a two-handed weapon
 
-            if (EquipmentSlot == ClientItemSlots.Shield && userobj.Equipment.Weapon != null && userobj.Equipment.Weapon.WeaponType == Xml.WeaponType.TwoHand)
+            if (EquipmentSlot == (byte)ItemSlots.Shield && userobj.Equipment.Weapon != null && userobj.Equipment.Weapon.WeaponType == Xml.WeaponType.TwoHand)
             {
-                message = "You can't equip a shield with a two-handed weapon.";
+                message = World.GetLocalString("item_equip_shield_2h");
                 return false;
             }
 
             // Check if user is equipping a two-handed weapon while holding a shield
 
-            if (EquipmentSlot == ClientItemSlots.Weapon && (WeaponType == Xml.WeaponType.TwoHand || WeaponType == Xml.WeaponType.Staff) && userobj.Equipment.Shield != null)
+            if (EquipmentSlot == (byte) ItemSlots.Weapon && (WeaponType == Xml.WeaponType.TwoHand || WeaponType == Xml.WeaponType.Staff) && userobj.Equipment.Shield != null)
             {
-                message = "You can't equip a two-handed weapon with a shield.";
+                message = World.GetLocalString("item_equip_2h_shield");
                 return false;
             }
 
-            // Check mastership
-            if (UniqueEquipped && userobj.Equipment.Find(Name) != null)
+            // Check unique-equipped
+            if (UniqueEquipped && userobj.Equipment.FindById(TemplateId) != null)
             {
-                message = "You can't equip more than one of these.";
+                message = World.GetLocalString("item_equip_unique_equipped");
                 return false;
+            }
+
+            // Check item slot prohibitions
+
+            foreach (var restriction in Template.Properties.Restrictions?.SlotRestrictions ?? new List<SlotRestriction>())
+            {
+                var restrictionMessage = World.GetLocalString(restriction.Message == string.Empty ? "item_equip_slot_restriction" : restriction.Message);
+
+                if (restriction.Type == SlotRestrictionType.ItemProhibited)
+                {
+                    if ((restriction.Slot == Xml.EquipmentSlot.Ring && userobj.Equipment.LRing != null ||
+                         userobj.Equipment.RRing != null) || (restriction.Slot == Xml.EquipmentSlot.Gauntlet &&
+                                                              userobj.Equipment.LGauntlet != null ||
+                                                              userobj.Equipment.RGauntlet != null)
+                                                          || userobj.Equipment[(byte) restriction.Slot] != null)
+                    {
+                        message = restrictionMessage;
+                        return false;
+                    }
+                }
+                else
+                {
+                    if ((restriction.Slot == Xml.EquipmentSlot.Ring && userobj.Equipment.LRing != null ||
+                         userobj.Equipment.RRing != null) || (restriction.Slot == Xml.EquipmentSlot.Gauntlet &&
+                                                              userobj.Equipment.LGauntlet != null ||
+                                                              userobj.Equipment.RGauntlet != null)
+                                                          || userobj.Equipment[(byte) restriction.Slot] != null)
+                    {
+                        message = restrictionMessage;
+                        return false;
+                    }
+                }
+            }
+
+            // Check other equipped item slot restrictions 
+            var items = userobj.Equipment.Where(x => x.Template.Properties.Restrictions?.SlotRestrictions != null);
+            foreach (var restriction in items.SelectMany(x => x.Template.Properties.Restrictions.SlotRestrictions))
+            {
+                var restrictionMessage = World.GetLocalString(restriction.Message == string.Empty ? "item_equip_slot_restriction" : restriction.Message);
+
+                if (restriction.Type == SlotRestrictionType.ItemProhibited)
+                {
+                    if ((restriction.Slot == Xml.EquipmentSlot.Ring &&
+                         EquipmentSlot == (byte) Xml.EquipmentSlot.LeftHand ||
+                         EquipmentSlot == (byte) Xml.EquipmentSlot.RightHand) ||
+                        (restriction.Slot == Xml.EquipmentSlot.Gauntlet &&
+                         EquipmentSlot == (byte) Xml.EquipmentSlot.LeftArm ||
+                         EquipmentSlot == (byte) Xml.EquipmentSlot.RightArm) ||
+                        userobj.Equipment[(byte) restriction.Slot] != null)
+                    {
+                        message = restrictionMessage;
+                        return false;
+                    }
+                }
+                else
+                {
+                    if ((restriction.Slot == Xml.EquipmentSlot.Ring && userobj.Equipment.LRing != null ||
+                         userobj.Equipment.RRing != null) || (restriction.Slot == Xml.EquipmentSlot.Gauntlet && userobj.Equipment.LGauntlet != null || userobj.Equipment.RGauntlet != null)
+                                                          || userobj.Equipment[(byte)restriction.Slot] != null)
+                    {
+                        message = restrictionMessage;
+                        return false;
+                    }
+                }
+
             }
 
             // Check castable requirements
             if (Template.Properties?.Restrictions?.Castables != null)
             {
-                bool hasCast = false;
+                var hasCast = false;
                 // Behavior is ANY castable, not ALL in list
                 foreach (var castable in Template.Properties.Restrictions.Castables)
                 {
@@ -113,14 +189,15 @@ namespace Hybrasyl.Objects
                 }
                 if (!hasCast && Template.Properties.Restrictions.Castables.Count > 0)
                 {
-                    message = "You are missing some skill or spell requirements.";
+                    message = World.GetLocalString("item_equip_missing_castable");
                     return false;
                 }
             }
 
+            // Check mastership requirement
             if (MasterOnly && (!userobj.IsMaster))
             {
-                message = "You are not a master of your craft.";
+                message = World.GetLocalString("item_equip_not_master");
                 return false;
             }
             return true;
@@ -132,10 +209,9 @@ namespace Hybrasyl.Objects
         {
             get
             {
-                if (_template != null) return _template;
-                return World.WorldData.Get<Xml.Item>(TemplateId);
+                return _template ?? World.WorldData.Get<Item>(TemplateId);
             }
-            set { _template = value; }
+            set => _template = value;
         }
 
         public new string Name => Template.Name;
@@ -175,8 +251,11 @@ namespace Hybrasyl.Objects
         // Identifiable flag is set.
         public bool Identified => true;
 
-        public byte Level => Template.Level;
-        public byte Ability => Template.Ability;
+        public byte MinLevel => Template.MinLevel;
+        public byte MinAbility => Template.MinAbility;
+        public byte MaxLevel => Template.MaxLevel;
+        public byte MaxAbility => Template.MaxAbility;
+
         public Xml.Class Class => Template.Class;
         public Xml.Gender Gender => Template.Gender;
 
@@ -193,6 +272,7 @@ namespace Hybrasyl.Objects
         public sbyte BonusMr => Template.BonusMr;
         public sbyte BonusRegen => Template.BonusRegen;
         public byte Color => Convert.ToByte(Template.Properties.Appearance.Color);
+        public List<string> Categories => Template.Categories;
 
         public byte BodyStyle => Convert.ToByte(Template.Properties.Appearance.BodyStyle);
 
@@ -205,6 +285,7 @@ namespace Hybrasyl.Objects
         public ushort DisplaySprite => Template.Properties.Appearance.DisplaySprite;
 
         public uint Value => Template.Properties.Physical.Value;
+        public bool HideBoots => Template.Properties.Appearance.HideBoots;
 
         public sbyte Regen => Template.Regen;
 
@@ -272,11 +353,7 @@ namespace Hybrasyl.Objects
                     return;
                 }
 
-                if (!invokeScript.ExecuteFunction("OnUse", trigger, null, this, true))
-                {
-                    trigger.SendSystemMessage("It doesn't work.");
-                    return;
-                }
+                invokeScript.ExecuteFunction("OnUse", trigger, null, this, true);
             }            
             if (Use.Effect != null)
             {
@@ -312,19 +389,23 @@ namespace Hybrasyl.Objects
             }
         }
 
-        public ItemObject(string id, World world)
+        public ItemObject(string id, World world, Guid guid = default)
         {
             World = world;
             TemplateId = id;
             _durability = new Lockable<double>(MaximumDurability);
             _count = new Lockable<int>(1);
+            Guid = guid != default ? guid : Guid.NewGuid();
         }
 
-        public ItemObject(Xml.Item template)
+        public ItemObject(Xml.Item template, World world = null, Guid guid = default)
         {
             Template = template;
+            TemplateId = template.Id;
+            if (world != null) World = world;
             _count = new Lockable<int>(1);
             _durability = new Lockable<double>(uint.MaxValue);
+            Guid = guid != default ? guid : Guid.NewGuid();
         }
 
         // Simple copy constructor for an ItemObject, mostly used when we split a stack and it results
@@ -337,6 +418,7 @@ namespace Hybrasyl.Objects
             TemplateId = previousItemObject.TemplateId;
             Durability = previousItemObject.Durability;
             Count = previousItemObject.Count;
+            Guid = Guid.NewGuid();
         }
 
         public override void ShowTo(VisibleObject obj)

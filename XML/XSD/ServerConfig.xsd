@@ -35,6 +35,7 @@
     <xs:attribute name="Type" type="xs:token" default="redis" />
     <xs:attribute name="Host" type="xs:token" default="localhost" />
     <xs:attribute name="Port" type="xs:unsignedShort" default="6379" />
+    <xs:attribute name="Database" type="xs:int" default="0"/>
   </xs:complexType>
 
   <xs:complexType name="NetworkInfo">
@@ -209,6 +210,7 @@
       <xs:element name="Motd" type="hyb:String16" minOccurs="0" maxOccurs="1"/>
       <xs:element name="Plugins" type="hyb:ServerPlugins" minOccurs="0" maxOccurs="1"/>
       <xs:element name="ClientSettings" type="hyb:ClientSettings" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="WorldDataDir" type="xs:string" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
   </xs:complexType>
 

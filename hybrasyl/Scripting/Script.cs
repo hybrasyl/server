@@ -71,7 +71,7 @@ namespace Hybrasyl.Scripting
         public MoonSharp.Interpreter.Script Compiled { get; private set; }
         public HybrasylWorldObject Associate { get; private set; }
 
-        public bool Disabled { get; set; } = false;
+        public bool Disabled { get; set; }
         public string CompilationError { get; private set; } = string.Empty;
         public string LastRuntimeError { get; private set; } = string.Empty;
 

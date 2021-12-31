@@ -18,6 +18,16 @@ namespace Hybrasyl.Xml
         [XmlIgnore]
         public Item ParentItem { get; set; }
 
+        [XmlIgnore]
+        public List<string> Categories
+        {
+            get {
+                if (Properties?.Categories is not null)
+                    return Properties.Categories.Select(x => x.Value.ToLower()).ToList();
+                else return new List<string>();
+            }
+        }
+
         #region Accessors to provide defaults 
         [XmlIgnore]
         public bool Stackable
@@ -36,10 +46,17 @@ namespace Hybrasyl.Xml
         public int MaximumStack => Properties.Stackable?.Max ?? 0;
 
         [XmlIgnore]
-        public byte Level => Properties.Restrictions?.Level?.Min ?? 1;
+        public byte MinLevel => Properties.Restrictions?.Level?.Min ?? 1;
 
         [XmlIgnore]
-        public byte Ability => Properties.Restrictions?.Ab?.Min ?? 0;
+        public byte MinAbility => Properties.Restrictions?.Ab?.Min ?? 0;
+
+        [XmlIgnore] 
+        public byte MaxLevel => Properties.Restrictions?.Level?.Max ?? 255;
+        
+        [XmlIgnore] 
+        public byte MaxAbility => Properties.Restrictions?.Level?.Max ?? 255;
+
 
         [XmlIgnore]
         public ElementType Element
@@ -48,9 +65,7 @@ namespace Hybrasyl.Xml
             {
                 var off = Properties.StatModifiers?.Element?.Offense ?? ElementType.None;
                 var def = Properties.StatModifiers?.Element?.Defense ?? ElementType.None;
-                if (Properties.Equipment?.Slot == EquipmentSlot.Necklace)
-                    return off;
-                return def;
+                return Properties.Equipment?.Slot == EquipmentSlot.Necklace ? off : def;
             }
         }
 
@@ -114,15 +129,16 @@ namespace Hybrasyl.Xml
         [XmlIgnore]
         public Dictionary<string, List<Item>> Variants { get; set; }
 
-        public string Id
+        public static List<string> GenerateIds(string name) => (from Gender gender in Enum.GetValues(typeof(Gender)) select GenerateId(name, gender)).ToList();
+        
+        public static string GenerateId(string name, Gender gender)
         {
-            get
-            {
-                var rawhash = $"{Name.Normalize()}:{Properties.Restrictions?.Gender.ToString().Normalize() ?? Gender.Neutral.ToString().Normalize()}";
-                var hash = sha.ComputeHash(Encoding.ASCII.GetBytes(rawhash));
-                return string.Concat(hash.Select(b => b.ToString("x2"))).Substring(0, 8);
-            }
+            var rawhash = $"{name.Normalize().ToLower()}:{gender.ToString().Normalize()}";
+            var hash = sha.ComputeHash(Encoding.ASCII.GetBytes(rawhash));
+            return string.Concat(hash.Select(b => b.ToString("x2")))[..8];
         }
+
+        public string Id => GenerateId(Name, Gender);
 
         public Item Clone()
         {

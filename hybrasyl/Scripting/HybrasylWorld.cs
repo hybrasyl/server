@@ -167,9 +167,13 @@ namespace Hybrasyl.Scripting
                     dialogSequence.AddDialog(newdialog);
                     newdialog.Sequence = dialogSequence.Sequence;
                 }
-                else
+                else if (entry is not null)
                 {
                     GameLog.ScriptingError($"NewDialogSequence: Unknown argument of type {entry.GetType()} was passed for a dialog - ignored");
+                }
+                else
+                {
+                    GameLog.ScriptingError($"NewDialogSequence: null argument passed as dialog - ignored");
                 }
             }
             return dialogSequence;

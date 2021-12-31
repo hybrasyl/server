@@ -120,15 +120,28 @@ namespace Hybrasyl.Scripting
         /// <summary>
         /// Removes a skill from the user's skillbook
         /// </summary>
-        /// <param name="name"></param>
-        /// <returns></returns>
-        public bool RemoveSkill(string name) => User.SkillBook.Remove(User.SkillBook.SlotOf(name));
+        /// <param name="name">Skill to be removed</param>
+        /// <returns>boolean indicating success</returns>
+        public bool RemoveSkill(string name)
+        {
+            var slot = User.SkillBook.SlotOf(name);
+            if (!User.SkillBook.Remove(slot)) return false;
+            User.SendClearSkill(slot);
+            return true;
+        }
+
         /// <summary>
         /// Removes a spel from the user's spellbook
         /// </summary>
-        /// <param name="name"></param>
-        /// <returns></returns>
-        public bool RemoveSpell(string name) => User.SpellBook.Remove(User.SpellBook.SlotOf(name));
+        /// <param name="name">Spell to be removed</param>
+        /// <returns>boolean indicating success</returns>
+        public bool RemoveSpell(string name)
+        {
+            var slot = User.SpellBook.SlotOf(name);
+            if (!User.SpellBook.Remove(slot)) return false;
+            User.SendClearSkill(slot);
+            return true;
+        }
 
 
         /// <summary>
@@ -136,7 +149,7 @@ namespace Hybrasyl.Scripting
         /// </summary>
         public uint Mp
         {
-            get { return User.Stats.Mp; }
+            get => User.Stats.Mp;
             set
             {
                 User.Stats.Mp = value;
@@ -277,7 +290,7 @@ namespace Hybrasyl.Scripting
         /// </summary>
         /// <param name="item"></param>
         /// <returns>boolean</returns>
-        public bool HasEquipment(string item) => User.Equipment.Contains(item, 1);
+        public bool HasEquipment(string item) => User.Equipment.ContainsId(item, 1);
 
         /// <summary>
         /// Change the class of a player to a new class. The player's class will immediately change and they will receive a legend mark that 
@@ -856,7 +869,7 @@ namespace Hybrasyl.Scripting
             }
             if (count == 1)
                 return User.Inventory.ContainsName(name);
-            return User.Inventory.Contains(name, count);
+            return User.Inventory.ContainsId(name, count);
         }
 
         /// <summary>

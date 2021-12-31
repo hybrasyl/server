@@ -54,7 +54,7 @@ namespace Hybrasyl
         public string LastPasswordChangeFrom { get; set; }
         public string StorageKey => string.Concat(GetType(), ':', UserUuid);
         public bool IsSaving { get; set; }
-        public bool IsGamemaster { get; set; } = false;
+        public bool IsGamemaster { get; set; }
 
         public AuthInfo(string uuid)
         {

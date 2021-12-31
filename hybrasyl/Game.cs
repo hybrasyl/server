@@ -44,13 +44,13 @@ namespace Hybrasyl
 
         public static readonly object SyncObj = new object();
         public static IPAddress IpAddress;
-        public static IPAddress RedirectTarget = null;
+        public static IPAddress RedirectTarget;
 
         public static ManualResetEvent allDone = new ManualResetEvent(false);
 
-        public static Lobby Lobby { get; private set; }
-        public static Login Login { get; private set; }
-        public static World World { get; private set; }
+        public static Lobby Lobby { get; set; }
+        public static Login Login { get; set; }
+        public static World World { get; set; }
         public static byte[] ServerTable { get; private set; }
         public static uint ServerTableCrc { get; private set; }
         public static byte[] Notification { get; set; }
@@ -60,7 +60,7 @@ namespace Hybrasyl
         public static int LogLevel { get; set; }
 
         public static AssemblyInfo Assemblyinfo { get; set; }
-        private static long Active = 0;
+        private static long Active;
 
         private static Monolith _monolith;
         private static MonolithControl _monolithControl;
@@ -78,7 +78,6 @@ namespace Hybrasyl
         public static LoggingLevelSwitch LevelSwitch;
 
         public static DateTime StartDate { get; set; }
-        public static string GitCommit { get; private set; }
         public static string CommitLog { get; private set; }
 
         private static readonly CancellationTokenSource CancellationTokenSource = new CancellationTokenSource();
@@ -87,7 +86,7 @@ namespace Hybrasyl
         public static bool SentryEnabled { get; private set; }
 
         public static int ShutdownTimeRemaining = -1;
-        public static bool ShutdownComplete = false;
+        public static bool ShutdownComplete;
 
         public static IMetricsRoot MetricsStore { get; private set; }
 
@@ -153,31 +152,68 @@ namespace Hybrasyl
             // Set our exit handler
             AppDomain.CurrentDomain.ProcessExit += new EventHandler(CurrentDomain_ProcessExit);
 
-            Constants.DataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Hybrasyl");
+            var startupDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Hybrasyl");
+            var hybConfig = Path.Combine(startupDir, "config.xml");
 
-            if (!Directory.Exists(Constants.DataDirectory))
+            var dataDirectory = string.Empty;
+
+            if (File.Exists(hybConfig))
             {
-                Log.Information("Creating data directory {Directory}", Constants.DataDirectory);
+                if (Xml.ServerConfig.LoadFromFile(hybConfig, out var gameConfig, out var exception))
+                {
+                    Log.Information("Configuration file {file} loaded", hybConfig);
+                    Config = gameConfig;
+                    Config.InitializeClientSettings();
+                    if (Directory.Exists(Config.WorldDataDir))
+                        dataDirectory = Config.WorldDataDir;
+                    else
+                    {
+                        Log.Fatal("The world data directory specified in config.xml could not be found:");
+                        Log.Fatal($"{Config.WorldDataDir}\n. Please update your config to point to a valid world directory.");
+                        Thread.Sleep(10000);
+                        return;
+                    }
+                }
+                else
+                {
+                    Log.Fatal("Configuration file had errors!");
+                    Log.Fatal("Exception follows: {exception}", exception);
+                    Log.Fatal("Server will terminate automatically in ten seconds.");
+                    Thread.Sleep(10000);
+                    return;
+                }
+            }
+            else
+            {
+                var validConfig = false;
+
+                Log.Warning("This seems to be the first time you've run the server (config file not found)");
+                Log.Warning("Please take a look at the server documentation at github.com/hybrasyl/server.");
+                Log.Warning("We also recommend you look at the example config.xml in the community database");
+                Log.Warning("which can be found at github.com/hybrasyl/ceridwen .");
+                Log.Warning($"We are currently looking in:\n{hybConfig} for a config file.");
+                Log.Fatal("Hybrasyl cannot start without a config file, so it will automatically close in 10 seconds.");
+                Thread.Sleep(10000);
+                return;
+            }
+
+            if (string.IsNullOrEmpty(dataDirectory))
+            {
+                Log.Information("Using default data directory {Directory}", startupDir);
                 try
                 {
                     // Ensure at least the world and logs directory exist 
-                    Directory.CreateDirectory(Constants.DataDirectory);
-                    Directory.CreateDirectory(Path.Combine(Constants.DataDirectory, "world"));
-                    Directory.CreateDirectory(Path.Combine(Constants.DataDirectory, "logs"));
+                    Directory.CreateDirectory(startupDir);
+                    Directory.CreateDirectory(Path.Combine(startupDir, "world"));
+                    Directory.CreateDirectory(Path.Combine(startupDir, "logs"));
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine($"Can't create data directory: {Constants.DataDirectory}", e.ToString());
+                    Console.WriteLine($"Can't create data directory: {startupDir}", e.ToString());
                     Thread.Sleep(5000);
                     return;
                 }
-           }
-            // Retrieve git hash information, if present
-            string commit = (Assemblyinfo.GitHash ?? string.Empty).Split(';')[0];
-            if (!string.IsNullOrEmpty(commit))
-                GitCommit = commit;
-            else
-                GitCommit = "unknown";
+            }
 
             // Configure logging 
 
@@ -191,38 +227,7 @@ namespace Hybrasyl
             Log.Information("Hybrasyl log begin");
             Log.Information("Welcome to Project Hybrasyl: this is Hybrasyl server {0}\n\n", Assemblyinfo.Version);
 
-            var hybconfig = Path.Combine(Constants.DataDirectory, "config.xml");
-
-            if (File.Exists(hybconfig))
-            {
-                if (Xml.ServerConfig.LoadFromFile(hybconfig, out Xml.ServerConfig gameConfig, out Exception exception))
-                {
-                    Log.Information("Configuration file {file} loaded", hybconfig);
-                    Config = gameConfig;
-                    Config.InitializeClientSettings();
-                }
-                else
-                {
-                    Log.Fatal("Configuration file had errors!");
-                    Log.Fatal("Exception follows: {exception}", exception);
-                    Log.Fatal("Server will terminate automatically in five seconds.");
-                    Thread.Sleep(5000);
-                    return;
-                }
-            }
-            else
-            {
-                var validConfig = false;
-
-                Log.Warning("This seems to be the first time you've run the server (config file not found)");
-                Log.Warning("Please take a look at the server documentation at github.com/hybrasyl/server.");
-                Log.Warning("We also recommend you look at the example config.xml in the community database.");
-                Log.Fatal("Hybrasyl cannot start without a config file, so it will automatically close in 10 seconds.");
-                Thread.Sleep(10000);
-                return;
-            }
-
-            Log.Information($"Hybrasyl {Assemblyinfo.Version} (commit {(string.IsNullOrEmpty(GitCommit) ? "unknown" : GitCommit)}) starting.");
+            Log.Information($"Hybrasyl {Assemblyinfo.Version} (commit {Assemblyinfo.GitHash} starting.");
             Log.Information("{Copyright} - this program is licensed under the GNU AGPL, version 3.", Assemblyinfo.Copyright);
 
 
@@ -289,7 +294,7 @@ namespace Hybrasyl
             IpAddress = IPAddress.Parse(Config.Network.Lobby.BindAddress);
             Lobby = new Lobby(Config.Network.Lobby.Port);
             Login = new Login(Config.Network.Login.Port);
-            World = new World(Config.Network.World.Port, Config.DataStore);
+            World = new World(Config.Network.World.Port, Config.DataStore, dataDirectory == string.Empty ? Path.Combine(startupDir, "world") : dataDirectory );
 
             Lobby.StopToken = CancellationTokenSource.Token;
             Login.StopToken = CancellationTokenSource.Token;
@@ -343,7 +348,7 @@ namespace Hybrasyl
                     else
                     {
                         if (string.IsNullOrEmpty(Config.Motd))
-                            stipulationWriter.Write($"Welcome to Hybrasyl!\n\nThis is Hybrasyl (version {Assemblyinfo.Version}, commit {(string.IsNullOrEmpty(GitCommit) ? "unknown" : GitCommit)}).\n\nFor more information please visit http://www.hybrasyl.com");
+                            stipulationWriter.Write($"Welcome to Hybrasyl!\n\nThis is Hybrasyl (version {Assemblyinfo.Version}, commit {Assemblyinfo.GitHash}).\n\nFor more information please visit http://www.hybrasyl.com");
                         else
                             stipulationWriter.Write(Config.Motd);
                     }
@@ -473,7 +478,7 @@ namespace Hybrasyl
 
         private async static void CheckVersion()
         {
-            if (string.IsNullOrEmpty(GitCommit))
+            if (Assemblyinfo.GitHash == "unknown")
             {
                 GameLog.Error("Server update check skipped, git hash not found in assemblyinfo.");
                 return;
@@ -488,10 +493,10 @@ namespace Hybrasyl
                 var data = await content.ReadAsStringAsync();
                 var jsonobj = JObject.Parse(data);
                 var theirhash = jsonobj["commit"].ToString().ToLower();
-                if (theirhash != GitCommit)
+                if (theirhash != Assemblyinfo.GitHash)
                 {
                     GameLog.Warning("THIS VERSION OF HYBRASYL IS OUT OF DATE");
-                    GameLog.Warning($"You have {GitCommit} but {theirhash} is available as of {jsonobj["build_date"]}");
+                    GameLog.Warning($"You have {Assemblyinfo.GitHash} but {theirhash} is available as of {jsonobj["build_date"]}");
                     GameLog.Warning($"You can download the new version at https://www.hybrasyl.com/builds/ .");
                 }
                 else
@@ -506,7 +511,7 @@ namespace Hybrasyl
 
         private async static void GetCommitLog()
         {
-            if (string.IsNullOrEmpty(GitCommit))
+            if (Assemblyinfo.GitHash == "unknown")
             {
                 GameLog.Error("Git log fetch skipped, git hash not found in assemblyinfo.");
                 return;
@@ -516,7 +521,7 @@ namespace Hybrasyl
             {
                 using HttpClient client = new HttpClient();
                 client.DefaultRequestHeaders.Add("User-Agent", "Hybrasyl Server");
-                using HttpResponseMessage res = await client.GetAsync($"https://api.github.com/repos/hybrasyl/server/commits/{GitCommit}");
+                using HttpResponseMessage res = await client.GetAsync($"https://api.github.com/repos/hybrasyl/server/commits/{Assemblyinfo.GitHash}");
                 using HttpContent content = res.Content;
 
                 var data = await content.ReadAsStringAsync();
@@ -535,7 +540,7 @@ namespace Hybrasyl
             }
         }
 
-        private static void LoadCollisions()
+        public static void LoadCollisions()
         {
             var assembly = Assembly.GetExecutingAssembly();
             var sotp = assembly.GetManifestResourceStream("Hybrasyl.Resources.sotp.dat");

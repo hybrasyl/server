@@ -406,7 +406,7 @@ namespace Hybrasyl.ChatCommands
         {
             if (uint.TryParse(args[0], out uint dura))
             {
-                for (byte i = 0; i < user.Equipment.Size; i++)
+                for (byte i = 1; i <= user.Equipment.Size; i++)
                 {
                     if (user.Equipment[i] == null) continue;
                     if (user.Equipment[i].MaximumDurability < dura) continue;
@@ -414,7 +414,7 @@ namespace Hybrasyl.ChatCommands
                     user.AddEquipment(user.Equipment[i], i);
                 }
 
-                for (byte i = 0; i < user.Inventory.Size; i++)
+                for (byte i = 1; i <= user.Inventory.Size; i++)
                 {
                     if (user.Inventory[i] == null) continue;
                     if (user.Inventory[i].MaximumDurability < dura) continue;

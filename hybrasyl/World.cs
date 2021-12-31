@@ -84,7 +84,7 @@ namespace Hybrasyl
 
     public partial class World : Server
     {
-        private static uint worldObjectID = 0;
+        private static uint worldObjectID;
 
         private Dictionary<Xml.MessageType, List<IMessageHandler>> MessagePlugins = new Dictionary<Xml.MessageType, List<IMessageHandler>>();
 
@@ -134,38 +134,39 @@ namespace Hybrasyl
         public bool DebugEnabled { get; set; }
 
         #region Path helpers
-        public static string DataDirectory => Constants.DataDirectory;
-        public static string XmlDirectory => Path.Combine(DataDirectory, "world", "xml");
 
-        public static string MapFileDirectory => Path.Combine(DataDirectory, "world", "mapfiles");
+        public readonly string DataDirectory;
+        public string XmlDirectory => Path.Combine(DataDirectory, "world", "xml");
 
-        public static string ScriptDirectory => Path.Combine(DataDirectory, "world", "scripts");
+        public string MapFileDirectory => Path.Combine(DataDirectory, "world", "mapfiles");
 
-        public static string CastableDirectory => Path.Combine(DataDirectory, "world", "xml", "castables");
-        public static string StatusDirectory => Path.Combine(DataDirectory, "world", "xml", "statuses");
+        public string ScriptDirectory => Path.Combine(DataDirectory, "world", "scripts");
 
-        public static string ItemDirectory => Path.Combine(DataDirectory, "world", "xml", "items");
+        public string CastableDirectory => Path.Combine(DataDirectory, "world", "xml", "castables");
+        public string StatusDirectory => Path.Combine(DataDirectory, "world", "xml", "statuses");
 
-        public static string NationDirectory => Path.Combine(DataDirectory, "world", "xml", "nations");
+        public string ItemDirectory => Path.Combine(DataDirectory, "world", "xml", "items");
 
-        public static string MapDirectory => Path.Combine(DataDirectory, "world", "xml", "maps");
+        public string NationDirectory => Path.Combine(DataDirectory, "world", "xml", "nations");
 
-        public static string WorldMapDirectory => Path.Combine(DataDirectory, "world", "xml", "worldmaps");
+        public string MapDirectory => Path.Combine(DataDirectory, "world", "xml", "maps");
 
-        public static string BehaviorSetDirectory => Path.Combine(DataDirectory, "world", "xml", "behaviorsets");
+        public string WorldMapDirectory => Path.Combine(DataDirectory, "world", "xml", "worldmaps");
 
-        public static string CreatureDirectory => Path.Combine(DataDirectory, "world", "xml", "creatures");
+        public string BehaviorSetDirectory => Path.Combine(DataDirectory, "world", "xml", "behaviorsets");
 
-        public static string SpawnGroupDirectory => Path.Combine(DataDirectory, "world", "xml", "spawngroups");
+        public string CreatureDirectory => Path.Combine(DataDirectory, "world", "xml", "creatures");
 
-        public static string LootSetDirectory => Path.Combine(DataDirectory, "world", "xml", "lootsets");
+        public string SpawnGroupDirectory => Path.Combine(DataDirectory, "world", "xml", "spawngroups");
 
-        public static string ItemVariantDirectory => Path.Combine(DataDirectory, "world", "xml", "itemvariants");
+        public string LootSetDirectory => Path.Combine(DataDirectory, "world", "xml", "lootsets");
 
-        public static string NpcsDirectory => Path.Combine(DataDirectory, "world", "xml", "npcs");
+        public string ItemVariantDirectory => Path.Combine(DataDirectory, "world", "xml", "itemvariants");
 
-        public static string LocalizationDirectory => Path.Combine(DataDirectory, "world", "xml", "localization");
-        public static string ElementDirectory => Path.Combine(DataDirectory, "world", "xml", "elements");
+        public string NpcsDirectory => Path.Combine(DataDirectory, "world", "xml", "npcs");
+
+        public string LocalizationDirectory => Path.Combine(DataDirectory, "world", "xml", "localization");
+        public string ElementDirectory => Path.Combine(DataDirectory, "world", "xml", "elements");
         #endregion
 
         public HashSet<Creature> ActiveStatuses = new HashSet<Creature>();
@@ -188,8 +189,7 @@ namespace Hybrasyl
         }
 
 
-        public World(int port, Xml.DataStore store)
-            : base(port)
+        private void InitializeWorld()
         {
             Objects = new Dictionary<uint, WorldObject>();
             Portraits = new Dictionary<string, string>();
@@ -200,12 +200,32 @@ namespace Hybrasyl
             ScriptProcessor = new ScriptProcessor(this);
             MessageQueue = new BlockingCollection<HybrasylMessage>(new ConcurrentQueue<HybrasylMessage>());
             ControlMessageQueue = new BlockingCollection<HybrasylMessage>(new ConcurrentQueue<HybrasylMessage>());
-       
+
             ActiveAsyncDialogs = new ConcurrentDictionary<Tuple<UInt32, UInt32>, AsyncDialogRequest>();
             WorldData = new WorldDataStore();
+            _random = new Random();
+            CommandHandler = new ChatCommandHandler();
+            DebugEnabled = false;
+        }
 
+        public World(int port) : base(port)
+        {
+            InitializeWorld();
+        }
+
+        public World(int port, Xml.DataStore store, string dataDir, bool adminEnabled=false)
+                : base(port)
+        {
+            InitializeWorld();
+            if (dataDir != null && Directory.Exists(dataDir))
+                DataDirectory = dataDir;
+            else
+                throw new ArgumentException($"Specified data directory {dataDir} doesn't exist or couldn't be accessed!");
+            
             var datastoreConfig = new ConfigurationOptions()
             {
+                DefaultDatabase = store.Database,
+                AllowAdmin = adminEnabled,
                 EndPoints =
                 {
                     {store.Host, store.Port}
@@ -216,9 +236,7 @@ namespace Hybrasyl
                 datastoreConfig.Password = store.Password;
 
             _lazyConnector = new Lazy<ConnectionMultiplexer>(() => ConnectionMultiplexer.Connect(datastoreConfig));
-            _random = new Random();
-            CommandHandler = new ChatCommandHandler();
-            DebugEnabled = false;
+
         }
 
         public bool ToggleDebug()
@@ -370,6 +388,8 @@ namespace Hybrasyl
             }
         }
 
+        public string GetLocalString(string key) => Strings.GetString(key);
+
         public string GetXmlFile(string type, string name)
         {
             var ret = "";
@@ -457,7 +477,7 @@ namespace Hybrasyl
             return ret.ToArray();
         }
 
-        private bool LoadData()
+        public bool LoadData()
         {
             // You'll notice some inconsistencies here in that we use both wrapper classes and
             // native XML classes for Hybrasyl objects. This is unfortunate and should be
@@ -476,6 +496,7 @@ namespace Hybrasyl
                     GameLog.Error($"Error parsing {xml}: {e}");
                 }
             }
+            Strings.Reindex();
 
             // Load item variants
             foreach (var xml in GetXmlFiles(ItemVariantDirectory))
@@ -502,7 +523,7 @@ namespace Hybrasyl
                 {
                     Xml.Item newItem = Xml.Item.LoadFromFile(xml);
                     var variants = new Dictionary<string, List<Xml.Item>>();
-
+                    WorldData.RegisterItem(newItem);
                     GameLog.DebugFormat("Items: loaded {0}, id {1}", newItem.Name, newItem.Id);
                     if (newItem.Properties.Variants != null)
                     {
@@ -518,6 +539,7 @@ namespace Hybrasyl
                                     GameLog.ErrorFormat("Item already exists with Key {0} : {1}. Cannot add {2}", variantItem.Id, WorldData.Get<Xml.Item>(variantItem.Id).Name, variantItem.Name);
                                 }
                                 WorldData.SetWithIndex(variantItem.Id, variantItem, variantItem.Name);
+                                WorldData.RegisterItem(variantItem);
                                 variants[targetGroup].Add(variantItem);
                             }
                         }
@@ -640,19 +662,6 @@ namespace Hybrasyl
 
             GameLog.InfoFormat("Creatures: {0} creatures loaded", WorldData.Count<Xml.Creature>());
 
-            //var spawngroups = Xml.SpawnGroup.LoadAll(XmlDirectory);
-            //foreach (var sg in spawngroups.Results)
-            //{
-            //    WorldData.Set(sg.Name, sg);
-            //    if (sg.Spawns.Count == 0)
-            //        GameLog.ErrorFormat($"Spawngroup {sg.Name}: empty");
-            //}
-
-            //foreach (var error in spawngroups.Errors)
-            //    GameLog.Error($"Spawngroup: error occurred loading {error.Key}: {error.Value}");
-
-            //GameLog.InfoFormat("Spawngroups: {0} spawngroups loaded", WorldData.Count<Xml.SpawnGroup>());
-
             //Load LootSets
             foreach (var xml in GetXmlFiles(LootSetDirectory))
             {
@@ -756,7 +765,7 @@ namespace Hybrasyl
             }
 
             // Ensure global boards exist and are up to date with anything specified in the config
-            if (Game.Config.Boards != null)
+            if (Game.Config?.Boards != null)
             {
                 foreach (var globalboard in Game.Config.Boards)
                 {
@@ -786,13 +795,15 @@ namespace Hybrasyl
                 // in <Privileged>
                 var board = WorldData.GetBoard("Hybrasyl");
                 board.DisplayName = "Hybrasyl Global Board";
-                if (Game.Config.Access != null)
+                if (Game.Config?.Access != null)
                 {
                     foreach (var moderator in Game.Config.Access.PrivilegedUsers)
                         board.SetAccessLevel(moderator, BoardAccessLevel.Moderate);
                     WorldData.SetWithIndex(board.Name, board, board.Id);
                     board.Save();
                 }
+                else
+                    board.SetAccessLevel("*", BoardAccessLevel.Write);
             }
             return true;
         }
@@ -801,32 +812,23 @@ namespace Hybrasyl
         {
             // Ensure all our modifiable / referenced properties at least exist
             // TODO: this is pretty hacky
-            if (item.Properties.Physical is null)
-                item.Properties.Physical = new Xml.Physical();
-            if (item.Properties.StatModifiers is null)
-                item.Properties.StatModifiers = new Xml.ItemStatModifiers();
-            if (item.Properties.StatModifiers.Base is null)
-                item.Properties.StatModifiers.Base = new Xml.StatModifierBase();
-            if (item.Properties.StatModifiers.Combat is null)
-                item.Properties.StatModifiers.Combat = new Xml.StatModifierCombat();
-            if (item.Properties.Restrictions is null)
-                item.Properties.Restrictions = new Xml.ItemRestrictions();
-            if (item.Properties.Restrictions.Level is null)
-                item.Properties.Restrictions.Level = new Xml.RestrictionsLevel();
-            if (item.Properties.StatModifiers.Element is null)
-                item.Properties.StatModifiers.Element = new Xml.StatModifierElement();
-            if (item.Properties.Damage is null)
-                item.Properties.Damage = new Xml.ItemDamage();
-            if (item.Properties.Damage.Small is null)
-                item.Properties.Damage.Small = new Xml.ItemDamageSmall();
-            if (item.Properties.Damage.Large is null)
-                item.Properties.Damage.Large = new Xml.ItemDamageLarge();
+            item.Properties.Physical ??= new Xml.Physical();
+            item.Properties.StatModifiers ??= new Xml.ItemStatModifiers();
+            item.Properties.StatModifiers.Base ??= new Xml.StatModifierBase();
+            item.Properties.StatModifiers.Combat ??= new Xml.StatModifierCombat();
+            item.Properties.Restrictions ??= new Xml.ItemRestrictions();
+            item.Properties.Restrictions.Level ??= new Xml.RestrictionsLevel();
+            item.Properties.StatModifiers.Element ??= new Xml.StatModifierElement();
+            item.Properties.Damage ??= new Xml.ItemDamage();
+            item.Properties.Damage.Small ??= new Xml.ItemDamageSmall();
+            item.Properties.Damage.Large ??= new Xml.ItemDamageLarge();
 
             var variantItem = item.Clone();
 
             variantItem.Name = $"{variant.Modifier} {item.Name}";
             variantItem.ParentItem = item;
             variantItem.IsVariant = true;
+
             GameLog.Debug($"Processing variant: {variantItem.Name}");
 
             if (variant.Properties.Flags != 0)
@@ -835,6 +837,9 @@ namespace Hybrasyl
             variantItem.Properties.Physical.Value =  Convert.ToUInt32(Math.Round(item.Properties.Physical.Value * (variant.Properties.Physical.Value * .01)));
             variantItem.Properties.Physical.Durability = Convert.ToUInt32(Math.Round(item.Properties.Physical.Durability * (variant.Properties.Physical.Durability * .01)));
             variantItem.Properties.Physical.Weight =  Convert.ToInt32(Math.Round(item.Properties.Physical.Weight * (variant.Properties.Physical.Weight * .01)));
+
+            // ensure boot hiding is carried to variants
+            variantItem.Properties.Appearance.HideBoots = item.Properties.Appearance.HideBoots;
 
             switch (variantGroup.ToLower())
             {
@@ -1647,12 +1652,12 @@ namespace Hybrasyl
                     hpRegen = (uint)Math.Min(user.Stats.MaximumHp * (0.1 * Math.Max(user.Stats.Con, (user.Stats.Con - user.Stats.Level)) * 0.01),
                         user.Stats.MaximumHp * 0.20);
                     hpRegen = hpRegen + (uint)(fixedRegenBuff * user.Stats.MaximumHp);
-                }
+                }               
                 if (user.Stats.Mp != user.Stats.MaximumMp)
                 {
-                    mpRegen = (uint)Math.Min(user.Stats.MaximumMp * (0.1 * Math.Max(user.Stats.Int, (user.Stats.Int - user.Stats.Level)) * 0.01),
-                        user.Stats.MaximumMp * 0.20);
-                    mpRegen = mpRegen + (uint)(fixedRegenBuff * user.Stats.MaximumMp);
+                    mpRegen = (uint)Math.Ceiling(Math.Min(user.Stats.MaximumMp * (0.1 * Math.Max(user.Stats.Int, (user.Stats.Int - user.Stats.Level)) * 0.01),
+                        user.Stats.MaximumMp * 0.20));
+                    mpRegen += (uint)(fixedRegenBuff * user.Stats.MaximumMp);
                 }
                 GameLog.DebugFormat("User {0}: regen HP {1}, MP {2}", user.Name,
                     hpRegen, mpRegen);
@@ -1919,7 +1924,7 @@ namespace Hybrasyl
             else if (pickupObject is ItemObject)
             {
                 var item = (ItemObject)pickupObject;
-                if (item.UniqueInventory && user.Inventory.Contains(item.TemplateId))
+                if (item.UniqueInventory && user.Inventory.ContainsId(item.TemplateId))
                 {
                     user.SendMessage(string.Format("You can't carry any more of those.", item.Name), 3);
                     return;
@@ -1930,10 +1935,10 @@ namespace Hybrasyl
                 item.ItemDropTime = null;
                 item.ItemDropType = ItemDropType.Normal;
 
-                if (item.Stackable && user.Inventory.Contains(item.TemplateId))
+                if (item.Stackable && user.Inventory.ContainsId(item.TemplateId))
                 {
                     
-                    byte existingSlot = user.Inventory.SlotOf(item.TemplateId);
+                    byte existingSlot = user.Inventory.SlotOfId(item.TemplateId);
                     var existingItem = user.Inventory[existingSlot];
                     var success = user.AddItem(item.Name, (ushort)item.Count);
 
@@ -1990,7 +1995,7 @@ namespace Hybrasyl
             }
 
             // Is this a valid slot?
-            if ((slot == 0) || (slot > Hybrasyl.Constants.MAXIMUM_INVENTORY))
+            if (slot is 0 or > Inventory.DefaultSize)
             {
                 GameLog.ErrorFormat("Slot not valid. Aborting");
                 return;
@@ -2466,16 +2471,17 @@ namespace Hybrasyl
             }
         }
 
-        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
+        [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze,
+            PlayerFlags.InDialog)]
         [Required(PlayerFlags.Alive)]
         private void PacketHandler_0x1C_UseItem(Object obj, ClientPacket packet)
         {
-            var user = (User)obj;
+            var user = (User) obj;
             var slot = packet.ReadByte();
 
             GameLog.DebugFormat("Updating slot {0}", slot);
 
-            if (slot == 0 || slot > Constants.MAXIMUM_INVENTORY) return;
+            if (slot is 0 or > Inventory.DefaultSize) return;
 
             var item = user.Inventory[slot];
 
@@ -2484,7 +2490,7 @@ namespace Hybrasyl
             switch (item.ItemObjectType)
             {
                 case Enums.ItemObjectType.CanUse:
-                    if (item.Durability == 0 && !((item?.EquipmentSlot ?? ClientItemSlots.None) == ClientItemSlots.None))
+                    if (item.Durability == 0 && (item?.EquipmentSlot ?? (byte) ItemSlots.None) != (byte) ItemSlots.None)
                     {
                         user.SendSystemMessage("This item is too badly damaged to use.");
                         return;
@@ -2502,124 +2508,128 @@ namespace Hybrasyl
                     break;
 
                 case Enums.ItemObjectType.Equipment:
-                    {                 
-                       if (item.Durability == 0)
-                        {
-                            user.SendSystemMessage("This item is too badly damaged to use.");
-                            return;
-                        }
-                        // Check item requirements here before we do anything rash
-                        string message;
-                        if (!item.CheckRequirements(user, out message))
-                        {
-                            // If an item can't be equipped, CheckRequirements will return false
-                            // and also set the appropriate message for us via out
-                            user.SendMessage(message, 3);
-                            return;
-                        }
-                        GameLog.DebugFormat("Equipping {0}", item.Name);
-                        // Remove the item from inventory, but we don't decrement its count, as it still exists.
-                        user.RemoveItem(slot);
+                {
+                    if (item.Durability == 0)
+                    {
+                        user.SendSystemMessage("This item is too badly damaged to use.");
+                        return;
+                    }
 
-                        // Handle gauntlet / ring special cases
-                        if (item.EquipmentSlot == ClientItemSlots.Gauntlet)
-                        {
-                            GameLog.DebugFormat("item is gauntlets");
-                            // First, is the left arm slot occupied?
-                            if (user.Equipment[ClientItemSlots.LArm] != null)
-                            {
-                                if (user.Equipment[ClientItemSlots.RArm] == null)
-                                {
-                                    // Right arm slot is empty; use it
-                                    user.AddEquipment(item, ClientItemSlots.RArm);
-                                }
-                                else
-                                {
-                                    // Right arm slot is in use; replace LArm with item
-                                    var olditem = user.Equipment[ClientItemSlots.LArm];
-                                    user.RemoveEquipment(ClientItemSlots.LArm);
-                                    user.AddItem(olditem, slot);
-                                    user.AddEquipment(item, ClientItemSlots.LArm);
-                                }
-                            }
-                            else
-                            {
-                                user.AddEquipment(item, ClientItemSlots.LArm);
-                            }
-                        }
-                        else if (item.EquipmentSlot == ClientItemSlots.Ring)
-                        {
-                            GameLog.DebugFormat("item is ring");
+                    // Check item requirements here before we do anything rash
+                    string message;
+                    if (!item.CheckRequirements(user, out message))
+                    {
+                        // If an item can't be equipped, CheckRequirements will return false
+                        // and also set the appropriate message for us via out
+                        user.SendMessage(message, 3);
+                        return;
+                    }
 
-                            // First, is the left ring slot occupied?
-                            if (user.Equipment[ClientItemSlots.LHand] != null)
-                            {
-                                if (user.Equipment[ClientItemSlots.RHand] == null)
-                                {
-                                    // Right ring slot is empty; use it
-                                    user.AddEquipment(item, ClientItemSlots.RHand);
-                                }
-                                else
-                                {
-                                    // Right ring slot is in use; replace LHand with item
-                                    var olditem = user.Equipment[ClientItemSlots.LHand];
-                                    user.RemoveEquipment(ClientItemSlots.LHand);
-                                    user.AddItem(olditem, slot);
-                                    user.AddEquipment(item, ClientItemSlots.LHand);
-                                }
-                            }
-                            else
-                            {
-                                user.AddEquipment(item, ClientItemSlots.LHand);
-                            }
-                        }
-                        else if (item.EquipmentSlot == ClientItemSlots.FirstAcc ||
-                                 item.EquipmentSlot == ClientItemSlots.SecondAcc ||
-                                 item.EquipmentSlot == ClientItemSlots.ThirdAcc)
+                    GameLog.DebugFormat("Equipping {0}", item.Name);
+                    // Remove the item from inventory, but we don't decrement its count, as it still exists.
+                    user.RemoveItem(slot);
+
+                    // Handle gauntlet / ring special cases
+                    if (item.EquipmentSlot == (byte) ItemSlots.Gauntlet)
+                    {
+                        GameLog.DebugFormat("item is gauntlets");
+                        // First, is the left arm slot occupied?
+                        if (user.Equipment[(byte) ItemSlots.LArm] != null)
                         {
-                            if (user.Equipment.FirstAcc == null)
-                                user.AddEquipment(item, ClientItemSlots.FirstAcc);
-                            else if (user.Equipment.SecondAcc == null)
-                                user.AddEquipment(item, ClientItemSlots.SecondAcc);
-                            else if (user.Equipment.ThirdAcc == null)
-                                user.AddEquipment(item, ClientItemSlots.ThirdAcc);
+                            if (user.Equipment[(byte) ItemSlots.RArm] == null)
+                            {
+                                // Right arm slot is empty; use it
+                                user.AddEquipment(item, (byte) ItemSlots.RArm);
+                            }
                             else
                             {
-                                // Remove first accessory
-                                var oldItem = user.Equipment.FirstAcc;
-                                user.RemoveEquipment(ClientItemSlots.FirstAcc);
-                                user.AddEquipment(item, ClientItemSlots.FirstAcc);
-                                user.AddItem(oldItem, slot);
-                                user.Show();
+                                // Right arm slot is in use; replace LArm with item
+                                var olditem = user.Equipment[(byte) ItemSlots.LArm];
+                                user.RemoveEquipment((byte) ItemSlots.LArm);
+                                user.AddItem(olditem, slot);
+                                user.AddEquipment(item, (byte) ItemSlots.LArm);
                             }
                         }
                         else
                         {
-                            var equipSlot = item.EquipmentSlot;
-                            var oldItem = user.Equipment[equipSlot];
+                            user.AddEquipment(item, (byte) ItemSlots.LArm);
+                        }
+                    }
+                    else if (item.EquipmentSlot == (byte) ItemSlots.Ring)
+                    {
+                        GameLog.DebugFormat("item is ring");
 
-                            if (oldItem != null)
+                        // First, is the left ring slot occupied?
+                        if (user.Equipment[(byte) ItemSlots.LHand] != null)
+                        {
+                            if (user.Equipment[(byte) ItemSlots.RHand] == null)
                             {
-                                GameLog.DebugFormat(" Attemping to equip {0}", item.Name);
-                                GameLog.DebugFormat("..which would unequip {0}", oldItem.Name);
-                                GameLog.DebugFormat("Player weight is currently {0}", user.CurrentWeight);
-                                user.RemoveEquipment(equipSlot);
-                                user.AddItem(oldItem, slot);
-                                user.AddEquipment(item, equipSlot);
-                                user.Show();
-                                GameLog.DebugFormat("Player weight is currently {0}", user.CurrentWeight);
+                                // Right ring slot is empty; use it
+                                user.AddEquipment(item, (byte) ItemSlots.RHand);
                             }
                             else
                             {
-                                GameLog.DebugFormat("Attemping to equip {0}", item.Name);
-                                user.AddEquipment(item, equipSlot);
-                                user.Show();
+                                // Right ring slot is in use; replace LHand with item
+                                var olditem = user.Equipment[(byte) ItemSlots.LHand];
+                                user.RemoveEquipment((byte) ItemSlots.LHand);
+                                user.AddItem(olditem, slot);
+                                user.AddEquipment(item, (byte) ItemSlots.LHand);
                             }
                         }
+                        else
+                        {
+                            user.AddEquipment(item, (byte) ItemSlots.LHand);
+                        }
                     }
+                    else if (item.EquipmentSlot == (byte) ItemSlots.FirstAcc ||
+                             item.EquipmentSlot == (byte) ItemSlots.SecondAcc ||
+                             item.EquipmentSlot == (byte) ItemSlots.ThirdAcc)
+                    {
+                        if (user.Equipment.FirstAcc == null)
+                            user.AddEquipment(item, (byte) ItemSlots.FirstAcc);
+                        else if (user.Equipment.SecondAcc == null)
+                            user.AddEquipment(item, (byte) ItemSlots.SecondAcc);
+                        else if (user.Equipment.ThirdAcc == null)
+                            user.AddEquipment(item, (byte) ItemSlots.ThirdAcc);
+                        else
+                        {
+                            // Remove first accessory
+                            var oldItem = user.Equipment.FirstAcc;
+                            user.RemoveEquipment((byte) ItemSlots.FirstAcc);
+                            user.AddEquipment(item, (byte) ItemSlots.FirstAcc);
+                            user.AddItem(oldItem, slot);
+                            user.Show();
+                        }
+                    }
+                    else
+                    {
+                        var equipSlot = item.EquipmentSlot;
+                        var oldItem = user.Equipment[equipSlot];
+
+                        if (oldItem != null)
+                        {
+                            GameLog.DebugFormat(" Attemping to equip {0}", item.Name);
+                            GameLog.DebugFormat("..which would unequip {0}", oldItem.Name);
+                            GameLog.DebugFormat("Player weight is currently {0}", user.CurrentWeight);
+                            user.RemoveEquipment(equipSlot);
+                            user.AddItem(oldItem, slot);
+                            user.AddEquipment(item, equipSlot);
+                            user.Show();
+                            GameLog.DebugFormat("Player weight is currently {0}", user.CurrentWeight);
+                        }
+                        else
+                        {
+                            GameLog.DebugFormat("Attemping to equip {0}", item.Name);
+                            user.AddEquipment(item, equipSlot);
+                            user.Show();
+                        }
+                    }
+
                     break;
+                }
             }
         }
+
 
         [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
         [Required(PlayerFlags.Alive)]
@@ -2943,7 +2953,7 @@ namespace Hybrasyl
                 case 0:
                     {
                         var inventory = user.Inventory;
-                        if (oldSlot == 0 || oldSlot > Constants.MAXIMUM_INVENTORY || newSlot == 0 || newSlot > Constants.MAXIMUM_INVENTORY || (inventory[oldSlot] == null && inventory[newSlot] == null)) return;
+                        if (oldSlot == 0 || oldSlot > Inventory.DefaultSize || newSlot == 0 || newSlot > Inventory.DefaultSize || (inventory[oldSlot] == null && inventory[newSlot] == null)) return;
                         user.SwapItem(oldSlot, newSlot);
                         break;
                     }
@@ -3913,7 +3923,8 @@ namespace Hybrasyl
             user.ShowMerchantSendParcelRecipient(merchant, quantity);
         }
 
-        private void MerchantMenuHandler_SendParcel(User user, Merchant merchant, ClientPacket packet) { }
+        private void MerchantMenuHandler_SendParcel(User user, Merchant merchant, ClientPacket packet) {
+        }
 
         private void MerchantMenuHandler_SendParcelFailure(User user, Merchant merchant, ClientPacket packet) { }
 
@@ -4073,6 +4084,15 @@ namespace Hybrasyl
                 quantity = item.MaximumStack;
             item.Count = Math.Max(quantity, 1);
             return item;
+        }
+
+        public ItemObject CreateItem(Xml.Item item, int quantity = 1)
+        {
+            var itemObj = new ItemObject(item, this);
+            if (quantity > item.MaximumStack)
+                quantity = item.MaximumStack;
+            itemObj.Count = Math.Max(quantity, 1);
+            return itemObj;
         }
 
         public bool TryGetItemTemplate(string name, Xml.Gender itemGender, out Xml.Item item)

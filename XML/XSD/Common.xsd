@@ -702,6 +702,29 @@
     <xs:attribute name="Max" type="xs:unsignedInt" default="1" use="optional"/>
   </xs:complexType>
 
+  <!-- Arbitrary categorization support for metadata -->
+  <xs:complexType name="Categories">
+    <xs:sequence>
+      <xs:element name="Category" type="hyb:Category" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="Category" >
+    <xs:simpleContent>
+      <xs:extension base="hyb:String8">
+        <xs:attribute name="Unique" type="xs:boolean" default="false" use="optional" />
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <!-- Types of slot restrictions -->
+  <xs:simpleType name="SlotRestrictionType">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="ItemRequired"/>
+      <xs:enumeration value="ItemProhibited"/>
+    </xs:restriction>
+  </xs:simpleType>
+
   <!-- Attack priority types for behaviorsets -->
   <xs:simpleType name="CreatureAttackPriority">
     <xs:restriction base="xs:token">
@@ -878,6 +901,20 @@
     </xs:sequence>
   </xs:complexType>
 
+  <xs:complexType name="LocalizedString">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="Key" type="xs:string"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:complexType name="LocalizedStrings">
+    <xs:sequence>
+      <xs:element name="String" type="hyb:LocalizedString" minOccurs="0" maxOccurs="unbounded" />
+    </xs:sequence>
+  </xs:complexType>
+
   <xs:complexType name="Npc">
     <xs:sequence>
       <xs:element name="Name" minOccurs="1" maxOccurs="1" type="hyb:String8" />
@@ -888,6 +925,7 @@
           <xs:attribute name="Portrait" type="hyb:String8" use="optional" />
         </xs:complexType>
       </xs:element>
+      <xs:element name="Strings" type="hyb:LocalizedStrings" minOccurs="0" maxOccurs="1"/>
       <xs:element name="Roles" type="hyb:NpcRoleList" minOccurs="0" maxOccurs="1" />
       <xs:element name="AllowDead" type="xs:boolean" minOccurs="0" maxOccurs="1"/>
       <xs:element name="Inventory" minOccurs="0" maxOccurs="1">

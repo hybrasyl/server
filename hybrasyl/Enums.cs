@@ -327,7 +327,7 @@ namespace Hybrasyl
 
         #region Slots, element types, item types
 
-        public enum ItemSlots : int
+        public enum ItemSlots : byte
         {
             None = 0,
             Weapon = 1,
@@ -343,64 +343,17 @@ namespace Hybrasyl
             Waist = 11,
             Leg = 12,
             Foot = 13,
+
             // The rest are all "vanity" slots
             FirstAcc = 14,
             Trousers = 15,
             Coat = 16,
             SecondAcc = 17,
-            ThirdAcc = 18
-        }
+            ThirdAcc = 18,
 
-        public static class ServerItemSlots
-        {
-            public const int Weapon = 0;
-            public const int Armor = 1;
-            public const int Shield = 2;
-            public const int Helmet = 3;
-            public const int Earring = 4;
-            public const int Necklace = 5;
-            public const int LHand = 6;
-            public const int RHand = 7;
-            public const int LArm = 8;
-            public const int RArm = 9;
-            public const int Waist = 10;
-            public const int Leg = 11;
-            public const int Foot = 12;
-            public const int FirstAcc = 13;
-            public const int Trousers = 14;
-            public const int Coat = 15;
-            public const int SecondAcc = 16;
-            public const int ThirdAcc = 17;
             // These are special edge cases; the slots don't actually exist
-            public const int Gauntlet = 19;
-            public const int Ring = 20;
-        }
-
-        public static class ClientItemSlots
-        {
-            public const int None = 0;
-            public const int Weapon = 1;
-            public const int Armor = 2;
-            public const int Shield = 3;
-            public const int Helmet = 4;
-            public const int Earring = 5;
-            public const int Necklace = 6;
-            public const int LHand = 7;
-            public const int RHand = 8;
-            public const int LArm = 9;
-            public const int RArm = 10;
-            public const int Waist = 11;
-            public const int Leg = 12;
-            public const int Foot = 13;
-            public const int FirstAcc = 14;
-            public const int Trousers = 15;
-            public const int Coat = 16;
-            public const int SecondAcc = 17;
-            public const int ThirdAcc = 18;
-            // These are special edge cases; the slots don't actually exist
-            public const int Gauntlet = 19;
-            public const int Ring = 20;
-
+            Gauntlet = 19,
+            Ring = 20
         }
 
         public enum ItemObjectType
@@ -408,16 +361,6 @@ namespace Hybrasyl
             CanUse,
             CannotUse,
             Equipment
-        }
-
-        public enum WeaponObjectType
-        {
-            None,
-            Basic,
-            TwoHanded,
-            Dagger,
-            Staff,
-            Claw
         }
 
         public enum ItemDropType

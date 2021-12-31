@@ -157,7 +157,7 @@ namespace Hybrasyl
             }
         }
 
-        public int BytesReceived = 0;
+        public int BytesReceived;
 
         public void ReceiveBufferAdd(ClientPacket packet) => _receiveBuffer.Enqueue(packet);
 
@@ -180,11 +180,11 @@ namespace Hybrasyl
 
         public long ConnectionId => ClientState.Id;
 
-        private long _lastReceived = 0;
+        private long _lastReceived;
         private long _lastSent = 0;
-        private long _idle = 0;
+        private long _idle;
         
-        public byte ServerOrdinal = 0x00;
+        public byte ServerOrdinal;
         //private byte clientOrdinal = 0x00;
 
         public string RemoteAddress
@@ -207,17 +207,17 @@ namespace Hybrasyl
         public string NewCharacterSalt { get; set; }
         public string NewCharacterPassword { get; set; }
 
-        private int _heartbeatA = 0;
-        private int _heartbeatB = 0;
-        private long _byteHeartbeatSent = 0;
-        private long _tickHeartbeatSent = 0;
-        private long _byteHeartbeatReceived = 0;
-        private long _tickHeartbeatReceived = 0;
+        private int _heartbeatA;
+        private int _heartbeatB;
+        private long _byteHeartbeatSent;
+        private long _tickHeartbeatSent;
+        private long _byteHeartbeatReceived;
+        private long _tickHeartbeatReceived;
 
-        private int _localTickCount = 0;  // Make this int32 because it's what the client expects
-        private int _clientTickCount = 0;
+        private int _localTickCount;  // Make this int32 because it's what the client expects
+        private int _clientTickCount;
 
-        public long ConnectedSince = 0;
+        public long ConnectedSince;
 
         public byte CurrentMusicTrack { get; private set; }
 

@@ -19,49 +19,26 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.Xml.Serialization;
-using System.Security.Cryptography;
-using System.Text;
-using System.Xml;
 
 
 namespace Hybrasyl.Xml
 {
     public partial class CastableHeal
     {
-        public bool IsSimple
-        {
-            get { return string.IsNullOrEmpty(Formula); }
-        }
-        
+        public bool IsSimple => string.IsNullOrEmpty(Formula);
+
         // temporary silliness due to xsd issues
-        public bool IsEmpty
-        {
-            get
-            {
-                return IsSimple && (Simple.Value == 0 && Simple.Min == 0 && Simple.Max == 0);
-            }
-        }
+        public bool IsEmpty => IsSimple && (Simple.Value == 0 && Simple.Min == 0 && Simple.Max == 0);
     }
 
     public partial class CastableDamage
     {
-        public bool IsSimple
-        {
-            get { return string.IsNullOrEmpty(Formula); }
-        }
-        // temporary silliness due to xsd issues
-        public bool IsEmpty
-        {
-            get
-            {
-                return IsSimple && (Simple.Value == 0 && Simple.Min == 0 && Simple.Max == 0);
-            }
+        public bool IsSimple => string.IsNullOrEmpty(Formula);
 
-        }
+        // temporary silliness due to xsd issues
+        public bool IsEmpty => IsSimple && (Simple.Value == 0 && Simple.Min == 0 && Simple.Max == 0);
     }
 
     // For some reason xsd2code doesn't add this and it breaks spawngroup parsing
@@ -108,16 +85,10 @@ namespace Hybrasyl.Xml
 
         public DateTime LastCast { get; set; }
 
-        public bool IsSkill => Book == Book.PrimarySkill || Book == Book.SecondarySkill || Book == Book.UtilitySkill;
-        public bool IsSpell => Book == Book.PrimarySpell || Book == Book.SecondarySpell || Book == Book.UtilitySpell;
+        public bool IsSkill => Book is Book.PrimarySkill or Book.SecondarySkill or Book.UtilitySkill;
+        public bool IsSpell => Book is Book.PrimarySpell or Book.SecondarySpell or Book.UtilitySpell;
 
-        public bool OnCooldown
-        {
-            get
-            {
-                return Cooldown > 0 ? (DateTime.Now - LastCast).TotalSeconds < Cooldown : false;
-            }
-        }
+        public bool OnCooldown => Cooldown > 0 && (DateTime.Now - LastCast).TotalSeconds < Cooldown;
 
         public byte GetMaxLevelByClass(Class castableClass)
         {
@@ -145,13 +116,7 @@ namespace Hybrasyl.Xml
 
         public List<string> CategoryList
         {
-            get
-            {
-                if (Categories.Count > 0)
-                    return new List<string>();
-                else
-                    return Categories.Select(x => x.Value).ToList();
-            }    
+            get { return Categories.Count > 0 ? new List<string>() : Categories.Select(x => x.Value).ToList(); }    
         }
 
     }
@@ -163,11 +128,8 @@ namespace Hybrasyl.Xml
             if (c1 == null && c2 == null) return true;
             if (c1 == null || c2 == null) return false;
 
-            if (c1.Name.Trim().ToLower() == c2.Name.Trim().ToLower() &&
-                c1.Book == c2.Book)
-                return true;
-
-            return false;
+            return c1.Name.Trim().ToLower() == c2.Name.Trim().ToLower() &&
+                   c1.Book == c2.Book;
         }
 
         public int GetHashCode(Castable c)
@@ -187,36 +149,15 @@ namespace Hybrasyl.Xml
 {
     public partial class StatusHeal
     {
-        public bool IsSimple
-        {
-            get { return string.IsNullOrEmpty(Formula); }
-        }
-        public bool IsEmpty
-        {
-            get
-            {
-                return IsSimple && (Simple.Value == 0 && Simple.Min == 0 && Simple.Max == 0);
-            }
+        public bool IsSimple => string.IsNullOrEmpty(Formula);
 
-        }
-
+        public bool IsEmpty => IsSimple && (Simple.Value == 0 && Simple.Min == 0 && Simple.Max == 0);
     }
 
     public partial class StatusDamage
     {
-        public bool IsSimple
-        {
-            get { return string.IsNullOrEmpty(Formula); }
-        }
-        public bool IsEmpty
-        {
-            get
-            {
-                return IsSimple && (Simple.Value == 0 && Simple.Min == 0 && Simple.Max == 0);
-            }
-
-        }
-
+        public bool IsSimple => string.IsNullOrEmpty(Formula);
+        public bool IsEmpty => IsSimple && (Simple.Value == 0 && Simple.Min == 0 && Simple.Max == 0);
     }
 
     public partial class Status
@@ -283,12 +224,12 @@ namespace Hybrasyl.Xml
 
         public HybrasylAge GetAgeFromTerranDatetime(DateTime datetime)
         {
-            if (Ages.Count == 0)
-                return DefaultAge;
-            else if (Ages.Count == 1)
-                return Ages.First();
-            else
-                return Ages.First(a => a.DateInAge(datetime));
+            return Ages.Count switch
+            {
+                0 => DefaultAge,
+                1 => Ages.First(),
+                _ => Ages.First(a => a.DateInAge(datetime))
+            };
         }
     }
 
@@ -349,17 +290,17 @@ namespace Hybrasyl.Xml
             }
         }
 
-        public List<CreatureCastable> OffensiveCastables => Behavior?.Casting?.Offense?.Castable == null ? new List<CreatureCastable>() : Behavior.Casting.Offense.Castable;
-        public List<CreatureCastable> DefensiveCastables => Behavior?.Casting?.Defense?.Castable == null ? new List<CreatureCastable>() : Behavior.Casting.Defense.Castable;
-        public List<CreatureCastable> OnDeathCastables => Behavior?.Casting?.OnDeath?.Castable == null ? new List<CreatureCastable>() : Behavior.Casting.OnDeath.Castable;
-        public List<CreatureCastable> NearDeathCastables => Behavior?.Casting?.NearDeath?.Castable == null ? new List<CreatureCastable>() : Behavior.Casting.NearDeath.Castable;
+        public List<CreatureCastable> OffensiveCastables => Behavior?.Casting?.Offense?.Castable ?? new List<CreatureCastable>();
+        public List<CreatureCastable> DefensiveCastables => Behavior?.Casting?.Defense?.Castable ?? new List<CreatureCastable>();
+        public List<CreatureCastable> OnDeathCastables => Behavior?.Casting?.OnDeath?.Castable ?? new List<CreatureCastable>();
+        public List<CreatureCastable> NearDeathCastables => Behavior?.Casting?.NearDeath?.Castable ?? new List<CreatureCastable>();
         public bool CanCast => OffensiveCastables.Count > 0 || DefensiveCastables.Count > 0 || OnDeathCastables.Count > 0 || NearDeathCastables.Count > 0;
     }
 }
 
 namespace Hybrasyl.Xml
 {
-      
+
     public partial class Spawn
     {
         private static readonly Random Rng = new Random();
@@ -372,13 +313,13 @@ namespace Hybrasyl.Xml
         /// <returns>Element enum</returns>
         public ElementType GetOffensiveElement()
         {
-            if (_damage.Element == ElementType.Random)
-                return (ElementType)Rng.Next(1, 9);
-            else if (_damage.Element == ElementType.RandomFour)
-                return (ElementType)Rng.Next(1, 4);
-            else if (_damage.Element == ElementType.RandomEight)
-                return (ElementType)Rng.Next(5, 8);
-            return _damage.Element;
+            return _damage.Element switch
+            {
+                ElementType.Random => (ElementType) Rng.Next(1, 9),
+                ElementType.RandomFour => (ElementType) Rng.Next(1, 4),
+                ElementType.RandomEight => (ElementType) Rng.Next(5, 8),
+                _ => _damage.Element
+            };
         }
 
         /// <summary>
@@ -387,38 +328,19 @@ namespace Hybrasyl.Xml
         /// <returns>Element enum</returns>
         public ElementType GetDefensiveElement()
         {
-            if (_defense.Element == ElementType.Random)
-                return (ElementType)Rng.Next(1, 9);
-            else if (_defense.Element == ElementType.RandomFour)
-                return (ElementType)Rng.Next(1, 4);
-            else if (_defense.Element == ElementType.RandomEight)
-                return (ElementType)Rng.Next(5, 8);
-            return _defense.Element;
+            return _defense.Element switch
+            {
+                ElementType.Random => (ElementType) Rng.Next(1, 9),
+                ElementType.RandomFour => (ElementType) Rng.Next(1, 4),
+                ElementType.RandomEight => (ElementType) Rng.Next(5, 8),
+                _ => _defense.Element
+            };
         }
-    }
-    public partial class SpawnMap
-    {
-        public DateTime LastSpawn { get; set; }
-        public int Id { get; set; }
     }
 
     public partial class SpawnGroup
     {
         public string Filename { get; set; }
-    }
-
-    public partial class SpawnCastableOffense
-    {
-        public DateTime LastCast { get; set; }
-    }
-
-    public partial class SpawnCastableDefense
-    {
-        public DateTime LastCast { get; set; }
-    }
-    public partial class SpawnCastableNearDeath
-    {
-        public DateTime LastCast { get; set; }
     }
 
 }
@@ -432,10 +354,7 @@ namespace Hybrasyl.Xml
             get
             {
                 var rand = new Random();
-                if (SpawnPoints.Count > 0)
-                    return SpawnPoints[rand.Next(0, SpawnPoints.Count)];
-                else
-                    return default(SpawnPoint);
+                return SpawnPoints.Count > 0 ? SpawnPoints[rand.Next(0, SpawnPoints.Count)] : default(SpawnPoint);
             }
         }
     }
@@ -450,7 +369,7 @@ namespace Hybrasyl.Xml
         // In case there is nothing defined in XML, we still need some associations for basic
         // functionality
         [XmlIgnoreAttribute]
-        static Dictionary<byte, (string key, string setting)> Default = new Dictionary<byte, (string key, string setting)>()
+        static Dictionary<byte, (string key, string setting)> Default = new()
         {
             { 6, ("exchange", "Exchange") },
             { 2, ("group", "Allow Grouping") }
@@ -484,7 +403,7 @@ namespace Hybrasyl.Xml
                 }
                 else
                 {
-                    var cs = ClientSettings.Where(val => val.Number == x).FirstOrDefault();
+                    var cs = ClientSettings.FirstOrDefault(val => val.Number == x);
                     if (cs == default(ClientSetting))
                     {
                         // No specified setting for this number
@@ -507,8 +426,8 @@ namespace Hybrasyl.Xml
 
     public partial class Access
     {
-        private List<string> _privilegedUsers = new List<String>();
-        private List<string> _reservedNames = new List<String>();
+        private List<string> _privilegedUsers = new();
+        private List<string> _reservedNames = new();
 
         public bool AllPrivileged { get; set; } = false;
 

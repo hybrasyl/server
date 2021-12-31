@@ -35,8 +35,6 @@ namespace Hybrasyl
         ServerPacket ToPacket();
     }
 
-    //This is a POC. Nothing to see here folks.
-
     internal class ServerPacketStructures
     {
 
