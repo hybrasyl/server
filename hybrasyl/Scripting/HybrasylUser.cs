@@ -120,15 +120,28 @@ namespace Hybrasyl.Scripting
         /// <summary>
         /// Removes a skill from the user's skillbook
         /// </summary>
-        /// <param name="name"></param>
-        /// <returns></returns>
-        public bool RemoveSkill(string name) => User.SkillBook.Remove(User.SkillBook.SlotOf(name));
+        /// <param name="name">Skill to be removed</param>
+        /// <returns>boolean indicating success</returns>
+        public bool RemoveSkill(string name)
+        {
+            var slot = User.SkillBook.SlotOf(name);
+            if (!User.SkillBook.Remove(slot)) return false;
+            User.SendClearSkill(slot);
+            return true;
+        }
+
         /// <summary>
         /// Removes a spel from the user's spellbook
         /// </summary>
-        /// <param name="name"></param>
-        /// <returns></returns>
-        public bool RemoveSpell(string name) => User.SpellBook.Remove(User.SpellBook.SlotOf(name));
+        /// <param name="name">Spell to be removed</param>
+        /// <returns>boolean indicating success</returns>
+        public bool RemoveSpell(string name)
+        {
+            var slot = User.SpellBook.SlotOf(name);
+            if (!User.SpellBook.Remove(slot)) return false;
+            User.SendClearSkill(slot);
+            return true;
+        }
 
 
         /// <summary>
