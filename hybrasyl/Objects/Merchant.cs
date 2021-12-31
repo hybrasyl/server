@@ -26,7 +26,9 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading;
+using Google.Protobuf.WellKnownTypes;
 using Hybrasyl.Enums;
+using Hybrasyl.Xml;
 
 namespace Hybrasyl.Objects
 {
@@ -57,16 +59,72 @@ namespace Hybrasyl.Objects
         private readonly object inventoryLock = new();
 
         public bool Ready;
-        public Xml.NpcRoleList Roles { get; set; }
+        public Npc Template;
         public MerchantJob Jobs { get; set; }
         public List<MerchantInventoryItem> MerchantInventory { get; set; }
 
         public Regex BuyPattern { get; set; } = new Regex("buy\\s+(?<amt>\\d+|all)\\s+of\\s+my\\s+(?<target>.*)");
 
-        public Merchant()
+        private Dictionary<string, string> Strings = new();
+
+        public Merchant(Npc npc)
             : base()
         {
+            Template = npc;
+            Sprite = npc.Appearance.Sprite;
+            Portrait = npc.Appearance.Portrait;
+            AllowDead = npc.AllowDead;
+
+            foreach (var str in npc.Strings)
+            {
+                Strings[str.Key] = Strings[str.Value];
+            }
+
+
+            if (npc.Roles != null)
+            {
+                if (npc.Roles.Post != null)
+                {
+                    Jobs ^= MerchantJob.Post;
+                }
+
+                if (npc.Roles.Bank != null)
+                {
+                    Jobs ^= MerchantJob.Bank;
+                }
+
+                if (npc.Roles.Repair != null)
+                {
+                    Jobs ^= MerchantJob.Repair;
+                }
+
+                if (npc.Roles.Train != null)
+                {
+                    if (npc.Roles.Train.Any(x => x.Type == "Skill")) Jobs ^= MerchantJob.Skills;
+                    if (npc.Roles.Train.Any(x => x.Type == "Spell")) Jobs ^= MerchantJob.Spells;
+                }
+
+                if (npc.Roles.Vend != null)
+                {
+                    Jobs ^= MerchantJob.Vend;
+                }
+
+            }
+
             Ready = false;
+        }
+
+        public string GetLocalString(string key) => Strings.ContainsKey(key) ? key : World.GetLocalString(key);
+
+        public string GetLocalString(string key, params (string Token, string Value)[] replacements)
+        {
+            var str = GetLocalString(key);
+            foreach (var repl in replacements)
+            {
+                str = str.Replace(repl.Token, repl.Value);
+            }
+
+            return str;
         }
 
         public uint GetOnHand(string itemName)
@@ -120,13 +178,13 @@ namespace Hybrasyl.Objects
 
         public void OnSpawn()
         {
-            if (Roles != null && Roles.Vend != null)
+            if (Template.Roles != null && Template.Roles.Vend != null)
             {
                 MerchantInventory = new List<MerchantInventoryItem>();
 
                 lock (inventoryLock)
                 {
-                    foreach (var item in Roles.Vend.Items)
+                    foreach (var item in Template.Roles.Vend.Items)
                     {
                         if (Game.World.WorldData.TryGetValueByIndex(item.Name, out Xml.Item worldItem))
                             MerchantInventory.Add(new MerchantInventoryItem(worldItem, (uint) item.Quantity,

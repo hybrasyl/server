@@ -2854,14 +2854,10 @@ namespace Hybrasyl.Objects
 
         public void ShowLearnSkillMenu(Merchant merchant)
         {
-            var learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill");
-            var prompt = string.Empty;
-            if (learnString != null) prompt = learnString.Value ?? string.Empty;
-
             var merchantSkills = new MerchantSkills();
             merchantSkills.Skills = new List<MerchantSkill>();
 
-            foreach (var skill in merchant.Roles.Train.Where(x => x.Type == "Skill" && (x.Class.Contains(Class) || x.Class.Contains(Xml.Class.Peasant))).OrderBy(y => y.Name))
+            foreach (var skill in merchant.Template.Roles.Train.Where(x => x.Type == "Skill" && (x.Class.Contains(Class) || x.Class.Contains(Xml.Class.Peasant))).OrderBy(y => y.Name))
             {
                 if (Game.World.WorldData.TryGetValueByIndex(skill.Name, out Xml.Castable result))
                 {
@@ -2888,7 +2884,7 @@ namespace Hybrasyl.Objects
                 Color2 = 0,
                 PortraitType = Convert.ToByte(string.IsNullOrEmpty(Portrait)),
                 Name = merchant.Name,
-                Text = prompt,
+                Text = merchant.GetLocalString("learn_skill"),
                 Skills = merchantSkills
             };
 
@@ -2897,12 +2893,10 @@ namespace Hybrasyl.Objects
 
         public void ShowForgetSkillMenu(Merchant merchant)
         {
-            var forgetString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "forget_skill");
-            var prompt = string.Empty;
-            if (forgetString != null) prompt = forgetString.Value ?? string.Empty;
-
-            var userSkills = new UserSkillBook();
-            userSkills.Id = (ushort)MerchantMenuItem.ForgetSkillAccept;
+            var userSkills = new UserSkillBook
+            {
+                Id = (ushort)MerchantMenuItem.ForgetSkillAccept
+            };
 
             var packet = new ServerPacketStructures.MerchantResponse()
             {
@@ -2915,7 +2909,7 @@ namespace Hybrasyl.Objects
                 Color2 = 0,
                 PortraitType = 0,
                 Name = merchant.Name,
-                Text = prompt,
+                Text = merchant.GetLocalString("forget_skill"),
                 UserSkills = userSkills
             };
 
@@ -2924,11 +2918,10 @@ namespace Hybrasyl.Objects
 
         public void ShowForgetSkillAccept(Merchant merchant, byte slot)
         {
-            var forgetString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "forget_castable_success");
-            var prompt = forgetString.Value;
-
-            var options = new MerchantOptions();
-            options.Options = new List<MerchantDialogOption>();
+            var options = new MerchantOptions
+            {
+                Options = new List<MerchantDialogOption>()
+            };
 
             var packet = new ServerPacketStructures.MerchantResponse()
             {
@@ -2941,7 +2934,7 @@ namespace Hybrasyl.Objects
                 Color2 = 0,
                 PortraitType = 0,
                 Name = merchant.Name,
-                Text = prompt,
+                Text = merchant.GetLocalString("forget_castable_success"),
                 Options = options
             };
             Enqueue(packet.Packet());
@@ -2952,12 +2945,10 @@ namespace Hybrasyl.Objects
 
         public void ShowForgetSpellMenu(Merchant merchant)
         {
-            var forgetString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "forget_spell");
-            var prompt = string.Empty;
-            if (forgetString != null) prompt = forgetString.Value ?? string.Empty;
-
-            var userSpells = new UserSpellBook();
-            userSpells.Id = (ushort)MerchantMenuItem.ForgetSpellAccept;
+            var userSpells = new UserSpellBook
+            {
+                Id = (ushort)MerchantMenuItem.ForgetSpellAccept
+            };
 
             var packet = new ServerPacketStructures.MerchantResponse()
             {
@@ -2970,7 +2961,7 @@ namespace Hybrasyl.Objects
                 Color2 = 0,
                 PortraitType = 0,
                 Name = merchant.Name,
-                Text = prompt,
+                Text = merchant.GetLocalString("forget_spell"),
                 UserSpells = userSpells
             };
 
@@ -2979,24 +2970,23 @@ namespace Hybrasyl.Objects
 
         public void ShowForgetSpellAccept(Merchant merchant, byte slot)
         {
-            var forgetString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "forget_castable_success");
-            var prompt = forgetString.Value;
-
-            var options = new MerchantOptions();
-            options.Options = new List<MerchantDialogOption>();
+            var options = new MerchantOptions
+            {
+                Options = new List<MerchantDialogOption>()
+            };
 
             var packet = new ServerPacketStructures.MerchantResponse()
             {
                 MerchantDialogType = MerchantDialogType.Options,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
                 ObjectId = merchant.Id,
-                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Tile1 = (ushort) (0x4000 + merchant.Sprite),
                 Color1 = 0,
-                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Tile2 = (ushort) (0x4000 + merchant.Sprite),
                 Color2 = 0,
                 PortraitType = 0,
                 Name = merchant.Name,
-                Text = prompt,
+                Text = merchant.GetLocalString("forget_castable_success"),
                 Options = options
             };
             Enqueue(packet.Packet());
@@ -3007,21 +2997,20 @@ namespace Hybrasyl.Objects
 
         public void ShowLearnSkill(Merchant merchant, Xml.Castable castable)
         {
-            var learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_choice");
-            var skillDesc = castable.Descriptions.Single(x => x.Class.Contains(Class) || x.Class.Contains(Xml.Class.Peasant));
-            var prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$SKILLDESC", skillDesc.Value);
+            var skillDesc =
+                castable.Descriptions.Single(x => x.Class.Contains(Class) || x.Class.Contains(Xml.Class.Peasant));
 
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
 
             options.Options.Add(new MerchantDialogOption()
             {
-                Id = (ushort)MerchantMenuItem.LearnSkillAgree,
+                Id = (ushort) MerchantMenuItem.LearnSkillAgree,
                 Text = "Yes"
             });
             options.Options.Add(new MerchantDialogOption()
             {
-                Id = (ushort)MerchantMenuItem.LearnSkillDisagree,
+                Id = (ushort) MerchantMenuItem.LearnSkillDisagree,
                 Text = "No"
             });
 
@@ -3030,13 +3019,14 @@ namespace Hybrasyl.Objects
                 MerchantDialogType = MerchantDialogType.Options,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
                 ObjectId = merchant.Id,
-                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Tile1 = (ushort) (0x4000 + merchant.Sprite),
                 Color1 = 0,
-                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Tile2 = (ushort) (0x4000 + merchant.Sprite),
                 Color2 = 0,
                 PortraitType = 0,
                 Name = merchant.Name,
-                Text = prompt,
+                Text = merchant.GetLocalString("learn_skill", ("$SKILLNAME", castable.Name),
+                    ("$SKILLDESC", skillDesc.Value)),
                 Options = options
             };
 
@@ -3050,22 +3040,22 @@ namespace Hybrasyl.Objects
             var castable = PendingLearnableCastable;
             //now check requirements.
             var classReq = castable.Requirements.Single(x => x.Class.Contains(Class) || Class == Xml.Class.Peasant);
-            Xml.LocalizedString learnString = null;
+
             MerchantOptions options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
             var prompt = string.Empty;
             if (classReq.Level.Min > Stats.Level)
             {
-                learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_player_level");
-                prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$LEVEL", classReq.Level.Min.ToString());
+                prompt = merchant.GetLocalString("learn_skill_player_level", ("$SKILLNAME", castable.Name),
+                    ("$LEVEL", classReq.Level.Min.ToString()));
             }
             if (classReq.Physical != null)
             {
                 if (Stats.Str < classReq.Physical.Str || Stats.Int < classReq.Physical.Int || Stats.Wis < classReq.Physical.Wis || Stats.Con < classReq.Physical.Con || Stats.Dex < classReq.Physical.Dex)
                 {
-                    learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_stats");
-                    var statStr = $"\n[STR {classReq.Physical.Str} INT {classReq.Physical.Int} WIS {classReq.Physical.Wis} CON {classReq.Physical.Con} DEX {classReq.Physical.Dex}]";
-                    prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$STATS", statStr);
+                    prompt = merchant.GetLocalString("learn_skill_prereq_stats", ("$SKILLNAME", castable.Name),
+                        ("$STATS", $"\n[STR {classReq.Physical.Str} INT {classReq.Physical.Int} WIS {classReq.Physical.Wis} CON {classReq.Physical.Con} DEX {classReq.Physical.Dex}]")
+                        );
                 }
             }
             if (classReq.Prerequisites != null)
@@ -3077,33 +3067,36 @@ namespace Hybrasyl.Objects
                     {
                         if (!SkillBook.Contains(castablePrereq.Id) && !SpellBook.Contains(castablePrereq.Id))
                         {
-                            learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_level");
-                            prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$PREREQ", preReq.Value).Replace("$LEVEL", preReq.Level.ToString());
+                            prompt = merchant.GetLocalString("learn_skill_prereq_level", ("$SKILLNAME", castable.Name),
+                                ("$PREREQ", preReq.Value), ("$LEVEL", preReq.Level.ToString()));
                             break;
                         }
+
                         if (SkillBook.Contains(castablePrereq.Id))
                             slot = SkillBook.Single(x => x.Castable.Name == preReq.Value);
                         else
                             slot = SpellBook.Single(x => x.Castable.Name == preReq.Value);
 
-                        if (Math.Floor((slot.UseCount / (double)slot.Castable.Mastery.Uses) * 100) < preReq.Level)
+                        if (Math.Floor((slot.UseCount / (double) slot.Castable.Mastery.Uses) * 100) < preReq.Level)
                         {
-                            learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_level");
-                            prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$PREREQ", preReq.Value).Replace("$LEVEL", preReq.Level.ToString());
+                            prompt = merchant.GetLocalString("learn_skill_prereq_level", ("$SKILLNAME", castable.Name),
+                                ("$PREREQ", preReq.Value), ("$LEVEL", preReq.Level.ToString()));
                             break;
                         }
                     }
                     else
-                        prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_error")?.Value;
+                        prompt = merchant.GetLocalString("learn_error");
 
                 }
             }
+
             if (prompt == string.Empty) //this is so bad
             {
                 var reqStr = string.Empty;
                 //now we can learning!
-                learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_reqs");
-                if (classReq.Items != null) reqStr = classReq.Items.Aggregate(reqStr, (current, req) => current + (req.Value + "(" + req.Quantity + "), "));
+                if (classReq.Items != null)
+                    reqStr = classReq.Items.Aggregate(reqStr,
+                        (current, req) => current + (req.Value + "(" + req.Quantity + "), "));
 
                 if (classReq.Gold != 0)
                 {
@@ -3113,16 +3106,17 @@ namespace Hybrasyl.Objects
                 {
                     reqStr = reqStr.Remove(reqStr.Length - 1);
                 }
-                prompt = learnString.Value.Replace("$SKILLNAME", castable.Name).Replace("$REQS", reqStr);
+
+                prompt = merchant.GetLocalString("learn_skill_reqs", ("$SKILLNAME", castable.Name), ("$REQS", reqStr));
 
                 options.Options.Add(new MerchantDialogOption()
                 {
-                    Id = (ushort)MerchantMenuItem.LearnSkillAccept,
+                    Id = (ushort) MerchantMenuItem.LearnSkillAccept,
                     Text = "Yes"
                 });
                 options.Options.Add(new MerchantDialogOption()
                 {
-                    Id = (ushort)MerchantMenuItem.LearnSkillDisagree,
+                    Id = (ushort) MerchantMenuItem.LearnSkillDisagree,
                     Text = "No"
                 });
 
@@ -3152,22 +3146,20 @@ namespace Hybrasyl.Objects
         {
             var castable = PendingLearnableCastable;
             var classReq = castable.Requirements.Single(x => x.Class.Contains(Class) || Class == Xml.Class.Peasant);
-            Xml.LocalizedString learnString;
+
             var prompt = string.Empty;
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
             //verify user has required items.
             if (!(Gold >= classReq.Gold))
             {
-                learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_gold");
-                prompt = learnString.Value;
+                prompt = merchant.GetLocalString("learn_skill_prereq_gold");
             }
             if (prompt == string.Empty)
             {
                 if (classReq.Items.Any(itemReq => !Inventory.ContainsId(itemReq.Value, itemReq.Quantity)))
                 {
-                    learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_prereq_item");
-                    prompt = learnString.Value;
+                    prompt = merchant.GetLocalString("learn_skill_prereq_item");
                 }
             }
             if (prompt == string.Empty)
@@ -3180,8 +3172,8 @@ namespace Hybrasyl.Objects
                 SkillBook.Add(castable);
                 SendInventory();
                 SendSkills();
-                learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_skill_success");
-                prompt = learnString.Value;
+                prompt = merchant.GetLocalString("learn_skill_success");
+
             }
             var packet = new ServerPacketStructures.MerchantResponse()
             {
@@ -3204,8 +3196,7 @@ namespace Hybrasyl.Objects
         public void ShowLearnSkillDisagree(Merchant merchant)
         {
             PendingLearnableCastable = null;
-            var learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "forget_castable_success");
-            var prompt = learnString.Value;
+
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
             var packet = new ServerPacketStructures.MerchantResponse()
@@ -3219,7 +3210,7 @@ namespace Hybrasyl.Objects
                 Color2 = 0,
                 PortraitType = 0,
                 Name = merchant.Name,
-                Text = prompt,
+                Text = merchant.GetLocalString("forget_castable_success"),
                 Options = options
             };
 
@@ -3228,27 +3219,26 @@ namespace Hybrasyl.Objects
 
         public void ShowLearnSpellMenu(Merchant merchant)
         {
-            var learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell");
-            var prompt = string.Empty;
-            if (learnString != null) prompt = learnString.Value ?? string.Empty;
-
             var merchantSpells = new MerchantSpells();
             merchantSpells.Spells = new List<MerchantSpell>();
-            foreach (var spell in merchant.Roles.Train.Where(x => x.Type == "Spell" && (x.Class.Contains(Class) || x.Class.Contains(Xml.Class.Peasant))).OrderBy(y => y.Name))
+
+            foreach (var spell in merchant.Template.Roles.Train
+                         .Where(x => x.Type == "Spell" &&
+                                     (x.Class.Contains(Class) || x.Class.Contains(Xml.Class.Peasant)))
+                         .OrderBy(y => y.Name))
             {
                 // Verify the spell exists first
-                if (Game.World.WorldData.TryGetValueByIndex(spell.Name, out Xml.Castable result))
+                if (!Game.World.WorldData.TryGetValueByIndex(spell.Name, out Xml.Castable result)) continue;
+                if (SpellBook.Contains(result.Id)) continue;
+                merchantSpells.Spells.Add(new MerchantSpell()
                 {
-                    if (SpellBook.Contains(result.Id)) continue;
-                    merchantSpells.Spells.Add(new MerchantSpell()
-                    {
-                        IconType = 2,
-                        Icon = result.Icon,
-                        Color = 1,
-                        Name = result.Name
-                    });
-                }
+                    IconType = 2,
+                    Icon = result.Icon,
+                    Color = 1,
+                    Name = result.Name
+                });
             }
+
             merchantSpells.Id = (ushort)MerchantMenuItem.LearnSpell;
 
             var packet = new ServerPacketStructures.MerchantResponse()
@@ -3262,7 +3252,7 @@ namespace Hybrasyl.Objects
                 Color2 = 0,
                 PortraitType = 0,
                 Name = merchant.Name,
-                Text = prompt,
+                Text = merchant.GetLocalString("learn_spell"),
                 Spells = merchantSpells
             };
 
@@ -3271,9 +3261,7 @@ namespace Hybrasyl.Objects
 
         public void ShowLearnSpell(Merchant merchant, Xml.Castable castable)
         {
-            var learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_choice");
-            var skillDesc = castable.Descriptions.Single(x => x.Class.Contains(Class) || x.Class.Contains(Xml.Class.Peasant));
-            var prompt = learnString.Value.Replace("$SPELLNAME", castable.Name).Replace("$SPELLDESC", skillDesc.Value);
+            var spellDesc = castable.Descriptions.Single(x => x.Class.Contains(Class) || x.Class.Contains(Xml.Class.Peasant));
 
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
@@ -3300,7 +3288,7 @@ namespace Hybrasyl.Objects
                 Color2 = 0,
                 PortraitType = 0,
                 Name = merchant.Name,
-                Text = prompt,
+                Text = merchant.GetLocalString("learn_spell_choice", ("$SPELLNAME", castable.Name),("$SPELLDESC", spellDesc.Value)),
                 Options = options
             };
 
@@ -3314,22 +3302,22 @@ namespace Hybrasyl.Objects
             var castable = PendingLearnableCastable;
             //now check requirements.
             var classReq = castable.Requirements.Single(x => x.Class.Contains(Class) || Class == Xml.Class.Peasant);
-            Xml.LocalizedString learnString = null;
             MerchantOptions options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
             var prompt = string.Empty;
+            
             if (classReq.Level.Min > Stats.Level)
             {
-                learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_player_level");
-                prompt = learnString.Value.Replace("$SPELLNAME", castable.Name).Replace("$LEVEL", classReq.Level.Min.ToString());
+                prompt = merchant.GetLocalString("learn_spell_player_level", ("$SPELLNAME", castable.Name), ("$LEVEL", classReq.Level.Min.ToString()));
             }
             if (classReq.Physical != null)
             {
                 if (Stats.Str < classReq.Physical.Str || Stats.Int < classReq.Physical.Int || Stats.Wis < classReq.Physical.Wis || Stats.Con < classReq.Physical.Con || Stats.Dex < classReq.Physical.Dex)
                 {
-                    learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_stats");
-                    var statStr = $"\n[STR {classReq.Physical.Str} INT {classReq.Physical.Int} WIS {classReq.Physical.Wis} CON {classReq.Physical.Con} DEX {classReq.Physical.Dex}]";
-                    prompt = learnString.Value.Replace("$SPELLNAME", castable.Name).Replace("$STATS", statStr);
+                    prompt = merchant.GetLocalString("learn_spell_prereq_stats", ("$SKILLNAME", castable.Name),
+                        ("$STATS", $"\n[STR {classReq.Physical.Str} INT {classReq.Physical.Int} WIS {classReq.Physical.Wis} CON {classReq.Physical.Con} DEX {classReq.Physical.Dex}]")
+                    );
+
                 }
             }
             if (classReq.Prerequisites != null)
@@ -3341,8 +3329,8 @@ namespace Hybrasyl.Objects
                     {
                         if (!SkillBook.Contains(castablePrereq.Id) && !SpellBook.Contains(castablePrereq.Id))
                         {
-                            learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_level");
-                            prompt = learnString.Value.Replace("$SPELLNAME", castable.Name).Replace("$PREREQ", preReq.Value).Replace("$LEVEL", preReq.Level.ToString());
+                            prompt = merchant.GetLocalString("learn_spell_prereq_level", ("$SKILLNAME", castable.Name),
+                                ("$PREREQ", preReq.Value), ("$LEVEL", preReq.Level.ToString()));
                             break;
                         }
 
@@ -3350,23 +3338,22 @@ namespace Hybrasyl.Objects
                             slot = SkillBook.Single(x => x.Castable.Name == preReq.Value);
                         else
                             slot = SpellBook.Single(x => x.Castable.Name == preReq.Value);
-                        if (Math.Floor((slot.UseCount / (double)slot.Castable.Mastery.Uses) * 100) < preReq.Level)
+                        if (Math.Floor((slot.UseCount / (double) slot.Castable.Mastery.Uses) * 100) < preReq.Level)
                         {
-                            learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_level");
-                            prompt = learnString.Value.Replace("$SPELLNAME", castable.Name).Replace("$PREREQ", preReq.Value).Replace("$LEVEL", preReq.Level.ToString());
+                            prompt = merchant.GetLocalString("learn_spell_prereq_level", ("$SKILLNAME", castable.Name),
+                                ("$PREREQ", preReq.Value), ("$LEVEL", preReq.Level.ToString()));
                             break;
 
                         }
                     }
                     else
-                        prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_error")?.Value;
+                        prompt = merchant.GetLocalString("learn_error");
                 }
             }
             if (prompt == string.Empty) //this is so bad
             {
                 var reqStr = string.Empty;
                 //now we can learning!
-                learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_reqs");
                 if (classReq.Items != null) reqStr = classReq.Items.Aggregate(reqStr, (current, req) => current + (req.Value + "(" + req.Quantity + "), "));
 
                 if (classReq.Gold != 0)
@@ -3384,7 +3371,7 @@ namespace Hybrasyl.Objects
                 {
                     reqStr = reqStr.Remove(reqStr.Length - 1);
                 }
-                prompt = learnString.Value.Replace("$SPELLNAME", castable.Name).Replace("$REQS", reqStr);
+                prompt = merchant.GetLocalString("learn_spell_reqs", ("$SPELLNAME", castable.Name), ("$REQS", reqStr));
 
                 options.Options.Add(new MerchantDialogOption()
                 {
@@ -3398,7 +3385,6 @@ namespace Hybrasyl.Objects
                 });
 
             }
-
 
             var packet = new ServerPacketStructures.MerchantResponse()
             {
@@ -3430,15 +3416,13 @@ namespace Hybrasyl.Objects
             //verify user has required items.
             if (!(Gold >= classReq.Gold))
             {
-                learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_gold");
-                prompt = learnString.Value;
+                prompt = merchant.GetLocalString("learn_spell_prereq_gold");
             }
             if (prompt == string.Empty)
             {
                 if (classReq.Items.Any(itemReq => !Inventory.ContainsId(itemReq.Value, itemReq.Quantity)))
                 {
-                    learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_prereq_item");
-                    prompt = learnString.Value;
+                    prompt = merchant.GetLocalString("learn_spell_prereq_item");
                 }
             }
             if (prompt == string.Empty)
@@ -3451,8 +3435,8 @@ namespace Hybrasyl.Objects
                 SpellBook.Add(castable);
                 SendInventory();
                 SendSpells();
-                learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "learn_spell_success");
-                prompt = learnString.Value;
+                prompt = merchant.GetLocalString("learn_spell_success");
+
             }
             var packet = new ServerPacketStructures.MerchantResponse()
             {
@@ -3475,10 +3459,10 @@ namespace Hybrasyl.Objects
         public void ShowLearnSpellDisagree(Merchant merchant)
         {
             PendingLearnableCastable = null;
-            var learnString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "forget_castable_success");
-            var prompt = learnString.Value;
+
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
+
             var packet = new ServerPacketStructures.MerchantResponse()
             {
                 MerchantDialogType = MerchantDialogType.Options,
@@ -3490,7 +3474,7 @@ namespace Hybrasyl.Objects
                 Color2 = 0,
                 PortraitType = 0,
                 Name = merchant.Name,
-                Text = prompt,
+                Text = merchant.GetLocalString("forget_castable_success"),
                 Options = options
             };
 
@@ -3499,10 +3483,6 @@ namespace Hybrasyl.Objects
 
         public void ShowBuyMenu(Merchant merchant)
         {
-            var buyString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "buy");
-            var prompt = string.Empty;
-            if (buyString != null) prompt = buyString.Value ?? string.Empty;
-
             var merchantItems = new MerchantShopItems();
             merchantItems.Items = new List<MerchantShopItem>();
             var itemsCount = 0;
@@ -3539,7 +3519,7 @@ namespace Hybrasyl.Objects
                 Color2 = 0,
                 PortraitType = 0,
                 Name = merchant.Name,
-                Text = prompt,
+                Text = merchant.GetLocalString("buy"),
                 ShopItems = merchantItems
             };
             Enqueue(packet.Packet());
@@ -3551,10 +3531,6 @@ namespace Hybrasyl.Objects
             PendingBuyableItem = name;
             if (item.Stackable)
             {
-                var buyString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "buy_quantity");
-                var prompt = string.Empty;
-                if (buyString != null) prompt = buyString.Value ?? string.Empty;
-
                 var input = new MerchantInput();
 
                 input.Id = (ushort)MerchantMenuItem.BuyItemAccept;
@@ -3571,7 +3547,7 @@ namespace Hybrasyl.Objects
                     Color2 = 0,
                     PortraitType = 0,
                     Name = merchant.Name,
-                    Text = prompt,
+                    Text = merchant.GetLocalString("buy_quantity"),
                     Input = input
                 };
                 Enqueue(packet.Packet());
@@ -3595,18 +3571,16 @@ namespace Hybrasyl.Objects
 
             if(MaximumWeight < (CurrentWeight + item.Properties.Physical.Weight))
             {
-                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "buy_failure_weight").Value;
+                prompt = merchant.GetLocalString("buy_failure_weight");
             }
 
             if (quantity > merchant.GetOnHand(PendingBuyableItem))
             {
-                buyString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "buy_failure_quantity");
-                prompt = buyString.Value;
+                prompt = merchant.GetLocalString("buy_failure_quantity");
             }
             if (Gold < reqGold)
             {
-                buyString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "buy_failure_gold");
-                prompt = buyString.Value;
+                prompt = merchant.GetLocalString("buy_failure_gold");
             }
 
             if (prompt == string.Empty) //this is so bad
@@ -3667,15 +3641,11 @@ namespace Hybrasyl.Objects
 
         public void ShowSellMenu(Merchant merchant)
         {
-            var sellString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell");
-            var prompt = string.Empty;
-            if (sellString != null) prompt = sellString.Value ?? string.Empty;
-
             var inventoryItems = new UserInventoryItems();
             inventoryItems.InventorySlots = new List<byte>();
             inventoryItems.Id = (ushort)MerchantMenuItem.SellItemQuantity;
-
             var itemsCount = 0;
+
             for (byte i = 1; i <= Inventory.Size; i++)
             {
                 if (Inventory[i] == null) continue;
@@ -3697,7 +3667,7 @@ namespace Hybrasyl.Objects
                 Color2 = 0,
                 PortraitType = 0,
                 Name = merchant.Name,
-                Text = prompt,
+                Text = merchant.GetLocalString("sell"),
                 UserInventoryItems = inventoryItems
             };
             Enqueue(packet.Packet());
@@ -3708,10 +3678,6 @@ namespace Hybrasyl.Objects
             PendingSellableSlot = slot;
             if (item.Stackable)
             {
-                var sellString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_quantity");
-                var prompt = string.Empty;
-                if (sellString != null) prompt = sellString.Value.Replace("$QUANTITY", item.Count.ToString()).Replace("$ITEM", item.Name) ?? string.Empty;
-
                 var input = new MerchantInput();
 
                 input.Id = (ushort)MerchantMenuItem.SellItem;
@@ -3727,7 +3693,7 @@ namespace Hybrasyl.Objects
                     Color2 = 0,
                     PortraitType = 0,
                     Name = merchant.Name,
-                    Text = prompt,
+                    Text = merchant.GetLocalString("sell_quantity", ("$QUANTITY", item.Count.ToString()), ("$ITEM", item.Name)),
                     Input = input
 
                 };
@@ -3755,26 +3721,22 @@ namespace Hybrasyl.Objects
 
             if (item.Durability != item.MaximumDurability)
             {
-                offerString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_failure_durability");
-                prompt = offerString.Value;
+                prompt = merchant.GetLocalString("sell_failure_durability");
             }
 
             if (prompt == string.Empty)
             {
                 if (!Inventory.ContainsName(item.Name))
                 {
-                    GameLog.Info(Inventory.ToString());
-                    offerString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_failure_no_item");
-                    prompt = offerString.Value;
+                    prompt = merchant.GetLocalString("sell_failure_no_item");
                 }
             }
 
             if (prompt == string.Empty)
             {
-                if (!Inventory.ContainsId(item.Name, (int)quantity))
+                if (!Inventory.ContainsName(item.Name, (int)quantity))
                 {
-                    offerString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_failure_quantity");
-                    prompt = offerString.Value;
+                    prompt = merchant.GetLocalString("sell_failure_quantity");
                 }
             }
 
@@ -3782,17 +3744,15 @@ namespace Hybrasyl.Objects
             {
                 if (PendingMerchantOffer + Gold > Constants.MAXIMUM_GOLD)
                 {
-                    offerString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_failure_gold_limit");
-                    prompt = offerString.Value;
+                    prompt = merchant.GetLocalString("sell_failure_gold_limit");
                 }
             }
 
-            if (prompt == string.Empty) //this is so bad
+            if (prompt == string.Empty) 
             {
                 var quant = quantity > 1 ? "those" : "that";
-                //now we can learning!
-                offerString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_offer");
-                prompt = offerString.Value.Replace("$GOLD", offer.ToString()).Replace("$QUANTITY", quant);
+
+                prompt = merchant.GetLocalString("sell_offer", ("$GOLD", offer.ToString()), ("$QUANTITY", quant));
 
                 options.Options.Add(new MerchantDialogOption()
                 {
@@ -3856,7 +3816,7 @@ namespace Hybrasyl.Objects
                 Color2 = 0,
                 PortraitType = 0,
                 Name = merchant.Name,
-                Text = World.Strings.Merchant.FirstOrDefault(s => s.Key == "sell_success").Value,
+                Text = merchant.GetLocalString("sell_success"),
                 Options = options
             };
 
@@ -3886,12 +3846,9 @@ namespace Hybrasyl.Objects
 
         public void ShowMerchantSendParcel(Merchant merchant)
         {
-            var parcelString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel");
-            var prompt = string.Empty;
-            if (parcelString != null) prompt = parcelString.Value ?? string.Empty;
-
             var userItems = new UserInventoryItems { InventorySlots = new List<byte>() };
             var itemsCount = 0;
+
             for (byte i = 1; i <= Inventory.Size; i++)
             {
                 if (Inventory[i] == null) continue;
@@ -3902,7 +3859,6 @@ namespace Hybrasyl.Objects
                 }
             }
             userItems.Id = (ushort)MerchantMenuItem.SendParcelQuantity;
-
 
             var packet = new ServerPacketStructures.MerchantResponse()
             {
@@ -3915,7 +3871,7 @@ namespace Hybrasyl.Objects
                 Color2 = 0,
                 PortraitType = 0,
                 Name = merchant.Name,
-                Text = prompt,
+                Text = merchant.GetLocalString("send_parcel"),
                 UserInventoryItems = userItems
             };
             Enqueue(packet.Packet());
@@ -3925,11 +3881,10 @@ namespace Hybrasyl.Objects
         {
             if (item.Stackable && item.Count > 1)
             {
-                var prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel_quantity").Value.Replace("$QUANTITY", item.Count.ToString()).Replace("$ITEM", item.Name);
-
-                var input = new MerchantInput();
-
-                input.Id = (ushort)MerchantMenuItem.SendParcelRecipient;
+                var input = new MerchantInput
+                {
+                    Id = (ushort)MerchantMenuItem.SendParcelRecipient
+                };
 
                 var packet = new ServerPacketStructures.MerchantResponse()
                 {
@@ -3942,9 +3897,8 @@ namespace Hybrasyl.Objects
                     Color2 = 0,
                     PortraitType = 0,
                     Name = merchant.Name,
-                    Text = prompt,
+                    Text = merchant.GetLocalString("send_parcel_recipient", ("$QUANTITY", item.Count.ToString()),("$ITEM", item.Name)),
                     Input = input
-
                 };
                 Enqueue(packet.Packet());
             }
@@ -3959,11 +3913,10 @@ namespace Hybrasyl.Objects
         public void ShowMerchantSendParcelRecipient(Merchant merchant, uint quantity = 1)
         {
             PendingSendableQuantity = quantity;
-            var sendString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel_recipient");
-            var prompt = sendString.Value;
-
-            var input = new MerchantInput();
-            input.Id = (ushort)MerchantMenuItem.SendParcelAccept;
+            var input = new MerchantInput
+            {
+                Id = (ushort)MerchantMenuItem.SendParcelAccept
+            };
 
             var packet = new ServerPacketStructures.MerchantResponse()
             {
@@ -3976,7 +3929,7 @@ namespace Hybrasyl.Objects
                 Color2 = 0,
                 PortraitType = 0,
                 Name = merchant.Name,
-                Text = prompt,
+                Text = merchant.GetLocalString("send_parcel_recipient"),
                 Input = input
             };
 
@@ -3998,14 +3951,13 @@ namespace Hybrasyl.Objects
             var parcelFee = (uint)Math.Ceiling((itemObj.Value * .10) * quantity);
             if (!Game.World.WorldData.TryGetAuthInfo(recipient, out AuthInfo info))
             {
-                prompt = "I'm sorry, I don't know of anyone by that name.";
+                prompt = merchant.GetLocalString("parcel_recipient_nonexistent");
             }
             if (prompt == string.Empty)
             {
                 if (!(Gold > parcelFee))
                 {
-                    parcelString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel_fail");
-                    prompt = parcelString.Value.Replace("$FEE", parcelFee.ToString());
+                   prompt = merchant.GetLocalString("send_parcel_fail", ("$FEE", parcelFee.ToString()));
                 }
             }
             if (prompt == string.Empty)
@@ -4013,26 +3965,20 @@ namespace Hybrasyl.Objects
                 RemoveGold(parcelFee);
                 RemoveItem(itemObj.Name, (ushort)quantity);
                 SendInventory();
-                parcelString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel_success");              
-                prompt = parcelString.Value.Replace("$FEE", parcelFee.ToString());
+                prompt = merchant.GetLocalString("send_parcel_success");
 
                 var uuidRef = World.WorldData.GetUuidReference(recipient);
                 var parcelStore = World.WorldData.GetOrCreate<ParcelStore>(uuidRef);
                 var recipientMailbox = World.WorldData.GetOrCreate<Mailbox>(uuidRef);
-                var mboxString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "send_parcel_mailbox_message");
-                if (mboxString is null)
-                    recipientMailbox.ReceiveMessage(new Message(recipient, merchant.Name, "You've received a package.", "Please visit a messenger to collect your package."));      
-                else
-                {
-                    var mboxMessage = mboxString.Value.Replace("$SENDER", Name);
-                    mboxMessage = mboxMessage.Replace("$ITEM", $"{itemObj.Name} (qty {quantity})");
-                    recipientMailbox.ReceiveMessage(new Message(recipient, merchant.Name, $"{Name} has sent you a package", mboxMessage));
-                }
+                var mboxString = merchant.GetLocalString("send_parcel_mailbox_message", 
+                    ("$SENDER", Name), ("$ITEM", $"{itemObj.Name} (qty {quantity})"));
+
+                recipientMailbox.ReceiveMessage(new Message(recipient, merchant.Name, merchant.GetLocalString("send_parcel_mailbox_subject", ("$NAME", Name)), mboxString));
                 parcelStore.AddItem(Name, itemObj.Name, quantity);
                 parcelStore.Save();
                 if (info.IsLoggedIn && Game.World.TryGetActiveUser(recipient, out User recipientUser))
                 {
-                    recipientUser.SendSystemMessage($"You've received a package from {Name}!");
+                    recipientUser.SendSystemMessage(merchant.GetLocalString("send_parcel_system_msg", ("$NAME", Name)));
                     recipientUser.UpdateAttributes(StatUpdateFlags.UnreadMail);
                 }
                 PendingSellableQuantity = 0;
@@ -4059,11 +4005,11 @@ namespace Hybrasyl.Objects
 
         public void ShowMerchantReceiveParcelAccept(Merchant merchant)
         {
-            var sendString = World.Strings.Merchant.FirstOrDefault(s => s.Key == "receive_parcel");
-            var prompt = sendString.Value;
+            var options = new MerchantOptions
+            {
+                Options = new List<MerchantDialogOption>()
+            };
 
-            var options = new MerchantOptions();
-            options.Options = new List<MerchantDialogOption>();
             var packet = new ServerPacketStructures.MerchantResponse()
             {
                 MerchantDialogType = MerchantDialogType.Options,
@@ -4075,7 +4021,7 @@ namespace Hybrasyl.Objects
                 Color2 = 0,
                 PortraitType = 0,
                 Name = merchant.Name,
-                Text = prompt,
+                Text = merchant.GetLocalString("receive_parcel"),
                 Options = options
             };
 
@@ -4089,8 +4035,7 @@ namespace Hybrasyl.Objects
         {
             string coins = "coin";
             if (Vault.CurrentGold > 1) coins = "coins";
-            var pair = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_gold");
-            var prompt = pair.Value.Replace("$COINS", Vault.CurrentGold.ToString()).Replace("$REF", coins);
+            var prompt = merchant.GetLocalString("deposit_gold",("$COINS", Vault.CurrentGold.ToString()),("$REF", coins));
 
 
             var input = new MerchantInput();
@@ -4119,7 +4064,7 @@ namespace Hybrasyl.Objects
             string prompt;
             if(amount > Gold)
             {
-                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_gold_failure_deficit").Value;
+                prompt = merchant.GetLocalString("deposit_gold_failure_deficit");
                 ShowMerchantGoBack(merchant, prompt, MerchantMenuItem.DepositGoldMenu);
             }
             else
@@ -4128,7 +4073,7 @@ namespace Hybrasyl.Objects
                 {
                     string coins = "coin";
                     if (amount > 1) coins = "coins";
-                    prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_gold_failure_surplus").Value.Replace("$COINS", Vault.RemainingGold.ToString()).Replace("$REF", coins);
+                    prompt = merchant.GetLocalString("deposit_gold_failure_surplus", ("$COINS", Vault.RemainingGold.ToString()), ("$REF", coins));
                     ShowMerchantGoBack(merchant, prompt, MerchantMenuItem.DepositGoldMenu);
                 }
                 else
@@ -4138,9 +4083,7 @@ namespace Hybrasyl.Objects
                     RemoveGold(amount);
                     string coins = "coin";
                     if (amount > 1) coins = "coins";
-                    prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_gold_success").Value;
-                    prompt = prompt.Replace("$COINS", amount.ToString());
-                    prompt = prompt.Replace("$REF", coins);
+                    prompt = merchant.GetLocalString("deposit_gold_success", ("$COINS", amount.ToString()), ("$REF", coins));
                     merchant.Say(prompt);
                     SendCloseDialog();
                 }
@@ -4151,13 +4094,14 @@ namespace Hybrasyl.Objects
         {
             string coins = "coin";
             if (Vault.CurrentGold > 1) coins = "coins";
-            var pair = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_gold");
-            var prompt = pair.Value.Replace("$COINS", Vault.CurrentGold.ToString()).Replace("$REF", coins);
 
-
-            var input = new MerchantInput();
-            input.Id = (ushort)MerchantMenuItem.WithdrawGoldQuantity;
-
+            var prompt = merchant.GetLocalString("withdraw_gold", ("$COINS", Vault.CurrentGold.ToString()),
+                ("$REF", coins));
+            
+            var input = new MerchantInput
+            {
+                Id = (ushort)MerchantMenuItem.WithdrawGoldQuantity
+            };
 
             var packet = new ServerPacketStructures.MerchantResponse()
             {
@@ -4182,14 +4126,14 @@ namespace Hybrasyl.Objects
             string prompt;
             if (amount > Vault.CurrentGold)
             {
-                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_gold_failure_deficit").Value;
+                prompt = merchant.GetLocalString("withdraw_gold_failure_deficit");
                 ShowMerchantGoBack(merchant, prompt, MerchantMenuItem.WithdrawGoldMenu);
             }
             else
             {
                 if (amount > (uint.MaxValue - Gold))
                 {
-                    prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_gold_failure_surplus").Value;
+                    prompt = merchant.GetLocalString("withdraw_gold_failure_surplus");
                     ShowMerchantGoBack(merchant, prompt, MerchantMenuItem.WithdrawGoldMenu);
                 }
                 else
@@ -4199,9 +4143,7 @@ namespace Hybrasyl.Objects
                     AddGold(amount);
                     string coins = "coin";
                     if (amount > 1) coins = "coins";
-                    prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_gold_success").Value;
-                    prompt = prompt.Replace("$COINS", amount.ToString());
-                    prompt = prompt.Replace("$REF", coins);
+                    prompt = merchant.GetLocalString("withdraw_gold_success", ("$COINS", amount.ToString()), ("$REF", coins));
                     merchant.Say(prompt);
                     SendCloseDialog();
                 }
@@ -4210,22 +4152,16 @@ namespace Hybrasyl.Objects
 
         public void ShowDepositItemMenu(Merchant merchant)
         {
-            var pair = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item");
-            var prompt = pair.Value;
-
-
             var inventoryItems = new UserInventoryItems();
             inventoryItems.InventorySlots = new List<byte>();
             inventoryItems.Id = (ushort)MerchantMenuItem.DepositItemQuantity;
 
-            var itemsCount = 0;
             for (byte i = 1; i <= Inventory.Size; i++)
             {
                 if (Inventory[i] == null) continue;
                 if (Inventory[i].Exchangeable && Inventory[i].Durability == Inventory[i].MaximumDurability)
                 {
                     inventoryItems.InventorySlots.Add(i);
-                    itemsCount++;
                 }
             }
 
@@ -4240,7 +4176,7 @@ namespace Hybrasyl.Objects
                 Color2 = 0,
                 PortraitType = 0,
                 Name = merchant.Name,
-                Text = prompt,
+                Text = merchant.GetLocalString("deposit_item"),
                 UserInventoryItems = inventoryItems
             };
             Enqueue(packet.Packet());
@@ -4252,23 +4188,24 @@ namespace Hybrasyl.Objects
             PendingDepositSlot = slot;
             if (item.Stackable && item.Count > 0)
             {
-                var prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item_quantity").Value.Replace("$QUANTITY", item.Count.ToString()).Replace("$ITEM", item.Name);
-                var input = new MerchantInput();
-
-                input.Id = (ushort)MerchantMenuItem.DepositItem;
+                var input = new MerchantInput
+                {
+                    Id = (ushort)MerchantMenuItem.DepositItem
+                };
 
                 var packet = new ServerPacketStructures.MerchantResponse()
                 {
                     MerchantDialogType = MerchantDialogType.Input,
                     MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
                     ObjectId = merchant.Id,
-                    Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                    Tile1 = (ushort) (0x4000 + merchant.Sprite),
                     Color1 = 0,
-                    Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                    Tile2 = (ushort) (0x4000 + merchant.Sprite),
                     Color2 = 0,
                     PortraitType = 0,
                     Name = merchant.Name,
-                    Text = prompt,
+                    Text = merchant.GetLocalString("deposit_item_quantity", ("$QUANTITY", item.Count.ToString()),
+                        ("$ITEM", item.Name)),
                     Input = input
 
                 };
@@ -4292,23 +4229,22 @@ namespace Hybrasyl.Objects
             
             var prompt = string.Empty;
 
-
             if (item.Durability != item.MaximumDurability)
             {
-                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item_failure_durability").Value;
+                prompt = merchant.GetLocalString("deposit_item_failure_durability");
                 failure = true;
             }
 
 
             if (!Inventory.ContainsName(item.Name) && !failure)
             {
-                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item_failure_quantity").Value;
+                prompt = merchant.GetLocalString("deposit_item_failure_quantity");
                 failure = true;
             }
 
             if (item.Stackable && item.Count < quantity && !failure)
             {
-                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item_failure_quantity").Value;
+                prompt = merchant.GetLocalString("deposit_item_failure_quantity");
                 failure = true;
             }
 
@@ -4316,28 +4252,30 @@ namespace Hybrasyl.Objects
             {
                 string coins = "coin";
                 if (fee > 1) coins = "coins";
-                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item_failure_fee").Value.Replace("$COINS", fee.ToString()).Replace("$REF", coins);
+                prompt = prompt = merchant.GetLocalString("deposit_item_failure_fee", ("$COINS", fee.ToString()),("$REF", coins));
                 failure = true;
             }
-                
-            
+
+
 
             if (prompt == string.Empty && !failure) //this is so bad
             {
                 string coins = "coin";
                 if (fee > 1) coins = "coins";
                 //we can deposit!
-                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "deposit_item_success").Value.Replace("$ITEM", item.Name).Replace("$QUANTITY", quantity.ToString()).Replace("$COINS", fee.ToString()).Replace("$REF", coins);
-                Vault.AddItem(item.Name, (ushort)quantity);
-                if(Inventory[slot].Stackable && Inventory[slot].Count > quantity)
+                prompt = merchant.GetLocalString("deposit_item_success", ("$ITEM", item.Name),
+                    ("$QUANTITY", quantity.ToString()), ("$COINS", fee.ToString()), ("$REF", coins));
+                Vault.AddItem(item.Name, (ushort) quantity);
+                if (Inventory[slot].Stackable && Inventory[slot].Count > quantity)
                 {
-                    RemoveItem(item.Name, (ushort)quantity);
-                    
+                    RemoveItem(item.Name, (ushort) quantity);
+
                 }
                 else
                 {
                     RemoveItem(slot);
                 }
+
                 RemoveGold(fee);
                 Vault.Save();
                 failure = false;
@@ -4345,8 +4283,10 @@ namespace Hybrasyl.Objects
 
             if (failure)
             {
-                var options = new MerchantOptions();
-                options.Options = new List<MerchantDialogOption>();
+                var options = new MerchantOptions
+                {
+                    Options = new List<MerchantDialogOption>()
+                };
                 var packet = new ServerPacketStructures.MerchantResponse()
                 {
                     MerchantDialogType = MerchantDialogType.Options,
@@ -4377,23 +4317,17 @@ namespace Hybrasyl.Objects
             var inventoryItems = new UserInventoryItems();
             inventoryItems.InventorySlots = new List<byte>();
             inventoryItems.Id = (ushort)MerchantMenuItem.RepairItem;
-            var itemsCount = 0;
             for (byte i = 1; i <= Inventory.Size; i++)
             {
                 if (Inventory[i] == null) continue;
                 if (Inventory[i].Durability != Inventory[i].MaximumDurability)
                 {
                     inventoryItems.InventorySlots.Add(i);
-
-                    itemsCount++;
                 }
             }
 
-            var prompt = "";
-
-            if (itemsCount > 0)
+            if (inventoryItems.InventorySlots.Count > 0)
             {
-                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "repair_item").Value;
                 var packet = new ServerPacketStructures.MerchantResponse()
                 {
                     MerchantDialogType = MerchantDialogType.UserInventoryItems,
@@ -4405,14 +4339,13 @@ namespace Hybrasyl.Objects
                     Color2 = 0,
                     PortraitType = 0,
                     Name = merchant.Name,
-                    Text = prompt,
+                    Text = merchant.GetLocalString("repair_item"),
                     UserInventoryItems = inventoryItems
                 };
                 Enqueue(packet.Packet());
             }
             else
             {
-                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "repair_item_none").Value;
                 var options = new MerchantOptions();
                 options.Options = new List<MerchantDialogOption>();
                 var packet = new ServerPacketStructures.MerchantResponse()
@@ -4426,7 +4359,7 @@ namespace Hybrasyl.Objects
                     Color2 = 0,
                     PortraitType = 0,
                     Name = merchant.Name,
-                    Text = prompt,
+                    Text = merchant.GetLocalString("repair_item_none"),
                     Options = options
                 };
                 Enqueue(packet.Packet());
@@ -4435,23 +4368,25 @@ namespace Hybrasyl.Objects
 
         public void ShowRepairItem(Merchant merchant, byte slot)
         {
-            var prompt = "";
+            var prompt = string.Empty;
             var item = Inventory[slot];
 
             PendingRepairSlot = slot;
 
             PendingRepairCost = (uint)Math.Ceiling(item.Value - (item.Durability / item.MaximumDurability * item.Value));
 
-            var options = new MerchantOptions();
-            options.Options = new List<MerchantDialogOption>();
-
-            if(PendingRepairCost <=1)
+            var options = new MerchantOptions
             {
-                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "repair_item_nocost").Value;
+                Options = new List<MerchantDialogOption>()
+            };
+
+            if (PendingRepairCost <= 1)
+            {
+                prompt = merchant.GetLocalString("repair_item_nocost");
             }
             else
             {
-                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "repair_item_cost").Value.Replace("$COINS", PendingRepairCost.ToString());
+                prompt = merchant.GetLocalString("repair_item_nocost", ("$COINS", PendingRepairCost.ToString()));
                 options.Options.Add(new MerchantDialogOption()
                 {
                     Id = (ushort)MerchantMenuItem.RepairItemAccept,
@@ -4485,9 +4420,10 @@ namespace Hybrasyl.Objects
         {
             if(Gold < PendingRepairCost)
             {
-                var prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "repair_item_fail").Value;
-                var options = new MerchantOptions();
-                options.Options = new List<MerchantDialogOption>();
+                var options = new MerchantOptions
+                {
+                    Options = new List<MerchantDialogOption>()
+                };
 
                 var packet = new ServerPacketStructures.MerchantResponse()
                 {
@@ -4500,7 +4436,7 @@ namespace Hybrasyl.Objects
                     Color2 = 0,
                     PortraitType = 0,
                     Name = merchant.Name,
-                    Text = prompt,
+                    Text = merchant.GetLocalString("repair_item_fail"),
                     Options = options
                 };
                 Enqueue(packet.Packet());
@@ -4517,7 +4453,7 @@ namespace Hybrasyl.Objects
 
         public void ShowRepairAllItems(Merchant merchant)
         {
-            var prompt = "";
+            var prompt = string.Empty;
             var repairableCount = 0;
 
             for (byte i = 1; i <= Inventory.Size; i++)
@@ -4542,19 +4478,21 @@ namespace Hybrasyl.Objects
                 }
             }
 
-            var options = new MerchantOptions();
-            options.Options = new List<MerchantDialogOption>();
+            var options = new MerchantOptions
+            {
+                Options = new List<MerchantDialogOption>()
+            };
 
             if (repairableCount > 0)
             {
 
                 if (PendingRepairCost <= 1)
                 {
-                    prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "repair_item_nocost").Value;
+                    prompt = merchant.GetLocalString("repair_item_nocost");
                 }
                 else
                 {
-                    prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "repair_all_items_cost").Value.Replace("$COINS", PendingRepairCost.ToString());
+                    prompt = merchant.GetLocalString("repair_all_items_cost", ("$COINS", PendingRepairCost.ToString()));
                     options.Options.Add(new MerchantDialogOption()
                     {
                         Id = (ushort)MerchantMenuItem.RepairAllItemsAccept,
@@ -4585,7 +4523,6 @@ namespace Hybrasyl.Objects
             }
             else
             {
-                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "repair_item_none").Value;
                 var packet = new ServerPacketStructures.MerchantResponse()
                 {
                     MerchantDialogType = MerchantDialogType.Options,
@@ -4597,7 +4534,7 @@ namespace Hybrasyl.Objects
                     Color2 = 0,
                     PortraitType = 0,
                     Name = merchant.Name,
-                    Text = prompt,
+                    Text = merchant.GetLocalString("repair_item_none"),
                     Options = options
                 };
                 Enqueue(packet.Packet());
@@ -4611,8 +4548,6 @@ namespace Hybrasyl.Objects
             options.Options = new List<MerchantDialogOption>();
             if (Gold < PendingRepairCost)
             {
-                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "repair_item_fail").Value;
-
                 var packet = new ServerPacketStructures.MerchantResponse()
                 {
                     MerchantDialogType = MerchantDialogType.Options,
@@ -4624,14 +4559,13 @@ namespace Hybrasyl.Objects
                     Color2 = 0,
                     PortraitType = 0,
                     Name = merchant.Name,
-                    Text = prompt,
+                    Text = merchant.GetLocalString("repair_item_fail"),
                     Options = options
                 };
                 Enqueue(packet.Packet());
             }
             else
             {
-                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "repair_all_items_success").Value;
                 RemoveGold(PendingRepairCost);
                 PendingRepairCost = 0;
                 for (byte i = 1; i <= Inventory.Size; i++)
@@ -4666,7 +4600,7 @@ namespace Hybrasyl.Objects
                     Color2 = 0,
                     PortraitType = 0,
                     Name = merchant.Name,
-                    Text = prompt,
+                    Text = merchant.GetLocalString("repair_all_items_success"),
                     Options = options
                 };
                 Enqueue(packet.Packet());
@@ -4675,12 +4609,11 @@ namespace Hybrasyl.Objects
 
         public void ShowWithdrawItemMenu(Merchant merchant)
         {
+            var merchantItems = new MerchantShopItems
+            {
+                Items = new List<MerchantShopItem>()
+            };
 
-            var prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item").Value;
-
-            var merchantItems = new MerchantShopItems();
-            merchantItems.Items = new List<MerchantShopItem>();
-            var itemsCount = 0;
             foreach (var item in Vault.Items)
             {
                 Game.World.WorldData.TryGetValueByIndex<Xml.Item>(item.Key, out var worldItem);
@@ -4694,7 +4627,6 @@ namespace Hybrasyl.Objects
                     Price = item.Value
 
                 }); ;
-                itemsCount++;
             }
             merchantItems.Id = (ushort)MerchantMenuItem.WithdrawItemQuantity;
 
@@ -4710,7 +4642,7 @@ namespace Hybrasyl.Objects
                 Color2 = 0,
                 PortraitType = 0,
                 Name = merchant.Name,
-                Text = prompt,
+                Text = merchant.GetLocalString("withdraw_item"),
                 ShopItems = merchantItems
             };
             Enqueue(packet.Packet());
@@ -4722,7 +4654,6 @@ namespace Hybrasyl.Objects
             if (worldItem.Stackable)
             {
                 PendingWithdrawItem = item;
-                var prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item_quantity").Value;
 
                 var input = new MerchantInput();
                 input.Id = (ushort)MerchantMenuItem.WithdrawItem;
@@ -4738,7 +4669,7 @@ namespace Hybrasyl.Objects
                     Color2 = 0,
                     PortraitType = 0,
                     Name = merchant.Name,
-                    Text = prompt,
+                    Text = merchant.GetLocalString("withdraw_item_quantity"),
                     Input = input
 
                 };
@@ -4763,14 +4694,14 @@ namespace Hybrasyl.Objects
 
             if(quantity > Vault.Items[item])
             {
-                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item_failure_quantity_bank").Value.Replace("$QUANTITY", quantity.ToString()).Replace("$ITEM", item);
+                prompt = merchant.GetLocalString("withdraw_item_failure_quantity_bank", ("$QUANTITY", quantity.ToString()),("$ITEM", item));
                 failure = true;
             }
             else if (!failure && worldItem.Stackable)
             {
                 if (CurrentWeight + worldItem.Properties.Physical.Weight > MaximumWeight)
                 {
-                    prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item_failure_weight").Value;
+                    merchant.GetLocalString("withdraw_item_failure_weight");
                 }
                 else
                 {
@@ -4786,14 +4717,14 @@ namespace Hybrasyl.Objects
 
                         if (quantity > maxQuantity)
                         {
-                            prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item_failure_quantity_inventory_diff").Value.Replace("$ITEM", item).Replace("$QUANTITY", maxQuantity.ToString());
+                            prompt = merchant.GetLocalString("withdraw_item_failure_quantity_inventory_diff",("$ITEM", item),("$QUANTITY", maxQuantity.ToString()));
                         }
                     }
                     else
                     {
                         if (Inventory.EmptySlots == 0)
                         {
-                            prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item_failure_slot").Value;
+                            prompt = merchant.GetLocalString("withdraw_item_failure_slot");
                         }
                     }
                 }
@@ -4802,17 +4733,17 @@ namespace Hybrasyl.Objects
             {
                 if (Inventory.EmptySlots == 0)
                 {
-                    prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item_failure_slot").Value;
+                    prompt = merchant.GetLocalString("withdraw_item_failure_slot");
                 }
                 else if (CurrentWeight + worldItem.Properties.Physical.Weight > MaximumWeight)
                 {
-                    prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item_failure_weight").Value;
+                    prompt = merchant.GetLocalString("withdraw_item_failure_weight");
                 }
             }
 
             if(!failure && prompt == string.Empty)
             {
-                prompt = World.Strings.Merchant.FirstOrDefault(s => s.Key == "withdraw_item_success").Value.Replace("$ITEM", item).Replace("$QUANTITY", quantity.ToString());
+                prompt = merchant.GetLocalString("withdraw_item_success",("$ITEM", item),("$QUANTITY", quantity.ToString()));
                 if (worldItem.Stackable)
                 {
                     Vault.RemoveItem(item, (ushort)quantity);

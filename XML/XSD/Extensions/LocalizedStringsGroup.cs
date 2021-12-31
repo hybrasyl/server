@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Hybrasyl.Xml
 {
-    public partial class LocalizedStrings
+    public partial class LocalizedStringGroup
     {
         private Dictionary<string, string> Index = new();
 
