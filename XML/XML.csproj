@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <AssemblyName>Hybrasyl.Xml</AssemblyName>
     <RootNamespace>Hybrasyl.Xml</RootNamespace>
     <PackageVersion>0.7.3</PackageVersion>
@@ -32,8 +32,8 @@
   </ItemGroup> 
  
   <ItemGroup>
-    <PackageReference Include="docfx" Version="2.56.6" />
-    <PackageReference Include="docfx.console" Version="2.56.6">
+    <PackageReference Include="docfx" Version="2.58.9" />
+    <PackageReference Include="docfx.console" Version="2.58.9">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -44,7 +44,7 @@
     <PackageReference Include="System.Runtime.Serialization.Json" Version="4.3.0" />
     <PackageReference Include="System.Runtime.Serialization.Primitives" Version="4.3.0" />
     <PackageReference Include="System.Runtime.Serialization.Xml" Version="4.3.0" />
-    <PackageReference Include="System.Text.Encoding.CodePages" Version="5.0.0" />
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="6.0.0" />
     <PackageReference Include="System.Xml.XmlSerializer" Version="4.3.0" />
   </ItemGroup>
 

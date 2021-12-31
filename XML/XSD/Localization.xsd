@@ -28,50 +28,15 @@
     </xs:documentation>
   </xs:annotation>
 
-
-  <!--Separated for future expansion usage.-->
-
-  <xs:complexType name="LocalizedString">
-    <xs:simpleContent>
-      <xs:extension base="xs:string">
-        <xs:attribute name="Key" type="xs:string"/>
-      </xs:extension>
-    </xs:simpleContent>
-  </xs:complexType>
-
-  <xs:complexType name="MerchantStrings">
+  <xs:complexType name="LocalizedStringGroup">
     <xs:sequence>
-      <xs:element name="String" type="hyb:LocalizedString" minOccurs="0" maxOccurs="unbounded" />
+      <xs:element name="Common" type="hyb:LocalizedStrings" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="Merchant" type="hyb:LocalizedStrings" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="NpcSpeak" type="hyb:LocalizedStrings" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="MonsterSpeak" type="hyb:LocalizedStrings" minOccurs="1" maxOccurs="1"/>
     </xs:sequence>
   </xs:complexType>
 
-  <xs:complexType name="MonsterPhrases">
-    <xs:sequence>
-      <xs:element name="String" type="hyb:LocalizedString" minOccurs="0" maxOccurs="unbounded"/>
-    </xs:sequence>
-  </xs:complexType>
-
-  <xs:complexType name="NpcPhrases">
-    <xs:sequence>
-      <xs:element name="String" type="hyb:LocalizedString" minOccurs="0" maxOccurs="unbounded"/>
-    </xs:sequence>
-  </xs:complexType>
-
-  <xs:complexType name="CommonStrings">
-    <xs:sequence>
-      <xs:element name="String" type="hyb:LocalizedString" minOccurs="0" maxOccurs="unbounded"/>
-    </xs:sequence>
-  </xs:complexType>
-
-  <xs:complexType name="LocalizedStrings">
-    <xs:sequence>
-      <xs:element name="Common" type="hyb:CommonStrings" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="Merchant" type="hyb:MerchantStrings" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="NpcSpeak" type="hyb:NpcPhrases" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="MonsterSpeak" type="hyb:MonsterPhrases" minOccurs="1" maxOccurs="1"/>
-    </xs:sequence>
-  </xs:complexType>
-
-  <xs:element name="Strings" type="hyb:LocalizedStrings"/>
+  <xs:element name="Strings" type="hyb:LocalizedStringGroup"/>
 
 </xs:schema>

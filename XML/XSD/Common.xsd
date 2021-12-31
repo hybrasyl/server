@@ -901,6 +901,20 @@
     </xs:sequence>
   </xs:complexType>
 
+  <xs:complexType name="LocalizedString">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="Key" type="xs:string"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:complexType name="LocalizedStrings">
+    <xs:sequence>
+      <xs:element name="String" type="hyb:LocalizedString" minOccurs="0" maxOccurs="unbounded" />
+    </xs:sequence>
+  </xs:complexType>
+
   <xs:complexType name="Npc">
     <xs:sequence>
       <xs:element name="Name" minOccurs="1" maxOccurs="1" type="hyb:String8" />
@@ -911,6 +925,7 @@
           <xs:attribute name="Portrait" type="hyb:String8" use="optional" />
         </xs:complexType>
       </xs:element>
+      <xs:element name="Strings" type="hyb:LocalizedStrings" minOccurs="0" maxOccurs="1"/>
       <xs:element name="Roles" type="hyb:NpcRoleList" minOccurs="0" maxOccurs="1" />
       <xs:element name="AllowDead" type="xs:boolean" minOccurs="0" maxOccurs="1"/>
       <xs:element name="Inventory" minOccurs="0" maxOccurs="1">

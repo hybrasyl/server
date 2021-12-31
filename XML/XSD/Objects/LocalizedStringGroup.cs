@@ -24,65 +24,74 @@ using System.Collections.Generic;
 [DebuggerStepThrough]
 [DesignerCategoryAttribute("code")]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-public partial class SlotRestriction
+[XmlRootAttribute("Strings", Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02", IsNullable=false)]
+public partial class LocalizedStringGroup
 {
     #region Private fields
-    private SlotRestrictionType _type;
-    private EquipmentSlot _slot;
-    private string _message;
-    private string _value;
+    private List<LocalizedString> _common;
+    private List<LocalizedString> _merchant;
+    private List<LocalizedString> _npcSpeak;
+    private List<LocalizedString> _monsterSpeak;
     private static XmlSerializer _serializerXml;
     #endregion
     
-    [XmlAttribute]
-    public SlotRestrictionType Type
+    public LocalizedStringGroup()
+    {
+        _monsterSpeak = new List<LocalizedString>();
+        _npcSpeak = new List<LocalizedString>();
+        _merchant = new List<LocalizedString>();
+        _common = new List<LocalizedString>();
+    }
+    
+    [XmlArrayItemAttribute("String", IsNullable=false)]
+    public List<LocalizedString> Common
     {
         get
         {
-            return _type;
+            return _common;
         }
         set
         {
-            _type = value;
+            _common = value;
         }
     }
     
-    [XmlAttribute]
-    public EquipmentSlot Slot
+    [XmlArrayItemAttribute("String", IsNullable=false)]
+    public List<LocalizedString> Merchant
     {
         get
         {
-            return _slot;
+            return _merchant;
         }
         set
         {
-            _slot = value;
+            _merchant = value;
         }
     }
     
-    [XmlAttribute]
-    public string Message
+    [XmlArrayItemAttribute("String", IsNullable=false)]
+    public List<LocalizedString> NpcSpeak
     {
         get
         {
-            return _message;
+            return _npcSpeak;
         }
         set
         {
-            _message = value;
+            _npcSpeak = value;
         }
     }
     
-    [XmlTextAttribute]
-    public string Value
+    [XmlArrayItemAttribute("String", IsNullable=false)]
+    public List<LocalizedString> MonsterSpeak
     {
         get
         {
-            return _value;
+            return _monsterSpeak;
         }
         set
         {
-            _value = value;
+            _monsterSpeak = value;
         }
     }
     
@@ -92,7 +101,7 @@ public partial class SlotRestriction
         {
             if ((_serializerXml == null))
             {
-                _serializerXml = new XmlSerializerFactory().CreateSerializer(typeof(SlotRestriction));
+                _serializerXml = new XmlSerializerFactory().CreateSerializer(typeof(LocalizedStringGroup));
             }
             return _serializerXml;
         }
@@ -100,7 +109,7 @@ public partial class SlotRestriction
     
     #region Serialize/Deserialize
     /// <summary>
-    /// Serialize SlotRestriction object
+    /// Serialize LocalizedStringGroup object
     /// </summary>
     /// <returns>XML value</returns>
     public virtual string Serialize()
@@ -133,16 +142,16 @@ public partial class SlotRestriction
     }
     
     /// <summary>
-    /// Deserializes SlotRestriction object
+    /// Deserializes LocalizedStringGroup object
     /// </summary>
     /// <param name="input">string to deserialize</param>
-    /// <param name="obj">Output SlotRestriction object</param>
+    /// <param name="obj">Output LocalizedStringGroup object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool Deserialize(string input, out SlotRestriction obj, out Exception exception)
+    public static bool Deserialize(string input, out LocalizedStringGroup obj, out Exception exception)
     {
         exception = null;
-        obj = default(SlotRestriction);
+        obj = default(LocalizedStringGroup);
         try
         {
             obj = Deserialize(input);
@@ -155,19 +164,19 @@ public partial class SlotRestriction
         }
     }
     
-    public static bool Deserialize(string input, out SlotRestriction obj)
+    public static bool Deserialize(string input, out LocalizedStringGroup obj)
     {
         Exception exception = null;
         return Deserialize(input, out obj, out exception);
     }
     
-    public static SlotRestriction Deserialize(string input)
+    public static LocalizedStringGroup Deserialize(string input)
     {
         StringReader stringReader = null;
         try
         {
             stringReader = new StringReader(input);
-            return ((SlotRestriction)(SerializerXml.Deserialize(XmlReader.Create(stringReader))));
+            return ((LocalizedStringGroup)(SerializerXml.Deserialize(XmlReader.Create(stringReader))));
         }
         finally
         {
@@ -178,14 +187,14 @@ public partial class SlotRestriction
         }
     }
     
-    public static SlotRestriction Deserialize(Stream s)
+    public static LocalizedStringGroup Deserialize(Stream s)
     {
-        return ((SlotRestriction)(SerializerXml.Deserialize(s)));
+        return ((LocalizedStringGroup)(SerializerXml.Deserialize(s)));
     }
     #endregion
     
     /// <summary>
-    /// Serializes current SlotRestriction object into file
+    /// Serializes current LocalizedStringGroup object into file
     /// </summary>
     /// <param name="fileName">full path of outupt xml file</param>
     /// <param name="exception">output Exception value if failed</param>
@@ -226,16 +235,16 @@ public partial class SlotRestriction
     }
     
     /// <summary>
-    /// Deserializes xml markup from file into an SlotRestriction object
+    /// Deserializes xml markup from file into an LocalizedStringGroup object
     /// </summary>
     /// <param name="fileName">File to load and deserialize</param>
-    /// <param name="obj">Output SlotRestriction object</param>
+    /// <param name="obj">Output LocalizedStringGroup object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool LoadFromFile(string fileName, out SlotRestriction obj, out Exception exception)
+    public static bool LoadFromFile(string fileName, out LocalizedStringGroup obj, out Exception exception)
     {
         exception = null;
-        obj = default(SlotRestriction);
+        obj = default(LocalizedStringGroup);
         try
         {
             obj = LoadFromFile(fileName);
@@ -248,13 +257,13 @@ public partial class SlotRestriction
         }
     }
     
-    public static bool LoadFromFile(string fileName, out SlotRestriction obj)
+    public static bool LoadFromFile(string fileName, out LocalizedStringGroup obj)
     {
         Exception exception = null;
         return LoadFromFile(fileName, out obj, out exception);
     }
     
-    public static SlotRestriction LoadFromFile(string fileName)
+    public static LocalizedStringGroup LoadFromFile(string fileName)
     {
         FileStream file = null;
         StreamReader sr = null;
