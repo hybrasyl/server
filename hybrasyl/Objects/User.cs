@@ -712,8 +712,8 @@ namespace Hybrasyl.Objects
         public void TrackKill(string name, DateTime timestamp)
         {
             // FIXME: better implementation; stack cannot be used without deserialization workarounds
-            if (RecentKills.Count == 25)
-                RecentKills = RecentKills.SkipLast(1).ToList();
+            if (RecentKills.Count > 25)
+                RecentKills = RecentKills.Skip(1).ToList();
             RecentKills.Add(new KillRecord { Name = name, Timestamp = timestamp });
         }
 
