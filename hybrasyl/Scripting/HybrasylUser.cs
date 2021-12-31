@@ -149,7 +149,7 @@ namespace Hybrasyl.Scripting
         /// </summary>
         public uint Mp
         {
-            get { return User.Stats.Mp; }
+            get => User.Stats.Mp;
             set
             {
                 User.Stats.Mp = value;

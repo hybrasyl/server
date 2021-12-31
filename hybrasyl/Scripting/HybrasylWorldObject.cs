@@ -66,6 +66,18 @@ namespace Hybrasyl.Scripting
             }
         }
 
+        /// <summary>
+        /// Return a localized string given a key
+        /// </summary>
+        /// <param name="key">The key to return. Note that NPCs can override localized strings, which take precedence.</param>
+        /// <returns>The localized string for a given key</returns>
+        public string GetLocalString(string key)
+        {
+            if (Obj is Merchant m)
+                return m.GetLocalString(key);
+            return Game.World.GetLocalString(key);
+        }
+
         public string LocationDescription
         {
             get
