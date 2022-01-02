@@ -35,7 +35,7 @@ namespace Hybrasyl
 
     public class MapPoint
     {
-        public Int64 Id
+        public long Id
         {
             get
             {
@@ -178,7 +178,6 @@ namespace Hybrasyl
 
         public bool SpawningDisabled { get; set; }
 
-        //public Dictionary<string, Xml.Spawn> Spawns { get; set; }
 
         /// <summary>
         /// Create a new Hybrasyl map from an XMLMap object.
@@ -262,7 +261,7 @@ namespace Hybrasyl
             foreach (var reactorElement in newMap.Reactors)
             {
                 var reactor = new Reactor(reactorElement.X, reactorElement.Y, this, 
-                    reactorElement.Script, reactorElement.Description, reactorElement.Blocking);
+                    reactorElement.Script, 0, reactorElement.Description, reactorElement.Blocking);
                 reactor.AllowDead = reactorElement.AllowDead;
                 InsertReactor(reactor);
                 GameLog.Debug($"{reactor.Id} placed in {reactor.Map.Name}, description was {reactor.Description}");
@@ -270,10 +269,7 @@ namespace Hybrasyl
             foreach (var sign in newMap.Signs)
             {
                 Signpost post;
-                if (sign.Type == Xml.BoardType.Sign)
-                    post = new Signpost(sign.X, sign.Y, sign.Message);
-                else
-                    post = new Signpost(sign.X, sign.Y, sign.Message, true, sign.BoardKey);
+                post = sign.Type == Xml.BoardType.Sign ? new Signpost(sign.X, sign.Y, sign.Message) : new Signpost(sign.X, sign.Y, sign.Message, true, sign.BoardKey);
                 InsertSignpost(post);
             }
             Load();
@@ -309,7 +305,7 @@ namespace Hybrasyl
             }
         }
 
-        public List<Creature> GetCreatures(int x1, int y1) => GetTileContents(x1, y1).Where(x => x is Creature).Select(y => y as Creature).ToList();
+        public List<Creature> GetCreatures(int x1, int y1) => GetTileContents(x1, y1).OfType<Creature>().ToList();
 
         public bool IsCreatureAt(int x1, int y1) => GetTileContents(x1,y1).Any(x => x is Creature);
 

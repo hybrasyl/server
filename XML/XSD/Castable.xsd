@@ -221,6 +221,21 @@
     </xs:all>
   </xs:complexType>
 
+	<xs:complexType name="CastableReactorList">
+		<xs:sequence>
+           <xs:element name="Reactor" type="hyb:CastableReactor" minOccurs="1" maxOccurs="unbounded"/>
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="CastableReactor">
+	  <xs:attribute name="RelativeX" default="0" type="xs:byte" />
+	  <xs:attribute name="RelativeY" default="0" type="xs:byte" />
+      <xs:attribute name="Sprite" default="0" type="xs:unsignedShort"/>
+	  <xs:attribute name="Script" default="0" type="xs:string" />
+      <xs:attribute name="Expiration" default="0" type="xs:integer" />
+      <xs:attribute name="Uses" default="0" type="xs:integer" />
+      <xs:attribute name="Blocking" default="false" type="xs:boolean"/>
+	</xs:complexType>
 
   <!-- Effects type -->
   <xs:complexType name="CastableEffects">
@@ -235,6 +250,7 @@
       <xs:element name="Damage" minOccurs="0" maxOccurs="1" type="hyb:CastableDamage" />
       <xs:element name="StatModifiers" minOccurs="0" maxOccurs="1" type="hyb:StatModifiers" />
       <xs:element name="Statuses" minOccurs="0" maxOccurs="1" type="hyb:Statuses" />
+      <xs:element name="Reactors" minOccurs="0" maxOccurs="1" type="hyb:CastableReactorList"/>
     </xs:all>
     <xs:attribute name="ScriptOverride" type="xs:boolean" default="false"/>
   </xs:complexType>
