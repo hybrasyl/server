@@ -168,9 +168,9 @@ namespace Hybrasyl
         public HashSet<VisibleObject> Objects { get; private set; }
         public Dictionary<string, User> Users { get; private set; }
 
-        public Dictionary<Tuple<byte, byte>, Objects.Door> Doors { get; set; }
-        public Dictionary<Tuple<byte, byte>, Objects.Signpost> Signposts { get; set; }
-        public Dictionary<Tuple<byte, byte>, Objects.Reactor> Reactors { get; set; }
+        public Dictionary<(byte X, byte Y), Door> Doors { get; set; }
+        public Dictionary<(byte X, byte Y), Signpost> Signposts { get; set; }
+        public Dictionary<(byte X, byte Y), Reactor> Reactors { get; set; }
 
         public Xml.SpawnGroup SpawnDirectives { get; set; }
 
@@ -291,9 +291,9 @@ namespace Hybrasyl
             Users = new Dictionary<string, User>();
             Warps = new Dictionary<Tuple<byte, byte>, Warp>();
             EntityTree = new QuadTree<VisibleObject>(1, 1, X, Y);
-            Doors = new Dictionary<Tuple<byte, byte>, Objects.Door>();
-            Signposts = new Dictionary<Tuple<byte, byte>, Objects.Signpost>();
-            Reactors = new Dictionary<Tuple<byte, byte>, Objects.Reactor>();
+            Doors = new Dictionary<(byte X, byte Y), Door>();
+            Signposts = new Dictionary<(byte X, byte Y), Signpost>();
+            Reactors = new Dictionary<(byte X, byte Y), Reactor>();
             AllowSpeaking = true;
         }
 
@@ -340,14 +340,14 @@ namespace Hybrasyl
         {
             World.Insert(toInsert);
             Insert(toInsert, toInsert.X, toInsert.Y);
-            Reactors[new Tuple<byte, byte>(toInsert.X, toInsert.Y)] = toInsert;
+            Reactors[(toInsert.X, toInsert.Y)] = toInsert;
         }
 
         public void InsertSignpost(Objects.Signpost post)
         {
             World.Insert(post);
             Insert(post, post.X, post.Y);
-            Signposts[new Tuple<byte, byte>(post.X, post.Y)] = post;
+            Signposts[(post.X, post.Y)] = post;
             GameLog.InfoFormat("Inserted signpost {0}@{1},{2}", post.Map.Name, post.X, post.Y);
         }
 
@@ -356,7 +356,7 @@ namespace Hybrasyl
             var door = new Objects.Door(x, y, open, isLeftRight, triggerCollision);
             World.Insert(door);
             Insert(door, door.X, door.Y);
-            Doors[new Tuple<byte, byte>(door.X, door.Y)] = door;
+            Doors[(door.X, door.Y)] = door;
         }
 
         public bool Load()
@@ -464,7 +464,7 @@ namespace Hybrasyl
         /// <returns></returns>
         public void ToggleDoor(byte x, byte y)
         {
-            var coords = new Tuple<byte, byte>(x, y);
+            var coords = (x, y);
             GameLog.DebugFormat("Door {0}@{1},{2}: Open: {3}, changing to {4}",
                 Name, x, y, Doors[coords].Closed,
                 !Doors[coords].Closed);

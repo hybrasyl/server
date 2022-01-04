@@ -27,30 +27,30 @@ using System.Collections.Generic;
 public partial class CastableReactor
 {
     #region Private fields
-    private sbyte _relativeX;
-    private sbyte _relativeY;
+    private int _relativeX;
+    private int _relativeY;
     private ushort _sprite;
     private string _script;
-    private string _expiration;
-    private string _uses;
+    private int _expiration;
+    private int _uses;
     private bool _blocking;
     private static XmlSerializer _serializerXml;
     #endregion
     
     public CastableReactor()
     {
-        _relativeX = ((sbyte)(0));
-        _relativeY = ((sbyte)(0));
+        _relativeX = 0;
+        _relativeY = 0;
         _sprite = ((ushort)(0));
         _script = "0";
-        _expiration = "0";
-        _uses = "0";
+        _expiration = 0;
+        _uses = 0;
         _blocking = false;
     }
     
     [XmlAttribute]
-    [DefaultValue(typeof(sbyte), "0")]
-    public sbyte RelativeX
+    [DefaultValue(0)]
+    public int RelativeX
     {
         get
         {
@@ -63,8 +63,8 @@ public partial class CastableReactor
     }
     
     [XmlAttribute]
-    [DefaultValue(typeof(sbyte), "0")]
-    public sbyte RelativeY
+    [DefaultValue(0)]
+    public int RelativeY
     {
         get
         {
@@ -104,9 +104,9 @@ public partial class CastableReactor
         }
     }
     
-    [XmlAttribute(DataType="integer")]
-    [DefaultValue("0")]
-    public string Expiration
+    [XmlAttribute]
+    [DefaultValue(0)]
+    public int Expiration
     {
         get
         {
@@ -118,9 +118,9 @@ public partial class CastableReactor
         }
     }
     
-    [XmlAttribute(DataType="integer")]
-    [DefaultValue("0")]
-    public string Uses
+    [XmlAttribute]
+    [DefaultValue(0)]
+    public int Uses
     {
         get
         {

@@ -1076,31 +1076,31 @@ namespace Hybrasyl.Objects
 
             var doors = GetDoorsCoordsInView(GetViewport());
 
-            if(doors.Count > 0)
+            if (doors.Count <= 0) return;
+            foreach(var door in doors)
             {
-                foreach(var door in doors)
-                {
-                    SendDoorUpdate(door.Item1, door.Item2, Map.Doors[door].Closed, Map.Doors[door].IsLeftRight);
-                }
+                SendDoorUpdate(door.Item1, door.Item2, Map.Doors[door].Closed, Map.Doors[door].IsLeftRight);
             }
 
         }
 
-        public List<Tuple<byte,byte>> GetDoorsCoordsInView(Rectangle viewPort)
+        public List<(byte X, byte Y)> GetDoorsCoordsInView(Rectangle viewPort)
         {
-            var ret = new List<Tuple<byte, byte>>();
+            var ret = new List<(byte X, byte Y)>();
 
-            for(int x = viewPort.X; x < viewPort.X + viewPort.Width; x++)
+            for (var x = viewPort.X; x < viewPort.X + viewPort.Width; x++)
             {
-                for(int y = viewPort.Y; y < viewPort.Y + viewPort.Height; y++)
+                for (var y = viewPort.Y; y < viewPort.Y + viewPort.Height; y++)
                 {
-                    var loc = new Tuple<byte, byte>((byte)x, (byte)y);
-                    if (Map.Doors.ContainsKey(loc))
+                    var coords = ((byte) x, (byte) y);
+                    ;
+                    if (Map.Doors.ContainsKey(coords))
                     {
-                        ret.Add(loc);
+                        ret.Add(coords);
                     }
                 }
             }
+
             return ret;
         }
 
@@ -1428,7 +1428,7 @@ namespace Hybrasyl.Objects
             var color = helmcolor == 0 ? HairColor : helmcolor;
             // Why is this so difficult?
             var bootSprite = Equipment.Armor?.HideBoots ?? false ? 0 : Equipment.Boots?.DisplaySprite ?? 0;
-            (client ?? Client).Enqueue(new ServerPacketStructures.DisplayUser()
+            (client ?? Client)?.Enqueue(new ServerPacketStructures.DisplayUser()
             {
                 X = X,
                 Y = Y,
@@ -1890,8 +1890,8 @@ namespace Hybrasyl.Objects
                     break;
             }
             var isWarp = Map.Warps.TryGetValue(new Tuple<byte, byte>((byte)newX, (byte)newY), out Warp targetWarp);
-            var isReactor = Map.Reactors.TryGetValue(new Tuple<byte, byte>((byte)newX, (byte)newY), out Reactor newReactor);
-            var wasReactor = Map.Reactors.TryGetValue(new Tuple<byte, byte>((byte)oldX, (byte)oldY), out Reactor oldReactor);
+            var isReactor = Map.Reactors.TryGetValue(((byte)newX, (byte)newY), out Reactor newReactor);
+            var wasReactor = Map.Reactors.TryGetValue(((byte)oldX, (byte)oldY), out Reactor oldReactor);
 
             // Now that we know where we are going, perform some sanity checks.
             // Is the player trying to walk into a wall, or off the map?

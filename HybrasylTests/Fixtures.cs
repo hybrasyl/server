@@ -21,6 +21,7 @@ namespace HybrasylTests
     public class HybrasylFixture : IDisposable
     {
         public Map Map { get; }
+        public Map MapNoCasting { get; }
         public Item TestItem { get; }
         public Item StackableTestItem { get; }
         public Dictionary<EquipmentSlot, Item> TestEquipment { get;  }= new();
@@ -44,19 +45,8 @@ namespace HybrasylTests
             if (!Game.World.LoadData())
                 throw new InvalidDataException("LoadData encountered errors");
 
-            var xmlMap = new Hybrasyl.Xml.Map
-            {
-                Id = 136,
-                X = 12,
-                Y = 12,
-                Name = "Test Inn",
-                Warps = new List<Warp>(),
-                Npcs = new List<MapNpc>(),
-                Reactors = new List<Reactor>(),
-                Signs = new List<MapSign>()
-            };
-            var map = new Map(xmlMap, Game.World);
-            Game.World.WorldData.SetWithIndex(map.Id, map, map.Name);
+            Map = Game.World.WorldData.Get<Map>("40000");
+            MapNoCasting = Game.World.WorldData.Get<Map>("40000");
 
             var xmlNation = new Nation { Default = true, Description = "Test Nation", Flag = 0, Name = "Test", SpawnPoints = new List<SpawnPoint> {new() { MapName = "Test Map", X = 5, Y = 5 }}};
             Game.World.WorldData.Set(xmlNation.Name, xmlNation);
@@ -109,9 +99,9 @@ namespace HybrasylTests
                 Location =
                 {
                     Direction = Direction.South,
-                    Map = map,
-                    X = 4,
-                    Y = 10
+                    Map = Map,
+                    X = 20,
+                    Y = 20
                 },
                 HairColor = 1,
                 HairStyle = 1,
@@ -143,8 +133,8 @@ namespace HybrasylTests
             var parcelStore = new ParcelStore(TestUser.Uuid);
             parcelStore.Save();
             TestUser.Save();
-
-
+            Game.World.Insert(TestUser);
+            Map.Insert(TestUser, TestUser.X, TestUser.Y,false);
         }
 
         public void ResetUserStats()

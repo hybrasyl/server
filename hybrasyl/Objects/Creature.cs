@@ -27,6 +27,7 @@ using System.Linq;
 using Hybrasyl.Enums;
 using Newtonsoft.Json;
 using Hybrasyl.Scripting;
+using Hybrasyl.Xml;
 
 namespace Hybrasyl.Objects
 {
@@ -524,7 +525,7 @@ namespace Hybrasyl.Objects
 
             // Quick checks
             // If no targets and is not an assail, do nothing
-            if (targets.Count() == 0 && castObject.IsAssail == false && string.IsNullOrEmpty(castObject.Script))
+            if (!targets.Any() && castObject.IsAssail == false && string.IsNullOrEmpty(castObject.Script))
             {
                 GameLog.UserActivityInfo($"UseCastable: {Name}: no targets and not assail");
                 return false;
@@ -578,7 +579,19 @@ namespace Hybrasyl.Objects
                     // DoStuff();
                     continue;
                 }
-                if (!castObject.Effects.Damage.IsEmpty)
+
+                foreach (var reactor in castObject.Effects?.Reactors)
+                {
+                    if (X + reactor.RelativeX < byte.MinValue || X + reactor.RelativeX > byte.MaxValue ||
+                        Y + reactor.RelativeY < byte.MinValue || Y + reactor.RelativeY > byte.MaxValue)
+                        continue;
+                    var actualX = (byte) (X + reactor.RelativeX);
+                    var actualY = (byte) (Y + reactor.RelativeY);
+                    tar.Map.InsertReactor(new Reactor(actualX, actualY, tar.Map, reactor.Script,
+                        reactor.Expiration, $"{Name}'s {castObject.Name}", reactor.Blocking));
+                }
+
+                if (castObject.Effects?.Damage != null && !castObject.Effects.Damage.IsEmpty)
                 {
                     Xml.ElementType attackElement;
                     var damageOutput = NumberCruncher.CalculateDamage(castObject, tar, this);
@@ -613,7 +626,7 @@ namespace Hybrasyl.Objects
                 }
                 // Note that we ignore castables with both damage and healing effects present - one or the other.
                 // A future improvement might be to allow more complex effects.
-                else if (!castObject.Effects.Heal.IsEmpty)
+                else if (castObject.Effects?.Heal != null && !castObject.Effects.Heal.IsEmpty)
                 {
                     var healOutput = NumberCruncher.CalculateHeal(castObject, tar, this);
                     tar.Heal(healOutput, this);
@@ -627,7 +640,7 @@ namespace Hybrasyl.Objects
 
                 // Handle statuses
 
-                foreach (var status in castObject.Effects.Statuses.Add.Where(e => e.Value != null))
+                foreach (var status in castObject.AddStatuses)
                 {
                     Xml.Status applyStatus;
                     if (World.WorldData.TryGetValue<Xml.Status>(status.Value.ToLower(), out applyStatus))
@@ -648,7 +661,7 @@ namespace Hybrasyl.Objects
                         GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name} - failed to add status {status.Value}, does not exist!");
                 }
 
-                foreach (var status in castObject.Effects.Statuses.Remove)
+                foreach (var status in castObject.RemoveStatuses)
                 {
                     Xml.Status applyStatus;
                     if (World.WorldData.TryGetValue<Xml.Status>(status.ToLower(), out applyStatus))
@@ -761,7 +774,7 @@ namespace Hybrasyl.Objects
                     // Is the player trying to walk into an occupied tile?
                     foreach (var obj in Map.GetTileContents((byte)newX, (byte)newY))
                     {
-                        GameLog.DebugFormat("Collsion check: found obj {0}", obj.Name);
+                        GameLog.DebugFormat("Collision check: found obj {0}", obj.Name);
                         if (obj is Creature)
                         {
                             GameLog.DebugFormat("Walking prohibited: found {0}", obj.Name);

@@ -93,7 +93,7 @@ namespace Hybrasyl
         public Dictionary<uint, WorldObject> Objects { get; set; }
 
         public Dictionary<string, string> Portraits { get; set; }
-        public Xml.LocalizedStrings Strings { get; set; }
+        public Xml.LocalizedStringGroup Strings { get; set; }
         public WorldDataStore WorldData { set; get; }
 
         public Xml.Nation DefaultNation
@@ -488,7 +488,7 @@ namespace Hybrasyl
             {
                 try
                 {
-                    Strings = Xml.LocalizedStrings.LoadFromFile(xml);
+                    Strings = Xml.LocalizedStringGroup.LoadFromFile(xml);
                     GameLog.Debug("Localization strings loaded.");
                 }
                 catch (Exception e)
@@ -1885,9 +1885,8 @@ namespace Hybrasyl
             // We do it this way to provide maximum flexibility to scripts 
             // (for instance: a reactor that destroys items outright, or damages them
             // before being picked up, etc)
-            Reactor reactor;
-            var coordinates = new Tuple<byte, byte>((byte)x, (byte)y);
-            if (user.Map.Reactors.TryGetValue(coordinates, out reactor))
+            var coordinates = ((byte)x, (byte)y);
+            if (user.Map.Reactors.TryGetValue(coordinates, out var reactor))
             {
                 // Remove the item from the map
                 if (pickupObject is Gold)
@@ -2039,9 +2038,9 @@ namespace Hybrasyl
             toDrop.ItemDropTime = DateTime.Now;
             toDrop.ItemDropType = ItemDropType.Normal;
             // Are we dropping an item onto a reactor?
-            Reactor reactor;
-            var coordinates = new Tuple<byte, byte>((byte)x, (byte)y);
-            if (user.Map.Reactors.TryGetValue(coordinates, out reactor))
+
+            var coordinates = ((byte)x, (byte)y);
+            if (user.Map.Reactors.TryGetValue(coordinates, out var reactor))
             {
                 reactor.OnDrop(user, toDrop);
             }
@@ -2693,9 +2692,8 @@ namespace Hybrasyl
             toDrop.ItemDropType = ItemDropType.Normal;
 
             // Are we dropping an item onto a reactor?
-            Reactor reactor;
-            var coordinates = new Tuple<byte, byte>((byte)x, (byte)y);
-            if (user.Map.Reactors.TryGetValue(coordinates, out reactor))
+            var coordinates = ((byte)x, (byte)y);
+            if (user.Map.Reactors.TryGetValue(coordinates, out var reactor))
             {
                 reactor.OnDrop(user, toDrop);
             }

@@ -47,6 +47,12 @@ namespace Hybrasyl.Objects
         public string ScriptName;
         private bool _ready;
 
+        public Reactor(Xml.Reactor reactor)
+        {
+            X = reactor.X;
+            Y = reactor.Y;
+        }
+
         public Reactor(byte x, byte y, Map map, string scriptName, int expiration = 0, string description = null, bool blocking = true) : base()
         {
             X = x;

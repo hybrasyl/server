@@ -29,11 +29,11 @@
 
   <!-- Damage effects type -->
   <xs:complexType name="StatusDamage">
-    <xs:all>
+    <xs:sequence>
       <xs:element name="Flags" type="hyb:DamageFlags" />
       <xs:element name="Simple" type="hyb:SimpleQuantity" />
       <xs:element name="Formula" type="xs:string" />
-    </xs:all>
+    </xs:sequence>
     <xs:attribute name="Type" type="hyb:DamageType" />
   </xs:complexType>
 
@@ -46,13 +46,13 @@
   </xs:complexType>
 
   <xs:complexType name="Status">
-    <xs:all>
+    <xs:sequence>
       <xs:element name="Category" type="hyb:String8"/>
       <xs:element minOccurs="0" name="CastRestriction" type="hyb:CastRestriction" />
       <xs:element minOccurs="0" name="Effects" type="hyb:StatusEffects" />
       <xs:element minOccurs="0" name="ProhibitedMessage" type="hyb:String8"/>
       <xs:element minOccurs="0" name="Script" type="hyb:String8" />
-    </xs:all>
+    </xs:sequence>
     <xs:attribute name="Duration" type="xs:int" use="optional" />
     <xs:attribute name="Tick" type="xs:int" default="1" use="optional"/>
     <xs:attribute name="Icon" type="xs:unsignedShort" use="required"/>
@@ -65,27 +65,27 @@
   </xs:complexType>
 
   <xs:complexType name="StatusAnimations">
-    <xs:all>
+    <xs:sequence>
       <xs:element minOccurs="0" name="Target" type="hyb:Animation"/>
       <xs:element minOccurs="0" name="SpellEffect" type="hyb:Animation"/>
-    </xs:all>
+    </xs:sequence>
   </xs:complexType>
 
   <xs:complexType name="Conditions">
-    <xs:all>
+    <xs:sequence>
       <xs:element minOccurs="0" name="Set" type="hyb:CreatureCondition"/>
       <xs:element minOccurs="0" name="Unset" type="hyb:CreatureCondition"/>
-    </xs:all>
+    </xs:sequence>
   </xs:complexType>
 
   <xs:complexType name="Messages">
-    <xs:all>
+    <xs:sequence>
       <xs:element minOccurs="0" name="Target" type="hyb:String8"/>
       <xs:element minOccurs="0" name="Source" type="hyb:String8"/>
       <xs:element minOccurs="0" name="Group" type="hyb:String8"/>
       <xs:element minOccurs="0" name="Say" type="hyb:String8"/>
       <xs:element minOccurs="0" name="Shout" type="hyb:String8"/>
-    </xs:all>
+    </xs:sequence>
   </xs:complexType>
 
   <!-- Script source -->
@@ -97,14 +97,14 @@
   </xs:simpleType>
 
   <xs:complexType name="Handler">
-    <xs:all>
+    <xs:sequence>
       <xs:element minOccurs="0"  name="Function" type="hyb:String8"/>
       <xs:element minOccurs="0"  name="ScriptSource" type="hyb:ScriptSource"/>
-    </xs:all>
+    </xs:sequence>
   </xs:complexType>
 
   <xs:complexType name="ModifierEffect" >
-    <xs:all>
+    <xs:sequence>
       <xs:element name="Animations" type="hyb:StatusAnimations" minOccurs="0"/>
       <xs:element name="Sound" minOccurs="0">
         <xs:complexType>
@@ -117,16 +117,16 @@
       <xs:element name="StatModifiers" minOccurs="0" type="hyb:StatModifierFormulas" />
       <xs:element name="Conditions" minOccurs="0" type="hyb:Conditions"/>
       <xs:element name="Handler" minOccurs="0" type="hyb:Handler"/>
-    </xs:all>
+    </xs:sequence>
   </xs:complexType>
 
   <xs:complexType name="StatusEffects">
-    <xs:all>
+    <xs:sequence>
       <xs:element minOccurs="0" name="OnApply" type="hyb:ModifierEffect" />
       <xs:element minOccurs="0" name="OnTick" type="hyb:ModifierEffect" />
       <xs:element minOccurs="0" name="OnRemove" type="hyb:ModifierEffect" />
       <xs:element minOccurs="0" name="OnExpire" type="hyb:ModifierEffect" />
-    </xs:all>
+    </xs:sequence>
   </xs:complexType>
 
   <xs:element name="Status" type="hyb:Status"/>
