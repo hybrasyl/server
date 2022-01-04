@@ -3443,74 +3443,77 @@ namespace Hybrasyl
             // N.B. We handle dead checks here rather than at the Required attribute level due to some 
             // edge cases
 
-            // User has clicked an X,Y point
-            if (clickType == 3)
+            switch (clickType)
             {
-                var x = (byte)packet.ReadUInt16();
-                var y = (byte)packet.ReadUInt16();
-                var coords = new Tuple<byte, byte>(x, y);
-                GameLog.DebugFormat("coordinates were {0}, {1}", x, y);
-
-                if (user.Map.Doors.ContainsKey(coords))
+                // User has clicked an X,Y point
+                case 3:
                 {
-                    if (!user.Condition.Alive)
+                    var x = (byte)packet.ReadUInt16();
+                    var y = (byte)packet.ReadUInt16();
+                    var coords = (x, y);
+                    GameLog.DebugFormat("coordinates were {0}, {1}", x, y);
+
+                    if (user.Map.Doors.ContainsKey(coords))
                     {
-                        user.SendSystemMessage("You try, but your hands pass right through it.");
-                        return;
-                    }
-                    if (user.Map.Doors[coords].Closed)
-                        user.SendSystemMessage("It's open.");
-                    else
-                        user.SendSystemMessage("It's closed.");
-
-                    user.Map.ToggleDoors(x, y);
-                }
-                else if (user.Map.Signposts.ContainsKey(coords))
-                {
-                    user.Map.Signposts[coords].OnClick(user);
-                }
-                else
-                {
-                    GameLog.DebugFormat("User clicked {0}@{1},{2} but no door/signpost is present",
-                        user.Map.Name, x, y);
-                }
-            }
-
-            // User has clicked on another entity
-            else if (clickType == 1)
-            {
-                var entityId = packet.ReadUInt32();
-                GameLog.DebugFormat("User {0} clicked ID {1}: ", user.Name, entityId);
-
-                WorldObject clickTarget = new WorldObject();
-
-                if (user.World.Objects.TryGetValue(entityId, out clickTarget))
-                {
-                    Type type = clickTarget.GetType();
-                    MethodInfo methodInfo = type.GetMethod("OnClick");
-                    var associate = clickTarget as VisibleObject;
-                    if (associate.Map == user.Map)
-                    {
-                        // Certain NPCs can be "spoken to" even when dead
-                        if (user.LastAssociate is Merchant && (!user.Condition.Alive && !user.LastAssociate.AllowDead))
+                        if (!user.Condition.Alive)
                         {
-                            user.SendSystemMessage("You cannot do that now.");
+                            user.SendSystemMessage("You try, but your hands pass right through it.");
                             return;
                         }
-                        methodInfo.Invoke(clickTarget, new[] { user });
+
+                        user.SendSystemMessage(user.Map.Doors[coords].Closed ? "It's open." : "It's closed.");
+
+                        user.Map.ToggleDoors(x, y);
+                    }
+                    else if (user.Map.Signposts.ContainsKey(coords))
+                    {
+                        user.Map.Signposts[coords].OnClick(user);
                     }
                     else
                     {
-                        GameLog.Warning($"User {user.Name}: Click packet for object not on current map: {entityId} {clickTarget.Id} {user.Map.Name}");
-                        return;
+                        GameLog.DebugFormat("User clicked {0}@{1},{2} but no door/signpost is present",
+                            user.Map.Name, x, y);
                     }
+
+                    break;
                 }
-            }
-            else
-            {
-                GameLog.DebugFormat("Unsupported clickType {0}", clickType);
-                GameLog.DebugFormat("Packet follows:");
-                packet.DumpPacket();
+                // User has clicked on another entity
+                case 1:
+                {
+                    var entityId = packet.ReadUInt32();
+                    GameLog.DebugFormat("User {0} clicked ID {1}: ", user.Name, entityId);
+
+                    WorldObject clickTarget = new WorldObject();
+
+                    if (user.World.Objects.TryGetValue(entityId, out clickTarget))
+                    {
+                        Type type = clickTarget.GetType();
+                        MethodInfo methodInfo = type.GetMethod("OnClick");
+                        var associate = clickTarget as VisibleObject;
+                        if (associate.Map == user.Map)
+                        {
+                            // Certain NPCs can be "spoken to" even when dead
+                            if (user.LastAssociate is Merchant && (!user.Condition.Alive && !user.LastAssociate.AllowDead))
+                            {
+                                user.SendSystemMessage("You cannot do that now.");
+                                return;
+                            }
+                            methodInfo.Invoke(clickTarget, new[] { user });
+                        }
+                        else
+                        {
+                            GameLog.Warning($"User {user.Name}: Click packet for object not on current map: {entityId} {clickTarget.Id} {user.Map.Name}");
+                            return;
+                        }
+                    }
+
+                    break;
+                }
+                default:
+                    GameLog.DebugFormat("Unsupported clickType {0}", clickType);
+                    GameLog.DebugFormat("Packet follows:");
+                    packet.DumpPacket();
+                    break;
             }
         }
 

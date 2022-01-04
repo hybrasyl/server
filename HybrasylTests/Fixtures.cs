@@ -42,6 +42,7 @@ namespace HybrasylTests
             Game.World = new World(1337, new DataStore {Host = "127.0.0.1", Port = 6379, Database = 15},
                 Path.Combine(submoduleDir[0], "HybrasylTests"), true);
 
+            Game.World.CompileScripts();
             if (!Game.World.LoadData())
                 throw new InvalidDataException("LoadData encountered errors");
 

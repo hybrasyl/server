@@ -138,6 +138,12 @@ namespace Hybrasyl.Scripting
         {
             if (obj == null)
                 return DynValue.NewNil();
+            if (obj is Monster mob)
+            {
+                var m = new HybrasylMonster(mob);
+                var q = UserData.Create(m);
+            }
+
             return obj switch
             {
                 User user => UserData.Create(new HybrasylUser(user)),
@@ -372,10 +378,12 @@ namespace Hybrasyl.Scripting
                 if (HasFunction(functionName))
                 {
                     Compiled.Globals["utility"] = typeof(HybrasylUtility);
+                    var f = GetUserDataValue(invoker as Monster);
                     Compiled.Globals.Set("invoker", GetUserDataValue(invoker));
                     Compiled.Globals.Set("source", GetUserDataValue(source));
                     if (scriptItem != null)
                         Compiled.Globals.Set("item", GetUserDataValue(scriptItem));
+
                     if (returnFromScript) return Compiled.Call(Compiled.Globals[functionName]).Boolean;
                     else Compiled.Call(Compiled.Globals[functionName]);
                 }

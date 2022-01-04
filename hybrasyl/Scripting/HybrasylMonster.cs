@@ -38,6 +38,19 @@ namespace Hybrasyl.Scripting
             World = new HybrasylWorld(monster.World);
             Map = new HybrasylMap(monster.Map);
         }
+        public void SystemMessage(string nil) {}
+
+        /// <summary>
+        /// Deal damage to the current player.
+        /// </summary>
+        /// <param name="damage">Integer amount of damage to deal.</param>
+        /// <param name="element">Element of the damage (e.g. fire, air)</param>
+        /// <param name="damageType">Type of damage (direct, magical, etc)</param>
+        public void Damage(int damage, Xml.ElementType element = Xml.ElementType.None,
+            Xml.DamageType damageType = Xml.DamageType.Direct)
+        {
+            Monster.Damage(damage, element, damageType);
+        }
 
         public string GetGMMonsterInfo()
         {

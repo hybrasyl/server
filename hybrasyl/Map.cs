@@ -509,7 +509,7 @@ namespace Hybrasyl
         /// <param name="y"></param>
         public void ToggleDoors(byte x, byte y)
         {
-            var coords = new Tuple<byte, byte>(x, y);
+            var coords = (x, y);
             var door = Doors[coords];
 
             // First, toggle the actual door itself
@@ -522,15 +522,15 @@ namespace Hybrasyl
             {
                 // Look for a door at x-1, x+1, and open if they're present
                 Objects.Door nextdoor;
-                var door1Coords = new Tuple<byte, byte>((byte)(x - 1), (byte)(y));
-                var door2Coords = new Tuple<byte, byte>((byte)(x + 1), (byte)(y));
+                var door1Coords = ((byte)(x - 1), y);
+                var door2Coords = ((byte)(x + 1), y);
                 if (Doors.TryGetValue(door1Coords, out nextdoor))
                 {
-                    ToggleDoor((byte)(x - 1), (byte)(y));
+                    ToggleDoor((byte)(x - 1), y);
                 }
                 if (Doors.TryGetValue(door2Coords, out nextdoor))
                 {
-                    ToggleDoor((byte)(x + 1), (byte)(y));
+                    ToggleDoor((byte)(x + 1), y);
                 }
 
             }
@@ -538,15 +538,15 @@ namespace Hybrasyl
             {
                 // Look for a door at y-1, y+1 and open if they're present
                 Objects.Door nextdoor;
-                var door1Coords = new Tuple<byte, byte>((byte)(x), (byte)(y - 1));
-                var door2Coords = new Tuple<byte, byte>((byte)(x), (byte)(y + 1));
+                var door1Coords = (x, (byte)(y - 1));
+                var door2Coords = (x, (byte)(y + 1));
                 if (Doors.TryGetValue(door1Coords, out nextdoor))
                 {
-                    ToggleDoor((byte)(x), (byte)(y - 1));
+                    ToggleDoor(x, (byte)(y - 1));
                 }
                 if (Doors.TryGetValue(door2Coords, out nextdoor))
                 {
-                    ToggleDoor((byte)(x), (byte)(y + 1));
+                    ToggleDoor(x, (byte)(y + 1));
                 }
             }
         }

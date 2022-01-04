@@ -587,8 +587,11 @@ namespace Hybrasyl.Objects
                         continue;
                     var actualX = (byte) (X + reactor.RelativeX);
                     var actualY = (byte) (Y + reactor.RelativeY);
-                    tar.Map.InsertReactor(new Reactor(actualX, actualY, tar.Map, reactor.Script,
-                        reactor.Expiration, $"{Name}'s {castObject.Name}", reactor.Blocking));
+                    var reactorObj =
+                        new Reactor(actualX, actualY, tar.Map, reactor.Script,
+                            reactor.Expiration, $"{Name}'s {castObject.Name}", reactor.Blocking);
+                    tar.Map.InsertReactor(reactorObj);
+                    reactorObj.OnSpawn();
                 }
 
                 if (castObject.Effects?.Damage != null && !castObject.Effects.Damage.IsEmpty)
@@ -599,30 +602,36 @@ namespace Hybrasyl.Objects
                     {
                         Random rnd = new Random();
                         var Elements = Enum.GetValues(typeof(Xml.ElementType));
-                        attackElement = (Xml.ElementType)Elements.GetValue(rnd.Next(Elements.Length));
+                        attackElement = (Xml.ElementType) Elements.GetValue(rnd.Next(Elements.Length));
                     }
                     else if (castObject.Element != Xml.ElementType.None)
                         attackElement = castObject.Element;
                     else
-                        attackElement = (Stats.OffensiveElementOverride != Xml.ElementType.None ? Stats.OffensiveElementOverride : Stats.BaseOffensiveElement);
-                    GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} damage: {damageOutput}, element {attackElement}");
+                        attackElement = (Stats.OffensiveElementOverride != Xml.ElementType.None
+                            ? Stats.OffensiveElementOverride
+                            : Stats.BaseOffensiveElement);
+
+                    GameLog.UserActivityInfo(
+                        $"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} damage: {damageOutput}, element {attackElement}");
 
                     tar.Damage(damageOutput.Amount, attackElement, damageOutput.Type, damageOutput.Flags, this, false);
 
-                    if (this is Monster)
+                    if (tar is User u)
                     {
-                        if(tar is User)
-                        {
-                            (tar as User).SendSystemMessage($"{this.Name} attacks you with {castObject.Name}.");
-                        }
+                        u.SendSystemMessage($"{this.Name} attacks you with {castObject.Name}.");
                     }
 
                     if (this is User)
                     {
-                        if(Equipment.Weapon != null && !Equipment.Weapon.Undamageable) Equipment.Weapon.Durability -= 1 / (Equipment.Weapon.MaximumDurability * ((100 - Stats.Ac) == 0 ? 1 : (100 - Stats.Ac)));
+                        if (Equipment.Weapon is {Undamageable: false})
+                            Equipment.Weapon.Durability -= 1 / (Equipment.Weapon.MaximumDurability *
+                                                                ((100 - Stats.Ac) == 0 ? 1 : (100 - Stats.Ac)));
                     }
 
-                    if (tar.Stats.Hp <= 0) { deadMobs.Add(tar); }
+                    if (tar.Stats.Hp <= 0)
+                    {
+                        deadMobs.Add(tar);
+                    }
                 }
                 // Note that we ignore castables with both damage and healing effects present - one or the other.
                 // A future improvement might be to allow more complex effects.
@@ -633,7 +642,7 @@ namespace Hybrasyl.Objects
                     if (this is User)
                     {
                         GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} healing: {healOutput}");
-                        if (Equipment.Weapon != null && !Equipment.Weapon.Undamageable)
+                        if (Equipment.Weapon is {Undamageable: false})
                            Equipment.Weapon.Durability -= 1 / (Equipment.Weapon.MaximumDurability * ((100 - Stats.Ac) == 0 ? 1 : (100 - Stats.Ac)));
                     }
                 }
@@ -642,8 +651,7 @@ namespace Hybrasyl.Objects
 
                 foreach (var status in castObject.AddStatuses)
                 {
-                    Xml.Status applyStatus;
-                    if (World.WorldData.TryGetValue<Xml.Status>(status.Value.ToLower(), out applyStatus))
+                    if (World.WorldData.TryGetValue<Xml.Status>(status.Value.ToLower(), out var applyStatus))
                     {
                         var duration = status.Duration == 0 ? applyStatus.Duration : status.Duration;
                         GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - applying status {status.Value} - duration {duration}");
@@ -663,8 +671,7 @@ namespace Hybrasyl.Objects
 
                 foreach (var status in castObject.RemoveStatuses)
                 {
-                    Xml.Status applyStatus;
-                    if (World.WorldData.TryGetValue<Xml.Status>(status.ToLower(), out applyStatus))
+                    if (World.WorldData.TryGetValue<Xml.Status>(status.ToLower(), out var applyStatus))
                     {
                         GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name} - removing status {status}");
                         tar.RemoveStatus(applyStatus.Icon);
@@ -813,12 +820,11 @@ namespace Hybrasyl.Objects
                 X = (byte)newX;
                 Y = (byte)newY;
                 Direction = direction;
+            // Objects in the common viewport receive a "walk" (0x0C) packet
+            // Objects in the arriving viewport receive a "show to" (0x33) packet
+            // Objects in the departing viewport receive a "remove object" (0x0E) packet
 
-                // Objects in the common viewport receive a "walk" (0x0C) packet
-                // Objects in the arriving viewport receive a "show to" (0x33) packet
-                // Objects in the departing viewport receive a "remove object" (0x0E) packet
-
-                foreach (var obj in Map.EntityTree.GetObjects(commonViewport))
+            foreach (var obj in Map.EntityTree.GetObjects(commonViewport))
                 {
                     if (obj != this && obj is User)
                     {
@@ -848,6 +854,10 @@ namespace Hybrasyl.Objects
                     AoiDeparture(obj);
                 }
             }
+            // Have we entered a reactor?
+            if (Map.Reactors.TryGetValue((X,Y), out var reactor))
+                reactor.OnEntry(this);
+
             HasMoved = true;
             return true;
         }

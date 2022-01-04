@@ -59,7 +59,6 @@ public class Reactor
         Assert.True(Fixture.TestUser.AddSkill(trapTest, 1), "Failed to add castable to skillbook");
         Assert.True(Fixture.TestUser.UseCastable(trapTest), "UseCastable failed");
 
-
         var baitTemplate = Game.World.WorldData.Get<Hybrasyl.Xml.Creature>("Honey Bee");
         var bait = new Monster(baitTemplate, SpawnFlags.AiDisabled, 99, Fixture.Map.Id)
         {

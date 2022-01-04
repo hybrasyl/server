@@ -96,7 +96,7 @@ namespace Hybrasyl.Objects
                     return;
             }
             if (Ready)
-                Script.ExecuteFunction("OnEntry", Script.GetObjectWrapper(obj), Script.GetObjectWrapper(this));
+                Script.ExecuteFunction("OnEntry", obj, this);
         }
 
         public override void AoiEntry(VisibleObject obj)
@@ -104,14 +104,14 @@ namespace Hybrasyl.Objects
             if (Expired) return;
             base.AoiEntry(obj);
             if (Ready)
-                Script.ExecuteFunction("AoiEntry", Script.GetObjectWrapper(obj), Script.GetObjectWrapper(this));
+                Script.ExecuteFunction("AoiEntry", obj, this);
         }
 
         public virtual void OnLeave(VisibleObject obj)
         {
             if (Expired) return;
             if (Ready && Script.HasFunction("OnLeave"))
-                Script.ExecuteFunction("OnLeave", Script.GetObjectWrapper(obj), Script.GetObjectWrapper(this));
+                Script.ExecuteFunction("OnLeave", obj, this);
             if (obj is User user)
                 user.LastAssociate = null;
         }
@@ -121,15 +121,15 @@ namespace Hybrasyl.Objects
             if (Expired) return;
             base.AoiDeparture(obj);
             if (Ready)
-                Script.ExecuteFunction("AoiDeparture", Script.GetObjectWrapper(obj), Script.GetObjectWrapper(this));
+                Script.ExecuteFunction("AoiDeparture", obj, this);
         }
 
         public virtual void OnDrop(VisibleObject obj, VisibleObject dropped)
         {
             if (Expired) return;
             if (Ready)
-                Script.ExecuteFunction("OnDrop", Script.GetObjectWrapper(obj), Script.GetObjectWrapper(this),
-                    Script.GetObjectWrapper(dropped));
+                Script.ExecuteFunction("OnDrop", obj, this,
+                    dropped);
         }
 
 
@@ -137,15 +137,14 @@ namespace Hybrasyl.Objects
         {
             if (Expired) return;
             if (Ready)
-                Script.ExecuteFunction("OnMove", Script.GetObjectWrapper(obj), Script.GetObjectWrapper(this));
+                Script.ExecuteFunction("OnMove", obj, this);
         }
 
         public void OnTake(VisibleObject obj, VisibleObject taken)
         {
             if (Expired) return;
             if (Ready)
-                Script.ExecuteFunction("OnTake", Script.GetObjectWrapper(obj), Script.GetObjectWrapper(this),
-                    Script.GetObjectWrapper(taken));
+                Script.ExecuteFunction("OnTake", obj, this, taken);
         }
 
         public override void ShowTo(VisibleObject obj)

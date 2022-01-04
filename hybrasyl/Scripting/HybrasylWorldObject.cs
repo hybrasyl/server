@@ -56,13 +56,16 @@ namespace Hybrasyl.Scripting
         {
             get
             {
-                if (Obj is Merchant) return "merchant";
-                else if (Obj is Reactor) return "reactor";
-                else if (Obj is ItemObject) return "item";
-                else if (Obj is Monster) return "monster";
-                else if (Obj is User) return "user";
-                else if (Obj is Gold) return "gold";
-                return "idk";
+                return Obj switch
+                {
+                    Merchant => "merchant",
+                    Reactor => "reactor",
+                    ItemObject => "item",
+                    Monster => "monster",
+                    User => "user",
+                    Gold => "gold",
+                    _ => "idk"
+                };
             }
         }
 
