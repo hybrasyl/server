@@ -47,12 +47,16 @@ public partial class Map
     
     public Map()
     {
+        _signs = new List<MapSign>();
+        _npcs = new List<MapNpc>();
+        _spawnGroup = new SpawnGroup();
+        _reactors = new List<Reactor>();
+        _warps = new List<Warp>();
         _music = ((byte)(0));
         _isEnabled = true;
         _allowCasting = true;
     }
     
-    [StringLengthAttribute(255, MinimumLength=1)]
     public string Name
     {
         get
@@ -65,7 +69,6 @@ public partial class Map
         }
     }
     
-    [StringLengthAttribute(65534, MinimumLength=1)]
     public string Description
     {
         get
@@ -78,7 +81,6 @@ public partial class Map
         }
     }
     
-    [StringLengthAttribute(5)]
     public MapFlags Flags
     {
         get

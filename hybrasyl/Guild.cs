@@ -10,13 +10,13 @@ namespace Hybrasyl
 {
     public class GuildMember
     {
-        public string RankUuid { get; set; }
+        public Guid RankGuid { get; set; }
         public string Name { get; set; }
     }
 
     public class GuildRank
     {
-        public string Uuid { get; set; }
+        public Guid Guid { get; set; }
         public string Name { get; set; }
         public int Level { get; set; }
     }
@@ -26,54 +26,58 @@ namespace Hybrasyl
     public class Guild
     {
         [JsonProperty]
-        public string Uuid { get; set; }
+        public Guid Guid { get; set; }
         [JsonProperty]
         public string Name { get; set; }
         [JsonProperty]
         public List<GuildRank> Ranks { get; set; }
-        public Board Board => Game.World.WorldData.GetBoard(Uuid);
-        public GuildVault Vault => Game.World.WorldData.GetOrCreateByUuid<GuildVault>(Uuid, Name);
-        [JsonProperty]
-        public Dictionary<string, GuildMember> Members { get; set; }
+        public Board Board => Game.World.WorldData.GetBoard(Name);
+        public GuildVault Vault => Game.World.WorldData.GetOrCreateByGuid<GuildVault>(Guid, Name);
+        [JsonProperty] 
+        public Dictionary<Guid, GuildMember> Members { get; set; } = new();
 
-        public string StorageKey => string.Concat(GetType(), ':', Uuid);
+        public GuildRank LeaderRank => Ranks.Single(x => x.Level == 0);
+
+        public string StorageKey => $"{GetType()}:{Guid}";
+
         public bool IsSaving;
 
         public Guild() {}
 
-        public Guild(string name, User leader, List<User> founders)
+        public Guild(string name, Guid leader, List<Guid> founders)
         {
             Name = name;
-            Uuid = Guid.NewGuid().ToString();
-            Ranks = new List<GuildRank>();
+            Guid = Guid.NewGuid();
+            Ranks = new List<GuildRank>
+            {
 
-            //default ranks, with guid as key so naming can be changed by user
-            Ranks.Add(new GuildRank() { Uuid = Guid.NewGuid().ToString(), Name = "Guild Leader", Level = 0 });
-            Ranks.Add(new GuildRank() { Uuid = Guid.NewGuid().ToString(), Name = "Council", Level = 1 });
-            Ranks.Add(new GuildRank() { Uuid = Guid.NewGuid().ToString(), Name = "Founder", Level = 2 });
-            Ranks.Add(new GuildRank() { Uuid = Guid.NewGuid().ToString(), Name = "Member", Level = 3 });
-            Ranks.Add(new GuildRank() { Uuid = Guid.NewGuid().ToString(), Name = "Initiate", Level = 4 });
+                //default ranks, with guid as key so naming can be changed by user
+                new() { Guid = Guid.NewGuid(), Name = "Guild Leader", Level = 0 },
+                new() { Guid = Guid.NewGuid(), Name = "Council", Level = 1 },
+                new() { Guid = Guid.NewGuid(), Name = "Founder", Level = 2 },
+                new() { Guid = Guid.NewGuid(), Name = "Member", Level = 3 },
+                new() { Guid = Guid.NewGuid(), Name = "Initiate", Level = 4 }
+            };
             GameLog.Info($"Guild {name}: Added default ranks");
             GameLog.Info($"Guild {name}: Created guild board");
-            Members = new Dictionary<string, GuildMember>();
 
-            var leaderGuid = Ranks.FirstOrDefault(x => x.Name == "Guild Leader").Uuid;
-            var founderGuid = Ranks.FirstOrDefault(x => x.Name == "Founder").Uuid;
+            var leaderGuid = Ranks.First(x => x.Level == 0).Guid;
+            var founderGuid = Ranks.First(x => x.Level == 2).Guid;
 
-            Members.Add(leader.Uuid, new GuildMember() { Name = leader.Name, RankUuid = leaderGuid });
-            GameLog.Info($"Guild {name}: Adding leader {leader.Name}");
+            var leaderName = Game.World.WorldData.GetNameByGuid(leader);
+            Members.Add(leader, new GuildMember() { Name = leaderName, RankGuid = leaderGuid });
+            GameLog.Info($"Guild {name}: Adding leader {leaderName}");
             foreach (var founder in founders)
             {
-                Members.Add(founder.Uuid, new GuildMember() { Name = founder.Name, RankUuid = founderGuid });
-                GameLog.Info($"Guild {name}: Adding founder {founder.Name}");
+                var founderName = Game.World.WorldData.GetNameByGuid(founder);
+                Members.Add(founder, new GuildMember() { Name = founderName, RankGuid = founderGuid });
+                GameLog.Info($"Guild {name}: Adding founder {founderName}");
             }
-
-
         }
 
         public void AddMember(User user)
         {
-            if(user.GuildUuid != null)
+            if (user.GuildGuid != Guid.Empty)
             {
                 GameLog.Info($"Guild {Name}: Attempt to add {user.Name} to guild, but user is already in another guild.");
                 return;
@@ -81,42 +85,40 @@ namespace Hybrasyl
 
             var lowestRank = Ranks.Aggregate((r1, r2) => r1.Level > r2.Level ? r1 : r2);
             GameLog.Info($"Guild {Name}: Lowest guild rank identified as {lowestRank.Name}");
-            Members.Add(user.Uuid, new GuildMember() { Name = user.Name, RankUuid = lowestRank.Uuid });
-            user.GuildUuid = Uuid;
+            Members.Add(user.Guid, new GuildMember() { Name = user.Name, RankGuid = lowestRank.Guid });
+            user.GuildGuid = Guid;
             GameLog.Info($"Guild {Name}: Adding new member {user.Name} to rank {lowestRank.Name}");
             
         }
 
         public void RemoveMember(User user)
         {
-            var member = Members.Single(x => x.Value.Name == user.Name);
-            if(member.Value.RankUuid == Ranks.Single(x => x.Level == 0).Uuid)
+            var (guid, membership) = Members.Single(x => x.Value.Name == user.Name);
+            if (membership.RankGuid == LeaderRank.Guid)
             {
                 GameLog.Info($"Guild {Name}: Sorry, the guild leader can't be removed.");
                 return;
             }
-            Members.Remove(member.Key);
-            user.GuildUuid = null;
+            Members.Remove(guid);
+            user.GuildGuid = Guid.Empty;
             GameLog.Info($"Guild {Name}: Removing member {user.Name}");
         }
 
         public void PromoteMember(string name)
         {
-            var member = Members.Single(x => x.Value.Name == name);
-            var currentRank = Ranks.FirstOrDefault(x => x.Uuid == member.Value.RankUuid);
+            var (guid, membership) = Members.Single(x => x.Value.Name == name);
+            var currentRank = Ranks.FirstOrDefault(x => x.Guid == membership.RankGuid);
             var newRank = Ranks.FirstOrDefault(x => x.Level == currentRank.Level - 1);
 
-            if(newRank != null && newRank.Level > 0) //we can only have one leader
-            {
-                member.Value.RankUuid = newRank.Uuid;
-                GameLog.Info($"Guild {Name}: Promoting {member.Value.Name} to rank {newRank.Name}");
-            }
+            if (newRank == null || newRank.Level <= 0) return;
+            membership.RankGuid = newRank.Guid;
+            GameLog.Info($"Guild {Name}: Promoting {membership.Name} to rank {newRank.Name}");
         }
 
         public void DemoteMember(string name)
         {
             var member = Members.Single(x => x.Value.Name == name);
-            var currentRank = Ranks.FirstOrDefault(x => x.Uuid == member.Value.RankUuid);
+            var currentRank = Ranks.FirstOrDefault(x => x.Guid == member.Value.RankGuid);
             var newRank = Ranks.FirstOrDefault(x => x.Level == currentRank.Level + 1);
 
             if (newRank != null && newRank.Level > currentRank.Level)
@@ -126,7 +128,7 @@ namespace Hybrasyl
                     GameLog.Info($"Guild {Name}: Sorry, the guild leader cannot be demoted.");
                     return;
                 }
-                member.Value.RankUuid = newRank.Uuid;
+                member.Value.RankGuid = newRank.Guid;
                 GameLog.Info($"Guild {Name}: Demoting {member.Value.Name} to rank {newRank.Name}");
             }
         }
@@ -148,7 +150,7 @@ namespace Hybrasyl
 
             var lowestRank = Ranks.Aggregate((r1, r2) => r1.Level > r2.Level ? r1 : r2);
 
-            var rank = new GuildRank() { Uuid = Guid.NewGuid().ToString(), Name = title, Level = lowestRank.Level + 1 };
+            var rank = new GuildRank() { Guid = Guid.NewGuid(), Name = title, Level = lowestRank.Level + 1 };
 
             Ranks.Add(rank);
             GameLog.Info($"Guild {Name}: New rank {rank.Name} added as level {rank.Level}");
@@ -161,11 +163,11 @@ namespace Hybrasyl
 
             if(nextRank != null && nextRank.Level != 0)
             {
-                var moveMembers = Members.Where(x => x.Value.RankUuid == lowestRank.Uuid).ToList();
+                var moveMembers = Members.Where(x => x.Value.RankGuid == lowestRank.Guid).ToList();
 
                 foreach(var member in moveMembers)
                 {
-                    member.Value.RankUuid = nextRank.Uuid;
+                    member.Value.RankGuid = nextRank.Guid;
                     GameLog.Info($"Guild {Name}: Member {member.Value.Name} moved to rank {nextRank.Name} due to rank deletion");
                 }
 
@@ -173,18 +175,16 @@ namespace Hybrasyl
                 Ranks.Remove(lowestRank);
                 GameLog.Info($"Guild {Name}: Deleted rank {lowestRank.Name}");
             }
-
         }
 
-        public (string GuildName, string Rank ) GetUserDetails(string uuid)
+        public (string GuildName, string Rank ) GetUserDetails(Guid guid)
         {
-            var member = Members.FirstOrDefault(x => x.Key == uuid);
+            var member = Members.FirstOrDefault(x => x.Key == guid);
 
             var guildName = Name;
-            var rank = Ranks.FirstOrDefault(x => x.Uuid == member.Value.RankUuid);
+            var rank = Ranks.FirstOrDefault(x => x.Guid == member.Value.RankGuid);
 
             return (guildName, rank.Name);
-
         }
 
 
@@ -202,7 +202,7 @@ namespace Hybrasyl
             var ret = new Dictionary<string, string>();
             foreach(var member in Members)
             {
-                var rank = Ranks.FirstOrDefault(x => x.Uuid == member.Value.RankUuid).Name;
+                var rank = Ranks.FirstOrDefault(x => x.Guid == member.Value.RankGuid).Name;
                 ret.Add(member.Value.Name, rank);
             }
             return ret;
@@ -212,14 +212,15 @@ namespace Hybrasyl
     [JsonObject(MemberSerialization.OptIn)]
     public class GuildCharter
     {
-        [JsonProperty]
-        public string Uuid { get; set; }
+        [JsonProperty] 
+        public Guid Guid { get; set; } = Guid.NewGuid();
         [JsonProperty]
         public string GuildName { get; set; }
         [JsonProperty]
-        public string LeaderUuid { get; set; }
-        [JsonProperty]
-        public Dictionary<string, string> Supporters { get; set; }
+        public Guid LeaderGuid { get; set; }
+
+        [JsonProperty] 
+        public List<Guid> Supporters { get; set; } = new();
         
 
         public GuildCharter()
@@ -230,12 +231,11 @@ namespace Hybrasyl
         public GuildCharter(string guildName)
         {
             GuildName = guildName;
-            Supporters = new Dictionary<string, string>();
         }
 
         public bool AddSupporter(User user)
         {
-            Supporters.Add(user.Uuid, user.Name);
+            Supporters.Add(user.Guid);
             return true;
         }
 
@@ -243,18 +243,7 @@ namespace Hybrasyl
         {
             if(Supporters.Count == 10)
             {
-                var leader = Game.World.WorldData.Get<User>(LeaderUuid);
-                var founders = new List<User>();
-
-                foreach(var supporter in Supporters)
-                {
-                    //get user by name, switch to uuid once that conversion is complete
-                    var user = Game.World.WorldData.Get<User>(supporter.Value);
-
-                    founders.Add(user);
-                }
-
-                var guild = new Guild(GuildName, leader, founders);
+                var guild = new Guild(GuildName, LeaderGuid, Supporters);
                 guild.Save();
 
                 return true;

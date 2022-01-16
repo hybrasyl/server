@@ -81,6 +81,10 @@ namespace Hybrasyl.Xml
             }
         }
 
+        // Helper functions to deal with xml vagaries
+        public List<AddStatus> AddStatuses => Effects.Statuses?.Add ?? new List<AddStatus>();
+        public List<string> RemoveStatuses => Effects.Statuses?.Remove ?? new List<string>();
+        public List<CastableReactor> Reactors => Effects?.Reactors ?? new List<CastableReactor>();
         public byte CastableLevel { get; set; }
 
         public DateTime LastCast { get; set; }

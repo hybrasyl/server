@@ -39,7 +39,7 @@ namespace Hybrasyl.Messaging
         [JsonProperty] public string Name;
         [JsonProperty] public string DisplayName;
         [JsonProperty] public List<Message> Messages;
-        [JsonProperty] public string Guid;
+        [JsonProperty] public Guid Guid;
         [JsonProperty] public short CurrentId;
         public int Id;
 
@@ -52,7 +52,7 @@ namespace Hybrasyl.Messaging
         {
             Name = name;
             IsSaving = false;
-            Guid = System.Guid.NewGuid().ToString();
+            Guid = Guid.NewGuid();
             CurrentId = 0;
             Lock = new object();
             Messages = new List<Message>();

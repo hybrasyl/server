@@ -359,7 +359,7 @@ namespace Hybrasyl
     public class Vault
     {
         [JsonProperty]
-        public string OwnerUuid { get; set; }
+        public Guid OwnerGuid { get; set; }
         [JsonProperty]
         public uint GoldLimit { get; private set; }
         [JsonProperty]
@@ -373,28 +373,28 @@ namespace Hybrasyl
         public ushort RemainingItems => (ushort)(ItemLimit - CurrentItemCount);
         public bool IsSaving;
 
-        public string StorageKey => string.Concat(GetType(), ':', OwnerUuid);
+        public string StorageKey => string.Concat(GetType(), ':', OwnerGuid);
 
         [JsonProperty]
         public Dictionary<string, uint> Items { get; private set; } //item name, quantity
 
         public Vault() { }
 
-        public Vault(string ownerUuid)
+        public Vault(Guid ownerGuid)
         {
             GoldLimit = uint.MaxValue;
             ItemLimit = ushort.MaxValue;
             CurrentGold = 0;
             Items = new Dictionary<string, uint>();
-            OwnerUuid = ownerUuid;
+            OwnerGuid = ownerGuid;
         }
 
-        public Vault(string ownerUuid, uint goldLimit, ushort itemLimit)
+        public Vault(Guid ownerGuid, uint goldLimit, ushort itemLimit)
         {
             GoldLimit = goldLimit;
             ItemLimit = itemLimit;
             Items = new Dictionary<string, uint>();
-            OwnerUuid = ownerUuid;
+            OwnerGuid = ownerGuid;
         }
         
         public bool AddGold(uint gold)
@@ -403,12 +403,12 @@ namespace Hybrasyl
             {
                 CurrentGold += gold;
 
-                GameLog.Info($"{gold} gold added to vault {OwnerUuid}");
+                GameLog.Info($"{gold} gold added to vault {OwnerGuid}");
                 return true;
             }
             else
             {
-                GameLog.Info($"Attempt to add {gold} gold to vault {OwnerUuid}, but only {RemainingGold} available");
+                GameLog.Info($"Attempt to add {gold} gold to vault {OwnerGuid}, but only {RemainingGold} available");
                 return false;
             }
         }
@@ -418,12 +418,12 @@ namespace Hybrasyl
             if (gold <= CurrentGold)
             {
                 CurrentGold -= gold;
-                GameLog.Info($"{gold} gold removed from vault {OwnerUuid}");
+                GameLog.Info($"{gold} gold removed from vault {OwnerGuid}");
                 return true;
             }
             else
             {
-                GameLog.Info($"Attempt to remove {gold} gold from vault {OwnerUuid}, but only {CurrentGold} available");
+                GameLog.Info($"Attempt to remove {gold} gold from vault {OwnerGuid}, but only {CurrentGold} available");
                 return false;
             }
         }
@@ -435,18 +435,18 @@ namespace Hybrasyl
                 if(Items.ContainsKey(itemName))
                 {
                     Items[itemName] += quantity;
-                    GameLog.Info($"{itemName} [{quantity}] added to existing item in vault {OwnerUuid}");
+                    GameLog.Info($"{itemName} [{quantity}] added to existing item in vault {OwnerGuid}");
                 }
                 else
                 {
                     Items.Add(itemName, quantity);
-                    GameLog.Info($"{itemName} [{quantity}] added as new item in vault {OwnerUuid}");
+                    GameLog.Info($"{itemName} [{quantity}] added as new item in vault {OwnerGuid}");
                 }
                 return true;
             }
             else
             {
-                GameLog.Info($"Attempt to add {itemName} [{quantity}] to vault {OwnerUuid}, but user doesn't have it?");
+                GameLog.Info($"Attempt to add {itemName} [{quantity}] to vault {OwnerGuid}, but user doesn't have it?");
                 return false;
             }
         }
@@ -458,12 +458,12 @@ namespace Hybrasyl
                 if(Items[itemName] > quantity)
                 {
                     Items[itemName] -= quantity;
-                    GameLog.Info($"{itemName} [{quantity}] removed from existing item in vault {OwnerUuid}");
+                    GameLog.Info($"{itemName} [{quantity}] removed from existing item in vault {OwnerGuid}");
                 }
                 else
                 {
                     Items.Remove(itemName);
-                    GameLog.Info($"{itemName} removed from vault {OwnerUuid}");
+                    GameLog.Info($"{itemName} removed from vault {OwnerGuid}");
                 }
                 return true;
             }
@@ -479,7 +479,7 @@ namespace Hybrasyl
             IsSaving = true;
             var cache = World.DatastoreConnection.GetDatabase();
             cache.Set(StorageKey, this);
-            Game.World.WorldData.Set<Vault>(OwnerUuid, this);
+            Game.World.WorldData.Set<Vault>(OwnerGuid, this);
             IsSaving = false;
         }
     }
@@ -491,24 +491,24 @@ namespace Hybrasyl
     {
         //strings are guid identifiers
         [JsonProperty]
-        public string GuildMasterUuid { get; private set; } //no restrictions
+        public Guid GuildMasterGuid { get; private set; } //no restrictions
         [JsonProperty]
-        public List<string> AuthorizedViewerUuids { get; private set; } //authorized to see what is stored, but cannot withdraw
+        public List<Guid> AuthorizedViewerGuids { get; private set; } //authorized to see what is stored, but cannot withdraw
         [JsonProperty]
-        public List<string> AuthorizedWithdrawerUuids { get; private set; } //authorized to withdraw,  up to limit
+        public List<Guid> AuthorizedWithdrawalGuids { get; private set; } //authorized to withdraw,  up to limit
         [JsonProperty]
-        public List<string> CouncilMemberUuids { get; private set; } //possible restrictions?
+        public List<Guid> CouncilMemberGuids { get; private set; } //possible restrictions?
         [JsonProperty]
-        public int AuthorizedWithdrawerLimit { get;  private set; }
+        public int AuthorizedWithdrawalLimit { get;  private set; }
         [JsonProperty]
         public int CouncilMemberLimit { get; private set; }
 
         public GuildVault() : base()
         { }
-        public GuildVault(string ownerUuid) : base(ownerUuid)
+        public GuildVault(Guid ownerGuid) : base(ownerGuid)
         { }
 
-        public GuildVault(string ownerUuid, uint goldLimit, ushort itemLimit) : base(ownerUuid, goldLimit, itemLimit) { }
+        public GuildVault(Guid ownerGuid, uint goldLimit, ushort itemLimit) : base(ownerGuid, goldLimit, itemLimit) { }
     }
 
     public class Parcel
@@ -546,24 +546,23 @@ namespace Hybrasyl
     {
         private readonly object _lock = new object();
 
-        [JsonProperty]
-        public string OwnerUuid { get; set; }
-        [JsonProperty]
-        public List<Parcel> Items { get; set; } //storage id, named tuple
-        [JsonProperty]
-        public List<Moneygram> Gold { get; set; } //storage id, named tuple
+        [JsonProperty] public Guid OwnerGuid { get; set; }
+        [JsonProperty] public List<Parcel> Items { get; set; } //storage id, named tuple
+        [JsonProperty] public List<Moneygram> Gold { get; set; } //storage id, named tuple
 
         public bool IsSaving;
 
-        public string StorageKey => string.Concat(GetType(), ':', OwnerUuid);
+        public string StorageKey => string.Concat(GetType(), ':', OwnerGuid);
 
-        public ParcelStore() { }
+        public ParcelStore()
+        {
+        }
 
-        public ParcelStore(string ownerUuid)
+        public ParcelStore(Guid ownerGuid)
         {
             Items = new List<Parcel>();
             Gold = new List<Moneygram>();
-            OwnerUuid = ownerUuid;
+            OwnerGuid = ownerGuid;
         }
 
         public void Save()
@@ -574,7 +573,7 @@ namespace Hybrasyl
                 IsSaving = true;
                 var cache = World.DatastoreConnection.GetDatabase();
                 cache.Set(StorageKey, this);
-                Game.World.WorldData.Set<ParcelStore>(OwnerUuid, this);
+                Game.World.WorldData.Set(OwnerGuid, this);
                 IsSaving = false;
             }
         }
@@ -583,9 +582,10 @@ namespace Hybrasyl
         {
             lock (_lock)
             {
-                
+
                 Items.Add(new Parcel(sender, item, quantity));
             }
+
             Save();
         }
 
@@ -593,8 +593,9 @@ namespace Hybrasyl
         {
             lock (_lock)
             {
-                var parcel = Items.FirstOrDefault();
-                if(receiver.AddItem(parcel.Item, (ushort)parcel.Quantity))
+                if (Items.Count == 0) return;
+                var parcel = Items.First();
+                if (receiver.AddItem(parcel.Item, (ushort) parcel.Quantity))
                 {
                     receiver.SendSystemMessage($"Your package from {parcel.Sender} has been delivered.");
                     Items.RemoveAt(0);
@@ -604,30 +605,33 @@ namespace Hybrasyl
                     receiver.SendSystemMessage($"Sorry, you can't receive the package from {parcel.Sender} right now.");
                 }
             }
+
             Save();
         }
 
         public void AddGold(string sender, uint quantity)
         {
-            lock(_lock)
+            lock (_lock)
             {
                 Gold.Add(new Moneygram(sender, quantity));
             }
+
             Save();
         }
 
         public void RemoveGold(User receiver)
         {
-            lock(_lock)
+            lock (_lock)
             {
                 var gold = Gold.FirstOrDefault();
 
-                if(receiver.AddGold(gold.Amount))
+                if (receiver.AddGold(gold.Amount))
                 {
                     receiver.SendSystemMessage($"Your gold from {gold.Sender} has been delivered.");
                     Items.RemoveAt(0);
                 }
             }
+
             Save();
         }
     }

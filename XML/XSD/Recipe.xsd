@@ -47,13 +47,13 @@
   </xs:complexType>
 
   <xs:complexType name="Recipe">
-    <xs:all minOccurs="1" maxOccurs="1">
+    <xs:sequence>
       <xs:element name="Name" type="hyb:String8"/>
       <xs:element name="Item" type="hyb:RecipeItem"/>
       <xs:element name="Duration" type="hyb:RecipeDuration"/>
       <xs:element name="Description" type="hyb:String8"/>
       <xs:element name="Ingredients" type="RecipeIngredients"/>
-    </xs:all>
+    </xs:sequence>
   </xs:complexType>
 
   <xs:element name="Recipe" type="hyb:Recipe"/>

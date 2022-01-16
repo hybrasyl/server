@@ -1,4 +1,5 @@
 ﻿/*
+/*
  * This file is part of Project Hybrasyl.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -58,12 +59,9 @@ namespace Hybrasyl.Objects
 
         public string StorageKey => string.Concat(GetType().Name, ':', Name.ToLower());
 
-        [JsonProperty]
-        public string Uuid { get; set; }
-        public UuidReference UuidReference => Game.World.WorldData.GetUuidReference(this);
+        public GuidReference GuidReference => Game.World.WorldData.GetGuidReference(this);
 
-        [JsonProperty]
-        public string AccountUuid { get; set; }
+        [JsonProperty] public Guid AccountGuid { get; set; } = Guid.Empty;
 
         private Client Client;
         public bool Connected => Client?.Connected ?? false;
@@ -100,10 +98,10 @@ namespace Hybrasyl.Objects
             }
         }
 
-        public Mailbox Mailbox => Game.World.WorldData.GetOrCreateByUuid<Mailbox>(Uuid, Name);
-        public SentMail SentMailbox => Game.World.WorldData.GetOrCreateByUuid<SentMail>(Uuid, Name);
-        public Vault Vault => Game.World.WorldData.GetOrCreateByUuid<Vault>(AccountUuid ?? Uuid, Name);
-        public ParcelStore ParcelStore => Game.World.WorldData.GetOrCreateByUuid<ParcelStore>(Uuid, Name);
+        public Mailbox Mailbox => Game.World.WorldData.GetOrCreateByGuid<Mailbox>(Guid, Name);
+        public SentMail SentMailbox => Game.World.WorldData.GetOrCreateByGuid<SentMail>(Guid, Name);
+        public Vault Vault => Game.World.WorldData.GetOrCreateByGuid<Vault>(AccountGuid == Guid.Empty ? Guid : AccountGuid);
+        public ParcelStore ParcelStore => Game.World.WorldData.GetOrCreateByGuid<ParcelStore>(Guid, Name);
         public bool UnreadMail => Mailbox.HasUnreadMessages;
         public bool HasParcels => ParcelStore.Items.Count > 0;
        
@@ -132,7 +130,7 @@ namespace Hybrasyl.Objects
 
         #region User 
         // Some structs helping us to define various metadata 
-        public AuthInfo AuthInfo => Game.World.WorldData.GetOrCreateByUuid<AuthInfo>(Uuid, Name);
+        public AuthInfo AuthInfo => Game.World.WorldData.GetOrCreateByGuid<AuthInfo>(Guid, Name);
  
         [JsonProperty]
         public SkillBook SkillBook { get; private set; }
@@ -163,8 +161,7 @@ namespace Hybrasyl.Objects
         [JsonProperty]
         public List<KillRecord> RecentKills { get; private set; }
 
-        [JsonProperty]
-        public string GuildUuid { get; set; }
+        [JsonProperty] public Guid GuildGuid { get; set; } = Guid.Empty;
 
         public List<string> UseCastRestrictions => _currentStatuses.Select(e => e.Value.UseCastRestrictions).Where(e => e != string.Empty).ToList();
         public List<string> ReceiveCastRestrictions => _currentStatuses.Select(e => e.Value.ReceiveCastRestrictions).Where(e => e != string.Empty).ToList();
@@ -1005,10 +1002,10 @@ namespace Hybrasyl.Objects
 
         private (string GuildName, string GuildRank) GetGuildInfo()
         {
-            var guild = World.WorldData.Get<Guild>(GuildUuid);
+            var guild = World.WorldData.Get<Guild>(GuildGuid);
             if (guild == null) return ("", "");
 
-            return guild.GetUserDetails(GuildUuid);
+            return guild.GetUserDetails(GuildGuid);
         }
 
         private void SetValue(PropertyInfo info, object instance, object value)
@@ -1076,31 +1073,31 @@ namespace Hybrasyl.Objects
 
             var doors = GetDoorsCoordsInView(GetViewport());
 
-            if(doors.Count > 0)
+            if (doors.Count <= 0) return;
+            foreach(var door in doors)
             {
-                foreach(var door in doors)
-                {
-                    SendDoorUpdate(door.Item1, door.Item2, Map.Doors[door].Closed, Map.Doors[door].IsLeftRight);
-                }
+                SendDoorUpdate(door.Item1, door.Item2, Map.Doors[door].Closed, Map.Doors[door].IsLeftRight);
             }
 
         }
 
-        public List<Tuple<byte,byte>> GetDoorsCoordsInView(Rectangle viewPort)
+        public List<(byte X, byte Y)> GetDoorsCoordsInView(Rectangle viewPort)
         {
-            var ret = new List<Tuple<byte, byte>>();
+            var ret = new List<(byte X, byte Y)>();
 
-            for(int x = viewPort.X; x < viewPort.X + viewPort.Width; x++)
+            for (var x = viewPort.X; x < viewPort.X + viewPort.Width; x++)
             {
-                for(int y = viewPort.Y; y < viewPort.Y + viewPort.Height; y++)
+                for (var y = viewPort.Y; y < viewPort.Y + viewPort.Height; y++)
                 {
-                    var loc = new Tuple<byte, byte>((byte)x, (byte)y);
-                    if (Map.Doors.ContainsKey(loc))
+                    var coords = ((byte) x, (byte) y);
+                    ;
+                    if (Map.Doors.ContainsKey(coords))
                     {
-                        ret.Add(loc);
+                        ret.Add(coords);
                     }
                 }
             }
+
             return ret;
         }
 
@@ -1428,7 +1425,7 @@ namespace Hybrasyl.Objects
             var color = helmcolor == 0 ? HairColor : helmcolor;
             // Why is this so difficult?
             var bootSprite = Equipment.Armor?.HideBoots ?? false ? 0 : Equipment.Boots?.DisplaySprite ?? 0;
-            (client ?? Client).Enqueue(new ServerPacketStructures.DisplayUser()
+            (client ?? Client)?.Enqueue(new ServerPacketStructures.DisplayUser()
             {
                 X = X,
                 Y = Y,
@@ -1890,8 +1887,8 @@ namespace Hybrasyl.Objects
                     break;
             }
             var isWarp = Map.Warps.TryGetValue(new Tuple<byte, byte>((byte)newX, (byte)newY), out Warp targetWarp);
-            var isReactor = Map.Reactors.TryGetValue(new Tuple<byte, byte>((byte)newX, (byte)newY), out Reactor newReactor);
-            var wasReactor = Map.Reactors.TryGetValue(new Tuple<byte, byte>((byte)oldX, (byte)oldY), out Reactor oldReactor);
+            var isReactors = Map.Reactors.TryGetValue(((byte)newX, (byte)newY), out var newReactors);
+            var wasReactors = Map.Reactors.TryGetValue(((byte)oldX, (byte)oldY), out var oldReactors);
 
             // Now that we know where we are going, perform some sanity checks.
             // Is the player trying to walk into a wall, or off the map?
@@ -1912,7 +1909,7 @@ namespace Hybrasyl.Objects
                 // Is the player trying to walk into an occupied tile?
                 foreach (var obj in Map.GetTileContents((byte)newX, (byte)newY))
                 {
-                    GameLog.DebugFormat("Collsion check: found obj {0}", obj.Name);
+                    GameLog.DebugFormat("Collision check: found obj {0}", obj.Name);
                     if (obj is Creature)
                     {
                         GameLog.DebugFormat("Walking prohibited: found {0}", obj.Name);
@@ -1929,7 +1926,7 @@ namespace Hybrasyl.Objects
                         Refresh();
                         return false;
                     }
-                    else if (targetWarp.MaximumLevel < Stats.Level)
+                    if (targetWarp.MaximumLevel < Stats.Level)
                     {
                         Client.SendMessage("Your honor forbids you from entering.", 3);
                         Refresh();
@@ -1937,7 +1934,7 @@ namespace Hybrasyl.Objects
                     }
                 }
                 // Is the user trying to move into a reactor tile with blocking (meaning the reactor can't be "walked" on)?
-                if (isReactor && newReactor.Blocking)
+                if (isReactors && newReactors.Values.Any(x => x.Blocking))
                 {
                     Client.SendMessage("Your path is blocked!", 3);
                     Refresh();
@@ -2017,10 +2014,17 @@ namespace Hybrasyl.Objects
             }
 
             // Handle stepping onto a reactor, leaving a reactor, or both
-            if (isReactor)
-                newReactor.OnEntry(this);
-            if (wasReactor)
-                oldReactor.OnLeave(this);
+            if (isReactors)
+            {
+                foreach (var reactor in newReactors.Values)
+                    reactor.OnEntry(this);
+            }
+
+            if (wasReactors)
+            {
+                foreach (var reactor in oldReactors.Values)
+                    reactor.OnLeave(this);
+            }
 
             HasMoved = true;
             Map.EntityTree.Move(this);
@@ -3967,9 +3971,9 @@ namespace Hybrasyl.Objects
                 SendInventory();
                 prompt = merchant.GetLocalString("send_parcel_success");
 
-                var uuidRef = World.WorldData.GetUuidReference(recipient);
-                var parcelStore = World.WorldData.GetOrCreate<ParcelStore>(uuidRef);
-                var recipientMailbox = World.WorldData.GetOrCreate<Mailbox>(uuidRef);
+                var guidRef = World.WorldData.GetGuidReference(recipient);
+                var parcelStore = World.WorldData.GetOrCreate<ParcelStore>(guidRef);
+                var recipientMailbox = World.WorldData.GetOrCreate<Mailbox>(guidRef);
                 var mboxString = merchant.GetLocalString("send_parcel_mailbox_message", 
                     ("$SENDER", Name), ("$ITEM", $"{itemObj.Name} (qty {quantity})"));
 
@@ -4979,9 +4983,9 @@ namespace Hybrasyl.Objects
         }
         public void SendSkills()
         {
-            for (byte i = 0; i < this.SkillBook.Size; i++)
+            for (byte i = 0; i < SkillBook.Size; i++)
             {
-                if (this.SkillBook[i] != null)
+                if (SkillBook[i]?.Castable != null)
                 {
                     SendSkillUpdate(SkillBook[i], i);
                 }
@@ -4989,9 +4993,9 @@ namespace Hybrasyl.Objects
         }
         public void SendSpells()
         {
-            for (byte i = 0; i < this.SpellBook.Size; i++)
+            for (byte i = 0; i < SpellBook.Size; i++)
             {
-                if (this.SpellBook[i] != null)
+                if (SpellBook[i]?.Castable != null)
                 {
                     SendSpellUpdate(SpellBook[i], i);
                 }

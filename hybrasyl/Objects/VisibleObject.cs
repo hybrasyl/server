@@ -286,10 +286,11 @@ namespace Hybrasyl.Objects
 
         public void DisplayPursuits(User invoker)
         {
-            var greeting = World.Strings.Merchant.FirstOrDefault(x => x.Key == "greeting");
             var optionsCount = 0;
-            var options = new MerchantOptions();
-            options.Options = new List<MerchantDialogOption>();
+            var options = new MerchantOptions
+            {
+                Options = new List<MerchantDialogOption>()
+            };
             var merchant = this as Merchant;
             if (merchant?.Jobs.HasFlag(MerchantJob.Vend) ?? false)
             {
@@ -377,7 +378,7 @@ namespace Hybrasyl.Objects
                 Color2 = 0,
                 PortraitType = 1,
                 Name = Name,
-                Text = greeting?.Value ?? string.Empty,
+                Text = World.GetLocalString("greeting"),
                 Options = options
             };
 

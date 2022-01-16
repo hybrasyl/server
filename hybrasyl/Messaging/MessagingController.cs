@@ -29,14 +29,14 @@ namespace Hybrasyl.Messaging
     internal static class MessagingController
     {
         public static ServerPacketStructures.MessagingResponse UnknownError =>
-            new ServerPacketStructures.MessagingResponse()
+            new()
             {
                 ResponseString = "An unknown error occurred.",
                 ResponseType = BoardResponseType.EndResult,
                 ResponseSuccess = false
             };
 
-        public static ServerPacketStructures.MessagingResponse BoardList(UuidReference userRef)
+        public static ServerPacketStructures.MessagingResponse BoardList(GuidReference userRef)
         {
             var boards = new List<(ushort Id, string Name)>();
 
@@ -59,7 +59,7 @@ namespace Hybrasyl.Messaging
             };
         }
 
-        public static ServerPacketStructures.MessagingResponse GetMessageList(UuidReference userRef, ushort boardId, short startPostId, bool isClick = false)
+        public static ServerPacketStructures.MessagingResponse GetMessageList(GuidReference userRef, ushort boardId, short startPostId, bool isClick = false)
         {
             MessageStore store;
             var displayname = string.Empty;
@@ -103,7 +103,7 @@ namespace Hybrasyl.Messaging
             };
         }
 
-        public static ServerPacketStructures.MessagingResponse GetMessage(UuidReference userRef, short postId, sbyte offset, ushort boardId)
+        public static ServerPacketStructures.MessagingResponse GetMessage(GuidReference userRef, short postId, sbyte offset, ushort boardId)
         {
             Message message = null;
             string error = "An unknown error occured.";
@@ -204,7 +204,7 @@ namespace Hybrasyl.Messaging
             };
         }
 
-        public static ServerPacketStructures.MessagingResponse DeleteMessage(UuidReference userRef, ushort boardId, ushort postId)
+        public static ServerPacketStructures.MessagingResponse DeleteMessage(GuidReference userRef, ushort boardId, ushort postId)
         {
             var response = string.Empty;
             var success = false;
@@ -263,7 +263,7 @@ namespace Hybrasyl.Messaging
             };
         }
 
-        public static ServerPacketStructures.MessagingResponse SendMessage(UuidReference senderRef, ushort boardId, string recipient, string subject, string body)
+        public static ServerPacketStructures.MessagingResponse SendMessage(GuidReference senderRef, ushort boardId, string recipient, string subject, string body)
         {
             var response = string.Empty;
             var success = true;
@@ -350,7 +350,7 @@ namespace Hybrasyl.Messaging
             // both here
             if (boardId == 0 && success)
             {
-                var receiverRef = Game.World.WorldData.GetUuidReference(recipient);
+                var receiverRef = Game.World.WorldData.GetGuidReference(recipient);
                 if (receiverRef == null)
                 {
                     success = false;
@@ -430,7 +430,7 @@ namespace Hybrasyl.Messaging
             };
         }
 
-        public static ServerPacketStructures.MessagingResponse HighlightMessage(UuidReference userRef, ushort boardId, short postId)
+        public static ServerPacketStructures.MessagingResponse HighlightMessage(GuidReference userRef, ushort boardId, short postId)
         {
             string response = string.Empty;
             var success = false;

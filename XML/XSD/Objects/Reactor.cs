@@ -42,7 +42,6 @@ public partial class Reactor
         _allowDead = false;
     }
     
-    [StringLengthAttribute(65534, MinimumLength=1)]
     public string Description
     {
         get
@@ -55,7 +54,6 @@ public partial class Reactor
         }
     }
     
-    [StringLengthAttribute(255, MinimumLength=1)]
     public string Script
     {
         get

@@ -50,7 +50,7 @@ namespace Hybrasyl.Objects
             if (!IsMessageboard)
                 invoker.SendMessage(Message, Message.Length < 1024 ? (byte)MessageTypes.SLATE : (byte)MessageTypes.SLATE_WITH_SCROLLBAR);
             else
-                invoker.Enqueue(MessagingController.GetMessageList(invoker.UuidReference, (ushort)Board.Id, 0, true).Packet());
+                invoker.Enqueue(MessagingController.GetMessageList(invoker.GuidReference, (ushort)Board.Id, 0, true).Packet());
 
         }
     }

@@ -23,7 +23,7 @@ git checkout ${XSDPATH}/ElementTableTargetElement.cs
 git checkout ${XSDPATH}/EquipmentRestriction.cs
 git checkout ${XSDPATH}/SpawnDamage.cs
 git checkout ${XSDPATH}/SpawnDefense.cs
-git checkout ${XSDPATH}/MonsterFormulaSet.cs
+#git checkout ${XSDPATH}/MonsterFormulaSet.cs
 
 # Below doesn't seem to be required with xsd2code 6?
 
