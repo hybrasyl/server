@@ -64,7 +64,10 @@ namespace Hybrasyl.Scripting
         /// The type of object this is. This is a shortcut to reference in scripting as evaluating type is annoying; so you can check the Type property instead.
         /// e.g. invoker.Type == "player"
         /// </summary>
-        public string Type => "player";
+        public static string Type => "player";
+
+        // TODO: object inheritance for scripting objects
+        public static bool IsPlayer => true;
         /// <summary>
         /// The direction this object is facing.
         /// </summary>

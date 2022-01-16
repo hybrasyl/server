@@ -45,7 +45,7 @@ namespace Hybrasyl.Objects
         public virtual byte X { get; set; }
         public virtual byte Y { get; set; }
         public uint Id { get; set; }
-        [JsonProperty(Order = 0)] public Guid Guid { get; set; } = Guid.Empty;
+        [JsonProperty(Order = 0)] public Guid Guid { get; set; } = Guid.NewGuid();
 
         [JsonProperty(Order = 0)]
         public virtual string Name { get; set; }

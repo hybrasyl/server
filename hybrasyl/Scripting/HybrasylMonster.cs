@@ -14,6 +14,7 @@ namespace Hybrasyl.Scripting
         internal Monster Monster { get; set; }
         internal HybrasylWorld World { get; set; }
         internal HybrasylMap Map { get; set; }
+        public bool IsPlayer => false;
 
         public string Name => Monster.Name;
 

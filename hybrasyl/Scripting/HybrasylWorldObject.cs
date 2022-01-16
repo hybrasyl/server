@@ -38,6 +38,8 @@ namespace Hybrasyl.Scripting
     {
         internal WorldObject Obj { get; set; }
         // TODO: create HybrasylItemObject pls
+        public static bool IsPlayer => false;
+
         internal List<string> Categories
         {
             get

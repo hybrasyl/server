@@ -233,7 +233,7 @@
       <xs:attribute name="Sprite" default="0" type="xs:unsignedShort"/>
 	  <xs:attribute name="Script" default="0" type="xs:string" />
       <xs:attribute name="Expiration" default="0" type="xs:int" />
-      <xs:attribute name="Uses" default="0" type="xs:int" />
+      <xs:attribute name="Uses" default="1" type="xs:int" />
       <xs:attribute name="Blocking" default="false" type="xs:boolean"/>
 	</xs:complexType>
 

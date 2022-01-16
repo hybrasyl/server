@@ -123,7 +123,11 @@ namespace HybrasylTests
                     BaseDex = 100, 
                     BaseCon = 100, 
                     BaseWis = 100,
-                    Level = 99
+                    Level = 99,
+                    BaseHp = 10000,
+                    Hp = 10000,
+                    BaseMp = 10000,
+                    Mp = 10000
                 }
             };
             TestUser.AuthInfo.Save();

@@ -44,7 +44,7 @@ public partial class CastableReactor
         _sprite = ((ushort)(0));
         _script = "0";
         _expiration = 0;
-        _uses = 0;
+        _uses = 1;
         _blocking = false;
     }
     
@@ -119,7 +119,7 @@ public partial class CastableReactor
     }
     
     [XmlAttribute]
-    [DefaultValue(0)]
+    [DefaultValue(1)]
     public int Uses
     {
         get

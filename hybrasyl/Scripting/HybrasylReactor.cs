@@ -13,11 +13,18 @@ namespace Hybrasyl.Scripting
     public class HybrasylReactor
     {
         internal Reactor Reactor { get; set; }
+        public static bool IsPlayer => false;
         public HybrasylUser Origin => Reactor.Origin is User u ? new HybrasylUser(u) : null;
         public byte X => Reactor.X;
         public byte Y => Reactor.Y;
         public bool Blocking => Reactor.Blocking;
-        public int Uses => Reactor.Uses;
+
+        public int Uses
+        {
+            get => Reactor.Uses;
+            set => Reactor.Uses = value;
+        }
+        public bool Expired => Reactor.Expired;
         public long Expiration => ((DateTimeOffset)Reactor.Expiration).ToUnixTimeSeconds();
 
         public HybrasylReactor(Reactor obj)

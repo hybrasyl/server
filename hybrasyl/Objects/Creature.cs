@@ -591,6 +591,9 @@ namespace Hybrasyl.Objects
                         new Reactor(actualX, actualY, tar.Map, reactor.Script,
                             reactor.Expiration, $"{Name}'s {castObject.Name}", reactor.Blocking);
                     reactorObj.Sprite = reactor.Sprite;
+                    reactorObj.CreatedBy = Guid;
+                    reactorObj.Uses = reactor.Uses;
+                    World.Insert(reactorObj);
                     tar.Map.InsertReactor(reactorObj);
                     reactorObj.OnSpawn();
                 }
