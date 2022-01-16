@@ -38,13 +38,14 @@ namespace Hybrasyl.Objects
         /// <summary>
         /// The rectangle that defines the object's boundaries.
         /// </summary>
-        public Rectangle Rect => new Rectangle(X, Y, 1, 1);
+        public Rectangle Rect => new(X, Y, 1, 1);
 
         public bool HasMoved { get; set; }
 
         public virtual byte X { get; set; }
         public virtual byte Y { get; set; }
         public uint Id { get; set; }
+        [JsonProperty(Order = 0)] public Guid Guid { get; set; } = Guid.Empty;
 
         [JsonProperty(Order = 0)]
         public virtual string Name { get; set; }
@@ -82,7 +83,7 @@ namespace Hybrasyl.Objects
         public bool ClearEphemeral(string key)
         {
             lock (_storeLock)
-                return _ephemeralStore.ContainsKey(key) ? _ephemeralStore.Remove(key) : false;
+                return _ephemeralStore.ContainsKey(key) && _ephemeralStore.Remove(key);
         }
 
         public bool TryGetEphemeral(string key, out dynamic value)
@@ -91,7 +92,7 @@ namespace Hybrasyl.Objects
                 return _ephemeralStore.TryGetValue(key, out value);
         }
 
-	public WorldObject()
+        public WorldObject()
         {
             Name = string.Empty;
             ResetPursuits();

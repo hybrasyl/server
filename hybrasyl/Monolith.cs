@@ -48,8 +48,9 @@ namespace Hybrasyl
 
         public void LoadSpawns(Map map)
         {
-            var spawnlist = new List<Xml.Spawn>();
+            if (map.SpawnDirectives?.Spawns == null) return;
 
+            var spawnlist = new List<Xml.Spawn>();
             foreach (var spawn in map.SpawnDirectives.Spawns)
             {
                 // This references another group

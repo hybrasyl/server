@@ -138,11 +138,6 @@ namespace Hybrasyl.Scripting
         {
             if (obj == null)
                 return DynValue.NewNil();
-            if (obj is Monster mob)
-            {
-                var m = new HybrasylMonster(mob);
-                var q = UserData.Create(m);
-            }
 
             return obj switch
             {
@@ -207,8 +202,7 @@ namespace Hybrasyl.Scripting
             }
             else
             {
-                string retstr;
-                retstr = $"\nC# exception, perhaps caused by Lua script code: STACK: {ex.StackTrace}\n ERR:{ex.Message}";
+                var retstr = $"\nC# exception, perhaps caused by Lua script code: STACK: {ex.StackTrace}\n ERR:{ex.Message}";
                 if (ex.InnerException != null)
                     retstr = $"{retstr}\nINNER STACK TRACE: {ex.InnerException.StackTrace}\n INNER ERR: {ex.InnerException.Message}";
                 return retstr;

@@ -33,6 +33,7 @@ using Serilog.Core;
 using Serilog.Events;
 using System.Threading.Tasks;
 using System.Net.Http;
+using System.Reflection.PortableExecutable;
 using Newtonsoft.Json.Linq;
 using Sentry;
 using App.Metrics;
@@ -126,12 +127,12 @@ namespace Hybrasyl
             // For a true restart we'll need to do a few other things; stop timers, etc.
 
             CancellationTokenSource.Cancel();
-            Lobby.Shutdown();
-            Login.Shutdown();
-            World.Shutdown();
+            Lobby?.Shutdown();
+            Login?.Shutdown();
+            World?.Shutdown();
             // Stop consumers, which will also empty queues
-            World.StopQueueConsumer();
-            World.StopControlConsumers();
+            World?.StopQueueConsumer();
+            World?.StopControlConsumers();
            
             Thread.Sleep(2000);
             Log.Warning("Hybrasyl {Version}: shutdown complete.", Assemblyinfo.Version);
@@ -155,7 +156,8 @@ namespace Hybrasyl
             var startupDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Hybrasyl");
             var hybConfig = Path.Combine(startupDir, "config.xml");
 
-            var dataDirectory = string.Empty;
+            string dataDirectory = Path.Combine(startupDir, "world");
+            Log.Logger = new LoggerConfiguration().WriteTo.Console().CreateLogger();
 
             if (File.Exists(hybConfig))
             {
@@ -164,12 +166,16 @@ namespace Hybrasyl
                     Log.Information("Configuration file {file} loaded", hybConfig);
                     Config = gameConfig;
                     Config.InitializeClientSettings();
-                    if (Directory.Exists(Config.WorldDataDir))
+                    dataDirectory = string.IsNullOrEmpty(Config.WorldDataDir)
+                        ? startupDir
+                        : Config.WorldDataDir;
+                    if (!string.IsNullOrEmpty(Config.WorldDataDir) && Directory.Exists(Config.WorldDataDir))
                         dataDirectory = Config.WorldDataDir;
-                    else
+                    if (!Directory.Exists(dataDirectory))
                     {
-                        Log.Fatal("The world data directory specified in config.xml could not be found:");
-                        Log.Fatal($"{Config.WorldDataDir}\n. Please update your config to point to a valid world directory.");
+                        Log.Fatal(
+                            "The world data directory specified in config.xml (or a default) could not be found:");
+                        Log.Fatal($"{dataDirectory}\n. Please update your config to point to a valid world directory.");
                         Thread.Sleep(10000);
                         return;
                     }
@@ -219,7 +225,7 @@ namespace Hybrasyl
 
             // We log every LogType defined in our enumeration to its own file. Only the "general" type is sent to the console.
             var log = new LoggerConfiguration().MinimumLevel.ControlledBy(LevelSwitch).Enrich.WithThreadId().Enrich.WithExceptionData().
-                WriteTo.Map("LogType", "General", (name, wt) => wt.File($"{Path.Combine(Constants.DataDirectory, "logs")}/{name}-.log", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 90, rollOnFileSizeLimit: true)).
+                WriteTo.Map("LogType", "General", (name, wt) => wt.File($"{Path.Combine(dataDirectory, "logs")}/{name}-.log", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 90, rollOnFileSizeLimit: true)).
                 WriteTo.Logger(lc => lc.Filter.ByIncludingOnly(GameLog.IsGeneralEvent).WriteTo.Console())
                 .CreateLogger();
 
@@ -339,7 +345,7 @@ namespace Hybrasyl
             {
                 using (var stipulationWriter = new StreamWriter(stipulationStream, Encoding.ASCII, 1024, true))
                 {
-                    var serverMsgFileName = Path.Combine(Constants.DataDirectory, "server.msg");
+                    var serverMsgFileName = Path.Combine(dataDirectory, "server.msg");
 
                     if (File.Exists(serverMsgFileName))
                     {

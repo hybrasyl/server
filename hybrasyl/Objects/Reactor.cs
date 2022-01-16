@@ -20,6 +20,7 @@
  */
 
 using System;
+using System.Threading.Tasks;
 using Hybrasyl.Enums;
 using Hybrasyl.Scripting;
 
@@ -30,6 +31,7 @@ namespace Hybrasyl.Objects
         public DateTime CreatedAt { get; set; }
         public DateTime Expiration { get; set; } = default;
         public VisibleObject Origin { get; set; } = null;
+        public Guid CreatedBy { get; set; }
 
         public bool Ready
         {
@@ -53,6 +55,16 @@ namespace Hybrasyl.Objects
             Y = reactor.Y;
         }
 
+        public async Task OnExpiration()
+        {
+            while (!Expired)
+                await Task.Delay(5000);
+            Sprite = 0;
+            Show();
+            await Task.Delay(1000);
+            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.RemoveReactor, Map.Id, X, Y, Guid));
+        }
+
         public Reactor(byte x, byte y, Map map, string scriptName, int expiration = 0, string description = null, bool blocking = true) : base()
         {
             X = x;
@@ -62,11 +74,14 @@ namespace Hybrasyl.Objects
             ScriptName = scriptName;
             Blocking = blocking;
             CreatedAt = DateTime.Now;
-            if (expiration > 0)
-                Expiration = CreatedAt.AddSeconds(expiration);
+            if (expiration <= 0) return;
+            Expiration = CreatedAt.AddSeconds(expiration);
+            Task.Run(async () => await OnExpiration());
         }
 
-        public bool Expired => Expiration == default && Expiration < DateTime.Now;
+        public bool Expired => Expiration < DateTime.Now || Uses == 0;
+
+        public int Uses { get; set; } = -1;
         
         public void OnSpawn()
         {
@@ -157,7 +172,7 @@ namespace Hybrasyl.Objects
             p.WriteUInt16(X);
             p.WriteUInt16(Y);
             p.WriteUInt32(Id);
-            p.WriteUInt16(Sprite);
+            p.WriteUInt16((ushort)(Sprite + 0x8000));
             p.WriteByte(0); // random 1                                                                                                                                                                                                
             p.WriteByte(0); // random 2                                                                                                                                                                                                
             p.WriteByte(0); // random 3                                                                                                                                                                                                

@@ -81,7 +81,7 @@ namespace Hybrasyl.Scripting
         /// </summary>
         public uint Hp
         {
-            get { return User.Stats.Hp; }
+            get => User.Stats.Hp;
             set {
                 User.Stats.Hp = value;
                 User.UpdateAttributes(StatUpdateFlags.Current);
@@ -91,17 +91,17 @@ namespace Hybrasyl.Scripting
         /// <summary>
         /// The current level of the user. Client supports up to level 255; Hybrasyl has the same level cap as usda, 99. 
         /// </summary>
-        public int Level { get => User.Stats.Level; }
+        public int Level => User.Stats.Level;
 
         /// <summary>
         /// Amount of gold the user currently has.
         /// </summary>
-        public uint Gold { get => User.Gold; }
+        public uint Gold => User.Gold;
 
         /// <summary>
         /// Whether the user is alive or not.
         /// </summary>
-        public bool Alive { get => User.Condition.Alive; }
+        public bool Alive => User.Condition.Alive;
 
         /// <summary>
         /// Give the specified amount of gold to the user.
@@ -335,6 +335,12 @@ namespace Hybrasyl.Scripting
         }
 
         /// <summary>
+        /// Generate a list of reactors in the current user's viewport.
+        /// </summary>
+        /// <returns>List of HybrasylReactors in the viewport</returns>
+        public List<HybrasylReactor> GetReactorsInViewport() => User.Map.EntityTree.GetObjects(User.GetViewport()).Where(x => x is Reactor).Select(r => new HybrasylReactor(r as Reactor)).ToList();
+
+        /// <summary>
         /// Check to see whether the user has killed a named monster, optionally in the last n minutes.
         /// </summary>
         /// <param name="name">The name of the monster to check</param>
@@ -344,14 +350,18 @@ namespace Hybrasyl.Scripting
         {
             var ts = DateTime.Now;
             var matches = User.RecentKills.Where(x => x.Name.ToLower() == name.ToLower()).ToList();
-            if (matches.Count > 0 && minutes == 0)
-                return true;
-            else if (matches.Count > 0 && minutes > 0)
+            switch (matches.Count)
             {
-                foreach (var rec in matches)
+                case > 0 when minutes == 0:
+                    return true;
+                case > 0 when minutes > 0:
                 {
-                    if ((ts - rec.Timestamp).TotalMinutes <= minutes)
+                    if (matches.Any(rec => (ts - rec.Timestamp).TotalMinutes <= minutes))
+                    {
                         return true;
+                    }
+
+                    break;
                 }
             }
             return false;
@@ -1018,7 +1028,7 @@ namespace Hybrasyl.Scripting
         /// Indicates whether the current player is in a guild.
         /// </summary>
         /// <returns>Boolean indicating whether or not current player is in a guild.</returns>
-        public bool IsInGuild() => User.GuildUuid != null;
+        public bool IsInGuild() => User.GuildGuid != Guid.Empty;
         
         /// <summary>
         /// Sends a whisper ("blue message") from a given name to the current player.

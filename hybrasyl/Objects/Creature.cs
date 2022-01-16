@@ -590,6 +590,7 @@ namespace Hybrasyl.Objects
                     var reactorObj =
                         new Reactor(actualX, actualY, tar.Map, reactor.Script,
                             reactor.Expiration, $"{Name}'s {castObject.Name}", reactor.Blocking);
+                    reactorObj.Sprite = reactor.Sprite;
                     tar.Map.InsertReactor(reactorObj);
                     reactorObj.OnSpawn();
                 }
@@ -855,8 +856,13 @@ namespace Hybrasyl.Objects
                 }
             }
             // Have we entered a reactor?
-            if (Map.Reactors.TryGetValue((X,Y), out var reactor))
-                reactor.OnEntry(this);
+            if (Map.Reactors.TryGetValue((X, Y), out var reactors))
+            {
+                foreach (var r in reactors.Values)
+                {
+                    r.OnEntry(this);
+                }
+            }
 
             HasMoved = true;
             return true;

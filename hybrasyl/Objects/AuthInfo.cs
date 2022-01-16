@@ -18,7 +18,7 @@ namespace Hybrasyl
     public class AuthInfo
     {
         [JsonProperty]
-        public string UserUuid { get; set; }
+        public Guid UserGuid { get; set; }
 
         public bool IsLoggedIn => CurrentState == UserState.InWorld;
 
@@ -52,16 +52,16 @@ namespace Hybrasyl
         public DateTime LastPasswordChange { get; set; }
         [JsonProperty]
         public string LastPasswordChangeFrom { get; set; }
-        public string StorageKey => string.Concat(GetType(), ':', UserUuid);
+        public string StorageKey => $"{GetType()}:{UserGuid}";
         public bool IsSaving { get; set; }
         public bool IsGamemaster { get; set; }
 
-        public AuthInfo(string uuid)
+        public AuthInfo(Guid guid)
         {
-            UserUuid = uuid;
+            UserGuid = guid;
         }
 
-        public string Username => Game.World.WorldData.GetNameByUuid(UserUuid);
+        public string Username => Game.World.WorldData.GetNameByGuid(UserGuid);
 
         public void Save()
         {
@@ -69,7 +69,7 @@ namespace Hybrasyl
             IsSaving = true;
             var cache = World.DatastoreConnection.GetDatabase();
             cache.Set(StorageKey, this);
-            Game.World.WorldData.SetWithIndex<AuthInfo>(UserUuid, this, Username);
+            Game.World.WorldData.SetWithIndex(UserGuid, this, Username);
             IsSaving = false;
         }
 
@@ -78,22 +78,10 @@ namespace Hybrasyl
             return BCrypt.Net.BCrypt.Verify(password, PasswordHash);
         }
 
-        public bool IsPrivileged
-        {
-            get
-            {
-                return IsExempt || IsGamemaster || (Game.Config.Access?.IsPrivileged(Username) ?? false);
-            }
-        }
+        public bool IsPrivileged => IsExempt || IsGamemaster || (Game.Config.Access?.IsPrivileged(Username) ?? false);
 
-        public bool IsExempt
-        {
-            get
-            {
-                // This is hax, obvs, and so can you
-                return Username == "Kedian"; // ||(Account != null && Account.email == "baughj@discordians.net");
-            }
-        }
-
+        public bool IsExempt =>
+            // This is hax, obvs, and so can you
+            Username == "Kedian"; 
     }
 }

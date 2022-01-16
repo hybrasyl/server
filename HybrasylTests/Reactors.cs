@@ -20,7 +20,6 @@ public class Reactor
         Fixture = fixture;
     }
 
-
     [Fact]
     public void CastableReactorCreation()
     {
@@ -35,11 +34,16 @@ public class Reactor
         Assert.True(Fixture.TestUser.UseCastable(trapTest), "UseCastable failed");
         Assert.True(Fixture.Map.Reactors.Count > 0, "No reactors added to map?");
         
-        var reactor = Fixture.Map.Reactors.Values.First();
-        
+        var reactors = Fixture.Map.Reactors[(Fixture.TestUser.X, Fixture.TestUser.Y)];
+
+        Assert.Single(reactors.Values);
+
+        var reactor = reactors.Values.First();
+
         Assert.Equal(Fixture.TestUser.X, reactor.X);
         Assert.Equal(Fixture.TestUser.Y, reactor.Y);
-        
+        Assert.Equal(Fixture.TestUser.Guid, reactor.CreatedBy);
+
         Fixture.Map.Reactors.Clear();
     }
 
@@ -81,16 +85,20 @@ public class Reactor
         Assert.Equal(17, Fixture.TestUser.Y);
 
         Assert.True(bait.Walk(Direction.East), "Walk failed");
-        
-        var reactor = Fixture.TestUser.Map.Reactors.Values.First();
-        
+
+        var reactors = Fixture.Map.Reactors[(Fixture.TestUser.X, Fixture.TestUser.Y)];
+
+        Assert.Single(reactors.Values);
+
+        var reactor = reactors.Values.First();
+
         Assert.Equal(bait.X, reactor.X);
         Assert.Equal(bait.Y, reactor.Y);
+
         Assert.Equal((uint) 25, bait.Stats.Hp);
     }
 
     [Fact]
-    
     public void MapReactorUsage() { }
 
 }

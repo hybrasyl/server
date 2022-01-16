@@ -20,6 +20,7 @@
  */
 
 using Newtonsoft.Json;
+using System;
 using System.Linq;
 
 namespace Hybrasyl.Messaging
@@ -28,7 +29,7 @@ namespace Hybrasyl.Messaging
     [RedisType]
     public class Mailbox : MessageStore
     {
-        public Mailbox(string uuid) : base(uuid) { }
+        public Mailbox(Guid guid) : base(guid.ToString()) { }
 
         public bool HasUnreadMessages
         {

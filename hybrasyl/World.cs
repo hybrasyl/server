@@ -136,37 +136,37 @@ namespace Hybrasyl
         #region Path helpers
 
         public readonly string DataDirectory;
-        public string XmlDirectory => Path.Combine(DataDirectory, "world", "xml");
+        public string XmlDirectory => Path.Combine(DataDirectory, "xml");
 
-        public string MapFileDirectory => Path.Combine(DataDirectory, "world", "mapfiles");
+        public string MapFileDirectory => Path.Combine(DataDirectory, "mapfiles");
 
-        public string ScriptDirectory => Path.Combine(DataDirectory, "world", "scripts");
+        public string ScriptDirectory => Path.Combine(DataDirectory, "scripts");
 
-        public string CastableDirectory => Path.Combine(DataDirectory, "world", "xml", "castables");
-        public string StatusDirectory => Path.Combine(DataDirectory, "world", "xml", "statuses");
+        public string CastableDirectory => Path.Combine(XmlDirectory, "castables");
+        public string StatusDirectory => Path.Combine(XmlDirectory, "statuses");
 
-        public string ItemDirectory => Path.Combine(DataDirectory, "world", "xml", "items");
+        public string ItemDirectory => Path.Combine(XmlDirectory, "items");
 
-        public string NationDirectory => Path.Combine(DataDirectory, "world", "xml", "nations");
+        public string NationDirectory => Path.Combine(XmlDirectory, "nations");
 
-        public string MapDirectory => Path.Combine(DataDirectory, "world", "xml", "maps");
+        public string MapDirectory => Path.Combine(XmlDirectory, "maps");
 
-        public string WorldMapDirectory => Path.Combine(DataDirectory, "world", "xml", "worldmaps");
+        public string WorldMapDirectory => Path.Combine(XmlDirectory, "worldmaps");
 
-        public string BehaviorSetDirectory => Path.Combine(DataDirectory, "world", "xml", "behaviorsets");
+        public string BehaviorSetDirectory => Path.Combine(XmlDirectory, "behaviorsets");
 
-        public string CreatureDirectory => Path.Combine(DataDirectory, "world", "xml", "creatures");
+        public string CreatureDirectory => Path.Combine(XmlDirectory, "creatures");
 
-        public string SpawnGroupDirectory => Path.Combine(DataDirectory, "world", "xml", "spawngroups");
+        public string SpawnGroupDirectory => Path.Combine(XmlDirectory, "spawngroups");
 
-        public string LootSetDirectory => Path.Combine(DataDirectory, "world", "xml", "lootsets");
+        public string LootSetDirectory => Path.Combine(XmlDirectory, "lootsets");
 
-        public string ItemVariantDirectory => Path.Combine(DataDirectory, "world", "xml", "itemvariants");
+        public string ItemVariantDirectory => Path.Combine(XmlDirectory, "itemvariants");
 
-        public string NpcsDirectory => Path.Combine(DataDirectory, "world", "xml", "npcs");
+        public string NpcsDirectory => Path.Combine(XmlDirectory, "npcs");
 
-        public string LocalizationDirectory => Path.Combine(DataDirectory, "world", "xml", "localization");
-        public string ElementDirectory => Path.Combine(DataDirectory, "world", "xml", "elements");
+        public string LocalizationDirectory => Path.Combine(XmlDirectory, "localization");
+        public string ElementDirectory => Path.Combine(XmlDirectory, "elements");
         #endregion
 
         public HashSet<Creature> ActiveStatuses = new HashSet<Creature>();
@@ -254,37 +254,7 @@ namespace Hybrasyl
         /// </summary>
         public static bool CheckDataMigrations()
         {
-            GameLog.InfoFormat($"Checking Redis for current migration status");
-            var migrations = DatastoreConnection.GetDatabase().Get<RedisMigrations>("Hybrasyl.RedisMigrations");
-            if (migrations == null)
-            {
-                GameLog.Error("Migration store not found; assuming migrations have never been run");
-                return false;
-            }
-            var assembly = Assembly.GetExecutingAssembly();
-            RedisActiveMigrations Active;
-            try
-            {
-                var serializer = new JsonSerializer();               
-                using var sr = new StreamReader(assembly.GetManifestResourceStream("Hybrasyl.RedisMigrations.active.json"));
-                using var jtr = new JsonTextReader(sr);
-                Active = serializer.Deserialize<RedisActiveMigrations>(jtr);               
-            }
-            catch (Exception e)
-            {
-                GameLog.Error("Redis migrations could not be evaluated, an error occurred: {e} - Redis data may be in an inconsistent state!", e);
-                return false;
-            }
-            foreach (var migration in Active.ActiveMigrations)
-            {
-                if (!migrations.Migrations.Contains(migration))
-                {
-                    GameLog.Error("Redis migration {migration}: not applied. Please apply before starting the server.", migration);
-                    return false;
-                }
-                else
-                    GameLog.Info("Redis migration {migration}: applied", migration);
-            }
+            // Removed until migrations are redone in C# / needed again
             return true;
         }
 
@@ -1316,6 +1286,7 @@ namespace Hybrasyl
             ControlMessageHandlers[ControlOpcodes.HandleDeath] = ControlMessage_HandleDeath; // ST + user/map locks
             ControlMessageHandlers[ControlOpcodes.DialogRequest] = ControlMessage_DialogRequest;
             ControlMessageHandlers[ControlOpcodes.GlobalMessage] = ControlMessage_GlobalMessage;
+            ControlMessageHandlers[ControlOpcodes.RemoveReactor] = ControlMessage_RemoveReactor;
         }
 
         public void SetPacketHandlers()
@@ -1522,7 +1493,7 @@ namespace Hybrasyl
         public void AddUser(User userobj, long connectionId)
         {
             WorldData.SetWithIndex(userobj.Name, userobj, connectionId);
-            WorldData.GetUuidReference(userobj);
+            WorldData.GetGuidReference(userobj);
         }
 
         public bool TryGetActiveUser(string name, out User user) => WorldData.TryGetValue(name, out user);
@@ -1797,6 +1768,13 @@ namespace Hybrasyl
             }
         }
 
+        private void ControlMessage_RemoveReactor(HybrasylControlMessage message)
+        {
+            if (message.Arguments[0] is not Guid g || !WorldData.TryGetWorldObject(g, out Reactor obj) ||
+                !WorldData.TryGetValue(obj.Map.Id, out Map m)) return;
+            m.Remove(obj);
+        }
+
         
 
         #endregion Control Message Handlers
@@ -1886,7 +1864,7 @@ namespace Hybrasyl
             // (for instance: a reactor that destroys items outright, or damages them
             // before being picked up, etc)
             var coordinates = ((byte)x, (byte)y);
-            if (user.Map.Reactors.TryGetValue(coordinates, out var reactor))
+            if (user.Map.Reactors.TryGetValue(coordinates, out var reactors))
             {
                 // Remove the item from the map
                 if (pickupObject is Gold)
@@ -1894,7 +1872,8 @@ namespace Hybrasyl
                 else
                     user.Map.Remove(pickupObject as ItemObject);
                 // Hopefully the reactor will DTRT
-                reactor.OnTake(user, pickupObject);
+                foreach (var reactor in reactors.Values)
+                    reactor.OnTake(user, pickupObject);
                 return;
             }
 
@@ -2040,9 +2019,10 @@ namespace Hybrasyl
             // Are we dropping an item onto a reactor?
 
             var coordinates = ((byte)x, (byte)y);
-            if (user.Map.Reactors.TryGetValue(coordinates, out var reactor))
+            if (user.Map.Reactors.TryGetValue(coordinates, out var reactors))
             {
-                reactor.OnDrop(user, toDrop);
+                foreach (var reactor in reactors.Values)
+                    reactor.OnDrop(user, toDrop);
             }
             else
                 user.Map.AddItem(x, y, toDrop);
@@ -2318,7 +2298,7 @@ namespace Hybrasyl
                 int levelDifference = Math.Abs((int)user.Stats.Level - me.Stats.Level);
 
                 listPacket.WriteByte((byte)user.Class);
-                if (!string.IsNullOrEmpty(me.GuildUuid) && user.GuildUuid == me.GuildUuid) listPacket.WriteByte(84);
+                if (me.GuildGuid != Guid.Empty && user.GuildGuid == me.GuildGuid) listPacket.WriteByte(84);
                 else if (levelDifference <= 5) listPacket.WriteByte(151);
                 else listPacket.WriteByte(255);
 
@@ -2693,9 +2673,10 @@ namespace Hybrasyl
 
             // Are we dropping an item onto a reactor?
             var coordinates = ((byte)x, (byte)y);
-            if (user.Map.Reactors.TryGetValue(coordinates, out var reactor))
+            if (user.Map.Reactors.TryGetValue(coordinates, out var reactors))
             {
-                reactor.OnDrop(user, toDrop);
+                foreach (var reactor in reactors.Values)
+                    reactor.OnDrop(user, toDrop);
             }
             else
                 user.Map.AddGold(x, y, toDrop);
@@ -2991,7 +2972,7 @@ namespace Hybrasyl
                 case 0x01:
                     {
                         // Get list of boards / mailboxes (w key)
-                        user.Enqueue(MessagingController.BoardList(user.UuidReference).Packet());
+                        user.Enqueue(MessagingController.BoardList(user.GuidReference).Packet());
                     }
                     break;
                 case 0x02:
@@ -2999,7 +2980,7 @@ namespace Hybrasyl
                         // Get message list
                         var boardId = packet.ReadUInt16();
                         var startPostId = packet.ReadInt16();
-                        user.Enqueue(MessagingController.GetMessageList(user.UuidReference, boardId, startPostId).Packet());
+                        user.Enqueue(MessagingController.GetMessageList(user.GuidReference, boardId, startPostId).Packet());
                     }
                     break;
                 case 0x03:
@@ -3008,7 +2989,7 @@ namespace Hybrasyl
                         var boardId = packet.ReadUInt16();
                         var postId = packet.ReadInt16();
                         var offset = packet.ReadSByte();
-                        user.Enqueue(MessagingController.GetMessage(user.UuidReference, postId, offset, boardId).Packet());
+                        user.Enqueue(MessagingController.GetMessage(user.GuidReference, postId, offset, boardId).Packet());
                         if (boardId == 0)
                             user.UpdateAttributes(StatUpdateFlags.Secondary);
                     }
@@ -3019,7 +3000,7 @@ namespace Hybrasyl
                         var boardId = packet.ReadUInt16();
                         var subject = packet.ReadString8();
                         var body = packet.ReadString16();
-                        user.Enqueue(MessagingController.SendMessage(user.UuidReference, boardId, string.Empty, subject, body).Packet());
+                        user.Enqueue(MessagingController.SendMessage(user.GuidReference, boardId, string.Empty, subject, body).Packet());
                     }
                     break;
                 case 0x05:
@@ -3027,7 +3008,7 @@ namespace Hybrasyl
                         // Delete post
                         var boardId = packet.ReadUInt16();
                         var postId = packet.ReadUInt16();
-                        user.Enqueue(MessagingController.DeleteMessage(user.UuidReference, boardId, postId).Packet());
+                        user.Enqueue(MessagingController.DeleteMessage(user.GuidReference, boardId, postId).Packet());
                     }
                     break;
                 case 0x06:
@@ -3037,7 +3018,7 @@ namespace Hybrasyl
                         var recipient = packet.ReadString8();
                         var subject = packet.ReadString8();
                         var body = packet.ReadString16();
-                        user.Enqueue(MessagingController.SendMessage(user.UuidReference, boardId, recipient, subject, body).Packet());
+                        user.Enqueue(MessagingController.SendMessage(user.GuidReference, boardId, recipient, subject, body).Packet());
                     }
                     break;
                 case 0x07:
@@ -3045,7 +3026,7 @@ namespace Hybrasyl
                     {
                         var boardId = packet.ReadUInt16();
                         var postId = packet.ReadInt16();
-                        user.Enqueue(MessagingController.HighlightMessage(user.UuidReference, boardId, postId).Packet());
+                        user.Enqueue(MessagingController.HighlightMessage(user.GuidReference, boardId, postId).Packet());
                     }
                     break;
                 default:

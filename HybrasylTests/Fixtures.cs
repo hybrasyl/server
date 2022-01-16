@@ -40,7 +40,7 @@ namespace HybrasylTests
             Game.LoadCollisions();
 
             Game.World = new World(1337, new DataStore {Host = "127.0.0.1", Port = 6379, Database = 15},
-                Path.Combine(submoduleDir[0], "HybrasylTests"), true);
+                Path.Combine(submoduleDir[0], "HybrasylTests", "world"), true);
 
             Game.World.CompileScripts();
             if (!Game.World.LoadData())
@@ -95,7 +95,7 @@ namespace HybrasylTests
             TestUser = new User
             {
                 Name = "TestUser",
-                Uuid = Guid.NewGuid().ToString(),
+                Guid = Guid.NewGuid(),
                 Gender = Gender.Female,
                 Location =
                 {
@@ -129,9 +129,9 @@ namespace HybrasylTests
             TestUser.AuthInfo.Save();
             TestUser.Nation = Game.World.DefaultNation;
 
-            var vault = new Vault(TestUser.Uuid);
+            var vault = new Vault(TestUser.Guid);
             vault.Save();
-            var parcelStore = new ParcelStore(TestUser.Uuid);
+            var parcelStore = new ParcelStore(TestUser.Guid);
             parcelStore.Save();
             TestUser.Save();
             Game.World.Insert(TestUser);

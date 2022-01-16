@@ -17,7 +17,7 @@ namespace Hybrasyl.Scripting
         public byte X => Reactor.X;
         public byte Y => Reactor.Y;
         public bool Blocking => Reactor.Blocking;
-//        public int Uses => Reactor.Uses
+        public int Uses => Reactor.Uses;
         public long Expiration => ((DateTimeOffset)Reactor.Expiration).ToUnixTimeSeconds();
 
         public HybrasylReactor(Reactor obj)

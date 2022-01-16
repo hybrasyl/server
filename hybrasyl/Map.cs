@@ -170,7 +170,7 @@ namespace Hybrasyl
 
         public Dictionary<(byte X, byte Y), Door> Doors { get; set; }
         public Dictionary<(byte X, byte Y), Signpost> Signposts { get; set; }
-        public Dictionary<(byte X, byte Y), Reactor> Reactors { get; set; }
+        public Dictionary<(byte X, byte Y), Dictionary<Guid, Reactor>> Reactors { get; set; }
 
         public Xml.SpawnGroup SpawnDirectives { get; set; }
 
@@ -293,7 +293,7 @@ namespace Hybrasyl
             EntityTree = new QuadTree<VisibleObject>(1, 1, X, Y);
             Doors = new Dictionary<(byte X, byte Y), Door>();
             Signposts = new Dictionary<(byte X, byte Y), Signpost>();
-            Reactors = new Dictionary<(byte X, byte Y), Reactor>();
+            Reactors = new Dictionary<(byte X, byte Y), Dictionary<Guid, Reactor>>();
             AllowSpeaking = true;
         }
 
@@ -340,7 +340,10 @@ namespace Hybrasyl
         {
             World.Insert(toInsert);
             Insert(toInsert, toInsert.X, toInsert.Y);
-            Reactors[(toInsert.X, toInsert.Y)] = toInsert;
+            if (!Reactors.ContainsKey((toInsert.X, toInsert.Y)))
+                Reactors[(toInsert.X, toInsert.Y)] = new Dictionary<Guid, Reactor>();
+            Reactors[(toInsert.X, toInsert.Y)].Add(toInsert.Guid, toInsert);
+
         }
 
         public void InsertSignpost(Objects.Signpost post)
@@ -570,7 +573,6 @@ namespace Hybrasyl
         {
             var user = obj as User;
             List<VisibleObject> affectedObjects = new List<VisibleObject>();
-
             lock (_lock)
             {
                 if (Objects.Remove(obj))
@@ -603,6 +605,7 @@ namespace Hybrasyl
             }
 
             obj.Map = null;
+
         }
         
 
