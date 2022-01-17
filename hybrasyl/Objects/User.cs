@@ -141,7 +141,9 @@ namespace Hybrasyl.Objects
         [JsonProperty]
         public bool Grouping { get; set; }
         public UserStatus GroupStatus { get; set; }
+        [JsonProperty]
         public byte[] PortraitData { get; set; }
+        [JsonProperty]
         public string ProfileText { get; set; }
 
         public Xml.Castable PendingLearnableCastable { get; private set; }

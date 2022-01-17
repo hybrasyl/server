@@ -1165,6 +1165,10 @@ namespace Hybrasyl
                             : new Tuple<ushort, byte>((ushort)(0x8000 + Items[(byte) ItemSlots.Foot].EquipSprite), Items[
                                 (byte)ItemSlots.Foot].Color));
                         break;
+                    case ItemSlots.None:
+                    case ItemSlots.Ring:
+                    case ItemSlots.Gauntlet:
+                        break;
                     default:
                         returnList.Add(Items[(byte) slot] == null
                             ? new Tuple<ushort, byte>(0, 0)
