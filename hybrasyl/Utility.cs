@@ -120,6 +120,7 @@ namespace Hybrasyl
         public const int HandleDeath = 11;
         public const int DialogRequest = 12;
         public const int GlobalMessage = 13;
+        public const int RemoveReactor = 14;
     }
 
     static class ServerTypes

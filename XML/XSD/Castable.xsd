@@ -29,11 +29,11 @@
 
   <!-- Damage effects type -->
   <xs:complexType name="CastableDamage">
-    <xs:all>
+    <xs:sequence>
       <xs:element name="Flags" type="hyb:DamageFlags" />
       <xs:element name="Simple" type="hyb:SimpleQuantity" />
       <xs:element name="Formula" type="xs:string" />
-    </xs:all>
+    </xs:sequence>
     <xs:attribute name="Type" type="hyb:DamageType" />
   </xs:complexType>
 
@@ -214,17 +214,32 @@
 
   <!-- Animation group -->
   <xs:complexType name="AnimationGroup">
-    <xs:all>
+    <xs:sequence>
       <xs:element name="Player" type="hyb:CastableMotionsList" minOccurs="0" maxOccurs="1" />
       <xs:element name="SpellEffect" type="hyb:Animation" minOccurs="0" maxOccurs="1" />
       <xs:element name="Target" type="hyb:Animation" minOccurs="0" maxOccurs="1" />
-    </xs:all>
+    </xs:sequence>
   </xs:complexType>
 
+	<xs:complexType name="CastableReactorList">
+		<xs:sequence>
+           <xs:element name="Reactor" type="hyb:CastableReactor" minOccurs="1" maxOccurs="unbounded"/>
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="CastableReactor">
+	  <xs:attribute name="RelativeX" default="0" type="xs:int" />
+	  <xs:attribute name="RelativeY" default="0" type="xs:int" />
+      <xs:attribute name="Sprite" default="0" type="xs:unsignedShort"/>
+	  <xs:attribute name="Script" default="0" type="xs:string" />
+      <xs:attribute name="Expiration" default="0" type="xs:int" />
+      <xs:attribute name="Uses" default="1" type="xs:int" />
+      <xs:attribute name="Blocking" default="false" type="xs:boolean"/>
+	</xs:complexType>
 
   <!-- Effects type -->
   <xs:complexType name="CastableEffects">
-    <xs:all>
+    <xs:sequence>
       <xs:element name="Animations" type="hyb:SpellAnimations" minOccurs="0" maxOccurs="1" />
       <xs:element name="Sound" minOccurs="0" maxOccurs="1">
         <xs:complexType>
@@ -235,7 +250,8 @@
       <xs:element name="Damage" minOccurs="0" maxOccurs="1" type="hyb:CastableDamage" />
       <xs:element name="StatModifiers" minOccurs="0" maxOccurs="1" type="hyb:StatModifiers" />
       <xs:element name="Statuses" minOccurs="0" maxOccurs="1" type="hyb:Statuses" />
-    </xs:all>
+      <xs:element name="Reactors" minOccurs="0" maxOccurs="1" type="hyb:CastableReactorList"/>
+    </xs:sequence>
     <xs:attribute name="ScriptOverride" type="xs:boolean" default="false"/>
   </xs:complexType>
 
@@ -308,7 +324,7 @@
 
   <!-- Castable type -->
   <xs:complexType name="Castable">
-    <xs:all minOccurs="0" maxOccurs="1">
+    <xs:sequence>
       <xs:element name="Descriptions" type="hyb:DescriptionList" minOccurs="0" maxOccurs="1" />
       <xs:element name="Name" type="hyb:String8" minOccurs="1" maxOccurs="1" />
       <xs:element name="Categories" type="hyb:Categories" minOccurs="0" maxOccurs="1" />
@@ -320,7 +336,7 @@
       <xs:element name="Effects" type="hyb:CastableEffects" minOccurs="0" maxOccurs="1" />
       <xs:element name="Script" type="xs:string" minOccurs="0" maxOccurs="1"/>
       <xs:element name="Mastery" type="hyb:CastableMastery" minOccurs="1" maxOccurs="1"/>
-    </xs:all>
+    </xs:sequence>
     <!-- Castable attributes -->
     <xs:attribute name="Icon" type="xs:unsignedByte" use="required" />
     <xs:attribute name="Book" type="hyb:Book" use="required" />

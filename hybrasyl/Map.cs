@@ -35,7 +35,7 @@ namespace Hybrasyl
 
     public class MapPoint
     {
-        public Int64 Id
+        public long Id
         {
             get
             {
@@ -168,9 +168,9 @@ namespace Hybrasyl
         public HashSet<VisibleObject> Objects { get; private set; }
         public Dictionary<string, User> Users { get; private set; }
 
-        public Dictionary<Tuple<byte, byte>, Objects.Door> Doors { get; set; }
-        public Dictionary<Tuple<byte, byte>, Objects.Signpost> Signposts { get; set; }
-        public Dictionary<Tuple<byte, byte>, Objects.Reactor> Reactors { get; set; }
+        public Dictionary<(byte X, byte Y), Door> Doors { get; set; }
+        public Dictionary<(byte X, byte Y), Signpost> Signposts { get; set; }
+        public Dictionary<(byte X, byte Y), Dictionary<Guid, Reactor>> Reactors { get; set; }
 
         public Xml.SpawnGroup SpawnDirectives { get; set; }
 
@@ -178,7 +178,6 @@ namespace Hybrasyl
 
         public bool SpawningDisabled { get; set; }
 
-        //public Dictionary<string, Xml.Spawn> Spawns { get; set; }
 
         /// <summary>
         /// Create a new Hybrasyl map from an XMLMap object.
@@ -262,7 +261,7 @@ namespace Hybrasyl
             foreach (var reactorElement in newMap.Reactors)
             {
                 var reactor = new Reactor(reactorElement.X, reactorElement.Y, this, 
-                    reactorElement.Script, reactorElement.Description, reactorElement.Blocking);
+                    reactorElement.Script, 0, reactorElement.Description, reactorElement.Blocking);
                 reactor.AllowDead = reactorElement.AllowDead;
                 InsertReactor(reactor);
                 GameLog.Debug($"{reactor.Id} placed in {reactor.Map.Name}, description was {reactor.Description}");
@@ -270,10 +269,7 @@ namespace Hybrasyl
             foreach (var sign in newMap.Signs)
             {
                 Signpost post;
-                if (sign.Type == Xml.BoardType.Sign)
-                    post = new Signpost(sign.X, sign.Y, sign.Message);
-                else
-                    post = new Signpost(sign.X, sign.Y, sign.Message, true, sign.BoardKey);
+                post = sign.Type == Xml.BoardType.Sign ? new Signpost(sign.X, sign.Y, sign.Message) : new Signpost(sign.X, sign.Y, sign.Message, true, sign.BoardKey);
                 InsertSignpost(post);
             }
             Load();
@@ -295,9 +291,9 @@ namespace Hybrasyl
             Users = new Dictionary<string, User>();
             Warps = new Dictionary<Tuple<byte, byte>, Warp>();
             EntityTree = new QuadTree<VisibleObject>(1, 1, X, Y);
-            Doors = new Dictionary<Tuple<byte, byte>, Objects.Door>();
-            Signposts = new Dictionary<Tuple<byte, byte>, Objects.Signpost>();
-            Reactors = new Dictionary<Tuple<byte, byte>, Objects.Reactor>();
+            Doors = new Dictionary<(byte X, byte Y), Door>();
+            Signposts = new Dictionary<(byte X, byte Y), Signpost>();
+            Reactors = new Dictionary<(byte X, byte Y), Dictionary<Guid, Reactor>>();
             AllowSpeaking = true;
         }
 
@@ -309,7 +305,7 @@ namespace Hybrasyl
             }
         }
 
-        public List<Creature> GetCreatures(int x1, int y1) => GetTileContents(x1, y1).Where(x => x is Creature).Select(y => y as Creature).ToList();
+        public List<Creature> GetCreatures(int x1, int y1) => GetTileContents(x1, y1).OfType<Creature>().ToList();
 
         public bool IsCreatureAt(int x1, int y1) => GetTileContents(x1,y1).Any(x => x is Creature);
 
@@ -344,14 +340,17 @@ namespace Hybrasyl
         {
             World.Insert(toInsert);
             Insert(toInsert, toInsert.X, toInsert.Y);
-            Reactors[new Tuple<byte, byte>(toInsert.X, toInsert.Y)] = toInsert;
+            if (!Reactors.ContainsKey((toInsert.X, toInsert.Y)))
+                Reactors[(toInsert.X, toInsert.Y)] = new Dictionary<Guid, Reactor>();
+            Reactors[(toInsert.X, toInsert.Y)].Add(toInsert.Guid, toInsert);
+
         }
 
         public void InsertSignpost(Objects.Signpost post)
         {
             World.Insert(post);
             Insert(post, post.X, post.Y);
-            Signposts[new Tuple<byte, byte>(post.X, post.Y)] = post;
+            Signposts[(post.X, post.Y)] = post;
             GameLog.InfoFormat("Inserted signpost {0}@{1},{2}", post.Map.Name, post.X, post.Y);
         }
 
@@ -360,7 +359,7 @@ namespace Hybrasyl
             var door = new Objects.Door(x, y, open, isLeftRight, triggerCollision);
             World.Insert(door);
             Insert(door, door.X, door.Y);
-            Doors[new Tuple<byte, byte>(door.X, door.Y)] = door;
+            Doors[(door.X, door.Y)] = door;
         }
 
         public bool Load()
@@ -468,7 +467,7 @@ namespace Hybrasyl
         /// <returns></returns>
         public void ToggleDoor(byte x, byte y)
         {
-            var coords = new Tuple<byte, byte>(x, y);
+            var coords = (x, y);
             GameLog.DebugFormat("Door {0}@{1},{2}: Open: {3}, changing to {4}",
                 Name, x, y, Doors[coords].Closed,
                 !Doors[coords].Closed);
@@ -513,7 +512,7 @@ namespace Hybrasyl
         /// <param name="y"></param>
         public void ToggleDoors(byte x, byte y)
         {
-            var coords = new Tuple<byte, byte>(x, y);
+            var coords = (x, y);
             var door = Doors[coords];
 
             // First, toggle the actual door itself
@@ -526,15 +525,15 @@ namespace Hybrasyl
             {
                 // Look for a door at x-1, x+1, and open if they're present
                 Objects.Door nextdoor;
-                var door1Coords = new Tuple<byte, byte>((byte)(x - 1), (byte)(y));
-                var door2Coords = new Tuple<byte, byte>((byte)(x + 1), (byte)(y));
+                var door1Coords = ((byte)(x - 1), y);
+                var door2Coords = ((byte)(x + 1), y);
                 if (Doors.TryGetValue(door1Coords, out nextdoor))
                 {
-                    ToggleDoor((byte)(x - 1), (byte)(y));
+                    ToggleDoor((byte)(x - 1), y);
                 }
                 if (Doors.TryGetValue(door2Coords, out nextdoor))
                 {
-                    ToggleDoor((byte)(x + 1), (byte)(y));
+                    ToggleDoor((byte)(x + 1), y);
                 }
 
             }
@@ -542,15 +541,15 @@ namespace Hybrasyl
             {
                 // Look for a door at y-1, y+1 and open if they're present
                 Objects.Door nextdoor;
-                var door1Coords = new Tuple<byte, byte>((byte)(x), (byte)(y - 1));
-                var door2Coords = new Tuple<byte, byte>((byte)(x), (byte)(y + 1));
+                var door1Coords = (x, (byte)(y - 1));
+                var door2Coords = (x, (byte)(y + 1));
                 if (Doors.TryGetValue(door1Coords, out nextdoor))
                 {
-                    ToggleDoor((byte)(x), (byte)(y - 1));
+                    ToggleDoor(x, (byte)(y - 1));
                 }
                 if (Doors.TryGetValue(door2Coords, out nextdoor))
                 {
-                    ToggleDoor((byte)(x), (byte)(y + 1));
+                    ToggleDoor(x, (byte)(y + 1));
                 }
             }
         }
@@ -574,7 +573,6 @@ namespace Hybrasyl
         {
             var user = obj as User;
             List<VisibleObject> affectedObjects = new List<VisibleObject>();
-
             lock (_lock)
             {
                 if (Objects.Remove(obj))
@@ -607,6 +605,7 @@ namespace Hybrasyl
             }
 
             obj.Map = null;
+
         }
         
 

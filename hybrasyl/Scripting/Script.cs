@@ -20,10 +20,8 @@
  */
 
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Text.RegularExpressions;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
@@ -60,7 +58,7 @@ namespace Hybrasyl.Scripting
 
     public class Script
     {
-        static Regex LuaRegex = new Regex(@"(.*):\(([0-9]*),([0-9]*)-([0-9]*)\): (.*)$");
+        static readonly Regex LuaRegex = new(@"(.*):\(([0-9]*),([0-9]*)-([0-9]*)\): (.*)$");
         public string RawSource { get; set; }
 
         public string Name { get; set; }
@@ -74,8 +72,6 @@ namespace Hybrasyl.Scripting
         public bool Disabled { get; set; }
         public string CompilationError { get; private set; } = string.Empty;
         public string LastRuntimeError { get; private set; } = string.Empty;
-
-        private HashSet<String> _FunctionIndex { get; set; } = new HashSet<string>();
 
         public DynValue LastReturnValue { get; set; } = DynValue.Nil;
 
@@ -99,7 +95,7 @@ namespace Hybrasyl.Scripting
 
         public Script(string script, string name)
         {
-            FullPath = String.Empty;
+            FullPath = string.Empty;
             Name = name;
             Compiled = new MoonSharp.Interpreter.Script(CoreModules.Preset_SoftSandbox);
             RawSource = script;
@@ -111,20 +107,20 @@ namespace Hybrasyl.Scripting
                 return;
 
             Associate = new HybrasylWorldObject(obj);
-            if (obj is VisibleObject)
-            {
-                var visibleObject = obj as VisibleObject;
-                Compiled.Globals.Set("map", UserData.Create(new HybrasylMap(visibleObject.Map)));
-            }
+            if (obj is VisibleObject vo)
+                Compiled.Globals.Set("map", UserData.Create(new HybrasylMap(vo.Map)));
             Compiled.Globals.Set("associate", UserData.Create(Associate));
             obj.Script = this;
         }
 
-        public dynamic GetObjectWrapper(WorldObject obj)
+        public static dynamic GetObjectWrapper(WorldObject obj)
         {
-            if (obj is User)
-                return new HybrasylUser(obj as User);
-            return new HybrasylWorldObject(obj);
+            return obj switch
+            {
+                User user => new HybrasylUser(user),
+                Reactor reactor => new HybrasylReactor(reactor),
+                _ => new HybrasylWorldObject(obj)
+            };
         }
 
         public bool Reload()
@@ -138,21 +134,21 @@ namespace Hybrasyl.Scripting
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
-        public dynamic GetUserDataValue(dynamic obj)
+        public static dynamic GetUserDataValue(dynamic obj)
         {
             if (obj == null)
                 return DynValue.NewNil();
-            if (obj is User)
-                return UserData.Create(new HybrasylUser(obj as User));
-            else if (obj is Monster)
-                return UserData.Create(new HybrasylMonster(obj as Monster));
-            else if (obj is World)
-                return UserData.Create(new HybrasylWorld(obj as World));
-            else if (obj is Map)
-                return UserData.Create(new HybrasylMap(obj as Map));
-            else if (obj is WorldObject)
-                return UserData.Create(new HybrasylWorldObject(obj as WorldObject));
-            return UserData.Create(obj);
+
+            return obj switch
+            {
+                User user => UserData.Create(new HybrasylUser(user)),
+                Monster monster => UserData.Create(new HybrasylMonster(monster)),
+                World world => UserData.Create(new HybrasylWorld(world)),
+                Map map => UserData.Create(new HybrasylMap(map)),
+                Reactor reactor => UserData.Create(new HybrasylReactor(reactor)),
+                WorldObject worldObject => UserData.Create(new HybrasylWorldObject(worldObject)),
+                _ => UserData.Create(obj)
+            };
         }
 
         private static LuaException ParseException(string decoratedMessage)
@@ -181,8 +177,7 @@ namespace Hybrasyl.Scripting
 
         private string HumanizeException(Exception ex)
         {
-            var lines = RawSource.Split('\n').ToList();
-            var summary = string.Empty;
+            string summary;
 
             if (ex is InterpreterException ie)
             {
@@ -207,8 +202,7 @@ namespace Hybrasyl.Scripting
             }
             else
             {
-                var retstr = string.Empty;
-                retstr = $"\nC# exception, perhaps caused by Lua script code: STACK: {ex.StackTrace}\n ERR:{ex.Message}";
+                var retstr = $"\nC# exception, perhaps caused by Lua script code: STACK: {ex.StackTrace}\n ERR:{ex.Message}";
                 if (ex.InnerException != null)
                     retstr = $"{retstr}\nINNER STACK TRACE: {ex.InnerException.StackTrace}\n INNER ERR: {ex.InnerException.Message}";
                 return retstr;
@@ -222,7 +216,7 @@ namespace Hybrasyl.Scripting
         /// <returns></returns>
         public bool HasFunction(string name)
         {
-            return Compiled.Globals.Get(name) != DynValue.Nil;
+            return !Equals(Compiled.Globals.Get(name), DynValue.Nil);
         }
 
         public void SetGlobals()
@@ -333,12 +327,12 @@ namespace Hybrasyl.Scripting
             catch (Exception ex) 
             {
                 Game.ReportException(ex);
-                var error_msg = HumanizeException(ex);
+                var errorMsg = HumanizeException(ex);
                 GameLog.ScriptingError("Execute: Error executing expression {expr} in {FileName} (associate {associate}, invoker {invoker}, source {source}): {Message}",
-                    expr, FileName, Associate?.Name ?? "none", invoker?.Name ?? "none", source?.Name ?? "none", error_msg);
+                    expr, FileName, Associate?.Name ?? "none", invoker?.Name ?? "none", source?.Name ?? "none", errorMsg);
                 //Disabled = true;
                 CompilationError = ex.ToString();
-                LastRuntimeError = error_msg;
+                LastRuntimeError = errorMsg;
                 return false;
             }
             return true;
@@ -359,9 +353,9 @@ namespace Hybrasyl.Scripting
             catch (Exception ex)
             {
                 Game.ReportException(ex);
-                var error_msg = HumanizeException(ex);
+                var errorMsg = HumanizeException(ex);
                 GameLog.ScriptingError("Execute: Error executing expression {expr} in {FileName} (associate {associate}, invoker {invoker}): {Message}",
-                    expr, FileName, Associate?.Name ?? "none", invoker?.Name ?? "none", error_msg);
+                    expr, FileName, Associate?.Name ?? "none", invoker?.Name ?? "none", errorMsg);
                  //Disabled = true;
                 CompilationError = ex.ToString();
                 return DynValue.Nil;
@@ -378,10 +372,12 @@ namespace Hybrasyl.Scripting
                 if (HasFunction(functionName))
                 {
                     Compiled.Globals["utility"] = typeof(HybrasylUtility);
+                    var f = GetUserDataValue(invoker as Monster);
                     Compiled.Globals.Set("invoker", GetUserDataValue(invoker));
                     Compiled.Globals.Set("source", GetUserDataValue(source));
                     if (scriptItem != null)
                         Compiled.Globals.Set("item", GetUserDataValue(scriptItem));
+
                     if (returnFromScript) return Compiled.Call(Compiled.Globals[functionName]).Boolean;
                     else Compiled.Call(Compiled.Globals[functionName]);
                 }
@@ -395,11 +391,11 @@ namespace Hybrasyl.Scripting
             catch (Exception ex) 
             {
                 Game.ReportException(ex);
-                var error_msg = HumanizeException(ex);
+                var errorMsg = HumanizeException(ex);
                 GameLog.ScriptingError("ExecuteFunction: Error executing function {fn} in {FileName} (associate {associate}, invoker {invoker}, item {item}): {Message}",
-                    functionName, FileName, Associate?.Name ?? "none", invoker?.Name ?? "none", scriptItem?.Name ?? "none", error_msg);
+                    functionName, FileName, Associate?.Name ?? "none", invoker?.Name ?? "none", scriptItem?.Name ?? "none", errorMsg);
                 //Disabled = true;
-                CompilationError = error_msg;
+                CompilationError = errorMsg;
                 return false;
             }
             return true;
@@ -428,10 +424,10 @@ namespace Hybrasyl.Scripting
             catch (Exception ex)
             {
                 Game.ReportException(ex);
-                var error_msg = HumanizeException(ex);
+                var errorMsg = HumanizeException(ex);
                 GameLog.ScriptingError("ExecuteFunction: Error executing function {fn} in {FileName} (associate {associate}, invoker {invoker}): {Message}",
-                    functionName, FileName, Associate?.Name ?? "none", invoker?.Name ?? "none", error_msg);
-                CompilationError = error_msg;
+                    functionName, FileName, Associate?.Name ?? "none", invoker?.Name ?? "none", errorMsg);
+                CompilationError = errorMsg;
                 return false;
             }
 
@@ -450,7 +446,7 @@ namespace Hybrasyl.Scripting
                 {
                     Compiled.Globals["utility"] = typeof(HybrasylUtility);
                     // Provide extra information when running spawn/load to aid in debugging
-                    if (functionName == "OnSpawn" || functionName == "OnLoad")
+                    if (functionName is "OnSpawn" or "OnLoad")
                     {
                         string assoc = null;
                         if (Associate != null)
@@ -474,25 +470,15 @@ namespace Hybrasyl.Scripting
             catch (Exception ex)
             {
                 Game.ReportException(ex);
-                var error_msg = HumanizeException(ex);
+                var errorMsg = HumanizeException(ex);
                 GameLog.ScriptingError("ExecuteFunction: Error executing function {fn} in {FileName} (associate {associate}): {Message}",
-                    functionName, FileName, Associate?.Name ?? "none", error_msg);
-                CompilationError = error_msg;
+                    functionName, FileName, Associate?.Name ?? "none", errorMsg);
+                CompilationError = errorMsg;
                 return false;
             }
 
             return true;
 
-        }
-
-        /// <summary>
-        /// Attach a Scriptable to an in game NPC.
-        /// </summary>
-        /// <returns></returns>
-        public bool AttachScriptable(WorldObject obj)
-        {
-            Associate = new HybrasylWorldObject(obj);
-            return true;
         }
     }
 }

@@ -941,7 +941,7 @@ namespace Hybrasyl.ChatCommands
                 case "localization":
                 {
                     var reloaded = Game.World.GetXmlFile(args[0], args[1]);
-                    Game.World.Strings = Xml.LocalizedStrings.LoadFromFile(reloaded);
+                    Game.World.Strings = Xml.LocalizedStringGroup.LoadFromFile(reloaded);
                     return Success($"Localization strings set to World");
                 }
                 default:

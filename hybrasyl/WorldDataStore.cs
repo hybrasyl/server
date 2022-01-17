@@ -261,7 +261,7 @@ namespace Hybrasyl
 
     //    }
 
-    //    public class UuidReferenceDataStore : WorldData<UuidReference>, IWorldDataStore<UuidReference>
+    //    public class guidReferenceDataStore : WorldData<GuidReference>, IWorldDataStore<GuidReference>
     //    { }
 
     public enum CastableFilter
@@ -334,6 +334,8 @@ namespace Hybrasyl
 
         private ConcurrentDictionary<Type, ConcurrentDictionary<string, dynamic>> _dataStore;
         private ConcurrentDictionary<Type, ConcurrentDictionary<dynamic, dynamic>> _index;
+        private ConcurrentDictionary<Guid, WorldObject> _indexByGuid;
+
         public static SHA256CryptoServiceProvider sha = new SHA256CryptoServiceProvider();
 
         // TODO: refactor WDS to support multiple indexes for stores. For now we need 
@@ -410,6 +412,19 @@ namespace Hybrasyl
             return default(T);
         }
 
+        public T GetWorldObject<T>(Guid guid) where T : WorldObject => _indexByGuid.ContainsKey(guid) ? (T) _indexByGuid[guid] : null;
+
+        public bool TryGetWorldObject<T>(Guid guid, out T obj) where T : WorldObject
+        {
+            obj = null;
+            if (!_indexByGuid.ContainsKey(guid)) return false;
+            obj = (T) _indexByGuid[guid];
+            return true;
+
+        }
+
+        public bool SetWorldObject<T>(Guid guid, T obj) where T : WorldObject => _indexByGuid.TryAdd(guid, obj);
+        
         /// <summary>
         /// Return the first of any known type (e.g. first map, first NPC, etc)
         /// </summary>
@@ -573,25 +588,23 @@ namespace Hybrasyl
         }
 
         /// <summary>
-        /// Return a username for a given uuid
+        /// Return a username for a given guid
         /// </summary>
-        /// <param name="uuid">The uuid to look up</param>
+        /// <param name="guid">The guid to look up</param>
         /// <returns>The username or string.empty if not found</returns>
-        public string GetNameByUuid(string uuid)
+        public string GetNameByGuid(Guid guid)
         {
-            if (TryGetValue(uuid, out UuidReference reference))
+            if (TryGetValue(guid, out GuidReference reference))
                 return reference.UserName;            
             return string.Empty;
         }
 
-        public string GetUuidByName(string name)
+        public Guid GetGuidByName(string name)
         {
-            if (TryGetValueByIndex(name, out UuidReference reference))
-                return reference.UserUuid;
+            if (TryGetValueByIndex(name, out GuidReference reference))
+                return reference.UserGuid;
             // Does user exist?
-            if (TryGetUser(name, out User user))
-                return user.Uuid;
-            return string.Empty;
+            return TryGetUser(name, out User user) ? user.Guid : Guid.Empty;
         }
 
         public bool TryGetSocialEvent(User name, out SocialEvent socialEvent)
@@ -607,57 +620,50 @@ namespace Hybrasyl
         public bool TryGetAuthInfo(string name, out AuthInfo info)
         {
             info = null;
-            var uuid = GetUuidByName(name);
-            
-            if (!string.IsNullOrEmpty(uuid))
-            {
-                if (TryGetValue(uuid, out info))
-                    return true;
-                if (TryGetValueByIndex(name, out info))
-                    return true;
-                // Fall back to loading from Redis
-                info = GetOrCreateByUuid<AuthInfo>(uuid, name);
-                // If we loaded from Redis, the user (should not) be logged in, so reset state
-                if (info.IsLoggedIn)
-                {
-                    info.CurrentState = UserState.Disconnected;
-                    info.Save();
-                }
-                if (info != null)
-                    return true;
-            }          
-            return false;
+            var guid = GetGuidByName(name);
+
+            if (guid == Guid.Empty) return false;
+            if (TryGetValue(guid, out info)) return true;
+            if (TryGetValueByIndex(name, out info)) return true;
+            // Fall back to loading from Redis
+            info = GetOrCreateByGuid<AuthInfo>(guid, name);
+            if (info == null) return false;
+            if (!info.IsLoggedIn) return true;
+            // If we loaded from Redis, the user (should not) be logged in, so reset state
+            info.CurrentState = UserState.Disconnected;
+            info.Save();
+            return true;
         }
 
-        public T GetOrCreate<T>(UuidReference reference) => GetOrCreateByUuid<T>(reference.UserUuid, reference.UserName);
+        public T GetOrCreate<T>(GuidReference reference) => GetOrCreateByGuid<T>(reference.UserGuid, reference.UserName);
 
-        public T GetOrCreateByUuid<T>(string uuid, string index = "")
+        public T GetOrCreateByGuid<T>(Guid guid, string index = "")
         {
             var type = typeof(T);
             if (!RedisTypes.Contains(type))
-                throw new ArgumentException($"Type {type} is not a uuid referenced Redis type");
+                throw new ArgumentException($"Type {type} is not a Guid referenced Redis type");
 
             // Check for existence of object locally first
-            if (TryGetValue(uuid, out T obj))
+            if (TryGetValue(guid, out T obj))
                 return obj;
 
             // Check for existence of object in Redis
-            var storageKey = $"{type.FullName}:{uuid}";
+            var storageKey = $"{type.FullName}:{guid}";
             if (Redis.KeyExists(storageKey))
                 obj = Redis.Get<T>(storageKey);
 
             // Fall back to creating it if needed
             if (obj == null)
             {
-                obj = (T)Activator.CreateInstance(typeof(T), new object[1] { uuid });
+                obj = (T)Activator.CreateInstance(typeof(T), new object[1] { guid });
                 Redis.Set(storageKey, obj);
             }
 
             // Now that we have the object, update the store
             if (string.IsNullOrEmpty(index))
-                Set(uuid, obj);
+                Set(guid, obj);
             else
-                SetWithIndex(uuid, obj, index);
+                SetWithIndex(guid, obj, index);
 
             return obj;
         }
@@ -684,29 +690,29 @@ namespace Hybrasyl
             return Get<Board>(name);
         }
 
-        public UuidReference GetUuidReference(string name)
+        public GuidReference GetGuidReference(string name)
         {
-            if (TryGetValueByIndex(name, out UuidReference reference))
+            if (TryGetValueByIndex(name, out GuidReference reference))
                 return reference;
             if (TryGetUser(name, out User userobj))
-                return GetUuidReference(userobj);
+                return GetGuidReference(userobj);
             return null;
         }
 
-        public UuidReference GetUuidReference(User userObj)
+        public GuidReference GetGuidReference(User userObj)
         {
 
-            if (TryGetValue(userObj.Uuid, out UuidReference reference))
+            if (TryGetValue(userObj.Guid, out GuidReference reference))
                 return reference;
 
-            var uuidRef = new UuidReference(userObj.Name)
+            var guidRef = new GuidReference(userObj.Name)
             {
-                AccountUuid = userObj.AccountUuid,
-                UserUuid = userObj.Uuid               
+                AccountGuid = userObj.AccountGuid,
+                UserGuid = userObj.Guid               
             };
 
-            SetWithIndex(userObj.Uuid, uuidRef, userObj.Name);
-            return Get<UuidReference>(userObj.Uuid);
+            SetWithIndex(userObj.Guid, guidRef, userObj.Name);
+            return Get<GuidReference>(userObj.Guid);
         }
 
         public bool TryGetUser(string name, out User userobj)
@@ -717,8 +723,8 @@ namespace Hybrasyl
                 userobj = Redis.Get<User>(User.GetStorageKey(name));
                 if (userobj != null)
                 {
-                    // Ensure our UUID reference is created when we deserialize a user (if it doesn't already exist)
-                    GetUuidReference(userobj);
+                    // Ensure our guid reference is created when we deserialize a user (if it doesn't already exist)
+                    GetGuidReference(userobj);
                     return true;
                 }
             }

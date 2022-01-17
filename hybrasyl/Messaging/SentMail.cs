@@ -28,7 +28,8 @@ namespace Hybrasyl.Messaging
     [RedisType]
     public class SentMail : MessageStore
     {
-        public SentMail(string uuid) : base(uuid) { }
+        // TODO: correct
+        public SentMail(Guid guid) : base(guid.ToString()) { }
 
         [JsonProperty]
         public DateTime LastMailMessageSent { get; set; }

@@ -24,121 +24,125 @@ using System.Collections.Generic;
 [DebuggerStepThrough]
 [DesignerCategoryAttribute("code")]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-public partial class CastableEffects
+public partial class CastableReactor
 {
     #region Private fields
-    private SpellAnimations _animations;
-    private CastableEffectsSound _sound;
-    private CastableHeal _heal;
-    private CastableDamage _damage;
-    private StatModifiers _statModifiers;
-    private Statuses _statuses;
-    private List<CastableReactor> _reactors;
-    private bool _scriptOverride;
+    private int _relativeX;
+    private int _relativeY;
+    private ushort _sprite;
+    private string _script;
+    private int _expiration;
+    private int _uses;
+    private bool _blocking;
     private static XmlSerializer _serializerXml;
     #endregion
     
-    public CastableEffects()
+    public CastableReactor()
     {
-        _scriptOverride = false;
+        _relativeX = 0;
+        _relativeY = 0;
+        _sprite = ((ushort)(0));
+        _script = "0";
+        _expiration = 0;
+        _uses = 1;
+        _blocking = false;
     }
     
-    public SpellAnimations Animations
+    [XmlAttribute]
+    [DefaultValue(0)]
+    public int RelativeX
     {
         get
         {
-            return _animations;
+            return _relativeX;
         }
         set
         {
-            _animations = value;
+            _relativeX = value;
         }
     }
     
-    public CastableEffectsSound Sound
+    [XmlAttribute]
+    [DefaultValue(0)]
+    public int RelativeY
     {
         get
         {
-            return _sound;
+            return _relativeY;
         }
         set
         {
-            _sound = value;
+            _relativeY = value;
         }
     }
     
-    public CastableHeal Heal
+    [XmlAttribute]
+    [DefaultValue(typeof(ushort), "0")]
+    public ushort Sprite
     {
         get
         {
-            return _heal;
+            return _sprite;
         }
         set
         {
-            _heal = value;
+            _sprite = value;
         }
     }
     
-    public CastableDamage Damage
+    [XmlAttribute]
+    [DefaultValue("0")]
+    public string Script
     {
         get
         {
-            return _damage;
+            return _script;
         }
         set
         {
-            _damage = value;
+            _script = value;
         }
     }
     
-    public StatModifiers StatModifiers
+    [XmlAttribute]
+    [DefaultValue(0)]
+    public int Expiration
     {
         get
         {
-            return _statModifiers;
+            return _expiration;
         }
         set
         {
-            _statModifiers = value;
+            _expiration = value;
         }
     }
     
-    public Statuses Statuses
+    [XmlAttribute]
+    [DefaultValue(1)]
+    public int Uses
     {
         get
         {
-            return _statuses;
+            return _uses;
         }
         set
         {
-            _statuses = value;
-        }
-    }
-    
-    [XmlArrayItemAttribute("Reactor", IsNullable=false)]
-    public List<CastableReactor> Reactors
-    {
-        get
-        {
-            return _reactors;
-        }
-        set
-        {
-            _reactors = value;
+            _uses = value;
         }
     }
     
     [XmlAttribute]
     [DefaultValue(false)]
-    public bool ScriptOverride
+    public bool Blocking
     {
         get
         {
-            return _scriptOverride;
+            return _blocking;
         }
         set
         {
-            _scriptOverride = value;
+            _blocking = value;
         }
     }
     
@@ -148,7 +152,7 @@ public partial class CastableEffects
         {
             if ((_serializerXml == null))
             {
-                _serializerXml = new XmlSerializerFactory().CreateSerializer(typeof(CastableEffects));
+                _serializerXml = new XmlSerializerFactory().CreateSerializer(typeof(CastableReactor));
             }
             return _serializerXml;
         }
@@ -156,7 +160,7 @@ public partial class CastableEffects
     
     #region Serialize/Deserialize
     /// <summary>
-    /// Serialize CastableEffects object
+    /// Serialize CastableReactor object
     /// </summary>
     /// <returns>XML value</returns>
     public virtual string Serialize()
@@ -189,16 +193,16 @@ public partial class CastableEffects
     }
     
     /// <summary>
-    /// Deserializes CastableEffects object
+    /// Deserializes CastableReactor object
     /// </summary>
     /// <param name="input">string to deserialize</param>
-    /// <param name="obj">Output CastableEffects object</param>
+    /// <param name="obj">Output CastableReactor object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool Deserialize(string input, out CastableEffects obj, out Exception exception)
+    public static bool Deserialize(string input, out CastableReactor obj, out Exception exception)
     {
         exception = null;
-        obj = default(CastableEffects);
+        obj = default(CastableReactor);
         try
         {
             obj = Deserialize(input);
@@ -211,19 +215,19 @@ public partial class CastableEffects
         }
     }
     
-    public static bool Deserialize(string input, out CastableEffects obj)
+    public static bool Deserialize(string input, out CastableReactor obj)
     {
         Exception exception = null;
         return Deserialize(input, out obj, out exception);
     }
     
-    public static CastableEffects Deserialize(string input)
+    public static CastableReactor Deserialize(string input)
     {
         StringReader stringReader = null;
         try
         {
             stringReader = new StringReader(input);
-            return ((CastableEffects)(SerializerXml.Deserialize(XmlReader.Create(stringReader))));
+            return ((CastableReactor)(SerializerXml.Deserialize(XmlReader.Create(stringReader))));
         }
         finally
         {
@@ -234,14 +238,14 @@ public partial class CastableEffects
         }
     }
     
-    public static CastableEffects Deserialize(Stream s)
+    public static CastableReactor Deserialize(Stream s)
     {
-        return ((CastableEffects)(SerializerXml.Deserialize(s)));
+        return ((CastableReactor)(SerializerXml.Deserialize(s)));
     }
     #endregion
     
     /// <summary>
-    /// Serializes current CastableEffects object into file
+    /// Serializes current CastableReactor object into file
     /// </summary>
     /// <param name="fileName">full path of outupt xml file</param>
     /// <param name="exception">output Exception value if failed</param>
@@ -282,16 +286,16 @@ public partial class CastableEffects
     }
     
     /// <summary>
-    /// Deserializes xml markup from file into an CastableEffects object
+    /// Deserializes xml markup from file into an CastableReactor object
     /// </summary>
     /// <param name="fileName">File to load and deserialize</param>
-    /// <param name="obj">Output CastableEffects object</param>
+    /// <param name="obj">Output CastableReactor object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool LoadFromFile(string fileName, out CastableEffects obj, out Exception exception)
+    public static bool LoadFromFile(string fileName, out CastableReactor obj, out Exception exception)
     {
         exception = null;
-        obj = default(CastableEffects);
+        obj = default(CastableReactor);
         try
         {
             obj = LoadFromFile(fileName);
@@ -304,13 +308,13 @@ public partial class CastableEffects
         }
     }
     
-    public static bool LoadFromFile(string fileName, out CastableEffects obj)
+    public static bool LoadFromFile(string fileName, out CastableReactor obj)
     {
         Exception exception = null;
         return LoadFromFile(fileName, out obj, out exception);
     }
     
-    public static CastableEffects LoadFromFile(string fileName)
+    public static CastableReactor LoadFromFile(string fileName)
     {
         FileStream file = null;
         StreamReader sr = null;

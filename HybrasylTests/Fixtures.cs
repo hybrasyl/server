@@ -21,6 +21,7 @@ namespace HybrasylTests
     public class HybrasylFixture : IDisposable
     {
         public Map Map { get; }
+        public Map MapNoCasting { get; }
         public Item TestItem { get; }
         public Item StackableTestItem { get; }
         public Dictionary<EquipmentSlot, Item> TestEquipment { get;  }= new();
@@ -39,24 +40,14 @@ namespace HybrasylTests
             Game.LoadCollisions();
 
             Game.World = new World(1337, new DataStore {Host = "127.0.0.1", Port = 6379, Database = 15},
-                Path.Combine(submoduleDir[0], "HybrasylTests"), true);
+                Path.Combine(submoduleDir[0], "HybrasylTests", "world"), true);
 
+            Game.World.CompileScripts();
             if (!Game.World.LoadData())
                 throw new InvalidDataException("LoadData encountered errors");
 
-            var xmlMap = new Hybrasyl.Xml.Map
-            {
-                Id = 136,
-                X = 12,
-                Y = 12,
-                Name = "Test Inn",
-                Warps = new List<Warp>(),
-                Npcs = new List<MapNpc>(),
-                Reactors = new List<Reactor>(),
-                Signs = new List<MapSign>()
-            };
-            var map = new Map(xmlMap, Game.World);
-            Game.World.WorldData.SetWithIndex(map.Id, map, map.Name);
+            Map = Game.World.WorldData.Get<Map>("40000");
+            MapNoCasting = Game.World.WorldData.Get<Map>("40000");
 
             var xmlNation = new Nation { Default = true, Description = "Test Nation", Flag = 0, Name = "Test", SpawnPoints = new List<SpawnPoint> {new() { MapName = "Test Map", X = 5, Y = 5 }}};
             Game.World.WorldData.Set(xmlNation.Name, xmlNation);
@@ -104,14 +95,14 @@ namespace HybrasylTests
             TestUser = new User
             {
                 Name = "TestUser",
-                Uuid = Guid.NewGuid().ToString(),
+                Guid = Guid.NewGuid(),
                 Gender = Gender.Female,
                 Location =
                 {
                     Direction = Direction.South,
-                    Map = map,
-                    X = 4,
-                    Y = 10
+                    Map = Map,
+                    X = 20,
+                    Y = 20
                 },
                 HairColor = 1,
                 HairStyle = 1,
@@ -132,19 +123,23 @@ namespace HybrasylTests
                     BaseDex = 100, 
                     BaseCon = 100, 
                     BaseWis = 100,
-                    Level = 99
+                    Level = 99,
+                    BaseHp = 10000,
+                    Hp = 10000,
+                    BaseMp = 10000,
+                    Mp = 10000
                 }
             };
             TestUser.AuthInfo.Save();
             TestUser.Nation = Game.World.DefaultNation;
 
-            var vault = new Vault(TestUser.Uuid);
+            var vault = new Vault(TestUser.Guid);
             vault.Save();
-            var parcelStore = new ParcelStore(TestUser.Uuid);
+            var parcelStore = new ParcelStore(TestUser.Guid);
             parcelStore.Save();
             TestUser.Save();
-
-
+            Game.World.Insert(TestUser);
+            Map.Insert(TestUser, TestUser.X, TestUser.Y,false);
         }
 
         public void ResetUserStats()

@@ -1,7 +1,0 @@
-{
-    "ActiveMigrations": [
-	"20200929-authinfo",
-	"20200930-mailbox-uuid",
-	"20201006-board-rename"
-    ]
-}

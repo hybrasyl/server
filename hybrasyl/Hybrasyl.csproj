@@ -85,10 +85,6 @@
     <EmbeddedResource Include="Resources\sotp.dat" />
   </ItemGroup>
 
-  <ItemGroup>	
-    <EmbeddedResource Include="RedisMigrations\active.json" />
-  </ItemGroup>
-
   <ItemGroup>
     <None Include="MetricsIncludes.cs">
       <DesignTime>True</DesignTime>
@@ -144,12 +140,5 @@
 
   <PropertyGroup>
     <MSBuildGitHashCommand>git rev-parse --short HEAD</MSBuildGitHashCommand>
-  </PropertyGroup>    
-
-  <ItemGroup>
-    <Content Include="RedisMigrations\Scripts\*.*">
-      <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
+  </PropertyGroup>
 </Project>

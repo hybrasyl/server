@@ -200,7 +200,6 @@ namespace Hybrasyl
             if (!World.PlayerExists(client.NewCharacterName))
             {
                 var newPlayer = new User();
-                newPlayer.Uuid = Guid.NewGuid().ToString();
                 newPlayer.Name = client.NewCharacterName;
                 newPlayer.Gender = (Xml.Gender) gender;
                 newPlayer.Location.Direction = Xml.Direction.South;
@@ -221,9 +220,9 @@ namespace Hybrasyl
 
                 IDatabase cache = World.DatastoreConnection.GetDatabase();
                 cache.Set(User.GetStorageKey(newPlayer.Name), newPlayer);
-                var vault = new Vault(newPlayer.Uuid);
+                var vault = new Vault(newPlayer.Guid);
                 vault.Save();
-                var parcelStore = new ParcelStore(newPlayer.Uuid);
+                var parcelStore = new ParcelStore(newPlayer.Guid);
                 parcelStore.Save();
                 client.LoginMessage("\0", 0);
             }
