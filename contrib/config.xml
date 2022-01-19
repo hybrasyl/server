@@ -5,7 +5,8 @@
     <WorldDataDir>/HybrasylData/world</WorldDataDir>
     <!-- If using the docker image, leave this alone; otherwise change it to your redis server. You can also specify a port,
     database, and password here -->
-    <DataStore Host="host.docker.internal"/>
+    <!-- <DataStore Host="host.docker.internal"/> -->
+    <DataStore Host="redis"/>
     <!-- This is the message that will be displayed to clients when they connect to the server. -->
     <Motd>WELCOME TO HYBRASYL - QUICK START EDITION. You should likely add your player name to the privileged section of config.xml.</Motd>
     <!-- Hybrasyl requires three ports to function. If you want others to connect to your server, these ports need to be exposed to

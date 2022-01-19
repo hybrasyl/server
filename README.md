@@ -12,12 +12,14 @@ exceptionally accurate DOOMVAS v1 emulator (example:
 [make an account](https://www.hybrasyl.com/accounts/sign_up), and join us
 sometime.
 
-This document is intended for developers; if you're interested in using a
-released version of Hybrasyl server, please check our 
-[Github releases page](https://github.com/hybrasyl/server/releases). Although we do 
-not currently provide installer packages, we do provide [Docker images](https://hub.docker.com/r/baughj/hybrasyl/tags) which can be quickly used to get started. Generally, if you use the Hybrasyl launcher, our staging server is
-almost always online - production will be online once we implement more
-features!
+This document is intended for developers; if you're interested in
+using a released version of Hybrasyl server, please check our
+[Github releases page](https://github.com/hybrasyl/server/releases).
+Although we do not currently provide installer packages, we do provide
+[Docker images](https://hub.docker.com/r/baughj/hybrasyl/tags) which
+can be quickly used to get started. Generally, if you use the Hybrasyl
+launcher, our staging server is almost always online - production will
+be online once we implement more features!
 
 Hybrasyl is a work in progress. A lot of the functionality you would expect
 from a playable game is not yet implemented. You can see open issues in our GitHub 
@@ -66,11 +68,22 @@ player inventory, messageboards and mailboxes from its companion Redis server
 at runtime; XML is processed when the server starts up for actual world data
 (items, maps, mobs, etc).
 
+The server runs on three TCP ports (2610, 2611, and 2612 by default).
+
 To get started with the server, you have two options:
 
-1. The easy way - aka using [Docker](https://docker.com)
+1. The easy way - aka using [Docker](https://docker.com) or [Docker Compose](https://docs.docker.com/compose/install/)
 
-  If you have Docker installed, you can just download and run a [quick start image](https://hub.docker.com/r/baughj/hybrasyl/tags).
+   If you have docker-compose, all you need to do to start a running Hybrasyl test server is run one command:
+
+  ```
+  docker-compose up
+  ```
+
+  This will download and run a Redis server image and Hybrasyl’s Dockerhub image, and start both. You’ll be able to login to it
+immediately using Spark.
+
+  You can also download and run a [quick start image](https://hub.docker.com/r/baughj/hybrasyl/tags).
 The quick start image includes a copy of our example data that you can use to instantly get into a test server. You’ll still need
 an instance of Redis running locally (see below).
 
@@ -78,9 +91,9 @@ an instance of Redis running locally (see below).
 
   ```
   docker pull baughj/hybrasyl:quickstart
-  docker run -it -p 2610:2610 -p 2611:2611 -p 2612:2612 --add-host=host.docker.internal:host-gateway
+  docker run -it baughj/hybrasyl:quickstart -p 2610:2610 -p 2611:2611 -p 2612:2612 --add-host=host.docker.internal:host-gateway
   ```
-  
+
   A script is also provided (`build-image.sh` for rebuilding the Docker image, if you want to do so). 
 
 2. The harder way:

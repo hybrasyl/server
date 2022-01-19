@@ -7,5 +7,6 @@ git submodule update --init --recursive
 cd hybrasyl && dotnet build -c Release --sc -r linux-x64 && cd ..
 
 # Build docker image
-docker build .
+docker build . -t baughj/hybrasyl:quickstart
+
 

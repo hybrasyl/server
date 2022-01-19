@@ -1,0 +1,33 @@
+version: "3.9"
+
+networks:
+  internal:
+    driver: bridge
+
+services:
+  redis:
+    image: bitnami/redis:latest
+    volumes:
+      - ./data/redis:/bitnami/redis/data
+    networks:
+      - internal
+    environment:
+      # Remove this and set a password if using this in a non-development environment!
+      - ALLOW_EMPTY_PASSWORD=yes
+  hybrasyl-server:
+    image: baughj/hybrasyl:quickstart
+    # If you want to rebuild the image used for the quickstart, uncomment this
+    #build: .
+    volumes:
+      - ./HybrasylTests/world:/HybrasylData/world/
+      - ./contrib/config.xml:/root/Hybrasyl/config.xml
+    ports:
+      - "2610:2610"
+      - "2611:2611"
+      - "2612:2612"
+    depends_on:
+      - redis
+    networks:
+      - internal
+    links:
+      - "redis"
