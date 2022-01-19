@@ -74,9 +74,12 @@ To get started with the server, you have two options:
 
 1. The easy way - aka using [Docker](https://docker.com) or [Docker Compose](https://docs.docker.com/compose/install/)
 
-   If you have docker-compose, all you need to do to start a running Hybrasyl test server is run one command:
+   If you have docker-compose, all you need to do to start a running Hybrasyl test server is run one (maybe two) commands:
 
   ```
+  # This will check out Ceridwen (test data repo) locally, if you don’t have any data
+  git submodule update --init --recursive
+  # This will start Redis and Hybrasyl server
   docker-compose up
   ```
 
