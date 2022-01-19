@@ -14,9 +14,8 @@ sometime.
 
 This document is intended for developers; if you're interested in using a
 released version of Hybrasyl server, please check our 
-[Github releases page](https://github.com/hybrasyl/server/releases). We do 
-not currently provide installer packages, although that is in
-the works. Generally, if you use the Hybrasyl launcher, our staging server is
+[Github releases page](https://github.com/hybrasyl/server/releases). Although we do 
+not currently provide installer packages, we do provide [Docker images](https://hub.docker.com/r/baughj/hybrasyl/tags) which can be quickly used to get started. Generally, if you use the Hybrasyl launcher, our staging server is
 almost always online - production will be online once we implement more
 features!
 
@@ -37,9 +36,9 @@ the process of adding content to a server much easier.
 
 ## Requirements
 
-You will need three things to use Hybrasyl:
+You will need three things to use Hybrasyl, in addition to the server itself:
 
-* [Hybrasyl Launcher](https://github.com/hybrasyl/launcher)
+* A launcher - we recommend you use [Spark](https://www.dropbox.com/s/sagoqwway2dzlau/Spark.zip?dl=0)
 * [Redis](https://github.com/MSOpenTech/redis/releases)
 * [Dark Ages Client](https://www.darkages.com)
 
@@ -48,8 +47,8 @@ You will need three things to use Hybrasyl:
 There are three processes that need to be properly configured in order to
 connect a Dark Ages client to your own Hybrasyl instance:
 
-* The [launcher](https://github.com/hybrasyl/launcher) (which modifies the Dark
-  Ages client to get it to connect to the server)
+* The [launcher](https://github.com/ewrogers/Spark) (which modifies
+  the Dark Ages client to get it to connect to the server). 
 * The [game server](https://github.com/hybrasyl/server) (what you're looking at
   now)
 * A running instance of Redis, which will be used for storing state data.
@@ -67,9 +66,26 @@ player inventory, messageboards and mailboxes from its companion Redis server
 at runtime; XML is processed when the server starts up for actual world data
 (items, maps, mobs, etc).
 
-To get started with the server:
+To get started with the server, you have two options:
 
-1. **Install Redis**
+1. The easy way - aka using [Docker](https://docker.com)
+
+  If you have Docker installed, you can just download and run a [quick start image](https://hub.docker.com/r/baughj/hybrasyl/tags).
+The quick start image includes a copy of our example data that you can use to instantly get into a test server. You’ll still need
+an instance of Redis running locally (see below).
+
+  Pulling and running the image is easy:
+
+  ```
+  docker pull baughj/hybrasyl:quickstart
+  docker run -it -p 2610:2610 -p 2611:2611 -p 2612:2612 --add-host=host.docker.internal:host-gateway
+  ```
+  
+  A script is also provided (`build-image.sh` for rebuilding the Docker image, if you want to do so). 
+
+2. The harder way:
+
+  a. **Install Redis**
 
    Hybrasyl uses Redis to store player state and mailboxes. If you are using Ubuntu/Debian,
    `apt install redis-server`. For Windows, you can either run Redis using [WSL](https://docs.microsoft.com/en-us/windows/wsl/install-win10)
@@ -82,37 +98,34 @@ To get started with the server:
    TCP/6379, can be accessed from the server running Hybrasyl; you may need to
    grant access or open ports.
 
-2. **Create and populate your base directory**
+  b. **Create and populate your base directory**
 
    On Windows, this is `%userprofile%\documents\Hybrasyl`. On GNU/Linux
    or OSX this is `~/Hybrasyl` for whatever user is running the server.
    Take a look at the
-   [community-maintained database](https://github.com/shadowoffice/HybraDB)
+   [community-maintained database](https://github.com/hybrasyl/ceridwen)
    for XML and scripting. This has more than enough XML and scripts to
    get you started. You can put the contents of that repository
-   directly into your Hybrasyl data directory and start the server. You
-   may wish to modify the default `config.xml`.
+   directly into your Hybrasyl data directory and start the server.    
+   
+  c. **Update your configuration**
 
-3. **Update your configuration**
-
-   Examine the Hybrasyl configuration in the Hybrasyl data directory, `config.xml`. In particular,
-   you will want to add the name of your character to `<Privileged>`, which will allow
-   them to use any slash command.
-
-4. **Install and run Hybrasyl** 
+	For your server configuration, you can start with our [annotated](https://	github.com/hybrasyl/server/tree/main/contrib/config.xml) example for your 	config.xml which will help you get up and running quickly.
+	
+  d. **Install and run Hybrasyl** 
 
    (see _Running Hybrasyl_ below).
 
 ## Running Hybrasyl
 
-Hybrasyl Server is .NET Core, which means it can be run on a variety of platforms (Windows, GNU/Linux, OSX).
+Hybrasyl Server is a .NET 6 console application, which means it can be run on a variety of platforms (Windows, Linux, OSX).
 
-A `systemd` unit file [is provided](./contrib/hybrasyl.unit) to start the server on Ubuntu 18.04+. In any case,
+If you aren't using Docker, we provide a `systemd` unit file [is provided](./contrib/hybrasyl.unit) to start the server on Ubuntu 18.04+. In any case,
 [download the latest release](https://github.com/hybrasyl/server/releases) for your platform. This can be unpacked
-into `/srv/hybrasyl` on GNU/Linux or a directory of your choosing on Windows.
+into `/srv/hybrasyl` on Linux or a directory of your choosing on Windows.
 
 Once downloaded, either run the server directly (`Hybrasyl.exe` or
-`Hybrasyl` on GNU/Linux) or, if you’re running on GNU/Linux or a WSL
+`Hybrasyl` on Linux) or, if you’re running on Linux or a WSL
 distribution that uses systemd, install the unit file in
 `/etc/systemd/system/hybrasyl.service` and start Hybrasyl:
 
@@ -131,17 +144,16 @@ or [Microsoft Visual Studio Code](https://code.visualstudio.com/).
    For Visual Studio, the Community Edition is free and capable of compiling
    all the needed projects (server, launcher), but you don't strictly speaking need this any longer - you can also just edit C# code in VS Code.
 
-2. Download and install a [.NET Core SDK and Runtime](https://dotnet.microsoft.com/download).
+2. Download and install the [.NET 6 SDK](https://dotnet.microsoft.com/download).
 
-   Currently, Hybrasyl uses .NET Core 3.1. In order to do development, you need both the SDK and runtime; to simply run Hybrasyl, you just need the runtime.
+   Currently, Hybrasyl uses .NET 6. In order to do development, you need both the SDK and runtime; to simply run Hybrasyl, you just need the runtime.
 
-2. Clone the [launcher](https://github.com/hybrasyl/launcher) and
-   [server](https://github.com/hybrasyl/server) repositories to your
+2. Download Spark (the launcher from above) and clone the 
+   [server](https://github.com/hybrasyl/server) repository to your
    local machine using a
-   [git client](https://git-scm.com/downloads/guis), or with Visual
-   Studio or VS Code's built-in integration. **Make sure you clone them into
-   separate directories**.
-   
+   [git client](https://git-scm.com/downloads/guis), with Visual
+   Studio or VS Code's built-in integration, or with [GitHub Desktop](https://desktop.github.com) 
+      
 3. Update and rebuild packages.
 
    Open the Hybrasyl Server solution (`Hybrasyl.sln`) in Visual Studio
@@ -155,22 +167,17 @@ or [Microsoft Visual Studio Code](https://code.visualstudio.com/).
    The default settings should be adequate for most system setups.
    Should you wish to compile an distributable / standalone executable, run the
    following from the command line: `dotnet publish -c Debug -r
-   win10-x64` or `dotnet publish -c Debug -r ubuntu.18.04-x64`
+   win10-x64` or `dotnet publish -c Debug -r linux-x64`
 
-Now that your setup is complete, you should be able to use the launcher 
-to connect to it (after opening `Hy-brasyl Launcher.sln` and building the project). Launch the
-executable and select `localhost` from the server selection dropdown. You can also use one of the other community launchers to connect.
+Now that your setup is complete, you should be able to use Spark 
+to connect to it (after opening `Hy-brasyl Launcher.sln` and building the project). Launch Spark and type in `localhost` in the "Server Hostname" field.
 
 You should now be able to connect to your Hybrasyl server, create a
 new character, and log in! If not, well, take a look at the section on [getting help](#help).
 
 ## Logging in
 
-Log in to your new server by launching the Hy-brasyl Launcher
-application, either compiled as described above or downloaded from
-[hybrasyl.com](https://www.hybrasyl.com/files/Hybrasyl_Launcher_Installer.msi).
-Point it to a local Dark Ages client installation, select `localhost`
-from the server configuration dropdown, and launch. The launcher will
+Log in to your new server by launching Spark. Point it to a local Dark Ages client installation, enter `localhost` into the server hostname field, and launch. Spark will
 ask you for a local Dark Ages client executable; you must have the
 latest client installed in order to continue. Once launched, you
 should see a Hybrasyl welcome screen in place of the standard Dark
@@ -188,7 +195,7 @@ the world.
   
 * Try typing `/item Stick` when you log in to add a stick to your inventory. 
   You can add any item that is a valid Item XML file in `xml/items` in your
-  `world` directory.
+  `world` directory (you did use [ceridwen](https://github.com/hybrasyl/ceridwen) to start, right?)
   
 * You can learn skills and spells by using `/spell`, for instance, `/spell Assail`.
   
@@ -210,18 +217,14 @@ your first go-to for asking questions. **Remember that Hybrasyl is a volunteer
 project, not a job; we'll try to get to your questions as soon as we see
 them**.
 
-We also maintain two Google Groups, one
-[for developers](https://groups.google.com/forum/#!forum/hybrasyl-devel) and
-one [for users](https://groups.google.com/forum/#!forum/hybrasyl-users).
-
 ## A Note on Licensing
 
 **Please note that Hybrasyl Server, along with most of its components, is
   licensed under the GNU Affero General Public License, version 3 (AGPLv3)**.
-  This means that, if you use this software to run a server that other users
+  This means that, *if you use this software to run a server that other users
   can connect to, you are required by the license to release the corresponding
   source code, which means that any and all modifications you make to the
-  server software are also licensed under the AGPLv3.
+  server software are also licensed under the AGPLv3*.
   [Read more at gnu.org](http://www.gnu.org/licenses/why-affero-gpl.en.html).
 
 By using this license for Hybrasyl, our intent is to foster a vibrant community
