@@ -722,9 +722,9 @@ namespace Hybrasyl.Objects
 
         public override void ShowTo(VisibleObject obj)
         {
-            if (!(obj is User)) return;
-            var user = obj as User;
-            user.SendVisibleCreature(this);
+            if (!(obj is User user)) return;
+            if (!Condition.IsInvisible || user.Condition.SeeInvisible)
+                user.SendVisibleCreature(this);
         }
 
         public bool IsIdle()
@@ -1112,7 +1112,7 @@ namespace Hybrasyl.Objects
         {
             lock (_lock)
             {
-                if (obj is User user)
+                if (obj is User user && (!user.Condition.IsInvisible || Condition.SeeInvisible))
                 {
                     if (Map.EntityTree.GetObjects(GetViewport()).OfType<User>().ToList().Count > 0)
                     {

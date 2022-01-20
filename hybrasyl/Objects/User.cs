@@ -370,13 +370,26 @@ namespace Hybrasyl.Objects
 
         public override void AoiEntry(VisibleObject obj)
         {
-            base.AoiEntry(obj);
             GameLog.DebugFormat("Showing {0} to {1}", Name, obj.Name);
-            obj.ShowTo(this);
+            if (obj is Creature c)
+            {
+                if (!c.Condition.SeeInvisible && Condition.IsInvisible) return;
+                base.AoiEntry(obj);
+                obj.ShowTo(this);
+            }
+            else
+            {
+                base.AoiEntry(obj);
+                obj.ShowTo(this);
+            }
         }
 
         public override void AoiDeparture(VisibleObject obj)
         {
+            if (obj is Creature c)
+            {
+                if (!Condition.SeeInvisible && c.Condition.IsInvisible) return;
+            }
             base.AoiDeparture(obj);
             GameLog.Debug("Removing ItemObject with ID {Id}", obj.Id);
             var removePacket = new ServerPacket(0x0E);
