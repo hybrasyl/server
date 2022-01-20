@@ -2467,6 +2467,12 @@ namespace Hybrasyl
 
             if (item == null) return;
 
+            if (user.Condition.IsItemUseProhibited)
+            {
+                user.SendSystemMessage("A strange force prevents you.");
+                return;
+            }
+
             switch (item.ItemObjectType)
             {
                 case Enums.ItemObjectType.CanUse:
@@ -2489,6 +2495,12 @@ namespace Hybrasyl
 
                 case Enums.ItemObjectType.Equipment:
                 {
+
+                    if (user.Condition.IsEquipmentChangeProhibited)
+                    {
+                        user.SendSystemMessage("A strange force prevents you from wielding it.");
+                        return;
+                    }
                     if (item.Durability == 0)
                     {
                         user.SendSystemMessage("This item is too badly damaged to use.");
@@ -3512,6 +3524,11 @@ namespace Hybrasyl
             var item = user.Equipment[slot];
             if (item != null)
             {
+                if (user.Condition.IsEquipmentChangeProhibited)
+                {
+                    user.SendSystemMessage("A strange force prevents you from removing it.");
+                    return;
+                }
                 GameLog.DebugFormat("actually removing item");
                 user.RemoveEquipment(slot);
                 // Add our removed item to our first empty inventory slot

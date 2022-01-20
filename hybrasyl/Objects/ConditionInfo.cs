@@ -242,9 +242,36 @@ namespace Hybrasyl.Objects
             }
         }
 
+        public bool IsItemUseProhibited
+        {
+            get => User != null && Conditions.HasFlag(Xml.CreatureCondition.ProhibitItemUse);
+            set
+            {
+                if (User == null) return;
+                if (value == false)
+                    Conditions &= Xml.CreatureCondition.ProhibitItemUse;
+                else
+                    Conditions |= Xml.CreatureCondition.ProhibitItemUse;
+            }
+        }
+
+        public bool IsEquipmentChangeProhibited
+        {
+            get => User != null && Conditions.HasFlag(Xml.CreatureCondition.ProhibitEquipChange);
+            set
+            {
+                if (User == null) return;
+                if (value == false)
+                    Conditions &= Xml.CreatureCondition.ProhibitEquipChange;
+                else
+                    Conditions |= Xml.CreatureCondition.ProhibitEquipChange;
+            }
+        }
+
+    }
 
 
-        public bool NoFlags => Flags == PlayerFlags.Alive;
+    public bool NoFlags => Flags == PlayerFlags.Alive;
 
         public void ClearFlags()
         {
