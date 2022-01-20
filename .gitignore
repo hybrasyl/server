@@ -295,3 +295,6 @@ hybrasyl/toc.yml
 
 # Redis dumps
 *.rdb
+
+# Local container data
+data/*
