@@ -34,8 +34,8 @@ namespace Hybrasyl
     {
         public new LoginPacketHandler[] PacketHandlers { get; private set; }
 
-        public Login(int port)
-            : base(port)
+        public Login(int port, bool isDefault = false)
+            : base(port, isDefault)
         {
             GameLog.InfoFormat("LoginConstructor: port is {0}", port);
 

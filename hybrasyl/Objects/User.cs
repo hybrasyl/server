@@ -850,18 +850,18 @@ namespace Hybrasyl.Objects
 
         }
 
-        public bool AssociateConnection(World world, long connectionId)
+        public bool AssociateConnection(Guid serverGuid, long connectionId)
         {
-            World = world;
+            ServerGuid = serverGuid;
             Client client;
             if (!GlobalConnectionManifest.ConnectedClients.TryGetValue(connectionId, out client)) return false;
             Client = client;
             return true;
         }
 
-        public User(World world, long connectionId, string playername = "")
+        public User(Guid serverGuid, long connectionId, string playername = "")
         {
-            World = world;
+            ServerGuid = serverGuid;
             Client client;
             if (GlobalConnectionManifest.ConnectedClients.TryGetValue(connectionId, out client))
             {
@@ -870,9 +870,9 @@ namespace Hybrasyl.Objects
             _initializeUser(playername);
         }
 
-        public User(World world, Client client, string playername = "")
+        public User(Guid serverGuid, Client client, string playername = "")
         {
-            World = world;
+            ServerGuid = serverGuid;
             Client = client;
             _initializeUser(playername);
         }
@@ -1263,6 +1263,12 @@ namespace Hybrasyl.Objects
                 }
             }
 
+            if (Condition.Muted)
+            {
+                SendSystemMessage("You try to speak, but cannot.");
+                return;
+            }
+
             var bookSlot = SpellBook[slot];
             Creature targetCreature = Map.EntityTree.OfType<Creature>().SingleOrDefault(x => x.Id == target) ?? null;
 
@@ -1463,15 +1469,23 @@ namespace Hybrasyl.Objects
             }.Packet());
         }
 
+        public void RequestPortrait()
+        {
+            var x49 = new ServerPacket(0x49);
+            x49.WriteByte(0x00);
+            x49.WriteByte(0x00);
+            Enqueue(x49);
+        }
+
         public override void SendId()
         {
             var x05 = new ServerPacket(0x05);
             x05.WriteUInt32(Id);
-            x05.WriteByte(0x02);
-            x05.WriteByte(0x00);
-            x05.WriteByte(0x01);
-            x05.WriteByte(0x00);
-            x05.WriteByte(0x00);
+            x05.WriteByte((byte) Direction);
+            x05.WriteByte(0x00); // unknown. clanid?
+            x05.WriteByte((byte) Class);
+            x05.WriteByte(0x00); // unknown
+            x05.WriteByte((byte) Gender);
             x05.WriteByte(0x00);
             Enqueue(x05);
         }
@@ -1580,8 +1594,6 @@ namespace Hybrasyl.Objects
             }
             GameLog.DebugFormat("Adding skill {0} to slot {2}",
                 item.Castable.Name, slot);
-
-            var mastery = "";
 
             //if(item.Castable.Mastery.Tiered)
             //{
@@ -3415,10 +3427,11 @@ namespace Hybrasyl.Objects
         {
             var castable = PendingLearnableCastable;
             var classReq = castable.Requirements.Single(x => x.Class.Contains(Class) || Class == Xml.Class.Peasant);
-            Xml.LocalizedString learnString;
             var prompt = string.Empty;
-            var options = new MerchantOptions();
-            options.Options = new List<MerchantDialogOption>();
+            var options = new MerchantOptions
+            {
+                Options = new List<MerchantDialogOption>()
+            };
             //verify user has required items.
             if (!(Gold >= classReq.Gold))
             {
@@ -3566,14 +3579,14 @@ namespace Hybrasyl.Objects
 
         public void ShowBuyItem(Merchant merchant, uint quantity = 1)
         {
-            Xml.LocalizedString buyString;
             var prompt = string.Empty;
-            
             var item = Game.World.WorldData.GetByIndex<Xml.Item>(PendingBuyableItem);
             var itemObj = Game.World.CreateItem(item.Id);
             var reqGold = (uint)(itemObj.Value * quantity);
-            var options = new MerchantOptions();
-            options.Options = new List<MerchantDialogOption>();
+            var options = new MerchantOptions
+            {
+                Options = new List<MerchantDialogOption>()
+            };
 
             if(MaximumWeight < (CurrentWeight + item.Properties.Physical.Weight))
             {
@@ -3718,9 +3731,10 @@ namespace Hybrasyl.Objects
             var item = Inventory[slot];
             var offer = (uint)(Math.Round(item.Value * 0.10, 0) * quantity);
             PendingMerchantOffer = offer;
-            Xml.LocalizedString offerString = null;
-            var options = new MerchantOptions();
-            options.Options = new List<MerchantDialogOption>();
+            var options = new MerchantOptions
+            {
+                Options = new List<MerchantDialogOption>()
+            };
             var prompt = string.Empty;
 
             if (quantity > ushort.MaxValue) quantity = ushort.MaxValue;
@@ -3949,10 +3963,11 @@ namespace Hybrasyl.Objects
             var itemObj = PendingSendableParcel;
             var quantity = PendingSendableQuantity;
             PendingParcelRecipient = recipient;
-            Xml.LocalizedString parcelString;
             var prompt = string.Empty;
-            var options = new MerchantOptions();
-            options.Options = new List<MerchantDialogOption>();
+            var options = new MerchantOptions
+            {
+                Options = new List<MerchantDialogOption>()
+            };
             //verify user has required items.
             var parcelFee = (uint)Math.Ceiling((itemObj.Value * .10) * quantity);
             if (!Game.World.WorldData.TryGetAuthInfo(recipient, out AuthInfo info))
@@ -4549,9 +4564,10 @@ namespace Hybrasyl.Objects
 
         public void ShowRepairAllItemsAccept(Merchant merchant)
         {
-            var prompt = "";
-            var options = new MerchantOptions();
-            options.Options = new List<MerchantDialogOption>();
+            var options = new MerchantOptions
+            {
+                Options = new List<MerchantDialogOption>()
+            };
             if (Gold < PendingRepairCost)
             {
                 var packet = new ServerPacketStructures.MerchantResponse()
@@ -5026,22 +5042,18 @@ namespace Hybrasyl.Objects
         }
 
 
-        public void SendSystemMessage(string p)
+        public void SendSystemMessage(string msg)
         {
-            LastSystemMessage = p;
-            if (Client is null) return;
-            Client.SendMessage(p, 3);
+            LastSystemMessage = msg;
+            Client?.SendMessage(msg, 3);
         }
 
         public void CancelCasting()
         {
-            if(Condition.Casting)
-            {
-                var packet = new ServerPacketStructures.CancelCast();
-                Enqueue(packet.Packet());
-                Condition.Casting = false;
-
-            }
+            if (!Condition.Casting) return;
+            var packet = new ServerPacketStructures.CancelCast();
+            Enqueue(packet.Packet());
+            Condition.Casting = false;
         }
 
     }

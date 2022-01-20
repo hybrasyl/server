@@ -151,8 +151,6 @@ namespace Hybrasyl
         // Manhattan distance between two players required for an asynchronous dialog request
         public const int ASYNC_DIALOG_DISTANCE = 10;
 
-        public static string DataDirectory;
-
         // This should be an ID of a map that will be used to store players in the event of lag / worldmap disconnects
         public const ushort LAG_MAP = 1001;
 

@@ -22,6 +22,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Security.Cryptography;
@@ -42,7 +43,6 @@ namespace Hybrasyl
 {
     public static class Game
     {
-
         public static readonly object SyncObj = new object();
         public static IPAddress IpAddress;
         public static IPAddress RedirectTarget;
@@ -57,9 +57,7 @@ namespace Hybrasyl
         public static byte[] Notification { get; set; }
         public static uint NotificationCrc { get; set; }
         public static byte[] Collisions { get; set; }
-        public static string Motd { get; set; }
-        public static int LogLevel { get; set; }
-
+ 
         public static AssemblyInfo Assemblyinfo { get; set; }
         private static long Active;
 
@@ -73,6 +71,8 @@ namespace Hybrasyl
         private static Thread _worldThread;
         private static Thread _spawnThread;
         private static Thread _controlThread;
+
+        private static Dictionary<Guid, Server> Servers = new ();
 
         private static Grpc.Core.Server GrpcServer;
 
@@ -90,6 +90,17 @@ namespace Hybrasyl
         public static bool ShutdownComplete;
 
         public static IMetricsRoot MetricsStore { get; private set; }
+
+        public static T GetServerByGuid<T>(Guid g) where T : Server => Servers.ContainsKey(g) ? (T) Servers[g] : null;
+        public static T GetDefaultServer<T>() where T : Server => Servers.Values.FirstOrDefault(x => x is T && x.Default) as T;
+
+        public static Guid GetDefaultServerGuid<T>() where T : Server =>
+            Servers.FirstOrDefault(x => x.Value is T && x.Value.Default).Value?.Guid ?? Guid.Empty;
+
+        public static void RegisterServer(Server s) => Servers[s.Guid] = s;
+
+        public static string StartupDirectory => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Hybrasyl");
+
 
         public static void ToggleActive()
         {
@@ -116,7 +127,6 @@ namespace Hybrasyl
 
         public static void CurrentDomain_ProcessExit(object sender, EventArgs e) => Shutdown();
 
-
         public static void Shutdown()
         {
             Log.Warning("Hybrasyl: all servers shutting down");
@@ -142,8 +152,6 @@ namespace Hybrasyl
 
         public static void Main(string[] args)
         {
-            // Make our window nice and big
-            //Console.SetWindowSize(140, 36);  //Removed for cross-platform compatibility
             Assemblyinfo = new AssemblyInfo(Assembly.GetEntryAssembly());
 
             // Default is info
@@ -151,12 +159,11 @@ namespace Hybrasyl
             LevelSwitch.MinimumLevel = LogEventLevel.Information;
 
             // Set our exit handler
-            AppDomain.CurrentDomain.ProcessExit += new EventHandler(CurrentDomain_ProcessExit);
+            AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
 
-            var startupDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Hybrasyl");
-            var hybConfig = Path.Combine(startupDir, "config.xml");
+            var hybConfig = Path.Combine(StartupDirectory, "config.xml");
 
-            string dataDirectory = Path.Combine(startupDir, "world");
+            string dataDirectory = Path.Combine(StartupDirectory, "world");
             Log.Logger = new LoggerConfiguration().WriteTo.Console().CreateLogger();
 
             if (File.Exists(hybConfig))
@@ -167,7 +174,7 @@ namespace Hybrasyl
                     Config = gameConfig;
                     Config.InitializeClientSettings();
                     dataDirectory = string.IsNullOrEmpty(Config.WorldDataDir)
-                        ? startupDir
+                        ? StartupDirectory
                         : Config.WorldDataDir;
                     if (!string.IsNullOrEmpty(Config.WorldDataDir) && Directory.Exists(Config.WorldDataDir))
                         dataDirectory = Config.WorldDataDir;
@@ -191,8 +198,6 @@ namespace Hybrasyl
             }
             else
             {
-                var validConfig = false;
-
                 Log.Warning("This seems to be the first time you've run the server (config file not found)");
                 Log.Warning("Please take a look at the server documentation at github.com/hybrasyl/server.");
                 Log.Warning("We also recommend you look at the example config.xml in the community database");
@@ -205,17 +210,17 @@ namespace Hybrasyl
 
             if (string.IsNullOrEmpty(dataDirectory))
             {
-                Log.Information("Using default data directory {Directory}", startupDir);
+                Log.Information("Using default data directory {Directory}", StartupDirectory);
                 try
                 {
                     // Ensure at least the world and logs directory exist 
-                    Directory.CreateDirectory(startupDir);
-                    Directory.CreateDirectory(Path.Combine(startupDir, "world"));
-                    Directory.CreateDirectory(Path.Combine(startupDir, "logs"));
+                    Directory.CreateDirectory(StartupDirectory);
+                    Directory.CreateDirectory(Path.Combine(StartupDirectory, "world"));
+                    Directory.CreateDirectory(Path.Combine(StartupDirectory, "logs"));
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine($"Can't create data directory: {startupDir}", e.ToString());
+                    Console.WriteLine($"Can't create data directory: {StartupDirectory}", e.ToString());
                     Thread.Sleep(5000);
                     return;
                 }
@@ -297,10 +302,12 @@ namespace Hybrasyl
             // is for a distant future where that may be desirable.
             if (Config.Network.Login.ExternalAddress != null)
                 RedirectTarget = IPAddress.Parse(Config.Network.Lobby.ExternalAddress);
+ 
             IpAddress = IPAddress.Parse(Config.Network.Lobby.BindAddress);
-            Lobby = new Lobby(Config.Network.Lobby.Port);
-            Login = new Login(Config.Network.Login.Port);
-            World = new World(Config.Network.World.Port, Config.DataStore, dataDirectory == string.Empty ? Path.Combine(startupDir, "world") : dataDirectory );
+
+            Lobby = new Lobby(Config.Network.Lobby.Port, true);
+            Login = new Login(Config.Network.Login.Port, true);
+            World = new World(Config.Network.World.Port, Config.DataStore, dataDirectory == string.Empty ? Path.Combine(StartupDirectory, "world") : dataDirectory, true);
 
             Lobby.StopToken = CancellationTokenSource.Token;
             Login.StopToken = CancellationTokenSource.Token;
@@ -408,12 +415,12 @@ namespace Hybrasyl
                     // Load credentials
                     try
                     {
-                        var cert = File.ReadAllText(Path.Join(Constants.DataDirectory, Config.Network.Grpc.ServerCertificateFile));
-                        var key = File.ReadAllText(Path.Join(Constants.DataDirectory, Config.Network.Grpc.ServerKeyFile));
+                        var cert = File.ReadAllText(Path.Join(StartupDirectory, "ssl", Config.Network.Grpc.ServerCertificateFile));
+                        var key = File.ReadAllText(Path.Join(StartupDirectory, "ssl", Config.Network.Grpc.ServerKeyFile));
                         var keypair_list = new List<Grpc.Core.KeyCertificatePair>() { new Grpc.Core.KeyCertificatePair(cert, key) };
                         if (Config.Network.Grpc.ChainCertificateFile != null)
                         {
-                            var chaincerts = File.ReadAllText(Path.Join(Constants.DataDirectory, Config.Network.Grpc.ChainCertificateFile));
+                            var chaincerts = File.ReadAllText(Path.Join(StartupDirectory, "ssl", Config.Network.Grpc.ChainCertificateFile));
                             credentials = new Grpc.Core.SslServerCredentials(keypair_list, chaincerts,
                                 Grpc.Core.SslClientCertificateRequestType.RequestAndRequireAndVerify);
                         }

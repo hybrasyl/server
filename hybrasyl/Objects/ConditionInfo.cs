@@ -79,7 +79,7 @@ namespace Hybrasyl.Objects
 
         public bool Alive
         {
-            get { return Flags.HasFlag(PlayerFlags.Alive); }
+            get => Flags.HasFlag(PlayerFlags.Alive);
             set
             {
                 if (value == false)
@@ -92,7 +92,7 @@ namespace Hybrasyl.Objects
 
         public bool Frozen
         {
-            get { return Conditions.HasFlag(Xml.CreatureCondition.Freeze); }
+            get => Conditions.HasFlag(Xml.CreatureCondition.Freeze);
             set
             {
                 if (value == false)
@@ -104,7 +104,7 @@ namespace Hybrasyl.Objects
 
         public bool Asleep
         {
-            get { return Conditions.HasFlag(Xml.CreatureCondition.Sleep); }
+            get => Conditions.HasFlag(Xml.CreatureCondition.Sleep);
             set
             {
                 if (value == false)
@@ -116,7 +116,7 @@ namespace Hybrasyl.Objects
 
         public bool Paralyzed
         {
-            get { return Conditions.HasFlag(Xml.CreatureCondition.Paralyze); }
+            get => Conditions.HasFlag(Xml.CreatureCondition.Paralyze);
             set
             {
                 if (value == false)
@@ -129,7 +129,7 @@ namespace Hybrasyl.Objects
 
         public bool Blinded
         {
-            get { return Conditions.HasFlag(Xml.CreatureCondition.Blind); }
+            get => Conditions.HasFlag(Xml.CreatureCondition.Blind);
             set
             {
                 if (value == false)
@@ -142,7 +142,7 @@ namespace Hybrasyl.Objects
 
         public bool PvpEnabled
         {
-            get { return Flags.HasFlag(PlayerFlags.Pvp); }
+            get => Flags.HasFlag(PlayerFlags.Pvp);
             set
             {
                 if (value == false)
@@ -154,7 +154,7 @@ namespace Hybrasyl.Objects
 
         public bool Casting
         {
-            get { return Flags.HasFlag(PlayerFlags.Casting); }
+            get => Flags.HasFlag(PlayerFlags.Casting);
             set
             {
                 if (value == false)
@@ -164,11 +164,59 @@ namespace Hybrasyl.Objects
             }
         }
 
+        public bool Muted
+        {
+            get => Conditions.HasFlag(Xml.CreatureCondition.Mute);
+            set
+            {
+                if (value == false)
+                    Conditions &= ~Xml.CreatureCondition.Mute;
+                else
+                    Conditions |= Xml.CreatureCondition.Mute;
+            }
+        }
+
+        public bool SeeInvisible
+        {
+            get => Conditions.HasFlag(Xml.CreatureCondition.Sight);
+            set
+            {
+                if (value == false)
+                    Conditions &= ~Xml.CreatureCondition.Sight;
+                else
+                    Conditions |= Xml.CreatureCondition.Sight;
+            }
+        }
+
+        public bool IsInvisible
+        {
+            get => Conditions.HasFlag(Xml.CreatureCondition.Invisible);
+            set
+            {
+                if (value == false)
+                    Conditions &= ~Xml.CreatureCondition.Invisible;
+                else
+                    Conditions |= Xml.CreatureCondition.Invisible;
+            }
+        }
+
+        public bool IsInvulnerable
+        {
+            get => Conditions.HasFlag(Xml.CreatureCondition.Invulnerable);
+            set
+            {
+                if (value == false)
+                    Conditions &= ~Xml.CreatureCondition.Invulnerable;
+                else
+                    Conditions |= Xml.CreatureCondition.Invulnerable;
+            }
+        }
+
         // The following apply to users only
 
         public bool Comatose
         {
-            get { return User != null ? Conditions.HasFlag(Xml.CreatureCondition.Coma) : false; }
+            get => User != null && Conditions.HasFlag(Xml.CreatureCondition.Coma);
             set
             {
                 if (User == null) return;
@@ -183,7 +231,7 @@ namespace Hybrasyl.Objects
 
         public bool InExchange
         {
-            get { return User != null ? Flags.HasFlag(PlayerFlags.InExchange) : false; }
+            get => User != null && Flags.HasFlag(PlayerFlags.InExchange);
             set
             {
                 if (User == null) return;
@@ -193,6 +241,8 @@ namespace Hybrasyl.Objects
                     Flags |= PlayerFlags.InExchange;
             }
         }
+
+
 
         public bool NoFlags => Flags == PlayerFlags.Alive;
 

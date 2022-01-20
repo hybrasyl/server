@@ -13,8 +13,6 @@
     </xs:documentation>
   </xs:annotation>
 
-  <!--  Formula "affect" targets. How should the formula be interpreted?
-        This is intended for future use, right now nothing else is coded in. -->
   <xs:simpleType name="FormulaTarget">
     <xs:restriction base="xs:token">
       <xs:enumeration value="Damage" />

@@ -11,7 +11,8 @@ namespace Hybrasyl.Xml
 {
     public partial class Item
     {
-        public static SHA256CryptoServiceProvider sha = new SHA256CryptoServiceProvider();
+        public static SHA256 sha = SHA256.Create();
+
         [XmlIgnore]
         public bool IsVariant { get; set; }
 

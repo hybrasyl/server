@@ -454,7 +454,6 @@ namespace Hybrasyl.Objects
 
             Name = creature.Name;
             Sprite = creature.Sprite;
-            World = Game.World;
             Map = Game.World.WorldData.Get<Map>(map);
             Stats.Level = level;
 

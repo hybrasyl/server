@@ -51,7 +51,8 @@ namespace Hybrasyl.Objects
         public virtual string Name { get; set; }
 
         public Script Script { get; set; }
-        public World World { get; set; }
+        public Guid ServerGuid { get; set; }
+        public World World => Game.GetServerByGuid<World>(ServerGuid);
         public ushort DialogSprite { get; set; }
 
         private Dictionary<string, dynamic> _ephemeralStore { get; set; }

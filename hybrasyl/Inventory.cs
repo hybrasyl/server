@@ -677,7 +677,7 @@ namespace Hybrasyl
                 {
                     if (Game.World.WorldData.TryGetValue<Item>(slot.Id, out Item ItemTemplate))
                     {
-                        equipment[i] = new ItemObject(slot.Id, Game.World, new Guid(slot.Guid))
+                        equipment[i] = new ItemObject(slot.Id, Game.GetDefaultServerGuid<World>(), new Guid(slot.Guid))
                         {
                             Count = slot.Count,
                             Durability = slot.Durability
@@ -738,7 +738,7 @@ namespace Hybrasyl
                 {
                     if (Game.World.WorldData.TryGetValue<Item>(slot.Id, out Item ItemTemplate))
                     {
-                        equipment[i] = new ItemObject(slot.Id, Game.World, new Guid(slot.Guid))
+                        equipment[i] = new ItemObject(slot.Id, Game.GetDefaultServerGuid<World>(), new Guid(slot.Guid))
                         {
                             Count = slot.Count,
                             Durability = slot.Durability

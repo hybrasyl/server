@@ -208,13 +208,13 @@ namespace Hybrasyl
             DebugEnabled = false;
         }
 
-        public World(int port) : base(port)
+        public World(int port, bool isDefault = false) : base(port, isDefault)
         {
             InitializeWorld();
         }
 
-        public World(int port, Xml.DataStore store, string dataDir, bool adminEnabled=false)
-                : base(port)
+        public World(int port, Xml.DataStore store, string dataDir, bool adminEnabled=false, bool isDefault = false)
+                : base(port, isDefault)
         {
             InitializeWorld();
             if (dataDir != null && Directory.Exists(dataDir))
@@ -2175,7 +2175,7 @@ namespace Hybrasyl
                 loginUser.AuthInfo.CurrentState = UserState.InWorld;
 
             loginUser.AuthInfo.Save();
-            loginUser.AssociateConnection(this, connectionId);
+            loginUser.AssociateConnection(Guid, connectionId);
             loginUser.SetEncryptionParameters(key, seed, name);
             loginUser.UpdateLoginTime();
             loginUser.Inventory.RecalculateWeight();
@@ -2200,7 +2200,6 @@ namespace Hybrasyl
                 if (!loginUser.ClientSettings.ContainsKey(x))
                     loginUser.ClientSettings[x] = Game.Config.SettingsNumberIndex[x].Default;
             }
-
 
             Insert(loginUser);
             GameLog.DebugFormat("Adding {0} to hash", loginUser.Name);
@@ -2262,6 +2261,8 @@ namespace Hybrasyl
             }
             loginUser.SendSystemMessage(HybrasylTime.Now.ToString());
             loginUser.Reindex();
+            loginUser.RequestPortrait();
+
         }
 
         [Prohibited(Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
@@ -4024,7 +4025,7 @@ namespace Hybrasyl
         public void Insert(WorldObject obj)
         {
             obj.Id = worldObjectID;
-            obj.World = this;
+            obj.ServerGuid = Guid;
             obj.SendId();
 
             if (obj is ItemObject)
@@ -4053,7 +4054,7 @@ namespace Hybrasyl
                     ActiveStatuses.Remove(creature);
             }
             GameLog.Info($"Object {obj.Name}: {obj.Id} removed");
-            obj.World = null;
+            obj.ServerGuid = Guid.Empty;
             obj.Id = 0;            
         }
 
@@ -4061,7 +4062,7 @@ namespace Hybrasyl
         {
             var xmlitem = WorldData.FindItem(id);
             if (xmlitem.Count == 0) return null;
-            var item = new ItemObject(xmlitem.First().Id, this);
+            var item = new ItemObject(xmlitem.First().Id, Guid);
             if (quantity > item.MaximumStack)
                 quantity = item.MaximumStack;
             item.Count = Math.Max(quantity, 1);
@@ -4070,7 +4071,7 @@ namespace Hybrasyl
 
         public ItemObject CreateItem(Xml.Item item, int quantity = 1)
         {
-            var itemObj = new ItemObject(item, this);
+            var itemObj = new ItemObject(item, Guid);
             if (quantity > item.MaximumStack)
                 quantity = item.MaximumStack;
             itemObj.Count = Math.Max(quantity, 1);

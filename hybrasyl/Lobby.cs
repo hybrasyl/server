@@ -27,8 +27,8 @@ namespace Hybrasyl
     {
         public new LobbyPacketHandler[] PacketHandlers { get; private set; }
 
-        public Lobby(int port)
-            : base(port)
+        public Lobby(int port, bool isDefault = false)
+            : base(port, isDefault)
         {
             GameLog.InfoFormat("LobbyConstructor: port is {0}", port);
 

@@ -336,7 +336,7 @@ namespace Hybrasyl
         private ConcurrentDictionary<Type, ConcurrentDictionary<dynamic, dynamic>> _index;
         private ConcurrentDictionary<Guid, WorldObject> _indexByGuid;
 
-        public static SHA256CryptoServiceProvider sha = new SHA256CryptoServiceProvider();
+        public static SHA256 sha = SHA256.Create();
 
         // TODO: refactor WDS to support multiple indexes for stores. For now we need 
         // a way to easily retrieve a castable or list of castables based on category

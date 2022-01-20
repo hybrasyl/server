@@ -43,6 +43,7 @@ namespace Hybrasyl
     {
 
         public int Port { get; private set; }
+        public bool Default { get; set; } = false;
         public Socket Listener { get; private set; }
         public WorldPacketHandler[] PacketHandlers { get; private set; }
         public Dictionary<byte, IPacketThrottle> Throttles { get; private set; }
@@ -58,8 +59,10 @@ namespace Hybrasyl
 
         public ConcurrentDictionary<IntPtr, Client> Clients;
 
+        public Guid Guid { get; } = new();
 
-        public Server(int port)
+
+        public Server(int port, bool isDefault = false)
         {
             Clients = new ConcurrentDictionary<IntPtr, Client>();
             Port = port;
@@ -69,7 +72,9 @@ namespace Hybrasyl
             ExpectedConnections = new ConcurrentDictionary<uint, Redirect>();
             for (int i = 0; i < 256; ++i)
                 PacketHandlers[i] = (c, p) => GameLog.Warning($"{GetType().Name}: Unhandled opcode 0x{p.Opcode:X2}");
+            Default = isDefault;
             Task.Run(ProcessOutbound);
+            Game.RegisterServer(this);
         }
 
         public async void ProcessOutbound()

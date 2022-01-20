@@ -32,7 +32,6 @@ namespace Hybrasyl.Objects
     public class ItemObject : VisibleObject
     {
         public string TemplateId { get; private set; }
-        public Guid Guid { get; private set; }
 
         /// <summary>
         /// Check to see if a specified user can equip an ItemObject. Returns a boolean indicating whether
@@ -389,20 +388,20 @@ namespace Hybrasyl.Objects
             }
         }
 
-        public ItemObject(string id, World world, Guid guid = default)
+        public ItemObject(string id, Guid containingWorld = default, Guid guid = default)
         {
-            World = world;
+            ServerGuid = containingWorld;
             TemplateId = id;
             _durability = new Lockable<double>(MaximumDurability);
             _count = new Lockable<int>(1);
             Guid = guid != default ? guid : Guid.NewGuid();
         }
 
-        public ItemObject(Xml.Item template, World world = null, Guid guid = default)
+        public ItemObject(Xml.Item template, Guid containingWorld = default, Guid guid = default)
         {
             Template = template;
             TemplateId = template.Id;
-            if (world != null) World = world;
+            ServerGuid = containingWorld;
             _count = new Lockable<int>(1);
             _durability = new Lockable<double>(uint.MaxValue);
             Guid = guid != default ? guid : Guid.NewGuid();
@@ -414,7 +413,7 @@ namespace Hybrasyl.Objects
         {
             _count = new Lockable<int>(previousItemObject.Count);
             _durability = new Lockable<double>(previousItemObject.Durability);
-            World = previousItemObject.World;
+            ServerGuid = previousItemObject.ServerGuid;
             TemplateId = previousItemObject.TemplateId;
             Durability = previousItemObject.Durability;
             Count = previousItemObject.Count;

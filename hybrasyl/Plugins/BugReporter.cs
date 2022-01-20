@@ -24,7 +24,7 @@ namespace Hybrasyl.Plugins
             if (config.TryGetValue("WebhookUrl", out string url) && config.TryGetValue("OutputDir", out string dir))
             {
                 WebhookUrl = url;
-                OutputDir = Path.Join(Constants.DataDirectory, dir);
+                OutputDir = Path.Join(Game.StartupDirectory, dir);
                 client = new DiscordWebhookClient(url);
                 Disabled = false;
                 return true;

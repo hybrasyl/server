@@ -34,7 +34,7 @@ namespace Hybrasyl.Plugins
 
                 if (config.TryGetValue("OutputDir", out string dir))
                 {
-                    OutputDir = Path.Join(Constants.DataDirectory, dir);
+                    OutputDir = Path.Join(global::Hybrasyl.Game.StartupDirectory, dir);
                     Disabled = false;
                     return true;
                 }

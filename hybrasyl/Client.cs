@@ -514,7 +514,7 @@ namespace Hybrasyl
                     }
                 });
             }
-            catch (ObjectDisposedException e)
+            catch (ObjectDisposedException)
             {
                 // Socket is gone, peace out
                 ClientState.Dispose();

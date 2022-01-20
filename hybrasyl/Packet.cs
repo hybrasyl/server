@@ -251,12 +251,12 @@ namespace Hybrasyl
             TransmitDelay = 0;
         }
 
-        private static SHA1CryptoServiceProvider hashAlgorithm = new SHA1CryptoServiceProvider();
+        private static SHA256 hashAlgorithm = SHA256.Create();
 
         public string Hash()
         {
             var hash = hashAlgorithm.ComputeHash(Data);
-            return BitConverter.ToString(hash).Substring(0, 8);          
+            return BitConverter.ToString(hash)[..8];          
         }
 
         public int Position
