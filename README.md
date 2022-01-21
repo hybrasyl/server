@@ -40,7 +40,7 @@ the process of adding content to a server much easier.
 
 You will need three things to use Hybrasyl, in addition to the server itself:
 
-* A launcher - we recommend you use [Spark](https://www.dropbox.com/s/sagoqwway2dzlau/Spark.zip?dl=0)
+* A launcher - we recommend you use [Spark](https://www.hybrasyl.com/media/launcher/Spark.zip)
 * [Redis](https://github.com/MSOpenTech/redis/releases)
 * [Dark Ages Client](https://www.darkages.com)
 
@@ -72,34 +72,33 @@ The server runs on three TCP ports (2610, 2611, and 2612 by default).
 
 To get started with the server, you have two options:
 
-1. The easy way - aka using [Docker](https://docker.com) or [Docker Compose](https://docs.docker.com/compose/install/)
+1. **The easy way** - using [Docker](https://docker.com) and/or [Docker Compose](https://docs.docker.com/compose/install/)
 
-   If you have docker-compose, all you need to do to start a running Hybrasyl test server is run one (maybe two) commands:
+   If you have `docker-compose`, starting a working server involves three steps:
+   
+   a. Clone the Hybrasyl server repository
+   
+   	   `git clone --recursive https://github.com/hybrasyl/server.git`
+   	   
+   	   Adding `--recursive` here ensures that you also check out [Ceridwen](https://github.com/hybrasyl/ceridwen), our sample data repository, which has starter items/castables/etc.
+   	   
+   b. Edit the config.xml as needed (it's in `contrib/config.xml`)
+   
+   In particular: You will need to configure `ExternalAddress` to be the IP address of your _workstation running Docker_. This is also the IP address you'll use to connect with Spark. Unfortunately, the protocol Darkages uses isn't NAT-aware (Hybrasyl provides `ExternalAddress` in order to make this possible) so we need to provide it with the right address. For a public-facing server, this will be the publicly routable IP address. 
+  
+   c. Start the servers
+   
+   `docker-compose-up`
 
-  ```
-  # This will check out Ceridwen (test data repo) locally, if you don’t have any data
-  git submodule update --init --recursive
-  # This will start Redis and Hybrasyl server
-  docker-compose up
-  ```
+  This will download and run a Redis server image and Hybrasyl’s Dockerhub image, and start both. You’ll be able to login to it immediately using Spark!
 
-  This will download and run a Redis server image and Hybrasyl’s Dockerhub image, and start both. You’ll be able to login to it
-immediately using Spark.
+ Alternatively, if you are more comfortable running servers, you can download and run a [quick start image](https://hub.docker.com/r/baughj/hybrasyl/tags) if you want to provide your own Redis server. The quick start image includes a copy of our example data that you can use to instantly get into a test server.
+ 
+  You'll need to edit your `config.xml` so that `DataStore` points to the right IP / hostname.
 
-  You can also download and run a [quick start image](https://hub.docker.com/r/baughj/hybrasyl/tags).
-The quick start image includes a copy of our example data that you can use to instantly get into a test server. You’ll still need
-an instance of Redis running locally (see below).
+  Lastly, a script is also provided (`build-image.sh` for rebuilding the Docker image, if you want to do so). 
 
-  Pulling and running the image is easy:
-
-  ```
-  docker pull baughj/hybrasyl:quickstart
-  docker run -it baughj/hybrasyl:quickstart -p 2610:2610 -p 2611:2611 -p 2612:2612 --add-host=host.docker.internal:host-gateway
-  ```
-
-  A script is also provided (`build-image.sh` for rebuilding the Docker image, if you want to do so). 
-
-2. The harder way:
+2. **The harder way**
 
   a. **Install Redis**
 
@@ -147,7 +146,7 @@ distribution that uses systemd, install the unit file in
 
 `service hybrasyl start`
 
-To start the server on OSX or GNU/Linux for debugging and testing, you can run `dotnet run` from the `hybrasyl`
+To start the server on OSX or Linux for debugging and testing, you can run `dotnet run` from the `hybrasyl`
 directory (e.g. where `Hybrasyl.csproj` lives.
 
 ## Compiling the Game Server
@@ -193,11 +192,9 @@ new character, and log in! If not, well, take a look at the section on [getting 
 
 ## Logging in
 
-Log in to your new server by launching Spark. Point it to a local Dark Ages client installation, enter `localhost` into the server hostname field, and launch. Spark will
-ask you for a local Dark Ages client executable; you must have the
-latest client installed in order to continue. Once launched, you
-should see a Hybrasyl welcome screen in place of the standard Dark
-Ages welcome screen. Congratulations -- you're connected!
+Log in to your new server by launching Spark. Point it to a local Dark Ages client installation, enter `localhost` into the server hostname field (if running locally), or the IP address of your Docker host, and launch. Spark will ask you for a local Dark Ages client executable; you must have the latest client installed in order to continue. Once launched, you should see a Hybrasyl welcome screen in place of the standard Dark Ages welcome screen. 
+
+Congratulations -- you're connected!
 
 Create a character and log in the same way you would on a production
 server. You should find your Aisling in an inn and ready to explore
@@ -261,3 +258,4 @@ Hybrasyl follows the standard Github fork model, so
 Please note that in order to contribute to the project, you must agree to the
 terms of
 [our contributor agreement](https://github.com/hybrasyl/server/blob/master/CONTRIBUTING.md).
+

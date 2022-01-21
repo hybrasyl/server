@@ -373,7 +373,7 @@ namespace Hybrasyl.Objects
             GameLog.DebugFormat("Showing {0} to {1}", Name, obj.Name);
             if (obj is Creature c)
             {
-                if (!c.Condition.SeeInvisible && Condition.IsInvisible) return;
+                if (!Condition.SeeInvisible && c.Condition.IsInvisible) return;
                 base.AoiEntry(obj);
                 obj.ShowTo(this);
             }

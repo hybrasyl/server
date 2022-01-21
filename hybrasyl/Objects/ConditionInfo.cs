@@ -268,10 +268,7 @@ namespace Hybrasyl.Objects
             }
         }
 
-    }
-
-
-    public bool NoFlags => Flags == PlayerFlags.Alive;
+        public bool NoFlags => Flags == PlayerFlags.Alive;
 
         public void ClearFlags()
         {

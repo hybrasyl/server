@@ -1,32 +1,48 @@
 <?xml version="1.0"?>
   <ServerConfig xmlns="http://www.hybrasyl.com/XML/Hybrasyl/2020-02">
     <Logging />
-    <!-- Where to find world files such as xml and scripts. This can be either a Windows (eg C:\..) or Unix style (/foo/bar) path. -->
+    <!-- Where to find world files such as xml and scripts. This can
+         be either a Windows (eg C:\..) or Unix style (/foo/bar)
+         path. -->
     <WorldDataDir>/HybrasylData/world</WorldDataDir>
-    <!-- If using the docker image, leave this alone; otherwise change it to your redis server. You can also specify a port,
-    database, and password here -->
-    <!-- <DataStore Host="host.docker.internal"/> -->
+    <!-- If using the docker image, leave this alone; otherwise change
+         it to your redis server. You can also specify a port,
+         database, and password here -->
     <DataStore Host="redis"/>
-    <!-- This is the message that will be displayed to clients when they connect to the server. -->
+    <!-- This is the message that will be displayed to clients when
+         they connect to the server. -->
     <Motd>WELCOME TO HYBRASYL - QUICK START EDITION. You should likely add your player name to the privileged section of config.xml.</Motd>
-    <!-- Hybrasyl requires three ports to function. If you want others to connect to your server, these ports need to be exposed to
+    <!-- Hybrasyl requires three ports to function. If you want others
+         to connect to your server, these ports need to be exposed to
          the outside world. -->
     <Network>
-      <Lobby BindAddress="127.0.0.1" Port="2610" />
-      <Login BindAddress="127.0.0.1" Port="2611" />
-      <World BindAddress="127.0.0.1" Port="2612" />
+    <!-- If you are running behind NAT or inside Docker: 
+
+         Update ExternalAddress here to be the server's *external*
+         address.  For a local Docker, this is your workstation IP -
+         not the docker IP or the docker host IP.  For an
+         Internet-facing service, this would be the external, internet
+         routable IP.
+    -->
+      <Lobby BindAddress="127.0.0.1" Port="2610" ExternalAddress="127.0.0.1"/>
+      <Login BindAddress="127.0.0.1" Port="2611" ExternalAddress="127.0.0.1" />
+      <World BindAddress="127.0.0.1" Port="2612" ExternalAddress="127.0.0.1" />
   </Network>
   <Access>
-    <!-- You can limit this to specific character names here. Hybrasyl has many slash commands that can be discovered using /help. -->
+    <!-- You can limit this to specific character names here. Hybrasyl
+         has many slash commands that can be discovered using
+         /help. -->
     <Privileged>*</Privileged>
     <!-- Reserved names are not allowed to be used by players. -->
     <Reserved>Danaan Chadul Deoch Glioca Cail Luathas Gramail Fiosachd Ceannlaidir Sgrios Belenus</Reserved>
   </Access>
   <Boards>
-    <!-- Global boards that are always accessible from the messaging pane -->
+    <!-- Global boards that are always accessible from the messaging
+         pane -->
     <Board Name="board" DisplayName="My First Board">
       <AccessList>
-        <!-- Users that can read/write to the boards. Defaults to everyone -->
+        <!-- Users that can read/write to the boards. Defaults to
+             everyone -->
 	<Read>*</Read>
 	<Write>*</Write>
         <!-- If you wanted to add a user who could moderate a board, uncomment the next line -->
@@ -36,35 +52,44 @@
   </Boards>
   <Time>
     <Ages>
-      <!-- Hybrasyl supports multiple ages (eg from Dark Ages: Hybrasyl, Danaan, Deoch).
-           By default, the time will be sometime before Deoch's sacrifice, eg Danaan 33xx.
-           You can name them whatever you want and they can have custom start and end dates.
+      <!-- Hybrasyl supports multiple ages (eg from Dark Ages:
+           Hybrasyl, Danaan, Deoch).  By default, the time will be
+           sometime before Deoch's sacrifice, eg Danaan 33xx.  You can
+           name them whatever you want and they can have custom start
+           and end dates.
       -->
       <Age Name="Danaan" StartDate="1640-01-03T01:00:00Z"/>
     </Ages>
-    <!-- Server start time. You can update this as needed to have a constant / correct date if you care about
-         such things -->
+    <!-- Server start time. You can update this as needed to have a
+         constant / correct date if you care about such things -->
     <ServerStart>2021-11-18T04:00:00Z</ServerStart>
   </Time>
   <Handlers>
-    <!-- Death happens to all of us. This will ensure something DOES happen when you die. 
-    If Active is set to false, nothing will happen on death. Perishable controls whether or not certain items break.
-    GroupNotify will enable notifications being sent to player groups when a player is in a coma (skulling). 
+    <!-- Death happens to all of us. This will ensure something DOES
+         happen when you die.  If Active is set to false, nothing will
+         happen on death. Perishable controls whether or not certain
+         items break.  GroupNotify will enable notifications being
+         sent to player groups when a player is in a coma (skulling).
     -->
     <Death Active="true" Perishable="true" GroupNotify="true">
       <!-- The map and x,y where a player will be sent on death -->
       <Map X="14" Y="6">Chaotic Threshold</Map>
-      <!-- The length of a coma (skulling) and the effect to be displayed -->
+      <!-- The length of a coma (skulling) and the effect to be
+           displayed -->
       <Coma Timeout="30" Effect="24">Coma</Coma>
-      <!-- XP/HP penalties. Here, XP will be reduced by 2% and HP will be reduced by 1%. -->
+      <!-- XP/HP penalties. Here, XP will be reduced by 2% and HP will
+           be reduced by 1%. -->
       <Penalty Xp="0.02" Hp="0.01" />
-      <!-- A legend mark that will be used to keep track of deaths. Increment set to true here will use the same mark,
-           but if you really really wanted to, you could use unique marks. -->
+      <!-- A legend mark that will be used to keep track of
+           deaths. Increment set to true here will use the same mark,
+           but if you really really wanted to, you could use unique
+           marks. -->
       <LegendMark Increment="true">Sgrios' Scar</LegendMark>
     </Death>
     <NewPlayer>
       <StartMaps>
-        <!-- A list of maps and x,y coordinates where a player will start. These will be selected at random. -->
+        <!-- A list of maps and x,y coordinates where a player will
+             start. These will be selected at random. -->
         <StartMap X="3" Y="3">Mileth Inn Room 0</StartMap>
         <StartMap X="3" Y="3">Mileth Inn Room 1</StartMap>
         <StartMap X="3" Y="3">Mileth Inn Room 2</StartMap>
@@ -80,8 +105,10 @@
     </NewPlayer>
   </Handlers>
   <ClientSettings>
-    <!-- Client settings. The setting text is actually set by the server. These are not all the way implemented in Hybrasyl yet, but
-         we do have the abiity to store and keep individual player settings for each of these items. -->
+    <!-- Client settings. The setting text is actually set by the
+         server. These are not all the way implemented in Hybrasyl
+         yet, but we do have the abiity to store and keep individual
+         player settings for each of these items. -->
     <Setting Number="1" Default="true" Key="whisper">Listen to whisper</Setting>
     <Setting Number="2" Default="true" Key="group">Join a group     </Setting>
     <Setting Number="3" Default="true" Key="shout">Listen to shouts </Setting>

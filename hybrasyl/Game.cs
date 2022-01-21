@@ -301,7 +301,8 @@ namespace Hybrasyl
             // For right now we don't support binding to different addresses; the support in the XML
             // is for a distant future where that may be desirable.
             if (Config.Network.Login.ExternalAddress != null)
-                RedirectTarget = IPAddress.Parse(Config.Network.Lobby.ExternalAddress);
+                // We can have a hostname here to support ease of running in Docker; try to naively resolve it
+                RedirectTarget = Dns.GetHostAddresses(Config.Network.Lobby.ExternalAddress).FirstOrDefault();
  
             IpAddress = IPAddress.Parse(Config.Network.Lobby.BindAddress);
 

@@ -936,7 +936,6 @@ namespace Hybrasyl.Objects
 
         public virtual void Damage(double damage, Xml.ElementType element = Xml.ElementType.None, Xml.DamageType damageType = Xml.DamageType.Direct, Xml.DamageFlags damageFlags = Xml.DamageFlags.None, Creature attacker = null, bool onDeath=true)
         {
-            if (Condition.IsInvulnerable) return;
             if (this is Monster ms && !Condition.Alive) return;
             if (attacker is User && this is Monster)
             {
@@ -967,7 +966,7 @@ namespace Hybrasyl.Objects
 
             OnDamage(attacker, normalized);
 
-            if (AbsoluteImmortal) return;
+            if (AbsoluteImmortal || Condition.IsInvulnerable) return;
 
             if (damageType == Xml.DamageType.Physical && (AbsoluteImmortal || PhysicalImmortal))
                 return;
