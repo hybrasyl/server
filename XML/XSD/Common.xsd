@@ -95,8 +95,16 @@
     <xs:attribute name="InboundModifier" type="xs:float"/>
     <xs:attribute name="OutboundModifier" type="xs:float"/>
     <xs:attribute name="DamageType" type="hyb:DamageType"/>
-    <xs:attribute name="ReflectChance" type="xs:float"/>
-    <xs:attribute name="ReflectIntensity" type="xs:float"/>
+    <xs:attribute name="ReflectMagicalChance" type="xs:float"/>
+    <xs:attribute name="ReflectMagicalIntensity" type="xs:float"/>
+    <xs:attribute name="ReflectPhysicalChance" type="xs:float"/>
+    <xs:attribute name="ReflectPhysicalIntensity" type="xs:float"/>
+    <xs:attribute name="IncreaseGoldChance" type="xs:float"/>
+	<xs:attribute name="IncreaseGoldIntensity" type="xs:float"/>
+    <xs:attribute name="Dodge" type="xs:float"/>
+    <xs:attribute name="IncreaseXpChance" type="xs:float"/>
+    <xs:attribute name="IncreaseXpIntensity" type="xs:float"/>
+    <xs:attribute name="IncreaseItemFindChance" type="xs:float"/>
   </xs:complexType>
   
   <xs:complexType name="StatModifierFormulas">
@@ -119,8 +127,16 @@
     <xs:attribute name="InboundModifier" type="xs:string"/>
     <xs:attribute name="OutboundModifier" type="xs:string"/>
     <xs:attribute name="DamageType" type="xs:string"/>
-    <xs:attribute name="ReflectChance" type="xs:string"/>
-    <xs:attribute name="ReflectIntensity" type="xs:string"/>
+    <xs:attribute name="ReflectMagicalChance" type="xs:float"/>
+    <xs:attribute name="ReflectMagicalIntensity" type="xs:float"/>
+    <xs:attribute name="ReflectPhysicalChance" type="xs:float"/>
+    <xs:attribute name="ReflectPhysicalIntensity" type="xs:float"/>
+    <xs:attribute name="IncreaseGoldChance" type="xs:float"/>
+    <xs:attribute name="IncreaseGoldIntensity" type="xs:float"/>
+    <xs:attribute name="Dodge" type="xs:float"/>
+    <xs:attribute name="IncreaseXpChance" type="xs:float"/>
+    <xs:attribute name="IncreaseXpIntensity" type="xs:float"/>
+    <xs:attribute name="IncreaseItemFindChance" type="xs:float"/>
   </xs:complexType>
 
 
@@ -375,23 +391,19 @@
               <xs:enumeration value="Blind" />
               <xs:enumeration value="Coma" />
               <xs:enumeration value="Poison" />
-              <xs:enumeration value="Mist" />
-              <xs:enumeration value="Regen" />
               <xs:enumeration value="Sight" />
               <xs:enumeration value="Invisible" />
               <xs:enumeration value="Mute" />
-              <xs:enumeration value="ReflectPhysical" />
-              <xs:enumeration value="ReflectMagical" />
               <xs:enumeration value="Invulnerable" />
               <xs:enumeration value="Charm" />
-              <xs:enumeration value="IncreaseDamage" />
-              <xs:enumeration value="ReduceDamage" />
-              <xs:enumeration value="AbsorbSpell" />
+			  <xs:enumeration value="AbsorbMagical"/>
+              <xs:enumeration value="AbsorbPhysical"/>
               <xs:enumeration value="ProhibitItemUse" />
               <xs:enumeration value="ProhibitEquipChange" />
               <xs:enumeration value="ProhibitSpeech" />
               <xs:enumeration value="ProhibitWhisper" />
               <xs:enumeration value="ProhibitShout" />
+              <xs:enumeration value="Disoriented"/>
             </xs:restriction>
           </xs:simpleType>
         </xs:list>

@@ -237,38 +237,44 @@ namespace Hybrasyl.Objects
         public override void Say(string message, string from = "")
         {
             if (Map.AllowSpeaking)
-                base.Say(message, from);
-            else
             {
-                if (World.WorldData.TryGetSocialEvent(this, out SocialEvent e))
-                {                 
-                    if (e.Speakers.Contains(Name) || e.Type != SocialEventType.Class)
-                    {
-                        base.Say(message, from);
-                        return;
-                    }
+                if (World.WorldData.TryGetSocialEvent(this, out var e) &&
+                    (e.Speakers.Contains(Name) || e.Type != SocialEventType.Class))
+                {
+                    base.Say(message,from);
+                    return;
                 }
-                SendSystemMessage("You try to speak, but nothing happens.");
+
+                if (!Condition.IsSayProhibited || AuthInfo.IsExempt)
+                {
+                    base.Say(message, from);
+                    return;
+                }
             }
+
+            SendSystemMessage("You try to speak, but nothing happens.");
+
         }
 
         public override void Shout(string message, string from = "")
         {
             if (Map.AllowSpeaking)
-                base.Shout(message, from);
-            else
             {
-                if (World.WorldData.TryGetSocialEvent(this, out SocialEvent e))
+                if (World.WorldData.TryGetSocialEvent(this, out var e) &&
+                    (e.Speakers.Contains(Name) || e.Type != SocialEventType.Class))
                 {
-                    if (e.Speakers.Contains(Name) || e.Type != SocialEventType.Class)
-                    {
-                        base.Say(message, from);
-                        return;
-                    }
+                    base.Shout(message, from);
+                    return;
                 }
-                else
-                   SendSystemMessage("You try to shout, but nothing happens.");
+
+                if (!Condition.IsShoutProhibited || AuthInfo.IsExempt)
+                {
+                    base.Shout(message, from);
+                    return;
+                }
             }
+
+            SendSystemMessage("You try to shout, but nothing happens.");
         }
 
         public bool ChangeCitizenship(string nationName)
@@ -1126,31 +1132,29 @@ namespace Hybrasyl.Objects
 
         public void DisplayIncomingWhisper(string charname, string message)
         {
-            Client.SendMessage(string.Format("{0}\" {1}", charname, message), 0x0);
+            Client.SendMessage($"{charname}\" {message}", 0x0);
         }
 
         public void DisplayOutgoingWhisper(string charname, string message)
         {
-            Client.SendMessage(string.Format("{0}> {1}", charname, message), 0x0);
+            Client.SendMessage($"{charname}> {message}", 0x0);
         }
 
         public bool CanTalkTo(User target, out string msg)
         {
+            msg = string.Empty;
             // First, maake sure a) we can send a message and b) the target is not ignoring whispers.
             if (IsMuted)
-            {
                 msg = "A strange voice says, \"Not for you.\"";
-                return false;
-            }
+
+            if (Condition.IsWhisperProhibited)
+                msg = "You concentrate, but nothing happens.";
 
             if (target.IsIgnoringWhispers)
-            {
                 msg = "Sadly, that Aisling cannot hear whispers.";
-                return false;
-            }
 
-            msg = string.Empty;
-            return true;
+            return string.IsNullOrEmpty(msg);
+
         }
         public void SendWhisper(string charname, string message)
         {
@@ -1192,7 +1196,7 @@ namespace Hybrasyl.Objects
                 {
                     if (CanTalkTo(member, out err))
                     {
-                        member.Client.SendMessage(string.Format("[!{0}] {1}", Name, message), MessageTypes.GROUP);
+                        member.Client.SendMessage($"[!{Name}] {message}", MessageTypes.GROUP);
                     }
                     else
                     {
@@ -1204,16 +1208,16 @@ namespace Hybrasyl.Objects
 
         public override void ShowTo(VisibleObject obj)
         {
-            if (obj is User)
+            switch (obj)
             {
-                var user = obj as User;
-                SendUpdateToUser(user.Client);
-            }
-            else if (obj is ItemObject)
-            {
-                var item = obj as ItemObject;
-                SendVisibleItem(item);
-
+                case User user:
+                    SendUpdateToUser(user.Client);
+                    break;
+                case ItemObject itemObject:
+                {
+                    SendVisibleItem(itemObject);
+                    break;
+                }
             }
         }
 

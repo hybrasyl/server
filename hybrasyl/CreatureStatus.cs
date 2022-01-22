@@ -312,8 +312,16 @@ namespace Hybrasyl
                 Target.Stats.BonusMr -= (long)(BonusModifiers.BonusMr * Intensity);
                 Target.Stats.BonusDamageModifier -= (long)(BonusModifiers.BonusDamageModifier * Intensity);
                 Target.Stats.BonusHealModifier -= (long)(BonusModifiers.BonusHealModifier * Intensity);
-                Target.Stats.BonusReflectChance -= (long)(BonusModifiers.BonusReflectChance * Intensity);
-                Target.Stats.BonusReflectIntensity -= (long)(BonusModifiers.BonusReflectIntensity * Intensity);
+                Target.Stats.ReflectMagicalChance -= (long)(BonusModifiers.ReflectMagicalChance * Intensity);
+                Target.Stats.ReflectMagicalIntensity -= (long)(BonusModifiers.ReflectMagicalIntensity * Intensity);
+                Target.Stats.ReflectPhysicalChance -= (long)(BonusModifiers.ReflectPhysicalChance * Intensity);
+                Target.Stats.ReflectPhysicalIntensity -= (long)(BonusModifiers.ReflectPhysicalIntensity * Intensity);
+                Target.Stats.BonusGoldChance -= (long)(BonusModifiers.BonusGoldChance * Intensity);
+                Target.Stats.BonusGoldIntensity -= (long)(BonusModifiers.BonusGoldIntensity * Intensity);
+                Target.Stats.Dodge -= (long)(BonusModifiers.Dodge * Intensity);
+                Target.Stats.BonusXpChance -= (long)(BonusModifiers.BonusXpChance * Intensity);
+                Target.Stats.BonusXpIntensity -= (long)(BonusModifiers.BonusXpIntensity * Intensity);
+                Target.Stats.BonusItemFind -= (long) (BonusModifiers.BonusItemFind * Intensity);
                 if (BonusModifiers.OffensiveElementOverride == Target.Stats.OffensiveElementOverride)
                     Target.Stats.OffensiveElementOverride = Xml.ElementType.None;
                 if (BonusModifiers.DefensiveElementOverride == Target.Stats.DefensiveElementOverride)
@@ -335,8 +343,16 @@ namespace Hybrasyl
                 Target.Stats.BonusMr += (long)(BonusModifiers.BonusMr * Intensity);
                 Target.Stats.BonusDamageModifier += (long)(BonusModifiers.BonusDamageModifier * Intensity);
                 Target.Stats.BonusHealModifier += (long)(BonusModifiers.BonusHealModifier * Intensity);
-                Target.Stats.BonusReflectChance += (long)(BonusModifiers.BonusReflectChance * Intensity);
-                Target.Stats.BonusReflectIntensity += (long)(BonusModifiers.BonusReflectIntensity * Intensity);
+                Target.Stats.ReflectMagicalChance += (long)(BonusModifiers.ReflectMagicalChance * Intensity);
+                Target.Stats.ReflectMagicalIntensity += (long)(BonusModifiers.ReflectMagicalIntensity * Intensity);
+                Target.Stats.ReflectPhysicalChance += (long)(BonusModifiers.ReflectPhysicalChance * Intensity);
+                Target.Stats.ReflectPhysicalIntensity += (long)(BonusModifiers.ReflectPhysicalIntensity * Intensity);
+                Target.Stats.BonusGoldChance += (long)(BonusModifiers.BonusGoldChance * Intensity);
+                Target.Stats.BonusGoldIntensity += (long)(BonusModifiers.BonusGoldIntensity * Intensity);
+                Target.Stats.Dodge += (long)(BonusModifiers.Dodge * Intensity);
+                Target.Stats.BonusXpChance += (long)(BonusModifiers.BonusXpChance * Intensity);
+                Target.Stats.BonusXpIntensity += (long)(BonusModifiers.BonusXpIntensity * Intensity);
+                Target.Stats.BonusItemFind += (long)(BonusModifiers.BonusItemFind * Intensity);
                 Target.Stats.OffensiveElementOverride = BonusModifiers.OffensiveElementOverride;
                 Target.Stats.DefensiveElementOverride = BonusModifiers.DefensiveElementOverride;
             }

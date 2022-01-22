@@ -255,6 +255,45 @@ namespace Hybrasyl.Objects
             }
         }
 
+        public bool IsSayProhibited
+        {
+            get => User != null && Conditions.HasFlag(Xml.CreatureCondition.ProhibitSpeech);
+            set
+            {
+                if (User == null) return;
+                if (value == false)
+                    Conditions &= Xml.CreatureCondition.ProhibitSpeech;
+                else
+                    Conditions |= Xml.CreatureCondition.ProhibitSpeech;
+            }
+        }
+
+        public bool IsShoutProhibited
+        {
+            get => User != null && Conditions.HasFlag(Xml.CreatureCondition.ProhibitEquipChange);
+            set
+            {
+                if (User == null) return;
+                if (value == false)
+                    Conditions &= Xml.CreatureCondition.ProhibitShout;
+                else
+                    Conditions |= Xml.CreatureCondition.ProhibitShout;
+            }
+        }
+
+        public bool IsWhisperProhibited
+        {
+            get => User != null && Conditions.HasFlag(Xml.CreatureCondition.ProhibitWhisper);
+            set
+            {
+                if (User == null) return;
+                if (value == false)
+                    Conditions &= Xml.CreatureCondition.ProhibitWhisper;
+                else
+                    Conditions |= Xml.CreatureCondition.ProhibitWhisper;
+            }
+        }
+
         public bool IsEquipmentChangeProhibited
         {
             get => User != null && Conditions.HasFlag(Xml.CreatureCondition.ProhibitEquipChange);
