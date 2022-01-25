@@ -242,6 +242,18 @@ static class NumberCruncher
         modifiers.BonusRegen = (long) Math.Ceiling(_evalFormula(effect.Regen, castable, target, source));
         modifiers.BonusMr = (long) Math.Ceiling(_evalFormula(effect.Mr, castable, target, source));
 
+        modifiers.BonusInboundDamageModifier = Math.Ceiling(_evalFormula(effect.InboundDamageModifier, castable, target, source));
+        modifiers.BonusOutboundDamageModifier = Math.Ceiling(_evalFormula(effect.OutboundDamageModifier, castable, target, source));
+        modifiers.BonusInboundHealModifier = Math.Ceiling(_evalFormula(effect.InboundHealModifier, castable, target, source));
+        modifiers.BonusOutboundHealModifier = Math.Ceiling(_evalFormula(effect.OutboundHealModifier, castable, target, source));
+        modifiers.BonusReflectMagical = Math.Ceiling(_evalFormula(effect.ReflectMagical, castable, target, source));
+        modifiers.BonusReflectPhysical = Math.Ceiling(_evalFormula(effect.ReflectPhysical, castable, target, source));
+        modifiers.BonusExtraGold = Math.Ceiling(_evalFormula(effect.ExtraGold, castable, target, source));
+        modifiers.BonusExtraItemFind = Math.Ceiling(_evalFormula(effect.ExtraItemFind, castable, target, source));
+        modifiers.BonusDodge = Math.Ceiling(_evalFormula(effect.Dodge, castable, target, source));
+        modifiers.BonusExtraXp = Math.Ceiling(_evalFormula(effect.ExtraXp, castable, target, source));
+        modifiers.BonusLifeSteal = Math.Ceiling(_evalFormula(effect.LifeSteal, castable, target, source));
+        modifiers.BonusManaSteal = Math.Ceiling(_evalFormula(effect.ManaSteal, castable, target, source));
 
         if (effect.OffensiveElement != Xml.ElementType.None)
             modifiers.OffensiveElementOverride = effect.OffensiveElement;

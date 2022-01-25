@@ -93,7 +93,7 @@ internal class Monolith
             Thread.Sleep(5000);
         }
     }
-    
+
     public void Spawn(Xml.SpawnGroup spawnGroup)
     {
         if (!Game.World.WorldData.TryGetValue(spawnGroup.MapId, out Map spawnmap))
@@ -205,24 +205,24 @@ internal class Monolith
                     // Is this a strong or weak mob?
                     if (spawn.Base.StrongChance > 0 || spawn.Base.WeakChance > 0)
                     {
-                        var modifier = (long)Math.Min(3, _random.NextDouble() * 15);
-                        var mobtype = _random.NextDouble() * 100;
+                        // TODO: potentially refactor with xml control. This defaults to 3-15%
+                        // modifications randomly
+                        var modifier = Math.Min(.03, Random.Shared.NextDouble() * .15);
+                        var mobtype = Random.Shared.NextDouble() * 100;
 
                         if (mobtype <= spawn.Base.StrongChance + spawn.Base.WeakChance)
                         {
+                            
                             if (spawn.Base.StrongChance >= spawn.Base.WeakChance)
                             {
                                 if (mobtype <= spawn.Base.WeakChance)
                                 {
-//                                        baseMob.Stats.ApplyModifier((long)1.0 - modifier);
-                                    baseMob.LootableXP *= (uint)(1.0 - modifier);
+                                    baseMob.ApplyModifier(modifier);
                                     GameLog.SpawnInfo($"Mob is weak: modifier {modifier}");
-
                                 }
                                 else
                                 {
-                                    //                                      baseMob.Stats.ApplyModifier((long)1.0 + modifier);
-                                    baseMob.LootableXP *= (uint)(1.0 + modifier);
+                                    baseMob.ApplyModifier(modifier);
                                     GameLog.SpawnInfo($"Mob is strong: modifier {modifier}");
                                 }
                             }
@@ -230,14 +230,12 @@ internal class Monolith
                             {
                                 if (mobtype <= spawn.Base.StrongChance)
                                 {
-                                    //                                    baseMob.Stats.ApplyModifier((long)1.0 + modifier);
-                                    baseMob.LootableXP *= (uint)(1.0 + modifier);
+                                    baseMob.ApplyModifier(modifier);
                                     GameLog.SpawnInfo($"Mob is strong: modifier {modifier}");
                                 }
                                 else
                                 {
-                                    //                                  baseMob.Stats.ApplyModifier((long)1.0 - modifier);
-                                    baseMob.LootableXP *= (uint)(1.0 - modifier);
+                                    baseMob.ApplyModifier(modifier);
                                     GameLog.SpawnInfo($"Mob is weak: modifier {modifier}");
                                 }
                             }

@@ -46,16 +46,12 @@ public partial class StatModifiers
     private float _inboundHealModifier;
     private float _outboundHealModifier;
     private DamageType _damageType;
-    private float _reflectMagicalChance;
-    private float _reflectMagicalIntensity;
-    private float _reflectPhysicalChance;
-    private float _reflectPhysicalIntensity;
-    private float _increaseGoldChance;
-    private float _increaseGoldIntensity;
+    private float _reflectMagical;
+    private float _reflectPhysical;
+    private float _increaseGold;
     private float _dodge;
-    private float _increaseXpChance;
-    private float _increaseXpIntensity;
-    private float _increaseItemFindChance;
+    private float _increaseXp;
+    private float _increaseItemFind;
     private float _lifeSteal;
     private float _manaSteal;
     private static XmlSerializer _serializerXml;
@@ -337,80 +333,41 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
-    public float ReflectMagicalChance
+    public float ReflectMagical
     {
         get
         {
-            return _reflectMagicalChance;
+            return _reflectMagical;
         }
         set
         {
-            _reflectMagicalChance = value;
+            _reflectMagical = value;
         }
     }
     
     [XmlAttribute]
-    public float ReflectMagicalIntensity
+    public float ReflectPhysical
     {
         get
         {
-            return _reflectMagicalIntensity;
+            return _reflectPhysical;
         }
         set
         {
-            _reflectMagicalIntensity = value;
+            _reflectPhysical = value;
         }
     }
     
     [XmlAttribute]
-    public float ReflectPhysicalChance
+    public float IncreaseGold
     {
         get
         {
-            return _reflectPhysicalChance;
+            return _increaseGold;
         }
         set
         {
-            _reflectPhysicalChance = value;
-        }
-    }
-    
-    [XmlAttribute]
-    public float ReflectPhysicalIntensity
-    {
-        get
-        {
-            return _reflectPhysicalIntensity;
-        }
-        set
-        {
-            _reflectPhysicalIntensity = value;
-        }
-    }
-    
-    [XmlAttribute]
-    public float IncreaseGoldChance
-    {
-        get
-        {
-            return _increaseGoldChance;
-        }
-        set
-        {
-            _increaseGoldChance = value;
-        }
-    }
-    
-    [XmlAttribute]
-    public float IncreaseGoldIntensity
-    {
-        get
-        {
-            return _increaseGoldIntensity;
-        }
-        set
-        {
-            _increaseGoldIntensity = value;
+            _increaseGold = value;
         }
     }
     
@@ -428,41 +385,28 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
-    public float IncreaseXpChance
+    public float IncreaseXp
     {
         get
         {
-            return _increaseXpChance;
+            return _increaseXp;
         }
         set
         {
-            _increaseXpChance = value;
+            _increaseXp = value;
         }
     }
     
     [XmlAttribute]
-    public float IncreaseXpIntensity
+    public float IncreaseItemFind
     {
         get
         {
-            return _increaseXpIntensity;
+            return _increaseItemFind;
         }
         set
         {
-            _increaseXpIntensity = value;
-        }
-    }
-    
-    [XmlAttribute]
-    public float IncreaseItemFindChance
-    {
-        get
-        {
-            return _increaseItemFindChance;
-        }
-        set
-        {
-            _increaseItemFindChance = value;
+            _increaseItemFind = value;
         }
     }
     

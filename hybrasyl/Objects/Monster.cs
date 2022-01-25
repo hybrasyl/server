@@ -49,8 +49,8 @@ public class Monster : Creature, ICloneable
 
     private uint _mTarget;
 
-    public Dictionary<string, BookSlot> Spells { get; set; } = new Dictionary<string, BookSlot>();
-    public Dictionary<string, BookSlot> Skills { get; set; } = new Dictionary<string, BookSlot>();
+    public Dictionary<string, BookSlot> Spells { get; set; } = new();
+    public Dictionary<string, BookSlot> Skills { get; set; } = new();
 
     public BookSlot LastSpellUsed { get; set; }
     public BookSlot LastSkillUsed { get; set; }
@@ -82,9 +82,53 @@ public class Monster : Creature, ICloneable
     public bool HasCastNearDeath;
 
     public bool Active;
-
-
+    
     public bool CanCast => BehaviorSet?.CanCast ?? false;
+
+    public Monster(Xml.Creature creature, Xml.SpawnFlags flags, byte level, int map, Loot loot = null,
+        Xml.CreatureBehaviorSet behaviorsetOverride = null)
+    {
+        _actionQueue = new ConcurrentQueue<MobAction>();
+        SpawnFlags = flags;
+        if (behaviorsetOverride != null)
+            BehaviorSet = behaviorsetOverride;
+        else if (!string.IsNullOrEmpty(creature.BehaviorSet))
+            Game.World.WorldData.TryGetValue(creature.BehaviorSet, out Xml.CreatureBehaviorSet BehaviorSet);
+
+        Name = creature.Name;
+        Sprite = creature.Sprite;
+        Map = Game.World.WorldData.Get<Map>(map);
+        Stats.Level = level;
+
+        AllocateStats();
+        LearnCastables();
+
+        if (BehaviorSet?.Behavior != null)
+        {
+            foreach (var cookie in BehaviorSet.Behavior.SetCookies)
+            {
+                // Don't override cookies set from spawn; spawn takes precedence
+                if (!HasCookie(cookie.Name))
+                    SetCookie(cookie.Name, cookie.Value);
+            }
+        }
+
+        DisplayText = creature.Description;
+
+        Loot = loot;
+
+        IsHostile = !AiDisabled;
+
+        if (flags.HasFlag(Xml.SpawnFlags.MovementDisabled))
+            ShouldWander = false;
+        else
+            ShouldWander = IsHostile == false;
+
+        ThreatInfo = new ThreatInfo();
+        DeathProcessed = false;
+        Stats.Hp = Stats.MaximumHp;
+        Stats.Mp = Stats.MaximumMp;
+    }
 
     public override void OnDeath()
     {
@@ -253,52 +297,30 @@ public class Monster : Creature, ICloneable
             Script.ExecuteFunction("OnHeal", this, healer);
         }
     }
-
-
-    /// <summary>
-    /// Calculates a sanity-checked stat using a spawn's variance value.
-    /// </summary>
-    /// <param name="stat">byte stat to be modified</param>
-    /// <returns>new byte stat, +/- variance</returns>
-    public byte CalculateVariance(byte stat)
-    {
-        var newStat = (int)Math.Round(stat + (stat * _variance));
-        if (newStat > byte.MaxValue)
-            return byte.MaxValue;
-        else if (newStat < byte.MinValue)
-            return byte.MinValue;
-
-        return (byte)newStat;
-    }
-
-    /// <summary>
-    /// Calculates a sanity-checked stat using a spawn's variance value.
-    /// </summary>
-    /// <param name="stat">uint stat to be modified</param>
-    /// <returns>new uint stat, +/- variance</returns>
-    public uint CalculateVariance(uint stat)
-    {
-
-        var newStat = (Int64)Math.Round(stat + (stat * _variance));
-        if (newStat > uint.MaxValue)
-            return uint.MaxValue;
-        else if (newStat < uint.MinValue)
-            return uint.MinValue;
-
-        return (uint)newStat;
-    }
-
-    private Loot _loot;
+    
+    public Loot Loot;
 
     public uint LootableXP
     {
-        get { return _loot?.Xp ?? 0; }
-        set { _loot.Xp = value; }
+        get { return Loot?.Xp ?? 0; }
+        set { Loot.Xp = value; }
     }
 
-    public uint LootableGold => _loot?.Gold ?? 0;
+    public uint LootableGold => Loot?.Gold ?? 0;
 
-    public List<string> LootableItems => _loot?.Items ?? new List<string>();
+    public List<string> LootableItems => Loot?.Items ?? new List<string>();
+
+    public void ApplyModifier(double modifier)
+    {
+        Stats.BaseHp = (uint)(Stats.BaseHp * (1 + modifier));
+        Stats.BaseMp = (uint)(Stats.BaseMp * (1 + modifier));
+        LootableXP = (uint)(LootableXP * (1 + modifier));
+        if (Loot?.Gold > 0)
+            Loot.Gold = (uint)(Loot.Gold * (1 + modifier));
+        Stats.BaseOutboundDamageModifier = 1 + modifier;
+        Stats.BaseInboundDamageModifier = 1 - modifier;
+        Stats.BaseOutboundHealModifier = 1 + modifier;
+    }
 
     private void RandomlyAllocateStatPoints(int points)
     {
@@ -437,53 +459,6 @@ public class Monster : Creature, ICloneable
         }
     }
 
-    public Monster(Xml.Creature creature, Xml.SpawnFlags flags, byte level, int map, Loot loot = null,
-        Xml.CreatureBehaviorSet behaviorsetOverride = null)
-    {
-        _actionQueue = new ConcurrentQueue<MobAction>();
-        SpawnFlags = flags;
-        if (behaviorsetOverride != null)
-            BehaviorSet = behaviorsetOverride;
-        else if (!string.IsNullOrEmpty(creature.BehaviorSet))
-            Game.World.WorldData.TryGetValue(creature.BehaviorSet, out Xml.CreatureBehaviorSet BehaviorSet);
-
-        Name = creature.Name;
-        Sprite = creature.Sprite;
-        Map = Game.World.WorldData.Get<Map>(map);
-        Stats.Level = level;
-
-        AllocateStats();
-        LearnCastables();
-
-        if (BehaviorSet?.Behavior != null)
-        {
-            foreach (var cookie in BehaviorSet.Behavior.SetCookies)
-            {
-                // Don't override cookies set from spawn; spawn takes precedence
-                if (!HasCookie(cookie.Name))
-                    SetCookie(cookie.Name, cookie.Value);
-            }
-        }
-
-        DisplayText = creature.Description;
-
-        _loot = loot;
-
-        if (AiDisabled)
-            IsHostile = false;
-        else
-            IsHostile = true;
-
-        if (flags.HasFlag(Xml.SpawnFlags.MovementDisabled))
-            ShouldWander = false;
-        else
-            ShouldWander = IsHostile == false;
-
-        ThreatInfo = new ThreatInfo();
-        DeathProcessed = false;
-        Stats.Hp = Stats.MaximumHp;
-        Stats.Mp = Stats.MaximumMp;
-    }
 
     public Creature Target
     {

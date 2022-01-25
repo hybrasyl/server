@@ -95,16 +95,12 @@
     <xs:attribute name="InboundHealModifier" type="xs:float"/>
     <xs:attribute name="OutboundHealModifier" type="xs:float"/>
     <xs:attribute name="DamageType" type="hyb:DamageType"/>
-    <xs:attribute name="ReflectMagicalChance" type="xs:float"/>
-    <xs:attribute name="ReflectMagicalIntensity" type="xs:float"/>
-    <xs:attribute name="ReflectPhysicalChance" type="xs:float"/>
-    <xs:attribute name="ReflectPhysicalIntensity" type="xs:float"/>
-    <xs:attribute name="IncreaseGoldChance" type="xs:float"/>
-	<xs:attribute name="IncreaseGoldIntensity" type="xs:float"/>
+    <xs:attribute name="ReflectMagical" type="xs:float"/>
+    <xs:attribute name="ReflectPhysical" type="xs:float"/>
+    <xs:attribute name="IncreaseGold" type="xs:float"/>
     <xs:attribute name="Dodge" type="xs:float"/>
-    <xs:attribute name="IncreaseXpChance" type="xs:float"/>
-    <xs:attribute name="IncreaseXpIntensity" type="xs:float"/>
-    <xs:attribute name="IncreaseItemFindChance" type="xs:float"/>
+    <xs:attribute name="IncreaseXp" type="xs:float"/>
+    <xs:attribute name="IncreaseItemFind" type="xs:float"/>
     <xs:attribute name="LifeSteal" type="xs:float"/>
     <xs:attribute name="ManaSteal" type="xs:float"/>
   </xs:complexType>
@@ -129,20 +125,15 @@
     <xs:attribute name="InboundHealModifier" type="xs:string"/>
     <xs:attribute name="OutboundHealModifier" type="xs:string"/>
     <xs:attribute name="DamageType" type="xs:string"/>
-    <xs:attribute name="ReflectMagicalChance" type="xs:float"/>
-    <xs:attribute name="ReflectMagicalIntensity" type="xs:float"/>
-    <xs:attribute name="ReflectPhysicalChance" type="xs:float"/>
-    <xs:attribute name="ReflectPhysicalIntensity" type="xs:float"/>
-    <xs:attribute name="IncreaseGoldChance" type="xs:float"/>
-    <xs:attribute name="IncreaseGoldIntensity" type="xs:float"/>
-    <xs:attribute name="Dodge" type="xs:float"/>
-    <xs:attribute name="IncreaseXpChance" type="xs:float"/>
-    <xs:attribute name="IncreaseXpIntensity" type="xs:float"/>
-    <xs:attribute name="IncreaseItemFindChance" type="xs:float"/>
-    <xs:attribute name="LifeSteal" type="xs:float"/>
-    <xs:attribute name="ManaSteal" type="xs:float"/>
+    <xs:attribute name="ReflectMagical" type="xs:string"/>
+    <xs:attribute name="ReflectPhysical" type="xs:string"/>
+    <xs:attribute name="ExtraGold" type="xs:string"/>
+    <xs:attribute name="Dodge" type="xs:string"/>
+    <xs:attribute name="ExtraXp" type="xs:string"/>
+    <xs:attribute name="ExtraItemFind" type="xs:string"/>
+    <xs:attribute name="LifeSteal" type="xs:string"/>
+    <xs:attribute name="ManaSteal" type="xs:string"/>
   </xs:complexType>
-
 
   <!-- Damage flags type -->
   <xs:simpleType name="DamageFlags">

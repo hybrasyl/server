@@ -46,18 +46,14 @@ public partial class StatModifierFormulas
     private string _inboundHealModifier;
     private string _outboundHealModifier;
     private string _damageType;
-    private float _reflectMagicalChance;
-    private float _reflectMagicalIntensity;
-    private float _reflectPhysicalChance;
-    private float _reflectPhysicalIntensity;
-    private float _increaseGoldChance;
-    private float _increaseGoldIntensity;
-    private float _dodge;
-    private float _increaseXpChance;
-    private float _increaseXpIntensity;
-    private float _increaseItemFindChance;
-    private float _lifeSteal;
-    private float _manaSteal;
+    private string _reflectMagical;
+    private string _reflectPhysical;
+    private string _extraGold;
+    private string _dodge;
+    private string _extraXp;
+    private string _extraItemFind;
+    private string _lifeSteal;
+    private string _manaSteal;
     private static XmlSerializer _serializerXml;
     #endregion
     
@@ -337,85 +333,46 @@ public partial class StatModifierFormulas
     }
     
     [XmlAttribute]
-    public float ReflectMagicalChance
+    public string ReflectMagical
     {
         get
         {
-            return _reflectMagicalChance;
+            return _reflectMagical;
         }
         set
         {
-            _reflectMagicalChance = value;
+            _reflectMagical = value;
         }
     }
     
     [XmlAttribute]
-    public float ReflectMagicalIntensity
+    public string ReflectPhysical
     {
         get
         {
-            return _reflectMagicalIntensity;
+            return _reflectPhysical;
         }
         set
         {
-            _reflectMagicalIntensity = value;
+            _reflectPhysical = value;
         }
     }
     
     [XmlAttribute]
-    public float ReflectPhysicalChance
+    public string ExtraGold
     {
         get
         {
-            return _reflectPhysicalChance;
+            return _extraGold;
         }
         set
         {
-            _reflectPhysicalChance = value;
+            _extraGold = value;
         }
     }
     
     [XmlAttribute]
-    public float ReflectPhysicalIntensity
-    {
-        get
-        {
-            return _reflectPhysicalIntensity;
-        }
-        set
-        {
-            _reflectPhysicalIntensity = value;
-        }
-    }
-    
-    [XmlAttribute]
-    public float IncreaseGoldChance
-    {
-        get
-        {
-            return _increaseGoldChance;
-        }
-        set
-        {
-            _increaseGoldChance = value;
-        }
-    }
-    
-    [XmlAttribute]
-    public float IncreaseGoldIntensity
-    {
-        get
-        {
-            return _increaseGoldIntensity;
-        }
-        set
-        {
-            _increaseGoldIntensity = value;
-        }
-    }
-    
-    [XmlAttribute]
-    public float Dodge
+    public string Dodge
     {
         get
         {
@@ -428,46 +385,33 @@ public partial class StatModifierFormulas
     }
     
     [XmlAttribute]
-    public float IncreaseXpChance
+    public string ExtraXp
     {
         get
         {
-            return _increaseXpChance;
+            return _extraXp;
         }
         set
         {
-            _increaseXpChance = value;
+            _extraXp = value;
         }
     }
     
     [XmlAttribute]
-    public float IncreaseXpIntensity
+    public string ExtraItemFind
     {
         get
         {
-            return _increaseXpIntensity;
+            return _extraItemFind;
         }
         set
         {
-            _increaseXpIntensity = value;
+            _extraItemFind = value;
         }
     }
     
     [XmlAttribute]
-    public float IncreaseItemFindChance
-    {
-        get
-        {
-            return _increaseItemFindChance;
-        }
-        set
-        {
-            _increaseItemFindChance = value;
-        }
-    }
-    
-    [XmlAttribute]
-    public float LifeSteal
+    public string LifeSteal
     {
         get
         {
@@ -480,7 +424,7 @@ public partial class StatModifierFormulas
     }
     
     [XmlAttribute]
-    public float ManaSteal
+    public string ManaSteal
     {
         get
         {

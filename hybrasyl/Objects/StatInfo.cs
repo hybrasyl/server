@@ -74,24 +74,16 @@ public class StatInfo
     private Lockable<double> _bonusInboundHealModifier { get; set; }
     private Lockable<double> _baseOutboundHealModifier { get; set; }
     private Lockable<double> _bonusOutboundHealModifier { get; set; }
-    private Lockable<double> _baseReflectMagicalChance { get; set; }
-    private Lockable<double> _bonusReflectMagicalChance { get; set; }
-    private Lockable<double> _baseReflectMagicalIntensity { get; set; }
-    private Lockable<double> _bonusReflectMagicalIntensity { get; set; }
-    private Lockable<double> _baseReflectPhysicalChance { get; set; }
-    private Lockable<double> _bonusReflectPhysicalChance { get; set; }
-    private Lockable<double> _baseReflectPhysicalIntensity { get; set; }
-    private Lockable<double> _bonusReflectPhysicalIntensity { get; set; }
-    private Lockable<double> _baseExtraGoldChance { get; set; }
-    private Lockable<double> _bonusExtraGoldChance { get; set; }
-    private Lockable<double> _baseExtraGoldIntensity { get; set; }
-    private Lockable<double> _bonusExtraGoldIntensity { get; set; }
+    private Lockable<double> _baseReflectMagical { get; set; }
+    private Lockable<double> _bonusReflectMagical { get; set; }
+    private Lockable<double> _baseReflectPhysical { get; set; }
+    private Lockable<double> _bonusReflectPhysical { get; set; }
+    private Lockable<double> _baseExtraGold { get; set; }
+    private Lockable<double> _bonusExtraGold { get; set; }
     private Lockable<double> _baseDodge { get; set; }
     private Lockable<double> _bonusDodge { get; set; }
-    private Lockable<double> _baseExtraXpChance { get; set; }
-    private Lockable<double> _bonusExtraXpChance { get; set; }
-    private Lockable<double> _baseExtraXpIntensity { get; set; }
-    private Lockable<double> _bonusExtraXpIntensity { get; set; }
+    private Lockable<double> _baseExtraXp { get; set; }
+    private Lockable<double> _bonusExtraXp { get; set; }
     private Lockable<double> _baseExtraItemFind { get; set; }
     private Lockable<double> _bonusExtraItemFind { get; set; }
     private Lockable<double> _baseLifeSteal { get; set; }
@@ -307,6 +299,7 @@ public class StatInfo
 
     #region Auxiliary stats (base/bonus)
 
+    [JsonProperty]
     public double BaseInboundDamageModifier
     {
         get => _baseInboundDamageModifier.Value;
@@ -319,6 +312,7 @@ public class StatInfo
         set => _bonusInboundDamageModifier.Value = value;
     }
 
+    [JsonProperty]
     public double BaseOutboundDamageModifier
     {
         get => _baseOutboundDamageModifier.Value;
@@ -331,6 +325,7 @@ public class StatInfo
         set => _bonusOutboundDamageModifier.Value = value;
     }
 
+    [JsonProperty]
     public double BaseInboundHealModifier
     {
         get => _baseInboundHealModifier.Value;
@@ -343,6 +338,7 @@ public class StatInfo
         set => _bonusInboundHealModifier.Value = value;
     }
 
+    [JsonProperty]
     public double BaseOutboundHealModifier
     {
         get => _baseOutboundHealModifier.Value;
@@ -355,78 +351,46 @@ public class StatInfo
         set => _bonusOutboundHealModifier.Value = value;
     }
 
-    public double BaseReflectMagicalChance
+    [JsonProperty]
+    public double BaseReflectMagical
     {
-        get => _baseReflectMagicalChance.Value;
-        set => _baseReflectMagicalChance.Value = value;
+        get => _baseReflectMagical.Value;
+        set => _baseReflectMagical.Value = value;
     }
 
-    public double BonusReflectMagicalChance
+    public double BonusReflectMagical
     {
-        get => _bonusReflectMagicalChance.Value;
-        set => _bonusReflectMagicalChance.Value = value;
+        get => _bonusReflectMagical.Value;
+        set => _bonusReflectMagical.Value = value;
     }
 
-    public double BaseReflectMagicalIntensity
+    [JsonProperty]
+    public double BaseReflectPhysical
     {
-        get => _baseReflectMagicalIntensity.Value;
-        set => _baseReflectMagicalIntensity.Value = value;
+        get => _baseReflectPhysical.Value;
+        set => _baseReflectPhysical.Value = value;
     }
 
-    public double BonusReflectMagicalIntensity
+    public double BonusReflectPhysical
     {
-        get => _bonusReflectMagicalIntensity.Value;
-        set => _bonusReflectMagicalIntensity.Value = value;
+        get => _bonusReflectPhysical.Value;
+        set => _bonusReflectPhysical.Value = value;
     }
 
-    public double BaseReflectPhysicalChance
+    [JsonProperty]
+    public double BaseExtraGold
     {
-        get => _baseReflectPhysicalChance.Value;
-        set => _baseReflectPhysicalChance.Value = value;
+        get => _baseExtraGold.Value;
+        set => _baseExtraGold.Value = value;
     }
 
-    public double BonusReflectPhysicalChance
+    public double BonusExtraGold
     {
-        get => _bonusReflectPhysicalChance.Value;
-        set => _bonusReflectPhysicalChance.Value = value;
+        get => _bonusExtraGold.Value;
+        set => _bonusExtraGold.Value = value;
     }
 
-    public double BaseReflectPhysicalIntensity
-    {
-        get => _baseReflectPhysicalIntensity.Value;
-        set => _baseReflectPhysicalIntensity.Value = value;
-    }
-
-    public double BonusReflectPhysicalIntensity
-    {
-        get => _bonusReflectPhysicalIntensity.Value;
-        set => _bonusReflectPhysicalIntensity.Value = value;
-    }
-
-    public double BaseExtraGoldChance
-    {
-        get => _baseExtraGoldChance.Value;
-        set => _baseExtraGoldChance.Value = value;
-    }
-
-    public double BonusExtraGoldChance
-    {
-        get => _bonusExtraGoldChance.Value;
-        set => _bonusExtraGoldChance.Value = value;
-    }
-
-    public double BaseExtraGoldIntensity
-    {
-        get => _baseExtraGoldIntensity.Value;
-        set => _baseExtraGoldIntensity.Value = value;
-    }
-
-    public double BonusExtraGoldIntensity
-    {
-        get => _bonusExtraGoldIntensity.Value;
-        set => _bonusExtraGoldIntensity.Value = value;
-    }
-
+    [JsonProperty]
     public double BaseDodge
     {
         get => _baseDodge.Value;
@@ -439,30 +403,20 @@ public class StatInfo
         set => _bonusDodge.Value = value;
     }
 
-    public double BaseExtraXpChance
+    [JsonProperty]
+    public double BaseExtraXp
     {
-        get => _baseExtraXpChance.Value;
-        set => _baseExtraXpChance.Value = value;
+        get => _baseExtraXp.Value;
+        set => _baseExtraXp.Value = value;
     }
 
-    public double BonusExtraXpChance
+    public double BonusExtraXp
     {
-        get => _bonusExtraXpChance.Value;
-        set => _bonusExtraXpChance.Value = value;
+        get => _bonusExtraXp.Value;
+        set => _bonusExtraXp.Value = value;
     }
 
-    public double BaseExtraXpIntensity
-    {
-        get => _baseExtraXpIntensity.Value;
-        set => _baseExtraXpIntensity.Value = value;
-    }
-
-    public double BonusExtraXpIntensity
-    {
-        get => _bonusExtraXpIntensity.Value;
-        set => _bonusExtraXpIntensity.Value = value;
-    }
-
+    [JsonProperty]
     public double BaseExtraItemFind
     {
         get => _baseExtraItemFind.Value;
@@ -475,6 +429,7 @@ public class StatInfo
         set => _bonusExtraItemFind.Value = value;
     }
 
+    [JsonProperty]
     public double BaseLifeSteal
     {
         get => _baseLifeSteal.Value;
@@ -487,6 +442,7 @@ public class StatInfo
         set => _bonusLifeSteal.Value = value;
     }
 
+    [JsonProperty]
     public double BaseManaSteal
     {
         get => _baseManaSteal.Value;
@@ -545,24 +501,16 @@ public class StatInfo
         _bonusInboundHealModifier = new Lockable<double>(0);
         _baseOutboundHealModifier = new Lockable<double>(0);
         _bonusOutboundHealModifier = new Lockable<double>(0);
-        _baseReflectMagicalChance = new Lockable<double>(0);
-        _bonusReflectMagicalChance = new Lockable<double>(0);
-        _baseReflectMagicalIntensity = new Lockable<double>(0);
-        _bonusReflectMagicalIntensity = new Lockable<double>(0);
-        _baseReflectPhysicalChance = new Lockable<double>(0);
-        _bonusReflectPhysicalChance = new Lockable<double>(0);
-        _baseReflectPhysicalIntensity = new Lockable<double>(0);
-        _bonusReflectPhysicalIntensity = new Lockable<double>(0);
-        _baseExtraGoldChance = new Lockable<double>(0);
-        _bonusExtraGoldChance = new Lockable<double>(0);
-        _baseExtraGoldIntensity = new Lockable<double>(0);
-        _bonusExtraGoldIntensity = new Lockable<double>(0);
+        _baseReflectMagical = new Lockable<double>(0);
+        _bonusReflectMagical = new Lockable<double>(0);
+        _baseReflectPhysical = new Lockable<double>(0);
+        _bonusReflectPhysical = new Lockable<double>(0);
+        _baseExtraGold = new Lockable<double>(0);
+        _bonusExtraGold = new Lockable<double>(0);
         _baseDodge = new Lockable<double>(0);
         _bonusDodge = new Lockable<double>(0);
-        _baseExtraXpChance = new Lockable<double>(0);
-        _bonusExtraXpChance = new Lockable<double>(0);
-        _baseExtraXpIntensity = new Lockable<double>(0);
-        _bonusExtraXpIntensity = new Lockable<double>(0);
+        _baseExtraXp = new Lockable<double>(0);
+        _bonusExtraXp  = new Lockable<double>(0);
         _baseExtraItemFind = new Lockable<double>(0);
         _bonusExtraItemFind = new Lockable<double>(0);
         _baseLifeSteal = new Lockable<double>(0);
@@ -769,15 +717,11 @@ public class StatInfo
     public double OutboundDamageModifier => _baseOutboundDamageModifier.Value + _bonusOutboundDamageModifier.Value;
     public double InboundHealModifier => _baseInboundHealModifier.Value + _bonusInboundHealModifier.Value;
     public double OutboundHealModifier => _baseOutboundHealModifier.Value + _bonusOutboundHealModifier.Value;
-    public double ReflectMagicalChance => _baseReflectMagicalChance.Value + _bonusReflectMagicalChance.Value;
-    public double ReflectMagicalIntensity => _baseReflectMagicalIntensity.Value + _bonusReflectMagicalIntensity.Value;
-    public double ReflectPhysicalChance => _baseReflectPhysicalChance.Value + _bonusReflectPhysicalChance.Value;
-    public double ReflectPhysicalIntensity => _baseReflectPhysicalIntensity.Value + _bonusReflectPhysicalIntensity.Value;
-    public double ExtraGoldChance => _baseExtraGoldChance.Value + _bonusExtraGoldChance.Value;
-    public double ExtraGoldIntensity => _baseExtraGoldIntensity.Value + _bonusExtraGoldIntensity.Value;
+    public double ReflectMagical => _baseReflectMagical.Value + _bonusReflectMagical.Value;
+    public double ReflectPhysical => _baseReflectPhysical.Value + _bonusReflectPhysical.Value;
+    public double ExtraGold => _baseExtraGold.Value + _bonusExtraGold.Value;
     public double Dodge => _baseDodge.Value + _bonusDodge.Value;
-    public double ExtraXpChance => _baseExtraXpChance.Value + _bonusExtraXpChance.Value;
-    public double ExtraXpIntensity => _baseExtraXpIntensity.Value + _bonusExtraXpIntensity.Value;
+    public double ExtraXp => _baseExtraXp.Value + _bonusExtraXp.Value;
     public double ExtraItemFind => _baseExtraItemFind.Value + _bonusExtraItemFind.Value;
     public double LifeSteal => _baseLifeSteal.Value + _bonusLifeSteal.Value;
     public double ManaSteal => _baseManaSteal.Value + _bonusManaSteal.Value;

@@ -310,6 +310,18 @@ public class CreatureStatus : ICreatureStatus
             Target.Stats.BonusAc -= (long)(BonusModifiers.BonusAc * Intensity);
             Target.Stats.BonusRegen -= (long)(BonusModifiers.BonusRegen * Intensity);
             Target.Stats.BonusMr -= (long)(BonusModifiers.BonusMr * Intensity);
+            Target.Stats.BonusInboundDamageModifier -= BonusModifiers.BonusInboundDamageModifier * Intensity;
+            Target.Stats.BonusOutboundDamageModifier -= BonusModifiers.BonusOutboundDamageModifier * Intensity;
+            Target.Stats.BonusInboundHealModifier -= BonusModifiers.BonusInboundHealModifier * Intensity;
+            Target.Stats.BonusOutboundHealModifier -= BonusModifiers.BonusOutboundHealModifier * Intensity;
+            Target.Stats.BonusReflectMagical -= BonusModifiers.BonusReflectMagical * Intensity;
+            Target.Stats.BonusReflectPhysical -= BonusModifiers.BonusReflectPhysical * Intensity;
+            Target.Stats.BonusExtraGold -= BonusModifiers.BonusExtraGold * Intensity;
+            Target.Stats.BonusDodge -= BonusModifiers.BonusDodge * Intensity;
+            Target.Stats.BonusExtraXp -= BonusModifiers.BonusExtraXp * Intensity;
+            Target.Stats.BonusExtraItemFind -= BonusModifiers.BonusExtraItemFind * Intensity;
+            Target.Stats.BonusLifeSteal -= BonusModifiers.BonusLifeSteal * Intensity;
+            Target.Stats.BonusManaSteal -= BonusModifiers.BonusManaSteal * Intensity;
 
             if (BonusModifiers.OffensiveElementOverride == Target.Stats.OffensiveElementOverride)
                 Target.Stats.OffensiveElementOverride = Xml.ElementType.None;
@@ -330,6 +342,18 @@ public class CreatureStatus : ICreatureStatus
             Target.Stats.BonusAc += (long)(BonusModifiers.BonusAc * Intensity);
             Target.Stats.BonusRegen += (long)(BonusModifiers.BonusRegen * Intensity);
             Target.Stats.BonusMr += (long)(BonusModifiers.BonusMr * Intensity);
+            Target.Stats.BonusInboundDamageModifier += BonusModifiers.BonusInboundDamageModifier * Intensity;
+            Target.Stats.BonusOutboundDamageModifier += BonusModifiers.BonusOutboundDamageModifier * Intensity;
+            Target.Stats.BonusInboundHealModifier += BonusModifiers.BonusInboundHealModifier * Intensity;
+            Target.Stats.BonusOutboundHealModifier += BonusModifiers.BonusOutboundHealModifier * Intensity;
+            Target.Stats.BonusReflectMagical += BonusModifiers.BonusReflectMagical * Intensity;
+            Target.Stats.BonusReflectPhysical += BonusModifiers.BonusReflectPhysical * Intensity;
+            Target.Stats.BonusExtraGold += BonusModifiers.BonusExtraGold * Intensity;
+            Target.Stats.BonusDodge += BonusModifiers.BonusDodge * Intensity;
+            Target.Stats.BonusExtraXp += BonusModifiers.BonusExtraXp * Intensity;
+            Target.Stats.BonusExtraItemFind = BonusModifiers.BonusExtraItemFind * Intensity;
+            Target.Stats.BonusLifeSteal += BonusModifiers.BonusLifeSteal * Intensity;
+            Target.Stats.BonusManaSteal += BonusModifiers.BonusManaSteal * Intensity;
 
             Target.Stats.OffensiveElementOverride = BonusModifiers.OffensiveElementOverride;
             Target.Stats.DefensiveElementOverride = BonusModifiers.DefensiveElementOverride;
