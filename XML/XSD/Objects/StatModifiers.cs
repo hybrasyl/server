@@ -43,11 +43,21 @@ public partial class StatModifiers
     private ElementType _defensiveElement;
     private float _inboundDamageModifier;
     private float _outboundDamageModifier;
-    private float _inboundModifier;
-    private float _outboundModifier;
+    private float _inboundHealModifier;
+    private float _outboundHealModifier;
     private DamageType _damageType;
-    private float _reflectChance;
-    private float _reflectIntensity;
+    private float _reflectMagicalChance;
+    private float _reflectMagicalIntensity;
+    private float _reflectPhysicalChance;
+    private float _reflectPhysicalIntensity;
+    private float _increaseGoldChance;
+    private float _increaseGoldIntensity;
+    private float _dodge;
+    private float _increaseXpChance;
+    private float _increaseXpIntensity;
+    private float _increaseItemFindChance;
+    private float _lifeSteal;
+    private float _manaSteal;
     private static XmlSerializer _serializerXml;
     #endregion
     
@@ -288,28 +298,28 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
-    public float InboundModifier
+    public float InboundHealModifier
     {
         get
         {
-            return _inboundModifier;
+            return _inboundHealModifier;
         }
         set
         {
-            _inboundModifier = value;
+            _inboundHealModifier = value;
         }
     }
     
     [XmlAttribute]
-    public float OutboundModifier
+    public float OutboundHealModifier
     {
         get
         {
-            return _outboundModifier;
+            return _outboundHealModifier;
         }
         set
         {
-            _outboundModifier = value;
+            _outboundHealModifier = value;
         }
     }
     
@@ -327,28 +337,158 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
-    public float ReflectChance
+    public float ReflectMagicalChance
     {
         get
         {
-            return _reflectChance;
+            return _reflectMagicalChance;
         }
         set
         {
-            _reflectChance = value;
+            _reflectMagicalChance = value;
         }
     }
     
     [XmlAttribute]
-    public float ReflectIntensity
+    public float ReflectMagicalIntensity
     {
         get
         {
-            return _reflectIntensity;
+            return _reflectMagicalIntensity;
         }
         set
         {
-            _reflectIntensity = value;
+            _reflectMagicalIntensity = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public float ReflectPhysicalChance
+    {
+        get
+        {
+            return _reflectPhysicalChance;
+        }
+        set
+        {
+            _reflectPhysicalChance = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public float ReflectPhysicalIntensity
+    {
+        get
+        {
+            return _reflectPhysicalIntensity;
+        }
+        set
+        {
+            _reflectPhysicalIntensity = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public float IncreaseGoldChance
+    {
+        get
+        {
+            return _increaseGoldChance;
+        }
+        set
+        {
+            _increaseGoldChance = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public float IncreaseGoldIntensity
+    {
+        get
+        {
+            return _increaseGoldIntensity;
+        }
+        set
+        {
+            _increaseGoldIntensity = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public float Dodge
+    {
+        get
+        {
+            return _dodge;
+        }
+        set
+        {
+            _dodge = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public float IncreaseXpChance
+    {
+        get
+        {
+            return _increaseXpChance;
+        }
+        set
+        {
+            _increaseXpChance = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public float IncreaseXpIntensity
+    {
+        get
+        {
+            return _increaseXpIntensity;
+        }
+        set
+        {
+            _increaseXpIntensity = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public float IncreaseItemFindChance
+    {
+        get
+        {
+            return _increaseItemFindChance;
+        }
+        set
+        {
+            _increaseItemFindChance = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public float LifeSteal
+    {
+        get
+        {
+            return _lifeSteal;
+        }
+        set
+        {
+            _lifeSteal = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public float ManaSteal
+    {
+        get
+        {
+            return _manaSteal;
+        }
+        set
+        {
+            _manaSteal = value;
         }
     }
     

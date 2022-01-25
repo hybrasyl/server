@@ -23,90 +23,88 @@ using Hybrasyl.Enums;
 using Hybrasyl.Objects;
 using System;
 
-namespace Hybrasyl.ChatCommands
+namespace Hybrasyl.ChatCommands;
+
+class LegendCommand : ChatCommand
 {
+    public new static string Command = "legend";
+    public new static string ArgumentText = "<string legendText> <byte icon> <byte color> | <int prefix> <int quantity> [<datetime date>]";
+    public new static string HelpText = "Add a legend mark with the specified text, icon and color, and optionally with the given quantity and date.";
+    public new static bool Privileged = true;
 
-    class LegendCommand : ChatCommand
+    public new static ChatCommandResult Run(User user, params string[] args)
     {
-        public new static string Command = "legend";
-        public new static string ArgumentText = "<string legendText> <byte icon> <byte color> | <int prefix> <int quantity> [<datetime date>]";
-        public new static string HelpText = "Add a legend mark with the specified text, icon and color, and optionally with the given quantity and date.";
-        public new static bool Privileged = true;
-
-        public new static ChatCommandResult Run(User user, params string[] args)
+        if (Enum.TryParse(args[1], out LegendIcon icon) && Enum.TryParse(args[2], out LegendColor color))
         {
-            if (Enum.TryParse(args[1], out LegendIcon icon) && Enum.TryParse(args[2], out LegendColor color))
-            {
-                DateTime time = DateTime.Now;
-                int qty = -1;
-                string prefix = null;
+            DateTime time = DateTime.Now;
+            int qty = -1;
+            string prefix = null;
 
-                if (args.Length > 3)
-                {
-                    prefix = args[3];
-                    if (args.Length >= 5)
-                        int.TryParse(args[4], out qty);
-                    if (args.Length == 6)
-                        DateTime.TryParse(args[5], out time);
-                }
-                user.Legend.AddMark(icon, color, args[0], time, prefix, true, qty);
-                return Success("Legend added.");
+            if (args.Length > 3)
+            {
+                prefix = args[3];
+                if (args.Length >= 5)
+                    int.TryParse(args[4], out qty);
+                if (args.Length == 6)
+                    DateTime.TryParse(args[5], out time);
             }
-            return Fail("The arguments you specified could not be parsed.");
+            user.Legend.AddMark(icon, color, args[0], time, prefix, true, qty);
+            return Success("Legend added.");
         }
+        return Fail("The arguments you specified could not be parsed.");
     }
+}
 
-    class TitleCommand : ChatCommand
+class TitleCommand : ChatCommand
+{
+    public new static string Command = "title";
+    public new static string ArgumentText = "<string title>";
+    public new static string HelpText = "Change your displayed title.";
+    public new static bool Privileged = true;
+
+    public new static ChatCommandResult Run(User user, params string[] args)
     {
-        public new static string Command = "title";
-        public new static string ArgumentText = "<string title>";
-        public new static string HelpText = "Change your displayed title.";
-        public new static bool Privileged = true;
-
-        public new static ChatCommandResult Run(User user, params string[] args)
-        {
-            user.Title = args[0];
-            return Success("Title updated.");
-        }
+        user.Title = args[0];
+        return Success("Title updated.");
     }
+}
 
-    class LegendclearCommand : ChatCommand
+class LegendclearCommand : ChatCommand
+{
+    public new static string Command = "legendclear";
+    public new static string ArgumentText = "[<int marks>]";
+    public new static string HelpText = "Clear your legend of the specified number of marks, starting at the end. If no argument given, CLEARS ALL MARKS. WARNING: Not reversible.";
+    public new static bool Privileged = true;
+
+    public new static ChatCommandResult Run(User user, params string[] args)
     {
-        public new static string Command = "legendclear";
-        public new static string ArgumentText = "[<int marks>]";
-        public new static string HelpText = "Clear your legend of the specified number of marks, starting at the end. If no argument given, CLEARS ALL MARKS. WARNING: Not reversible.";
-        public new static bool Privileged = true;
-
-        public new static ChatCommandResult Run(User user, params string[] args)
+        if (args.Length == 0)
         {
-            if (args.Length == 0)
-            {
-                user.Legend.Clear();
-                return Success("Legend cleared.");
-            }
-            if (int.TryParse(args[0], out int numToRemove))
-            {
-                user.Legend.RemoveMark(numToRemove);
-                return Success($"Last {numToRemove} legend mark(s) removed.");
-            }
-            return Fail("Couldn't parse number of marks");
+            user.Legend.Clear();
+            return Success("Legend cleared.");
         }
+        if (int.TryParse(args[0], out int numToRemove))
+        {
+            user.Legend.RemoveMark(numToRemove);
+            return Success($"Last {numToRemove} legend mark(s) removed.");
+        }
+        return Fail("Couldn't parse number of marks");
     }
+}
 
-    class LegendColorCommand : ChatCommand
+class LegendColorCommand : ChatCommand
+{
+    public new static string Command = "legendcolors";
+    public new static string ArgumentText = "none";
+    public new static string HelpText = "Adds a legend mark for each color code to your legend.";
+    public new static bool Privileged = true;
+
+    public new static ChatCommandResult Run(User user, params string[] args)
     {
-        public new static string Command = "legendcolors";
-        public new static string ArgumentText = "none";
-        public new static string HelpText = "Adds a legend mark for each color code to your legend.";
-        public new static bool Privileged = true;
-
-        public new static ChatCommandResult Run(User user, params string[] args)
+        for(var i = 0; i<256; i++)
         {
-            for(var i = 0; i<256; i++)
-            {
-                user.Legend.AddMark(LegendIcon.Community, (LegendColor)i, $"This is color {i}.", $"COLOR{i}");
-            }
-            return Success("View the colors.");
+            user.Legend.AddMark(LegendIcon.Community, (LegendColor)i, $"This is color {i}.", $"COLOR{i}");
         }
+        return Success("View the colors.");
     }
 }

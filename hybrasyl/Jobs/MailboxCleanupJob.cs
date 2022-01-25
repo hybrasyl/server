@@ -24,51 +24,50 @@ using System;
 using System.Linq;
 using System.Timers;
 
-namespace Hybrasyl.Jobs
+namespace Hybrasyl.Jobs;
+
+public static class MailboxCleanupJob
 {
-    public static class MailboxCleanupJob
+    // Clean up mailboxes once an hour
+    public static readonly int Interval = 3600;
+
+    public static void Execute(object obj, ElapsedEventArgs args)
     {
-        // Clean up mailboxes once an hour
-        public static readonly int Interval = 3600;
-
-        public static void Execute(object obj, ElapsedEventArgs args)
+        try
         {
-            try
-            {
-                GameLog.Debug("Job starting");
+            GameLog.Debug("Job starting");
 
-                var now = DateTime.Now.Ticks;
-                foreach (var mailbox in Game.World.WorldData.Values<Mailbox>().Where(mb => mb.Full))
-                {
-                    try
-                    {
-                        mailbox.Cleanup();
-                    }
-                    catch (MessageStoreLocked e)
-                    {
-                        Game.ReportException(e);
-                        GameLog.ErrorFormat("{0}: mailbox locked during cleanup...?", mailbox.Name);
-                    }
-                }
-                foreach (var board in Game.World.WorldData.Values<Board>().Where(mb => mb.Full))
-                {
-                    try
-                    {
-                        board.Cleanup();
-                    }
-                    catch (MessageStoreLocked e)
-                    {
-                        Game.ReportException(e);
-                        GameLog.ErrorFormat("{0}: board locked during cleanup...?", board.Name);
-                    }
-                }
-                GameLog.Debug("Job complete");
-            }
-            catch (Exception e)
+            var now = DateTime.Now.Ticks;
+            foreach (var mailbox in Game.World.WorldData.Values<Mailbox>().Where(mb => mb.Full))
             {
-                Game.ReportException(e);
-                GameLog.Error("Exception occured in job:", e);
+                try
+                {
+                    mailbox.Cleanup();
+                }
+                catch (MessageStoreLocked e)
+                {
+                    Game.ReportException(e);
+                    GameLog.ErrorFormat("{0}: mailbox locked during cleanup...?", mailbox.Name);
+                }
             }
+            foreach (var board in Game.World.WorldData.Values<Board>().Where(mb => mb.Full))
+            {
+                try
+                {
+                    board.Cleanup();
+                }
+                catch (MessageStoreLocked e)
+                {
+                    Game.ReportException(e);
+                    GameLog.ErrorFormat("{0}: board locked during cleanup...?", board.Name);
+                }
+            }
+            GameLog.Debug("Job complete");
+        }
+        catch (Exception e)
+        {
+            Game.ReportException(e);
+            GameLog.Error("Exception occured in job:", e);
         }
     }
 }

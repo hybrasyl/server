@@ -1,15 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Hybrasyl.Plugins
+﻿namespace Hybrasyl.Plugins
 {
     using System;
-    using System.Collections.Generic;
     using System.IO;
-    using System.Text;
     using System.Threading.Tasks;
-    using Discord;
     using Discord.Webhook;
 
     namespace Hybrasyl.Plugins

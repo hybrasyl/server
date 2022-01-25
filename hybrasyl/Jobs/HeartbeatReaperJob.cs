@@ -24,46 +24,44 @@ using Hybrasyl.Objects;
 using System;
 using System.Timers;
 
-namespace Hybrasyl.Jobs
+namespace Hybrasyl.Jobs;
+
+/// <summary>
+/// This job reaps connections that haven't responded to either tick or byte based heartbeats
+/// in REAP_HEARTBEAT_TIME.
+/// </summary>
+public static class HeartbeatReaperJob
 {
 
-    /// <summary>
-    /// This job reaps connections that haven't responded to either tick or byte based heartbeats
-    /// in REAP_HEARTBEAT_TIME.
-    /// </summary>
-    public static class HeartbeatReaperJob
+    public static readonly int Interval = Constants.REAP_HEARTBEAT_INTERVAL;
+
+    public static void Execute(object obj, ElapsedEventArgs args)
     {
-
-        public static readonly int Interval = Constants.REAP_HEARTBEAT_INTERVAL;
-
-        public static void Execute(object obj, ElapsedEventArgs args)
+        GameLog.Debug("Job starting");
+        try
         {
-            GameLog.Debug("Job starting");
-            try
+            foreach (var connection in GlobalConnectionManifest.WorldClients)
             {
-                foreach (var connection in GlobalConnectionManifest.WorldClients)
+                var client = connection.Value;
+                var connectionId = connection.Key;
+                User user;
+                if (Game.World.WorldData.TryGetValueByIndex(connectionId, out user))
                 {
-                    var client = connection.Value;
-                    var connectionId = connection.Key;
-                    User user;
-                    if (Game.World.WorldData.TryGetValueByIndex(connectionId, out user))
+                    if (client.IsHeartbeatExpired())
                     {
-                        if (client.IsHeartbeatExpired())
-                        {
-                            GameLog.InfoFormat("{0} (connection id {1}: heartbeat expired, disconnecting",
-                                user.Name, connectionId);
-                            GlobalConnectionManifest.DeregisterClient(client);
-                            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.CleanupUser,
-                                CleanupType.ByConnectionId, connectionId));
-                        }
+                        GameLog.InfoFormat("{0} (connection id {1}: heartbeat expired, disconnecting",
+                            user.Name, connectionId);
+                        GlobalConnectionManifest.DeregisterClient(client);
+                        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.CleanupUser,
+                            CleanupType.ByConnectionId, connectionId));
                     }
                 }
             }
-            catch (Exception e)
-            {
-                Game.ReportException(e);
-                GameLog.ErrorFormat("Exception occurred in job:", e);
-            }
+        }
+        catch (Exception e)
+        {
+            Game.ReportException(e);
+            GameLog.ErrorFormat("Exception occurred in job:", e);
         }
     }
 }

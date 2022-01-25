@@ -22,69 +22,67 @@
 using Hybrasyl.Dialogs;
 using MoonSharp.Interpreter;
 
-namespace Hybrasyl.Scripting
+namespace Hybrasyl.Scripting;
+
+[MoonSharpUserData]
+public class HybrasylDialog
 {
+    internal Dialog Dialog { get; set; }
+    internal DialogSequence Sequence { get; set; }
+    internal System.Type DialogType => Dialog.GetType();
 
-    [MoonSharpUserData]
-    public class HybrasylDialog
+    public HybrasylDialog(Dialog dialog)
     {
-        internal Dialog Dialog { get; set; }
-        internal DialogSequence Sequence { get; set; }
-        internal System.Type DialogType => Dialog.GetType();
-
-        public HybrasylDialog(Dialog dialog)
-        {
-            Dialog = dialog;
-        }
-
-        /// <summary>
-        /// Set the display sprite for this specific dialog to an NPC / creature sprite. This is the sprite that is displayed on the left hand side when a user views a dialog.
-        /// </summary>
-        /// <param name="displaySprite">int representing the sprite in the datfiles</param>
-        public void SetNpcDisplaySprite(int displaySprite)
-        {
-            Dialog.Sprite = (ushort)(0x4000 + displaySprite);
-        }
-        /// <summary>
-        /// Set the display sprite for this specific dialog to an item sprite. This is the sprite that is displayed on the left hand side when a user views a dialog.
-        /// </summary>
-        /// <param name="displaySprite">int representing the item sprite in the datfiles</param>
-
-        public void SetItemDisplaySprite(int displaySprite)
-        {
-            Dialog.Sprite = (ushort)(0x8000 + displaySprite);
-        }
-
-        /// <summary>
-        /// Assoiciate this particular dialog with a sequence.
-        /// </summary>
-        /// <param name="sequence"></param>
-        public void AssociateDialogWithSequence(DialogSequence sequence)
-        {
-            if (sequence is null)
-            {
-                GameLog.ScriptingError("AssociateDialogWithSequence: sequence (first argument) cannot be null");
-                return;
-            }
-            Sequence = sequence;
-            sequence.AddDialog(Dialog);
-        }
-
-        /// <summary>
-        /// Attach a callback expression to this dialog, which will be invoked when the dialog is displayed.
-        /// </summary>
-        /// <param name="luaExpr">A Lua expression to be evaluated.</param>
-        public void AttachCallback(string luaExpr)
-        {
-            if (string.IsNullOrEmpty(luaExpr))
-            {
-                GameLog.ScriptingWarning("AttachCallback: lua expression (first argument) was null or empty, ignoring");
-                return;
-            }
-            Dialog.CallbackExpression = luaExpr;
-        }
-
-
-
+        Dialog = dialog;
     }
+
+    /// <summary>
+    /// Set the display sprite for this specific dialog to an NPC / creature sprite. This is the sprite that is displayed on the left hand side when a user views a dialog.
+    /// </summary>
+    /// <param name="displaySprite">int representing the sprite in the datfiles</param>
+    public void SetNpcDisplaySprite(int displaySprite)
+    {
+        Dialog.Sprite = (ushort)(0x4000 + displaySprite);
+    }
+    /// <summary>
+    /// Set the display sprite for this specific dialog to an item sprite. This is the sprite that is displayed on the left hand side when a user views a dialog.
+    /// </summary>
+    /// <param name="displaySprite">int representing the item sprite in the datfiles</param>
+
+    public void SetItemDisplaySprite(int displaySprite)
+    {
+        Dialog.Sprite = (ushort)(0x8000 + displaySprite);
+    }
+
+    /// <summary>
+    /// Assoiciate this particular dialog with a sequence.
+    /// </summary>
+    /// <param name="sequence"></param>
+    public void AssociateDialogWithSequence(DialogSequence sequence)
+    {
+        if (sequence is null)
+        {
+            GameLog.ScriptingError("AssociateDialogWithSequence: sequence (first argument) cannot be null");
+            return;
+        }
+        Sequence = sequence;
+        sequence.AddDialog(Dialog);
+    }
+
+    /// <summary>
+    /// Attach a callback expression to this dialog, which will be invoked when the dialog is displayed.
+    /// </summary>
+    /// <param name="luaExpr">A Lua expression to be evaluated.</param>
+    public void AttachCallback(string luaExpr)
+    {
+        if (string.IsNullOrEmpty(luaExpr))
+        {
+            GameLog.ScriptingWarning("AttachCallback: lua expression (first argument) was null or empty, ignoring");
+            return;
+        }
+        Dialog.CallbackExpression = luaExpr;
+    }
+
+
+
 }

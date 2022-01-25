@@ -92,8 +92,8 @@
     <xs:attribute name="DefensiveElement" type="hyb:ElementType" default="None"/>
     <xs:attribute name="InboundDamageModifier" type="xs:float"/>
     <xs:attribute name="OutboundDamageModifier" type="xs:float"/>
-    <xs:attribute name="InboundModifier" type="xs:float"/>
-    <xs:attribute name="OutboundModifier" type="xs:float"/>
+    <xs:attribute name="InboundHealModifier" type="xs:float"/>
+    <xs:attribute name="OutboundHealModifier" type="xs:float"/>
     <xs:attribute name="DamageType" type="hyb:DamageType"/>
     <xs:attribute name="ReflectMagicalChance" type="xs:float"/>
     <xs:attribute name="ReflectMagicalIntensity" type="xs:float"/>
@@ -105,6 +105,8 @@
     <xs:attribute name="IncreaseXpChance" type="xs:float"/>
     <xs:attribute name="IncreaseXpIntensity" type="xs:float"/>
     <xs:attribute name="IncreaseItemFindChance" type="xs:float"/>
+    <xs:attribute name="LifeSteal" type="xs:float"/>
+    <xs:attribute name="ManaSteal" type="xs:float"/>
   </xs:complexType>
   
   <xs:complexType name="StatModifierFormulas">
@@ -124,8 +126,8 @@
     <xs:attribute name="DefensiveElement" type="hyb:ElementType" default="None"/>
     <xs:attribute name="InboundDamageModifier" type="xs:string"/>
     <xs:attribute name="OutboundDamageModifier" type="xs:string"/>
-    <xs:attribute name="InboundModifier" type="xs:string"/>
-    <xs:attribute name="OutboundModifier" type="xs:string"/>
+    <xs:attribute name="InboundHealModifier" type="xs:string"/>
+    <xs:attribute name="OutboundHealModifier" type="xs:string"/>
     <xs:attribute name="DamageType" type="xs:string"/>
     <xs:attribute name="ReflectMagicalChance" type="xs:float"/>
     <xs:attribute name="ReflectMagicalIntensity" type="xs:float"/>
@@ -137,6 +139,8 @@
     <xs:attribute name="IncreaseXpChance" type="xs:float"/>
     <xs:attribute name="IncreaseXpIntensity" type="xs:float"/>
     <xs:attribute name="IncreaseItemFindChance" type="xs:float"/>
+    <xs:attribute name="LifeSteal" type="xs:float"/>
+    <xs:attribute name="ManaSteal" type="xs:float"/>
   </xs:complexType>
 
 
@@ -396,8 +400,6 @@
               <xs:enumeration value="Mute" />
               <xs:enumeration value="Invulnerable" />
               <xs:enumeration value="Charm" />
-			  <xs:enumeration value="AbsorbMagical"/>
-              <xs:enumeration value="AbsorbPhysical"/>
               <xs:enumeration value="ProhibitItemUse" />
               <xs:enumeration value="ProhibitEquipChange" />
               <xs:enumeration value="ProhibitSpeech" />

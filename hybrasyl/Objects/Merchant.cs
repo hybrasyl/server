@@ -23,559 +23,555 @@ using Hybrasyl.Scripting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
-using System.Threading;
-using Google.Protobuf.WellKnownTypes;
 using Hybrasyl.Enums;
 using Hybrasyl.Xml;
 
-namespace Hybrasyl.Objects
+namespace Hybrasyl.Objects;
+
+public class MerchantInventoryItem
 {
-    public class MerchantInventoryItem
-    {
         
 
-        public Xml.Item Item { get; private set; }
-        public uint OnHand { get; set; }
-        public uint RestockAmount { get; private set; }
-        public int RestockInterval { get; private set; }
-        public DateTime LastRestock { get; set; }
+    public Xml.Item Item { get; private set; }
+    public uint OnHand { get; set; }
+    public uint RestockAmount { get; private set; }
+    public int RestockInterval { get; private set; }
+    public DateTime LastRestock { get; set; }
 
-        public MerchantInventoryItem(Xml.Item item, uint onHand, uint restockAmount, int restockInterval, DateTime lastRestock)
-        {
-            Item = item;
-            OnHand = onHand;
-            RestockAmount = restockAmount;
-            RestockInterval = restockInterval;
-            LastRestock = lastRestock;
-        }
-
+    public MerchantInventoryItem(Xml.Item item, uint onHand, uint restockAmount, int restockInterval, DateTime lastRestock)
+    {
+        Item = item;
+        OnHand = onHand;
+        RestockAmount = restockAmount;
+        RestockInterval = restockInterval;
+        LastRestock = lastRestock;
     }
 
+}
 
-    public class Merchant : Creature
+
+public class Merchant : Creature
+{
+    private readonly object inventoryLock = new();
+
+    public bool Ready;
+    public Npc Template;
+    public MerchantJob Jobs { get; set; }
+    public List<MerchantInventoryItem> MerchantInventory { get; set; }
+
+    public Regex BuyPattern { get; set; } = new Regex("buy\\s+(?<amt>\\d+|all)\\s+of\\s+my\\s+(?<target>.*)");
+
+    private Dictionary<string, string> Strings = new();
+
+    public Merchant(Npc npc)
+        : base()
     {
-        private readonly object inventoryLock = new();
+        Template = npc;
+        Sprite = npc.Appearance.Sprite;
+        Portrait = npc.Appearance.Portrait;
+        AllowDead = npc.AllowDead;
 
-        public bool Ready;
-        public Npc Template;
-        public MerchantJob Jobs { get; set; }
-        public List<MerchantInventoryItem> MerchantInventory { get; set; }
-
-        public Regex BuyPattern { get; set; } = new Regex("buy\\s+(?<amt>\\d+|all)\\s+of\\s+my\\s+(?<target>.*)");
-
-        private Dictionary<string, string> Strings = new();
-
-        public Merchant(Npc npc)
-            : base()
+        foreach (var str in npc.Strings)
         {
-            Template = npc;
-            Sprite = npc.Appearance.Sprite;
-            Portrait = npc.Appearance.Portrait;
-            AllowDead = npc.AllowDead;
-
-            foreach (var str in npc.Strings)
-            {
-                Strings[str.Key] = Strings[str.Value];
-            }
-
-
-            if (npc.Roles != null)
-            {
-                if (npc.Roles.Post != null)
-                {
-                    Jobs ^= MerchantJob.Post;
-                }
-
-                if (npc.Roles.Bank != null)
-                {
-                    Jobs ^= MerchantJob.Bank;
-                }
-
-                if (npc.Roles.Repair != null)
-                {
-                    Jobs ^= MerchantJob.Repair;
-                }
-
-                if (npc.Roles.Train != null)
-                {
-                    if (npc.Roles.Train.Any(x => x.Type == "Skill")) Jobs ^= MerchantJob.Skills;
-                    if (npc.Roles.Train.Any(x => x.Type == "Spell")) Jobs ^= MerchantJob.Spells;
-                }
-
-                if (npc.Roles.Vend != null)
-                {
-                    Jobs ^= MerchantJob.Vend;
-                }
-
-            }
-
-            Ready = false;
+            Strings[str.Key] = Strings[str.Value];
         }
 
-        public string GetLocalString(string key) => Strings.ContainsKey(key) ? key : World.GetLocalString(key);
 
-        public string GetLocalString(string key, params (string Token, string Value)[] replacements)
+        if (npc.Roles != null)
         {
-            var str = GetLocalString(key);
-            foreach (var repl in replacements)
+            if (npc.Roles.Post != null)
             {
-                str = str.Replace(repl.Token, repl.Value);
+                Jobs ^= MerchantJob.Post;
             }
 
-            return str;
+            if (npc.Roles.Bank != null)
+            {
+                Jobs ^= MerchantJob.Bank;
+            }
+
+            if (npc.Roles.Repair != null)
+            {
+                Jobs ^= MerchantJob.Repair;
+            }
+
+            if (npc.Roles.Train != null)
+            {
+                if (npc.Roles.Train.Any(x => x.Type == "Skill")) Jobs ^= MerchantJob.Skills;
+                if (npc.Roles.Train.Any(x => x.Type == "Spell")) Jobs ^= MerchantJob.Spells;
+            }
+
+            if (npc.Roles.Vend != null)
+            {
+                Jobs ^= MerchantJob.Vend;
+            }
+
         }
 
-        public uint GetOnHand(string itemName)
+        Ready = false;
+    }
+
+    public string GetLocalString(string key) => Strings.ContainsKey(key) ? key : World.GetLocalString(key);
+
+    public string GetLocalString(string key, params (string Token, string Value)[] replacements)
+    {
+        var str = GetLocalString(key);
+        foreach (var repl in replacements)
         {
-            lock(inventoryLock)
+            str = str.Replace(repl.Token, repl.Value);
+        }
+
+        return str;
+    }
+
+    public uint GetOnHand(string itemName)
+    {
+        lock(inventoryLock)
+        {
+            return MerchantInventory.FirstOrDefault(x => x.Item.Name == itemName).OnHand;
+        }
+    }
+
+    public void ReduceInventory(string itemName, uint quantity)
+    {
+        lock(inventoryLock)
+        {
+            MerchantInventory.FirstOrDefault(x => x.Item.Name == itemName).OnHand -= quantity;
+        }
+    }
+
+    public void RestockInventory()
+    {
+        lock(inventoryLock)
+        {
+            if (MerchantInventory == null) return;
+            foreach (var inventoryItem in MerchantInventory.Where(inventoryItem => inventoryItem.LastRestock.AddMinutes(inventoryItem.RestockInterval) < DateTime.Now))
             {
-                return MerchantInventory.FirstOrDefault(x => x.Item.Name == itemName).OnHand;
+                inventoryItem.OnHand = inventoryItem.RestockAmount;
+                inventoryItem.LastRestock = DateTime.Now;
             }
         }
+    }
 
-        public void ReduceInventory(string itemName, uint quantity)
+    public List<MerchantInventoryItem> GetOnHandInventory()
+    {
+        var ret = new List<MerchantInventoryItem>();
+        lock (inventoryLock)
         {
-            lock(inventoryLock)
+            if (MerchantInventory != null)
             {
-                MerchantInventory.FirstOrDefault(x => x.Item.Name == itemName).OnHand -= quantity;
-            }
-        }
-
-        public void RestockInventory()
-        {
-            lock(inventoryLock)
-            {
-                if (MerchantInventory == null) return;
-                foreach (var inventoryItem in MerchantInventory.Where(inventoryItem => inventoryItem.LastRestock.AddMinutes(inventoryItem.RestockInterval) < DateTime.Now))
+                for (var i = 0; i < MerchantInventory.Count; i++)
                 {
-                    inventoryItem.OnHand = inventoryItem.RestockAmount;
-                    inventoryItem.LastRestock = DateTime.Now;
+                    ret.Add(MerchantInventory[i]);
                 }
             }
         }
+        return ret;
+    }
 
-        public List<MerchantInventoryItem> GetOnHandInventory()
+    // Currently, NPCs can not be healed or damaged in any way whatsoever
+    public override void Heal(double heal, Creature source = null) { return; }
+    public override void Damage(double damage, Xml.ElementType element = Xml.ElementType.None, Xml.DamageType damageType = Xml.DamageType.Direct, Xml.DamageFlags damageFlags = Xml.DamageFlags.None, Creature attacker = null, bool onDeath = true) { return; }
+
+    public void OnSpawn()
+    {
+        if (Template.Roles != null && Template.Roles.Vend != null)
         {
-            var ret = new List<MerchantInventoryItem>();
+            MerchantInventory = new List<MerchantInventoryItem>();
+
             lock (inventoryLock)
             {
-                if (MerchantInventory != null)
+                foreach (var item in Template.Roles.Vend.Items)
                 {
-                    for (var i = 0; i < MerchantInventory.Count; i++)
-                    {
-                        ret.Add(MerchantInventory[i]);
-                    }
+                    if (Game.World.WorldData.TryGetValueByIndex(item.Name, out Xml.Item worldItem))
+                        MerchantInventory.Add(new MerchantInventoryItem(worldItem, (uint) item.Quantity,
+                            (uint) item.Quantity, item.Restock, DateTime.Now));
+                    else
+                        GameLog.Warning("NPC inventory: {name}: {item} not found", Name, item.Name);
                 }
             }
-            return ret;
         }
 
-        // Currently, NPCs can not be healed or damaged in any way whatsoever
-        public override void Heal(double heal, Creature source = null) { return; }
-        public override void Damage(double damage, Xml.ElementType element = Xml.ElementType.None, Xml.DamageType damageType = Xml.DamageType.Direct, Xml.DamageFlags damageFlags = Xml.DamageFlags.None, Creature attacker = null, bool onDeath = true) { return; }
-
-        public void OnSpawn()
+        Script script;
+        // Do we have a script? If so, get it and run OnSpawn.
+        if (World.ScriptProcessor.TryGetScript(Name, out script))
         {
-            if (Template.Roles != null && Template.Roles.Vend != null)
-            {
-                MerchantInventory = new List<MerchantInventoryItem>();
+            Script = script;
+            Script.AssociateScriptWithObject(this);
+            // Clear existing pursuits, in case the OnSpawn crashes / has a bug
+            ResetPursuits();
+            Ready = Script.ExecuteFunction("OnSpawn");
+        }
+        else
+            Ready = true;
+    }
 
-                lock (inventoryLock)
+    public override void OnHear(VisibleObject speaker, string text, bool shout = false)
+    {
+        if (speaker == this)
+            return;
+
+        if (!Ready)
+            OnSpawn();
+
+        var patternMatch = BuyPattern.Match(text.ToLower());
+
+        if (patternMatch.Success && speaker is User u)
+        {
+            var items = Game.World.WorldData.FindItem(patternMatch.Groups["target"].Value);
+            // Is the thing a category or an actual item?
+            if (items.Count != 0)
+            {
+                // Support both "buy 3 of my <item> and buy all of my <item>
+                if (patternMatch.Groups["amt"].Value.ToLower() == "all")
                 {
-                    foreach (var item in Template.Roles.Vend.Items)
+                    uint coins = 0;
+                    var removed = 0;
+                    foreach (var slot in u.Inventory.GetSlotsByName(patternMatch.Groups["target"].Value))
                     {
-                        if (Game.World.WorldData.TryGetValueByIndex(item.Name, out Xml.Item worldItem))
-                            MerchantInventory.Add(new MerchantInventoryItem(worldItem, (uint) item.Quantity,
-                                (uint) item.Quantity, item.Restock, DateTime.Now));
-                        else
-                            GameLog.Warning("NPC inventory: {name}: {item} not found", Name, item.Name);
+                        coins += (uint)(u.Inventory[slot].Value * u.Inventory[slot].Count);
+                        removed += u.Inventory[slot].Count;
+                        u.RemoveItem(slot);
                     }
-                }
-            }
 
-            Script script;
-            // Do we have a script? If so, get it and run OnSpawn.
-            if (World.ScriptProcessor.TryGetScript(Name, out script))
-            {
-                Script = script;
-                Script.AssociateScriptWithObject(this);
-                // Clear existing pursuits, in case the OnSpawn crashes / has a bug
-                ResetPursuits();
-                Ready = Script.ExecuteFunction("OnSpawn");
-            }
-            else
-                Ready = true;
-        }
-
-        public override void OnHear(VisibleObject speaker, string text, bool shout = false)
-        {
-            if (speaker == this)
-                return;
-
-            if (!Ready)
-                OnSpawn();
-
-            var patternMatch = BuyPattern.Match(text.ToLower());
-
-            if (patternMatch.Success && speaker is User u)
-            {
-                var items = Game.World.WorldData.FindItem(patternMatch.Groups["target"].Value);
-                // Is the thing a category or an actual item?
-                if (items.Count != 0)
-                {
-                    // Support both "buy 3 of my <item> and buy all of my <item>
-                    if (patternMatch.Groups["amt"].Value.ToLower() == "all")
+                    if (removed > 0)
                     {
+                        Say($"Certainly. I will buy {removed} of those for {coins} gold, {u.Name}.");
+                        u.Gold += coins;
+                        u.UpdateAttributes(StatUpdateFlags.Experience);
+                    }
+                    else
+                        u.SendSystemMessage($"\"Sorry, {u.Name},\" {Name} says. \"You don't have those!\"");
+                }
+                else if (int.TryParse(patternMatch.Groups["amt"].Value, out var qty))
+                {
+                    if (u.Inventory.ContainsName(patternMatch.Groups["target"].Value, qty))
+                    {
+                        // Deal with annoying duplicate name / different gender edge cases
+                        var actuallyRemoved = new List<(byte Slot, int Quantity)>();
                         uint coins = 0;
-                        var removed = 0;
-                        foreach (var slot in u.Inventory.GetSlotsByName(patternMatch.Groups["target"].Value))
+                        foreach (var item in items)
                         {
-                            coins += (uint)(u.Inventory[slot].Value * u.Inventory[slot].Count);
-                            removed += u.Inventory[slot].Count;
-                            u.RemoveItem(slot);
+                            u.Inventory.TryRemoveQuantity(item.Id, out var removed, qty);
+                            actuallyRemoved.AddRange(removed);
+                            coins += (uint) (removed.Sum(x => x.Quantity) * item.Properties.Physical.Value);
                         }
 
-                        if (removed > 0)
+                        if (actuallyRemoved.Count > 0)
                         {
-                            Say($"Certainly. I will buy {removed} of those for {coins} gold, {u.Name}.");
+                            foreach (var (slot, _) in actuallyRemoved)
+                            {
+                                if (u.Inventory[slot] == null) 
+                                    u.SendClearItem(slot);
+                                else 
+                                    u.SendItemUpdate(u.Inventory[slot], slot);
+                            }
+                            Say($"Certainly. I will buy {actuallyRemoved.Sum(x => x.Quantity)} of those for {coins} gold, {u.Name}.");
                             u.Gold += coins;
                             u.UpdateAttributes(StatUpdateFlags.Experience);
                         }
                         else
                             u.SendSystemMessage($"\"Sorry, {u.Name},\" {Name} says. \"You don't have those!\"");
                     }
-                    else if (int.TryParse(patternMatch.Groups["amt"].Value, out var qty))
-                    {
-                        if (u.Inventory.ContainsName(patternMatch.Groups["target"].Value, qty))
-                        {
-                            // Deal with annoying duplicate name / different gender edge cases
-                            var actuallyRemoved = new List<(byte Slot, int Quantity)>();
-                            uint coins = 0;
-                            foreach (var item in items)
-                            {
-                                u.Inventory.TryRemoveQuantity(item.Id, out var removed, qty);
-                                actuallyRemoved.AddRange(removed);
-                                coins += (uint) (removed.Sum(x => x.Quantity) * item.Properties.Physical.Value);
-                            }
-
-                            if (actuallyRemoved.Count > 0)
-                            {
-                                foreach (var (slot, _) in actuallyRemoved)
-                                {
-                                    if (u.Inventory[slot] == null) 
-                                        u.SendClearItem(slot);
-                                    else 
-                                        u.SendItemUpdate(u.Inventory[slot], slot);
-                                }
-                                Say($"Certainly. I will buy {actuallyRemoved.Sum(x => x.Quantity)} of those for {coins} gold, {u.Name}.");
-                                u.Gold += coins;
-                                u.UpdateAttributes(StatUpdateFlags.Experience);
-                            }
-                            else
-                                u.SendSystemMessage($"\"Sorry, {u.Name},\" {Name} says. \"You don't have those!\"");
-                        }
-                        else
-                            u.SendSystemMessage($"\"Sorry, {u.Name},\" {Name} says. \"You don't have those!\"");
-                    }
+                    else
+                        u.SendSystemMessage($"\"Sorry, {u.Name},\" {Name} says. \"You don't have those!\"");
                 }
-                else if (Game.World.WorldData.ItemByCategory.ContainsKey(patternMatch.Groups["target"].Value))
+            }
+            else if (Game.World.WorldData.ItemByCategory.ContainsKey(patternMatch.Groups["target"].Value))
+            {
+                uint coins = 0;
+                // Only support "buy all my <category>"
+                foreach (var slot in u.Inventory.GetSlotsByCategory(patternMatch.Groups["target"].Value))
                 {
-                    uint coins = 0;
-                    // Only support "buy all my <category>"
-                    foreach (var slot in u.Inventory.GetSlotsByCategory(patternMatch.Groups["target"].Value))
-                    {
-                        coins += (uint) (u.Inventory[slot].Value * u.Inventory[slot].Count);
-                        u.RemoveItem(slot);
-                    }
-                    Say($"Certainly...that will be {coins} gold, {u.Name}.");
-                    u.Gold += coins;
-                    u.UpdateAttributes(StatUpdateFlags.Experience);
+                    coins += (uint) (u.Inventory[slot].Value * u.Inventory[slot].Count);
+                    u.RemoveItem(slot);
                 }
-                else 
-                    u.SendSystemMessage($"{Name} shrugs. \"Sorry, I don't know what you mean.\"");
-                // Don't also pass buy strings to scripting
-                return;
+                Say($"Certainly...that will be {coins} gold, {u.Name}.");
+                u.Gold += coins;
+                u.UpdateAttributes(StatUpdateFlags.Experience);
             }
-
-            if (Script == null) return;
-            Script.SetGlobalValue("text", text);
-            Script.SetGlobalValue("shout", shout);
-
-            if (speaker is User user)
-                Script.ExecuteFunction("OnHear", new HybrasylUser(user));
-            else
-                Script.ExecuteFunction("OnHear", new HybrasylWorldObject(speaker));
+            else 
+                u.SendSystemMessage($"{Name} shrugs. \"Sorry, I don't know what you mean.\"");
+            // Don't also pass buy strings to scripting
+            return;
         }
 
-        public override void OnClick(User invoker)
+        if (Script == null) return;
+        Script.SetGlobalValue("text", text);
+        Script.SetGlobalValue("shout", shout);
+
+        if (speaker is User user)
+            Script.ExecuteFunction("OnHear", new HybrasylUser(user));
+        else
+            Script.ExecuteFunction("OnHear", new HybrasylWorldObject(speaker));
+    }
+
+    public override void OnClick(User invoker)
+    {
+        if (!Ready)
+            OnSpawn();
+
+        if (Script != null && Script.HasFunction("OnClick"))
+            Script.ExecuteFunction("OnClick", new HybrasylUser(invoker));
+        else
+            DisplayPursuits(invoker);
+    }
+
+    public override void AoiEntry(VisibleObject obj)
+    {
+        base.AoiEntry(obj);
+        if (Script != null)
         {
-            if (!Ready)
-                OnSpawn();
-
-            if (Script != null && Script.HasFunction("OnClick"))
-               Script.ExecuteFunction("OnClick", new HybrasylUser(invoker));
-            else
-               DisplayPursuits(invoker);
-        }
-
-        public override void AoiEntry(VisibleObject obj)
-        {
-            base.AoiEntry(obj);
-            if (Script != null)
-            {
-                Script.ExecuteFunction("OnEntry", new HybrasylWorldObject(obj));
-            }
-        }
-
-        public override void AoiDeparture(VisibleObject obj)
-        {
-            base.AoiDeparture(obj);
-            if (Script != null)
-            {
-                Script.ExecuteFunction("OnLeave", new HybrasylWorldObject(obj));
-            }
-        }
-
-        public override void ShowTo(VisibleObject obj)
-        {
-            if (obj is User)
-            {
-                var user = obj as User;
-                var npcPacket = new ServerPacket(0x07);
-                npcPacket.WriteUInt16(0x01); // Number of mobs in this packet
-                npcPacket.WriteUInt16(X);
-                npcPacket.WriteUInt16(Y);
-                npcPacket.WriteUInt32(Id);
-                npcPacket.WriteUInt16((ushort)(Sprite + 0x4000));
-                npcPacket.WriteByte(0);
-                npcPacket.WriteByte(0);
-                npcPacket.WriteByte(0);
-                npcPacket.WriteByte(0);
-                npcPacket.WriteByte((byte)Direction);
-                npcPacket.WriteByte(0);
-
-                npcPacket.WriteByte(2); // Dot color. 0 = monster, 1 = nonsolid monster, 2=NPC
-                npcPacket.WriteString8(Name);
-                user.Enqueue(npcPacket);
-            }
+            Script.ExecuteFunction("OnEntry", new HybrasylWorldObject(obj));
         }
     }
 
-    [Flags]
-    public enum MerchantJob
+    public override void AoiDeparture(VisibleObject obj)
     {
-        Vend = 0x01,
-        Bank = 0x02,
-        Skills = 0x04,
-        Spells = 0x08,
-        Repair = 0x10,
-        Post = 0x20
+        base.AoiDeparture(obj);
+        if (Script != null)
+        {
+            Script.ExecuteFunction("OnLeave", new HybrasylWorldObject(obj));
+        }
     }
 
-    public enum MerchantMenuItem : ushort
+    public override void ShowTo(VisibleObject obj)
     {
-        MainMenu = 0xFF00,
+        if (obj is User)
+        {
+            var user = obj as User;
+            var npcPacket = new ServerPacket(0x07);
+            npcPacket.WriteUInt16(0x01); // Number of mobs in this packet
+            npcPacket.WriteUInt16(X);
+            npcPacket.WriteUInt16(Y);
+            npcPacket.WriteUInt32(Id);
+            npcPacket.WriteUInt16((ushort)(Sprite + 0x4000));
+            npcPacket.WriteByte(0);
+            npcPacket.WriteByte(0);
+            npcPacket.WriteByte(0);
+            npcPacket.WriteByte(0);
+            npcPacket.WriteByte((byte)Direction);
+            npcPacket.WriteByte(0);
 
-        BuyItemMenu = 0xFF01,
-        SellItemMenu = 0xFF02,
+            npcPacket.WriteByte(2); // Dot color. 0 = monster, 1 = nonsolid monster, 2=NPC
+            npcPacket.WriteString8(Name);
+            user.Enqueue(npcPacket);
+        }
+    }
+}
 
-        WithdrawItemMenu = 0xFF03,
-        WithdrawGoldMenu = 0xFF04,
-        DepositItemMenu = 0xFF05,
-        DepositGoldMenu = 0xFF06,
+[Flags]
+public enum MerchantJob
+{
+    Vend = 0x01,
+    Bank = 0x02,
+    Skills = 0x04,
+    Spells = 0x08,
+    Repair = 0x10,
+    Post = 0x20
+}
 
-        LearnSkillMenu = 0xFF07,
-        LearnSpellMenu = 0xFF08,
-        ForgetSkillMenu = 0xFF09,
-        ForgetSpellMenu = 0xFF0A,
+public enum MerchantMenuItem : ushort
+{
+    MainMenu = 0xFF00,
 
-        RepairItemMenu = 0xFF0B,
-        RepairAllItems = 0xFF0C,
+    BuyItemMenu = 0xFF01,
+    SellItemMenu = 0xFF02,
 
-        SendParcelMenu = 0xFF0D,
-        SendLetterMenu = 0xFF0E,
-        ReceiveParcel = 0xFF0F,
+    WithdrawItemMenu = 0xFF03,
+    WithdrawGoldMenu = 0xFF04,
+    DepositItemMenu = 0xFF05,
+    DepositGoldMenu = 0xFF06,
 
-        BuyItem = 0xFF10,
-        BuyItemQuantity = 0xFF11,
-        BuyItemAccept = 0xFF12,
-        SellItem = 0xFF13,
-        SellItemQuantity = 0xFF14,
-        SellItemConfirm = 0xFF15,
-        SellItemAccept = 0xFF16,
+    LearnSkillMenu = 0xFF07,
+    LearnSpellMenu = 0xFF08,
+    ForgetSkillMenu = 0xFF09,
+    ForgetSpellMenu = 0xFF0A,
 
-        WithdrawItem = 0xFF20,
-        WithdrawItemQuantity = 0xFF21,
-        DepositItem = 0xFF22,
-        DepositItemQuantity = 0xFF23,
-        WithdrawGoldQuantity = 0xFF24,
-        DepositGoldQuantity = 0xFF25,
+    RepairItemMenu = 0xFF0B,
+    RepairAllItems = 0xFF0C,
 
-        LearnSkill = 0xFF30,
-        LearnSkillAccept = 0xFF31,
-        LearnSpell = 0xFF32,
-        LearnSpellAccept = 0xFF33,
-        ForgetSkill = 0xFF34,
-        ForgetSkillAccept = 0xFF35,
-        ForgetSpell = 0xFF36,
-        ForgetSpellAccept = 0xFF37,
-        LearnSkillAgree = 0xFF38,
-        LearnSkillDisagree = 0xFF39,
-        LearnSpellAgree = 0xFF3A,
-        LearnSpellDisagree = 0xFF3B,
+    SendParcelMenu = 0xFF0D,
+    SendLetterMenu = 0xFF0E,
+    ReceiveParcel = 0xFF0F,
+
+    BuyItem = 0xFF10,
+    BuyItemQuantity = 0xFF11,
+    BuyItemAccept = 0xFF12,
+    SellItem = 0xFF13,
+    SellItemQuantity = 0xFF14,
+    SellItemConfirm = 0xFF15,
+    SellItemAccept = 0xFF16,
+
+    WithdrawItem = 0xFF20,
+    WithdrawItemQuantity = 0xFF21,
+    DepositItem = 0xFF22,
+    DepositItemQuantity = 0xFF23,
+    WithdrawGoldQuantity = 0xFF24,
+    DepositGoldQuantity = 0xFF25,
+
+    LearnSkill = 0xFF30,
+    LearnSkillAccept = 0xFF31,
+    LearnSpell = 0xFF32,
+    LearnSpellAccept = 0xFF33,
+    ForgetSkill = 0xFF34,
+    ForgetSkillAccept = 0xFF35,
+    ForgetSpell = 0xFF36,
+    ForgetSpellAccept = 0xFF37,
+    LearnSkillAgree = 0xFF38,
+    LearnSkillDisagree = 0xFF39,
+    LearnSpellAgree = 0xFF3A,
+    LearnSpellDisagree = 0xFF3B,
 
 
-        RepairItem = 0xFF40,
-        RepairItemAccept = 0xFF41,
-        RepairAllItemsAccept = 0xFF43,
+    RepairItem = 0xFF40,
+    RepairItemAccept = 0xFF41,
+    RepairAllItemsAccept = 0xFF43,
 
-        SendParcel = 0xFF50,
-        SendParcelRecipient = 0xFF51,
-        SendParcelAccept = 0xFF52,
-        SendParcelSuccess = 0xFF53,
-        SendParcelFailure = 0xFF54,
-        SendParcelQuantity = 0xFF55,
+    SendParcel = 0xFF50,
+    SendParcelRecipient = 0xFF51,
+    SendParcelAccept = 0xFF52,
+    SendParcelSuccess = 0xFF53,
+    SendParcelFailure = 0xFF54,
+    SendParcelQuantity = 0xFF55,
         
         
 
-    }
+}
 
-    public enum MerchantDialogType : byte
+public enum MerchantDialogType : byte
+{
+    Options = 0,
+    OptionsWithArgument = 1,
+    Input = 2,
+    InputWithArgument = 3,
+    MerchantShopItems = 4,
+    UserInventoryItems = 5,
+    MerchantSpells = 6,
+    MerchantSkills = 7,
+    UserSpellBook = 8,
+    UserSkillBook = 9
+}
+
+public enum MerchantDialogObjectType : byte
+{
+    Merchant = 1
+}
+
+public struct MerchantOptions
+{
+    public byte OptionsCount => Convert.ToByte(Options.Count);
+    public List<MerchantDialogOption> Options;
+}
+
+public struct MerchantOptionsWithArgument
+{
+    public byte ArgumentLength => Convert.ToByte(Argument.Length);
+    public string Argument;
+    public byte OptionsCount => Convert.ToByte(Options.Count);
+    public List<MerchantDialogOption> Options;
+}
+
+public struct MerchantDialogOption
+{
+    public byte Length => Convert.ToByte(Text.Length);
+    public string Text;
+    public ushort Id;
+}
+
+public struct MerchantInput
+{
+    public ushort Id;
+}
+
+public struct MerchantInputWithArgument
+{
+    public byte ArgumentLength => Convert.ToByte(Argument.Length);
+    public string Argument;
+    public ushort Id;
+}
+
+public struct MerchantShopItems
+{
+    public ushort Id;
+    public ushort ItemsCount => Convert.ToUInt16(Items.Count);
+    public List<MerchantShopItem> Items;
+}
+
+public struct MerchantShopItem
+{
+    public ushort Tile;
+    public byte Color;
+    public uint Price;
+    public byte NameLength => Convert.ToByte(Name.Length);
+    public string Name;
+    public byte DescriptionLength => Convert.ToByte(Description.Length);
+    public string Description;
+}
+
+public struct UserInventoryItems
+{
+    public ushort Id;
+    public byte InventorySlotsCount => Convert.ToByte(InventorySlots.Count);
+    public List<byte> InventorySlots;
+}
+
+public struct UserSkillBook
+{
+    public ushort Id;
+}
+
+public struct UserSpellBook
+{
+    public ushort Id;
+}
+
+public struct MerchantSpells
+{
+    public ushort Id;
+    public ushort SpellsCount => Convert.ToUInt16(Spells.Count());
+    public byte IconType;
+    public List<MerchantSpell> Spells;
+}
+
+public struct MerchantSpell
+{
+    public byte IconType;
+    public byte Icon;
+    public byte Color;
+    public byte NameLength => Convert.ToByte(Name.Length);
+    public string Name;
+}
+
+public struct MerchantSkills
+{
+    public ushort Id;
+    public ushort SkillsCount => Convert.ToUInt16(Skills.Count());
+    public byte IconType;
+    public List<MerchantSkill> Skills;
+}
+
+public struct MerchantSkill
+{
+    public byte IconType;
+    public byte Icon;
+    public byte Color;
+    public byte NameLength => Convert.ToByte(Name.Length);
+    public string Name;
+}
+
+
+
+
+public delegate void MerchantMenuHandlerDelegate(User user, Merchant merchant, ClientPacket packet);
+
+public class MerchantMenuHandler
+{
+    public MerchantJob RequiredJob { get; set; }
+    public MerchantMenuHandlerDelegate Callback { get; set; }
+    public MerchantMenuHandler(MerchantJob requiredJob, MerchantMenuHandlerDelegate callback)
     {
-        Options = 0,
-        OptionsWithArgument = 1,
-        Input = 2,
-        InputWithArgument = 3,
-        MerchantShopItems = 4,
-        UserInventoryItems = 5,
-        MerchantSpells = 6,
-        MerchantSkills = 7,
-        UserSpellBook = 8,
-        UserSkillBook = 9
-    }
-
-    public enum MerchantDialogObjectType : byte
-    {
-        Merchant = 1
-    }
-
-    public struct MerchantOptions
-    {
-        public byte OptionsCount => Convert.ToByte(Options.Count);
-        public List<MerchantDialogOption> Options;
-    }
-
-    public struct MerchantOptionsWithArgument
-    {
-        public byte ArgumentLength => Convert.ToByte(Argument.Length);
-        public string Argument;
-        public byte OptionsCount => Convert.ToByte(Options.Count);
-        public List<MerchantDialogOption> Options;
-    }
-
-    public struct MerchantDialogOption
-    {
-        public byte Length => Convert.ToByte(Text.Length);
-        public string Text;
-        public ushort Id;
-    }
-
-    public struct MerchantInput
-    {
-        public ushort Id;
-    }
-
-    public struct MerchantInputWithArgument
-    {
-        public byte ArgumentLength => Convert.ToByte(Argument.Length);
-        public string Argument;
-        public ushort Id;
-    }
-
-    public struct MerchantShopItems
-    {
-        public ushort Id;
-        public ushort ItemsCount => Convert.ToUInt16(Items.Count);
-        public List<MerchantShopItem> Items;
-    }
-
-    public struct MerchantShopItem
-    {
-        public ushort Tile;
-        public byte Color;
-        public uint Price;
-        public byte NameLength => Convert.ToByte(Name.Length);
-        public string Name;
-        public byte DescriptionLength => Convert.ToByte(Description.Length);
-        public string Description;
-    }
-
-    public struct UserInventoryItems
-    {
-        public ushort Id;
-        public byte InventorySlotsCount => Convert.ToByte(InventorySlots.Count);
-        public List<byte> InventorySlots;
-    }
-
-    public struct UserSkillBook
-    {
-        public ushort Id;
-    }
-
-    public struct UserSpellBook
-    {
-        public ushort Id;
-    }
-
-    public struct MerchantSpells
-    {
-        public ushort Id;
-        public ushort SpellsCount => Convert.ToUInt16(Spells.Count());
-        public byte IconType;
-        public List<MerchantSpell> Spells;
-    }
-
-    public struct MerchantSpell
-    {
-        public byte IconType;
-        public byte Icon;
-        public byte Color;
-        public byte NameLength => Convert.ToByte(Name.Length);
-        public string Name;
-    }
-
-    public struct MerchantSkills
-    {
-        public ushort Id;
-        public ushort SkillsCount => Convert.ToUInt16(Skills.Count());
-        public byte IconType;
-        public List<MerchantSkill> Skills;
-    }
-
-    public struct MerchantSkill
-    {
-        public byte IconType;
-        public byte Icon;
-        public byte Color;
-        public byte NameLength => Convert.ToByte(Name.Length);
-        public string Name;
-    }
-
-
-
-
-    public delegate void MerchantMenuHandlerDelegate(User user, Merchant merchant, ClientPacket packet);
-
-    public class MerchantMenuHandler
-    {
-        public MerchantJob RequiredJob { get; set; }
-        public MerchantMenuHandlerDelegate Callback { get; set; }
-        public MerchantMenuHandler(MerchantJob requiredJob, MerchantMenuHandlerDelegate callback)
-        {
-            RequiredJob = requiredJob;
-            Callback = callback;
-        }
+        RequiredJob = requiredJob;
+        Callback = callback;
     }
 }

@@ -20,64 +20,61 @@
  */
 
 using Hybrasyl.Objects;
-using Hybrasyl.Xml;
 using MoonSharp.Interpreter;
 
-namespace Hybrasyl.Scripting
+namespace Hybrasyl.Scripting;
+
+[MoonSharpUserData]
+public class HybrasylSpawn
 {
-    [MoonSharpUserData]
-    public class HybrasylSpawn
+    internal Xml.Spawn Spawn;
+
+    // Expose fields that can be used by scripting
+
+    public uint Exp
     {
-        internal Xml.Spawn Spawn;
+        get => Spawn.Loot.Xp;
+        set
+        {
+            Spawn.Loot.Xp = value;
+        }
+    }
+    public uint Gold
+    {
+        get => Spawn.Loot.Gold.Max;
+        set
+        {
+            Spawn.Loot.Gold.Min = value;
+            Spawn.Loot.Gold.Max = value;
+        }
+    }
+    // Loot tweaking. 
+    public int LootTableRolls
+    {
+        get => Spawn.Loot.Table[0].Rolls;
+        set => Spawn.Loot.Table[0].Rolls = value;
+    }
+    public double LootTableChance
+    {
+        get => Spawn.Loot.Table[0].Chance;
+        set => Spawn.Loot.Table[0].Chance = value;
+    }
 
-        // Expose fields that can be used by scripting
-
-        public uint Exp
+    public void AddLootItem(string item, int max = 0)
+    {
+        if (Game.World.WorldData.TryGetValue<ItemObject>(item, out _))
         {
-            get => Spawn.Loot.Xp;
-            set
+            if (Spawn.Loot.Table.Count >= 1)
             {
-                Spawn.Loot.Xp = value;
-            }
-        }
-        public uint Gold
-        {
-            get => Spawn.Loot.Gold.Max;
-            set
-            {
-                Spawn.Loot.Gold.Min = value;
-                Spawn.Loot.Gold.Max = value;
-            }
-        }
-        // Loot tweaking. 
-        public int LootTableRolls
-        {
-            get => Spawn.Loot.Table[0].Rolls;
-            set => Spawn.Loot.Table[0].Rolls = value;
-        }
-        public double LootTableChance
-        {
-            get => Spawn.Loot.Table[0].Chance;
-            set => Spawn.Loot.Table[0].Chance = value;
-        }
-
-        public void AddLootItem(string item, int max = 0)
-        {
-            if (Game.World.WorldData.TryGetValue<ItemObject>(item, out _))
-            {
-                if (Spawn.Loot.Table.Count >= 1)
-                {
-                    // We only support editing the first loot table via scripting. If you don't like that,
-                    // please feel free to implement the functionality on your own and make a PR.
-                    var lootItem = new Xml.LootItem();
-                    lootItem.Value = item;
-                    lootItem.Max = max;
-                    var itemList = new Xml.LootTableItemList();
-                    itemList.Item.Add(lootItem);
-                    Spawn.Loot.Table[0].Items.Add(itemList);
-                }
+                // We only support editing the first loot table via scripting. If you don't like that,
+                // please feel free to implement the functionality on your own and make a PR.
+                var lootItem = new Xml.LootItem();
+                lootItem.Value = item;
+                lootItem.Max = max;
+                var itemList = new Xml.LootTableItemList();
+                itemList.Item.Add(lootItem);
+                Spawn.Loot.Table[0].Items.Add(itemList);
             }
         }
     }
 }
-

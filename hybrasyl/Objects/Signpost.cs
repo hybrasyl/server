@@ -21,38 +21,36 @@
 
 using Hybrasyl.Messaging;
 
-namespace Hybrasyl.Objects
+namespace Hybrasyl.Objects;
+
+public class Signpost : VisibleObject
 {
-    public class Signpost : VisibleObject
+    public string Message { get; set; }
+    public bool IsMessageboard { get; set; }
+    public string BoardKey { get; set; }
+    public Board Board { get; private set; }
+
+    public Signpost(byte postX, byte postY, string message, bool messageboard = false,
+        string boardkey = null)
+        : base()
     {
-        public string Message { get; set; }
-        public bool IsMessageboard { get; set; }
-        public string BoardKey { get; set; }
-        public Board Board { get; private set; }
-
-        public Signpost(byte postX, byte postY, string message, bool messageboard = false,
-            string boardkey = null)
-            : base()
-        {
-            X = postX;
-            Y = postY;
-            Message = message;
-            IsMessageboard = messageboard;
-            BoardKey = boardkey;
-            Board = null;
-            if (IsMessageboard && !string.IsNullOrEmpty(boardkey))
-                Board = Game.World.WorldData.GetBoard(BoardKey);
-        }
-
-        public override void OnClick(User invoker)
-        {
-            GameLog.DebugFormat("Signpost was clicked");
-            if (!IsMessageboard)
-                invoker.SendMessage(Message, Message.Length < 1024 ? (byte)MessageTypes.SLATE : (byte)MessageTypes.SLATE_WITH_SCROLLBAR);
-            else
-                invoker.Enqueue(MessagingController.GetMessageList(invoker.GuidReference, (ushort)Board.Id, 0, true).Packet());
-
-        }
+        X = postX;
+        Y = postY;
+        Message = message;
+        IsMessageboard = messageboard;
+        BoardKey = boardkey;
+        Board = null;
+        if (IsMessageboard && !string.IsNullOrEmpty(boardkey))
+            Board = Game.World.WorldData.GetBoard(BoardKey);
     }
 
+    public override void OnClick(User invoker)
+    {
+        GameLog.DebugFormat("Signpost was clicked");
+        if (!IsMessageboard)
+            invoker.SendMessage(Message, Message.Length < 1024 ? (byte)MessageTypes.SLATE : (byte)MessageTypes.SLATE_WITH_SCROLLBAR);
+        else
+            invoker.Enqueue(MessagingController.GetMessageList(invoker.GuidReference, (ushort)Board.Id, 0, true).Packet());
+
+    }
 }

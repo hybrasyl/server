@@ -3,58 +3,56 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
-using System.Text;
 
-namespace Hybrasyl.Xml
+namespace Hybrasyl.Xml;
+
+public class XmlLoadResponse<T>
 {
-    public class XmlLoadResponse<T>
+    public List<T> Results { get; set; } = new List<T>();
+    public Dictionary<string, string> Errors { get; set; } = new Dictionary<string, string>();
+}
+
+public interface IHybrasylLoadable<T>
+{
+    public static string DataDirectory { get; }
+    public static XmlLoadResponse<T> LoadAll(string baseDir) => throw new NotImplementedException();
+}
+
+[Serializable]
+public abstract class HybrasylLoadable
+{
+    public T Clone<T>()
     {
-        public List<T> Results { get; set; } = new List<T>();
-        public Dictionary<string, string> Errors { get; set; } = new Dictionary<string, string>();
+        MemoryStream ms = new MemoryStream();
+        BinaryFormatter bf = new BinaryFormatter();
+        bf.Serialize(ms, this);
+        ms.Position = 0;
+        object obj = bf.Deserialize(ms);
+        ms.Close();
+        return (T)obj;
     }
 
-    public interface IHybrasylLoadable<T>
+    public static List<string> GetXmlFiles(string Path)
     {
-        public static string DataDirectory { get; }
-        public static XmlLoadResponse<T> LoadAll(string baseDir) => throw new NotImplementedException();
-    }
-
-    [Serializable]
-    public abstract class HybrasylLoadable
-    {
-        public T Clone<T>()
+        var ret = new List<string>();
+        try
         {
-            MemoryStream ms = new MemoryStream();
-            BinaryFormatter bf = new BinaryFormatter();
-            bf.Serialize(ms, this);
-            ms.Position = 0;
-            object obj = bf.Deserialize(ms);
-            ms.Close();
-            return (T)obj;
-        }
-
-        public static List<string> GetXmlFiles(string Path)
-        {
-            var ret = new List<string>();
-            try
+            if (Directory.Exists(Path))
             {
-                if (Directory.Exists(Path))
-                {
-                    var wef = new List<string>();
+                var wef = new List<string>();
 
-                    foreach (var asdf in Directory.GetFiles(Path, "*.xml", SearchOption.AllDirectories))
-                        wef.Add(asdf.Replace(Path, ""));
+                foreach (var asdf in Directory.GetFiles(Path, "*.xml", SearchOption.AllDirectories))
+                    wef.Add(asdf.Replace(Path, ""));
 
-                    return Directory.GetFiles(Path, "*.xml", SearchOption.AllDirectories).
-                        Where(e => !e.Replace(Path, "").
+                return Directory.GetFiles(Path, "*.xml", SearchOption.AllDirectories).
+                    Where(e => !e.Replace(Path, "").
                         StartsWith("\\_")).ToList();
-                }
             }
-            catch (Exception)
-            {
-                return null;
-            }
-            return ret;
         }
+        catch (Exception)
+        {
+            return null;
+        }
+        return ret;
     }
 }

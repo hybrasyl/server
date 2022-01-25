@@ -22,301 +22,312 @@
 using Hybrasyl.Enums;
 using Newtonsoft.Json;
 
-namespace Hybrasyl.Objects
+namespace Hybrasyl.Objects;
+
+[JsonObject(MemberSerialization.OptIn)]
+public class ConditionInfo
 {
-    [JsonObject(MemberSerialization.OptIn)]
-    public class ConditionInfo
+    public Creature Creature { get; set; }
+    public User User => Creature as User;
+
+    [JsonProperty]
+    public Xml.CreatureCondition Conditions { get; set; }
+
+    [JsonProperty]
+    public PlayerFlags Flags { get; set; }
+
+    public ConditionInfo(Creature owner, Xml.CreatureCondition condition = 0, PlayerFlags flags=PlayerFlags.Alive)
     {
-        public Creature Creature { get; set; }
-        public User User => Creature as User;
+        Creature = owner;
+        Conditions = condition;
+        Flags = flags;
+    }
 
-        [JsonProperty]
-        public Xml.CreatureCondition Conditions { get; set; }
-
-        [JsonProperty]
-        public PlayerFlags Flags { get; set; }
-
-        public ConditionInfo(Creature owner, Xml.CreatureCondition condition = 0, PlayerFlags flags=PlayerFlags.Alive)
+    public bool CastingAllowed
+    {
+        get
         {
-            Creature = owner;
-            Conditions = condition;
-            Flags = flags;
+            var conditionCheck = Asleep || Frozen || Comatose;
+
+            if (User != null)
+                conditionCheck = conditionCheck || Flags.HasFlag(PlayerFlags.ProhibitCast);
+            return !conditionCheck;
         }
+    }
 
-        public bool CastingAllowed
+    public bool MovementAllowed
+    {
+        get
         {
-            get
-            {
-                var conditionCheck = Asleep || Frozen || Comatose;
-
-                if (User != null)
-                    conditionCheck = conditionCheck || Flags.HasFlag(PlayerFlags.ProhibitCast);
-                return !conditionCheck;
-            }
+            var conditionCheck = Asleep || Frozen || Paralyzed || Comatose;
+            return !conditionCheck;
         }
+    }
 
-        public bool MovementAllowed
+    public bool IsAttackable
+    {
+        get
         {
-            get
-            {
-                var conditionCheck = Asleep || Frozen || Paralyzed || Comatose;
-                return !conditionCheck;
-            }
-        }
-
-        public bool IsAttackable
-        {
-            get
-            {
-                if (User != null)
-                    return PvpEnabled;
-                else
+            if (User != null)
+                return PvpEnabled;
+            else
                 // TODO: expand / refactor? We may want non-merchant mobs that can't be attacked?
-                    if (Creature is Merchant) return false;
-                return true;
-            }
+            if (Creature is Merchant) return false;
+            return true;
         }
+    }
 
-        public bool Alive
+    public bool Alive
+    {
+        get => Flags.HasFlag(PlayerFlags.Alive);
+        set
         {
-            get => Flags.HasFlag(PlayerFlags.Alive);
-            set
+            if (value == false)
+                Flags &= ~PlayerFlags.Alive;
+            else
+                Flags |= PlayerFlags.Alive;
+            User?.UpdateAttributes(StatUpdateFlags.Secondary);
+        }
+    }
+
+    public bool Frozen
+    {
+        get => Conditions.HasFlag(Xml.CreatureCondition.Freeze);
+        set
+        {
+            if (value == false)
+                Conditions &= ~Xml.CreatureCondition.Freeze;
+            else
+                Conditions |= Xml.CreatureCondition.Freeze;
+        }
+    }
+
+    public bool Asleep
+    {
+        get => Conditions.HasFlag(Xml.CreatureCondition.Sleep);
+        set
+        {
+            if (value == false)
+                Conditions &= ~Xml.CreatureCondition.Sleep;
+            else
+                Conditions |= Xml.CreatureCondition.Freeze;
+        }
+    }
+
+    public bool Paralyzed
+    {
+        get => Conditions.HasFlag(Xml.CreatureCondition.Paralyze);
+        set
+        {
+            if (value == false)
+                Conditions &= ~Xml.CreatureCondition.Paralyze;
+            else
+                Conditions |= Xml.CreatureCondition.Paralyze;
+            User?.UpdateAttributes(StatUpdateFlags.Secondary);
+        }
+    }
+
+    public bool Blinded
+    {
+        get => Conditions.HasFlag(Xml.CreatureCondition.Blind);
+        set
+        {
+            if (value == false)
+                Conditions &= ~Xml.CreatureCondition.Blind;
+            else
+                Conditions |= Xml.CreatureCondition.Blind;
+            User?.UpdateAttributes(StatUpdateFlags.Secondary);
+        }
+    }
+
+    public bool PvpEnabled
+    {
+        get => Flags.HasFlag(PlayerFlags.Pvp);
+        set
+        {
+            if (value == false)
+                Flags &= ~PlayerFlags.Pvp;
+            else
+                Flags |= PlayerFlags.Pvp;
+        }
+    }
+
+    public bool Casting
+    {
+        get => Flags.HasFlag(PlayerFlags.Casting);
+        set
+        {
+            if (value == false)
+                Flags &= ~PlayerFlags.Casting;
+            else
+                Flags |= PlayerFlags.Casting;
+        }
+    }
+
+    public bool Muted
+    {
+        get => Conditions.HasFlag(Xml.CreatureCondition.Mute);
+        set
+        {
+            if (value == false)
+                Conditions &= ~Xml.CreatureCondition.Mute;
+            else
+                Conditions |= Xml.CreatureCondition.Mute;
+        }
+    }
+
+    public bool SeeInvisible
+    {
+        get => Conditions.HasFlag(Xml.CreatureCondition.Sight);
+        set
+        {
+            if (value == false)
+                Conditions &= ~Xml.CreatureCondition.Sight;
+            else
+                Conditions |= Xml.CreatureCondition.Sight;
+        }
+    }
+
+    public bool IsInvisible
+    {
+        get => Conditions.HasFlag(Xml.CreatureCondition.Invisible);
+        set
+        {
+            if (value == false)
+                Conditions &= ~Xml.CreatureCondition.Invisible;
+            else
+                Conditions |= Xml.CreatureCondition.Invisible;
+        }
+    }
+
+    public bool IsInvulnerable
+    {
+        get => Conditions.HasFlag(Xml.CreatureCondition.Invulnerable);
+        set
+        {
+            if (value == false)
+                Conditions &= ~Xml.CreatureCondition.Invulnerable;
+            else
+                Conditions |= Xml.CreatureCondition.Invulnerable;
+        }
+    }
+
+    public bool Disoriented
+    {
+        get => Conditions.HasFlag(Xml.CreatureCondition.Disoriented);
+        set
+        {
+            if (value == false)
+                Conditions &= ~Xml.CreatureCondition.Invulnerable;
+            else
+                Conditions |= Xml.CreatureCondition.Invulnerable;
+        }
+    }
+
+    // The following apply to users only
+
+    public bool Comatose
+    {
+        get => User != null && Conditions.HasFlag(Xml.CreatureCondition.Coma);
+        set
+        {
+            if (User == null) return;
+            if (value == false)
             {
-                if (value == false)
-                    Flags &= ~PlayerFlags.Alive;
-                else
-                    Flags |= PlayerFlags.Alive;
-                User?.UpdateAttributes(StatUpdateFlags.Secondary);
+                Conditions &= ~Xml.CreatureCondition.Coma;
             }
+            else
+                Conditions |= Xml.CreatureCondition.Coma;
         }
+    }
 
-        public bool Frozen
+    public bool InExchange
+    {
+        get => User != null && Flags.HasFlag(PlayerFlags.InExchange);
+        set
         {
-            get => Conditions.HasFlag(Xml.CreatureCondition.Freeze);
-            set
-            {
-                if (value == false)
-                    Conditions &= ~Xml.CreatureCondition.Freeze;
-                else
-                    Conditions |= Xml.CreatureCondition.Freeze;
-            }
+            if (User == null) return;
+            if (value == false)
+                Flags &= ~PlayerFlags.InExchange;
+            else
+                Flags |= PlayerFlags.InExchange;
         }
+    }
 
-        public bool Asleep
+    public bool IsItemUseProhibited
+    {
+        get => User != null && Conditions.HasFlag(Xml.CreatureCondition.ProhibitItemUse);
+        set
         {
-            get => Conditions.HasFlag(Xml.CreatureCondition.Sleep);
-            set
-            {
-                if (value == false)
-                    Conditions &= ~Xml.CreatureCondition.Sleep;
-                else
-                    Conditions |= Xml.CreatureCondition.Freeze;
-            }
+            if (User == null) return;
+            if (value == false)
+                Conditions &= Xml.CreatureCondition.ProhibitItemUse;
+            else
+                Conditions |= Xml.CreatureCondition.ProhibitItemUse;
         }
+    }
 
-        public bool Paralyzed
+    public bool IsSayProhibited
+    {
+        get => User != null && Conditions.HasFlag(Xml.CreatureCondition.ProhibitSpeech);
+        set
         {
-            get => Conditions.HasFlag(Xml.CreatureCondition.Paralyze);
-            set
-            {
-                if (value == false)
-                    Conditions &= ~Xml.CreatureCondition.Paralyze;
-                else
-                    Conditions |= Xml.CreatureCondition.Paralyze;
-                User?.UpdateAttributes(StatUpdateFlags.Secondary);
-            }
+            if (User == null) return;
+            if (value == false)
+                Conditions &= Xml.CreatureCondition.ProhibitSpeech;
+            else
+                Conditions |= Xml.CreatureCondition.ProhibitSpeech;
         }
+    }
 
-        public bool Blinded
+    public bool IsShoutProhibited
+    {
+        get => User != null && Conditions.HasFlag(Xml.CreatureCondition.ProhibitEquipChange);
+        set
         {
-            get => Conditions.HasFlag(Xml.CreatureCondition.Blind);
-            set
-            {
-                if (value == false)
-                    Conditions &= ~Xml.CreatureCondition.Blind;
-                else
-                    Conditions |= Xml.CreatureCondition.Blind;
-                User?.UpdateAttributes(StatUpdateFlags.Secondary);
-            }
+            if (User == null) return;
+            if (value == false)
+                Conditions &= Xml.CreatureCondition.ProhibitShout;
+            else
+                Conditions |= Xml.CreatureCondition.ProhibitShout;
         }
+    }
 
-        public bool PvpEnabled
+    public bool IsWhisperProhibited
+    {
+        get => User != null && Conditions.HasFlag(Xml.CreatureCondition.ProhibitWhisper);
+        set
         {
-            get => Flags.HasFlag(PlayerFlags.Pvp);
-            set
-            {
-                if (value == false)
-                    Flags &= ~PlayerFlags.Pvp;
-                else
-                    Flags |= PlayerFlags.Pvp;
-            }
+            if (User == null) return;
+            if (value == false)
+                Conditions &= Xml.CreatureCondition.ProhibitWhisper;
+            else
+                Conditions |= Xml.CreatureCondition.ProhibitWhisper;
         }
+    }
 
-        public bool Casting
+    public bool IsEquipmentChangeProhibited
+    {
+        get => User != null && Conditions.HasFlag(Xml.CreatureCondition.ProhibitEquipChange);
+        set
         {
-            get => Flags.HasFlag(PlayerFlags.Casting);
-            set
-            {
-                if (value == false)
-                    Flags &= ~PlayerFlags.Casting;
-                else
-                    Flags |= PlayerFlags.Casting;
-            }
+            if (User == null) return;
+            if (value == false)
+                Conditions &= Xml.CreatureCondition.ProhibitEquipChange;
+            else
+                Conditions |= Xml.CreatureCondition.ProhibitEquipChange;
         }
+    }
 
-        public bool Muted
-        {
-            get => Conditions.HasFlag(Xml.CreatureCondition.Mute);
-            set
-            {
-                if (value == false)
-                    Conditions &= ~Xml.CreatureCondition.Mute;
-                else
-                    Conditions |= Xml.CreatureCondition.Mute;
-            }
-        }
+    public bool NoFlags => Flags == PlayerFlags.Alive;
 
-        public bool SeeInvisible
-        {
-            get => Conditions.HasFlag(Xml.CreatureCondition.Sight);
-            set
-            {
-                if (value == false)
-                    Conditions &= ~Xml.CreatureCondition.Sight;
-                else
-                    Conditions |= Xml.CreatureCondition.Sight;
-            }
-        }
+    public void ClearFlags()
+    {
+        Flags = PlayerFlags.Alive;
+    }
 
-        public bool IsInvisible
-        {
-            get => Conditions.HasFlag(Xml.CreatureCondition.Invisible);
-            set
-            {
-                if (value == false)
-                    Conditions &= ~Xml.CreatureCondition.Invisible;
-                else
-                    Conditions |= Xml.CreatureCondition.Invisible;
-            }
-        }
-
-        public bool IsInvulnerable
-        {
-            get => Conditions.HasFlag(Xml.CreatureCondition.Invulnerable);
-            set
-            {
-                if (value == false)
-                    Conditions &= ~Xml.CreatureCondition.Invulnerable;
-                else
-                    Conditions |= Xml.CreatureCondition.Invulnerable;
-            }
-        }
-
-        // The following apply to users only
-
-        public bool Comatose
-        {
-            get => User != null && Conditions.HasFlag(Xml.CreatureCondition.Coma);
-            set
-            {
-                if (User == null) return;
-                if (value == false)
-                {
-                    Conditions &= ~Xml.CreatureCondition.Coma;
-                }
-                else
-                    Conditions |= Xml.CreatureCondition.Coma;
-            }
-        }
-
-        public bool InExchange
-        {
-            get => User != null && Flags.HasFlag(PlayerFlags.InExchange);
-            set
-            {
-                if (User == null) return;
-                if (value == false)
-                    Flags &= ~PlayerFlags.InExchange;
-                else
-                    Flags |= PlayerFlags.InExchange;
-            }
-        }
-
-        public bool IsItemUseProhibited
-        {
-            get => User != null && Conditions.HasFlag(Xml.CreatureCondition.ProhibitItemUse);
-            set
-            {
-                if (User == null) return;
-                if (value == false)
-                    Conditions &= Xml.CreatureCondition.ProhibitItemUse;
-                else
-                    Conditions |= Xml.CreatureCondition.ProhibitItemUse;
-            }
-        }
-
-        public bool IsSayProhibited
-        {
-            get => User != null && Conditions.HasFlag(Xml.CreatureCondition.ProhibitSpeech);
-            set
-            {
-                if (User == null) return;
-                if (value == false)
-                    Conditions &= Xml.CreatureCondition.ProhibitSpeech;
-                else
-                    Conditions |= Xml.CreatureCondition.ProhibitSpeech;
-            }
-        }
-
-        public bool IsShoutProhibited
-        {
-            get => User != null && Conditions.HasFlag(Xml.CreatureCondition.ProhibitEquipChange);
-            set
-            {
-                if (User == null) return;
-                if (value == false)
-                    Conditions &= Xml.CreatureCondition.ProhibitShout;
-                else
-                    Conditions |= Xml.CreatureCondition.ProhibitShout;
-            }
-        }
-
-        public bool IsWhisperProhibited
-        {
-            get => User != null && Conditions.HasFlag(Xml.CreatureCondition.ProhibitWhisper);
-            set
-            {
-                if (User == null) return;
-                if (value == false)
-                    Conditions &= Xml.CreatureCondition.ProhibitWhisper;
-                else
-                    Conditions |= Xml.CreatureCondition.ProhibitWhisper;
-            }
-        }
-
-        public bool IsEquipmentChangeProhibited
-        {
-            get => User != null && Conditions.HasFlag(Xml.CreatureCondition.ProhibitEquipChange);
-            set
-            {
-                if (User == null) return;
-                if (value == false)
-                    Conditions &= Xml.CreatureCondition.ProhibitEquipChange;
-                else
-                    Conditions |= Xml.CreatureCondition.ProhibitEquipChange;
-            }
-        }
-
-        public bool NoFlags => Flags == PlayerFlags.Alive;
-
-        public void ClearFlags()
-        {
-            Flags = PlayerFlags.Alive;
-        }
-
-        public void ClearConditions()
-        {
-            Conditions = 0;
-        }
+    public void ClearConditions()
+    {
+        Conditions = 0;
     }
 }

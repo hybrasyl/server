@@ -1,40 +1,35 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿namespace Hybrasyl.Objects;
 
-namespace Hybrasyl.Objects
+// Simple container class for A* structure
+public class Tile
 {
-    // Simple container class for A* structure
-    public class Tile
+    public int X { get; set; }
+    public int Y { get; set; }
+    public int F { get; set; }
+    public int G { get; set; }
+    public int H { get; set; }
+    public Tile Parent { get; set; }
+
+    public (int X, int Y) Target { get; set; }
+
+    public bool IsAdjacent(int x1, int y1)
     {
-        public int X { get; set; }
-        public int Y { get; set; }
-        public int F { get; set; }
-        public int G { get; set; }
-        public int H { get; set; }
-        public Tile Parent { get; set; }
+        if (X == x1)
+            return (y1 + 1 == Y || y1 - 1 == Y);
+        if (Y == y1)
+            return (x1 + 1 == X || x1 - 1 == X);
+        return false;
+    }
 
-        public (int X, int Y) Target { get; set; }
-
-        public bool IsAdjacent(int x1, int y1)
+    public override string ToString()
+    {
+        string ret = string.Empty;
+        Tile start = this;
+        while (start.Parent != null)
         {
-            if (X == x1)
-                return (y1 + 1 == Y || y1 - 1 == Y);
-            if (Y == y1)
-                return (x1 + 1 == X || x1 - 1 == X);
-            return false;
+            ret += $"{start.X}, {start.Y} -> {start.Parent.X}, {start.Parent.Y}  ";
+            start = start.Parent;
         }
-
-        public override string ToString()
-        {
-            string ret = string.Empty;
-            Tile start = this;
-            while (start.Parent != null)
-            {
-                ret += $"{start.X}, {start.Y} -> {start.Parent.X}, {start.Parent.Y}  ";
-                start = start.Parent;
-            }
-            return ret;
-        }
+        return ret;
     }
 }
