@@ -91,6 +91,7 @@
     <xs:attribute name="Regen" type="xs:string" />
     <xs:attribute name="Mr" type="xs:string" />
     <xs:attribute name="Crit" type="xs:string"/>
+    <xs:attribute name="MagicCrit" type="xs:string"/>
     <xs:attribute name="OffensiveElement" type="hyb:ElementType" default="None"/>
     <xs:attribute name="DefensiveElement" type="hyb:ElementType" default="None"/>
     <xs:attribute name="InboundDamageModifier" type="xs:string"/>
@@ -102,6 +103,7 @@
     <xs:attribute name="ReflectPhysical" type="xs:string"/>
     <xs:attribute name="ExtraGold" type="xs:string"/>
     <xs:attribute name="Dodge" type="xs:string"/>
+    <xs:attribute name="MagicDodge" type="xs:string"/>
     <xs:attribute name="ExtraXp" type="xs:string"/>
     <xs:attribute name="ExtraItemFind" type="xs:string"/>
     <xs:attribute name="LifeSteal" type="xs:string"/>

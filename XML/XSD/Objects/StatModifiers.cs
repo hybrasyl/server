@@ -40,6 +40,7 @@ public partial class StatModifiers
     private string _regen;
     private string _mr;
     private string _crit;
+    private string _magicCrit;
     private ElementType _offensiveElement;
     private ElementType _defensiveElement;
     private string _inboundDamageModifier;
@@ -51,6 +52,7 @@ public partial class StatModifiers
     private string _reflectPhysical;
     private string _extraGold;
     private string _dodge;
+    private string _magicDodge;
     private string _extraXp;
     private string _extraItemFind;
     private string _lifeSteal;
@@ -234,6 +236,19 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
+    public string MagicCrit
+    {
+        get
+        {
+            return _magicCrit;
+        }
+        set
+        {
+            _magicCrit = value;
+        }
+    }
+    
+    [XmlAttribute]
     [DefaultValue(ElementType.None)]
     public ElementType OffensiveElement
     {
@@ -375,6 +390,19 @@ public partial class StatModifiers
         set
         {
             _dodge = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string MagicDodge
+    {
+        get
+        {
+            return _magicDodge;
+        }
+        set
+        {
+            _magicDodge = value;
         }
     }
     
