@@ -172,16 +172,22 @@ public class Monster : Creature, ICloneable
                 }
 
                 hitter.ShareExperience(LootableXP, Stats.Level);
+                if (hitter.Stats.ExtraXp > 0)
+                    hitter.GiveExperience((uint) (LootableXP * hitter.Stats.ExtraXp));
                 var itemDropTime = DateTime.Now;
 
                 if (LootableGold > 0)
                 {
-                    var golds = new Gold(LootableGold);
-                    golds.ItemDropType = ItemDropType.MonsterLootPile;
-                    golds.ItemDropAllowedLooters = ItemDropAllowedLooters;
-                    golds.ItemDropTime = itemDropTime;
-                    World.Insert(golds);
-                    Map.Insert(golds, X, Y);
+                    uint gold = 0;
+                    gold = hitter.Stats.ExtraGold > 0 ? (uint) (LootableGold + (LootableGold * hitter.Stats.ExtraGold)) : LootableGold;
+                    var goldObj= new Gold(gold)
+                    {
+                        ItemDropType = ItemDropType.MonsterLootPile,
+                        ItemDropAllowedLooters = ItemDropAllowedLooters,
+                        ItemDropTime = itemDropTime
+                    };
+                    World.Insert(goldObj);
+                    Map.Insert(goldObj, X, Y);
                 }
 
                 foreach (var itemname in LootableItems)

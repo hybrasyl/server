@@ -58,14 +58,13 @@ public partial class Item
     [XmlIgnore] 
     public byte MaxAbility => Properties.Restrictions?.Level?.Max ?? 255;
 
-
     [XmlIgnore]
     public ElementType Element
     {
         get
         {
-            var off = Properties.StatModifiers?.Element?.Offense ?? ElementType.None;
-            var def = Properties.StatModifiers?.Element?.Defense ?? ElementType.None;
+            var off = Properties.StatModifiers?.OffensiveElement ?? ElementType.None;
+            var def = Properties.StatModifiers?.DefensiveElement?? ElementType.None;
             return Properties.Equipment?.Slot == EquipmentSlot.Necklace ? off : def;
         }
     }
@@ -77,39 +76,9 @@ public partial class Item
     public Use Use => Properties.Use;
 
     [XmlIgnore]
-    public int BonusHP => Properties.StatModifiers?.Base?.Hp ?? 0;
-    [XmlIgnore]
-    public int BonusMP => Properties.StatModifiers?.Base?.Mp ?? 0;
-
-    [XmlIgnore]
     public Class Class => Properties.Restrictions?.Class ?? Class.Peasant;
     [XmlIgnore]
     public Gender Gender => Properties.Restrictions?.Gender ?? Gender.Neutral;
-
-    [XmlIgnore]
-    public int BonusHp => Properties.StatModifiers?.@Base?.Hp ?? 0;
-    [XmlIgnore]
-    public int BonusMp => Properties.StatModifiers?.@Base?.Mp ?? 0;
-    [XmlIgnore]
-    public sbyte BonusStr => Properties.StatModifiers?.@Base?.Str ?? 0;
-    [XmlIgnore]
-    public sbyte BonusInt => Properties.StatModifiers?.@Base?.@Int ?? 0;
-    [XmlIgnore]
-    public sbyte BonusWis => Properties.StatModifiers?.@Base?.Wis ?? 0;
-    [XmlIgnore]
-    public sbyte BonusCon => Properties.StatModifiers?.@Base?.Con ?? 0;
-    [XmlIgnore]
-    public sbyte BonusDex => Properties.StatModifiers?.@Base?.Dex ?? 0;
-    [XmlIgnore]
-    public sbyte BonusDmg => Properties.StatModifiers?.Combat?.Dmg ?? 0;
-    [XmlIgnore]
-    public sbyte BonusHit => Properties.StatModifiers?.Combat?.Hit ?? 0;
-    [XmlIgnore]
-    public sbyte BonusAc => Properties.StatModifiers?.Combat?.Ac ?? 0;
-    [XmlIgnore]
-    public sbyte BonusMr => Properties.StatModifiers?.Combat?.Mr ?? 0;
-    [XmlIgnore]
-    public sbyte BonusRegen => Properties.StatModifiers?.Combat?.Regen ?? 0;
 
     [XmlIgnore]
     public ushort MinLDamage => Properties.Damage?.Large.Min ?? 0;
@@ -123,8 +92,6 @@ public partial class Item
     [XmlIgnore]
     public Variant CurrentVariant { get; set; }
 
-    [XmlIgnore]
-    public sbyte Regen => Properties.StatModifiers?.Combat?.Regen ?? 0;
     #endregion
 
     [XmlIgnore]

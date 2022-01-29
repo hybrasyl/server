@@ -923,6 +923,36 @@ public class Creature : VisibleObject
         SendDamageUpdate(this);
     }
 
+    [FormulaVariable]
+    public ushort WeaponSmallDamage
+    {
+        get
+        {
+            if (Equipment.Weapon is null)
+                return 0;
+            var mindmg = (int) Equipment.Weapon.MinSDamage;
+            var maxdmg = (int) Equipment.Weapon.MaxSDamage;
+            if (mindmg == 0) mindmg = 1;
+            if (maxdmg == 0) maxdmg = 1;
+            return (ushort) Random.Shared.Next(mindmg, maxdmg + 1);
+        }
+    }
+
+    [FormulaVariable]
+    public ushort WeaponLargeDamage
+    {
+        get
+        {
+            if (Equipment.Weapon is null)
+                return 0;
+            var mindmg = (int)Equipment.Weapon.MinLDamage;
+            var maxdmg = (int)Equipment.Weapon.MaxLDamage;
+            if (mindmg == 0) mindmg = 1;
+            if (maxdmg == 0) maxdmg = 1;
+            return (ushort)Random.Shared.Next(mindmg, maxdmg + 1);
+        }
+    }
+
     public virtual void RegenerateMp(double mp, Creature regenerator = null)
     {
         if (AbsoluteImmortal)
@@ -937,7 +967,6 @@ public class Creature : VisibleObject
     public virtual void Damage(double damage, Xml.ElementType element = Xml.ElementType.None, Xml.DamageType damageType = Xml.DamageType.Direct, Xml.DamageFlags damageFlags = Xml.DamageFlags.None, Creature attacker = null, bool onDeath=true)
     {
         if (this is Monster ms && !Condition.Alive) return;
-
 
         if (damageType != DamageType.Magical && Stats.Dodge > 0)
         {
@@ -995,6 +1024,38 @@ public class Creature : VisibleObject
 
         if (damageType == Xml.DamageType.Magical && (AbsoluteImmortal || MagicalImmortal))
             return;
+
+        // Handle reflection and steals. For now these are handled as straight hp/mp effects
+        // without mitigation.
+        if (Stats.ReflectMagical > 0 && damageType == DamageType.Magical && attacker != null)
+        {
+            var reflected = Stats.ReflectMagical * normalized;
+            if (reflected > 0)
+                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { BaseHp = (long) reflected * -1});
+        }
+
+        if (Stats.ReflectPhysical > 0 && damageType == DamageType.Physical && attacker != null)
+        {
+            var reflected = Stats.ReflectPhysical * normalized;
+            if (reflected > 0)
+                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { BaseHp = (long) reflected * -1 });
+
+        }
+
+        if (attacker != null && attacker.Stats.LifeSteal > 0)
+        {
+            var stolen = normalized * Stats.LifeSteal;
+            if (stolen > 0)
+                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo {BaseHp = (long) stolen});
+
+        }
+
+        if (attacker != null && attacker.Stats.ManaSteal > 0)
+        {
+            var stolen = normalized * Stats.ManaSteal;
+            if (stolen > 0)
+                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { BaseMp = (long) stolen});
+        }
 
         Stats.Hp = (Stats.Hp - normalized) < 0 ? 0 : Stats.Hp - normalized;
 

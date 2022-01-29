@@ -32,7 +32,7 @@ public partial class ModifierEffect
     private Messages _messages;
     private StatusHeal _heal;
     private StatusDamage _damage;
-    private StatModifierFormulas _statModifiers;
+    private StatModifiers _statModifiers;
     private Conditions _conditions;
     private Handler _handler;
     private static XmlSerializer _serializerXml;
@@ -98,7 +98,7 @@ public partial class ModifierEffect
         }
     }
     
-    public StatModifierFormulas StatModifiers
+    public StatModifiers StatModifiers
     {
         get
         {

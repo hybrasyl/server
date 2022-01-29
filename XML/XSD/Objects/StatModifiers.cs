@@ -27,55 +27,45 @@ using System.Collections.Generic;
 public partial class StatModifiers
 {
     #region Private fields
-    private sbyte _str;
-    private sbyte _int;
-    private sbyte _wis;
-    private sbyte _con;
-    private sbyte _dex;
-    private int _hp;
-    private int _mp;
-    private sbyte _hit;
-    private sbyte _dmg;
-    private sbyte _ac;
-    private sbyte _regen;
-    private sbyte _mr;
+    private string _str;
+    private string _int;
+    private string _wis;
+    private string _con;
+    private string _dex;
+    private string _hp;
+    private string _mp;
+    private string _hit;
+    private string _dmg;
+    private string _ac;
+    private string _regen;
+    private string _mr;
+    private string _crit;
     private ElementType _offensiveElement;
     private ElementType _defensiveElement;
-    private float _inboundDamageModifier;
-    private float _outboundDamageModifier;
-    private float _inboundHealModifier;
-    private float _outboundHealModifier;
-    private DamageType _damageType;
-    private float _reflectMagical;
-    private float _reflectPhysical;
-    private float _increaseGold;
-    private float _dodge;
-    private float _increaseXp;
-    private float _increaseItemFind;
-    private float _lifeSteal;
-    private float _manaSteal;
+    private string _inboundDamageModifier;
+    private string _outboundDamageModifier;
+    private string _inboundHealModifier;
+    private string _outboundHealModifier;
+    private string _damageType;
+    private string _reflectMagical;
+    private string _reflectPhysical;
+    private string _extraGold;
+    private string _dodge;
+    private string _extraXp;
+    private string _extraItemFind;
+    private string _lifeSteal;
+    private string _manaSteal;
     private static XmlSerializer _serializerXml;
     #endregion
     
     public StatModifiers()
     {
-        _str = ((sbyte)(0));
-        _int = ((sbyte)(0));
-        _wis = ((sbyte)(0));
-        _con = ((sbyte)(0));
-        _dex = ((sbyte)(0));
-        _hp = 0;
-        _mp = 0;
-        _hit = ((sbyte)(0));
-        _dmg = ((sbyte)(0));
-        _ac = ((sbyte)(0));
-        _regen = ((sbyte)(0));
-        _mr = ((sbyte)(0));
+        _offensiveElement = ElementType.None;
+        _defensiveElement = ElementType.None;
     }
     
     [XmlAttribute]
-    [DefaultValue(typeof(sbyte), "0")]
-    public sbyte Str
+    public string Str
     {
         get
         {
@@ -88,8 +78,7 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
-    [DefaultValue(typeof(sbyte), "0")]
-    public sbyte Int
+    public string Int
     {
         get
         {
@@ -102,8 +91,7 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
-    [DefaultValue(typeof(sbyte), "0")]
-    public sbyte Wis
+    public string Wis
     {
         get
         {
@@ -116,8 +104,7 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
-    [DefaultValue(typeof(sbyte), "0")]
-    public sbyte Con
+    public string Con
     {
         get
         {
@@ -130,8 +117,7 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
-    [DefaultValue(typeof(sbyte), "0")]
-    public sbyte Dex
+    public string Dex
     {
         get
         {
@@ -144,8 +130,7 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
-    [DefaultValue(0)]
-    public int Hp
+    public string Hp
     {
         get
         {
@@ -158,8 +143,7 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
-    [DefaultValue(0)]
-    public int Mp
+    public string Mp
     {
         get
         {
@@ -172,8 +156,7 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
-    [DefaultValue(typeof(sbyte), "0")]
-    public sbyte Hit
+    public string Hit
     {
         get
         {
@@ -186,8 +169,7 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
-    [DefaultValue(typeof(sbyte), "0")]
-    public sbyte Dmg
+    public string Dmg
     {
         get
         {
@@ -200,8 +182,7 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
-    [DefaultValue(typeof(sbyte), "0")]
-    public sbyte Ac
+    public string Ac
     {
         get
         {
@@ -214,8 +195,7 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
-    [DefaultValue(typeof(sbyte), "0")]
-    public sbyte Regen
+    public string Regen
     {
         get
         {
@@ -228,8 +208,7 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
-    [DefaultValue(typeof(sbyte), "0")]
-    public sbyte Mr
+    public string Mr
     {
         get
         {
@@ -242,6 +221,20 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
+    public string Crit
+    {
+        get
+        {
+            return _crit;
+        }
+        set
+        {
+            _crit = value;
+        }
+    }
+    
+    [XmlAttribute]
+    [DefaultValue(ElementType.None)]
     public ElementType OffensiveElement
     {
         get
@@ -255,6 +248,7 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
+    [DefaultValue(ElementType.None)]
     public ElementType DefensiveElement
     {
         get
@@ -268,7 +262,7 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
-    public float InboundDamageModifier
+    public string InboundDamageModifier
     {
         get
         {
@@ -281,7 +275,7 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
-    public float OutboundDamageModifier
+    public string OutboundDamageModifier
     {
         get
         {
@@ -294,7 +288,7 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
-    public float InboundHealModifier
+    public string InboundHealModifier
     {
         get
         {
@@ -307,7 +301,7 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
-    public float OutboundHealModifier
+    public string OutboundHealModifier
     {
         get
         {
@@ -320,7 +314,7 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
-    public DamageType DamageType
+    public string DamageType
     {
         get
         {
@@ -333,7 +327,7 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
-    public float ReflectMagical
+    public string ReflectMagical
     {
         get
         {
@@ -346,7 +340,7 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
-    public float ReflectPhysical
+    public string ReflectPhysical
     {
         get
         {
@@ -359,20 +353,20 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
-    public float IncreaseGold
+    public string ExtraGold
     {
         get
         {
-            return _increaseGold;
+            return _extraGold;
         }
         set
         {
-            _increaseGold = value;
+            _extraGold = value;
         }
     }
     
     [XmlAttribute]
-    public float Dodge
+    public string Dodge
     {
         get
         {
@@ -385,33 +379,33 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
-    public float IncreaseXp
+    public string ExtraXp
     {
         get
         {
-            return _increaseXp;
+            return _extraXp;
         }
         set
         {
-            _increaseXp = value;
+            _extraXp = value;
         }
     }
     
     [XmlAttribute]
-    public float IncreaseItemFind
+    public string ExtraItemFind
     {
         get
         {
-            return _increaseItemFind;
+            return _extraItemFind;
         }
         set
         {
-            _increaseItemFind = value;
+            _extraItemFind = value;
         }
     }
     
     [XmlAttribute]
-    public float LifeSteal
+    public string LifeSteal
     {
         get
         {
@@ -424,7 +418,7 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
-    public float ManaSteal
+    public string ManaSteal
     {
         get
         {

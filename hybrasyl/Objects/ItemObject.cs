@@ -33,6 +33,8 @@ public class ItemObject : VisibleObject
 {
     public string TemplateId { get; private set; }
 
+    public StatInfo Stats { get; private set; }
+
     /// <summary>
     /// Check to see if a specified user can equip an ItemObject. Returns a boolean indicating whether
     /// the ItemObject can be equipped and if not, sets the message reference to contain an appropriate
@@ -258,18 +260,6 @@ public class ItemObject : VisibleObject
     public Xml.Class Class => Template.Class;
     public Xml.Gender Gender => Template.Gender;
 
-    public int BonusHp => Template.BonusHp;
-    public int BonusMp => Template.BonusMp;
-    public sbyte BonusStr => Template.BonusStr;
-    public sbyte BonusInt => Template.BonusInt;
-    public sbyte BonusWis => Template.BonusWis;
-    public sbyte BonusCon => Template.BonusCon;
-    public sbyte BonusDex => Template.BonusDex;
-    public sbyte BonusDmg => Template.BonusDmg;
-    public sbyte BonusHit => Template.BonusHit;
-    public sbyte BonusAc => Template.BonusAc;
-    public sbyte BonusMr => Template.BonusMr;
-    public sbyte BonusRegen => Template.BonusRegen;
     public byte Color => Convert.ToByte(Template.Properties.Appearance.Color);
     public List<string> Categories => Template.Categories;
 
@@ -286,7 +276,6 @@ public class ItemObject : VisibleObject
     public uint Value => Template.Properties.Physical.Value;
     public bool HideBoots => Template.Properties.Appearance.HideBoots;
 
-    public sbyte Regen => Template.Regen;
 
     public bool Enchantable => Template.Properties.Flags.HasFlag(Xml.ItemFlags.Enchantable);
 

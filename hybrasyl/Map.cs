@@ -145,8 +145,16 @@ public class Map
     private object _lock = new object();
 
     public ushort Id { get; set; }
+    [FormulaVariable]
     public byte X { get; set; }
+    [FormulaVariable]
     public byte Y { get; set; }
+
+    [FormulaVariable] 
+    public int Tiles => X * Y;
+    [FormulaVariable] 
+    public byte BaseLevel => byte.TryParse(SpawnDirectives.BaseLevel, out var b) ? b : (byte) 1;
+    
     public string Name { get; set; }
     public byte Flags { get; set; }
     public byte Music { get; set; }

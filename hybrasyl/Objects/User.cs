@@ -852,6 +852,7 @@ public class User : Creature
             if (levelsGained > 0)
             {
                 Client.SendMessage("A rush of insight fills you!", MessageTypes.SYSTEM);
+                Client.SendMessage("A rush of insight fills you!", MessageTypes.SYSTEM);
                 Effect(50, 100);
                 UpdateAttributes(StatUpdateFlags.Full);
             }
@@ -899,25 +900,7 @@ public class User : Creature
     /// <param name="toApply">The ItemObject used to calculate bonuses.</param>
     public void ApplyBonuses(ItemObject toApply)
     {
-        // Given an ItemObject, set our bonuses appropriately.
-        // We might want to do this with reflection eventually?
-        GameLog.DebugFormat("Bonuses are: {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11}",
-            toApply.BonusHp, toApply.BonusHp, toApply.BonusStr, toApply.BonusInt, toApply.BonusWis,
-            toApply.BonusCon, toApply.BonusDex, toApply.BonusHit, toApply.BonusDmg, toApply.BonusAc,
-            toApply.BonusMr, toApply.BonusRegen);
-
-        Stats.BonusHp += toApply.BonusHp;
-        Stats.BonusMp += toApply.BonusMp;
-        Stats.BonusStr += toApply.BonusStr;
-        Stats.BonusInt += toApply.BonusInt;
-        Stats.BonusWis += toApply.BonusWis;
-        Stats.BonusCon += toApply.BonusCon;
-        Stats.BonusDex += toApply.BonusDex;
-        Stats.BonusHit += toApply.BonusHit;
-        Stats.BonusDmg += toApply.BonusDmg;
-        Stats.BonusAc += toApply.BonusAc;
-        Stats.BonusMr += toApply.BonusMr;
-        Stats.BonusRegen += toApply.BonusRegen;
+        Stats.ApplyBonus(toApply.Stats);
 
         switch (toApply.EquipmentSlot)
         {
@@ -928,13 +911,6 @@ public class User : Creature
                 Stats.BaseDefensiveElement = toApply.Element;
                 break;
         }
-
-        GameLog.DebugFormat(
-            "Player {0}: stats now {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11}, {12}, {13}",
-            Stats.BonusHp, Stats.BonusHp, Stats.BonusStr, Stats.BonusInt, Stats.BonusWis,
-            Stats.BonusCon, Stats.BonusDex, Stats.BonusHit, Stats.BonusDmg, Stats.BonusAc,
-            Stats.BonusMr, Stats.BonusRegen, Stats.OffensiveElement, Stats.DefensiveElement);
-
     }
 
     /// <summary>
@@ -943,18 +919,7 @@ public class User : Creature
     /// <param name="toRemove"></param>
     public void RemoveBonuses(ItemObject toRemove)
     {
-        Stats.BonusHp -= toRemove.BonusHp;
-        Stats.BonusMp -= toRemove.BonusMp;
-        Stats.BonusStr -= toRemove.BonusStr;
-        Stats.BonusInt -= toRemove.BonusInt;
-        Stats.BonusWis -= toRemove.BonusWis;
-        Stats.BonusCon -= toRemove.BonusCon;
-        Stats.BonusDex -= toRemove.BonusDex;
-        Stats.BonusHit -= toRemove.BonusHit;
-        Stats.BonusDmg -= toRemove.BonusDmg;
-        Stats.BonusAc -= toRemove.BonusAc;
-        Stats.BonusMr -= toRemove.BonusMr;
-        Stats.BonusRegen -= toRemove.BonusRegen;
+        Stats.RemoveBonus(toRemove.Stats);
         switch (toRemove.EquipmentSlot)
         {
             case (byte)ItemSlots.Necklace:

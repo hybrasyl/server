@@ -33,7 +33,7 @@ public partial class ItemProperties
     private Physical _physical;
     private List<Category> _categories;
     private Equipment _equipment;
-    private ItemStatModifiers _statModifiers;
+    private StatModifiers _statModifiers;
     private ItemFlags _flags;
     private Variants _variants;
     private Vendor _vendor;
@@ -125,7 +125,7 @@ public partial class ItemProperties
         }
     }
     
-    public ItemStatModifiers StatModifiers
+    public StatModifiers StatModifiers
     {
         get
         {

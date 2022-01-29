@@ -75,49 +75,22 @@
   </xs:complexType>
 
   <!-- Stat effects (buffs or debuffs) container element -->
+  <!-- Can contain formulas or numbers -->
+
   <xs:complexType name="StatModifiers">
-    <xs:attribute name="Str" default="0" type="xs:byte" />
-    <xs:attribute name="Int" default="0" type="xs:byte" />
-    <xs:attribute name="Wis" default="0" type="xs:byte" />
-    <xs:attribute name="Con" default="0" type="xs:byte" />
-    <xs:attribute name="Dex" default="0" type="xs:byte" />
-    <xs:attribute name="Hp" default="0" type="xs:int" />
-    <xs:attribute name="Mp" default="0" type="xs:int" />
-    <xs:attribute name="Hit" default="0" type="xs:byte" />
-    <xs:attribute name="Dmg" default="0" type="xs:byte" />
-    <xs:attribute name="Ac" default="0" type="xs:byte" />
-    <xs:attribute name="Regen" default="0" type="xs:byte" />
-    <xs:attribute name="Mr" default="0" type="xs:byte" />
-    <xs:attribute name="OffensiveElement" type="hyb:ElementType" default="None"/>
-    <xs:attribute name="DefensiveElement" type="hyb:ElementType" default="None"/>
-    <xs:attribute name="InboundDamageModifier" type="xs:float"/>
-    <xs:attribute name="OutboundDamageModifier" type="xs:float"/>
-    <xs:attribute name="InboundHealModifier" type="xs:float"/>
-    <xs:attribute name="OutboundHealModifier" type="xs:float"/>
-    <xs:attribute name="DamageType" type="hyb:DamageType"/>
-    <xs:attribute name="ReflectMagical" type="xs:float"/>
-    <xs:attribute name="ReflectPhysical" type="xs:float"/>
-    <xs:attribute name="IncreaseGold" type="xs:float"/>
-    <xs:attribute name="Dodge" type="xs:float"/>
-    <xs:attribute name="IncreaseXp" type="xs:float"/>
-    <xs:attribute name="IncreaseItemFind" type="xs:float"/>
-    <xs:attribute name="LifeSteal" type="xs:float"/>
-    <xs:attribute name="ManaSteal" type="xs:float"/>
-  </xs:complexType>
-  
-  <xs:complexType name="StatModifierFormulas">
-    <xs:attribute name="Str" default="0" type="xs:string" />
-    <xs:attribute name="Int" default="0" type="xs:string" />
-    <xs:attribute name="Wis" default="0" type="xs:string" />
-    <xs:attribute name="Con" default="0" type="xs:string" />
-    <xs:attribute name="Dex" default="0" type="xs:string" />
-    <xs:attribute name="Hp" default="0" type="xs:string" />
-    <xs:attribute name="Mp" default="0" type="xs:string" />
-    <xs:attribute name="Hit" default="0" type="xs:string" />
-    <xs:attribute name="Dmg" default="0" type="xs:string" />
-    <xs:attribute name="Ac" default="0" type="xs:string" />
-    <xs:attribute name="Regen" default="0" type="xs:string" />
-    <xs:attribute name="Mr" default="0" type="xs:string" />
+    <xs:attribute name="Str" type="xs:string" />
+    <xs:attribute name="Int" type="xs:string" />
+    <xs:attribute name="Wis" type="xs:string" />
+    <xs:attribute name="Con" type="xs:string" />
+    <xs:attribute name="Dex" type="xs:string" />
+    <xs:attribute name="Hp" type="xs:string" />
+    <xs:attribute name="Mp" type="xs:string" />
+    <xs:attribute name="Hit" type="xs:string" />
+    <xs:attribute name="Dmg" type="xs:string" />
+    <xs:attribute name="Ac" type="xs:string" />
+    <xs:attribute name="Regen" type="xs:string" />
+    <xs:attribute name="Mr" type="xs:string" />
+    <xs:attribute name="Crit" type="xs:string"/>
     <xs:attribute name="OffensiveElement" type="hyb:ElementType" default="None"/>
     <xs:attribute name="DefensiveElement" type="hyb:ElementType" default="None"/>
     <xs:attribute name="InboundDamageModifier" type="xs:string"/>
@@ -143,10 +116,12 @@
           <xs:simpleType>
             <xs:restriction base="xs:token">
               <xs:enumeration value="None"/>
-              <xs:enumeration value="Scaled" />
-              <xs:enumeration value="Resistance" />
-              <xs:enumeration value="Threat" />
+              <xs:enumeration value="NoResistance" />
+              <xs:enumeration value="NoThreat" />
               <xs:enumeration value="Nonlethal"/>
+    		  <xs:enumeration value="NoDodge"/>
+              <xs:enumeration value="NoCrit"/>
+              <xs:enumeration value="NoElement"/>
             </xs:restriction>
           </xs:simpleType>
         </xs:list>

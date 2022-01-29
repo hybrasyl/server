@@ -776,12 +776,9 @@ public partial class World : Server
         // Ensure all our modifiable / referenced properties at least exist
         // TODO: this is pretty hacky
         item.Properties.Physical ??= new Xml.Physical();
-        item.Properties.StatModifiers ??= new Xml.ItemStatModifiers();
-        item.Properties.StatModifiers.Base ??= new Xml.StatModifierBase();
-        item.Properties.StatModifiers.Combat ??= new Xml.StatModifierCombat();
+        item.Properties.StatModifiers ??= new Xml.StatModifiers();
         item.Properties.Restrictions ??= new Xml.ItemRestrictions();
         item.Properties.Restrictions.Level ??= new Xml.RestrictionsLevel();
-        item.Properties.StatModifiers.Element ??= new Xml.StatModifierElement();
         item.Properties.Damage ??= new Xml.ItemDamage();
         item.Properties.Damage.Small ??= new Xml.ItemDamageSmall();
         item.Properties.Damage.Large ??= new Xml.ItemDamageLarge();
@@ -797,118 +794,41 @@ public partial class World : Server
         if (variant.Properties.Flags != 0)
             variantItem.Properties.Flags = variant.Properties.Flags;
 
-        variantItem.Properties.Physical.Value =  Convert.ToUInt32(Math.Round(item.Properties.Physical.Value * (variant.Properties.Physical.Value * .01)));
-        variantItem.Properties.Physical.Durability = Convert.ToUInt32(Math.Round(item.Properties.Physical.Durability * (variant.Properties.Physical.Durability * .01)));
-        variantItem.Properties.Physical.Weight =  Convert.ToInt32(Math.Round(item.Properties.Physical.Weight * (variant.Properties.Physical.Weight * .01)));
+        variantItem.Properties.Physical.Value =
+            (ushort) (item.Properties.Physical.Value * variant.Properties.Physical.Value);
+        variantItem.Properties.Physical.Durability =
+            (ushort)(item.Properties.Physical.Durability * variant.Properties.Physical.Durability);
+        variantItem.Properties.Physical.Weight =
+            (ushort)(item.Properties.Physical.Weight* variant.Properties.Physical.Weight);
 
         // ensure boot hiding is carried to variants
         variantItem.Properties.Appearance.HideBoots = item.Properties.Appearance.HideBoots;
+        if (variant.Properties.Restrictions?.Level != null)
+            variantItem.Properties.Restrictions.Level.Min = (byte) Math.Min(99,
+                variantItem.Properties.Restrictions.Level.Min + variant.Properties.Restrictions.Level.Min);
 
-        switch (variantGroup.ToLower())
+        if (variant.Properties.Appearance != null)
+            variantItem.Properties.Appearance.Color = variant.Properties.Appearance.Color;
+
+        if (variant.Properties.StatModifiers != null)
+
+
+        if (variant.Properties.Damage?.Large != null)
         {
-            case "consecratable":
-            {
-                if (variant.Properties.Restrictions?.Level != null) 
-                    variantItem.Properties.Restrictions.Level.Min = (byte) Math.Min(99, variantItem.Properties.Restrictions.Level.Min + variant.Properties.Restrictions.Level.Min);
-                if (variant.Properties.StatModifiers?.Base != null)
-                {
-                    variantItem.Properties.StatModifiers.Base.Dex += variant.Properties.StatModifiers.Base.Dex;
-                    variantItem.Properties.StatModifiers.Base.Con += variant.Properties.StatModifiers.Base.Con;
-                    variantItem.Properties.StatModifiers.Base.Str += variant.Properties.StatModifiers.Base.Str;
-                    variantItem.Properties.StatModifiers.Base.Wis += variant.Properties.StatModifiers.Base.Wis;
-                    variantItem.Properties.StatModifiers.Base.Int += variant.Properties.StatModifiers.Base.Int;
-                }
-                break;
-            }
-            case "elemental":
-            {
-                if ((variantItem.Properties?.Equipment?.Slot ?? Xml.EquipmentSlot.None) == Xml.EquipmentSlot.Waist)
-                    variantItem.Properties.StatModifiers.Element.Defense = variant.Properties.StatModifiers.Element.Defense;
-                else if ((variantItem.Properties?.Equipment?.Slot ?? Xml.EquipmentSlot.None) == Xml.EquipmentSlot.Necklace)
-                    variantItem.Properties.StatModifiers.Element.Offense = variant.Properties.StatModifiers.Element.Offense;
-                else if (variant.Properties.StatModifiers?.Element != null)
-                {
-                    variantItem.Properties.StatModifiers.Element.Offense = variant.Properties.StatModifiers.Element.Offense;
-                    variantItem.Properties.StatModifiers.Element.Defense = variant.Properties.StatModifiers.Element.Defense;
-                }
-                break;
-            }
-            case "enchantable":
-            {
-                if (variant.Properties.Restrictions?.Level != null)
-                {
-                    variantItem.Properties.Restrictions.Level.Min = (byte)Math.Min(99, variantItem.Properties.Restrictions.Level.Min + variant.Properties.Restrictions.Level.Min);
-                }
-                if (variant.Properties.StatModifiers?.Combat != null)
-                {
-                    variantItem.Properties.StatModifiers.Combat.Ac += variant.Properties.StatModifiers.Combat.Ac;
-                    variantItem.Properties.StatModifiers.Combat.Dmg += variant.Properties.StatModifiers.Combat.Dmg;
-                    variantItem.Properties.StatModifiers.Combat.Hit += variant.Properties.StatModifiers.Combat.Hit;
-                    variantItem.Properties.StatModifiers.Combat.Mr += variant.Properties.StatModifiers.Combat.Mr;
-                    variantItem.Properties.StatModifiers.Combat.Regen += variant.Properties.StatModifiers.Combat.Regen;
-                }
-                if (variant.Properties.StatModifiers?.Base != null)
-                {
-                    variantItem.Properties.StatModifiers.Base.Dex += variant.Properties.StatModifiers.Base.Dex;
-                    variantItem.Properties.StatModifiers.Base.Str += variant.Properties.StatModifiers.Base.Str;
-                    variantItem.Properties.StatModifiers.Base.Wis += variant.Properties.StatModifiers.Base.Wis;
-                    variantItem.Properties.StatModifiers.Base.Con += variant.Properties.StatModifiers.Base.Con;
-                    variantItem.Properties.StatModifiers.Base.Int += variant.Properties.StatModifiers.Base.Int;
-                    variantItem.Properties.StatModifiers.Base.Hp += variant.Properties.StatModifiers.Base.Hp;
-                    variantItem.Properties.StatModifiers.Base.Mp += variant.Properties.StatModifiers.Base.Mp;
-                }
-                break;
-            }
-            case "smithable":
-            {
-                if (variant.Properties.Restrictions?.Level != null)
-                {
-                    variantItem.Properties.Restrictions.Level.Min = (byte)Math.Min(99, variantItem.Properties.Restrictions.Level.Min + variant.Properties.Restrictions.Level.Min);
-                }
-                if (variant.Properties.Damage?.Large != null)
-                {
-                    variantItem.Properties.Damage.Large.Min = Convert.ToUInt16(Math.Round(item.Properties.Damage.Large.Min * (variant.Properties.Damage.Large.Min * .01)));
-                    variantItem.Properties.Damage.Large.Max = Convert.ToUInt16(Math.Round(item.Properties.Damage.Large.Max * (variant.Properties.Damage.Large.Max * .01)));
-                }
-                if (variant.Properties.Damage?.Small != null)
-                {
-                    variantItem.Properties.Damage.Small.Min = Convert.ToUInt16(Math.Round(item.Properties.Damage.Small.Min * (variant.Properties.Damage.Small.Min * .01)));
-                    variantItem.Properties.Damage.Small.Max = Convert.ToUInt16(Math.Round(item.Properties.Damage.Small.Max * (variant.Properties.Damage.Small.Max * .01)));
-                }
-                break;
-            }
-            case "tailorable":
-            {
-                if (variant.Properties.Restrictions?.Level != null)
-                {
-                    variantItem.Properties.Restrictions.Level.Min = (byte)Math.Min(99, variantItem.Properties.Restrictions.Level.Min + variant.Properties.Restrictions.Level.Min);
-                }
-                if (variant.Properties.StatModifiers?.Combat != null)
-                {
-                    variantItem.Properties.StatModifiers.Combat.Ac = (sbyte)(item.Properties.StatModifiers.Combat.Ac + variant.Properties.StatModifiers.Combat.Ac);
-                    variantItem.Properties.StatModifiers.Combat.Dmg += variant.Properties.StatModifiers.Combat.Dmg;
-                    variantItem.Properties.StatModifiers.Combat.Hit += variant.Properties.StatModifiers.Combat.Hit;
-                    variantItem.Properties.StatModifiers.Combat.Mr += variant.Properties.StatModifiers.Combat.Mr;
-                    variantItem.Properties.StatModifiers.Combat.Regen += variant.Properties.StatModifiers.Combat.Regen;
-                }
-                break;
-            }
-            case "dye":
-            {
-                if(variant.Properties.Restrictions?.Level != null)
-                {
-                    variantItem.Properties.Restrictions.Level.Min = (byte)Math.Min(99, variantItem.Properties.Restrictions.Level.Min + variant.Properties.Restrictions.Level.Min);
-                }
-                if (variant.Properties.Appearance != null)
-                {
-                    variantItem.Properties.Appearance.Color = variant.Properties.Appearance.Color;
-                }
-                break;
-            }
-
-            default:
-                break;
+            variantItem.Properties.Damage.Large.Min =
+                (ushort) (item.Properties.Damage.Large.Min * variant.Properties.Damage.Large.Min);
+            variantItem.Properties.Damage.Large.Max =
+                (ushort)(item.Properties.Damage.Large.Max * variant.Properties.Damage.Large.Max);
         }
+
+        if (variant.Properties.Damage?.Small != null)
+        {
+            variantItem.Properties.Damage.Small.Min =
+                (ushort) (item.Properties.Damage.Small.Min * variant.Properties.Damage.Small.Min);
+            variantItem.Properties.Damage.Small.Min =
+                (ushort)(item.Properties.Damage.Small.Min * variant.Properties.Damage.Small.Min);
+        }
+
         return variantItem;
     }
 
@@ -935,18 +855,7 @@ public partial class World : Server
                 var nclass = xclass.ToString("g").Replace("Peasant","All");
                 var weight = item.Properties.Physical.Weight;
                 var tab = item.Properties.Vendor?.ShopTab ?? "Junk";
-                var defaultDesc = "";
-                if (item.BonusAc != 0) defaultDesc += $"{(item.BonusAc > 0 ? "+" + item.BonusAc.ToString() : item.BonusAc.ToString())} AC \n";
-                if (item.BonusStr != 0) defaultDesc += $"{(item.BonusStr > 0 ? "+" + item.BonusStr.ToString() : item.BonusStr.ToString())} STR \n";
-                if (item.BonusInt != 0) defaultDesc += $"{(item.BonusInt > 0 ? "+" + item.BonusInt.ToString() : item.BonusInt.ToString())} INT \n";
-                if (item.BonusWis != 0) defaultDesc += $"{(item.BonusWis > 0 ? "+" + item.BonusWis.ToString() : item.BonusWis.ToString())} WIS \n";
-                if (item.BonusCon != 0) defaultDesc += $"{(item.BonusCon > 0 ? "+" + item.BonusCon.ToString() : item.BonusCon.ToString())} CON \n";
-                if (item.BonusDex != 0) defaultDesc += $"{(item.BonusDex > 0 ? "+" + item.BonusDex.ToString() : item.BonusDex.ToString())} DEX \n";
-                if (item.BonusHit != 0) defaultDesc += $"{(item.BonusHit > 0 ? "+" + item.BonusHit.ToString() : item.BonusHit.ToString())} HIT \n";
-                if (item.BonusDmg != 0) defaultDesc += $"{(item.BonusDmg > 0 ? "+" + item.BonusDmg.ToString() : item.BonusDmg.ToString())} DMG \n";
-                if (item.BonusMr != 0) defaultDesc += $"{(item.BonusMr > 0 ? "+" + item.BonusMr.ToString() : item.BonusMr.ToString())} MR \n";
-                if (item.BonusHp != 0) defaultDesc += $"{(item.BonusHp > 0 ? "+" + item.BonusHp.ToString() : item.BonusHp.ToString())} HP \n";
-                if (item.BonusMp != 0) defaultDesc += $"{(item.BonusMp > 0 ? "+" + item.BonusMp.ToString() : item.BonusMp.ToString())} MP \n";
+                var defaultDesc = item.Properties?.StatModifiers != null ? item.Properties.StatModifiers.BonusString : "";
                 if (defaultDesc.Length > 0) defaultDesc.Remove(defaultDesc.Length - 2);
 
                 var desc = "";
@@ -958,9 +867,7 @@ public partial class World : Server
                 {
                     desc = item.Properties.Vendor?.Description;
                 }
-                //var desc = item.Properties.Vendor?.Description != "item" ? item.Properties.Vendor?.Description : defaultDesc;
-                //var desc = item.Properties.Vendor?.Description ?? $"{nclass},Lev{level},Wt{weight}";
-                    
+
                 iteminfo.Nodes.Add(new MetafileNode(item.Name, level, (int)xclass, weight, tab, desc));
             }
             WorldData.Set(iteminfo.Name, iteminfo.Compile());
@@ -1280,6 +1187,7 @@ public partial class World : Server
         ControlMessageHandlers[ControlOpcodes.DialogRequest] = ControlMessage_DialogRequest;
         ControlMessageHandlers[ControlOpcodes.GlobalMessage] = ControlMessage_GlobalMessage;
         ControlMessageHandlers[ControlOpcodes.RemoveReactor] = ControlMessage_RemoveReactor;
+        ControlMessageHandlers[ControlOpcodes.ModifyStats] = ControlMessage_ModifyStats;
     }
 
     public void SetPacketHandlers()
@@ -1482,6 +1390,9 @@ public partial class World : Server
             WorldData.RemoveIndex<User>(user.ConnectionId);
         WorldData.Remove<User>(username);
     }
+
+    public void EnqueueGuidStatUpdate(Guid g, StatInfo si) =>
+        ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.ModifyStats, g, si));
 
     public void AddUser(User userobj, long connectionId)
     {
@@ -1768,6 +1679,15 @@ public partial class World : Server
         m.Remove(obj);
     }
 
+    private void ControlMessage_ModifyStats(HybrasylControlMessage message)
+    {
+        var guid = (Guid) message.Arguments[0];
+        var statinfo = (StatInfo) message.Arguments[1];
+        if (!WorldData.TryGetWorldObject(guid, out Creature obj)) return;
+        obj.Stats.Apply(statinfo);
+        if (obj is User u)
+            u.UpdateAttributes(StatUpdateFlags.Full);
+    }
         
 
     #endregion Control Message Handlers

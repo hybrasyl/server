@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace Hybrasyl.Xml;
 
@@ -11,19 +12,19 @@ public partial class LocalizedStringGroup
         Index.Clear();
         // TODO: clean up this xml structure
 
-        foreach (var str in Common)
+        foreach (var str in Common.Where(str => !string.IsNullOrEmpty(str.Key) && !string.IsNullOrEmpty(str.Value)))
         {
             Index.Add(str.Key, str.Value);
         }
-        foreach (var str in Merchant)
+        foreach (var str in Merchant.Where(str => !string.IsNullOrEmpty(str.Key) && !string.IsNullOrEmpty(str.Value)))
         {
             Index.Add(str.Key, str.Value);
         }
-        foreach (var str in MonsterSpeak)
+        foreach (var str in MonsterSpeak.Where(str => !string.IsNullOrEmpty(str.Key) && !string.IsNullOrEmpty(str.Value)))
         {
             Index.Add(str.Key, str.Value);
         }
-        foreach (var str in NpcSpeak)
+        foreach (var str in NpcSpeak.Where(str => !string.IsNullOrEmpty(str.Key) && !string.IsNullOrEmpty(str.Value)))
         {
             Index.Add(str.Key, str.Value);
         }
