@@ -198,6 +198,8 @@ namespace Hybrasyl.Objects
         public Exchange ActiveExchange { get; set; }
 
         public bool IsAvailableForExchange => Condition.NoFlags;
+
+        public ManufactureState ManufactureState { get; set; }
         #endregion
 
         /// <summary>
