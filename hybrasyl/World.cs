@@ -1330,6 +1330,7 @@ namespace Hybrasyl
             PacketHandlers[0x4D] = PacketHandler_0x4D_BeginCasting; // PT
             PacketHandlers[0x4E] = PacketHandler_0x4E_CastLine; // PT
             PacketHandlers[0x4F] = PacketHandler_0x4F_ProfileTextPortrait; // ST
+            PacketHandlers[0x55] = PacketHandler_0x55_Manufacture;
             PacketHandlers[0x75] = PacketHandler_0x75_TickHeartbeat; // ST + user lock
             PacketHandlers[0x79] = PacketHandler_0x79_Status; // ST
             PacketHandlers[0x7B] = PacketHandler_0x7B_RequestMetafile; // ST
@@ -3720,6 +3721,18 @@ namespace Hybrasyl
 
             user.PortraitData = portraitData;
             user.ProfileText = profileText;
+        }
+
+        private void PacketHandler_0x55_Manufacture(object obj, ClientPacket packet)
+        {
+            var user = (User)obj;
+
+            if (user.ManufactureState == null)
+            {
+                return;
+            }
+
+            user.ManufactureState.ProcessManufacturePacket(packet);
         }
 
         private void PacketHandler_0x75_TickHeartbeat(object obj, ClientPacket packet)
