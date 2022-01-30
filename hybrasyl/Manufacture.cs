@@ -1,4 +1,25 @@
-﻿using Hybrasyl.Objects;
+﻿/*
+ * This file is part of Project Hybrasyl.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the Affero General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+ * for more details.
+ *
+ * You should have received a copy of the Affero General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
+ *
+ * (C) 2020 ERISCO, LLC 
+ *
+ * For contributors and individual authors please refer to CONTRIBUTORS.MD.
+ * 
+ */
+
+using Hybrasyl.Objects;
 using System;
 using System.Collections.Generic;
 
@@ -6,18 +27,35 @@ namespace Hybrasyl
 {
     public class ManufactureState
     {
+        const int NonInventorySlot = 60;
+
         public ManufactureState(User user)
-            : this(user, Array.Empty<ManufactureRecipe>())
+            : this(user, NonInventorySlot, Array.Empty<ManufactureRecipe>())
+        {
+        }
+
+        public ManufactureState(User user, int slot)
+            : this(user, slot, Array.Empty<ManufactureRecipe>())
         {
         }
 
         public ManufactureState(User user, IEnumerable<ManufactureRecipe> recipes)
+            : this(user, NonInventorySlot, recipes)
+        {
+        }
+
+        public ManufactureState(User user, int slot, IEnumerable<ManufactureRecipe> recipes)
         {
             User = user;
+            Slot = slot;
             Recipes = new List<ManufactureRecipe>(recipes);
         }
 
         public User User { get; }
+
+        public ManufactureType Type { get; }
+
+        public int Slot { get; }
 
         public List<ManufactureRecipe> Recipes { get; }
 
@@ -27,35 +65,46 @@ namespace Hybrasyl
 
         public void ProcessManufacturePacket(ClientPacket packet)
         {
-            var manualType = packet.ReadByte();
+            var manufactureType = (ManufactureType)packet.ReadByte();
             var slotIndex = packet.ReadByte();
-            var manualAction = (ManufactureClientPacketType)packet.ReadByte();
 
-            if (manualAction == ManufactureClientPacketType.RequestPage)
+            if (manufactureType != Type || slotIndex != Slot)
             {
-                var pageIndex = packet.ReadByte();
-
-                if (Math.Abs(SelectedIndex - pageIndex) != 1 || pageIndex >= Recipes.Count)
-                {
-                    return;
-                }
-
-                ShowPage(pageIndex);
+                return;
             }
-            else if (manualAction == ManufactureClientPacketType.Make)
+
+            var manufacturePacketType = (ManufactureClientPacketType)packet.ReadByte();
+
+            switch (manufacturePacketType)
             {
-                var recipeName = packet.ReadString8();
-                var addSlotIndex = packet.ReadByte();
-                MakeRecipe(recipeName, addSlotIndex);
+                case ManufactureClientPacketType.RequestPage:
+                    var pageIndex = packet.ReadByte();
+                    if (Math.Abs(SelectedIndex - pageIndex) > 1 || pageIndex >= Recipes.Count)
+                    {
+                        return;
+                    }
+                    ShowPage(pageIndex);
+                    break;
+                case ManufactureClientPacketType.Make:
+                    var recipeName = packet.ReadString8();
+                    var addSlotIndex = packet.ReadByte();
+                    if (recipeName != SelectedRecipe.Name)
+                    {
+                        return;
+                    }
+                    SelectedRecipe.Make(User, addSlotIndex);
+                    ShowPage(SelectedIndex);
+                    break;
             }
         }
 
         public void ShowWindow()
         {
             var manufacturePacket = new ServerPacket(0x50);
-            manufacturePacket.WriteByte(1);
-            manufacturePacket.WriteByte(60);
+            manufacturePacket.WriteByte((byte)Type);
+            manufacturePacket.WriteByte((byte)Slot);
             manufacturePacket.WriteByte((byte)ManufactureServerPacketType.Open);
+            manufacturePacket.WriteByte((byte)Recipes.Count);
             User.Enqueue(manufacturePacket);
         }
 
@@ -64,50 +113,16 @@ namespace Hybrasyl
             SelectedIndex = pageIndex;
 
             var manufacturePacket = new ServerPacket(0x50);
-            manufacturePacket.WriteByte(1);
-            manufacturePacket.WriteByte(60);
+            manufacturePacket.WriteByte((byte)Type);
+            manufacturePacket.WriteByte((byte)Slot);
             manufacturePacket.WriteByte((byte)ManufactureServerPacketType.Page);
             manufacturePacket.WriteByte((byte)pageIndex);
             manufacturePacket.WriteUInt16((ushort)(SelectedRecipe.Tile + 0x8000));
             manufacturePacket.WriteString8(SelectedRecipe.Name);
             manufacturePacket.WriteString16(SelectedRecipe.Description);
-            manufacturePacket.WriteString16(SelectedRecipe.IngredientsText);
+            manufacturePacket.WriteString16(SelectedRecipe.HighlightedIngredientsText(User));
             manufacturePacket.WriteBoolean(SelectedRecipe.HasAddItem);
             User.Enqueue(manufacturePacket);
-        }
-
-        public bool MakeRecipe(string recipeName, int addSlotIndex)
-        {
-            if (recipeName != SelectedRecipe.Name)
-            {
-                return false;
-            }
-
-            if (!ConfirmIngredients())
-            {
-                User.SendSystemMessage("You do not have all the ingredients for that recipe.");
-                return false;
-            }
-
-            TakeIngredients();
-            GiveManufacturedItem();
-
-            return true;
-        }
-
-        public bool ConfirmIngredients()
-        {
-            return SelectedRecipe.ConfirmIngredientsFor(User);
-        }
-
-        public void TakeIngredients()
-        {
-            SelectedRecipe.TakeIngredientsFrom(User);
-        }
-
-        public void GiveManufacturedItem()
-        {
-            SelectedRecipe.GiveManufacturedItemTo(User);
         }
     }
 
@@ -130,17 +145,42 @@ namespace Hybrasyl
                 List<string> ingredientLines = new();
                 foreach (var ingredient in Ingredients)
                 {
-                    ingredientLines.Add($"{ingredient.Name} ({ingredient.Quantity}");
+                    ingredientLines.Add(ingredient.ToString());
                 }
                 return string.Join("\n", ingredientLines);
             }
         }
 
-        public bool ConfirmIngredientsFor(User user)
+        public bool Make(User user, int addSlotIndex)
+        {
+            if (!CheckIngredientsFor(user))
+            {
+                user.SendSystemMessage("You do not have all the ingredients for that recipe.");
+                return false;
+            }
+
+            TakeIngredientsFrom(user);
+            GiveManufacturedItemTo(user);
+            user.SendSystemMessage($"You create {Name}.");
+
+            return true;
+        }
+
+        public string HighlightedIngredientsText(User user)
+        {
+            List<string> ingredientLines = new();
+            foreach (var ingredient in Ingredients)
+            {
+                ingredientLines.Add(ingredient.HighlightedText(user));
+            }
+            return string.Join("\n", ingredientLines);
+        }
+
+        public bool CheckIngredientsFor(User user)
         {
             foreach (var ingredient in Ingredients)
             {
-                if (!ingredient.ConfirmFor(user))
+                if (!ingredient.CheckFor(user))
                 {
                     return false;
                 }
@@ -164,27 +204,53 @@ namespace Hybrasyl
 
     public class ManufactureIngredient
     {
+        public ManufactureIngredient(string name, int quantity = 1)
+        {
+            Name = name;
+            Quantity = quantity;
+        }
+
         public string Name { get; set; }
 
         public int Quantity { get; set; }
 
-        public bool ConfirmFor(User user)
+        public bool CheckFor(User user) => CheckFor(user, out int _);
+
+        public bool CheckFor(User user, out int onHand)
         {
-            int count = 0;
+            onHand = 0;
             foreach (var item in user.Inventory)
             {
                 if (item.Name == Name)
                 {
-                    count += item.Count;
+                    onHand += item.Count;
                 }
             }
-            return count >= Quantity;
+            return onHand >= Quantity;
         }
 
         public void TakeFrom(User user)
         {
             user.RemoveItem(Name, (ushort)Quantity);
         }
+
+        public string HighlightedText(User user)
+        {
+            if (CheckFor(user, out int onHand))
+            {
+                return $"{{=c{Name} ({Quantity})";
+            }
+            else
+            {
+                return $"{{=a{Name} ({onHand}/{Quantity})";
+            }
+        }
+
+        public override string ToString() => $"{Name} ({Quantity})";
+    }
+
+    public enum ManufactureType
+    {
     }
 
     public enum ManufactureClientPacketType

@@ -2347,7 +2347,7 @@ namespace Hybrasyl.Objects
         {
             var slotsToUpdate = new List<byte>();
             var slotsToClear = new List<byte>();
-            if (Inventory.ContainsId(itemName, quantity))
+            if (Inventory.ContainsName(itemName, quantity))
             {
                 var remaining = (int) quantity;
                 var slots = Inventory.GetSlotsByName(itemName);
@@ -2883,6 +2883,12 @@ namespace Hybrasyl.Objects
             doorPacket.WriteBoolean(state);
             doorPacket.WriteBoolean(leftright);
             Enqueue(doorPacket);
+        }
+
+        public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
+        {
+            ManufactureState = new ManufactureState(this, recipes);
+            ManufactureState.ShowWindow();
         }
 
         public void ShowLearnSkillMenu(Merchant merchant)
