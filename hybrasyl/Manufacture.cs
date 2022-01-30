@@ -136,13 +136,19 @@ namespace Hybrasyl
 
         public List<ManufactureIngredient> Ingredients { get; set; }
 
-        public bool HasAddItem { get; set; }
+        public string AddItemName { get; set; }
+
+        public bool HasAddItem => AddItemName != null;
 
         public string IngredientsText
         {
             get
             {
                 List<string> ingredientLines = new();
+                if (HasAddItem)
+                {
+                    ingredientLines.Add($"{AddItemName} [add]");
+                }
                 foreach (var ingredient in Ingredients)
                 {
                     ingredientLines.Add(ingredient.ToString());
@@ -159,6 +165,13 @@ namespace Hybrasyl
                 return false;
             }
 
+            if (HasAddItem && (addSlotIndex < 1 || addSlotIndex > user.Inventory.Size || user.Inventory[(byte)addSlotIndex]?.Name != AddItemName))
+            {
+                user.SendSystemMessage($"That recipe requires {AddItemName} to be added to the window.");
+                return false;
+            }
+
+            user.RemoveItem((byte)addSlotIndex);
             TakeIngredientsFrom(user);
             GiveManufacturedItemTo(user);
             user.SendSystemMessage($"You create {Name}.");
@@ -169,6 +182,11 @@ namespace Hybrasyl
         public string HighlightedIngredientsText(User user)
         {
             List<string> ingredientLines = new();
+            if (HasAddItem)
+            {
+                char addItemColorCode = user.Inventory.ContainsName(AddItemName) ? 'c' : 'a';
+                ingredientLines.Add($"{{={addItemColorCode}{AddItemName} {{=s[add]");
+            }
             foreach (var ingredient in Ingredients)
             {
                 ingredientLines.Add(ingredient.HighlightedText(user));
@@ -178,6 +196,11 @@ namespace Hybrasyl
 
         public bool CheckIngredientsFor(User user)
         {
+            if (HasAddItem && !user.Inventory.ContainsName(AddItemName))
+            {
+                return false;
+            }
+
             foreach (var ingredient in Ingredients)
             {
                 if (!ingredient.CheckFor(user))
@@ -185,6 +208,7 @@ namespace Hybrasyl
                     return false;
                 }
             }
+
             return true;
         }
 
@@ -236,14 +260,8 @@ namespace Hybrasyl
 
         public string HighlightedText(User user)
         {
-            if (CheckFor(user, out int onHand))
-            {
-                return $"{{=c{Name} ({Quantity})";
-            }
-            else
-            {
-                return $"{{=a{Name} ({onHand}/{Quantity})";
-            }
+            char colorCode = CheckFor(user, out int onHand) ? 'c' : 'a';
+            return $"{{={colorCode}{Name} ({onHand}/{Quantity})";
         }
 
         public override string ToString() => $"{Name} ({Quantity})";
