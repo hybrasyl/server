@@ -27,304 +27,391 @@ using System.Collections.Generic;
 public partial class StatModifiers
 {
     #region Private fields
-    private string _str;
-    private string _int;
-    private string _wis;
-    private string _con;
-    private string _dex;
-    private string _hp;
-    private string _mp;
-    private string _hit;
-    private string _dmg;
-    private string _ac;
-    private string _regen;
-    private string _mr;
-    private string _crit;
-    private string _magicCrit;
-    private ElementType _offensiveElement;
-    private ElementType _defensiveElement;
-    private string _inboundDamageModifier;
-    private string _outboundDamageModifier;
-    private string _inboundHealModifier;
-    private string _outboundHealModifier;
+    private string _baseStr;
+    private string _baseInt;
+    private string _baseWis;
+    private string _baseCon;
+    private string _baseDex;
+    private string _baseHp;
+    private string _baseMp;
+    private string _currentHp;
+    private string _currentMp;
+    private string _baseHit;
+    private string _baseDmg;
+    private string _baseAc;
+    private string _baseRegen;
+    private string _baseMr;
+    private string _baseCrit;
+    private string _baseMagicCrit;
+    private ElementType _baseOffensiveElement;
+    private ElementType _baseDefensiveElement;
+    private ElementType _offensiveElementOverride;
+    private ElementType _defensiveElementOverride;
+    private string _baseInboundDamageModifier;
+    private string _baseOutboundDamageModifier;
+    private string _baseInboundHealModifier;
+    private string _baseOutboundHealModifier;
     private string _damageType;
-    private string _reflectMagical;
-    private string _reflectPhysical;
-    private string _extraGold;
-    private string _dodge;
-    private string _magicDodge;
-    private string _extraXp;
-    private string _extraItemFind;
-    private string _lifeSteal;
-    private string _manaSteal;
+    private string _baseReflectMagical;
+    private string _baseReflectPhysical;
+    private string _baseExtraGold;
+    private string _baseDodge;
+    private string _baseMagicDodge;
+    private string _baseExtraXp;
+    private string _baseExtraItemFind;
+    private string _baseLifeSteal;
+    private string _baseManaSteal;
+    private string _bonusStr;
+    private string _bonusInt;
+    private string _bonusWis;
+    private string _bonusCon;
+    private string _bonusDex;
+    private string _bonusHp;
+    private string _bonusMp;
+    private string _bonusHit;
+    private string _bonusDmg;
+    private string _bonusAc;
+    private string _bonusRegen;
+    private string _bonusMr;
+    private string _bonusCrit;
+    private string _bonusMagicCrit;
+    private string _bonusInboundDamageModifier;
+    private string _bonusOutboundDamageModifier;
+    private string _bonusInboundHealModifier;
+    private string _bonusOutboundHealModifier;
+    private string _bonusReflectMagical;
+    private string _bonusReflectPhysical;
+    private string _bonusExtraGold;
+    private string _bonusDodge;
+    private string _bonusMagicDodge;
+    private string _bonusExtraXp;
+    private string _bonusExtraItemFind;
+    private string _bonusLifeSteal;
+    private string _bonusManaSteal;
     private static XmlSerializer _serializerXml;
     #endregion
     
     public StatModifiers()
     {
-        _offensiveElement = ElementType.None;
-        _defensiveElement = ElementType.None;
+        _baseOffensiveElement = ElementType.None;
+        _baseDefensiveElement = ElementType.None;
+        _offensiveElementOverride = ElementType.None;
+        _defensiveElementOverride = ElementType.None;
     }
     
     [XmlAttribute]
-    public string Str
+    public string BaseStr
     {
         get
         {
-            return _str;
+            return _baseStr;
         }
         set
         {
-            _str = value;
-        }
-    }
-    
-    [XmlAttribute]
-    public string Int
-    {
-        get
-        {
-            return _int;
-        }
-        set
-        {
-            _int = value;
+            _baseStr = value;
         }
     }
     
     [XmlAttribute]
-    public string Wis
+    public string BaseInt
     {
         get
         {
-            return _wis;
+            return _baseInt;
         }
         set
         {
-            _wis = value;
+            _baseInt = value;
         }
     }
     
     [XmlAttribute]
-    public string Con
+    public string BaseWis
     {
         get
         {
-            return _con;
+            return _baseWis;
         }
         set
         {
-            _con = value;
+            _baseWis = value;
         }
     }
     
     [XmlAttribute]
-    public string Dex
+    public string BaseCon
     {
         get
         {
-            return _dex;
+            return _baseCon;
         }
         set
         {
-            _dex = value;
+            _baseCon = value;
         }
     }
     
     [XmlAttribute]
-    public string Hp
+    public string BaseDex
     {
         get
         {
-            return _hp;
+            return _baseDex;
         }
         set
         {
-            _hp = value;
+            _baseDex = value;
         }
     }
     
     [XmlAttribute]
-    public string Mp
+    public string BaseHp
     {
         get
         {
-            return _mp;
+            return _baseHp;
         }
         set
         {
-            _mp = value;
+            _baseHp = value;
         }
     }
     
     [XmlAttribute]
-    public string Hit
+    public string BaseMp
     {
         get
         {
-            return _hit;
+            return _baseMp;
         }
         set
         {
-            _hit = value;
+            _baseMp = value;
         }
     }
     
     [XmlAttribute]
-    public string Dmg
+    public string CurrentHp
     {
         get
         {
-            return _dmg;
+            return _currentHp;
         }
         set
         {
-            _dmg = value;
+            _currentHp = value;
         }
     }
     
     [XmlAttribute]
-    public string Ac
+    public string CurrentMp
     {
         get
         {
-            return _ac;
+            return _currentMp;
         }
         set
         {
-            _ac = value;
+            _currentMp = value;
         }
     }
     
     [XmlAttribute]
-    public string Regen
+    public string BaseHit
     {
         get
         {
-            return _regen;
+            return _baseHit;
         }
         set
         {
-            _regen = value;
+            _baseHit = value;
         }
     }
     
     [XmlAttribute]
-    public string Mr
+    public string BaseDmg
     {
         get
         {
-            return _mr;
+            return _baseDmg;
         }
         set
         {
-            _mr = value;
+            _baseDmg = value;
         }
     }
     
     [XmlAttribute]
-    public string Crit
+    public string BaseAc
     {
         get
         {
-            return _crit;
+            return _baseAc;
         }
         set
         {
-            _crit = value;
+            _baseAc = value;
         }
     }
     
     [XmlAttribute]
-    public string MagicCrit
+    public string BaseRegen
     {
         get
         {
-            return _magicCrit;
+            return _baseRegen;
         }
         set
         {
-            _magicCrit = value;
+            _baseRegen = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BaseMr
+    {
+        get
+        {
+            return _baseMr;
+        }
+        set
+        {
+            _baseMr = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BaseCrit
+    {
+        get
+        {
+            return _baseCrit;
+        }
+        set
+        {
+            _baseCrit = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BaseMagicCrit
+    {
+        get
+        {
+            return _baseMagicCrit;
+        }
+        set
+        {
+            _baseMagicCrit = value;
         }
     }
     
     [XmlAttribute]
     [DefaultValue(ElementType.None)]
-    public ElementType OffensiveElement
+    public ElementType BaseOffensiveElement
     {
         get
         {
-            return _offensiveElement;
+            return _baseOffensiveElement;
         }
         set
         {
-            _offensiveElement = value;
+            _baseOffensiveElement = value;
         }
     }
     
     [XmlAttribute]
     [DefaultValue(ElementType.None)]
-    public ElementType DefensiveElement
+    public ElementType BaseDefensiveElement
     {
         get
         {
-            return _defensiveElement;
+            return _baseDefensiveElement;
         }
         set
         {
-            _defensiveElement = value;
+            _baseDefensiveElement = value;
         }
     }
     
     [XmlAttribute]
-    public string InboundDamageModifier
+    [DefaultValue(ElementType.None)]
+    public ElementType OffensiveElementOverride
     {
         get
         {
-            return _inboundDamageModifier;
+            return _offensiveElementOverride;
         }
         set
         {
-            _inboundDamageModifier = value;
+            _offensiveElementOverride = value;
         }
     }
     
     [XmlAttribute]
-    public string OutboundDamageModifier
+    [DefaultValue(ElementType.None)]
+    public ElementType DefensiveElementOverride
     {
         get
         {
-            return _outboundDamageModifier;
+            return _defensiveElementOverride;
         }
         set
         {
-            _outboundDamageModifier = value;
+            _defensiveElementOverride = value;
         }
     }
     
     [XmlAttribute]
-    public string InboundHealModifier
+    public string BaseInboundDamageModifier
     {
         get
         {
-            return _inboundHealModifier;
+            return _baseInboundDamageModifier;
         }
         set
         {
-            _inboundHealModifier = value;
+            _baseInboundDamageModifier = value;
         }
     }
     
     [XmlAttribute]
-    public string OutboundHealModifier
+    public string BaseOutboundDamageModifier
     {
         get
         {
-            return _outboundHealModifier;
+            return _baseOutboundDamageModifier;
         }
         set
         {
-            _outboundHealModifier = value;
+            _baseOutboundDamageModifier = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BaseInboundHealModifier
+    {
+        get
+        {
+            return _baseInboundHealModifier;
+        }
+        set
+        {
+            _baseInboundHealModifier = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BaseOutboundHealModifier
+    {
+        get
+        {
+            return _baseOutboundHealModifier;
+        }
+        set
+        {
+            _baseOutboundHealModifier = value;
         }
     }
     
@@ -342,119 +429,470 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
-    public string ReflectMagical
+    public string BaseReflectMagical
     {
         get
         {
-            return _reflectMagical;
+            return _baseReflectMagical;
         }
         set
         {
-            _reflectMagical = value;
+            _baseReflectMagical = value;
         }
     }
     
     [XmlAttribute]
-    public string ReflectPhysical
+    public string BaseReflectPhysical
     {
         get
         {
-            return _reflectPhysical;
+            return _baseReflectPhysical;
         }
         set
         {
-            _reflectPhysical = value;
+            _baseReflectPhysical = value;
         }
     }
     
     [XmlAttribute]
-    public string ExtraGold
+    public string BaseExtraGold
     {
         get
         {
-            return _extraGold;
+            return _baseExtraGold;
         }
         set
         {
-            _extraGold = value;
+            _baseExtraGold = value;
         }
     }
     
     [XmlAttribute]
-    public string Dodge
+    public string BaseDodge
     {
         get
         {
-            return _dodge;
+            return _baseDodge;
         }
         set
         {
-            _dodge = value;
+            _baseDodge = value;
         }
     }
     
     [XmlAttribute]
-    public string MagicDodge
+    public string BaseMagicDodge
     {
         get
         {
-            return _magicDodge;
+            return _baseMagicDodge;
         }
         set
         {
-            _magicDodge = value;
+            _baseMagicDodge = value;
         }
     }
     
     [XmlAttribute]
-    public string ExtraXp
+    public string BaseExtraXp
     {
         get
         {
-            return _extraXp;
+            return _baseExtraXp;
         }
         set
         {
-            _extraXp = value;
+            _baseExtraXp = value;
         }
     }
     
     [XmlAttribute]
-    public string ExtraItemFind
+    public string BaseExtraItemFind
     {
         get
         {
-            return _extraItemFind;
+            return _baseExtraItemFind;
         }
         set
         {
-            _extraItemFind = value;
+            _baseExtraItemFind = value;
         }
     }
     
     [XmlAttribute]
-    public string LifeSteal
+    public string BaseLifeSteal
     {
         get
         {
-            return _lifeSteal;
+            return _baseLifeSteal;
         }
         set
         {
-            _lifeSteal = value;
+            _baseLifeSteal = value;
         }
     }
     
     [XmlAttribute]
-    public string ManaSteal
+    public string BaseManaSteal
     {
         get
         {
-            return _manaSteal;
+            return _baseManaSteal;
         }
         set
         {
-            _manaSteal = value;
+            _baseManaSteal = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BonusStr
+    {
+        get
+        {
+            return _bonusStr;
+        }
+        set
+        {
+            _bonusStr = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BonusInt
+    {
+        get
+        {
+            return _bonusInt;
+        }
+        set
+        {
+            _bonusInt = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BonusWis
+    {
+        get
+        {
+            return _bonusWis;
+        }
+        set
+        {
+            _bonusWis = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BonusCon
+    {
+        get
+        {
+            return _bonusCon;
+        }
+        set
+        {
+            _bonusCon = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BonusDex
+    {
+        get
+        {
+            return _bonusDex;
+        }
+        set
+        {
+            _bonusDex = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BonusHp
+    {
+        get
+        {
+            return _bonusHp;
+        }
+        set
+        {
+            _bonusHp = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BonusMp
+    {
+        get
+        {
+            return _bonusMp;
+        }
+        set
+        {
+            _bonusMp = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BonusHit
+    {
+        get
+        {
+            return _bonusHit;
+        }
+        set
+        {
+            _bonusHit = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BonusDmg
+    {
+        get
+        {
+            return _bonusDmg;
+        }
+        set
+        {
+            _bonusDmg = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BonusAc
+    {
+        get
+        {
+            return _bonusAc;
+        }
+        set
+        {
+            _bonusAc = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BonusRegen
+    {
+        get
+        {
+            return _bonusRegen;
+        }
+        set
+        {
+            _bonusRegen = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BonusMr
+    {
+        get
+        {
+            return _bonusMr;
+        }
+        set
+        {
+            _bonusMr = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BonusCrit
+    {
+        get
+        {
+            return _bonusCrit;
+        }
+        set
+        {
+            _bonusCrit = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BonusMagicCrit
+    {
+        get
+        {
+            return _bonusMagicCrit;
+        }
+        set
+        {
+            _bonusMagicCrit = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BonusInboundDamageModifier
+    {
+        get
+        {
+            return _bonusInboundDamageModifier;
+        }
+        set
+        {
+            _bonusInboundDamageModifier = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BonusOutboundDamageModifier
+    {
+        get
+        {
+            return _bonusOutboundDamageModifier;
+        }
+        set
+        {
+            _bonusOutboundDamageModifier = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BonusInboundHealModifier
+    {
+        get
+        {
+            return _bonusInboundHealModifier;
+        }
+        set
+        {
+            _bonusInboundHealModifier = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BonusOutboundHealModifier
+    {
+        get
+        {
+            return _bonusOutboundHealModifier;
+        }
+        set
+        {
+            _bonusOutboundHealModifier = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BonusReflectMagical
+    {
+        get
+        {
+            return _bonusReflectMagical;
+        }
+        set
+        {
+            _bonusReflectMagical = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BonusReflectPhysical
+    {
+        get
+        {
+            return _bonusReflectPhysical;
+        }
+        set
+        {
+            _bonusReflectPhysical = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BonusExtraGold
+    {
+        get
+        {
+            return _bonusExtraGold;
+        }
+        set
+        {
+            _bonusExtraGold = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BonusDodge
+    {
+        get
+        {
+            return _bonusDodge;
+        }
+        set
+        {
+            _bonusDodge = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BonusMagicDodge
+    {
+        get
+        {
+            return _bonusMagicDodge;
+        }
+        set
+        {
+            _bonusMagicDodge = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BonusExtraXp
+    {
+        get
+        {
+            return _bonusExtraXp;
+        }
+        set
+        {
+            _bonusExtraXp = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BonusExtraItemFind
+    {
+        get
+        {
+            return _bonusExtraItemFind;
+        }
+        set
+        {
+            _bonusExtraItemFind = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BonusLifeSteal
+    {
+        get
+        {
+            return _bonusLifeSteal;
+        }
+        set
+        {
+            _bonusLifeSteal = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BonusManaSteal
+    {
+        get
+        {
+            return _bonusManaSteal;
+        }
+        set
+        {
+            _bonusManaSteal = value;
         }
     }
     

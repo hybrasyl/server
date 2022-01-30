@@ -63,8 +63,8 @@ public partial class Item
     {
         get
         {
-            var off = Properties.StatModifiers?.OffensiveElement ?? ElementType.None;
-            var def = Properties.StatModifiers?.DefensiveElement?? ElementType.None;
+            var off = Properties.StatModifiers?.BaseOffensiveElement ?? ElementType.None;
+            var def = Properties.StatModifiers?.BaseDefensiveElement?? ElementType.None;
             return Properties.Equipment?.Slot == EquipmentSlot.Necklace ? off : def;
         }
     }

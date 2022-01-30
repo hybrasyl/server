@@ -1031,14 +1031,14 @@ public class Creature : VisibleObject
         {
             var reflected = Stats.ReflectMagical * normalized;
             if (reflected > 0)
-                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { BaseHp = (long) reflected * -1});
+                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaHp = (long) (reflected * -1)});
         }
 
         if (Stats.ReflectPhysical > 0 && damageType == DamageType.Physical && attacker != null)
         {
             var reflected = Stats.ReflectPhysical * normalized;
             if (reflected > 0)
-                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { BaseHp = (long) reflected * -1 });
+                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaHp = (long) reflected * -1 });
 
         }
 
@@ -1046,7 +1046,7 @@ public class Creature : VisibleObject
         {
             var stolen = normalized * Stats.LifeSteal;
             if (stolen > 0)
-                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo {BaseHp = (long) stolen});
+                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaHp = (long) stolen});
 
         }
 
@@ -1054,7 +1054,7 @@ public class Creature : VisibleObject
         {
             var stolen = normalized * Stats.ManaSteal;
             if (stolen > 0)
-                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { BaseMp = (long) stolen});
+                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaMp = (long) stolen});
         }
 
         Stats.Hp = (Stats.Hp - normalized) < 0 ? 0 : Stats.Hp - normalized;

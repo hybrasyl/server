@@ -16,7 +16,6 @@ public partial class StatModifiers
     }
 
 
-
     public static string FormatBonusNum(string bonus, string name)
     {
         if (!long.TryParse(bonus, out var num)) return $"??? {name} \n";
@@ -30,29 +29,29 @@ public partial class StatModifiers
         {
             var defaultDesc = "";
 
-            defaultDesc += FormatBonusPct(Hp, "Hp");
-            defaultDesc += FormatBonusPct(Mp, "Mp");
-            defaultDesc += FormatBonusPct(Str, "Str");
-            defaultDesc += FormatBonusPct(Int, "Int");
-            defaultDesc += FormatBonusPct(Wis, "Wis");
-            defaultDesc += FormatBonusPct(Con, "Con");
-            defaultDesc += FormatBonusPct(Dex, "Dex");
-            defaultDesc += FormatBonusNum(Crit, "Crit");
-            defaultDesc += FormatBonusNum(MagicCrit, "Magic Crit");
-            defaultDesc += FormatBonusPct(Dmg, "Dmg");
-            defaultDesc += FormatBonusPct(Hit, "Hit");
-            defaultDesc += FormatBonusPct(Ac, "Ac");
-            defaultDesc += FormatBonusPct(Mr, "Mr");
-            defaultDesc += FormatBonusPct(Regen, "Regen");
-            defaultDesc += FormatBonusNum(ReflectMagical, "Reflect Magic");
-            defaultDesc += FormatBonusNum(ReflectPhysical, "Reflect Phys");
-            defaultDesc += FormatBonusNum(ExtraGold, "Gold");
-            defaultDesc += FormatBonusNum(Dodge, "Dodge");
-            defaultDesc += FormatBonusNum(MagicDodge, "Magic Dodge");
-            defaultDesc += FormatBonusNum(ExtraXp, "Xp");
-            defaultDesc += FormatBonusNum(ExtraItemFind, "Items");
-            defaultDesc += FormatBonusNum(LifeSteal, "Life Steal");
-            defaultDesc += FormatBonusNum(ManaSteal, "Mana Steal");
+            defaultDesc += FormatBonusPct(BonusHp, "Hp");
+            defaultDesc += FormatBonusPct(BonusMp, "Mp");
+            defaultDesc += FormatBonusPct(BonusStr, "Str");
+            defaultDesc += FormatBonusPct(BonusInt, "Int");
+            defaultDesc += FormatBonusPct(BonusWis, "Wis");
+            defaultDesc += FormatBonusPct(BonusCon, "Con");
+            defaultDesc += FormatBonusPct(BonusDex, "Dex");
+            defaultDesc += FormatBonusNum(BonusCrit, "Crit");
+            defaultDesc += FormatBonusNum(BonusMagicCrit, "Magic Crit");
+            defaultDesc += FormatBonusPct(BonusDmg, "Dmg");
+            defaultDesc += FormatBonusPct(BonusHit, "Hit");
+            defaultDesc += FormatBonusPct(BonusAc, "Ac");
+            defaultDesc += FormatBonusPct(BonusMr, "Mr");
+            defaultDesc += FormatBonusPct(BonusRegen, "Regen");
+            defaultDesc += FormatBonusNum(BonusReflectMagical, "Reflect Magic");
+            defaultDesc += FormatBonusNum(BonusReflectPhysical, "Reflect Phys");
+            defaultDesc += FormatBonusNum(BonusExtraGold, "Gold");
+            defaultDesc += FormatBonusNum(BonusDodge, "Dodge");
+            defaultDesc += FormatBonusNum(BonusMagicDodge, "Magic Dodge");
+            defaultDesc += FormatBonusNum(BonusExtraXp, "Xp");
+            defaultDesc += FormatBonusNum(BonusExtraItemFind, "Items");
+            defaultDesc += FormatBonusNum(BonusLifeSteal, "Life Steal");
+            defaultDesc += FormatBonusNum(BonusManaSteal, "Mana Steal");
             return defaultDesc;
         }
     }

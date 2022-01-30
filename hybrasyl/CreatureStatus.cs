@@ -218,7 +218,7 @@ public class CreatureStatus : ICreatureStatus
             OnTickEffect = new SimpleStatusEffect(tick.Heal, tick.Damage);
             OnRemoveEffect = new SimpleStatusEffect(end.Heal, end.Damage);
             OnExpireEffect = new SimpleStatusEffect(expire.Heal, expire.Damage);
-            BonusModifiers = NumberCruncher.CalculateStatusModifiers(castable, xmlstatus.Effects.OnApply.StatModifiers, source, target);
+            BonusModifiers = NumberCruncher.CalculateStatusModifiers(castable, intensity, xmlstatus.Effects.OnApply.StatModifiers, source, target);
         }
     }
 
@@ -296,68 +296,10 @@ public class CreatureStatus : ICreatureStatus
 
     private void ProcessStatModifiers(bool remove = false)
     {
-        if (remove)
-        {
-            Target.Stats.BonusStr -= (long)(BonusModifiers.BonusStr * Intensity);
-            Target.Stats.BonusInt -= (long)(BonusModifiers.BonusInt * Intensity);
-            Target.Stats.BonusWis -= (long)(BonusModifiers.BonusWis * Intensity);
-            Target.Stats.BonusCon -= (long)(BonusModifiers.BonusCon * Intensity);
-            Target.Stats.BonusDex -= (long)(BonusModifiers.BonusDex * Intensity);
-            Target.Stats.BonusHp -= (long)(BonusModifiers.BonusHp * Intensity);
-            Target.Stats.BonusMp -= (long)(BonusModifiers.BonusMp * Intensity);
-            Target.Stats.BonusHit -= (long)(BonusModifiers.BonusHit * Intensity);
-            Target.Stats.BonusDmg -= (long)(BonusModifiers.BonusDmg * Intensity);
-            Target.Stats.BonusAc -= (long)(BonusModifiers.BonusAc * Intensity);
-            Target.Stats.BonusRegen -= (long)(BonusModifiers.BonusRegen * Intensity);
-            Target.Stats.BonusMr -= (long)(BonusModifiers.BonusMr * Intensity);
-            Target.Stats.BonusInboundDamageModifier -= BonusModifiers.BonusInboundDamageModifier * Intensity;
-            Target.Stats.BonusOutboundDamageModifier -= BonusModifiers.BonusOutboundDamageModifier * Intensity;
-            Target.Stats.BonusInboundHealModifier -= BonusModifiers.BonusInboundHealModifier * Intensity;
-            Target.Stats.BonusOutboundHealModifier -= BonusModifiers.BonusOutboundHealModifier * Intensity;
-            Target.Stats.BonusReflectMagical -= BonusModifiers.BonusReflectMagical * Intensity;
-            Target.Stats.BonusReflectPhysical -= BonusModifiers.BonusReflectPhysical * Intensity;
-            Target.Stats.BonusExtraGold -= BonusModifiers.BonusExtraGold * Intensity;
-            Target.Stats.BonusDodge -= BonusModifiers.BonusDodge * Intensity;
-            Target.Stats.BonusExtraXp -= BonusModifiers.BonusExtraXp * Intensity;
-            Target.Stats.BonusExtraItemFind -= BonusModifiers.BonusExtraItemFind * Intensity;
-            Target.Stats.BonusLifeSteal -= BonusModifiers.BonusLifeSteal * Intensity;
-            Target.Stats.BonusManaSteal -= BonusModifiers.BonusManaSteal * Intensity;
-
-            if (BonusModifiers.OffensiveElementOverride == Target.Stats.OffensiveElementOverride)
-                Target.Stats.OffensiveElementOverride = Xml.ElementType.None;
-            if (BonusModifiers.DefensiveElementOverride == Target.Stats.DefensiveElementOverride)
-                Target.Stats.DefensiveElementOverride = Xml.ElementType.None;
-        }
+        if (remove) 
+            Target.Stats.RemoveBonus(BonusModifiers);
         else
-        {
-            Target.Stats.BonusStr += (long)(BonusModifiers.BonusStr * Intensity);
-            Target.Stats.BonusInt += (long)(BonusModifiers.BonusInt * Intensity);
-            Target.Stats.BonusWis += (long)(BonusModifiers.BonusWis * Intensity);
-            Target.Stats.BonusCon += (long)(BonusModifiers.BonusCon * Intensity);
-            Target.Stats.BonusDex += (long)(BonusModifiers.BonusDex * Intensity);
-            Target.Stats.BonusHp += (long)(BonusModifiers.BonusHp * Intensity);
-            Target.Stats.BonusMp += (long)(BonusModifiers.BonusMp * Intensity);
-            Target.Stats.BonusHit += (long)(BonusModifiers.BonusHit * Intensity);
-            Target.Stats.BonusDmg += (long)(BonusModifiers.BonusDmg * Intensity);
-            Target.Stats.BonusAc += (long)(BonusModifiers.BonusAc * Intensity);
-            Target.Stats.BonusRegen += (long)(BonusModifiers.BonusRegen * Intensity);
-            Target.Stats.BonusMr += (long)(BonusModifiers.BonusMr * Intensity);
-            Target.Stats.BonusInboundDamageModifier += BonusModifiers.BonusInboundDamageModifier * Intensity;
-            Target.Stats.BonusOutboundDamageModifier += BonusModifiers.BonusOutboundDamageModifier * Intensity;
-            Target.Stats.BonusInboundHealModifier += BonusModifiers.BonusInboundHealModifier * Intensity;
-            Target.Stats.BonusOutboundHealModifier += BonusModifiers.BonusOutboundHealModifier * Intensity;
-            Target.Stats.BonusReflectMagical += BonusModifiers.BonusReflectMagical * Intensity;
-            Target.Stats.BonusReflectPhysical += BonusModifiers.BonusReflectPhysical * Intensity;
-            Target.Stats.BonusExtraGold += BonusModifiers.BonusExtraGold * Intensity;
-            Target.Stats.BonusDodge += BonusModifiers.BonusDodge * Intensity;
-            Target.Stats.BonusExtraXp += BonusModifiers.BonusExtraXp * Intensity;
-            Target.Stats.BonusExtraItemFind = BonusModifiers.BonusExtraItemFind * Intensity;
-            Target.Stats.BonusLifeSteal += BonusModifiers.BonusLifeSteal * Intensity;
-            Target.Stats.BonusManaSteal += BonusModifiers.BonusManaSteal * Intensity;
-
-            Target.Stats.OffensiveElementOverride = BonusModifiers.OffensiveElementOverride;
-            Target.Stats.DefensiveElementOverride = BonusModifiers.DefensiveElementOverride;
-        }
+            Target.Stats.ApplyBonus(BonusModifiers);
     }
 
     private (double Heal, DamageOutput Damage) CalculateNumericEffects(Xml.Castable castable, Xml.ModifierEffect effect, Creature source)
@@ -395,7 +337,7 @@ public class CreatureStatus : ICreatureStatus
 
     private void ProcessHandler(Xml.Handler handler)
     {
-        if ((handler?.Function ?? String.Empty ) == String.Empty)
+        if ((handler?.Function ?? string.Empty ) == string.Empty)
             return;
 
         // If a handler is specified, check the script for it first. Note that we don't run both;
@@ -421,6 +363,7 @@ public class CreatureStatus : ICreatureStatus
         }
 
         Type type = invokee.GetType();
+
         try
         {
             MethodInfo methodInfo = type.GetMethod(handler.Function);

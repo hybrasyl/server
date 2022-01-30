@@ -66,6 +66,24 @@ static class NumberCruncher
 
     }
 
+    private static double _evalFormula(string formula, ItemObject item, Creature source)
+    {
+        if (string.IsNullOrEmpty(formula)) return 0.0;
+
+        try
+        {
+            return FormulaParser.Eval(formula,
+                new FormulaEvaluation() { ItemObject = item, Source = source });
+        }
+        catch (Exception e)
+        {
+            Game.ReportException(e);
+            GameLog.Error(
+                $"NumberCruncher formula error: item {item.Name}, source {source?.Name ?? "no source"}: {formula}, error: {e}");
+            return 0;
+        }
+
+    }
     private static double _evalFormula(string formula, Castable castable, Creature target, Creature source)
     {
         if (string.IsNullOrEmpty(formula)) return 0.0;
@@ -240,40 +258,117 @@ static class NumberCruncher
         return cost;
     }
 
+    public static StatInfo CalculateItemModifiers(ItemObject item, StatModifiers effect, Creature source)
+    {
+        var modifiers = new StatInfo
+        {
+            DeltaHp = (long)_evalFormula(effect.CurrentHp, item, source),
+            DeltaMp = (long)_evalFormula(effect.CurrentMp, item, source),
+            BaseHp = (long)_evalFormula(effect.BaseHp, item, source),
+            BaseMp = (long)_evalFormula(effect.BaseMp, item, source),
+            BaseStr = (long)_evalFormula(effect.BaseStr, item, source),
+            BaseCon = (long)_evalFormula(effect.BaseCon, item, source),
+            BaseDex = (long)_evalFormula(effect.BaseDex, item, source),
+            BaseInt = (long)_evalFormula(effect.BaseInt, item, source),
+            BaseWis = (long)_evalFormula(effect.BaseWis, item, source),
+            BaseCrit = _evalFormula(effect.BaseCrit, item, source),
+            BaseMagicCrit = _evalFormula(effect.BaseMagicCrit, item, source),
+            BaseDodge = _evalFormula(effect.BaseDodge, item, source),
+            BaseMagicDodge = _evalFormula(effect.BaseMagicDodge, item, source),
+            BaseDmg = (long)_evalFormula(effect.BaseDmg, item, source),
+            BaseHit = (long)_evalFormula(effect.BaseHit, item, source),
+            BaseAc = (long)_evalFormula(effect.BaseAc, item, source),
+            BaseMr = (long)_evalFormula(effect.BaseMr, item, source),
+            BaseRegen = (long)_evalFormula(effect.BaseRegen, item, source),
+            BaseInboundDamageModifier = _evalFormula(effect.BaseInboundDamageModifier, item, source),
+            BaseInboundHealModifier = _evalFormula(effect.BaseInboundHealModifier, item, source),
+            BaseOutboundDamageModifier = _evalFormula(effect.BaseOutboundDamageModifier, item, source),
+            BaseOutboundHealModifier = _evalFormula(effect.BaseOutboundHealModifier, item, source),
+            BaseReflectMagical = _evalFormula(effect.BaseReflectMagical, item, source),
+            BaseReflectPhysical = _evalFormula(effect.BaseReflectPhysical, item, source),
+            BaseExtraGold = _evalFormula(effect.BaseExtraGold, item, source),
+            BaseExtraXp = _evalFormula(effect.BaseExtraXp, item, source),
+            BaseExtraItemFind = _evalFormula(effect.BaseExtraItemFind, item, source),
+            BaseLifeSteal = _evalFormula(effect.BaseLifeSteal, item, source),
+            BaseManaSteal = _evalFormula(effect.BaseManaSteal, item, source),
+            BonusHp = (long)_evalFormula(effect.BonusHp, item, source),
+            BonusMp = (long)_evalFormula(effect.BonusMp, item, source),
+            BonusStr = (long)_evalFormula(effect.BonusStr, item, source),
+            BonusCon = (long)_evalFormula(effect.BonusCon, item, source),
+            BonusDex = (long)_evalFormula(effect.BonusDex, item, source),
+            BonusInt = (long)_evalFormula(effect.BonusInt, item, source),
+            BonusWis = (long)_evalFormula(effect.BonusWis, item, source),
+            BonusCrit = _evalFormula(effect.BonusCrit, item, source),
+            BonusMagicCrit = _evalFormula(effect.BonusMagicCrit, item, source),
+            BonusDodge = _evalFormula(effect.BonusDodge, item, source),
+            BonusMagicDodge = _evalFormula(effect.BonusMagicDodge, item, source),
+            BonusDmg = (long)_evalFormula(effect.BonusDmg, item, source),
+            BonusHit = (long)_evalFormula(effect.BonusHit, item, source),
+            BonusAc = (long)_evalFormula(effect.BonusAc, item, source),
+            BonusMr = (long)_evalFormula(effect.BonusMr, item, source),
+            BonusRegen = (long)_evalFormula(effect.BonusRegen, item, source),
+            BonusInboundDamageModifier = _evalFormula(effect.BonusInboundDamageModifier, item, source),
+            BonusInboundHealModifier = _evalFormula(effect.BonusInboundHealModifier, item, source),
+            BonusOutboundDamageModifier = _evalFormula(effect.BonusOutboundDamageModifier, item, source),
+            BonusOutboundHealModifier = _evalFormula(effect.BonusOutboundHealModifier, item, source),
+            BonusReflectMagical = _evalFormula(effect.BonusReflectMagical, item, source),
+            BonusReflectPhysical = _evalFormula(effect.BonusReflectPhysical, item, source),
+            BonusExtraGold = _evalFormula(effect.BonusExtraGold, item, source),
+            BonusExtraXp = _evalFormula(effect.BonusExtraXp, item, source),
+            BonusExtraItemFind = _evalFormula(effect.BonusExtraItemFind, item, source),
+            BonusLifeSteal = _evalFormula(effect.BonusLifeSteal, item, source),
+            BonusManaSteal = _evalFormula(effect.BonusManaSteal, item, source)
+        };
+
+        if (effect.BaseOffensiveElement != Xml.ElementType.None)
+            modifiers.OffensiveElementOverride = effect.BaseOffensiveElement;
+        if (effect.BaseDefensiveElement != Xml.ElementType.None)
+            modifiers.DefensiveElementOverride = effect.BaseDefensiveElement;
+
+        return modifiers;
+
+    }
+
     public static StatInfo CalculateStatusModifiers(Castable castable, StatModifiers effect,
         Creature source, Creature target = null)
     {
-        StatInfo modifiers = new StatInfo();
-        modifiers.BonusHp = (long)_evalFormula(effect.Hp, castable, target, source);
-        modifiers.BonusMp = (long)_evalFormula(effect.Mp, castable, target, source);
-        modifiers.BonusStr = (long)_evalFormula(effect.Str, castable, target, source);
-        modifiers.BonusCon = (long)_evalFormula(effect.Con, castable, target, source);
-        modifiers.BonusDex = (long)_evalFormula(effect.Dex, castable, target, source);
-        modifiers.BonusInt = (long)_evalFormula(effect.Int, castable, target, source);
-        modifiers.BonusWis = (long)_evalFormula(effect.Wis, castable, target, source);
-        modifiers.BonusCrit = _evalFormula(effect.Crit, castable, target, source);
-        modifiers.BonusDmg = (long)_evalFormula(effect.Dmg, castable, target, source);
-        modifiers.BonusHit = (long)_evalFormula(effect.Hit, castable, target, source);
-        modifiers.BonusAc = (long)_evalFormula(effect.Ac, castable, target, source);
-        modifiers.BonusMr = (long)_evalFormula(effect.Mr, castable, target, source);
-        modifiers.BonusRegen = (long)_evalFormula(effect.Regen, castable, target, source);
-        modifiers.BonusInboundDamageModifier = _evalFormula(effect.InboundDamageModifier, castable, target, source);
-        modifiers.BonusInboundHealModifier = _evalFormula(effect.InboundHealModifier, castable, target, source);
-        modifiers.BonusOutboundDamageModifier = _evalFormula(effect.OutboundDamageModifier, castable, target, source);
-        modifiers.BonusOutboundHealModifier = _evalFormula(effect.OutboundHealModifier, castable, target, source);
-        modifiers.BonusReflectMagical = _evalFormula(effect.ReflectMagical, castable, target, source);
-        modifiers.BonusReflectPhysical = _evalFormula(effect.ReflectPhysical, castable, target, source);
-        modifiers.BonusExtraGold = _evalFormula(effect.ExtraGold, castable, target, source);
-        modifiers.BonusDodge = _evalFormula(effect.Dodge, castable, target, source);
-        modifiers.BonusExtraXp = _evalFormula(effect.ExtraXp, castable, target, source);
-        modifiers.BonusExtraItemFind = _evalFormula(effect.ExtraItemFind, castable, target, source);
-        modifiers.BonusLifeSteal = _evalFormula(effect.LifeSteal, castable, target, source);
-        modifiers.BonusManaSteal = _evalFormula(effect.ManaSteal, castable, target, source);
+        var modifiers = new StatInfo
+        {
+            DeltaHp = (long)_evalFormula(effect.CurrentHp, castable, target, source),
+            DeltaMp = (long)_evalFormula(effect.CurrentMp, castable, target, source),
+            BonusHp = (long)_evalFormula(effect.BonusHp, castable, target, source),
+            BonusMp = (long)_evalFormula(effect.BonusMp, castable, target, source),
+            BonusStr = (long)_evalFormula(effect.BonusStr, castable, target, source),
+            BonusCon = (long)_evalFormula(effect.BonusCon, castable, target, source),
+            BonusDex = (long)_evalFormula(effect.BonusDex, castable, target, source),
+            BonusInt = (long)_evalFormula(effect.BonusInt, castable, target, source),
+            BonusWis = (long)_evalFormula(effect.BonusWis, castable, target, source),
+            BonusCrit = _evalFormula(effect.BonusCrit, castable, target, source),
+            BonusMagicCrit = _evalFormula(effect.BonusMagicCrit, castable, target, source),
+            BonusDodge = _evalFormula(effect.BonusDodge, castable, target, source),
+            BonusMagicDodge = _evalFormula(effect.BonusMagicDodge, castable, target, source),
+            BonusDmg = (long)_evalFormula(effect.BonusDmg, castable, target, source),
+            BonusHit = (long)_evalFormula(effect.BonusHit, castable, target, source),
+            BonusAc = (long)_evalFormula(effect.BonusAc, castable, target, source),
+            BonusMr = (long)_evalFormula(effect.BonusMr, castable, target, source),
+            BonusRegen = (long)_evalFormula(effect.BonusRegen, castable, target, source),
+            BonusInboundDamageModifier = _evalFormula(effect.BonusInboundDamageModifier, castable, target, source),
+            BonusInboundHealModifier = _evalFormula(effect.BonusInboundHealModifier, castable, target, source),
+            BonusOutboundDamageModifier = _evalFormula(effect.BonusOutboundDamageModifier, castable, target, source),
+            BonusOutboundHealModifier = _evalFormula(effect.BonusOutboundHealModifier, castable, target, source),
+            BonusReflectMagical = _evalFormula(effect.BonusReflectMagical, castable, target, source),
+            BonusReflectPhysical = _evalFormula(effect.BonusReflectPhysical, castable, target, source),
+            BonusExtraGold = _evalFormula(effect.BonusExtraGold, castable, target, source),
+            BonusExtraXp = _evalFormula(effect.BonusExtraXp, castable, target, source),
+            BonusExtraItemFind = _evalFormula(effect.BonusExtraItemFind, castable, target, source),
+            BonusLifeSteal = _evalFormula(effect.BonusLifeSteal, castable, target, source),
+            BonusManaSteal = _evalFormula(effect.BonusManaSteal, castable, target, source)
+        };
 
-        if (effect.OffensiveElement != Xml.ElementType.None)
-            modifiers.OffensiveElementOverride = effect.OffensiveElement;
-        if (effect.DefensiveElement != Xml.ElementType.None)
-            modifiers.DefensiveElementOverride = effect.DefensiveElement;
+        if (effect.BaseOffensiveElement != Xml.ElementType.None)
+            modifiers.OffensiveElementOverride = effect.BaseOffensiveElement;
+        if (effect.BaseDefensiveElement != Xml.ElementType.None)
+            modifiers.DefensiveElementOverride = effect.BaseDefensiveElement;
 
         return modifiers;
 

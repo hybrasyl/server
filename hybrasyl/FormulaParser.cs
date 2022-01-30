@@ -43,6 +43,7 @@ public class FormulaEvaluation
     public double? Damage { get; set; } = null;
     public Xml.Spawn XmlSpawn { get; set; } = null;
     public Xml.SpawnGroup SpawnGroup { get; set; } = null;
+    public ItemObject ItemObject { get; set; } = null;
 }
 
 internal static class FormulaParser
@@ -60,6 +61,8 @@ internal static class FormulaParser
         FormulaTokens[typeof(Map)] = typeof(Map).GetProperties()
             .Where(prop => prop.IsDefined(typeof(FormulaVariable), false)).ToList();
         FormulaTokens[typeof(Castable)] = typeof(Castable).GetProperties()
+            .Where(prop => prop.IsDefined(typeof(FormulaVariable), false)).ToList();
+        FormulaTokens[typeof(ItemObject)] = typeof(ItemObject).GetProperties()
             .Where(prop => prop.IsDefined(typeof(FormulaVariable), false)).ToList();
 
     }
@@ -92,6 +95,12 @@ internal static class FormulaParser
         {
             if (eval.Map != null)
                 e.Parameters[$"MAP{prop.Name}"] = prop.GetValue(eval.Map);
+        }
+
+        foreach (var prop in FormulaTokens[typeof(ItemObject)])
+        {
+            if (eval.ItemObject != null)
+                e.Parameters[$"ITEM{prop.Name}"] = prop.GetValue(eval.ItemObject);
         }
 
         // Handle non-typebound variables, or static values

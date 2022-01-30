@@ -78,36 +78,67 @@
   <!-- Can contain formulas or numbers -->
 
   <xs:complexType name="StatModifiers">
-    <xs:attribute name="Str" type="xs:string" />
-    <xs:attribute name="Int" type="xs:string" />
-    <xs:attribute name="Wis" type="xs:string" />
-    <xs:attribute name="Con" type="xs:string" />
-    <xs:attribute name="Dex" type="xs:string" />
-    <xs:attribute name="Hp" type="xs:string" />
-    <xs:attribute name="Mp" type="xs:string" />
-    <xs:attribute name="Hit" type="xs:string" />
-    <xs:attribute name="Dmg" type="xs:string" />
-    <xs:attribute name="Ac" type="xs:string" />
-    <xs:attribute name="Regen" type="xs:string" />
-    <xs:attribute name="Mr" type="xs:string" />
-    <xs:attribute name="Crit" type="xs:string"/>
-    <xs:attribute name="MagicCrit" type="xs:string"/>
-    <xs:attribute name="OffensiveElement" type="hyb:ElementType" default="None"/>
-    <xs:attribute name="DefensiveElement" type="hyb:ElementType" default="None"/>
-    <xs:attribute name="InboundDamageModifier" type="xs:string"/>
-    <xs:attribute name="OutboundDamageModifier" type="xs:string"/>
-    <xs:attribute name="InboundHealModifier" type="xs:string"/>
-    <xs:attribute name="OutboundHealModifier" type="xs:string"/>
+    <xs:attribute name="BaseStr" type="xs:string" />
+    <xs:attribute name="BaseInt" type="xs:string" />
+    <xs:attribute name="BaseWis" type="xs:string" />
+    <xs:attribute name="BaseCon" type="xs:string" />
+    <xs:attribute name="BaseDex" type="xs:string" />
+    <xs:attribute name="BaseHp" type="xs:string" />
+    <xs:attribute name="BaseMp" type="xs:string" />
+    <xs:attribute name="CurrentHp" type="xs:string" />
+    <xs:attribute name="CurrentMp" type="xs:string" />
+    <xs:attribute name="BaseHit" type="xs:string" />
+    <xs:attribute name="BaseDmg" type="xs:string" />
+    <xs:attribute name="BaseAc" type="xs:string" />
+    <xs:attribute name="BaseRegen" type="xs:string" />
+    <xs:attribute name="BaseMr" type="xs:string" />
+    <xs:attribute name="BaseCrit" type="xs:string"/>
+    <xs:attribute name="BaseMagicCrit" type="xs:string"/>
+    <xs:attribute name="BaseOffensiveElement" type="hyb:ElementType" default="None"/>
+    <xs:attribute name="BaseDefensiveElement" type="hyb:ElementType" default="None"/>
+    <xs:attribute name="OffensiveElementOverride" type="hyb:ElementType" default="None"/>
+    <xs:attribute name="DefensiveElementOverride" type="hyb:ElementType" default="None"/>
+    <xs:attribute name="BaseInboundDamageModifier" type="xs:string"/>
+    <xs:attribute name="BaseOutboundDamageModifier" type="xs:string"/>
+    <xs:attribute name="BaseInboundHealModifier" type="xs:string"/>
+    <xs:attribute name="BaseOutboundHealModifier" type="xs:string"/>
     <xs:attribute name="DamageType" type="xs:string"/>
-    <xs:attribute name="ReflectMagical" type="xs:string"/>
-    <xs:attribute name="ReflectPhysical" type="xs:string"/>
-    <xs:attribute name="ExtraGold" type="xs:string"/>
-    <xs:attribute name="Dodge" type="xs:string"/>
-    <xs:attribute name="MagicDodge" type="xs:string"/>
-    <xs:attribute name="ExtraXp" type="xs:string"/>
-    <xs:attribute name="ExtraItemFind" type="xs:string"/>
-    <xs:attribute name="LifeSteal" type="xs:string"/>
-    <xs:attribute name="ManaSteal" type="xs:string"/>
+    <xs:attribute name="BaseReflectMagical" type="xs:string"/>
+    <xs:attribute name="BaseReflectPhysical" type="xs:string"/>
+    <xs:attribute name="BaseExtraGold" type="xs:string"/>
+    <xs:attribute name="BaseDodge" type="xs:string"/>
+    <xs:attribute name="BaseMagicDodge" type="xs:string"/>
+    <xs:attribute name="BaseExtraXp" type="xs:string"/>
+    <xs:attribute name="BaseExtraItemFind" type="xs:string"/>
+    <xs:attribute name="BaseLifeSteal" type="xs:string"/>
+    <xs:attribute name="BaseManaSteal" type="xs:string"/>
+    <xs:attribute name="BonusStr" type="xs:string" />
+    <xs:attribute name="BonusInt" type="xs:string" />
+    <xs:attribute name="BonusWis" type="xs:string" />
+    <xs:attribute name="BonusCon" type="xs:string" />
+    <xs:attribute name="BonusDex" type="xs:string" />
+    <xs:attribute name="BonusHp" type="xs:string" />
+    <xs:attribute name="BonusMp" type="xs:string" />
+    <xs:attribute name="BonusHit" type="xs:string" />
+    <xs:attribute name="BonusDmg" type="xs:string" />
+    <xs:attribute name="BonusAc" type="xs:string" />
+    <xs:attribute name="BonusRegen" type="xs:string" />
+    <xs:attribute name="BonusMr" type="xs:string" />
+    <xs:attribute name="BonusCrit" type="xs:string"/>
+    <xs:attribute name="BonusMagicCrit" type="xs:string"/>
+    <xs:attribute name="BonusInboundDamageModifier" type="xs:string"/>
+    <xs:attribute name="BonusOutboundDamageModifier" type="xs:string"/>
+    <xs:attribute name="BonusInboundHealModifier" type="xs:string"/>
+    <xs:attribute name="BonusOutboundHealModifier" type="xs:string"/>
+    <xs:attribute name="BonusReflectMagical" type="xs:string"/>
+    <xs:attribute name="BonusReflectPhysical" type="xs:string"/>
+    <xs:attribute name="BonusExtraGold" type="xs:string"/>
+    <xs:attribute name="BonusDodge" type="xs:string"/>
+    <xs:attribute name="BonusMagicDodge" type="xs:string"/>
+    <xs:attribute name="BonusExtraXp" type="xs:string"/>
+    <xs:attribute name="BonusExtraItemFind" type="xs:string"/>
+    <xs:attribute name="BonusLifeSteal" type="xs:string"/>
+    <xs:attribute name="BonusManaSteal" type="xs:string"/>
   </xs:complexType>
 
   <!-- Damage flags type -->

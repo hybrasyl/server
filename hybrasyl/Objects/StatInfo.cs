@@ -55,25 +55,27 @@ public class StatInfo
 
     #region private properties
 
-    private byte _level { get; set; } = 1;
+    private byte _level { get; set; }
     private uint _experience { get; set; } 
     private byte _ability { get; set; } 
     private uint _abilityExp { get; set; }
-    private uint _currentHp { get; set; } = 50;
-    private uint _currentMp { get; set; } = 50;
-    private long _baseHp { get; set; } = 50;
+    private uint _currentHp { get; set; }
+    private uint _currentMp { get; set; }
+    private long _deltaHp { get; set; }
+    private long _deltaMp { get; set; }
+    private long _baseHp { get; set; }
     private long _bonusHp { get; set; } 
-    private long _baseMp { get; set; } = 50;
+    private long _baseMp { get; set; }
     private long _bonusMp { get; set; }
-    private long _baseStr { get; set; } = 3;
+    private long _baseStr { get; set; }
     private long _bonusStr { get; set; }
-    private long _baseInt { get; set; } = 3;
+    private long _baseInt { get; set; }
     private long _bonusInt { get; set; }
-    private long _baseWis { get; set; } = 3;
+    private long _baseWis { get; set; }
     private long _bonusWis { get; set; }
-    private long _baseCon { get; set; } = 3;
+    private long _baseCon { get; set; }
     private long _bonusCon { get; set; }
-    private long _baseDex { get; set; } = 3;
+    private long _baseDex { get; set; }
     private long _bonusDex { get; set; }
     private double _baseCrit { get; set; }
     private double _bonusCrit { get; set; }
@@ -83,19 +85,19 @@ public class StatInfo
     private long _bonusDmg { get; set; }
     private long _baseHit { get; set; }
     private long _bonusHit { get; set; }
-    private long _baseAc { get; set; } = 100;
+    private long _baseAc { get; set; }
     private long _bonusAc { get; set; }
     private long _baseMr { get; set; }
     private long _bonusMr { get; set; }
     private long _baseRegen { get; set; }
     private long _bonusRegen { get; set; }
-    private double _baseInboundDamageModifier { get; set; } = 1;
+    private double _baseInboundDamageModifier { get; set; } 
     private double _bonusInboundDamageModifier { get; set; } 
-    private double _baseInboundHealModifier { get; set; } = 1;
+    private double _baseInboundHealModifier { get; set; } 
     private double _bonusInboundHealModifier { get; set; }
-    private double _baseOutboundDamageModifier { get; set; } = 1;
+    private double _baseOutboundDamageModifier { get; set; }
     private double _bonusOutboundDamageModifier { get; set; }
-    private double _baseOutboundHealModifier { get; set; } = 1;
+    private double _baseOutboundHealModifier { get; set; }
     private double _bonusOutboundHealModifier { get; set; }
     private double _baseReflectMagical { get; set; }
     private double _bonusReflectMagical { get; set; }
@@ -124,8 +126,8 @@ public class StatInfo
 
     public decimal HpPercentage => (decimal)Hp / MaximumHp * 100m;
 
-
     [FormulaVariable]
+    [JsonProperty]
     public byte Level
     {
         get { lock (_lock) { return _level; } }
@@ -133,6 +135,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
+    [JsonProperty]
     public uint Experience
     {
         get { lock (_lock) { return _experience; } }
@@ -140,6 +143,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
+    [JsonProperty]
     public byte Ability
     {
         get { lock (_lock) { return _ability; } }
@@ -147,13 +151,26 @@ public class StatInfo
     }
 
     [FormulaVariable]
+    [JsonProperty]
     public uint AbilityExp
     {
         get { lock (_lock) { return _abilityExp; } } 
         set { lock (_lock) { _abilityExp = value; } }
     }
+    public long DeltaHp
+    {
+        get { lock (_lock) { return _deltaHp; } }
+        set { lock (_lock) { _deltaHp = value; } }
+    }
+
+    public long DeltaMp
+    {
+        get { lock (_lock) { return _deltaMp; } }
+        set { lock (_lock) { _deltaMp= value; } }
+    }
 
     [FormulaVariable]
+    [JsonProperty]
     public long BaseHp
     {
         get { lock (_lock) { return _baseHp; } }
@@ -168,6 +185,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
+    [JsonProperty]
     public uint Hp
     {
         get
@@ -187,6 +205,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
+    [JsonProperty]
     public long BaseMp
     {
         get { lock (_lock) { return _baseMp; } }
@@ -201,7 +220,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
-
+    [JsonProperty]
     public uint Mp
     {
         get
@@ -235,6 +254,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
+    [JsonProperty]
     public long BaseInt
     {
         get { lock (_lock) { return _baseInt; } }
@@ -249,6 +269,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
+    [JsonProperty]
     public long BaseWis
     {
         get { lock (_lock) { return _baseWis; } }
@@ -263,6 +284,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
+    [JsonProperty]
     public long BaseCon
     {
         get { lock (_lock) { return _baseCon; } }
@@ -277,6 +299,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
+    [JsonProperty]
     public long BaseDex
     {
         get { lock (_lock) { return _baseDex; } }
@@ -291,6 +314,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
+    [JsonProperty]
     public double BaseCrit
     {
         get { lock (_lock) { return _baseCrit; } }
@@ -307,6 +331,7 @@ public class StatInfo
     [FormulaVariable] public double Crit => BaseCrit + BonusCrit;
 
     [FormulaVariable]
+    [JsonProperty]
     public double BaseMagicCrit
     {
         get { lock (_lock) { return _baseMagicCrit; } }
@@ -323,6 +348,7 @@ public class StatInfo
     [FormulaVariable] public double MagicCrit => BaseMagicCrit + BonusMagicCrit;
 
     [FormulaVariable]
+    [JsonProperty]
     public long BaseDmg
     {
         get { lock (_lock) { return _baseDmg; } }
@@ -338,6 +364,7 @@ public class StatInfo
 
 
     [FormulaVariable]
+    [JsonProperty]
     public long BaseHit
     {
         get { lock (_lock) { return _baseHit; } }
@@ -352,6 +379,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
+    [JsonProperty]
     public long BaseAc
     {
         get { lock (_lock) { return _baseAc; } }
@@ -366,6 +394,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
+    [JsonProperty]
     public long BaseMr
     {
         get { lock (_lock) { return _baseMr; } }
@@ -373,6 +402,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
+    [JsonProperty]
     public long BonusMr
     {
         get { lock (_lock) { return _bonusMr; } }
@@ -380,6 +410,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
+    [JsonProperty]
     public long BaseRegen
     {
         get { lock (_lock) { return _baseRegen; } }
@@ -393,6 +424,7 @@ public class StatInfo
         set { lock (_lock) { _bonusRegen = value; } }
     }
 
+    [JsonProperty]
     public double BaseInboundDamageModifier
     {
         get { lock (_lock) { return _baseInboundDamageModifier; } }
@@ -407,6 +439,7 @@ public class StatInfo
 
     public double InboundDamageModifier => BaseInboundDamageModifier + BonusInboundDamageModifier;
 
+    [JsonProperty]
     public double BaseInboundHealModifier
     {
         get { lock (_lock) { return _baseInboundHealModifier; } }
@@ -421,6 +454,7 @@ public class StatInfo
 
     public double InboundHealModifier => BaseInboundHealModifier + BonusInboundHealModifier;
 
+    [JsonProperty]
     public double BaseOutboundDamageModifier
     {
         get { lock (_lock) { return _baseOutboundDamageModifier; } }
@@ -435,6 +469,7 @@ public class StatInfo
 
     public double OutboundDamageModifier => BaseOutboundDamageModifier + BonusOutboundDamageModifier;
 
+    [JsonProperty]
     public double BaseOutboundHealModifier
     {
         get { lock (_lock) { return _baseOutboundHealModifier; } }
@@ -450,6 +485,7 @@ public class StatInfo
     public double OutboundHealModifier => BaseOutboundHealModifier + BonusOutboundHealModifier;
 
     [FormulaVariable]
+    [JsonProperty]
     public double BaseReflectMagical
     {
         get { lock (_lock) { return _baseReflectMagical; } }
@@ -466,6 +502,7 @@ public class StatInfo
     [FormulaVariable] public double ReflectMagical => BaseReflectMagical + BonusReflectMagical;
 
     [FormulaVariable]
+    [JsonProperty]
     public double BaseReflectPhysical
     {
         get { lock (_lock) { return _baseReflectPhysical; } }
@@ -482,6 +519,7 @@ public class StatInfo
     [FormulaVariable] public double ReflectPhysical => BaseReflectPhysical + BonusReflectPhysical;
 
     [FormulaVariable]
+    [JsonProperty]
     public double BaseExtraGold
     {
         get { lock (_lock) { return _baseExtraGold; } }
@@ -498,6 +536,7 @@ public class StatInfo
     [FormulaVariable] public double ExtraGold => BaseExtraGold + BonusExtraGold;
 
     [FormulaVariable]
+    [JsonProperty]
     public double BaseDodge
     {
         get { lock (_lock) { return _baseDodge; } }
@@ -514,6 +553,7 @@ public class StatInfo
     [FormulaVariable] public double Dodge => BaseDodge + BonusDodge;
 
     [FormulaVariable]
+    [JsonProperty]
     public double BaseMagicDodge
     {
         get { lock (_lock) { return _baseMagicDodge; } }
@@ -530,6 +570,7 @@ public class StatInfo
     [FormulaVariable] public double MagicDodge => BaseMagicDodge + BonusMagicDodge;
 
     [FormulaVariable]
+    [JsonProperty]
     public double BaseExtraXp
     {
         get { lock (_lock) { return _baseExtraXp; } }
@@ -546,6 +587,7 @@ public class StatInfo
     [FormulaVariable] public double ExtraXp => BaseExtraXp + BonusExtraXp;
 
     [FormulaVariable]
+    [JsonProperty]
     public double BaseExtraItemFind
     {
         get { lock (_lock) { return _baseExtraItemFind; } }
@@ -562,6 +604,7 @@ public class StatInfo
     [FormulaVariable] public double ExtraItemFind => BaseExtraItemFind + BonusExtraItemFind;
 
     [FormulaVariable]
+    [JsonProperty]
     public double BaseLifeSteal
     {
         get { lock (_lock) { return _baseLifeSteal; } }
@@ -569,6 +612,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
+    [JsonProperty]
     public double BonusLifeSteal
     {
         get { lock (_lock) { return _bonusLifeSteal; } }
@@ -578,6 +622,7 @@ public class StatInfo
     [FormulaVariable] public double LifeSteal => BaseLifeSteal + BonusLifeSteal;
 
     [FormulaVariable]
+    [JsonProperty]
     public double BaseManaSteal
     {
         get { lock (_lock) { return _baseManaSteal; } }
@@ -593,7 +638,6 @@ public class StatInfo
 
     [FormulaVariable] public double ManaSteal => BaseManaSteal + BonusManaSteal;
 
-    [JsonProperty]
     public Xml.ElementType BaseOffensiveElement
     {
         get
@@ -608,7 +652,6 @@ public class StatInfo
         }
     }
 
-    [JsonProperty]
     public Xml.ElementType BaseDefensiveElement
     {
         get
@@ -623,7 +666,6 @@ public class StatInfo
         }
     }
 
-    [JsonProperty]
     public Xml.ElementType OffensiveElementOverride
     {
         get
@@ -638,7 +680,6 @@ public class StatInfo
         }
     }
 
-    [JsonProperty]
     public Xml.ElementType DefensiveElementOverride
     {
         get
@@ -663,16 +704,7 @@ public class StatInfo
 
     public override string ToString() => $"Lv {Level} Hp {Hp} Mp {Mp} Stats {Str}/{Con}/{Int}/{Wis}/{Dex}";
 
-    #region constructor
-
-    // todo: change to false bitch
-    public StatInfo(bool defaultAttr = true)
-    {
-        // TODO: DRY
-    }
-
-    #endregion
-
+ 
     private static long BindToRange(long start, long? min, long? max)
     {
         if (min != null && start < min)
@@ -886,10 +918,47 @@ public class StatInfo
     /// <param name="asBonus">Boolean indicating whether or not to apply the attributes in the passed object as bonuses or a base attribute change</param>
     public void Apply(StatInfo si1, bool experience = false, bool asBonus = false)
     {
-        if (asBonus && experience)
+        // Always apply current hp/mp changes
+        var hp = (long) Hp;
+        hp += DeltaHp;
+        if (hp < 0) hp = 0;
+        Hp = (uint) BindToRange(hp, 0, uint.MaxValue);
+        var mp  = (long) Mp;
+        mp += DeltaMp;
+        if (mp < 0) mp = 0;
+        Mp = (uint) BindToRange(mp, 0, uint.MaxValue);
+
+        if (asBonus)
         {
-            BaseHp += si1.Hp;
-            BaseMp += si1.Mp;
+            BonusHp += si1.BonusHp;
+            BonusMp += si1.BonusMp;
+            BonusStr += si1.Str;
+            BonusCon += si1.Con;
+            BonusDex += si1.Dex;
+            BonusInt += si1.Int;
+            BonusWis += si1.Wis;
+            BonusCrit += si1.Crit;
+            BonusDmg += si1.Dmg;
+            BonusHit += si1.Hit;
+            BonusAc += si1.Ac;
+            BonusMr += si1.Mr;
+            BonusRegen += si1.Regen;
+            BonusInboundHealModifier += si1.InboundHealModifier;
+            BonusOutboundDamageModifier += si1.OutboundDamageModifier;
+            BonusOutboundHealModifier += si1.OutboundHealModifier;
+            BonusReflectMagical += si1.ReflectMagical;
+            BonusReflectPhysical += si1.ReflectPhysical;
+            BonusExtraGold += si1.ExtraGold;
+            BonusDodge += si1.Dodge;
+            BonusExtraXp += si1.ExtraXp;
+            BonusExtraItemFind += si1.ExtraItemFind;
+            BaseLifeSteal += si1.LifeSteal;
+            BaseManaSteal += si1.ManaSteal;
+        }
+        else
+        {
+            BaseHp += si1.BaseHp;
+            BaseMp += si1.BaseMp;
             BaseStr += si1.Str;
             BaseCon += si1.Con;
             BaseDex += si1.Dex;
@@ -901,7 +970,6 @@ public class StatInfo
             BaseAc += si1.Ac;
             BaseMr += si1.Mr;
             BaseRegen += si1.Regen;
-            BaseInboundDamageModifier += si1.InboundDamageModifier;
             BaseInboundHealModifier += si1.InboundHealModifier;
             BaseOutboundDamageModifier += si1.OutboundDamageModifier;
             BaseOutboundHealModifier += si1.OutboundHealModifier;
@@ -913,22 +981,83 @@ public class StatInfo
             BaseExtraItemFind += si1.ExtraItemFind;
             BaseLifeSteal += si1.LifeSteal;
             BaseManaSteal += si1.ManaSteal;
-            Level += si1.Level;
-            Experience += si1.Experience;
-
         }
 
-
+        if (!experience) return;
+        Level += si1.Level;
+        Experience += si1.Experience;
+        Ability += si1.Ability;
+        AbilityExp += si1.AbilityExp;
     }
 
     /// <summary>
-    /// Remove the changes of a passed StatInfo. The attributes within are removed from this StatInfo object as bonuses (eg Str, if defined, is subtracted to this StatInfo's BonusStr).
+    /// Remove the changes of a passed StatInfo. The attributes within are applied to this StatInfo object.
     /// </summary>
     /// <param name="si1">The StatInfo object to apply to this one</param>
-    /// <param name="experience">Whether or not to handle experience (Level/Exp/Ab/AbExp)</param>
+    /// <param name="experience">Boolean indicating whether or not to handle experience (Level/Exp/Ab/AbExp)</param>
+    /// <param name="asBonus">Boolean indicating whether or not to remove the attributes in the passed object as bonuses or a base attribute change</param>
     public void Remove(StatInfo si1, bool experience=false, bool asBonus = false)
     {
+        if (asBonus)
+        {
+            BonusHp -= si1.Hp;
+            BonusMp -= si1.Mp;
+            BonusStr -= si1.Str;
+            BonusCon -= si1.Con;
+            BonusDex -= si1.Dex;
+            BonusInt -= si1.Int;
+            BonusWis -= si1.Wis;
+            BonusCrit -= si1.Crit;
+            BonusDmg -= si1.Dmg;
+            BonusHit -= si1.Hit;
+            BonusAc -= si1.Ac;
+            BonusMr -= si1.Mr;
+            BonusRegen -= si1.Regen;
+            BonusInboundHealModifier -= si1.InboundHealModifier;
+            BonusOutboundDamageModifier -= si1.OutboundDamageModifier;
+            BonusOutboundHealModifier -= si1.OutboundHealModifier;
+            BonusReflectMagical -= si1.ReflectMagical;
+            BonusReflectPhysical -= si1.ReflectPhysical;
+            BonusExtraGold -= si1.ExtraGold;
+            BonusDodge -= si1.Dodge;
+            BonusExtraXp -= si1.ExtraXp;
+            BonusExtraItemFind -= si1.ExtraItemFind;
+            BaseLifeSteal -= si1.LifeSteal;
+            BaseManaSteal -= si1.ManaSteal;
+        }
+        else
+        {
+            BaseHp -= si1.Hp;
+            BaseMp -= si1.Mp;
+            BaseStr -= si1.Str;
+            BaseCon -= si1.Con;
+            BaseDex -= si1.Dex;
+            BaseInt -= si1.Int;
+            BaseWis -= si1.Wis;
+            BaseCrit -= si1.Crit;
+            BaseDmg -= si1.Dmg;
+            BaseHit -= si1.Hit;
+            BaseAc -= si1.Ac;
+            BaseMr -= si1.Mr;
+            BaseRegen -= si1.Regen;
+            BaseInboundHealModifier -= si1.InboundHealModifier;
+            BaseOutboundDamageModifier -= si1.OutboundDamageModifier;
+            BaseOutboundHealModifier -= si1.OutboundHealModifier;
+            BaseReflectMagical -= si1.ReflectMagical;
+            BaseReflectPhysical -= si1.ReflectPhysical;
+            BaseExtraGold -= si1.ExtraGold;
+            BaseDodge -= si1.Dodge;
+            BaseExtraXp -= si1.ExtraXp;
+            BaseExtraItemFind -= si1.ExtraItemFind;
+            BaseLifeSteal -= si1.LifeSteal;
+            BaseManaSteal -= si1.ManaSteal;
+        }
 
+        if (!experience) return;
+        Level -= si1.Level;
+        Experience -= si1.Experience;
+        Ability -= si1.Ability;
+        AbilityExp -= si1.AbilityExp;
     }
 
     /// <summary>
