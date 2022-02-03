@@ -237,7 +237,7 @@ public class Merchant : Creature
                     if (removed > 0)
                     {
                         Say($"Certainly. I will buy {removed} of those for {coins} gold, {u.Name}.");
-                        u.Gold += coins;
+                        u.Stats.Gold += coins;
                         u.UpdateAttributes(StatUpdateFlags.Experience);
                     }
                     else
@@ -267,7 +267,7 @@ public class Merchant : Creature
                                     u.SendItemUpdate(u.Inventory[slot], slot);
                             }
                             Say($"Certainly. I will buy {actuallyRemoved.Sum(x => x.Quantity)} of those for {coins} gold, {u.Name}.");
-                            u.Gold += coins;
+                            u.Stats.Gold += coins;
                             u.UpdateAttributes(StatUpdateFlags.Experience);
                         }
                         else
@@ -287,7 +287,7 @@ public class Merchant : Creature
                     u.RemoveItem(slot);
                 }
                 Say($"Certainly...that will be {coins} gold, {u.Name}.");
-                u.Gold += coins;
+                u.Stats.Gold += coins;
                 u.UpdateAttributes(StatUpdateFlags.Experience);
             }
             else 

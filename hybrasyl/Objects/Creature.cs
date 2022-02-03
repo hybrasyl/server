@@ -47,8 +47,7 @@ public class Creature : VisibleObject
 
     public List<StatusInfo> CurrentStatusInfo => _currentStatuses.Values.Select(e => e.Info).ToList();
 
-    [JsonProperty]
-    public uint Gold { get; set; }
+    public uint Gold => Stats.Gold;
 
     [JsonProperty]
     private Dictionary<string, string> Cookies { get; set; }
@@ -62,7 +61,6 @@ public class Creature : VisibleObject
 
     public Creature()
     {
-        Gold = 0;
         Inventory = new Inventory(59);
         Equipment = new Equipment(18);
         Stats = new StatInfo();
@@ -364,19 +362,6 @@ public class Creature : VisibleObject
         }
 
         return finalTargets;
-    }
-
-
-    // Restrict to (inclusive) range between [min, max]. Max is optional, and if its
-    // not present then no upper limit will be enforced.
-    private static long BindToRange(long start, long? min, long? max)
-    {
-        if (min != null && start < min)
-            return min.GetValueOrDefault();
-        else if (max != null && start > max)
-            return max.GetValueOrDefault();
-        else
-            return start;
     }
 
     public DateTime LastHitTime { get; private set; }
@@ -968,20 +953,21 @@ public class Creature : VisibleObject
     {
         if (this is Monster ms && !Condition.Alive) return;
 
+        // Handle dodging first
         if (damageType != DamageType.Magical && Stats.Dodge > 0)
         {
-            var rng = new Random();
-            if (rng.Next(100) <= Stats.Dodge)
+            var dodgeReduction = attacker == null ? 0 : attacker.Stats.Hit;
+            if (Random.Shared.Next(100) <= Stats.Dodge - dodgeReduction)
             {
                 Effect(115, 100);
                 return;
             }
         }
 
-        if (damageType == DamageType.Magical && Stats.Mr > 0)
+        if (damageType == DamageType.Magical && Stats.MagicDodge > 0)
         {
-            var rng = new Random();
-            if (rng.Next(100) <= (Stats.Mr / 10) * 2)
+            var dodgeReduction = attacker == null ? 0 : attacker.Stats.Hit;
+            if (Random.Shared.Next(100) <= Stats.MagicDodge - dodgeReduction)
             {
                 Effect(33, 100);
                 return;
@@ -996,7 +982,7 @@ public class Creature : VisibleObject
 
         LastHitTime = DateTime.Now;
 
-        if (damageType != Xml.DamageType.Direct)
+        if (damageType != Xml.DamageType.Direct || !damageFlags.HasFlag(DamageFlags.NoElement))
         {
             double armor = Stats.Ac * -1 + 100;
             var elementTable = Game.World.WorldData.Get<Xml.ElementTable>("ElementTable");
@@ -1005,8 +991,40 @@ public class Creature : VisibleObject
             damage = (damage - reduction) * multiplier;
         }
 
+        // Handle dmg/mr/crit/magiccrit
         if (attacker != null)
+        {
             _mLastHitter = attacker.Id;
+            if (attacker.Stats.Dmg > 0)
+                damage += (damage * attacker.Stats.Dmg);
+            else
+                damage -= (damage * attacker.Stats.Dmg);
+            if (damageType == DamageType.Magical)
+            {
+                if (Stats.Mr > 0)
+                    damage -= (damage * Stats.Mr);
+                else
+                    damage += (damage * Stats.Mr * -1);
+            }
+
+            if (attacker.Stats.Crit > 0 && damageType == DamageType.Physical)
+            {
+                if (Random.Shared.Next(100) <= attacker.Stats.Crit)
+                {
+                    damage += damage * 0.5;
+                    Effect(24, 100);
+                }
+            }
+
+            if (attacker.Stats.MagicCrit > 0 && damageType == DamageType.Magical)
+            {
+                if (Random.Shared.Next(100) <= attacker.Stats.Crit)
+                {
+                    damage += damage * 2;
+                    Effect(24, 100);
+                }
+            }
+        }
 
         var normalized = (uint)damage;
 

@@ -206,7 +206,7 @@ public class ItemObject : VisibleObject
 
     private Xml.Item _template;
 
-    private Xml.Item Template
+    public Xml.Item Template
     {
         get
         {
@@ -322,6 +322,12 @@ public class ItemObject : VisibleObject
 
     public uint DisplayDurability => Convert.ToUInt32(Math.Round(Durability));
 
+    public void EvalFormula(Creature source)
+    {
+        if (Template.Properties?.StatModifiers != null)
+            Stats = NumberCruncher.CalculateItemModifiers(this, source);
+    }
+
     public void Invoke(User trigger)
     {
         if (Stackable && Count <= 0)
@@ -329,9 +335,11 @@ public class ItemObject : VisibleObject
             trigger.RemoveItem(Name);
             return;
         }
+
         // Run through all the different potential uses. We allow combinations of any
         // use specified in the item XML.
         GameLog.InfoFormat($"User {trigger.Name}: used item {Name}");
+
         if (Use.Script != null)
         {
             Script invokeScript;
@@ -343,26 +351,16 @@ public class ItemObject : VisibleObject
 
             invokeScript.ExecuteFunction("OnUse", trigger, null, this, true);
         }            
+
         if (Use.Effect != null)
         {
             trigger.SendEffect(trigger.Id, Use.Effect.Id, Use.Effect.Speed); 
         }
-        if (Use.PlayerEffect != null)
-        {
-            if (Use.PlayerEffect.Gold > 0)
-                trigger.AddGold(new Gold((uint)Use.PlayerEffect.Gold));
-            if (Use.PlayerEffect.Hp > 0)
-                trigger.Heal(Use.PlayerEffect.Hp);
-            else
-                trigger.Damage(Math.Abs(Use.PlayerEffect.Hp));
-            if (Use.PlayerEffect.Mp > 0)
-                trigger.RegenerateMp(Use.PlayerEffect.Mp);
-            else
-                trigger.Stats.Mp += (uint) Use.PlayerEffect.Mp;
-            if (Use.PlayerEffect.Xp > 0)
-                trigger.GiveExperience((uint)Use.PlayerEffect.Xp);
-            trigger.UpdateAttributes(StatUpdateFlags.Current|StatUpdateFlags.Experience);
-        }
+
+        var statChange = NumberCruncher.CalculateItemModifiers(this, trigger);
+        trigger.Stats.ApplyBase(statChange);
+        trigger.UpdateAttributes(StatUpdateFlags.Full);
+        
         if (Use.Sound != null)
         {
             trigger.SendSound((byte) Use.Sound.Id);

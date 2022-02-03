@@ -36,6 +36,8 @@ public partial class StatModifiers
     private string _baseMp;
     private string _currentHp;
     private string _currentMp;
+    private string _currentGold;
+    private string _currentXp;
     private string _baseHit;
     private string _baseDmg;
     private string _baseAc;
@@ -43,6 +45,7 @@ public partial class StatModifiers
     private string _baseMr;
     private string _baseCrit;
     private string _baseMagicCrit;
+    private string _baseInboundDmgToMp;
     private ElementType _baseOffensiveElement;
     private ElementType _baseDefensiveElement;
     private ElementType _offensiveElementOverride;
@@ -88,6 +91,7 @@ public partial class StatModifiers
     private string _bonusExtraItemFind;
     private string _bonusLifeSteal;
     private string _bonusManaSteal;
+    private string _bonusInboundDmgToMp;
     private static XmlSerializer _serializerXml;
     #endregion
     
@@ -217,6 +221,32 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
+    public string CurrentGold
+    {
+        get
+        {
+            return _currentGold;
+        }
+        set
+        {
+            _currentGold = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string CurrentXp
+    {
+        get
+        {
+            return _currentXp;
+        }
+        set
+        {
+            _currentXp = value;
+        }
+    }
+    
+    [XmlAttribute]
     public string BaseHit
     {
         get
@@ -304,6 +334,19 @@ public partial class StatModifiers
         set
         {
             _baseMagicCrit = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BaseInboundDmgToMp
+    {
+        get
+        {
+            return _baseInboundDmgToMp;
+        }
+        set
+        {
+            _baseInboundDmgToMp = value;
         }
     }
     
@@ -893,6 +936,19 @@ public partial class StatModifiers
         set
         {
             _bonusManaSteal = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public string BonusInboundDmgToMp
+    {
+        get
+        {
+            return _bonusInboundDmgToMp;
+        }
+        set
+        {
+            _bonusInboundDmgToMp = value;
         }
     }
     

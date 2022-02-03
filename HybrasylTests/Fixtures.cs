@@ -104,7 +104,7 @@ public class HybrasylFixture : IDisposable
             HairColor = 1,
             HairStyle = 1,
             Class = Class.Peasant,
-            Gold = 0,
+            
             AuthInfo =
             {
                 CreatedTime = DateTime.Now,
@@ -120,11 +120,13 @@ public class HybrasylFixture : IDisposable
                 BaseDex = 100, 
                 BaseCon = 100, 
                 BaseWis = 100,
+                BaseAc = 100,
                 Level = 99,
                 BaseHp = 10000,
                 Hp = 10000,
                 BaseMp = 10000,
-                Mp = 10000
+                Mp = 10000,
+                Gold = 0
             }
         };
         TestUser.AuthInfo.Save();

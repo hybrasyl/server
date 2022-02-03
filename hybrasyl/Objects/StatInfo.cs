@@ -23,6 +23,7 @@ using System;
 using System.Collections.Generic;
 using Hybrasyl.Enums;
 using Hybrasyl.Threading;
+using MoonSharp.Interpreter;
 using Newtonsoft.Json;
 
 namespace Hybrasyl.Objects;
@@ -47,6 +48,7 @@ public class StatusAttribute : Attribute
 
 
 [JsonObject(MemberSerialization.OptIn)]
+[MoonSharpUserData]
 public class StatInfo
 {
     // The actual lockable private properties
@@ -57,6 +59,7 @@ public class StatInfo
 
     private byte _level { get; set; }
     private uint _experience { get; set; } 
+    private uint _gold { get; set; }
     private byte _ability { get; set; } 
     private uint _abilityExp { get; set; }
     private uint _currentHp { get; set; }
@@ -81,16 +84,16 @@ public class StatInfo
     private double _bonusCrit { get; set; }
     private double _baseMagicCrit { get; set; }
     private double _bonusMagicCrit { get; set; }
-    private long _baseDmg { get; set; }
-    private long _bonusDmg { get; set; }
-    private long _baseHit { get; set; }
-    private long _bonusHit { get; set; }
+    private double _baseDmg { get; set; }
+    private double _bonusDmg { get; set; }
+    private double _baseHit { get; set; }
+    private double _bonusHit { get; set; }
     private long _baseAc { get; set; }
     private long _bonusAc { get; set; }
-    private long _baseMr { get; set; }
-    private long _bonusMr { get; set; }
-    private long _baseRegen { get; set; }
-    private long _bonusRegen { get; set; }
+    private double _baseMr { get; set; }
+    private double _bonusMr { get; set; }
+    private double _baseRegen { get; set; }
+    private double _bonusRegen { get; set; }
     private double _baseInboundDamageModifier { get; set; } 
     private double _bonusInboundDamageModifier { get; set; } 
     private double _baseInboundHealModifier { get; set; } 
@@ -140,6 +143,14 @@ public class StatInfo
     {
         get { lock (_lock) { return _experience; } }
         set { lock (_lock) { _experience = value; } }
+    }
+
+    [FormulaVariable]
+    [JsonProperty]
+    public uint Gold
+    {
+        get { lock (_lock) { return _gold; } }
+        set { lock (_lock) { _gold = value; } }
     }
 
     [FormulaVariable]
@@ -349,14 +360,14 @@ public class StatInfo
 
     [FormulaVariable]
     [JsonProperty]
-    public long BaseDmg
+    public double BaseDmg
     {
         get { lock (_lock) { return _baseDmg; } }
         set { lock (_lock) { _baseDmg = value; } }
     }
 
     [FormulaVariable]
-    public long BonusDmg
+    public double BonusDmg
     {
         get { lock (_lock) { return _bonusDmg; } }
         set { lock (_lock) { _bonusDmg = value; } }
@@ -365,14 +376,14 @@ public class StatInfo
 
     [FormulaVariable]
     [JsonProperty]
-    public long BaseHit
+    public double BaseHit
     {
         get { lock (_lock) { return _baseHit; } }
         set { lock (_lock) { _baseHit = value; } }
     }
 
     [FormulaVariable]
-    public long BonusHit
+    public double BonusHit
     {
         get { lock (_lock) { return _bonusHit; } }
         set { lock (_lock) { _bonusHit = value; } }
@@ -395,7 +406,7 @@ public class StatInfo
 
     [FormulaVariable]
     [JsonProperty]
-    public long BaseMr
+    public double BaseMr
     {
         get { lock (_lock) { return _baseMr; } }
         set { lock (_lock) { _baseMr = value; } }
@@ -403,7 +414,7 @@ public class StatInfo
 
     [FormulaVariable]
     [JsonProperty]
-    public long BonusMr
+    public double BonusMr
     {
         get { lock (_lock) { return _bonusMr; } }
         set { lock (_lock) { _bonusMr = value; } }
@@ -411,14 +422,14 @@ public class StatInfo
 
     [FormulaVariable]
     [JsonProperty]
-    public long BaseRegen
+    public double BaseRegen
     {
         get { lock (_lock) { return _baseRegen; } }
         set { lock (_lock) { _baseRegen = value; } }
     }
 
     [FormulaVariable]
-    public long BonusRegen
+    public double BonusRegen
     {
         get { lock (_lock) { return _bonusRegen; } }
         set { lock (_lock) { _bonusRegen = value; } }
@@ -638,6 +649,24 @@ public class StatInfo
 
     [FormulaVariable] public double ManaSteal => BaseManaSteal + BonusManaSteal;
 
+    [FormulaVariable]
+    [JsonProperty]
+    public double BaseInboundDmgToMp
+    {
+        get { lock (_lock) { return _baseManaSteal; } }
+        set { lock (_lock) { _baseManaSteal = value; } }
+    }
+
+    [FormulaVariable]
+    public double BonusInboundDmgToMp
+    {
+        get { lock (_lock) { return _bonusManaSteal; } }
+        set { lock (_lock) { _bonusManaSteal = value; } }
+    }
+
+    [FormulaVariable] public double InboundDmgToMp => BaseInboundDmgToMp + BonusInboundDmgToMp;
+
+
     public Xml.ElementType BaseOffensiveElement
     {
         get
@@ -704,16 +733,10 @@ public class StatInfo
 
     public override string ToString() => $"Lv {Level} Hp {Hp} Mp {Mp} Stats {Str}/{Con}/{Int}/{Wis}/{Dex}";
 
- 
-    private static long BindToRange(long start, long? min, long? max)
-    {
-        if (min != null && start < min)
-            return min.GetValueOrDefault();
-        else if (max != null && start > max)
-            return max.GetValueOrDefault();
-        else
-            return start;
-    }
+
+    private static long BindToRange(long val, long min, long max) => val > max ? max : val < min ? min : val;
+
+    private static double BindToRange(double val, double min, double max) => val > max ? max : val < min ? min : val;
 
     [FormulaVariable]
     public uint MaximumHp
@@ -834,7 +857,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
-    public byte Dmg
+    public double Dmg
     {
         get
         {
@@ -848,7 +871,7 @@ public class StatInfo
         }
     }
 
-    public byte Hit
+    public double Hit
     {
         get
         {
@@ -867,7 +890,7 @@ public class StatInfo
     {
         get
         {
-            var value = 100 - Level / 3 + BonusAc;
+            var value = (BaseAc - Level / 3) + BonusAc;
 
             if (value > sbyte.MaxValue)
                 return sbyte.MaxValue;
@@ -880,7 +903,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
-    public sbyte Mr
+    public double Mr
     {
         get
         {
@@ -895,7 +918,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
-    public sbyte Regen
+    public double Regen
     {
         get
         {
@@ -918,15 +941,18 @@ public class StatInfo
     /// <param name="asBonus">Boolean indicating whether or not to apply the attributes in the passed object as bonuses or a base attribute change</param>
     public void Apply(StatInfo si1, bool experience = false, bool asBonus = false)
     {
-        // Always apply current hp/mp changes
+        if (si1 == null) return;
+        // Always apply current hp/mp/gold changes
         var hp = (long) Hp;
-        hp += DeltaHp;
+        hp += si1.DeltaHp;
         if (hp < 0) hp = 0;
         Hp = (uint) BindToRange(hp, 0, uint.MaxValue);
         var mp  = (long) Mp;
-        mp += DeltaMp;
+        mp += si1.DeltaMp;
         if (mp < 0) mp = 0;
         Mp = (uint) BindToRange(mp, 0, uint.MaxValue);
+        var gold = Gold + si1.Gold;
+        Gold = (uint) BindToRange(gold, 0, uint.MaxValue);
 
         if (asBonus)
         {
@@ -938,9 +964,10 @@ public class StatInfo
             BonusInt += si1.Int;
             BonusWis += si1.Wis;
             BonusCrit += si1.Crit;
+            BonusMagicCrit += si1.MagicCrit;
             BonusDmg += si1.Dmg;
             BonusHit += si1.Hit;
-            BonusAc += si1.Ac;
+            BonusAc += si1.BonusAc;
             BonusMr += si1.Mr;
             BonusRegen += si1.Regen;
             BonusInboundHealModifier += si1.InboundHealModifier;
@@ -950,10 +977,12 @@ public class StatInfo
             BonusReflectPhysical += si1.ReflectPhysical;
             BonusExtraGold += si1.ExtraGold;
             BonusDodge += si1.Dodge;
+            BonusMagicDodge += si1.MagicDodge;
             BonusExtraXp += si1.ExtraXp;
             BonusExtraItemFind += si1.ExtraItemFind;
-            BaseLifeSteal += si1.LifeSteal;
-            BaseManaSteal += si1.ManaSteal;
+            BonusLifeSteal += si1.LifeSteal;
+            BonusManaSteal += si1.ManaSteal;
+            BonusInboundDmgToMp += si1.InboundDmgToMp;
         }
         else
         {
@@ -965,9 +994,10 @@ public class StatInfo
             BaseInt += si1.Int;
             BaseWis += si1.Wis;
             BaseCrit += si1.Crit;
+            BaseMagicCrit += si1.MagicCrit;
             BaseDmg += si1.Dmg;
             BaseHit += si1.Hit;
-            BaseAc += si1.Ac;
+            BaseAc += si1.BaseAc;
             BaseMr += si1.Mr;
             BaseRegen += si1.Regen;
             BaseInboundHealModifier += si1.InboundHealModifier;
@@ -977,10 +1007,13 @@ public class StatInfo
             BaseReflectPhysical += si1.ReflectPhysical;
             BaseExtraGold += si1.ExtraGold;
             BaseDodge += si1.Dodge;
+            BaseMagicDodge += si1.MagicDodge;
             BaseExtraXp += si1.ExtraXp;
             BaseExtraItemFind += si1.ExtraItemFind;
             BaseLifeSteal += si1.LifeSteal;
             BaseManaSteal += si1.ManaSteal;
+            BaseInboundDmgToMp += si1.BaseInboundDmgToMp;
+
         }
 
         if (!experience) return;
@@ -998,6 +1031,8 @@ public class StatInfo
     /// <param name="asBonus">Boolean indicating whether or not to remove the attributes in the passed object as bonuses or a base attribute change</param>
     public void Remove(StatInfo si1, bool experience=false, bool asBonus = false)
     {
+        if (si1 == null) return;
+
         if (asBonus)
         {
             BonusHp -= si1.Hp;
@@ -1008,6 +1043,7 @@ public class StatInfo
             BonusInt -= si1.Int;
             BonusWis -= si1.Wis;
             BonusCrit -= si1.Crit;
+            BonusMagicCrit -= si1.MagicCrit;
             BonusDmg -= si1.Dmg;
             BonusHit -= si1.Hit;
             BonusAc -= si1.Ac;
@@ -1020,10 +1056,12 @@ public class StatInfo
             BonusReflectPhysical -= si1.ReflectPhysical;
             BonusExtraGold -= si1.ExtraGold;
             BonusDodge -= si1.Dodge;
+            BonusMagicDodge -= si1.MagicDodge;
             BonusExtraXp -= si1.ExtraXp;
             BonusExtraItemFind -= si1.ExtraItemFind;
-            BaseLifeSteal -= si1.LifeSteal;
-            BaseManaSteal -= si1.ManaSteal;
+            BonusLifeSteal -= si1.LifeSteal;
+            BonusManaSteal -= si1.ManaSteal;
+            BonusInboundDmgToMp -= si1.InboundDmgToMp;
         }
         else
         {
@@ -1035,6 +1073,7 @@ public class StatInfo
             BaseInt -= si1.Int;
             BaseWis -= si1.Wis;
             BaseCrit -= si1.Crit;
+            BaseMagicCrit -= si1.MagicCrit;
             BaseDmg -= si1.Dmg;
             BaseHit -= si1.Hit;
             BaseAc -= si1.Ac;
@@ -1047,10 +1086,13 @@ public class StatInfo
             BaseReflectPhysical -= si1.ReflectPhysical;
             BaseExtraGold -= si1.ExtraGold;
             BaseDodge -= si1.Dodge;
+            BaseMagicDodge -= si1.MagicDodge;
             BaseExtraXp -= si1.ExtraXp;
             BaseExtraItemFind -= si1.ExtraItemFind;
             BaseLifeSteal -= si1.LifeSteal;
             BaseManaSteal -= si1.ManaSteal;
+            BaseInboundDmgToMp -= si1.InboundDmgToMp;
+
         }
 
         if (!experience) return;

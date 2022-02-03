@@ -98,7 +98,9 @@ public class HybrasylUser
     /// <summary>
     /// Amount of gold the user currently has.
     /// </summary>
-    public uint Gold => User.Gold;
+    public uint Gold => User.Stats.Gold;
+
+    public StatInfo Stats => User.Stats;
 
     /// <summary>
     /// Whether the user is alive or not.

@@ -208,7 +208,14 @@ public class Login : Server
             newPlayer.HairColor = hairColor;
             newPlayer.HairStyle = hairStyle;
             newPlayer.Class = Xml.Class.Peasant;
-            newPlayer.Gold = 0;
+            newPlayer.Stats.Level = 1;
+            newPlayer.Stats.BaseStr = 3;
+            newPlayer.Stats.BaseInt = 3;
+            newPlayer.Stats.BaseDex = 3;
+            newPlayer.Stats.BaseWis = 3;
+            newPlayer.Stats.BaseCon = 3;
+            newPlayer.Stats.BaseHp = 50;
+            newPlayer.Stats.BaseMp = 50;
             newPlayer.AuthInfo.CreatedTime = DateTime.Now;
             newPlayer.AuthInfo.FirstLogin = true;
             newPlayer.AuthInfo.PasswordHash = client.NewCharacterPassword;

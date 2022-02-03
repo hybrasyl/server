@@ -234,7 +234,7 @@ public class Exchange
             _sourceGold += amount;
             _source.SendExchangeUpdate(amount);
             _target.SendExchangeUpdate(amount, false);
-            _source.Gold -= amount;
+            _source.Stats.Gold -= amount;
             _source.UpdateAttributes(StatUpdateFlags.Experience);
 
         }
@@ -248,7 +248,7 @@ public class Exchange
             _targetGold += amount;
             _target.SendExchangeUpdate(amount);
             _source.SendExchangeUpdate(amount, false);
-            _target.Gold -= amount;
+            _target.Stats.Gold -= amount;
             _target.UpdateAttributes(StatUpdateFlags.Experience);
         }
         else

@@ -550,7 +550,7 @@ public class User : Creature
             };
             World.Insert(newGold);
             Map.AddGold(X, Y, newGold);
-            Gold = 0;
+            Stats.Gold = 0;
         }
 
         // Experience penalty
@@ -900,6 +900,8 @@ public class User : Creature
     /// <param name="toApply">The ItemObject used to calculate bonuses.</param>
     public void ApplyBonuses(ItemObject toApply)
     {
+        // Evaluate formulas if needed
+        toApply.EvalFormula(this);
         Stats.ApplyBonus(toApply.Stats);
 
         switch (toApply.EquipmentSlot)
@@ -1753,11 +1755,15 @@ public class User : Creature
             x08.WriteByte((byte)(Mailbox.HasUnreadMessages ? 0x10 : 0x00));
             x08.WriteByte((byte)Stats.BaseOffensiveElement);
             x08.WriteByte((byte)Stats.BaseDefensiveElement);
-            x08.WriteSByte(Stats.Mr);
+            // Client peculiarity means MR is only displayed in increments of 10.
+            // We do 0-64% which translates to 0-80 on client side
+            x08.WriteSByte((sbyte)(Math.Floor(Stats.Mr / 8)*10)); 
             x08.WriteByte(0);
             x08.WriteSByte(Stats.Ac);
-            x08.WriteByte(Stats.Dmg);
-            x08.WriteByte(Stats.Hit);
+            // Translate percentages back into 0-128s, unfortunately negatives just have to
+            // display as 255
+            x08.WriteByte((byte) (Stats.Dmg > 0 ? Math.Max(Stats.Dmg * 8, 128) : 255));
+            x08.WriteByte((byte) (Stats.Hit > 0 ? Math.Max(Stats.Hit * 8, 128) : 255));
         }
         Enqueue(x08);
     }
@@ -2045,7 +2051,7 @@ public class User : Creature
 
         GameLog.DebugFormat("Attempting to add {0} gold", amount);
 
-        Gold += amount;
+        Stats.Gold += amount;
 
         UpdateAttributes(StatUpdateFlags.Experience);
         return true;
@@ -2072,7 +2078,7 @@ public class User : Creature
             return false;
         }
 
-        Gold -= amount;
+        Stats.Gold -= amount;
 
         UpdateAttributes(StatUpdateFlags.Experience);
         return true;
@@ -2406,7 +2412,7 @@ public class User : Creature
             GameLog.DebugFormat("Slot wasn't null, aborting");
             return false;
         }
-            
+        
         ApplyBonuses(itemObject);
         UpdateAttributes(StatUpdateFlags.Stats);
         SendEquipItem(itemObject, slot);

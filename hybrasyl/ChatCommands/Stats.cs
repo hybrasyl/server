@@ -155,7 +155,7 @@ class GoldCommand : ChatCommand
         if (!uint.TryParse(args[0], out uint amount))
             return Fail("The value you specified could not be parsed (uint)");
 
-        user.Gold = amount;
+        user.Stats.Gold = amount;
         user.UpdateAttributes(StatUpdateFlags.Experience);
         return Success($"{user.Name} - Gold increased by {amount}.");
     }

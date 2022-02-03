@@ -2769,8 +2769,8 @@ public partial class World : Server
             {
                 // Give gold to Creature and go about our lives
                 var creature = (Objects.Creature)target;
-                creature.Gold += goldAmount;
-                user.Gold -= goldAmount;
+                creature.Stats.Gold += goldAmount;
+                user.Stats.Gold -= goldAmount;
                 user.UpdateAttributes(StatUpdateFlags.Stats);
             }
             else

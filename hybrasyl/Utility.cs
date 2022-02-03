@@ -247,21 +247,22 @@ namespace Hybrasyl
         public const int CIRCLE_4 = 90;
     }
 
+    // TODO: move to xml
     static class StatLimitConstants
     {
-        public static int MIN_STAT = 1; // str, int, wis, con, dex
-        public static int MAX_STAT = 255;
-        public static int MIN_BASE_HPMP = 1;
-        public static int? MAX_BASE_HPMP = null;
+        public static long MIN_STAT = 1; // str, int, wis, con, dex
+        public static long MAX_STAT = 255;
+        public static long MIN_BASE_HPMP = 1;
+        public static long MAX_BASE_HPMP = uint.MaxValue;
 
-        public static int MIN_DMG = 0;
-        public static int? MAX_DMG = null;
-        public static int MIN_HIT = 0;
-        public static int? MAX_HIT = null;
-        public static int MIN_AC = -90;
-        public static int MAX_AC = 100;
-        public static int MIN_MR = 0;
-        public static int MAX_MR = 8;
+        public static double MIN_DMG = -16.0;
+        public static double MAX_DMG = 16.0;
+        public static double MIN_HIT = -16.0;
+        public static double MAX_HIT = 16.0;
+        public static long MIN_AC = -90;
+        public static long MAX_AC = 100;
+        public static double MIN_MR = -16.0;
+        public static double MAX_MR = 16.0;
     }
 
     static class DialogTypes

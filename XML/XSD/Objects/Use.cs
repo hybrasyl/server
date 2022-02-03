@@ -29,7 +29,6 @@ public partial class Use
     #region Private fields
     private string _script;
     private ItemUseTeleport _teleport;
-    private ItemUsePlayerEffect _playerEffect;
     private ItemUseEffect _effect;
     private ItemUseSound _sound;
     private static XmlSerializer _serializerXml;
@@ -56,18 +55,6 @@ public partial class Use
         set
         {
             _teleport = value;
-        }
-    }
-    
-    public ItemUsePlayerEffect PlayerEffect
-    {
-        get
-        {
-            return _playerEffect;
-        }
-        set
-        {
-            _playerEffect = value;
         }
     }
     

@@ -199,13 +199,6 @@
     </xs:simpleContent>
   </xs:complexType>
 
-  <xs:complexType name="ItemUsePlayerEffect">
-    <xs:attribute name="Gold" default="0" type="xs:int" />
-    <xs:attribute name="Hp" default="0" type="xs:int" />
-    <xs:attribute name="Mp" default="0" type="xs:int" />
-    <xs:attribute name="Xp" default="0" type="xs:int" />
-  </xs:complexType>
-
   <xs:complexType name="ItemUseEffect">
     <xs:attribute name="Id" type="xs:unsignedShort" use="required" />
     <xs:attribute name="Speed" type="xs:unsignedByte" default="100" />
@@ -219,7 +212,6 @@
     <xs:sequence>
       <xs:element name="Script" type="xs:string" minOccurs="0" maxOccurs="1" />
       <xs:element name="Teleport" minOccurs="0" maxOccurs="1" type="hyb:ItemUseTeleport"/>
-      <xs:element name="PlayerEffect" minOccurs="0" maxOccurs="1" type="hyb:ItemUsePlayerEffect"/>
       <xs:element name="Effect" minOccurs="0" maxOccurs="1" type="hyb:ItemUseEffect"/>
       <xs:element name="Sound" minOccurs="0" maxOccurs="1" type="hyb:ItemUseSound"/>
     </xs:sequence>
