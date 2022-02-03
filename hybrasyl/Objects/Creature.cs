@@ -974,6 +974,7 @@ public class Creature : VisibleObject
             }
         }
 
+
         if (attacker is User && this is Monster)
         {
             if (FirstHitter == null || !World.UserConnected(FirstHitter.Name) || ((DateTime.Now - LastHitTime).TotalSeconds > Constants.MONSTER_TAGGING_TIMEOUT)) FirstHitter = attacker;
@@ -986,6 +987,7 @@ public class Creature : VisibleObject
         {
             double armor = Stats.Ac * -1 + 100;
             var elementTable = Game.World.WorldData.Get<Xml.ElementTable>("ElementTable");
+            // TODO: null ref
             var multiplier = elementTable.Source.First(x => x.Element == element).Target.FirstOrDefault(x => x.Element == Stats.BaseDefensiveElement).Multiplier;
             var reduction = damage * (armor / (armor + 50));
             damage = (damage - reduction) * multiplier;
@@ -1022,6 +1024,29 @@ public class Creature : VisibleObject
                 {
                     damage += damage * 2;
                     Effect(24, 100);
+                }
+            }
+            // negative dodge, aka "i rolled a 1 and hit myself in the face"
+            if (damageType != DamageType.Magical && Stats.Dodge < 0)
+            {
+                if (Random.Shared.Next(100) <= Stats.Dodge * -1)
+                {
+                    Effect(68, 100);
+                    (attacker as User)?.SendSystemMessage("You fumble, and strike yourself hard!");
+                    attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaHp = (long)(damage * -1 * 0.25) });
+                    return;
+                }
+            }
+
+            // negative magic dodge, aka "i rolled a 1 and my robes exploded"
+            if (damageType == DamageType.Magical && Stats.MagicDodge < 0)
+            {
+                if (Random.Shared.Next(100) <= Stats.MagicDodge * -1)
+                {
+                    Effect(68, 100);
+                    (attacker as User)?.SendSystemMessage("You stammer, and flames envelop you!");
+                    attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaHp = (long)(damage * -1 * 0.25) });
+                    return;
                 }
             }
         }
@@ -1075,7 +1100,17 @@ public class Creature : VisibleObject
                 attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaMp = (long) stolen});
         }
 
-        Stats.Hp = (Stats.Hp - normalized) < 0 ? 0 : Stats.Hp - normalized;
+        // Lastly, handle damage to MP redirection
+
+        if (attacker != null && Stats.InboundDmgToMp > 0)
+        {
+            var redirected = Stats.InboundDmgToMp * normalized;
+            if (redirected > 0)
+                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaMp = (long)redirected });
+
+        }
+
+        Stats.Hp = ((int)Stats.Hp - normalized) < 0 ? 0 : Stats.Hp - normalized;
 
         SendDamageUpdate(this);
 
