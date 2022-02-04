@@ -81,6 +81,7 @@ namespace Hybrasyl.Objects
         [JsonProperty]
         public bool IsMaster { get; set; }
         public UserGroup Group { get; set; }
+        public GroupRecruit GroupRecruit { get; set; }
 
         public int LevelCircle
         {
@@ -1478,7 +1479,7 @@ namespace Hybrasyl.Objects
                 Invisible = Transparent,
                 NameStyle = NameStyle,
                 Name = Name,
-                GroupName = string.Empty, // TODO: Group name
+                GroupName = GroupRecruit?.Name ?? string.Empty,
                 MonsterSprite = MonsterSprite,
                 HairColor = color,
             }.Packet());
@@ -2775,6 +2776,7 @@ namespace Hybrasyl.Objects
                 Group = Group,
                 IsGrouped = Grouped,
                 CanGroup = Grouping,
+                GroupRecruit = GroupRecruit ?? Group?.RecruitInfo ?? null,
                 Class = (byte)Class,
                 ClassName = IsMaster ? "Master" : Hybrasyl.Constants.REVERSE_CLASSES[(int)Class].Capitalize(),
                 GuildName = GetGuildInfo().GuildName,

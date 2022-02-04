@@ -2728,7 +2728,7 @@ namespace Hybrasyl
             // stage:
             //   0x02 = user is sending initial request to invitee
             //   0x03 = invitee responds with a "yes"
-            byte stage = packet.ReadByte();
+            var stage = (GroupClientPacketType)packet.ReadByte();
 
             if (!TryGetActiveUser(packet.ReadString8(), out User partner))
                 return;
@@ -2747,7 +2747,7 @@ namespace Hybrasyl
                 // Stage 0x02 means that a user is sending an initial request to the invitee.
                 // That means we need to check whether the user is a valid candidate for
                 // grouping, and send the confirmation dialog if so.
-                case 0x02:
+                case GroupClientPacketType.Request:
                     GameLog.DebugFormat("{0} invites {1} to join a group.", user.Name, partner.Name);
 
                     // Remove the user from the group. Kinda logically weird beside all of this other stuff
@@ -2775,7 +2775,7 @@ namespace Hybrasyl
 
                     // Send partner a dialog asking whether they want to group (opcode 0x63).
                     ServerPacket response = new ServerPacket(0x63);
-                    response.WriteByte((byte)0x01);
+                    response.WriteByte((byte)GroupServerPacketType.Ask);
                     response.WriteString8(user.Name);
                     response.WriteByte(0);
                     response.WriteByte(0);
@@ -2785,11 +2785,61 @@ namespace Hybrasyl
                 // Stage 0x03 means that the invitee has responded with a "yes" to the grouping
                 // request. We need to add them to the original user's group. Note that in this
                 // case the partner sent the original invitation.
-                case 0x03:
+                case GroupClientPacketType.Answer:
                     GameLog.Debug("Invitation accepted. Grouping.");
                     partner.InviteToGroup(user);
                     break;
+                case GroupClientPacketType.RecruitInit:
+                    if (partner != user)
+                    {
+                        return;
+                    }
 
+                    if (user.Group != null && user != user.Group.Founder)
+                    {
+                        user.SendSystemMessage("Only the group leader can recruit.");
+                        return;
+                    }
+                    
+                    if (!user.Grouping)
+                    {
+                        user.Grouping = true;
+                    }
+
+                    user.GroupRecruit = GroupRecruit.Read(packet, user);
+                    user.Show();
+                    break;
+                case GroupClientPacketType.RecruitInfo:
+                    if (partner == user || partner.GroupRecruit == null)
+                    {
+                        return;
+                    }
+
+                    partner.GroupRecruit.ShowTo(user);
+                    break;
+                case GroupClientPacketType.RecruitEnd:
+                    if (partner != user || user.GroupRecruit == null)
+                    {
+                        return;
+                    }
+
+                    user.GroupRecruit = null;
+                    user.Show();
+                    break;
+                case GroupClientPacketType.RecruitAsk:
+                    if (partner == user || partner.GroupRecruit == null)
+                    {
+                        return;
+                    }
+
+                    if (user.Group != null)
+                    {
+                        user.SendSystemMessage(user.Group == partner.Group ? "You are already in that group." : "You are already in someone else's group.");
+                        return;
+                    }
+
+                    partner.GroupRecruit.InviteToGroup(user);
+                    break;
                 default:
                     GameLog.Error("Unknown GroupRequest stage. No action taken.");
                     break;
@@ -2807,6 +2857,12 @@ namespace Hybrasyl
             if (user.Grouped)
             {
                 user.Group.Remove(user);
+            }
+
+            if (user.GroupRecruit != null)
+            {
+                user.GroupRecruit = null;
+                user.Show();
             }
 
             user.Grouping = !user.Grouping;
