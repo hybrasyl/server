@@ -1520,23 +1520,24 @@ public partial class World : Server
             if (user.Condition.Comatose || !user.Condition.Alive) return;
             uint hpRegen = 0;
             uint mpRegen = 0;
-            double fixedRegenBuff = Math.Min(user.Stats.Regen * 0.0015, 0.15);
-            fixedRegenBuff = Math.Max(fixedRegenBuff, 0.125);
             if (user.Stats.Hp != user.Stats.MaximumHp)
             {
                 hpRegen = (uint)Math.Min(user.Stats.MaximumHp * (0.1 * Math.Max(user.Stats.Con, (user.Stats.Con - user.Stats.Level)) * 0.01),
                     user.Stats.MaximumHp * 0.20);
-                hpRegen = hpRegen + (uint)(fixedRegenBuff * user.Stats.MaximumHp);
             }               
             if (user.Stats.Mp != user.Stats.MaximumMp)
             {
                 mpRegen = (uint)Math.Ceiling(Math.Min(user.Stats.MaximumMp * (0.1 * Math.Max(user.Stats.Int, (user.Stats.Int - user.Stats.Level)) * 0.01),
                     user.Stats.MaximumMp * 0.20));
-                mpRegen += (uint)(fixedRegenBuff * user.Stats.MaximumMp);
             }
             GameLog.DebugFormat("User {0}: regen HP {1}, MP {2}", user.Name,
                 hpRegen, mpRegen);
 
+            if (user.Stats.Regen > 0)
+            {
+                hpRegen = (uint) (hpRegen + hpRegen * user.Stats.Regen);
+                mpRegen = (uint) (hpRegen + hpRegen * user.Stats.Regen);
+            }
             user.Stats.Hp = Math.Min(user.Stats.Hp + hpRegen, user.Stats.MaximumHp);
             user.Stats.Mp = Math.Min(user.Stats.Mp + mpRegen, user.Stats.MaximumMp);
             user.UpdateAttributes(StatUpdateFlags.Current);
