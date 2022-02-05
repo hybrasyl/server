@@ -112,7 +112,7 @@ public class VisibleObject : WorldObject
 
     public virtual void OnClick(User invoker) { }
     public virtual void OnDeath() { }
-    public virtual void OnDamage(Creature attacker, uint damage) { }
+    public virtual void OnDamage(DamageEvent damageEvent) { }
     public virtual void OnHeal(Creature healer, uint damage) { }
 
     public virtual void OnHear(VisibleObject speaker, string text, bool shout = false) { }

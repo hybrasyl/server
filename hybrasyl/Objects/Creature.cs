@@ -954,7 +954,7 @@ public class Creature : VisibleObject
         if (this is Monster ms && !Condition.Alive) return;
 
         // Handle dodging first
-        if (damageType != DamageType.Magical && Stats.Dodge > 0)
+        if (damageType == DamageType.Physical && Stats.Dodge > 0 && !damageFlags.HasFlag(DamageFlags.NoDodge))
         {
             var dodgeReduction = attacker == null ? 0 : attacker.Stats.Hit;
             if (Random.Shared.Next(100) <= Stats.Dodge - dodgeReduction)
@@ -964,7 +964,7 @@ public class Creature : VisibleObject
             }
         }
 
-        if (damageType == DamageType.Magical && Stats.MagicDodge > 0)
+        if (damageType == DamageType.Magical && Stats.MagicDodge > 0 && !damageFlags.HasFlag(DamageFlags.NoDodge))
         {
             var dodgeReduction = attacker == null ? 0 : attacker.Stats.Hit;
             if (Random.Shared.Next(100) <= Stats.MagicDodge - dodgeReduction)
@@ -974,7 +974,6 @@ public class Creature : VisibleObject
             }
         }
 
-
         if (attacker is User && this is Monster)
         {
             if (FirstHitter == null || !World.UserConnected(FirstHitter.Name) || ((DateTime.Now - LastHitTime).TotalSeconds > Constants.MONSTER_TAGGING_TIMEOUT)) FirstHitter = attacker;
@@ -983,25 +982,32 @@ public class Creature : VisibleObject
 
         LastHitTime = DateTime.Now;
 
-        if (damageType != Xml.DamageType.Direct || !damageFlags.HasFlag(DamageFlags.NoElement))
+        // handle ac
+        if (damageType != DamageType.Direct && !damageFlags.HasFlag(DamageFlags.NoResistance))
         {
             double armor = Stats.Ac * -1 + 100;
+            var reduction = damage * (armor / (armor + 50));
+            damage -= reduction;
+        }
+
+        // handle elements
+        if (damageType != DamageType.Direct && !damageFlags.HasFlag(DamageFlags.NoElement))
+        {
             var elementTable = Game.World.WorldData.Get<Xml.ElementTable>("ElementTable");
             // TODO: null ref
             var multiplier = elementTable.Source.First(x => x.Element == element).Target.FirstOrDefault(x => x.Element == Stats.BaseDefensiveElement).Multiplier;
-            var reduction = damage * (armor / (armor + 50));
-            damage = (damage - reduction) * multiplier;
+            damage *= multiplier;
         }
 
         // Handle dmg/mr/crit/magiccrit
-        if (attacker != null)
+        if (attacker != null && damageType != DamageType.Direct)
         {
             _mLastHitter = attacker.Id;
             if (attacker.Stats.Dmg > 0)
                 damage += (damage * attacker.Stats.Dmg);
             else
                 damage -= (damage * attacker.Stats.Dmg);
-            if (damageType == DamageType.Magical)
+            if (damageType == DamageType.Magical && !damageFlags.HasFlag(DamageFlags.NoResistance))
             {
                 if (Stats.Mr > 0)
                     damage -= (damage * Stats.Mr);
@@ -1009,7 +1015,7 @@ public class Creature : VisibleObject
                     damage += (damage * Stats.Mr * -1);
             }
 
-            if (attacker.Stats.Crit > 0 && damageType == DamageType.Physical)
+            if (attacker.Stats.Crit > 0 && damageType == DamageType.Physical && !damageFlags.HasFlag(DamageFlags.NoCrit))
             {
                 if (Random.Shared.Next(100) <= attacker.Stats.Crit)
                 {
@@ -1018,7 +1024,7 @@ public class Creature : VisibleObject
                 }
             }
 
-            if (attacker.Stats.MagicCrit > 0 && damageType == DamageType.Magical)
+            if (attacker.Stats.MagicCrit > 0 && damageType == DamageType.Magical && !damageFlags.HasFlag(DamageFlags.NoCrit))
             {
                 if (Random.Shared.Next(100) <= attacker.Stats.Crit)
                 {
@@ -1026,6 +1032,7 @@ public class Creature : VisibleObject
                     Effect(24, 100);
                 }
             }
+
             // negative dodge, aka "i rolled a 1 and hit myself in the face"
             if (damageType != DamageType.Magical && Stats.Dodge < 0)
             {
@@ -1058,15 +1065,17 @@ public class Creature : VisibleObject
         else if (normalized > Stats.Hp)
             normalized = Stats.Hp;
 
-        OnDamage(attacker, normalized);
+        OnDamage(new DamageEvent { Attacker = attacker, Damage = normalized, Flags = damageFlags, Type = damageType});
 
         if (AbsoluteImmortal || Condition.IsInvulnerable) return;
 
-        if (damageType == Xml.DamageType.Physical && (AbsoluteImmortal || PhysicalImmortal))
-            return;
-
-        if (damageType == Xml.DamageType.Magical && (AbsoluteImmortal || MagicalImmortal))
-            return;
+        switch (damageType)
+        {
+            case DamageType.Physical when AbsoluteImmortal || PhysicalImmortal || Condition.IsInvulnerable:
+            case DamageType.Magical when AbsoluteImmortal || MagicalImmortal || Condition.IsInvulnerable:
+            case DamageType.Direct when AbsoluteImmortal:
+                return;
+        }
 
         // Handle reflection and steals. For now these are handled as straight hp/mp effects
         // without mitigation.
@@ -1115,18 +1124,16 @@ public class Creature : VisibleObject
         SendDamageUpdate(this);
 
         // TODO: Separate this out into a control message
-        if (Stats.Hp == 0 && onDeath)
-        {
-            if (this is Monster) Condition.Alive = false;
-            OnDeath();
-        }
+        if (Stats.Hp != 0 || !onDeath) return;
+        if (this is Monster) Condition.Alive = false;
+        OnDeath();
     }
 
     private void SendDamageUpdate(Creature creature)
     {
         if (Map == null) return;
         var percent = ((creature.Stats.Hp / (double)creature.Stats.MaximumHp) * 100);
-        var healthbar = new ServerPacketStructures.HealthBar() { CurrentPercent = (byte)percent, ObjId = creature.Id };
+        var healthbar = new ServerPacketStructures.HealthBar { CurrentPercent = (byte)percent, ObjId = creature.Id };
 
         foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>())
         {
@@ -1137,8 +1144,7 @@ public class Creature : VisibleObject
 
     public override void ShowTo(VisibleObject obj)
     {
-        if (!(obj is User)) return;
-        var user = (User)obj;
+        if (!(obj is User user)) return;
         user.SendVisibleCreature(this);
     }
 
@@ -1165,25 +1171,10 @@ public class Creature : VisibleObject
         return SessionCookies;
     }
 
-    public string GetCookie(string cookieName)
-    {
-        string value;
-        if (Cookies.TryGetValue(cookieName, out value))
-        {
-            return value;
-        }
-        return null;
-    }
+    public string GetCookie(string cookieName) => Cookies.TryGetValue(cookieName, out var value) ? value : null;
 
-    public string GetSessionCookie(string cookieName)
-    {
-        string value;
-        if (SessionCookies.TryGetValue(cookieName, out value))
-        {
-            return value;
-        }
-        return null;
-    }
+    public string GetSessionCookie(string cookieName) => SessionCookies.TryGetValue(cookieName, out var value) ? value : null;
+    
 
     public bool HasCookie(string cookieName) => Cookies.Keys.Contains(cookieName);
     public bool HasSessionCookie(string cookieName) => SessionCookies.Keys.Contains(cookieName);

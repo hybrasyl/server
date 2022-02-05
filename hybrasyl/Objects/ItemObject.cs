@@ -336,9 +336,19 @@ public class ItemObject : VisibleObject
             return;
         }
 
+        GameLog.InfoFormat($"User {trigger.Name}: used item {Name}");
+
+        if (Consumable && Template.Properties.StatModifiers != null)
+        {
+            var statChange = NumberCruncher.CalculateItemModifiers(this, trigger);
+            trigger.Stats.Apply(statChange);
+            trigger.UpdateAttributes(StatUpdateFlags.Full);
+        }
+
+        if (Use == null) return;
+
         // Run through all the different potential uses. We allow combinations of any
         // use specified in the item XML.
-        GameLog.InfoFormat($"User {trigger.Name}: used item {Name}");
 
         if (Use.Script != null)
         {
@@ -356,10 +366,6 @@ public class ItemObject : VisibleObject
         {
             trigger.SendEffect(trigger.Id, Use.Effect.Id, Use.Effect.Speed); 
         }
-
-        var statChange = NumberCruncher.CalculateItemModifiers(this, trigger);
-        trigger.Stats.ApplyBase(statChange);
-        trigger.UpdateAttributes(StatUpdateFlags.Full);
         
         if (Use.Sound != null)
         {

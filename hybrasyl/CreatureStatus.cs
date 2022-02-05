@@ -297,9 +297,9 @@ public class CreatureStatus : ICreatureStatus
     private void ProcessStatModifiers(bool remove = false)
     {
         if (remove) 
-            Target.Stats.RemoveBonus(BonusModifiers);
+            Target.Stats.Remove(BonusModifiers);
         else
-            Target.Stats.ApplyBonus(BonusModifiers);
+            Target.Stats.Apply(BonusModifiers);
     }
 
     private (double Heal, DamageOutput Damage) CalculateNumericEffects(Xml.Castable castable, Xml.ModifierEffect effect, Creature source)

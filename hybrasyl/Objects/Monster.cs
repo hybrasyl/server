@@ -25,6 +25,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Hybrasyl.Enums;
 using Hybrasyl.Scripting;
+using Hybrasyl.Xml;
 
 namespace Hybrasyl.Objects;
 
@@ -262,19 +263,19 @@ public class Monster : Creature, ICloneable
         IsHostile = true;
     }
 
-    public override void OnDamage(Creature attacker, uint damage)
+    public override void OnDamage(DamageEvent damageEvent)
     {
         lock (_lock)
         {
-            if (attacker != null)
+            if (damageEvent.Attacker != null && !damageEvent.Flags.HasFlag(DamageFlags.NoThreat))
             {
-                if (!ThreatInfo.ContainsThreat(attacker))
+                if (!ThreatInfo.ContainsThreat(damageEvent.Attacker))
                 {
-                    ThreatInfo.AddNewThreat(attacker, damage);
+                    ThreatInfo.AddNewThreat(damageEvent.Attacker, damageEvent.Damage);
                 }
                 else
                 {
-                    ThreatInfo.IncreaseThreat(attacker, damage);
+                    ThreatInfo.IncreaseThreat(damageEvent.Attacker, damageEvent.Damage);
                 }
             }
 
@@ -285,11 +286,10 @@ public class Monster : Creature, ICloneable
             // FIXME: in the glorious future, run asynchronously with locking
             InitScript();
 
-            if (Script != null)
-            {
-                Script.SetGlobalValue("damage", damage);
-                Script.ExecuteFunction("OnDamage", this, attacker);
-            }
+            if (Script == null) return;
+
+            Script.SetGlobalValue("damage", damageEvent.Damage);
+            Script.ExecuteFunction("OnDamage", this, damageEvent.Attacker);
         }
     }
 
@@ -297,11 +297,10 @@ public class Monster : Creature, ICloneable
     {
         // FIXME: in the glorious future, run asynchronously with locking
         InitScript();
-        if (Script != null)
-        {
-            Script.SetGlobalValue("heal", heal);
-            Script.ExecuteFunction("OnHeal", this, healer);
-        }
+        if (Script == null) return;
+
+        Script.SetGlobalValue("heal", heal);
+        Script.ExecuteFunction("OnHeal", this, healer);
     }
     
     public Loot Loot;

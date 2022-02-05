@@ -20,12 +20,12 @@
  */
 
 
-using System.Reflection;
+using Hybrasyl.Dialogs;
 using Hybrasyl.Objects;
 using MoonSharp.Interpreter;
-using Hybrasyl.Dialogs;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 namespace Hybrasyl.Scripting;
 
@@ -66,6 +66,20 @@ public class HybrasylWorldObject
                 User => "user",
                 Gold => "gold",
                 _ => "idk"
+            };
+        }
+    }
+
+    // TODO: see above and also interface / subclass this, because this is gross
+    public StatInfo Stats 
+    {
+        get
+        {
+            return Obj switch
+            {
+                Creature c => c.Stats,
+                ItemObject i => i.Stats,
+                _ => null
             };
         }
     }

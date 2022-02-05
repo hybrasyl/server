@@ -143,12 +143,22 @@ public class HybrasylFixture : IDisposable
 
     public void ResetUserStats()
     {
-        TestUser.Stats.BaseInt = 3;
-        TestUser.Stats.BaseStr = 3;
-        TestUser.Stats.BaseDex = 3;
-        TestUser.Stats.BaseCon = 3;
-        TestUser.Stats.BaseWis = 3;
-        TestUser.Stats.Level = 1;
+        TestUser.Stats = new StatInfo
+        {
+            BaseInt = 3,
+            BaseStr = 3,
+            BaseDex = 3,
+            BaseCon = 3,
+            BaseWis = 3,
+            Level = 1,
+            Gold = 1000,
+            Hp = 50,
+            Mp = 50,
+            BaseHp = 50,
+            BaseMp = 50,
+            Experience = 1000,
+            BaseAc = 100,
+        };
         TestUser.Class = Class.Peasant;
     }
 

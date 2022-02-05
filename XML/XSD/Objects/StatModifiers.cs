@@ -45,7 +45,7 @@ public partial class StatModifiers
     private string _baseMr;
     private string _baseCrit;
     private string _baseMagicCrit;
-    private string _baseInboundDmgToMp;
+    private string _baseInboundDamageToMp;
     private ElementType _baseOffensiveElement;
     private ElementType _baseDefensiveElement;
     private ElementType _offensiveElementOverride;
@@ -91,7 +91,7 @@ public partial class StatModifiers
     private string _bonusExtraItemFind;
     private string _bonusLifeSteal;
     private string _bonusManaSteal;
-    private string _bonusInboundDmgToMp;
+    private string _bonusInboundDamageToMp;
     private static XmlSerializer _serializerXml;
     #endregion
     
@@ -338,15 +338,15 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
-    public string BaseInboundDmgToMp
+    public string BaseInboundDamageToMp
     {
         get
         {
-            return _baseInboundDmgToMp;
+            return _baseInboundDamageToMp;
         }
         set
         {
-            _baseInboundDmgToMp = value;
+            _baseInboundDamageToMp = value;
         }
     }
     
@@ -940,15 +940,15 @@ public partial class StatModifiers
     }
     
     [XmlAttribute]
-    public string BonusInboundDmgToMp
+    public string BonusInboundDamageToMp
     {
         get
         {
-            return _bonusInboundDmgToMp;
+            return _bonusInboundDamageToMp;
         }
         set
         {
-            _bonusInboundDmgToMp = value;
+            _bonusInboundDamageToMp = value;
         }
     }
     

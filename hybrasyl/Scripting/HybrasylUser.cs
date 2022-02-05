@@ -100,6 +100,9 @@ public class HybrasylUser
     /// </summary>
     public uint Gold => User.Stats.Gold;
 
+    /// <summary>
+    /// Access the StatInfo of the specified user directly (all stats).
+    /// </summary>
     public StatInfo Stats => User.Stats;
 
     /// <summary>

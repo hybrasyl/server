@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Hybrasyl;
+using Hybrasyl.Enums;
 using Hybrasyl.Xml;
 using Xunit;
 using Xunit.Sdk;
@@ -73,6 +74,8 @@ public class Equipment
     public void ClearEquipment()
     {
         Fixture.TestUser.Equipment.Clear();
+        Fixture.ResetUserStats();
+
         Assert.True(Fixture.TestUser.Equipment.Count == 0, "Equipment cleared but count is non-zero");
         Assert.True(Fixture.TestUser.Equipment.ToList().Count == 0,
             "Equipment cleared but enumerated count is non-zero");
@@ -86,6 +89,7 @@ public class Equipment
     public void EquipRestrictionCheckAbLevel()
     {
         Fixture.TestUser.Equipment.Clear();
+        Fixture.ResetUserStats();
 
         var item = Fixture.TestEquipment[EquipmentSlot.Armor].Clone();
         item.Properties.Restrictions = new ItemRestrictions
@@ -119,6 +123,7 @@ public class Equipment
     public void EquipRestrictionCheckClass()
     {
         Fixture.TestUser.Equipment.Clear();
+        Fixture.ResetUserStats();
 
         var item = Fixture.TestEquipment[EquipmentSlot.Armor].Clone();
         item.Properties.Restrictions = new ItemRestrictions
@@ -193,6 +198,7 @@ public class Equipment
     public void EquipRestrictionUniqueEquipped()
     {
         Fixture.TestUser.Equipment.Clear();
+        Fixture.ResetUserStats();
         var ring1 = Fixture.TestEquipment[EquipmentSlot.Ring].Clone();
         ring1.Properties.Flags = ItemFlags.UniqueEquipped;
         ring1.Name = "Unique Ring";
@@ -212,6 +218,7 @@ public class Equipment
     public void EquipRestrictionSlotRestriction()
     {
         Fixture.TestUser.Equipment.Clear();
+        Fixture.ResetUserStats();
         var ring = Fixture.TestEquipment[EquipmentSlot.Ring].Clone();
         ring.Name = "I Prohibit Armor";
         var armor = Fixture.TestEquipment[EquipmentSlot.Armor].Clone();
@@ -276,40 +283,45 @@ public class Equipment
     public void EquipEquipmentBonuses()
     {
         Fixture.TestUser.Equipment.Clear();
+        Fixture.ResetUserStats();
+
         var ring = Fixture.TestEquipment[EquipmentSlot.Ring].Clone();
         ring.Name = "I Give Bonuses";
-        ring.Properties.StatModifiers = new StatModifiers();
-        ring.Properties.StatModifiers.BonusHp = "50";
-        ring.Properties.StatModifiers.BonusMp = "50";
-        ring.Properties.StatModifiers.BonusStr = "50";
-        ring.Properties.StatModifiers.BonusCon = "50";
-        ring.Properties.StatModifiers.BonusDex = "50";
-        ring.Properties.StatModifiers.BonusInt = "50";
-        ring.Properties.StatModifiers.BonusWis = "50";
-        ring.Properties.StatModifiers.BonusCrit = "50";
-        ring.Properties.StatModifiers.BonusMagicCrit = "50";
-        ring.Properties.StatModifiers.BonusDmg = "50";
-        ring.Properties.StatModifiers.BonusHit = "50";
-        ring.Properties.StatModifiers.BonusAc = "-50";
-        ring.Properties.StatModifiers.BonusMr = "50";
-        ring.Properties.StatModifiers.BonusRegen = "50";
-        ring.Properties.StatModifiers.BonusInboundDamageModifier = "50";
-        ring.Properties.StatModifiers.BonusInboundHealModifier = "50";
-        ring.Properties.StatModifiers.BonusOutboundDamageModifier = "50";
-        ring.Properties.StatModifiers.BonusOutboundHealModifier = "50";
-        ring.Properties.StatModifiers.BonusReflectMagical = "50";
-        ring.Properties.StatModifiers.BonusReflectPhysical = "50";
-        ring.Properties.StatModifiers.BonusExtraGold = "50";
-        ring.Properties.StatModifiers.BonusDodge = "50";
-        ring.Properties.StatModifiers.BonusMagicDodge = "50";
-        ring.Properties.StatModifiers.BonusExtraXp = "50";
-        ring.Properties.StatModifiers.BonusExtraItemFind = "50";
-        ring.Properties.StatModifiers.BonusLifeSteal = "50";
-        ring.Properties.StatModifiers.BonusManaSteal = "50";
+        ring.Properties.StatModifiers = new StatModifiers
+        {
+            BonusHp = "50",
+            BonusMp = "50",
+            BonusStr = "50",
+            BonusCon = "50",
+            BonusDex = "50",
+            BonusInt = "50",
+            BonusWis = "50",
+            BonusCrit = "10",
+            BonusMagicCrit = "10",
+            BonusDmg = "10",
+            BonusHit = "10",
+            BonusAc = "-50",
+            BonusMr = "10",
+            BonusRegen = "10",
+            BonusInboundDamageModifier = "10",
+            BonusInboundHealModifier = "10",
+            BonusOutboundDamageModifier = "10",
+            BonusOutboundHealModifier = "10",
+            BonusReflectMagical = "10",
+            BonusReflectPhysical = "10",
+            BonusExtraGold = "10",
+            BonusDodge = "10",
+            BonusMagicDodge = "10",
+            BonusExtraXp = "10",
+            BonusExtraItemFind = "10",
+            BonusLifeSteal = "10",
+            BonusManaSteal = "10",
+            BonusInboundDamageToMp = "10"
+        };
 
         var ringObj = Game.World.CreateItem(ring);
-        Fixture.TestUser.AddEquipment(ringObj, (byte) EquipmentSlot.RightHand);
         var beforeAc = Fixture.TestUser.Stats.Ac;
+        Fixture.TestUser.AddEquipment(ringObj, (byte) EquipmentSlot.RightHand);
         var expectedAc = 100 - Fixture.TestUser.Stats.Level / 3 +
                          Fixture.TestUser.Stats.BonusAc;
 
@@ -317,8 +329,7 @@ public class Equipment
             $"Hp: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseHp + 50}, is {Fixture.TestUser.Stats.Hp})");
         Assert.True(Fixture.TestUser.Stats.MaximumMp == (Fixture.TestUser.Stats.BaseMp + 50),
             $"Mp: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseMp + 50}, is {Fixture.TestUser.Stats.Mp})");
-        // STR is already 255; additional STR should do nothing
-        Assert.True(Fixture.TestUser.Stats.Str == 255,
+        Assert.True(Fixture.TestUser.Stats.Str == (Fixture.TestUser.Stats.BaseStr + 50),
             $"Str: bonus from equipping item is not correct (should be 255, is {Fixture.TestUser.Stats.Str})");
         Assert.True(Fixture.TestUser.Stats.Con == (Fixture.TestUser.Stats.BaseCon + 50),
             $"Con: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseCon + 50}, is {Fixture.TestUser.Stats.Con})");
@@ -328,56 +339,112 @@ public class Equipment
             $"Int: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseInt + 50}, is {Fixture.TestUser.Stats.Int})");
         Assert.True(Fixture.TestUser.Stats.Wis == (Fixture.TestUser.Stats.BaseWis + 50),
             $"Wis: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseWis + 50}, is {Fixture.TestUser.Stats.Wis})");
-        Assert.True(Fixture.TestUser.Stats.Crit == (Fixture.TestUser.Stats.BaseCrit + 50),
-            $"Crit: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseCrit + 50}, is {Fixture.TestUser.Stats.Crit})");
-        Assert.True(Fixture.TestUser.Stats.MagicCrit == (Fixture.TestUser.Stats.BaseMagicCrit + 50),
-            $"MagicCrit: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseMagicCrit + 50}, is {Fixture.TestUser.Stats.MagicCrit})");
-        Assert.True(Fixture.TestUser.Stats.Dmg == (Fixture.TestUser.Stats.BaseDmg + 50),
-            $"Dmg: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseDmg + 50}, is {Fixture.TestUser.Stats.Dmg})");
-        Assert.True(Fixture.TestUser.Stats.Hit == (Fixture.TestUser.Stats.BaseHit + 50),
-            $"Hit: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseHit + 50}, is {Fixture.TestUser.Stats.Hit})");
+        Assert.True(Fixture.TestUser.Stats.Crit == (Fixture.TestUser.Stats.BaseCrit + 10),
+            $"Crit: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseCrit + 10}, is {Fixture.TestUser.Stats.Crit})");
+        Assert.True(Fixture.TestUser.Stats.MagicCrit == (Fixture.TestUser.Stats.BaseMagicCrit + 10),
+            $"MagicCrit: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseMagicCrit + 10}, is {Fixture.TestUser.Stats.MagicCrit})");
+        Assert.True(Fixture.TestUser.Stats.Dmg == (Fixture.TestUser.Stats.BaseDmg + 10),
+            $"Dmg: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseDmg + 10}, is {Fixture.TestUser.Stats.Dmg})");
+        Assert.True(Fixture.TestUser.Stats.Hit == (Fixture.TestUser.Stats.BaseHit + 10),
+            $"Hit: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseHit + 10}, is {Fixture.TestUser.Stats.Hit})");
         Assert.True(Fixture.TestUser.Stats.Ac == expectedAc,
             $"Ac: bonus from equipping item is not correct (should be {expectedAc}, is {Fixture.TestUser.Stats.Ac})");
-        Assert.True(Fixture.TestUser.Stats.Mr == (Fixture.TestUser.Stats.BaseMr + 50),
-            $"Mr: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseMr + 50}, is {Fixture.TestUser.Stats.Mr})");
-        Assert.True(Fixture.TestUser.Stats.Regen == (Fixture.TestUser.Stats.BaseRegen + 50),
-            $"Regen: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseRegen + 50}, is {Fixture.TestUser.Stats.Regen})");
+        Assert.True(Fixture.TestUser.Stats.Mr == (Fixture.TestUser.Stats.BaseMr + 10),
+            $"Mr: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseMr + 10}, is {Fixture.TestUser.Stats.Mr})");
+        Assert.True(Fixture.TestUser.Stats.Regen == (Fixture.TestUser.Stats.BaseRegen + 10),
+            $"Regen: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseRegen + 10}, is {Fixture.TestUser.Stats.Regen})");
         Assert.True(
-            Fixture.TestUser.Stats.InboundDamageModifier == (Fixture.TestUser.Stats.BaseInboundDamageModifier + 50),
-            $"InboundDamageModifier: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseInboundDamageModifier + 50}, is {Fixture.TestUser.Stats.InboundDamageModifier})");
-        Assert.True(Fixture.TestUser.Stats.InboundHealModifier == (Fixture.TestUser.Stats.BaseInboundHealModifier + 50),
-            $"InboundHealModifier: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseInboundHealModifier + 50}, is {Fixture.TestUser.Stats.InboundHealModifier})");
+            Fixture.TestUser.Stats.InboundDamageModifier == (Fixture.TestUser.Stats.BaseInboundDamageModifier + 10),
+            $"InboundDamageModifier: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseInboundDamageModifier + 10}, is {Fixture.TestUser.Stats.InboundDamageModifier})");
+        Assert.True(Fixture.TestUser.Stats.InboundHealModifier == (Fixture.TestUser.Stats.BaseInboundHealModifier + 10),
+            $"InboundHealModifier: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseInboundHealModifier + 10}, is {Fixture.TestUser.Stats.InboundHealModifier})");
         Assert.True(
-            Fixture.TestUser.Stats.OutboundDamageModifier == (Fixture.TestUser.Stats.BaseOutboundDamageModifier + 50),
-            $"OutboundDamageModifier: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseOutboundDamageModifier + 50}, is {Fixture.TestUser.Stats.OutboundDamageModifier})");
+            Fixture.TestUser.Stats.OutboundDamageModifier == (Fixture.TestUser.Stats.BaseOutboundDamageModifier + 10),
+            $"OutboundDamageModifier: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseOutboundDamageModifier + 10}, is {Fixture.TestUser.Stats.OutboundDamageModifier})");
         Assert.True(
-            Fixture.TestUser.Stats.OutboundHealModifier == (Fixture.TestUser.Stats.BaseOutboundHealModifier + 50),
-            $"OutboundHealModifier: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseOutboundHealModifier + 50}, is {Fixture.TestUser.Stats.OutboundHealModifier})");
-        Assert.True(Fixture.TestUser.Stats.ReflectMagical == (Fixture.TestUser.Stats.BaseReflectMagical + 50),
-            $"ReflectMagical: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseReflectMagical + 50}, is {Fixture.TestUser.Stats.ReflectMagical})");
-        Assert.True(Fixture.TestUser.Stats.ReflectPhysical == (Fixture.TestUser.Stats.BaseReflectPhysical + 50),
-            $"ReflectPhysical: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseReflectPhysical + 50}, is {Fixture.TestUser.Stats.ReflectPhysical})");
-        Assert.True(Fixture.TestUser.Stats.ExtraGold == (Fixture.TestUser.Stats.BaseExtraGold + 50),
-            $"ExtraGold: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseExtraGold + 50}, is {Fixture.TestUser.Stats.ExtraGold})");
-        Assert.True(Fixture.TestUser.Stats.Dodge == (Fixture.TestUser.Stats.BaseDodge + 50),
-            $"Dodge: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseDodge + 50}, is {Fixture.TestUser.Stats.Dodge})");
-        Assert.True(Fixture.TestUser.Stats.MagicDodge == (Fixture.TestUser.Stats.BaseMagicDodge + 50),
-            $"MagicDodge: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseMagicDodge + 50}, is {Fixture.TestUser.Stats.MagicDodge})");
-        Assert.True(Fixture.TestUser.Stats.ExtraXp == (Fixture.TestUser.Stats.BaseExtraXp + 50),
-            $"ExtraXp: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseExtraXp + 50}, is {Fixture.TestUser.Stats.ExtraXp})");
-        Assert.True(Fixture.TestUser.Stats.ExtraItemFind == (Fixture.TestUser.Stats.BaseExtraItemFind + 50),
-            $"ExtraItemFind: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseExtraItemFind + 50}, is {Fixture.TestUser.Stats.ExtraItemFind})");
-        Assert.True(Fixture.TestUser.Stats.LifeSteal == (Fixture.TestUser.Stats.BaseLifeSteal + 50),
-            $"LifeSteal: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseLifeSteal + 50}, is {Fixture.TestUser.Stats.LifeSteal})");
-        Assert.True(Fixture.TestUser.Stats.ManaSteal == (Fixture.TestUser.Stats.BaseManaSteal + 50),
-            $"ManaSteal: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseManaSteal + 50}, is {Fixture.TestUser.Stats.ManaSteal})");
+            Fixture.TestUser.Stats.OutboundHealModifier == (Fixture.TestUser.Stats.BaseOutboundHealModifier + 10),
+            $"OutboundHealModifier: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseOutboundHealModifier + 10}, is {Fixture.TestUser.Stats.OutboundHealModifier})");
+        Assert.True(Fixture.TestUser.Stats.ReflectMagical == (Fixture.TestUser.Stats.BaseReflectMagical + 10),
+            $"ReflectMagical: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseReflectMagical + 10}, is {Fixture.TestUser.Stats.ReflectMagical})");
+        Assert.True(Fixture.TestUser.Stats.ReflectPhysical == (Fixture.TestUser.Stats.BaseReflectPhysical + 10),
+            $"ReflectPhysical: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseReflectPhysical + 10}, is {Fixture.TestUser.Stats.ReflectPhysical})");
+        Assert.True(Fixture.TestUser.Stats.ExtraGold == (Fixture.TestUser.Stats.BaseExtraGold + 10),
+            $"ExtraGold: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseExtraGold + 10}, is {Fixture.TestUser.Stats.ExtraGold})");
+        Assert.True(Fixture.TestUser.Stats.Dodge == (Fixture.TestUser.Stats.BaseDodge + 10),
+            $"Dodge: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseDodge + 10}, is {Fixture.TestUser.Stats.Dodge})");
+        Assert.True(Fixture.TestUser.Stats.MagicDodge == (Fixture.TestUser.Stats.BaseMagicDodge + 10),
+            $"MagicDodge: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseMagicDodge + 10}, is {Fixture.TestUser.Stats.MagicDodge})");
+        Assert.True(Fixture.TestUser.Stats.ExtraXp == (Fixture.TestUser.Stats.BaseExtraXp + 10),
+            $"ExtraXp: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseExtraXp + 10}, is {Fixture.TestUser.Stats.ExtraXp})");
+        Assert.True(Fixture.TestUser.Stats.ExtraItemFind == (Fixture.TestUser.Stats.BaseExtraItemFind + 10),
+            $"ExtraItemFind: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseExtraItemFind + 10}, is {Fixture.TestUser.Stats.ExtraItemFind})");
+        Assert.True(Fixture.TestUser.Stats.LifeSteal == (Fixture.TestUser.Stats.BaseLifeSteal + 10),
+            $"LifeSteal: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseLifeSteal + 10}, is {Fixture.TestUser.Stats.LifeSteal})");
+        Assert.True(Fixture.TestUser.Stats.ManaSteal == (Fixture.TestUser.Stats.BaseManaSteal + 10),
+            $"ManaSteal: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseManaSteal + 10}, is {Fixture.TestUser.Stats.ManaSteal})");
+
+        // Now remove
+
+        Fixture.TestUser.RemoveEquipment((byte) EquipmentSlot.RightHand);
+
+        var currentAc = Fixture.TestUser.Stats.BaseAc - Fixture.TestUser.Stats.Level / 3 +
+                        Fixture.TestUser.Stats.BonusAc;
+        // TODO: maybe implement as equality operator on statinfo and keep our "original" stats around
+        Assert.True(Fixture.TestUser.Stats.MaximumHp == 50,
+            $"Hp: after removal, should be 10000, is {Fixture.TestUser.Stats.MaximumHp}");
+        Assert.True(Fixture.TestUser.Stats.MaximumMp == 50,
+            $"Mp: after removal, should be 10000, is {Fixture.TestUser.Stats.MaximumMp}");
+        Assert.True(Fixture.TestUser.Stats.Str == 3,
+            $"Str: after removal, should be 3, is {Fixture.TestUser.Stats.Str}");
+        Assert.True(Fixture.TestUser.Stats.Con == 3,
+            $"Con: after removal, should be 3, is {Fixture.TestUser.Stats.Con}");
+        Assert.True(Fixture.TestUser.Stats.Dex == 3,
+            $"Dex: after removal, should be 3, is {Fixture.TestUser.Stats.Dex}");
+        Assert.True(Fixture.TestUser.Stats.Int == 3,
+            $"Int: after removal, should be 3, is {Fixture.TestUser.Stats.Int}");
+        Assert.True(Fixture.TestUser.Stats.Wis == 3,
+            $"Wis: after removal, should be 3, is {Fixture.TestUser.Stats.Wis}");
+        Assert.True(Fixture.TestUser.Stats.Crit == 0,
+            $"Crit: after removal, should be 0, is {Fixture.TestUser.Stats.Crit}");
+        Assert.True(Fixture.TestUser.Stats.MagicCrit == 0,
+            $"MagicCrit: after removal, should be 0, is {Fixture.TestUser.Stats.MagicCrit}");
+        Assert.True(Fixture.TestUser.Stats.Dmg == 0,
+            $"Dmg: after removal, should be 0, is {Fixture.TestUser.Stats.Dmg}");
+        Assert.True(Fixture.TestUser.Stats.Hit == 0,
+            $"Hit: after removal, should be 0, is {Fixture.TestUser.Stats.Hit}");
+        Assert.True(Fixture.TestUser.Stats.Ac == currentAc,
+            $"Ac: after removal, should be {currentAc}, is {Fixture.TestUser.Stats.Ac}");
+        Assert.True(Fixture.TestUser.Stats.Mr == 0, $"Mr: after removal, should be 10, is {Fixture.TestUser.Stats.Mr}");
+        Assert.True(Fixture.TestUser.Stats.Regen == 0,
+            $"Regen: after removal, should be 10, is {Fixture.TestUser.Stats.Regen}");
+        Assert.True(Fixture.TestUser.Stats.InboundDamageModifier == 0,
+            $"InboundDamageModifier: after removal, should be 10, is {Fixture.TestUser.Stats.InboundDamageModifier}");
+        Assert.True(Fixture.TestUser.Stats.InboundHealModifier == 0,
+            $"InboundHealModifier: after removal, should be 10, is {Fixture.TestUser.Stats.InboundHealModifier}");
+        Assert.True(Fixture.TestUser.Stats.OutboundDamageModifier == 0,
+            $"OutboundDamageModifier: after removal, should be 10, is {Fixture.TestUser.Stats.OutboundDamageModifier}");
+        Assert.True(Fixture.TestUser.Stats.OutboundHealModifier == 0,
+            $"OutboundHealModifier: after removal, should be 10, is {Fixture.TestUser.Stats.OutboundHealModifier}");
+        Assert.True(Fixture.TestUser.Stats.ReflectMagical == 0,
+            $"ReflectMagical: after removal, should be 10, is {Fixture.TestUser.Stats.ReflectMagical}");
+        Assert.True(Fixture.TestUser.Stats.ReflectPhysical == 0,
+            $"ReflectPhysical: after removal, should be 10, is {Fixture.TestUser.Stats.ReflectPhysical}");
+        Assert.True(Fixture.TestUser.Stats.ExtraGold == 0,
+            $"ExtraGold: after removal, should be 10, is {Fixture.TestUser.Stats.ExtraGold}");
+        Assert.True(Fixture.TestUser.Stats.Dodge == 0,
+            $"Dodge: after removal, should be 10, is {Fixture.TestUser.Stats.Dodge}");
+        Assert.True(Fixture.TestUser.Stats.MagicDodge == 0,
+            $"MagicDodge: after removal, should be 10, is {Fixture.TestUser.Stats.MagicDodge}");
+        Assert.True(Fixture.TestUser.Stats.ExtraXp == 0,
+            $"ExtraXp: after removal, should be 10, is {Fixture.TestUser.Stats.ExtraXp}");
+        Assert.True(Fixture.TestUser.Stats.ExtraItemFind == 0,
+            $"ExtraItemFind: after removal, should be 10, is {Fixture.TestUser.Stats.ExtraItemFind}");
+        Assert.True(Fixture.TestUser.Stats.LifeSteal == 0,
+            $"LifeSteal: after removal, should be 10, is {Fixture.TestUser.Stats.LifeSteal}");
+        Assert.True(Fixture.TestUser.Stats.ManaSteal == 0,
+            $"ManaSteal: after removal, should be 10, is {Fixture.TestUser.Stats.ManaSteal}");
+
 
     }
 
-
-    [Fact]
-    public void UseItemBaseStats()
-    {
-
-    }
 }

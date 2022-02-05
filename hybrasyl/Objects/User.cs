@@ -902,7 +902,7 @@ public class User : Creature
     {
         // Evaluate formulas if needed
         toApply.EvalFormula(this);
-        Stats.ApplyBonus(toApply.Stats);
+        Stats.Apply(toApply.Stats);
 
         switch (toApply.EquipmentSlot)
         {
@@ -921,7 +921,7 @@ public class User : Creature
     /// <param name="toRemove"></param>
     public void RemoveBonuses(ItemObject toRemove)
     {
-        Stats.RemoveBonus(toRemove.Stats);
+        Stats.Remove(toRemove.Stats);
         switch (toRemove.EquipmentSlot)
         {
             case (byte)ItemSlots.Necklace:

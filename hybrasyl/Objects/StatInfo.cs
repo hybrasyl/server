@@ -20,9 +20,6 @@
  */
 
 using System;
-using System.Collections.Generic;
-using Hybrasyl.Enums;
-using Hybrasyl.Threading;
 using MoonSharp.Interpreter;
 using Newtonsoft.Json;
 
@@ -120,6 +117,8 @@ public class StatInfo
     private double _bonusLifeSteal { get; set; }
     private double _baseManaSteal { get; set; }
     private double _bonusManaSteal { get; set; }
+    private double _baseInboundDamageToMp { get; set; }
+    private double _bonusInboundDamageToMp { get; set; }
     private Xml.ElementType _baseOffensiveElement { get; set; } = Xml.ElementType.None;
     private Xml.ElementType _baseDefensiveElement { get; set; } = Xml.ElementType.None;
     private Xml.ElementType _offensiveElementOverride { get; set; } = Xml.ElementType.None;
@@ -651,20 +650,20 @@ public class StatInfo
 
     [FormulaVariable]
     [JsonProperty]
-    public double BaseInboundDmgToMp
+    public double BaseInboundDamageToMp
     {
-        get { lock (_lock) { return _baseManaSteal; } }
-        set { lock (_lock) { _baseManaSteal = value; } }
+        get { lock (_lock) { return _baseInboundDamageToMp; } }
+        set { lock (_lock) { _baseInboundDamageToMp = value; } }
     }
 
     [FormulaVariable]
-    public double BonusInboundDmgToMp
+    public double BonusInboundDamageToMp
     {
-        get { lock (_lock) { return _bonusManaSteal; } }
-        set { lock (_lock) { _bonusManaSteal = value; } }
+        get { lock (_lock) { return _bonusInboundDamageToMp; } }
+        set { lock (_lock) { _bonusInboundDamageToMp = value; } }
     }
 
-    [FormulaVariable] public double InboundDmgToMp => BaseInboundDmgToMp + BonusInboundDmgToMp;
+    [FormulaVariable] public double InboundDmgToMp => BaseInboundDamageToMp + BonusInboundDamageToMp;
 
 
     public Xml.ElementType BaseOffensiveElement
@@ -939,82 +938,77 @@ public class StatInfo
     /// <param name="si1">The StatInfo object to apply to this one</param>
     /// <param name="experience">Boolean indicating whether or not to handle experience (Level/Exp/Ab/AbExp)</param>
     /// <param name="asBonus">Boolean indicating whether or not to apply the attributes in the passed object as bonuses or a base attribute change</param>
-    public void Apply(StatInfo si1, bool experience = false, bool asBonus = false)
+    public void Apply(StatInfo si1, bool experience = false)
     {
-        if (si1 == null) return;
+        if (si1 == null || si1.Empty) return;
         // Always apply current hp/mp/gold changes
         var hp = (long) Hp;
         hp += si1.DeltaHp;
         if (hp < 0) hp = 0;
         Hp = (uint) BindToRange(hp, 0, uint.MaxValue);
-        var mp  = (long) Mp;
+        var mp = (long) Mp;
         mp += si1.DeltaMp;
         if (mp < 0) mp = 0;
         Mp = (uint) BindToRange(mp, 0, uint.MaxValue);
         var gold = Gold + si1.Gold;
         Gold = (uint) BindToRange(gold, 0, uint.MaxValue);
 
-        if (asBonus)
-        {
-            BonusHp += si1.BonusHp;
-            BonusMp += si1.BonusMp;
-            BonusStr += si1.Str;
-            BonusCon += si1.Con;
-            BonusDex += si1.Dex;
-            BonusInt += si1.Int;
-            BonusWis += si1.Wis;
-            BonusCrit += si1.Crit;
-            BonusMagicCrit += si1.MagicCrit;
-            BonusDmg += si1.Dmg;
-            BonusHit += si1.Hit;
-            BonusAc += si1.BonusAc;
-            BonusMr += si1.Mr;
-            BonusRegen += si1.Regen;
-            BonusInboundHealModifier += si1.InboundHealModifier;
-            BonusOutboundDamageModifier += si1.OutboundDamageModifier;
-            BonusOutboundHealModifier += si1.OutboundHealModifier;
-            BonusReflectMagical += si1.ReflectMagical;
-            BonusReflectPhysical += si1.ReflectPhysical;
-            BonusExtraGold += si1.ExtraGold;
-            BonusDodge += si1.Dodge;
-            BonusMagicDodge += si1.MagicDodge;
-            BonusExtraXp += si1.ExtraXp;
-            BonusExtraItemFind += si1.ExtraItemFind;
-            BonusLifeSteal += si1.LifeSteal;
-            BonusManaSteal += si1.ManaSteal;
-            BonusInboundDmgToMp += si1.InboundDmgToMp;
-        }
-        else
-        {
-            BaseHp += si1.BaseHp;
-            BaseMp += si1.BaseMp;
-            BaseStr += si1.Str;
-            BaseCon += si1.Con;
-            BaseDex += si1.Dex;
-            BaseInt += si1.Int;
-            BaseWis += si1.Wis;
-            BaseCrit += si1.Crit;
-            BaseMagicCrit += si1.MagicCrit;
-            BaseDmg += si1.Dmg;
-            BaseHit += si1.Hit;
-            BaseAc += si1.BaseAc;
-            BaseMr += si1.Mr;
-            BaseRegen += si1.Regen;
-            BaseInboundHealModifier += si1.InboundHealModifier;
-            BaseOutboundDamageModifier += si1.OutboundDamageModifier;
-            BaseOutboundHealModifier += si1.OutboundHealModifier;
-            BaseReflectMagical += si1.ReflectMagical;
-            BaseReflectPhysical += si1.ReflectPhysical;
-            BaseExtraGold += si1.ExtraGold;
-            BaseDodge += si1.Dodge;
-            BaseMagicDodge += si1.MagicDodge;
-            BaseExtraXp += si1.ExtraXp;
-            BaseExtraItemFind += si1.ExtraItemFind;
-            BaseLifeSteal += si1.LifeSteal;
-            BaseManaSteal += si1.ManaSteal;
-            BaseInboundDmgToMp += si1.BaseInboundDmgToMp;
-
-        }
+        BonusHp += si1.BonusHp;
+        BonusMp += si1.BonusMp;
+        BonusStr += si1.BonusStr;
+        BonusCon += si1.BonusCon;
+        BonusDex += si1.BonusDex;
+        BonusInt += si1.BonusInt;
+        BonusWis += si1.BonusWis;
+        BonusCrit += si1.BonusCrit;
+        BonusMagicCrit += si1.BonusMagicCrit;
+        BonusDmg += si1.BonusDmg;
+        BonusHit += si1.BonusHit;
+        BonusAc += si1.BonusAc;
+        BonusMr += si1.BonusMr;
+        BonusRegen += si1.BonusRegen;
+        BonusInboundHealModifier += si1.BonusInboundHealModifier;
+        BonusInboundDamageModifier += si1.BonusInboundDamageModifier;
+        BonusOutboundDamageModifier += si1.BonusOutboundDamageModifier;
+        BonusOutboundHealModifier += si1.BonusOutboundHealModifier;
+        BonusReflectMagical += si1.BonusReflectMagical;
+        BonusReflectPhysical += si1.BonusReflectPhysical;
+        BonusExtraGold += si1.BonusExtraGold;
+        BonusDodge += si1.BonusDodge;
+        BonusMagicDodge += si1.BonusMagicDodge;
+        BonusExtraXp += si1.BonusExtraXp;
+        BonusExtraItemFind += si1.BonusExtraItemFind;
+        BonusLifeSteal += si1.BonusLifeSteal;
+        BonusManaSteal += si1.BonusManaSteal;
+        BonusInboundDamageToMp += si1.BonusInboundDamageToMp;
+        BaseHp += si1.BaseHp;
+        BaseMp += si1.BaseMp;
+        BaseStr += si1.BaseStr;
+        BaseCon += si1.BaseCon;
+        BaseDex += si1.BaseDex;
+        BaseInt += si1.BaseInt;
+        BaseWis += si1.BaseWis;
+        BaseCrit += si1.BaseCrit;
+        BaseMagicCrit += si1.BaseMagicCrit;
+        BaseDmg += si1.BaseDmg;
+        BaseHit += si1.BaseHit;
+        BaseAc += si1.BaseAc;
+        BaseMr += si1.BaseMr;
+        BaseRegen += si1.BaseRegen;
+        BaseInboundHealModifier += si1.BaseInboundHealModifier;
+        BaseInboundDamageModifier += si1.BaseInboundDamageModifier;
+        BaseOutboundDamageModifier += si1.BaseOutboundDamageModifier;
+        BaseOutboundHealModifier += si1.BaseOutboundHealModifier;
+        BaseReflectMagical += si1.BaseReflectMagical;
+        BaseReflectPhysical += si1.BaseReflectPhysical;
+        BaseExtraGold += si1.BaseExtraGold;
+        BaseDodge += si1.BaseDodge;
+        BaseMagicDodge += si1.BaseMagicDodge;
+        BaseExtraXp += si1.BaseExtraXp;
+        BaseExtraItemFind += si1.BaseExtraItemFind;
+        BaseLifeSteal += si1.BaseLifeSteal;
+        BaseManaSteal += si1.BaseManaSteal;
+        BaseInboundDamageToMp += si1.BaseInboundDamageToMp;
 
         if (!experience) return;
         Level += si1.Level;
@@ -1029,71 +1023,66 @@ public class StatInfo
     /// <param name="si1">The StatInfo object to apply to this one</param>
     /// <param name="experience">Boolean indicating whether or not to handle experience (Level/Exp/Ab/AbExp)</param>
     /// <param name="asBonus">Boolean indicating whether or not to remove the attributes in the passed object as bonuses or a base attribute change</param>
-    public void Remove(StatInfo si1, bool experience=false, bool asBonus = false)
+    public void Remove(StatInfo si1, bool experience = false)
     {
-        if (si1 == null) return;
+        if (si1 == null || si1.Empty) return;
 
-        if (asBonus)
-        {
-            BonusHp -= si1.Hp;
-            BonusMp -= si1.Mp;
-            BonusStr -= si1.Str;
-            BonusCon -= si1.Con;
-            BonusDex -= si1.Dex;
-            BonusInt -= si1.Int;
-            BonusWis -= si1.Wis;
-            BonusCrit -= si1.Crit;
-            BonusMagicCrit -= si1.MagicCrit;
-            BonusDmg -= si1.Dmg;
-            BonusHit -= si1.Hit;
-            BonusAc -= si1.Ac;
-            BonusMr -= si1.Mr;
-            BonusRegen -= si1.Regen;
-            BonusInboundHealModifier -= si1.InboundHealModifier;
-            BonusOutboundDamageModifier -= si1.OutboundDamageModifier;
-            BonusOutboundHealModifier -= si1.OutboundHealModifier;
-            BonusReflectMagical -= si1.ReflectMagical;
-            BonusReflectPhysical -= si1.ReflectPhysical;
-            BonusExtraGold -= si1.ExtraGold;
-            BonusDodge -= si1.Dodge;
-            BonusMagicDodge -= si1.MagicDodge;
-            BonusExtraXp -= si1.ExtraXp;
-            BonusExtraItemFind -= si1.ExtraItemFind;
-            BonusLifeSteal -= si1.LifeSteal;
-            BonusManaSteal -= si1.ManaSteal;
-            BonusInboundDmgToMp -= si1.InboundDmgToMp;
-        }
-        else
-        {
-            BaseHp -= si1.Hp;
-            BaseMp -= si1.Mp;
-            BaseStr -= si1.Str;
-            BaseCon -= si1.Con;
-            BaseDex -= si1.Dex;
-            BaseInt -= si1.Int;
-            BaseWis -= si1.Wis;
-            BaseCrit -= si1.Crit;
-            BaseMagicCrit -= si1.MagicCrit;
-            BaseDmg -= si1.Dmg;
-            BaseHit -= si1.Hit;
-            BaseAc -= si1.Ac;
-            BaseMr -= si1.Mr;
-            BaseRegen -= si1.Regen;
-            BaseInboundHealModifier -= si1.InboundHealModifier;
-            BaseOutboundDamageModifier -= si1.OutboundDamageModifier;
-            BaseOutboundHealModifier -= si1.OutboundHealModifier;
-            BaseReflectMagical -= si1.ReflectMagical;
-            BaseReflectPhysical -= si1.ReflectPhysical;
-            BaseExtraGold -= si1.ExtraGold;
-            BaseDodge -= si1.Dodge;
-            BaseMagicDodge -= si1.MagicDodge;
-            BaseExtraXp -= si1.ExtraXp;
-            BaseExtraItemFind -= si1.ExtraItemFind;
-            BaseLifeSteal -= si1.LifeSteal;
-            BaseManaSteal -= si1.ManaSteal;
-            BaseInboundDmgToMp -= si1.InboundDmgToMp;
-
-        }
+        BonusHp -= si1.BonusHp;
+        BonusMp -= si1.BonusMp;
+        BonusStr -= si1.BonusStr;
+        BonusCon -= si1.BonusCon;
+        BonusDex -= si1.BonusDex;
+        BonusInt -= si1.BonusInt;
+        BonusWis -= si1.BonusWis;
+        BonusCrit -= si1.BonusCrit;
+        BonusMagicCrit -= si1.BonusMagicCrit;
+        BonusDmg -= si1.BonusDmg;
+        BonusHit -= si1.BonusHit;
+        BonusAc -= si1.BonusAc;
+        BonusMr -= si1.BonusMr;
+        BonusRegen -= si1.BonusRegen;
+        BonusInboundHealModifier -= si1.BonusInboundHealModifier;
+        BonusInboundDamageModifier -= si1.BonusInboundDamageModifier;
+        BonusOutboundDamageModifier -= si1.BonusOutboundDamageModifier;
+        BonusOutboundHealModifier -= si1.BonusOutboundHealModifier;
+        BonusReflectMagical -= si1.BonusReflectMagical;
+        BonusReflectPhysical -= si1.BonusReflectPhysical;
+        BonusExtraGold -= si1.BonusExtraGold;
+        BonusDodge -= si1.BonusDodge;
+        BonusMagicDodge -= si1.BonusMagicDodge;
+        BonusExtraXp -= si1.BonusExtraXp;
+        BonusExtraItemFind -= si1.BonusExtraItemFind;
+        BonusLifeSteal -= si1.BonusLifeSteal;
+        BonusManaSteal -= si1.BonusManaSteal;
+        BonusInboundDamageToMp -= si1.BonusInboundDamageToMp;
+        BaseHp -= si1.BaseHp;
+        BaseMp -= si1.BaseMp;
+        BaseStr -= si1.BaseStr;
+        BaseCon -= si1.BaseCon;
+        BaseDex -= si1.BaseDex;
+        BaseInt -= si1.BaseInt;
+        BaseWis -= si1.BaseWis;
+        BaseCrit -= si1.BaseCrit;
+        BaseMagicCrit -= si1.BaseMagicCrit;
+        BaseDmg -= si1.BaseDmg;
+        BaseHit -= si1.BaseHit;
+        BaseAc -= si1.BaseAc;
+        BaseMr -= si1.BaseMr;
+        BaseRegen -= si1.BaseRegen;
+        BaseInboundHealModifier -= si1.BaseInboundHealModifier;
+        BaseInboundDamageModifier -= si1.BaseInboundDamageModifier;
+        BaseOutboundDamageModifier -= si1.BaseOutboundDamageModifier;
+        BaseOutboundHealModifier -= si1.BaseOutboundHealModifier;
+        BaseReflectMagical -= si1.BaseReflectMagical;
+        BaseReflectPhysical -= si1.BaseReflectPhysical;
+        BaseExtraGold -= si1.BaseExtraGold;
+        BaseDodge -= si1.BaseDodge;
+        BaseMagicDodge -= si1.BaseMagicDodge;
+        BaseExtraXp -= si1.BaseExtraXp;
+        BaseExtraItemFind -= si1.BaseExtraItemFind;
+        BaseLifeSteal -= si1.BaseLifeSteal;
+        BaseManaSteal -= si1.BaseManaSteal;
+        BaseInboundDamageToMp -= si1.BaseInboundDamageToMp;
 
         if (!experience) return;
         Level -= si1.Level;
@@ -1102,34 +1091,28 @@ public class StatInfo
         AbilityExp -= si1.AbilityExp;
     }
 
-    /// <summary>
-    /// Convenience function for applying this StatInfo as a base attribute change (eg this.BaseStr -= si1.Str)
-    /// </summary>
-    /// <param name="si1">The StatInfo object to apply to this one</param>
-    /// <param name="experience">Boolean indicating whether or not to handle experience</param>
-    public void ApplyBase(StatInfo si1, bool experience = false) => Apply(si1, experience);
+    public bool NoBaseChanges => BaseHp == 0 && BaseMp == 0 && BaseStr == 0 && BaseCon == 0 && BaseDex == 0 &&
+                                 BaseInt == 0 && BaseWis == 0 && BaseCrit == 0 && BaseMagicCrit == 0 && BaseDmg == 0 &&
+                                 BaseHit == 0 && BaseAc == 0 && BaseMr == 0 && BaseRegen == 0 &&
+                                 BaseInboundDamageModifier == 0 && BaseInboundHealModifier == 0 &&
+                                 BaseOutboundDamageModifier == 0 && BaseOutboundHealModifier == 0 &&
+                                 BaseReflectMagical == 0 && BaseReflectPhysical == 0 && BaseExtraGold == 0 &&
+                                 BaseDodge == 0 && BaseMagicDodge == 0 && BaseExtraXp == 0 && BaseExtraItemFind == 0 &&
+                                 BaseLifeSteal == 0 && BaseManaSteal == 0 && BaseInboundDamageToMp == 0;
 
-    /// <summary>
-    /// Convenience function for applying this StatInfo as a bonus attribute change (eg this.BonusStr += si1.Str)
-    /// </summary>
-    /// <param name="si1">The StatInfo object to apply to this one</param>
-    /// <param name="experience">Boolean indicating whether or not to handle experience</param>
-    public void ApplyBonus(StatInfo si1, bool experience = false) => Apply(si1, experience, true);
+    public bool NoBonusChanges => BonusHp == 0 && BonusMp == 0 && BonusStr == 0 && BonusCon == 0 && BonusDex == 0 &&
+                                  BonusInt == 0 && BonusWis == 0 && BonusCrit == 0 && BonusMagicCrit == 0 &&
+                                  BonusDmg == 0 && BonusHit == 0 && BonusAc == 0 && BonusMr == 0 && BonusRegen == 0 &&
+                                  BonusInboundDamageModifier == 0 && BonusInboundHealModifier == 0 &&
+                                  BonusOutboundDamageModifier == 0 && BonusOutboundHealModifier == 0 &&
+                                  BonusReflectMagical == 0 && BonusReflectPhysical == 0 && BonusExtraGold == 0 &&
+                                  BonusDodge == 0 && BonusMagicDodge == 0 && BonusExtraXp == 0 &&
+                                  BonusExtraItemFind == 0 && BonusLifeSteal == 0 && BonusManaSteal == 0 &&
+                                  BonusInboundDamageToMp == 0;
 
-    /// <summary>
-    /// Convenience function for removing this StatInfo as a base attribute change (eg this.BaseStr -= si1.Str)
-    /// </summary>
-    /// <param name="si1">The StatInfo object to apply to this one</param>
-    /// <param name="experience">Boolean indicating whether or not to handle experience</param>
-    public void RemoveBase(StatInfo si1, bool experience = false) => Remove(si1, experience);
-    
-    /// <summary>
-    /// Convenience function for removing this StatInfo as a bonus attribute change (eg this.BonusStr -= si1.Str)
-    /// </summary>
-    /// <param name="si1">The StatInfo object to apply to this one</param>
-    /// <param name="experience">Boolean indicating whether or not to handle experience</param>
-    public void RemoveBonus(StatInfo si1, bool experience = false) => Remove(si1, experience, true);
+    public bool NoExperienceChanges => Level == 0 && Experience == 0 & Ability == 0 && AbilityExp == 0;
 
+    public bool Empty => NoExperienceChanges && NoBonusChanges && NoBaseChanges;
 
     #endregion
 
