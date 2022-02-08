@@ -663,7 +663,7 @@ public class StatInfo
         set { lock (_lock) { _bonusInboundDamageToMp = value; } }
     }
 
-    [FormulaVariable] public double InboundDmgToMp => BaseInboundDamageToMp + BonusInboundDamageToMp;
+    [FormulaVariable] public double InboundDamageToMp => BaseInboundDamageToMp + BonusInboundDamageToMp;
 
 
     public Xml.ElementType BaseOffensiveElement

@@ -296,6 +296,7 @@ static class NumberCruncher
             BaseExtraItemFind = _evalFormula(effect.BaseExtraItemFind, item, source),
             BaseLifeSteal = _evalFormula(effect.BaseLifeSteal, item, source),
             BaseManaSteal = _evalFormula(effect.BaseManaSteal, item, source),
+            BaseInboundDamageToMp = _evalFormula(effect.BaseInboundDamageToMp, item, source),
             BonusHp = (long)_evalFormula(effect.BonusHp, item, source),
             BonusMp = (long)_evalFormula(effect.BonusMp, item, source),
             BonusStr = (long)_evalFormula(effect.BonusStr, item, source),
@@ -322,7 +323,8 @@ static class NumberCruncher
             BonusExtraXp = _evalFormula(effect.BonusExtraXp, item, source),
             BonusExtraItemFind = _evalFormula(effect.BonusExtraItemFind, item, source),
             BonusLifeSteal = _evalFormula(effect.BonusLifeSteal, item, source),
-            BonusManaSteal = _evalFormula(effect.BonusManaSteal, item, source)
+            BonusManaSteal = _evalFormula(effect.BonusManaSteal, item, source),
+            BonusInboundDamageToMp = _evalFormula(effect.BonusInboundDamageToMp, item, source)
         };
 
         if (effect.BaseOffensiveElement != Xml.ElementType.None)

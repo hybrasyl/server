@@ -1111,9 +1111,9 @@ public class Creature : VisibleObject
 
         // Lastly, handle damage to MP redirection
 
-        if (attacker != null && Stats.InboundDmgToMp > 0)
+        if (attacker != null && Stats.InboundDamageToMp > 0)
         {
-            var redirected = Stats.InboundDmgToMp * normalized;
+            var redirected = Stats.InboundDamageToMp * normalized;
             if (redirected > 0)
                 attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaMp = (long)redirected });
 
