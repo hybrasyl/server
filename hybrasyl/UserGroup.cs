@@ -41,6 +41,7 @@ public class UserGroup
     public DateTime CreatedOn { get; private set; }
     public Dictionary<Xml.Class, uint> ClassCount { get; private set; }
     public uint MaxMembers;
+    public GroupRecruit RecruitInfo => Founder.GroupRecruit;
 
     private delegate Dictionary<uint, uint> DistributionFunc(User source, uint full);
 
@@ -107,8 +108,15 @@ public class UserGroup
             MaxMembers = (uint)Math.Max(MaxMembers, Members.Count);
         }
 
+        if (user != Founder && user.GroupRecruit != null)
+        {
+            user.GroupRecruit = null;
+            user.Show();
+        }
+
         // Send a distinct message to the new user.
         user.SendMessage("You've joined a group.", MessageTypes.SYSTEM);
+	user.SendProfile();
         return true;
     }
 
@@ -133,6 +141,7 @@ public class UserGroup
                 member.SendMessage(user.Name + " has left your group.", MessageTypes.SYSTEM);
             }
             user.SendMessage("You've left a group.", MessageTypes.SYSTEM);
+	    user.SendProfile();
         }
 
         // If there's only one person left, disband the group.
@@ -269,4 +278,155 @@ public class UserGroup
         foreach (var member in Members)
             member.SendMessage($"[Notice] {message}", MessageTypes.GROUP);
     }
+=======
+        {
+            var inRange = MembersWithinRange(source).Count - 1; // will always be 1 when source is in range. set back to 0 to not penalize solo while grouped.
+            if (inRange > 5) inRange = 5; //limit to max 45% decrease
+
+            full = (uint)(full * (( 100 - (inRange * 7.5)) / 100));
+        }
+
+        return Distribution_Full(source, full);
+    }
+
+    /// <summary>
+    /// Send a system message as a group message, that the entire group can see.
+    /// </summary>
+    /// <param name="message"></param>
+    public void SendMessage(string message)
+    {
+        foreach (var member in Members)
+            member.SendMessage($"[Notice] {message}", MessageTypes.GROUP);
+    }
+}
+
+public class GroupRecruit
+{
+    private int[] _wanted = new int[5];
+
+    public GroupRecruit(User user)
+    {
+        Recruiter = user;
+    }
+
+    public User Recruiter { get; }
+
+    public UserGroup Group => Recruiter.Group;
+
+    public string Name { get; set; }
+
+    public string Note { get; set; }
+
+    public int StartingLevelRange { get; set; }
+
+    public int EndingLevelRange { get; set; }
+
+    public int WarriorsWanted => _wanted[0];
+
+    public int WizardsWanted => _wanted[1];
+
+    public int RoguesWanted => _wanted[2];
+
+    public int PriestsWanted => _wanted[3];
+
+    public int MonksWanted => _wanted[4];
+
+    public int TotalWanted => _wanted.Sum();
+
+    public int Wanted(Xml.Class cl)
+        => cl switch
+        {
+            Xml.Class.Peasant => 0,
+            Xml.Class.Rogue => RoguesWanted,
+            Xml.Class.Wizard => WizardsWanted,
+            _ => _wanted[(int)cl - 1]
+        };
+
+    public static GroupRecruit Read(ClientPacket packet, User recruiter)
+    {
+        return new GroupRecruit(recruiter)
+        {
+            Name = packet.ReadString8(),
+            Note = packet.ReadString8(),
+            StartingLevelRange = Math.Max((int)packet.ReadByte(), 1),
+            EndingLevelRange = Math.Clamp((int)packet.ReadByte(), 1, 99),
+            _wanted = new int[]
+            {
+                Math.Min((int)packet.ReadByte(), 13),
+                Math.Min((int)packet.ReadByte(), 13),
+                Math.Min((int)packet.ReadByte(), 13),
+                Math.Min((int)packet.ReadByte(), 13),
+                Math.Min((int)packet.ReadByte(), 13),
+            },
+        };
+    }
+
+    public void ShowTo(User user)
+    {
+        var groupPacket = new ServerPacket(0x63);
+        groupPacket.WriteByte((byte)GroupServerPacketType.RecruitInfo);
+        WriteInfo(groupPacket);
+        user.Enqueue(groupPacket);
+    }
+
+    public void WriteInfo(ServerPacket packet)
+    {
+        packet.WriteString8(Recruiter.Name);
+        packet.WriteString8(Name);
+        packet.WriteString8(Note);
+        packet.WriteByte((byte)StartingLevelRange);
+        packet.WriteByte((byte)EndingLevelRange);
+        packet.WriteByte((byte)WarriorsWanted);
+        packet.WriteByte((byte)(Group?.ClassCount[Xml.Class.Warrior] ?? 0));
+        packet.WriteByte((byte)WizardsWanted);
+        packet.WriteByte((byte)(Group?.ClassCount[Xml.Class.Wizard] ?? 0));
+        packet.WriteByte((byte)RoguesWanted);
+        packet.WriteByte((byte)(Group?.ClassCount[Xml.Class.Rogue] ?? 0));
+        packet.WriteByte((byte)PriestsWanted);
+        packet.WriteByte((byte)(Group?.ClassCount[Xml.Class.Priest] ?? 0));
+        packet.WriteByte((byte)MonksWanted);
+        packet.WriteByte((byte)(Group?.ClassCount[Xml.Class.Monk] ?? 0));
+    }
+
+    public bool InviteToGroup(User invitee)
+    {
+        if (invitee.Stats.Level < StartingLevelRange)
+        {
+            invitee.SendSystemMessage("Your level is too low to join that group.");
+            return false;
+        }
+
+        if (invitee.Stats.Level > EndingLevelRange)
+        {
+            invitee.SendSystemMessage("Your level is too high to join that group.");
+            return false;
+        }
+
+        if ((Group?.ClassCount[invitee.Class] ?? 0) >= Wanted(invitee.Class))
+        {
+            invitee.SendSystemMessage($"No more {invitee.Class}s are needed.");
+            return false;
+        }
+
+        return Recruiter.InviteToGroup(invitee);
+    }
+}
+
+public enum GroupClientPacketType
+{
+    Request = 2,
+    Answer = 3,
+    RecruitInit = 4,
+    RecruitInfo = 5,
+    RecruitEnd = 6,
+    RecruitAsk = 7,
+}
+
+public enum GroupServerPacketType
+{
+    Ask = 1,
+    Member = 2,
+    RecruitInfo = 4,
+    RecruitAsk = 5,
+
 }

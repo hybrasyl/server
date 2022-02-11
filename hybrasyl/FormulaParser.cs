@@ -66,6 +66,7 @@ internal static class FormulaParser
             .Where(prop => prop.IsDefined(typeof(FormulaVariable), false)).ToList();
 
     }
+    
     public static Expression Parameterize(Expression e, FormulaEvaluation eval)
     {
 
@@ -109,6 +110,7 @@ internal static class FormulaParser
         e.Parameters["RAND_10"] = Random.Shared.Next(0, 11);
         e.Parameters["RAND_100"] = Random.Shared.Next(0, 101);
         e.Parameters["RAND_1000"] = Random.Shared.Next(0, 1001);
+
         return e;
     }
     public static double Eval(string expression, FormulaEvaluation evalEnvironment)

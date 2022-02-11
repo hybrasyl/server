@@ -199,6 +199,7 @@ public class Equipment
     {
         Fixture.TestUser.Equipment.Clear();
         Fixture.ResetUserStats();
+
         var ring1 = Fixture.TestEquipment[EquipmentSlot.Ring].Clone();
         ring1.Properties.Flags = ItemFlags.UniqueEquipped;
         ring1.Name = "Unique Ring";
@@ -219,6 +220,7 @@ public class Equipment
     {
         Fixture.TestUser.Equipment.Clear();
         Fixture.ResetUserStats();
+
         var ring = Fixture.TestEquipment[EquipmentSlot.Ring].Clone();
         ring.Name = "I Prohibit Armor";
         var armor = Fixture.TestEquipment[EquipmentSlot.Armor].Clone();
@@ -446,5 +448,4 @@ public class Equipment
 
 
     }
-
 }

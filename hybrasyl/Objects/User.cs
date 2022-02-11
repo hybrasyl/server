@@ -78,6 +78,7 @@ public class User : Creature
     [JsonProperty]
     public bool IsMaster { get; set; }
     public UserGroup Group { get; set; }
+    public GroupRecruit GroupRecruit { get; set; }
 
     public int LevelCircle
     {
@@ -195,6 +196,8 @@ public class User : Creature
     public Exchange ActiveExchange { get; set; }
 
     public bool IsAvailableForExchange => Condition.NoFlags;
+
+    public ManufactureState ManufactureState { get; set; }
     #endregion
 
     /// <summary>
@@ -247,10 +250,8 @@ public class User : Creature
                 base.Say(message, from);
                 return;
             }
+            SendSystemMessage("You try to speak, but nothing happens.");
         }
-
-        SendSystemMessage("You try to speak, but nothing happens.");
-
     }
 
     public override void Shout(string message, string from = "")
@@ -269,9 +270,9 @@ public class User : Creature
                 base.Shout(message, from);
                 return;
             }
+            else
+                SendSystemMessage("You try to shout, but nothing happens.");
         }
-
-        SendSystemMessage("You try to shout, but nothing happens.");
     }
 
     public bool ChangeCitizenship(string nationName)
@@ -1230,7 +1231,6 @@ public class User : Creature
             Pane = 1,
             Slot = slot
         }.Packet());
-
     }
 
     internal void UseSpell(byte slot, uint target = 0)
@@ -1508,7 +1508,6 @@ public class User : Creature
             SendSystemMessage($"Equipped {itemObject.SlotName}: {itemObject.Name}");
         else
             SendSystemMessage($"Equipped {itemObject.SlotName}: {itemObject.Name} (AC {Stats.Ac} MR {Stats.Mr} Regen {Stats.Regen})");
-
     }
 
     /// <summary>
@@ -2619,7 +2618,6 @@ public class User : Creature
         return false;
     }
 
-
     public override bool UseCastable(Xml.Castable castObject, Creature target = null, bool assailAttack = false)
     {
         if(castObject.Intents[0].UseType == SpellUseType.Prompt)
@@ -2862,6 +2860,12 @@ public class User : Creature
         Enqueue(doorPacket);
     }
 
+public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
+        {
+            ManufactureState = new ManufactureState(this, recipes);
+            ManufactureState.ShowWindow();
+        }
+	
     public void ShowLearnSkillMenu(Merchant merchant)
     {
         var merchantSkills = new MerchantSkills();

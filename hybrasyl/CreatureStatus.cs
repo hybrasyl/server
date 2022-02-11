@@ -334,7 +334,6 @@ public class CreatureStatus : ICreatureStatus
         if (displaySfx)
             ProcessSfx(effect);
     }
-    
 
     private void ProcessHandler(Xml.Handler handler)
     {
@@ -377,7 +376,7 @@ public class CreatureStatus : ICreatureStatus
 
         }
     }
-
+ 
     private void ProcessEffects(Xml.ModifierEffect effect)
     {
         ProcessSfx(effect);

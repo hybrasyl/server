@@ -604,7 +604,6 @@ public class Creature : VisibleObject
 
                 tar.Damage(damageOutput.Amount, attackElement, damageOutput.Type, damageOutput.Flags, this, false);
 
-
                 if (tar is User u)
                 {
                     u.SendSystemMessage($"{this.Name} attacks you with {castObject.Name}.");
@@ -1116,8 +1115,7 @@ public class Creature : VisibleObject
             var redirected = Stats.InboundDamageToMp * normalized;
             if (redirected > 0)
                 attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaMp = (long)redirected });
-
-        }
+	}
 
         Stats.Hp = ((int)Stats.Hp - normalized) < 0 ? 0 : Stats.Hp - normalized;
 
@@ -1175,6 +1173,22 @@ public class Creature : VisibleObject
 
     public string GetSessionCookie(string cookieName) => SessionCookies.TryGetValue(cookieName, out var value) ? value : null;
     
+
+    public bool HasCookie(string cookieName) => Cookies.Keys.Contains(cookieName);
+    public bool HasSessionCookie(string cookieName) => SessionCookies.Keys.Contains(cookieName);
+
+    public bool DeleteCookie(string cookieName) => Cookies.Remove(cookieName);
+    public bool DeleteSessionCookie(string cookieName) => SessionCookies.Remove(cookieName);
+
+    public string GetSessionCookie(string cookieName)
+    {
+        string value;
+        if (SessionCookies.TryGetValue(cookieName, out value))
+        {
+            return value;
+        }
+        return null;
+    }
 
     public bool HasCookie(string cookieName) => Cookies.Keys.Contains(cookieName);
     public bool HasSessionCookie(string cookieName) => SessionCookies.Keys.Contains(cookieName);

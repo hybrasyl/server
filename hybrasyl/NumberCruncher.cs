@@ -146,6 +146,7 @@ static class NumberCruncher
     /// <param name="target">The target of the castable (i.e. the spell/skill target)</param>
     /// <param name="source">The source of the castable (i.e. the caster), optional parameter</param>
     /// <returns></returns>
+
     public static double CalculateHeal(Castable castable, Creature target, Creature source = null)
     {
         double heal = 0;

@@ -156,7 +156,6 @@ public static class Game
         // Default is info
         LevelSwitch = new LoggingLevelSwitch();
         LevelSwitch.MinimumLevel = LogEventLevel.Information;
-        LevelSwitch.MinimumLevel = LogEventLevel.Information;
 
         // Set our exit handler
         AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;

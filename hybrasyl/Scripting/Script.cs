@@ -366,7 +366,6 @@ public class Script
     {
         if (Disabled)
             return false;
-
         try
         {
             if (HasFunction(functionName))
@@ -385,7 +384,6 @@ public class Script
             }
             else
             {
-                //(invoker as User).SendSystemMessage($"fucking eat shit assbag: {functionName}");
                 //GameLog.ScriptingWarning("ExecuteFunction: function {fn} in {FileName} did not exist",
                 //    functionName, FileName);
                 return false;

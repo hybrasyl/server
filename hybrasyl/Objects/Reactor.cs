@@ -175,7 +175,8 @@ public class Reactor : VisibleObject
             p.WriteUInt16((ushort)(Sprite + 0x8000));
         else
             p.WriteUInt16((ushort)Sprite);
-        p.WriteByte(0); // random 1                                                                                                                                                                                                
+
+	p.WriteByte(0); // random 1                                                                                                                                                                                                
         p.WriteByte(0); // random 2                                                                                                                                                                                                
         p.WriteByte(0); // random 3                                                                                                                                                                                                
         p.WriteByte(0); // unknown a                                                                                                                                                                                               

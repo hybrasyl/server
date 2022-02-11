@@ -175,7 +175,8 @@ public class Monster : Creature, ICloneable
                 hitter.ShareExperience(LootableXP, Stats.Level);
                 if (hitter.Stats.ExtraXp > 0)
                     hitter.GiveExperience((uint) (LootableXP * hitter.Stats.ExtraXp));
-                var itemDropTime = DateTime.Now;
+
+		var itemDropTime = DateTime.Now;
 
                 if (LootableGold > 0)
                 {
@@ -463,7 +464,6 @@ public class Monster : Creature, ICloneable
             }
         }
     }
-
 
     public Creature Target
     {
@@ -834,7 +834,7 @@ public class Monster : Creature, ICloneable
                 if (closedList.FirstOrDefault(l => l.X == tile.X && l.Y == tile.Y) != null)
                     continue;
 
-                //GameLog.Debug($"Adjacencies: {tile.X}, {tile.Y}");
+		//GameLog.Debug($"Adjacencies: {tile.X}, {tile.Y}");
 
                 if (openList.FirstOrDefault(l => l.X == tile.X && l.Y == tile.Y) == null)
                 {

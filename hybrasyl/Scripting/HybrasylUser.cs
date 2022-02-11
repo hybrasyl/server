@@ -98,6 +98,7 @@ public class HybrasylUser
     /// <summary>
     /// Amount of gold the user currently has.
     /// </summary>
+
     public uint Gold => User.Stats.Gold;
 
     /// <summary>
