@@ -125,9 +125,7 @@ public class HybrasylFixture : IDisposable
                 Hp = 10000,
                 BaseMp = 10000,
                 Mp = 10000,
-                Gold = 0
-                Mp = 10000
-
+                Gold = 0,
             }
         };
         TestUser.AuthInfo.Save();
