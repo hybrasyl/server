@@ -3,20 +3,18 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Hybrasyl.Xml
-{
+namespace Hybrasyl.Xml;
 
-    public partial class CreatureCastingSet
+public partial class CreatureCastingSet
+{
+    public List<string> CategoryList
     {
-        public List<string> CategoryList
+        get
         {
-            get
-            {
-                if (string.IsNullOrEmpty(Categories))
-                    return new List<string>();
-                else
-                    return Categories.Trim().ToLower().Split(" ").ToList();
-            }
+            if (string.IsNullOrEmpty(Categories))
+                return new List<string>();
+            else
+                return Categories.Trim().ToLower().Split(" ").ToList();
         }
     }
 }

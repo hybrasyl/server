@@ -19,49 +19,47 @@
  * 
  */
 
-namespace Hybrasyl.Objects
+namespace Hybrasyl.Objects;
+
+public class Gold : VisibleObject
 {
-    public class Gold : VisibleObject
+    public uint Amount { get; set; }
+
+    public override string Name
     {
-        public uint Amount { get; set; }
-
-        public override string Name
+        get
         {
-            get
-            {
-                if (Amount == 1) return "Copper Coin";
-                if (Amount < 10) return "Copper Pile";
-                if (Amount < 100) return "Silver Coin";
-                if (Amount < 1000) return "Silver Pile";
-                if (Amount < 10000) return "Gold Coin";
-                return "Gold Pile";
-            }
-        }
-
-        public new ushort Sprite
-        {
-            get
-            {
-                if (Amount == 1) return 139;
-                if (Amount < 10) return 142;
-                if (Amount < 100) return 138;
-                if (Amount < 1000) return 141;
-                if (Amount < 10000) return 137;
-                return 140;
-            }
-        }
-
-        public Gold(uint amount)
-        {
-            Amount = amount;
-        }
-
-        public override void ShowTo(VisibleObject obj)
-        {
-            if (!(obj is User)) return;
-            var user = (User)obj;
-            user.SendVisibleGold(this);
+            if (Amount == 1) return "Copper Coin";
+            if (Amount < 10) return "Copper Pile";
+            if (Amount < 100) return "Silver Coin";
+            if (Amount < 1000) return "Silver Pile";
+            if (Amount < 10000) return "Gold Coin";
+            return "Gold Pile";
         }
     }
 
+    public new ushort Sprite
+    {
+        get
+        {
+            if (Amount == 1) return 139;
+            if (Amount < 10) return 142;
+            if (Amount < 100) return 138;
+            if (Amount < 1000) return 141;
+            if (Amount < 10000) return 137;
+            return 140;
+        }
+    }
+
+    public Gold(uint amount)
+    {
+        Amount = amount;
+    }
+
+    public override void ShowTo(VisibleObject obj)
+    {
+        if (!(obj is User)) return;
+        var user = (User)obj;
+        user.SendVisibleGold(this);
+    }
 }

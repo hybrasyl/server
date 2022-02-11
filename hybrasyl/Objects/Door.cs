@@ -19,41 +19,38 @@
  * 
  */
 
-namespace Hybrasyl.Objects
+namespace Hybrasyl.Objects;
+
+public class Door : VisibleObject
 {
-    public class Door : VisibleObject
+    public bool Closed { get; set; }
+    public bool IsLeftRight { get; set; }
+    public bool UpdateCollision { get; set; }
+
+    public Door(byte x, byte y, bool closed = false, bool isLeftRight = false, bool updateCollision = true)
     {
-        public bool Closed { get; set; }
-        public bool IsLeftRight { get; set; }
-        public bool UpdateCollision { get; set; }
-
-        public Door(byte x, byte y, bool closed = false, bool isLeftRight = false, bool updateCollision = true)
-        {
-            X = x;
-            Y = y;
-            Closed = closed;
-            IsLeftRight = isLeftRight;
-            UpdateCollision = updateCollision;
-        }
-
-        public override void OnClick(User invoker)
-        {
-            invoker.Map.ToggleDoors(X, Y);
-        }
-
-        public override void AoiEntry(VisibleObject obj)
-        {
-            ShowTo(obj);
-        }
-
-        public override void ShowTo(VisibleObject obj)
-        {
-            if (!(obj is User)) return;
-            var user = (User)obj;
-            user.SendDoorUpdate(X, Y, Closed,
-                IsLeftRight);
-        }
+        X = x;
+        Y = y;
+        Closed = closed;
+        IsLeftRight = isLeftRight;
+        UpdateCollision = updateCollision;
     }
 
+    public override void OnClick(User invoker)
+    {
+        invoker.Map.ToggleDoors(X, Y);
+    }
 
+    public override void AoiEntry(VisibleObject obj)
+    {
+        ShowTo(obj);
+    }
+
+    public override void ShowTo(VisibleObject obj)
+    {
+        if (!(obj is User)) return;
+        var user = (User)obj;
+        user.SendDoorUpdate(X, Y, Closed,
+            IsLeftRight);
+    }
 }

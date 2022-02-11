@@ -21,87 +21,85 @@
  
 using Hybrasyl.Objects;
 
-namespace Hybrasyl.ChatCommands
+namespace Hybrasyl.ChatCommands;
+
+class StatusCommand : ChatCommand
 {
+    public new static string Command = "status";
+    public new static string ArgumentText = "<string statusName>";
+    public new static string HelpText = "Apply a given status to yourself.";
+    public new static bool Privileged = true;
 
-    class StatusCommand : ChatCommand
+    public new static ChatCommandResult Run(User user, params string[] args)
     {
-        public new static string Command = "status";
-        public new static string ArgumentText = "<string statusName>";
-        public new static string HelpText = "Apply a given status to yourself.";
-        public new static bool Privileged = true;
-
-        public new static ChatCommandResult Run(User user, params string[] args)
+        if (Game.World.WorldData.TryGetValue(args[0], out Xml.Status status))
         {
-            if (Game.World.WorldData.TryGetValue(args[0], out Xml.Status status))
-            {
-                user.ApplyStatus(new CreatureStatus(status, user, null, null));
-                return Success();
-            }
-            return Fail("No such status was found. Missing XML file perhaps?");
-        }
-    }
-
-    class ClearStatusCommand : ChatCommand
-    {
-        public new static string Command = "clearstatus";
-        public new static string ArgumentText = "<string playername> | none";
-        public new static string HelpText = "Clear all statuses and conditions.";
-        public new static bool Privileged = true;
-
-        public new static ChatCommandResult Run(User user, params string[] args)
-        {
-
-            user.RemoveAllStatuses();
-            user.Condition.ClearConditions();
-            return Success("All statuses and conditions cleared");
-        }
-
-    }
-
-    class ClearFlagsCommand : ChatCommand
-    {
-        public new static string Command = "clearflags";
-        public new static string ArgumentText = "<string username>";
-        public new static string HelpText = "Clear player flags for a specified user.";
-        public new static bool Privileged = true;
-
-        public new static ChatCommandResult Run(User user, params string[] args)
-        {
-            if (Game.World.TryGetActiveUser(args[0], out User target))
-            {
-                target.Condition.ClearFlags();
-                return Success($"{target.Name}: Alive, all flags cleared");
-            }
-            return Fail($"{args[1]} is not online");
-        }
-
-    }
-
-    class ConditionCommand : ChatCommand
-    {
-        public new static string Command = "condition";
-        public new static string ArgumentText = "none";
-        public new static string HelpText = "Display current conditions and player flags.";
-        public new static bool Privileged = false;
-
-        public new static ChatCommandResult Run(User user, params string[] args) => Success($"Flags: {user.Condition.Flags} Conditions: {user.Condition.Conditions}");
-    }
-
-    class StatusesCommand : ChatCommand
-    {
-        public new static string Command = "statuses";
-        public new static string ArgumentText = "none";
-        public new static string HelpText = "Display information about current statuses.";
-        public new static bool Privileged = false;
-
-        public new static ChatCommandResult Run(User user, params string[] args)
-        {
-            string statusReport = string.Empty;
-            foreach (var status in user.CurrentStatusInfo)
-                statusReport = $"{statusReport}{status.Name}: {status.Remaining} seconds remaining, tick every {status.Tick} seconds\n";
-            user.SendMessage(statusReport, MessageTypes.SLATE_WITH_SCROLLBAR);
+            user.ApplyStatus(new CreatureStatus(status, user, null, null));
             return Success();
         }
+        return Fail("No such status was found. Missing XML file perhaps?");
+    }
+}
+
+class ClearStatusCommand : ChatCommand
+{
+    public new static string Command = "clearstatus";
+    public new static string ArgumentText = "<string playername> | none";
+    public new static string HelpText = "Clear all statuses and conditions.";
+    public new static bool Privileged = true;
+
+    public new static ChatCommandResult Run(User user, params string[] args)
+    {
+
+        user.RemoveAllStatuses();
+        user.Condition.ClearConditions();
+        return Success("All statuses and conditions cleared");
+    }
+
+}
+
+class ClearFlagsCommand : ChatCommand
+{
+    public new static string Command = "clearflags";
+    public new static string ArgumentText = "<string username>";
+    public new static string HelpText = "Clear player flags for a specified user.";
+    public new static bool Privileged = true;
+
+    public new static ChatCommandResult Run(User user, params string[] args)
+    {
+        if (Game.World.TryGetActiveUser(args[0], out User target))
+        {
+            target.Condition.ClearFlags();
+            return Success($"{target.Name}: Alive, all flags cleared");
+        }
+        return Fail($"{args[1]} is not online");
+    }
+
+}
+
+class ConditionCommand : ChatCommand
+{
+    public new static string Command = "condition";
+    public new static string ArgumentText = "none";
+    public new static string HelpText = "Display current conditions and player flags.";
+    public new static bool Privileged = false;
+
+    public new static ChatCommandResult Run(User user, params string[] args) => Success($"Flags: {user.Condition.Flags} Conditions: {user.Condition.Conditions}");
+}
+
+class StatusesCommand : ChatCommand
+{
+    public new static string Command = "statuses";
+    public new static string ArgumentText = "none";
+    public new static string HelpText = "Display information about current statuses.";
+    public new static bool Privileged = false;
+
+    public new static ChatCommandResult Run(User user, params string[] args)
+    {
+        string statusReport = string.Empty;
+        foreach (var status in user.CurrentStatusInfo)
+            statusReport = $"{statusReport}{status.Name}: {status.Remaining} seconds remaining, tick every {status.Tick} seconds\n";
+        user.SendMessage(statusReport, MessageTypes.SLATE_WITH_SCROLLBAR);
+        return Success();
     }
 }

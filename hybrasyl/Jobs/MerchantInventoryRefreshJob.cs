@@ -24,27 +24,26 @@ using System;
 using System.Linq;
 using System.Timers;
 
-namespace Hybrasyl.Jobs
-{
-    public static class MerchantInventoryRefreshJob
-    {
-        public static readonly int Interval = 60;
+namespace Hybrasyl.Jobs;
 
-        public static void Execute(object obj, ElapsedEventArgs args)
+public static class MerchantInventoryRefreshJob
+{
+    public static readonly int Interval = 60;
+
+    public static void Execute(object obj, ElapsedEventArgs args)
+    {
+        GameLog.Debug("MerchantInventoryRefresh Job starting");
+        try
         {
-            GameLog.Debug("MerchantInventoryRefresh Job starting");
-            try
+            foreach (Merchant merchant in Game.World.Objects.Values.Where(x => x is Merchant))
             {
-                foreach (Merchant merchant in Game.World.Objects.Values.Where(x => x is Merchant))
-                {
-                    merchant.RestockInventory();
-                }
+                merchant.RestockInventory();
             }
-            catch (Exception e)
-            {
-                Game.ReportException(e);
-                GameLog.Error("Exception occured in MerchantInventoryRefresh job:", e);
-            }
+        }
+        catch (Exception e)
+        {
+            Game.ReportException(e);
+            GameLog.Error("Exception occured in MerchantInventoryRefresh job:", e);
         }
     }
 }

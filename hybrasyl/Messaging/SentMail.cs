@@ -22,46 +22,45 @@
 using Newtonsoft.Json;
 using System;
 
-namespace Hybrasyl.Messaging
+namespace Hybrasyl.Messaging;
+
+[JsonObject(MemberSerialization.OptIn)]
+[RedisType]
+public class SentMail : MessageStore
 {
-    [JsonObject(MemberSerialization.OptIn)]
-    [RedisType]
-    public class SentMail : MessageStore
+    // TODO: correct
+    public SentMail(Guid guid) : base(guid.ToString()) { }
+
+    [JsonProperty]
+    public DateTime LastMailMessageSent { get; set; }
+
+    [JsonProperty]
+    public string LastMailRecipient { get; set; }
+
+    [JsonProperty]
+    public DateTime LastBoardMessageSent { get; set; }
+
+    [JsonProperty]
+    public string LastBoardRecipient { get; set; }
+
+    public bool HasUnreadMessages => false;
+
+    public override bool ReceiveMessage(Message newMessage)
     {
-        // TODO: correct
-        public SentMail(Guid guid) : base(guid.ToString()) { }
-
-        [JsonProperty]
-        public DateTime LastMailMessageSent { get; set; }
-
-        [JsonProperty]
-        public string LastMailRecipient { get; set; }
-
-        [JsonProperty]
-        public DateTime LastBoardMessageSent { get; set; }
-
-        [JsonProperty]
-        public string LastBoardRecipient { get; set; }
-
-        public bool HasUnreadMessages => false;
-
-        public override bool ReceiveMessage(Message newMessage)
+        if (IsLocked || Full == true)
         {
-            if (IsLocked || Full == true)
-            {
-                return false;
-            }
-            CurrentId++;
-            newMessage.Id = CurrentId;
-            newMessage.Body = $"{{=e(( Originally Sent: {newMessage.Created} ))\n{{=e(( Sent To: {newMessage.Recipient} ))\n\n{{=a{newMessage.Body}";
-            if (newMessage.Body.Length > ushort.MaxValue)
-                newMessage.Body = newMessage.Body.Substring(0, ushort.MaxValue);
-            // Sent mail is always read
-            newMessage.Read = true;
-            newMessage.ReadTime = DateTime.Now;
-            Messages.Add(newMessage);
-            Save();
-            return true;
+            return false;
         }
+        CurrentId++;
+        newMessage.Id = CurrentId;
+        newMessage.Body = $"{{=e(( Originally Sent: {newMessage.Created} ))\n{{=e(( Sent To: {newMessage.Recipient} ))\n\n{{=a{newMessage.Body}";
+        if (newMessage.Body.Length > ushort.MaxValue)
+            newMessage.Body = newMessage.Body.Substring(0, ushort.MaxValue);
+        // Sent mail is always read
+        newMessage.Read = true;
+        newMessage.ReadTime = DateTime.Now;
+        Messages.Add(newMessage);
+        Save();
+        return true;
     }
 }

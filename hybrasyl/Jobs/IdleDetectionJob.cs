@@ -22,30 +22,29 @@
 using System;
 using System.Timers;
 
-namespace Hybrasyl.Jobs
+namespace Hybrasyl.Jobs;
+
+public static class IdleDetectionJob
 {
-    public static class IdleDetectionJob
+    public static readonly int Interval = 60;
+
+    public static void Execute(object obj, ElapsedEventArgs args)
     {
-        public static readonly int Interval = 60;
-
-        public static void Execute(object obj, ElapsedEventArgs args)
+        try
         {
-            try
-            {
-                GameLog.Debug("Job starting");
+            GameLog.Debug("Job starting");
 
-                var now = DateTime.Now.Ticks;
-                foreach (var client in GlobalConnectionManifest.WorldClients.Values)
-                {
-                    client.CheckIdle();
-                }
-                GameLog.Debug("Job complete");
-            }
-            catch (Exception e)
+            var now = DateTime.Now.Ticks;
+            foreach (var client in GlobalConnectionManifest.WorldClients.Values)
             {
-                Game.ReportException(e);
-                GameLog.Error("Exception occured in job:", e);
+                client.CheckIdle();
             }
+            GameLog.Debug("Job complete");
+        }
+        catch (Exception e)
+        {
+            Game.ReportException(e);
+            GameLog.Error("Exception occured in job:", e);
         }
     }
 }

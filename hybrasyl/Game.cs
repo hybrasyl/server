@@ -39,225 +39,225 @@ using Newtonsoft.Json.Linq;
 using Sentry;
 using App.Metrics;
 
-namespace Hybrasyl
+namespace Hybrasyl;
+
+public static class Game
 {
-    public static class Game
-    {
-        public static readonly object SyncObj = new object();
-        public static IPAddress IpAddress;
-        public static IPAddress RedirectTarget;
+    public static readonly object SyncObj = new object();
+    public static IPAddress IpAddress;
+    public static IPAddress RedirectTarget;
 
-        public static ManualResetEvent allDone = new ManualResetEvent(false);
+    public static ManualResetEvent allDone = new ManualResetEvent(false);
 
-        public static Lobby Lobby { get; set; }
-        public static Login Login { get; set; }
-        public static World World { get; set; }
-        public static byte[] ServerTable { get; private set; }
-        public static uint ServerTableCrc { get; private set; }
-        public static byte[] Notification { get; set; }
-        public static uint NotificationCrc { get; set; }
-        public static byte[] Collisions { get; set; }
+    public static Lobby Lobby { get; set; }
+    public static Login Login { get; set; }
+    public static World World { get; set; }
+    public static byte[] ServerTable { get; private set; }
+    public static uint ServerTableCrc { get; private set; }
+    public static byte[] Notification { get; set; }
+    public static uint NotificationCrc { get; set; }
+    public static byte[] Collisions { get; set; }
  
-        public static AssemblyInfo Assemblyinfo { get; set; }
-        private static long Active;
+    public static AssemblyInfo Assemblyinfo { get; set; }
+    private static long Active;
 
-        private static Monolith _monolith;
-        private static MonolithControl _monolithControl;
+    private static Monolith _monolith;
+    private static MonolithControl _monolithControl;
 
-        public static Xml.ServerConfig Config { get; private set; }
+    public static Xml.ServerConfig Config { get; private set; }
 
-        private static Thread _lobbyThread;
-        private static Thread _loginThread;
-        private static Thread _worldThread;
-        private static Thread _spawnThread;
-        private static Thread _controlThread;
+    private static Thread _lobbyThread;
+    private static Thread _loginThread;
+    private static Thread _worldThread;
+    private static Thread _spawnThread;
+    private static Thread _controlThread;
 
-        private static Dictionary<Guid, Server> Servers = new ();
+    private static Dictionary<Guid, Server> Servers = new ();
 
-        private static Grpc.Core.Server GrpcServer;
+    private static Grpc.Core.Server GrpcServer;
 
-        public static LoggingLevelSwitch LevelSwitch;
+    public static LoggingLevelSwitch LevelSwitch;
 
-        public static DateTime StartDate { get; set; }
-        public static string CommitLog { get; private set; }
+    public static DateTime StartDate { get; set; }
+    public static string CommitLog { get; private set; }
 
-        private static readonly CancellationTokenSource CancellationTokenSource = new CancellationTokenSource();
+    private static readonly CancellationTokenSource CancellationTokenSource = new CancellationTokenSource();
 
-        public static IDisposable Sentry { get; private set; }
-        public static bool SentryEnabled { get; private set; }
+    public static IDisposable Sentry { get; private set; }
+    public static bool SentryEnabled { get; private set; }
 
-        public static int ShutdownTimeRemaining = -1;
-        public static bool ShutdownComplete;
+    public static int ShutdownTimeRemaining = -1;
+    public static bool ShutdownComplete;
 
-        public static IMetricsRoot MetricsStore { get; private set; }
+    public static IMetricsRoot MetricsStore { get; private set; }
 
-        public static T GetServerByGuid<T>(Guid g) where T : Server => Servers.ContainsKey(g) ? (T) Servers[g] : null;
-        public static T GetDefaultServer<T>() where T : Server => Servers.Values.FirstOrDefault(x => x is T && x.Default) as T;
+    public static T GetServerByGuid<T>(Guid g) where T : Server => Servers.ContainsKey(g) ? (T) Servers[g] : null;
+    public static T GetDefaultServer<T>() where T : Server => Servers.Values.FirstOrDefault(x => x is T && x.Default) as T;
 
-        public static Guid GetDefaultServerGuid<T>() where T : Server =>
-            Servers.FirstOrDefault(x => x.Value is T && x.Value.Default).Value?.Guid ?? Guid.Empty;
+    public static Guid GetDefaultServerGuid<T>() where T : Server =>
+        Servers.FirstOrDefault(x => x.Value is T && x.Value.Default).Value?.Guid ?? Guid.Empty;
 
-        public static void RegisterServer(Server s) => Servers[s.Guid] = s;
+    public static void RegisterServer(Server s) => Servers[s.Guid] = s;
 
-        public static string StartupDirectory => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Hybrasyl");
+    public static string StartupDirectory => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Hybrasyl");
 
 
-        public static void ToggleActive()
+    public static void ToggleActive()
+    {
+        if (Interlocked.Read(ref Active) == 0)
         {
-            if (Interlocked.Read(ref Active) == 0)
-            {
-                Interlocked.Exchange(ref Active, 1);
-                return;
-            }
-            Interlocked.Exchange(ref Active, 0);
+            Interlocked.Exchange(ref Active, 1);
+            return;
         }
+        Interlocked.Exchange(ref Active, 0);
+    }
 
-        public static bool IsActive()
-        {
-            if (Interlocked.Read(ref Active) == 0)
-                return false;
-            return true;
-        }
+    public static bool IsActive()
+    {
+        if (Interlocked.Read(ref Active) == 0)
+            return false;
+        return true;
+    }
 
-        public static void ReportException(Exception e)
-        {
-            if (SentryEnabled)
-                Task.Run(() => SentrySdk.CaptureException(e));
-        }
+    public static void ReportException(Exception e)
+    {
+        if (SentryEnabled)
+            Task.Run(() => SentrySdk.CaptureException(e));
+    }
 
-        public static void CurrentDomain_ProcessExit(object sender, EventArgs e) => Shutdown();
+    public static void CurrentDomain_ProcessExit(object sender, EventArgs e) => Shutdown();
 
-        public static void Shutdown()
-        {
-            Log.Warning("Hybrasyl: all servers shutting down");
+    public static void Shutdown()
+    {
+        Log.Warning("Hybrasyl: all servers shutting down");
 
-            // Server is shutting down. For Lobby and Login, this terminates the TCP listeners;
-            // for World, this triggers a logoff for all logged in users and then terminates. After
-            // termination, the queue consumer is stopped as well.
-            // For a true restart we'll need to do a few other things; stop timers, etc.
+        // Server is shutting down. For Lobby and Login, this terminates the TCP listeners;
+        // for World, this triggers a logoff for all logged in users and then terminates. After
+        // termination, the queue consumer is stopped as well.
+        // For a true restart we'll need to do a few other things; stop timers, etc.
 
-            CancellationTokenSource.Cancel();
-            Lobby?.Shutdown();
-            Login?.Shutdown();
-            World?.Shutdown();
-            // Stop consumers, which will also empty queues
-            World?.StopQueueConsumer();
-            World?.StopControlConsumers();
+        CancellationTokenSource.Cancel();
+        Lobby?.Shutdown();
+        Login?.Shutdown();
+        World?.Shutdown();
+        // Stop consumers, which will also empty queues
+        World?.StopQueueConsumer();
+        World?.StopControlConsumers();
            
-            Thread.Sleep(2000);
-            Log.Warning("Hybrasyl {Version}: shutdown complete.", Assemblyinfo.Version);
-            ShutdownComplete = true;
-            //host.Close();
-        }
+        Thread.Sleep(2000);
+        Log.Warning("Hybrasyl {Version}: shutdown complete.", Assemblyinfo.Version);
+        ShutdownComplete = true;
+        //host.Close();
+    }
 
-        public static void Main(string[] args)
+    public static void Main(string[] args)
+    {
+        Assemblyinfo = new AssemblyInfo(Assembly.GetEntryAssembly());
+
+        // Default is info
+        LevelSwitch = new LoggingLevelSwitch();
+        LevelSwitch.MinimumLevel = LogEventLevel.Information;
+
+        // Set our exit handler
+        AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
+
+        var hybConfig = Path.Combine(StartupDirectory, "config.xml");
+
+        string dataDirectory = Path.Combine(StartupDirectory, "world");
+        Log.Logger = new LoggerConfiguration().WriteTo.Console().CreateLogger();
+
+        if (File.Exists(hybConfig))
         {
-            Assemblyinfo = new AssemblyInfo(Assembly.GetEntryAssembly());
-
-            // Default is info
-            LevelSwitch = new LoggingLevelSwitch();
-            LevelSwitch.MinimumLevel = LogEventLevel.Information;
-
-            // Set our exit handler
-            AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
-
-            var hybConfig = Path.Combine(StartupDirectory, "config.xml");
-
-            string dataDirectory = Path.Combine(StartupDirectory, "world");
-            Log.Logger = new LoggerConfiguration().WriteTo.Console().CreateLogger();
-
-            if (File.Exists(hybConfig))
+            if (Xml.ServerConfig.LoadFromFile(hybConfig, out var gameConfig, out var exception))
             {
-                if (Xml.ServerConfig.LoadFromFile(hybConfig, out var gameConfig, out var exception))
+                Log.Information("Configuration file {file} loaded", hybConfig);
+                Config = gameConfig;
+                Config.InitializeClientSettings();
+                dataDirectory = string.IsNullOrEmpty(Config.WorldDataDir)
+                    ? StartupDirectory
+                    : Config.WorldDataDir;
+                if (!string.IsNullOrEmpty(Config.WorldDataDir) && Directory.Exists(Config.WorldDataDir))
+                    dataDirectory = Config.WorldDataDir;
+                if (!Directory.Exists(dataDirectory))
                 {
-                    Log.Information("Configuration file {file} loaded", hybConfig);
-                    Config = gameConfig;
-                    Config.InitializeClientSettings();
-                    dataDirectory = string.IsNullOrEmpty(Config.WorldDataDir)
-                        ? StartupDirectory
-                        : Config.WorldDataDir;
-                    if (!string.IsNullOrEmpty(Config.WorldDataDir) && Directory.Exists(Config.WorldDataDir))
-                        dataDirectory = Config.WorldDataDir;
-                    if (!Directory.Exists(dataDirectory))
-                    {
-                        Log.Fatal(
-                            "The world data directory specified in config.xml (or a default) could not be found:");
-                        Log.Fatal($"{dataDirectory}\n. Please update your config to point to a valid world directory.");
-                        Thread.Sleep(10000);
-                        return;
-                    }
-                }
-                else
-                {
-                    Log.Fatal("Configuration file had errors!");
-                    Log.Fatal("Exception follows: {exception}", exception);
-                    Log.Fatal("Server will terminate automatically in ten seconds.");
+                    Log.Fatal(
+                        "The world data directory specified in config.xml (or a default) could not be found:");
+                    Log.Fatal($"{dataDirectory}\n. Please update your config to point to a valid world directory.");
                     Thread.Sleep(10000);
                     return;
                 }
             }
             else
             {
-                Log.Warning("This seems to be the first time you've run the server (config file not found)");
-                Log.Warning("Please take a look at the server documentation at github.com/hybrasyl/server.");
-                Log.Warning("We also recommend you look at the example config.xml in the community database");
-                Log.Warning("which can be found at github.com/hybrasyl/ceridwen .");
-                Log.Warning($"We are currently looking in:\n{hybConfig} for a config file.");
-                Log.Fatal("Hybrasyl cannot start without a config file, so it will automatically close in 10 seconds.");
+                Log.Fatal("Configuration file had errors!");
+                Log.Fatal("Exception follows: {exception}", exception);
+                Log.Fatal("Server will terminate automatically in ten seconds.");
                 Thread.Sleep(10000);
                 return;
             }
+        }
+        else
+        {
+            Log.Warning("This seems to be the first time you've run the server (config file not found)");
+            Log.Warning("Please take a look at the server documentation at github.com/hybrasyl/server.");
+            Log.Warning("We also recommend you look at the example config.xml in the community database");
+            Log.Warning("which can be found at github.com/hybrasyl/ceridwen .");
+            Log.Warning($"We are currently looking in:\n{hybConfig} for a config file.");
+            Log.Fatal("Hybrasyl cannot start without a config file, so it will automatically close in 10 seconds.");
+            Thread.Sleep(10000);
+            return;
+        }
 
-            if (string.IsNullOrEmpty(dataDirectory))
+        if (string.IsNullOrEmpty(dataDirectory))
+        {
+            Log.Information("Using default data directory {Directory}", StartupDirectory);
+            try
             {
-                Log.Information("Using default data directory {Directory}", StartupDirectory);
-                try
-                {
-                    // Ensure at least the world and logs directory exist 
-                    Directory.CreateDirectory(StartupDirectory);
-                    Directory.CreateDirectory(Path.Combine(StartupDirectory, "world"));
-                    Directory.CreateDirectory(Path.Combine(StartupDirectory, "logs"));
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine($"Can't create data directory: {StartupDirectory}", e.ToString());
-                    Thread.Sleep(5000);
-                    return;
-                }
+                // Ensure at least the world and logs directory exist 
+                Directory.CreateDirectory(StartupDirectory);
+                Directory.CreateDirectory(Path.Combine(StartupDirectory, "world"));
+                Directory.CreateDirectory(Path.Combine(StartupDirectory, "logs"));
             }
-
-            // Configure logging 
-
-            // We log every LogType defined in our enumeration to its own file. Only the "general" type is sent to the console.
-            var log = new LoggerConfiguration().MinimumLevel.ControlledBy(LevelSwitch).Enrich.WithThreadId().Enrich.WithExceptionData().
-                WriteTo.Map("LogType", "General", (name, wt) => wt.File($"{Path.Combine(dataDirectory, "logs")}/{name}-.log", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 90, rollOnFileSizeLimit: true)).
-                WriteTo.Logger(lc => lc.Filter.ByIncludingOnly(GameLog.IsGeneralEvent).WriteTo.Console())
-                .CreateLogger();
-
-            Log.Logger = log;
-            Log.Information("Hybrasyl log begin");
-            Log.Information("Welcome to Project Hybrasyl: this is Hybrasyl server {0}\n\n", Assemblyinfo.Version);
-
-            Log.Information($"Hybrasyl {Assemblyinfo.Version} (commit {Assemblyinfo.GitHash} starting.");
-            Log.Information("{Copyright} - this program is licensed under the GNU AGPL, version 3.", Assemblyinfo.Copyright);
-
-
-            // Set up metrics collection
-            // TODO: make configurable
-            var env = Environment.GetEnvironmentVariable("HYB_ENV");
-
-            var builder = new MetricsBuilder().Configuration.Configure(
-                options =>
-                {
-                    options.DefaultContextLabel = "Hybrasyl";
-                    options.GlobalTags.Add("Environment", env ?? "dev");
-                    options.Enabled = true;
-                    options.ReportingEnabled = true;
-                });
-
-            if (Game.Config.ApiEndpoints?.MetricsEndpoint != null)
+            catch (Exception e)
             {
-                MetricsStore = builder.Report.ToHostedMetrics(
+                Console.WriteLine($"Can't create data directory: {StartupDirectory}", e.ToString());
+                Thread.Sleep(5000);
+                return;
+            }
+        }
+
+        // Configure logging 
+
+        // We log every LogType defined in our enumeration to its own file. Only the "general" type is sent to the console.
+        var log = new LoggerConfiguration().MinimumLevel.ControlledBy(LevelSwitch).Enrich.WithThreadId().Enrich.WithExceptionData().
+            WriteTo.Map("LogType", "General", (name, wt) => wt.File($"{Path.Combine(dataDirectory, "logs")}/{name}-.log", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 90, rollOnFileSizeLimit: true)).
+            WriteTo.Logger(lc => lc.Filter.ByIncludingOnly(GameLog.IsGeneralEvent).WriteTo.Console())
+            .CreateLogger();
+
+        Log.Logger = log;
+        Log.Information("Hybrasyl log begin");
+        Log.Information("Welcome to Project Hybrasyl: this is Hybrasyl server {0}\n\n", Assemblyinfo.Version);
+
+        Log.Information($"Hybrasyl {Assemblyinfo.Version} (commit {Assemblyinfo.GitHash} starting.");
+        Log.Information("{Copyright} - this program is licensed under the GNU AGPL, version 3.", Assemblyinfo.Copyright);
+
+
+        // Set up metrics collection
+        // TODO: make configurable
+        var env = Environment.GetEnvironmentVariable("HYB_ENV");
+
+        var builder = new MetricsBuilder().Configuration.Configure(
+            options =>
+            {
+                options.DefaultContextLabel = "Hybrasyl";
+                options.GlobalTags.Add("Environment", env ?? "dev");
+                options.Enabled = true;
+                options.ReportingEnabled = true;
+            });
+
+        if (Game.Config.ApiEndpoints?.MetricsEndpoint != null)
+        {
+            MetricsStore = builder.Report.ToHostedMetrics(
                 io =>
                 {
                     io.HostedMetrics.BaseUri = new Uri(Game.Config.ApiEndpoints.MetricsEndpoint.Url);
@@ -267,408 +267,408 @@ namespace Hybrasyl
                     io.HttpPolicy.Timeout = TimeSpan.FromSeconds(10);
                     io.FlushInterval = TimeSpan.FromSeconds(20);
                 }).Build();
-            }
-            else
-                MetricsStore = builder.Build();
+        }
+        else
+            MetricsStore = builder.Build();
 
-            try
-            {
-                if (!string.IsNullOrEmpty(Config.ApiEndpoints.Sentry?.Url ?? null))
-                {   
-                    Sentry = SentrySdk.Init(i =>
+        try
+        {
+            if (!string.IsNullOrEmpty(Config.ApiEndpoints.Sentry?.Url ?? null))
+            {   
+                Sentry = SentrySdk.Init(i =>
                     {
                         i.Dsn = Config.ApiEndpoints.Sentry.Url;
                         i.Environment = (env ?? "dev");
                     }
-                    );
-                    SentryEnabled = true;
-                    GameLog.Info("Sentry: exception reporting enabled");
-                }
-                else
-                {
-                    GameLog.Info("Sentry: exception reporting disabled");
-                    SentryEnabled = false;
-                }
-            }
-            catch (Exception e)
-            {
-                GameLog.Warning("Sentry: exception reporting disabled, unknown error: {e}", e);
-                SentryEnabled = false;
-            }
-
-            LoadCollisions();
-
-            // For right now we don't support binding to different addresses; the support in the XML
-            // is for a distant future where that may be desirable.
-            if (Config.Network.Login.ExternalAddress != null)
-                // We can have a hostname here to support ease of running in Docker; try to naively resolve it
-                RedirectTarget = Dns.GetHostAddresses(Config.Network.Lobby.ExternalAddress).FirstOrDefault();
- 
-            IpAddress = IPAddress.Parse(Config.Network.Lobby.BindAddress);
-
-            Lobby = new Lobby(Config.Network.Lobby.Port, true);
-            Login = new Login(Config.Network.Login.Port, true);
-            World = new World(Config.Network.World.Port, Config.DataStore, dataDirectory == string.Empty ? Path.Combine(StartupDirectory, "world") : dataDirectory, true);
-
-            Lobby.StopToken = CancellationTokenSource.Token;
-            Login.StopToken = CancellationTokenSource.Token;
-            World.StopToken = CancellationTokenSource.Token;
-
-            _monolith = new Monolith();
-            _monolithControl = new MonolithControl();
-                    
-            if (!World.InitWorld())
-            {
-                GameLog.Fatal("Hybrasyl cannot continue loading. A fatal error occurred while initializing the world. Press any key to exit.");
-                Console.ReadKey();
-                Environment.Exit(1);
-            }
-
-            byte[] addressBytes;
-            addressBytes = IpAddress.GetAddressBytes();
-            Array.Reverse(addressBytes);
-
-            using (var multiServerTableStream = new MemoryStream())
-            {
-                using (var multiServerTableWriter = new BinaryWriter(multiServerTableStream, Encoding.ASCII, true))
-                {
-                    multiServerTableWriter.Write((byte)1);
-                    multiServerTableWriter.Write((byte)1);
-                    multiServerTableWriter.Write(addressBytes);
-                    multiServerTableWriter.Write((byte)(2611 / 256));
-                    multiServerTableWriter.Write((byte)(2611 % 256));
-                    multiServerTableWriter.Write(Encoding.ASCII.GetBytes("Hybrasyl;Hybrasyl Production\0"));
-                }
-
-                ServerTableCrc = ~Crc32.Calculate(multiServerTableStream.ToArray());
-
-                using (var compressedMultiServerTableStream = new MemoryStream())
-                {
-                    ZlibCompression.Compress(multiServerTableStream, compressedMultiServerTableStream);
-                    ServerTable = compressedMultiServerTableStream.ToArray();
-                }
-            }
-
-            using (var stipulationStream = new MemoryStream())
-            {
-                using (var stipulationWriter = new StreamWriter(stipulationStream, Encoding.ASCII, 1024, true))
-                {
-                    var serverMsgFileName = Path.Combine(dataDirectory, "server.msg");
-
-                    if (File.Exists(serverMsgFileName))
-                    {
-                        stipulationWriter.Write(File.ReadAllText(serverMsgFileName));
-                    }
-                    else
-                    {
-                        if (string.IsNullOrEmpty(Config.Motd))
-                            stipulationWriter.Write($"Welcome to Hybrasyl!\n\nThis is Hybrasyl (version {Assemblyinfo.Version}, commit {Assemblyinfo.GitHash}).\n\nFor more information please visit http://www.hybrasyl.com");
-                        else
-                            stipulationWriter.Write(Config.Motd);
-                    }
-                }
-
-                NotificationCrc = ~Crc32.Calculate(stipulationStream.ToArray());
-
-                using (var compressedStipulationStream = new MemoryStream())
-                {
-                    ZlibCompression.Compress(stipulationStream, compressedStipulationStream);
-                    Notification = compressedStipulationStream.ToArray();
-                }
-            }
-
-            World.StartTimers();
-            World.StartQueueConsumer();
-            World.StartControlConsumers();
-
-            ToggleActive();
-            StartDate = DateTime.Now;
-
-            _lobbyThread = new Thread(new ThreadStart(Lobby.StartListening));
-            _loginThread = new Thread(new ThreadStart(Login.StartListening));
-            _worldThread = new Thread(new ThreadStart(World.StartListening));
-
-            _spawnThread = new Thread(_monolith.Start);
-            _controlThread = new Thread(_monolithControl.Start);
-
-            _lobbyThread.Start();
-            _loginThread.Start();
-            _worldThread.Start();
-            _spawnThread.Start();
-            _controlThread.Start();
-
-            Task.Run(CheckVersion).GetAwaiter();
-            Task.Run(GetCommitLog).GetAwaiter();
-
-            GrpcServer = null;
-
-            // Uncomment for GRPC troubleshooting
-            // Environment.SetEnvironmentVariable("GRPC_VERBOSITY", "debug");
-
-            // Start GRPC server
-            if (Config.Network.Grpc != null)
-            {
-                var ssl_enabled = Config.Network.Grpc.ServerCertificateFile != null && Config.Network.Grpc.ServerKeyFile != null;
-
-                if (ssl_enabled)
-                {
-                    Grpc.Core.SslServerCredentials credentials;
-                    // Load credentials
-                    try
-                    {
-                        var cert = File.ReadAllText(Path.Join(StartupDirectory, "ssl", Config.Network.Grpc.ServerCertificateFile));
-                        var key = File.ReadAllText(Path.Join(StartupDirectory, "ssl", Config.Network.Grpc.ServerKeyFile));
-                        var keypair_list = new List<Grpc.Core.KeyCertificatePair>() { new Grpc.Core.KeyCertificatePair(cert, key) };
-                        if (Config.Network.Grpc.ChainCertificateFile != null)
-                        {
-                            var chaincerts = File.ReadAllText(Path.Join(StartupDirectory, "ssl", Config.Network.Grpc.ChainCertificateFile));
-                            credentials = new Grpc.Core.SslServerCredentials(keypair_list, chaincerts,
-                                Grpc.Core.SslClientCertificateRequestType.RequestAndRequireAndVerify);
-                        }
-                        else
-                        {
-                            // Note, without a chain certificate, only the connection is secure; there is no authentication
-                            credentials = new Grpc.Core.SslServerCredentials(keypair_list);
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        GameLog.Error("GRPC: server initialization: key/cert load failed: {e}", e);
-                        GameLog.Error("GRPC: server disabled");
-                        credentials = null;
-                    }
-                    if (credentials != null)
-                    {
-                        GrpcServer = new Grpc.Core.Server
-                        {
-                            Services = { HybrasylGrpc.Patron.BindService(new HybrasylGrpc.PatronServer()) },
-                            Ports =
-                            {
-                                new Grpc.Core.ServerPort(Config.Network.Grpc.BindAddress,
-                        Config.Network.Grpc.Port, credentials)
-                            }
-                        };
-                        GameLog.Info("GRPC: SSL server initialized");
-                    }
-                }
-                else
-                {
-                    // Insecure mode, should be used for development only
-                    GrpcServer = new Grpc.Core.Server
-                    {
-                        Services = { HybrasylGrpc.Patron.BindService(new HybrasylGrpc.PatronServer()) },
-                        Ports = { new Grpc.Core.ServerPort(Config.Network.Grpc.BindAddress, Config.Network.Grpc.Port, Grpc.Core.ServerCredentials.Insecure) }
-                    };
-                    GameLog.Info("GRPC: server initialized (insecure, use for development only)");
-
-                }
-            }
-
-            if (GrpcServer != null)
-            {
-                try
-                {
-                    GrpcServer.Start();
-                }
-                catch (IOException e)
-                {
-                    GameLog.Info("GRPC: server start failed: {e}", e);
-                }
-            }
-            while (true)
-            {
-                if (!IsActive())
-                {
-                    CancellationTokenSource.Cancel();
-                    break;
-                }
-                Thread.Sleep(5);
-            }
-            
-            Shutdown(); 
-            GrpcServer.ShutdownAsync().Wait();
-
-        }
-
-        private async static void CheckVersion()
-        {
-            if (Assemblyinfo.GitHash == "unknown")
-            {
-                GameLog.Error("Server update check skipped, git hash not found in assemblyinfo.");
-                return;
-            }
-                    
-            try
-            {
-                using HttpClient client = new HttpClient();
-                using HttpResponseMessage res = await client.GetAsync("https://www.hybrasyl.com/builds/latest.json");
-                using HttpContent content = res.Content;
-
-                var data = await content.ReadAsStringAsync();
-                var jsonobj = JObject.Parse(data);
-                var theirhash = jsonobj["commit"].ToString().ToLower();
-                if (theirhash != Assemblyinfo.GitHash)
-                {
-                    GameLog.Warning("THIS VERSION OF HYBRASYL IS OUT OF DATE");
-                    GameLog.Warning($"You have {Assemblyinfo.GitHash} but {theirhash} is available as of {jsonobj["build_date"]}");
-                    GameLog.Warning($"You can download the new version at https://www.hybrasyl.com/builds/ .");
-                }
-                else
-                    GameLog.Info("This version of Hybrasyl is up to date!");
-            }
-            catch (Exception e)
-            {
-                Game.ReportException(e);
-                GameLog.Error("An error occurred checking if server updates are available {e}",e);
-            }           
-        }
-
-        private async static void GetCommitLog()
-        {
-            if (Assemblyinfo.GitHash == "unknown")
-            {
-                GameLog.Error("Git log fetch skipped, git hash not found in assemblyinfo.");
-                return;
-            }
-
-            try
-            {
-                using HttpClient client = new HttpClient();
-                client.DefaultRequestHeaders.Add("User-Agent", "Hybrasyl Server");
-                using HttpResponseMessage res = await client.GetAsync($"https://api.github.com/repos/hybrasyl/server/commits/{Assemblyinfo.GitHash}");
-                using HttpContent content = res.Content;
-
-                var data = await content.ReadAsStringAsync();
-                var jsonobj = JObject.Parse(data);
-
-                if (res.StatusCode == HttpStatusCode.OK)
-                    CommitLog = jsonobj["commit"]["message"].ToString();
-                else
-                    CommitLog = "There was an error fetching commit log information from Github. Sorry.";
-            }
-            catch (Exception e)
-            {
-                Game.ReportException(e);
-                GameLog.Error("Couldn't fetch version information from GitHub: {e}", e);
-                CommitLog = "There was an error fetching commit log information from Github. Sorry.";
-            }
-        }
-
-        public static void LoadCollisions()
-        {
-            var assembly = Assembly.GetExecutingAssembly();
-            var sotp = assembly.GetManifestResourceStream("Hybrasyl.Resources.sotp.dat");
-            using (var ms = new MemoryStream())
-            {
-                sotp.CopyTo(ms);
-                Collisions = ms.ToArray();
-            }
-        }
-
-        /// <summary>
-        /// Check to see if a sprite change should also trigger a collision change. Used to
-        /// determine if a door opening triggers a collision update server side or not. This specifically
-        /// handles the case of doors in Piet and Undine which are 3 tiles wide (and all 3 change graphically)
-        /// but collision updates only occur for two tiles.
-        /// </summary>
-        /// <param name="sprite">Sprite number.</param>
-        /// <returns>true/false indicating whether the sprite should trigger a collision.</returns>
-        public static bool IsDoorCollision(ushort sprite)
-        {
-            if (OpenDoorSprites.ContainsKey(sprite))
-            {
-                return (
-                    ((Game.Collisions[sprite - 1] & 0x0F) == 0x0F) ||
-                    ((Game.Collisions[OpenDoorSprites[sprite] - 1] & 0x0F) == 0x0F)
-                    );
+                );
+                SentryEnabled = true;
+                GameLog.Info("Sentry: exception reporting enabled");
             }
             else
             {
-                return (
-                ((Game.Collisions[sprite - 1] & 0x0F) == 0x0F) ||
-                ((Game.Collisions[ClosedDoorSprites[sprite] - 1] & 0x0F) == 0x0F)
-                );
+                GameLog.Info("Sentry: exception reporting disabled");
+                SentryEnabled = false;
+            }
+        }
+        catch (Exception e)
+        {
+            GameLog.Warning("Sentry: exception reporting disabled, unknown error: {e}", e);
+            SentryEnabled = false;
+        }
+
+        LoadCollisions();
+
+        // For right now we don't support binding to different addresses; the support in the XML
+        // is for a distant future where that may be desirable.
+        if (Config.Network.Login.ExternalAddress != null)
+            // We can have a hostname here to support ease of running in Docker; try to naively resolve it
+            RedirectTarget = Dns.GetHostAddresses(Config.Network.Lobby.ExternalAddress).FirstOrDefault();
+ 
+        IpAddress = IPAddress.Parse(Config.Network.Lobby.BindAddress);
+
+        Lobby = new Lobby(Config.Network.Lobby.Port, true);
+        Login = new Login(Config.Network.Login.Port, true);
+        World = new World(Config.Network.World.Port, Config.DataStore, dataDirectory == string.Empty ? Path.Combine(StartupDirectory, "world") : dataDirectory, true);
+
+        Lobby.StopToken = CancellationTokenSource.Token;
+        Login.StopToken = CancellationTokenSource.Token;
+        World.StopToken = CancellationTokenSource.Token;
+
+        _monolith = new Monolith();
+        _monolithControl = new MonolithControl();
+                    
+        if (!World.InitWorld())
+        {
+            GameLog.Fatal("Hybrasyl cannot continue loading. A fatal error occurred while initializing the world. Press any key to exit.");
+            Console.ReadKey();
+            Environment.Exit(1);
+        }
+
+        byte[] addressBytes;
+        addressBytes = IpAddress.GetAddressBytes();
+        Array.Reverse(addressBytes);
+
+        using (var multiServerTableStream = new MemoryStream())
+        {
+            using (var multiServerTableWriter = new BinaryWriter(multiServerTableStream, Encoding.ASCII, true))
+            {
+                multiServerTableWriter.Write((byte)1);
+                multiServerTableWriter.Write((byte)1);
+                multiServerTableWriter.Write(addressBytes);
+                multiServerTableWriter.Write((byte)(2611 / 256));
+                multiServerTableWriter.Write((byte)(2611 % 256));
+                multiServerTableWriter.Write(Encoding.ASCII.GetBytes("Hybrasyl;Hybrasyl Production\0"));
+            }
+
+            ServerTableCrc = ~Crc32.Calculate(multiServerTableStream.ToArray());
+
+            using (var compressedMultiServerTableStream = new MemoryStream())
+            {
+                ZlibCompression.Compress(multiServerTableStream, compressedMultiServerTableStream);
+                ServerTable = compressedMultiServerTableStream.ToArray();
             }
         }
 
-        public static readonly Dictionary<ushort, ushort> ClosedDoorSprites = new Dictionary<ushort, ushort>
+        using (var stipulationStream = new MemoryStream())
         {
-            { 1994, 1997 }, { 2000, 2003 }, { 2163, 2164 }, { 2165, 2196 }, { 2197, 2198 }, { 2227, 2228 },
-            { 2229, 2260 }, { 2261, 2262 }, { 2291, 2292 }, { 2293, 2328 }, { 2329, 2330 }, { 2432, 2436 }, 
-            { 2461, 2465 }, { 2673, 2674 }, { 2675, 2680 }, { 2681, 2682 }, { 2687, 2688 }, { 2689, 2694 },
-            { 2695, 2696 }, { 2714, 2715 }, { 2721, 2722 }, { 2727, 2728 }, { 2734, 2735 }, { 2761, 2762 },
-            { 2768, 2769 }, { 2776, 2777 }, { 2783, 2784 }, { 2850, 2851 }, { 2852, 2857 }, { 2858, 2859 },
-            { 2874, 2875 }, { 2876, 2881 }, { 2882, 2883 }, { 2897, 2898 }, { 2903, 2904 }, { 2923, 2924 },
-            { 2929, 2930 }, { 2945, 2946 }, { 2951, 2952 }, { 2971, 2972 }, { 2977, 2978 }, { 2993, 2994 },
-            { 2999, 3000 }, { 3019, 3020 }, { 3025, 3026 }, { 3058, 3059 }, { 3066, 3067 }, { 3090, 3091 }, 
-            { 3098, 3099 }, { 3118, 3119 }, { 3126, 3127 }, { 3150, 3151 }, { 3158, 3159 }, { 3178, 3179 },
-            { 3186, 3187 }, { 3210, 3211 }, { 3218, 3219 }, { 4519, 4520 }, { 4521, 4523 }, { 4524, 4525 }, 
-            { 4527, 4528 }, { 4529, 4532 }, { 4533, 4534 }, { 4536, 4537 }, { 4538, 4540 }, { 4541, 4542 }
-        };
+            using (var stipulationWriter = new StreamWriter(stipulationStream, Encoding.ASCII, 1024, true))
+            {
+                var serverMsgFileName = Path.Combine(dataDirectory, "server.msg");
 
-        public static readonly Dictionary<ushort, ushort> OpenDoorSprites = new Dictionary<ushort, ushort>
-        {
-            { 1997, 1994 }, { 2003, 2000 }, { 2164, 2163 }, { 2196, 2165 }, { 2198, 2197 }, { 2228, 2227 }, 
-            { 2260, 2229 }, { 2262, 2261 }, { 2292, 2291 }, { 2328, 2293 }, { 2330, 2329 }, { 2436, 2432 }, 
-            { 2465, 2461 }, { 2674, 2673 }, { 2680, 2675 }, { 2682, 2681 }, { 2688, 2687 }, { 2694, 2689 }, 
-            { 2696, 2695 }, { 2715, 2714 }, { 2722, 2721 }, { 2728, 2727 }, { 2735, 2734 }, { 2762, 2761 }, 
-            { 2769, 2768 }, { 2777, 2776 }, { 2784, 2783 }, { 2851, 2850 }, { 2857, 2852 }, { 2859, 2858 }, 
-            { 2875, 2874 }, { 2881, 2876 }, { 2883, 2882 }, { 2898, 2897 }, { 2904, 2903 }, { 2924, 2923 }, 
-            { 2930, 2929 }, { 2946, 2945 }, { 2952, 2951 }, { 2972, 2971 }, { 2978, 2977 }, { 2994, 2993 }, 
-            { 3000, 2999 }, { 3020, 3019 }, { 3026, 3025 }, { 3059, 3058 }, { 3067, 3066 }, { 3091, 3090 }, 
-            { 3099, 3098 }, { 3119, 3118 }, { 3127, 3126 }, { 3151, 3150 }, { 3159, 3158 }, { 3179, 3178 }, 
-            { 3187, 3186 }, { 3211, 3210 }, { 3219, 3218 }, { 4520, 4519 }, { 4523, 4521 }, { 4525, 4524 }, 
-            { 4528, 4527 }, { 4532, 4529 }, { 4534, 4533 }, { 4537, 4536 }, { 4540, 4538 }, { 4542, 4541 }
-        };
+                if (File.Exists(serverMsgFileName))
+                {
+                    stipulationWriter.Write(File.ReadAllText(serverMsgFileName));
+                }
+                else
+                {
+                    if (string.IsNullOrEmpty(Config.Motd))
+                        stipulationWriter.Write($"Welcome to Hybrasyl!\n\nThis is Hybrasyl (version {Assemblyinfo.Version}, commit {Assemblyinfo.GitHash}).\n\nFor more information please visit http://www.hybrasyl.com");
+                    else
+                        stipulationWriter.Write(Config.Motd);
+                }
+            }
 
-        public static readonly Dictionary<ushort, bool> DoorSprites = new Dictionary<ushort, bool>
+            NotificationCrc = ~Crc32.Calculate(stipulationStream.ToArray());
+
+            using (var compressedStipulationStream = new MemoryStream())
+            {
+                ZlibCompression.Compress(stipulationStream, compressedStipulationStream);
+                Notification = compressedStipulationStream.ToArray();
+            }
+        }
+
+        World.StartTimers();
+        World.StartQueueConsumer();
+        World.StartControlConsumers();
+
+        ToggleActive();
+        StartDate = DateTime.Now;
+
+        _lobbyThread = new Thread(new ThreadStart(Lobby.StartListening));
+        _loginThread = new Thread(new ThreadStart(Login.StartListening));
+        _worldThread = new Thread(new ThreadStart(World.StartListening));
+
+        _spawnThread = new Thread(_monolith.Start);
+        _controlThread = new Thread(_monolithControl.Start);
+
+        _lobbyThread.Start();
+        _loginThread.Start();
+        _worldThread.Start();
+        _spawnThread.Start();
+        _controlThread.Start();
+
+        Task.Run(CheckVersion).GetAwaiter();
+        Task.Run(GetCommitLog).GetAwaiter();
+
+        GrpcServer = null;
+
+        // Uncomment for GRPC troubleshooting
+        // Environment.SetEnvironmentVariable("GRPC_VERBOSITY", "debug");
+
+        // Start GRPC server
+        if (Config.Network.Grpc != null)
         {
-            { 1994, true }, { 1997, true }, { 2000, true }, { 2003, true }, { 2163, true },
-            { 2164, true }, { 2165, true }, { 2196, true }, { 2197, true }, { 2198, true },
-            { 2227, true }, { 2228, true }, { 2229, true }, { 2260, true }, { 2261, true },
-            { 2262, true }, { 2291, true }, { 2292, true }, { 2293, true }, { 2328, true },
-            { 2329, true }, { 2330, true }, { 2432, true }, { 2436, true }, { 2461, true }, 
-            { 2465, true }, { 2673, true }, { 2674, true }, { 2675, true }, { 2680, true },
-            { 2681, true }, { 2682, true }, { 2687, true }, { 2688, true }, { 2689, true },
-            { 2694, true }, { 2695, true }, { 2696, true }, { 2714, true }, { 2715, true },
-            { 2721, true }, { 2722, true }, { 2727, true }, { 2728, true }, { 2734, true }, 
-            { 2735, true }, { 2761, true }, { 2762, true }, { 2768, true }, { 2769, true }, 
-            { 2776, true }, { 2777, true }, { 2783, true }, { 2784, true }, { 2850, true }, 
-            { 2851, true }, { 2852, true }, { 2857, true }, { 2858, true }, { 2859, true },
-            { 2874, true }, { 2875, true }, { 2876, true }, { 2881, true }, { 2882, true }, 
-            { 2883, true }, { 2897, true }, { 2898, true }, { 2903, true }, { 2904, true },
-            { 2923, true }, { 2924, true }, { 2929, true }, { 2930, true }, { 2945, true }, 
-            { 2946, true }, { 2951, true }, { 2952, true }, { 2971, true }, { 2972, true },
-            { 2977, true }, { 2978, true }, { 2993, true }, { 2994, true }, { 2999, true }, 
-            { 3000, true }, { 3019, true }, { 3020, true }, { 3025, true }, { 3026, true },
-            { 3058, true }, { 3059, true }, { 3066, true }, { 3067, true }, { 3090, true },
-            { 3091, true }, { 3098, true }, { 3099, true }, { 3118, true }, { 3119, true }, 
-            { 3126, true }, { 3127, true }, { 3150, true }, { 3151, true }, { 3158, true },
-            { 3159, true }, { 3178, true }, { 3179, true }, { 3186, true }, { 3187, true }, 
-            { 3210, true }, { 3211, true }, { 3218, true }, { 3219, true }, { 4519, true }, 
-            { 4520, true }, { 4521, true }, { 4523, true }, { 4524, true }, { 4525, true }, 
-            { 4527, true }, { 4528, true }, { 4529, true }, { 4532, true }, { 4533, true }, 
-            { 4534, true }, { 4536, true }, { 4537, true }, { 4538, true }, { 4540, true }, 
-            { 4541, true }, { 4542, true }
-        };
+            var ssl_enabled = Config.Network.Grpc.ServerCertificateFile != null && Config.Network.Grpc.ServerKeyFile != null;
+
+            if (ssl_enabled)
+            {
+                Grpc.Core.SslServerCredentials credentials;
+                // Load credentials
+                try
+                {
+                    var cert = File.ReadAllText(Path.Join(StartupDirectory, "ssl", Config.Network.Grpc.ServerCertificateFile));
+                    var key = File.ReadAllText(Path.Join(StartupDirectory, "ssl", Config.Network.Grpc.ServerKeyFile));
+                    var keypair_list = new List<Grpc.Core.KeyCertificatePair>() { new Grpc.Core.KeyCertificatePair(cert, key) };
+                    if (Config.Network.Grpc.ChainCertificateFile != null)
+                    {
+                        var chaincerts = File.ReadAllText(Path.Join(StartupDirectory, "ssl", Config.Network.Grpc.ChainCertificateFile));
+                        credentials = new Grpc.Core.SslServerCredentials(keypair_list, chaincerts,
+                            Grpc.Core.SslClientCertificateRequestType.RequestAndRequireAndVerify);
+                    }
+                    else
+                    {
+                        // Note, without a chain certificate, only the connection is secure; there is no authentication
+                        credentials = new Grpc.Core.SslServerCredentials(keypair_list);
+                    }
+                }
+                catch (Exception e)
+                {
+                    GameLog.Error("GRPC: server initialization: key/cert load failed: {e}", e);
+                    GameLog.Error("GRPC: server disabled");
+                    credentials = null;
+                }
+                if (credentials != null)
+                {
+                    GrpcServer = new Grpc.Core.Server
+                    {
+                        Services = { HybrasylGrpc.Patron.BindService(new HybrasylGrpc.PatronServer()) },
+                        Ports =
+                        {
+                            new Grpc.Core.ServerPort(Config.Network.Grpc.BindAddress,
+                                Config.Network.Grpc.Port, credentials)
+                        }
+                    };
+                    GameLog.Info("GRPC: SSL server initialized");
+                }
+            }
+            else
+            {
+                // Insecure mode, should be used for development only
+                GrpcServer = new Grpc.Core.Server
+                {
+                    Services = { HybrasylGrpc.Patron.BindService(new HybrasylGrpc.PatronServer()) },
+                    Ports = { new Grpc.Core.ServerPort(Config.Network.Grpc.BindAddress, Config.Network.Grpc.Port, Grpc.Core.ServerCredentials.Insecure) }
+                };
+                GameLog.Info("GRPC: server initialized (insecure, use for development only)");
+
+            }
+        }
+
+        if (GrpcServer != null)
+        {
+            try
+            {
+                GrpcServer.Start();
+            }
+            catch (IOException e)
+            {
+                GameLog.Info("GRPC: server start failed: {e}", e);
+            }
+        }
+        while (true)
+        {
+            if (!IsActive())
+            {
+                CancellationTokenSource.Cancel();
+                break;
+            }
+            Thread.Sleep(5);
+        }
+            
+        Shutdown(); 
+        GrpcServer.ShutdownAsync().Wait();
 
     }
 
-    public static class Crypto
+    private async static void CheckVersion()
     {
-        public static string HashString(string value, string hashName)
+        if (Assemblyinfo.GitHash == "unknown")
         {
-            var algo = HashAlgorithm.Create(hashName);
-            var buffer = Encoding.ASCII.GetBytes(value);
-            var hash = algo.ComputeHash(buffer);
-            return BitConverter.ToString(hash).Replace("-", string.Empty).ToLower();
+            GameLog.Error("Server update check skipped, git hash not found in assemblyinfo.");
+            return;
+        }
+                    
+        try
+        {
+            using HttpClient client = new HttpClient();
+            using HttpResponseMessage res = await client.GetAsync("https://www.hybrasyl.com/builds/latest.json");
+            using HttpContent content = res.Content;
+
+            var data = await content.ReadAsStringAsync();
+            var jsonobj = JObject.Parse(data);
+            var theirhash = jsonobj["commit"].ToString().ToLower();
+            if (theirhash != Assemblyinfo.GitHash)
+            {
+                GameLog.Warning("THIS VERSION OF HYBRASYL IS OUT OF DATE");
+                GameLog.Warning($"You have {Assemblyinfo.GitHash} but {theirhash} is available as of {jsonobj["build_date"]}");
+                GameLog.Warning($"You can download the new version at https://www.hybrasyl.com/builds/ .");
+            }
+            else
+                GameLog.Info("This version of Hybrasyl is up to date!");
+        }
+        catch (Exception e)
+        {
+            Game.ReportException(e);
+            GameLog.Error("An error occurred checking if server updates are available {e}",e);
+        }           
+    }
+
+    private async static void GetCommitLog()
+    {
+        if (Assemblyinfo.GitHash == "unknown")
+        {
+            GameLog.Error("Git log fetch skipped, git hash not found in assemblyinfo.");
+            return;
+        }
+
+        try
+        {
+            using HttpClient client = new HttpClient();
+            client.DefaultRequestHeaders.Add("User-Agent", "Hybrasyl Server");
+            using HttpResponseMessage res = await client.GetAsync($"https://api.github.com/repos/hybrasyl/server/commits/{Assemblyinfo.GitHash}");
+            using HttpContent content = res.Content;
+
+            var data = await content.ReadAsStringAsync();
+            var jsonobj = JObject.Parse(data);
+
+            if (res.StatusCode == HttpStatusCode.OK)
+                CommitLog = jsonobj["commit"]["message"].ToString();
+            else
+                CommitLog = "There was an error fetching commit log information from Github. Sorry.";
+        }
+        catch (Exception e)
+        {
+            Game.ReportException(e);
+            GameLog.Error("Couldn't fetch version information from GitHub: {e}", e);
+            CommitLog = "There was an error fetching commit log information from Github. Sorry.";
         }
     }
 
-    public static class Crc16
+    public static void LoadCollisions()
     {
-        #region CRC Table 1
-        private static byte[] crcTable1 = new byte[] { 
+        var assembly = Assembly.GetExecutingAssembly();
+        var sotp = assembly.GetManifestResourceStream("Hybrasyl.Resources.sotp.dat");
+        using (var ms = new MemoryStream())
+        {
+            sotp.CopyTo(ms);
+            Collisions = ms.ToArray();
+        }
+    }
+
+    /// <summary>
+    /// Check to see if a sprite change should also trigger a collision change. Used to
+    /// determine if a door opening triggers a collision update server side or not. This specifically
+    /// handles the case of doors in Piet and Undine which are 3 tiles wide (and all 3 change graphically)
+    /// but collision updates only occur for two tiles.
+    /// </summary>
+    /// <param name="sprite">Sprite number.</param>
+    /// <returns>true/false indicating whether the sprite should trigger a collision.</returns>
+    public static bool IsDoorCollision(ushort sprite)
+    {
+        if (OpenDoorSprites.ContainsKey(sprite))
+        {
+            return (
+                ((Game.Collisions[sprite - 1] & 0x0F) == 0x0F) ||
+                ((Game.Collisions[OpenDoorSprites[sprite] - 1] & 0x0F) == 0x0F)
+            );
+        }
+        else
+        {
+            return (
+                ((Game.Collisions[sprite - 1] & 0x0F) == 0x0F) ||
+                ((Game.Collisions[ClosedDoorSprites[sprite] - 1] & 0x0F) == 0x0F)
+            );
+        }
+    }
+
+    public static readonly Dictionary<ushort, ushort> ClosedDoorSprites = new Dictionary<ushort, ushort>
+    {
+        { 1994, 1997 }, { 2000, 2003 }, { 2163, 2164 }, { 2165, 2196 }, { 2197, 2198 }, { 2227, 2228 },
+        { 2229, 2260 }, { 2261, 2262 }, { 2291, 2292 }, { 2293, 2328 }, { 2329, 2330 }, { 2432, 2436 }, 
+        { 2461, 2465 }, { 2673, 2674 }, { 2675, 2680 }, { 2681, 2682 }, { 2687, 2688 }, { 2689, 2694 },
+        { 2695, 2696 }, { 2714, 2715 }, { 2721, 2722 }, { 2727, 2728 }, { 2734, 2735 }, { 2761, 2762 },
+        { 2768, 2769 }, { 2776, 2777 }, { 2783, 2784 }, { 2850, 2851 }, { 2852, 2857 }, { 2858, 2859 },
+        { 2874, 2875 }, { 2876, 2881 }, { 2882, 2883 }, { 2897, 2898 }, { 2903, 2904 }, { 2923, 2924 },
+        { 2929, 2930 }, { 2945, 2946 }, { 2951, 2952 }, { 2971, 2972 }, { 2977, 2978 }, { 2993, 2994 },
+        { 2999, 3000 }, { 3019, 3020 }, { 3025, 3026 }, { 3058, 3059 }, { 3066, 3067 }, { 3090, 3091 }, 
+        { 3098, 3099 }, { 3118, 3119 }, { 3126, 3127 }, { 3150, 3151 }, { 3158, 3159 }, { 3178, 3179 },
+        { 3186, 3187 }, { 3210, 3211 }, { 3218, 3219 }, { 4519, 4520 }, { 4521, 4523 }, { 4524, 4525 }, 
+        { 4527, 4528 }, { 4529, 4532 }, { 4533, 4534 }, { 4536, 4537 }, { 4538, 4540 }, { 4541, 4542 }
+    };
+
+    public static readonly Dictionary<ushort, ushort> OpenDoorSprites = new Dictionary<ushort, ushort>
+    {
+        { 1997, 1994 }, { 2003, 2000 }, { 2164, 2163 }, { 2196, 2165 }, { 2198, 2197 }, { 2228, 2227 }, 
+        { 2260, 2229 }, { 2262, 2261 }, { 2292, 2291 }, { 2328, 2293 }, { 2330, 2329 }, { 2436, 2432 }, 
+        { 2465, 2461 }, { 2674, 2673 }, { 2680, 2675 }, { 2682, 2681 }, { 2688, 2687 }, { 2694, 2689 }, 
+        { 2696, 2695 }, { 2715, 2714 }, { 2722, 2721 }, { 2728, 2727 }, { 2735, 2734 }, { 2762, 2761 }, 
+        { 2769, 2768 }, { 2777, 2776 }, { 2784, 2783 }, { 2851, 2850 }, { 2857, 2852 }, { 2859, 2858 }, 
+        { 2875, 2874 }, { 2881, 2876 }, { 2883, 2882 }, { 2898, 2897 }, { 2904, 2903 }, { 2924, 2923 }, 
+        { 2930, 2929 }, { 2946, 2945 }, { 2952, 2951 }, { 2972, 2971 }, { 2978, 2977 }, { 2994, 2993 }, 
+        { 3000, 2999 }, { 3020, 3019 }, { 3026, 3025 }, { 3059, 3058 }, { 3067, 3066 }, { 3091, 3090 }, 
+        { 3099, 3098 }, { 3119, 3118 }, { 3127, 3126 }, { 3151, 3150 }, { 3159, 3158 }, { 3179, 3178 }, 
+        { 3187, 3186 }, { 3211, 3210 }, { 3219, 3218 }, { 4520, 4519 }, { 4523, 4521 }, { 4525, 4524 }, 
+        { 4528, 4527 }, { 4532, 4529 }, { 4534, 4533 }, { 4537, 4536 }, { 4540, 4538 }, { 4542, 4541 }
+    };
+
+    public static readonly Dictionary<ushort, bool> DoorSprites = new Dictionary<ushort, bool>
+    {
+        { 1994, true }, { 1997, true }, { 2000, true }, { 2003, true }, { 2163, true },
+        { 2164, true }, { 2165, true }, { 2196, true }, { 2197, true }, { 2198, true },
+        { 2227, true }, { 2228, true }, { 2229, true }, { 2260, true }, { 2261, true },
+        { 2262, true }, { 2291, true }, { 2292, true }, { 2293, true }, { 2328, true },
+        { 2329, true }, { 2330, true }, { 2432, true }, { 2436, true }, { 2461, true }, 
+        { 2465, true }, { 2673, true }, { 2674, true }, { 2675, true }, { 2680, true },
+        { 2681, true }, { 2682, true }, { 2687, true }, { 2688, true }, { 2689, true },
+        { 2694, true }, { 2695, true }, { 2696, true }, { 2714, true }, { 2715, true },
+        { 2721, true }, { 2722, true }, { 2727, true }, { 2728, true }, { 2734, true }, 
+        { 2735, true }, { 2761, true }, { 2762, true }, { 2768, true }, { 2769, true }, 
+        { 2776, true }, { 2777, true }, { 2783, true }, { 2784, true }, { 2850, true }, 
+        { 2851, true }, { 2852, true }, { 2857, true }, { 2858, true }, { 2859, true },
+        { 2874, true }, { 2875, true }, { 2876, true }, { 2881, true }, { 2882, true }, 
+        { 2883, true }, { 2897, true }, { 2898, true }, { 2903, true }, { 2904, true },
+        { 2923, true }, { 2924, true }, { 2929, true }, { 2930, true }, { 2945, true }, 
+        { 2946, true }, { 2951, true }, { 2952, true }, { 2971, true }, { 2972, true },
+        { 2977, true }, { 2978, true }, { 2993, true }, { 2994, true }, { 2999, true }, 
+        { 3000, true }, { 3019, true }, { 3020, true }, { 3025, true }, { 3026, true },
+        { 3058, true }, { 3059, true }, { 3066, true }, { 3067, true }, { 3090, true },
+        { 3091, true }, { 3098, true }, { 3099, true }, { 3118, true }, { 3119, true }, 
+        { 3126, true }, { 3127, true }, { 3150, true }, { 3151, true }, { 3158, true },
+        { 3159, true }, { 3178, true }, { 3179, true }, { 3186, true }, { 3187, true }, 
+        { 3210, true }, { 3211, true }, { 3218, true }, { 3219, true }, { 4519, true }, 
+        { 4520, true }, { 4521, true }, { 4523, true }, { 4524, true }, { 4525, true }, 
+        { 4527, true }, { 4528, true }, { 4529, true }, { 4532, true }, { 4533, true }, 
+        { 4534, true }, { 4536, true }, { 4537, true }, { 4538, true }, { 4540, true }, 
+        { 4541, true }, { 4542, true }
+    };
+
+}
+
+public static class Crypto
+{
+    public static string HashString(string value, string hashName)
+    {
+        var algo = HashAlgorithm.Create(hashName);
+        var buffer = Encoding.ASCII.GetBytes(value);
+        var hash = algo.ComputeHash(buffer);
+        return BitConverter.ToString(hash).Replace("-", string.Empty).ToLower();
+    }
+}
+
+public static class Crc16
+{
+    #region CRC Table 1
+    private static byte[] crcTable1 = new byte[] { 
         0x00, 0x00, 0x10, 0x21, 0x20, 0x42, 0x30, 0x63, 0x40, 0x84, 0x50, 0xA5, 0x60, 0xC6, 0x70, 0xE7, 
         0x81, 0x08, 0x91, 0x29, 0xA1, 0x4A, 0xB1, 0x6B, 0xC1, 0X8C, 0xD1, 0xAD, 0xE1, 0xCE, 0xF1, 0xEF, 
         0x12, 0x31, 0x02, 0x10, 0x32, 0x73, 0x22, 0x52, 0x52, 0xB5, 0x42, 0x94, 0x72, 0xF7, 0x62, 0xD6, 
@@ -685,10 +685,10 @@ namespace Hybrasyl
         0xED, 0xAE, 0xFD, 0x8F, 0xCD, 0xEC, 0xDD, 0xCD, 0xAD, 0x2A, 0xBD, 0x0B, 0x8D, 0x68, 0x9D, 0x49, 
         0x7E, 0x97, 0x6E, 0xB6, 0x5E, 0xD5, 0x4E, 0xF4, 0x3E, 0x13, 0x2E, 0x32, 0x1E, 0x51, 0x0E, 0x70, 
         0xFF, 0x9F, 0xEF, 0xBE, 0xDF, 0xDD, 0xCF, 0xFC, 0xBF, 0x1B, 0xAF, 0x3A, 0x9F, 0x59, 0x8F, 0x78
-        };
-        #endregion
-        #region CRC Table 2
-        private static byte[] crcTable2 = new byte[] { 
+    };
+    #endregion
+    #region CRC Table 2
+    private static byte[] crcTable2 = new byte[] { 
         0x91, 0x88, 0x81, 0xA9, 0xB1, 0xCA, 0xA1, 0xEB, 0xD1, 0x0C, 0xC1, 0x2D, 0xF1, 0x4E, 0xE1, 0x6F, 
         0x10, 0x80, 0x00, 0xA1, 0x30, 0xC2, 0x20, 0xE3, 0x50, 0x04, 0x40, 0x25, 0x70, 0x46, 0x60, 0x67, 
         0x83, 0xB9, 0x93, 0x98, 0xA3, 0xFB, 0xB3, 0xDA, 0xC3, 0x3D, 0xD3, 0x1C, 0xE3, 0x7F, 0xF3, 0x5E, 
@@ -705,40 +705,40 @@ namespace Hybrasyl
         0x7C, 0x26, 0x6C, 0x07, 0x5C, 0x64, 0x4C, 0x45, 0x3C, 0xA2, 0x2C, 0x83, 0x1C, 0xE0, 0x0C, 0xC1, 
         0xEF, 0x1F, 0xFF, 0x3E, 0xCF, 0x5D, 0xDF, 0x7C, 0xAF, 0x9B, 0xBF, 0xBA, 0x8F, 0xD9, 0x9F, 0xF8, 
         0x6E, 0x17, 0x7E, 0x36, 0x4E, 0x55, 0x5E, 0x74, 0x2E, 0x93, 0x3E, 0xB2, 0x0E, 0xD1, 0x1E, 0xF0
-        };
-        #endregion
+    };
+    #endregion
 
-        public static ushort Calculate(byte[] buffer)
-        {
-            byte valueA = 0, valueB = 0;
-
-            for (int i = 0; i < buffer.Length; i += 6)
-            {
-                for (int ix = 0; ix < 6; ix++)
-                {
-                    byte[] table;
-
-                    if ((valueB & 128) != 0)
-                        table = crcTable2;
-                    else
-                        table = crcTable1;
-
-                    int valueC = valueB << 1;
-                    valueB = (byte)(valueA ^ table[valueC++ % 256]);
-                    valueA = (byte)(buffer[i + ix] ^ table[valueC % 256]);
-                }
-            }
-
-            byte[] ret = new byte[] { valueA, valueB };
-            Array.Reverse(ret);
-            return BitConverter.ToUInt16(ret, 0);
-        }
-    }
-
-    public static class Crc32
+    public static ushort Calculate(byte[] buffer)
     {
-        #region CRC 32 Table
-        private static uint[] crc32Table = new uint[] {
+        byte valueA = 0, valueB = 0;
+
+        for (int i = 0; i < buffer.Length; i += 6)
+        {
+            for (int ix = 0; ix < 6; ix++)
+            {
+                byte[] table;
+
+                if ((valueB & 128) != 0)
+                    table = crcTable2;
+                else
+                    table = crcTable1;
+
+                int valueC = valueB << 1;
+                valueB = (byte)(valueA ^ table[valueC++ % 256]);
+                valueA = (byte)(buffer[i + ix] ^ table[valueC % 256]);
+            }
+        }
+
+        byte[] ret = new byte[] { valueA, valueB };
+        Array.Reverse(ret);
+        return BitConverter.ToUInt16(ret, 0);
+    }
+}
+
+public static class Crc32
+{
+    #region CRC 32 Table
+    private static uint[] crc32Table = new uint[] {
         0x00000000, 0x77073096, 0xEE0E612C, 0x990951BA, 0x076DC419, 0x706AF48F, 0xE963A535, 0x9E6495A3, 
         0x0EDB8832, 0x79DCB8A4, 0xE0D5E91E, 0x97D2D988, 0x09B64C2B, 0x7EB17CBD, 0xE7B82D07, 0x90BF1D91, 
         0x1DB71064, 0x6AB020F2, 0xF3B97148, 0x84BE41DE, 0x1ADAD47D, 0x6DDDE4EB, 0xF4D4B551, 0x83D385C7, 
@@ -771,37 +771,36 @@ namespace Hybrasyl
         0xAED16A4A, 0xD9D65ADC, 0x40DF0B66, 0x37D83BF0, 0xA9BCAE53, 0xDEBB9EC5, 0x47B2CF7F, 0x30B5FFE9, 
         0xBDBDF21C, 0xCABAC28A, 0x53B39330, 0x24B4A3A6, 0xBAD03605, 0xCDD70693, 0x54DE5729, 0x23D967BF, 
         0xB3667A2E, 0xC4614AB8, 0x5D681B02, 0x2A6F2B94, 0xB40BBE37, 0xC30C8EA1, 0x5A05DF1B, 0x2D02EF8D
-        };
-        #endregion
+    };
+    #endregion
 
 
-        public static uint ComputeChecksum(byte[] filedata)
+    public static uint ComputeChecksum(byte[] filedata)
+    {
+        var hash = uint.MaxValue;
+        byte data;
+
+        for (var i = 0; i < filedata.Length; ++i)
         {
-            var hash = uint.MaxValue;
-            byte data;
-
-            for (var i = 0; i < filedata.Length; ++i)
-            {
-                data = (byte)(filedata[i] ^ (hash & 0xFF));
-                hash = crc32Table[data] ^ (hash >> 0x8);
-            }
-
-            return ~hash;
+            data = (byte)(filedata[i] ^ (hash & 0xFF));
+            hash = crc32Table[data] ^ (hash >> 0x8);
         }
 
-        public static uint Calculate(byte[] data)
+        return ~hash;
+    }
+
+    public static uint Calculate(byte[] data)
+    {
+        uint crc = 0xFFFFFFFF;
+        int pos = 0;
+        int i = data.Length;
+
+        while (i != 0)
         {
-            uint crc = 0xFFFFFFFF;
-            int pos = 0;
-            int i = data.Length;
-
-            while (i != 0)
-            {
-                crc = (crc >> 8) ^ crc32Table[(crc & 0xFF) ^ data[pos++]];
-                i--;
-            }
-
-            return crc;
+            crc = (crc >> 8) ^ crc32Table[(crc & 0xFF) ^ data[pos++]];
+            i--;
         }
+
+        return crc;
     }
 }

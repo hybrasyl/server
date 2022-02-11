@@ -19,49 +19,48 @@
  * 
  */
 
-namespace Hybrasyl.Threading
+namespace Hybrasyl.Threading;
+
+public class Lockable<T>
 {
-    public class Lockable<T>
+    private T _value;
+    private object _lock = new object();
+    public T Value
     {
-        private T _value;
-        private object _lock = new object();
-        public T Value
+        get
         {
-            get
+            lock (_lock)
             {
-                lock (_lock)
-                {
-                    return _value;
-                }
-            }
-            set
-            {
-                lock (_lock)
-                {
-                    _value = value;
-                }
+                return _value;
             }
         }
-        public Lockable(T value)
+        set
         {
-            Value = value;
+            lock (_lock)
+            {
+                _value = value;
+            }
         }
-
-        public static implicit operator T(Lockable<T> value)
-        {
-            return value.Value;
-        }
-
-        public static Lockable<T> operator -(Lockable<T> a, Lockable<T> b) => new Lockable<T>(Difference(a.Value, b.Value));
-        
-        public static Lockable<T> operator +(Lockable<T> a, Lockable<T> b) => new Lockable<T>(Sum(a.Value, b.Value));
-
-        public static Lockable<T> operator *(Lockable<T> a, Lockable<T> b) => new Lockable<T>(Product(a.Value, b.Value));
-
-        private static T Sum(T a, T b) => (dynamic)a + (dynamic)b;
-
-        private static T Difference(T a, T b) => (dynamic)a - (dynamic)b;
-
-        private static T Product(T a, T b) => (dynamic)a * (dynamic)b;
     }
+    public Lockable(T value)
+    {
+        Value = value;
+    }
+
+    public static implicit operator T(Lockable<T> value)
+    {
+        return value.Value;
+    }
+
+    public static Lockable<T> operator -(Lockable<T> a, Lockable<T> b) => new Lockable<T>(Difference(a.Value, b.Value));
+        
+    public static Lockable<T> operator +(Lockable<T> a, Lockable<T> b) => new Lockable<T>(Sum(a.Value, b.Value));
+
+    public static Lockable<T> operator *(Lockable<T> a, Lockable<T> b) => new Lockable<T>(Product(a.Value, b.Value));
+
+    private static T Sum(T a, T b) => (dynamic)a + (dynamic)b;
+
+    private static T Difference(T a, T b) => (dynamic)a - (dynamic)b;
+
+    private static T Product(T a, T b) => (dynamic)a * (dynamic)b;
 }

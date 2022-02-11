@@ -29,183 +29,178 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 
-namespace Hybrasyl
+namespace Hybrasyl;
+
+public static class GlobalConnectionManifest
 {
-
-    public static class GlobalConnectionManifest
+    private static long _connectionId;
+    public static long GetNewConnectionId()
     {
-        private static long _connectionId;
-        public static long GetNewConnectionId()
+        Interlocked.Increment(ref _connectionId);
+        return _connectionId;
+    }
+
+    public static ConcurrentDictionary<long, Client> ConnectedClients = new ConcurrentDictionary<long, Client>();
+    public static ConcurrentDictionary<long, Client> WorldClients = new ConcurrentDictionary<long, Client>();
+    public static ConcurrentDictionary<long, Redirect> Redirects = new ConcurrentDictionary<long, Redirect>();
+
+    public static void RegisterRedirect(Client client, Redirect redirect)
+    {
+        Redirects[client.ConnectionId] = redirect;
+    }
+
+    public static bool TryGetRedirect(long cid, out Redirect redirect)
+    {
+        return Redirects.TryGetValue(cid, out redirect);
+    }
+
+    public static void RegisterClient(Client client)
+    {
+        ConnectedClients[client.ConnectionId] = client;
+        if (client.ServerType == ServerTypes.World)
+            WorldClients[client.ConnectionId] = client;
+    }
+
+    public static void DeregisterClient(Client client)
+    {
+        ConnectedClients.TryRemove(client.ConnectionId, out Client _);
+        GameLog.InfoFormat("Deregistering {0}", client.ConnectionId);
+        // Send a control message to clean up after World users; Lobby and Login handle themselves
+        if (client.ServerType == ServerTypes.World)
         {
-            Interlocked.Increment(ref _connectionId);
-            return _connectionId;
-        }
-
-        public static ConcurrentDictionary<long, Client> ConnectedClients = new ConcurrentDictionary<long, Client>();
-        public static ConcurrentDictionary<long, Client> WorldClients = new ConcurrentDictionary<long, Client>();
-        public static ConcurrentDictionary<long, Redirect> Redirects = new ConcurrentDictionary<long, Redirect>();
-
-        public static void RegisterRedirect(Client client, Redirect redirect)
-        {
-            Redirects[client.ConnectionId] = redirect;
-        }
-
-        public static bool TryGetRedirect(long cid, out Redirect redirect)
-        {
-            return Redirects.TryGetValue(cid, out redirect);
-        }
-
-        public static void RegisterClient(Client client)
-        {
-            ConnectedClients[client.ConnectionId] = client;
-            if (client.ServerType == ServerTypes.World)
-                WorldClients[client.ConnectionId] = client;
-        }
-
-        public static void DeregisterClient(Client client)
-        {
-            ConnectedClients.TryRemove(client.ConnectionId, out Client _);
-            GameLog.InfoFormat("Deregistering {0}", client.ConnectionId);
-            // Send a control message to clean up after World users; Lobby and Login handle themselves
-            if (client.ServerType == ServerTypes.World)
-            {
-                if (!WorldClients.TryRemove(client.ConnectionId, out Client _))
-                    GameLog.Error("Couldn't deregister cid {id}", client.ConnectionId);
-                try
-                {
-                    if (!World.ControlMessageQueue.IsCompleted)
-                        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.CleanupUser, 
-                            CleanupType.ByConnectionId, client.ConnectionId));
-                }
-                catch (InvalidOperationException e)
-                {
-                    Game.ReportException(e);
-                    if (!World.ControlMessageQueue.IsCompleted)
-                        GameLog.ErrorFormat("Connection {id}: DeregisterClient failed", client.ConnectionId);
-                }
-            }
-        }
-
-        public static byte[] RequestEncryptionKey(string endpoint, IPAddress remoteAddress)
-        {
-            byte[] key;
-
+            if (!WorldClients.TryRemove(client.ConnectionId, out Client _))
+                GameLog.Error("Couldn't deregister cid {id}", client.ConnectionId);
             try
             {
-                var seed = new Seed() { Ip = remoteAddress.ToString() };
-
-                var webReq = WebRequest.Create(new Uri(endpoint));
-                webReq.ContentType = "application/json";
-                webReq.Method = "POST";
-
-                var json = JsonSerializer.Serialize(seed);
-
-                using (var sw = new StreamWriter(webReq.GetRequestStream()))
-                {
-                    sw.Write(json);
-                }
-
-                var response = webReq.GetResponse();
-                using (var sr = new StreamReader(response.GetResponseStream()))
-                {
-                    key = (byte[])JsonSerializer.Deserialize(sr.ReadToEnd(), typeof(byte[]));
-                }
+                if (!World.ControlMessageQueue.IsCompleted)
+                    World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.CleanupUser, 
+                        CleanupType.ByConnectionId, client.ConnectionId));
             }
-            catch (Exception e)
+            catch (InvalidOperationException e)
             {
                 Game.ReportException(e);
-                GameLog.Error("RequestEncryptionKey failure: {e}", e);
-                key = Encoding.ASCII.GetBytes("NOTVALID!");
+                if (!World.ControlMessageQueue.IsCompleted)
+                    GameLog.ErrorFormat("Connection {id}: DeregisterClient failed", client.ConnectionId);
             }
-            return key;
         }
+    }
 
-        public static bool ValidateEncryptionKey(string endpoint, ServerToken token)
+    public static byte[] RequestEncryptionKey(string endpoint, IPAddress remoteAddress)
+    {
+        byte[] key;
+
+        try
         {
-            bool valid;
+            var seed = new Seed() { Ip = remoteAddress.ToString() };
 
-            try
+            var webReq = WebRequest.Create(new Uri(endpoint));
+            webReq.ContentType = "application/json";
+            webReq.Method = "POST";
+
+            var json = JsonSerializer.Serialize(seed);
+
+            using (var sw = new StreamWriter(webReq.GetRequestStream()))
             {
-                var webReq = WebRequest.Create(new Uri(endpoint));
-                webReq.ContentType = "application/json";
-                webReq.Method = "POST";
-
-                var json = JsonSerializer.Serialize(token);
-
-                using (var sw = new StreamWriter(webReq.GetRequestStream()))
-                {
-                    sw.Write(json);
-                }
-
-                var response = webReq.GetResponse();
-                using (var sr = new StreamReader(response.GetResponseStream()))
-                {
-                    valid = (bool)JsonSerializer.Deserialize(sr.ReadToEnd(), typeof(bool));
-                }
+                sw.Write(json);
             }
-            catch (Exception e)
+
+            var response = webReq.GetResponse();
+            using (var sr = new StreamReader(response.GetResponseStream()))
             {
-                Game.ReportException(e);
-                GameLog.Error("ValidateEncryptionKey failure: {e}", e);
-                return false;
+                key = (byte[])JsonSerializer.Deserialize(sr.ReadToEnd(), typeof(byte[]));
             }
-            return valid;
         }
-    }
-
-    public class HybrasylMessage
-    {
-        public Int64 Ticks { get; private set; }
-        // Maybe this can be like, idk, function name or something? Thread context? Whatever?
-        public string Sender { get; private set; }
-        public object[] Arguments { get; private set; }
-
-        public HybrasylMessage(string sender = "HybrasylMessage", params object[] parameters)
+        catch (Exception e)
         {
-            Ticks = DateTime.Now.Ticks;
-            Sender = sender;
-            Arguments = parameters;
+            Game.ReportException(e);
+            GameLog.Error("RequestEncryptionKey failure: {e}", e);
+            key = Encoding.ASCII.GetBytes("NOTVALID!");
         }
+        return key;
     }
 
-    public class HybrasylClientMessage : HybrasylMessage
+    public static bool ValidateEncryptionKey(string endpoint, ServerToken token)
     {
-        public ClientPacket Packet { get; private set; }
-        public long ConnectionId { get; private set; }
+        bool valid;
 
-        public HybrasylClientMessage(ClientPacket packet, long connectionId, params object[] arguments) : 
-            base("HybrasylClientMessage", arguments)
+        try
         {
-            Packet = packet;
-            ConnectionId = connectionId;
-        }
-    }
+            var webReq = WebRequest.Create(new Uri(endpoint));
+            webReq.ContentType = "application/json";
+            webReq.Method = "POST";
 
-    public class HybrasylControlMessage : HybrasylMessage
-    {
-        public int Opcode;
- 
-        public HybrasylControlMessage(int opcode, params object[] parameters) 
-            : base("HybrasylControlMessage", parameters)
+            var json = JsonSerializer.Serialize(token);
+
+            using (var sw = new StreamWriter(webReq.GetRequestStream()))
+            {
+                sw.Write(json);
+            }
+
+            var response = webReq.GetResponse();
+            using (var sr = new StreamReader(response.GetResponseStream()))
+            {
+                valid = (bool)JsonSerializer.Deserialize(sr.ReadToEnd(), typeof(bool));
+            }
+        }
+        catch (Exception e)
         {
-            Opcode = opcode;
+            Game.ReportException(e);
+            GameLog.Error("ValidateEncryptionKey failure: {e}", e);
+            return false;
         }
+        return valid;
     }
-
-    [Serializable]
-    public class ServerToken
-    {
-        public byte[] Seed { get; set; }
-        public string Ip { get; set; }
-    }
-
-    [Serializable]
-    public class Seed
-    {
-        public string Ip { get; set; }
-        public string Key { get; set; }
-    }
-
 }
 
-    
+public class HybrasylMessage
+{
+    public Int64 Ticks { get; private set; }
+    // Maybe this can be like, idk, function name or something? Thread context? Whatever?
+    public string Sender { get; private set; }
+    public object[] Arguments { get; private set; }
+
+    public HybrasylMessage(string sender = "HybrasylMessage", params object[] parameters)
+    {
+        Ticks = DateTime.Now.Ticks;
+        Sender = sender;
+        Arguments = parameters;
+    }
+}
+
+public class HybrasylClientMessage : HybrasylMessage
+{
+    public ClientPacket Packet { get; private set; }
+    public long ConnectionId { get; private set; }
+
+    public HybrasylClientMessage(ClientPacket packet, long connectionId, params object[] arguments) : 
+        base("HybrasylClientMessage", arguments)
+    {
+        Packet = packet;
+        ConnectionId = connectionId;
+    }
+}
+
+public class HybrasylControlMessage : HybrasylMessage
+{
+    public int Opcode;
+ 
+    public HybrasylControlMessage(int opcode, params object[] parameters) 
+        : base("HybrasylControlMessage", parameters)
+    {
+        Opcode = opcode;
+    }
+}
+
+[Serializable]
+public class ServerToken
+{
+    public byte[] Seed { get; set; }
+    public string Ip { get; set; }
+}
+
+[Serializable]
+public class Seed
+{
+    public string Ip { get; set; }
+    public string Key { get; set; }
+}

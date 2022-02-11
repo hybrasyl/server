@@ -2,10 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Hybrasyl.Xml
+namespace Hybrasyl.Xml;
+
+public partial class VariantGroup
 {
-    public partial class VariantGroup
-    {
-        public Variant RandomVariant() => Variant.PickRandom();
-    }
+    public Variant RandomVariant() => Variant.PickRandom();
 }
