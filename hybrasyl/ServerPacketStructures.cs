@@ -623,6 +623,7 @@ internal class ServerPacketStructures
         internal UserGroup Group { get; set; }
         internal bool IsGrouped { get; set; }
         internal bool CanGroup { get; set; }
+        internal GroupRecruit GroupRecruit { get; set; }
         internal byte Class { get; set; }
         internal string ClassName { get; set; }
         internal ushort PlayerDisplay { get; set; }
@@ -647,12 +648,13 @@ internal class ServerPacketStructures
                 packet.WriteString8(ret);
             }
             packet.WriteBoolean(CanGroup);
-            packet.WriteByte(0x00);
+            packet.WriteBoolean(GroupRecruit != null);
+            GroupRecruit?.WriteInfo(packet);
             packet.WriteByte(Class);
-            packet.WriteByte(0x01);
+            packet.WriteByte(0x00);
             packet.WriteByte(0x00);
             packet.WriteString8(Player.IsMaster ? "Master" : Player.Class.ToString());
-            packet.WriteString8(GuildName != null ? GuildName : string.Empty);
+            packet.WriteString8(GuildName ?? string.Empty);
             packet.WriteByte((byte)(Player.Legend.Count > 255 ? 255 : Player.Legend.Count));
             foreach (var mark in Player.Legend)
             {

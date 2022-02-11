@@ -278,26 +278,6 @@ public class UserGroup
         foreach (var member in Members)
             member.SendMessage($"[Notice] {message}", MessageTypes.GROUP);
     }
-=======
-        {
-            var inRange = MembersWithinRange(source).Count - 1; // will always be 1 when source is in range. set back to 0 to not penalize solo while grouped.
-            if (inRange > 5) inRange = 5; //limit to max 45% decrease
-
-            full = (uint)(full * (( 100 - (inRange * 7.5)) / 100));
-        }
-
-        return Distribution_Full(source, full);
-    }
-
-    /// <summary>
-    /// Send a system message as a group message, that the entire group can see.
-    /// </summary>
-    /// <param name="message"></param>
-    public void SendMessage(string message)
-    {
-        foreach (var member in Members)
-            member.SendMessage($"[Notice] {message}", MessageTypes.GROUP);
-    }
 }
 
 public class GroupRecruit

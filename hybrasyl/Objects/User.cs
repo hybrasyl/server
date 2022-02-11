@@ -1444,7 +1444,7 @@ public class User : Creature
             Invisible = Transparent,
             NameStyle = NameStyle,
             Name = Name,
-            GroupName = string.Empty, // TODO: Group name
+            GroupName = GroupRecruit?.Name ?? string.Empty,
             MonsterSprite = MonsterSprite,
             HairColor = color,
         }.Packet());
@@ -2750,6 +2750,7 @@ public class User : Creature
             Group = Group,
             IsGrouped = Grouped,
             CanGroup = Grouping,
+            GroupRecruit = GroupRecruit ?? Group?.RecruitInfo ?? null,
             Class = (byte)Class,
             ClassName = IsMaster ? "Master" : Hybrasyl.Constants.REVERSE_CLASSES[(int)Class].Capitalize(),
             GuildName = GetGuildInfo().GuildName,

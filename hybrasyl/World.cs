@@ -1690,13 +1690,6 @@ public partial class World : Server
             u.UpdateAttributes(StatUpdateFlags.Full);
     }
         
-    private void ControlMessage_TriggerRefresh(HybrasylControlMessage message)
-    {
-        var connectionId = (long)message.Arguments[0];
-        if (TryGetActiveUserById(connectionId, out User user))
-            user.Refresh();
-    }
-
     #endregion Control Message Handlers
 
     #region Packet Handlers

@@ -35,29 +35,23 @@ public class Creature : VisibleObject
 {
     private readonly object _lock = new object();
 
-    [JsonProperty(Order = 2)]
-    public StatInfo Stats { get; set; }
-    [JsonProperty(Order = 3)]
-    public ConditionInfo Condition { get; set; }
+    [JsonProperty(Order = 2)] public StatInfo Stats { get; set; }
+    [JsonProperty(Order = 3)] public ConditionInfo Condition { get; set; }
 
     protected ConcurrentDictionary<ushort, ICreatureStatus> _currentStatuses;
 
-    [JsonProperty]
-    public List<StatusInfo> Statuses { get; set; }
+    [JsonProperty] public List<StatusInfo> Statuses { get; set; }
 
     public List<StatusInfo> CurrentStatusInfo => _currentStatuses.Values.Select(e => e.Info).ToList();
 
     public uint Gold => Stats.Gold;
 
-    [JsonProperty]
-    private Dictionary<string, string> Cookies { get; set; }
+    [JsonProperty] private Dictionary<string, string> Cookies { get; set; }
     private Dictionary<string, string> SessionCookies { get; set; }
 
-    [JsonProperty]
-    public Inventory Inventory { get; protected set; }
+    [JsonProperty] public Inventory Inventory { get; protected set; }
 
-    [JsonProperty]
-    public Equipment Equipment { get; protected set; }
+    [JsonProperty] public Equipment Equipment { get; protected set; }
 
     public Creature()
     {
@@ -98,7 +92,7 @@ public class Creature : VisibleObject
             default:
                 prepend = "";
                 break;
-                        
+
         }
 
         invoker.SendSystemMessage(prepend + Name);
@@ -172,6 +166,7 @@ public class Creature : VisibleObject
             }
                 break;
         }
+
         GameLog.UserActivityInfo($"GetDirectionalTargets: {rect.X}, {rect.Y} {rect.Height}, {rect.Width}");
         ret.AddRange(Map.EntityTree.GetObjects(rect).Where(obj => obj is Creature).Select(e => e as Creature));
         return ret;
@@ -186,6 +181,7 @@ public class Creature : VisibleObject
             // TODO: null check, remove 
             ret[direction].AddRange(GetDirectionalTargets(direction, radius));
         }
+
         return ret;
     }
 
@@ -210,7 +206,7 @@ public class Creature : VisibleObject
                 if (intent.UseType == Xml.SpellUseType.Target)
                 {
                     // Exact clicked target
-                    possibleTargets.Add(target);                        
+                    possibleTargets.Add(target);
                     //GameLog.UserActivityInfo("GetTarget: exact clicked target");
                 }
                 else if (intent.UseType == Xml.SpellUseType.NoTarget)
@@ -254,19 +250,23 @@ public class Creature : VisibleObject
                 foreach (Xml.Direction direction in Enum.GetValues(typeof(Xml.Direction)))
                 {
                     //GameLog.UserActivityInfo($"GetTarget: cross, {direction}, origin {origin.Name}, radius {cross.Radius}");
-                    possibleTargets.AddRange(origin.GetDirectionalTargets(direction, cross.Radius));                       
+                    possibleTargets.AddRange(origin.GetDirectionalTargets(direction, cross.Radius));
                 }
+
                 // Add origin and let flags sort it out
                 possibleTargets.Add(origin);
             }
+
             foreach (var line in intent.Line)
             {
                 // Process line targets
                 //GameLog.UserActivityInfo($"GetTarget: line, {line.Direction}, origin {origin.Name}, length {line.Length}");
-                possibleTargets.AddRange(origin.GetDirectionalTargets(origin.GetIntentDirection(line.Direction), line.Length));
+                possibleTargets.AddRange(origin.GetDirectionalTargets(origin.GetIntentDirection(line.Direction),
+                    line.Length));
                 // Similar to above, add origin
                 possibleTargets.Add(origin);
             }
+
             foreach (var square in intent.Square)
             {
                 // Process square targets
@@ -275,6 +275,7 @@ public class Creature : VisibleObject
                 //GameLog.UserActivityInfo($"GetTarget: square, {origin.X - r}, {origin.Y - r} - origin {origin.Name}, side length {square.Side}");
                 possibleTargets.AddRange(origin.Map.EntityTree.GetObjects(rect).Where(e => e is Creature));
             }
+
             foreach (var tile in intent.Tile)
             {
                 // Process tile targets, which can have either direction OR relative x/y
@@ -288,7 +289,9 @@ public class Creature : VisibleObject
                     else
                     {
                         //GameLog.UserActivityInfo($"GetTarget: tile, ({origin.X + tile.RelativeX}, {origin.Y + tile.RelativeY}, origin {origin.Name}");
-                        possibleTargets.AddRange(origin.Map.GetTileContents(origin.X + tile.RelativeX, origin.Y + tile.RelativeY).Where(e => e is Creature));
+                        possibleTargets.AddRange(origin.Map
+                            .GetTileContents(origin.X + tile.RelativeX, origin.Y + tile.RelativeY)
+                            .Where(e => e is Creature));
                     }
                 }
                 else
@@ -298,26 +301,30 @@ public class Creature : VisibleObject
                 }
 
             }
-            List<Creature> possible = intent.MaxTargets > 0 ? possibleTargets.Take(intent.MaxTargets).OfType<Creature>().ToList() : possibleTargets.OfType<Creature>().ToList();
-            if (possible != null && possible.Count > 0) 
+
+            List<Creature> possible = intent.MaxTargets > 0
+                ? possibleTargets.Take(intent.MaxTargets).OfType<Creature>().ToList()
+                : possibleTargets.OfType<Creature>().ToList();
+            if (possible != null && possible.Count > 0)
                 actualTargets = actualTargets.Concat(possible);
             else GameLog.UserActivityInfo("GetTarget: No targets found");
 
             // Remove all merchants
             // TODO: perhaps improve with a flag or extend in the future
             actualTargets = actualTargets.Where(e => e is User || e is Monster);
-               
+
             // Process intent flags
 
             var this_id = this.Id;
-                
+
             if (this is Monster)
             {
                 // No hostile flag: remove players
                 if (intent.Flags.Contains(Xml.IntentFlags.Hostile))
-                { 
+                {
                     finalTargets.AddRange(actualTargets.OfType<User>());
                 }
+
                 // No friendly flag: remove monsters
                 if (intent.Flags.Contains(Xml.IntentFlags.Friendly))
                 {
@@ -335,15 +342,20 @@ public class Creature : VisibleObject
                 {
                     finalTargets.AddRange(actualTargets.OfType<Monster>());
                 }
+
                 if (intent.Flags.Contains(Xml.IntentFlags.Friendly))
                 {
-                    finalTargets.AddRange(actualTargets.OfType<User>().Where(e => e.Condition.PvpEnabled == false && e.Id != Id));
+                    finalTargets.AddRange(actualTargets.OfType<User>()
+                        .Where(e => e.Condition.PvpEnabled == false && e.Id != Id));
                 }
+
                 if (intent.Flags.Contains(Xml.IntentFlags.Pvp))
                 {
 
-                    finalTargets.AddRange(actualTargets.OfType<User>().Where(e => e.Condition.PvpEnabled && e.Id != Id));
+                    finalTargets.AddRange(actualTargets.OfType<User>()
+                        .Where(e => e.Condition.PvpEnabled && e.Id != Id));
                 }
+
                 if (intent.Flags.Contains(Xml.IntentFlags.Group))
                 {
                     // Remove group members
@@ -351,12 +363,15 @@ public class Creature : VisibleObject
                         finalTargets.AddRange(actualTargets.OfType<User>().Where(e => userobj.Group.Contains(e)));
                 }
             }
+
             // No Self flag: remove self 
             if (intent.Flags.Contains(Xml.IntentFlags.Self))
             {
-                GameLog.UserActivityInfo($"Trying to remove self: my id is {this.Id} and actualtargets contains {String.Join(',',actualTargets.Select(e => e.Id).ToList())}");
+                GameLog.UserActivityInfo(
+                    $"Trying to remove self: my id is {this.Id} and actualtargets contains {String.Join(',', actualTargets.Select(e => e.Id).ToList())}");
                 finalTargets.AddRange(actualTargets.Where(e => e.Id == Id));
-                GameLog.UserActivityInfo($"did it happen :o -  my id is {this.Id} and actualtargets contains {String.Join(',', actualTargets.Select(e => e.Id).ToList())}");
+                GameLog.UserActivityInfo(
+                    $"did it happen :o -  my id is {this.Id} and actualtargets contains {String.Join(',', actualTargets.Select(e => e.Id).ToList())}");
             }
 
         }
@@ -368,6 +383,7 @@ public class Creature : VisibleObject
     public Creature FirstHitter { get; internal set; }
 
     private uint _mLastHitter;
+
     public Creature LastHitter
     {
         get
@@ -376,10 +392,7 @@ public class Creature : VisibleObject
                 return o as Creature;
             return null;
         }
-        set
-        {
-            _mLastHitter = value?.Id ?? 0;
-        }
+        set { _mLastHitter = value?.Id ?? 0; }
     }
 
     public bool AbsoluteImmortal { get; set; }
@@ -400,6 +413,7 @@ public class Creature : VisibleObject
         {
             (this as User).SendStatusUpdate(status);
         }
+
         status.OnStart(sendUpdates);
         if (sendUpdates)
             UpdateAttributes(StatUpdateFlags.Full);
@@ -421,6 +435,7 @@ public class Creature : VisibleObject
             else
                 status.OnEnd();
         }
+
         if (this is User) (this as User).SendStatusUpdate(status, true);
         if (this is Monster)
             Game.World.RemoveStatusCheck(this);
@@ -481,6 +496,7 @@ public class Creature : VisibleObject
                     // Coma removal from expiration means: dead
                     (this as User).OnDeath();
                 }
+
                 GameLog.DebugFormat($"Status {kvp.Value.Name} has expired: removal was {removed}");
             }
 
@@ -499,8 +515,10 @@ public class Creature : VisibleObject
     public virtual bool UseCastable(Xml.Castable castObject, Creature target = null, bool assailAttack = false)
     {
         if (!Condition.CastingAllowed) return false;
-            
-        if (this is User) GameLog.UserActivityInfo($"UseCastable: {Name} begin casting {castObject.Name} on target: {target?.Name ?? "no target"} CastingAllowed: {Condition.CastingAllowed}");
+
+        if (this is User)
+            GameLog.UserActivityInfo(
+                $"UseCastable: {Name} begin casting {castObject.Name} on target: {target?.Name ?? "no target"} CastingAllowed: {Condition.CastingAllowed}");
 
         var damage = castObject.Effects.Damage;
         List<Creature> targets = new List<Creature>();
@@ -524,14 +542,19 @@ public class Creature : VisibleObject
             {
                 foreach (var user in tar.viewportUsers.ToList())
                 {
-                    GameLog.UserActivityInfo($"UseCastable: Sending {user.Name} effect for {Name}: {castObject.Effects.Animations.OnCast.Target.Id}");
-                    user.SendEffect(tar.Id, castObject.Effects.Animations.OnCast.Target.Id, castObject.Effects.Animations.OnCast.Target.Speed);
+                    GameLog.UserActivityInfo(
+                        $"UseCastable: Sending {user.Name} effect for {Name}: {castObject.Effects.Animations.OnCast.Target.Id}");
+                    user.SendEffect(tar.Id, castObject.Effects.Animations.OnCast.Target.Id,
+                        castObject.Effects.Animations.OnCast.Target.Speed);
                 }
             }
+
             if (castObject.Effects?.Animations?.OnCast?.SpellEffect != null)
             {
-                GameLog.UserActivityInfo($"UseCastable: Sending spelleffect for {Name}: {castObject.Effects.Animations.OnCast.SpellEffect.Id}");
-                Effect(castObject.Effects.Animations.OnCast.SpellEffect.Id, castObject.Effects.Animations.OnCast.SpellEffect.Speed);
+                GameLog.UserActivityInfo(
+                    $"UseCastable: Sending spelleffect for {Name}: {castObject.Effects.Animations.OnCast.SpellEffect.Id}");
+                Effect(castObject.Effects.Animations.OnCast.SpellEffect.Id,
+                    castObject.Effects.Animations.OnCast.SpellEffect.Speed);
             }
         }
 
@@ -547,11 +570,13 @@ public class Creature : VisibleObject
                 return script.ExecuteFunction("OnUse", this);
             else
             {
-                GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name}: castable script {castObject.Script} missing");
+                GameLog.UserActivityError(
+                    $"UseCastable: {Name} casting {castObject.Name}: castable script {castObject.Script} missing");
                 return false;
             }
 
         }
+
         if (targets.Count == 0)
             GameLog.UserActivityError("{Name}: {castObject.Name}: hey fam no targets");
 
@@ -629,9 +654,11 @@ public class Creature : VisibleObject
                 tar.Heal(healOutput, this);
                 if (this is User)
                 {
-                    GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} healing: {healOutput}");
+                    GameLog.UserActivityInfo(
+                        $"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} healing: {healOutput}");
                     if (Equipment.Weapon is {Undamageable: false})
-                        Equipment.Weapon.Durability -= 1 / (Equipment.Weapon.MaximumDurability * ((100 - Stats.Ac) == 0 ? 1 : (100 - Stats.Ac)));
+                        Equipment.Weapon.Durability -= 1 / (Equipment.Weapon.MaximumDurability *
+                                                            ((100 - Stats.Ac) == 0 ? 1 : (100 - Stats.Ac)));
                 }
             }
 
@@ -642,30 +669,35 @@ public class Creature : VisibleObject
                 if (World.WorldData.TryGetValue<Xml.Status>(status.Value.ToLower(), out var applyStatus))
                 {
                     var duration = status.Duration == 0 ? applyStatus.Duration : status.Duration;
-                    GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name} - applying status {status.Value} - duration {duration}");
-                    if(tar.CurrentStatusInfo.Any(x => x.Category == applyStatus.Category))
+                    GameLog.UserActivityInfo(
+                        $"UseCastable: {Name} casting {castObject.Name} - applying status {status.Value} - duration {duration}");
+                    if (tar.CurrentStatusInfo.Any(x => x.Category == applyStatus.Category))
                     {
-                        if(this is User user)
+                        if (this is User user)
                         {
                             user.SendSystemMessage($"Another {applyStatus.Category} already affects your target.");
                         }
                     }
                     else
-                        tar.ApplyStatus(new CreatureStatus(applyStatus, tar, castObject, this, duration, -1, status.Intensity));
+                        tar.ApplyStatus(new CreatureStatus(applyStatus, tar, castObject, this, duration, -1,
+                            status.Intensity));
                 }
                 else
-                    GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name} - failed to add status {status.Value}, does not exist!");
+                    GameLog.UserActivityError(
+                        $"UseCastable: {Name} casting {castObject.Name} - failed to add status {status.Value}, does not exist!");
             }
 
             foreach (var status in castObject.RemoveStatuses)
             {
                 if (World.WorldData.TryGetValue<Xml.Status>(status.ToLower(), out var applyStatus))
                 {
-                    GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name} - removing status {status}");
+                    GameLog.UserActivityError(
+                        $"UseCastable: {Name} casting {castObject.Name} - removing status {status}");
                     tar.RemoveStatus(applyStatus.Icon);
                 }
                 else
-                    GameLog.UserActivityError($"UseCastable: {Name} casting {castObject.Name} - failed to remove status {status}, does not exist!");
+                    GameLog.UserActivityError(
+                        $"UseCastable: {Name} casting {castObject.Name} - failed to remove status {status}, does not exist!");
 
             }
         }
@@ -683,7 +715,7 @@ public class Creature : VisibleObject
         GameLog.DebugFormat("SendAnimation byte format is: {0}", BitConverter.ToString(packet.ToArray()));
         foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>())
         {
-            var nPacket = (ServerPacket)packet.Clone();
+            var nPacket = (ServerPacket) packet.Clone();
             GameLog.DebugFormat("SendAnimation to {0}", user.Name);
             user.Enqueue(nPacket);
 
@@ -696,7 +728,7 @@ public class Creature : VisibleObject
         GameLog.DebugFormat($"SendCastLine byte format is: {BitConverter.ToString(packet.ToArray())}");
         foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>())
         {
-            var nPacket = (ServerPacket)packet.Clone();
+            var nPacket = (ServerPacket) packet.Clone();
             GameLog.DebugFormat($"SendCastLine to {user.Name}");
             user.Enqueue(nPacket);
 
@@ -730,26 +762,35 @@ public class Creature : VisibleObject
 
                 case Xml.Direction.North:
                     --newY;
-                    arrivingViewport = new Rectangle(oldX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE, 1);
-                    departingViewport = new Rectangle(oldX - halfViewport, oldY + halfViewport, Constants.VIEWPORT_SIZE, 1);
+                    arrivingViewport = new Rectangle(oldX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE,
+                        1);
+                    departingViewport = new Rectangle(oldX - halfViewport, oldY + halfViewport, Constants.VIEWPORT_SIZE,
+                        1);
                     break;
                 case Xml.Direction.South:
                     ++newY;
-                    arrivingViewport = new Rectangle(oldX - halfViewport, oldY + halfViewport, Constants.VIEWPORT_SIZE, 1);
-                    departingViewport = new Rectangle(oldX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE, 1);
+                    arrivingViewport = new Rectangle(oldX - halfViewport, oldY + halfViewport, Constants.VIEWPORT_SIZE,
+                        1);
+                    departingViewport = new Rectangle(oldX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE,
+                        1);
                     break;
                 case Xml.Direction.West:
                     --newX;
-                    arrivingViewport = new Rectangle(newX - halfViewport, oldY - halfViewport, 1, Constants.VIEWPORT_SIZE);
-                    departingViewport = new Rectangle(oldX + halfViewport, oldY - halfViewport, 1, Constants.VIEWPORT_SIZE);
+                    arrivingViewport = new Rectangle(newX - halfViewport, oldY - halfViewport, 1,
+                        Constants.VIEWPORT_SIZE);
+                    departingViewport = new Rectangle(oldX + halfViewport, oldY - halfViewport, 1,
+                        Constants.VIEWPORT_SIZE);
                     break;
                 case Xml.Direction.East:
                     ++newX;
-                    arrivingViewport = new Rectangle(oldX + halfViewport, oldY - halfViewport, 1, Constants.VIEWPORT_SIZE);
-                    departingViewport = new Rectangle(oldX - halfViewport, oldY - halfViewport, 1, Constants.VIEWPORT_SIZE);
+                    arrivingViewport = new Rectangle(oldX + halfViewport, oldY - halfViewport, 1,
+                        Constants.VIEWPORT_SIZE);
+                    departingViewport = new Rectangle(oldX - halfViewport, oldY - halfViewport, 1,
+                        Constants.VIEWPORT_SIZE);
                     break;
             }
-            var isWarp = Map.Warps.TryGetValue(new Tuple<byte, byte>((byte)newX, (byte)newY), out targetWarp);
+
+            var isWarp = Map.Warps.TryGetValue(new Tuple<byte, byte>((byte) newX, (byte) newY), out targetWarp);
 
             // Now that we know where we are going, perform some sanity checks.
             // Is the player trying to walk into a wall, or off the map?
@@ -759,6 +800,7 @@ public class Creature : VisibleObject
                 Refresh();
                 return false;
             }
+
             if (Map.IsWall[newX, newY])
             {
                 Refresh();
@@ -767,7 +809,7 @@ public class Creature : VisibleObject
             else
             {
                 // Is the player trying to walk into an occupied tile?
-                foreach (var obj in Map.GetTileContents((byte)newX, (byte)newY))
+                foreach (var obj in Map.GetTileContents((byte) newX, (byte) newY))
                 {
                     GameLog.DebugFormat("Collision check: found obj {0}", obj.Name);
                     if (obj is Creature)
@@ -777,6 +819,7 @@ public class Creature : VisibleObject
                         return false;
                     }
                 }
+
                 // Is this user entering a forbidden (by level or otherwise) warp?
                 if (isWarp)
                 {
@@ -797,16 +840,21 @@ public class Creature : VisibleObject
 
             // Calculate the common viewport between the old and new position
 
-            commonViewport = new Rectangle(oldX - halfViewport, oldY - halfViewport, Constants.VIEWPORT_SIZE, Constants.VIEWPORT_SIZE);
-            commonViewport.Intersect(new Rectangle(newX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE, Constants.VIEWPORT_SIZE));
+            commonViewport = new Rectangle(oldX - halfViewport, oldY - halfViewport, Constants.VIEWPORT_SIZE,
+                Constants.VIEWPORT_SIZE);
+            commonViewport.Intersect(new Rectangle(newX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE,
+                Constants.VIEWPORT_SIZE));
             GameLog.DebugFormat("Moving from {0},{1} to {2},{3}", oldX, oldY, newX, newY);
-            GameLog.DebugFormat("Arriving viewport is a rectangle starting at {0}, {1}", arrivingViewport.X, arrivingViewport.Y);
-            GameLog.DebugFormat("Departing viewport is a rectangle starting at {0}, {1}", departingViewport.X, departingViewport.Y);
-            GameLog.DebugFormat("Common viewport is a rectangle starting at {0}, {1} of size {2}, {3}", commonViewport.X,
+            GameLog.DebugFormat("Arriving viewport is a rectangle starting at {0}, {1}", arrivingViewport.X,
+                arrivingViewport.Y);
+            GameLog.DebugFormat("Departing viewport is a rectangle starting at {0}, {1}", departingViewport.X,
+                departingViewport.Y);
+            GameLog.DebugFormat("Common viewport is a rectangle starting at {0}, {1} of size {2}, {3}",
+                commonViewport.X,
                 commonViewport.Y, commonViewport.Width, commonViewport.Height);
 
-            X = (byte)newX;
-            Y = (byte)newY;
+            X = (byte) newX;
+            Y = (byte) newY;
             Direction = direction;
             // Objects in the common viewport receive a "walk" (0x0C) packet
             // Objects in the arriving viewport receive a "show to" (0x33) packet
@@ -821,13 +869,14 @@ public class Creature : VisibleObject
                     GameLog.DebugFormat("Sending walk packet for {0} to {1}", Name, user.Name);
                     var x0C = new ServerPacket(0x0C);
                     x0C.WriteUInt32(Id);
-                    x0C.WriteUInt16((byte)oldX);
-                    x0C.WriteUInt16((byte)oldY);
-                    x0C.WriteByte((byte)direction);
+                    x0C.WriteUInt16((byte) oldX);
+                    x0C.WriteUInt16((byte) oldY);
+                    x0C.WriteByte((byte) direction);
                     x0C.WriteByte(0x00);
                     user.Enqueue(x0C);
                 }
             }
+
             Map.EntityTree.Move(this);
 
             foreach (var obj in Map.EntityTree.GetObjects(arrivingViewport).Distinct())
@@ -842,6 +891,7 @@ public class Creature : VisibleObject
                 AoiDeparture(obj);
             }
         }
+
         // Have we entered a reactor?
         if (Map.Reactors.TryGetValue((X, Y), out var reactors))
         {
@@ -866,15 +916,16 @@ public class Creature : VisibleObject
                 var user = obj as User;
                 var x11 = new ServerPacket(0x11);
                 x11.WriteUInt32(Id);
-                x11.WriteByte((byte)direction);
+                x11.WriteByte((byte) direction);
                 user.Enqueue(x11);
             }
+
             if (obj is Monster)
             {
                 var mob = obj as Monster;
                 var x11 = new ServerPacket(0x11);
                 x11.WriteUInt32(Id);
-                x11.WriteByte((byte)direction);
+                x11.WriteByte((byte) direction);
                 foreach (var user in Map.EntityTree.GetObjects(Map.GetViewport(mob.X, mob.Y)).OfType<User>().ToList())
                 {
                     user.Enqueue(x11);
@@ -903,7 +954,7 @@ public class Creature : VisibleObject
 
         if (AbsoluteImmortal || PhysicalImmortal) return;
         if (Stats.Hp == Stats.MaximumHp) return;
-        Stats.Hp = heal > uint.MaxValue ? Stats.MaximumHp : Math.Min(Stats.MaximumHp, (uint)(Stats.Hp + heal));
+        Stats.Hp = heal > uint.MaxValue ? Stats.MaximumHp : Math.Min(Stats.MaximumHp, (uint) (Stats.Hp + heal));
         SendDamageUpdate(this);
     }
 
@@ -929,11 +980,11 @@ public class Creature : VisibleObject
         {
             if (Equipment.Weapon is null)
                 return 0;
-            var mindmg = (int)Equipment.Weapon.MinLDamage;
-            var maxdmg = (int)Equipment.Weapon.MaxLDamage;
+            var mindmg = (int) Equipment.Weapon.MinLDamage;
+            var maxdmg = (int) Equipment.Weapon.MaxLDamage;
             if (mindmg == 0) mindmg = 1;
             if (maxdmg == 0) maxdmg = 1;
-            return (ushort)Random.Shared.Next(mindmg, maxdmg + 1);
+            return (ushort) Random.Shared.Next(mindmg, maxdmg + 1);
         }
     }
 
@@ -945,10 +996,12 @@ public class Creature : VisibleObject
         if (Stats.Mp == Stats.MaximumMp || mp > Stats.MaximumMp)
             return;
 
-        Stats.Mp = mp > uint.MaxValue ? Stats.MaximumMp : Math.Min(Stats.MaximumMp, (uint)(Stats.Mp + mp));
+        Stats.Mp = mp > uint.MaxValue ? Stats.MaximumMp : Math.Min(Stats.MaximumMp, (uint) (Stats.Mp + mp));
     }
 
-    public virtual void Damage(double damage, Xml.ElementType element = Xml.ElementType.None, Xml.DamageType damageType = Xml.DamageType.Direct, Xml.DamageFlags damageFlags = Xml.DamageFlags.None, Creature attacker = null, bool onDeath=true)
+    public virtual void Damage(double damage, Xml.ElementType element = Xml.ElementType.None,
+        Xml.DamageType damageType = Xml.DamageType.Direct, Xml.DamageFlags damageFlags = Xml.DamageFlags.None,
+        Creature attacker = null, bool onDeath = true)
     {
         if (this is Monster ms && !Condition.Alive) return;
 
@@ -975,7 +1028,8 @@ public class Creature : VisibleObject
 
         if (attacker is User && this is Monster)
         {
-            if (FirstHitter == null || !World.UserConnected(FirstHitter.Name) || ((DateTime.Now - LastHitTime).TotalSeconds > Constants.MONSTER_TAGGING_TIMEOUT)) FirstHitter = attacker;
+            if (FirstHitter == null || !World.UserConnected(FirstHitter.Name) ||
+                ((DateTime.Now - LastHitTime).TotalSeconds > Constants.MONSTER_TAGGING_TIMEOUT)) FirstHitter = attacker;
             if (attacker != FirstHitter && !((FirstHitter as User).Group?.Members.Contains(attacker) ?? false)) return;
         }
 
@@ -994,7 +1048,8 @@ public class Creature : VisibleObject
         {
             var elementTable = Game.World.WorldData.Get<Xml.ElementTable>("ElementTable");
             // TODO: null ref
-            var multiplier = elementTable.Source.First(x => x.Element == element).Target.FirstOrDefault(x => x.Element == Stats.BaseDefensiveElement).Multiplier;
+            var multiplier = elementTable.Source.First(x => x.Element == element).Target
+                .FirstOrDefault(x => x.Element == Stats.BaseDefensiveElement).Multiplier;
             damage *= multiplier;
         }
 
@@ -1014,7 +1069,8 @@ public class Creature : VisibleObject
                     damage += (damage * Stats.Mr * -1);
             }
 
-            if (attacker.Stats.Crit > 0 && damageType == DamageType.Physical && !damageFlags.HasFlag(DamageFlags.NoCrit))
+            if (attacker.Stats.Crit > 0 && damageType == DamageType.Physical &&
+                !damageFlags.HasFlag(DamageFlags.NoCrit))
             {
                 if (Random.Shared.Next(100) <= attacker.Stats.Crit)
                 {
@@ -1023,7 +1079,8 @@ public class Creature : VisibleObject
                 }
             }
 
-            if (attacker.Stats.MagicCrit > 0 && damageType == DamageType.Magical && !damageFlags.HasFlag(DamageFlags.NoCrit))
+            if (attacker.Stats.MagicCrit > 0 && damageType == DamageType.Magical &&
+                !damageFlags.HasFlag(DamageFlags.NoCrit))
             {
                 if (Random.Shared.Next(100) <= attacker.Stats.Crit)
                 {
@@ -1039,7 +1096,8 @@ public class Creature : VisibleObject
                 {
                     Effect(68, 100);
                     (attacker as User)?.SendSystemMessage("You fumble, and strike yourself hard!");
-                    attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaHp = (long)(damage * -1 * 0.25) });
+                    attacker.World.EnqueueGuidStatUpdate(attacker.Guid,
+                        new StatInfo {DeltaHp = (long) (damage * -1 * 0.25)});
                     return;
                 }
             }
@@ -1051,20 +1109,21 @@ public class Creature : VisibleObject
                 {
                     Effect(68, 100);
                     (attacker as User)?.SendSystemMessage("You stammer, and flames envelop you!");
-                    attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaHp = (long)(damage * -1 * 0.25) });
+                    attacker.World.EnqueueGuidStatUpdate(attacker.Guid,
+                        new StatInfo {DeltaHp = (long) (damage * -1 * 0.25)});
                     return;
                 }
             }
         }
 
-        var normalized = (uint)damage;
+        var normalized = (uint) damage;
 
         if (normalized > Stats.Hp && damageFlags.HasFlag(Xml.DamageFlags.Nonlethal))
             normalized = Stats.Hp - 1;
         else if (normalized > Stats.Hp)
             normalized = Stats.Hp;
 
-        OnDamage(new DamageEvent { Attacker = attacker, Damage = normalized, Flags = damageFlags, Type = damageType});
+        OnDamage(new DamageEvent {Attacker = attacker, Damage = normalized, Flags = damageFlags, Type = damageType});
 
         if (AbsoluteImmortal || Condition.IsInvulnerable) return;
 
@@ -1082,14 +1141,14 @@ public class Creature : VisibleObject
         {
             var reflected = Stats.ReflectMagical * normalized;
             if (reflected > 0)
-                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaHp = (long) (reflected * -1)});
+                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo {DeltaHp = (long) (reflected * -1)});
         }
 
         if (Stats.ReflectPhysical > 0 && damageType == DamageType.Physical && attacker != null)
         {
             var reflected = Stats.ReflectPhysical * normalized;
             if (reflected > 0)
-                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaHp = (long) reflected * -1 });
+                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo {DeltaHp = (long) reflected * -1});
 
         }
 
@@ -1097,7 +1156,7 @@ public class Creature : VisibleObject
         {
             var stolen = normalized * Stats.LifeSteal;
             if (stolen > 0)
-                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaHp = (long) stolen});
+                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo {DeltaHp = (long) stolen});
 
         }
 
@@ -1105,7 +1164,7 @@ public class Creature : VisibleObject
         {
             var stolen = normalized * Stats.ManaSteal;
             if (stolen > 0)
-                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaMp = (long) stolen});
+                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo {DeltaMp = (long) stolen});
         }
 
         // Lastly, handle damage to MP redirection
@@ -1114,10 +1173,10 @@ public class Creature : VisibleObject
         {
             var redirected = Stats.InboundDamageToMp * normalized;
             if (redirected > 0)
-                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaMp = (long)redirected });
-	}
+                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo {DeltaMp = (long) redirected});
+        }
 
-        Stats.Hp = ((int)Stats.Hp - normalized) < 0 ? 0 : Stats.Hp - normalized;
+        Stats.Hp = ((int) Stats.Hp - normalized) < 0 ? 0 : Stats.Hp - normalized;
 
         SendDamageUpdate(this);
 
@@ -1130,12 +1189,12 @@ public class Creature : VisibleObject
     private void SendDamageUpdate(Creature creature)
     {
         if (Map == null) return;
-        var percent = ((creature.Stats.Hp / (double)creature.Stats.MaximumHp) * 100);
-        var healthbar = new ServerPacketStructures.HealthBar { CurrentPercent = (byte)percent, ObjId = creature.Id };
+        var percent = ((creature.Stats.Hp / (double) creature.Stats.MaximumHp) * 100);
+        var healthbar = new ServerPacketStructures.HealthBar {CurrentPercent = (byte) percent, ObjId = creature.Id};
 
         foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>())
         {
-            var nPacket = (ServerPacket)healthbar.Packet().Clone();
+            var nPacket = (ServerPacket) healthbar.Packet().Clone();
             user.Enqueue(nPacket);
         }
     }
@@ -1164,6 +1223,7 @@ public class Creature : VisibleObject
     {
         return Cookies;
     }
+
     public IReadOnlyDictionary<string, string> GetSessionCookies()
     {
         return SessionCookies;
@@ -1171,29 +1231,16 @@ public class Creature : VisibleObject
 
     public string GetCookie(string cookieName) => Cookies.TryGetValue(cookieName, out var value) ? value : null;
 
-    public string GetSessionCookie(string cookieName) => SessionCookies.TryGetValue(cookieName, out var value) ? value : null;
-    
+    public string GetSessionCookie(string cookieName) =>
+        SessionCookies.TryGetValue(cookieName, out var value) ? value : null;
 
-    public bool HasCookie(string cookieName) => Cookies.Keys.Contains(cookieName);
-    public bool HasSessionCookie(string cookieName) => SessionCookies.Keys.Contains(cookieName);
 
-    public bool DeleteCookie(string cookieName) => Cookies.Remove(cookieName);
-    public bool DeleteSessionCookie(string cookieName) => SessionCookies.Remove(cookieName);
-
-    public string GetSessionCookie(string cookieName)
-    {
-        string value;
-        if (SessionCookies.TryGetValue(cookieName, out value))
-        {
-            return value;
-        }
-        return null;
-    }
-
-    public bool HasCookie(string cookieName) => Cookies.Keys.Contains(cookieName);
-    public bool HasSessionCookie(string cookieName) => SessionCookies.Keys.Contains(cookieName);
+    public bool HasCookie(string cookieName) => Cookies.ContainsKey(cookieName);
+    public bool HasSessionCookie(string cookieName) => SessionCookies.ContainsKey(cookieName);
 
     public bool DeleteCookie(string cookieName) => Cookies.Remove(cookieName);
     public bool DeleteSessionCookie(string cookieName) => SessionCookies.Remove(cookieName);
+
+
 
 }
