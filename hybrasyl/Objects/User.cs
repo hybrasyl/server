@@ -2323,7 +2323,7 @@ public class User : Creature
     {
         var slotsToUpdate = new List<byte>();
         var slotsToClear = new List<byte>();
-        if (Inventory.ContainsId(itemName, quantity))
+        if (Inventory.ContainsName(itemName, quantity))
         {
             var remaining = (int) quantity;
             var slots = Inventory.GetSlotsByName(itemName);
