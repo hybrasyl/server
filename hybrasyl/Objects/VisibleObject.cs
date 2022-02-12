@@ -42,6 +42,22 @@ public class VisibleObject : WorldObject
     public string Portrait { get; set; }
     public string DisplayText { get; set; }
 
+    protected Dictionary<string, string> Strings = new();
+
+    public string GetLocalString(string key) => Strings.ContainsKey(key) ? Strings[key] : World.GetLocalString(key);
+
+    public string GetLocalString(string key, params (string Token, string Value)[] replacements)
+    {
+        var str = GetLocalString(key);
+        foreach (var repl in replacements)
+        {
+            str = str.Replace(repl.Token, repl.Value);
+        }
+
+        return str;
+    }
+
+
     // Whether or not to allow a ghost (a dead player) to interact with this object
     public bool AllowDead { get; set; }
 
@@ -375,7 +391,7 @@ public class VisibleObject : WorldObject
             Color2 = 0,
             PortraitType = 1,
             Name = Name,
-            Text = World.GetLocalString("greeting"),
+            Text = GetLocalString("greeting"),
             Options = options
         };
 

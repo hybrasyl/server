@@ -62,8 +62,6 @@ public class Merchant : Creature
 
     public Regex BuyPattern { get; set; } = new Regex("buy\\s+(?<amt>\\d+|all)\\s+of\\s+my\\s+(?<target>.*)");
 
-    private Dictionary<string, string> Strings = new();
-
     public Merchant(Npc npc)
         : base()
     {
@@ -74,7 +72,7 @@ public class Merchant : Creature
 
         foreach (var str in npc.Strings)
         {
-            Strings[str.Key] = Strings[str.Value];
+            Strings[str.Key] = str.Value;
         }
 
 
@@ -109,19 +107,6 @@ public class Merchant : Creature
         }
 
         Ready = false;
-    }
-
-    public string GetLocalString(string key) => Strings.ContainsKey(key) ? key : World.GetLocalString(key);
-
-    public string GetLocalString(string key, params (string Token, string Value)[] replacements)
-    {
-        var str = GetLocalString(key);
-        foreach (var repl in replacements)
-        {
-            str = str.Replace(repl.Token, repl.Value);
-        }
-
-        return str;
     }
 
     public uint GetOnHand(string itemName)
