@@ -217,8 +217,10 @@ public class Login : Server
             newPlayer.Stats.BaseHp = 50;
             newPlayer.Stats.BaseMp = 50;
             newPlayer.Stats.Gold = 0;
-
-	    newPlayer.AuthInfo.CreatedTime = DateTime.Now;
+            newPlayer.Stats.BaseAc = 100;
+            newPlayer.Stats.Hp = 50;
+            newPlayer.Stats.Mp = 50;
+            newPlayer.AuthInfo.CreatedTime = DateTime.Now;
             newPlayer.AuthInfo.FirstLogin = true;
             newPlayer.AuthInfo.PasswordHash = client.NewCharacterPassword;
             newPlayer.AuthInfo.LastPasswordChange = DateTime.Now;

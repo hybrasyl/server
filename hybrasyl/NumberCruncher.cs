@@ -130,9 +130,14 @@ static class NumberCruncher
             dmg = _evalFormula(formula, castable, target, source);
         }
 
+        if (source?.Stats.OutboundDamageModifier > 0)
+            dmg *= source.Stats.OutboundDamageModifier;
+        if (target.Stats.InboundDamageModifier > 0)
+            dmg *= target.Stats.InboundDamageModifier;
+
         return new DamageOutput
         {
-            Amount = dmg * target.Stats.InboundDamageModifier * source?.Stats?.OutboundHealModifier ?? 1.0,
+            Amount = dmg,
             Type = type,
             Flags = castable.Effects.Damage.Flags,
             Element = castable.Element
@@ -153,9 +158,15 @@ static class NumberCruncher
         if (castable.Effects?.Heal == null) return heal;
 
         heal = castable.Effects.Heal.IsSimple
-            ? _evalSimple(castable.Effects.Heal.Simple) * target.Stats.InboundHealModifier
+            ? _evalSimple(castable.Effects.Heal.Simple)
             : _evalFormula(castable.Effects.Heal.Formula, castable, target, source);
-        return heal * target.Stats.InboundHealModifier * source?.Stats?.OutboundHealModifier ?? 1.0;
+
+        if (source?.Stats.OutboundHealModifier > 0)
+            heal *= source.Stats.OutboundHealModifier;
+        if (target.Stats.InboundHealModifier > 0)
+            heal *= target.Stats.InboundHealModifier;
+
+        return heal;
     }
 
 
@@ -186,9 +197,16 @@ static class NumberCruncher
             ? _evalSimple(effect.Damage.Simple)
             : _evalFormula(effect.Damage.Formula, castable, target, source);
 
+        if (source?.Stats.OutboundDamageModifier > 0)
+            dmg *= source.Stats.OutboundDamageModifier;
+        if (target.Stats.InboundDamageModifier > 0)
+            dmg *= target.Stats.InboundDamageModifier;
+        if (intensity > 0)
+            dmg *= intensity;
+
         return new DamageOutput
         {
-            Amount = (dmg * intensity * target.Stats.InboundDamageModifier * source.Stats.OutboundDamageModifier),
+            Amount = dmg,
             Type = type,
             Flags = effect.Damage.Flags,
             Element = castable?.Element ?? ElementType.None
@@ -217,7 +235,14 @@ static class NumberCruncher
 
         heal = effect.Heal.IsSimple ? _evalSimple(effect.Heal.Simple) : _evalFormula(effect.Heal.Formula, castable, target, source);
 
-        return heal * intensity * source.Stats.OutboundHealModifier * target.Stats.InboundHealModifier;
+        if (source?.Stats?.OutboundHealModifier > 0)
+            heal *= source.Stats.OutboundHealModifier;
+        if (target.Stats.InboundHealModifier > 0)
+            heal *= source.Stats.OutboundHealModifier;
+
+        heal *= intensity;
+
+        return heal;
 
     }
 

@@ -129,6 +129,12 @@ public class Monster : Creature, ICloneable
         DeathProcessed = false;
         Stats.Hp = Stats.MaximumHp;
         Stats.Mp = Stats.MaximumMp;
+        Stats.BaseInt = 3;
+        Stats.BaseDex = 3;
+        Stats.BaseStr = 3;
+        Stats.BaseWis = 3;
+        Stats.BaseCon = 3;
+        Stats.BaseAc = 100;
     }
 
     public override void OnDeath()

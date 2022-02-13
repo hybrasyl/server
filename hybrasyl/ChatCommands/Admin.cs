@@ -768,6 +768,7 @@ class ReloadXml : ChatCommand
         {
             case "castable":
             {
+                //Game.World.Reload(IXmlReloadable);
                 var reloaded = Game.World.GetXmlFile(args[0], args[1]);
                 var reloadedCastable = Xml.Castable.LoadFromFile(reloaded);
 

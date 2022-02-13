@@ -25,6 +25,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Hybrasyl.Enums;
+using Hybrasyl.Interfaces;
 using Hybrasyl.Xml;
 
 namespace Hybrasyl.Objects;
@@ -51,11 +52,12 @@ public class MerchantInventoryItem
 }
 
 
-public class Merchant : Creature
+public class Merchant : Creature, IXmlReloadable
 {
     private readonly object inventoryLock = new();
 
     public bool Ready;
+    public string Filename { get; set; }
     public Npc Template;
     public MerchantJob Jobs { get; set; }
     public List<MerchantInventoryItem> MerchantInventory { get; set; }

@@ -73,35 +73,35 @@ internal static class FormulaParser
         foreach (var prop in FormulaTokens[typeof(StatInfo)])
         {
             if (eval.Source != null)
-                e.Parameters[$"SOURCE{prop.Name}"] = prop.GetValue(eval.Source.Stats);
+                e.Parameters[$"SOURCE{prop.Name.ToUpper()}"] = prop.GetValue(eval.Source.Stats);
             if (eval.Target != null)
-                e.Parameters[$"TARGET{prop.Name}"] = prop.GetValue(eval.Target.Stats);
+                e.Parameters[$"TARGET{prop.Name.ToUpper()}"] = prop.GetValue(eval.Target.Stats);
         }
 
         foreach (var prop in FormulaTokens[typeof(Creature)])
         {
             if (eval.Source != null)
-                e.Parameters[$"SOURCE{prop.Name}"] = prop.GetValue(eval.Source);
+                e.Parameters[$"SOURCE{prop.Name.ToUpper()}"] = prop.GetValue(eval.Source);
             if (eval.Target != null)
-                e.Parameters[$"TARGET{prop.Name}"] = prop.GetValue(eval.Target);
+                e.Parameters[$"TARGET{prop.Name.ToUpper()}"] = prop.GetValue(eval.Target);
         }
 
         foreach (var prop in FormulaTokens[typeof(Castable)])
         {
             if (eval.Castable != null)
-                e.Parameters[$"CASTABLE{prop.Name}"] = prop.GetValue(eval.Castable);
+                e.Parameters[$"CASTABLE{prop.Name.ToUpper()}"] = prop.GetValue(eval.Castable);
         }
 
         foreach (var prop in FormulaTokens[typeof(Map)])
         {
             if (eval.Map != null)
-                e.Parameters[$"MAP{prop.Name}"] = prop.GetValue(eval.Map);
+                e.Parameters[$"MAP{prop.Name.ToUpper()}"] = prop.GetValue(eval.Map);
         }
 
         foreach (var prop in FormulaTokens[typeof(ItemObject)])
         {
             if (eval.ItemObject != null)
-                e.Parameters[$"ITEM{prop.Name}"] = prop.GetValue(eval.ItemObject);
+                e.Parameters[$"ITEM{prop.Name.ToUpper()}"] = prop.GetValue(eval.ItemObject);
         }
 
         // Handle non-typebound variables, or static values
@@ -119,6 +119,6 @@ internal static class FormulaParser
         e = Parameterize(e, evalEnvironment);
         var ret = e.Evaluate();
         GameLog.Info($"Eval of {expression} : {ret} ");
-        return Convert.ToDouble(e.Evaluate());
+        return Convert.ToDouble(ret);
     }
 }

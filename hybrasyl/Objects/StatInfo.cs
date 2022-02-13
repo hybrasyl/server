@@ -442,21 +442,25 @@ public class StatInfo
         set { lock (_lock) { _baseInboundDamageModifier = value; } }
     }
 
+    [FormulaVariable]
     public double BonusInboundDamageModifier
     {
         get { lock (_lock) { return _bonusInboundDamageModifier; } }
         set { lock (_lock) { _bonusInboundDamageModifier = value; } }
     }
 
+    [FormulaVariable]
     public double InboundDamageModifier => BaseInboundDamageModifier + BonusInboundDamageModifier;
 
     [JsonProperty]
+    [FormulaVariable]
     public double BaseInboundHealModifier
     {
         get { lock (_lock) { return _baseInboundHealModifier; } }
         set { lock (_lock) { _baseInboundHealModifier = value; } }
     }
 
+    [FormulaVariable]
     public double BonusInboundHealModifier
     {
         get { lock (_lock) { return _bonusInboundHealModifier; } }
@@ -472,27 +476,32 @@ public class StatInfo
         set { lock (_lock) { _baseOutboundDamageModifier = value; } }
     }
 
+    [FormulaVariable]
     public double BonusOutboundDamageModifier
     {
         get { lock (_lock) { return _bonusOutboundDamageModifier; } }
         set { lock (_lock) { _bonusOutboundDamageModifier = value; } }
     }
 
+    [FormulaVariable]
     public double OutboundDamageModifier => BaseOutboundDamageModifier + BonusOutboundDamageModifier;
 
     [JsonProperty]
+    [FormulaVariable]
     public double BaseOutboundHealModifier
     {
         get { lock (_lock) { return _baseOutboundHealModifier; } }
         set { lock (_lock) { _baseOutboundHealModifier = value; } }
     }
 
+    [FormulaVariable]
     public double BonusOutboundHealModifier
     {
         get { lock (_lock) { return _bonusOutboundHealModifier; } }
         set { lock (_lock) { _bonusOutboundHealModifier = value; } }
     }
 
+    [FormulaVariable]
     public double OutboundHealModifier => BaseOutboundHealModifier + BonusOutboundHealModifier;
 
     [FormulaVariable]
@@ -772,6 +781,7 @@ public class StatInfo
         }
     }
 
+    [FormulaVariable]
     public byte Str
     {
         get
@@ -871,6 +881,7 @@ public class StatInfo
         }
     }
 
+    [FormulaVariable]
     public double Hit
     {
         get

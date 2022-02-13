@@ -538,14 +538,17 @@ public class Creature : VisibleObject
         var deadMobs = new List<Creature>();
         if (castObject.Effects?.Animations?.OnCast != null)
         {
-            foreach (var tar in targets)
+            if (castObject.Effects?.Animations?.OnCast.Target != null)
             {
-                foreach (var user in tar.viewportUsers.ToList())
+                foreach (var tar in targets)
                 {
-                    GameLog.UserActivityInfo(
-                        $"UseCastable: Sending {user.Name} effect for {Name}: {castObject.Effects.Animations.OnCast.Target.Id}");
-                    user.SendEffect(tar.Id, castObject.Effects.Animations.OnCast.Target.Id,
-                        castObject.Effects.Animations.OnCast.Target.Speed);
+                    foreach (var user in tar.viewportUsers.ToList())
+                    {
+                        GameLog.UserActivityInfo(
+                            $"UseCastable: Sending {user.Name} effect for {Name}: {castObject.Effects.Animations.OnCast.Target.Id}");
+                        user.SendEffect(tar.Id, castObject.Effects.Animations.OnCast.Target.Id,
+                            castObject.Effects.Animations.OnCast.Target.Speed);
+                    }
                 }
             }
 
@@ -1047,10 +1050,12 @@ public class Creature : VisibleObject
         if (damageType != DamageType.Direct && !damageFlags.HasFlag(DamageFlags.NoElement))
         {
             var elementTable = Game.World.WorldData.Get<Xml.ElementTable>("ElementTable");
-            // TODO: null ref
-            var multiplier = elementTable.Source.First(x => x.Element == element).Target
-                .FirstOrDefault(x => x.Element == Stats.BaseDefensiveElement).Multiplier;
-            damage *= multiplier;
+            if (elementTable != null)
+            {
+                var multiplier = elementTable.Source.First(x => x.Element == element).Target;
+                var ass = multiplier.FirstOrDefault(x => x.Element == Stats.BaseDefensiveElement).Multiplier;
+                damage *= ass;
+            }
         }
 
         // Handle dmg/mr/crit/magiccrit
