@@ -250,6 +250,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
+    [JsonProperty]
     public long BaseStr
     {
         get { lock (_lock) { return _baseStr; } }
