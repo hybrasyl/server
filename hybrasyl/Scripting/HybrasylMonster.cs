@@ -28,6 +28,11 @@ public class HybrasylMonster
     public void ForceThreatChange(HybrasylUser invoker) => Monster.ThreatInfo.ForceThreatChange(invoker.User);
     public void MakeHostile() => Monster.MakeHostile();
 
+    /// <summary>
+    /// Access the StatInfo of the specified user directly (all stats).
+    /// </summary>
+    public StatInfo Stats => Monster.Stats;
+
     public HybrasylMonster(Monster monster)
     {
         Monster = monster;

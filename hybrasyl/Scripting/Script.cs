@@ -362,6 +362,8 @@ public class Script
         }
     }
 
+
+
     public bool ExecuteFunction(string functionName, dynamic invoker, dynamic source, dynamic scriptItem=null, bool returnFromScript=false)
     {
         if (Disabled)
@@ -402,7 +404,8 @@ public class Script
         return true;
     }
 
-    public bool ExecuteFunction(string functionName, dynamic invoker)
+
+    public bool ExecuteFunction(string functionName, dynamic invoker, dynamic target=null)
     {
         if (Disabled)
             return false;
@@ -413,6 +416,8 @@ public class Script
             {
                 Compiled.Globals["utility"] = typeof(HybrasylUtility);
                 Compiled.Globals.Set("invoker", GetUserDataValue(invoker));
+                if (target != null)
+                    Compiled.Globals.Set("target", GetUserDataValue(target));
                 Compiled.Call(Compiled.Globals[functionName]);
             }
             else

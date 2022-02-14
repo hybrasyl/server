@@ -570,7 +570,7 @@ public class Creature : VisibleObject
         {
             // If a script is defined we fire it immediately, and let it handle targeting / etc
             if (Game.World.ScriptProcessor.TryGetScript(castObject.Script, out Script script))
-                return script.ExecuteFunction("OnUse", this);
+                return script.ExecuteFunction("OnUse", this, target);
             else
             {
                 GameLog.UserActivityError(
