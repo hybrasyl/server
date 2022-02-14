@@ -629,6 +629,17 @@ public partial class World : Server
 
         GameLog.InfoFormat("Creatures: {0} creatures loaded", WorldData.Count<Xml.Creature>());
 
+
+        var spawnGroups = Xml.SpawnGroup.LoadAll(XmlDirectory);
+
+        foreach (var group in spawnGroups.Results)
+        {
+            WorldData.Set(group.Name, group);
+            GameLog.Info($"Spawngroup: {group.Name} loaded");
+        }
+
+        foreach (var error in spawnGroups.Errors)
+            GameLog.Error($"Spawngroups: error occurred loading {error.Key}: {error.Value}");
         //Load LootSets
         foreach (var xml in GetXmlFiles(LootSetDirectory))
         {

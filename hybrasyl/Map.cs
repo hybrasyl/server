@@ -170,7 +170,20 @@ public class Map
 
     public QuadTree<VisibleObject> EntityTree { get; set; }
 
-    public HashSet<VisibleObject> Objects { get; private set; }
+    private HashSet<VisibleObject> _objects { get; set; } = new HashSet<VisibleObject>();
+
+    public HashSet<VisibleObject> Objects
+    {
+        get
+        {
+            lock (_lock) return _objects;
+        }
+        set
+        {
+            lock (_lock) _objects = value;
+        }
+    }
+
     public Dictionary<string, User> Users { get; private set; }
 
     public Dictionary<(byte X, byte Y), Door> Doors { get; set; }

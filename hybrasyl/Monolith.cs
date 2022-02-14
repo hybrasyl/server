@@ -24,8 +24,12 @@ using Hybrasyl.Objects;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Threading;
+using Hybrasyl.Xml;
+using Sentry;
+using Creature = Hybrasyl.Objects.Creature;
 
 namespace Hybrasyl;
 
@@ -246,15 +250,14 @@ internal class Monolith
                     var xcoord = 0;
                     var ycoord = 0;
 
-                    if (spawn.Coordinates.Count() > 0)
+                    if (spawn.Coordinates.Any())
                     {
                         foreach (var coord in spawn.Coordinates)
                         {
-                            if (spawnmap.EntityTree.GetObjects(new System.Drawing.Rectangle(coord.X, coord.Y, 1, 1)).Where(e => e is Creature).Count() == 0)
-                            {
-                                xcoord = coord.X;
-                                ycoord = coord.Y;
-                            }
+                            if (spawnmap.EntityTree.GetObjects(new Rectangle(coord.X, coord.Y, 1, 1))
+                                .Any(e => e is Creature)) continue;
+                            xcoord = coord.X;
+                            ycoord = coord.Y;
                         }
                     }
                     else
@@ -289,6 +292,14 @@ internal class Monolith
                                     template.Properties.Damage.Large.Min = minDmg;
                                     template.Properties.Damage.Large.Max = maxDmg;
                                     template.Properties.Physical.Durability = uint.MaxValue;
+                                    baseMob.Stats.OffensiveElementOverride = spawn.Damage.Element switch
+                                    {
+                                        ElementType.RandomFour => (ElementType) Random.Shared.Next(1, 5), // earth/fire/wind/water
+                                        ElementType.RandomEight => (ElementType) Random.Shared.Next(1, 9), // Above plus light/dark/metal/wood
+                                        ElementType.Random => (ElementType) Random.Shared.Next(1, 10), // Above plus undead
+                                        _ => spawn.Damage.Element
+                                    };
+
                                     baseMob.Stats.OffensiveElementOverride = spawn.Damage.Element;
                                     var item = new ItemObject(newTemplate);
                                     baseMob.Equipment.Insert((byte) ItemSlots.Weapon, item);
@@ -324,7 +335,14 @@ internal class Monolith
                         }
                         baseMob.Stats.BonusAc = Ac;
                         baseMob.Stats.BonusMr = Mr;
-                        baseMob.Stats.DefensiveElementOverride = spawn.Defense.Element;
+                        baseMob.Stats.DefensiveElementOverride = spawn.Defense.Element switch
+                        {
+                            ElementType.RandomFour => (ElementType)Random.Shared.Next(1, 5), // earth/fire/wind/water
+                            ElementType.RandomEight => (ElementType)Random.Shared.Next(1, 9), // Above plus light/dark/metal/wood
+                            ElementType.Random => (ElementType)Random.Shared.Next(1, 10), // Above plus undead
+                            _ => spawn.Damage.Element
+                        };
+
                     }
                     foreach (var cookie in spawn.SetCookies)
                     {
@@ -346,7 +364,6 @@ internal class Monolith
             World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MonolithSpawn, monster, map));
             //Game.World.Maps[mapId].InsertCreature(monster);
             //if (map.SpawnDebug)
-            GameLog.SpawnInfo($"Spawning: {monster.Name} @ {map.Name} ({monster.X},{monster.Y}) [{monster.Stats}]");
         }
                                                
     }

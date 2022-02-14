@@ -34,25 +34,18 @@ public abstract class HybrasylLoadable
 
     public static List<string> GetXmlFiles(string Path)
     {
-        var ret = new List<string>();
         try
         {
             if (Directory.Exists(Path))
             {
-                var wef = new List<string>();
-
-                foreach (var asdf in Directory.GetFiles(Path, "*.xml", SearchOption.AllDirectories))
-                    wef.Add(asdf.Replace(Path, ""));
-
-                return Directory.GetFiles(Path, "*.xml", SearchOption.AllDirectories).
-                    Where(e => !e.Replace(Path, "").
-                        StartsWith("\\_")).ToList();
+                return Directory.GetFiles(Path, "*.xml", SearchOption.AllDirectories)
+                    .Where(x => !x.Contains(".ignore") || x.StartsWith("\\_")).ToList();
             }
         }
         catch (Exception)
         {
             return null;
         }
-        return ret;
+        return new List<string>();
     }
 }

@@ -5,7 +5,7 @@ namespace Hybrasyl.Xml;
 
 public partial class SpawnGroup : HybrasylLoadable, IHybrasylLoadable<SpawnGroup>
 {
-    public static string DataDirectory => "spawngroups";
+    public static string Directory => "spawngroups";
 
     public static SpawnGroup operator +(SpawnGroup sg1, SpawnGroup sg2)
     {
@@ -18,7 +18,7 @@ public partial class SpawnGroup : HybrasylLoadable, IHybrasylLoadable<SpawnGroup
     {
 
         var ret = new XmlLoadResponse<SpawnGroup>();
-        foreach (var xml in GetXmlFiles(Path.Join(baseDir, DataDirectory)))
+        foreach (var xml in GetXmlFiles(Path.Join(baseDir, Directory)))
         {
             try
             {
@@ -29,7 +29,7 @@ public partial class SpawnGroup : HybrasylLoadable, IHybrasylLoadable<SpawnGroup
             {
                 ret.Errors.Add(xml, e.ToString());
             }
-        }
+        } 
         return ret;
     }
 }

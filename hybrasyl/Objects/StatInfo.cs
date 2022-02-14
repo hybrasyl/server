@@ -740,6 +740,11 @@ public class StatInfo
         ? DefensiveElementOverride
         : BaseDefensiveElement;
 
+    public string OffensiveElementStr => Enum.GetName(typeof(Xml.ElementType), OffensiveElement);
+    public string DefensiveElementStr => Enum.GetName(typeof(Xml.ElementType), DefensiveElement);
+    public string OffensiveElementOverrideStr => Enum.GetName(typeof(Xml.ElementType), OffensiveElementOverride);
+    public string DefensiveElementOverrideStr => Enum.GetName(typeof(Xml.ElementType), DefensiveElementOverride);
+
     public override string ToString() => $"Lv {Level} Hp {Hp} Mp {Mp} Stats {Str}/{Con}/{Int}/{Wis}/{Dex}";
 
 

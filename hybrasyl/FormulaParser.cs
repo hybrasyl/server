@@ -115,6 +115,7 @@ internal static class FormulaParser
     }
     public static double Eval(string expression, FormulaEvaluation evalEnvironment)
     {
+        if (string.IsNullOrEmpty(expression)) return 0.0;
         Expression e = new(expression);
         e = Parameterize(e, evalEnvironment);
         var ret = e.Evaluate();
