@@ -12,9 +12,9 @@ import sys
 cert = None
 key = None
 
-if (len(sys.argv) != 3):
+if (len(sys.argv) != 4):
     print("grpc_control.py: Control a running Hybrasyl server using GRPC")
-    print("usage:           grpc_control.py shutdown <minutes>")
+    print("usage:           grpc_control.py shutdown <hostname> <minutes>")
     sys.exit(1)
 
 if os.path.exists(os.path.expanduser("~/.grpc/hybrasylCert.pem")):
