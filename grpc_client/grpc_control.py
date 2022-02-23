@@ -36,10 +36,10 @@ cc = ssl_channel_credentials(root_certificates=cacert,
                              private_key=key,
                              certificate_chain=cert)
 
-channel = secure_channel("staging.hybrasyl.com:2613", cc)
+channel = secure_channel(f"{sys.argv[2]}:2613", cc)
 
 stub = Patron_pb2_grpc.PatronStub(channel)
 
-f = stub.BeginShutdown(Patron_pb2.BeginShutdownRequest(Delay=int(sys.argv[2])))
+f = stub.BeginShutdown(Patron_pb2.BeginShutdownRequest(Delay=int(sys.argv[3])))
 
 print("Shutdown request submitted")
