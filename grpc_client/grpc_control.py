@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/env python
 #
 # grpc_control.py - Control or query a running Hybrasyl server using gRPC.
 #
