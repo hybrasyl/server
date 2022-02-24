@@ -522,7 +522,6 @@ public class Creature : VisibleObject
 
         var damage = castObject.Effects.Damage;
         List<Creature> targets = new List<Creature>();
-
         targets = GetTargets(castObject, target);
 
         // Quick checks
@@ -632,9 +631,9 @@ public class Creature : VisibleObject
 
                 tar.Damage(damageOutput.Amount, attackElement, damageOutput.Type, damageOutput.Flags, this, false);
 
-                if (tar is User u)
+                if (tar is User u && !castObject.IsAssail) 
                 {
-                    u.SendSystemMessage($"{this.Name} attacks you with {castObject.Name}.");
+                    u.SendSystemMessage($"{Name} attacks you with {castObject.Name}.");
                 }
 
                 if (this is User)

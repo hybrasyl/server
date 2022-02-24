@@ -120,7 +120,7 @@ namespace Hybrasyl.Xml
 
         public List<string> CategoryList
         {
-            get { return Categories.Count > 0 ? new List<string>() : Categories.Select(x => x.Value).ToList(); }    
+            get { return Categories.Count > 0 ? Categories.Select(x => x.Value).ToList() : new(); }
         }
 
     }
@@ -266,33 +266,9 @@ namespace Hybrasyl.Xml
         private List<string> skillCategories = null;
         private List<string> spellCategories = null;
 
-        public List<string> LearnSkillCategories
-        {
-            get
-            {
-                if (string.IsNullOrEmpty(Castables?.SkillCategories))
-                    skillCategories = new List<string>();
-                if (skillCategories == null)
-                {
-                    skillCategories = Castables.SkillCategories.Trim().ToLower().Split(" ").ToList();
-                }
-                return skillCategories;
-            }
-        }
+        public List<string> LearnSkillCategories => string.IsNullOrEmpty(Castables?.SkillCategories) ? new List<string>() : Castables.SkillCategories.Trim().ToLower().Split(" ").ToList();
 
-        public List<string> LearnSpellCategories
-        {
-            get
-            {
-                if (string.IsNullOrEmpty(Castables?.SpellCategories))
-                    spellCategories = new List<string>();
-                if (spellCategories == null)
-                {
-                    spellCategories = Castables.SpellCategories.Trim().ToLower().Split(" ").ToList();
-                }
-                return spellCategories;
-            }
-        }
+        public List<string> LearnSpellCategories => string.IsNullOrEmpty(Castables?.SpellCategories) ? new List<string>() : Castables.SpellCategories.Trim().ToLower().Split(" ").ToList();
 
         public List<CreatureCastable> OffensiveCastables => Behavior?.Casting?.Offense?.Castable ?? new List<CreatureCastable>();
         public List<CreatureCastable> DefensiveCastables => Behavior?.Casting?.Defense?.Castable ?? new List<CreatureCastable>();

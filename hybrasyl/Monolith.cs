@@ -221,7 +221,7 @@ internal class Monolith
                             {
                                 if (mobtype <= spawn.Base.WeakChance)
                                 {
-                                    baseMob.ApplyModifier(modifier);
+                                    baseMob.ApplyModifier(modifier * -1);
                                     GameLog.SpawnInfo($"Mob is weak: modifier {modifier}");
                                 }
                                 else
@@ -239,7 +239,7 @@ internal class Monolith
                                 }
                                 else
                                 {
-                                    baseMob.ApplyModifier(modifier);
+                                    baseMob.ApplyModifier(modifier * -1);
                                     GameLog.SpawnInfo($"Mob is weak: modifier {modifier}");
                                 }
                             }

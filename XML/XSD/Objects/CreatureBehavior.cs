@@ -27,34 +27,22 @@ using System.Collections.Generic;
 public partial class CreatureBehavior
 {
     #region Private fields
-    private CreatureCastingBehavior _casting;
-    private CreatureCastingSet _assail;
+    private List<CreatureCastingSet> _castableSets;
     private CreatureHostilitySettings _hostility;
     private List<CreatureCookie> _setCookies;
     private static XmlSerializer _serializerXml;
     #endregion
     
-    public CreatureCastingBehavior Casting
+    [XmlArrayItemAttribute("CastableSet", IsNullable=false)]
+    public List<CreatureCastingSet> CastableSets
     {
         get
         {
-            return _casting;
+            return _castableSets;
         }
         set
         {
-            _casting = value;
-        }
-    }
-    
-    public CreatureCastingSet Assail
-    {
-        get
-        {
-            return _assail;
-        }
-        set
-        {
-            _assail = value;
+            _castableSets = value;
         }
     }
     

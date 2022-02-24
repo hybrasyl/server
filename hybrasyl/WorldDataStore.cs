@@ -743,7 +743,7 @@ public partial class WorldDataStore
     {
         foreach (var category in castable.Categories)
         {
-            var sanitized = Sanitize(category);
+            var sanitized = Sanitize(category.Value);
             if (!CastableIndex.ContainsKey(sanitized))
                 CastableIndex[sanitized] = new HashSet<Xml.Castable>(new Xml.CastableComparer());
             CastableIndex[sanitized].Add(castable);
@@ -766,6 +766,7 @@ public partial class WorldDataStore
         return false;
     }
 
+    public IEnumerable<Castable> FindCastables(Func<Castable, bool> condition) => Values<Castable>().Where(condition);
 
     /// <summary>
     /// Convenience method to retrieve a HashSet of castables, filtered to only skills.
@@ -814,6 +815,7 @@ public partial class WorldDataStore
         HashSet<Xml.Castable> ret;
         if (!string.IsNullOrEmpty(category))
         {
+            GameLog.SpawnInfo($"Categoryyyy yis {category}");
             var sanitized = Sanitize(category);
             if (CastableIndex.ContainsKey(sanitized))
                 ret = CastableIndex[sanitized];
@@ -851,6 +853,7 @@ public partial class WorldDataStore
             ret = ret.Where(c => c.IsSkill).ToHashSet();
         if (filter == CastableFilter.SpellsOnly)
             ret = ret.Where(c => c.IsSpell).ToHashSet();
+        GameLog.SpawnInfo($"{string.Join(",", ret.Select(x => x.Name))}");
         return ret;
     }        
 }

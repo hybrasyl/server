@@ -28,8 +28,9 @@ public partial class CreatureCastingSet
 {
     #region Private fields
     private List<CreatureCastable> _castable;
+    private RotationType _type;
     private string _categories;
-    private string _interval;
+    private int _interval;
     private CreatureAttackPriority _priority;
     private int _healthPercentage;
     private bool _random;
@@ -38,7 +39,7 @@ public partial class CreatureCastingSet
     
     public CreatureCastingSet()
     {
-        _interval = "15";
+        _interval = 15;
         _priority = CreatureAttackPriority.HighThreat;
         _healthPercentage = 0;
         _random = true;
@@ -57,6 +58,19 @@ public partial class CreatureCastingSet
         }
     }
     
+    [XmlAttribute]
+    public RotationType Type
+    {
+        get
+        {
+            return _type;
+        }
+        set
+        {
+            _type = value;
+        }
+    }
+    
     [XmlAttribute(DataType="token")]
     public string Categories
     {
@@ -70,9 +84,9 @@ public partial class CreatureCastingSet
         }
     }
     
-    [XmlAttribute(DataType="token")]
-    [DefaultValue("15")]
-    public string Interval
+    [XmlAttribute]
+    [DefaultValue(15)]
+    public int Interval
     {
         get
         {

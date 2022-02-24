@@ -602,7 +602,7 @@ public partial class World : Server
 
         // TODO: change to foreach on XML assembly classes implementing IHybrasylLoadable
         // eg: WorldData.ImportAll(Xml.CreatureBehaviorSet.LoadAll(XmlDirectory));
-
+        
         foreach (var set in behaviorSets.Results)
         {
             WorldData.Set(set.Name, set);
@@ -809,12 +809,13 @@ public partial class World : Server
         if (variant.Properties.Flags != 0)
             variantItem.Properties.Flags = variant.Properties.Flags;
 
-        variantItem.Properties.Physical.Value =
-            (ushort) (item.Properties.Physical.Value * variant.Properties.Physical.Value);
-        variantItem.Properties.Physical.Durability =
-            (ushort)(item.Properties.Physical.Durability * variant.Properties.Physical.Durability);
-        variantItem.Properties.Physical.Weight =
-            (ushort)(item.Properties.Physical.Weight* variant.Properties.Physical.Weight);
+        var newValue = item.Properties.Physical.Value * variant.Properties.Physical.Value;
+        var newDura = item.Properties.Physical.Durability * variant.Properties.Physical.Durability;
+        var newWeight = item.Properties.Physical.Weight * variant.Properties.Physical.Weight;
+
+        variantItem.Properties.Physical.Value = newValue > ushort.MaxValue ? ushort.MaxValue : newValue;
+        variantItem.Properties.Physical.Durability = newDura > ushort.MaxValue ? ushort.MaxValue : newDura;
+        variantItem.Properties.Physical.Weight = newWeight > ushort.MaxValue ? ushort.MaxValue : newWeight;
 
         // ensure boot hiding is carried to variants
         variantItem.Properties.Appearance.HideBoots = item.Properties.Appearance.HideBoots;

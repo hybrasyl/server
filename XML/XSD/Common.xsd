@@ -197,6 +197,17 @@
     </xs:restriction>
   </xs:simpleType>
 
+  <!-- rotation types (for monster AI) -->
+  <xs:simpleType name="RotationType">
+	<xs:restriction base="xs:token">
+	  <xs:enumeration value="Offense"/>
+	  <xs:enumeration value="Defense"/>
+	  <xs:enumeration value="OnDeath"/>
+	  <xs:enumeration value="NearDeath"/>
+	  <xs:enumeration value="Assail"/>
+    </xs:restriction>
+  </xs:simpleType>
+
   <!-- Intent direction type -->
   <xs:simpleType name="IntentDirection">
     <xs:restriction base="xs:token">
@@ -770,19 +781,15 @@
     <xs:attribute name="SpellCategories" type="xs:token" use="optional"/>                  
   </xs:complexType>
 
-  <xs:complexType name="CreatureCastingBehavior">
+  <xs:complexType name="CreatureCastingSets">
     <xs:sequence>
-      <xs:element name="Offense" type="CreatureCastingSet" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="Defense" type="CreatureCastingSet" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="OnDeath" type="CreatureCastingSet" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="NearDeath" type="CreatureCastingSet" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="CastableSet" type="hyb:CreatureCastingSet" minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
   </xs:complexType>
 
   <xs:complexType name="CreatureBehavior">
     <xs:sequence>
-      <xs:element name="Casting" minOccurs="0" maxOccurs="1" type="CreatureCastingBehavior"/>
-      <xs:element name="Assail" minOccurs="0" maxOccurs="1" type="CreatureCastingSet"/>
+      <xs:element name="CastableSets" minOccurs="0" maxOccurs="1" type="CreatureCastingSets"/>
       <xs:element name="Hostility" minOccurs="0" maxOccurs="1" type="CreatureHostilitySettings"/>
       <xs:element name="SetCookies" minOccurs="0" maxOccurs="1" type="CreatureCookies "/>
     </xs:sequence>
@@ -829,16 +836,18 @@
         <xs:attribute name="Priority" type="hyb:CreatureAttackPriority" use="optional" default="HighThreat"/>
         <xs:attribute name="HealthPercentage" type="xs:int" use="optional" default="-1"/>
         <xs:attribute name="UseOnce" type="xs:boolean" use="optional" default="true"/>
+        <xs:attribute name="Interval" type="xs:int" use="optional" default="15"/>
       </xs:extension>
     </xs:simpleContent>
   </xs:complexType>
 
   <xs:complexType name="CreatureCastingSet">
-    <xs:sequence>
-      <xs:element name="Castable" minOccurs="0" maxOccurs="unbounded" type="CreatureCastable"/>
-    </xs:sequence>
-    <xs:attribute name="Categories" type="xs:token" use="optional"/>
-    <xs:attribute name="Interval" type="xs:token" use="optional" default="15"/>
+	  <xs:sequence>
+		  <xs:element name="Castable" minOccurs="0" maxOccurs="unbounded" type="CreatureCastable"/>
+	  </xs:sequence>
+    <xs:attribute name="Type" type="hyb:RotationType" use="required"/>
+	<xs:attribute name="Categories" type="xs:token" use="optional"/>
+    <xs:attribute name="Interval" type="xs:int" use="optional" default="15"/>
     <xs:attribute name="Priority" type="hyb:CreatureAttackPriority" use="optional" default="HighThreat"/>
     <xs:attribute name="HealthPercentage" type="xs:int" use="optional" default="0"/>
     <xs:attribute name="Random" type="xs:boolean" use="optional" default="true"/>

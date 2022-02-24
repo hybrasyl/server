@@ -119,7 +119,7 @@ internal static class FormulaParser
         Expression e = new(expression);
         e = Parameterize(e, evalEnvironment);
         var ret = e.Evaluate();
-        GameLog.Info($"Eval of {expression} : {ret} ");
+        //GameLog.Info($"Eval of {expression} : {ret} ");
         return Convert.ToDouble(ret);
     }
 }

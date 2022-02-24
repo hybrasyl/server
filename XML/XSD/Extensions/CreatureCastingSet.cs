@@ -5,6 +5,7 @@ namespace Hybrasyl.Xml;
 
 public partial class CreatureCastingSet
 {
+    public bool Active { get; set; } = false;
     public List<string> CategoryList
     {
         get
@@ -12,7 +13,7 @@ public partial class CreatureCastingSet
             if (string.IsNullOrEmpty(Categories))
                 return new List<string>();
             else
-                return Categories.Trim().ToLower().Split(" ").ToList();
+                return Categories.Trim().Split(" ").ToList();
         }
     }
 }

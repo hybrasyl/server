@@ -27,6 +27,8 @@ public class HybrasylFixture : IDisposable
 
     public User TestUser { get; }
 
+    public CreatureBehaviorSet TestSet { get; set; }
+
     public HybrasylFixture(IMessageSink sink)
     {
         this.sink = sink;
@@ -138,6 +140,23 @@ public class HybrasylFixture : IDisposable
         TestUser.Save();
         Game.World.Insert(TestUser);
         Map.Insert(TestUser, TestUser.X, TestUser.Y,false);
+
+        TestSet = new CreatureBehaviorSet
+        {
+            Behavior = new CreatureBehavior
+            {
+                Assail = new CreatureCastingSet
+                {
+                    Active = true,
+                    Castable = new List<CreatureCastable> {
+                        new CreatureCastable(interval: 4, priority: CreatureAttackPriority.HighThreat, value: "Assail")
+                    }
+                }
+                
+
+
+            }
+        }
     }
 
     public void ResetUserStats()

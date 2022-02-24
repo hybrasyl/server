@@ -30,6 +30,7 @@ public partial class CreatureCastable
     private CreatureAttackPriority _priority;
     private int _healthPercentage;
     private bool _useOnce;
+    private int _interval;
     private string _value;
     private static XmlSerializer _serializerXml;
     #endregion
@@ -39,6 +40,7 @@ public partial class CreatureCastable
         _priority = CreatureAttackPriority.HighThreat;
         _healthPercentage = -1;
         _useOnce = true;
+        _interval = 15;
     }
     
     [XmlAttribute]
@@ -80,6 +82,20 @@ public partial class CreatureCastable
         set
         {
             _useOnce = value;
+        }
+    }
+    
+    [XmlAttribute]
+    [DefaultValue(15)]
+    public int Interval
+    {
+        get
+        {
+            return _interval;
+        }
+        set
+        {
+            _interval = value;
         }
     }
     
