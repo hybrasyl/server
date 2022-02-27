@@ -185,7 +185,7 @@ public class Creature : VisibleObject
         return ret;
     }
 
-    public virtual List<Creature> GetTargets(Xml.Castable castable, Creature target = null)
+    public virtual List<Creature> GetTargets(Castable castable, Creature target = null)
     {
         IEnumerable<Creature> actualTargets = new List<Creature>();
         var intents = castable.Intents;

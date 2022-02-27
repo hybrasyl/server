@@ -28,17 +28,6 @@ using System.Linq;
 
 namespace Hybrasyl;
 
-public class BookSlot
-{
-    public Xml.Castable Castable { get; set; }
-    public uint UseCount { get; set; }
-    public uint MasteryLevel { get; set; }
-    public DateTime LastCast { get; set; }
-    public bool OnCooldown => (Castable.Cooldown > 0) && ((DateTime.Now - LastCast).TotalSeconds < Castable.Cooldown);
-    public bool HasBeenUsed => LastCast != default;
-    public double SecondsSinceLastUse => (DateTime.Now - LastCast).TotalSeconds;
-}
-
 public class BookConverter : JsonConverter
 {
     public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
@@ -71,14 +60,12 @@ public class BookConverter : JsonConverter
             for (byte i = 0; i < jArray.Count; i++)
             {
                 if (!TryGetValue(jArray[i], out var item)) continue;
-                book[i] = new BookSlot() { Castable = Game.World.WorldData.Values<Xml.Castable>().SingleOrDefault(x => x.Name.ToLower() == (string)item.Name) };
+                book[i] = new BookSlot { Castable = Game.World.WorldData.Values<Xml.Castable>().SingleOrDefault(x => x.Name.ToLower() == (string)item.Name) };
                 var bookSlot = book[i];
-                if (bookSlot != null)
-                {
-                    bookSlot.UseCount = (uint)(item.TotalUses ?? 0);
-                    bookSlot.MasteryLevel = (byte)(item.MasteryLevel == null ? (byte)0 : item.MasteryLevel);
-                    bookSlot.LastCast = (DateTime)item.LastCast;
-                }
+                if (bookSlot == null) continue;
+                bookSlot.UseCount = (uint)(item.TotalUses ?? 0);
+                bookSlot.MasteryLevel = (byte)(item.MasteryLevel == null ? (byte)0 : item.MasteryLevel);
+                bookSlot.LastCast = (DateTime)item.LastCast;
             }
             return book;
         }
@@ -93,12 +80,10 @@ public class BookConverter : JsonConverter
                 book[i] = new BookSlot() { Castable = Game.World.WorldData.Values<Xml.Castable>().SingleOrDefault(x => x.Name.ToLower() == (string)item.Name) };
                 var castable = book[i];
                 var bookSlot = book[i];
-                if (bookSlot != null)
-                {
-                    bookSlot.UseCount = (uint)(item.TotalUses ?? 0);
-                    bookSlot.MasteryLevel = (byte)(item.MasteryLevel == null ? (byte)0 : item.MasteryLevel);
-                    bookSlot.LastCast = (DateTime)item.LastCast;
-                }
+                if (bookSlot == null) continue;
+                bookSlot.UseCount = (uint)(item.TotalUses ?? 0);
+                bookSlot.MasteryLevel = (byte)(item.MasteryLevel == null ? (byte)0 : item.MasteryLevel);
+                bookSlot.LastCast = (DateTime)item.LastCast;
             }
             return book;
         }

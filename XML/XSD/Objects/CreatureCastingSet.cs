@@ -31,7 +31,7 @@ public partial class CreatureCastingSet
     private RotationType _type;
     private string _categories;
     private int _interval;
-    private CreatureAttackPriority _priority;
+    private CreatureTargetPriority _targetPriority;
     private int _healthPercentage;
     private bool _random;
     private static XmlSerializer _serializerXml;
@@ -40,7 +40,7 @@ public partial class CreatureCastingSet
     public CreatureCastingSet()
     {
         _interval = 15;
-        _priority = CreatureAttackPriority.HighThreat;
+        _targetPriority = CreatureTargetPriority.HighThreat;
         _healthPercentage = 0;
         _random = true;
     }
@@ -99,16 +99,16 @@ public partial class CreatureCastingSet
     }
     
     [XmlAttribute]
-    [DefaultValue(CreatureAttackPriority.HighThreat)]
-    public CreatureAttackPriority Priority
+    [DefaultValue(CreatureTargetPriority.HighThreat)]
+    public CreatureTargetPriority TargetPriority
     {
         get
         {
-            return _priority;
+            return _targetPriority;
         }
         set
         {
-            _priority = value;
+            _targetPriority = value;
         }
     }
     

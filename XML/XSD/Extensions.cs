@@ -270,11 +270,6 @@ namespace Hybrasyl.Xml
 
         public List<string> LearnSpellCategories => string.IsNullOrEmpty(Castables?.SpellCategories) ? new List<string>() : Castables.SpellCategories.Trim().ToLower().Split(" ").ToList();
 
-        public List<CreatureCastable> OffensiveCastables => Behavior?.Casting?.Offense?.Castable ?? new List<CreatureCastable>();
-        public List<CreatureCastable> DefensiveCastables => Behavior?.Casting?.Defense?.Castable ?? new List<CreatureCastable>();
-        public List<CreatureCastable> OnDeathCastables => Behavior?.Casting?.OnDeath?.Castable ?? new List<CreatureCastable>();
-        public List<CreatureCastable> NearDeathCastables => Behavior?.Casting?.NearDeath?.Castable ?? new List<CreatureCastable>();
-        public bool CanCast => OffensiveCastables.Count > 0 || DefensiveCastables.Count > 0 || OnDeathCastables.Count > 0 || NearDeathCastables.Count > 0;
     }
 }
 

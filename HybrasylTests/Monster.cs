@@ -8,11 +8,11 @@ using Xunit;
 namespace HybrasylTests;
 
 [Collection("Hybrasyl")]
-public class Monster
+public class Monsters
 {
     public HybrasylFixture Fixture { get; set; }
 
-    public Monster(HybrasylFixture fixture)
+    public Monsters(HybrasylFixture fixture)
     {
         Fixture = fixture;
     }

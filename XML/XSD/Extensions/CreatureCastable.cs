@@ -9,10 +9,10 @@ namespace Hybrasyl.Xml;
 public partial class CreatureCastable
 {
 
-    public CreatureCastable(int interval, CreatureAttackPriority priority, string value) : this()
+    public CreatureCastable(int interval, CreatureTargetPriority priority, string value) : this()
     {
         Interval = interval;
-        Priority = priority;
+        TargetPriority = priority;
         Value = value;
     }
 

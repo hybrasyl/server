@@ -753,18 +753,20 @@
     </xs:restriction>
   </xs:simpleType>
 
-  <!-- Attack priority types for behaviorsets -->
-  <xs:simpleType name="CreatureAttackPriority">
+  <!-- Targeting priority for behaviorsets -->
+  <xs:simpleType name="CreatureTargetPriority">
     <xs:restriction base="xs:token">
+      <xs:enumeration value="None"/>
+      <xs:enumeration value="Self"/>
+      <xs:enumeration value="AllAllies"/>
+      <xs:enumeration value="RandomAlly"/>
       <xs:enumeration value="Attacker" />
       <xs:enumeration value="HighThreat" />
       <xs:enumeration value="LowThreat" />
       <xs:enumeration value="AttackingCaster" />
       <xs:enumeration value="AttackingHealer" />
-      <xs:enumeration value="SimilarNearby" />
-      <xs:enumeration value="Nearby" />
-      <xs:enumeration value="Random" />
-      <xs:enumeration value="Group"/>
+      <xs:enumeration value="RandomAttacker" />
+      <xs:enumeration value="AttackingGroup"/>
     </xs:restriction>
   </xs:simpleType>
 
@@ -833,7 +835,7 @@
   <xs:complexType name="CreatureCastable">
     <xs:simpleContent>
       <xs:extension base="xs:string">
-        <xs:attribute name="Priority" type="hyb:CreatureAttackPriority" use="optional" default="HighThreat"/>
+        <xs:attribute name="TargetPriority" type="hyb:CreatureTargetPriority" use="optional" default="HighThreat"/>
         <xs:attribute name="HealthPercentage" type="xs:int" use="optional" default="-1"/>
         <xs:attribute name="UseOnce" type="xs:boolean" use="optional" default="true"/>
         <xs:attribute name="Interval" type="xs:int" use="optional" default="15"/>
@@ -848,7 +850,7 @@
     <xs:attribute name="Type" type="hyb:RotationType" use="required"/>
 	<xs:attribute name="Categories" type="xs:token" use="optional"/>
     <xs:attribute name="Interval" type="xs:int" use="optional" default="15"/>
-    <xs:attribute name="Priority" type="hyb:CreatureAttackPriority" use="optional" default="HighThreat"/>
+    <xs:attribute name="TargetPriority" type="hyb:CreatureTargetPriority" use="optional" default="HighThreat"/>
     <xs:attribute name="HealthPercentage" type="xs:int" use="optional" default="0"/>
     <xs:attribute name="Random" type="xs:boolean" use="optional" default="true"/>
   </xs:complexType>

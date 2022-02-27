@@ -332,7 +332,7 @@ public partial class WorldDataStore
 
     private ConcurrentDictionary<Type, ConcurrentDictionary<string, dynamic>> _dataStore;
     private ConcurrentDictionary<Type, ConcurrentDictionary<dynamic, dynamic>> _index;
-    private ConcurrentDictionary<Guid, WorldObject> _indexByGuid;
+    private ConcurrentDictionary<Guid, WorldObject> _indexByGuid = new();
 
     public static SHA256 sha = SHA256.Create();
 
@@ -421,6 +421,7 @@ public partial class WorldDataStore
 
     }
 
+    public bool RemoveWorldObject<T>(Guid guid) where T : WorldObject => _indexByGuid.Remove(guid, out _);
     public bool SetWorldObject<T>(Guid guid, T obj) where T : WorldObject => _indexByGuid.TryAdd(guid, obj);
         
     /// <summary>

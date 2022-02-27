@@ -27,7 +27,7 @@ using System.Collections.Generic;
 public partial class CreatureCastable
 {
     #region Private fields
-    private CreatureAttackPriority _priority;
+    private CreatureTargetPriority _targetPriority;
     private int _healthPercentage;
     private bool _useOnce;
     private int _interval;
@@ -37,23 +37,23 @@ public partial class CreatureCastable
     
     public CreatureCastable()
     {
-        _priority = CreatureAttackPriority.HighThreat;
+        _targetPriority = CreatureTargetPriority.HighThreat;
         _healthPercentage = -1;
         _useOnce = true;
         _interval = 15;
     }
     
     [XmlAttribute]
-    [DefaultValue(CreatureAttackPriority.HighThreat)]
-    public CreatureAttackPriority Priority
+    [DefaultValue(CreatureTargetPriority.HighThreat)]
+    public CreatureTargetPriority TargetPriority
     {
         get
         {
-            return _priority;
+            return _targetPriority;
         }
         set
         {
-            _priority = value;
+            _targetPriority = value;
         }
     }
     

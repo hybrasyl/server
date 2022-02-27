@@ -4050,6 +4050,8 @@ public partial class World : Server
             Objects.Add(worldObjectID, obj);
             ++worldObjectID;
         }
+
+        WorldData.SetWorldObject(obj.Guid, obj);
     }
 
     public void Remove(WorldObject obj)
@@ -4062,6 +4064,7 @@ public partial class World : Server
         }
         GameLog.Info($"Object {obj.Name}: {obj.Id} removed");
         obj.ServerGuid = Guid.Empty;
+        WorldData.RemoveWorldObject<WorldObject>(obj.Guid);
         obj.Id = 0;            
     }
 
