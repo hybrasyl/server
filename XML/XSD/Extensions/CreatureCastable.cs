@@ -16,5 +16,4 @@ public partial class CreatureCastable
         Value = value;
     }
 
-    public bool ThresholdTriggered { get; set; } = false;
 }

@@ -19,17 +19,14 @@
  * 
  */
 
-using System;
-using System.Collections;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics.Metrics;
-using System.Linq;
-using Hybrasyl.ChatCommands;
 using Hybrasyl.Enums;
 using Hybrasyl.Scripting;
 using Hybrasyl.Xml;
-using Sentry;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using Hybrasyl.Casting;
 
 namespace Hybrasyl.Objects;
 
@@ -51,15 +48,7 @@ public class Monster : Creature, ICloneable
 
     private uint _mTarget;
 
-    public Dictionary<string, MonsterBookSlot> Castables { get; set; } = new();
-
-    public Dictionary<CreatureCastingSet, List<CreatureCastable>> Rotations = new();
-    public List<CreatureCastable> ThresholdCasts = new();
-
-    public List<CreatureCastingSet> CastingSets = new();
-
-    public BookSlot LastSpellUsed { get; set; }
-    public BookSlot LastSkillUsed { get; set; }
+    public CastableController CastableController { get; set; }
 
     private CreatureBehaviorSet _behaviorSet { get; set; }
 
@@ -68,8 +57,15 @@ public class Monster : Creature, ICloneable
         get => _behaviorSet;
         set
         {
-            _behaviorSet = value;
-            ProcessRotations();
+            if (_behaviorSet == null)
+            {
+                _behaviorSet = value;
+            }
+            else
+            {
+                _behaviorSet = value;
+                CastableController.ProcessCastingSets(value.Behavior?.CastableSets ?? new List<CreatureCastingSet>());
+            }
         }
     }
 
@@ -123,22 +119,9 @@ public class Monster : Creature, ICloneable
 
         Name = creature.Name;
         Sprite = creature.Sprite;
+        // TODO: remove this and fix
         Map = Game.World.WorldData.Get<Map>(map);
         Stats.Level = level;
-
-        AllocateStats();
-        LearnCastables();
-
-        if (BehaviorSet?.Behavior != null)
-        {
-            foreach (var cookie in BehaviorSet.Behavior.SetCookies)
-            {
-                // Don't override cookies set from spawn; spawn takes precedence
-                if (!HasCookie(cookie.Name))
-                    SetCookie(cookie.Name, cookie.Value);
-            }
-        }
-
         DisplayText = creature.Description;
 
         Loot = loot;
@@ -152,50 +135,22 @@ public class Monster : Creature, ICloneable
 
         ThreatInfo = new ThreatInfo(Guid);
         DeathProcessed = false;
+        AllocateStats();
         Stats.Hp = Stats.MaximumHp;
         Stats.Mp = Stats.MaximumMp;
-    }
-
-    /// <summary>
-    /// Given a behavior set, process our skill/spell rotations. This is automatically called whenever a behaviorset is changed.
-    /// </summary>
-    public void ProcessRotations()
-    {
         if (BehaviorSet?.Behavior == null) return;
-        foreach (var set in BehaviorSet.Behavior.CastableSets)
+        foreach (var cookie in BehaviorSet.Behavior.SetCookies.Where(cookie => !HasCookie(cookie.Name)))
         {
-            CastingSets.Add(set);
-            ProcessRotation(set);
+            SetCookie(cookie.Name, cookie.Value);
         }
+
     }
 
-    /// <summary>
-    /// Given a rotation type and a creature casting set, construct and store a casting rotation
-    /// </summary>
-    /// <param name="type">The RotationType of the rotation</param>
-    /// <param name="set">The CreatureCastingSet that will be evaluated</param>
-    private void ProcessRotation(CreatureCastingSet set)
+    public override void OnInsert()
     {
-        if (set == null) return;
-        if (set.Type == RotationType.Assail) HasAssailSkills = true;
-        Rotations[set] = new List<CreatureCastable>();
-        foreach (var entry in set.Castable)
-            Rotations[set].Add(entry);
-        // Now add categories
-        foreach (var category in set.CategoryList)
-        {
-            var castableMatches = Castables.Where(x => x.Value.Castable.CategoryList.Contains(category));
-            foreach (var match in castableMatches)
-            {
-                Rotations[set].Add(new CreatureCastable
-                {
-                    Value = match.Value.Castable.Name,
-                    HealthPercentage = set.HealthPercentage,
-                    Interval = set.Interval,
-                    TargetPriority = set.TargetPriority,
-                });
-            }
-        }
+        CastableController = new CastableController(Guid);
+        CastableController.LearnCastables();
+        CastableController.ProcessCastingSets(BehaviorSet?.Behavior?.CastableSets ?? new List<CreatureCastingSet>());
     }
 
     public override void OnDeath()
@@ -483,74 +438,6 @@ public class Monster : Creature, ICloneable
         Stats.Mp = Stats.MaximumMp;
     }
 
-    /// <summary>
-    /// Given an already specified behaviorset for the monster, learn all the castables possible at 
-    /// their level; or the castables specifically enumerated in the set.
-    /// </summary>
-    private void LearnCastables()
-    {
-        // All monsters get assail. TODO: hardcoded
-        if (Game.World.WorldData.TryGetValueByIndex("Assail", out Castable assail))
-            Castables.Add("Assail", new MonsterBookSlot(castable: assail));
-
-        if (BehaviorSet?.Castables == null)
-            // Behavior set either doesn't exist or doesn't specify castables; no action needed
-            return;
-
-        // Default to automatic assignation if unsetF
-        if (BehaviorSet.Castables.Auto == true)
-        {
-            // If categories are present, use those. Otherwise, learn everything we can
-            foreach (var category in BehaviorSet.LearnSpellCategories)
-            {
-                foreach (var castable in Game.World.WorldData.GetSpells(Stats.BaseStr, Stats.BaseInt, Stats.BaseWis,
-                             Stats.BaseCon, Stats.BaseDex, category))
-                {
-                    Castables.Add(castable.Name, new MonsterBookSlot(castable: castable));
-                }
-            }
-
-            foreach (var category in BehaviorSet.LearnSkillCategories)
-            {
-                foreach (var castable in Game.World.WorldData.GetSkills(Stats.BaseStr, Stats.BaseInt, Stats.BaseWis,
-                             Stats.BaseCon, Stats.BaseDex, category))
-                {
-                    Castables.Add(castable.Name, new MonsterBookSlot(castable: castable));
-                }
-            }
-
-            if (BehaviorSet.LearnSkillCategories.Count == 0 && BehaviorSet.LearnSpellCategories.Count == 0)
-            {
-                // Auto add according to stats
-                foreach (var castable in Game.World.WorldData.GetCastables(Stats.BaseStr, Stats.BaseInt, Stats.BaseWis,
-                             Stats.BaseCon, Stats.BaseDex))
-                {
-                    if (castable.IsSkill)
-                        Castables.Add(castable.Name, new MonsterBookSlot(castable: castable));
-                    else
-                        Castables.Add(castable.Name, new MonsterBookSlot(castable: castable));
-                }
-            }
-        }
-
-        // Handle any specific additions. Note that specific additions *ignore stat requirements*, 
-        // to allow a variety of complex behaviors.
-        foreach (var castable in BehaviorSet.Castables.Castable)
-        {
-            if (Game.World.WorldData.TryGetValue(castable, out Castable xmlCastable))
-            {
-                if (xmlCastable.IsSkill)
-                    Castables.Add(xmlCastable.Name, new MonsterBookSlot(castable: xmlCastable));
-                else
-                    Castables.Add(xmlCastable.Name, new MonsterBookSlot(castable: xmlCastable));
-            }
-        }
-
-        foreach (var kvp in Castables)
-            GameLog.SpawnInfo($"I learned {kvp.Key}");
-
-    }
-
     public Creature Target
     {
         get
@@ -616,92 +503,6 @@ public class Monster : Creature, ICloneable
     }
 
     /// <summary>
-    /// Calculate the next castable to be used for a given casting set.
-    /// </summary>
-    /// <returns>A NextCastingAction structure indicating the castable or category to be used along with a CreatureAttackPriority indicating the target</returns>
-    private NextCastingAction GetNextCastable()
-    {
-        // Resolution rules:
-        //
-        // 0: (Pre-step) Rotations are calculated automatically when a behaviorset is assigned to a creature, which includes resolution of categories.
-        //    These are stored in Rotations according to the set type (OnDeath, Assail, etc).
-        // 1: If a castable is defined in any casting set with a specific HP percentage that matches (<=) and is set to use once,
-        //    *always* return that first, unless it has already triggered. If it is just active (eg threshold triggered)
-        //    set it to active and add it to our rotation. Ex: Cast ard sausage at 10% health; Cast mor sausage once at 20% health or lower
-        // 2: if Random is set, return a random castable (skill only, for assail).
-        // 3: if Random is not set, return the next castable from our rotation
-
-        // Rotations have been pre-calculated to include categories / etc, so if there's nothing here we can't do anything
-        if (Rotations.Count == 0)
-        {
-            GameLog.SpawnDebug($"{Name} ({Map.Name}@{X},{Y}): rotation is empty");
-            return NextCastingAction.DoNothing;
-        }
-
-        MonsterBookSlot slot;
-        // Find the "most expired" set
-        var set = BehaviorSet.Behavior.CastableSets.Where(x => x.Active && x.SecondsSinceLastUse >= x.Interval)
-            .OrderByDescending(y => y.Interval).FirstOrDefault();
-        if (set == null)
-        {
-            GameLog.SpawnDebug($"{Name} ({Map.Name}@{X},{Y}): rotation is empty");
-            return NextCastingAction.DoNothing;
-        }
-
-
-        // Always handle UseOnce trigger thresholds (Rule #1)
-        foreach (var threshold in ThresholdCasts.Where(c =>
-                     c.HealthPercentage > 0 && c.HealthPercentage <= Stats.HpPercentage))
-        {
-            if (!Castables.TryGetValue(threshold.Value, out slot))
-                // Threshold references a skill or spell that the mob doesn't know; ignore
-                continue;
-            // Is this a use once trigger with a percentage defined? If so, it hits and returns immediately IF the
-            // corresponding slot hasn't seen a trigger.              
-            if (!threshold.UseOnce || threshold.ThresholdTriggered) continue;
-
-            GameLog.SpawnDebug(
-                $"{Name} ({Map.Name}@{X},{Y}): one-time threshold triggered: {threshold.Value}, {threshold.HealthPercentage}%, priority {threshold.TargetPriority}");
-            threshold.ThresholdTriggered = true;
-            return new NextCastingAction {Slot = slot, TargetPriority = threshold.TargetPriority};
-        }
-
-        // Now we've handled triggers and updated our rotation as needed with no thresholds, and proceed to Rule #2
-        CreatureCastable toCast = null;
-        switch (set?.Random ?? false)
-        {
-            case true:
-                toCast = Rotations[set].PickRandom();
-                break;
-            case false:
-                if (LastSkillUsed == null && LastSpellUsed == null)
-                    toCast = Rotations[set].PickRandom();
-                if (toCast != null) break;
-                // Find next skill in rotation
-                var creatureCast = Rotations[set].FirstOrDefault(x =>
-                    x.Value == (LastSkillUsed.Castable?.Name ?? string.Empty) ||
-                    x.Value == (LastSpellUsed.Castable?.Name ?? string.Empty));
-                if (creatureCast == null) return NextCastingAction.DoNothing;
-                var idx = Rotations[set].IndexOf(creatureCast);
-                if (idx == -1) return NextCastingAction.DoNothing;
-                toCast = idx == Rotations[set].Count - 1 ? Rotations[set].First() : Rotations[set][idx + 1];
-                break;
-
-        }
-
-        if (toCast == null) return NextCastingAction.DoNothing;
-        if (Castables.TryGetValue(toCast.Value, out slot))
-        {
-            GameLog.SpawnDebug($"{Name} ({Map.Name}@{X},{Y}): casting {slot.Castable.Name}");
-            return new NextCastingAction {Slot = slot, TargetPriority = toCast.TargetPriority};
-        }
-
-        // Not found, do nothing
-        GameLog.SpawnWarning($"{Name} ({Map.Name}@{X},{Y}): trying to cast {toCast.Value} but not in rotation");
-        return NextCastingAction.DoNothing;
-    }
-
-    /// <summary>
     /// A simple attack by a monster (equivalent of straight assail).
     /// </summary>        
     /// <param name="target"></param>
@@ -718,7 +519,7 @@ public class Monster : Creature, ICloneable
 
         if (target == null)
             return;
-        if (!Castables.TryGetValue("Assail", out MonsterBookSlot slot)) return;
+        if (!CastableController.TryGetCastable("Assail", out BookSlot slot)) return;
         UseCastable(slot.Castable, target, true);
         //animation handled here as to not repeatedly send assails.
         var assail = new ServerPacketStructures.PlayerAnimation { Animation = 1, Speed = 20, UserId = Id };
@@ -914,7 +715,7 @@ public class Monster : Creature, ICloneable
         return Direction.North;
     }
 
-    public void Cast(MonsterBookSlot slot, Creature target)
+    public void Cast(BookSlot slot, Creature target)
     {
         if (!Condition.CastingAllowed) return;
         Condition.Casting = true;
@@ -922,6 +723,7 @@ public class Monster : Creature, ICloneable
         Condition.Casting = false;
         slot.LastCast = DateTime.Now;
         slot.UseCount++;
+        // TODO: set needs lastused set
     }
 
     public void Attack()
@@ -975,15 +777,20 @@ public class Monster : Creature, ICloneable
         while (_actionQueue.Count > 0)
         {
             _actionQueue.TryDequeue(out var action);
+            GameLog.SpawnDebug($"ActionQueue: {action}");
             switch (action)
             {
                 case MobAction.Attack:
-                    var next = GetNextCastable();
-                    if (next.DoNotCast) Attack();
-                    var targets = ThreatInfo.GetTargets(next.TargetPriority);
+                    var next = CastableController.GetNextCastable();
+                    if (next is null)
+                    {
+                        Attack();
+                        return;
+                    }
+                    var targets = ThreatInfo.GetTargets(next.CurrentPriority);
                     if (targets.Count == 0)
                     {
-                        GameLog.SpawnDebug($"{Name}: ({Map.Name}@{X},{Y}): no targets returned from priority {next.TargetPriority}");
+                        GameLog.SpawnDebug($"{Name}: ({Map.Name}@{X},{Y}): no targets returned from priority {next.CurrentPriority}");
                         return;
                     }
                     foreach (var target in targets)

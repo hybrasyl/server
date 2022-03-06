@@ -97,6 +97,12 @@ public class Login : Server
 
         if (Game.World.WorldData.TryGetAuthInfo(name, out AuthInfo login))
         {
+            if (string.IsNullOrEmpty(login.PasswordHash))
+            {
+                client.LoginMessage("ERROR: Authentication information corrupt [HYB-LOGIN-01]", 3);
+                return;
+            }
+
             if (login.VerifyPassword(password))
             {
                 GameLog.DebugFormat("cid {0}: password verified for {1}", client.ConnectionId, name);

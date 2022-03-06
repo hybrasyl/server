@@ -62,6 +62,8 @@ public class WorldObject : IQuadStorable
             _ephemeralStore[key] = value;
     }
 
+    public virtual void OnInsert() {}
+
     public List<Tuple<string, dynamic>> GetEphemeralValues()
     {
         var ret = new List<Tuple<string, dynamic>>();

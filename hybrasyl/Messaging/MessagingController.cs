@@ -19,6 +19,7 @@
  * 
  */
 
+using Hybrasyl.Objects;
 using Hybrasyl.Plugins;
 using System;
 using System.Collections.Generic;

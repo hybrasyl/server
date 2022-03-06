@@ -20,44 +20,51 @@ public partial class CreatureBehaviorSet : HybrasylLoadable, IHybrasylLoadable<C
         // Usage: a & b
         // a is intended to be set with a defined import value (eg Import=)
         // b is the set referenced by the import value
-        var newCbs = new CreatureBehaviorSet();
+        var newCbs = new CreatureBehaviorSet
+        {
+            Name = cbs1.Name,
+            StatAlloc = string.IsNullOrEmpty(cbs1.StatAlloc) ? cbs2.StatAlloc : cbs1.StatAlloc,
+            Behavior = new CreatureBehavior(),
+            Castables = new CreatureCastables()
+        };
 
-        newCbs.Name = cbs1.Name;
-        newCbs.StatAlloc = string.IsNullOrEmpty(cbs1.StatAlloc) ? cbs2.StatAlloc ? cbs1.StatAlloc;
+        newCbs.Behavior.CastableSets = new List<CreatureCastingSet>();
+        newCbs.Castables.Castable = new List<string>();
 
         if (cbs1.Behavior != null)
         {
-            if (cbs2.Behavior != null)
-            {
-                cbsMerge.Behavior.CastableSets.AddRange(cbs1.Behavior.CastableSets);
-                cbsMerge.Behavior.Hostility = cbs1.Behavior.Hostility ?? cbs2.Behavior.Hostility;
-                cbsMerge.Behavior.SetCookies = cbs1.Behavior.SetCookies ?? cbs2.Behavior.SetCookies;
-            }
+            newCbs.Behavior.CastableSets.AddRange(cbs1.Behavior.CastableSets);
+            newCbs.Behavior.Hostility = cbs1.Behavior.Hostility;
+            newCbs.Behavior.SetCookies = cbs1.Behavior.SetCookies;
         }
-        else
-            cbsMerge.Behavior = cbs2.Behavior;
+
+        if (cbs2.Behavior != null)
+        {
+            newCbs.Behavior.CastableSets.AddRange(cbs2.Behavior.CastableSets);
+            newCbs.Behavior.Hostility = cbs2.Behavior.Hostility;
+            newCbs.Behavior.SetCookies = cbs2.Behavior.SetCookies;
+        }
+
         if (cbs1.Castables != null)
         {
-            cbsMerge.Castables.Castable = cbs1.Castables.Castable ?? cbs2.Castables.Castable;
-            cbsMerge.Castables.SkillCategories = string.IsNullOrEmpty(cbs1.Castables.SkillCategories) ?
-                cbs2.Castables.SkillCategories : cbs1.Castables.SkillCategories;
-            cbsMerge.Castables.SpellCategories = string.IsNullOrEmpty(cbs1.Castables.SpellCategories) ?
-                cbs2.Castables.SpellCategories : cbs1.Castables.SpellCategories;
-            cbsMerge.Castables.Auto = cbs2.Castables.Auto == true || cbs1.Castables.Auto;
+            newCbs.Castables.Castable.AddRange(cbs1.Castables.Castable);
+            if (!string.IsNullOrEmpty(cbs1.Castables.SkillCategories))
+                newCbs.Castables.SkillCategories = cbs1.Castables.SkillCategories;
+            if (!string.IsNullOrEmpty(cbs1.Castables.SpellCategories))
+                newCbs.Castables.SpellCategories = cbs1.Castables.SpellCategories;
+            newCbs.Castables.Auto = cbs1.Castables.Auto;
         }
-        else
+
+        if (cbs2.Castables != null)
         {
-            cbsMerge.Castables = cbs2.Castables;
+            newCbs.Castables.Castable.AddRange(cbs2.Castables.Castable);
+            if (!string.IsNullOrEmpty(cbs2.Castables.SkillCategories))
+                newCbs.Castables.SkillCategories += $" {cbs2.Castables.SkillCategories}";
+            if (!string.IsNullOrEmpty(cbs2.Castables.SpellCategories))
+                newCbs.Castables.SpellCategories += $" {cbs2.Castables.SpellCategories}";
         }
-        if (cbs1.StatAlloc != null)
-        {
-            cbsMerge.StatAlloc = string.IsNullOrEmpty(cbs1.StatAlloc) ? cbs2.StatAlloc : cbs1.StatAlloc;            
-        }
-        else
-        {
-            cbsMerge.StatAlloc = cbs2.StatAlloc;
-        }
-        return cbsMerge;
+
+        return newCbs;
     }
 
     public static XmlLoadResponse<CreatureBehaviorSet> LoadAll(string baseDir)

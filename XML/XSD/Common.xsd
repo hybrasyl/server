@@ -806,8 +806,9 @@
     <xs:sequence>
       <xs:element name="Players" type="CreatureHostility" minOccurs="0" maxOccurs="1"/>
       <xs:element name="Monsters" type="CreatureHostility" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="Neutral" type="CreatureHostility" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
+    <xs:attribute name="Player" default="true"/>
+    <xs:attribute name="Monster" default="false"/>
   </xs:complexType>
 
   <xs:complexType name="CreatureCookie">

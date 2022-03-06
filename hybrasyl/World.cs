@@ -605,6 +605,7 @@ public partial class World : Server
         
         foreach (var set in behaviorSets.Results)
         {
+            
             WorldData.Set(set.Name, set);
             GameLog.Info($"BehaviorSet: {set.Name} loaded");
         }
@@ -4050,8 +4051,8 @@ public partial class World : Server
             Objects.Add(worldObjectID, obj);
             ++worldObjectID;
         }
-
         WorldData.SetWorldObject(obj.Guid, obj);
+        obj.OnInsert();
     }
 
     public void Remove(WorldObject obj)

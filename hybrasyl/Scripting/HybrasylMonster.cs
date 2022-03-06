@@ -64,11 +64,11 @@ public class HybrasylMonster
         s += $"Experience: {Monster.LootableXP}\n\n";
         s += "Castables:\n";
 
-        foreach (var set in Monster.CastingSets)
+        foreach (var rotation in Monster.CastableController)
         {
-            s += $"  Set Type: {set.Type}, {set.Interval} second timer, target priority {set.TargetPriority} \nRotation:\n";
-            foreach (var directive in Monster.Rotations[set])
-                s += $"    Castable: {directive.Value}, {directive.Interval} second timer, {directive.HealthPercentage}% health, UseOnce: {directive.UseOnce}, Triggered: {directive.ThresholdTriggered}";
+            s += $"  Set Type: {rotation.CastingSet.Type}, {rotation.Interval} second timer, target priority {rotation.CastingSet.TargetPriority} \n  Rotation:\n";
+            foreach (var entry in rotation)
+                s += $"    Castable: {entry.Name}, {entry.Directive} second timer, {entry.Threshold}% health, UseOnce: {entry.UseOnce}, Triggered: {entry.ThresholdTriggered}";
         }
 
         s += $"AbsoluteImmortal: {Monster.AbsoluteImmortal}\n";

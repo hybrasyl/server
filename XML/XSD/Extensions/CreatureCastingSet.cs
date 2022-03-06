@@ -6,20 +6,9 @@ namespace Hybrasyl.Xml;
 
 public partial class CreatureCastingSet : IEquatable<CreatureCastingSet>
 {
-    public Guid Guid { get; set; } = new Guid();
-    public bool Active { get; set; } = false;
-    public DateTime LastUsed { get; set; } = DateTime.MinValue;
-    public double SecondsSinceLastUse => (DateTime.Now - LastUsed).TotalSeconds;
-    public List<string> CategoryList
-    {
-        get
-        {
-            if (string.IsNullOrEmpty(Categories))
-                return new List<string>();
-            else
-                return Categories.Trim().Split(" ").ToList();
-        }
-    }
+    public Guid Guid { get; set; } = Guid.Empty;
+
+    public List<string> CategoryList => string.IsNullOrEmpty(Categories) ? new List<string>() : Categories.Trim().Split(" ").Select(x => x.ToLower()).ToList(); 
 
     public override bool Equals(object obj) => Equals(obj as CreatureCastingSet);
 
@@ -42,6 +31,13 @@ public partial class CreatureCastingSet : IEquatable<CreatureCastingSet>
     }
 
     public static bool operator !=(CreatureCastingSet lhs, CreatureCastingSet rhs) => !(lhs == rhs);
+
+    public override int GetHashCode()
+    {
+        if (Guid == Guid.Empty)
+            Guid = Guid.NewGuid();
+        return Guid.GetHashCode();
+    }
 
 
 }

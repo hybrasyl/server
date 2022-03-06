@@ -120,7 +120,7 @@ namespace Hybrasyl.Xml
 
         public List<string> CategoryList
         {
-            get { return Categories.Count > 0 ? Categories.Select(x => x.Value).ToList() : new(); }
+            get { return Categories.Count > 0 ? Categories.Select(x => x.Value.ToLower()).ToList() : new(); }
         }
 
     }

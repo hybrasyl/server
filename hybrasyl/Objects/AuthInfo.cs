@@ -1,7 +1,8 @@
 ﻿using Newtonsoft.Json;
 using System;
+using System.Data;
 
-namespace Hybrasyl;
+namespace Hybrasyl.Objects;
 
 public enum UserState : byte
 {
@@ -39,7 +40,7 @@ public class AuthInfo
     [JsonProperty]
     public string LastLoginFailureFrom { get; set; }
     [JsonProperty]
-    public Int64 LoginFailureCount { get; set; }
+    public long LoginFailureCount { get; set; }
     [JsonProperty]
     public DateTime CreatedTime { get; set; }
     [JsonProperty]
@@ -73,6 +74,7 @@ public class AuthInfo
 
     public bool VerifyPassword(string password)
     {
+        if (PasswordHash is null) throw new DataException("Password hash should never be null");
         return BCrypt.Net.BCrypt.Verify(password, PasswordHash);
     }
 
@@ -80,5 +82,5 @@ public class AuthInfo
 
     public bool IsExempt =>
         // This is hax, obvs, and so can you
-        Username == "Kedian"; 
+        Username == "Kedian";
 }
