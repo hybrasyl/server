@@ -13,6 +13,11 @@ public class HybrasylMonster
 
     public string Name => Monster.Name;
 
+
+    public void DebugFunction(string x)
+    {
+        GameLog.ScriptingWarning(x);
+    }
     public Xml.Direction Direction => Monster.Direction;
 
     public ThreatInfo ThreatInfo => Monster.ThreatInfo;

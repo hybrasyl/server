@@ -37,14 +37,14 @@ public partial class CreatureCastable
     
     public CreatureCastable()
     {
-        _targetPriority = CreatureTargetPriority.HighThreat;
+        _targetPriority = CreatureTargetPriority.None;
         _healthPercentage = -1;
-        _useOnce = true;
+        _useOnce = false;
         _interval = 15;
     }
     
     [XmlAttribute]
-    [DefaultValue(CreatureTargetPriority.HighThreat)]
+    [DefaultValue(CreatureTargetPriority.None)]
     public CreatureTargetPriority TargetPriority
     {
         get
@@ -72,7 +72,7 @@ public partial class CreatureCastable
     }
     
     [XmlAttribute]
-    [DefaultValue(true)]
+    [DefaultValue(false)]
     public bool UseOnce
     {
         get

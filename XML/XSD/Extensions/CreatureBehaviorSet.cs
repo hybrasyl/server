@@ -28,19 +28,19 @@ public partial class CreatureBehaviorSet : HybrasylLoadable, IHybrasylLoadable<C
             Castables = new CreatureCastables()
         };
 
-        newCbs.Behavior.CastableSets = new List<CreatureCastingSet>();
+        newCbs.Behavior.CastingSets = new List<CreatureCastingSet>();
         newCbs.Castables.Castable = new List<string>();
 
         if (cbs1.Behavior != null)
         {
-            newCbs.Behavior.CastableSets.AddRange(cbs1.Behavior.CastableSets);
+            newCbs.Behavior.CastingSets.AddRange(cbs1.Behavior.CastingSets);
             newCbs.Behavior.Hostility = cbs1.Behavior.Hostility;
             newCbs.Behavior.SetCookies = cbs1.Behavior.SetCookies;
         }
 
         if (cbs2.Behavior != null)
         {
-            newCbs.Behavior.CastableSets.AddRange(cbs2.Behavior.CastableSets);
+            newCbs.Behavior.CastingSets.AddRange(cbs2.Behavior.CastingSets);
             newCbs.Behavior.Hostility = cbs2.Behavior.Hostility;
             newCbs.Behavior.SetCookies = cbs2.Behavior.SetCookies;
         }

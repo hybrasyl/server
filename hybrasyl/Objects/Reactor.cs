@@ -172,15 +172,15 @@ public class Reactor : VisibleObject
         p.WriteUInt16(Y);
         p.WriteUInt32(Id);
         if (Sprite != 0)
-            p.WriteUInt16((ushort)(Sprite + 0x8000));
+            p.WriteUInt16((ushort) (Sprite + 0x8000));
         else
-            p.WriteUInt16((ushort)Sprite);
+            p.WriteUInt16((ushort) Sprite);
 
-	p.WriteByte(0); // random 1                                                                                                                                                                                                
+        p.WriteByte(0); // random 1                                                                                                                                                                                                
         p.WriteByte(0); // random 2                                                                                                                                                                                                
         p.WriteByte(0); // random 3                                                                                                                                                                                                
         p.WriteByte(0); // unknown a                                                                                                                                                                                               
-        p.WriteByte((byte)Direction);
+        p.WriteByte((byte) Direction);
         p.WriteByte(0); // unknown b                                                                                                                                                                                               
         p.WriteByte(0);
         p.WriteByte(0); // unknown d                                                                                                                                                                                               

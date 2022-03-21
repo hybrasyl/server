@@ -785,13 +785,13 @@
 
   <xs:complexType name="CreatureCastingSets">
     <xs:sequence>
-      <xs:element name="CastableSet" type="hyb:CreatureCastingSet" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="CastingSet" type="hyb:CreatureCastingSet" minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
   </xs:complexType>
 
   <xs:complexType name="CreatureBehavior">
     <xs:sequence>
-      <xs:element name="CastableSets" minOccurs="0" maxOccurs="1" type="CreatureCastingSets"/>
+      <xs:element name="CastingSets" minOccurs="0" maxOccurs="1" type="CreatureCastingSets"/>
       <xs:element name="Hostility" minOccurs="0" maxOccurs="1" type="CreatureHostilitySettings"/>
       <xs:element name="SetCookies" minOccurs="0" maxOccurs="1" type="CreatureCookies "/>
     </xs:sequence>
@@ -836,9 +836,9 @@
   <xs:complexType name="CreatureCastable">
     <xs:simpleContent>
       <xs:extension base="xs:string">
-        <xs:attribute name="TargetPriority" type="hyb:CreatureTargetPriority" use="optional" default="HighThreat"/>
+        <xs:attribute name="TargetPriority" type="hyb:CreatureTargetPriority" use="optional" default="None"/>
         <xs:attribute name="HealthPercentage" type="xs:int" use="optional" default="-1"/>
-        <xs:attribute name="UseOnce" type="xs:boolean" use="optional" default="true"/>
+        <xs:attribute name="UseOnce" type="xs:boolean" use="optional" default="false"/>
         <xs:attribute name="Interval" type="xs:int" use="optional" default="15"/>
       </xs:extension>
     </xs:simpleContent>

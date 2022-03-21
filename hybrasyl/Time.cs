@@ -68,27 +68,14 @@ public class HybrasylTime
     {
         get
         {
-            switch (Moon)
+            return Moon switch
             {
-                case 12:
-                case 1:
-                case 2:
-                    return "Winter";
-                case 3:
-                case 4:
-                case 5:
-                    return "Spring";
-                case 6:
-                case 7:
-                case 8:
-                    return "Summer";
-                case 9:
-                case 10:
-                case 11:
-                    return "Fall";
-                default:
-                    return string.Empty;
-            }
+                12 or 1 or 2 => "Winter",
+                3 or 4 or 5 => "Spring",
+                6 or 7 or 8 => "Summer",
+                9 or 10 or 11 => "Fall",
+                _ => string.Empty,
+            };
         }
     }
 

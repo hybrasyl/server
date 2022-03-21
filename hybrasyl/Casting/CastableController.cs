@@ -8,6 +8,7 @@ using Hybrasyl;
 using Hybrasyl.Casting;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml;
+using Microsoft.VisualBasic;
 
 namespace Hybrasyl.Casting;
 
@@ -25,7 +26,7 @@ public class CastableController : IEnumerable<Rotation>
 
     public bool Enabled { get; set; }
 
-    private string DebugLogHeader => $"{MonsterObj.Name} ({MonsterObj.Map.Name}@{MonsterObj.X},{MonsterObj.Y})";
+    private string DebugLogHeader => $"{MonsterObj.Name} ({MonsterObj.Map?.Name ?? "Unknown"}@{MonsterObj.X},{MonsterObj.Y})";
 
     public CastableController(Guid id)
     {
@@ -46,11 +47,9 @@ public class CastableController : IEnumerable<Rotation>
         if (Game.World.WorldData.TryGetValueByIndex("Assail", out Castable assail))
             Castables.Add("Assail", new BookSlot { Castable = assail });
 
-        if (CastingSets.Count == 0 || MonsterObj.BehaviorSet?.Castables == null)
-            // Behavior set either doesn't exist or doesn't specify castables; no action needed
-            return;
+        if (MonsterObj?.BehaviorSet == null) return;
 
-        // Default to automatic assignation if unsetF
+        // Default to automatic assignation if unset
         if (MonsterObj.BehaviorSet.Castables.Auto == true)
         {
             // If categories are present, use those. Otherwise, learn everything we can
@@ -97,13 +96,16 @@ public class CastableController : IEnumerable<Rotation>
         // to allow a variety of complex behaviors.
         foreach (var castable in MonsterObj.BehaviorSet.Castables.Castable)
         {
-            if (Game.World.WorldData.TryGetValue(castable, out Castable xmlCastable))
+            if (Game.World.WorldData.TryGetValueByIndex(castable, out Castable xmlCastable))
             {
+                if (Castables.ContainsKey(xmlCastable.Name)) continue;
                 if (xmlCastable.IsSkill)
                     Castables.Add(xmlCastable.Name, new BookSlot {Castable = xmlCastable});
                 else
                     Castables.Add(xmlCastable.Name, new BookSlot {Castable = xmlCastable});
             }
+            else
+                GameLog.SpawnError($"{MonsterObj.Name}: Castable {castable} defined, but does not exist");
         }
 
         foreach (var kvp in Castables)
@@ -170,7 +172,7 @@ public class CastableController : IEnumerable<Rotation>
     /// Calculate the next castable to be used.
     /// </summary>
     /// <returns>A RotationEntry structure indicating the rotation and castable to be used next (along with targeting), or null, if no castable is to be used.</returns>
-    public RotationEntry GetNextCastable()
+    public RotationEntry GetNextCastable(RotationType? type = null)
     {
         // Evaluate all UseOnce castables to see if one has triggered. If it has, return that immediately
         // If no UseOnce triggered, order rotations by priority(SecondsSinceLastUse - Interval) and select top rotation. 
@@ -185,15 +187,19 @@ public class CastableController : IEnumerable<Rotation>
         }
 
         // Find the "most expired" rotation
-        var rotation = Rotations.Values.Where(x => x.Active && x.SecondsSinceLastUse >= x.Interval)
-            .OrderByDescending(y => y.Interval).FirstOrDefault();
+        var rotations = Rotations.Values.Where(x => x.Active && x.Priority >= 0);
+            
+        if (type != null)
+            rotations = rotations.Where(x => x.Type == type);
+
+        var rotation = rotations.OrderByDescending(y => y.Priority).FirstOrDefault();
+
         if (rotation == null)
         {
             GameLog.SpawnDebug($"{DebugLogHeader}: no active rotations or not enough time elapsed since last use");
             return null;
-
         }
-
+        
         // Always handle UseOnce trigger thresholds (Rule #1)
         foreach (var threshold in ThresholdCasts.Where(c =>
                      c.Directive.HealthPercentage > 0 && c.Directive.HealthPercentage <= MonsterObj.Stats.HpPercentage))
@@ -210,14 +216,19 @@ public class CastableController : IEnumerable<Rotation>
             threshold.ThresholdTriggered = true;
             return threshold;
         }
-
-        return rotation.GetNextCastable();
-
+        
+        // Monsters have to be active longer than the casting time of a castable in order to use it, exception is assail rotations
+        if (type == RotationType.Assail) return rotation.CurrentCastable;
+        return MonsterObj.ActiveSeconds > rotation.CurrentCastable.CastingTime ? rotation.CurrentCastable : null;
     }
 
-    public bool CanCast(string castable) => Castables.Keys.Contains(castable);
+    public bool CanCast(string castable) => Castables.ContainsKey(castable);
 
-    public Rotation GetNextRotation() => Rotations.Count == 0 ? null : Rotations.Values.Where(x => x.Active).OrderBy(x => x.Priority).FirstOrDefault();
+    public Rotation GetNextRotation() => Rotations.Count == 0 ? null : Rotations.Values.Where(x => x.Active && x.SecondsSinceLastUse >= x.Interval).OrderByDescending(x => x.Priority).FirstOrDefault();
+
+    public Rotation GetAssailRotation() => Rotations.Values.FirstOrDefault(x => x.Type == RotationType.Assail);
+
+    public RotationEntry GetNextAssail() => GetNextCastable(RotationType.Assail);
 
     public IEnumerator<Rotation> GetEnumerator() => Rotations.Values.GetEnumerator();
 

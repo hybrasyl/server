@@ -24,6 +24,7 @@ using Hybrasyl.Dialogs;
 using Hybrasyl.Objects;
 using MoonSharp.Interpreter;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Reflection;
 
@@ -39,6 +40,10 @@ public class HybrasylWorldObject
     // TODO: create HybrasylItemObject pls
     public static bool IsPlayer => false;
 
+    public void DebugFunction(string x)
+    {
+        GameLog.ScriptingWarning(x);
+    }
     internal List<string> Categories
     {
         get

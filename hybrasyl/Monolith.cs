@@ -196,7 +196,7 @@ internal class Monolith
 
 
                     var baseMob = new Monster(creature, spawn.Flags, (byte) baseLevel, 
-                        spawnmap.Id, newSpawnLoot);
+                       newSpawnLoot);
 
                     if (baseMob.LootableXP == 0)
                     {

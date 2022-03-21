@@ -27,6 +27,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using Hybrasyl.Casting;
+using Hybrasyl.ChatCommands;
 
 namespace Hybrasyl.Objects;
 
@@ -51,6 +52,8 @@ public class Monster : Creature, ICloneable
     public CastableController CastableController { get; set; }
 
     private CreatureBehaviorSet _behaviorSet { get; set; }
+    public DateTime CreationTime { get; set; }
+    public double AliveSeconds => (DateTime.Now - CreationTime).TotalSeconds;
 
     public CreatureBehaviorSet BehaviorSet
     {
@@ -64,7 +67,7 @@ public class Monster : Creature, ICloneable
             else
             {
                 _behaviorSet = value;
-                CastableController.ProcessCastingSets(value.Behavior?.CastableSets ?? new List<CreatureCastingSet>());
+                CastableController.ProcessCastingSets(value.Behavior?.CastingSets ?? new List<CreatureCastingSet>());
             }
         }
     }
@@ -93,11 +96,32 @@ public class Monster : Creature, ICloneable
 
     public bool HasCastNearDeath;
 
-    public bool Active;
+    private bool _active { get; set; }
+    public DateTime ActiveSince { get; set; }
+
+    public double ActiveSeconds
+    {
+        get
+        {
+            if (ActiveSince != DateTime.MinValue) return (DateTime.Now - ActiveSince).TotalSeconds;
+            return -1;
+        }
+    }
+
+    public bool Active
+    {
+        get => _active;
+        set
+        {
+            ActiveSince = value == false ? DateTime.MinValue : DateTime.Now;
+            _active = value;
+        }
+
+    }
 
     public bool HasAssailSkills { get; set; } = false;
 
-    public Monster(Xml.Creature creature, SpawnFlags flags, byte level, int map, Loot loot = null,
+    public Monster(Xml.Creature creature, SpawnFlags flags, byte level, Loot loot = null,
         CreatureBehaviorSet behaviorsetOverride = null)
     {
         _actionQueue = new ConcurrentQueue<MobAction>();
@@ -108,6 +132,8 @@ public class Monster : Creature, ICloneable
         {
             if (World.WorldData.TryGetValue<CreatureBehaviorSet>(creature.BehaviorSet, out var behaviorSet))
                 BehaviorSet = behaviorSet;
+            else
+                GameLog.SpawnError($"{Name}: behavior set {creature.BehaviorSet} could not be found");
         }
 
         Stats.BaseInt = 3;
@@ -120,7 +146,6 @@ public class Monster : Creature, ICloneable
         Name = creature.Name;
         Sprite = creature.Sprite;
         // TODO: remove this and fix
-        Map = Game.World.WorldData.Get<Map>(map);
         Stats.Level = level;
         DisplayText = creature.Description;
 
@@ -143,14 +168,14 @@ public class Monster : Creature, ICloneable
         {
             SetCookie(cookie.Name, cookie.Value);
         }
-
     }
 
     public override void OnInsert()
     {
         CastableController = new CastableController(Guid);
         CastableController.LearnCastables();
-        CastableController.ProcessCastingSets(BehaviorSet?.Behavior?.CastableSets ?? new List<CreatureCastingSet>());
+        CastableController.ProcessCastingSets(BehaviorSet?.Behavior?.CastingSets ?? new List<CreatureCastingSet>());
+        ActiveSince = DateTime.Now;
     }
 
     public override void OnDeath()

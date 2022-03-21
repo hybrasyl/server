@@ -38,6 +38,8 @@ public class WorldObject : IQuadStorable
     /// </summary>
     public Rectangle Rect => new(X, Y, 1, 1);
 
+    public DateTime CreationTime { get; set; }
+
     public bool HasMoved { get; set; }
 
     public virtual byte X { get; set; }
@@ -98,6 +100,7 @@ public class WorldObject : IQuadStorable
         Name = string.Empty;
         ResetPursuits();
         _ephemeralStore = new Dictionary<string, dynamic>();
+        CreationTime = DateTime.Now;
     }
 
     public virtual void SendId()
