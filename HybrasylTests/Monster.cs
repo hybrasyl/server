@@ -139,7 +139,7 @@ public class Monsters
     [Fact]
     public void MonsterThresholdRotations()
     {
-        // We need our gabbaghoul
+        // We need our gabbaghoulidk may
         Assert.True(Game.World.WorldData.TryGetValue<Creature>("Gabbaghoul", out var monsterXml),
             "Gabbaghoul test monster not found");
         var monster = new Monster(monsterXml, SpawnFlags.AiDisabled, 99);

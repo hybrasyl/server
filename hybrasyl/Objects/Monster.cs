@@ -748,7 +748,6 @@ public class Monster : Creature, ICloneable
         Condition.Casting = false;
         slot.LastCast = DateTime.Now;
         slot.UseCount++;
-        // TODO: set needs lastused set
     }
 
     public void Attack()
@@ -893,6 +892,10 @@ public class Monster : Creature, ICloneable
                         else
                             // If we can't find a path, return to wandering
                             ShouldWander = true;
+                    }
+                    else
+                    {
+                        GameLog.SpawnError("Can't move");
                     }
 
                     break;

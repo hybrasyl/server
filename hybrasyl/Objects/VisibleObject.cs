@@ -34,10 +34,24 @@ public class VisibleObject : WorldObject
     [JsonProperty]
     public LocationInfo Location { get; set; }
     // TODO: Clean these up later and simply use Location instead
-    public Map Map { get { return Location.Map; } set { Location.Map = value; } }
-    public Xml.Direction Direction { get { return Location.Direction; } set { Location.Direction = value; } }
-    public override byte X { get { return Location.X; } set { Location.X = value; } }
-    public override byte Y { get { return Location.Y; } set { Location.Y = value; } }
+    public Map Map { get => Location.Map;
+        set => Location.Map = value;
+    }
+    public Xml.Direction Direction { get => Location.Direction;
+        set => Location.Direction = value;
+    }
+    public override byte X
+    {
+        get => Location?.X ?? 0;
+        set => Location.X = value;
+    }
+
+    public override byte Y
+    {
+        get => Location?.Y ?? 0;
+        set => Location.Y = value;
+    }
+
     public ushort Sprite { get; set; }
     public string Portrait { get; set; }
     public string DisplayText { get; set; }
@@ -82,14 +96,14 @@ public class VisibleObject : WorldObject
 
     public virtual void AoiEntry(VisibleObject obj)
     {
-        if (obj is User)
-            viewportUsers.Add(obj as User);
+        if (obj is User user)
+            viewportUsers.Add(user);
     }
 
     public virtual void AoiDeparture(VisibleObject obj)
     {
-        if (obj is User)
-            viewportUsers.Remove(obj as User);
+        if (obj is User user)
+            viewportUsers.Remove(user);
     }
 
     public bool CanBeLooted(string username, out string error)
@@ -186,8 +200,7 @@ public class VisibleObject : WorldObject
 
     public virtual void Teleport(string name, byte x, byte y)
     {
-        Map targetMap;
-        if (string.IsNullOrEmpty(name) || !World.WorldData.TryGetValueByIndex(name, out targetMap)) return;
+        if (string.IsNullOrEmpty(name) || !World.WorldData.TryGetValueByIndex(name, out Map targetMap)) return;
         Map?.Remove(this);
         GameLog.DebugFormat("Teleporting {0} to {1}.", Name, targetMap.Name);
         targetMap.Insert(this, x, y);
@@ -210,10 +223,7 @@ public class VisibleObject : WorldObject
                 var x0D = new ServerPacket(0x0D);
                 x0D.WriteByte(0x00);
                 x0D.WriteUInt32(Id);
-                if (!string.IsNullOrEmpty(from))
-                    x0D.WriteString8($"{from}: {message}");
-                else
-                    x0D.WriteString8($"{Name}: {message}");
+                x0D.WriteString8(!string.IsNullOrEmpty(@from) ? $"{@from}: {message}" : $"{Name}: {message}");
                 user.Enqueue(x0D);
             }
             else
