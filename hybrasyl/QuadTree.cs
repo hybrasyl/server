@@ -763,7 +763,7 @@ public class QuadTreeNode<T> where T : IQuadStorable
         }
 
         if (objects == null ||
-            (childTL == null && objects.Count + 1 <= MaxObjectsPerNode))
+            childTL == null && objects.Count + 1 <= MaxObjectsPerNode)
         {
             // If there's room to add the object, just add it
             Add(item);

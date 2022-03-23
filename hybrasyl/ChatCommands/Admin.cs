@@ -738,7 +738,7 @@ class SpawnCommand : ChatCommand
         {
             if (byte.TryParse(args[2], out byte x))
             {
-                Monster newMob = new Monster(creature, Xml.SpawnFlags.Active, x, user.Location.MapId, null, cbs);
+                Monster newMob = new Monster(creature, Xml.SpawnFlags.Active, x, null, cbs);
                 user.World.Insert(newMob);
                 user.Map.Insert(newMob, user.X, user.Y);
                 return Success($"{creature.Name} spawned.");

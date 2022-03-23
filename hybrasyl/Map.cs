@@ -19,7 +19,6 @@
  * 
  */
 
-using C3;
 using Hybrasyl.Objects;
 using System;
 using System.Collections.Generic;
@@ -27,6 +26,7 @@ using System.Drawing;
 using System.IO;
 using System.Text;
 using System.Linq;
+using C3;
 
 namespace Hybrasyl;
 
@@ -327,6 +327,7 @@ public class Map
 
     public bool IsCreatureAt(int x1, int y1) => GetTileContents(x1,y1).Any(x => x is Creature);
 
+    // TODO: remove World.Insert here
     public void InsertNpc(Merchant toInsert)
     {
         World.Insert(toInsert);

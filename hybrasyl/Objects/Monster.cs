@@ -19,20 +19,21 @@
  * 
  */
 
+using Hybrasyl.Enums;
+using Hybrasyl.Scripting;
+using Hybrasyl.Xml;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using Hybrasyl.Enums;
-using Hybrasyl.Scripting;
-using Hybrasyl.Xml;
+using Hybrasyl.Casting;
+using Hybrasyl.ChatCommands;
 
 namespace Hybrasyl.Objects;
 
 public enum MobAction
 {
     Attack,
-    Cast,
     Move,
     Idle,
     Death
@@ -44,19 +45,32 @@ public class Monster : Creature, ICloneable
 
     private readonly ConcurrentQueue<MobAction> _actionQueue;
 
-    private static readonly Random Rng = new Random();
-
     private bool _idle = true;
 
     private uint _mTarget;
 
-    public Dictionary<string, BookSlot> Spells { get; set; } = new();
-    public Dictionary<string, BookSlot> Skills { get; set; } = new();
+    public CastableController CastableController { get; set; }
 
-    public BookSlot LastSpellUsed { get; set; }
-    public BookSlot LastSkillUsed { get; set; }
+    private CreatureBehaviorSet _behaviorSet { get; set; }
+    public DateTime CreationTime { get; set; }
+    public double AliveSeconds => (DateTime.Now - CreationTime).TotalSeconds;
 
-    public CreatureBehaviorSet BehaviorSet;
+    public CreatureBehaviorSet BehaviorSet
+    {
+        get => _behaviorSet;
+        set
+        {
+            if (_behaviorSet == null)
+            {
+                _behaviorSet = value;
+            }
+            else
+            {
+                _behaviorSet = value;
+                CastableController.ProcessCastingSets(value.Behavior?.CastingSets ?? new List<CreatureCastingSet>());
+            }
+        }
+    }
 
     public SpawnFlags SpawnFlags;
 
@@ -64,11 +78,11 @@ public class Monster : Creature, ICloneable
 
     public Tile CurrentPath;
 
-    private double _variance;
-
     public int ActionDelay = 800;
 
-    public DateTime LastAction { get; set; }
+    public DateTime LastAction { get; set; } = DateTime.MinValue;
+    public DateTime LastSkill { get; set; } = DateTime.MinValue;
+    public DateTime LastSpell { get; set; } = DateTime.MinValue;
     public bool IsHostile { get; set; }
     public bool ShouldWander { get; set; }
     public bool DeathDisabled => SpawnFlags.HasFlag(SpawnFlags.DeathDisabled);
@@ -82,11 +96,32 @@ public class Monster : Creature, ICloneable
 
     public bool HasCastNearDeath;
 
-    public bool Active;
+    private bool _active { get; set; }
+    public DateTime ActiveSince { get; set; }
 
-    public bool CanCast => BehaviorSet?.CanCast ?? false;
+    public double ActiveSeconds
+    {
+        get
+        {
+            if (ActiveSince != DateTime.MinValue) return (DateTime.Now - ActiveSince).TotalSeconds;
+            return -1;
+        }
+    }
 
-    public Monster(Xml.Creature creature, SpawnFlags flags, byte level, int map, Loot loot = null,
+    public bool Active
+    {
+        get => _active;
+        set
+        {
+            ActiveSince = value == false ? DateTime.MinValue : DateTime.Now;
+            _active = value;
+        }
+
+    }
+
+    public bool HasAssailSkills { get; set; } = false;
+
+    public Monster(Xml.Creature creature, SpawnFlags flags, byte level, Loot loot = null,
         CreatureBehaviorSet behaviorsetOverride = null)
     {
         _actionQueue = new ConcurrentQueue<MobAction>();
@@ -97,26 +132,21 @@ public class Monster : Creature, ICloneable
         {
             if (World.WorldData.TryGetValue<CreatureBehaviorSet>(creature.BehaviorSet, out var behaviorSet))
                 BehaviorSet = behaviorSet;
+            else
+                GameLog.SpawnError($"{Name}: behavior set {creature.BehaviorSet} could not be found");
         }
+
+        Stats.BaseInt = 3;
+        Stats.BaseDex = 3;
+        Stats.BaseStr = 3;
+        Stats.BaseWis = 3;
+        Stats.BaseCon = 3;
+        Stats.BaseAc = 100;
 
         Name = creature.Name;
         Sprite = creature.Sprite;
-        Map = Game.World.WorldData.Get<Map>(map);
+        // TODO: remove this and fix
         Stats.Level = level;
-
-        AllocateStats();
-        LearnCastables();
-
-        if (BehaviorSet?.Behavior != null)
-        {
-            foreach (var cookie in BehaviorSet.Behavior.SetCookies)
-            {
-                // Don't override cookies set from spawn; spawn takes precedence
-                if (!HasCookie(cookie.Name))
-                    SetCookie(cookie.Name, cookie.Value);
-            }
-        }
-
         DisplayText = creature.Description;
 
         Loot = loot;
@@ -128,16 +158,24 @@ public class Monster : Creature, ICloneable
         else
             ShouldWander = IsHostile == false;
 
-        ThreatInfo = new ThreatInfo();
+        ThreatInfo = new ThreatInfo(Guid);
         DeathProcessed = false;
+        AllocateStats();
         Stats.Hp = Stats.MaximumHp;
         Stats.Mp = Stats.MaximumMp;
-        Stats.BaseInt = 3;
-        Stats.BaseDex = 3;
-        Stats.BaseStr = 3;
-        Stats.BaseWis = 3;
-        Stats.BaseCon = 3;
-        Stats.BaseAc = 100;
+        if (BehaviorSet?.Behavior == null) return;
+        foreach (var cookie in BehaviorSet.Behavior.SetCookies.Where(cookie => !HasCookie(cookie.Name)))
+        {
+            SetCookie(cookie.Name, cookie.Value);
+        }
+    }
+
+    public override void OnInsert()
+    {
+        CastableController = new CastableController(Guid);
+        CastableController.LearnCastables();
+        CastableController.ProcessCastingSets(BehaviorSet?.Behavior?.CastingSets ?? new List<CreatureCastingSet>());
+        ActiveSince = DateTime.Now;
     }
 
     public override void OnDeath()
@@ -151,7 +189,7 @@ public class Monster : Creature, ICloneable
             }
 
             // Don't die twice
-            if (DeathProcessed == true) return;
+            if (DeathProcessed) return;
 
             // Even if we encounter an error, we still count the death as processed to avoid 
             // repeated processing
@@ -191,7 +229,7 @@ public class Monster : Creature, ICloneable
                 {
                     uint gold = 0;
                     gold = hitter.Stats.ExtraGold > 0
-                        ? (uint) (LootableGold + (LootableGold * hitter.Stats.ExtraGold))
+                        ? (uint) (LootableGold + LootableGold * hitter.Stats.ExtraGold)
                         : LootableGold;
                     var goldObj = new Gold(gold)
                     {
@@ -229,6 +267,7 @@ public class Monster : Creature, ICloneable
             }
 
             Game.World.RemoveStatusCheck(this);
+            // TODO: ondeath castables
             Map?.Remove(this);
             World?.Remove(this);
         }
@@ -322,8 +361,8 @@ public class Monster : Creature, ICloneable
 
     public uint LootableXP
     {
-        get { return Loot?.Xp ?? 0; }
-        set { Loot.Xp = value; }
+        get => Loot?.Xp ?? 0;
+        set => Loot.Xp = value;
     }
 
     public uint LootableGold => Loot?.Gold ?? 0;
@@ -340,6 +379,7 @@ public class Monster : Creature, ICloneable
         Stats.BaseOutboundDamageModifier = 1 + modifier;
         Stats.BaseInboundDamageModifier = 1 - modifier;
         Stats.BaseOutboundHealModifier = 1 + modifier;
+        Stats.BaseInboundHealModifier = 1 - modifier;
     }
 
     private void RandomlyAllocateStatPoints(int points)
@@ -347,7 +387,7 @@ public class Monster : Creature, ICloneable
         // Random allocation
         for (var x = 1; x <= points; x++)
         {
-            switch (Rng.Next(1, 6))
+            switch (Random.Shared.Next(1, 6))
             {
                 case 1:
                     Stats.BaseStr += 1;
@@ -406,7 +446,7 @@ public class Monster : Creature, ICloneable
                     totalPoints--;
                     if (totalPoints % 2 == 0)
                     {
-                        var randomBonus = (Rng.NextDouble() * 0.30) + 0.85;
+                        var randomBonus = Random.Shared.NextDouble() * 0.30 + 0.85;
                         int bonusHpGain =
                             (int) Math.Ceiling((double) (Stats.BaseCon / (float) Stats.Level) * 50 * randomBonus);
                         int bonusMpGain =
@@ -423,70 +463,6 @@ public class Monster : Creature, ICloneable
         Stats.Mp = Stats.MaximumMp;
     }
 
-    /// <summary>
-    /// Given an already specified behaviorset for the monster, learn all the castables possible at 
-    /// their level; or the castables specifically enumerated in the set.
-    /// </summary>
-    private void LearnCastables()
-    {
-        // All monsters get assail. TODO: hardcoded
-        if (Game.World.WorldData.TryGetValue("Assail", out Castable assail))
-            Skills.Add("Assail", new BookSlot() {Castable = assail});
-
-        if (BehaviorSet?.Castables == null)
-            // Behavior set either doesn't exist or doesn't specify castables; no action needed
-            return;
-
-        // Default to automatic assignation if unset
-        if (BehaviorSet.Castables.Auto == true)
-        {
-            // If categories are present, use those. Otherwise, learn everything we can
-            foreach (var category in BehaviorSet.LearnSpellCategories)
-            {
-                foreach (var castable in Game.World.WorldData.GetSpells(Stats.BaseStr, Stats.BaseInt, Stats.BaseWis,
-                             Stats.BaseCon, Stats.BaseDex, category))
-                {
-                    Spells.Add(castable.Name, new BookSlot() {Castable = castable});
-                }
-            }
-
-            foreach (var category in BehaviorSet.LearnSkillCategories)
-            {
-                foreach (var castable in Game.World.WorldData.GetSkills(Stats.BaseStr, Stats.BaseInt, Stats.BaseWis,
-                             Stats.BaseCon, Stats.BaseDex, category))
-                {
-                    Skills.Add(castable.Name, new BookSlot() {Castable = castable});
-                }
-            }
-
-            if (BehaviorSet.LearnSkillCategories.Count == 0 && BehaviorSet.LearnSpellCategories.Count == 0)
-            {
-                // Auto add according to stats
-                foreach (var castable in Game.World.WorldData.GetCastables(Stats.BaseStr, Stats.BaseInt, Stats.BaseWis,
-                             Stats.BaseCon, Stats.BaseDex))
-                {
-                    if (castable.IsSkill)
-                        Skills.Add(castable.Name, new BookSlot() {Castable = castable});
-                    else
-                        Spells.Add(castable.Name, new BookSlot() {Castable = castable});
-                }
-            }
-        }
-
-        // Handle any specific additions. Note that specific additions *ignore stat requirements*, 
-        // to allow a variety of complex behaviors.
-        foreach (var castable in BehaviorSet.Castables.Castable)
-        {
-            if (Game.World.WorldData.TryGetValue(castable, out Castable xmlCastable))
-            {
-                if (xmlCastable.IsSkill)
-                    Skills.Add(xmlCastable.Name, new BookSlot() {Castable = xmlCastable});
-                else
-                    Spells.Add(xmlCastable.Name, new BookSlot() {Castable = xmlCastable});
-            }
-        }
-    }
-
     public Creature Target
     {
         get
@@ -500,7 +476,7 @@ public class Monster : Creature, ICloneable
 
     public override int GetHashCode()
     {
-        return (Name.GetHashCode() * Id.GetHashCode()) - 1;
+        return Name.GetHashCode() * Id.GetHashCode() - 1;
     }
 
     public bool CheckFacing(Direction direction, Creature target)
@@ -508,7 +484,7 @@ public class Monster : Creature, ICloneable
         if (target == null) return false;
         if (Math.Abs(X - target.X) <= 1 && Math.Abs(Y - target.Y) <= 1)
         {
-            if (((X - target.X) == 1 && (Y - target.Y) == 0))
+            if (X - target.X == 1 && Y - target.Y == 0)
             {
                 //check if facing west
                 if (Direction == Direction.West) return true;
@@ -518,7 +494,7 @@ public class Monster : Creature, ICloneable
                 }
             }
 
-            if (((X - target.X) == -1 && (Y - target.Y) == 0))
+            if (X - target.X == -1 && Y - target.Y == 0)
             {
                 //check if facing east
                 if (Direction == Direction.East) return true;
@@ -528,7 +504,7 @@ public class Monster : Creature, ICloneable
                 }
             }
 
-            if (((X - target.X) == 0 && (Y - target.Y) == 1))
+            if (X - target.X == 0 && Y - target.Y == 1)
             {
                 //check if facing south
                 if (Direction == Direction.North) return true;
@@ -538,7 +514,7 @@ public class Monster : Creature, ICloneable
                 }
             }
 
-            if (((X - target.X) == 0 && (Y - target.Y) == -1))
+            if (X - target.X == 0 && Y - target.Y == -1)
             {
                 if (Direction == Direction.South) return true;
                 else
@@ -552,136 +528,9 @@ public class Monster : Creature, ICloneable
     }
 
     /// <summary>
-    /// Get the next offensive castable to be used, if it exists.
-    /// </summary>
-    /// <returns>NextCastingAction indicating what castable category or castable to be used. </returns>
-    public NextCastingAction GetNextOffenseCastable() => GetNextCastable(BehaviorSet?.Behavior?.Casting?.Offense);
-
-    /// <summary>
-    /// Get the next defensive castable to be used, if it exists.
-    /// </summary>
-    /// <returns>NextCastingAction indicating what castable category or castable to be used. </returns>
-    public NextCastingAction GetNextDefenseCastable() => GetNextCastable(BehaviorSet?.Behavior?.Casting?.Defense);
-
-    /// <summary>
-    /// Get the next near death castable to be used, if it exists.
-    /// </summary>
-    /// <returns>NextCastingAction indicating what castable category or castable to be used. </returns>
-    public NextCastingAction GetNextNearDeathCastable() => GetNextCastable(BehaviorSet?.Behavior?.Casting?.NearDeath);
-
-    /// <summary>
-    /// Get the next offensive castable to be used, if it exists.
-    /// </summary>
-    /// <returns>NextCastingAction indicating what castable category or castable to be used. </returns>
-    public NextCastingAction GetNextOnDeathCastable() => GetNextCastable(BehaviorSet?.Behavior?.Casting?.OnDeath);
-
-    /// <summary>
-    /// Get the next assail skill to be used, if it exists.
-    /// </summary>
-    /// <returns>NextCastingAction indicating what castable GLIROcategory or castable to be used. </returns>
-    public NextCastingAction GetNextSkill() => GetNextCastable(BehaviorSet?.Behavior?.Assail);
-
-    /// <summary>
-    /// Calculate the next castable to be used for a given casting set.
-    /// </summary>
-    /// <returns>A NextCastingAction structure indicating the castable or category to be used along with a CreatureAttackPriority indicating the target</returns>
-    private NextCastingAction GetNextCastable(CreatureCastingSet set)
-    {
-        // Resolution rules:
-        //
-        // 1: If a castable is defined in our casting set with a specific HP percentage that matches (<=), *always* return that first, unless
-        //    lastcast is that same castable
-        //    Ex: Cast ard sausage at 20% health or lower
-        // 2: if Random is set, return a random category or castable if possible)
-        //    Ex: Random is set, return a random category or castable based on defined settings
-        // 3: if a category is defined, cycle through based on lastCast
-        //    Ex: Ham, Sausage, Bacon -> lastcast category is Sausage -> return Bacon)
-        // 4: If no HP percentages with UseOnce trigger, if lastCast is in the list of castables defined, return the next one in sequence
-        //    Ex: I just cast ard sausage, and I see from our cycle mor ham is next, cast mor ham
-        // 5: nothing matches - punt and let the monster AI figure it out (category and castable name will be null)
-
-        // If we have no castables defined, or no behavior set, we can't cast
-        if (set == null || set.Castable.Count == 0)
-            return NextCastingAction.DoNothing;
-
-        List<CreatureCastable> selection = new List<CreatureCastable>();
-        BookSlot slot;
-
-        // Find threshold castables, if defined (Rule #1)
-        var thresholdCasts = set.Castable.Where(c => c.HealthPercentage > 0 && c.HealthPercentage <= Stats.HpPercentage)
-            .ToList();
-
-        foreach (var threshold in thresholdCasts)
-        {
-            if (!Spells.TryGetValue(threshold.Value, out slot) && !Skills.TryGetValue(threshold.Value, out slot))
-                // Threshold references a skill or spell that the mob doesn't know; ignore
-                continue;
-
-            // Is this a use once trigger with a percentage defined? If so, it hits and returns immediately IF the
-            // corresponding slot hasn't seen a trigger.              
-            if (threshold.UseOnce && !slot.ThresholdTriggered)
-                return new NextCastingAction() {Slot = slot, Target = threshold.Priority};
-
-            else if (!threshold.UseOnce)
-                // Add to our list
-                selection.Add(threshold);
-        }
-
-        // Now we've handled triggers - look at the rest of the set with no thresholds, and proceed to Rule #2
-        selection.AddRange(set.Castable.Where(c => c.HealthPercentage == -1));
-
-        if (set.Random)
-        {
-            var selectedCast = selection.PickRandom();
-            if (!Spells.TryGetValue(selectedCast.Value, out slot) && !Skills.TryGetValue(selectedCast.Value, out slot))
-                // Not found, do nothing
-                return NextCastingAction.DoNothing;
-            return new NextCastingAction() {Slot = slot, Target = selectedCast.Priority};
-        }
-
-        // Random handled, proceed to Rule #3 (cast from categories)
-
-        if (set.CategoryList.Count > 0)
-        {
-            // Pick a random category then pick a random castable from that category
-            var selectedCategory = set.CategoryList.PickRandom();
-            var selectedCast = Spells.Values.Where(s => s.Castable.CategoryList.Contains(selectedCategory))
-                .PickRandom(true);
-            if (selectedCast != null)
-                return new NextCastingAction() {Slot = selectedCast, Target = set.Priority};
-            return NextCastingAction.DoNothing;
-        }
-
-        // Categories not defined - use castable rotation (Rule #4)
-        // This is gross
-        var idx = selection.IndexOf(selection
-            .Where(c => c.Value == LastSpellUsed.Castable.Name || c.Value == LastSkillUsed.Castable.Name)
-            .FirstOrDefault());
-        CreatureCastable selected = null;
-        if (idx == -1)
-            // Last cast was not found, do nothing
-            return NextCastingAction.DoNothing;
-        // A,B,C
-        // idx == 2 (C), return A
-        else if (selection.Count - 1 == idx)
-            selected = selection.First();
-        // A,B,C
-        // idx == 1 (B), return C
-        else
-            selected = selection[idx + 1];
-
-        if (selected != null)
-        {
-            if (!Spells.TryGetValue(selected.Value, out slot) && !Skills.TryGetValue(selected.Value, out slot))
-                // Not found, do nothing
-                return NextCastingAction.DoNothing;
-            return new NextCastingAction() {Slot = slot, Target = selected.Priority};
-        }
-
-        // Rule #5 (return to monster ai)
-        return NextCastingAction.DoNothing;
-    }
-
+    /// A simple attack by a monster (equivalent of straight assail).
+    /// </summary>        
+    /// <param name="target"></param>
     public void AssailAttack(Direction direction, Creature target = null)
     {
         if (target == null)
@@ -695,32 +544,12 @@ public class Monster : Creature, ICloneable
 
         if (target == null)
             return;
-
-        // Get our skills if needed
-        var nextSkill = GetNextSkill();
-
-        if (nextSkill.DoNotCast)
-        {
-            // In the absence of a skill, just do a straight assail
-            SimpleAttack(target);
-            //animation handled here as to not repeatedly send assails.
-            var assail = new ServerPacketStructures.PlayerAnimation() {Animation = 1, Speed = 20, UserId = Id};
-            SendAnimation(assail.Packet());
-            PlaySound(1);
-        }
-        else
-            UseCastable(nextSkill.Slot.Castable, target, true);
-    }
-
-
-    /// <summary>
-    /// A simple attack by a monster (equivalent of straight assail).
-    /// </summary>        
-    /// <param name="target"></param>
-    public void SimpleAttack(Creature target)
-    {
-        if (Skills.TryGetValue("Assail", out BookSlot slot))
-            UseCastable(slot.Castable, target, true);
+        if (!CastableController.TryGetCastable("Assail", out BookSlot slot)) return;
+        UseCastable(slot.Castable, target, true);
+        //animation handled here as to not repeatedly send assails.
+        var assail = new ServerPacketStructures.PlayerAnimation { Animation = 1, Speed = 20, UserId = Id };
+        SendAnimation(assail.Packet());
+        PlaySound(1);
     }
 
     public override void ShowTo(VisibleObject obj)
@@ -754,12 +583,12 @@ public class Monster : Creature, ICloneable
 
     public List<Tile> GetWalkableTiles(int x, int y)
     {
-        var proposedLocations = new List<Tile>()
+        var proposedLocations = new List<Tile>
         {
-            new Tile {X = x, Y = y - 1},
-            new Tile {X = x, Y = y + 1},
-            new Tile {X = x - 1, Y = y},
-            new Tile {X = x + 1, Y = y}
+            new() {X = x, Y = y - 1},
+            new() {X = x, Y = y + 1},
+            new() {X = x - 1, Y = y},
+            new() {X = x + 1, Y = y}
         };
 
         // Don't return tiles that are walls, or tiles that contain creatures, but always
@@ -815,7 +644,7 @@ public class Monster : Creature, ICloneable
         if (Map.IsCreatureAt(CurrentPath.X, CurrentPath.Y) && CurrentPath.Parent != null &&
             Map.IsCreatureAt(CurrentPath.Parent.X, CurrentPath.Parent.Y))
         {
-            if (!(X == CurrentPath.X && Y == CurrentPath.Y) || (X == CurrentPath.Parent.X || Y == CurrentPath.Parent.Y))
+            if (!(X == CurrentPath.X && Y == CurrentPath.Y) || X == CurrentPath.Parent.X || Y == CurrentPath.Parent.Y)
             {
                 GameLog.Info(
                     $"AStar: path not clear at either {CurrentPath.X}, {CurrentPath.Y} or {CurrentPath.Parent.X}, {CurrentPath.Parent.Y}");
@@ -914,10 +743,11 @@ public class Monster : Creature, ICloneable
     public void Cast(BookSlot slot, Creature target)
     {
         if (!Condition.CastingAllowed) return;
+        Condition.Casting = true;
         UseCastable(slot.Castable, target);
+        Condition.Casting = false;
         slot.LastCast = DateTime.Now;
         slot.UseCount++;
-        Condition.Casting = false;
     }
 
     public void Attack()
@@ -925,24 +755,13 @@ public class Monster : Creature, ICloneable
         if (ThreatInfo.HighestThreat == null) return;
         if (CheckFacing(Direction, ThreatInfo.HighestThreat))
         {
-            var assailSkill = GetNextSkill();
-            if (assailSkill.DoNotCast)
-            {
-                if (ThreatInfo.HighestThreat == null) return;
-                AssailAttack(Direction, ThreatInfo.HighestThreat);
-            }
-            else
-            {
-                var target = GetTarget(assailSkill.Target);
-                if (target == null)
-                    Cast(assailSkill.Slot, ThreatInfo.HighestThreat);
-            }
+            AssailAttack(Direction, ThreatInfo.HighestThreat);
         }
         else
-        {
             Turn(Relation(ThreatInfo.HighestThreat.X, ThreatInfo.HighestThreat.Y));
-        }
     }
+
+
 
     public void NextAction()
     {
@@ -962,10 +781,7 @@ public class Monster : Creature, ICloneable
             if (ThreatInfo.HighestThreat != null)
             {
                 if (Distance(ThreatInfo.HighestThreat) == 1)
-                {
-                    next = _random.Next(0, 2); //attack or cast
-                    _actionQueue.Enqueue((MobAction) next);
-                }
+                    _actionQueue.Enqueue(MobAction.Attack);
                 else
                 {
                     next = _random.Next(1, 3); //cast or move
@@ -985,67 +801,55 @@ public class Monster : Creature, ICloneable
         while (_actionQueue.Count > 0)
         {
             _actionQueue.TryDequeue(out var action);
-            if (action == MobAction.Attack)
+            GameLog.SpawnDebug($"ActionQueue: {action}");
+            switch (action)
             {
-                if (Condition.Frozen || Condition.Asleep)
+                case MobAction.Attack:
+                    var next = CastableController.GetNextCastable();
+                    if (next is null)
+                    {
+                        Attack();
+                        return;
+                    }
+                    var targets = ThreatInfo.GetTargets(next.CurrentPriority);
+                    if (targets.Count == 0)
+                    {
+                        GameLog.SpawnDebug($"{Name}: ({Map.Name}@{X},{Y}): no targets returned from priority {next.CurrentPriority}");
+                        return;
+                    }
+                    foreach (var target in targets)
+                        Cast(next.Slot, target);
+                    
                     return;
-                Attack();
-            }
-
-            if (action == MobAction.Cast)
-            {
-                if (!Condition.CastingAllowed) return;
-                var offensiveCast = GetNextOffenseCastable();
-                if (!offensiveCast.DoNotCast)
-                {
-                    // Handle group targeting here
-                    if (offensiveCast.Target == CreatureAttackPriority.Group)
-                    {
-                        if (ThreatInfo.HighestThreat is User user)
-                        {
-                            if (user.Group != null)
-                            {
-                                foreach (var member in user.Group.Members)
-                                    Cast(offensiveCast.Slot, member);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        var target = GetTarget(offensiveCast.Target);
-                        Cast(offensiveCast.Slot, target);
-                    }
-                }
-                else Attack(); // Fall back to assail if we don't have a spell
-            }
-
-            if (action == MobAction.Move)
-            {
-                if (!Condition.MovementAllowed) return;
-                if ((!IsHostile && ShouldWander) || Condition.Blinded)
+                case MobAction.Move when !Condition.MovementAllowed:
+                    return;
+                case MobAction.Move when !IsHostile && ShouldWander || Condition.Blinded:
                 {
                     var which = _random.Next(0, 2); //turn or move
                     if (which == 0)
                     {
-                        var next = _random.Next(0, 4);
-                        if (Direction == (Direction) next)
+                        var dir = _random.Next(0, 4);
+                        if (Direction == (Direction) dir)
                         {
-                            Walk((Direction) next);
+                            Walk((Direction) dir);
                         }
                         else
                         {
-                            Turn((Direction) next);
+                            Turn((Direction) dir);
                         }
                     }
                     else
                     {
-                        var next = _random.Next(0, 4);
-                        Turn((Direction) next);
+                        var dir = _random.Next(0, 4);
+                        Turn((Direction) dir);
                     }
+
+                    break;
                 }
-                else
+                case MobAction.Move when ThreatInfo.HighestThreat == null:
+                    return;
+                case MobAction.Move:
                 {
-                    if (ThreatInfo.HighestThreat == null) return;
                     if (Condition.MovementAllowed)
                     {
                         if (CurrentPath == null || !AStarPathClear())
@@ -1089,18 +893,19 @@ public class Monster : Creature, ICloneable
                             // If we can't find a path, return to wandering
                             ShouldWander = true;
                     }
+                    else
+                    {
+                        GameLog.SpawnError("Can't move");
+                    }
+
+                    break;
                 }
-            }
-
-            if (action == MobAction.Idle)
-            {
-                //do nothing
-            }
-
-            if (action == MobAction.Death)
-            {
-                _actionQueue.Clear();
-
+                case MobAction.Idle:
+                    //do nothing
+                    break;
+                case MobAction.Death:
+                    _actionQueue.Clear();
+                    break;
             }
         }
     }
@@ -1153,18 +958,5 @@ public class Monster : Creature, ICloneable
         }
     }
 
-    public Creature GetTarget(CreatureAttackPriority priority)
-    {
-        return priority switch
-        {
-            CreatureAttackPriority.Attacker => LastHitter,
-            CreatureAttackPriority.AttackingCaster => ThreatInfo.HighestThreatCaster,
-            CreatureAttackPriority.AttackingHealer => ThreatInfo.HighestThreatHealer,
-            var x when x == CreatureAttackPriority.Random || x == CreatureAttackPriority.Group => ThreatInfo
-                .ThreatTableByCreature.PickRandom().Key,
-            CreatureAttackPriority.HighThreat => ThreatInfo.HighestThreat,
-            CreatureAttackPriority.LowThreat => ThreatInfo.LowestThreat,
-            _ => null,
-        };
-    }
+    public List<Creature> GetThreatTarget(CreatureTargetPriority priority) => ThreatInfo.GetTargets(priority);
 }

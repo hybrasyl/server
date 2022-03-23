@@ -22,9 +22,11 @@
 using Grpc.Core;
 using System;
 using System.Threading.Tasks;
-using Hybrasyl;
 using Google.Protobuf.WellKnownTypes;
 using System.Linq;
+using Hybrasyl;
+using HybrasylGrpc;
+using Hybrasyl.Objects;
 
 namespace HybrasylGrpc;
 
@@ -41,7 +43,7 @@ class PatronServer : Patron.PatronBase
         {
             if (!World.ControlMessageQueue.IsAddingCompleted)
             {
-                World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.ShutdownServer, 
+                World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.ShutdownServer,
                     context.Peer, request.Delay));
                 resp.Message = "Shutdown request successfully submitted";
                 resp.Success = true;

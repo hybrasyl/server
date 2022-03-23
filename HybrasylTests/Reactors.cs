@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using Hybrasyl;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml;
@@ -59,13 +60,14 @@ public class Reactor
         Assert.True(Fixture.TestUser.UseCastable(trapTest), "UseCastable failed");
 
         var baitTemplate = Game.World.WorldData.Get<Hybrasyl.Xml.Creature>("Honey Bee");
-        var bait = new Monster(baitTemplate, SpawnFlags.AiDisabled, 99, Fixture.Map.Id)
+        var bait = new Monster(baitTemplate, SpawnFlags.AiDisabled, 99)
         {
             Stats =
             {
                 BaseHp = 500,
                 Hp = 500
             },
+            Name = "Bee Bait", 
             X = (byte) (Fixture.TestUser.X - 1),
             Y = Fixture.TestUser.Y
         };

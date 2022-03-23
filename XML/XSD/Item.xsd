@@ -92,9 +92,9 @@
   </xs:complexType>
 
   <xs:complexType name="Physical">
-    <xs:attribute name="Value" type="xs:float" use="required"/>
-    <xs:attribute name="Weight" type="xs:float" use="required"/>
-    <xs:attribute name="Durability" type="xs:float" use="required"/>
+    <xs:attribute name="Value" type="xs:float" use="optional" default="1"/>
+    <xs:attribute name="Weight" type="xs:float" use="optional" default="1"/>
+    <xs:attribute name="Durability" type="xs:float" use="optional" default="1"/>
   </xs:complexType>
 
   <xs:complexType name="RestrictionsLevel">

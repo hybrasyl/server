@@ -239,13 +239,15 @@ public class ItemObject : VisibleObject
     public Xml.WeaponType WeaponType => Template.Properties.Equipment.WeaponType;
     public byte EquipmentSlot => Convert.ToByte(Template.Properties.Equipment.Slot);
     public string SlotName => Enum.GetName(typeof(Xml.EquipmentSlot), EquipmentSlot) ?? "None";
-    public int Weight => Template.Properties.Physical.Weight;
+    public int Weight => Template.Properties.Physical.Weight > int.MaxValue ? int.MaxValue : Convert.ToInt32(Template.Properties.Physical.Weight);
     public int MaximumStack => Template.MaximumStack;
     public bool Stackable => Template.Stackable;
 
     public List<Xml.CastModifier> CastModifiers => Template.Properties.CastModifiers;
 
-    public uint MaximumDurability => Template.Properties?.Physical?.Durability ?? 0;
+    public uint MaximumDurability => Template.Properties?.Physical?.Durability > uint.MaxValue
+        ? uint.MaxValue
+        : Convert.ToUInt32(Template.Properties.Physical.Durability);
 
     // For future use / expansion re: unidentified items.
     // Should pull from template and only allow false to be set when
@@ -273,7 +275,10 @@ public class ItemObject : VisibleObject
     public ushort MaxSDamage => Template.MaxSDamage;
     public ushort DisplaySprite => Template.Properties.Appearance.DisplaySprite;
 
-    public uint Value => Template.Properties.Physical.Value;
+    public uint Value => Template.Properties.Physical.Value > uint.MaxValue
+        ? uint.MaxValue
+        : Convert.ToUInt32(Template.Properties.Physical.Value);
+
     public bool HideBoots => Template.Properties.Appearance.HideBoots;
 
 

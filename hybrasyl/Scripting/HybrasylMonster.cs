@@ -13,6 +13,11 @@ public class HybrasylMonster
 
     public string Name => Monster.Name;
 
+
+    public void DebugFunction(string x)
+    {
+        GameLog.ScriptingWarning(x);
+    }
     public Xml.Direction Direction => Monster.Direction;
 
     public ThreatInfo ThreatInfo => Monster.ThreatInfo;
@@ -62,55 +67,14 @@ public class HybrasylMonster
         s += $"Level: {Monster.Stats.Level}  Health: {Monster.Stats.Hp}/{Monster.Stats.MaximumHp}  Mana: {Monster.Stats.Mp} / {Monster.Stats.MaximumMp}\n";
         s += $"Stats: STR {Monster.Stats.Str} CON {Monster.Stats.Con} WIS {Monster.Stats.Wis} INT {Monster.Stats.Int} DEX {Monster.Stats.Dex}\n";
         s += $"Experience: {Monster.LootableXP}\n\n";
-        s += $"Castables:\n";
+        s += "Castables:\n";
 
-        if (Monster.BehaviorSet?.Behavior?.Casting?.Offense != null)
+        foreach (var rotation in Monster.CastableController)
         {
-            s += $"  Offense: ({Monster.BehaviorSet.Behavior.Casting.Offense.Interval} second timer) \n";
-            foreach (var castable in Monster.BehaviorSet.OffensiveCastables)
-            {
-                s += $"  {castable.Value}: {castable.HealthPercentage}% {castable.Priority} {castable.UseOnce}\n";
-            }
-            s += $"  Target Priority: {Monster.BehaviorSet.Behavior.Casting.Offense.Priority}\n";
+            s += $"  Set Type: {rotation.CastingSet.Type}, {rotation.Interval} second timer, target priority {rotation.CastingSet.TargetPriority} \n  Rotation:\n";
+            foreach (var entry in rotation)
+                s += $"    Castable: {entry.Name}, {entry.Directive} second timer, {entry.Threshold}% health, UseOnce: {entry.UseOnce}, Triggered: {entry.ThresholdTriggered}";
         }
-        else
-            s += $"  Offense: undefined / null";
-
-        if (Monster.BehaviorSet?.Behavior?.Casting?.Defense != null)
-        {
-            s += $"  Defense: ({Monster.BehaviorSet.Behavior.Casting.Defense.Interval} second timer) \n";
-            foreach (var castable in Monster.BehaviorSet.DefensiveCastables)
-            {
-                s += $"  {castable.Value}: {castable.HealthPercentage}% {castable.Priority} {castable.UseOnce} \n";
-            }
-            s += $"  Target: {Monster.BehaviorSet.Behavior.Casting.Defense.Priority} \n";
-        }
-        else
-            s += $"  Defense: undefined / null";
-
-        if (Monster.BehaviorSet?.Behavior?.Casting?.NearDeath != null)
-        {
-            s += $"  NearDeath: ({Monster.BehaviorSet.Behavior.Casting.NearDeath.Interval} second timer) \n";
-            foreach (var castable in Monster.BehaviorSet.NearDeathCastables)
-            {
-                s += $"  {castable.Value}: {castable.HealthPercentage}% {castable.Priority} {castable.UseOnce}\n";
-            }
-            s += $"  Target: {Monster.BehaviorSet.Behavior.Casting.NearDeath.Priority}  \n";
-        }
-        else
-            s += $"  NearDeath: undefined / null";
-
-        if (Monster.BehaviorSet?.Behavior?.Casting?.OnDeath != null)
-        {
-            s += $"  OnDeath: ({Monster.BehaviorSet.Behavior.Casting.OnDeath.Interval} second timer) \n";
-            foreach (var castable in Monster.BehaviorSet.OnDeathCastables)
-            {
-                s += $"  {castable.Value}: {castable.HealthPercentage}% {castable.Priority} {castable.UseOnce}\n";
-            }
-            s += $"  Target: {Monster.BehaviorSet.Behavior.Casting.OnDeath.Priority}  \n";
-        }
-        else
-            s += $"  OnDeath: undefined / null";
 
         s += $"AbsoluteImmortal: {Monster.AbsoluteImmortal}\n";
         s += $"PhysicalImmortal: {Monster.PhysicalImmortal}\n";
@@ -127,7 +91,7 @@ public class HybrasylMonster
             s += $"ThreatInfo:\n";
             foreach (var user in Monster.ThreatInfo.ThreatTableByCreature)
             {
-                s += $"Name: {user.Key.Name} | Threat: {user.Value}\n";
+                s += $"Name: {Game.World.WorldData.GetWorldObject<VisibleObject>(user.Key)?.Name ?? "unknown"} | Threat: {user.Value}\n";
             }
         }
 

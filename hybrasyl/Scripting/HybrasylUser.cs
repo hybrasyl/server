@@ -31,6 +31,10 @@ namespace Hybrasyl.Scripting;
 [MoonSharpUserData]
 public class HybrasylUser
 {
+    public void DebugFunction(string x)
+    {
+        GameLog.ScriptingWarning(x);
+    }
     internal User User { get; set; }
     internal HybrasylWorld World { get; set; }
     public HybrasylMap Map { get; set; }

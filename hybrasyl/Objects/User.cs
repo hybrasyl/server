@@ -3514,7 +3514,7 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
                     Color = (byte)worldItem.Properties.Appearance.Color,
                     Description = worldItem.Properties.Vendor?.Description ?? "",
                     Name = worldItem.Name,
-                    Price = worldItem.Properties.Physical.Value
+                    Price = Convert.ToUInt32(worldItem.Properties.Physical.Value)
 
                 });
                 itemsCount++;
