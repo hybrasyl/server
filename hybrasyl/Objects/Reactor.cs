@@ -31,6 +31,8 @@ public class Reactor : VisibleObject
     public DateTime Expiration { get; set; } = default;
     public VisibleObject Origin { get; set; } = null;
     public Guid CreatedBy { get; set; }
+    public bool OnDropCapable => Ready && !Expired && Script.HasFunction("OnDrop");
+    public bool OnTakeCapable => Ready && !Expired && Script.HasFunction("OnTake");
 
     public bool Ready
     {
@@ -158,7 +160,8 @@ public class Reactor : VisibleObject
     {
         if (Expired) return;
         if (Ready)
-            Script.ExecuteFunction("OnTake", obj, this, taken);
+            Script.ExecuteFunction("OnDrop", obj, this,
+                taken);
     }
 
     public override void ShowTo(VisibleObject obj)

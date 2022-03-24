@@ -1537,12 +1537,12 @@ public partial class World : Server
         uint mpRegen = 0;
         if (user.Stats.Hp != user.Stats.MaximumHp)
         {
-            hpRegen = (uint)Math.Min(user.Stats.MaximumHp * (0.1 * Math.Max(user.Stats.Con, (user.Stats.Con - user.Stats.Level)) * 0.01),
+            hpRegen = (uint)Math.Min(user.Stats.MaximumHp * (0.1 + Math.Max(user.Stats.Con, (user.Stats.Con - user.Stats.Level)) * 0.01),
                 user.Stats.MaximumHp * 0.20);
         }               
         if (user.Stats.Mp != user.Stats.MaximumMp)
         {
-            mpRegen = (uint)Math.Ceiling(Math.Min(user.Stats.MaximumMp * (0.1 * Math.Max(user.Stats.Int, (user.Stats.Int - user.Stats.Level)) * 0.01),
+            mpRegen = (uint)Math.Ceiling(Math.Min(user.Stats.MaximumMp * (0.1 + Math.Max(user.Stats.Int, (user.Stats.Int - user.Stats.Level)) * 0.01),
                 user.Stats.MaximumMp * 0.20));
         }
         GameLog.DebugFormat("User {0}: regen HP {1}, MP {2}", user.Name,
@@ -1798,10 +1798,13 @@ public partial class World : Server
                 user.Map.RemoveGold(pickupObject as Gold);
             else
                 user.Map.Remove(pickupObject as ItemObject);
-            // Hopefully the reactor will DTRT
-            foreach (var reactor in reactors.Values)
+            // If the reactor handles the pickup, we do nothing
+            foreach (var reactor in reactors.Values.Where(reactor => reactor.OnTakeCapable))
+            {
                 reactor.OnTake(user, pickupObject);
-            return;
+                return;
+            }
+ 
         }
 
         // If the add is successful, remove the item from the map quadtree
@@ -1948,11 +1951,13 @@ public partial class World : Server
         var coordinates = ((byte)x, (byte)y);
         if (user.Map.Reactors.TryGetValue(coordinates, out var reactors))
         {
-            foreach (var reactor in reactors.Values)
+            foreach (var reactor in reactors.Values.Where(x => x.OnDropCapable))
+            {
                 reactor.OnDrop(user, toDrop);
+                return;
+            }
         }
-        else
-            user.Map.AddItem(x, y, toDrop);
+        user.Map.AddItem(x, y, toDrop);
     }
 
     private void PacketHandler_0x0E_Talk(Object obj, ClientPacket packet)
@@ -2651,10 +2656,16 @@ public partial class World : Server
 
         // Are we dropping an item onto a reactor?
         var coordinates = ((byte)x, (byte)y);
+        var handled = false;
         if (user.Map.Reactors.TryGetValue(coordinates, out var reactors))
         {
-            foreach (var reactor in reactors.Values)
+            foreach (var reactor in reactors.Values.Where(x => x.OnDropCapable))
+            {
                 reactor.OnDrop(user, toDrop);
+                handled = true;
+            }
+            if (!handled)
+                user.Map.AddGold(x,y,toDrop);
         }
         else
             user.Map.AddGold(x, y, toDrop);
