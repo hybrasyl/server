@@ -42,6 +42,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
@@ -2249,12 +2250,50 @@ public partial class World : Server
         // "!!" is the special character sequence for group whisper. If this is the
         // target, the message should be sent as a group whisper instead of a standard
         // whisper.
+        // TODO: handle $ and # with classes
         if (target == "!!")
         {
             user.SendGroupWhisper(message);
         }
-        else if (target == "*" && user.AuthInfo.IsPrivileged)
+        else if (target == "#" && user.AuthInfo.IsPrivileged)
         {
+            // "# eval "ard srad" <monster id> <number of evaluations>
+            var match = Regex.Match(message, @"(\w+) ""(.+)"" (\d+) (\d+)");
+            if (match.Success && match.Groups[1].Value.ToLower() == "eval")
+            {
+                if (WorldData.TryGetValueByIndex(match.Groups[2].Value, out Castable castable))
+                {
+                    if (Objects.TryGetValue(Convert.ToUInt32(match.Groups[3].Value), out WorldObject wobj))
+                    {
+                        if (wobj is Creature creatureObj)
+                        {
+                            var damages = new List<DamageOutput>();
+                            for (var x = 0; x < Convert.ToUInt32(match.Groups[4].Value); x++)
+                            {
+                                var output = NumberCruncher.CalculateDamage(castable, creatureObj, user);
+                                damages.Add(output);
+                            }
+                            // Only use "slate" if more than one calculation
+                            if (damages.Count == 1)
+                                user.SendSystemMessage($"Result: {damages[0].Amount} ({damages[0].Element}, {damages[0].Type})");
+                            else
+                            {
+                                var ret = string.Empty;
+                                damages.ForEach(x => ret += $"{x.Amount} ({x.Element}, {x.Type})\n");
+                                var avg = damages.Select(x => x.Amount).Average();
+                                user.SendMessage($"Runs: {damages.Count}    Average: {avg}\n\n{ret}", MessageTypes.SLATE_WITH_SCROLLBAR);
+                            }
+                        }
+                        else
+                            user.SendSystemMessage("Sorry, that isn't a creature.");
+                    }
+                    else 
+                        user.SendSystemMessage($"Sorry, I couldn't find object {match.Groups[1].Value}");
+
+                }
+                else
+                    user.SendSystemMessage($"Sorry, I don't know about that castable.");
+            }
 
         }
         else if (target == "@" && user.AuthInfo.IsPrivileged)

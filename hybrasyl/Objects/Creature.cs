@@ -70,32 +70,21 @@ public class Creature : VisibleObject
     {
         // TODO: abstract to xml
 
-        var prepend = "";
+        string ret;
         var diff = Stats.Level - invoker.Stats.Level;
-        switch (diff)
+        ret = diff switch
         {
-            case var _ when diff >= -3 && diff <= 3:
-                prepend = "";
-                break;
-            case var _ when diff >= -7 && diff <= -4:
-                prepend = "Trifling ";
-                break;
-            case var _ when diff <= -7:
-                prepend = "Paltry ";
-                break;
-            case var _ when diff >= 4 && diff <= 7:
-                prepend = "Difficult ";
-                break;
-            case var _ when diff > 7:
-                prepend = "Deadly ";
-                break;
-            default:
-                prepend = "";
-                break;
+            >= -3 and <= 3 => "",
+            >= -7 and <= -4 => "Trifling",
+            <= -7 => "Paltry",
+            >= 4 and <= 7 => "Difficult",
+            > 7 => "Deadly",
+        };
 
-        }
-
-        invoker.SendSystemMessage(prepend + Name);
+        ret += $" {Name}";
+        if (invoker.AuthInfo.IsPrivileged)
+            ret += $" ({Id})";
+        invoker.SendSystemMessage(ret);
     }
 
     public Creature GetDirectionalTarget(Xml.Direction direction)
