@@ -1765,7 +1765,9 @@ public partial class World : Server
 
         string error = string.Empty;
 
-        VisibleObject pickupObject = pickupList.FirstOrDefault(po => po.CanBeLooted(user.Name, out error));
+        // Pick up gold first
+        VisibleObject pickupObject = pickupList.FirstOrDefault(po => po is Gold && po.CanBeLooted(user.Name, out error)) ??
+                                     pickupList.FirstOrDefault(po => po is ItemObject && po.CanBeLooted(user.Name, out error));
 
         if (pickupObject == null)
         {
