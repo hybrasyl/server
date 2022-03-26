@@ -112,6 +112,10 @@ public class Exchange
             return false;
         }
 
+        // Have they already confirmed?
+        if (_sourceConfirmed || _targetConfirmed)
+            return false;
+
         // OK - we have room, now what?
         var theItem = giver.Inventory[slot];
 
