@@ -34,7 +34,6 @@ public static class ByteHeartbeatJob
         {
             GameLog.Debug("Job starting");
 
-            var rnd = new Random();
             foreach (var client in GlobalConnectionManifest.WorldClients.Values)
             {
                 // Send the 0x3B heartbeat to logged in clients

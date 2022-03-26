@@ -29,8 +29,6 @@ namespace Hybrasyl.Objects;
 
 public class VisibleObject : WorldObject
 {
-    public static Random _random = new Random();
-
     [JsonProperty]
     public LocationInfo Location { get; set; }
     // TODO: Clean these up later and simply use Location instead
@@ -57,6 +55,7 @@ public class VisibleObject : WorldObject
     public string DisplayText { get; set; }
 
     protected Dictionary<string, string> Strings = new();
+    protected Dictionary<string, string> Responses = new();
 
     public string GetLocalString(string key) => Strings.ContainsKey(key) ? Strings[key] : World.GetLocalString(key);
 

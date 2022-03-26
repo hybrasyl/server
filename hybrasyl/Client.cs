@@ -251,10 +251,9 @@ public class Client
         var aliveSince = new TimeSpan(DateTime.Now.Ticks - ConnectedSince);
         if (aliveSince.TotalSeconds < Constants.BYTE_HEARTBEAT_INTERVAL)
             return;
-        var rnd = new Random();
         var byteHeartbeat = new ServerPacket(0x3b);
-        var a = rnd.Next(254);
-        var b = rnd.Next(254);
+        var a = Random.Shared.Next(254);
+        var b = Random.Shared.Next(254);
         Interlocked.Exchange(ref _heartbeatA, a);
         Interlocked.Exchange(ref _heartbeatB, b);
         byteHeartbeat.WriteByte((byte)a);

@@ -12,7 +12,6 @@
         /// </summary>
         public class EventTranscriber : MessagePlugin, IProcessingMessageHandler
         {
-            private static Random rand = new Random();
             private string WebhookUrl = string.Empty;
             private string OutputDir = string.Empty;
 
@@ -58,7 +57,7 @@
                     return resp;
                 }
 
-                var id = rand.RandomString(8);
+                var id = Random.Shared.RandomString(8);
 
                 // Transmit message to discord, also save locally
 

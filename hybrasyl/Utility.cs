@@ -53,7 +53,6 @@ namespace Hybrasyl
 
     public static class RandomExtensions
     {
-        //private static readonly Random random = new Random();
         public static string RandomString(this Random rand, int length)
         {
             const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";

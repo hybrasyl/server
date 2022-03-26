@@ -278,7 +278,6 @@ namespace Hybrasyl.Xml
 
     public partial class Spawn
     {
-        private static readonly Random Rng = new Random();
         public bool Disabled { get; set; } = false;
         public string ErrorMessage { get; set; } = string.Empty;
 
@@ -290,9 +289,9 @@ namespace Hybrasyl.Xml
         {
             return _damage.Element switch
             {
-                ElementType.Random => (ElementType) Rng.Next(1, 9),
-                ElementType.RandomFour => (ElementType) Rng.Next(1, 4),
-                ElementType.RandomEight => (ElementType) Rng.Next(5, 8),
+                ElementType.Random => (ElementType) Random.Shared.Next(1, 9),
+                ElementType.RandomFour => (ElementType) Random.Shared.Next(1, 4),
+                ElementType.RandomEight => (ElementType) Random.Shared.Next(5, 8),
                 _ => _damage.Element
             };
         }
@@ -305,9 +304,9 @@ namespace Hybrasyl.Xml
         {
             return _defense.Element switch
             {
-                ElementType.Random => (ElementType) Rng.Next(1, 9),
-                ElementType.RandomFour => (ElementType) Rng.Next(1, 4),
-                ElementType.RandomEight => (ElementType) Rng.Next(5, 8),
+                ElementType.Random => (ElementType) Random.Shared.Next(1, 9),
+                ElementType.RandomFour => (ElementType) Random.Shared.Next(1, 4),
+                ElementType.RandomEight => (ElementType) Random.Shared.Next(5, 8),
                 _ => _defense.Element
             };
         }
@@ -328,8 +327,7 @@ namespace Hybrasyl.Xml
         {
             get
             {
-                var rand = new Random();
-                return SpawnPoints.Count > 0 ? SpawnPoints[rand.Next(0, SpawnPoints.Count)] : default(SpawnPoint);
+                return SpawnPoints.Count > 0 ? SpawnPoints[Random.Shared.Next(0, SpawnPoints.Count)] : default(SpawnPoint);
             }
         }
     }

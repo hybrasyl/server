@@ -77,6 +77,11 @@ public class Merchant : Creature, IXmlReloadable
             Strings[str.Key] = str.Value;
         }
 
+        foreach (var resp in npc.Responses)
+        {
+            var key = resp.Call.ToLower().TrimEnd().TrimStart();
+            Responses[key] = resp.Value;
+        }
 
         if (npc.Roles != null)
         {
@@ -145,13 +150,8 @@ public class Merchant : Creature, IXmlReloadable
         var ret = new List<MerchantInventoryItem>();
         lock (inventoryLock)
         {
-            if (MerchantInventory != null)
-            {
-                for (var i = 0; i < MerchantInventory.Count; i++)
-                {
-                    ret.Add(MerchantInventory[i]);
-                }
-            }
+            if (MerchantInventory == null) return ret;
+            ret.AddRange(MerchantInventory);
         }
         return ret;
     }
@@ -280,6 +280,21 @@ public class Merchant : Creature, IXmlReloadable
             else 
                 u.SendSystemMessage($"{Name} shrugs. \"Sorry, I don't know what you mean.\"");
             // Don't also pass buy strings to scripting
+            return;
+        }
+
+        var key = text.ToLower().Trim();
+        if (Responses.TryGetValue(key, out string response) )
+        {
+            // TODO: improve
+            Say(response.Replace("$NAME", Name));
+            return;
+        }
+
+        var resp = World.GetLocalResponse(key);
+        if (resp != null)
+        {
+            Say(resp.Replace("$NAME", Name));
             return;
         }
 

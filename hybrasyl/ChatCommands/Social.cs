@@ -131,7 +131,6 @@ class EndMass : ChatCommand
     public new static string HelpText = "End an active mass.";
     public new static bool Privileged = true;
 
-    static readonly Random rng = new Random();
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
@@ -143,7 +142,7 @@ class EndMass : ChatCommand
             {
                 foreach (var participant in user.Map.Users.Values.Where(x => x.Distance(user) < 20))
                 {
-                    var reward = rng.Next(1, 100);
+                    var reward = Random.Shared.Next(1, 100);
                     if (reward <= 80)
                     {
                         participant.GiveExperience(Math.Max(Convert.ToUInt32(participant.ExpToLevel * 0.01), 2500));
@@ -181,7 +180,6 @@ class EndClass : ChatCommand
     public new static string HelpText = "End an active class.";
     public new static bool Privileged = true;
 
-    static readonly Random rng = new Random();
     public new static ChatCommandResult Run(User user, params string[] args)
     {
         if (Game.World.WorldData.TryGetSocialEvent(user, out SocialEvent e))
@@ -192,7 +190,7 @@ class EndClass : ChatCommand
             {
                 foreach (var participant in user.Map.Users.Values.Where(x => x.Distance(user) < 20))
                 {
-                    var reward = rng.Next(1, 100);
+                    var reward = Random.Shared.Next(1, 100);
                     if (reward <= 80)
                     {
                         participant.GiveExperience(Math.Max(Convert.ToUInt32(participant.ExpToLevel * 0.01), 2500));

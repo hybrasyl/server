@@ -36,12 +36,10 @@ namespace Hybrasyl;
 //This class is defined to control the mob spawning thread.
 internal class Monolith
 {
-    private static Random _random;
     private ConcurrentDictionary<string, Xml.SpawnGroup> Spawns;
 
     internal Monolith()
     {
-        _random = new Random();
         Spawns = new ConcurrentDictionary<string, Xml.SpawnGroup>();
     }
 
@@ -264,8 +262,8 @@ internal class Monolith
                     {
                         do
                         {
-                            xcoord = _random.Next(0, spawnmap.X);
-                            ycoord = _random.Next(0, spawnmap.Y);
+                            xcoord = Random.Shared.Next(0, spawnmap.X);
+                            ycoord = Random.Shared.Next(0, spawnmap.Y);
                         } while (spawnmap.IsWall[xcoord, ycoord]);                           
                     }
                     baseMob.X = (byte) xcoord;
@@ -372,11 +370,9 @@ internal class Monolith
 internal class MonolithControl
 {
     private IEnumerable<Map> _maps { get; set; }
-    private static Random _random;
 
     internal MonolithControl()
     {
-        _random = new Random();
         _maps = Game.World.WorldData.Values<Map>().ToList();
     }
         

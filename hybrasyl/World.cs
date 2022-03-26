@@ -126,8 +126,6 @@ public partial class World : Server
 
     public Login Login { get; private set; }
 
-    private static Random _random;
-
     private static Lazy<ConnectionMultiplexer> _lazyConnector;
 
     public static ConnectionMultiplexer DatastoreConnection => _lazyConnector.Value;
@@ -206,7 +204,6 @@ public partial class World : Server
 
         ActiveAsyncDialogs = new ConcurrentDictionary<Tuple<UInt32, UInt32>, AsyncDialogRequest>();
         WorldData = new WorldDataStore();
-        _random = new Random();
         CommandHandler = new ChatCommandHandler();
         DebugEnabled = false;
     }
@@ -357,6 +354,7 @@ public partial class World : Server
     }
 
     public string GetLocalString(string key) => Strings.GetString(key);
+    public string GetLocalResponse(string key) => Strings.GetResponse(key);
 
     public string GetXmlFile(string type, string name)
     {
@@ -1760,21 +1758,14 @@ public partial class World : Server
         var tile = new Rectangle(x, y, 1, 1);
 
         // We don't want to pick up people
-        var pickupList = user.Map.EntityTree.GetObjects(tile).Where(i => i is Gold || i is ItemObject);
+        var pickupList = user.Map.EntityTree.GetObjects(tile).Where(i => i is Gold || i is ItemObject).Reverse()
+            .ToList();
 
-        if (pickupList.Count() == 0) return;
+        if (!pickupList.Any()) return;
 
-        VisibleObject pickupObject = null;
         string error = string.Empty;
 
-        foreach (var po in pickupList)
-        {
-            if (po.CanBeLooted(user.Name, out error))
-            {
-                pickupObject = po;
-                break;
-            }
-        }
+        VisibleObject pickupObject = pickupList.FirstOrDefault(po => po.CanBeLooted(user.Name, out error));
 
         if (pickupObject == null)
         {

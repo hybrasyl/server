@@ -10,7 +10,6 @@ namespace Hybrasyl.Plugins;
 /// </summary>
 public class FeedbackReporter : MessagePlugin, IProcessingMessageHandler
 {
-    private static Random rand = new Random();
     private string WebhookUrl = string.Empty;
     private string OutputDir = string.Empty;
        
@@ -53,7 +52,7 @@ public class FeedbackReporter : MessagePlugin, IProcessingMessageHandler
             return resp;
         }
 
-        var id = rand.RandomString(8);
+        var id = Random.Shared.RandomString(8);
 
         // Transmit message to discord, also save locally
 

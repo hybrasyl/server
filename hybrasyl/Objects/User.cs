@@ -817,7 +817,6 @@ public class User : Creature
             // Apply one level at a time
 
             var levelsGained = 0;
-            Random random = new Random();
 
             while (exp > 0 && Stats.Level < 99)
             {
@@ -835,7 +834,7 @@ public class User : Creature
                     // For level up we use Biomagus' formulas with a random 85% - 115% tweak
                     // HP: (CON/(Lv+1)*50*randomfactor)+25
                     // MP: (WIS/(Lv+1)*50*randomfactor)+25
-                    var randomBonus = (random.NextDouble() * 0.30) + 0.85;
+                    var randomBonus = (Random.Shared.NextDouble() * 0.30) + 0.85;
                     int bonusHpGain = (int) Math.Ceiling((double) (Stats.BaseCon / (float)Stats.Level) * 50 * randomBonus);
                     int bonusMpGain = (int) Math.Ceiling((double) (Stats.BaseWis / (float)Stats.Level) * 50 * randomBonus);
 
@@ -1219,18 +1218,19 @@ public class User : Creature
 
         if (UseCastable(bookSlot.Castable, null, assailAttack))
         {
-            if(bookSlot.UseCount != uint.MaxValue)
+            if (bookSlot.UseCount != uint.MaxValue)
                 bookSlot.UseCount += 1;
-            if(bookSlot.UseCount <= bookSlot.Castable.Mastery.Uses)
+            if (bookSlot.UseCount <= bookSlot.Castable.Mastery.Uses)
                 SendSkillUpdate(bookSlot, slot);
+
+            bookSlot.Castable.LastCast = DateTime.Now;
+            Client.Enqueue(new ServerPacketStructures.Cooldown()
+            {
+                Length = (uint) bookSlot.Castable.Cooldown,
+                Pane = 1,
+                Slot = slot
+            }.Packet());
         }
-        bookSlot.Castable.LastCast = DateTime.Now;
-        Client.Enqueue(new ServerPacketStructures.Cooldown()
-        {
-            Length = (uint)bookSlot.Castable.Cooldown,
-            Pane = 1,
-            Slot = slot
-        }.Packet());
     }
 
     internal void UseSpell(byte slot, uint target = 0)
@@ -1261,7 +1261,7 @@ public class User : Creature
 
         var intersect = UseCastRestrictions.Intersect(bookSlot.Castable.Categories.Select(x => x.Value), StringComparer.InvariantCultureIgnoreCase);
 
-        if (intersect.Count() > 0)
+        if (intersect.Any())
         {
             SendSystemMessage("You cannot cast that now.");
             return;
@@ -1271,15 +1271,15 @@ public class User : Creature
         {
             bookSlot.UseCount += 1;
             if (bookSlot.UseCount <= bookSlot.Castable.Mastery.Uses)
-                SendSpellUpdate(bookSlot, slot);               
+                SendSpellUpdate(bookSlot, slot);
+            Client.Enqueue(new ServerPacketStructures.Cooldown()
+            {
+                Length = (uint) bookSlot.Castable.Cooldown,
+                Pane = 0,
+                Slot = slot
+            }.Packet());
+            bookSlot.LastCast = DateTime.Now;
         }
-        Client.Enqueue(new ServerPacketStructures.Cooldown()
-        {
-            Length = (uint)bookSlot.Castable.Cooldown,
-            Pane = 0,
-            Slot = slot
-        }.Packet());
-        bookSlot.LastCast = DateTime.Now;
     }
 
     /// <summary>
@@ -1856,8 +1856,7 @@ public class User : Creature
 
         if (Condition.Disoriented)
         {
-            var random = new Random();
-            direction = (Direction) random.Next(4);
+            direction = (Direction) Random.Shared.Next(4);
             SendSystemMessage("You stumble around, unable to gather your bearings.");
         }
 

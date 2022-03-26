@@ -32,6 +32,7 @@ public partial class Npc
     private string _displayName;
     private NpcAppearance _appearance;
     private List<LocalizedString> _strings;
+    private List<NpcResponse> _responses;
     private NpcRoleList _roles;
     private bool _allowDead;
     private NpcInventory _inventory;
@@ -88,6 +89,19 @@ public partial class Npc
         set
         {
             _strings = value;
+        }
+    }
+    
+    [XmlArrayItemAttribute("Response", IsNullable=false)]
+    public List<NpcResponse> Responses
+    {
+        get
+        {
+            return _responses;
+        }
+        set
+        {
+            _responses = value;
         }
     }
     

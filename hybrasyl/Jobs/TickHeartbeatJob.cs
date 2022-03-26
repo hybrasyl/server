@@ -35,7 +35,6 @@ public static class TickHeartbeatJob
         {
             GameLog.Debug("Job starting");
 
-            var rnd = new Random();
             foreach (var client in GlobalConnectionManifest.WorldClients.Values)
             {
                 client.SendTickHeartbeat();

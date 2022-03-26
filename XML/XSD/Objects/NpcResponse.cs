@@ -24,88 +24,37 @@ using System.Collections.Generic;
 [DebuggerStepThrough]
 [DesignerCategoryAttribute("code")]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-[XmlRootAttribute("Strings", Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02", IsNullable=false)]
-public partial class LocalizedStringGroup
+public partial class NpcResponse
 {
     #region Private fields
-    private List<LocalizedString> _common;
-    private List<LocalizedString> _merchant;
-    private List<LocalizedString> _npcSpeak;
-    private List<LocalizedString> _monsterSpeak;
-    private List<NpcResponse> _npcResponses;
+    private string _call;
+    private string _value;
     private static XmlSerializer _serializerXml;
     #endregion
     
-    public LocalizedStringGroup()
-    {
-        _monsterSpeak = new List<LocalizedString>();
-        _npcSpeak = new List<LocalizedString>();
-        _merchant = new List<LocalizedString>();
-        _common = new List<LocalizedString>();
-    }
-    
-    [XmlArrayItemAttribute("String", IsNullable=false)]
-    public List<LocalizedString> Common
+    [XmlAttribute]
+    public string Call
     {
         get
         {
-            return _common;
+            return _call;
         }
         set
         {
-            _common = value;
+            _call = value;
         }
     }
     
-    [XmlArrayItemAttribute("String", IsNullable=false)]
-    public List<LocalizedString> Merchant
+    [XmlTextAttribute]
+    public string Value
     {
         get
         {
-            return _merchant;
+            return _value;
         }
         set
         {
-            _merchant = value;
-        }
-    }
-    
-    [XmlArrayItemAttribute("String", IsNullable=false)]
-    public List<LocalizedString> NpcSpeak
-    {
-        get
-        {
-            return _npcSpeak;
-        }
-        set
-        {
-            _npcSpeak = value;
-        }
-    }
-    
-    [XmlArrayItemAttribute("String", IsNullable=false)]
-    public List<LocalizedString> MonsterSpeak
-    {
-        get
-        {
-            return _monsterSpeak;
-        }
-        set
-        {
-            _monsterSpeak = value;
-        }
-    }
-    
-    [XmlArrayItemAttribute("Response", IsNullable=false)]
-    public List<NpcResponse> NpcResponses
-    {
-        get
-        {
-            return _npcResponses;
-        }
-        set
-        {
-            _npcResponses = value;
+            _value = value;
         }
     }
     
@@ -115,7 +64,7 @@ public partial class LocalizedStringGroup
         {
             if ((_serializerXml == null))
             {
-                _serializerXml = new XmlSerializerFactory().CreateSerializer(typeof(LocalizedStringGroup));
+                _serializerXml = new XmlSerializerFactory().CreateSerializer(typeof(NpcResponse));
             }
             return _serializerXml;
         }
@@ -123,7 +72,7 @@ public partial class LocalizedStringGroup
     
     #region Serialize/Deserialize
     /// <summary>
-    /// Serialize LocalizedStringGroup object
+    /// Serialize NpcResponse object
     /// </summary>
     /// <returns>XML value</returns>
     public virtual string Serialize()
@@ -156,16 +105,16 @@ public partial class LocalizedStringGroup
     }
     
     /// <summary>
-    /// Deserializes LocalizedStringGroup object
+    /// Deserializes NpcResponse object
     /// </summary>
     /// <param name="input">string to deserialize</param>
-    /// <param name="obj">Output LocalizedStringGroup object</param>
+    /// <param name="obj">Output NpcResponse object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool Deserialize(string input, out LocalizedStringGroup obj, out Exception exception)
+    public static bool Deserialize(string input, out NpcResponse obj, out Exception exception)
     {
         exception = null;
-        obj = default(LocalizedStringGroup);
+        obj = default(NpcResponse);
         try
         {
             obj = Deserialize(input);
@@ -178,19 +127,19 @@ public partial class LocalizedStringGroup
         }
     }
     
-    public static bool Deserialize(string input, out LocalizedStringGroup obj)
+    public static bool Deserialize(string input, out NpcResponse obj)
     {
         Exception exception = null;
         return Deserialize(input, out obj, out exception);
     }
     
-    public static LocalizedStringGroup Deserialize(string input)
+    public static NpcResponse Deserialize(string input)
     {
         StringReader stringReader = null;
         try
         {
             stringReader = new StringReader(input);
-            return ((LocalizedStringGroup)(SerializerXml.Deserialize(XmlReader.Create(stringReader))));
+            return ((NpcResponse)(SerializerXml.Deserialize(XmlReader.Create(stringReader))));
         }
         finally
         {
@@ -201,14 +150,14 @@ public partial class LocalizedStringGroup
         }
     }
     
-    public static LocalizedStringGroup Deserialize(Stream s)
+    public static NpcResponse Deserialize(Stream s)
     {
-        return ((LocalizedStringGroup)(SerializerXml.Deserialize(s)));
+        return ((NpcResponse)(SerializerXml.Deserialize(s)));
     }
     #endregion
     
     /// <summary>
-    /// Serializes current LocalizedStringGroup object into file
+    /// Serializes current NpcResponse object into file
     /// </summary>
     /// <param name="fileName">full path of outupt xml file</param>
     /// <param name="exception">output Exception value if failed</param>
@@ -249,16 +198,16 @@ public partial class LocalizedStringGroup
     }
     
     /// <summary>
-    /// Deserializes xml markup from file into an LocalizedStringGroup object
+    /// Deserializes xml markup from file into an NpcResponse object
     /// </summary>
     /// <param name="fileName">File to load and deserialize</param>
-    /// <param name="obj">Output LocalizedStringGroup object</param>
+    /// <param name="obj">Output NpcResponse object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool LoadFromFile(string fileName, out LocalizedStringGroup obj, out Exception exception)
+    public static bool LoadFromFile(string fileName, out NpcResponse obj, out Exception exception)
     {
         exception = null;
-        obj = default(LocalizedStringGroup);
+        obj = default(NpcResponse);
         try
         {
             obj = LoadFromFile(fileName);
@@ -271,13 +220,13 @@ public partial class LocalizedStringGroup
         }
     }
     
-    public static bool LoadFromFile(string fileName, out LocalizedStringGroup obj)
+    public static bool LoadFromFile(string fileName, out NpcResponse obj)
     {
         Exception exception = null;
         return LoadFromFile(fileName, out obj, out exception);
     }
     
-    public static LocalizedStringGroup LoadFromFile(string fileName)
+    public static NpcResponse LoadFromFile(string fileName)
     {
         FileStream file = null;
         StreamReader sr = null;

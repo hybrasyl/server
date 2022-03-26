@@ -605,9 +605,8 @@ public class ClientPacket : Packet
         {
             crc = (ushort)(Data[6 + i] ^ ((ushort)(crc << 8) ^ DialogCrcTable[(crc >> 8)]));
         }
-        var rand = new Random();
-        Data[0] = (byte)rand.Next();
-        Data[1] = (byte)rand.Next();
+        Data[0] = (byte)Random.Shared.Next();
+        Data[1] = (byte)Random.Shared.Next();
         Data[2] = (byte)((Data.Length - 4) / 256);
         Data[3] = (byte)((Data.Length - 4) % 256);
         Data[4] = (byte)(crc / 256);
@@ -886,11 +885,10 @@ public class ServerPacket : Packet
     {
         var length = Data.Length - 3;
 
-        var rand = new Random();
         //var bRand = (ushort)(rand.Next() % 65277 + 256);
-        var bRand = (ushort)(rand.Next(65277) + 256);
+        var bRand = (ushort) (Random.Shared.Next(65277) + 256);
         //var sRand = (byte)(rand.Next() % 155 + 100);
-        var sRand = (byte)(rand.Next(155) + 100);
+        var sRand = (byte)(Random.Shared.Next(155) + 100);
 
         byte[] key;
         switch (this.EncryptMethod)

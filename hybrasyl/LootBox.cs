@@ -57,29 +57,12 @@ public class Loot
 public static class LootBox
 {
 
-    private static readonly Random _global = new Random();
-    [ThreadStatic] private static Random _local;
 
     /// <summary>
     /// Generate a random number in a threadsafe manner.
     /// </summary>
     /// <returns>random double</returns>
-    public static double Roll()
-    {
-        if (_local == null)
-        {
-            lock (_global)
-            {
-                if (_local == null)
-                {
-                    int seed = _global.Next();
-                    _local = new Random(seed);
-                }
-            }
-        }
-
-        return _local.NextDouble();
-    }
+    public static double Roll() => Random.Shared.NextDouble();
 
     /// <summary>
     /// Given the specified number of rolls and the chance, calculate how many wins (if any) occurred for  
@@ -104,23 +87,7 @@ public static class LootBox
     /// <param name="a">Lower bound</param>
     /// <param name="b">Upper bound</param>
     /// <returns></returns>
-    public static uint RollBetween(uint a, uint b)
-    {
-        if (_local == null)
-        {
-            lock (_global)
-            {
-                if (_local == null)
-                {
-                    int seed = _global.Next();
-                    _local = new Random(seed);
-                }
-            }
-        }
-
-        return (uint)_local.Next((int)a, (int)b + 1);
-    }
-
+    public static uint RollBetween(uint a, uint b) => (uint) Random.Shared.Next((int) a, (int) b + 1);
 
     /// <summary>
     /// Calculate loot for a given spawn.

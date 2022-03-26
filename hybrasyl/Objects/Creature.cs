@@ -604,9 +604,8 @@ public class Creature : VisibleObject
                 var damageOutput = NumberCruncher.CalculateDamage(castObject, tar, this);
                 if (castObject.Element == Xml.ElementType.Random)
                 {
-                    Random rnd = new Random();
                     var Elements = Enum.GetValues(typeof(Xml.ElementType));
-                    attackElement = (Xml.ElementType) Elements.GetValue(rnd.Next(Elements.Length));
+                    attackElement = (Xml.ElementType) Elements.GetValue(Random.Shared.Next(Elements.Length));
                 }
                 else if (castObject.Element != Xml.ElementType.None)
                     attackElement = castObject.Element;

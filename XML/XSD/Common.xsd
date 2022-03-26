@@ -944,6 +944,20 @@
     </xs:sequence>
   </xs:complexType>
 
+	<xs:complexType name="NpcResponses">
+		<xs:sequence>
+			<xs:element name="Response" type="hyb:NpcResponse" minOccurs="1" maxOccurs="unbounded"/>
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="NpcResponse">
+		<xs:simpleContent>
+			<xs:extension base="xs:string">
+				<xs:attribute name="Call" type="xs:string"/>
+			</xs:extension>
+		</xs:simpleContent>
+	</xs:complexType>
+
   <xs:complexType name="Npc">
     <xs:sequence>
       <xs:element name="Name" minOccurs="1" maxOccurs="1" type="hyb:String8" />
@@ -955,6 +969,7 @@
         </xs:complexType>
       </xs:element>
       <xs:element name="Strings" type="hyb:LocalizedStrings" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Responses" type="hyb:NpcResponses" minOccurs="0" maxOccurs="1"/>
       <xs:element name="Roles" type="hyb:NpcRoleList" minOccurs="0" maxOccurs="1" />
       <xs:element name="AllowDead" type="xs:boolean" minOccurs="0" maxOccurs="1"/>
       <xs:element name="Inventory" minOccurs="0" maxOccurs="1">

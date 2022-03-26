@@ -773,7 +773,7 @@ public class Monster : Creature, ICloneable
 
         if (!IsHostile)
         {
-            next = _random.Next(2, 4); //move or idle
+            next = Random.Shared.Next(2, 4); //move or idle
             _actionQueue.Enqueue((MobAction) next);
         }
         else
@@ -784,7 +784,7 @@ public class Monster : Creature, ICloneable
                     _actionQueue.Enqueue(MobAction.Attack);
                 else
                 {
-                    next = _random.Next(1, 3); //cast or move
+                    next = Random.Shared.Next(1, 3); //cast or move
                     _actionQueue.Enqueue((MobAction) next);
                 }
             }
@@ -825,10 +825,10 @@ public class Monster : Creature, ICloneable
                     return;
                 case MobAction.Move when !IsHostile && ShouldWander || Condition.Blinded:
                 {
-                    var which = _random.Next(0, 2); //turn or move
+                    var which = Random.Shared.Next(0, 2); //turn or move
                     if (which == 0)
                     {
-                        var dir = _random.Next(0, 4);
+                        var dir = Random.Shared.Next(0, 4);
                         if (Direction == (Direction) dir)
                         {
                             Walk((Direction) dir);
@@ -840,7 +840,7 @@ public class Monster : Creature, ICloneable
                     }
                     else
                     {
-                        var dir = _random.Next(0, 4);
+                        var dir = Random.Shared.Next(0, 4);
                         Turn((Direction) dir);
                     }
 
