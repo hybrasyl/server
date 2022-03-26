@@ -1115,7 +1115,7 @@ public class StatInfo
                                  BaseOutboundDamageModifier == 0 && BaseOutboundHealModifier == 0 &&
                                  BaseReflectMagical == 0 && BaseReflectPhysical == 0 && BaseExtraGold == 0 &&
                                  BaseDodge == 0 && BaseMagicDodge == 0 && BaseExtraXp == 0 && BaseExtraItemFind == 0 &&
-                                 BaseLifeSteal == 0 && BaseManaSteal == 0 && BaseInboundDamageToMp == 0;
+                                 BaseLifeSteal == 0 && BaseManaSteal == 0 && BaseInboundDamageToMp == 0 && DeltaHp == 0 && DeltaMp == 0;
 
     public bool NoBonusChanges => BonusHp == 0 && BonusMp == 0 && BonusStr == 0 && BonusCon == 0 && BonusDex == 0 &&
                                   BonusInt == 0 && BonusWis == 0 && BonusCrit == 0 && BonusMagicCrit == 0 &&

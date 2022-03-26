@@ -350,12 +350,10 @@ public class ItemObject : VisibleObject
             trigger.UpdateAttributes(StatUpdateFlags.Full);
         }
 
-        if (Use == null) return;
-
         // Run through all the different potential uses. We allow combinations of any
         // use specified in the item XML.
 
-        if (Use.Script != null)
+        if (Use?.Script != null)
         {
             Script invokeScript;
             if (!World.ScriptProcessor.TryGetScript(Use.Script, out invokeScript))
@@ -367,16 +365,16 @@ public class ItemObject : VisibleObject
             invokeScript.ExecuteFunction("OnUse", trigger, null, this, true);
         }            
 
-        if (Use.Effect != null)
+        if (Use?.Effect != null)
         {
             trigger.SendEffect(trigger.Id, Use.Effect.Id, Use.Effect.Speed); 
         }
         
-        if (Use.Sound != null)
+        if (Use?.Sound != null)
         {
             trigger.SendSound((byte) Use.Sound.Id);
         }
-        if (Use.Teleport != null)
+        if (Use?.Teleport != null)
         {
             trigger.Teleport(Use.Teleport.Value, Use.Teleport.X, Use.Teleport.Y);
         }
