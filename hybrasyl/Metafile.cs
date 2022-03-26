@@ -24,99 +24,97 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace Hybrasyl
+namespace Hybrasyl;
+
+public class Metafile
 {
-    public class Metafile
+    public string Name { get; set; }
+    public List<MetafileNode> Nodes { get; private set; }
+    public Metafile(string name)
     {
-        public string Name { get; set; }
-        public List<MetafileNode> Nodes { get; private set; }
-        public Metafile(string name)
-        {
-            Name = name;
-            Nodes = new List<MetafileNode>();
-        }
-        public Metafile(string name, params MetafileNode[] elements)
-        {
-            Name = name;
-            Nodes = new List<MetafileNode>(elements);
-        }
-        public CompiledMetafile Compile()
-        {
-            return new CompiledMetafile(this);
-        }
+        Name = name;
+        Nodes = new List<MetafileNode>();
     }
-
-    public class MetafileNode
+    public Metafile(string name, params MetafileNode[] elements)
     {
-        public string Text { get; set; }
-        public List<string> Properties { get; private set; }
-        public MetafileNode(string text)
-        {
-            Text = text;
-            Properties = new List<string>();
-        }
-        public MetafileNode(string text, params string[] properties)
-        {
-            Text = text;
-            Properties = new List<string>(properties);
-        }
-        public MetafileNode(string text, params object[] properties)
-        {
-            Text = text;
-            Properties = new List<string>(properties.Select(o => o.ToString()));
-        }
-        public static implicit operator MetafileNode(string text)
-        {
-            return new MetafileNode(text);
-        }
+        Name = name;
+        Nodes = new List<MetafileNode>(elements);
     }
-
-    public class CompiledMetafile
+    public CompiledMetafile Compile()
     {
-        public string Name { get; private set; }
-        public Metafile Source { get; private set; }
-        public uint Checksum { get; private set; }
-        public byte[] Data { get; private set; }
+        return new CompiledMetafile(this);
+    }
+}
 
-        public byte[] Decompressed { get; private set; }
-        public CompiledMetafile(Metafile file)
+public class MetafileNode
+{
+    public string Text { get; set; }
+    public List<string> Properties { get; private set; }
+    public MetafileNode(string text)
+    {
+        Text = text;
+        Properties = new List<string>();
+    }
+    public MetafileNode(string text, params string[] properties)
+    {
+        Text = text;
+        Properties = new List<string>(properties);
+    }
+    public MetafileNode(string text, params object[] properties)
+    {
+        Text = text;
+        Properties = new List<string>(properties.Select(o => o.ToString()));
+    }
+    public static implicit operator MetafileNode(string text)
+    {
+        return new MetafileNode(text);
+    }
+}
+
+public class CompiledMetafile
+{
+    public string Name { get; private set; }
+    public Metafile Source { get; private set; }
+    public uint Checksum { get; private set; }
+    public byte[] Data { get; private set; }
+
+    public byte[] Decompressed { get; private set; }
+    public CompiledMetafile(Metafile file)
+    {
+        Name = file.Name;
+        Source = file;
+
+        using (var metaFileStream = new MemoryStream())
         {
-            Name = file.Name;
-            Source = file;
-
-            using (var metaFileStream = new MemoryStream())
+            using (var metaFileWriter = new BinaryWriter(metaFileStream, CodePagesEncodingProvider.Instance.GetEncoding(949), true))
             {
-                using (var metaFileWriter = new BinaryWriter(metaFileStream, CodePagesEncodingProvider.Instance.GetEncoding(949), true))
+                metaFileWriter.Write((byte)(file.Nodes.Count / 256));
+                metaFileWriter.Write((byte)(file.Nodes.Count % 256));
+                foreach (var node in file.Nodes)
                 {
-                    metaFileWriter.Write((byte)(file.Nodes.Count / 256));
-                    metaFileWriter.Write((byte)(file.Nodes.Count % 256));
-                    foreach (var node in file.Nodes)
+                    byte[] nodeBuffer = CodePagesEncodingProvider.Instance.GetEncoding(949).GetBytes(node.Text);
+                    metaFileWriter.Write((byte)nodeBuffer.Length);
+                    metaFileWriter.Write(nodeBuffer);
+                    metaFileWriter.Write((byte)(node.Properties.Count / 256));
+                    metaFileWriter.Write((byte)(node.Properties.Count % 256));
+                    foreach (var property in node.Properties)
                     {
-                        byte[] nodeBuffer = CodePagesEncodingProvider.Instance.GetEncoding(949).GetBytes(node.Text);
-                        metaFileWriter.Write((byte)nodeBuffer.Length);
-                        metaFileWriter.Write(nodeBuffer);
-                        metaFileWriter.Write((byte)(node.Properties.Count / 256));
-                        metaFileWriter.Write((byte)(node.Properties.Count % 256));
-                        foreach (var property in node.Properties)
-                        {
-                            byte[] propertyBuffer = CodePagesEncodingProvider.Instance.GetEncoding(949).GetBytes(property);
-                            metaFileWriter.Write((byte)(propertyBuffer.Length / 256));
-                            metaFileWriter.Write((byte)(propertyBuffer.Length % 256));
-                            metaFileWriter.Write(propertyBuffer);
-                        }
+                        byte[] propertyBuffer = CodePagesEncodingProvider.Instance.GetEncoding(949).GetBytes(property);
+                        metaFileWriter.Write((byte)(propertyBuffer.Length / 256));
+                        metaFileWriter.Write((byte)(propertyBuffer.Length % 256));
+                        metaFileWriter.Write(propertyBuffer);
                     }
                 }
+            }
 
-                Checksum = ~Crc32.Calculate(metaFileStream.ToArray());
-                metaFileStream.Seek(0, SeekOrigin.Begin);
+            Checksum = ~Crc32.Calculate(metaFileStream.ToArray());
+            metaFileStream.Seek(0, SeekOrigin.Begin);
 
-		using (var compressedMetaFileStream = new MemoryStream())
-                {
-                    ZlibCompression.Compress(metaFileStream, compressedMetaFileStream);
-                    Data = compressedMetaFileStream.ToArray();
-                }
+            using (var compressedMetaFileStream = new MemoryStream())
+            {
+                ZlibCompression.Compress(metaFileStream, compressedMetaFileStream);
+                Data = compressedMetaFileStream.ToArray();
             }
         }
     }
 }
-

@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/env python
 #
 # grpc_control.py - Control or query a running Hybrasyl server using gRPC.
 #
@@ -12,9 +12,9 @@ import sys
 cert = None
 key = None
 
-if (len(sys.argv) != 3):
+if (len(sys.argv) != 4):
     print("grpc_control.py: Control a running Hybrasyl server using GRPC")
-    print("usage:           grpc_control.py shutdown <minutes>")
+    print("usage:           grpc_control.py shutdown <hostname> <minutes>")
     sys.exit(1)
 
 if os.path.exists(os.path.expanduser("~/.grpc/hybrasylCert.pem")):
@@ -36,10 +36,10 @@ cc = ssl_channel_credentials(root_certificates=cacert,
                              private_key=key,
                              certificate_chain=cert)
 
-channel = secure_channel("staging.hybrasyl.com:2613", cc)
+channel = secure_channel(f"{sys.argv[2]}:2613", cc)
 
 stub = Patron_pb2_grpc.PatronStub(channel)
 
-f = stub.BeginShutdown(Patron_pb2.BeginShutdownRequest(Delay=int(sys.argv[2])))
+f = stub.BeginShutdown(Patron_pb2.BeginShutdownRequest(Delay=int(sys.argv[3])))
 
 print("Shutdown request submitted")

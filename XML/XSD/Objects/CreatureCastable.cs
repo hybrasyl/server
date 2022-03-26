@@ -27,31 +27,33 @@ using System.Collections.Generic;
 public partial class CreatureCastable
 {
     #region Private fields
-    private CreatureAttackPriority _priority;
+    private CreatureTargetPriority _targetPriority;
     private int _healthPercentage;
     private bool _useOnce;
+    private int _interval;
     private string _value;
     private static XmlSerializer _serializerXml;
     #endregion
     
     public CreatureCastable()
     {
-        _priority = CreatureAttackPriority.HighThreat;
+        _targetPriority = CreatureTargetPriority.None;
         _healthPercentage = -1;
-        _useOnce = true;
+        _useOnce = false;
+        _interval = 15;
     }
     
     [XmlAttribute]
-    [DefaultValue(CreatureAttackPriority.HighThreat)]
-    public CreatureAttackPriority Priority
+    [DefaultValue(CreatureTargetPriority.None)]
+    public CreatureTargetPriority TargetPriority
     {
         get
         {
-            return _priority;
+            return _targetPriority;
         }
         set
         {
-            _priority = value;
+            _targetPriority = value;
         }
     }
     
@@ -70,7 +72,7 @@ public partial class CreatureCastable
     }
     
     [XmlAttribute]
-    [DefaultValue(true)]
+    [DefaultValue(false)]
     public bool UseOnce
     {
         get
@@ -80,6 +82,20 @@ public partial class CreatureCastable
         set
         {
             _useOnce = value;
+        }
+    }
+    
+    [XmlAttribute]
+    [DefaultValue(15)]
+    public int Interval
+    {
+        get
+        {
+            return _interval;
+        }
+        set
+        {
+            _interval = value;
         }
     }
     

@@ -23,17 +23,16 @@ using Newtonsoft.Json;
 using System;
 using System.Linq;
 
-namespace Hybrasyl.Messaging
-{
-    [JsonObject(MemberSerialization.OptIn)]
-    [RedisType]
-    public class Mailbox : MessageStore
-    {
-        public Mailbox(Guid guid) : base(guid.ToString()) { }
+namespace Hybrasyl.Messaging;
 
-        public bool HasUnreadMessages
-        {
-            get { return Messages.Where(m => m.Read == false).Count() > 0; }
-        }
+[JsonObject(MemberSerialization.OptIn)]
+[RedisType]
+public class Mailbox : MessageStore
+{
+    public Mailbox(Guid guid) : base(guid.ToString()) { }
+
+    public bool HasUnreadMessages
+    {
+        get { return Messages.Where(m => m.Read == false).Count() > 0; }
     }
 }

@@ -22,17 +22,13 @@ using System.Collections.Generic;
 [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.4161.0")]
 [Serializable]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-public enum CreatureAttackPriority
+public enum RotationType
 {
-    Attacker,
-    HighThreat,
-    LowThreat,
-    AttackingCaster,
-    AttackingHealer,
-    SimilarNearby,
-    Nearby,
-    Random,
-    Group,
+    Offense,
+    Defense,
+    OnDeath,
+    NearDeath,
+    Assail,
 }
 }
 #pragma warning restore

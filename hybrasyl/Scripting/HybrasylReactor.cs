@@ -1,36 +1,30 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Hybrasyl.Objects;
 using MoonSharp.Interpreter;
 
-namespace Hybrasyl.Scripting
+namespace Hybrasyl.Scripting;
+
+[MoonSharpUserData] 
+public class HybrasylReactor
 {
-    [MoonSharpUserData]
+    internal Reactor Obj { get; set; }
+    public static bool IsPlayer => false;
+    public HybrasylUser Origin => Obj.Origin is User u ? new HybrasylUser(u) : null;
+    public byte X => Obj.X;
+    public byte Y => Obj.Y;
+    public bool Blocking => Obj.Blocking;
 
-    public class HybrasylReactor
+    public int Uses
     {
-        internal Reactor Reactor { get; set; }
-        public static bool IsPlayer => false;
-        public HybrasylUser Origin => Reactor.Origin is User u ? new HybrasylUser(u) : null;
-        public byte X => Reactor.X;
-        public byte Y => Reactor.Y;
-        public bool Blocking => Reactor.Blocking;
-
-        public int Uses
-        {
-            get => Reactor.Uses;
-            set => Reactor.Uses = value;
-        }
-        public bool Expired => Reactor.Expired;
-        public long Expiration => ((DateTimeOffset)Reactor.Expiration).ToUnixTimeSeconds();
-
-        public HybrasylReactor(Reactor obj)
-        {
-            Reactor = obj;
-        }
-
+        get => Obj.Uses;
+        set => Obj.Uses = value;
     }
+    public bool Expired => Obj.Expired;
+    public long Expiration => ((DateTimeOffset)Obj.Expiration).ToUnixTimeSeconds();
+
+    public HybrasylReactor(Reactor obj)
+    {
+        Obj = obj;
+    }
+
 }

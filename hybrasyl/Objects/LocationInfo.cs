@@ -21,77 +21,75 @@
  
 using Newtonsoft.Json;
 
-namespace Hybrasyl.Objects
+namespace Hybrasyl.Objects;
+
+[JsonObject(MemberSerialization.OptIn)]
+public class LocationInfo
 {
+    private Map _map { get; set; }
+    private Map _deathmap { get; set; }
 
-    [JsonObject(MemberSerialization.OptIn)]
-    public class LocationInfo
+    public Map Map
     {
-        private Map _map { get; set; }
-        private Map _deathmap { get; set; }
-
-        public Map Map
+        get { return _map; }
+        set
         {
-            get { return _map; }
-            set
-            {
-                _map = value;
-                if (value != null)
-                    _mapId = Map.Id;
-            }
+            _map = value;
+            if (value != null)
+                _mapId = Map.Id;
         }
-
-        public Map DeathMap
-        {
-            get { return _deathmap; }
-            set
-            {
-                _deathmap = value;
-                if (value != null)
-                    _deathmapId = _deathmap.Id;
-            }
-        }
-
-        private ushort _mapId { get; set; }
-
-        [JsonProperty]
-        public ushort MapId
-        {
-            get { if (Map != null) return Map.Id; else return _mapId; }
-            set
-            {
-                if (Game.World.WorldData.TryGetValue(value, out Map map))
-                    Map = map;
-                _mapId = value;
-            }
-        }
-
-        private ushort _deathmapId { get; set; }
-
-        [JsonProperty]
-        public ushort DeathMapId
-        {
-            get { if (DeathMap != null) return DeathMap.Id; else return _deathmapId; }
-            set
-            {
-                if (Game.World.WorldData.TryGetValue(value, out Map map))
-                    DeathMap = map;
-                _deathmapId = value;
-            }
-        }
-
-        [JsonProperty]
-        public Xml.Direction Direction { get; set; }
-        [JsonProperty]
-        public byte X { get; set; }
-        [JsonProperty]
-        public byte Y { get; set; }
-        [JsonProperty]
-        public bool WorldMap { get; set; }
-
-        [JsonProperty]
-        public byte DeathMapX { get; set; }
-        [JsonProperty]
-        public byte DeathMapY { get; set; }
     }
+
+    public Map DeathMap
+    {
+        get { return _deathmap; }
+        set
+        {
+            _deathmap = value;
+            if (value != null)
+                _deathmapId = _deathmap.Id;
+        }
+    }
+
+    private ushort _mapId { get; set; }
+
+    [JsonProperty]
+    public ushort MapId
+    {
+        get { if (Map != null) return Map.Id; else return _mapId; }
+        set
+        {
+            if (Game.World.WorldData.TryGetValue(value, out Map map))
+                Map = map;
+            _mapId = value;
+        }
+    }
+
+    private ushort _deathmapId { get; set; }
+
+    [JsonProperty]
+    public ushort DeathMapId
+    {
+        get { if (DeathMap != null) return DeathMap.Id; else return _deathmapId; }
+        set
+        {
+            if (Game.World.WorldData.TryGetValue(value, out Map map))
+                DeathMap = map;
+            _deathmapId = value;
+        }
+    }
+
+    [JsonProperty]
+    public Xml.Direction Direction { get; set; }
+    [JsonProperty]
+    public byte X { get; set; }
+    [JsonProperty]
+    public byte Y { get; set; }
+    [JsonProperty]
+    public bool WorldMap { get; set; }
+
+    [JsonProperty]
+    public byte DeathMapX { get; set; }
+    [JsonProperty]
+    public byte DeathMapY { get; set; }
 }

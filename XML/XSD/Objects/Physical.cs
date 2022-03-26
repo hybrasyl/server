@@ -27,14 +27,22 @@ using System.Collections.Generic;
 public partial class Physical
 {
     #region Private fields
-    private uint _value;
-    private int _weight;
-    private uint _durability;
+    private float _value;
+    private float _weight;
+    private float _durability;
     private static XmlSerializer _serializerXml;
     #endregion
     
+    public Physical()
+    {
+        _value = ((float)(1F));
+        _weight = ((float)(1F));
+        _durability = ((float)(1F));
+    }
+    
     [XmlAttribute]
-    public uint Value
+    [DefaultValue(typeof(float), "1")]
+    public float Value
     {
         get
         {
@@ -47,7 +55,8 @@ public partial class Physical
     }
     
     [XmlAttribute]
-    public int Weight
+    [DefaultValue(typeof(float), "1")]
+    public float Weight
     {
         get
         {
@@ -60,7 +69,8 @@ public partial class Physical
     }
     
     [XmlAttribute]
-    public uint Durability
+    [DefaultValue(typeof(float), "1")]
+    public float Durability
     {
         get
         {

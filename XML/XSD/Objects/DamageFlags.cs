@@ -26,10 +26,12 @@ using System.Collections.Generic;
 public enum DamageFlags
 {
     None = 1,
-    Scaled = 2,
-    Resistance = 4,
-    Threat = 8,
-    Nonlethal = 16,
+    NoResistance = 2,
+    NoThreat = 4,
+    Nonlethal = 8,
+    NoDodge = 16,
+    NoCrit = 32,
+    NoElement = 64,
 }
 }
 #pragma warning restore

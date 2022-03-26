@@ -23,46 +23,45 @@ using Hybrasyl.Objects;
 using System;
 using System.Timers;
 
-namespace Hybrasyl.Jobs
+namespace Hybrasyl.Jobs;
+
+public static class AutoSnoreJob
 {
-    public static class AutoSnoreJob
+    public static readonly int Interval = 10;
+
+    public static void Execute(object obj, ElapsedEventArgs args)
     {
-        public static readonly int Interval = 10;
-
-        public static void Execute(object obj, ElapsedEventArgs args)
+        GameLog.Debug("Job starting");
+        try
         {
-            GameLog.Debug("Job starting");
-            try
+            // FIXME: make this more efficient / don't break our own conventions
+            foreach (var connection in GlobalConnectionManifest.WorldClients)
             {
-                // FIXME: make this more efficient / don't break our own conventions
-                foreach (var connection in GlobalConnectionManifest.WorldClients)
-                {
-                    var client = connection.Value;
-                    var connectionId = connection.Key;
+                var client = connection.Value;
+                var connectionId = connection.Key;
 
-                    if (client.IsIdle())
+                if (client.IsIdle())
+                {
+                    User user;
+                    if (Game.World.WorldData.TryGetValueByIndex(connectionId, out user))
                     {
-                        User user;
-                        if (Game.World.WorldData.TryGetValueByIndex(connectionId, out user))
-                        {
-                            user.Motion(16, 120); // send snore effect
-                        }
-                        else
-                        {
-                            GameLog.WarningFormat(
-                                "Connection id {0} marked as idle but no corresponding user found...?",
-                                connectionId);
-                        }
+                        user.Motion(16, 120); // send snore effect
+                    }
+                    else
+                    {
+                        GameLog.WarningFormat(
+                            "Connection id {0} marked as idle but no corresponding user found...?",
+                            connectionId);
                     }
                 }
+            }
 
-                GameLog.Debug("Job complete");
-            }
-            catch (Exception e)
-            {
-                Game.ReportException(e);
-                GameLog.Error("Exception occured in job:", e);
-            }
+            GameLog.Debug("Job complete");
+        }
+        catch (Exception e)
+        {
+            Game.ReportException(e);
+            GameLog.Error("Exception occured in job:", e);
         }
     }
 }

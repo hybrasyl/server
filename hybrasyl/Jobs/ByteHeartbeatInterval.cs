@@ -22,31 +22,29 @@
 using System;
 using System.Timers;
 
-namespace Hybrasyl.Jobs
+namespace Hybrasyl.Jobs;
+
+public static class ByteHeartbeatJob
 {
-    public static class ByteHeartbeatJob
+    public static readonly int Interval = Constants.BYTE_HEARTBEAT_INTERVAL;
+
+    public static void Execute(object obj, ElapsedEventArgs args)
     {
-        public static readonly int Interval = Constants.BYTE_HEARTBEAT_INTERVAL;
-
-        public static void Execute(object obj, ElapsedEventArgs args)
+        try
         {
-            try
-            {
-                GameLog.Debug("Job starting");
+            GameLog.Debug("Job starting");
 
-                var rnd = new Random();
-                foreach (var client in GlobalConnectionManifest.WorldClients.Values)
-                {
-                    // Send the 0x3B heartbeat to logged in clients
-                    client.SendByteHeartbeat();
-                }
-                GameLog.Debug("Job complete");
-            }
-            catch (Exception e)
+            foreach (var client in GlobalConnectionManifest.WorldClients.Values)
             {
-                Game.ReportException(e);
-                GameLog.Error("Exception occured in job:", e);
+                // Send the 0x3B heartbeat to logged in clients
+                client.SendByteHeartbeat();
             }
+            GameLog.Debug("Job complete");
+        }
+        catch (Exception e)
+        {
+            Game.ReportException(e);
+            GameLog.Error("Exception occured in job:", e);
         }
     }
 }

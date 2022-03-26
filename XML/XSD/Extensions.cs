@@ -120,7 +120,7 @@ namespace Hybrasyl.Xml
 
         public List<string> CategoryList
         {
-            get { return Categories.Count > 0 ? new List<string>() : Categories.Select(x => x.Value).ToList(); }    
+            get { return Categories.Count > 0 ? Categories.Select(x => x.Value.ToLower()).ToList() : new(); }
         }
 
     }
@@ -266,39 +266,10 @@ namespace Hybrasyl.Xml
         private List<string> skillCategories = null;
         private List<string> spellCategories = null;
 
-        public List<string> LearnSkillCategories
-        {
-            get
-            {
-                if (string.IsNullOrEmpty(Castables?.SkillCategories))
-                    skillCategories = new List<string>();
-                if (skillCategories == null)
-                {
-                    skillCategories = Castables.SkillCategories.Trim().ToLower().Split(" ").ToList();
-                }
-                return skillCategories;
-            }
-        }
+        public List<string> LearnSkillCategories => string.IsNullOrEmpty(Castables?.SkillCategories) ? new List<string>() : Castables.SkillCategories.Trim().ToLower().Split(" ").ToList();
 
-        public List<string> LearnSpellCategories
-        {
-            get
-            {
-                if (string.IsNullOrEmpty(Castables?.SpellCategories))
-                    spellCategories = new List<string>();
-                if (spellCategories == null)
-                {
-                    spellCategories = Castables.SpellCategories.Trim().ToLower().Split(" ").ToList();
-                }
-                return spellCategories;
-            }
-        }
+        public List<string> LearnSpellCategories => string.IsNullOrEmpty(Castables?.SpellCategories) ? new List<string>() : Castables.SpellCategories.Trim().ToLower().Split(" ").ToList();
 
-        public List<CreatureCastable> OffensiveCastables => Behavior?.Casting?.Offense?.Castable ?? new List<CreatureCastable>();
-        public List<CreatureCastable> DefensiveCastables => Behavior?.Casting?.Defense?.Castable ?? new List<CreatureCastable>();
-        public List<CreatureCastable> OnDeathCastables => Behavior?.Casting?.OnDeath?.Castable ?? new List<CreatureCastable>();
-        public List<CreatureCastable> NearDeathCastables => Behavior?.Casting?.NearDeath?.Castable ?? new List<CreatureCastable>();
-        public bool CanCast => OffensiveCastables.Count > 0 || DefensiveCastables.Count > 0 || OnDeathCastables.Count > 0 || NearDeathCastables.Count > 0;
     }
 }
 
@@ -307,7 +278,6 @@ namespace Hybrasyl.Xml
 
     public partial class Spawn
     {
-        private static readonly Random Rng = new Random();
         public bool Disabled { get; set; } = false;
         public string ErrorMessage { get; set; } = string.Empty;
 
@@ -319,9 +289,9 @@ namespace Hybrasyl.Xml
         {
             return _damage.Element switch
             {
-                ElementType.Random => (ElementType) Rng.Next(1, 9),
-                ElementType.RandomFour => (ElementType) Rng.Next(1, 4),
-                ElementType.RandomEight => (ElementType) Rng.Next(5, 8),
+                ElementType.Random => (ElementType) Random.Shared.Next(1, 9),
+                ElementType.RandomFour => (ElementType) Random.Shared.Next(1, 4),
+                ElementType.RandomEight => (ElementType) Random.Shared.Next(5, 8),
                 _ => _damage.Element
             };
         }
@@ -334,9 +304,9 @@ namespace Hybrasyl.Xml
         {
             return _defense.Element switch
             {
-                ElementType.Random => (ElementType) Rng.Next(1, 9),
-                ElementType.RandomFour => (ElementType) Rng.Next(1, 4),
-                ElementType.RandomEight => (ElementType) Rng.Next(5, 8),
+                ElementType.Random => (ElementType) Random.Shared.Next(1, 9),
+                ElementType.RandomFour => (ElementType) Random.Shared.Next(1, 4),
+                ElementType.RandomEight => (ElementType) Random.Shared.Next(5, 8),
                 _ => _defense.Element
             };
         }
@@ -357,8 +327,7 @@ namespace Hybrasyl.Xml
         {
             get
             {
-                var rand = new Random();
-                return SpawnPoints.Count > 0 ? SpawnPoints[rand.Next(0, SpawnPoints.Count)] : default(SpawnPoint);
+                return SpawnPoints.Count > 0 ? SpawnPoints[Random.Shared.Next(0, SpawnPoints.Count)] : default(SpawnPoint);
             }
         }
     }

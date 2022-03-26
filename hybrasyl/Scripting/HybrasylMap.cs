@@ -23,41 +23,39 @@
 using Hybrasyl.Objects;
 using MoonSharp.Interpreter;
 
-namespace Hybrasyl.Scripting
+namespace Hybrasyl.Scripting;
+
+[MoonSharpUserData]
+public class HybrasylMap
 {
-    [MoonSharpUserData]
-    public class HybrasylMap
+    internal Map Map { get; set; }
+
+    public HybrasylMap(Map map)
     {
-        internal Map Map { get; set; }
-
-        public HybrasylMap(Map map)
-        {
-            Map = map;
-        }
-
-        public string Name => Map.Name;
-
-        public bool CreateItem(string name, int x = -1, int y = -1)
-        {
-            return false;
-        }
-
-        public void DropItem(HybrasylWorldObject obj, int x, int y)
-        {
-            if (obj.Obj is ItemObject)
-                Map.Insert(obj.Obj as ItemObject, (byte) x, (byte) y);
-        }
-
-        public void SpawnMonster(string creatureName, HybrasylSpawn spawn, int x, int y)
-        {
-            //if (Game.World.WorldData.TryGetValue(creatureName, out Xml.Creature creature))
-            //{
-            //    var baseMob = new Monster(creature, spawn.Spawn, Map.Id);
-            //    baseMob.X = (byte)x;
-            //    baseMob.Y = (byte)y;
-            //    World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MonolithSpawn, baseMob, Map));
-            //}
-        }
+        Map = map;
     }
 
+    public string Name => Map.Name;
+
+    public bool CreateItem(string name, int x = -1, int y = -1)
+    {
+        return false;
+    }
+
+    public void DropItem(HybrasylWorldObject obj, int x, int y)
+    {
+        if (obj.Obj is ItemObject)
+            Map.Insert(obj.Obj as ItemObject, (byte) x, (byte) y);
+    }
+
+    public void SpawnMonster(string creatureName, HybrasylSpawn spawn, int x, int y)
+    {
+        //if (Game.World.WorldData.TryGetValue(creatureName, out Xml.Creature creature))
+        //{
+        //    var baseMob = new Monster(creature, spawn.Spawn, Map.Id);
+        //    baseMob.X = (byte)x;
+        //    baseMob.Y = (byte)y;
+        //    World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MonolithSpawn, baseMob, Map));
+        //}
+    }
 }
