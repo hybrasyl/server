@@ -3176,6 +3176,12 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
                 prompt = merchant.GetLocalString("learn_skill_prereq_item");
             }
         }
+
+        if (SkillBook.IsPrimaryFull && castable.Book == Xml.Book.PrimarySkill ||
+            SkillBook.IsSecondaryFull && castable.Book == Xml.Book.SecondarySkill ||
+            SkillBook.IsUtilityFull && castable.Book == Xml.Book.UtilitySkill)
+            prompt = merchant.GetLocalString("learn_skill_book_full");
+
         if (prompt == string.Empty)
         {
             RemoveGold(classReq.Gold);
@@ -3440,6 +3446,12 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
                 prompt = merchant.GetLocalString("learn_spell_prereq_item");
             }
         }
+
+        if (SpellBook.IsPrimaryFull && castable.Book == Xml.Book.PrimarySpell ||
+            SpellBook.IsSecondaryFull && castable.Book == Xml.Book.SecondarySpell ||
+            SpellBook.IsUtilityFull && castable.Book == Xml.Book.UtilitySpell)
+            prompt = merchant.GetLocalString("learn_spell_book_full");
+
         if (prompt == string.Empty)
         {
             RemoveGold(classReq.Gold);
