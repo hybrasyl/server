@@ -846,10 +846,9 @@ public class Monster : Creature, ICloneable
 
                     break;
                 }
-                case MobAction.Move when ThreatInfo.HighestThreat == null:
-                    return;
                 case MobAction.Move:
                 {
+                    if (ThreatInfo.HighestThreat == null) return;
                     if (Condition.MovementAllowed)
                     {
                         if (CurrentPath == null || !AStarPathClear())
@@ -865,8 +864,9 @@ public class Monster : Creature, ICloneable
 
                         if (CurrentPath != null)
                         {
-                            // We have a path, check its validity
-                            // We recalculate our path if we're within five spaces of the target and they have moved
+                                // We have a path, check its validity
+                                // We recalculate our path if we're within five spaces of the target and they have moved
+
                             if (Distance(ThreatInfo.HighestThreat) < 5 &&
                                 CurrentPath.Target.X != ThreatInfo.HighestThreat.Location.X &&
                                 CurrentPath.Target.Y != ThreatInfo.HighestThreat.Location.Y)
@@ -920,6 +920,7 @@ public class Monster : Creature, ICloneable
 
                 if (ThreatInfo.HighestThreat == null && ThreatInfo.Count == 0)
                 {
+                    GameLog.Error("Threat empty");
                     ShouldWander = true;
                     FirstHitter = null;
                     Target = null;

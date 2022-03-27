@@ -298,7 +298,6 @@ internal class Monolith
                                         _ => spawn.Damage.Element
                                     };
 
-                                    baseMob.Stats.OffensiveElementOverride = spawn.Damage.Element;
                                     var item = new ItemObject(newTemplate);
                                     baseMob.Equipment.Insert((byte) ItemSlots.Weapon, item);
                                 }
