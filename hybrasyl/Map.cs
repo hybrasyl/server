@@ -184,6 +184,14 @@ public class Map
         }
     }
 
+    public List<Monster> Monsters
+    {
+        get
+        {
+            lock (_lock)
+                return Objects.OfType<Monster>().ToList();
+        }
+    }
     public Dictionary<string, User> Users { get; private set; }
 
     public Dictionary<(byte X, byte Y), Door> Doors { get; set; }

@@ -110,7 +110,7 @@ internal class Monolith
         foreach (var spawn in spawnGroup.Spawns)
         {
             GameLog.SpawnInfo($"Spawngroup {spawnGroup.Name}: processing");
-            var monsters = spawnmap.Objects.OfType<Monster>().ToList();
+            var monsters = spawnmap.Monsters;
 
             // If the map is disabled, or we don't have a spec for our spawning, or the individual spawn
             // previously had errors and was disabled - continue on
@@ -190,8 +190,8 @@ internal class Monolith
             {
                 if (Game.World.WorldData.TryGetValue(spawn.Name, out Xml.Creature creature))
                 {
-                    var newSpawnLoot = LootBox.CalculateLoot(spawn);
-
+                    var newSpawnLoot = LootBox.CalculateLoot(spawn.Loot);
+                    newSpawnLoot += LootBox.CalculateLoot(creature.Loot);
 
                     var baseMob = new Monster(creature, spawn.Flags, (byte) baseLevel, 
                        newSpawnLoot);

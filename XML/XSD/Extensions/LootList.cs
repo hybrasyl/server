@@ -4,6 +4,9 @@ namespace Hybrasyl.Xml;
 
 public partial class LootList
 {
+    public bool IsEmpty =>
+        (Set is null || Set.Count == 0) && (Table is null || Table.Count == 0) && (Gold is null) && Xp == 0;
+
     public static LootList operator +(LootList l1, LootList l2)
     {
         var ret = new LootList();

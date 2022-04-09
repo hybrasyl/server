@@ -604,13 +604,12 @@ public partial class World : Server
         
         foreach (var set in behaviorSets.Results)
         {
-            
             WorldData.Set(set.Name, set);
             GameLog.Info($"BehaviorSet: {set.Name} loaded");
         }
         foreach (var error in behaviorSets.Errors)
             GameLog.Error($"BehaviorSet: error occurred loading {error.Key}: {error.Value}");
-
+        
         var creatures = Xml.Creature.LoadAll(XmlDirectory);
 
         foreach (var creature in creatures.Results)
@@ -645,7 +644,7 @@ public partial class World : Server
         {
             try
             {
-                var lootSet = Xml.LootSet.LoadFromFile(xml);
+                var lootSet = LootSet.LoadFromFile(xml);
 
                 GameLog.DebugFormat("LootSets: loaded {0}", lootSet.Name);
                 WorldData.SetWithIndex(lootSet.Id, lootSet, lootSet.Name);
@@ -2245,129 +2244,98 @@ public partial class World : Server
         var msgsize = packet.ReadByte();
         var message = Encoding.ASCII.GetString(packet.Read(msgsize));
 
-        // "!!" is the special character sequence for group whisper. If this is the
-        // target, the message should be sent as a group whisper instead of a standard
-        // whisper.
-        // TODO: handle $ and # with classes
-        if (target == "!!")
+        switch (target)
         {
-            user.SendGroupWhisper(message);
-        }
-        else if (target == "#" && user.AuthInfo.IsPrivileged)
-        {
-            // "# eval "ard srad" <monster id> <number of evaluations>
-            var match = Regex.Match(message, @"(\w+) ""(.+)"" (\d+) (\d+)");
-            if (match.Success && match.Groups[1].Value.ToLower() == "eval")
-            {
-                if (WorldData.TryGetValueByIndex(match.Groups[2].Value, out Castable castable))
+            // "!!" is the special character sequence for group whisper. If this is the
+            // target, the message should be sent as a group whisper instead of a standard
+            // whisper.
+            // TODO: handle $ and # with classes
+            case "!!":
+                user.SendGroupWhisper(message);
+                break;
+            case "#" when user.AuthInfo.IsPrivileged:
+                user.DisplayOutgoingWhisper("#", message);
+                EvalCommand.Evaluate(message, user);
+                break;
+            case "@" when user.AuthInfo.IsPrivileged:
+                if (Game.Config.Access == null)
                 {
-                    if (Objects.TryGetValue(Convert.ToUInt32(match.Groups[3].Value), out WorldObject wobj))
-                    {
-                        if (wobj is Creature creatureObj)
-                        {
-                            var damages = new List<DamageOutput>();
-                            for (var x = 0; x < Convert.ToUInt32(match.Groups[4].Value); x++)
-                            {
-                                var output = NumberCruncher.CalculateDamage(castable, creatureObj, user);
-                                damages.Add(output);
-                            }
-                            // Only use "slate" if more than one calculation
-                            if (damages.Count == 1)
-                                user.SendSystemMessage($"Result: {damages[0].Amount} ({damages[0].Element}, {damages[0].Type})");
-                            else
-                            {
-                                var ret = string.Empty;
-                                damages.ForEach(x => ret += $"{x.Amount} ({x.Element}, {x.Type})\n");
-                                var avg = damages.Select(x => x.Amount).Average();
-                                user.SendMessage($"Runs: {damages.Count}    Average: {avg}\n\n{ret}", MessageTypes.SLATE_WITH_SCROLLBAR);
-                            }
-                        }
-                        else
-                            user.SendSystemMessage("Sorry, that isn't a creature.");
-                    }
-                    else 
-                        user.SendSystemMessage($"Sorry, I couldn't find object {match.Groups[1].Value}");
-
+                    user.SendSystemMessage("No privileged users defined in server config.");
+                    return;
                 }
-                else
-                    user.SendSystemMessage($"Sorry, I don't know about that castable.");
-            }
 
-        }
-        else if (target == "@" && user.AuthInfo.IsPrivileged)
-        {
-            if (Game.Config.Access == null)
-            {
-                user.SendSystemMessage("No privileged users defined in server config.");
-                return;
-            }
-            if (Game.Config.Access.AllPrivileged)
-            {
-                foreach (var u in ActiveUsers)
-                    u.SendMessage($"{{=w[{user.Name}] {message}", MessageTypes.GUILD);
-            }
-            else
-            {
-                foreach (var name in Game.Config.Access.PrivilegedUsers)
+                if (Game.Config.Access.AllPrivileged)
                 {
-                    if (TryGetActiveUser(name, out User u))
+                    foreach (var u in ActiveUsers)
                         u.SendMessage($"{{=w[{user.Name}] {message}", MessageTypes.GUILD);
                 }
-            }
-        }
-        else if (target == "$")
-        {
-            if (!user.AuthInfo.IsPrivileged)
-            {
-                user.SendSystemMessage("Forbidden.");
+                else
+                {
+                    foreach (var name in Game.Config.Access.PrivilegedUsers)
+                    {
+                        if (TryGetActiveUser(name, out User u))
+                            u.SendMessage($"{{=w[{user.Name}] {message}", MessageTypes.GUILD);
+                    }
+                }
+
+                break;
+            case "$":
+                if (!user.AuthInfo.IsPrivileged)
+                {
+                    user.SendSystemMessage("Forbidden.");
+                    return;
+                }
+
+                Scripting.Script script;
+
+                if (!ScriptProcessor.TryGetScript($"{user.Name}-repl.lua", out script) ||
+                    message.ToLower().Contains("--clear--"))
+                {
+                    // Make new magic script if needed
+                    if (ScriptProcessor.TryGetScript("repl.lua", out Scripting.Script newScript))
+                    {
+                        newScript.Name = $"{user.Name}-repl.lua";
+                        ScriptProcessor.RegisterScript(newScript);
+                        newScript.Execute($"init('{user.Name}')", user);
+                        user.DisplayIncomingWhisper("$", "Eval environment ready");
+                        return;
+                    }
+                    else
+                    {
+                        user.SendSystemMessage("repl.lua needs to exist as a script first");
+                        return;
+                    }
+                }
+
+                user.DisplayOutgoingWhisper("$", message);
+                // Tack on return here so we actually get the DynValue out
+                var ret = script.Execute($"return {message}", user);
+                if (!ret)
+                {
+                    var strs = script.LastRuntimeError.Split(50);
+                    foreach (var str in strs)
+                        user.DisplayIncomingWhisper("$", $"Err: {str}");
+                }
+                else
+                {
+                    if (script.LastReturnValue == DynValue.Nil || script.LastReturnValue == DynValue.Void)
+                        user.DisplayIncomingWhisper("$", "Ret: nil (OK)");
+                    // this is deeply annoying and stupid
+                    else if (script.LastReturnValue.Type == DataType.Boolean)
+                        user.DisplayIncomingWhisper("$", $"Ret: {script.LastReturnValue.Boolean.ToString()}");
+                    else
+                        user.DisplayIncomingWhisper("$", $"Ret: {script.LastReturnValue.CastToString()}");
+
+                }
+
                 return;
-            }
 
-            Scripting.Script script;
-
-            if (!ScriptProcessor.TryGetScript($"{user.Name}-repl.lua", out script) || message.ToLower().Contains("--clear--"))
-            {
-                // Make new magic script if needed
-                if (ScriptProcessor.TryGetScript("repl.lua", out Scripting.Script newScript))
-                {
-                    newScript.Name = $"{user.Name}-repl.lua";
-                    ScriptProcessor.RegisterScript(newScript);
-                    newScript.Execute($"init('{user.Name}')", user);
-                    user.DisplayIncomingWhisper("$", "Eval environment ready");
-                    return;
-                }
-                else
-                {
-                    user.SendSystemMessage("repl.lua needs to exist as a script first");
-                    return;
-                }
-            }
-            user.DisplayOutgoingWhisper("$", message);
-            // Tack on return here so we actually get the DynValue out
-            var ret = script.Execute($"return {message}", user);
-            if (!ret)
-            {
-                var strs = script.LastRuntimeError.Split(50);
-                foreach (var str in strs)
-                    user.DisplayIncomingWhisper("$", $"Err: {str}");
-            }
-            else
-            {
-                if (script.LastReturnValue == DynValue.Nil || script.LastReturnValue == DynValue.Void)
-                    user.DisplayIncomingWhisper("$", "Ret: nil (OK)");
-                // this is deeply annoying and stupid
-                else if (script.LastReturnValue.Type == DataType.Boolean)
-                    user.DisplayIncomingWhisper("$", $"Ret: {script.LastReturnValue.Boolean.ToString()}");
-                else
-                    user.DisplayIncomingWhisper("$", $"Ret: {script.LastReturnValue.CastToString()}");
-
-            }
-            return;
-
+            default:
+                user.SendWhisper(target, message);
+                break;
         }
-        else
-            user.SendWhisper(target, message);
     }
+
 
     private void PacketHandler_0x1B_Settings(Object obj, ClientPacket packet)
     {

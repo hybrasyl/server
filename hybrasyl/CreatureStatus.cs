@@ -18,11 +18,11 @@
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
  */
- 
-using System;
-using System.Collections.Generic;
+
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
+using System;
+using System.Collections.Generic;
 using System.Reflection;
 
 namespace Hybrasyl;
@@ -164,7 +164,8 @@ public class CreatureStatus : ICreatureStatus
 
     public Creature Target { get; }
     public Creature Source { get; }
-    protected User User => Target as User;
+    protected User TargetUser => Target as User;
+    protected User SourceUser => Target as User;
 
     public Xml.Conditions ConditionChanges => XmlStatus.Effects?.OnApply?.Conditions;
 
@@ -248,20 +249,21 @@ public class CreatureStatus : ICreatureStatus
 
     private void ProcessSfx(Xml.ModifierEffect effect)
     {
-        if (effect.Sound?.Id != 0)
+        if (effect == null) return;
+        if (effect.Sound != null && effect.Sound.Id != 0)
         {
             (Target as User)?.PlaySound(effect.Sound.Id);
             (Source as User)?.PlaySound(effect.Sound.Id);
         }
         if (effect.Animations != null)
         {
-            if (effect.Animations?.Target?.Id != 0)
+            if (effect.Animations?.Target != null && effect.Animations.Target.Id != 0)
             {
                 var animation = effect.Animations.Target;
                 if (Target is Monster || !Target.Condition.Comatose || (Target.Condition.Comatose && animation.Id == (Game.Config.Handlers?.Death?.Coma?.Effect ?? 24)))
                     Target.Effect(effect.Animations.Target.Id, effect.Animations.Target.Speed);
             }
-            if (effect.Animations?.SpellEffect?.Id != 0)
+            if (effect.Animations?.SpellEffect != null && effect.Animations?.SpellEffect.Id != 0)
             {
                 Source?.Effect(effect.Animations.SpellEffect.Id, effect.Animations.SpellEffect.Speed);
             }
@@ -269,25 +271,26 @@ public class CreatureStatus : ICreatureStatus
         // Message handling
         if (effect.Messages != null)
         {
-            if (User != null)
+            if (TargetUser != null)
             {
                 if (effect.Messages?.Target != null)
-                    User.SendSystemMessage(string.Format(effect.Messages.Target, User.Name));
+                    TargetUser.SendSystemMessage(string.Format(effect.Messages.Target, SourceUser.Name));
                 if (effect.Messages?.Group != null)
-                    User.Group?.SendMessage(string.Format(effect.Messages.Group, User.Name));
+                    TargetUser.Group?.SendMessage(string.Format(effect.Messages.Group, SourceUser.Name));
             }
-            if (effect.Messages?.Source != null)
-                (Source as User)?.SendSystemMessage(string.Format(effect.Messages.Source, User?.Name ?? string.Empty));
+            if (effect.Messages?.Source != null && TargetUser != null && TargetUser != SourceUser)
+                (Source as User)?.SendSystemMessage(string.Format(effect.Messages.Source, TargetUser?.Name ?? string.Empty));
             if (effect.Messages?.Say != null)
-                Target.Say(string.Format(effect.Messages.Say, User?.Name ?? string.Empty));
+                Target.Say(string.Format(effect.Messages.Say, Target.Name ?? string.Empty));
             if (effect.Messages?.Shout != null)
-                Target.Shout(string.Format(effect.Messages.Shout, User?.Name ?? string.Empty));
+                Target.Shout(string.Format(effect.Messages.Shout, Target.Name ?? string.Empty));
         }
     }
 
 
     private void ProcessConditions(Xml.ModifierEffect effect)
     {
+        if (effect == null) return;
         if (effect.Conditions?.Set != null)
             Target.Condition.Conditions |= effect.Conditions.Set;
         if (effect.Conditions?.Unset != null)
@@ -305,12 +308,13 @@ public class CreatureStatus : ICreatureStatus
     private (double Heal, DamageOutput Damage) CalculateNumericEffects(Xml.Castable castable, Xml.ModifierEffect effect, Creature source)
     {
         double heal = 0;
-        DamageOutput dmg = new DamageOutput();
-        if (!effect.Heal.IsEmpty)
+        var dmg = new DamageOutput();
+        if (effect == null) return (heal, dmg);
+        if (effect.Heal != null)
         {
             heal = NumberCruncher.CalculateHeal(castable, effect, Target, source, Name);
         }
-        if (!effect.Damage.IsEmpty)
+        if (effect.Damage != null)
         {
             dmg = NumberCruncher.CalculateDamage(castable, effect, Target, source, Name);
         }
@@ -328,6 +332,7 @@ public class CreatureStatus : ICreatureStatus
 
     private void ProcessFullEffects(Xml.ModifierEffect effect, bool RemoveStatBonuses = false, bool displaySfx = true)
     {
+        if (effect == null) return;
         // Stat modifiers and condition changes are only processed during start/remove
         ProcessConditions(effect);
         ProcessStatModifiers(RemoveStatBonuses);
@@ -379,6 +384,7 @@ public class CreatureStatus : ICreatureStatus
  
     private void ProcessEffects(Xml.ModifierEffect effect)
     {
+        if (effect == null) return;
         ProcessSfx(effect);
     }
 
@@ -392,6 +398,7 @@ public class CreatureStatus : ICreatureStatus
     private void _processTick()
     {
         LastTick = DateTime.Now;
+       
         ProcessEffects(XmlStatus.Effects.OnTick);
         ProcessNumericEffects(OnTickEffect);
         ProcessHandler(XmlStatus.Effects?.OnTick?.Handler);

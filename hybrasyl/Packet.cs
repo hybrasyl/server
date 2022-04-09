@@ -729,6 +729,8 @@ public class ServerPacket : Packet
                     return EncryptMethod.MD5Key;
                 }
             }
+
+            if (opcode == 0x1a) return EncryptMethod.Normal;
             return EncryptMethod.None;
         }
     }

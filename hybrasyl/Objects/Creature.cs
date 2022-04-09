@@ -501,10 +501,8 @@ public class Creature : VisibleObject
 
     #endregion
 
-    public virtual bool UseCastable(Xml.Castable castObject, Creature target = null, bool assailAttack = false)
+    public virtual bool UseCastable(Xml.Castable castObject, Creature target = null)
     {
-        if (!Condition.CastingAllowed) return false;
-
         if (this is User)
             GameLog.UserActivityInfo(
                 $"UseCastable: {Name} begin casting {castObject.Name} on target: {target?.Name ?? "no target"} CastingAllowed: {Condition.CastingAllowed}");
@@ -524,6 +522,7 @@ public class Creature : VisibleObject
 
         // We do these next steps to ensure effects are displayed uniformly and as fast as possible
         var deadMobs = new List<Creature>();
+
         if (castObject.Effects?.Animations?.OnCast != null)
         {
             if (castObject.Effects?.Animations?.OnCast.Target != null)
@@ -538,6 +537,7 @@ public class Creature : VisibleObject
                             castObject.Effects.Animations.OnCast.Target.Speed);
                     }
                 }
+
             }
 
             if (castObject.Effects?.Animations?.OnCast?.SpellEffect != null)
@@ -697,19 +697,6 @@ public class Creature : VisibleObject
             World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.HandleDeath, dead));
         Condition.Casting = false;
         return true;
-    }
-
-    public void SendAnimation(ServerPacket packet)
-    {
-        GameLog.DebugFormat("SendAnimation");
-        GameLog.DebugFormat("SendAnimation byte format is: {0}", BitConverter.ToString(packet.ToArray()));
-        foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>())
-        {
-            var nPacket = (ServerPacket) packet.Clone();
-            GameLog.DebugFormat("SendAnimation to {0}", user.Name);
-            user.Enqueue(nPacket);
-
-        }
     }
 
     public void SendCastLine(ServerPacket packet)
@@ -930,11 +917,8 @@ public class Creature : VisibleObject
     {
         foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
         {
-            if (obj is User)
-            {
-                var user = obj as User;
-                user.SendMotion(Id, motion, speed);
-            }
+            if (obj is not User user) continue;
+                user.SendAnimation(Id, motion, speed);
         }
     }
 

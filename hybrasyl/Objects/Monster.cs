@@ -292,6 +292,15 @@ public class Monster : Creature, ICloneable
             ScriptExists = false;
     }
 
+    public override bool UseCastable(Castable castable, Creature target)
+    {
+        if (Condition.CastingAllowed) return false;
+        if (castable.IsAssail)
+        {
+            Motion(1,20);
+        }
+        return base.UseCastable(castable, target);
+    }
     public override void OnHear(VisibleObject speaker, string text, bool shout = false)
     {
         if (speaker == this)
@@ -545,10 +554,8 @@ public class Monster : Creature, ICloneable
         if (target == null)
             return;
         if (!CastableController.TryGetCastable("Assail", out BookSlot slot)) return;
-        UseCastable(slot.Castable, target, true);
-        //animation handled here as to not repeatedly send assails.
-        var assail = new ServerPacketStructures.PlayerAnimation { Animation = 1, Speed = 20, UserId = Id };
-        SendAnimation(assail.Packet());
+        UseCastable(slot.Castable, target);
+        Motion(1,20);
         PlaySound(1);
     }
 
@@ -798,7 +805,7 @@ public class Monster : Creature, ICloneable
 
     public void ProcessActions()
     {
-        while (_actionQueue.Count > 0)
+        while (!_actionQueue.IsEmpty)
         {
             _actionQueue.TryDequeue(out var action);
             GameLog.SpawnDebug($"ActionQueue: {action}");
@@ -811,15 +818,32 @@ public class Monster : Creature, ICloneable
                         Attack();
                         return;
                     }
+
                     var targets = ThreatInfo.GetTargets(next.CurrentPriority);
                     if (targets.Count == 0)
                     {
                         GameLog.SpawnDebug($"{Name}: ({Map.Name}@{X},{Y}): no targets returned from priority {next.CurrentPriority}");
                         return;
                     }
+
+                    if (targets.Count == 1 && next.Slot.Castable.IsAssail)
+                    {
+                            if (Distance(ThreatInfo.HighestThreat) > 1)
+                            {
+                                _actionQueue.Enqueue(MobAction.Move);
+                                return;
+                            }
+                            if (!CheckFacing(Direction, ThreatInfo.HighestThreat))
+                            {
+                                Turn(Relation(ThreatInfo.HighestThreat.X, ThreatInfo.HighestThreat.Y));
+                            }
+                    }
+
                     foreach (var target in targets)
+                    {
                         Cast(next.Slot, target);
-                    
+                    }
+
                     return;
                 case MobAction.Move when !Condition.MovementAllowed:
                     return;
@@ -848,7 +872,11 @@ public class Monster : Creature, ICloneable
                 }
                 case MobAction.Move:
                 {
-                    if (ThreatInfo.HighestThreat == null) return;
+                    if (ThreatInfo.HighestThreat == null)
+                    {
+                        ShouldWander = true;
+                        return;
+                    }
                     if (Condition.MovementAllowed)
                     {
                         if (CurrentPath == null || !AStarPathClear())
