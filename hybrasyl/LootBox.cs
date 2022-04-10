@@ -1,6 +1,7 @@
 ﻿using Hybrasyl.Objects;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Hybrasyl.Xml;
 
@@ -242,6 +243,11 @@ public static class LootBox
             loot.Add(item);
         }
         var totalRolls = 0;
+        var onlyMaxUnique = list.Item.Count(i => !i.Unique) == list.Item.Count;
+        var onlyMaxDrop = list.Item.Count(i => i.Max > 0) == list.Item.Count;
+        var sumUnique = list.Item.Where(i => i.Unique).Count();
+        var sumMax = list.Item.Select(i => i.Max > 0).Count();
+
         // Process the rest of the rolls now
         do
         {
@@ -249,31 +255,33 @@ public static class LootBox
             var item = list.Item.Where(i => !i.Always).PickRandom();
             // As soon as we get an item from our table, we've "rolled"; we'll add another roll below if needed
             rolls--;
-
+            totalRolls++;
             // Check uniqueness. If something has already dropped, don't drop it again, and reroll
+
             if (item.Unique && loot.Contains(item))
             {
+                if (rolls >= sumUnique && onlyMaxUnique)
+                    continue;
                 rolls++;
-                GameLog.SpawnInfo("Processing loot: added duplicate unique item {item}. Rerolling", item.Value);
                 continue;
             }
 
             // Check max quantity. If it is exceeded, reroll
-            if (item.Max > 0 && loot.Where(i => i.Value == item.Value).Count() >= item.Max)
+
+            if (item.Max > 0 && loot.Count(i => i.Value == item.Value) >= item.Max)
             {
+                if (rolls >= sumMax && onlyMaxDrop)
+                    continue;
                 rolls++;
-                GameLog.SpawnInfo("Processing loot: added over max quantity for {item}. Rerolling", item.Value);
                 continue;
             }
 
             // If quantity and uniqueness are good, add the item
             loot.Add(item);
-            GameLog.SpawnInfo("Processing loot: added {item}", item.Value);
-            totalRolls++;
             // As a check against something incredibly stupid in XML, we only allow a maximum of
             // 100 rolls
             if (totalRolls <= 100) continue;
-            GameLog.SpawnInfo("Processing loot: maximum number of rolls exceeded..?");
+            GameLog.SpawnError("Processing loot: added duplicate unique item {item}. Rerolling", item.Value);
             throw new LootRecursionError("Maximum number of rolls (100) exceeded!");
         }
         while (rolls > 0);
