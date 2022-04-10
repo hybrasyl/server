@@ -139,6 +139,7 @@ public static class EvalCommand
         {
             loot += LootBox.CalculateLoot(spawn.Loot);
             loot += LootBox.CalculateLoot(creature.Loot);
+            loot += LootBox.CalculateLoot(group.Loot);
         }
 
         return Success($"Eval for: {group.Name} - {spawn.Name}, {numEvals} rolls\n{loot}", MessageType.SlateScrollbar);

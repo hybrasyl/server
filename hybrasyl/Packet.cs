@@ -730,7 +730,7 @@ public class ServerPacket : Packet
                 }
             }
 
-            if (opcode == 0x1a) return EncryptMethod.Normal;
+            //if (opcode == 0x1a) return EncryptMethod.Normal;
             return EncryptMethod.None;
         }
     }

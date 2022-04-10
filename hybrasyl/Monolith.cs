@@ -192,6 +192,7 @@ internal class Monolith
                 {
                     var newSpawnLoot = LootBox.CalculateLoot(spawn.Loot);
                     newSpawnLoot += LootBox.CalculateLoot(creature.Loot);
+                    newSpawnLoot += LootBox.CalculateLoot(spawnGroup.Loot);
 
                     var baseMob = new Monster(creature, spawn.Flags, (byte) baseLevel, 
                        newSpawnLoot);
