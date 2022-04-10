@@ -260,9 +260,13 @@ public static class LootBox
 
             if (item.Unique && loot.Contains(item))
             {
-                if (rolls >= sumUnique && onlyMaxUnique)
-                    continue;
                 rolls++;
+                if (rolls >= sumUnique && onlyMaxUnique)
+                {
+                    GameLog.SpawnError("Rolling abandoned due to unresolvable rolls (rolls > unique)");
+                    break;
+                }
+
                 continue;
             }
 
@@ -270,9 +274,13 @@ public static class LootBox
 
             if (item.Max > 0 && loot.Count(i => i.Value == item.Value) >= item.Max)
             {
-                if (rolls >= sumMax && onlyMaxDrop)
-                    continue;
                 rolls++;
+                if (rolls >= sumMax && onlyMaxDrop)
+                {
+                    GameLog.SpawnError("Rolling abandoned due to unresolvable rolls (rolls > unique)");
+                    break;
+                }
+
                 continue;
             }
 
