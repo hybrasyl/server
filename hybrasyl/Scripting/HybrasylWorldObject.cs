@@ -325,6 +325,9 @@ public class HybrasylWorldObject
             GameLog.ScriptingError("Distance: either target (first argument) or this object was not a VisibleObject (not on a map), returning -1");
         return -1;
     }
+
+    // TODO: refactor and collapse, also add dialog sprite
+
     /// <summary>
     /// Set the default sprite for this world object to a specified creature sprite.
     /// </summary>
@@ -332,7 +335,7 @@ public class HybrasylWorldObject
     public void SetNpcDisplaySprite(int displaySprite)
     {
         if (Obj is VisibleObject vobj)
-            vobj.DialogSprite = (ushort)(0x4000 + displaySprite);
+            vobj.Sprite = (ushort)(0x4000 + displaySprite);
         else
             GameLog.ScriptingError("SetNpcDisplaySprite: underlying object is not a visible object, ignoring");
     }
@@ -344,7 +347,7 @@ public class HybrasylWorldObject
     public void SetItemDisplaySprite(int displaySprite)
     {
         if (Obj is VisibleObject vobj)
-            vobj.DialogSprite = (ushort)(0x4000 + displaySprite);
+            vobj.Sprite = (ushort)(0x4000 + displaySprite);
         else
             GameLog.ScriptingError("SetItemDisplaySprite: underlying object is not a visible object, ignoring");
     }
