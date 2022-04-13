@@ -294,7 +294,7 @@ public class Monster : Creature, ICloneable
 
     public override bool UseCastable(Castable castable, Creature target)
     {
-        if (Condition.CastingAllowed) return false;
+        if (!Condition.CastingAllowed) return false;
         if (castable.IsAssail)
         {
             Motion(1,20);
@@ -352,7 +352,7 @@ public class Monster : Creature, ICloneable
             if (Script == null) return;
 
             Script.SetGlobalValue("damage", damageEvent.Damage);
-            Script.ExecuteFunction("OnDamage", this, damageEvent.Attacker);
+            Script.ExecuteFunction("OnDamage", this, damageEvent.Attacker, null);
         }
     }
 
@@ -948,7 +948,6 @@ public class Monster : Creature, ICloneable
 
                 if (ThreatInfo.HighestThreat == null && ThreatInfo.Count == 0)
                 {
-                    GameLog.Error("Threat empty");
                     ShouldWander = true;
                     FirstHitter = null;
                     Target = null;

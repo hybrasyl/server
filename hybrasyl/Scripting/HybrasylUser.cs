@@ -356,27 +356,38 @@ public class HybrasylUser
     /// Check to see whether the user has killed a named monster, optionally in the last n minutes.
     /// </summary>
     /// <param name="name">The name of the monster to check</param>
-    /// <param name="minutes">The number of minutes to limit the check. 0 is default and means no limit.</param>
+    /// <param name="since">Specify that the kills should have occurred after the given Unix timestamp.</param>
+    /// <param name="quantity">Specify that a certain number of kills should have occurred.</param>
     /// <returns></returns>
-    public bool HasKilled(string name, int minutes = 0)
+    public bool HasKilledSince(string name, int since, int quantity = 1)
     {
-        var ts = DateTime.Now;
-        var matches = User.RecentKills.Where(x => x.Name.ToLower() == name.ToLower()).ToList();
-        switch (matches.Count)
-        {
-            case > 0 when minutes == 0:
-                return true;
-            case > 0 when minutes > 0:
-            {
-                if (matches.Any(rec => (ts - rec.Timestamp).TotalMinutes <= minutes))
-                {
-                    return true;
-                }
+        var matches = User.RecentKills.Where(x => 
+            string.Equals(x.Name, name, StringComparison.CurrentCultureIgnoreCase));
+        matches = matches.Where(x => x.Timestamp >= DateTimeOffset.FromUnixTimeSeconds(since).DateTime);
+        return matches.Count() >= quantity;
 
-                break;
-            }
+    }
+
+    /// <summary>
+    /// Check to see whether the user has killed a quantity of a named monster, optionally in the last n minutes.
+    /// </summary>
+    /// <param name="name">The name of the monster to check</param>
+    /// <param name="minutes">The number of minutes to limit the check. 0 is default and means no limit.</param>
+    /// <param name="quantity">Specify that a certain number of kills should have occurred. Default is 1.</param>
+    /// <returns></returns>
+    public bool HasKilled(string name, int quantity = 1, int minutes=0)
+    {
+
+        var matches = User.RecentKills.Where(x => 
+            string.Equals(x.Name, name, StringComparison.CurrentCultureIgnoreCase));
+
+        if (minutes > 0)
+        {
+            var ts = DateTime.Now.AddMinutes(minutes * -1);
+            matches = matches.Where(x => x.Timestamp >= ts);
         }
-        return false;
+
+        return matches.Count() > quantity;
     }
 
     /// <summary>
