@@ -249,6 +249,16 @@ public class ItemObject : VisibleObject
         ? uint.MaxValue
         : Convert.ToUInt32(Template.Properties.Physical.Durability);
 
+    public uint RepairCost
+    {
+        get
+        {
+            if (MaximumDurability != 0)
+                return Durability == 0 ? Value : (uint) ((Durability / MaximumDurability) * Value);
+            return 0;
+        }
+    } 
+
     // For future use / expansion re: unidentified items.
     // Should pull from template and only allow false to be set when
     // Identifiable flag is set.
@@ -283,6 +293,7 @@ public class ItemObject : VisibleObject
 
 
     public bool Enchantable => Template.Properties.Flags.HasFlag(Xml.ItemFlags.Enchantable);
+    public bool Depositable => Template.Properties.Flags.HasFlag(ItemFlags.Depositable);
 
     public bool Consecratable => Template.Properties.Flags.HasFlag(Xml.ItemFlags.Consecratable);
 

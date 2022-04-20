@@ -371,6 +371,7 @@ public class Vault
     public uint RemainingGold => GoldLimit - CurrentGold;
     public ushort RemainingItems => (ushort)(ItemLimit - CurrentItemCount);
     public bool IsSaving;
+    public bool IsFull => CurrentItemCount == ItemLimit;
 
     public string StorageKey => string.Concat(GetType(), ':', OwnerGuid);
 
@@ -384,7 +385,7 @@ public class Vault
         GoldLimit = uint.MaxValue;
         ItemLimit = ushort.MaxValue;
         CurrentGold = 0;
-        Items = new Dictionary<string, uint>();
+        Items = new Dictionary<string, uint>(StringComparer.OrdinalIgnoreCase);
         OwnerGuid = ownerGuid;
     }
 

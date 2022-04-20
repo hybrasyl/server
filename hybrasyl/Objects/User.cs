@@ -4067,7 +4067,6 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
         if (Vault.CurrentGold > 1) coins = "coins";
         var prompt = merchant.GetLocalString("deposit_gold",("$COINS", Vault.CurrentGold.ToString()),("$REF", coins));
 
-
         var input = new MerchantInput();
         input.Id = (ushort)MerchantMenuItem.DepositGoldQuantity;
 
@@ -4982,6 +4981,21 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
             Action = ExchangeActions.Confirm,
             Side = source
         }.Packet());
+    }
+
+    public void SendInventorySlot(byte slot)
+    {
+        if (Inventory[slot] == null) return;
+        var x0F = new ServerPacket(0x0F);
+        x0F.WriteByte(slot);
+        x0F.WriteUInt16((ushort)(Inventory[slot].Sprite + 0x8000));
+        x0F.WriteByte(Inventory[slot].Color);
+        x0F.WriteString8(Inventory[slot].Name);
+        x0F.WriteInt32(Inventory[slot].Count);
+        x0F.WriteBoolean(Inventory[slot].Stackable);
+        x0F.WriteUInt32(Inventory[slot].MaximumDurability);
+        x0F.WriteUInt32(Inventory[slot].DisplayDurability);
+        Enqueue(x0F);
     }
 
     public void SendInventory()
