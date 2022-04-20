@@ -28,6 +28,7 @@ using System.Text.RegularExpressions;
 using Hybrasyl.Controllers;
 using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
+using Hybrasyl.Messaging;
 using Hybrasyl.Xml;
 
 namespace Hybrasyl.Objects;
@@ -195,42 +196,36 @@ public class Merchant : Creature, IXmlReloadable
             Ready = true;
     }
 
-    public override void OnHear(VisibleObject speaker, string text, bool shout = false)
+    public override void OnHear(SpokenEvent e)
     {
-        if (speaker == this)
+        if (e.Speaker == this)
             return;
 
         if (!Ready)
             OnSpawn();
 
         // Try to evaluate the text as a built-in command
-        if (Controller.Evaluate(speaker, text, shout))
+        if (Controller.Evaluate(e))
             return;
 
-        var key = text.ToLower().Trim();
-        if (Responses.TryGetValue(key, out string response) )
+        // Call/response?
+        if (Responses.TryGetValue(e.SanitizedMessage, out string response) )
         {
             // TODO: improve
             Say(response.Replace("$NAME", Name));
             return;
         }
 
-        var resp = World.GetLocalResponse(key);
+        var resp = World.GetLocalResponse(e.SanitizedMessage);
         if (resp != null)
         {
             Say(resp.Replace("$NAME", Name));
             return;
         }
 
-        if (Script == null) return;
-        Script.SetGlobalValue("text", text);
-        Script.SetGlobalValue("shout", shout);
+        // Pass onto a script
+        base.OnHear(e);
 
-        // TODO: genericize wrapper
-        if (speaker is User user )
-            Script.ExecuteFunction("OnHear", new HybrasylUser(user));
-        else
-            Script.ExecuteFunction("OnHear", new HybrasylWorldObject(speaker));
     }
 
     public override void OnClick(User invoker)

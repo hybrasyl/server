@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Xml;
 using Hybrasyl.ChatCommands;
 using Hybrasyl.Enums;
+using Hybrasyl.Messaging;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml;
 
@@ -66,18 +67,18 @@ namespace Hybrasyl.Controllers
         }
 
 
-        public bool Evaluate(VisibleObject speaker, string input, bool shout = false)
+        public bool Evaluate(SpokenEvent e)
         {
             foreach (var (key, value) in Triggers)
             {
-                var match = key.Match(input);
+                var match = key.Match(e.Message);
                 if (!match.Success) continue;
                 if (value.RequiredJob != MerchantJob.None && !Merchant.Jobs.HasFlag(value.RequiredJob))
                 {
                     Merchant.Say("Sorry, I can't do that.");
                     return true;
                 }
-                value.Action(new MerchantControllerRequest(speaker, match.Groups));
+                value.Action(new MerchantControllerRequest(e.Speaker, match.Groups));
                 return true;
             }
             return false;
@@ -105,7 +106,7 @@ namespace Hybrasyl.Controllers
             Merchant.Say($"You have {Pluralize(user.Vault.CurrentGold)} on deposit.");
         }
 
-        [RegexTrigger(@"buy\\s+(?<amt>\\d+|all)\\s+of\\s+my\\s+(?<target>.*)")]
+        [RegexTrigger(@"buy\s+(?<amt>\d+|all)\s+of\s+my\s+(?<target>.*)")]
         [MerchantRequiredJob(MerchantJob.Vend)]
         public void Buy(MerchantControllerRequest request)
         {
@@ -129,7 +130,7 @@ namespace Hybrasyl.Controllers
 
                     if (removed > 0)
                     {
-                        Merchant.Say($"Certainly. I will buy {removed} of those for {coins} gold, {user.Name}.");
+                        Merchant.Say($"Certainly. I will buy {removed} of those for {Pluralize(coins)}, {user.Name}.");
                         user.Stats.Gold += coins;
                         user.UpdateAttributes(StatUpdateFlags.Experience);
                     }
@@ -159,7 +160,7 @@ namespace Hybrasyl.Controllers
                                 else
                                     user.SendItemUpdate(user.Inventory[slot], slot);
                             }
-                            Merchant.Say($"Certainly. I will buy {actuallyRemoved.Sum(x => x.Quantity)} of those for {coins} gold, {user.Name}.");
+                            Merchant.Say($"Certainly. I will buy {actuallyRemoved.Sum(x => x.Quantity)} of those for {Pluralize(coins)}, {user.Name}.");
                             user.Stats.Gold += coins;
                             user.UpdateAttributes(StatUpdateFlags.Experience);
                         }
@@ -179,7 +180,7 @@ namespace Hybrasyl.Controllers
                     coins += (uint)(user.Inventory[slot].Value * user.Inventory[slot].Count);
                     user.RemoveItem(slot);
                 }
-                Merchant.Say($"Certainly. That will be {coins} gold, {user.Name}.");
+                Merchant.Say($"Certainly. That will be {Pluralize(coins)}, {user.Name}.");
                 user.Stats.Gold += coins;
                 user.UpdateAttributes(StatUpdateFlags.Experience);
             }
@@ -222,7 +223,7 @@ namespace Hybrasyl.Controllers
             }
             if (repairTotal > 0)
             {
-                Merchant.Say($"I repaired it all for {repairTotal} coins.");
+                Merchant.Say($"I repaired it all for {Pluralize((uint) repairTotal)}.");
                 user.SendInventory();
                 user.SendEquipment();
                 user.UpdateAttributes(StatUpdateFlags.Full);
@@ -280,7 +281,7 @@ namespace Hybrasyl.Controllers
 
             if (user.Vault.AddGold(gold))
             {
-                Merchant.Say($"I'll take your {Pluralize(gold)}");
+                Merchant.Say($"I'll take your {Pluralize(gold)}.");
                 user.Stats.Gold -= gold;
                 user.UpdateAttributes(StatUpdateFlags.Experience);
                 return;
@@ -321,7 +322,7 @@ namespace Hybrasyl.Controllers
 
             if (fee > user.Stats.Gold)
             {
-                Merchant.Say($"I'll need {Pluralize(fee)} coins to deposit that.");
+                Merchant.Say($"I'll need {Pluralize(fee)} to deposit that.");
                 return;
             }
 
@@ -344,7 +345,7 @@ namespace Hybrasyl.Controllers
             Game.World.Remove(first.obj);
             user.Vault.AddItem(first.obj.Name);
             user.Vault.Save();
-            Merchant.Say($"{first.obj.Name}, that'll be {fee} coins.");
+            Merchant.Say($"{first.obj.Name}, that'll be {Pluralize(fee)}.");
         }
 
         [RegexTrigger(@"withdraw (?<amt>\d+) (coins|gold|coin)")]

@@ -23,6 +23,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using Hybrasyl.Enums;
+using Hybrasyl.Messaging;
 using Newtonsoft.Json;
 
 namespace Hybrasyl.Objects;
@@ -144,7 +145,7 @@ public class VisibleObject : WorldObject
     public virtual void OnDamage(DamageEvent damageEvent) { }
     public virtual void OnHeal(Creature healer, uint damage) { }
 
-    public virtual void OnHear(VisibleObject speaker, string text, bool shout = false) { }
+    public virtual void OnHear(SpokenEvent e) { }
 
     public Rectangle GetBoundingBox()
     {
@@ -217,16 +218,7 @@ public class VisibleObject : WorldObject
     {
         foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
         {
-            if (obj is User user)
-            {
-                var x0D = new ServerPacket(0x0D);
-                x0D.WriteByte(0x00);
-                x0D.WriteUInt32(Id);
-                x0D.WriteString8(!string.IsNullOrEmpty(@from) ? $"{@from}: {message}" : $"{Name}: {message}");
-                user.Enqueue(x0D);
-            }
-            else
-                obj.OnHear(this, message, false);
+            obj.OnHear(new SpokenEvent(this, message, from));
         }
     }
 
@@ -234,19 +226,7 @@ public class VisibleObject : WorldObject
     {           
         foreach (var obj in Map.EntityTree.GetObjects(GetShoutViewport()))
         {
-            if (obj is User user)
-            {
-                var x0D = new ServerPacket(0x0D);
-                x0D.WriteByte(0x01);
-                x0D.WriteUInt32(Id);
-                if (!string.IsNullOrEmpty(from))
-                    x0D.WriteString8($"{from}! {message}");
-                else
-                    x0D.WriteString8($"{Name}! {message}");
-                user.Enqueue(x0D);
-            }
-            else
-                obj.OnHear(this, message, true);
+            obj.OnHear(new SpokenEvent(this, message, from, true));
         }
     }
 

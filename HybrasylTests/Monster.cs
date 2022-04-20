@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Hybrasyl;
+﻿using Hybrasyl;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml;
-using Microsoft.VisualBasic;
 using Xunit;
 using Creature = Hybrasyl.Xml.Creature;
 

@@ -160,6 +160,7 @@ public class User : Creature
 
     [JsonProperty]
     public List<KillRecord> RecentKills { get; private set; }
+    public List<SpokenEvent> MessagesReceived { get; private set; }
 
     [JsonProperty] public Guid GuildGuid { get; set; } = Guid.Empty;
 
@@ -250,8 +251,9 @@ public class User : Creature
                 base.Say(message, from);
                 return;
             }
-            SendSystemMessage("You try to speak, but nothing happens.");
         }
+        SendSystemMessage("You try to speak, but nothing happens.");
+
     }
 
     public override void Shout(string message, string from = "")
@@ -462,6 +464,20 @@ public class User : Creature
         GameLog.DebugFormat($"{Name} - status update - sending Icon: {statuspacket.Icon}, Color: {statuspacket.BarColor}");
         GameLog.DebugFormat($"{Name} - status: {status.Name}, expired: {status.Expired}, remaining: {remaining}, duration: {status.Duration}");
         Enqueue(statuspacket.Packet());
+    }
+
+    public override void OnHear(SpokenEvent e)
+    {
+        if (e.Speaker != this) 
+            MessagesReceived.Add(e);
+        var x0D = new ServerPacket(0x0D);
+        x0D.WriteBoolean(e.Shout);
+        x0D.WriteUInt32(Id);
+        if (e.Shout)
+            x0D.WriteString8(!string.IsNullOrEmpty(e.From) ? $"{e.From}! {e.Message}" : $"{Name}! {e.Message}");
+        else
+            x0D.WriteString8(!string.IsNullOrEmpty(e.From) ? $"{e.From}: {e.Message}" : $"{Name}: {e.Message}");
+        Enqueue(x0D);
     }
 
     /// <summary>
@@ -712,7 +728,8 @@ public class User : Creature
         Group = null;
         Flags = new Dictionary<string, bool>();
         _currentStatuses = new ConcurrentDictionary<ushort, ICreatureStatus>();
-        RecentKills = new List<KillRecord>();       
+        RecentKills = new List<KillRecord>();
+        MessagesReceived = new List<SpokenEvent>();
         #region Appearance defaults
         RestPosition = RestPosition.Standing;
         SkinColor = SkinColor.Basic;

@@ -28,6 +28,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Hybrasyl.Casting;
 using Hybrasyl.ChatCommands;
+using Hybrasyl.Messaging;
 
 namespace Hybrasyl.Objects;
 
@@ -301,23 +302,21 @@ public class Monster : Creature, ICloneable
         }
         return base.UseCastable(castable, target);
     }
-    public override void OnHear(VisibleObject speaker, string text, bool shout = false)
+    public override void OnHear(SpokenEvent e)
     {
-        if (speaker == this)
+        if (e.Speaker == this)
             return;
 
         // FIXME: in the glorious future, run asynchronously with locking
         InitScript();
-        if (Script != null)
-        {
-            Script.SetGlobalValue("text", text);
-            Script.SetGlobalValue("shout", shout);
+        if (Script == null) return;
+        Script.SetGlobalValue("text", e.Message);
+        Script.SetGlobalValue("shout", e.Shout);
 
-            if (speaker is User user)
-                Script.ExecuteFunction("OnHear", new HybrasylUser(user));
-            else
-                Script.ExecuteFunction("OnHear", new HybrasylWorldObject(speaker));
-        }
+        if (e.Speaker is User user)
+            Script.ExecuteFunction("OnHear", new HybrasylUser(user));
+        else
+            Script.ExecuteFunction("OnHear", new HybrasylWorldObject(e.Speaker));
     }
 
     public void MakeHostile()
