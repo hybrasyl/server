@@ -371,6 +371,7 @@ static class NumberCruncher
     public static StatInfo CalculateStatusModifiers(Castable castable, double intensity, StatModifiers effect,
         Creature source, Creature target=null)
     {
+        if (effect is null) return new StatInfo();
         var modifiers = new StatInfo
         {
             DeltaHp = Modify(_evalFormula(effect.CurrentHp, castable, target, source), intensity),
