@@ -895,14 +895,10 @@ public class HybrasylUser
     /// <returns></returns>
     public bool HasItem(string name, int count = 1)
     {
-        if (string.IsNullOrEmpty(name))
-        {
-            GameLog.ScriptingError("HasItem: {user} - item name (first parameter) was null or empty - returning false", User.Name);
-            return false;
-        }
-        if (count == 1)
-            return User.Inventory.ContainsName(name);
-        return User.Inventory.ContainsId(name, count);
+        if (!string.IsNullOrEmpty(name)) return User.Inventory.ContainsName(name, count);
+        GameLog.ScriptingError("HasItem: {user} - item name (first parameter) was null or empty - returning false", User.Name);
+        return false;
+
     }
 
     /// <summary>

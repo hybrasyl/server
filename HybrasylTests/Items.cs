@@ -17,6 +17,11 @@ public class Items
     }
 
     [Fact]
+    public void ItemSlotRestrictions()
+    {
+
+    }
+    [Fact]
     public void UseItemBaseStats()
     {
         Fixture.TestUser.Equipment.Clear();

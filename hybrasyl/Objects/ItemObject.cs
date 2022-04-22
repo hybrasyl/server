@@ -410,7 +410,7 @@ public class ItemObject : VisibleObject
         TemplateId = template.Id;
         ServerGuid = containingWorld;
         _count = new Lockable<int>(1);
-        _durability = new Lockable<double>(uint.MaxValue);
+        _durability = new Lockable<double>(MaximumDurability);
         Guid = guid != default ? guid : Guid.NewGuid();
     }
 

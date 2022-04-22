@@ -162,6 +162,9 @@ public class HybrasylFixture : IDisposable
             BaseAc = 100,
         };
         TestUser.Class = Class.Peasant;
+        TestUser.Inventory.Clear();
+        TestUser.Equipment.Clear();
+        TestUser.Vault.Clear();
     }
 
     public void Dispose()

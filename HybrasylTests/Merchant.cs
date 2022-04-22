@@ -114,7 +114,7 @@ public class Merchants
     {
         Fixture.ResetUserStats();
         Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
-        Assert.True(Game.World.WorldData.TryGetValueByIndex("Epee", out Item junk), "Couldn't find prayer book in test items");
+        Assert.True(Game.World.WorldData.TryGetValueByIndex("Epee", out Item junk), "Couldn't find epee in test items");
         var item = new ItemObject(junk, Fixture.TestUser.World.Guid);
         Fixture.TestUser.AddItem(item);
         var before = Fixture.TestUser.Stats.Gold;
@@ -131,7 +131,7 @@ public class Merchants
     {
         Fixture.ResetUserStats();
         Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
-        Assert.True(Game.World.WorldData.TryGetValueByIndex("Epee", out Item junk), "Couldn't find prayer book in test items");
+        Assert.True(Game.World.WorldData.TryGetValueByIndex("Epee", out Item junk), "Couldn't find epee in test items");
         var before = Fixture.TestUser.Stats.Gold;
         var item = new ItemObject(junk, Fixture.TestUser.World.Guid);
         Fixture.TestUser.AddItem(item);
@@ -139,10 +139,41 @@ public class Merchants
         Fixture.TestUser.AddItem(item2);
         item.Durability /= 2;
         item2.Durability /= 2;
+        Fixture.TestUser.Stats.Gold = 1;
         Fixture.TestUser.Say("repair all");
         var msg = Fixture.TestUser.MessagesReceived.Last();
         Assert.Equal("Maria", msg.Speaker.Name);
-        Assert.Equal($"Certainly. I will buy 1 of those for {item.Value} coins, {Fixture.TestUser.Name}.", msg.Message);
+        Assert.Equal($"You'll need 250 more gold to repair all of it, I'm afraid.", msg.Message);
+        Fixture.TestUser.Stats.Gold = 10000;
+        Fixture.TestUser.Say("repair all");
+        msg = Fixture.TestUser.MessagesReceived.Last();
+        Assert.Equal("Maria", msg.Speaker.Name);
+        Assert.True(item.Durability == item.MaximumDurability);
+        Assert.True(item2.Durability == item2.MaximumDurability);
+        Assert.Equal($"I repaired it all for 1000 coins.", msg.Message);
+    }
+
+    [Fact]
+    public void RepairItem()
+    {
+        Fixture.ResetUserStats();
+        Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
+        Assert.True(Game.World.WorldData.TryGetValueByIndex("Epee", out Item junk), "Couldn't find epee in very test items");
+        var before = Fixture.TestUser.Stats.Gold;
+        var item = new ItemObject(junk, Fixture.TestUser.World.Guid);
+        Fixture.TestUser.AddItem(item);
+        item.Durability /= 2;
+        Fixture.TestUser.Stats.Gold = 1;
+        Fixture.TestUser.Say("repair my epee");
+        var msg = Fixture.TestUser.MessagesReceived.Last();
+        Assert.Equal("Maria", msg.Speaker.Name);
+        Assert.Equal($"You'll need 250 more gold to repair that, I'm afraid.", msg.Message);
+        Fixture.TestUser.Stats.Gold = 10000;
+        Fixture.TestUser.Say("repair my epee");
+        msg = Fixture.TestUser.MessagesReceived.Last();
+        Assert.Equal("Maria", msg.Speaker.Name);
+        Assert.True(item.Durability == item.MaximumDurability);
+        Assert.Equal($"I repaired your Epee for 250 coins.", msg.Message);
     }
 
     [Fact]
@@ -179,6 +210,7 @@ public class Merchants
         Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
         Assert.True(Game.World.WorldData.TryGetValueByIndex("Epee", out Item junk), "Couldn't find prayer book in test items");
         var item = new ItemObject(junk, Fixture.TestUser.World.Guid);
+        item.Durability = item.MaximumDurability;
         Fixture.TestUser.AddItem(item);
         Fixture.TestUser.Say("deposit epee");
         var msg = Fixture.TestUser.MessagesReceived.Last();

@@ -189,7 +189,7 @@ namespace Hybrasyl.Controllers
         }
 
 
-        [RegexTrigger(@"repair (all|everything|all my items)")]
+        [RegexTrigger(@"repair all")]
         [MerchantRequiredJob(MerchantJob.Repair)]
         public void RepairAll(MerchantControllerRequest request)
         {
@@ -200,7 +200,7 @@ namespace Hybrasyl.Controllers
                 if (item.MaximumDurability == 0 || item.Durability == item.MaximumDurability) continue;
                 if (item.RepairCost > user.Stats.Gold)
                 {
-                    Merchant.Say("You'll need more gold to repair all of it, I'm afraid");
+                    Merchant.Say($"You'll need {item.RepairCost} more gold to repair all of it, I'm afraid.");
                     return;
                 }
 
@@ -213,7 +213,7 @@ namespace Hybrasyl.Controllers
                 if (item.MaximumDurability == 0 || item.Durability == item.MaximumDurability) continue;
                 if (item.RepairCost > user.Stats.Gold)
                 {
-                    Merchant.Say("You'll need more gold to repair all of it, I'm afraid");
+                    Merchant.Say($"You'll need {item.RepairCost} more gold to repair all of it, I'm afraid.");
                     return;
                 }
 
@@ -233,7 +233,7 @@ namespace Hybrasyl.Controllers
 
         }
 
-        [RegexTrigger(@"repair (?<item>.*)")]
+        [RegexTrigger(@"repair my (?<item>.*)")]
         [MerchantRequiredJob(MerchantJob.Repair)]
         public void RepairItem(MerchantControllerRequest request)
         {
@@ -251,9 +251,10 @@ namespace Hybrasyl.Controllers
                 if (obj.MaximumDurability == 0 || obj.Durability == obj.MaximumDurability) continue;
                 if (obj.RepairCost > user.Stats.Gold)
                 {
-                    Merchant.Say("You'll need more gold to repair that, I'm afraid");
+                    Merchant.Say($"You'll need {obj.RepairCost} more gold to repair that, I'm afraid.");
                     return;
                 }
+                Merchant.Say($"I repaired your {obj.Name} for {obj.RepairCost} coins.");
 
                 obj.Durability = obj.MaximumDurability;
                 user.Stats.Gold -= obj.RepairCost;

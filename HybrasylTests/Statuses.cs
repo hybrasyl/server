@@ -1,6 +1,10 @@
 ﻿using System.Linq;
 using Hybrasyl;
+using Hybrasyl.Objects;
+using Hybrasyl.Xml;
 using Xunit;
+using Creature = Hybrasyl.Xml.Creature;
+using Map = Hybrasyl.Map;
 
 namespace HybrasylTests;
 
@@ -30,8 +34,26 @@ public class Status
     }
 
     [Fact]
-    public void ApplyMuteStatus()
+    public void ApplyConditionStatus()
     {
-        // Apply mute status, verify that user/creature cannot cast
+        Fixture.TestUser.Stats.BaseMp = 1000;
+        Fixture.TestUser.Stats.Mp = 1000;
+        var beforeAc = Fixture.TestUser.Stats.Ac;
+        var castable = Game.World.WorldData.FindCastables(x => x.Name == "Sleep").FirstOrDefault();
+        Assert.True(Game.World.WorldData.TryGetValue<Creature>("Gabbaghoul", out var monsterXml),
+            "Gabbaghoul test monster not found");
+        var monster = new Monster(monsterXml, SpawnFlags.AiDisabled, 99);
+        // Should spawn, and not have a null behaviorset
+        Assert.NotNull(monster.BehaviorSet);
+        monster.X = 11;
+        monster.Y = 11;
+        Fixture.TestUser.Teleport("XUnit Test Realm", 10, 10);
+        Fixture.TestUser.Map.InsertCreature(monster);
+        Assert.NotNull(castable);
+        Fixture.TestUser.SpellBook.Add(castable);
+        Fixture.TestUser.UseCastable(castable, monster);
+        // Gabbaghoul should be asleep now, and unable to cast
+        Assert.True(monster.Condition.Asleep);
+        Assert.False(monster.Condition.CastingAllowed);
     }
 }

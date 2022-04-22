@@ -25,6 +25,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Hybrasyl.ChatCommands;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Hybrasyl.Threading;
@@ -379,6 +380,12 @@ public class Vault
     public Dictionary<string, uint> Items { get; private set; } //item name, quantity
 
     public Vault() { }
+
+    public void Clear()
+    {
+        CurrentGold = 0;
+        Items = new Dictionary<string, uint>(StringComparer.OrdinalIgnoreCase);
+    }
 
     public Vault(Guid ownerGuid)
     {
