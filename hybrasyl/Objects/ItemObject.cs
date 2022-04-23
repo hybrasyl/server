@@ -134,7 +134,7 @@ public class ItemObject : VisibleObject
                      userobj.Equipment.RRing != null) || (restriction.Slot == Xml.EquipmentSlot.Gauntlet &&
                                                           userobj.Equipment.LGauntlet != null ||
                                                           userobj.Equipment.RGauntlet != null)
-                                                      || userobj.Equipment[(byte) restriction.Slot] != null)
+                                                      || userobj.Equipment[(byte) restriction.Slot] == null)
                 {
                     message = restrictionMessage;
                     return false;
@@ -156,7 +156,7 @@ public class ItemObject : VisibleObject
                     (restriction.Slot == Xml.EquipmentSlot.Gauntlet &&
                      EquipmentSlot == (byte) Xml.EquipmentSlot.LeftArm ||
                      EquipmentSlot == (byte) Xml.EquipmentSlot.RightArm) ||
-                    userobj.Equipment[(byte) restriction.Slot] != null)
+                    EquipmentSlot == (byte) restriction.Slot)
                 {
                     message = restrictionMessage;
                     return false;
@@ -166,7 +166,7 @@ public class ItemObject : VisibleObject
             {
                 if ((restriction.Slot == Xml.EquipmentSlot.Ring && userobj.Equipment.LRing != null ||
                      userobj.Equipment.RRing != null) || (restriction.Slot == Xml.EquipmentSlot.Gauntlet && userobj.Equipment.LGauntlet != null || userobj.Equipment.RGauntlet != null)
-                                                      || userobj.Equipment[(byte)restriction.Slot] != null)
+                                                      || EquipmentSlot != (byte) restriction.Slot)
                 {
                     message = restrictionMessage;
                     return false;

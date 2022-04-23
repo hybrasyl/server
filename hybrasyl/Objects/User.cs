@@ -2451,9 +2451,23 @@ public class User : Creature
             SendSpells();
         return true;
     }
+
     public bool RemoveEquipment(byte slot, bool sendUpdate = true)
     {
         var item = Equipment[slot];
+        // Process requirements
+        if (item != null)
+        {
+            var f = Equipment.Where(x => x.Template.SlotRequirements.Any())
+                .SelectMany(itemReq => itemReq.Template.SlotRequirements);
+            if (Equipment.Where(x => x.Template.SlotRequirements.Any()).SelectMany(itemReq => itemReq.Template.SlotRequirements).Any(req => req.Slot == (EquipmentSlot) (slot)))
+            {
+                // TODO: improve messaging here
+                SendSystemMessage($"Other equipment must be removed first.");
+                return false;
+            }
+        }
+
         if (Equipment.Remove(slot))
         {
             SendRefreshEquipmentSlot(slot); 
