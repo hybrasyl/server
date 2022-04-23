@@ -134,7 +134,7 @@ public class Script
     /// </summary>
     /// <param name="obj"></param>
     /// <returns></returns>
-    public static dynamic GetUserDataValue(dynamic obj)
+    public static DynValue GetUserDataValue(dynamic obj)
     {
         if (obj == null)
             return DynValue.NewNil();
@@ -229,6 +229,7 @@ public class Script
         Compiled.Globals["utility"] = typeof(HybrasylUtility);
         Compiled.Globals.Set("world", UserData.Create(Processor.World));
         Compiled.Globals.Set("logger", UserData.Create(new ScriptLogger(Name)));
+        Compiled.Globals.Set("this_script", DynValue.NewString(Name));
     }
 
     /// <summary>
@@ -240,14 +241,7 @@ public class Script
     {
         try
         {
-            Compiled.Globals["Gender"] = UserData.CreateStatic<Xml.Gender>();
-            Compiled.Globals["LegendIcon"] = UserData.CreateStatic<LegendIcon>();
-            Compiled.Globals["LegendColor"] = UserData.CreateStatic<LegendColor>();
-            Compiled.Globals["Class"] = UserData.CreateStatic<Xml.Class>();
-            Compiled.Globals["utility"] = typeof(HybrasylUtility);
-            Compiled.Globals.Set("world", UserData.Create(Processor.World));
-            Compiled.Globals.Set("logger", UserData.Create(new ScriptLogger(Name)));
-            Compiled.Globals.Set("this_script", DynValue.NewString(Name));
+            SetGlobals();
             // Load file into RawSource so we have access to it later
             RawSource = File.ReadAllText(FullPath);
             Compiled.DoFile(FullPath);
@@ -316,7 +310,6 @@ public class Script
 
         try
         {
-            Compiled.Globals["utility"] = typeof(HybrasylUtility);
             Compiled.Globals.Set("invoker", GetUserDataValue(invoker));
             if (source != null)
                 Compiled.Globals.Set("source", GetUserDataValue(source));
@@ -338,6 +331,36 @@ public class Script
         return true;
     }
 
+    public ScriptExecutionResult ExecuteFunction(ScriptEnvironment environment)
+    {
+        var result = new ScriptExecutionResult { Success = false, Return = DynValue.Nil };
+        if (Disabled)
+            return result;
+
+        try
+        {
+            foreach (var kvp in environment.Variables)
+            {
+                Compiled.Globals.Set(kvp.Key, GetUserDataValue(kvp.Value));
+                result.Success = true;
+                result.Return = Compiled.Call(Compiled.Globals[environment.Function]);
+                return result;
+            }
+        }
+        catch (Exception ex)
+        {
+            Game.ReportException(ex);
+            var errorMsg = HumanizeException(ex);
+          //  GameLog.ScriptingError("Execute: Error executing expression {expr} in {FileName} (associate {associate}, invoker {invoker}): {Message}",
+            //    FileName, );
+            //Disabled = true;
+            CompilationError = ex.ToString();
+            return result;
+
+
+        }
+    }
+
     public DynValue ExecuteAndReturn(string expr, dynamic invoker)
     {
         if (Disabled)
@@ -345,22 +368,14 @@ public class Script
 
         try
         {
-            Compiled.Globals["utility"] = typeof(HybrasylUtility);
             Compiled.Globals.Set("invoker", GetUserDataValue(invoker));
-            Compiled.Globals.Set("parent", GetUserDataValue(invoker));
             return Compiled.DoString(expr);
         }
         catch (Exception ex)
         {
-            Game.ReportException(ex);
-            var errorMsg = HumanizeException(ex);
-            GameLog.ScriptingError("Execute: Error executing expression {expr} in {FileName} (associate {associate}, invoker {invoker}): {Message}",
-                expr, FileName, Associate?.Name ?? "none", invoker?.Name ?? "none", errorMsg);
-            //Disabled = true;
-            CompilationError = ex.ToString();
-            return DynValue.Nil;
         }
     }
+
 
 
 
