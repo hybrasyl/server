@@ -474,9 +474,9 @@ public class User : Creature
         x0D.WriteBoolean(e.Shout);
         x0D.WriteUInt32(Id);
         if (e.Shout)
-            x0D.WriteString8(!string.IsNullOrEmpty(e.From) ? $"{e.From}! {e.Message}" : $"{Name}! {e.Message}");
+            x0D.WriteString8(!string.IsNullOrEmpty(e.From) ? $"{e.From}! {e.Message}" : $"{e.Speaker.Name}! {e.Message}");
         else
-            x0D.WriteString8(!string.IsNullOrEmpty(e.From) ? $"{e.From}: {e.Message}" : $"{Name}: {e.Message}");
+            x0D.WriteString8(!string.IsNullOrEmpty(e.From) ? $"{e.From}: {e.Message}" : $"{e.Speaker.Name}: {e.Message}");
         Enqueue(x0D);
     }
 

@@ -269,13 +269,19 @@ public class Monster : Creature, ICloneable
 
             Game.World.RemoveStatusCheck(this);
             // TODO: ondeath castables
+            InitScript();
+            // FIXME: in the glorious future, run asynchronously with locking
+            // TODO: fix awful hack here in scripting refactor
+            if (Script == null) return;
+            Script.SetGlobalValue("lasthitter", LastHitter);
+            Script.ExecuteFunction("OnDeath");
             Map?.Remove(this);
             World?.Remove(this);
         }
     }
 
     // We follow a different pattern here due to the fact that monsters
-    // are not intended to be long-lived objects, and we don't want to 
+    // are not intended to be long-lived objects, and we don't want to a
     // spend a lot of overhead and resources creating a full script (eg via
     // OnSpawn) when not needed 99% of the time.
     private void InitScript()

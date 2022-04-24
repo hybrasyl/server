@@ -300,6 +300,12 @@ public class Script
         var v = DynValue.NewBoolean(value);
         Compiled.Globals.Set(name, v);
     }
+
+    // TODO: remove godawful hack in scripting refactor
+    public void SetGlobalValue(string name, Creature c)
+    {
+        Compiled.Globals.Set(name, GetUserDataValue(c));
+    }
         
     /// <summary>
     /// Execute a Lua expression in the context of an associated world object.
