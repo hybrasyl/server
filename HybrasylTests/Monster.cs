@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Hybrasyl;
+﻿using Hybrasyl;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml;
-using Microsoft.VisualBasic;
 using Xunit;
 using Creature = Hybrasyl.Xml.Creature;
 
@@ -139,7 +133,7 @@ public class Monsters
     [Fact]
     public void MonsterThresholdRotations()
     {
-        // We need our gabbaghoulidk may
+        // We need our gabbaghoul
         Assert.True(Game.World.WorldData.TryGetValue<Creature>("Gabbaghoul", out var monsterXml),
             "Gabbaghoul test monster not found");
         var monster = new Monster(monsterXml, SpawnFlags.AiDisabled, 99);
@@ -154,7 +148,7 @@ public class Monsters
         entry2.Use();
         var maxHp = monster.Stats.MaximumHp;
         monster.Damage(monster.Stats.MaximumHp - 50);
-        Assert.True(monster.Stats.Hp == maxHp - 50);
+        Assert.True(monster.Stats.Hp == 50, $"hp should be 50 but is {monster.Stats.Hp}");
         entry2 = monster.CastableController.GetNextCastable();
         // This should be a threshold cast, but can be any of three spells at random
         Assert.NotNull(entry2);

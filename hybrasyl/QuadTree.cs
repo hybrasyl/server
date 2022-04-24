@@ -34,9 +34,12 @@
  * is used. The rest should function as is.
  */
 
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
+using Hybrasyl;
+using Point = System.Drawing.Point;
 
 namespace C3;
 
@@ -161,15 +164,15 @@ public class QuadTree<T> : ICollection<T> where T : IQuadStorable
     }
 
 
-    /// <summary>
-    /// Get the objects in this tree that intersect with the specified rectangle.
-    /// </summary>
-    /// <param name="rect">The rectangle to find objects in.</param>
-    /// <param name="results">A reference to a list that will be populated with the results.</param>
-    public void GetObjects(Rectangle rect, ref List<T> results)
-    {
-        quadTreeRoot.GetObjects(rect, ref results);
-    }
+    ///// <summary>
+    ///// Get the objects in this tree that intersect with the specified rectangle.
+    ///// </summary>
+    ///// <param name="rect">The rectangle to find objects in.</param>
+    ///// <param name="results">A reference to a list that will be populated with the results.</param>
+    //public void GetObjects(Rectangle rect, ref List<T> results)
+    //{
+    //    quadTreeRoot.GetObjects(rect, ref results);
+    //}
 
 
     /// <summary>
@@ -374,7 +377,7 @@ public class QuadTreeNode<T> where T : IQuadStorable
     private QuadTreeNode<T> childTR; // Top Right Child
     private QuadTreeNode<T> childBL; // Bottom Left Child
     private QuadTreeNode<T> childBR; // Bottom Right Child
-
+    private object lockObject = new Object();
     #endregion
 
     #region Public Properties
@@ -502,9 +505,11 @@ public class QuadTreeNode<T> where T : IQuadStorable
         }
 
         item.Owner = this;
-        objects.Add(item);
+        lock (lockObject)
+        {
+            objects.Add(item);
+        }
     }
-
 
     /// <summary>
     /// Remove an item from the object list.
@@ -524,7 +529,10 @@ public class QuadTreeNode<T> where T : IQuadStorable
                 //objects.RemoveAt(objects.Count - 1);
 
                 // We know the item, so just remove it by its index.
-                objects.RemoveAt(removeIndex);
+                lock (lockObject)
+                {
+                    objects.RemoveAt(removeIndex);
+                }
             }
         }
     }
@@ -563,25 +571,30 @@ public class QuadTreeNode<T> where T : IQuadStorable
     private void Subdivide()
     {
         // We've reached capacity, subdivide...
-        Point size = new Point(rect.Width / 2, rect.Height / 2);
-        Point mid = new Point(rect.X + size.X, rect.Y + size.Y);
 
-        childTL = new QuadTreeNode<T>(this, new Rectangle(rect.Left, rect.Top, size.X, size.Y));
-        childTR = new QuadTreeNode<T>(this, new Rectangle(mid.X, rect.Top, size.X, size.Y));
-        childBL = new QuadTreeNode<T>(this, new Rectangle(rect.Left, mid.Y, size.X, size.Y));
-        childBR = new QuadTreeNode<T>(this, new Rectangle(mid.X, mid.Y, size.X, size.Y));
+
+            Point size = new Point(rect.Width / 2, rect.Height / 2);
+            Point mid = new Point(rect.X + size.X, rect.Y + size.Y);
+
+            childTL = new QuadTreeNode<T>(this, new Rectangle(rect.Left, rect.Top, size.X, size.Y));
+            childTR = new QuadTreeNode<T>(this, new Rectangle(mid.X, rect.Top, size.X, size.Y));
+            childBL = new QuadTreeNode<T>(this, new Rectangle(rect.Left, mid.Y, size.X, size.Y));
+            childBR = new QuadTreeNode<T>(this, new Rectangle(mid.X, mid.Y, size.X, size.Y));
 
         // If they're completely contained by the quad, bump objects down
-        for (int i = 0; i < objects.Count; i++)
+        lock (lockObject)
         {
-            QuadTreeNode<T> destTree = GetDestinationTree(objects[i]);
-
-            if (destTree != this)
+            for (int i = 0; i < objects.Count; i++)
             {
-                // Insert to the appropriate tree, remove the object, and back up one in the loop
-                destTree.Insert(objects[i]);
-                Remove(objects[i]);
-                i--;
+                QuadTreeNode<T> destTree = GetDestinationTree(objects[i]);
+
+                if (destTree != this)
+                {
+                    // Insert to the appropriate tree, remove the object, and back up one in the loop
+                    destTree.Insert(objects[i]);
+                    Remove(objects[i]);
+                    i--;
+                }
             }
         }
     }
@@ -632,6 +645,7 @@ public class QuadTreeNode<T> where T : IQuadStorable
                     // Delete the item from this quad and add it to our child
                     // Note: Do NOT clean during this call, it can potentially delete our destination quad
                     QuadTreeNode<T> formerOwner = item.Owner;
+
                     Delete(item, false);
                     dest.Insert(item);
 
@@ -661,10 +675,13 @@ public class QuadTreeNode<T> where T : IQuadStorable
                 childBL.IsEmptyLeaf &&
                 childBR.IsEmptyLeaf)
             {
-                childTL = null;
-                childTR = null;
-                childBL = null;
-                childBR = null;
+                lock (lockObject)
+                {
+                    childTL = null;
+                    childTR = null;
+                    childBL = null;
+                    childBR = null;
+                }
 
                 if (parent != null && Count == 0)
                 {
@@ -694,24 +711,33 @@ public class QuadTreeNode<T> where T : IQuadStorable
         // Clear out the children, if we have any
         if (childTL != null)
         {
-            childTL.Clear();
-            childTR.Clear();
-            childBL.Clear();
-            childBR.Clear();
+            lock (lockObject)
+            {
+                childTL.Clear();
+                childTR.Clear();
+                childBL.Clear();
+                childBR.Clear();
+            }
         }
 
         // Clear any objects at this level
         if (objects != null)
         {
-            objects.Clear();
-            objects = null;
+            lock (lockObject)
+            {
+                objects.Clear();
+                objects = null;
+            }
         }
 
         // Set the children to null
-        childTL = null;
-        childTR = null;
-        childBL = null;
-        childBR = null;
+        lock (lockObject)
+        {
+            childTL = null;
+            childTR = null;
+            childBL = null;
+            childBR = null;
+        }
     }
 
 
@@ -797,7 +823,11 @@ public class QuadTreeNode<T> where T : IQuadStorable
     internal List<T> GetObjects(Rectangle searchRect)
     {
         List<T> results = new List<T>();
-        GetObjects(searchRect, ref results);
+        lock (lockObject)
+        {
+            GetObjects(searchRect, ref results);
+        }
+
         return results;
     }
 
@@ -810,17 +840,19 @@ public class QuadTreeNode<T> where T : IQuadStorable
     internal void GetObjects(Rectangle searchRect, ref List<T> results)
     {
         // We can't do anything if the results list doesn't exist
-        if (results != null)
+        if (results == null) return;
+        if (searchRect.IsEmpty) return;
+        if (searchRect.Contains(rect))
         {
-            if (searchRect.Contains(rect))
+            // If the search area completely contains this quad, just get every object this quad and all it's children have
+            GetAllObjects(ref results);
+        }
+        else if (searchRect.IntersectsWith(rect))
+        {
+            // Otherwise, if the quad isn't fully contained, only add objects that intersect with the search rectangle
+            if (objects != null)
             {
-                // If the search area completely contains this quad, just get every object this quad and all it's children have
-                GetAllObjects(ref results);
-            }
-            else if (searchRect.IntersectsWith(rect))
-            {
-                // Otherwise, if the quad isn't fully contained, only add objects that intersect with the search rectangle
-                if (objects != null)
+                lock (lockObject)
                 {
                     for (int i = 0; i < objects.Count; i++)
                     {
@@ -830,15 +862,15 @@ public class QuadTreeNode<T> where T : IQuadStorable
                         }
                     }
                 }
+            }
 
-                // Get the objects for the search rectangle from the children
-                if (childTL != null)
-                {
-                    childTL.GetObjects(searchRect, ref results);
-                    childTR.GetObjects(searchRect, ref results);
-                    childBL.GetObjects(searchRect, ref results);
-                    childBR.GetObjects(searchRect, ref results);
-                }
+            // Get the objects for the search rectangle from the children
+            if (childTL != null)
+            {
+                childTL?.GetObjects(searchRect, ref results);
+                childTR?.GetObjects(searchRect, ref results);
+                childBL?.GetObjects(searchRect, ref results);
+                childBR?.GetObjects(searchRect, ref results);
             }
         }
     }
@@ -853,9 +885,12 @@ public class QuadTreeNode<T> where T : IQuadStorable
         // If this Quad has objects, add them
         if (objects != null)
         {
-            foreach (QuadTreeObject<T> qto in objects)
+            lock (lockObject)
             {
-                results.Add(qto.Data);
+                foreach (QuadTreeObject<T> qto in objects)
+                {
+                    results.Add(qto.Data);
+                }
             }
         }
 

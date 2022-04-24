@@ -34,7 +34,8 @@
   <xs:complexType name="SpawnGroup">
     <xs:sequence>
       <xs:element name="Spawns" type="hyb:Spawns" minOccurs="0" maxOccurs="1"/>
-    </xs:sequence>
+      <xs:element name="Loot" type="hyb:LootList" minOccurs="0" maxOccurs="1"/>
+	</xs:sequence>
     <xs:attribute name="BaseLevel" type="xs:string" use="optional"/>
     <xs:attribute name="Disabled" type="xs:boolean" default="false"/>
     <xs:attribute name="Name" type="xs:string" use="optional"/>

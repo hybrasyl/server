@@ -28,6 +28,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Hybrasyl.Casting;
 using Hybrasyl.ChatCommands;
+using Hybrasyl.Messaging;
 
 namespace Hybrasyl.Objects;
 
@@ -268,13 +269,19 @@ public class Monster : Creature, ICloneable
 
             Game.World.RemoveStatusCheck(this);
             // TODO: ondeath castables
+            InitScript();
+            // FIXME: in the glorious future, run asynchronously with locking
+            // TODO: fix awful hack here in scripting refactor
+            if (Script == null) return;
+            Script.SetGlobalValue("lasthitter", LastHitter);
+            Script.ExecuteFunction("OnDeath");
             Map?.Remove(this);
             World?.Remove(this);
         }
     }
 
     // We follow a different pattern here due to the fact that monsters
-    // are not intended to be long-lived objects, and we don't want to 
+    // are not intended to be long-lived objects, and we don't want to a
     // spend a lot of overhead and resources creating a full script (eg via
     // OnSpawn) when not needed 99% of the time.
     private void InitScript()
@@ -292,23 +299,30 @@ public class Monster : Creature, ICloneable
             ScriptExists = false;
     }
 
-    public override void OnHear(VisibleObject speaker, string text, bool shout = false)
+    public override bool UseCastable(Castable castable, Creature target)
     {
-        if (speaker == this)
+        if (!Condition.CastingAllowed) return false;
+        if (castable.IsAssail)
+        {
+            Motion(1,20);
+        }
+        return base.UseCastable(castable, target);
+    }
+    public override void OnHear(SpokenEvent e)
+    {
+        if (e.Speaker == this)
             return;
 
         // FIXME: in the glorious future, run asynchronously with locking
         InitScript();
-        if (Script != null)
-        {
-            Script.SetGlobalValue("text", text);
-            Script.SetGlobalValue("shout", shout);
+        if (Script == null) return;
+        Script.SetGlobalValue("text", e.Message);
+        Script.SetGlobalValue("shout", e.Shout);
 
-            if (speaker is User user)
-                Script.ExecuteFunction("OnHear", new HybrasylUser(user));
-            else
-                Script.ExecuteFunction("OnHear", new HybrasylWorldObject(speaker));
-        }
+        if (e.Speaker is User user)
+            Script.ExecuteFunction("OnHear", new HybrasylUser(user));
+        else
+            Script.ExecuteFunction("OnHear", new HybrasylWorldObject(e.Speaker));
     }
 
     public void MakeHostile()
@@ -343,7 +357,7 @@ public class Monster : Creature, ICloneable
             if (Script == null) return;
 
             Script.SetGlobalValue("damage", damageEvent.Damage);
-            Script.ExecuteFunction("OnDamage", this, damageEvent.Attacker);
+            Script.ExecuteFunction("OnDamage", this, damageEvent.Attacker, null);
         }
     }
 
@@ -545,10 +559,8 @@ public class Monster : Creature, ICloneable
         if (target == null)
             return;
         if (!CastableController.TryGetCastable("Assail", out BookSlot slot)) return;
-        UseCastable(slot.Castable, target, true);
-        //animation handled here as to not repeatedly send assails.
-        var assail = new ServerPacketStructures.PlayerAnimation { Animation = 1, Speed = 20, UserId = Id };
-        SendAnimation(assail.Packet());
+        UseCastable(slot.Castable, target);
+        Motion(1,20);
         PlaySound(1);
     }
 
@@ -798,7 +810,7 @@ public class Monster : Creature, ICloneable
 
     public void ProcessActions()
     {
-        while (_actionQueue.Count > 0)
+        while (!_actionQueue.IsEmpty)
         {
             _actionQueue.TryDequeue(out var action);
             GameLog.SpawnDebug($"ActionQueue: {action}");
@@ -811,15 +823,32 @@ public class Monster : Creature, ICloneable
                         Attack();
                         return;
                     }
+
                     var targets = ThreatInfo.GetTargets(next.CurrentPriority);
                     if (targets.Count == 0)
                     {
                         GameLog.SpawnDebug($"{Name}: ({Map.Name}@{X},{Y}): no targets returned from priority {next.CurrentPriority}");
                         return;
                     }
+
+                    if (targets.Count == 1 && next.Slot.Castable.IsAssail)
+                    {
+                            if (Distance(ThreatInfo.HighestThreat) > 1)
+                            {
+                                _actionQueue.Enqueue(MobAction.Move);
+                                return;
+                            }
+                            if (!CheckFacing(Direction, ThreatInfo.HighestThreat))
+                            {
+                                Turn(Relation(ThreatInfo.HighestThreat.X, ThreatInfo.HighestThreat.Y));
+                            }
+                    }
+
                     foreach (var target in targets)
+                    {
                         Cast(next.Slot, target);
-                    
+                    }
+
                     return;
                 case MobAction.Move when !Condition.MovementAllowed:
                     return;
@@ -846,10 +875,13 @@ public class Monster : Creature, ICloneable
 
                     break;
                 }
-                case MobAction.Move when ThreatInfo.HighestThreat == null:
-                    return;
                 case MobAction.Move:
                 {
+                    if (ThreatInfo.HighestThreat == null)
+                    {
+                        ShouldWander = true;
+                        return;
+                    }
                     if (Condition.MovementAllowed)
                     {
                         if (CurrentPath == null || !AStarPathClear())
@@ -865,8 +897,9 @@ public class Monster : Creature, ICloneable
 
                         if (CurrentPath != null)
                         {
-                            // We have a path, check its validity
-                            // We recalculate our path if we're within five spaces of the target and they have moved
+                                // We have a path, check its validity
+                                // We recalculate our path if we're within five spaces of the target and they have moved
+
                             if (Distance(ThreatInfo.HighestThreat) < 5 &&
                                 CurrentPath.Target.X != ThreatInfo.HighestThreat.Location.X &&
                                 CurrentPath.Target.Y != ThreatInfo.HighestThreat.Location.Y)

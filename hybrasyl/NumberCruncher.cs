@@ -261,10 +261,10 @@ static class NumberCruncher
 
         var costs = castable.CastCosts.Where(e => e.Class.Contains(user.Class));
 
-        if (costs.Count() == 0)
+        if (!costs.Any())
             costs = castable.CastCosts.Where(e => e.Class.Count == 0);
 
-        if (costs.Count() == 0)
+        if (!costs.Any())
             return cost;
 
         var toEvaluate = costs.First();
@@ -275,8 +275,8 @@ static class NumberCruncher
         if (toEvaluate.Stat?.Mp != null)
             cost.Mp = (uint) _evalFormula(toEvaluate.Stat.Mp, castable, target, source);
 
-        if (toEvaluate.Gold > 0)
-            cost.Gold = toEvaluate.Gold;
+        if (toEvaluate.Gold != null)
+            cost.Gold = (uint) _evalFormula(toEvaluate.Gold, castable, target, source);
 
         if (toEvaluate.Items.Count > 0)
             cost.Items = toEvaluate.Items.Select(x => (x.Quantity, x.Value)).ToList();
@@ -371,6 +371,7 @@ static class NumberCruncher
     public static StatInfo CalculateStatusModifiers(Castable castable, double intensity, StatModifiers effect,
         Creature source, Creature target=null)
     {
+        if (effect is null) return new StatInfo();
         var modifiers = new StatInfo
         {
             DeltaHp = Modify(_evalFormula(effect.CurrentHp, castable, target, source), intensity),

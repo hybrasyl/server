@@ -28,6 +28,7 @@ public partial class SpawnGroup
 {
     #region Private fields
     private List<Spawn> _spawns;
+    private LootList _loot;
     private string _baseLevel;
     private bool _disabled;
     private string _name;
@@ -49,6 +50,18 @@ public partial class SpawnGroup
         set
         {
             _spawns = value;
+        }
+    }
+    
+    public LootList Loot
+    {
+        get
+        {
+            return _loot;
+        }
+        set
+        {
+            _loot = value;
         }
     }
     

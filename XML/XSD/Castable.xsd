@@ -91,12 +91,13 @@
       <xs:element name="Items" minOccurs="0" maxOccurs="1" type="hyb:ItemsSpecification" />
       <xs:element name="Stat" minOccurs="0" maxOccurs="1">
         <xs:complexType>
-          <!-- hp/mp can be expressed as percentages here -->
+          <!-- these attributes can be formulas -->
           <xs:attribute name="Hp" type="hyb:String8" default="0" />
           <xs:attribute name="Mp" type="hyb:String8" default="0" />
         </xs:complexType>
       </xs:element>
-      <xs:element name="Gold" type="xs:unsignedInt" minOccurs="0" maxOccurs="1" />
+      <!-- Also can be a formula -->
+      <xs:element name="Gold" type="hyb:String8" minOccurs="0" maxOccurs="1" />
     </xs:sequence>
   </xs:complexType>
 

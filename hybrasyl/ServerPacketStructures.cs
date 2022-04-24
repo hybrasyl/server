@@ -33,7 +33,7 @@ internal interface IPacket
     ServerPacket ToPacket();
 }
 
-internal class ServerPacketStructures
+public class ServerPacketStructures
 {
 
     internal partial class AddSpell
@@ -135,15 +135,10 @@ internal class ServerPacketStructures
 
     internal partial class PlayerAnimation
     {
-        private byte OpCode;
-
-        internal PlayerAnimation()
-        {
-            OpCode = OpCodes.PlayerAnimation;
-        }
+        private byte OpCode = OpCodes.PlayerAnimation;
 
         internal uint UserId { get; set; }
-        internal ushort Speed { get; set; }
+        internal short Speed { get; set; }
         internal byte Animation { get; set; }
 
         internal ServerPacket Packet()
@@ -151,8 +146,8 @@ internal class ServerPacketStructures
             ServerPacket packet = new ServerPacket(OpCode);
             packet.WriteUInt32(UserId);
             packet.WriteByte(Animation);
-            packet.WriteUInt16(Speed);
-
+            packet.WriteInt16(Speed);
+            packet.WriteByte(byte.MaxValue);
             return packet;
         }
 

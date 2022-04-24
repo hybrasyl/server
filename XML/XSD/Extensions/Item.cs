@@ -106,6 +106,13 @@ public partial class Item
         return string.Concat(hash.Select(b => b.ToString("x2")))[..8];
     }
 
+    public IEnumerable<SlotRestriction> SlotRequirements =>
+        (Properties.Restrictions?.SlotRestrictions ?? new List<SlotRestriction>()).Where(x =>
+            x.Type == SlotRestrictionType.ItemRequired);
+    public IEnumerable<SlotRestriction> SlotProhibits =>
+        (Properties.Restrictions?.SlotRestrictions ?? new List<SlotRestriction>()).Where(x =>
+            x.Type == SlotRestrictionType.ItemProhibited);
+
     public string Id => GenerateId(Name, Gender);
 
     public Item Clone()

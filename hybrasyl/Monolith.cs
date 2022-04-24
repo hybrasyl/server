@@ -87,12 +87,19 @@ internal class Monolith
 
         while (true)
         {
-            if (World.ControlMessageQueue.IsCompleted)
-                break;
-            foreach (var key in Spawns.Keys)
-                if (Spawns.TryGetValue(key, out Xml.SpawnGroup group))
-                    Spawn(group);
-            Thread.Sleep(5000);
+            try
+            {
+                if (World.ControlMessageQueue.IsCompleted)
+                    break;
+                foreach (var key in Spawns.Keys)
+                    if (Spawns.TryGetValue(key, out Xml.SpawnGroup group))
+                        Spawn(group);
+                Thread.Sleep(5000);
+            }
+            catch (Exception ex)
+            {
+                GameLog.SpawnFatal($"Unhandled exception {ex} in spawn thread");
+            }
         }
     }
 
@@ -109,8 +116,9 @@ internal class Monolith
                     
         foreach (var spawn in spawnGroup.Spawns)
         {
-            GameLog.SpawnInfo($"Spawngroup {spawnGroup.Name}: processing");
-            var monsters = spawnmap.Objects.OfType<Monster>().ToList();
+            if (spawnmap.SpawnDebug)
+                GameLog.SpawnInfo($"Spawngroup {spawnGroup.Name}: {spawn.Name} processing");
+            var monsters = spawnmap.Monsters;
 
             // If the map is disabled, or we don't have a spec for our spawning, or the individual spawn
             // previously had errors and was disabled - continue on
@@ -190,8 +198,9 @@ internal class Monolith
             {
                 if (Game.World.WorldData.TryGetValue(spawn.Name, out Xml.Creature creature))
                 {
-                    var newSpawnLoot = LootBox.CalculateLoot(spawn);
-
+                    var newSpawnLoot = LootBox.CalculateLoot(spawn.Loot);
+                    newSpawnLoot += LootBox.CalculateLoot(creature.Loot);
+                    newSpawnLoot += LootBox.CalculateLoot(spawnGroup.Loot);
 
                     var baseMob = new Monster(creature, spawn.Flags, (byte) baseLevel, 
                        newSpawnLoot);
@@ -220,12 +229,14 @@ internal class Monolith
                                 if (mobtype <= spawn.Base.WeakChance)
                                 {
                                     baseMob.ApplyModifier(modifier * -1);
-                                    GameLog.SpawnInfo($"Mob is weak: modifier {modifier}");
+                                    if (spawnmap.SpawnDebug)
+                                        GameLog.SpawnInfo($"Mob is weak: modifier {modifier}");
                                 }
                                 else
                                 {
                                     baseMob.ApplyModifier(modifier);
-                                    GameLog.SpawnInfo($"Mob is strong: modifier {modifier}");
+                                    if (spawnmap.SpawnDebug)
+                                        GameLog.SpawnInfo($"Mob is strong: modifier {modifier}");
                                 }
                             }
                             else
@@ -233,12 +244,14 @@ internal class Monolith
                                 if (mobtype <= spawn.Base.StrongChance)
                                 {
                                     baseMob.ApplyModifier(modifier);
-                                    GameLog.SpawnInfo($"Mob is strong: modifier {modifier}");
+                                    if (spawnmap.SpawnDebug)
+                                        GameLog.SpawnInfo($"Mob is strong: modifier {modifier}");
                                 }
                                 else
                                 {
                                     baseMob.ApplyModifier(modifier * -1);
-                                    GameLog.SpawnInfo($"Mob is weak: modifier {modifier}");
+                                    if (spawnmap.SpawnDebug)
+                                        GameLog.SpawnInfo($"Mob is weak: modifier {modifier}");
                                 }
                             }
                         }
@@ -298,7 +311,6 @@ internal class Monolith
                                         _ => spawn.Damage.Element
                                     };
 
-                                    baseMob.Stats.OffensiveElementOverride = spawn.Damage.Element;
                                     var item = new ItemObject(newTemplate);
                                     baseMob.Equipment.Insert((byte) ItemSlots.Weapon, item);
                                 }
@@ -360,8 +372,6 @@ internal class Monolith
         if (!World.ControlMessageQueue.IsCompleted)
         {
             World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MonolithSpawn, monster, map));
-            //Game.World.Maps[mapId].InsertCreature(monster);
-            //if (map.SpawnDebug)
         }
                                                
     }

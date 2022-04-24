@@ -25,6 +25,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Hybrasyl.ChatCommands;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Hybrasyl.Threading;
@@ -111,6 +112,10 @@ public class Exchange
             _target.SendMessage("Inventory full.", MessageTypes.SYSTEM); 
             return false;
         }
+
+        // Have they already confirmed?
+        if (_sourceConfirmed || _targetConfirmed)
+            return false;
 
         // OK - we have room, now what?
         var theItem = giver.Inventory[slot];
@@ -367,6 +372,7 @@ public class Vault
     public uint RemainingGold => GoldLimit - CurrentGold;
     public ushort RemainingItems => (ushort)(ItemLimit - CurrentItemCount);
     public bool IsSaving;
+    public bool IsFull => CurrentItemCount == ItemLimit;
 
     public string StorageKey => string.Concat(GetType(), ':', OwnerGuid);
 
@@ -375,12 +381,18 @@ public class Vault
 
     public Vault() { }
 
+    public void Clear()
+    {
+        CurrentGold = 0;
+        Items = new Dictionary<string, uint>(StringComparer.OrdinalIgnoreCase);
+    }
+
     public Vault(Guid ownerGuid)
     {
         GoldLimit = uint.MaxValue;
         ItemLimit = ushort.MaxValue;
         CurrentGold = 0;
-        Items = new Dictionary<string, uint>();
+        Items = new Dictionary<string, uint>(StringComparer.OrdinalIgnoreCase);
         OwnerGuid = ownerGuid;
     }
 

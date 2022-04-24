@@ -273,6 +273,18 @@ namespace Hybrasyl
         public const int JUMP_DIALOG = 8;
     }
 
+    public enum MessageType
+    {
+        Whisper = 0,
+        System = 1,
+        SystemOverhead = 3,
+        SlateScrollbar = 9,
+        Slate = 10,
+        Group = 11,
+        Guild = 12,
+        Overhead = 18
+    }
+
     static class MessageTypes
     {
         public const int WHISPER = 0;

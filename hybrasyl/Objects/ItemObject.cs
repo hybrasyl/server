@@ -134,7 +134,7 @@ public class ItemObject : VisibleObject
                      userobj.Equipment.RRing != null) || (restriction.Slot == Xml.EquipmentSlot.Gauntlet &&
                                                           userobj.Equipment.LGauntlet != null ||
                                                           userobj.Equipment.RGauntlet != null)
-                                                      || userobj.Equipment[(byte) restriction.Slot] != null)
+                                                      || userobj.Equipment[(byte) restriction.Slot] == null)
                 {
                     message = restrictionMessage;
                     return false;
@@ -156,7 +156,7 @@ public class ItemObject : VisibleObject
                     (restriction.Slot == Xml.EquipmentSlot.Gauntlet &&
                      EquipmentSlot == (byte) Xml.EquipmentSlot.LeftArm ||
                      EquipmentSlot == (byte) Xml.EquipmentSlot.RightArm) ||
-                    userobj.Equipment[(byte) restriction.Slot] != null)
+                    EquipmentSlot == (byte) restriction.Slot)
                 {
                     message = restrictionMessage;
                     return false;
@@ -166,7 +166,7 @@ public class ItemObject : VisibleObject
             {
                 if ((restriction.Slot == Xml.EquipmentSlot.Ring && userobj.Equipment.LRing != null ||
                      userobj.Equipment.RRing != null) || (restriction.Slot == Xml.EquipmentSlot.Gauntlet && userobj.Equipment.LGauntlet != null || userobj.Equipment.RGauntlet != null)
-                                                      || userobj.Equipment[(byte)restriction.Slot] != null)
+                                                      || EquipmentSlot != (byte) restriction.Slot)
                 {
                     message = restrictionMessage;
                     return false;
@@ -249,6 +249,16 @@ public class ItemObject : VisibleObject
         ? uint.MaxValue
         : Convert.ToUInt32(Template.Properties.Physical.Durability);
 
+    public uint RepairCost
+    {
+        get
+        {
+            if (MaximumDurability != 0)
+                return Durability == 0 ? Value : (uint) ((Durability / MaximumDurability) * Value);
+            return 0;
+        }
+    } 
+
     // For future use / expansion re: unidentified items.
     // Should pull from template and only allow false to be set when
     // Identifiable flag is set.
@@ -283,6 +293,7 @@ public class ItemObject : VisibleObject
 
 
     public bool Enchantable => Template.Properties.Flags.HasFlag(Xml.ItemFlags.Enchantable);
+    public bool Depositable => Template.Properties.Flags.HasFlag(ItemFlags.Depositable);
 
     public bool Consecratable => Template.Properties.Flags.HasFlag(Xml.ItemFlags.Consecratable);
 
@@ -350,12 +361,10 @@ public class ItemObject : VisibleObject
             trigger.UpdateAttributes(StatUpdateFlags.Full);
         }
 
-        if (Use == null) return;
-
         // Run through all the different potential uses. We allow combinations of any
         // use specified in the item XML.
 
-        if (Use.Script != null)
+        if (Use?.Script != null)
         {
             Script invokeScript;
             if (!World.ScriptProcessor.TryGetScript(Use.Script, out invokeScript))
@@ -367,16 +376,16 @@ public class ItemObject : VisibleObject
             invokeScript.ExecuteFunction("OnUse", trigger, null, this, true);
         }            
 
-        if (Use.Effect != null)
+        if (Use?.Effect != null)
         {
             trigger.SendEffect(trigger.Id, Use.Effect.Id, Use.Effect.Speed); 
         }
         
-        if (Use.Sound != null)
+        if (Use?.Sound != null)
         {
             trigger.SendSound((byte) Use.Sound.Id);
         }
-        if (Use.Teleport != null)
+        if (Use?.Teleport != null)
         {
             trigger.Teleport(Use.Teleport.Value, Use.Teleport.X, Use.Teleport.Y);
         }
@@ -401,7 +410,7 @@ public class ItemObject : VisibleObject
         TemplateId = template.Id;
         ServerGuid = containingWorld;
         _count = new Lockable<int>(1);
-        _durability = new Lockable<double>(uint.MaxValue);
+        _durability = new Lockable<double>(MaximumDurability);
         Guid = guid != default ? guid : Guid.NewGuid();
     }
 

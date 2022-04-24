@@ -109,6 +109,7 @@ public class WorldObject : IQuadStorable
 
     public virtual int Distance(WorldObject obj)
     {
+        if (obj == null) return 255;
         return Point.Distance(obj.X, obj.Y, X, Y);
     }
 

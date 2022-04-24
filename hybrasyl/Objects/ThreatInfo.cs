@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using App.Metrics.ReservoirSampling.Uniform;
 using Hybrasyl.Xml;
+using MoonSharp.Interpreter;
 
 namespace Hybrasyl.Objects;
 
@@ -40,6 +41,7 @@ public class ThreatEntry : IComparable
     }
 }
 
+[MoonSharpUserData]
 public class ThreatInfo
 {
     public Guid Owner { get; set; }
@@ -147,6 +149,7 @@ public class ThreatInfo
         if (!ThreatTableByCreature.TryGetValue(threat.Guid, out ThreatEntry entry)) return;
         ThreatTableByCreature.Remove(threat.Guid);
         ThreatTableByThreat.Remove(entry);
+        GameLog.Error($"{OwnerObject.Id}: Removed threat {threat.Id}");
     }
 
     public void RemoveAllThreats()

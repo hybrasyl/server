@@ -178,6 +178,29 @@ class DamageCommand : ChatCommand
     }
 }
 
+class DamageInvCommand : ChatCommand
+{
+    public new static string Command = "damageinv";
+    public new static string ArgumentText = "";
+    public new static string HelpText = "Damage the items in your inventory (useful for testing repair)";
+    public new static bool Privileged = true;
+
+    public new static ChatCommandResult Run(User user, params string[] args)
+    {
+        var dura = string.Empty;
+        foreach (var item in user.Inventory)
+        {
+            if (item.Durability != 0)
+            {
+                item.Durability /= 2;
+                dura += $"{item.Name} -> {item.Durability} / {item.MaximumDurability}\n";
+            }
+        }
+        user.SendInventory();
+
+        return Success(dura, (byte) MessageType.SlateScrollbar);
+    }
+}
 class ExpCommand : ChatCommand
 {
     public new static string Command = "exp";

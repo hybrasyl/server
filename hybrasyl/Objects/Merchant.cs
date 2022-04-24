@@ -23,9 +23,12 @@ using Hybrasyl.Scripting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
+using Hybrasyl.Controllers;
 using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
+using Hybrasyl.Messaging;
 using Hybrasyl.Xml;
 
 namespace Hybrasyl.Objects;
@@ -60,9 +63,8 @@ public class Merchant : Creature, IXmlReloadable
     public string Filename { get; set; }
     public Npc Template;
     public MerchantJob Jobs { get; set; }
+    private MerchantController Controller { get; set; }
     public List<MerchantInventoryItem> MerchantInventory { get; set; }
-
-    public Regex BuyPattern { get; set; } = new Regex("buy\\s+(?<amt>\\d+|all)\\s+of\\s+my\\s+(?<target>.*)");
 
     public Merchant(Npc npc)
         : base()
@@ -71,6 +73,7 @@ public class Merchant : Creature, IXmlReloadable
         Sprite = npc.Appearance.Sprite;
         Portrait = npc.Appearance.Portrait;
         AllowDead = npc.AllowDead;
+        Controller = new MerchantController(this);
 
         foreach (var str in npc.Strings)
         {
@@ -193,119 +196,36 @@ public class Merchant : Creature, IXmlReloadable
             Ready = true;
     }
 
-    public override void OnHear(VisibleObject speaker, string text, bool shout = false)
+    public override void OnHear(SpokenEvent e)
     {
-        if (speaker == this)
+        if (e.Speaker == this)
             return;
 
         if (!Ready)
             OnSpawn();
 
-        var patternMatch = BuyPattern.Match(text.ToLower());
-
-        if (patternMatch.Success && speaker is User u)
-        {
-            var items = Game.World.WorldData.FindItem(patternMatch.Groups["target"].Value);
-            // Is the thing a category or an actual item?
-            if (items.Count != 0)
-            {
-                // Support both "buy 3 of my <item> and buy all of my <item>
-                if (patternMatch.Groups["amt"].Value.ToLower() == "all")
-                {
-                    uint coins = 0;
-                    var removed = 0;
-                    foreach (var slot in u.Inventory.GetSlotsByName(patternMatch.Groups["target"].Value))
-                    {
-                        coins += (uint)(u.Inventory[slot].Value * u.Inventory[slot].Count);
-                        removed += u.Inventory[slot].Count;
-                        u.RemoveItem(slot);
-                    }
-
-                    if (removed > 0)
-                    {
-                        Say($"Certainly. I will buy {removed} of those for {coins} gold, {u.Name}.");
-                        u.Stats.Gold += coins;
-                        u.UpdateAttributes(StatUpdateFlags.Experience);
-                    }
-                    else
-                        u.SendSystemMessage($"\"Sorry, {u.Name},\" {Name} says. \"You don't have those!\"");
-                }
-                else if (int.TryParse(patternMatch.Groups["amt"].Value, out var qty))
-                {
-                    if (u.Inventory.ContainsName(patternMatch.Groups["target"].Value, qty))
-                    {
-                        // Deal with annoying duplicate name / different gender edge cases
-                        var actuallyRemoved = new List<(byte Slot, int Quantity)>();
-                        uint coins = 0;
-                        foreach (var item in items)
-                        {
-                            u.Inventory.TryRemoveQuantity(item.Id, out var removed, qty);
-                            actuallyRemoved.AddRange(removed);
-                            coins += (uint) (removed.Sum(x => x.Quantity) * item.Properties.Physical.Value);
-                        }
-
-                        if (actuallyRemoved.Count > 0)
-                        {
-                            foreach (var (slot, _) in actuallyRemoved)
-                            {
-                                if (u.Inventory[slot] == null) 
-                                    u.SendClearItem(slot);
-                                else 
-                                    u.SendItemUpdate(u.Inventory[slot], slot);
-                            }
-                            Say($"Certainly. I will buy {actuallyRemoved.Sum(x => x.Quantity)} of those for {coins} gold, {u.Name}.");
-                            u.Stats.Gold += coins;
-                            u.UpdateAttributes(StatUpdateFlags.Experience);
-                        }
-                        else
-                            u.SendSystemMessage($"\"Sorry, {u.Name},\" {Name} says. \"You don't have those!\"");
-                    }
-                    else
-                        u.SendSystemMessage($"\"Sorry, {u.Name},\" {Name} says. \"You don't have those!\"");
-                }
-            }
-            else if (Game.World.WorldData.ItemByCategory.ContainsKey(patternMatch.Groups["target"].Value))
-            {
-                uint coins = 0;
-                // Only support "buy all my <category>"
-                foreach (var slot in u.Inventory.GetSlotsByCategory(patternMatch.Groups["target"].Value))
-                {
-                    coins += (uint) (u.Inventory[slot].Value * u.Inventory[slot].Count);
-                    u.RemoveItem(slot);
-                }
-                Say($"Certainly...that will be {coins} gold, {u.Name}.");
-                u.Stats.Gold += coins;
-                u.UpdateAttributes(StatUpdateFlags.Experience);
-            }
-            else 
-                u.SendSystemMessage($"{Name} shrugs. \"Sorry, I don't know what you mean.\"");
-            // Don't also pass buy strings to scripting
+        // Try to evaluate the text as a built-in command
+        if (Controller.Evaluate(e))
             return;
-        }
 
-        var key = text.ToLower().Trim();
-        if (Responses.TryGetValue(key, out string response) )
+        // Call/response?
+        if (Responses.TryGetValue(e.SanitizedMessage, out string response) )
         {
             // TODO: improve
             Say(response.Replace("$NAME", Name));
             return;
         }
 
-        var resp = World.GetLocalResponse(key);
+        var resp = World.GetLocalResponse(e.SanitizedMessage);
         if (resp != null)
         {
             Say(resp.Replace("$NAME", Name));
             return;
         }
 
-        if (Script == null) return;
-        Script.SetGlobalValue("text", text);
-        Script.SetGlobalValue("shout", shout);
+        // Pass onto a script
+        base.OnHear(e);
 
-        if (speaker is User user)
-            Script.ExecuteFunction("OnHear", new HybrasylUser(user));
-        else
-            Script.ExecuteFunction("OnHear", new HybrasylWorldObject(speaker));
     }
 
     public override void OnClick(User invoker)
@@ -365,6 +285,7 @@ public class Merchant : Creature, IXmlReloadable
 [Flags]
 public enum MerchantJob
 {
+    None = 0x00,
     Vend = 0x01,
     Bank = 0x02,
     Skills = 0x04,

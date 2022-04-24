@@ -160,6 +160,7 @@ public class User : Creature
 
     [JsonProperty]
     public List<KillRecord> RecentKills { get; private set; }
+    public List<SpokenEvent> MessagesReceived { get; private set; }
 
     [JsonProperty] public Guid GuildGuid { get; set; } = Guid.Empty;
 
@@ -250,8 +251,9 @@ public class User : Creature
                 base.Say(message, from);
                 return;
             }
-            SendSystemMessage("You try to speak, but nothing happens.");
         }
+        SendSystemMessage("You try to speak, but nothing happens.");
+
     }
 
     public override void Shout(string message, string from = "")
@@ -462,6 +464,20 @@ public class User : Creature
         GameLog.DebugFormat($"{Name} - status update - sending Icon: {statuspacket.Icon}, Color: {statuspacket.BarColor}");
         GameLog.DebugFormat($"{Name} - status: {status.Name}, expired: {status.Expired}, remaining: {remaining}, duration: {status.Duration}");
         Enqueue(statuspacket.Packet());
+    }
+
+    public override void OnHear(SpokenEvent e)
+    {
+        if (e.Speaker != this) 
+            MessagesReceived.Add(e);
+        var x0D = new ServerPacket(0x0D);
+        x0D.WriteBoolean(e.Shout);
+        x0D.WriteUInt32(Id);
+        if (e.Shout)
+            x0D.WriteString8(!string.IsNullOrEmpty(e.From) ? $"{e.From}! {e.Message}" : $"{e.Speaker.Name}! {e.Message}");
+        else
+            x0D.WriteString8(!string.IsNullOrEmpty(e.From) ? $"{e.From}: {e.Message}" : $"{e.Speaker.Name}: {e.Message}");
+        Enqueue(x0D);
     }
 
     /// <summary>
@@ -712,7 +728,8 @@ public class User : Creature
         Group = null;
         Flags = new Dictionary<string, bool>();
         _currentStatuses = new ConcurrentDictionary<ushort, ICreatureStatus>();
-        RecentKills = new List<KillRecord>();       
+        RecentKills = new List<KillRecord>();
+        MessagesReceived = new List<SpokenEvent>();
         #region Appearance defaults
         RestPosition = RestPosition.Standing;
         SkinColor = SkinColor.Basic;
@@ -1037,7 +1054,6 @@ public class User : Creature
         x15.WriteByte(Map.Y);
         x15.WriteByte(Map.Flags);
         x15.WriteUInt16(0);
-        //x15.WriteUInt16(Map.Checksum);
         x15.WriteByte((byte)(Map.Checksum % 256));
         x15.WriteByte((byte)(Map.Checksum / 256));
         x15.WriteString8(Map.Name);
@@ -1199,7 +1215,7 @@ public class User : Creature
         Enqueue(x07);
     }
 
-    internal void UseSkill(byte slot, bool assailAttack = false)
+    internal void UseSkill(byte slot)
     {
         if(!Map.AllowCasting)
         {
@@ -1216,7 +1232,20 @@ public class User : Creature
             return;
         }
 
-        if (UseCastable(bookSlot.Castable, null, assailAttack))
+        if (!Condition.CastingAllowed)
+        {
+            SendSystemMessage("You cannot do this now.");
+            return;
+        }
+
+        if (bookSlot.Castable.TryGetMotion(Class, out var motion))
+        {
+            Motion(motion.Id, motion.Speed);
+            if (bookSlot.Castable?.Effects?.Sound != null)
+                PlaySound(bookSlot.Castable.Effects.Sound.Id);
+        }
+
+        if (UseCastable(bookSlot.Castable, null))
         {
             if (bookSlot.UseCount != uint.MaxValue)
                 bookSlot.UseCount += 1;
@@ -1261,25 +1290,26 @@ public class User : Creature
 
         var intersect = UseCastRestrictions.Intersect(bookSlot.Castable.Categories.Select(x => x.Value), StringComparer.InvariantCultureIgnoreCase);
 
-        if (intersect.Any())
+        if (intersect.Any() || !Condition.CastingAllowed)
         {
             SendSystemMessage("You cannot cast that now.");
             return;
         }
 
-        if (UseCastable(bookSlot.Castable, targetCreature))
+        if (bookSlot.Castable.TryGetMotion(Class, out var motion))
+            Motion(motion.Id, motion.Speed);
+
+        if (!UseCastable(bookSlot.Castable, targetCreature)) return;
+        bookSlot.UseCount += 1;
+        if (bookSlot.UseCount <= bookSlot.Castable.Mastery.Uses)
+            SendSpellUpdate(bookSlot, slot);
+        Client.Enqueue(new ServerPacketStructures.Cooldown()
         {
-            bookSlot.UseCount += 1;
-            if (bookSlot.UseCount <= bookSlot.Castable.Mastery.Uses)
-                SendSpellUpdate(bookSlot, slot);
-            Client.Enqueue(new ServerPacketStructures.Cooldown()
-            {
-                Length = (uint) bookSlot.Castable.Cooldown,
-                Pane = 0,
-                Slot = slot
-            }.Packet());
-            bookSlot.LastCast = DateTime.Now;
-        }
+            Length = (uint) bookSlot.Castable.Cooldown,
+            Pane = 0,
+            Slot = slot
+        }.Packet());
+        bookSlot.LastCast = DateTime.Now;
     }
 
     /// <summary>
@@ -2421,9 +2451,23 @@ public class User : Creature
             SendSpells();
         return true;
     }
+
     public bool RemoveEquipment(byte slot, bool sendUpdate = true)
     {
         var item = Equipment[slot];
+        // Process requirements
+        if (item != null)
+        {
+            var f = Equipment.Where(x => x.Template.SlotRequirements.Any())
+                .SelectMany(itemReq => itemReq.Template.SlotRequirements);
+            if (Equipment.Where(x => x.Template.SlotRequirements.Any()).SelectMany(itemReq => itemReq.Template.SlotRequirements).Any(req => req.Slot == (EquipmentSlot) (slot)))
+            {
+                // TODO: improve messaging here
+                SendSystemMessage($"Other equipment must be removed first.");
+                return false;
+            }
+        }
+
         if (Equipment.Remove(slot))
         {
             SendRefreshEquipmentSlot(slot); 
@@ -2617,7 +2661,7 @@ public class User : Creature
         return false;
     }
 
-    public override bool UseCastable(Xml.Castable castObject, Creature target = null, bool assailAttack = false)
+    public override bool UseCastable(Xml.Castable castObject, Creature target = null)
     {
         if(castObject.Intents[0].UseType == SpellUseType.Prompt)
         {
@@ -2626,83 +2670,76 @@ public class User : Creature
         }
 
         // Check casting costs
-        if (!ProcessCastingCost(castObject, target, out string message))
+        if (!ProcessCastingCost(castObject, target, out var message))
         {
             SendSystemMessage(message);
             return false;
         }
 
-        if (!CheckCastableRestrictions(castObject.Restrictions, out string restrictionMessage))
-        {
-            SendSystemMessage(restrictionMessage);
-            return false;
-        }
-
-        if (base.UseCastable(castObject, target))
-        {
-            // This may need to occur elsewhere, depends on how it looks in game
-            if (!assailAttack)
-            {
-                if (castObject.TryGetMotion(Class, out Xml.CastableMotion motion))
-                    SendMotion(Id, motion.Id, motion.Speed);
-                    
-            }
-            return true;
-        }
+        if (CheckCastableRestrictions(castObject.Restrictions, out var restrictionMessage))
+            return base.UseCastable(castObject, target);
+        SendSystemMessage(restrictionMessage);
         return false;
+
     }
 
     public void AssailAttack(Xml.Direction direction, Creature target = null)
     {
-        if (target == null)
-            target = GetDirectionalTarget(direction);
+        target ??= GetDirectionalTarget(direction);
+        var animation = false;
 
         foreach (var c in SkillBook.Where(c => c.Castable.IsAssail))
         {
             if (target != null && target.GetType() != typeof(Merchant))
             {
-                UseSkill(SkillBook.SlotOf(c.Castable.Name), true);
-                //UseCastable(c, target);
+                UseSkill(SkillBook.SlotOf(c.Castable.Name));
+                animation = true;
             }
         }
-        var motionId = (byte)1;
-        //animation handled here as to not repeatedly send assails.
-        if(Class == Xml.Class.Warrior)
-        {
-            if(SkillBook.Any(b => b.Castable.Name == "Wield Two-Handed Weapon"))
-            {
-                if (Equipment.Weapon?.WeaponType == WeaponType.TwoHand && Equipment.Armor?.Class == Xml.Class.Warrior)
-                {
 
-                    motionId = 129;
-                }
-            }
-        }
-        if(Class == Xml.Class.Monk)
+        if (!animation)
         {
-            if (Equipment.Armor?.Class == Xml.Class.Monk)
+            var motionId = (byte) 1;
+            if (Class == Xml.Class.Warrior)
             {
-                motionId = 132;
-                if (Equipment.Weapon != null)
+                if (SkillBook.Any(b => b.Castable.Name == "Wield Two-Handed Weapon"))
                 {
-                    if (Equipment.Weapon?.WeaponType == WeaponType.OneHand || Equipment.Weapon?.WeaponType == WeaponType.Dagger || Equipment.Weapon?.WeaponType == WeaponType.Staff)
+                    if (Equipment.Weapon?.WeaponType == WeaponType.TwoHand &&
+                        Equipment.Armor?.Class == Xml.Class.Warrior)
                     {
-                        motionId = 1;
+                        motionId = 129;
                     }
                 }
             }
-            if(Equipment.Shield != null)
+
+            if (Class == Xml.Class.Monk)
             {
-                motionId = 1;
+                if (Equipment.Armor?.Class == Xml.Class.Monk)
+                {
+                    motionId = 132;
+                    if (Equipment.Weapon != null)
+                    {
+                        if (Equipment.Weapon?.WeaponType == WeaponType.OneHand ||
+                            Equipment.Weapon?.WeaponType == WeaponType.Dagger ||
+                            Equipment.Weapon?.WeaponType == WeaponType.Staff)
+                        {
+                            motionId = 1;
+                        }
+                    }
+                }
+
+                if (Equipment.Shield != null)
+                {
+                    motionId = 1;
+                }
             }
+            var firstAssail = SkillBook.FirstOrDefault(x => x.Castable.IsAssail);
+            var soundId = firstAssail != null ? firstAssail.Castable.Effects.Sound.Id : (byte)1;
+            if (firstAssail != null && firstAssail.Castable.TryGetMotion(Class, out var motion))
+                Motion(motion.Id, motion.Speed);
+            PlaySound(soundId);
         }
 
-        var firstAssail = SkillBook.FirstOrDefault(x => x.Castable.IsAssail);
-        var assail = new ServerPacketStructures.PlayerAnimation() { Animation = motionId, Speed = 20, UserId = this.Id };
-        var soundId = firstAssail != null ? firstAssail.Castable.Effects.Sound.Id : (byte)1;
-        Enqueue(assail.Packet());
-        PlaySound(soundId);
-        SendAnimation(assail.Packet());
     }
 
 
@@ -2777,16 +2814,11 @@ public class User : Creature
         IsAtWorldMap = true;
         Enqueue(x2E);
     }
-
-    public void SendMotion(uint id, byte motion, short speed)
+    public void SendAnimation(uint id, byte motion, short speed)
     {
-        GameLog.DebugFormat("SendMotion id {0}, motion {1}, speed {2}", id, motion, speed);
-        var x1A = new ServerPacket(0x1A);
-        x1A.WriteUInt32(id);
-        x1A.WriteByte(motion);
-        x1A.WriteInt16(speed);
-        x1A.WriteByte(0xFF);
-        Enqueue(x1A);
+        // 1a 00 00 87 af   88  00 28  ff     a2 53 23
+        var anim = new ServerPacketStructures.PlayerAnimation { Animation = motion, Speed = speed, UserId = id };
+        Enqueue(anim.Packet());
     }
 
     public void SendEffect(uint id, ushort effect, short speed)
@@ -3176,6 +3208,12 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
                 prompt = merchant.GetLocalString("learn_skill_prereq_item");
             }
         }
+
+        if (SkillBook.IsPrimaryFull && castable.Book == Xml.Book.PrimarySkill ||
+            SkillBook.IsSecondaryFull && castable.Book == Xml.Book.SecondarySkill ||
+            SkillBook.IsUtilityFull && castable.Book == Xml.Book.UtilitySkill)
+            prompt = merchant.GetLocalString("learn_skill_book_full");
+
         if (prompt == string.Empty)
         {
             RemoveGold(classReq.Gold);
@@ -3440,6 +3478,12 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
                 prompt = merchant.GetLocalString("learn_spell_prereq_item");
             }
         }
+
+        if (SpellBook.IsPrimaryFull && castable.Book == Xml.Book.PrimarySpell ||
+            SpellBook.IsSecondaryFull && castable.Book == Xml.Book.SecondarySpell ||
+            SpellBook.IsUtilityFull && castable.Book == Xml.Book.UtilitySpell)
+            prompt = merchant.GetLocalString("learn_spell_book_full");
+
         if (prompt == string.Empty)
         {
             RemoveGold(classReq.Gold);
@@ -4053,7 +4097,6 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
         string coins = "coin";
         if (Vault.CurrentGold > 1) coins = "coins";
         var prompt = merchant.GetLocalString("deposit_gold",("$COINS", Vault.CurrentGold.ToString()),("$REF", coins));
-
 
         var input = new MerchantInput();
         input.Id = (ushort)MerchantMenuItem.DepositGoldQuantity;
@@ -4799,6 +4842,8 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
         }
     }
 
+    public void SendMessage(string message, MessageType type) => SendMessage(message, (byte) type);
+
     public void SendMessage(string message, byte type)
     {
         var x0A = new ServerPacket(0x0A);
@@ -4967,6 +5012,21 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
             Action = ExchangeActions.Confirm,
             Side = source
         }.Packet());
+    }
+
+    public void SendInventorySlot(byte slot)
+    {
+        if (Inventory[slot] == null) return;
+        var x0F = new ServerPacket(0x0F);
+        x0F.WriteByte(slot);
+        x0F.WriteUInt16((ushort)(Inventory[slot].Sprite + 0x8000));
+        x0F.WriteByte(Inventory[slot].Color);
+        x0F.WriteString8(Inventory[slot].Name);
+        x0F.WriteInt32(Inventory[slot].Count);
+        x0F.WriteBoolean(Inventory[slot].Stackable);
+        x0F.WriteUInt32(Inventory[slot].MaximumDurability);
+        x0F.WriteUInt32(Inventory[slot].DisplayDurability);
+        Enqueue(x0F);
     }
 
     public void SendInventory()
