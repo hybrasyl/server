@@ -20,13 +20,18 @@
  */
 
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices.ComTypes;
 using System.Text.RegularExpressions;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
 using MoonSharp.Interpreter;
+using Sentry;
 using Serilog;
+using StackExchange.Redis;
+using User = Hybrasyl.Objects.User;
 
 namespace Hybrasyl.Scripting;
 
@@ -49,16 +54,18 @@ public class ScriptLogger
     public void Error(string message) => Log.Error("{ScriptName} : {Message}", ScriptName, message);
 }
 
-public struct LuaException
+public class LuaException
 {
-    public string Filename;
-    public int LineNumber;
-    public string Error;
-};
+    public string Filename { get; set; }
+    public int LineNumber { get; set; }
+    public string Error { get; set; }
+        
+}
 
 public class Script
 {
     static readonly Regex LuaRegex = new(@"(.*):\(([0-9]*),([0-9]*)-([0-9]*)\): (.*)$");
+
     public string RawSource { get; set; }
 
     public string Name { get; set; }
@@ -70,10 +77,6 @@ public class Script
     public HybrasylWorldObject Associate { get; private set; }
 
     public bool Disabled { get; set; }
-    public string CompilationError { get; private set; } = string.Empty;
-    public string LastRuntimeError { get; private set; } = string.Empty;
-
-    public DynValue LastReturnValue { get; set; } = DynValue.Nil;
 
     public Script Clone()
     {
@@ -113,16 +116,6 @@ public class Script
         obj.Script = this;
     }
 
-    public static dynamic GetObjectWrapper(WorldObject obj)
-    {
-        return obj switch
-        {
-            User user => new HybrasylUser(user),
-            Reactor reactor => new HybrasylReactor(reactor),
-            _ => new HybrasylWorldObject(obj)
-        };
-    }
-
     public bool Reload()
     {
         Compiled = new MoonSharp.Interpreter.Script(CoreModules.Preset_SoftSandbox);
@@ -151,21 +144,6 @@ public class Script
         };
     }
 
-    private static LuaException ParseException(string decoratedMessage)
-    {
-        var matches = LuaRegex.Match(decoratedMessage);
-        var ret = new LuaException();
-        if (matches.Success && matches.Groups.Count == 6)
-        {
-            ret.Filename = Path.GetFileName(matches.Groups[1].Value);
-            ret.LineNumber = int.Parse(matches.Groups[2].Value);
-            ret.Error = matches.Groups[5].Value;
-        }
-        else
-            ret.Error = decoratedMessage;
-        return ret;
-    }
-
     private string ExtractLuaSource(int linenumber)
     {
         var lines = RawSource.Split('\n').ToList();
@@ -175,38 +153,52 @@ public class Script
         return lua;
     }
 
-    private string HumanizeException(Exception ex)
+    private ScriptExecutionError HumanizeException(Exception ex)
     {
-        string summary;
+        var ret = new ScriptExecutionError();
 
         if (ex is InterpreterException ie)
         {
             // Get information from decorated message. CallStack is only available for
             // certain lua exceptions; decorated message / innerexception always has what
             // is needed.
-            var e = ParseException(ie.DecoratedMessage);
-            if (!string.IsNullOrEmpty(e.Filename))
-                summary = $"Line {e.LineNumber}: {e.Error}\n{ExtractLuaSource(e.LineNumber)}";
-            else
-                summary = $"Could not be parsed, raw message follows {ie.DecoratedMessage}";
-            if (ie is SyntaxErrorException)
+            var matches = LuaRegex.Match(ie.DecoratedMessage);
+            if (matches.Success && matches.Groups.Count == 6)
             {
-                return $"\nSyntax error: {summary}";
+                ret.Filename = Path.GetFileName(matches.Groups[1].Value);
+                ret.LineNumber = int.Parse(matches.Groups[2].Value);
+                ret.Error = matches.Groups[5].Value;
             }
-            if (ie is ScriptRuntimeException)
-                return $"\nScripting runtime error: {summary}";
-            if (ie is DynamicExpressionException)
-                return $"\nLua type error: {summary}";
             else
-                return $"\nInternal error from Lua code: STACK: {summary}\nERR: {ie.DecoratedMessage}";
+                ret.Error = ie.DecoratedMessage;
+
+            var summary = !string.IsNullOrEmpty(ret.Filename)
+                ? $"Line {ret.LineNumber}: {ret.Error}\n{ExtractLuaSource(ret.LineNumber)}"
+                : $"Could not be parsed, raw message follows {ie.DecoratedMessage}";
+
+            ret.HumanizedError = ie switch
+            {
+                SyntaxErrorException => $"Syntax error: {summary}",
+                DynamicExpressionException => $"\nLua dynamic expression error: {summary}",
+                ScriptRuntimeException => $"\nScripting runtime error: {summary}",
+                _ => $"\nInternal error from Lua code: STACK: {summary}\nERR: {ie.DecoratedMessage}"
+            };
+            ret.ErrorType = ie switch
+            {
+                SyntaxErrorException => ScriptErrorType.SyntaxError,
+                DynamicExpressionException => ScriptErrorType.DynamicExpressionError,
+                ScriptRuntimeException => ScriptErrorType.RuntimeError,
+                InternalErrorException => ScriptErrorType.InternalError,
+                _ => ScriptErrorType.Unknown
+            };
         }
-        else
-        {
-            var retstr = $"\nC# exception, perhaps caused by Lua script code: STACK: {ex.StackTrace}\n ERR:{ex.Message}";
-            if (ex.InnerException != null)
-                retstr = $"{retstr}\nINNER STACK TRACE: {ex.InnerException.StackTrace}\n INNER ERR: {ex.InnerException.Message}";
-            return retstr;
-        }
+
+        // C# or other exception
+        ret.HumanizedError = $"\nC# exception, perhaps caused by Lua script code: STACK: {ex.StackTrace}\n ERR:{ex.Message}";
+        ret.ErrorType = ScriptErrorType.CSharpError;
+        if (ex.InnerException != null)
+            ret.HumanizedError = $"{ret.HumanizedError}\nINNER STACK TRACE: {ex.InnerException.StackTrace}\n INNER ERR: {ex.InnerException.Message}";
+        return ret;
     }
 
     /// <summary>
@@ -237,34 +229,30 @@ public class Script
     /// </summary>
     /// <param name="onLoad">Whether or not to execute OnLoad() if it exists in the script.</param>
     /// <returns>boolean indicating whether the script was reloaded or not</returns>
-    public bool Run(bool onLoad = true)
+    public ScriptExecutionResult Run(bool onLoad = true)
     {
+        var result = new ScriptExecutionResult();
         try
         {
             SetGlobals();
             // Load file into RawSource so we have access to it later
             RawSource = File.ReadAllText(FullPath);
             Compiled.DoFile(FullPath);
-            if (onLoad)
-            {
-                GameLog.ScriptingInfo($"Loading: {Path.GetFileName(FullPath)}");
-                ExecuteFunction("OnLoad");
-            }
+            if (!onLoad) return result;
+            GameLog.ScriptingInfo($"Loading: {Path.GetFileName(FullPath)}");
+            ExecuteFunction("OnLoad");
+            return result;
         }
         catch (Exception ex)
         {
             Game.ReportException(ex);
-            var error_msg = HumanizeException(ex);
+            result.Error = HumanizeException(ex);
             GameLog.ScriptingError("Run: Error executing script {FileName} (associate {assoc}): {Message}",
-                FileName, Associate?.Name ?? "none", error_msg);
-
+                FileName, Associate?.Name ?? "none", result.Error.HumanizedError);
             Disabled = true;
-            CompilationError = ex.ToString();
-            LastRuntimeError = error_msg;
-            return false;
+            return result;
         }
 
-        return true;
     }
 
     /// <summary>
@@ -294,6 +282,12 @@ public class Script
         var v = DynValue.NewBoolean(value);
         Compiled.Globals.Set(name, v);
     }
+
+    public void ProcessEnvironment(ScriptEnvironment env)
+    {
+        foreach (var (key, value) in env.Variables)
+            Compiled.Globals.Set(key, GetUserDataValue(value));
+    }
         
     /// <summary>
     /// Execute a Lua expression in the context of an associated world object.
@@ -303,37 +297,35 @@ public class Script
     /// <param name="invoker">The invoker (caller).</param>
     /// <param name="source">Optionally, the source of the script call, invocation or dialog</param>
     /// <returns></returns>
-    public bool Execute(string expr, dynamic invoker, dynamic source = null)
+    public ScriptExecutionResult ExecuteExpression(string expr, ScriptEnvironment env)
     {
+        var result = new ScriptExecutionResult { Result = ScriptResult.Disabled, Return = DynValue.Nil };
+
         if (Disabled)
-            return false;
+            return result;
 
         try
         {
-            Compiled.Globals.Set("invoker", GetUserDataValue(invoker));
-            if (source != null)
-                Compiled.Globals.Set("source", GetUserDataValue(source));
-
+            ProcessEnvironment(env);
             // We pass Compiled.Globals here to make sure that the updated table (with new variables) makes it over
-            LastReturnValue = Compiled.DoString(expr, Compiled.Globals);
+            result.Return = Compiled.DoString(expr, Compiled.Globals);
+            result.Result = ScriptResult.Success;
+            return result;
+
         }
         catch (Exception ex) 
         {
             Game.ReportException(ex);
-            var errorMsg = HumanizeException(ex);
-            GameLog.ScriptingError("Execute: Error executing expression {expr} in {FileName} (associate {associate}, invoker {invoker}, source {source}): {Message}",
-                expr, FileName, Associate?.Name ?? "none", invoker?.Name ?? "none", source?.Name ?? "none", errorMsg);
-            //Disabled = true;
-            CompilationError = ex.ToString();
-            LastRuntimeError = errorMsg;
-            return false;
+            result.Error = HumanizeException(ex);
+            GameLog.ScriptingError(
+                $"ExecuteExpression: Error executing expression {expr} in {FileName}: Variables: {env}\n{result.Error}");
+            return result;
         }
-        return true;
     }
 
     public ScriptExecutionResult ExecuteFunction(ScriptEnvironment environment)
     {
-        var result = new ScriptExecutionResult { Success = false, Return = DynValue.Nil };
+        var result = ScriptExecutionResult.Disabled;
         if (Disabled)
             return result;
 
@@ -342,7 +334,7 @@ public class Script
             foreach (var kvp in environment.Variables)
             {
                 Compiled.Globals.Set(kvp.Key, GetUserDataValue(kvp.Value));
-                result.Success = true;
+                result.Result = ScriptResult.Success;
                 result.Return = Compiled.Call(Compiled.Globals[environment.Function]);
                 return result;
             }
