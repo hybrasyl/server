@@ -2117,6 +2117,8 @@ public partial class World : Server
 
         // Clear conditions and dialog states
         loginUser.Condition.Casting = false;
+        loginUser.Condition.InExchange = false;
+        loginUser.Condition.Flags &= ~PlayerFlags.InDialog;
 
         // Ensure settings exist
 
