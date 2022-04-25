@@ -3366,7 +3366,7 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
         {
             if (Stats.Str < classReq.Physical.Str || Stats.Int < classReq.Physical.Int || Stats.Wis < classReq.Physical.Wis || Stats.Con < classReq.Physical.Con || Stats.Dex < classReq.Physical.Dex)
             {
-                prompt = merchant.GetLocalString("learn_spell_prereq_stats", ("$SKILLNAME", castable.Name),
+                prompt = merchant.GetLocalString("learn_spell_prereq_stats", ("$SPELLNAME", castable.Name),
                     ("$STATS", $"\n[STR {classReq.Physical.Str} INT {classReq.Physical.Int} WIS {classReq.Physical.Wis} CON {classReq.Physical.Con} DEX {classReq.Physical.Dex}]")
                 );
 
