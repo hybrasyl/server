@@ -3381,7 +3381,7 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
                 {
                     if (!SkillBook.Contains(castablePrereq.Id) && !SpellBook.Contains(castablePrereq.Id))
                     {
-                        prompt = merchant.GetLocalString("learn_spell_prereq_level", ("$SKILLNAME", castable.Name),
+                        prompt = merchant.GetLocalString("learn_spell_prereq_level", ("$SPELLNAME", castable.Name),
                             ("$PREREQ", preReq.Value), ("$LEVEL", preReq.Level.ToString()));
                         break;
                     }
@@ -3392,7 +3392,7 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
                         slot = SpellBook.Single(x => x.Castable.Name == preReq.Value);
                     if (Math.Floor((slot.UseCount / (double) slot.Castable.Mastery.Uses) * 100) < preReq.Level)
                     {
-                        prompt = merchant.GetLocalString("learn_spell_prereq_level", ("$SKILLNAME", castable.Name),
+                        prompt = merchant.GetLocalString("learn_spell_prereq_level", ("$SPELLNAME", castable.Name),
                             ("$PREREQ", preReq.Value), ("$LEVEL", preReq.Level.ToString()));
                         break;
 
