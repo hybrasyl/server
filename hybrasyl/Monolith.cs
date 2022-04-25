@@ -302,7 +302,7 @@ internal class Monolith
                                     template.Properties.Damage.Small.Max = maxDmg;
                                     template.Properties.Damage.Large.Min = minDmg;
                                     template.Properties.Damage.Large.Max = maxDmg;
-                                    template.Properties.Physical.Durability = uint.MaxValue;
+                                    template.Properties.Physical.Durability = uint.MaxValue / 10;
                                     baseMob.Stats.OffensiveElementOverride = spawn.Damage.Element switch
                                     {
                                         ElementType.RandomFour => (ElementType) Random.Shared.Next(1, 5), // earth/fire/wind/water

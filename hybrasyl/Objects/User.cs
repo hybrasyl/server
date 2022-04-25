@@ -472,7 +472,7 @@ public class User : Creature
             MessagesReceived.Add(e);
         var x0D = new ServerPacket(0x0D);
         x0D.WriteBoolean(e.Shout);
-        x0D.WriteUInt32(Id);
+        x0D.WriteUInt32(e.Speaker.Id);
         if (e.Shout)
             x0D.WriteString8(!string.IsNullOrEmpty(e.From) ? $"{e.From}! {e.Message}" : $"{e.Speaker.Name}! {e.Message}");
         else

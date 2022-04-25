@@ -272,9 +272,11 @@ public class Monster : Creature, ICloneable
             InitScript();
             // FIXME: in the glorious future, run asynchronously with locking
             // TODO: fix awful hack here in scripting refactor
-            if (Script == null) return;
-            Script.SetGlobalValue("lasthitter", LastHitter);
-            Script.ExecuteFunction("OnDeath");
+            if (Script != null)
+            {
+                Script.SetGlobalValue("lasthitter", LastHitter);
+                Script.ExecuteFunction("OnDeath");
+            }
             Map?.Remove(this);
             World?.Remove(this);
         }

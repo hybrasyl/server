@@ -852,12 +852,11 @@ public partial class World : Server
         // these might be better suited in LoadData as the database is being read, but only items are in database atm
         #region ItemInfo
         var itmIndex = 0;
-        var itmPerFile = (WorldData.Values<Xml.Item>().Count() / 8);
+        var itmPerFile = (WorldData.Values<Xml.Item>().Count() / 16);
 
-        for (var i = 0; i < 8; i++)
+        for (var i = 0; i < 16; i++)
         {
             var iteminfo = new Metafile($"ItemInfo{i}");
-            // TODO: split items into multiple ItemInfo files (DA does ~700 each)
             var items = WorldData.Values<Xml.Item>().OrderBy(x => x.Name).ToArray();
             for(var j = 0 + itmIndex; j< (itmPerFile + itmIndex); j++)
             {
@@ -869,6 +868,8 @@ public partial class World : Server
                 var weight = item.Properties.Physical.Weight;
                 var tab = item.Properties.Vendor?.ShopTab ?? "Junk";
                 var defaultDesc = item.Properties?.StatModifiers != null ? item.Properties.StatModifiers.BonusString : "";
+                if (!string.IsNullOrEmpty(defaultDesc))
+                    GameLog.Error($"{item.Name}: {defaultDesc}");
                 if (defaultDesc.Length > 0) defaultDesc.Remove(defaultDesc.Length - 2);
 
                 var desc = "";
