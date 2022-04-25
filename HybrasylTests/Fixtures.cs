@@ -7,160 +7,173 @@ using System.IO;
 using System.Linq;
 using Xunit;
 using Map = Hybrasyl.Map;
-using Reactor = Hybrasyl.Xml.Reactor;
-using Warp = Hybrasyl.Xml.Warp;
 using Serilog;
 using Xunit.Abstractions;
 using Xunit.Sdk;
 using Direction = Hybrasyl.Xml.Direction;
 using Game = Hybrasyl.Game;
 
-namespace HybrasylTests
+namespace HybrasylTests;
+
+public class HybrasylFixture : IDisposable
 {
+    public Map Map { get; }
+    public Map MapNoCasting { get; }
+    public Item TestItem { get; }
+    public Item StackableTestItem { get; }
+    public Dictionary<EquipmentSlot, Item> TestEquipment { get;  }= new();
+    public static byte InventorySize => 59;
+    private IMessageSink sink;
 
-    public class HybrasylFixture : IDisposable
+    public User TestUser { get; }
+
+    public CreatureBehaviorSet TestSet { get; set; }
+
+    public HybrasylFixture(IMessageSink sink)
     {
-        public Map Map { get; }
-        public Map MapNoCasting { get; }
-        public Item TestItem { get; }
-        public Item StackableTestItem { get; }
-        public Dictionary<EquipmentSlot, Item> TestEquipment { get;  }= new();
-        public static byte InventorySize => 59;
-        private IMessageSink sink;
+        this.sink = sink;
+        sink.OnMessage(new DiagnosticMessage("hello"));
+        Log.Logger = new LoggerConfiguration()
+            .WriteTo.TestOutput(sink)
+            .CreateLogger(); var submoduleDir = AppDomain.CurrentDomain.BaseDirectory.Split("HybrasylTests");
+        Game.LoadCollisions();
 
-        public User TestUser { get; }
+        Game.World = new World(1337, new DataStore {Host = "127.0.0.1", Port = 6379, Database = 15},
+            Path.Combine(submoduleDir[0], "HybrasylTests", "world"), true);
 
-        public HybrasylFixture(IMessageSink sink)
+        Game.World.CompileScripts();
+        if (!Game.World.LoadData())
+            throw new InvalidDataException("LoadData encountered errors");
+
+        Map = Game.World.WorldData.Get<Map>("40000");
+        MapNoCasting = Game.World.WorldData.Get<Map>("40000");
+
+        var xmlNation = new Nation { Default = true, Description = "Test Nation", Flag = 0, Name = "Test", SpawnPoints = new List<SpawnPoint> {new() { MapName = "Test Map", X = 5, Y = 5 }}};
+        Game.World.WorldData.Set(xmlNation.Name, xmlNation);
+
+        TestItem = new Item
         {
-            this.sink = sink;
-            sink.OnMessage(new DiagnosticMessage("hello"));
-            Log.Logger = new LoggerConfiguration()
-                .WriteTo.TestOutput(sink)
-                .CreateLogger(); var submoduleDir = AppDomain.CurrentDomain.BaseDirectory.Split("HybrasylTests");
-            Game.LoadCollisions();
+            Name = "Test Item"
+        };
+        TestItem.Properties.Stackable.Max = 1;
+        TestItem.Properties.Equipment = new Hybrasyl.Xml.Equipment { WeaponType = WeaponType.None, Slot = EquipmentSlot.None };
+        TestItem.Properties.Physical = new Physical { Durability = 1000, Weight = 1 };
+        TestItem.Properties.Categories = new List<Category>
+        {
+            new() {Value = "junk"},
+            new() {Value = "xmlitem"}
+        };
+        Game.World.WorldData.Set(TestItem.Id, TestItem);
 
-            Game.World = new World(1337, new DataStore {Host = "127.0.0.1", Port = 6379, Database = 15},
-                Path.Combine(submoduleDir[0], "HybrasylTests", "world"), true);
+        StackableTestItem = new Item
+        {
+            Name = "Stackable Test Item"
+        };
+        StackableTestItem.Properties.Stackable.Max = 20;
+        StackableTestItem.Properties.Equipment = new Hybrasyl.Xml.Equipment() { WeaponType = WeaponType.None, Slot = EquipmentSlot.None };
+        StackableTestItem.Properties.Physical = new Physical { Durability = 1000, Weight = 1 };
+        StackableTestItem.Properties.Categories = new List<Category>
+        {
+            new() { Value = "nonjunk" },
+            new() { Value = "stackable" },
+            new() { Value = "xmlitem" }
+        };
 
-            Game.World.CompileScripts();
-            if (!Game.World.LoadData())
-                throw new InvalidDataException("LoadData encountered errors");
+        Game.World.WorldData.Set(StackableTestItem.Id, StackableTestItem);
 
-            Map = Game.World.WorldData.Get<Map>("40000");
-            MapNoCasting = Game.World.WorldData.Get<Map>("40000");
+        foreach (EquipmentSlot slot in Enum.GetValues(typeof(EquipmentSlot)))
+        {
+            var item = new Item() { Name = $"Equip Test {slot}" };
+            item.Properties.Stackable.Max = 1;
+            item.Properties.Equipment = new Hybrasyl.Xml.Equipment { WeaponType = slot == EquipmentSlot.Weapon ? WeaponType.Dagger : WeaponType.None, Slot = slot };
+            item.Properties.Physical = new Physical { Durability = 1000, Weight = 1 };
+            Game.World.WorldData.Set(item.Id, item);
+            TestEquipment.Add(slot, item);
+        }
 
-            var xmlNation = new Nation { Default = true, Description = "Test Nation", Flag = 0, Name = "Test", SpawnPoints = new List<SpawnPoint> {new() { MapName = "Test Map", X = 5, Y = 5 }}};
-            Game.World.WorldData.Set(xmlNation.Name, xmlNation);
-
-            TestItem = new Item
+        TestUser = new User
+        {
+            Name = "TestUser",
+            Guid = Guid.NewGuid(),
+            Gender = Gender.Female,
+            Location =
             {
-                Name = "Test Item"
-            };
-            TestItem.Properties.Stackable.Max = 1;
-            TestItem.Properties.Equipment = new Hybrasyl.Xml.Equipment { WeaponType = WeaponType.None, Slot = EquipmentSlot.None };
-            TestItem.Properties.Physical = new Physical { Durability = 1000, Weight = 1 };
-            TestItem.Properties.Categories = new List<Category>
+                Direction = Direction.South,
+                Map = Map,
+                X = 20,
+                Y = 20
+            },
+            HairColor = 1,
+            HairStyle = 1,
+            Class = Class.Peasant,
+            AuthInfo =
             {
-                new() {Value = "junk"},
-                new() {Value = "xmlitem"}
-            };
-            Game.World.WorldData.Set(TestItem.Id, TestItem);
-
-            StackableTestItem = new Item
+                CreatedTime = DateTime.Now,
+                FirstLogin = true,
+                PasswordHash = "testing",
+                LastPasswordChange = DateTime.Now,
+                LastPasswordChangeFrom = "TestFixture"
+            },
+            Stats =
             {
-                Name = "Stackable Test Item"
-            };
-            StackableTestItem.Properties.Stackable.Max = 20;
-            StackableTestItem.Properties.Equipment = new Hybrasyl.Xml.Equipment() { WeaponType = WeaponType.None, Slot = EquipmentSlot.None };
-            StackableTestItem.Properties.Physical = new Physical { Durability = 1000, Weight = 1 };
-            StackableTestItem.Properties.Categories = new List<Category>
-            {
-                new() { Value = "nonjunk" },
-                new() { Value = "stackable" },
-                new() { Value = "xmlitem" }
-            };
-
-            Game.World.WorldData.Set(StackableTestItem.Id, StackableTestItem);
-
-            foreach (EquipmentSlot slot in Enum.GetValues(typeof(EquipmentSlot)))
-            {
-                var item = new Item() { Name = $"Equip Test {slot}" };
-                item.Properties.Stackable.Max = 1;
-                item.Properties.Equipment = new Hybrasyl.Xml.Equipment { WeaponType = slot == EquipmentSlot.Weapon ? WeaponType.Dagger : WeaponType.None, Slot = slot };
-                item.Properties.Physical = new Physical { Durability = 1000, Weight = 1 };
-                Game.World.WorldData.Set(item.Id, item);
-                TestEquipment.Add(slot, item);
-            }
-
-            TestUser = new User
-            {
-                Name = "TestUser",
-                Guid = Guid.NewGuid(),
-                Gender = Gender.Female,
-                Location =
-                {
-                    Direction = Direction.South,
-                    Map = Map,
-                    X = 20,
-                    Y = 20
-                },
-                HairColor = 1,
-                HairStyle = 1,
-                Class = Class.Peasant,
+                BaseInt = 100, 
+                BaseStr = 255, 
+                BaseDex = 100, 
+                BaseCon = 100, 
+                BaseWis = 100,
+                BaseAc = 100,
+                Level = 99,
+                BaseHp = 10000,
+                Hp = 10000,
+                BaseMp = 10000,
+                Mp = 10000,
                 Gold = 0,
-                AuthInfo =
-                {
-                    CreatedTime = DateTime.Now,
-                    FirstLogin = true,
-                    PasswordHash = "testing",
-                    LastPasswordChange = DateTime.Now,
-                    LastPasswordChangeFrom = "TestFixture"
-                },
-                Stats =
-                {
-                    BaseInt = 100, 
-                    BaseStr = 255, 
-                    BaseDex = 100, 
-                    BaseCon = 100, 
-                    BaseWis = 100,
-                    Level = 99,
-                    BaseHp = 10000,
-                    Hp = 10000,
-                    BaseMp = 10000,
-                    Mp = 10000
-                }
-            };
-            TestUser.AuthInfo.Save();
-            TestUser.Nation = Game.World.DefaultNation;
+            }
+        };
+        TestUser.AuthInfo.Save();
+        TestUser.Nation = Game.World.DefaultNation;
 
-            var vault = new Vault(TestUser.Guid);
-            vault.Save();
-            var parcelStore = new ParcelStore(TestUser.Guid);
-            parcelStore.Save();
-            TestUser.Save();
-            Game.World.Insert(TestUser);
-            Map.Insert(TestUser, TestUser.X, TestUser.Y,false);
-        }
+        var vault = new Vault(TestUser.Guid);
+        vault.Save();
+        var parcelStore = new ParcelStore(TestUser.Guid);
+        parcelStore.Save();
+        TestUser.Save();
+        Game.World.Insert(TestUser);
+        Map.Insert(TestUser, TestUser.X, TestUser.Y,false);
 
-        public void ResetUserStats()
-        {
-            TestUser.Stats.BaseInt = 3;
-            TestUser.Stats.BaseStr = 3;
-            TestUser.Stats.BaseDex = 3;
-            TestUser.Stats.BaseCon = 3;
-            TestUser.Stats.BaseWis = 3;
-            TestUser.Stats.Level = 1;
-            TestUser.Class = Class.Peasant;
-        }
-
-        public void Dispose()
-        {
-            var ep = World.DatastoreConnection.GetEndPoints();
-            var server = World.DatastoreConnection.GetServer(ep.First().ToString());
-            server.FlushDatabase(15);
-        }
     }
 
-    [CollectionDefinition("Hybrasyl")]
-    public class HybrasylCollection : IClassFixture<HybrasylFixture> {}
+    public void ResetUserStats()
+    {
+        TestUser.Stats = new StatInfo
+        {
+            BaseInt = 3,
+            BaseStr = 3,
+            BaseDex = 3,
+            BaseCon = 3,
+            BaseWis = 3,
+            Level = 1,
+            Gold = 1000,
+            Hp = 50,
+            Mp = 50,
+            BaseHp = 50,
+            BaseMp = 50,
+            Experience = 1000,
+            BaseAc = 100,
+        };
+        TestUser.Class = Class.Peasant;
+        TestUser.Inventory.Clear();
+        TestUser.Equipment.Clear();
+        TestUser.Vault.Clear();
+    }
+
+    public void Dispose()
+    {
+        var ep = World.DatastoreConnection.GetEndPoints();
+        var server = World.DatastoreConnection.GetServer(ep.First().ToString());
+        server.FlushDatabase(15);
+    }
 }
+
+[CollectionDefinition("Hybrasyl")]
+public class HybrasylCollection : IClassFixture<HybrasylFixture> {}

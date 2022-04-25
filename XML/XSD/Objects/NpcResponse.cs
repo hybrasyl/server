@@ -24,93 +24,37 @@ using System.Collections.Generic;
 [DebuggerStepThrough]
 [DesignerCategoryAttribute("code")]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-public partial class StatModifierCombat
+public partial class NpcResponse
 {
     #region Private fields
-    private sbyte _hit;
-    private sbyte _dmg;
-    private sbyte _ac;
-    private sbyte _regen;
-    private sbyte _mr;
+    private string _call;
+    private string _value;
     private static XmlSerializer _serializerXml;
     #endregion
     
-    public StatModifierCombat()
-    {
-        _hit = ((sbyte)(0));
-        _dmg = ((sbyte)(0));
-        _ac = ((sbyte)(0));
-        _regen = ((sbyte)(0));
-        _mr = ((sbyte)(0));
-    }
-    
     [XmlAttribute]
-    [DefaultValue(typeof(sbyte), "0")]
-    public sbyte Hit
+    public string Call
     {
         get
         {
-            return _hit;
+            return _call;
         }
         set
         {
-            _hit = value;
+            _call = value;
         }
     }
     
-    [XmlAttribute]
-    [DefaultValue(typeof(sbyte), "0")]
-    public sbyte Dmg
+    [XmlTextAttribute]
+    public string Value
     {
         get
         {
-            return _dmg;
+            return _value;
         }
         set
         {
-            _dmg = value;
-        }
-    }
-    
-    [XmlAttribute]
-    [DefaultValue(typeof(sbyte), "0")]
-    public sbyte Ac
-    {
-        get
-        {
-            return _ac;
-        }
-        set
-        {
-            _ac = value;
-        }
-    }
-    
-    [XmlAttribute]
-    [DefaultValue(typeof(sbyte), "0")]
-    public sbyte Regen
-    {
-        get
-        {
-            return _regen;
-        }
-        set
-        {
-            _regen = value;
-        }
-    }
-    
-    [XmlAttribute]
-    [DefaultValue(typeof(sbyte), "0")]
-    public sbyte Mr
-    {
-        get
-        {
-            return _mr;
-        }
-        set
-        {
-            _mr = value;
+            _value = value;
         }
     }
     
@@ -120,7 +64,7 @@ public partial class StatModifierCombat
         {
             if ((_serializerXml == null))
             {
-                _serializerXml = new XmlSerializerFactory().CreateSerializer(typeof(StatModifierCombat));
+                _serializerXml = new XmlSerializerFactory().CreateSerializer(typeof(NpcResponse));
             }
             return _serializerXml;
         }
@@ -128,7 +72,7 @@ public partial class StatModifierCombat
     
     #region Serialize/Deserialize
     /// <summary>
-    /// Serialize StatModifierCombat object
+    /// Serialize NpcResponse object
     /// </summary>
     /// <returns>XML value</returns>
     public virtual string Serialize()
@@ -161,16 +105,16 @@ public partial class StatModifierCombat
     }
     
     /// <summary>
-    /// Deserializes StatModifierCombat object
+    /// Deserializes NpcResponse object
     /// </summary>
     /// <param name="input">string to deserialize</param>
-    /// <param name="obj">Output StatModifierCombat object</param>
+    /// <param name="obj">Output NpcResponse object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool Deserialize(string input, out StatModifierCombat obj, out Exception exception)
+    public static bool Deserialize(string input, out NpcResponse obj, out Exception exception)
     {
         exception = null;
-        obj = default(StatModifierCombat);
+        obj = default(NpcResponse);
         try
         {
             obj = Deserialize(input);
@@ -183,19 +127,19 @@ public partial class StatModifierCombat
         }
     }
     
-    public static bool Deserialize(string input, out StatModifierCombat obj)
+    public static bool Deserialize(string input, out NpcResponse obj)
     {
         Exception exception = null;
         return Deserialize(input, out obj, out exception);
     }
     
-    public static StatModifierCombat Deserialize(string input)
+    public static NpcResponse Deserialize(string input)
     {
         StringReader stringReader = null;
         try
         {
             stringReader = new StringReader(input);
-            return ((StatModifierCombat)(SerializerXml.Deserialize(XmlReader.Create(stringReader))));
+            return ((NpcResponse)(SerializerXml.Deserialize(XmlReader.Create(stringReader))));
         }
         finally
         {
@@ -206,14 +150,14 @@ public partial class StatModifierCombat
         }
     }
     
-    public static StatModifierCombat Deserialize(Stream s)
+    public static NpcResponse Deserialize(Stream s)
     {
-        return ((StatModifierCombat)(SerializerXml.Deserialize(s)));
+        return ((NpcResponse)(SerializerXml.Deserialize(s)));
     }
     #endregion
     
     /// <summary>
-    /// Serializes current StatModifierCombat object into file
+    /// Serializes current NpcResponse object into file
     /// </summary>
     /// <param name="fileName">full path of outupt xml file</param>
     /// <param name="exception">output Exception value if failed</param>
@@ -254,16 +198,16 @@ public partial class StatModifierCombat
     }
     
     /// <summary>
-    /// Deserializes xml markup from file into an StatModifierCombat object
+    /// Deserializes xml markup from file into an NpcResponse object
     /// </summary>
     /// <param name="fileName">File to load and deserialize</param>
-    /// <param name="obj">Output StatModifierCombat object</param>
+    /// <param name="obj">Output NpcResponse object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool LoadFromFile(string fileName, out StatModifierCombat obj, out Exception exception)
+    public static bool LoadFromFile(string fileName, out NpcResponse obj, out Exception exception)
     {
         exception = null;
-        obj = default(StatModifierCombat);
+        obj = default(NpcResponse);
         try
         {
             obj = LoadFromFile(fileName);
@@ -276,13 +220,13 @@ public partial class StatModifierCombat
         }
     }
     
-    public static bool LoadFromFile(string fileName, out StatModifierCombat obj)
+    public static bool LoadFromFile(string fileName, out NpcResponse obj)
     {
         Exception exception = null;
         return LoadFromFile(fileName, out obj, out exception);
     }
     
-    public static StatModifierCombat LoadFromFile(string fileName)
+    public static NpcResponse LoadFromFile(string fileName)
     {
         FileStream file = null;
         StreamReader sr = null;

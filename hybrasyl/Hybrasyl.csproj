@@ -10,7 +10,7 @@
     <RepositoryUrl>https://github.com/hybrasyl/server</RepositoryUrl>
     <Company>Project Hybrasyl</Company>
     <Product>Hybrasyl Server</Product>
-    <VersionPrefix>0.8.0</VersionPrefix>
+    <VersionPrefix>0.9.1</VersionPrefix>
     <Description>Hybrasyl, a DOOMVAS v1 emulator</Description>
     <BuildDocFx Condition="'$(Configuration)'=='Debug' ">false</BuildDocFx>
   </PropertyGroup>
@@ -136,6 +136,10 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>TextTemplate1.tt</DependentUpon>
     </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Interfaces\" />
   </ItemGroup>
 
   <PropertyGroup>

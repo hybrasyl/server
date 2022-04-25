@@ -19,17 +19,16 @@
  * 
  */
 
-namespace Hybrasyl.Messaging
+namespace Hybrasyl.Messaging;
+
+// A simple class used to pass around message information to packet structures
+public class MessageInfo
 {
-    // A simple class used to pass around message information to packet structures
-    public class MessageInfo
-    {
-        public bool Highlight;
-        public short Id;
-        public string Sender;
-        public byte Month;
-        public byte Day;
-        public string Subject;
-        public string Body;
-    }
+    public bool Highlight;
+    public short Id;
+    public string Sender;
+    public byte Month;
+    public byte Day;
+    public string Subject;
+    public string Body;
 }

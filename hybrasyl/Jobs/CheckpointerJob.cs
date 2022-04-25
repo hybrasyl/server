@@ -22,33 +22,32 @@
 using System;
 using System.Timers;
 
-namespace Hybrasyl.Jobs
+namespace Hybrasyl.Jobs;
+
+public static class CheckpointerJob
 {
-    public static class CheckpointerJob
+    public static readonly int Interval = 300;
+
+    public static void Execute(object obj, ElapsedEventArgs args)
     {
-        public static readonly int Interval = 300;
-
-        public static void Execute(object obj, ElapsedEventArgs args)
+        try
         {
-            try
+            GameLog.Debug("Job starting");
+            foreach (var client in GlobalConnectionManifest.WorldClients)
             {
-                GameLog.Debug("Job starting");
-                foreach (var client in GlobalConnectionManifest.WorldClients)
-                {
-                    // Insert a "save client" message onto the queue for each client.
-                    // We do this rather than sending a "checkpoint" message so we don't
-                    // randomly have a packet occupying shitloads of CPU time blocking
-                    // everything else.
+                // Insert a "save client" message onto the queue for each client.
+                // We do this rather than sending a "checkpoint" message so we don't
+                // randomly have a packet occupying shitloads of CPU time blocking
+                // everything else.
 
-                    World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.SaveUser, client.Key));
-                }
-                GameLog.Debug("Job complete");
+                World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.SaveUser, client.Key));
             }
-            catch (Exception e)
-            {
-                Game.ReportException(e);
-                GameLog.Error("Exception occured in job:", e);
-            }
+            GameLog.Debug("Job complete");
+        }
+        catch (Exception e)
+        {
+            Game.ReportException(e);
+            GameLog.Error("Exception occured in job:", e);
         }
     }
 }

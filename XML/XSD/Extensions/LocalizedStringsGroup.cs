@@ -1,44 +1,49 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Hybrasyl.Xml
+namespace Hybrasyl.Xml;
+
+public partial class LocalizedStringGroup
 {
-    public partial class LocalizedStringGroup
+    private Dictionary<string, string> Index = new();
+    private Dictionary<string, string> ResponsesIndex = new();
+
+    public void Reindex()
     {
-        private Dictionary<string, string> Index = new();
+        Index.Clear();
+        // TODO: clean up this xml structure
 
-        public void Reindex()
+        foreach (var str in Common.Where(str => !string.IsNullOrEmpty(str.Key) && !string.IsNullOrEmpty(str.Value)))
         {
-            Index.Clear();
-            // TODO: clean up this xml structure
-
-            foreach (var str in Common)
-            {
-                Index.Add(str.Key, str.Value);
-            }
-            foreach (var str in Merchant)
-            {
-                Index.Add(str.Key, str.Value);
-            }
-            foreach (var str in MonsterSpeak)
-            {
-                Index.Add(str.Key, str.Value);
-            }
-            foreach (var str in NpcSpeak)
-            {
-                Index.Add(str.Key, str.Value);
-            }
-
+            Index.Add(str.Key, str.Value);
+        }
+        foreach (var str in Merchant.Where(str => !string.IsNullOrEmpty(str.Key) && !string.IsNullOrEmpty(str.Value)))
+        {
+            Index.Add(str.Key, str.Value);
+        }
+        foreach (var str in MonsterSpeak.Where(str => !string.IsNullOrEmpty(str.Key) && !string.IsNullOrEmpty(str.Value)))
+        {
+            Index.Add(str.Key, str.Value);
+        }
+        foreach (var str in NpcSpeak.Where(str => !string.IsNullOrEmpty(str.Key) && !string.IsNullOrEmpty(str.Value)))
+        {
+            Index.Add(str.Key, str.Value);
         }
 
-        /// <summary>
-        /// Fetch a localized string from a given key
-        /// </summary>
-        /// <param name="key">The key for the string (eg item_equip_too_heavy)</param>
-        /// <returns>The localized string, or the key itself, if it is missing</returns>
-        public string GetString(string key) => Index.TryGetValue(key, out var str) ? str : key;
+        foreach (var resp in NpcResponses)
+        {
+            var key = resp.Call.ToLower().Trim();
+            ResponsesIndex.Add(key, resp.Value);
+        }
     }
+
+
+    /// <summary>
+    /// Fetch a localized string from a given key
+    /// </summary>
+    /// <param name="key">The key for the string (eg item_equip_too_heavy)</param>
+    /// <returns>The localized string, or the key itself, if it is missing</returns>
+    public string GetString(string key) => Index.TryGetValue(key, out var str) ? str : key;
+
+    public string GetResponse(string key) => ResponsesIndex.TryGetValue(key, out var str) ? str : null;
 }

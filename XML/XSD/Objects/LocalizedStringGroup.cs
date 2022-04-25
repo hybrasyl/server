@@ -32,6 +32,7 @@ public partial class LocalizedStringGroup
     private List<LocalizedString> _merchant;
     private List<LocalizedString> _npcSpeak;
     private List<LocalizedString> _monsterSpeak;
+    private List<NpcResponse> _npcResponses;
     private static XmlSerializer _serializerXml;
     #endregion
     
@@ -92,6 +93,19 @@ public partial class LocalizedStringGroup
         set
         {
             _monsterSpeak = value;
+        }
+    }
+    
+    [XmlArrayItemAttribute("Response", IsNullable=false)]
+    public List<NpcResponse> NpcResponses
+    {
+        get
+        {
+            return _npcResponses;
+        }
+        set
+        {
+            _npcResponses = value;
         }
     }
     

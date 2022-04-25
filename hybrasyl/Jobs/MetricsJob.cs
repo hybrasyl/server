@@ -19,31 +19,28 @@
  * 
  */
 
-using Hybrasyl.Objects;
-using System;
 using System.Timers;
 
-namespace Hybrasyl.Jobs
+namespace Hybrasyl.Jobs;
+
+public static class MetricsJob
 {
-    public static class MetricsJob
+    public static readonly int Interval = 20;
+
+    public static void Execute(object obj, ElapsedEventArgs args)
     {
-        public static readonly int Interval = 20;
-
-        public static void Execute(object obj, ElapsedEventArgs args)
+        if (Game.MetricsStore.Options.ReportingEnabled)
         {
-            if (Game.MetricsStore.Options.ReportingEnabled)
-            {
-                // Store queue depth before we run our report
-                Game.MetricsStore.Measure.Gauge.SetValue(HybrasylMetricsRegistry.QueueDepth, 
-                   World.MessageQueue.Count);
-                Game.MetricsStore.Measure.Gauge.SetValue(HybrasylMetricsRegistry.ControlQueueDepth,
-                   World.MessageQueue.Count);
+            // Store queue depth before we run our report
+            Game.MetricsStore.Measure.Gauge.SetValue(HybrasylMetricsRegistry.QueueDepth, 
+                World.MessageQueue.Count);
+            Game.MetricsStore.Measure.Gauge.SetValue(HybrasylMetricsRegistry.ControlQueueDepth,
+                World.MessageQueue.Count);
 
-                // this shouldn't be how this happens, but it doesn't work otherwise
-                foreach (var a in Game.MetricsStore.ReportRunner.RunAllAsync())
-                {
-                    a.Wait();
-                }
+            // this shouldn't be how this happens, but it doesn't work otherwise
+            foreach (var a in Game.MetricsStore.ReportRunner.RunAllAsync())
+            {
+                a.Wait();
             }
         }
     }

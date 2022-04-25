@@ -21,18 +21,17 @@
 
 using System.Timers;
 
-namespace Hybrasyl.Jobs
-{
-    public static class RegenerationJob
-    {
-        public static readonly int Interval = 25;
+namespace Hybrasyl.Jobs;
 
-        public static void Execute(object obj, ElapsedEventArgs args)
+public static class RegenerationJob
+{
+    public static readonly int Interval = 25;
+
+    public static void Execute(object obj, ElapsedEventArgs args)
+    {
+        foreach (var connId in GlobalConnectionManifest.WorldClients.Keys)
         {
-            foreach (var connId in GlobalConnectionManifest.WorldClients.Keys)
-            {
-                World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.RegenUser, connId));
-            }
+            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.RegenUser, connId));
         }
     }
 }

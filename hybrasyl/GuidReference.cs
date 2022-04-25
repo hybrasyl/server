@@ -1,36 +1,31 @@
-﻿using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Reflection;
-using System.Text;
+﻿using System;
 
-namespace Hybrasyl
+namespace Hybrasyl;
+
+public class GuidReference
 {
-    public class GuidReference
+    private readonly object _lock = new object();
+
+    public string UserName { get; set; }
+        
+    public Guid UserGuid { get; set; }
+        
+    public Guid AccountGuid { get; set; }
+        
+    public Guid VaultGuid { get; set; }
+        
+    public Guid ParcelStoreGuid { get; set; }
+        
+    public Guid MailboxGuid { get; set; }
+
+    public Guid AuthInfoGuid { get; set; }
+        
+    public GuidReference() { }
+
+    public GuidReference(string name)
     {
-        private readonly object _lock = new object();
-
-        public string UserName { get; set; }
-        
-        public Guid UserGuid { get; set; }
-        
-        public Guid AccountGuid { get; set; }
-        
-        public Guid VaultGuid { get; set; }
-        
-        public Guid ParcelStoreGuid { get; set; }
-        
-        public Guid MailboxGuid { get; set; }
-
-        public Guid AuthInfoGuid { get; set; }
-        
-        public GuidReference() { }
-
-        public GuidReference(string name)
-        {
-            UserName = name;
-        }
-
-        
+        UserName = name;
     }
+
+        
 }

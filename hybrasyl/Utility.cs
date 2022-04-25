@@ -53,7 +53,6 @@ namespace Hybrasyl
 
     public static class RandomExtensions
     {
-        //private static readonly Random random = new Random();
         public static string RandomString(this Random rand, int length)
         {
             const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -121,6 +120,7 @@ namespace Hybrasyl
         public const int DialogRequest = 12;
         public const int GlobalMessage = 13;
         public const int RemoveReactor = 14;
+        public const int ModifyStats = 15;
     }
 
     static class ServerTypes
@@ -246,21 +246,22 @@ namespace Hybrasyl
         public const int CIRCLE_4 = 90;
     }
 
+    // TODO: move to xml
     static class StatLimitConstants
     {
-        public static int MIN_STAT = 1; // str, int, wis, con, dex
-        public static int MAX_STAT = 255;
-        public static int MIN_BASE_HPMP = 1;
-        public static int? MAX_BASE_HPMP = null;
+        public static long MIN_STAT = 1; // str, int, wis, con, dex
+        public static long MAX_STAT = 255;
+        public static long MIN_BASE_HPMP = 1;
+        public static long MAX_BASE_HPMP = uint.MaxValue;
 
-        public static int MIN_DMG = 0;
-        public static int? MAX_DMG = null;
-        public static int MIN_HIT = 0;
-        public static int? MAX_HIT = null;
-        public static int MIN_AC = -90;
-        public static int MAX_AC = 100;
-        public static int MIN_MR = 0;
-        public static int MAX_MR = 8;
+        public static double MIN_DMG = -16.0;
+        public static double MAX_DMG = 16.0;
+        public static double MIN_HIT = -16.0;
+        public static double MAX_HIT = 16.0;
+        public static long MIN_AC = -90;
+        public static long MAX_AC = 100;
+        public static double MIN_MR = -16.0;
+        public static double MAX_MR = 16.0;
     }
 
     static class DialogTypes
@@ -270,6 +271,18 @@ namespace Hybrasyl
         public const int OPTIONS_DIALOG = 2;
         public const int INPUT_DIALOG = 4;
         public const int JUMP_DIALOG = 8;
+    }
+
+    public enum MessageType
+    {
+        Whisper = 0,
+        System = 1,
+        SystemOverhead = 3,
+        SlateScrollbar = 9,
+        Slate = 10,
+        Group = 11,
+        Guild = 12,
+        Overhead = 18
     }
 
     static class MessageTypes

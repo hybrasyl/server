@@ -34,7 +34,7 @@ public partial class VariantProperties
     private ItemRestrictions _restrictions;
     private string _script;
     private Stackable _stackable;
-    private ItemStatModifiers _statModifiers;
+    private StatModifiers _statModifiers;
     private static XmlSerializer _serializerXml;
     #endregion
     
@@ -123,7 +123,7 @@ public partial class VariantProperties
         }
     }
     
-    public ItemStatModifiers StatModifiers
+    public StatModifiers StatModifiers
     {
         get
         {

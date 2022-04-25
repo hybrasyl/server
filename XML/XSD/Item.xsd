@@ -92,9 +92,9 @@
   </xs:complexType>
 
   <xs:complexType name="Physical">
-    <xs:attribute name="Value" type="xs:unsignedInt" use="required"/>
-    <xs:attribute name="Weight" type="xs:int" use="required"/>
-    <xs:attribute name="Durability" type="xs:unsignedInt" use="required"/>
+    <xs:attribute name="Value" type="xs:float" use="optional" default="1"/>
+    <xs:attribute name="Weight" type="xs:float" use="optional" default="1"/>
+    <xs:attribute name="Durability" type="xs:float" use="optional" default="1"/>
   </xs:complexType>
 
   <xs:complexType name="RestrictionsLevel">
@@ -146,37 +146,6 @@
     <xs:attribute name="Max" use="required" type="xs:unsignedByte" />
   </xs:complexType>
 
-  <xs:complexType name="StatModifierBase">
-    <xs:attribute name="Str" default="0" type="xs:byte" />
-    <xs:attribute name="Int" default="0" type="xs:byte" />
-    <xs:attribute name="Wis" default="0" type="xs:byte" />
-    <xs:attribute name="Con" default="0" type="xs:byte" />
-    <xs:attribute name="Dex" default="0" type="xs:byte" />
-    <xs:attribute name="Hp" default="0" type="xs:int" />
-    <xs:attribute name="Mp" default="0" type="xs:int" />
-  </xs:complexType>
-
-  <xs:complexType name="StatModifierCombat">
-    <xs:attribute name="Hit" default="0" type="xs:byte" />
-    <xs:attribute name="Dmg" default="0" type="xs:byte" />
-    <xs:attribute name="Ac" default="0" type="xs:byte" />
-    <xs:attribute name="Regen" default="0" type="xs:byte" />
-    <xs:attribute name="Mr" default="0" type="xs:byte" />
-  </xs:complexType>
-
-  <xs:complexType name="StatModifierElement">
-    <xs:attribute name="Offense" default="None" type="hyb:ElementType" use="optional"/>
-    <xs:attribute name="Defense" default="None" type="hyb:ElementType" use="optional"/>
-  </xs:complexType>
-
-  <xs:complexType name="ItemStatModifiers">
-    <xs:sequence>
-      <xs:element name="Base" type="hyb:StatModifierBase" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="Combat" type="hyb:StatModifierCombat" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="Element" type="hyb:StatModifierElement" minOccurs="0" maxOccurs="1"/>
-    </xs:sequence>
-  </xs:complexType>
-
   <!-- TODO: add effect script name to variants -->
   <xs:complexType name="VariantProperties">
     <xs:sequence>
@@ -187,7 +156,7 @@
       <xs:element name="Restrictions" type="hyb:ItemRestrictions" minOccurs="0" maxOccurs="1"/>
       <xs:element name="Script" minOccurs="0" maxOccurs="1" type="hyb:String8" />
       <xs:element name="Stackable" type="hyb:Stackable" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="StatModifiers" type="hyb:ItemStatModifiers" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="StatModifiers" type="hyb:StatModifiers" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
   </xs:complexType>
 
@@ -230,13 +199,6 @@
     </xs:simpleContent>
   </xs:complexType>
 
-  <xs:complexType name="ItemUsePlayerEffect">
-    <xs:attribute name="Gold" default="0" type="xs:int" />
-    <xs:attribute name="Hp" default="0" type="xs:int" />
-    <xs:attribute name="Mp" default="0" type="xs:int" />
-    <xs:attribute name="Xp" default="0" type="xs:int" />
-  </xs:complexType>
-
   <xs:complexType name="ItemUseEffect">
     <xs:attribute name="Id" type="xs:unsignedShort" use="required" />
     <xs:attribute name="Speed" type="xs:unsignedByte" default="100" />
@@ -250,7 +212,6 @@
     <xs:sequence>
       <xs:element name="Script" type="xs:string" minOccurs="0" maxOccurs="1" />
       <xs:element name="Teleport" minOccurs="0" maxOccurs="1" type="hyb:ItemUseTeleport"/>
-      <xs:element name="PlayerEffect" minOccurs="0" maxOccurs="1" type="hyb:ItemUsePlayerEffect"/>
       <xs:element name="Effect" minOccurs="0" maxOccurs="1" type="hyb:ItemUseEffect"/>
       <xs:element name="Sound" minOccurs="0" maxOccurs="1" type="hyb:ItemUseSound"/>
     </xs:sequence>
@@ -264,7 +225,7 @@
       <xs:element name="Physical" minOccurs="1" maxOccurs="1" type="hyb:Physical"/>
       <xs:element name="Categories" type="hyb:Categories" minOccurs="0" maxOccurs="1" />
       <xs:element name="Equipment" minOccurs="0" maxOccurs="1" type="hyb:Equipment"/>
-      <xs:element name="StatModifiers" minOccurs="0" maxOccurs="1" type="hyb:ItemStatModifiers"/>
+      <xs:element name="StatModifiers" minOccurs="0" maxOccurs="1" type="hyb:StatModifiers"/>
       <xs:element name="Flags" minOccurs="0" maxOccurs="1" type="hyb:ItemFlags" />
       <xs:element name="Variants" minOccurs="0" maxOccurs="1" type="hyb:Variants"/>
 
