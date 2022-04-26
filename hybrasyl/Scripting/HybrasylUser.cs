@@ -271,10 +271,13 @@ public class HybrasylUser
         if (User.Nation.SpawnPoints.Count != 0)
         {
             var spawnpoint = User.Nation.RandomSpawnPoint;
-            if (spawnpoint != null) 
+            if (spawnpoint != null)
+            {
                 User.Teleport(spawnpoint.MapName, spawnpoint.X, spawnpoint.Y);
-            return;
+                return;
+            }
         }
+        // Fallback to something if we have no spawnpoints
         User.Teleport((ushort)500, (byte)50, (byte)(50));
     }
 

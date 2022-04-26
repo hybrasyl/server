@@ -2245,7 +2245,7 @@ public class User : Creature
 
         if(xmlItem.Stackable)
         {
-            if(Inventory.ContainsId(itemName, 1))
+            if(Inventory.ContainsName(itemName, 1))
             {
                 var slots = Inventory.GetSlotsByName(itemName);
 
@@ -3071,8 +3071,8 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
             Color2 = 0,
             PortraitType = 0,
             Name = merchant.Name,
-            Text = merchant.GetLocalString("learn_skill", ("$SKILLNAME", castable.Name),
-                ("$SKILLDESC", skillDesc.Value)),
+            Text = merchant.GetLocalString("learn_skill", ("$NAME", castable.Name),
+                ("$DESC", skillDesc.Value)),
             Options = options
         };
 
@@ -3092,14 +3092,14 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
         var prompt = string.Empty;
         if (classReq.Level.Min > Stats.Level)
         {
-            prompt = merchant.GetLocalString("learn_skill_player_level", ("$SKILLNAME", castable.Name),
+            prompt = merchant.GetLocalString("learn_skill_player_level", ("$NAME", castable.Name),
                 ("$LEVEL", classReq.Level.Min.ToString()));
         }
         if (classReq.Physical != null)
         {
             if (Stats.Str < classReq.Physical.Str || Stats.Int < classReq.Physical.Int || Stats.Wis < classReq.Physical.Wis || Stats.Con < classReq.Physical.Con || Stats.Dex < classReq.Physical.Dex)
             {
-                prompt = merchant.GetLocalString("learn_skill_prereq_stats", ("$SKILLNAME", castable.Name),
+                prompt = merchant.GetLocalString("learn_skill_prereq_stats", ("$NAME", castable.Name),
                     ("$STATS", $"\n[STR {classReq.Physical.Str} INT {classReq.Physical.Int} WIS {classReq.Physical.Wis} CON {classReq.Physical.Con} DEX {classReq.Physical.Dex}]")
                 );
             }
@@ -3113,7 +3113,7 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
                 {
                     if (!SkillBook.Contains(castablePrereq.Id) && !SpellBook.Contains(castablePrereq.Id))
                     {
-                        prompt = merchant.GetLocalString("learn_skill_prereq_level", ("$SKILLNAME", castable.Name),
+                        prompt = merchant.GetLocalString("learn_skill_prereq_level", ("$NAME", castable.Name),
                             ("$PREREQ", preReq.Value), ("$LEVEL", preReq.Level.ToString()));
                         break;
                     }
@@ -3125,7 +3125,7 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
 
                     if (Math.Floor((slot.UseCount / (double) slot.Castable.Mastery.Uses) * 100) < preReq.Level)
                     {
-                        prompt = merchant.GetLocalString("learn_skill_prereq_level", ("$SKILLNAME", castable.Name),
+                        prompt = merchant.GetLocalString("learn_skill_prereq_level", ("$NAME", castable.Name),
                             ("$PREREQ", preReq.Value), ("$LEVEL", preReq.Level.ToString()));
                         break;
                     }
@@ -3153,7 +3153,7 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
                 reqStr = reqStr.Remove(reqStr.Length - 1);
             }
 
-            prompt = merchant.GetLocalString("learn_skill_reqs", ("$SKILLNAME", castable.Name), ("$REQS", reqStr));
+            prompt = merchant.GetLocalString("learn_skill_reqs", ("$NAME", castable.Name), ("$REQS", reqStr));
 
             options.Options.Add(new MerchantDialogOption()
             {
@@ -3203,7 +3203,7 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
         }
         if (prompt == string.Empty)
         {
-            if (classReq.Items.Any(itemReq => !Inventory.ContainsId(itemReq.Value, itemReq.Quantity)))
+            if (classReq.Items.Any(itemReq => !Inventory.ContainsName(itemReq.Value, itemReq.Quantity)))
             {
                 prompt = merchant.GetLocalString("learn_skill_prereq_item");
             }
@@ -3340,7 +3340,7 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
             Color2 = 0,
             PortraitType = 0,
             Name = merchant.Name,
-            Text = merchant.GetLocalString("learn_spell_choice", ("$SPELLNAME", castable.Name),("$SPELLDESC", spellDesc.Value)),
+            Text = merchant.GetLocalString("learn_spell_choice", ("$NAME", castable.Name),("$DESC", spellDesc.Value)),
             Options = options
         };
 
@@ -3360,13 +3360,13 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
             
         if (classReq.Level.Min > Stats.Level)
         {
-            prompt = merchant.GetLocalString("learn_spell_player_level", ("$SPELLNAME", castable.Name), ("$LEVEL", classReq.Level.Min.ToString()));
+            prompt = merchant.GetLocalString("learn_spell_player_level", ("$NAME", castable.Name), ("$LEVEL", classReq.Level.Min.ToString()));
         }
         if (classReq.Physical != null)
         {
             if (Stats.Str < classReq.Physical.Str || Stats.Int < classReq.Physical.Int || Stats.Wis < classReq.Physical.Wis || Stats.Con < classReq.Physical.Con || Stats.Dex < classReq.Physical.Dex)
             {
-                prompt = merchant.GetLocalString("learn_spell_prereq_stats", ("$SKILLNAME", castable.Name),
+                prompt = merchant.GetLocalString("learn_spell_prereq_stats", ("$NAME", castable.Name),
                     ("$STATS", $"\n[STR {classReq.Physical.Str} INT {classReq.Physical.Int} WIS {classReq.Physical.Wis} CON {classReq.Physical.Con} DEX {classReq.Physical.Dex}]")
                 );
 
@@ -3381,7 +3381,7 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
                 {
                     if (!SkillBook.Contains(castablePrereq.Id) && !SpellBook.Contains(castablePrereq.Id))
                     {
-                        prompt = merchant.GetLocalString("learn_spell_prereq_level", ("$SKILLNAME", castable.Name),
+                        prompt = merchant.GetLocalString("learn_spell_prereq_level", ("$NAME", castable.Name),
                             ("$PREREQ", preReq.Value), ("$LEVEL", preReq.Level.ToString()));
                         break;
                     }
@@ -3392,7 +3392,7 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
                         slot = SpellBook.Single(x => x.Castable.Name == preReq.Value);
                     if (Math.Floor((slot.UseCount / (double) slot.Castable.Mastery.Uses) * 100) < preReq.Level)
                     {
-                        prompt = merchant.GetLocalString("learn_spell_prereq_level", ("$SKILLNAME", castable.Name),
+                        prompt = merchant.GetLocalString("learn_spell_prereq_level", ("$NAME", castable.Name),
                             ("$PREREQ", preReq.Value), ("$LEVEL", preReq.Level.ToString()));
                         break;
 
@@ -3423,7 +3423,7 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
             {
                 reqStr = reqStr.Remove(reqStr.Length - 1);
             }
-            prompt = merchant.GetLocalString("learn_spell_reqs", ("$SPELLNAME", castable.Name), ("$REQS", reqStr));
+            prompt = merchant.GetLocalString("learn_spell_reqs", ("$NAME", castable.Name), ("$REQS", reqStr));
 
             options.Options.Add(new MerchantDialogOption()
             {
@@ -3473,7 +3473,7 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
         }
         if (prompt == string.Empty)
         {
-            if (classReq.Items.Any(itemReq => !Inventory.ContainsId(itemReq.Value, itemReq.Quantity)))
+            if (classReq.Items.Any(itemReq => !Inventory.ContainsName(itemReq.Value, itemReq.Quantity)))
             {
                 prompt = merchant.GetLocalString("learn_spell_prereq_item");
             }
@@ -4766,7 +4766,7 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
             }
             else
             {
-                if (Inventory.ContainsId(item, 1))
+                if (Inventory.ContainsName(item, 1))
                 {
                     var maxQuantity = 0;
                     var existingStacks = Inventory.GetSlotsByName(item);
