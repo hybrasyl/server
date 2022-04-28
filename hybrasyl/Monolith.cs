@@ -60,8 +60,11 @@ internal class Monolith
                 if (Game.World.WorldData.TryGetValue(spawn.Import, out Xml.SpawnGroup group))
                 {
                     // TODO: make recursive; this only supports one level of importing for now
-                    spawnlist.AddRange(group.Spawns.Where(x => string.IsNullOrEmpty(x.Import)).ToList());
-                    GameLog.SpawnInfo($"Map {map.Name}: imported {spawn.Import} successfully");
+                    foreach (var importedSpawn in group.Spawns.Where(x => string.IsNullOrEmpty(x.Import)).ToList())
+                    {
+                        importedSpawn.Loot = group.Loot;
+                        spawnlist.Add(importedSpawn);
+                    }
                 }
                 else
                     GameLog.SpawnWarning($"Map {map.Name}: spawn import {spawn.Import} not found");                
@@ -210,8 +213,8 @@ internal class Monolith
                         // If no XP defined, prepopulate based on defaults.
                         // TODO: another place a hardcoded formula should be elsewhere
                         // This is most simply expressed as "amount between mob level and last level times .7%"
-                        baseMob.LootableXP = Convert.ToUInt32((Math.Pow(baseMob.Stats.Level, 3) * 250) - 
-                                                              (Math.Pow(baseMob.Stats.Level - 1, 3) * 250) * 0.007);
+                        baseMob.LootableXP = Convert.ToUInt32((Math.Pow(baseMob.Stats.Level, 3) * 250 - 
+                                                              Math.Pow(baseMob.Stats.Level - 1, 3) * 250) * 0.007);
                     }
                     // Is this a strong or weak mob?
                     if (spawn.Base.StrongChance > 0 || spawn.Base.WeakChance > 0)
