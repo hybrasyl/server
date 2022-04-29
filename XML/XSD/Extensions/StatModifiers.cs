@@ -14,8 +14,7 @@ public partial class StatModifiers
         num /= scale;
         return num == 0 ? string.Empty : $"{(num > 0 ? "+" + num + "%" : num + "%")} {name} \n";
     }
-
-
+    
     public static string FormatBonusNum(string bonus, string name)
     {
         if (string.IsNullOrEmpty(bonus)) return string.Empty;

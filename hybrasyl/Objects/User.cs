@@ -485,6 +485,8 @@ public class User : Creature
     /// </summary>
     public override void OnDeath()
     {
+        // we cannot die twice
+        if (!Condition.Alive) return;
         var handler = Game.Config.Handlers?.Death;
         if (!(handler?.Active ?? true))
         {
@@ -502,6 +504,7 @@ public class User : Creature
 
         // We are now quite dead, not mostly dead
         Condition.Comatose = false;
+        Condition.Alive = false;
 
         // First: break everything that is breakable in the inventory
         for (byte i = 1; i <= Inventory.Size; ++i)
@@ -597,7 +600,6 @@ public class User : Creature
 
         Stats.Hp = 0;
         Stats.Mp = 0;
-        Condition.Alive = false;
         UpdateAttributes(StatUpdateFlags.Full);
         Effect(76, 120);
 
