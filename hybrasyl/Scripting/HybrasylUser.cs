@@ -38,6 +38,12 @@ public class HybrasylUser
     internal User User { get; set; }
     internal HybrasylWorld World { get; set; }
     public HybrasylMap Map { get; set; }
+
+    /// <summary>
+    /// The item in the first inventory slot of the player.
+    /// </summary>
+    public HybrasylWorldObject FirstInventorySlot => new(User.Inventory[0]);
+
     /// <summary>
     /// The name of the player.
     /// </summary>

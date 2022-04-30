@@ -21,6 +21,10 @@
 
 using MoonSharp.Interpreter;
 using System;
+using Hybrasyl.Messaging;
+using Hybrasyl.Objects;
+using Hybrasyl.Xml;
+using Hybrasyl.Enums;
 
 namespace Hybrasyl.Scripting;
 
@@ -109,4 +113,44 @@ public static class HybrasylUtility
             return 0;
         }
     }
+
+    public static bool SendMail(string to, string from, string subject, string body)
+    {
+        User userObj;
+        if (!Game.World.TryGetActiveUser(to, out userObj) &&
+            !Game.World.WorldData.TryGetUser(to, out userObj))
+            return false;
+
+        var ret = userObj.Mailbox.ReceiveMessage(new Message(to, from, subject, body));
+        if (ret)
+            userObj.Mailbox.Save();
+        if (!userObj.AuthInfo.IsLoggedIn) return ret;
+        userObj.UpdateAttributes(StatUpdateFlags.UnreadMail);
+        return ret;
+    }
+
+    public static bool SendParcel(string to, string from, string itemName, int quantity = 1)
+    {
+        User userObj;
+        if (!Game.World.TryGetActiveUser(to, out userObj) &&
+            !Game.World.WorldData.TryGetUser(to, out userObj))
+            return false;
+        if (!Game.World.WorldData.TryGetValueByIndex(itemName, out Item _))
+            return false;
+        var mboxString = Game.World.GetLocalString("send_parcel_mailbox_message", ("$SENDER", from),
+            ("$ITEM", $"{itemName} (qty {quantity})"));
+
+        userObj.Mailbox.ReceiveMessage(new Message(to, from, Game.World.GetLocalString("send_parcel_mailbox_subject", ("$NAME", from)), mboxString));
+        userObj.ParcelStore.AddItem(from, itemName, (uint) quantity);
+        userObj.ParcelStore.Save();
+        if (userObj.AuthInfo.IsLoggedIn)
+        {
+            userObj.SendSystemMessage(Game.World.GetLocalString("send_parcel_system_msg", ("$NAME", from)));
+            userObj.UpdateAttributes(StatUpdateFlags.UnreadMail);
+        }
+
+        userObj.ParcelStore.AddItem(from, itemName, (uint)quantity);
+        return true;
+    }
+
 }
