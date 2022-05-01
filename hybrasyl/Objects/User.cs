@@ -2096,6 +2096,8 @@ public class User : Creature
     {
         foreach (var item in Equipment)
             ApplyBonuses(item);
+        foreach (var item in Inventory)
+            item.EvalFormula(this);
     }
 
     public bool RemoveGold(uint amount)
@@ -2185,7 +2187,8 @@ public class User : Creature
     public bool AddItem(ItemObject itemObject, bool updateWeight = true)
     {
         Game.World.Insert(itemObject);
-        if (!Inventory.IsFull) return AddItem(itemObject, Inventory.FindEmptySlot(), updateWeight);
+        if (!Inventory.IsFull) 
+            return AddItem(itemObject, Inventory.FindEmptySlot(), updateWeight);
         SendSystemMessage("You cannot carry any more items.");
         Map.Insert(itemObject, X, Y);
         return false;
@@ -2237,6 +2240,7 @@ public class User : Creature
         }
 
         SendItemUpdate(itemObject, slot);
+        itemObject.EvalFormula(this);
         if (updateWeight) UpdateAttributes(StatUpdateFlags.Primary);
         return true;
     }

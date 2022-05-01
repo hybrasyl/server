@@ -39,16 +39,19 @@ public static class HybrasylUtility
     /// </summary>
     /// <returns></returns>
     public static int GetCurrentHour() => DateTime.Now.Hour;
+
     /// <summary>
     /// Get the current Terran day for the local (timezone of the server) time.
     /// </summary>
     /// <returns></returns>
     public static int GetCurrentDay() => DateTime.Now.Day;
+
     /// <summary>
     /// Get current Unix time.
     /// </summary>
     /// <returns></returns>
     public static long GetUnixTime() => new DateTimeOffset(DateTime.Now).ToUnixTimeSeconds();
+
     /// <summary>
     /// Calculate the number of hours (float) between two Unix timestamps t1 and t2.
     /// </summary>
@@ -56,6 +59,7 @@ public static class HybrasylUtility
     /// <param name="t2">Second timestamp</param>
     /// <returns></returns>
     public static long HoursBetweenUnixTimes(long t1, long t2) => ((t2 - t1) / 3600);
+
     /// <summary>
     /// Calculate the number of hours (float) between two Unix timestamps represented as strings.
     /// </summary>
@@ -114,6 +118,14 @@ public static class HybrasylUtility
         }
     }
 
+    /// <summary>
+    /// Send an in-game mail to a player.
+    /// </summary>
+    /// <param name="to">The recipient (must be a player)</param>
+    /// <param name="from">The sender (can be any string)</param>
+    /// <param name="subject">The subject of the message</param>
+    /// <param name="body">Message body (up to 64k characters)</param>
+    /// <returns></returns>
     public static bool SendMail(string to, string from, string subject, string body)
     {
         User userObj;
@@ -129,6 +141,15 @@ public static class HybrasylUtility
         return ret;
     }
 
+    /// <summary>
+    /// Send an in-game parcel to a player. The user will receive a message telling them to go to their
+    /// town's post office to pick up the parcel. If they are online, they will also receive a system message.
+    /// </summary>
+    /// <param name="to">The recipient (must be a player)</param>
+    /// <param name="from">The sender (can be any string)</param>
+    /// <param name="itemName">The item to be sent</param>
+    /// <param name="quantity">Quantity to be sent (for stackable items)</param>
+    /// <returns></returns>
     public static bool SendParcel(string to, string from, string itemName, int quantity = 1)
     {
         User userObj;

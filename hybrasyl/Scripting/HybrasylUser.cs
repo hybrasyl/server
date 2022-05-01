@@ -42,7 +42,14 @@ public class HybrasylUser
     /// <summary>
     /// The item in the first inventory slot of the player.
     /// </summary>
-    public HybrasylWorldObject FirstInventorySlot => new(User.Inventory[1]);
+    public HybrasylWorldObject FirstInventorySlot
+    {
+        get
+        {
+            var f = User.Inventory[1];
+            return f is null ? null : new HybrasylWorldObject(f);
+        }
+    }
 
     /// <summary>
     /// The name of the player.
