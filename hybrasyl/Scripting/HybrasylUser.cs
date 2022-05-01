@@ -42,7 +42,7 @@ public class HybrasylUser
     /// <summary>
     /// The item in the first inventory slot of the player.
     /// </summary>
-    public HybrasylWorldObject FirstInventorySlot => new(User.Inventory[0]);
+    public HybrasylWorldObject FirstInventorySlot => new(User.Inventory[1]);
 
     /// <summary>
     /// The name of the player.
