@@ -1287,6 +1287,24 @@ public class User : Creature
             return;
         }
 
+        if (bookSlot.Castable.Intents[0].UseType == SpellUseType.Target)
+        {
+            if (targetCreature == null || targetCreature.Map != Map)
+                return;
+
+            if (Distance(targetCreature) > Constants.HALF_VIEWPORT_SIZE)
+            {
+                SendSystemMessage("Your target is too far away.");
+                return;
+            }
+
+            if (!targetCreature.Condition.Alive)
+            {
+                SendSystemMessage("Your target is dead.");
+                return;
+            }
+        }
+
         var intersect = UseCastRestrictions.Intersect(bookSlot.Castable.Categories.Select(x => x.Value), StringComparer.InvariantCultureIgnoreCase);
 
         if (intersect.Any() || !Condition.CastingAllowed)
