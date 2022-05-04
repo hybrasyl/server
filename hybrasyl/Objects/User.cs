@@ -1302,12 +1302,15 @@ public class User : Creature
         bookSlot.UseCount += 1;
         if (bookSlot.UseCount <= bookSlot.Castable.Mastery.Uses)
             SendSpellUpdate(bookSlot, slot);
-        Client.Enqueue(new ServerPacketStructures.Cooldown()
+        if (bookSlot.Castable.Cooldown > 0)
         {
-            Length = (uint) bookSlot.Castable.Cooldown,
-            Pane = 0,
-            Slot = slot
-        }.Packet());
+            Client.Enqueue(new ServerPacketStructures.Cooldown()
+            {
+                Length = (uint)bookSlot.Castable.Cooldown,
+                Pane = 0,
+                Slot = slot
+            }.Packet());
+        }
         bookSlot.LastCast = DateTime.Now;
     }
 
