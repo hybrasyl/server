@@ -154,16 +154,20 @@ public class VisibleObject : WorldObject
 
     public Rectangle GetViewport()
     {
-        return new Rectangle((X - Constants.VIEWPORT_SIZE / 2),
-            (Y - Constants.VIEWPORT_SIZE / 2), Constants.VIEWPORT_SIZE,
-            Constants.VIEWPORT_SIZE);
+        return new Rectangle(
+            (X - Constants.VIEWPORT_SIZE / 2),
+            (Y - Constants.VIEWPORT_SIZE / 2),
+            Constants.VIEWPORT_SIZE + 1,
+            Constants.VIEWPORT_SIZE + 1);
     }
 
     public Rectangle GetShoutViewport()
     {
-        return new Rectangle((X - Constants.VIEWPORT_SIZE),
-            (Y - Constants.VIEWPORT_SIZE), Constants.VIEWPORT_SIZE * 2,
-            Constants.VIEWPORT_SIZE * 2);
+        return new Rectangle(
+            (X - Constants.VIEWPORT_SIZE),
+            (Y - Constants.VIEWPORT_SIZE),
+            Constants.VIEWPORT_SIZE * 2 + 1,
+            Constants.VIEWPORT_SIZE * 2 + 1);
     }
 
     public virtual void Show()
