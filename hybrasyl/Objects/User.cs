@@ -400,7 +400,6 @@ public class User : Creature
         GameLog.Debug("Removing ItemObject with ID {Id}", obj.Id);
         var removePacket = new ServerPacket(0x0E);
         removePacket.WriteUInt32(obj.Id);
-        removePacket.TransmitDelay = 250;
         Enqueue(removePacket);
     }
 
@@ -1288,6 +1287,24 @@ public class User : Creature
             return;
         }
 
+        if (bookSlot.Castable.Intents[0].UseType == SpellUseType.Target)
+        {
+            if (targetCreature == null || targetCreature.Map != Map)
+                return;
+
+            if (Distance(targetCreature) > Constants.HALF_VIEWPORT_SIZE)
+            {
+                SendSystemMessage("Your target is too far away.");
+                return;
+            }
+
+            if (!targetCreature.Condition.Alive)
+            {
+                SendSystemMessage("Your target is dead.");
+                return;
+            }
+        }
+
         var intersect = UseCastRestrictions.Intersect(bookSlot.Castable.Categories.Select(x => x.Value), StringComparer.InvariantCultureIgnoreCase);
 
         if (intersect.Any() || !Condition.CastingAllowed)
@@ -1303,12 +1320,15 @@ public class User : Creature
         bookSlot.UseCount += 1;
         if (bookSlot.UseCount <= bookSlot.Castable.Mastery.Uses)
             SendSpellUpdate(bookSlot, slot);
-        Client.Enqueue(new ServerPacketStructures.Cooldown()
+        if (bookSlot.Castable.Cooldown > 0)
         {
-            Length = (uint) bookSlot.Castable.Cooldown,
-            Pane = 0,
-            Slot = slot
-        }.Packet());
+            Client.Enqueue(new ServerPacketStructures.Cooldown()
+            {
+                Length = (uint)bookSlot.Castable.Cooldown,
+                Pane = 0,
+                Slot = slot
+            }.Packet());
+        }
         bookSlot.LastCast = DateTime.Now;
     }
 
