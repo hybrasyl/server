@@ -37,6 +37,7 @@ using System.Net.Http;
 using Newtonsoft.Json.Linq;
 using Sentry;
 using App.Metrics;
+using Hybrasyl.Xml;
 
 namespace Hybrasyl;
 
@@ -172,6 +173,7 @@ public static class Game
                 Log.Information("Configuration file {file} loaded", hybConfig);
                 Config = gameConfig;
                 Config.InitializeClientSettings();
+                Config.Constants ??= new ServerConstants();
                 dataDirectory = string.IsNullOrEmpty(Config.WorldDataDir)
                     ? StartupDirectory
                     : Config.WorldDataDir;

@@ -949,10 +949,17 @@ public class HybrasylUser
     /// </summary>
     /// <param name="exp">Integer amount of experience to be awarded.</param>
     /// <returns>true</returns>
-    public bool GiveExperience(int exp)
+    public void GiveExperience(int exp) => User.GiveExperience((uint)exp);
+
+    public void GiveScaledExperience(float scaleFactor, int levelMaximum, int expMinimum, int expMaximum)
     {
-        User.GiveExperience((uint)exp);
-        return true;
+        if (User.Stats.Level > levelMaximum)
+        {
+            User.GiveExperience((uint) expMaximum);
+            return;
+        }
+
+        User.GiveExperience((uint) (scaleFactor * User.ExpToLevel > expMinimum ? scaleFactor * User.ExpToLevel : expMinimum));
     }
 
     /// <summary>

@@ -222,7 +222,7 @@ class ExpCommand : ChatCommand
 class ExpResetCommand : ChatCommand
 {
     public new static string Command = "expreset";
-    public new static string ArgumentText = "<none>";
+    public new static string ArgumentText = "";
     public new static string HelpText = "Reset level, experience, and level points (level 1, 0 XP, 0 points).";
     public new static bool Privileged = true;
 

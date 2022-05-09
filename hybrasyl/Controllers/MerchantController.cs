@@ -123,7 +123,8 @@ namespace Hybrasyl.Controllers
                     var removed = 0;
                     foreach (var slot in user.Inventory.GetSlotsByName(request.Match["target"].Value))
                     {
-                        coins += (uint)(user.Inventory[slot].Value * user.Inventory[slot].Count);
+                        coins += (uint) Math.Round(user.Inventory[slot].Value * user.Inventory[slot].Count *
+                                                    Game.Config.Constants.MerchantBuybackPercentage);
                         removed += user.Inventory[slot].Count;
                         user.RemoveItem(slot);
                     }

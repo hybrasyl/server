@@ -84,15 +84,14 @@ public class User : Creature
     {
         get
         {
-            if (Stats.Level < LevelCircles.CIRCLE_1)
-                return 0;
-            else if (Stats.Level < LevelCircles.CIRCLE_2)
-                return 1;
-            else if (Stats.Level < LevelCircles.CIRCLE_3)
-                return 2;
-            else if (Stats.Level < LevelCircles.CIRCLE_4)
-                return 3;
-            return 4;
+            return Stats.Level switch
+            {
+                < LevelCircles.CIRCLE_1 => 0,
+                < LevelCircles.CIRCLE_2 => 1,
+                < LevelCircles.CIRCLE_3 => 2,
+                < LevelCircles.CIRCLE_4 => 3,
+                _ => 4
+            };
         }
     }
 
@@ -404,7 +403,7 @@ public class User : Creature
         Enqueue(removePacket);
     }
 
-    public void AoiDeparture(VisibleObject obj, int transmitDelay)
+    public void AoiDeparture(VisibleObject obj, int transmitDelay=0)
     {
         base.AoiDeparture(obj);
         GameLog.Debug("Removing ItemObject with ID {Id}", obj.Id);
@@ -2898,12 +2897,12 @@ public class User : Creature
         Enqueue(doorPacket);
     }
 
-public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
-        {
-            ManufactureState = new ManufactureState(this, recipes);
-            ManufactureState.ShowWindow();
-        }
-	
+    public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
+    {
+        ManufactureState = new ManufactureState(this, recipes);
+        ManufactureState.ShowWindow();
+    }
+
     public void ShowLearnSkillMenu(Merchant merchant)
     {
         var merchantSkills = new MerchantSkills();
@@ -3737,6 +3736,7 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
         };
         Enqueue(packet.Packet());
     }
+
     public void ShowSellQuantity(Merchant merchant, byte slot)
     {
         var item = Inventory[slot];
@@ -3775,7 +3775,7 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
         PendingSellableSlot = slot;
         PendingSellableQuantity = quantity;
         var item = Inventory[slot];
-        var offer = (uint)(Math.Round(item.Value * 0.10, 0) * quantity);
+        var offer = (uint)(Math.Round(item.Value * Game.Config.Constants.MerchantBuybackPercentage, 0) * quantity);
         PendingMerchantOffer = offer;
         var options = new MerchantOptions
         {
