@@ -1556,10 +1556,10 @@ public partial class World : Server
         GameLog.DebugFormat("User {0}: regen HP {1}, MP {2}", user.Name,
             hpRegen, mpRegen);
 
-        if (user.Stats.Regen > 0)
+        if (user.Stats.Regen != 0)
         {
-            hpRegen = (uint) (hpRegen + hpRegen * user.Stats.Regen);
-            mpRegen = (uint) (hpRegen + hpRegen * user.Stats.Regen);
+            hpRegen = (uint) (hpRegen + hpRegen * (user.Stats.Regen / 100));
+            mpRegen = (uint) (hpRegen + hpRegen * (user.Stats.Regen / 100));
         }
         user.Stats.Hp = Math.Min(user.Stats.Hp + hpRegen, user.Stats.MaximumHp);
         user.Stats.Mp = Math.Min(user.Stats.Mp + mpRegen, user.Stats.MaximumMp);
