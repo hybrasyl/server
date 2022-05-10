@@ -111,7 +111,6 @@ public partial class World : Server
     public MultiIndexDictionary<uint, string, DialogSequence> GlobalSequences { get; set; }
     private Dictionary<MerchantMenuItem, MerchantMenuHandler> merchantMenuHandlers;
 
-    public Dictionary<Tuple<Xml.Gender, string>, Xml.Item> ItemCatalog { get; set; }
     // public Dictionary<string, Map> MapCatalog { get; set; }
 
     public ScriptProcessor ScriptProcessor { get; set; }
@@ -186,7 +185,7 @@ public partial class World : Server
         RegisterPacketThrottle(new GenericPacketThrottle(0x13, 800, 0, 0));        // Assail
         RegisterPacketThrottle(new GenericPacketThrottle(0x3E, 500, 0, 0));         //Skill
         RegisterPacketThrottle(new GenericPacketThrottle(0x0F, 500, 0, 0));         //Spell
-        RegisterPacketThrottle(new GenericPacketThrottle(0x1C, 200, 0, 0));         //Item
+        RegisterPacketThrottle(new GenericPacketThrottle(0x1C, 50, 0, 0));         //Item
     }
 
 
@@ -196,7 +195,6 @@ public partial class World : Server
         Portraits = new Dictionary<string, string>();
 
         GlobalSequences = new MultiIndexDictionary<uint, string, DialogSequence>();
-        ItemCatalog = new Dictionary<Tuple<Xml.Gender, string>, Xml.Item>();
 
         ScriptProcessor = new ScriptProcessor(this);
         MessageQueue = new BlockingCollection<HybrasylMessage>(new ConcurrentQueue<HybrasylMessage>());
@@ -354,6 +352,18 @@ public partial class World : Server
     }
 
     public string GetLocalString(string key) => Strings.GetString(key);
+
+    public string GetLocalString(string key, params (string Token, string Value)[] replacements)
+    {
+        var str = GetLocalString(key);
+        foreach (var repl in replacements)
+        {
+            str = str.Replace(repl.Token, repl.Value);
+        }
+
+        return str;
+    }
+
     public string GetLocalResponse(string key) => Strings.GetResponse(key);
 
     public string GetXmlFile(string type, string name)
@@ -852,12 +862,11 @@ public partial class World : Server
         // these might be better suited in LoadData as the database is being read, but only items are in database atm
         #region ItemInfo
         var itmIndex = 0;
-        var itmPerFile = (WorldData.Values<Xml.Item>().Count() / 8);
+        var itmPerFile = (WorldData.Values<Xml.Item>().Count() / 16);
 
-        for (var i = 0; i < 8; i++)
+        for (var i = 0; i < 16; i++)
         {
             var iteminfo = new Metafile($"ItemInfo{i}");
-            // TODO: split items into multiple ItemInfo files (DA does ~700 each)
             var items = WorldData.Values<Xml.Item>().OrderBy(x => x.Name).ToArray();
             for(var j = 0 + itmIndex; j< (itmPerFile + itmIndex); j++)
             {
@@ -869,6 +878,8 @@ public partial class World : Server
                 var weight = item.Properties.Physical.Weight;
                 var tab = item.Properties.Vendor?.ShopTab ?? "Junk";
                 var defaultDesc = item.Properties?.StatModifiers != null ? item.Properties.StatModifiers.BonusString : "";
+                if (!string.IsNullOrEmpty(defaultDesc))
+                    GameLog.Error($"{item.Name}: {defaultDesc}");
                 if (defaultDesc.Length > 0) defaultDesc.Remove(defaultDesc.Length - 2);
 
                 var desc = "";
@@ -1545,10 +1556,10 @@ public partial class World : Server
         GameLog.DebugFormat("User {0}: regen HP {1}, MP {2}", user.Name,
             hpRegen, mpRegen);
 
-        if (user.Stats.Regen > 0)
+        if (user.Stats.Regen != 0)
         {
-            hpRegen = (uint) (hpRegen + hpRegen * user.Stats.Regen);
-            mpRegen = (uint) (hpRegen + hpRegen * user.Stats.Regen);
+            hpRegen = (uint) (hpRegen + hpRegen * (user.Stats.Regen / 100));
+            mpRegen = (uint) (hpRegen + hpRegen * (user.Stats.Regen / 100));
         }
         user.Stats.Hp = Math.Min(user.Stats.Hp + hpRegen, user.Stats.MaximumHp);
         user.Stats.Mp = Math.Min(user.Stats.Mp + mpRegen, user.Stats.MaximumMp);
@@ -2116,6 +2127,8 @@ public partial class World : Server
 
         // Clear conditions and dialog states
         loginUser.Condition.Casting = false;
+        loginUser.Condition.InExchange = false;
+        loginUser.Condition.Flags &= ~PlayerFlags.InDialog;
 
         // Ensure settings exist
 
@@ -2297,6 +2310,7 @@ public partial class World : Server
                         newScript.Name = $"{user.Name}-repl.lua";
                         ScriptProcessor.RegisterScript(newScript);
                         newScript.Execute($"init('{user.Name}')", user);
+                        newScript.SetGlobals();
                         user.DisplayIncomingWhisper("$", "Eval environment ready");
                         return;
                     }
@@ -4078,6 +4092,7 @@ public partial class World : Server
         obj.ServerGuid = Guid.Empty;
         WorldData.RemoveWorldObject<WorldObject>(obj.Guid);
         obj.Id = 0;            
+        obj.Id = 0;            
     }
 
     public ItemObject CreateItem(string id, int quantity = 1)
@@ -4098,22 +4113,6 @@ public partial class World : Server
             quantity = item.MaximumStack;
         itemObj.Count = Math.Max(quantity, 1);
         return itemObj;
-    }
-
-    public bool TryGetItemTemplate(string name, Xml.Gender itemGender, out Xml.Item item)
-    {
-        var itemKey = new Tuple<Xml.Gender, string>(itemGender, name);
-        return ItemCatalog.TryGetValue(itemKey, out item);
-    }
-
-    public bool TryGetItemTemplate(string name, out Xml.Item item)
-    {
-        // This is kinda gross
-        var neutralKey = new Tuple<Xml.Gender, string>(Xml.Gender.Neutral, name);
-        var femaleKey = new Tuple<Xml.Gender, string>(Xml.Gender.Female, name);
-        var maleKey = new Tuple<Xml.Gender, string>(Xml.Gender.Male, name);
-
-        return ItemCatalog.TryGetValue(neutralKey, out item) || ItemCatalog.TryGetValue(femaleKey, out item) || ItemCatalog.TryGetValue(maleKey, out item);
     }
 
     private void QueueConsumer()

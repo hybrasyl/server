@@ -283,6 +283,13 @@ public class Script
         Compiled.Globals.Set(name, v);
     }
 
+    // TODO: remove godawful hack in scripting refactor
+    public void SetGlobalValue(string name, Creature c)
+    {
+        Compiled.Globals.Set(name, GetUserDataValue(c));
+    }
+        
+
     public void ProcessEnvironment(ScriptEnvironment env)
     {
         foreach (var (key, value) in env.Variables)

@@ -30,7 +30,7 @@ public partial class ClassCastCost
     #region Private fields
     private List<ItemSpecification> _items;
     private ClassCastCostStat _stat;
-    private uint _gold;
+    private string _gold;
     private static XmlSerializer _serializerXml;
     #endregion
     
@@ -59,7 +59,8 @@ public partial class ClassCastCost
         }
     }
     
-    public uint Gold
+    [StringLengthAttribute(255, MinimumLength=1)]
+    public string Gold
     {
         get
         {

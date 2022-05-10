@@ -726,7 +726,7 @@ public class ServerPacketStructures
         {
             ServerPacket packet = new ServerPacket(OpCode);
             packet.WriteUInt32(User.Id);
-            packet.WriteByte(0x01);
+            packet.WriteByte((byte) User.Direction);
             packet.WriteByte(213);
             packet.WriteByte((byte)User.Class);
             packet.WriteUInt16(0);

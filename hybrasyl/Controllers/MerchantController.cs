@@ -116,14 +116,15 @@ namespace Hybrasyl.Controllers
             // Is the thing a category or an actual item?
             if (items.Count != 0)
             {
-                // Support both "buy 3 of my <item> and buy all of my <item>
+                // Support both "buy 3 of my <item> and buy all of my <item>"
                 if (request.Match["amt"].Value.ToLower() == "all")
                 {
                     uint coins = 0;
-                    var removed = 0;
+                    var removed = 0; 
                     foreach (var slot in user.Inventory.GetSlotsByName(request.Match["target"].Value))
                     {
-                        coins += (uint)(user.Inventory[slot].Value * user.Inventory[slot].Count);
+                        coins += (uint) Math.Round(user.Inventory[slot].Value * user.Inventory[slot].Count *
+                                                    Game.Config.Constants.MerchantBuybackPercentage);
                         removed += user.Inventory[slot].Count;
                         user.RemoveItem(slot);
                     }

@@ -84,15 +84,14 @@ public class User : Creature
     {
         get
         {
-            if (Stats.Level < LevelCircles.CIRCLE_1)
-                return 0;
-            else if (Stats.Level < LevelCircles.CIRCLE_2)
-                return 1;
-            else if (Stats.Level < LevelCircles.CIRCLE_3)
-                return 2;
-            else if (Stats.Level < LevelCircles.CIRCLE_4)
-                return 3;
-            return 4;
+            return Stats.Level switch
+            {
+                < LevelCircles.CIRCLE_1 => 0,
+                < LevelCircles.CIRCLE_2 => 1,
+                < LevelCircles.CIRCLE_3 => 2,
+                < LevelCircles.CIRCLE_4 => 3,
+                _ => 4
+            };
         }
     }
 
@@ -404,7 +403,7 @@ public class User : Creature
         Enqueue(removePacket);
     }
 
-    public void AoiDeparture(VisibleObject obj, int transmitDelay)
+    public void AoiDeparture(VisibleObject obj, int transmitDelay=0)
     {
         base.AoiDeparture(obj);
         GameLog.Debug("Removing ItemObject with ID {Id}", obj.Id);
@@ -472,11 +471,11 @@ public class User : Creature
             MessagesReceived.Add(e);
         var x0D = new ServerPacket(0x0D);
         x0D.WriteBoolean(e.Shout);
-        x0D.WriteUInt32(Id);
+        x0D.WriteUInt32(e.Speaker.Id);
         if (e.Shout)
-            x0D.WriteString8(!string.IsNullOrEmpty(e.From) ? $"{e.From}! {e.Message}" : $"{Name}! {e.Message}");
+            x0D.WriteString8(!string.IsNullOrEmpty(e.From) ? $"{e.From}! {e.Message}" : $"{e.Speaker.Name}! {e.Message}");
         else
-            x0D.WriteString8(!string.IsNullOrEmpty(e.From) ? $"{e.From}: {e.Message}" : $"{Name}: {e.Message}");
+            x0D.WriteString8(!string.IsNullOrEmpty(e.From) ? $"{e.From}: {e.Message}" : $"{e.Speaker.Name}: {e.Message}");
         Enqueue(x0D);
     }
 
@@ -485,6 +484,8 @@ public class User : Creature
     /// </summary>
     public override void OnDeath()
     {
+        // we cannot die twice
+        if (!Condition.Alive) return;
         var handler = Game.Config.Handlers?.Death;
         if (!(handler?.Active ?? true))
         {
@@ -502,6 +503,7 @@ public class User : Creature
 
         // We are now quite dead, not mostly dead
         Condition.Comatose = false;
+        Condition.Alive = false;
 
         // First: break everything that is breakable in the inventory
         for (byte i = 1; i <= Inventory.Size; ++i)
@@ -597,7 +599,6 @@ public class User : Creature
 
         Stats.Hp = 0;
         Stats.Mp = 0;
-        Condition.Alive = false;
         UpdateAttributes(StatUpdateFlags.Full);
         Effect(76, 120);
 
@@ -2094,6 +2095,8 @@ public class User : Creature
     {
         foreach (var item in Equipment)
             ApplyBonuses(item);
+        foreach (var item in Inventory)
+            item.EvalFormula(this);
     }
 
     public bool RemoveGold(uint amount)
@@ -2183,7 +2186,8 @@ public class User : Creature
     public bool AddItem(ItemObject itemObject, bool updateWeight = true)
     {
         Game.World.Insert(itemObject);
-        if (!Inventory.IsFull) return AddItem(itemObject, Inventory.FindEmptySlot(), updateWeight);
+        if (!Inventory.IsFull) 
+            return AddItem(itemObject, Inventory.FindEmptySlot(), updateWeight);
         SendSystemMessage("You cannot carry any more items.");
         Map.Insert(itemObject, X, Y);
         return false;
@@ -2235,6 +2239,7 @@ public class User : Creature
         }
 
         SendItemUpdate(itemObject, slot);
+        itemObject.EvalFormula(this);
         if (updateWeight) UpdateAttributes(StatUpdateFlags.Primary);
         return true;
     }
@@ -2245,7 +2250,7 @@ public class User : Creature
 
         if(xmlItem.Stackable)
         {
-            if(Inventory.ContainsId(itemName, 1))
+            if(Inventory.ContainsName(itemName, 1))
             {
                 var slots = Inventory.GetSlotsByName(itemName);
 
@@ -2892,12 +2897,12 @@ public class User : Creature
         Enqueue(doorPacket);
     }
 
-public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
-        {
-            ManufactureState = new ManufactureState(this, recipes);
-            ManufactureState.ShowWindow();
-        }
-	
+    public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
+    {
+        ManufactureState = new ManufactureState(this, recipes);
+        ManufactureState.ShowWindow();
+    }
+
     public void ShowLearnSkillMenu(Merchant merchant)
     {
         var merchantSkills = new MerchantSkills();
@@ -3071,8 +3076,8 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
             Color2 = 0,
             PortraitType = 0,
             Name = merchant.Name,
-            Text = merchant.GetLocalString("learn_skill", ("$SKILLNAME", castable.Name),
-                ("$SKILLDESC", skillDesc.Value)),
+            Text = merchant.GetLocalString("learn_skill", ("$NAME", castable.Name),
+                ("$DESC", skillDesc.Value)),
             Options = options
         };
 
@@ -3092,14 +3097,14 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
         var prompt = string.Empty;
         if (classReq.Level.Min > Stats.Level)
         {
-            prompt = merchant.GetLocalString("learn_skill_player_level", ("$SKILLNAME", castable.Name),
+            prompt = merchant.GetLocalString("learn_skill_player_level", ("$NAME", castable.Name),
                 ("$LEVEL", classReq.Level.Min.ToString()));
         }
         if (classReq.Physical != null)
         {
             if (Stats.Str < classReq.Physical.Str || Stats.Int < classReq.Physical.Int || Stats.Wis < classReq.Physical.Wis || Stats.Con < classReq.Physical.Con || Stats.Dex < classReq.Physical.Dex)
             {
-                prompt = merchant.GetLocalString("learn_skill_prereq_stats", ("$SKILLNAME", castable.Name),
+                prompt = merchant.GetLocalString("learn_skill_prereq_stats", ("$NAME", castable.Name),
                     ("$STATS", $"\n[STR {classReq.Physical.Str} INT {classReq.Physical.Int} WIS {classReq.Physical.Wis} CON {classReq.Physical.Con} DEX {classReq.Physical.Dex}]")
                 );
             }
@@ -3113,7 +3118,7 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
                 {
                     if (!SkillBook.Contains(castablePrereq.Id) && !SpellBook.Contains(castablePrereq.Id))
                     {
-                        prompt = merchant.GetLocalString("learn_skill_prereq_level", ("$SKILLNAME", castable.Name),
+                        prompt = merchant.GetLocalString("learn_skill_prereq_level", ("$NAME", castable.Name),
                             ("$PREREQ", preReq.Value), ("$LEVEL", preReq.Level.ToString()));
                         break;
                     }
@@ -3125,7 +3130,7 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
 
                     if (Math.Floor((slot.UseCount / (double) slot.Castable.Mastery.Uses) * 100) < preReq.Level)
                     {
-                        prompt = merchant.GetLocalString("learn_skill_prereq_level", ("$SKILLNAME", castable.Name),
+                        prompt = merchant.GetLocalString("learn_skill_prereq_level", ("$NAME", castable.Name),
                             ("$PREREQ", preReq.Value), ("$LEVEL", preReq.Level.ToString()));
                         break;
                     }
@@ -3153,7 +3158,7 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
                 reqStr = reqStr.Remove(reqStr.Length - 1);
             }
 
-            prompt = merchant.GetLocalString("learn_skill_reqs", ("$SKILLNAME", castable.Name), ("$REQS", reqStr));
+            prompt = merchant.GetLocalString("learn_skill_reqs", ("$NAME", castable.Name), ("$REQS", reqStr));
 
             options.Options.Add(new MerchantDialogOption()
             {
@@ -3203,7 +3208,7 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
         }
         if (prompt == string.Empty)
         {
-            if (classReq.Items.Any(itemReq => !Inventory.ContainsId(itemReq.Value, itemReq.Quantity)))
+            if (classReq.Items.Any(itemReq => !Inventory.ContainsName(itemReq.Value, itemReq.Quantity)))
             {
                 prompt = merchant.GetLocalString("learn_skill_prereq_item");
             }
@@ -3340,7 +3345,7 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
             Color2 = 0,
             PortraitType = 0,
             Name = merchant.Name,
-            Text = merchant.GetLocalString("learn_spell_choice", ("$SPELLNAME", castable.Name),("$SPELLDESC", spellDesc.Value)),
+            Text = merchant.GetLocalString("learn_spell_choice", ("$NAME", castable.Name),("$DESC", spellDesc.Value)),
             Options = options
         };
 
@@ -3360,13 +3365,13 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
             
         if (classReq.Level.Min > Stats.Level)
         {
-            prompt = merchant.GetLocalString("learn_spell_player_level", ("$SPELLNAME", castable.Name), ("$LEVEL", classReq.Level.Min.ToString()));
+            prompt = merchant.GetLocalString("learn_spell_player_level", ("$NAME", castable.Name), ("$LEVEL", classReq.Level.Min.ToString()));
         }
         if (classReq.Physical != null)
         {
             if (Stats.Str < classReq.Physical.Str || Stats.Int < classReq.Physical.Int || Stats.Wis < classReq.Physical.Wis || Stats.Con < classReq.Physical.Con || Stats.Dex < classReq.Physical.Dex)
             {
-                prompt = merchant.GetLocalString("learn_spell_prereq_stats", ("$SKILLNAME", castable.Name),
+                prompt = merchant.GetLocalString("learn_spell_prereq_stats", ("$NAME", castable.Name),
                     ("$STATS", $"\n[STR {classReq.Physical.Str} INT {classReq.Physical.Int} WIS {classReq.Physical.Wis} CON {classReq.Physical.Con} DEX {classReq.Physical.Dex}]")
                 );
 
@@ -3381,7 +3386,7 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
                 {
                     if (!SkillBook.Contains(castablePrereq.Id) && !SpellBook.Contains(castablePrereq.Id))
                     {
-                        prompt = merchant.GetLocalString("learn_spell_prereq_level", ("$SKILLNAME", castable.Name),
+                        prompt = merchant.GetLocalString("learn_spell_prereq_level", ("$NAME", castable.Name),
                             ("$PREREQ", preReq.Value), ("$LEVEL", preReq.Level.ToString()));
                         break;
                     }
@@ -3392,7 +3397,7 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
                         slot = SpellBook.Single(x => x.Castable.Name == preReq.Value);
                     if (Math.Floor((slot.UseCount / (double) slot.Castable.Mastery.Uses) * 100) < preReq.Level)
                     {
-                        prompt = merchant.GetLocalString("learn_spell_prereq_level", ("$SKILLNAME", castable.Name),
+                        prompt = merchant.GetLocalString("learn_spell_prereq_level", ("$NAME", castable.Name),
                             ("$PREREQ", preReq.Value), ("$LEVEL", preReq.Level.ToString()));
                         break;
 
@@ -3423,7 +3428,7 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
             {
                 reqStr = reqStr.Remove(reqStr.Length - 1);
             }
-            prompt = merchant.GetLocalString("learn_spell_reqs", ("$SPELLNAME", castable.Name), ("$REQS", reqStr));
+            prompt = merchant.GetLocalString("learn_spell_reqs", ("$NAME", castable.Name), ("$REQS", reqStr));
 
             options.Options.Add(new MerchantDialogOption()
             {
@@ -3473,7 +3478,7 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
         }
         if (prompt == string.Empty)
         {
-            if (classReq.Items.Any(itemReq => !Inventory.ContainsId(itemReq.Value, itemReq.Quantity)))
+            if (classReq.Items.Any(itemReq => !Inventory.ContainsName(itemReq.Value, itemReq.Quantity)))
             {
                 prompt = merchant.GetLocalString("learn_spell_prereq_item");
             }
@@ -3731,6 +3736,7 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
         };
         Enqueue(packet.Packet());
     }
+
     public void ShowSellQuantity(Merchant merchant, byte slot)
     {
         var item = Inventory[slot];
@@ -3769,7 +3775,7 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
         PendingSellableSlot = slot;
         PendingSellableQuantity = quantity;
         var item = Inventory[slot];
-        var offer = (uint)(Math.Round(item.Value * 0.10, 0) * quantity);
+        var offer = (uint)(Math.Round(item.Value * Game.Config.Constants.MerchantBuybackPercentage, 0) * quantity);
         PendingMerchantOffer = offer;
         var options = new MerchantOptions
         {
@@ -4766,7 +4772,7 @@ public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
             }
             else
             {
-                if (Inventory.ContainsId(item, 1))
+                if (Inventory.ContainsName(item, 1))
                 {
                     var maxQuantity = 0;
                     var existingStacks = Inventory.GetSlotsByName(item);

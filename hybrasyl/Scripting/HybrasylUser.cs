@@ -38,6 +38,19 @@ public class HybrasylUser
     internal User User { get; set; }
     internal HybrasylWorld World { get; set; }
     public HybrasylMap Map { get; set; }
+
+    /// <summary>
+    /// The item in the first inventory slot of the player.
+    /// </summary>
+    public HybrasylWorldObject FirstInventorySlot
+    {
+        get
+        {
+            var f = User.Inventory[1];
+            return f is null ? null : new HybrasylWorldObject(f);
+        }
+    }
+
     /// <summary>
     /// The name of the player.
     /// </summary>
@@ -271,10 +284,13 @@ public class HybrasylUser
         if (User.Nation.SpawnPoints.Count != 0)
         {
             var spawnpoint = User.Nation.RandomSpawnPoint;
-            if (spawnpoint != null) 
+            if (spawnpoint != null)
+            {
                 User.Teleport(spawnpoint.MapName, spawnpoint.X, spawnpoint.Y);
-            return;
+                return;
+            }
         }
+        // Fallback to something if we have no spawnpoints
         User.Teleport((ushort)500, (byte)50, (byte)(50));
     }
 
@@ -933,10 +949,17 @@ public class HybrasylUser
     /// </summary>
     /// <param name="exp">Integer amount of experience to be awarded.</param>
     /// <returns>true</returns>
-    public bool GiveExperience(int exp)
+    public void GiveExperience(int exp) => User.GiveExperience((uint)exp);
+
+    public void GiveScaledExperience(float scaleFactor, int levelMaximum, int expMinimum, int expMaximum)
     {
-        User.GiveExperience((uint)exp);
-        return true;
+        if (User.Stats.Level > levelMaximum)
+        {
+            User.GiveExperience((uint) expMaximum);
+            return;
+        }
+
+        User.GiveExperience((uint) (scaleFactor * User.ExpToLevel > expMinimum ? scaleFactor * User.ExpToLevel : expMinimum));
     }
 
     /// <summary>
