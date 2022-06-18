@@ -21,6 +21,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -38,6 +39,7 @@ using Newtonsoft.Json.Linq;
 using Sentry;
 using App.Metrics;
 using Hybrasyl.Xml;
+using Sentry.Protocol;
 
 namespace Hybrasyl;
 
@@ -235,6 +237,9 @@ public static class Game
             WriteTo.Logger(lc => lc.Filter.ByIncludingOnly(GameLog.IsGeneralEvent).WriteTo.Console())
             .CreateLogger();
 
+        // We don't want any of NCalc's garbage 
+        System.Diagnostics.Trace.Listeners.RemoveAt(0);
+
         Log.Logger = log;
         Log.Information("Hybrasyl log begin");
         Log.Information("Welcome to Project Hybrasyl: this is Hybrasyl server {0}\n\n", Assemblyinfo.Version);
@@ -367,6 +372,8 @@ public static class Game
                     else
                         stipulationWriter.Write(Config.Motd);
                 }
+
+                stipulationWriter.Write("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
             }
 
             NotificationCrc = ~Crc32.Calculate(stipulationStream.ToArray());

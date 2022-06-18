@@ -274,8 +274,7 @@ public class Monster : Creature, ICloneable
             // TODO: fix awful hack here in scripting refactor
             if (Script != null)
             {
-                Script.SetGlobalValue("lasthitter", LastHitter);
-                Script.ExecuteFunction("OnDeath");
+                Script.ExecuteFunction("OnDeath", ScriptEnvironment.Create(("lasthitter", LastHitter)));
             }
             Map?.Remove(this);
             World?.Remove(this);
@@ -318,13 +317,13 @@ public class Monster : Creature, ICloneable
         // FIXME: in the glorious future, run asynchronously with locking
         InitScript();
         if (Script == null) return;
-        Script.SetGlobalValue("text", e.Message);
-        Script.SetGlobalValue("shout", e.Shout);
+        var env = ScriptEnvironment.Create(("text", e.Message), ("shout", e.Shout));
 
         if (e.Speaker is User user)
-            Script.ExecuteFunction("OnHear", new HybrasylUser(user));
+            env.Add("invoker", new HybrasylUser(user));
         else
-            Script.ExecuteFunction("OnHear", new HybrasylWorldObject(e.Speaker));
+            env.Add("invoker", new HybrasylWorldObject(e.Speaker));
+        Script.ExecuteFunction("OnHear", env);
     }
 
     public void MakeHostile()
@@ -358,8 +357,11 @@ public class Monster : Creature, ICloneable
 
             if (Script == null) return;
 
-            Script.SetGlobalValue("damage", damageEvent.Damage);
-            Script.ExecuteFunction("OnDamage", this, damageEvent.Attacker, null);
+            var env = ScriptEnvironment.CreateWithInvoker(this);
+            env.Add("damage", damageEvent.Damage);
+            env.Add("source", damageEvent.Attacker);
+
+            Script.ExecuteFunction("OnDamage", env);
         }
     }
 
@@ -368,9 +370,10 @@ public class Monster : Creature, ICloneable
         // FIXME: in the glorious future, run asynchronously with locking
         InitScript();
         if (Script == null) return;
-
-        Script.SetGlobalValue("heal", heal);
-        Script.ExecuteFunction("OnHeal", this, healer);
+        var env = ScriptEnvironment.CreateWithInvoker(this);
+        env.Add("heal", heal);
+        env.Add("source", healer);
+        Script.ExecuteFunction("OnHeal", env);
     }
 
     public Loot Loot;

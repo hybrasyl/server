@@ -29,13 +29,9 @@ using MoonSharp.Interpreter;
 namespace Hybrasyl.Scripting;
 
 [MoonSharpUserData]
-public class HybrasylUser
+public class HybrasylUser : HybrasylWorldObject
 {
-    public void DebugFunction(string x)
-    {
-        GameLog.ScriptingWarning(x);
-    }
-    internal User User { get; set; }
+    internal User User => WorldObject as User;
     internal HybrasylWorld World { get; set; }
     public HybrasylMap Map { get; set; }
 
@@ -51,21 +47,6 @@ public class HybrasylUser
         }
     }
 
-    /// <summary>
-    /// The name of the player.
-    /// </summary>
-    public string Name => User.Name;
-    /// <summary>
-    /// The current X coordinate of the player.
-    /// </summary>
-    public byte X => User.X;
-    /// <summary>
-    /// The current Y coordinate of the player.
-    /// </summary>
-    public byte Y => User.Y;
-    /// <summary>
-    /// The user's class (e.g. Rogue, Warrior, etc)
-    /// </summary>
     public Xml.Class Class => User.Class;
 
     public string MapName => User.Map?.Name ?? "Unknown Kadath";
@@ -75,20 +56,7 @@ public class HybrasylUser
     /// </summary>
     public Xml.Class PreviousClass => User.PreviousClass;
 
-    // TODO: determine a better way to do this in lua via moonsharp
-    /// <summary>
-    /// The type of object this is. This is a shortcut to reference in scripting as evaluating type is annoying; so you can check the Type property instead.
-    /// e.g. invoker.Type == "player"
-    /// </summary>
-    public static string Type => "player";
-
-    // TODO: object inheritance for scripting objects
     public static bool IsPlayer => true;
-    /// <summary>
-    /// The direction this object is facing.
-    /// </summary>
-    public Xml.Direction Direction => User.Direction;
-
 
     /// <summary>
     /// The gender of the player. For Darkages purpose, this will evaluate to Male or Female.
@@ -186,9 +154,8 @@ public class HybrasylUser
 
     public bool SetNation(string nationName) => User.ChangeCitizenship(nationName);
 
-    public HybrasylUser(User user)
+    public HybrasylUser(User user) : base(user)
     {
-        User = user;
         World = new HybrasylWorld(user.World);
         Map = new HybrasylMap(user.Map);
     }
@@ -247,15 +214,6 @@ public class HybrasylUser
     {
         var facing = (Monster)(User.GetFacingObjects().Where(X => X is Monster).FirstOrDefault());
         return facing != null ? new HybrasylMonster(facing) : null;
-    }
-
-    /// <summary>
-    /// Get the direction the user is facing.
-    /// </summary>
-    /// <returns>A string representation of the user's direction.</returns>
-    public string GetDirection()
-    {
-        return Enum.GetName(typeof(Xml.Direction), User.Direction);
     }
 
     /// <summary>
@@ -552,7 +510,7 @@ public class HybrasylUser
             invokerObj = merchant as VisibleObject;
 
         if (invokerObj != null)
-            invokerObj.SequenceCatalog.TryGetValue(sequence, out sequenceObj);
+            invokerObj.SequenceIndex.TryGetValue(sequence, out sequenceObj);
 
         if (sequenceObj == null)
             // Try global catalog
@@ -1081,29 +1039,12 @@ public class HybrasylUser
         User.SendWhisper(name, message);
 
     /// <summary>
-    /// Say something as the user.
-    /// </summary>
-    /// <param name="message">The message to speak aloud.</param>
-    public void Say(string message) => User.Say(message);
-
-    /// <summary>
     /// Shout something as the user.
     /// </summary>
     /// <param name="message">The message to shout.</param>
     public void Shout(string message) => User.Shout(message);
 
     public void SendMessage(string message, int type) => User.SendMessage(message, (byte)type);
-
-    /// <summary>
-    /// Sends an in-game mail to the current player. NOT TESTED.
-    /// </summary>
-    /// <param name="name">The name to be used for the mail sender (who it is from)</param>
-    /// <param name="subject">The message.</param>
-    /// <param name="message">The message.</param>
-    public void Mail(string name, string subject, string message)
-    {
-        GameLog.ScriptingFatal("Mail: not currently implemented");
-    }
 
     /// Close any active dialogs for the current player.
     /// </summary>
@@ -1114,15 +1055,12 @@ public class HybrasylUser
         //GameLog.Info("Dialog: closed by script");
     }
 
-
-
     /// <summary>
     /// Start a dialog sequence for the current player. This will display the first dialog in the sequence to the player.
     /// </summary>
     /// <param name="sequenceName">The name of the sequence to start</param>
     /// <param name="associateOverride">An object to associate with the dialog as the invokee.</param>
-    // The use of dynamic here is a temporary offense before god
-    public void StartSequence(string sequenceName, dynamic associateOverride = null)
+    public void StartSequence(string sequenceName, IScriptable associateOverride = null)
     {
         if (sequenceName == null)
         {
@@ -1145,11 +1083,17 @@ public class HybrasylUser
                 associate = User.LastAssociate;
         }
         else
-            associate = associateOverride.Obj as VisibleObject;
+            associate = associateOverride.WorldObject as VisibleObject;
 
         // If we didn't get a sequence before, try with our associate
         if (sequence == null && associate != null)
-            associate.SequenceCatalog.TryGetValue(sequenceName, out sequence);
+        {
+            // Item & spell (castable) dialogs
+            if (associate is IDynamicInteractable id)
+                id.SequenceIndex.TryGetValue(sequenceName, out sequence);
+            else
+                associate.SequenceIndex.TryGetValue(sequenceName, out sequence);
+        }
 
         // We should hopefully have a sequence now...
         if (sequence == null)
@@ -1185,14 +1129,6 @@ public class HybrasylUser
         User.DialogState.ActiveDialog.ShowTo(User, associate);
 
     }
-
-    /// <summary>
-    /// Calculate the Manhattan distance (distance between two points measured along axes at right angles) 
-    /// between the current player and a target object.
-    /// </summary>
-    /// <param name="target">The target object</param>
-    /// <returns>The numeric distance</returns>
-    public int Distance(HybrasylWorldObject target) => User.Distance(target.Obj);
 
     /// <summary>
     /// Set a user's hairstyle from a script

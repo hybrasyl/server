@@ -21,9 +21,12 @@
 
 using System;
 using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
+using System.Runtime.Remoting;
 using System.Text.RegularExpressions;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
@@ -54,14 +57,6 @@ public class ScriptLogger
     public void Error(string message) => Log.Error("{ScriptName} : {Message}", ScriptName, message);
 }
 
-public class LuaException
-{
-    public string Filename { get; set; }
-    public int LineNumber { get; set; }
-    public string Error { get; set; }
-        
-}
-
 public class Script
 {
     static readonly Regex LuaRegex = new(@"(.*):\(([0-9]*),([0-9]*)-([0-9]*)\): (.*)$");
@@ -77,6 +72,8 @@ public class Script
     public HybrasylWorldObject Associate { get; private set; }
 
     public bool Disabled { get; set; }
+
+    public ScriptExecutionResult LoadExecutionResult { get; set; }
 
     public Script Clone()
     {
@@ -116,7 +113,7 @@ public class Script
         obj.Script = this;
     }
 
-    public bool Reload()
+    public ScriptExecutionResult Reload()
     {
         Compiled = new MoonSharp.Interpreter.Script(CoreModules.Preset_SoftSandbox);
         return Run();
@@ -134,19 +131,27 @@ public class Script
 
         return obj switch
         {
+            bool => DynValue.NewBoolean(obj),
+            sbyte or byte or short or ushort or int or uint or long or ulong or float or double or decimal => DynValue
+                .NewNumber(obj),
+            string => DynValue.NewString(obj),
             User user => UserData.Create(new HybrasylUser(user)),
             Monster monster => UserData.Create(new HybrasylMonster(monster)),
             World world => UserData.Create(new HybrasylWorld(world)),
             Map map => UserData.Create(new HybrasylMap(map)),
             Reactor reactor => UserData.Create(new HybrasylReactor(reactor)),
-            WorldObject worldObject => UserData.Create(new HybrasylWorldObject(worldObject)),
-            _ => UserData.Create(obj)
+            ItemObject item => UserData.Create(new HybrasylItemObject(item)),
+            WorldObject wobj => UserData.Create(new HybrasylWorldObject(wobj)),
+            HybrasylInteractable hi => UserData.Create(hi),
+            _ => DynValue.NewNil()
         };
     }
 
     private string ExtractLuaSource(int linenumber)
     {
         var lines = RawSource.Split('\n').ToList();
+        if (lines.Count < linenumber)
+            return RawSource;
         var lua = $"## {lines[linenumber - 2]}\n## --->{lines[linenumber - 1]}\n";
         if (linenumber < lines.Count)
             lua = $"{lua}## {lines[linenumber]}";
@@ -213,7 +218,6 @@ public class Script
 
     public void SetGlobals()
     {
-        // TODO: streamline / refactor
         Compiled.Globals["Gender"] = UserData.CreateStatic<Xml.Gender>();
         Compiled.Globals["LegendIcon"] = UserData.CreateStatic<LegendIcon>();
         Compiled.Globals["LegendColor"] = UserData.CreateStatic<LegendColor>();
@@ -237,65 +241,38 @@ public class Script
             SetGlobals();
             // Load file into RawSource so we have access to it later
             RawSource = File.ReadAllText(FullPath);
-            Compiled.DoFile(FullPath);
-            if (!onLoad) return result;
+            result.Return = Compiled.DoFile(FullPath);
+            result.Result = ScriptResult.Success;
+            LoadExecutionResult = result;
+            if (!onLoad)
+                return result;
             GameLog.ScriptingInfo($"Loading: {Path.GetFileName(FullPath)}");
             ExecuteFunction("OnLoad");
+            Disabled = false;
             return result;
         }
         catch (Exception ex)
         {
             Game.ReportException(ex);
             result.Error = HumanizeException(ex);
+            result.Result = ScriptResult.Failure;
+            LoadExecutionResult = result;
             GameLog.ScriptingError("Run: Error executing script {FileName} (associate {assoc}): {Message}",
                 FileName, Associate?.Name ?? "none", result.Error.HumanizedError);
             Disabled = true;
             return result;
         }
-
     }
-
-    /// <summary>
-    /// Set a string value to be used by a script.
-    /// </summary>
-    /// <param name="name">The name of the Lua variable.</param>
-    /// <param name="value">The string value of the variable.</param>
-    public void SetGlobalValue(string name, string value)
-    {
-        var v = DynValue.NewString(value);
-        Compiled.Globals.Set(name, v);
-    }
-
-    /// <summary>
-    /// Set a numeric value to be used by a script.
-    /// </summary>
-    /// <param name="name">The name of the Lua variable.</param>
-    /// <param name="value">The numeric value of the variable.</param>
-    public void SetGlobalValue(string name, uint value)
-    {
-        var v = DynValue.NewNumber(value);
-        Compiled.Globals.Set(name, v);
-    }
-
-    public void SetGlobalValue(string name, bool value)
-    {
-        var v = DynValue.NewBoolean(value);
-        Compiled.Globals.Set(name, v);
-    }
-
-    // TODO: remove godawful hack in scripting refactor
-    public void SetGlobalValue(string name, Creature c)
-    {
-        Compiled.Globals.Set(name, GetUserDataValue(c));
-    }
-        
 
     public void ProcessEnvironment(ScriptEnvironment env)
     {
+        if (env is null) return;
         foreach (var (key, value) in env.Variables)
+        {
             Compiled.Globals.Set(key, GetUserDataValue(value));
+        }
     }
-        
+
     /// <summary>
     /// Execute a Lua expression in the context of an associated world object.
     /// Primarily used for dialog callbacks.
@@ -304,200 +281,83 @@ public class Script
     /// <param name="invoker">The invoker (caller).</param>
     /// <param name="source">Optionally, the source of the script call, invocation or dialog</param>
     /// <returns></returns>
-    public ScriptExecutionResult ExecuteExpression(string expr, ScriptEnvironment env)
+    public ScriptExecutionResult ExecuteExpression(string expr, ScriptEnvironment environment = null)
     {
-        var result = new ScriptExecutionResult { Result = ScriptResult.Disabled, Return = DynValue.Nil };
+        var result = new ScriptExecutionResult
+        {
+            Result = ScriptResult.Disabled, Return = DynValue.Nil, ExecutedExpression = expr,
+            Location = environment?.DialogPath, ExecutionTime = DateTime.Now
+        };
+
 
         if (Disabled)
+        {
+            if (Associate != null)
+                Associate.Obj.LastExecutionResult = result;
             return result;
+        }
 
         try
         {
-            ProcessEnvironment(env);
+            ProcessEnvironment(environment);
             // We pass Compiled.Globals here to make sure that the updated table (with new variables) makes it over
             result.Return = Compiled.DoString(expr, Compiled.Globals);
             result.Result = ScriptResult.Success;
-            return result;
-
         }
-        catch (Exception ex) 
+        catch (Exception ex)
         {
             Game.ReportException(ex);
             result.Error = HumanizeException(ex);
             GameLog.ScriptingError(
-                $"ExecuteExpression: Error executing expression {expr} in {FileName}: Variables: {env}\n{result.Error}");
-            return result;
+                $"ExecuteExpression: Error executing expression {expr} in {FileName}: Variables: {environment}\n{result.Error}");
         }
+        if (Associate != null)
+            Associate.Obj.LastExecutionResult = result;
+
+        return result;
     }
 
-    public ScriptExecutionResult ExecuteFunction(ScriptEnvironment environment)
+    public ScriptExecutionResult ExecuteFunction(string functionName, ScriptEnvironment environment = null)
     {
-        var result = ScriptExecutionResult.Disabled;
+        var result = new ScriptExecutionResult
+        {
+            Result = ScriptResult.Disabled, Return = DynValue.Nil, ExecutedExpression = functionName,
+            Location = environment?.DialogPath, ExecutionTime = DateTime.Now
+        };
+
         if (Disabled)
+        {
+            if (Associate != null)
+                Associate.Obj.LastExecutionResult = result;
             return result;
+        }
 
         try
         {
-            foreach (var kvp in environment.Variables)
+            if (!HasFunction(functionName))
             {
-                Compiled.Globals.Set(kvp.Key, GetUserDataValue(kvp.Value));
+                result.Result = ScriptResult.FunctionMissing;
+            }
+            else
+            {
+                ProcessEnvironment(environment);
+                result.Return = Compiled.Call(Compiled.Globals[functionName]);
                 result.Result = ScriptResult.Success;
-                result.Return = Compiled.Call(Compiled.Globals[environment.Function]);
-                return result;
             }
         }
         catch (Exception ex)
         {
             Game.ReportException(ex);
-            var errorMsg = HumanizeException(ex);
-          //  GameLog.ScriptingError("Execute: Error executing expression {expr} in {FileName} (associate {associate}, invoker {invoker}): {Message}",
-            //    FileName, );
-            //Disabled = true;
-            CompilationError = ex.ToString();
-            return result;
-
-
+            result.Error = HumanizeException(ex);
+            result.Result = ScriptResult.Failure;
+            GameLog.ScriptingError(
+                $"ExecuteFunction: Error executing expression {functionName} in {FileName}: Variables: {environment}\n{result.Error}");
         }
-    }
+        if (Associate != null)
+            Associate.Obj.LastExecutionResult = result;
+        return result;
 
-    public DynValue ExecuteAndReturn(string expr, dynamic invoker)
-    {
-        if (Disabled)
-            return DynValue.Nil;
-
-        try
-        {
-            Compiled.Globals.Set("invoker", GetUserDataValue(invoker));
-            return Compiled.DoString(expr);
-        }
-        catch (Exception ex)
-        {
-        }
     }
 
 
-
-
-    public bool ExecuteFunction(string functionName, dynamic invoker, dynamic source, dynamic scriptItem=null, bool returnFromScript=false)
-    {
-        if (Disabled)
-            return false;
-        try
-        {
-            if (HasFunction(functionName))
-            {
-                Compiled.Globals["utility"] = typeof(HybrasylUtility);
-                var f = GetUserDataValue(invoker as Monster);
-                Compiled.Globals.Set("invoker", GetUserDataValue(invoker));
-                Compiled.Globals.Set("source", GetUserDataValue(source));
-                var q = GetUserDataValue(invoker);
-                var z = GetUserDataValue(source);
-                if (scriptItem != null)
-                    Compiled.Globals.Set("item", GetUserDataValue(scriptItem));
-
-                if (returnFromScript) return Compiled.Call(Compiled.Globals[functionName]).Boolean;
-                else Compiled.Call(Compiled.Globals[functionName]);
-            }
-            else
-            {
-                //GameLog.ScriptingWarning("ExecuteFunction: function {fn} in {FileName} did not exist",
-                //    functionName, FileName);
-                return false;
-            }
-        }
-        catch (Exception ex) 
-        {
-            Game.ReportException(ex);
-            var errorMsg = HumanizeException(ex);
-            GameLog.ScriptingError("ExecuteFunction: Error executing function {fn} in {FileName} (associate {associate}, invoker {invoker}, item {item}): {Message}",
-                functionName, FileName, Associate?.Name ?? "none", invoker?.Name ?? "none", scriptItem?.Name ?? "none", errorMsg);
-            //Disabled = true;
-            CompilationError = errorMsg;
-            return false;
-        }
-        return true;
-    }
-
-
-    public bool ExecuteFunction(string functionName, dynamic invoker, dynamic target=null)
-    {
-        if (Disabled)
-            return false;
-
-        try
-        {
-            if (HasFunction(functionName))
-            {
-                Compiled.Globals["utility"] = typeof(HybrasylUtility);
-                Compiled.Globals.Set("invoker", GetUserDataValue(invoker));
-                if (target != null)
-                    Compiled.Globals.Set("target", GetUserDataValue(target));
-                Compiled.Call(Compiled.Globals[functionName]);
-            }
-            else
-            {
-                //GameLog.ScriptingWarning("ExecuteFunction: function {fn} in {FileName} did not exist",
-                //    functionName, FileName);
-                return false;
-            }
-        }
-        catch (Exception ex)
-        {
-            Game.ReportException(ex);
-            var errorMsg = HumanizeException(ex);
-            GameLog.ScriptingError("ExecuteFunction: Error executing function {fn} in {FileName} (associate {associate}, invoker {invoker}): {Message}",
-                functionName, FileName, Associate?.Name ?? "none", invoker?.Name ?? "none", errorMsg);
-            CompilationError = errorMsg;
-            return false;
-        }
-
-        return true;
-
-    }
-
-    public bool ExecuteFunction(string functionName)
-    {
-        if (Disabled)
-            return false;
-
-        try
-        {
-            if (HasFunction(functionName))
-            {
-                Compiled.Globals["utility"] = typeof(HybrasylUtility);
-                // Provide extra information when running spawn/load to aid in debugging
-                if (functionName is "OnSpawn" or "OnLoad")
-                {
-                    string assoc = null;
-                    if (Associate != null)
-                    {
-                        assoc = $"{Associate.Type}";
-                        if (!string.IsNullOrEmpty(Associate.Name))
-                            assoc = $"{assoc} {Associate.Name}";
-                        assoc = $"{assoc}: {Associate.LocationDescription}";
-                    }
-                    GameLog.ScriptingInfo($"{FileName}: (associate is {assoc ?? "none"}), executing {functionName}");
-                }
-                Compiled.Call(Compiled.Globals[functionName]);
-            }
-            else
-            {
-                //GameLog.ScriptingWarning("ExecuteFunction: function {fn} in {FileName} did not exist",
-                //    functionName, FileName);
-                return false;
-            }
-        }
-        catch (Exception ex)
-        {
-            Game.ReportException(ex);
-            var errorMsg = HumanizeException(ex);
-            GameLog.ScriptingError("ExecuteFunction: Error executing function {fn} in {FileName} (associate {associate}): {Message}",
-                functionName, FileName, Associate?.Name ?? "none", errorMsg);
-            CompilationError = errorMsg;
-            return false;
-        }
-
-        return true;
-
-    }
 }

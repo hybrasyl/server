@@ -49,6 +49,7 @@ using System.Timers;
 using Hybrasyl.Xml;
 using Creature = Hybrasyl.Objects.Creature;
 using Reactor = Hybrasyl.Objects.Reactor;
+using Script = Hybrasyl.Scripting.Script;
 
 namespace Hybrasyl;
 
@@ -522,7 +523,19 @@ public partial class World : Server
                 }
                 newItem.Variants = variants;
                 WorldData.SetWithIndex(newItem.Id, newItem, newItem.Name);
-
+                // Evaluate dialogs, if any
+                if (newItem.Use?.Script is null ||
+                    !Game.World.ScriptProcessor.TryGetScript(newItem.Use.Script, out var script)) continue;
+                var env = new ScriptEnvironment();
+                var associate = new HybrasylInteractable();
+                env.Add("associate", associate);
+                var result = script.ExecuteFunction("OnLoad", env);
+                if (result.Result == ScriptResult.Success)
+                {
+                    Game.World.WorldData.Set(newItem.Id, associate);
+                }
+                else
+                    GameLog.Error($"OnLoad for {newItem.Name}: errors encountered, check scripting log");
             }
             catch (Exception e)
             {
@@ -2251,7 +2264,7 @@ public partial class World : Server
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x19_Whisper(Object obj, ClientPacket packet)
     {
-        var user = (User)obj;
+        var user = (User) obj;
         var size = packet.ReadByte();
         var target = Encoding.ASCII.GetString(packet.Read(size));
         var msgsize = packet.ReadByte();
@@ -2300,16 +2313,17 @@ public partial class World : Server
                 }
 
                 Scripting.Script script;
+                var env = ScriptEnvironment.CreateWithInvoker(user);
 
                 if (!ScriptProcessor.TryGetScript($"{user.Name}-repl.lua", out script) ||
                     message.ToLower().Contains("--clear--"))
                 {
                     // Make new magic script if needed
-                    if (ScriptProcessor.TryGetScript("repl.lua", out Scripting.Script newScript))
+                    if (ScriptProcessor.TryGetScript("repl.lua", out var newScript))
                     {
                         newScript.Name = $"{user.Name}-repl.lua";
                         ScriptProcessor.RegisterScript(newScript);
-                        newScript.Execute($"init('{user.Name}')", user);
+                        newScript.ExecuteExpression($"init('{user.Name}')", env);
                         newScript.SetGlobals();
                         user.DisplayIncomingWhisper("$", "Eval environment ready");
                         return;
@@ -2323,24 +2337,17 @@ public partial class World : Server
 
                 user.DisplayOutgoingWhisper("$", message);
                 // Tack on return here so we actually get the DynValue out
-                var ret = script.Execute($"return {message}", user);
-                if (!ret)
+                var ret = script.ExecuteExpression($"return {message}", env);
+                if (ret.Result != ScriptResult.Success)
                 {
-                    var strs = script.LastRuntimeError.Split(50);
-                    foreach (var str in strs)
-                        user.DisplayIncomingWhisper("$", $"Err: {str}");
+                    user.SendMessage(ret.Error.HumanizedError, MessageType.SlateScrollbar);
+                    return;
                 }
-                else
-                {
-                    if (script.LastReturnValue == DynValue.Nil || script.LastReturnValue == DynValue.Void)
-                        user.DisplayIncomingWhisper("$", "Ret: nil (OK)");
-                    // this is deeply annoying and stupid
-                    else if (script.LastReturnValue.Type == DataType.Boolean)
-                        user.DisplayIncomingWhisper("$", $"Ret: {script.LastReturnValue.Boolean.ToString()}");
-                    else
-                        user.DisplayIncomingWhisper("$", $"Ret: {script.LastReturnValue.CastToString()}");
 
-                }
+                if (ret.Return.Equals(DynValue.Nil) || ret.Return.Equals(DynValue.Void))
+                    user.DisplayIncomingWhisper("$", "Ret: nil (OK)");
+                else
+                    user.DisplayIncomingWhisper("$", $"Ret: {ret.Return.CastToString()}");
 
                 return;
 
@@ -3212,7 +3219,7 @@ public partial class World : Server
         VisibleObject source = null;
 
         // Is this an async dialog session (either one in progress, or one starting)
-        if (objectID == UInt32.MaxValue)
+        if (objectID == uint.MaxValue)
         {
             // TODO: optimize
             var asynckeys = ActiveAsyncDialogs.Keys.Where(key => key.Item1 == user.Id || key.Item2 == user.Id);

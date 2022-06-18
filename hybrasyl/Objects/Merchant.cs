@@ -190,7 +190,8 @@ public class Merchant : Creature, IXmlReloadable
             Script.AssociateScriptWithObject(this);
             // Clear existing pursuits, in case the OnSpawn crashes / has a bug
             ResetPursuits();
-            Ready = Script.ExecuteFunction("OnSpawn");
+            var ret = Script.ExecuteFunction("OnSpawn", ScriptEnvironment.CreateWithInvoker(this));
+            Ready = ret.Result == ScriptResult.Success;
         }
         else
             Ready = true;
@@ -228,13 +229,32 @@ public class Merchant : Creature, IXmlReloadable
 
     }
 
+    public override string Status()
+    {
+        string ret;
+        if (LastExecutionResult == null)
+            ret = $"{Name}: script has never executed";
+        else
+        {
+            ret =
+                $"NPC {Name}, script {Script.FileName}\nLast Execution: {LastExecutionResult.Result} at {LastExecutionResult.ExecutionTime}";
+            ret = $"{ret}\nExpression: {LastExecutionResult.ExecutedExpression}";
+            if (!string.IsNullOrEmpty(LastExecutionResult.Location))
+                ret = $"{ret}\nLocation: {LastExecutionResult.Location}";
+            if (LastExecutionResult.Error != null)
+                ret = $"{ret}\nLast Error: {LastExecutionResult.Error}";
+        }
+
+        return ret;
+    }
+
     public override void OnClick(User invoker)
     {
         if (!Ready)
             OnSpawn();
 
         if (Script != null && Script.HasFunction("OnClick"))
-            Script.ExecuteFunction("OnClick", new HybrasylUser(invoker));
+            Script.ExecuteFunction("OnClick", ScriptEnvironment.CreateWithInvoker(invoker));
         else
             DisplayPursuits(invoker);
     }
@@ -244,7 +264,7 @@ public class Merchant : Creature, IXmlReloadable
         base.AoiEntry(obj);
         if (Script != null)
         {
-            Script.ExecuteFunction("OnEntry", new HybrasylWorldObject(obj));
+            Script.ExecuteFunction("OnEntry", ScriptEnvironment.CreateWithInvoker(obj));
         }
     }
 
@@ -253,7 +273,7 @@ public class Merchant : Creature, IXmlReloadable
         base.AoiDeparture(obj);
         if (Script != null)
         {
-            Script.ExecuteFunction("OnLeave", new HybrasylWorldObject(obj));
+            Script.ExecuteFunction("OnLeave", ScriptEnvironment.CreateWithInvoker(obj));
         }
     }
 

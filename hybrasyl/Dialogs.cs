@@ -28,6 +28,8 @@ using System;
 using System.Text.RegularExpressions;
 using System.Reflection;
 using Hybrasyl.Enums;
+using Hybrasyl.Scripting;
+using Script = Hybrasyl.Scripting.Script;
 
 namespace Hybrasyl
 {
@@ -106,8 +108,10 @@ namespace Hybrasyl
                 }
                 if (!string.IsNullOrEmpty(PreDisplayCallback) && runCheck)
                 {
-                    var ret = Script.ExecuteAndReturn(PreDisplayCallback, invoker);
-                    if (ret == DynValue.True)
+                    var env = ScriptEnvironment.CreateWithInvoker(invoker);
+                    env.DialogPath = Name;
+                    var ret = Script.ExecuteExpression(PreDisplayCallback, env);
+                    if (ret.Return.Equals(DynValue.True))
                         Dialogs.First().ShowTo(invoker, target);
                     else
                         // Error, generally speaking
@@ -187,8 +191,6 @@ namespace Hybrasyl
                 OptionText = option;
                 overrideSequence = sequence;
             }
-
-
         }
 
         public class Dialog
@@ -206,23 +208,26 @@ namespace Hybrasyl
 
             private string _displayText { get; set; }
 
+            protected string DialogPath => $"{Sequence.Name}:{GetType().Name}:{Index}";
+
+            public ScriptExecutionResult LastScriptResult { get; set; } = null;
+
             /// <summary>
             /// Gets the script responsible for handling events. This can be either an associate (e.g. an NPC),
             /// an override, or a global script (set by a dialog's sequence).
             /// Associate override first, then associate, and lastly, a global script.
             /// </summary>
             /// <returns></returns>
-            protected Scripting.Script GetScript(WorldObject AssociateOverride = null)
+            protected Script GetScript(WorldObject AssociateOverride = null)
             {
+                if (AssociateOverride is IDynamicInteractable io)
+                    return io.Script;
+
                 var associate = AssociateOverride == null ? Sequence.Associate : AssociateOverride;
 
                 if (associate != null)
-                    return AssociateOverride.Script;
-                else if (Sequence.Script != null)
-                    return Sequence.Script;
-
-                return null;
-
+                    return associate.Script;
+                return Sequence.Script ?? null;
             }
 
             /// <summary>
@@ -313,23 +318,17 @@ namespace Hybrasyl
                 CallbackExpression = callback;
             }
 
-            public void RunCallback(User target, VisibleObject associateOverride = null)
+            public ScriptExecutionResult RunCallback(User target, VisibleObject associateOverride = null)
             {
-                if (!string.IsNullOrEmpty(CallbackExpression))
-                {
-                    try
-                    {
-                        if (!GetScript(associateOverride).Execute(CallbackExpression, target))
-                            target.ClearDialogState();
-                    }
-                    catch (Exception ex)
-                    {
-                        Game.ReportException(ex);
-                        GameLog.ScriptingError(ex, "{Function}: callback unhandled exception", MethodInfo.GetCurrentMethod().Name);
-                        target.ClearDialogState();
-                    }
+                if (string.IsNullOrEmpty(CallbackExpression)) return ScriptExecutionResult.NoExecution;
 
-                }
+                var script = GetScript(associateOverride);
+                if (script == null) return ScriptExecutionResult.NotFound;
+                var env = new ScriptEnvironment();
+                env.DialogPath = DialogPath;
+                env.Add("invoker", target);
+                LastScriptResult = script.ExecuteExpression(CallbackExpression);
+                return LastScriptResult;
             }
 
             public bool HasPrevDialog()
@@ -338,7 +337,6 @@ namespace Hybrasyl
                 // Don't allow prev buttons after either input or options dialogs
                 if (Index != 0)
                 {
-
                     return Sequence.Dialogs.Count() > 1 && Sequence.Dialogs[Index - 1].DialogType == DialogTypes.SIMPLE_DIALOG;
                 }
                 return false;
@@ -367,6 +365,7 @@ namespace Hybrasyl
                     var creature = (Creature)invokee;
                     sprite = (ushort)(0x4000 + creature.Sprite);
                     objType = 1;
+
                 }
                 else if (invokee is ItemObject)
                 {
@@ -380,14 +379,12 @@ namespace Hybrasyl
                     objType = 4;
                 }
 
-                if (Sprite != 0)
-                    sprite = Sprite;
-                else
-                {
+                if (Sprite == 0)
                     // If dialog sprite is unset, try using invokee's sprite; 
-                    // then try user dialog state (global sequence)
-                    sprite = invokee?.DialogSprite ?? invoker.DialogState?.Associate?.DialogSprite ?? 0;
-                }
+                    // then try user dialog state (global sequence),
+                    // and lastly try the sprite for the active sequence itself
+                    sprite = invokee?.DialogSprite ?? invoker.DialogState?.Associate?.DialogSprite ??
+                        invoker.DialogState?.ActiveDialogSequence?.Sprite ?? 0;
 
                 dialogPacket.WriteByte(objType);
                 // If no invokee ID, we use 0xFFFFFFFF; 99.9% of the time this is an async dialog request
@@ -507,11 +504,9 @@ namespace Hybrasyl
 
             private void InvokerError(string message)
             {
-                if (Invoker is User)
-                {
-                    (Invoker as User).SendSystemMessage(message);
-                    (Invoker as User).ClearDialogState();
-                }
+                if (Invoker is not User user) return;
+                user.SendSystemMessage(message);
+                user.ClearDialogState();
             }
 
             public void End()
@@ -526,7 +521,7 @@ namespace Hybrasyl
             {
                 if (_sequence is null)
                 {
-                    if (Invoker.SequenceCatalog.TryGetValue(Sequence, out _sequence) || Game.World.GlobalSequences.TryGetValue(Sequence, out _sequence))
+                    if (Invoker.SequenceIndex.TryGetValue(Sequence, out _sequence) || Game.World.GlobalSequences.TryGetValue(Sequence, out _sequence))
                         return true;
                     return false;
                 }
@@ -617,6 +612,8 @@ namespace Hybrasyl
                 // Depending on how this was registered, it may not have an associate; thankfully we always
                 // get a hint of one from the 0x3A packet
                 var associate = Sequence?.Associate is null ? invokee : Sequence.Associate;
+                // Consult dialog state as last attempt to find our associate
+
                 // We assume that a callback expression for a jump dialog is a simple one to award xp, set
                 // a value, etc. If you use this functionality to modify dialog sequences / change active 
                 // sequence you're likely to have strange results.
@@ -627,10 +624,12 @@ namespace Hybrasyl
                     invoker.DialogState.EndDialog();
                     if (associate is VisibleObject)
                         (associate as VisibleObject).DisplayPursuits(invoker);
-                    return; 
+                    return;
                 }
-               if (associate.SequenceCatalog.TryGetValue(NextSequence, out sequence) || Game.World.GlobalSequences.TryGetValue(NextSequence, out sequence))
-               {
+
+                if (associate.SequenceIndex.TryGetValue(NextSequence, out sequence) ||
+                    Game.World.GlobalSequences.TryGetValue(NextSequence, out sequence) || (associate is IDynamicInteractable idi && idi.SequenceIndex.TryGetValue(NextSequence, out sequence)))
+                {
                     // End previous sequence
                     invoker.DialogState.EndDialog();
                     invoker.DialogState.StartDialog(invokee, sequence);
@@ -644,9 +643,8 @@ namespace Hybrasyl
                     Log.Error("JumpDialog: sequence {NextSequence} not found!", NextSequence);
                 }
             }
-
-
         }
+
         /// <summary>
         /// This is a derived class which allows a script to insert an arbitrary function (e.g. an effect display, teleport, etc) into a dialog sequence.
         /// Its ShowTo is responsible for carrying out the action. In this way, FunctionDialogs can be used exactly the same as all other dialog types.
@@ -664,10 +662,10 @@ namespace Hybrasyl
 
             public override void ShowTo(User invoker, VisibleObject invokee)
             {
-                if (Expression != null)
-                {
-                    GetScript(invokee).Execute(Expression, invoker);
-                }
+                var script = GetScript(invokee);
+                var env = ScriptEnvironment.Create(("invoker", invoker), ("invokee", invokee));
+                env.DialogPath = DialogPath;
+                LastScriptResult = script.ExecuteExpression(Expression, env);
                 // Skip to next dialog in sequence
                 Sequence.ShowByIndex(Index + 1, invoker, invokee);               
             }
@@ -799,9 +797,15 @@ namespace Hybrasyl
                 // We pass everything as string to not make UserData barf, as it can't handle dynamics.
                 // For option dialogs we pass both the "number" selected, and the actual text of the button pressed.
                 var script = GetScript(associateOverride);
-                script.SetGlobalValue("player_selection", optionSelected.ToString());
-                script.SetGlobalValue("player_response", Options[optionSelected - 1].OptionText);
-                return script.Execute(Expression, invoker, source);
+                if (script == null) return false;
+                var env = new ScriptEnvironment();
+                env.Add("player_selection", optionSelected.ToString());
+                env.Add("player_response", Options[optionSelected - 1].OptionText);
+                env.Add("invoker", invoker);
+                env.Add("source", source);
+                env.DialogPath = DialogPath;
+                LastScriptResult = script.ExecuteExpression(Expression, env);
+                return Equals(LastScriptResult.Return, DynValue.True) || Equals(LastScriptResult.Return, DynValue.Nil);
             }
         }
 
@@ -849,8 +853,14 @@ namespace Hybrasyl
                         Log.Error("scriptTarget is null, this should not happen");
                         return false;
                     }
-                    scriptTarget.SetGlobalValue("player_response", response);
-                    return scriptTarget.Execute(Handler, invoker, source);
+                    var env = new ScriptEnvironment();
+                    env.Add("player_response", response);
+                    env.Add("invoker", invoker);
+                    env.Add("source", source);
+                    env.DialogPath = DialogPath;
+                    LastScriptResult = scriptTarget.ExecuteExpression(Handler, env);
+
+                    return Equals(LastScriptResult.Return, DynValue.True) || Equals(LastScriptResult.Return, DynValue.Nil);
                 }
                 return false;
             }
@@ -998,13 +1008,31 @@ namespace Hybrasyl
 
             public bool SetDialogIndex(VisibleObject target, int pursuitId, int newIndex)
             {
-                // Sanity checking
-                if (target != null && (target != Associate || pursuitId != CurrentPursuitId ||
-                    target.Map.Id != User.Map.Id || !InDialog))
+                switch (target)
                 {
-                    Log.Error("{Username}: Failed dialog sanity check: target {target}, current pursuit {cpid}, pursuit {pid}, index {index}, target map {targetmap}, user map {usermap}, indialog {dialog}", 
-                        User.Name, target.Name, CurrentPursuitId, pursuitId, newIndex, target.Map.Id, User.Map.Id, InDialog);
-                    return false;
+                    // Sanity checking
+                    case Merchant:
+                    case Creature:
+                    {
+                        if (target is Merchant || target is Creature && target != null && (target != Associate ||
+                                pursuitId != CurrentPursuitId ||
+                                target.Map.Id != User.Map.Id || !InDialog))
+                        {
+                            Log.Error(
+                                $"{User.Name}: Failed dialog sanity check: target {target.Name}, current pursuit {CurrentPursuitId}, pursuit {pursuitId}, index {newIndex}, " +
+                                $"target map {target.Map.Id}, user map {User.Map.Id}, indialog {InDialog}");
+                            return false;
+                        }
+
+                        break;
+                    }
+                    case IDynamicInteractable:
+                    {
+                        if (target is ItemObject io && !User.Inventory.Contains(io))
+                            Log.Error($"{User.Name}: Failed dialog sanity check: item {io.Name} no longer in inventory: current pursuit {CurrentPursuitId}, pursuit {pursuitId}, index {newIndex}, " +
+                                      $"target map {target.Map.Id}, user map {User.Map.Id}, indialog {InDialog}");
+                    }
+                        break;
                 }
 
                 if (target == null && pursuitId > Constants.DIALOG_SEQUENCE_SHARED)
@@ -1014,8 +1042,8 @@ namespace Hybrasyl
                 }
 
                 if (newIndex == (ActiveDialog.Index + 1) &&
-                    newIndex != ActiveDialogSequence.Dialogs.Count() &&
-                    newIndex < (ActiveDialogSequence.Dialogs.Count()))
+                    newIndex != ActiveDialogSequence.Dialogs.Count &&
+                    newIndex < ActiveDialogSequence.Dialogs.Count)
                 {
                     // Next
                     Log.Debug("Advancing one dialog");

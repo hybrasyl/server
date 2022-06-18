@@ -24,6 +24,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using Hybrasyl.Enums;
 using Hybrasyl.Messaging;
+using Hybrasyl.Scripting;
 using Newtonsoft.Json;
 
 namespace Hybrasyl.Objects;
@@ -57,6 +58,16 @@ public class VisibleObject : WorldObject
 
     protected Dictionary<string, string> Strings = new();
     protected Dictionary<string, string> Responses = new();
+    // Whether or not to allow a ghost (a dead player) to interact with this object
+    public bool AllowDead { get; set; }
+
+    public string DeathPileOwner { get; set; }
+    public List<string> ItemDropAllowedLooters { get; set; }
+    public DateTime? ItemDropTime { get; set; }
+    public ItemDropType ItemDropType { get; set; }
+
+    public HashSet<User> viewportUsers { get; private set; }
+
 
     public string GetLocalString(string key) => Strings.ContainsKey(key) ? Strings[key] : World.GetLocalString(key);
 
@@ -71,16 +82,6 @@ public class VisibleObject : WorldObject
         return str;
     }
 
-
-    // Whether or not to allow a ghost (a dead player) to interact with this object
-    public bool AllowDead { get; set; }
-
-    public string DeathPileOwner { get; set; }
-    public List<string> ItemDropAllowedLooters { get; set; }
-    public DateTime? ItemDropTime { get; set; }
-    public ItemDropType ItemDropType { get; set; }
-
-    public HashSet<User> viewportUsers { get; private set; }
 
     public VisibleObject()
     {
@@ -339,15 +340,6 @@ public class VisibleObject : WorldObject
             options.Options.Add(new MerchantDialogOption { Id = (ushort)MerchantMenuItem.SendParcelMenu, Text = "Send Parcel" });
             optionsCount++;
 
-            /* if user has item named "Letter"
-                 *     menupacket.WriteString8("Send Letter");
-                 *     menupacket.WriteUInt16((ushort)MerchantMenuItem.SendLetterMenu);
-                 *     pursuitCount++;
-                 * if user has incoming parcel
-                 *     menupacket.WriteString8("Receive Parcel");
-                 *     menupacket.WriteUInt16((ushort)MerchantMenuItem.ReceiveParcel);
-                 *     pursuitCount++;
-                 */
         }
 
         foreach (var pursuit in Pursuits)
@@ -355,16 +347,20 @@ public class VisibleObject : WorldObject
             GameLog.DebugFormat("Pursuit {0}, id {1}", pursuit.Name, pursuit.Id);
             if (pursuit.MenuCheckExpression != string.Empty)
             {
-                var ret = Script.ExecuteAndReturn(pursuit.MenuCheckExpression, invoker);
+                var env = ScriptEnvironment.CreateWithInvoker(invoker);
+                env.DialogPath = $"{Name}:DisplayPursuits:MenuCheckExpression";
+                var ret = Script.ExecuteExpression(pursuit.MenuCheckExpression,
+                    env);
                 // If the menu check expression returns anything other than true, we don't include the 
                 // pursuit on the main menu that is sent to the user
-                if (!ret.CastToBool())
+                if (!ret.Return.CastToBool())
                 {
                     GameLog.ScriptingDebug($"{pursuit.MenuCheckExpression} evaluated to {ret}");
                     continue;
                 }
             }
-            options.Options.Add(new MerchantDialogOption { Id = (ushort)pursuit.Id.Value, Text = pursuit.Name} );
+
+            options.Options.Add(new MerchantDialogOption {Id = (ushort) pursuit.Id.Value, Text = pursuit.Name});
             optionsCount++;
 
         }

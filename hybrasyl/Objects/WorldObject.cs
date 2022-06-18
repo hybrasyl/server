@@ -31,7 +31,7 @@ using Newtonsoft.Json;
 namespace Hybrasyl.Objects;
 
 [JsonObject(MemberSerialization.OptIn)]
-public class WorldObject : IQuadStorable
+public class WorldObject : IQuadStorable, IWorldObject
 {
     /// <summary>
     /// The rectangle that defines the object's boundaries.
@@ -41,6 +41,7 @@ public class WorldObject : IQuadStorable
     public DateTime CreationTime { get; set; }
 
     public bool HasMoved { get; set; }
+    public string Type => GetType().Name;
 
     public virtual byte X { get; set; }
     public virtual byte Y { get; set; }
@@ -50,7 +51,10 @@ public class WorldObject : IQuadStorable
     [JsonProperty(Order = 0)]
     public virtual string Name { get; set; }
 
-    public Script Script { get; set; }
+    public virtual Script Script { get; set; }
+
+    public ScriptExecutionResult LastExecutionResult { get; set; }
+
     public Guid ServerGuid { get; set; }
     public World World => Game.GetServerByGuid<World>(ServerGuid);
     public ushort DialogSprite { get; set; }
@@ -60,11 +64,11 @@ public class WorldObject : IQuadStorable
 
     public void SetEphemeral(string key, dynamic value)
     {
-        lock(_storeLock)
+        lock (_storeLock)
             _ephemeralStore[key] = value;
     }
 
-    public virtual void OnInsert() {}
+    public virtual void OnInsert() { }
 
     public List<Tuple<string, dynamic>> GetEphemeralValues()
     {
@@ -72,7 +76,7 @@ public class WorldObject : IQuadStorable
         lock (_storeLock)
         {
             foreach (var entry in _ephemeralStore)
-                ret.Add(new Tuple<string,dynamic>(entry.Key, entry.Value));
+                ret.Add(new Tuple<string, dynamic>(entry.Key, entry.Value));
         }
         return ret;
     }
@@ -117,7 +121,7 @@ public class WorldObject : IQuadStorable
     {
         Pursuits = new List<DialogSequence>();
         DialogSequences = new List<DialogSequence>();
-        SequenceCatalog = new Dictionary<string, DialogSequence>();
+        SequenceIndex = new Dictionary<string, DialogSequence>();
     }
 
     public virtual void AddPursuit(DialogSequence pursuit)
@@ -135,14 +139,13 @@ public class WorldObject : IQuadStorable
             Pursuits.Add(pursuit);
         }
 
-        if (SequenceCatalog.ContainsKey(pursuit.Name))
+        if (SequenceIndex.ContainsKey(pursuit.Name))
         {
             GameLog.WarningFormat("Pursuit {0} is being overwritten", pursuit.Name);
-            SequenceCatalog.Remove(pursuit.Name);
-
+            SequenceIndex.Remove(pursuit.Name);
         }
 
-        SequenceCatalog.Add(pursuit.Name, pursuit);
+        SequenceIndex.Add(pursuit.Name, pursuit);
 
         if (pursuit.Id > Constants.DIALOG_SEQUENCE_SHARED)
         {
@@ -156,17 +159,17 @@ public class WorldObject : IQuadStorable
         sequence.AssociateSequence(this);
         DialogSequences.Add(sequence);
 
-        if (SequenceCatalog.ContainsKey(sequence.Name))
+        if (SequenceIndex.ContainsKey(sequence.Name))
         {
             GameLog.WarningFormat("Dialog sequence {0} is being overwritten", sequence.Name);
-            SequenceCatalog.Remove(sequence.Name);
+            SequenceIndex.Remove(sequence.Name);
 
         }
-        SequenceCatalog.Add(sequence.Name, sequence);
-            
+        SequenceIndex.Add(sequence.Name, sequence);
+
     }
 
     public List<DialogSequence> Pursuits;
-    public List<DialogSequence> DialogSequences;
-    public Dictionary<string, DialogSequence> SequenceCatalog;
-}
+    public virtual List<DialogSequence> DialogSequences { get; set; }
+    public virtual Dictionary<string, DialogSequence> SequenceIndex { get; set; }
+} 

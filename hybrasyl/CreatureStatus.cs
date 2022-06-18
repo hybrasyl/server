@@ -24,6 +24,7 @@ using Hybrasyl.Objects;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using Hybrasyl.Scripting;
 
 namespace Hybrasyl;
 
@@ -363,7 +364,7 @@ public class CreatureStatus : ICreatureStatus
 
         if (invokee.Script != null)
         {
-            invokee.Script.ExecuteFunction(handler.Function, invoker);
+            invokee.Script.ExecuteFunction(handler.Function, ScriptEnvironment.CreateWithInvoker(invoker));
             return;
         }
 

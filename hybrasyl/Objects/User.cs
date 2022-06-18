@@ -5040,6 +5040,10 @@ public class User : Creature
         for (byte i = 1; i < Inventory.Size; i++)
         {
             if (Inventory[i] == null) continue;
+            if (Inventory[i].Id == 0)
+            {
+                Game.World.Insert(Inventory[i]);
+            }
             var x0F = new ServerPacket(0x0F);
             x0F.WriteByte(i);
             x0F.WriteUInt16((ushort)(Inventory[i].Sprite + 0x8000));

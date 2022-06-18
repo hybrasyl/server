@@ -5,11 +5,12 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using Hybrasyl.Objects;
 using Hybrasyl.Xml;
 
 namespace Hybrasyl
 {
-    public class BookSlot
+    public class BookSlot 
     {
         public Xml.Castable Castable { get; set; }
         public uint UseCount { get; set; }

@@ -30,63 +30,43 @@ using System.Reflection;
 
 namespace Hybrasyl.Scripting;
 
-/// <summary>
-/// A Lua wrapper object representing a Hybrasyl non-player world object (merchant, item, reactor, etc)
-/// </summary>
+
 [MoonSharpUserData]
-public class HybrasylWorldObject
+public class HybrasylWorldObject : IScriptable
 {
-    internal WorldObject Obj { get; set; }
-    // TODO: create HybrasylItemObject pls
-    public static bool IsPlayer => false;
+    public IWorldObject WorldObject { get; set; }
+    public WorldObject Obj => WorldObject as WorldObject;
+    public string Name => WorldObject.Name;
+    public string Type => Obj.GetType().Name;
+    //public Xml.Direction Direction => WorldObject.Direction;
 
     public void DebugFunction(string x)
     {
         GameLog.ScriptingWarning(x);
     }
-    internal List<string> Categories
-    {
-        get
-        {
-            if (Obj is ItemObject itm)
-                return itm.Categories;
-            return new List<string>();
-        }
-    }
 
-    // TODO: determine a better way to do this in lua via moonsharp
     /// <summary>
-    /// A string representing the underlying object type (merchant, reactor, item, monster, etc)
+    /// Set the default sprite for this world object to a specified creature sprite.
     /// </summary>
-    public string Type
+    /// <param name="displaySprite">Integer referencing a creature sprite in the client datfiles.</param>
+    public void SetNpcDisplaySprite(int displaySprite)
     {
-        get
-        {
-            return Obj switch
-            {
-                Merchant => "merchant",
-                Reactor => "reactor",
-                ItemObject => "item",
-                Monster => "monster",
-                User => "user",
-                Gold => "gold",
-                _ => "idk"
-            };
-        }
+        if (Obj is VisibleObject vobj)
+            vobj.Sprite = (ushort)(0x4000 + displaySprite);
+        else
+            GameLog.ScriptingError("SetNpcDisplaySprite: underlying object is not a visible object, ignoring");
     }
 
-    // TODO: see above and also interface / subclass this, because this is gross
-    public StatInfo Stats 
+    /// <summary>
+    /// Set the default sprite for this world object to a specified item sprite.
+    /// </summary>
+    /// <param name="displaySprite">Integer referencing a creature sprite in the client datfiles.</param>
+    public void SetItemDisplaySprite(int displaySprite)
     {
-        get
-        {
-            return Obj switch
-            {
-                Creature c => c.Stats,
-                ItemObject i => i.Stats,
-                _ => null
-            };
-        }
+        if (Obj is VisibleObject vobj)
+            vobj.Sprite = (ushort)(0x4000 + displaySprite);
+        else
+            GameLog.ScriptingError("SetItemDisplaySprite: underlying object is not a visible object, ignoring");
     }
 
     /// <summary>
@@ -112,19 +92,6 @@ public class HybrasylWorldObject
     }
 
     /// <summary>
-    /// The name of the object.
-    /// </summary>
-    public string Name
-    {
-        get
-        {
-            if (Obj is ItemObject item)
-                return item.Name;
-            else
-                return Obj.Name;
-        }
-    }
-    /// <summary>
     /// The current X coordinate location of the object.
     /// </summary>
     public byte X => Obj.X;
@@ -133,9 +100,9 @@ public class HybrasylWorldObject
     /// </summary>
     public byte Y => Obj.Y;
 
-    public HybrasylWorldObject(WorldObject obj)
+    public HybrasylWorldObject(IWorldObject obj)
     {
-        Obj = obj;
+        WorldObject = obj;
     }
 
     /// <summary>
@@ -233,7 +200,7 @@ public class HybrasylWorldObject
     /// Remove the specified key from the object's ephemeral store.
     /// </summary>
     /// <param name="key"></param>
-    public void ClearEphemeral(string key) 
+    public void ClearEphemeral(string key)
     {
         if (string.IsNullOrEmpty(key))
         {
@@ -241,7 +208,6 @@ public class HybrasylWorldObject
             return;
         }
         Obj.ClearEphemeral(key);
-
     }
 
     /// <summary>
@@ -290,7 +256,7 @@ public class HybrasylWorldObject
         if (hybrasylSequence is null || hybrasylSequence.Sequence.Dialogs.Count == 0)
         {
             GameLog.Error("RegisterSequence: sequence (first argument) was null or contained no dialogs, ignoring");
-            return;       
+            return;
         }
         if (Obj is VisibleObject && !(Obj is User))
         {
@@ -326,48 +292,6 @@ public class HybrasylWorldObject
         return -1;
     }
 
-    // TODO: refactor and collapse, also add dialog sprite
-
-    /// <summary>
-    /// Set the default sprite for this world object to a specified creature sprite.
-    /// </summary>
-    /// <param name="displaySprite">Integer referencing a creature sprite in the client datfiles.</param>
-    public void SetNpcDisplaySprite(int displaySprite)
-    {
-        if (Obj is VisibleObject vobj)
-            vobj.Sprite = (ushort)(0x4000 + displaySprite);
-        else
-            GameLog.ScriptingError("SetNpcDisplaySprite: underlying object is not a visible object, ignoring");
-    }
-
-    /// <summary>
-    /// Set the default sprite for this world object to a specified item sprite.
-    /// </summary>
-    /// <param name="displaySprite">Integer referencing a creature sprite in the client datfiles.</param>
-    public void SetItemDisplaySprite(int displaySprite)
-    {
-        if (Obj is VisibleObject vobj)
-            vobj.Sprite = (ushort)(0x4000 + displaySprite);
-        else
-            GameLog.ScriptingError("SetItemDisplaySprite: underlying object is not a visible object, ignoring");
-    }
-
-    public void SetCreatureDisplaySprite(int displaySprite)
-    {
-        if (Obj is Monster monster)
-            monster.Sprite = (ushort)displaySprite;
-        else
-            GameLog.ScriptingError("SetCreatureDisplaySprite: underlying object is not a monster, ignoring");
-    }
-
-    public int GetCreatureDisplaySprite()
-    {
-        if (Obj is Monster monster)
-            return monster.Sprite;
-        return 0;
-    }
-
-
     /// <summary>
     /// Request an asynchronous dialog with a player. This can be used to ask a different player a question (such as for mentoring, etc).
     /// </summary>
@@ -386,7 +310,7 @@ public class HybrasylWorldObject
         DialogSequence seq;
         if (Game.World.TryGetActiveUser(player, out User user))
         {
-            if (Obj.SequenceCatalog.TryGetValue(sequence, out seq) ||
+            if (Obj.SequenceIndex.TryGetValue(sequence, out seq) ||
                 Game.World.GlobalSequences.TryGetValue(sequence, out seq))
                 // TODO: fix this awful object hierarchy nonsense
                 return Game.World.TryAsyncDialog(Obj as VisibleObject, user, seq);
@@ -464,4 +388,6 @@ public class HybrasylWorldObject
         }
         else return false;
     }
+
+
 }

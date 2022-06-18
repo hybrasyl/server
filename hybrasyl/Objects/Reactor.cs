@@ -22,6 +22,7 @@
 using System;
 using System.Threading.Tasks;
 using Hybrasyl.Enums;
+using Hybrasyl.Scripting;
 
 namespace Hybrasyl.Objects;
 
@@ -91,7 +92,7 @@ public class Reactor : VisibleObject
         {
             Script = myScript;
             Script.AssociateScriptWithObject(this);
-            _ready = Script.Run(false);
+            _ready = Script.Run(false).Result == ScriptResult.Success;
         }
         else
         {
@@ -112,7 +113,7 @@ public class Reactor : VisibleObject
                 return;
         }
         if (Ready)
-            Script.ExecuteFunction("OnEntry", obj, this);
+            Script.ExecuteFunction("OnEntry", ScriptEnvironment.CreateWithInvokerAndSource(obj, this));
     }
 
     public override void AoiEntry(VisibleObject obj)
@@ -120,14 +121,14 @@ public class Reactor : VisibleObject
         if (Expired) return;
         base.AoiEntry(obj);
         if (Ready)
-            Script.ExecuteFunction("AoiEntry", obj, this);
+            Script.ExecuteFunction("AoiEntry", ScriptEnvironment.CreateWithInvokerAndSource(obj, this));
     }
 
     public virtual void OnLeave(VisibleObject obj)
     {
         if (Expired) return;
         if (Ready && Script.HasFunction("OnLeave"))
-            Script.ExecuteFunction("OnLeave", obj, this);
+            Script.ExecuteFunction("OnLeave", ScriptEnvironment.CreateWithInvokerAndSource(obj, this));
         if (obj is User user)
             user.LastAssociate = null;
     }
@@ -137,15 +138,18 @@ public class Reactor : VisibleObject
         if (Expired) return;
         base.AoiDeparture(obj);
         if (Ready)
-            Script.ExecuteFunction("AoiDeparture", obj, this);
+            Script.ExecuteFunction("AoiDeparture", ScriptEnvironment.CreateWithInvokerAndSource(obj, this));
     }
 
     public virtual void OnDrop(VisibleObject obj, VisibleObject dropped)
     {
         if (Expired) return;
         if (Ready)
-            Script.ExecuteFunction("OnDrop", obj, this,
-                dropped);
+        {
+            var env = ScriptEnvironment.CreateWithInvokerAndSource(obj, this);
+            env.Add("item", dropped);
+            Script.ExecuteFunction("OnDrop", env);
+        }
     }
 
 
@@ -153,15 +157,18 @@ public class Reactor : VisibleObject
     {
         if (Expired) return;
         if (Ready)
-            Script.ExecuteFunction("OnMove", obj, this);
+            Script.ExecuteFunction("OnMove", ScriptEnvironment.CreateWithInvokerAndSource(obj, this));
     }
 
     public void OnTake(VisibleObject obj, VisibleObject taken)
     {
         if (Expired) return;
         if (Ready)
-            Script.ExecuteFunction("OnDrop", obj, this,
-                taken);
+        {
+            var env = ScriptEnvironment.CreateWithInvokerAndSource(obj, this);
+            env.Add("item", taken);
+            Script.ExecuteFunction("OnDrop", env);
+        }
     }
 
     public override void ShowTo(VisibleObject obj)

@@ -66,6 +66,11 @@ public class Creature : VisibleObject
         SessionCookies = new Dictionary<string, string>();
     }
 
+    public virtual string Status()
+    {
+        return string.Empty;
+    }
+
     public override void OnClick(User invoker)
     {
         // TODO: abstract to xml
@@ -558,7 +563,10 @@ public class Creature : VisibleObject
         {
             // If a script is defined we fire it immediately, and let it handle targeting / etc
             if (Game.World.ScriptProcessor.TryGetScript(castObject.Script, out Script script))
-                return script.ExecuteFunction("OnUse", this, target);
+            {
+                var ret = script.ExecuteFunction("OnUse", ScriptEnvironment.Create(("invoker", target), ("source", this)));
+                return ret.Result == ScriptResult.Success;
+            }
             else
             {
                 GameLog.UserActivityError(
