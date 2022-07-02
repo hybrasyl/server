@@ -52,6 +52,22 @@ public class HybrasylItemObject : HybrasylWorldObject, IInteractable
 
     public ushort DialogSprite => Item.DialogSprite;
 
+    // ItemFlags exposed here, to make it easier to use in scripting
+    public bool Bound => Item.Template.Properties.Flags.HasFlag(ItemFlags.Bound);
+    public bool Depositable => Item.Template.Properties.Flags.HasFlag(ItemFlags.Depositable);
+    public bool Enchantable => Item.Template.Properties.Flags.HasFlag(ItemFlags.Enchantable);
+    public bool Consecratable => Item.Template.Properties.Flags.HasFlag(ItemFlags.Consecratable);
+    public bool Tailorable => Item.Template.Properties.Flags.HasFlag(ItemFlags.Tailorable);
+    public bool Smithable => Item.Template.Properties.Flags.HasFlag(ItemFlags.Smithable);
+    public bool Exchangeable => Item.Template.Properties.Flags.HasFlag(ItemFlags.Exchangeable);
+    public bool Vendorable => Item.Template.Properties.Flags.HasFlag(ItemFlags.Vendorable);
+    public bool Perishable => Item.Template.Properties.Flags.HasFlag(ItemFlags.Perishable);
+    public bool UniqueInventory => Item.Template.Properties.Flags.HasFlag(ItemFlags.UniqueInventory);
+    public bool MasterOnly => Item.Template.Properties.Flags.HasFlag(ItemFlags.MasterOnly);
+    public bool UniqueEquipped => Item.Template.Properties.Flags.HasFlag(ItemFlags.UniqueEquipped);
+    public bool Identifiable => Item.Template.Properties.Flags.HasFlag(ItemFlags.Identifiable);
+    public bool Undamageable => Item.Template.Properties.Flags.HasFlag(ItemFlags.Undamageable);
+    public bool Consumable => Item.Template.Properties.Flags.HasFlag(ItemFlags.Consumable);
     public HybrasylItemObject(ItemObject obj) : base(obj) { }
 
 }
